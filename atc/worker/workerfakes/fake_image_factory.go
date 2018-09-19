@@ -2,24 +2,24 @@
 package workerfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/worker"
+	lager "code.cloudfoundry.org/lager"
+	creds "github.com/concourse/concourse/atc/creds"
+	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakeImageFactory struct {
-	GetImageStub        func(logger lager.Logger, workerClient worker.Worker, volumeClient worker.VolumeClient, imageSpec worker.ImageSpec, teamID int, delegate worker.ImageFetchingDelegate, resourceTypes creds.VersionedResourceTypes) (worker.Image, error)
+	GetImageStub        func(lager.Logger, worker.Worker, worker.VolumeClient, worker.ImageSpec, int, worker.ImageFetchingDelegate, creds.VersionedResourceTypes) (worker.Image, error)
 	getImageMutex       sync.RWMutex
 	getImageArgsForCall []struct {
-		logger        lager.Logger
-		workerClient  worker.Worker
-		volumeClient  worker.VolumeClient
-		imageSpec     worker.ImageSpec
-		teamID        int
-		delegate      worker.ImageFetchingDelegate
-		resourceTypes creds.VersionedResourceTypes
+		arg1 lager.Logger
+		arg2 worker.Worker
+		arg3 worker.VolumeClient
+		arg4 worker.ImageSpec
+		arg5 int
+		arg6 worker.ImageFetchingDelegate
+		arg7 creds.VersionedResourceTypes
 	}
 	getImageReturns struct {
 		result1 worker.Image
@@ -33,27 +33,28 @@ type FakeImageFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeImageFactory) GetImage(logger lager.Logger, workerClient worker.Worker, volumeClient worker.VolumeClient, imageSpec worker.ImageSpec, teamID int, delegate worker.ImageFetchingDelegate, resourceTypes creds.VersionedResourceTypes) (worker.Image, error) {
+func (fake *FakeImageFactory) GetImage(arg1 lager.Logger, arg2 worker.Worker, arg3 worker.VolumeClient, arg4 worker.ImageSpec, arg5 int, arg6 worker.ImageFetchingDelegate, arg7 creds.VersionedResourceTypes) (worker.Image, error) {
 	fake.getImageMutex.Lock()
 	ret, specificReturn := fake.getImageReturnsOnCall[len(fake.getImageArgsForCall)]
 	fake.getImageArgsForCall = append(fake.getImageArgsForCall, struct {
-		logger        lager.Logger
-		workerClient  worker.Worker
-		volumeClient  worker.VolumeClient
-		imageSpec     worker.ImageSpec
-		teamID        int
-		delegate      worker.ImageFetchingDelegate
-		resourceTypes creds.VersionedResourceTypes
-	}{logger, workerClient, volumeClient, imageSpec, teamID, delegate, resourceTypes})
-	fake.recordInvocation("GetImage", []interface{}{logger, workerClient, volumeClient, imageSpec, teamID, delegate, resourceTypes})
+		arg1 lager.Logger
+		arg2 worker.Worker
+		arg3 worker.VolumeClient
+		arg4 worker.ImageSpec
+		arg5 int
+		arg6 worker.ImageFetchingDelegate
+		arg7 creds.VersionedResourceTypes
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+	fake.recordInvocation("GetImage", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.getImageMutex.Unlock()
 	if fake.GetImageStub != nil {
-		return fake.GetImageStub(logger, workerClient, volumeClient, imageSpec, teamID, delegate, resourceTypes)
+		return fake.GetImageStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.getImageReturns.result1, fake.getImageReturns.result2
+	fakeReturns := fake.getImageReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeImageFactory) GetImageCallCount() int {
@@ -65,7 +66,8 @@ func (fake *FakeImageFactory) GetImageCallCount() int {
 func (fake *FakeImageFactory) GetImageArgsForCall(i int) (lager.Logger, worker.Worker, worker.VolumeClient, worker.ImageSpec, int, worker.ImageFetchingDelegate, creds.VersionedResourceTypes) {
 	fake.getImageMutex.RLock()
 	defer fake.getImageMutex.RUnlock()
-	return fake.getImageArgsForCall[i].logger, fake.getImageArgsForCall[i].workerClient, fake.getImageArgsForCall[i].volumeClient, fake.getImageArgsForCall[i].imageSpec, fake.getImageArgsForCall[i].teamID, fake.getImageArgsForCall[i].delegate, fake.getImageArgsForCall[i].resourceTypes
+	argsForCall := fake.getImageArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
 }
 
 func (fake *FakeImageFactory) GetImageReturns(result1 worker.Image, result2 error) {

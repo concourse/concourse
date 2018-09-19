@@ -2,16 +2,17 @@
 package beaconfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/worker/beacon"
+	beacon "github.com/concourse/concourse/worker/beacon"
 )
 
 type FakeCloseable struct {
 	CloseStub        func() error
 	closeMutex       sync.RWMutex
-	closeArgsForCall []struct{}
-	closeReturns     struct {
+	closeArgsForCall []struct {
+	}
+	closeReturns struct {
 		result1 error
 	}
 	closeReturnsOnCall map[int]struct {
@@ -24,7 +25,8 @@ type FakeCloseable struct {
 func (fake *FakeCloseable) Close() error {
 	fake.closeMutex.Lock()
 	ret, specificReturn := fake.closeReturnsOnCall[len(fake.closeArgsForCall)]
-	fake.closeArgsForCall = append(fake.closeArgsForCall, struct{}{})
+	fake.closeArgsForCall = append(fake.closeArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Close", []interface{}{})
 	fake.closeMutex.Unlock()
 	if fake.CloseStub != nil {
@@ -33,7 +35,8 @@ func (fake *FakeCloseable) Close() error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.closeReturns.result1
+	fakeReturns := fake.closeReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeCloseable) CloseCallCount() int {

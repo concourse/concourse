@@ -2,17 +2,17 @@
 package transportfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/worker/transport"
+	db "github.com/concourse/concourse/atc/db"
+	transport "github.com/concourse/concourse/atc/worker/transport"
 )
 
 type FakeTransportDB struct {
-	GetWorkerStub        func(name string) (db.Worker, bool, error)
+	GetWorkerStub        func(string) (db.Worker, bool, error)
 	getWorkerMutex       sync.RWMutex
 	getWorkerArgsForCall []struct {
-		name string
+		arg1 string
 	}
 	getWorkerReturns struct {
 		result1 db.Worker
@@ -28,21 +28,22 @@ type FakeTransportDB struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTransportDB) GetWorker(name string) (db.Worker, bool, error) {
+func (fake *FakeTransportDB) GetWorker(arg1 string) (db.Worker, bool, error) {
 	fake.getWorkerMutex.Lock()
 	ret, specificReturn := fake.getWorkerReturnsOnCall[len(fake.getWorkerArgsForCall)]
 	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
-		name string
-	}{name})
-	fake.recordInvocation("GetWorker", []interface{}{name})
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("GetWorker", []interface{}{arg1})
 	fake.getWorkerMutex.Unlock()
 	if fake.GetWorkerStub != nil {
-		return fake.GetWorkerStub(name)
+		return fake.GetWorkerStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2, fake.getWorkerReturns.result3
+	fakeReturns := fake.getWorkerReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
 func (fake *FakeTransportDB) GetWorkerCallCount() int {
@@ -54,7 +55,8 @@ func (fake *FakeTransportDB) GetWorkerCallCount() int {
 func (fake *FakeTransportDB) GetWorkerArgsForCall(i int) string {
 	fake.getWorkerMutex.RLock()
 	defer fake.getWorkerMutex.RUnlock()
-	return fake.getWorkerArgsForCall[i].name
+	argsForCall := fake.getWorkerArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeTransportDB) GetWorkerReturns(result1 db.Worker, result2 bool, result3 error) {

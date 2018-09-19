@@ -2,78 +2,41 @@
 package dbfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/db"
+	db "github.com/concourse/concourse/atc/db"
 )
 
 type FakeResourceConfigCheckSessionLifecycle struct {
-	CleanInactiveResourceConfigCheckSessionsStub        func() error
-	cleanInactiveResourceConfigCheckSessionsMutex       sync.RWMutex
-	cleanInactiveResourceConfigCheckSessionsArgsForCall []struct{}
-	cleanInactiveResourceConfigCheckSessionsReturns     struct {
-		result1 error
-	}
-	cleanInactiveResourceConfigCheckSessionsReturnsOnCall map[int]struct {
-		result1 error
-	}
 	CleanExpiredResourceConfigCheckSessionsStub        func() error
 	cleanExpiredResourceConfigCheckSessionsMutex       sync.RWMutex
-	cleanExpiredResourceConfigCheckSessionsArgsForCall []struct{}
-	cleanExpiredResourceConfigCheckSessionsReturns     struct {
+	cleanExpiredResourceConfigCheckSessionsArgsForCall []struct {
+	}
+	cleanExpiredResourceConfigCheckSessionsReturns struct {
 		result1 error
 	}
 	cleanExpiredResourceConfigCheckSessionsReturnsOnCall map[int]struct {
+		result1 error
+	}
+	CleanInactiveResourceConfigCheckSessionsStub        func() error
+	cleanInactiveResourceConfigCheckSessionsMutex       sync.RWMutex
+	cleanInactiveResourceConfigCheckSessionsArgsForCall []struct {
+	}
+	cleanInactiveResourceConfigCheckSessionsReturns struct {
+		result1 error
+	}
+	cleanInactiveResourceConfigCheckSessionsReturnsOnCall map[int]struct {
 		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceConfigCheckSessionLifecycle) CleanInactiveResourceConfigCheckSessions() error {
-	fake.cleanInactiveResourceConfigCheckSessionsMutex.Lock()
-	ret, specificReturn := fake.cleanInactiveResourceConfigCheckSessionsReturnsOnCall[len(fake.cleanInactiveResourceConfigCheckSessionsArgsForCall)]
-	fake.cleanInactiveResourceConfigCheckSessionsArgsForCall = append(fake.cleanInactiveResourceConfigCheckSessionsArgsForCall, struct{}{})
-	fake.recordInvocation("CleanInactiveResourceConfigCheckSessions", []interface{}{})
-	fake.cleanInactiveResourceConfigCheckSessionsMutex.Unlock()
-	if fake.CleanInactiveResourceConfigCheckSessionsStub != nil {
-		return fake.CleanInactiveResourceConfigCheckSessionsStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.cleanInactiveResourceConfigCheckSessionsReturns.result1
-}
-
-func (fake *FakeResourceConfigCheckSessionLifecycle) CleanInactiveResourceConfigCheckSessionsCallCount() int {
-	fake.cleanInactiveResourceConfigCheckSessionsMutex.RLock()
-	defer fake.cleanInactiveResourceConfigCheckSessionsMutex.RUnlock()
-	return len(fake.cleanInactiveResourceConfigCheckSessionsArgsForCall)
-}
-
-func (fake *FakeResourceConfigCheckSessionLifecycle) CleanInactiveResourceConfigCheckSessionsReturns(result1 error) {
-	fake.CleanInactiveResourceConfigCheckSessionsStub = nil
-	fake.cleanInactiveResourceConfigCheckSessionsReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeResourceConfigCheckSessionLifecycle) CleanInactiveResourceConfigCheckSessionsReturnsOnCall(i int, result1 error) {
-	fake.CleanInactiveResourceConfigCheckSessionsStub = nil
-	if fake.cleanInactiveResourceConfigCheckSessionsReturnsOnCall == nil {
-		fake.cleanInactiveResourceConfigCheckSessionsReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.cleanInactiveResourceConfigCheckSessionsReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeResourceConfigCheckSessionLifecycle) CleanExpiredResourceConfigCheckSessions() error {
 	fake.cleanExpiredResourceConfigCheckSessionsMutex.Lock()
 	ret, specificReturn := fake.cleanExpiredResourceConfigCheckSessionsReturnsOnCall[len(fake.cleanExpiredResourceConfigCheckSessionsArgsForCall)]
-	fake.cleanExpiredResourceConfigCheckSessionsArgsForCall = append(fake.cleanExpiredResourceConfigCheckSessionsArgsForCall, struct{}{})
+	fake.cleanExpiredResourceConfigCheckSessionsArgsForCall = append(fake.cleanExpiredResourceConfigCheckSessionsArgsForCall, struct {
+	}{})
 	fake.recordInvocation("CleanExpiredResourceConfigCheckSessions", []interface{}{})
 	fake.cleanExpiredResourceConfigCheckSessionsMutex.Unlock()
 	if fake.CleanExpiredResourceConfigCheckSessionsStub != nil {
@@ -82,7 +45,8 @@ func (fake *FakeResourceConfigCheckSessionLifecycle) CleanExpiredResourceConfigC
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.cleanExpiredResourceConfigCheckSessionsReturns.result1
+	fakeReturns := fake.cleanExpiredResourceConfigCheckSessionsReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeResourceConfigCheckSessionLifecycle) CleanExpiredResourceConfigCheckSessionsCallCount() int {
@@ -110,13 +74,55 @@ func (fake *FakeResourceConfigCheckSessionLifecycle) CleanExpiredResourceConfigC
 	}{result1}
 }
 
+func (fake *FakeResourceConfigCheckSessionLifecycle) CleanInactiveResourceConfigCheckSessions() error {
+	fake.cleanInactiveResourceConfigCheckSessionsMutex.Lock()
+	ret, specificReturn := fake.cleanInactiveResourceConfigCheckSessionsReturnsOnCall[len(fake.cleanInactiveResourceConfigCheckSessionsArgsForCall)]
+	fake.cleanInactiveResourceConfigCheckSessionsArgsForCall = append(fake.cleanInactiveResourceConfigCheckSessionsArgsForCall, struct {
+	}{})
+	fake.recordInvocation("CleanInactiveResourceConfigCheckSessions", []interface{}{})
+	fake.cleanInactiveResourceConfigCheckSessionsMutex.Unlock()
+	if fake.CleanInactiveResourceConfigCheckSessionsStub != nil {
+		return fake.CleanInactiveResourceConfigCheckSessionsStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.cleanInactiveResourceConfigCheckSessionsReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceConfigCheckSessionLifecycle) CleanInactiveResourceConfigCheckSessionsCallCount() int {
+	fake.cleanInactiveResourceConfigCheckSessionsMutex.RLock()
+	defer fake.cleanInactiveResourceConfigCheckSessionsMutex.RUnlock()
+	return len(fake.cleanInactiveResourceConfigCheckSessionsArgsForCall)
+}
+
+func (fake *FakeResourceConfigCheckSessionLifecycle) CleanInactiveResourceConfigCheckSessionsReturns(result1 error) {
+	fake.CleanInactiveResourceConfigCheckSessionsStub = nil
+	fake.cleanInactiveResourceConfigCheckSessionsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceConfigCheckSessionLifecycle) CleanInactiveResourceConfigCheckSessionsReturnsOnCall(i int, result1 error) {
+	fake.CleanInactiveResourceConfigCheckSessionsStub = nil
+	if fake.cleanInactiveResourceConfigCheckSessionsReturnsOnCall == nil {
+		fake.cleanInactiveResourceConfigCheckSessionsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.cleanInactiveResourceConfigCheckSessionsReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResourceConfigCheckSessionLifecycle) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.cleanInactiveResourceConfigCheckSessionsMutex.RLock()
-	defer fake.cleanInactiveResourceConfigCheckSessionsMutex.RUnlock()
 	fake.cleanExpiredResourceConfigCheckSessionsMutex.RLock()
 	defer fake.cleanExpiredResourceConfigCheckSessionsMutex.RUnlock()
+	fake.cleanInactiveResourceConfigCheckSessionsMutex.RLock()
+	defer fake.cleanInactiveResourceConfigCheckSessionsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

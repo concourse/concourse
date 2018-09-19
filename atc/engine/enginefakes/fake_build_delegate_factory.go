@@ -2,10 +2,10 @@
 package enginefakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/engine"
+	db "github.com/concourse/concourse/atc/db"
+	engine "github.com/concourse/concourse/atc/engine"
 )
 
 type FakeBuildDelegateFactory struct {
@@ -38,7 +38,8 @@ func (fake *FakeBuildDelegateFactory) Delegate(arg1 db.Build) engine.BuildDelega
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.delegateReturns.result1
+	fakeReturns := fake.delegateReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeBuildDelegateFactory) DelegateCallCount() int {
@@ -50,7 +51,8 @@ func (fake *FakeBuildDelegateFactory) DelegateCallCount() int {
 func (fake *FakeBuildDelegateFactory) DelegateArgsForCall(i int) db.Build {
 	fake.delegateMutex.RLock()
 	defer fake.delegateMutex.RUnlock()
-	return fake.delegateArgsForCall[i].arg1
+	argsForCall := fake.delegateArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeBuildDelegateFactory) DelegateReturns(result1 engine.BuildDelegate) {

@@ -2,19 +2,47 @@
 package beaconfakes
 
 import (
-	"os"
-	"sync"
+	os "os"
+	sync "sync"
 
-	"code.cloudfoundry.org/garden"
-	"github.com/concourse/concourse/worker/beacon"
+	garden "code.cloudfoundry.org/garden"
+	beacon "github.com/concourse/concourse/worker/beacon"
 )
 
 type FakeBeaconClient struct {
-	RegisterStub        func(signals <-chan os.Signal, ready chan<- struct{}) error
+	DeleteWorkerStub        func(<-chan os.Signal, chan<- struct{}) error
+	deleteWorkerMutex       sync.RWMutex
+	deleteWorkerArgsForCall []struct {
+		arg1 <-chan os.Signal
+		arg2 chan<- struct{}
+	}
+	deleteWorkerReturns struct {
+		result1 error
+	}
+	deleteWorkerReturnsOnCall map[int]struct {
+		result1 error
+	}
+	DisableKeepAliveStub        func()
+	disableKeepAliveMutex       sync.RWMutex
+	disableKeepAliveArgsForCall []struct {
+	}
+	LandWorkerStub        func(<-chan os.Signal, chan<- struct{}) error
+	landWorkerMutex       sync.RWMutex
+	landWorkerArgsForCall []struct {
+		arg1 <-chan os.Signal
+		arg2 chan<- struct{}
+	}
+	landWorkerReturns struct {
+		result1 error
+	}
+	landWorkerReturnsOnCall map[int]struct {
+		result1 error
+	}
+	RegisterStub        func(<-chan os.Signal, chan<- struct{}) error
 	registerMutex       sync.RWMutex
 	registerArgsForCall []struct {
-		signals <-chan os.Signal
-		ready   chan<- struct{}
+		arg1 <-chan os.Signal
+		arg2 chan<- struct{}
 	}
 	registerReturns struct {
 		result1 error
@@ -22,11 +50,32 @@ type FakeBeaconClient struct {
 	registerReturnsOnCall map[int]struct {
 		result1 error
 	}
-	RetireWorkerStub        func(signals <-chan os.Signal, ready chan<- struct{}) error
+	ReportContainersStub        func(garden.Client) error
+	reportContainersMutex       sync.RWMutex
+	reportContainersArgsForCall []struct {
+		arg1 garden.Client
+	}
+	reportContainersReturns struct {
+		result1 error
+	}
+	reportContainersReturnsOnCall map[int]struct {
+		result1 error
+	}
+	ReportVolumesStub        func() error
+	reportVolumesMutex       sync.RWMutex
+	reportVolumesArgsForCall []struct {
+	}
+	reportVolumesReturns struct {
+		result1 error
+	}
+	reportVolumesReturnsOnCall map[int]struct {
+		result1 error
+	}
+	RetireWorkerStub        func(<-chan os.Signal, chan<- struct{}) error
 	retireWorkerMutex       sync.RWMutex
 	retireWorkerArgsForCall []struct {
-		signals <-chan os.Signal
-		ready   chan<- struct{}
+		arg1 <-chan os.Signal
+		arg2 chan<- struct{}
 	}
 	retireWorkerReturns struct {
 		result1 error
@@ -45,82 +94,156 @@ type FakeBeaconClient struct {
 	sweepContainersReturnsOnCall map[int]struct {
 		result1 error
 	}
-	ReportContainersStub        func(garden.Client) error
-	reportContainersMutex       sync.RWMutex
-	reportContainersArgsForCall []struct {
-		arg1 garden.Client
-	}
-	reportContainersReturns struct {
-		result1 error
-	}
-	reportContainersReturnsOnCall map[int]struct {
-		result1 error
-	}
 	SweepVolumesStub        func() error
 	sweepVolumesMutex       sync.RWMutex
-	sweepVolumesArgsForCall []struct{}
-	sweepVolumesReturns     struct {
+	sweepVolumesArgsForCall []struct {
+	}
+	sweepVolumesReturns struct {
 		result1 error
 	}
 	sweepVolumesReturnsOnCall map[int]struct {
 		result1 error
 	}
-	ReportVolumesStub        func() error
-	reportVolumesMutex       sync.RWMutex
-	reportVolumesArgsForCall []struct{}
-	reportVolumesReturns     struct {
-		result1 error
-	}
-	reportVolumesReturnsOnCall map[int]struct {
-		result1 error
-	}
-	LandWorkerStub        func(signals <-chan os.Signal, ready chan<- struct{}) error
-	landWorkerMutex       sync.RWMutex
-	landWorkerArgsForCall []struct {
-		signals <-chan os.Signal
-		ready   chan<- struct{}
-	}
-	landWorkerReturns struct {
-		result1 error
-	}
-	landWorkerReturnsOnCall map[int]struct {
-		result1 error
-	}
-	DeleteWorkerStub        func(signals <-chan os.Signal, ready chan<- struct{}) error
-	deleteWorkerMutex       sync.RWMutex
-	deleteWorkerArgsForCall []struct {
-		signals <-chan os.Signal
-		ready   chan<- struct{}
-	}
-	deleteWorkerReturns struct {
-		result1 error
-	}
-	deleteWorkerReturnsOnCall map[int]struct {
-		result1 error
-	}
-	DisableKeepAliveStub        func()
-	disableKeepAliveMutex       sync.RWMutex
-	disableKeepAliveArgsForCall []struct{}
-	invocations                 map[string][][]interface{}
-	invocationsMutex            sync.RWMutex
+	invocations      map[string][][]interface{}
+	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBeaconClient) Register(signals <-chan os.Signal, ready chan<- struct{}) error {
-	fake.registerMutex.Lock()
-	ret, specificReturn := fake.registerReturnsOnCall[len(fake.registerArgsForCall)]
-	fake.registerArgsForCall = append(fake.registerArgsForCall, struct {
-		signals <-chan os.Signal
-		ready   chan<- struct{}
-	}{signals, ready})
-	fake.recordInvocation("Register", []interface{}{signals, ready})
-	fake.registerMutex.Unlock()
-	if fake.RegisterStub != nil {
-		return fake.RegisterStub(signals, ready)
+func (fake *FakeBeaconClient) DeleteWorker(arg1 <-chan os.Signal, arg2 chan<- struct{}) error {
+	fake.deleteWorkerMutex.Lock()
+	ret, specificReturn := fake.deleteWorkerReturnsOnCall[len(fake.deleteWorkerArgsForCall)]
+	fake.deleteWorkerArgsForCall = append(fake.deleteWorkerArgsForCall, struct {
+		arg1 <-chan os.Signal
+		arg2 chan<- struct{}
+	}{arg1, arg2})
+	fake.recordInvocation("DeleteWorker", []interface{}{arg1, arg2})
+	fake.deleteWorkerMutex.Unlock()
+	if fake.DeleteWorkerStub != nil {
+		return fake.DeleteWorkerStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.registerReturns.result1
+	fakeReturns := fake.deleteWorkerReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBeaconClient) DeleteWorkerCallCount() int {
+	fake.deleteWorkerMutex.RLock()
+	defer fake.deleteWorkerMutex.RUnlock()
+	return len(fake.deleteWorkerArgsForCall)
+}
+
+func (fake *FakeBeaconClient) DeleteWorkerArgsForCall(i int) (<-chan os.Signal, chan<- struct{}) {
+	fake.deleteWorkerMutex.RLock()
+	defer fake.deleteWorkerMutex.RUnlock()
+	argsForCall := fake.deleteWorkerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeBeaconClient) DeleteWorkerReturns(result1 error) {
+	fake.DeleteWorkerStub = nil
+	fake.deleteWorkerReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBeaconClient) DeleteWorkerReturnsOnCall(i int, result1 error) {
+	fake.DeleteWorkerStub = nil
+	if fake.deleteWorkerReturnsOnCall == nil {
+		fake.deleteWorkerReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteWorkerReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBeaconClient) DisableKeepAlive() {
+	fake.disableKeepAliveMutex.Lock()
+	fake.disableKeepAliveArgsForCall = append(fake.disableKeepAliveArgsForCall, struct {
+	}{})
+	fake.recordInvocation("DisableKeepAlive", []interface{}{})
+	fake.disableKeepAliveMutex.Unlock()
+	if fake.DisableKeepAliveStub != nil {
+		fake.DisableKeepAliveStub()
+	}
+}
+
+func (fake *FakeBeaconClient) DisableKeepAliveCallCount() int {
+	fake.disableKeepAliveMutex.RLock()
+	defer fake.disableKeepAliveMutex.RUnlock()
+	return len(fake.disableKeepAliveArgsForCall)
+}
+
+func (fake *FakeBeaconClient) LandWorker(arg1 <-chan os.Signal, arg2 chan<- struct{}) error {
+	fake.landWorkerMutex.Lock()
+	ret, specificReturn := fake.landWorkerReturnsOnCall[len(fake.landWorkerArgsForCall)]
+	fake.landWorkerArgsForCall = append(fake.landWorkerArgsForCall, struct {
+		arg1 <-chan os.Signal
+		arg2 chan<- struct{}
+	}{arg1, arg2})
+	fake.recordInvocation("LandWorker", []interface{}{arg1, arg2})
+	fake.landWorkerMutex.Unlock()
+	if fake.LandWorkerStub != nil {
+		return fake.LandWorkerStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.landWorkerReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBeaconClient) LandWorkerCallCount() int {
+	fake.landWorkerMutex.RLock()
+	defer fake.landWorkerMutex.RUnlock()
+	return len(fake.landWorkerArgsForCall)
+}
+
+func (fake *FakeBeaconClient) LandWorkerArgsForCall(i int) (<-chan os.Signal, chan<- struct{}) {
+	fake.landWorkerMutex.RLock()
+	defer fake.landWorkerMutex.RUnlock()
+	argsForCall := fake.landWorkerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeBeaconClient) LandWorkerReturns(result1 error) {
+	fake.LandWorkerStub = nil
+	fake.landWorkerReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBeaconClient) LandWorkerReturnsOnCall(i int, result1 error) {
+	fake.LandWorkerStub = nil
+	if fake.landWorkerReturnsOnCall == nil {
+		fake.landWorkerReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.landWorkerReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBeaconClient) Register(arg1 <-chan os.Signal, arg2 chan<- struct{}) error {
+	fake.registerMutex.Lock()
+	ret, specificReturn := fake.registerReturnsOnCall[len(fake.registerArgsForCall)]
+	fake.registerArgsForCall = append(fake.registerArgsForCall, struct {
+		arg1 <-chan os.Signal
+		arg2 chan<- struct{}
+	}{arg1, arg2})
+	fake.recordInvocation("Register", []interface{}{arg1, arg2})
+	fake.registerMutex.Unlock()
+	if fake.RegisterStub != nil {
+		return fake.RegisterStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.registerReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeBeaconClient) RegisterCallCount() int {
@@ -132,7 +255,8 @@ func (fake *FakeBeaconClient) RegisterCallCount() int {
 func (fake *FakeBeaconClient) RegisterArgsForCall(i int) (<-chan os.Signal, chan<- struct{}) {
 	fake.registerMutex.RLock()
 	defer fake.registerMutex.RUnlock()
-	return fake.registerArgsForCall[i].signals, fake.registerArgsForCall[i].ready
+	argsForCall := fake.registerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeBeaconClient) RegisterReturns(result1 error) {
@@ -154,22 +278,115 @@ func (fake *FakeBeaconClient) RegisterReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBeaconClient) RetireWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
-	fake.retireWorkerMutex.Lock()
-	ret, specificReturn := fake.retireWorkerReturnsOnCall[len(fake.retireWorkerArgsForCall)]
-	fake.retireWorkerArgsForCall = append(fake.retireWorkerArgsForCall, struct {
-		signals <-chan os.Signal
-		ready   chan<- struct{}
-	}{signals, ready})
-	fake.recordInvocation("RetireWorker", []interface{}{signals, ready})
-	fake.retireWorkerMutex.Unlock()
-	if fake.RetireWorkerStub != nil {
-		return fake.RetireWorkerStub(signals, ready)
+func (fake *FakeBeaconClient) ReportContainers(arg1 garden.Client) error {
+	fake.reportContainersMutex.Lock()
+	ret, specificReturn := fake.reportContainersReturnsOnCall[len(fake.reportContainersArgsForCall)]
+	fake.reportContainersArgsForCall = append(fake.reportContainersArgsForCall, struct {
+		arg1 garden.Client
+	}{arg1})
+	fake.recordInvocation("ReportContainers", []interface{}{arg1})
+	fake.reportContainersMutex.Unlock()
+	if fake.ReportContainersStub != nil {
+		return fake.ReportContainersStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.retireWorkerReturns.result1
+	fakeReturns := fake.reportContainersReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBeaconClient) ReportContainersCallCount() int {
+	fake.reportContainersMutex.RLock()
+	defer fake.reportContainersMutex.RUnlock()
+	return len(fake.reportContainersArgsForCall)
+}
+
+func (fake *FakeBeaconClient) ReportContainersArgsForCall(i int) garden.Client {
+	fake.reportContainersMutex.RLock()
+	defer fake.reportContainersMutex.RUnlock()
+	argsForCall := fake.reportContainersArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeBeaconClient) ReportContainersReturns(result1 error) {
+	fake.ReportContainersStub = nil
+	fake.reportContainersReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBeaconClient) ReportContainersReturnsOnCall(i int, result1 error) {
+	fake.ReportContainersStub = nil
+	if fake.reportContainersReturnsOnCall == nil {
+		fake.reportContainersReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.reportContainersReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBeaconClient) ReportVolumes() error {
+	fake.reportVolumesMutex.Lock()
+	ret, specificReturn := fake.reportVolumesReturnsOnCall[len(fake.reportVolumesArgsForCall)]
+	fake.reportVolumesArgsForCall = append(fake.reportVolumesArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ReportVolumes", []interface{}{})
+	fake.reportVolumesMutex.Unlock()
+	if fake.ReportVolumesStub != nil {
+		return fake.ReportVolumesStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.reportVolumesReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBeaconClient) ReportVolumesCallCount() int {
+	fake.reportVolumesMutex.RLock()
+	defer fake.reportVolumesMutex.RUnlock()
+	return len(fake.reportVolumesArgsForCall)
+}
+
+func (fake *FakeBeaconClient) ReportVolumesReturns(result1 error) {
+	fake.ReportVolumesStub = nil
+	fake.reportVolumesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBeaconClient) ReportVolumesReturnsOnCall(i int, result1 error) {
+	fake.ReportVolumesStub = nil
+	if fake.reportVolumesReturnsOnCall == nil {
+		fake.reportVolumesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.reportVolumesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBeaconClient) RetireWorker(arg1 <-chan os.Signal, arg2 chan<- struct{}) error {
+	fake.retireWorkerMutex.Lock()
+	ret, specificReturn := fake.retireWorkerReturnsOnCall[len(fake.retireWorkerArgsForCall)]
+	fake.retireWorkerArgsForCall = append(fake.retireWorkerArgsForCall, struct {
+		arg1 <-chan os.Signal
+		arg2 chan<- struct{}
+	}{arg1, arg2})
+	fake.recordInvocation("RetireWorker", []interface{}{arg1, arg2})
+	fake.retireWorkerMutex.Unlock()
+	if fake.RetireWorkerStub != nil {
+		return fake.RetireWorkerStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.retireWorkerReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeBeaconClient) RetireWorkerCallCount() int {
@@ -181,7 +398,8 @@ func (fake *FakeBeaconClient) RetireWorkerCallCount() int {
 func (fake *FakeBeaconClient) RetireWorkerArgsForCall(i int) (<-chan os.Signal, chan<- struct{}) {
 	fake.retireWorkerMutex.RLock()
 	defer fake.retireWorkerMutex.RUnlock()
-	return fake.retireWorkerArgsForCall[i].signals, fake.retireWorkerArgsForCall[i].ready
+	argsForCall := fake.retireWorkerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeBeaconClient) RetireWorkerReturns(result1 error) {
@@ -217,7 +435,8 @@ func (fake *FakeBeaconClient) SweepContainers(arg1 garden.Client) error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.sweepContainersReturns.result1
+	fakeReturns := fake.sweepContainersReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeBeaconClient) SweepContainersCallCount() int {
@@ -229,7 +448,8 @@ func (fake *FakeBeaconClient) SweepContainersCallCount() int {
 func (fake *FakeBeaconClient) SweepContainersArgsForCall(i int) garden.Client {
 	fake.sweepContainersMutex.RLock()
 	defer fake.sweepContainersMutex.RUnlock()
-	return fake.sweepContainersArgsForCall[i].arg1
+	argsForCall := fake.sweepContainersArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeBeaconClient) SweepContainersReturns(result1 error) {
@@ -251,58 +471,11 @@ func (fake *FakeBeaconClient) SweepContainersReturnsOnCall(i int, result1 error)
 	}{result1}
 }
 
-func (fake *FakeBeaconClient) ReportContainers(arg1 garden.Client) error {
-	fake.reportContainersMutex.Lock()
-	ret, specificReturn := fake.reportContainersReturnsOnCall[len(fake.reportContainersArgsForCall)]
-	fake.reportContainersArgsForCall = append(fake.reportContainersArgsForCall, struct {
-		arg1 garden.Client
-	}{arg1})
-	fake.recordInvocation("ReportContainers", []interface{}{arg1})
-	fake.reportContainersMutex.Unlock()
-	if fake.ReportContainersStub != nil {
-		return fake.ReportContainersStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.reportContainersReturns.result1
-}
-
-func (fake *FakeBeaconClient) ReportContainersCallCount() int {
-	fake.reportContainersMutex.RLock()
-	defer fake.reportContainersMutex.RUnlock()
-	return len(fake.reportContainersArgsForCall)
-}
-
-func (fake *FakeBeaconClient) ReportContainersArgsForCall(i int) garden.Client {
-	fake.reportContainersMutex.RLock()
-	defer fake.reportContainersMutex.RUnlock()
-	return fake.reportContainersArgsForCall[i].arg1
-}
-
-func (fake *FakeBeaconClient) ReportContainersReturns(result1 error) {
-	fake.ReportContainersStub = nil
-	fake.reportContainersReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBeaconClient) ReportContainersReturnsOnCall(i int, result1 error) {
-	fake.ReportContainersStub = nil
-	if fake.reportContainersReturnsOnCall == nil {
-		fake.reportContainersReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.reportContainersReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeBeaconClient) SweepVolumes() error {
 	fake.sweepVolumesMutex.Lock()
 	ret, specificReturn := fake.sweepVolumesReturnsOnCall[len(fake.sweepVolumesArgsForCall)]
-	fake.sweepVolumesArgsForCall = append(fake.sweepVolumesArgsForCall, struct{}{})
+	fake.sweepVolumesArgsForCall = append(fake.sweepVolumesArgsForCall, struct {
+	}{})
 	fake.recordInvocation("SweepVolumes", []interface{}{})
 	fake.sweepVolumesMutex.Unlock()
 	if fake.SweepVolumesStub != nil {
@@ -311,7 +484,8 @@ func (fake *FakeBeaconClient) SweepVolumes() error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.sweepVolumesReturns.result1
+	fakeReturns := fake.sweepVolumesReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeBeaconClient) SweepVolumesCallCount() int {
@@ -339,181 +513,27 @@ func (fake *FakeBeaconClient) SweepVolumesReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBeaconClient) ReportVolumes() error {
-	fake.reportVolumesMutex.Lock()
-	ret, specificReturn := fake.reportVolumesReturnsOnCall[len(fake.reportVolumesArgsForCall)]
-	fake.reportVolumesArgsForCall = append(fake.reportVolumesArgsForCall, struct{}{})
-	fake.recordInvocation("ReportVolumes", []interface{}{})
-	fake.reportVolumesMutex.Unlock()
-	if fake.ReportVolumesStub != nil {
-		return fake.ReportVolumesStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.reportVolumesReturns.result1
-}
-
-func (fake *FakeBeaconClient) ReportVolumesCallCount() int {
-	fake.reportVolumesMutex.RLock()
-	defer fake.reportVolumesMutex.RUnlock()
-	return len(fake.reportVolumesArgsForCall)
-}
-
-func (fake *FakeBeaconClient) ReportVolumesReturns(result1 error) {
-	fake.ReportVolumesStub = nil
-	fake.reportVolumesReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBeaconClient) ReportVolumesReturnsOnCall(i int, result1 error) {
-	fake.ReportVolumesStub = nil
-	if fake.reportVolumesReturnsOnCall == nil {
-		fake.reportVolumesReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.reportVolumesReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBeaconClient) LandWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
-	fake.landWorkerMutex.Lock()
-	ret, specificReturn := fake.landWorkerReturnsOnCall[len(fake.landWorkerArgsForCall)]
-	fake.landWorkerArgsForCall = append(fake.landWorkerArgsForCall, struct {
-		signals <-chan os.Signal
-		ready   chan<- struct{}
-	}{signals, ready})
-	fake.recordInvocation("LandWorker", []interface{}{signals, ready})
-	fake.landWorkerMutex.Unlock()
-	if fake.LandWorkerStub != nil {
-		return fake.LandWorkerStub(signals, ready)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.landWorkerReturns.result1
-}
-
-func (fake *FakeBeaconClient) LandWorkerCallCount() int {
-	fake.landWorkerMutex.RLock()
-	defer fake.landWorkerMutex.RUnlock()
-	return len(fake.landWorkerArgsForCall)
-}
-
-func (fake *FakeBeaconClient) LandWorkerArgsForCall(i int) (<-chan os.Signal, chan<- struct{}) {
-	fake.landWorkerMutex.RLock()
-	defer fake.landWorkerMutex.RUnlock()
-	return fake.landWorkerArgsForCall[i].signals, fake.landWorkerArgsForCall[i].ready
-}
-
-func (fake *FakeBeaconClient) LandWorkerReturns(result1 error) {
-	fake.LandWorkerStub = nil
-	fake.landWorkerReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBeaconClient) LandWorkerReturnsOnCall(i int, result1 error) {
-	fake.LandWorkerStub = nil
-	if fake.landWorkerReturnsOnCall == nil {
-		fake.landWorkerReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.landWorkerReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBeaconClient) DeleteWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
-	fake.deleteWorkerMutex.Lock()
-	ret, specificReturn := fake.deleteWorkerReturnsOnCall[len(fake.deleteWorkerArgsForCall)]
-	fake.deleteWorkerArgsForCall = append(fake.deleteWorkerArgsForCall, struct {
-		signals <-chan os.Signal
-		ready   chan<- struct{}
-	}{signals, ready})
-	fake.recordInvocation("DeleteWorker", []interface{}{signals, ready})
-	fake.deleteWorkerMutex.Unlock()
-	if fake.DeleteWorkerStub != nil {
-		return fake.DeleteWorkerStub(signals, ready)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.deleteWorkerReturns.result1
-}
-
-func (fake *FakeBeaconClient) DeleteWorkerCallCount() int {
-	fake.deleteWorkerMutex.RLock()
-	defer fake.deleteWorkerMutex.RUnlock()
-	return len(fake.deleteWorkerArgsForCall)
-}
-
-func (fake *FakeBeaconClient) DeleteWorkerArgsForCall(i int) (<-chan os.Signal, chan<- struct{}) {
-	fake.deleteWorkerMutex.RLock()
-	defer fake.deleteWorkerMutex.RUnlock()
-	return fake.deleteWorkerArgsForCall[i].signals, fake.deleteWorkerArgsForCall[i].ready
-}
-
-func (fake *FakeBeaconClient) DeleteWorkerReturns(result1 error) {
-	fake.DeleteWorkerStub = nil
-	fake.deleteWorkerReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBeaconClient) DeleteWorkerReturnsOnCall(i int, result1 error) {
-	fake.DeleteWorkerStub = nil
-	if fake.deleteWorkerReturnsOnCall == nil {
-		fake.deleteWorkerReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.deleteWorkerReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBeaconClient) DisableKeepAlive() {
-	fake.disableKeepAliveMutex.Lock()
-	fake.disableKeepAliveArgsForCall = append(fake.disableKeepAliveArgsForCall, struct{}{})
-	fake.recordInvocation("DisableKeepAlive", []interface{}{})
-	fake.disableKeepAliveMutex.Unlock()
-	if fake.DisableKeepAliveStub != nil {
-		fake.DisableKeepAliveStub()
-	}
-}
-
-func (fake *FakeBeaconClient) DisableKeepAliveCallCount() int {
-	fake.disableKeepAliveMutex.RLock()
-	defer fake.disableKeepAliveMutex.RUnlock()
-	return len(fake.disableKeepAliveArgsForCall)
-}
-
 func (fake *FakeBeaconClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.deleteWorkerMutex.RLock()
+	defer fake.deleteWorkerMutex.RUnlock()
+	fake.disableKeepAliveMutex.RLock()
+	defer fake.disableKeepAliveMutex.RUnlock()
+	fake.landWorkerMutex.RLock()
+	defer fake.landWorkerMutex.RUnlock()
 	fake.registerMutex.RLock()
 	defer fake.registerMutex.RUnlock()
+	fake.reportContainersMutex.RLock()
+	defer fake.reportContainersMutex.RUnlock()
+	fake.reportVolumesMutex.RLock()
+	defer fake.reportVolumesMutex.RUnlock()
 	fake.retireWorkerMutex.RLock()
 	defer fake.retireWorkerMutex.RUnlock()
 	fake.sweepContainersMutex.RLock()
 	defer fake.sweepContainersMutex.RUnlock()
-	fake.reportContainersMutex.RLock()
-	defer fake.reportContainersMutex.RUnlock()
 	fake.sweepVolumesMutex.RLock()
 	defer fake.sweepVolumesMutex.RUnlock()
-	fake.reportVolumesMutex.RLock()
-	defer fake.reportVolumesMutex.RUnlock()
-	fake.landWorkerMutex.RLock()
-	defer fake.landWorkerMutex.RUnlock()
-	fake.deleteWorkerMutex.RLock()
-	defer fake.deleteWorkerMutex.RUnlock()
-	fake.disableKeepAliveMutex.RLock()
-	defer fake.disableKeepAliveMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

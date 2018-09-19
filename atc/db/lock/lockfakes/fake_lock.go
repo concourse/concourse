@@ -2,16 +2,17 @@
 package lockfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/db/lock"
+	lock "github.com/concourse/concourse/atc/db/lock"
 )
 
 type FakeLock struct {
 	ReleaseStub        func() error
 	releaseMutex       sync.RWMutex
-	releaseArgsForCall []struct{}
-	releaseReturns     struct {
+	releaseArgsForCall []struct {
+	}
+	releaseReturns struct {
 		result1 error
 	}
 	releaseReturnsOnCall map[int]struct {
@@ -24,7 +25,8 @@ type FakeLock struct {
 func (fake *FakeLock) Release() error {
 	fake.releaseMutex.Lock()
 	ret, specificReturn := fake.releaseReturnsOnCall[len(fake.releaseArgsForCall)]
-	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct{}{})
+	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Release", []interface{}{})
 	fake.releaseMutex.Unlock()
 	if fake.ReleaseStub != nil {
@@ -33,7 +35,8 @@ func (fake *FakeLock) Release() error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.releaseReturns.result1
+	fakeReturns := fake.releaseReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeLock) ReleaseCallCount() int {

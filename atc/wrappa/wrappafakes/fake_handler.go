@@ -2,8 +2,8 @@
 package wrappafakes
 
 import (
-	"net/http"
-	"sync"
+	http "net/http"
+	sync "sync"
 )
 
 type FakeHandler struct {
@@ -39,7 +39,8 @@ func (fake *FakeHandler) ServeHTTPCallCount() int {
 func (fake *FakeHandler) ServeHTTPArgsForCall(i int) (http.ResponseWriter, *http.Request) {
 	fake.serveHTTPMutex.RLock()
 	defer fake.serveHTTPMutex.RUnlock()
-	return fake.serveHTTPArgsForCall[i].arg1, fake.serveHTTPArgsForCall[i].arg2
+	argsForCall := fake.serveHTTPArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeHandler) Invocations() map[string][][]interface{} {

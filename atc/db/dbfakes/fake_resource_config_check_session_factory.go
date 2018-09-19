@@ -2,23 +2,23 @@
 package dbfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
+	lager "code.cloudfoundry.org/lager"
+	atc "github.com/concourse/concourse/atc"
+	creds "github.com/concourse/concourse/atc/creds"
+	db "github.com/concourse/concourse/atc/db"
 )
 
 type FakeResourceConfigCheckSessionFactory struct {
-	FindOrCreateResourceConfigCheckSessionStub        func(logger lager.Logger, resourceType string, source atc.Source, resourceTypes creds.VersionedResourceTypes, expiries db.ContainerOwnerExpiries) (db.ResourceConfigCheckSession, error)
+	FindOrCreateResourceConfigCheckSessionStub        func(lager.Logger, string, atc.Source, creds.VersionedResourceTypes, db.ContainerOwnerExpiries) (db.ResourceConfigCheckSession, error)
 	findOrCreateResourceConfigCheckSessionMutex       sync.RWMutex
 	findOrCreateResourceConfigCheckSessionArgsForCall []struct {
-		logger        lager.Logger
-		resourceType  string
-		source        atc.Source
-		resourceTypes creds.VersionedResourceTypes
-		expiries      db.ContainerOwnerExpiries
+		arg1 lager.Logger
+		arg2 string
+		arg3 atc.Source
+		arg4 creds.VersionedResourceTypes
+		arg5 db.ContainerOwnerExpiries
 	}
 	findOrCreateResourceConfigCheckSessionReturns struct {
 		result1 db.ResourceConfigCheckSession
@@ -32,25 +32,26 @@ type FakeResourceConfigCheckSessionFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceConfigCheckSessionFactory) FindOrCreateResourceConfigCheckSession(logger lager.Logger, resourceType string, source atc.Source, resourceTypes creds.VersionedResourceTypes, expiries db.ContainerOwnerExpiries) (db.ResourceConfigCheckSession, error) {
+func (fake *FakeResourceConfigCheckSessionFactory) FindOrCreateResourceConfigCheckSession(arg1 lager.Logger, arg2 string, arg3 atc.Source, arg4 creds.VersionedResourceTypes, arg5 db.ContainerOwnerExpiries) (db.ResourceConfigCheckSession, error) {
 	fake.findOrCreateResourceConfigCheckSessionMutex.Lock()
 	ret, specificReturn := fake.findOrCreateResourceConfigCheckSessionReturnsOnCall[len(fake.findOrCreateResourceConfigCheckSessionArgsForCall)]
 	fake.findOrCreateResourceConfigCheckSessionArgsForCall = append(fake.findOrCreateResourceConfigCheckSessionArgsForCall, struct {
-		logger        lager.Logger
-		resourceType  string
-		source        atc.Source
-		resourceTypes creds.VersionedResourceTypes
-		expiries      db.ContainerOwnerExpiries
-	}{logger, resourceType, source, resourceTypes, expiries})
-	fake.recordInvocation("FindOrCreateResourceConfigCheckSession", []interface{}{logger, resourceType, source, resourceTypes, expiries})
+		arg1 lager.Logger
+		arg2 string
+		arg3 atc.Source
+		arg4 creds.VersionedResourceTypes
+		arg5 db.ContainerOwnerExpiries
+	}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("FindOrCreateResourceConfigCheckSession", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.findOrCreateResourceConfigCheckSessionMutex.Unlock()
 	if fake.FindOrCreateResourceConfigCheckSessionStub != nil {
-		return fake.FindOrCreateResourceConfigCheckSessionStub(logger, resourceType, source, resourceTypes, expiries)
+		return fake.FindOrCreateResourceConfigCheckSessionStub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.findOrCreateResourceConfigCheckSessionReturns.result1, fake.findOrCreateResourceConfigCheckSessionReturns.result2
+	fakeReturns := fake.findOrCreateResourceConfigCheckSessionReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeResourceConfigCheckSessionFactory) FindOrCreateResourceConfigCheckSessionCallCount() int {
@@ -62,7 +63,8 @@ func (fake *FakeResourceConfigCheckSessionFactory) FindOrCreateResourceConfigChe
 func (fake *FakeResourceConfigCheckSessionFactory) FindOrCreateResourceConfigCheckSessionArgsForCall(i int) (lager.Logger, string, atc.Source, creds.VersionedResourceTypes, db.ContainerOwnerExpiries) {
 	fake.findOrCreateResourceConfigCheckSessionMutex.RLock()
 	defer fake.findOrCreateResourceConfigCheckSessionMutex.RUnlock()
-	return fake.findOrCreateResourceConfigCheckSessionArgsForCall[i].logger, fake.findOrCreateResourceConfigCheckSessionArgsForCall[i].resourceType, fake.findOrCreateResourceConfigCheckSessionArgsForCall[i].source, fake.findOrCreateResourceConfigCheckSessionArgsForCall[i].resourceTypes, fake.findOrCreateResourceConfigCheckSessionArgsForCall[i].expiries
+	argsForCall := fake.findOrCreateResourceConfigCheckSessionArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
 func (fake *FakeResourceConfigCheckSessionFactory) FindOrCreateResourceConfigCheckSessionReturns(result1 db.ResourceConfigCheckSession, result2 error) {

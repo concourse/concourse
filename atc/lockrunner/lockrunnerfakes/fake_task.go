@@ -2,10 +2,10 @@
 package lockrunnerfakes
 
 import (
-	"context"
-	"sync"
+	context "context"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/lockrunner"
+	lockrunner "github.com/concourse/concourse/atc/lockrunner"
 )
 
 type FakeTask struct {
@@ -38,7 +38,8 @@ func (fake *FakeTask) Run(arg1 context.Context) error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.runReturns.result1
+	fakeReturns := fake.runReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeTask) RunCallCount() int {
@@ -50,7 +51,8 @@ func (fake *FakeTask) RunCallCount() int {
 func (fake *FakeTask) RunArgsForCall(i int) context.Context {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
-	return fake.runArgsForCall[i].arg1
+	argsForCall := fake.runArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeTask) RunReturns(result1 error) {

@@ -2,48 +2,18 @@
 package internalfakes
 
 import (
-	"net/http"
-	"sync"
+	http "net/http"
+	sync "sync"
 
-	"github.com/concourse/concourse/go-concourse/concourse/internal"
-	"github.com/vito/go-sse/sse"
+	internal "github.com/concourse/concourse/go-concourse/concourse/internal"
+	sse "github.com/vito/go-sse/sse"
 )
 
 type FakeConnection struct {
-	URLStub        func() string
-	uRLMutex       sync.RWMutex
-	uRLArgsForCall []struct{}
-	uRLReturns     struct {
-		result1 string
-	}
-	uRLReturnsOnCall map[int]struct {
-		result1 string
-	}
-	HTTPClientStub        func() *http.Client
-	hTTPClientMutex       sync.RWMutex
-	hTTPClientArgsForCall []struct{}
-	hTTPClientReturns     struct {
-		result1 *http.Client
-	}
-	hTTPClientReturnsOnCall map[int]struct {
-		result1 *http.Client
-	}
-	SendStub        func(request internal.Request, response *internal.Response) error
-	sendMutex       sync.RWMutex
-	sendArgsForCall []struct {
-		request  internal.Request
-		response *internal.Response
-	}
-	sendReturns struct {
-		result1 error
-	}
-	sendReturnsOnCall map[int]struct {
-		result1 error
-	}
-	ConnectToEventStreamStub        func(request internal.Request) (*sse.EventSource, error)
+	ConnectToEventStreamStub        func(internal.Request) (*sse.EventSource, error)
 	connectToEventStreamMutex       sync.RWMutex
 	connectToEventStreamArgsForCall []struct {
-		request internal.Request
+		arg1 internal.Request
 	}
 	connectToEventStreamReturns struct {
 		result1 *sse.EventSource
@@ -53,54 +23,100 @@ type FakeConnection struct {
 		result1 *sse.EventSource
 		result2 error
 	}
+	HTTPClientStub        func() *http.Client
+	hTTPClientMutex       sync.RWMutex
+	hTTPClientArgsForCall []struct {
+	}
+	hTTPClientReturns struct {
+		result1 *http.Client
+	}
+	hTTPClientReturnsOnCall map[int]struct {
+		result1 *http.Client
+	}
+	SendStub        func(internal.Request, *internal.Response) error
+	sendMutex       sync.RWMutex
+	sendArgsForCall []struct {
+		arg1 internal.Request
+		arg2 *internal.Response
+	}
+	sendReturns struct {
+		result1 error
+	}
+	sendReturnsOnCall map[int]struct {
+		result1 error
+	}
+	URLStub        func() string
+	uRLMutex       sync.RWMutex
+	uRLArgsForCall []struct {
+	}
+	uRLReturns struct {
+		result1 string
+	}
+	uRLReturnsOnCall map[int]struct {
+		result1 string
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeConnection) URL() string {
-	fake.uRLMutex.Lock()
-	ret, specificReturn := fake.uRLReturnsOnCall[len(fake.uRLArgsForCall)]
-	fake.uRLArgsForCall = append(fake.uRLArgsForCall, struct{}{})
-	fake.recordInvocation("URL", []interface{}{})
-	fake.uRLMutex.Unlock()
-	if fake.URLStub != nil {
-		return fake.URLStub()
+func (fake *FakeConnection) ConnectToEventStream(arg1 internal.Request) (*sse.EventSource, error) {
+	fake.connectToEventStreamMutex.Lock()
+	ret, specificReturn := fake.connectToEventStreamReturnsOnCall[len(fake.connectToEventStreamArgsForCall)]
+	fake.connectToEventStreamArgsForCall = append(fake.connectToEventStreamArgsForCall, struct {
+		arg1 internal.Request
+	}{arg1})
+	fake.recordInvocation("ConnectToEventStream", []interface{}{arg1})
+	fake.connectToEventStreamMutex.Unlock()
+	if fake.ConnectToEventStreamStub != nil {
+		return fake.ConnectToEventStreamStub(arg1)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
-	return fake.uRLReturns.result1
+	fakeReturns := fake.connectToEventStreamReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeConnection) URLCallCount() int {
-	fake.uRLMutex.RLock()
-	defer fake.uRLMutex.RUnlock()
-	return len(fake.uRLArgsForCall)
+func (fake *FakeConnection) ConnectToEventStreamCallCount() int {
+	fake.connectToEventStreamMutex.RLock()
+	defer fake.connectToEventStreamMutex.RUnlock()
+	return len(fake.connectToEventStreamArgsForCall)
 }
 
-func (fake *FakeConnection) URLReturns(result1 string) {
-	fake.URLStub = nil
-	fake.uRLReturns = struct {
-		result1 string
-	}{result1}
+func (fake *FakeConnection) ConnectToEventStreamArgsForCall(i int) internal.Request {
+	fake.connectToEventStreamMutex.RLock()
+	defer fake.connectToEventStreamMutex.RUnlock()
+	argsForCall := fake.connectToEventStreamArgsForCall[i]
+	return argsForCall.arg1
 }
 
-func (fake *FakeConnection) URLReturnsOnCall(i int, result1 string) {
-	fake.URLStub = nil
-	if fake.uRLReturnsOnCall == nil {
-		fake.uRLReturnsOnCall = make(map[int]struct {
-			result1 string
+func (fake *FakeConnection) ConnectToEventStreamReturns(result1 *sse.EventSource, result2 error) {
+	fake.ConnectToEventStreamStub = nil
+	fake.connectToEventStreamReturns = struct {
+		result1 *sse.EventSource
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeConnection) ConnectToEventStreamReturnsOnCall(i int, result1 *sse.EventSource, result2 error) {
+	fake.ConnectToEventStreamStub = nil
+	if fake.connectToEventStreamReturnsOnCall == nil {
+		fake.connectToEventStreamReturnsOnCall = make(map[int]struct {
+			result1 *sse.EventSource
+			result2 error
 		})
 	}
-	fake.uRLReturnsOnCall[i] = struct {
-		result1 string
-	}{result1}
+	fake.connectToEventStreamReturnsOnCall[i] = struct {
+		result1 *sse.EventSource
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeConnection) HTTPClient() *http.Client {
 	fake.hTTPClientMutex.Lock()
 	ret, specificReturn := fake.hTTPClientReturnsOnCall[len(fake.hTTPClientArgsForCall)]
-	fake.hTTPClientArgsForCall = append(fake.hTTPClientArgsForCall, struct{}{})
+	fake.hTTPClientArgsForCall = append(fake.hTTPClientArgsForCall, struct {
+	}{})
 	fake.recordInvocation("HTTPClient", []interface{}{})
 	fake.hTTPClientMutex.Unlock()
 	if fake.HTTPClientStub != nil {
@@ -109,7 +125,8 @@ func (fake *FakeConnection) HTTPClient() *http.Client {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.hTTPClientReturns.result1
+	fakeReturns := fake.hTTPClientReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeConnection) HTTPClientCallCount() int {
@@ -137,22 +154,23 @@ func (fake *FakeConnection) HTTPClientReturnsOnCall(i int, result1 *http.Client)
 	}{result1}
 }
 
-func (fake *FakeConnection) Send(request internal.Request, response *internal.Response) error {
+func (fake *FakeConnection) Send(arg1 internal.Request, arg2 *internal.Response) error {
 	fake.sendMutex.Lock()
 	ret, specificReturn := fake.sendReturnsOnCall[len(fake.sendArgsForCall)]
 	fake.sendArgsForCall = append(fake.sendArgsForCall, struct {
-		request  internal.Request
-		response *internal.Response
-	}{request, response})
-	fake.recordInvocation("Send", []interface{}{request, response})
+		arg1 internal.Request
+		arg2 *internal.Response
+	}{arg1, arg2})
+	fake.recordInvocation("Send", []interface{}{arg1, arg2})
 	fake.sendMutex.Unlock()
 	if fake.SendStub != nil {
-		return fake.SendStub(request, response)
+		return fake.SendStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.sendReturns.result1
+	fakeReturns := fake.sendReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeConnection) SendCallCount() int {
@@ -164,7 +182,8 @@ func (fake *FakeConnection) SendCallCount() int {
 func (fake *FakeConnection) SendArgsForCall(i int) (internal.Request, *internal.Response) {
 	fake.sendMutex.RLock()
 	defer fake.sendMutex.RUnlock()
-	return fake.sendArgsForCall[i].request, fake.sendArgsForCall[i].response
+	argsForCall := fake.sendArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeConnection) SendReturns(result1 error) {
@@ -186,68 +205,59 @@ func (fake *FakeConnection) SendReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeConnection) ConnectToEventStream(request internal.Request) (*sse.EventSource, error) {
-	fake.connectToEventStreamMutex.Lock()
-	ret, specificReturn := fake.connectToEventStreamReturnsOnCall[len(fake.connectToEventStreamArgsForCall)]
-	fake.connectToEventStreamArgsForCall = append(fake.connectToEventStreamArgsForCall, struct {
-		request internal.Request
-	}{request})
-	fake.recordInvocation("ConnectToEventStream", []interface{}{request})
-	fake.connectToEventStreamMutex.Unlock()
-	if fake.ConnectToEventStreamStub != nil {
-		return fake.ConnectToEventStreamStub(request)
+func (fake *FakeConnection) URL() string {
+	fake.uRLMutex.Lock()
+	ret, specificReturn := fake.uRLReturnsOnCall[len(fake.uRLArgsForCall)]
+	fake.uRLArgsForCall = append(fake.uRLArgsForCall, struct {
+	}{})
+	fake.recordInvocation("URL", []interface{}{})
+	fake.uRLMutex.Unlock()
+	if fake.URLStub != nil {
+		return fake.URLStub()
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
-	return fake.connectToEventStreamReturns.result1, fake.connectToEventStreamReturns.result2
+	fakeReturns := fake.uRLReturns
+	return fakeReturns.result1
 }
 
-func (fake *FakeConnection) ConnectToEventStreamCallCount() int {
-	fake.connectToEventStreamMutex.RLock()
-	defer fake.connectToEventStreamMutex.RUnlock()
-	return len(fake.connectToEventStreamArgsForCall)
+func (fake *FakeConnection) URLCallCount() int {
+	fake.uRLMutex.RLock()
+	defer fake.uRLMutex.RUnlock()
+	return len(fake.uRLArgsForCall)
 }
 
-func (fake *FakeConnection) ConnectToEventStreamArgsForCall(i int) internal.Request {
-	fake.connectToEventStreamMutex.RLock()
-	defer fake.connectToEventStreamMutex.RUnlock()
-	return fake.connectToEventStreamArgsForCall[i].request
+func (fake *FakeConnection) URLReturns(result1 string) {
+	fake.URLStub = nil
+	fake.uRLReturns = struct {
+		result1 string
+	}{result1}
 }
 
-func (fake *FakeConnection) ConnectToEventStreamReturns(result1 *sse.EventSource, result2 error) {
-	fake.ConnectToEventStreamStub = nil
-	fake.connectToEventStreamReturns = struct {
-		result1 *sse.EventSource
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeConnection) ConnectToEventStreamReturnsOnCall(i int, result1 *sse.EventSource, result2 error) {
-	fake.ConnectToEventStreamStub = nil
-	if fake.connectToEventStreamReturnsOnCall == nil {
-		fake.connectToEventStreamReturnsOnCall = make(map[int]struct {
-			result1 *sse.EventSource
-			result2 error
+func (fake *FakeConnection) URLReturnsOnCall(i int, result1 string) {
+	fake.URLStub = nil
+	if fake.uRLReturnsOnCall == nil {
+		fake.uRLReturnsOnCall = make(map[int]struct {
+			result1 string
 		})
 	}
-	fake.connectToEventStreamReturnsOnCall[i] = struct {
-		result1 *sse.EventSource
-		result2 error
-	}{result1, result2}
+	fake.uRLReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
 }
 
 func (fake *FakeConnection) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.uRLMutex.RLock()
-	defer fake.uRLMutex.RUnlock()
+	fake.connectToEventStreamMutex.RLock()
+	defer fake.connectToEventStreamMutex.RUnlock()
 	fake.hTTPClientMutex.RLock()
 	defer fake.hTTPClientMutex.RUnlock()
 	fake.sendMutex.RLock()
 	defer fake.sendMutex.RUnlock()
-	fake.connectToEventStreamMutex.RLock()
-	defer fake.connectToEventStreamMutex.RUnlock()
+	fake.uRLMutex.RLock()
+	defer fake.uRLMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

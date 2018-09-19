@@ -2,45 +2,26 @@
 package beaconfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/worker/beacon"
+	beacon "github.com/concourse/concourse/worker/beacon"
 )
 
 type FakeSession struct {
-	WaitStub        func() error
-	waitMutex       sync.RWMutex
-	waitArgsForCall []struct{}
-	waitReturns     struct {
-		result1 error
-	}
-	waitReturnsOnCall map[int]struct {
-		result1 error
-	}
 	CloseStub        func() error
 	closeMutex       sync.RWMutex
-	closeArgsForCall []struct{}
-	closeReturns     struct {
+	closeArgsForCall []struct {
+	}
+	closeReturns struct {
 		result1 error
 	}
 	closeReturnsOnCall map[int]struct {
 		result1 error
 	}
-	StartStub        func(command string) error
-	startMutex       sync.RWMutex
-	startArgsForCall []struct {
-		command string
-	}
-	startReturns struct {
-		result1 error
-	}
-	startReturnsOnCall map[int]struct {
-		result1 error
-	}
-	OutputStub        func(command string) ([]byte, error)
+	OutputStub        func(string) ([]byte, error)
 	outputMutex       sync.RWMutex
 	outputArgsForCall []struct {
-		command string
+		arg1 string
 	}
 	outputReturns struct {
 		result1 []byte
@@ -50,54 +31,36 @@ type FakeSession struct {
 		result1 []byte
 		result2 error
 	}
+	StartStub        func(string) error
+	startMutex       sync.RWMutex
+	startArgsForCall []struct {
+		arg1 string
+	}
+	startReturns struct {
+		result1 error
+	}
+	startReturnsOnCall map[int]struct {
+		result1 error
+	}
+	WaitStub        func() error
+	waitMutex       sync.RWMutex
+	waitArgsForCall []struct {
+	}
+	waitReturns struct {
+		result1 error
+	}
+	waitReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeSession) Wait() error {
-	fake.waitMutex.Lock()
-	ret, specificReturn := fake.waitReturnsOnCall[len(fake.waitArgsForCall)]
-	fake.waitArgsForCall = append(fake.waitArgsForCall, struct{}{})
-	fake.recordInvocation("Wait", []interface{}{})
-	fake.waitMutex.Unlock()
-	if fake.WaitStub != nil {
-		return fake.WaitStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.waitReturns.result1
-}
-
-func (fake *FakeSession) WaitCallCount() int {
-	fake.waitMutex.RLock()
-	defer fake.waitMutex.RUnlock()
-	return len(fake.waitArgsForCall)
-}
-
-func (fake *FakeSession) WaitReturns(result1 error) {
-	fake.WaitStub = nil
-	fake.waitReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeSession) WaitReturnsOnCall(i int, result1 error) {
-	fake.WaitStub = nil
-	if fake.waitReturnsOnCall == nil {
-		fake.waitReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.waitReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeSession) Close() error {
 	fake.closeMutex.Lock()
 	ret, specificReturn := fake.closeReturnsOnCall[len(fake.closeArgsForCall)]
-	fake.closeArgsForCall = append(fake.closeArgsForCall, struct{}{})
+	fake.closeArgsForCall = append(fake.closeArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Close", []interface{}{})
 	fake.closeMutex.Unlock()
 	if fake.CloseStub != nil {
@@ -106,7 +69,8 @@ func (fake *FakeSession) Close() error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.closeReturns.result1
+	fakeReturns := fake.closeReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeSession) CloseCallCount() int {
@@ -134,69 +98,22 @@ func (fake *FakeSession) CloseReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeSession) Start(command string) error {
-	fake.startMutex.Lock()
-	ret, specificReturn := fake.startReturnsOnCall[len(fake.startArgsForCall)]
-	fake.startArgsForCall = append(fake.startArgsForCall, struct {
-		command string
-	}{command})
-	fake.recordInvocation("Start", []interface{}{command})
-	fake.startMutex.Unlock()
-	if fake.StartStub != nil {
-		return fake.StartStub(command)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.startReturns.result1
-}
-
-func (fake *FakeSession) StartCallCount() int {
-	fake.startMutex.RLock()
-	defer fake.startMutex.RUnlock()
-	return len(fake.startArgsForCall)
-}
-
-func (fake *FakeSession) StartArgsForCall(i int) string {
-	fake.startMutex.RLock()
-	defer fake.startMutex.RUnlock()
-	return fake.startArgsForCall[i].command
-}
-
-func (fake *FakeSession) StartReturns(result1 error) {
-	fake.StartStub = nil
-	fake.startReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeSession) StartReturnsOnCall(i int, result1 error) {
-	fake.StartStub = nil
-	if fake.startReturnsOnCall == nil {
-		fake.startReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.startReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeSession) Output(command string) ([]byte, error) {
+func (fake *FakeSession) Output(arg1 string) ([]byte, error) {
 	fake.outputMutex.Lock()
 	ret, specificReturn := fake.outputReturnsOnCall[len(fake.outputArgsForCall)]
 	fake.outputArgsForCall = append(fake.outputArgsForCall, struct {
-		command string
-	}{command})
-	fake.recordInvocation("Output", []interface{}{command})
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Output", []interface{}{arg1})
 	fake.outputMutex.Unlock()
 	if fake.OutputStub != nil {
-		return fake.OutputStub(command)
+		return fake.OutputStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.outputReturns.result1, fake.outputReturns.result2
+	fakeReturns := fake.outputReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeSession) OutputCallCount() int {
@@ -208,7 +125,8 @@ func (fake *FakeSession) OutputCallCount() int {
 func (fake *FakeSession) OutputArgsForCall(i int) string {
 	fake.outputMutex.RLock()
 	defer fake.outputMutex.RUnlock()
-	return fake.outputArgsForCall[i].command
+	argsForCall := fake.outputArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeSession) OutputReturns(result1 []byte, result2 error) {
@@ -233,17 +151,109 @@ func (fake *FakeSession) OutputReturnsOnCall(i int, result1 []byte, result2 erro
 	}{result1, result2}
 }
 
+func (fake *FakeSession) Start(arg1 string) error {
+	fake.startMutex.Lock()
+	ret, specificReturn := fake.startReturnsOnCall[len(fake.startArgsForCall)]
+	fake.startArgsForCall = append(fake.startArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Start", []interface{}{arg1})
+	fake.startMutex.Unlock()
+	if fake.StartStub != nil {
+		return fake.StartStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.startReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeSession) StartCallCount() int {
+	fake.startMutex.RLock()
+	defer fake.startMutex.RUnlock()
+	return len(fake.startArgsForCall)
+}
+
+func (fake *FakeSession) StartArgsForCall(i int) string {
+	fake.startMutex.RLock()
+	defer fake.startMutex.RUnlock()
+	argsForCall := fake.startArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeSession) StartReturns(result1 error) {
+	fake.StartStub = nil
+	fake.startReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeSession) StartReturnsOnCall(i int, result1 error) {
+	fake.StartStub = nil
+	if fake.startReturnsOnCall == nil {
+		fake.startReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.startReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeSession) Wait() error {
+	fake.waitMutex.Lock()
+	ret, specificReturn := fake.waitReturnsOnCall[len(fake.waitArgsForCall)]
+	fake.waitArgsForCall = append(fake.waitArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Wait", []interface{}{})
+	fake.waitMutex.Unlock()
+	if fake.WaitStub != nil {
+		return fake.WaitStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.waitReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeSession) WaitCallCount() int {
+	fake.waitMutex.RLock()
+	defer fake.waitMutex.RUnlock()
+	return len(fake.waitArgsForCall)
+}
+
+func (fake *FakeSession) WaitReturns(result1 error) {
+	fake.WaitStub = nil
+	fake.waitReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeSession) WaitReturnsOnCall(i int, result1 error) {
+	fake.WaitStub = nil
+	if fake.waitReturnsOnCall == nil {
+		fake.waitReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.waitReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeSession) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.waitMutex.RLock()
-	defer fake.waitMutex.RUnlock()
 	fake.closeMutex.RLock()
 	defer fake.closeMutex.RUnlock()
-	fake.startMutex.RLock()
-	defer fake.startMutex.RUnlock()
 	fake.outputMutex.RLock()
 	defer fake.outputMutex.RUnlock()
+	fake.startMutex.RLock()
+	defer fake.startMutex.RUnlock()
+	fake.waitMutex.RLock()
+	defer fake.waitMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

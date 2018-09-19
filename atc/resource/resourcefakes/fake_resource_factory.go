@@ -2,27 +2,27 @@
 package resourcefakes
 
 import (
-	"context"
-	"sync"
+	context "context"
+	sync "sync"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/resource"
-	"github.com/concourse/concourse/atc/worker"
+	lager "code.cloudfoundry.org/lager"
+	creds "github.com/concourse/concourse/atc/creds"
+	db "github.com/concourse/concourse/atc/db"
+	resource "github.com/concourse/concourse/atc/resource"
+	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakeResourceFactory struct {
-	NewResourceStub        func(ctx context.Context, logger lager.Logger, owner db.ContainerOwner, metadata db.ContainerMetadata, containerSpec worker.ContainerSpec, resourceTypes creds.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate) (resource.Resource, error)
+	NewResourceStub        func(context.Context, lager.Logger, db.ContainerOwner, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes, worker.ImageFetchingDelegate) (resource.Resource, error)
 	newResourceMutex       sync.RWMutex
 	newResourceArgsForCall []struct {
-		ctx                   context.Context
-		logger                lager.Logger
-		owner                 db.ContainerOwner
-		metadata              db.ContainerMetadata
-		containerSpec         worker.ContainerSpec
-		resourceTypes         creds.VersionedResourceTypes
-		imageFetchingDelegate worker.ImageFetchingDelegate
+		arg1 context.Context
+		arg2 lager.Logger
+		arg3 db.ContainerOwner
+		arg4 db.ContainerMetadata
+		arg5 worker.ContainerSpec
+		arg6 creds.VersionedResourceTypes
+		arg7 worker.ImageFetchingDelegate
 	}
 	newResourceReturns struct {
 		result1 resource.Resource
@@ -36,27 +36,28 @@ type FakeResourceFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceFactory) NewResource(ctx context.Context, logger lager.Logger, owner db.ContainerOwner, metadata db.ContainerMetadata, containerSpec worker.ContainerSpec, resourceTypes creds.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate) (resource.Resource, error) {
+func (fake *FakeResourceFactory) NewResource(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerOwner, arg4 db.ContainerMetadata, arg5 worker.ContainerSpec, arg6 creds.VersionedResourceTypes, arg7 worker.ImageFetchingDelegate) (resource.Resource, error) {
 	fake.newResourceMutex.Lock()
 	ret, specificReturn := fake.newResourceReturnsOnCall[len(fake.newResourceArgsForCall)]
 	fake.newResourceArgsForCall = append(fake.newResourceArgsForCall, struct {
-		ctx                   context.Context
-		logger                lager.Logger
-		owner                 db.ContainerOwner
-		metadata              db.ContainerMetadata
-		containerSpec         worker.ContainerSpec
-		resourceTypes         creds.VersionedResourceTypes
-		imageFetchingDelegate worker.ImageFetchingDelegate
-	}{ctx, logger, owner, metadata, containerSpec, resourceTypes, imageFetchingDelegate})
-	fake.recordInvocation("NewResource", []interface{}{ctx, logger, owner, metadata, containerSpec, resourceTypes, imageFetchingDelegate})
+		arg1 context.Context
+		arg2 lager.Logger
+		arg3 db.ContainerOwner
+		arg4 db.ContainerMetadata
+		arg5 worker.ContainerSpec
+		arg6 creds.VersionedResourceTypes
+		arg7 worker.ImageFetchingDelegate
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+	fake.recordInvocation("NewResource", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.newResourceMutex.Unlock()
 	if fake.NewResourceStub != nil {
-		return fake.NewResourceStub(ctx, logger, owner, metadata, containerSpec, resourceTypes, imageFetchingDelegate)
+		return fake.NewResourceStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.newResourceReturns.result1, fake.newResourceReturns.result2
+	fakeReturns := fake.newResourceReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeResourceFactory) NewResourceCallCount() int {
@@ -68,7 +69,8 @@ func (fake *FakeResourceFactory) NewResourceCallCount() int {
 func (fake *FakeResourceFactory) NewResourceArgsForCall(i int) (context.Context, lager.Logger, db.ContainerOwner, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes, worker.ImageFetchingDelegate) {
 	fake.newResourceMutex.RLock()
 	defer fake.newResourceMutex.RUnlock()
-	return fake.newResourceArgsForCall[i].ctx, fake.newResourceArgsForCall[i].logger, fake.newResourceArgsForCall[i].owner, fake.newResourceArgsForCall[i].metadata, fake.newResourceArgsForCall[i].containerSpec, fake.newResourceArgsForCall[i].resourceTypes, fake.newResourceArgsForCall[i].imageFetchingDelegate
+	argsForCall := fake.newResourceArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
 }
 
 func (fake *FakeResourceFactory) NewResourceReturns(result1 resource.Resource, result2 error) {

@@ -2,20 +2,20 @@
 package inputconfigfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/algorithm"
-	"github.com/concourse/concourse/atc/scheduler/inputmapper/inputconfig"
+	atc "github.com/concourse/concourse/atc"
+	algorithm "github.com/concourse/concourse/atc/db/algorithm"
+	inputconfig "github.com/concourse/concourse/atc/scheduler/inputmapper/inputconfig"
 )
 
 type FakeTransformer struct {
-	TransformInputConfigsStub        func(db *algorithm.VersionsDB, jobName string, inputs []atc.JobInput) (algorithm.InputConfigs, error)
+	TransformInputConfigsStub        func(*algorithm.VersionsDB, string, []atc.JobInput) (algorithm.InputConfigs, error)
 	transformInputConfigsMutex       sync.RWMutex
 	transformInputConfigsArgsForCall []struct {
-		db      *algorithm.VersionsDB
-		jobName string
-		inputs  []atc.JobInput
+		arg1 *algorithm.VersionsDB
+		arg2 string
+		arg3 []atc.JobInput
 	}
 	transformInputConfigsReturns struct {
 		result1 algorithm.InputConfigs
@@ -29,28 +29,29 @@ type FakeTransformer struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTransformer) TransformInputConfigs(db *algorithm.VersionsDB, jobName string, inputs []atc.JobInput) (algorithm.InputConfigs, error) {
-	var inputsCopy []atc.JobInput
-	if inputs != nil {
-		inputsCopy = make([]atc.JobInput, len(inputs))
-		copy(inputsCopy, inputs)
+func (fake *FakeTransformer) TransformInputConfigs(arg1 *algorithm.VersionsDB, arg2 string, arg3 []atc.JobInput) (algorithm.InputConfigs, error) {
+	var arg3Copy []atc.JobInput
+	if arg3 != nil {
+		arg3Copy = make([]atc.JobInput, len(arg3))
+		copy(arg3Copy, arg3)
 	}
 	fake.transformInputConfigsMutex.Lock()
 	ret, specificReturn := fake.transformInputConfigsReturnsOnCall[len(fake.transformInputConfigsArgsForCall)]
 	fake.transformInputConfigsArgsForCall = append(fake.transformInputConfigsArgsForCall, struct {
-		db      *algorithm.VersionsDB
-		jobName string
-		inputs  []atc.JobInput
-	}{db, jobName, inputsCopy})
-	fake.recordInvocation("TransformInputConfigs", []interface{}{db, jobName, inputsCopy})
+		arg1 *algorithm.VersionsDB
+		arg2 string
+		arg3 []atc.JobInput
+	}{arg1, arg2, arg3Copy})
+	fake.recordInvocation("TransformInputConfigs", []interface{}{arg1, arg2, arg3Copy})
 	fake.transformInputConfigsMutex.Unlock()
 	if fake.TransformInputConfigsStub != nil {
-		return fake.TransformInputConfigsStub(db, jobName, inputs)
+		return fake.TransformInputConfigsStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.transformInputConfigsReturns.result1, fake.transformInputConfigsReturns.result2
+	fakeReturns := fake.transformInputConfigsReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeTransformer) TransformInputConfigsCallCount() int {
@@ -62,7 +63,8 @@ func (fake *FakeTransformer) TransformInputConfigsCallCount() int {
 func (fake *FakeTransformer) TransformInputConfigsArgsForCall(i int) (*algorithm.VersionsDB, string, []atc.JobInput) {
 	fake.transformInputConfigsMutex.RLock()
 	defer fake.transformInputConfigsMutex.RUnlock()
-	return fake.transformInputConfigsArgsForCall[i].db, fake.transformInputConfigsArgsForCall[i].jobName, fake.transformInputConfigsArgsForCall[i].inputs
+	argsForCall := fake.transformInputConfigsArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeTransformer) TransformInputConfigsReturns(result1 algorithm.InputConfigs, result2 error) {

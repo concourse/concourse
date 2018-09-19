@@ -2,11 +2,11 @@
 package execfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/worker"
+	atc "github.com/concourse/concourse/atc"
+	exec "github.com/concourse/concourse/atc/exec"
+	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakeTaskConfigSource struct {
@@ -25,8 +25,9 @@ type FakeTaskConfigSource struct {
 	}
 	WarningsStub        func() []string
 	warningsMutex       sync.RWMutex
-	warningsArgsForCall []struct{}
-	warningsReturns     struct {
+	warningsArgsForCall []struct {
+	}
+	warningsReturns struct {
 		result1 []string
 	}
 	warningsReturnsOnCall map[int]struct {
@@ -50,7 +51,8 @@ func (fake *FakeTaskConfigSource) FetchConfig(arg1 *worker.ArtifactRepository) (
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.fetchConfigReturns.result1, fake.fetchConfigReturns.result2
+	fakeReturns := fake.fetchConfigReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeTaskConfigSource) FetchConfigCallCount() int {
@@ -62,7 +64,8 @@ func (fake *FakeTaskConfigSource) FetchConfigCallCount() int {
 func (fake *FakeTaskConfigSource) FetchConfigArgsForCall(i int) *worker.ArtifactRepository {
 	fake.fetchConfigMutex.RLock()
 	defer fake.fetchConfigMutex.RUnlock()
-	return fake.fetchConfigArgsForCall[i].arg1
+	argsForCall := fake.fetchConfigArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeTaskConfigSource) FetchConfigReturns(result1 atc.TaskConfig, result2 error) {
@@ -90,7 +93,8 @@ func (fake *FakeTaskConfigSource) FetchConfigReturnsOnCall(i int, result1 atc.Ta
 func (fake *FakeTaskConfigSource) Warnings() []string {
 	fake.warningsMutex.Lock()
 	ret, specificReturn := fake.warningsReturnsOnCall[len(fake.warningsArgsForCall)]
-	fake.warningsArgsForCall = append(fake.warningsArgsForCall, struct{}{})
+	fake.warningsArgsForCall = append(fake.warningsArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Warnings", []interface{}{})
 	fake.warningsMutex.Unlock()
 	if fake.WarningsStub != nil {
@@ -99,7 +103,8 @@ func (fake *FakeTaskConfigSource) Warnings() []string {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.warningsReturns.result1
+	fakeReturns := fake.warningsReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeTaskConfigSource) WarningsCallCount() int {

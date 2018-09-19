@@ -2,20 +2,18 @@
 package containerserverfakes
 
 import (
-	"sync"
-	"time"
+	sync "sync"
+	time "time"
 
-	"github.com/concourse/concourse/atc/api/containerserver"
+	containerserver "github.com/concourse/concourse/atc/api/containerserver"
 )
 
 type FakeInterceptTimeout struct {
-	ResetStub          func()
-	resetMutex         sync.RWMutex
-	resetArgsForCall   []struct{}
 	ChannelStub        func() <-chan time.Time
 	channelMutex       sync.RWMutex
-	channelArgsForCall []struct{}
-	channelReturns     struct {
+	channelArgsForCall []struct {
+	}
+	channelReturns struct {
 		result1 <-chan time.Time
 	}
 	channelReturnsOnCall map[int]struct {
@@ -23,37 +21,27 @@ type FakeInterceptTimeout struct {
 	}
 	ErrorStub        func() error
 	errorMutex       sync.RWMutex
-	errorArgsForCall []struct{}
-	errorReturns     struct {
+	errorArgsForCall []struct {
+	}
+	errorReturns struct {
 		result1 error
 	}
 	errorReturnsOnCall map[int]struct {
 		result1 error
 	}
+	ResetStub        func()
+	resetMutex       sync.RWMutex
+	resetArgsForCall []struct {
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeInterceptTimeout) Reset() {
-	fake.resetMutex.Lock()
-	fake.resetArgsForCall = append(fake.resetArgsForCall, struct{}{})
-	fake.recordInvocation("Reset", []interface{}{})
-	fake.resetMutex.Unlock()
-	if fake.ResetStub != nil {
-		fake.ResetStub()
-	}
-}
-
-func (fake *FakeInterceptTimeout) ResetCallCount() int {
-	fake.resetMutex.RLock()
-	defer fake.resetMutex.RUnlock()
-	return len(fake.resetArgsForCall)
 }
 
 func (fake *FakeInterceptTimeout) Channel() <-chan time.Time {
 	fake.channelMutex.Lock()
 	ret, specificReturn := fake.channelReturnsOnCall[len(fake.channelArgsForCall)]
-	fake.channelArgsForCall = append(fake.channelArgsForCall, struct{}{})
+	fake.channelArgsForCall = append(fake.channelArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Channel", []interface{}{})
 	fake.channelMutex.Unlock()
 	if fake.ChannelStub != nil {
@@ -62,7 +50,8 @@ func (fake *FakeInterceptTimeout) Channel() <-chan time.Time {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.channelReturns.result1
+	fakeReturns := fake.channelReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeInterceptTimeout) ChannelCallCount() int {
@@ -93,7 +82,8 @@ func (fake *FakeInterceptTimeout) ChannelReturnsOnCall(i int, result1 <-chan tim
 func (fake *FakeInterceptTimeout) Error() error {
 	fake.errorMutex.Lock()
 	ret, specificReturn := fake.errorReturnsOnCall[len(fake.errorArgsForCall)]
-	fake.errorArgsForCall = append(fake.errorArgsForCall, struct{}{})
+	fake.errorArgsForCall = append(fake.errorArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Error", []interface{}{})
 	fake.errorMutex.Unlock()
 	if fake.ErrorStub != nil {
@@ -102,7 +92,8 @@ func (fake *FakeInterceptTimeout) Error() error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.errorReturns.result1
+	fakeReturns := fake.errorReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeInterceptTimeout) ErrorCallCount() int {
@@ -130,15 +121,32 @@ func (fake *FakeInterceptTimeout) ErrorReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeInterceptTimeout) Reset() {
+	fake.resetMutex.Lock()
+	fake.resetArgsForCall = append(fake.resetArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Reset", []interface{}{})
+	fake.resetMutex.Unlock()
+	if fake.ResetStub != nil {
+		fake.ResetStub()
+	}
+}
+
+func (fake *FakeInterceptTimeout) ResetCallCount() int {
+	fake.resetMutex.RLock()
+	defer fake.resetMutex.RUnlock()
+	return len(fake.resetArgsForCall)
+}
+
 func (fake *FakeInterceptTimeout) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.resetMutex.RLock()
-	defer fake.resetMutex.RUnlock()
 	fake.channelMutex.RLock()
 	defer fake.channelMutex.RUnlock()
 	fake.errorMutex.RLock()
 	defer fake.errorMutex.RUnlock()
+	fake.resetMutex.RLock()
+	defer fake.resetMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

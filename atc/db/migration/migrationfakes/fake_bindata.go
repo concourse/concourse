@@ -2,25 +2,16 @@
 package migrationfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/db/migration"
+	migration "github.com/concourse/concourse/atc/db/migration"
 )
 
 type FakeBindata struct {
-	AssetNamesStub        func() []string
-	assetNamesMutex       sync.RWMutex
-	assetNamesArgsForCall []struct{}
-	assetNamesReturns     struct {
-		result1 []string
-	}
-	assetNamesReturnsOnCall map[int]struct {
-		result1 []string
-	}
-	AssetStub        func(name string) ([]byte, error)
+	AssetStub        func(string) ([]byte, error)
 	assetMutex       sync.RWMutex
 	assetArgsForCall []struct {
-		name string
+		arg1 string
 	}
 	assetReturns struct {
 		result1 []byte
@@ -30,14 +21,78 @@ type FakeBindata struct {
 		result1 []byte
 		result2 error
 	}
+	AssetNamesStub        func() []string
+	assetNamesMutex       sync.RWMutex
+	assetNamesArgsForCall []struct {
+	}
+	assetNamesReturns struct {
+		result1 []string
+	}
+	assetNamesReturnsOnCall map[int]struct {
+		result1 []string
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeBindata) Asset(arg1 string) ([]byte, error) {
+	fake.assetMutex.Lock()
+	ret, specificReturn := fake.assetReturnsOnCall[len(fake.assetArgsForCall)]
+	fake.assetArgsForCall = append(fake.assetArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Asset", []interface{}{arg1})
+	fake.assetMutex.Unlock()
+	if fake.AssetStub != nil {
+		return fake.AssetStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.assetReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeBindata) AssetCallCount() int {
+	fake.assetMutex.RLock()
+	defer fake.assetMutex.RUnlock()
+	return len(fake.assetArgsForCall)
+}
+
+func (fake *FakeBindata) AssetArgsForCall(i int) string {
+	fake.assetMutex.RLock()
+	defer fake.assetMutex.RUnlock()
+	argsForCall := fake.assetArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeBindata) AssetReturns(result1 []byte, result2 error) {
+	fake.AssetStub = nil
+	fake.assetReturns = struct {
+		result1 []byte
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBindata) AssetReturnsOnCall(i int, result1 []byte, result2 error) {
+	fake.AssetStub = nil
+	if fake.assetReturnsOnCall == nil {
+		fake.assetReturnsOnCall = make(map[int]struct {
+			result1 []byte
+			result2 error
+		})
+	}
+	fake.assetReturnsOnCall[i] = struct {
+		result1 []byte
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeBindata) AssetNames() []string {
 	fake.assetNamesMutex.Lock()
 	ret, specificReturn := fake.assetNamesReturnsOnCall[len(fake.assetNamesArgsForCall)]
-	fake.assetNamesArgsForCall = append(fake.assetNamesArgsForCall, struct{}{})
+	fake.assetNamesArgsForCall = append(fake.assetNamesArgsForCall, struct {
+	}{})
 	fake.recordInvocation("AssetNames", []interface{}{})
 	fake.assetNamesMutex.Unlock()
 	if fake.AssetNamesStub != nil {
@@ -46,7 +101,8 @@ func (fake *FakeBindata) AssetNames() []string {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.assetNamesReturns.result1
+	fakeReturns := fake.assetNamesReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeBindata) AssetNamesCallCount() int {
@@ -74,64 +130,13 @@ func (fake *FakeBindata) AssetNamesReturnsOnCall(i int, result1 []string) {
 	}{result1}
 }
 
-func (fake *FakeBindata) Asset(name string) ([]byte, error) {
-	fake.assetMutex.Lock()
-	ret, specificReturn := fake.assetReturnsOnCall[len(fake.assetArgsForCall)]
-	fake.assetArgsForCall = append(fake.assetArgsForCall, struct {
-		name string
-	}{name})
-	fake.recordInvocation("Asset", []interface{}{name})
-	fake.assetMutex.Unlock()
-	if fake.AssetStub != nil {
-		return fake.AssetStub(name)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.assetReturns.result1, fake.assetReturns.result2
-}
-
-func (fake *FakeBindata) AssetCallCount() int {
-	fake.assetMutex.RLock()
-	defer fake.assetMutex.RUnlock()
-	return len(fake.assetArgsForCall)
-}
-
-func (fake *FakeBindata) AssetArgsForCall(i int) string {
-	fake.assetMutex.RLock()
-	defer fake.assetMutex.RUnlock()
-	return fake.assetArgsForCall[i].name
-}
-
-func (fake *FakeBindata) AssetReturns(result1 []byte, result2 error) {
-	fake.AssetStub = nil
-	fake.assetReturns = struct {
-		result1 []byte
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBindata) AssetReturnsOnCall(i int, result1 []byte, result2 error) {
-	fake.AssetStub = nil
-	if fake.assetReturnsOnCall == nil {
-		fake.assetReturnsOnCall = make(map[int]struct {
-			result1 []byte
-			result2 error
-		})
-	}
-	fake.assetReturnsOnCall[i] = struct {
-		result1 []byte
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeBindata) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.assetNamesMutex.RLock()
-	defer fake.assetNamesMutex.RUnlock()
 	fake.assetMutex.RLock()
 	defer fake.assetMutex.RUnlock()
+	fake.assetNamesMutex.RLock()
+	defer fake.assetNamesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

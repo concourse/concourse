@@ -2,12 +2,12 @@
 package jobserverfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/api/jobserver"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/scheduler"
+	jobserver "github.com/concourse/concourse/atc/api/jobserver"
+	creds "github.com/concourse/concourse/atc/creds"
+	db "github.com/concourse/concourse/atc/db"
+	scheduler "github.com/concourse/concourse/atc/scheduler"
 )
 
 type FakeSchedulerFactory struct {
@@ -44,7 +44,8 @@ func (fake *FakeSchedulerFactory) BuildScheduler(arg1 db.Pipeline, arg2 string, 
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.buildSchedulerReturns.result1
+	fakeReturns := fake.buildSchedulerReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeSchedulerFactory) BuildSchedulerCallCount() int {
@@ -56,7 +57,8 @@ func (fake *FakeSchedulerFactory) BuildSchedulerCallCount() int {
 func (fake *FakeSchedulerFactory) BuildSchedulerArgsForCall(i int) (db.Pipeline, string, creds.Variables) {
 	fake.buildSchedulerMutex.RLock()
 	defer fake.buildSchedulerMutex.RUnlock()
-	return fake.buildSchedulerArgsForCall[i].arg1, fake.buildSchedulerArgsForCall[i].arg2, fake.buildSchedulerArgsForCall[i].arg3
+	argsForCall := fake.buildSchedulerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeSchedulerFactory) BuildSchedulerReturns(result1 scheduler.BuildScheduler) {

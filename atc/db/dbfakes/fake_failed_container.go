@@ -2,61 +2,17 @@
 package dbfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/db"
+	db "github.com/concourse/concourse/atc/db"
 )
 
 type FakeFailedContainer struct {
-	IDStub        func() int
-	iDMutex       sync.RWMutex
-	iDArgsForCall []struct{}
-	iDReturns     struct {
-		result1 int
-	}
-	iDReturnsOnCall map[int]struct {
-		result1 int
-	}
-	StateStub        func() string
-	stateMutex       sync.RWMutex
-	stateArgsForCall []struct{}
-	stateReturns     struct {
-		result1 string
-	}
-	stateReturnsOnCall map[int]struct {
-		result1 string
-	}
-	HandleStub        func() string
-	handleMutex       sync.RWMutex
-	handleArgsForCall []struct{}
-	handleReturns     struct {
-		result1 string
-	}
-	handleReturnsOnCall map[int]struct {
-		result1 string
-	}
-	WorkerNameStub        func() string
-	workerNameMutex       sync.RWMutex
-	workerNameArgsForCall []struct{}
-	workerNameReturns     struct {
-		result1 string
-	}
-	workerNameReturnsOnCall map[int]struct {
-		result1 string
-	}
-	MetadataStub        func() db.ContainerMetadata
-	metadataMutex       sync.RWMutex
-	metadataArgsForCall []struct{}
-	metadataReturns     struct {
-		result1 db.ContainerMetadata
-	}
-	metadataReturnsOnCall map[int]struct {
-		result1 db.ContainerMetadata
-	}
 	DestroyStub        func() (bool, error)
 	destroyMutex       sync.RWMutex
-	destroyArgsForCall []struct{}
-	destroyReturns     struct {
+	destroyArgsForCall []struct {
+	}
+	destroyReturns struct {
 		result1 bool
 		result2 error
 	}
@@ -64,214 +20,65 @@ type FakeFailedContainer struct {
 		result1 bool
 		result2 error
 	}
+	HandleStub        func() string
+	handleMutex       sync.RWMutex
+	handleArgsForCall []struct {
+	}
+	handleReturns struct {
+		result1 string
+	}
+	handleReturnsOnCall map[int]struct {
+		result1 string
+	}
+	IDStub        func() int
+	iDMutex       sync.RWMutex
+	iDArgsForCall []struct {
+	}
+	iDReturns struct {
+		result1 int
+	}
+	iDReturnsOnCall map[int]struct {
+		result1 int
+	}
+	MetadataStub        func() db.ContainerMetadata
+	metadataMutex       sync.RWMutex
+	metadataArgsForCall []struct {
+	}
+	metadataReturns struct {
+		result1 db.ContainerMetadata
+	}
+	metadataReturnsOnCall map[int]struct {
+		result1 db.ContainerMetadata
+	}
+	StateStub        func() string
+	stateMutex       sync.RWMutex
+	stateArgsForCall []struct {
+	}
+	stateReturns struct {
+		result1 string
+	}
+	stateReturnsOnCall map[int]struct {
+		result1 string
+	}
+	WorkerNameStub        func() string
+	workerNameMutex       sync.RWMutex
+	workerNameArgsForCall []struct {
+	}
+	workerNameReturns struct {
+		result1 string
+	}
+	workerNameReturnsOnCall map[int]struct {
+		result1 string
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeFailedContainer) ID() int {
-	fake.iDMutex.Lock()
-	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
-	fake.iDArgsForCall = append(fake.iDArgsForCall, struct{}{})
-	fake.recordInvocation("ID", []interface{}{})
-	fake.iDMutex.Unlock()
-	if fake.IDStub != nil {
-		return fake.IDStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.iDReturns.result1
-}
-
-func (fake *FakeFailedContainer) IDCallCount() int {
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	return len(fake.iDArgsForCall)
-}
-
-func (fake *FakeFailedContainer) IDReturns(result1 int) {
-	fake.IDStub = nil
-	fake.iDReturns = struct {
-		result1 int
-	}{result1}
-}
-
-func (fake *FakeFailedContainer) IDReturnsOnCall(i int, result1 int) {
-	fake.IDStub = nil
-	if fake.iDReturnsOnCall == nil {
-		fake.iDReturnsOnCall = make(map[int]struct {
-			result1 int
-		})
-	}
-	fake.iDReturnsOnCall[i] = struct {
-		result1 int
-	}{result1}
-}
-
-func (fake *FakeFailedContainer) State() string {
-	fake.stateMutex.Lock()
-	ret, specificReturn := fake.stateReturnsOnCall[len(fake.stateArgsForCall)]
-	fake.stateArgsForCall = append(fake.stateArgsForCall, struct{}{})
-	fake.recordInvocation("State", []interface{}{})
-	fake.stateMutex.Unlock()
-	if fake.StateStub != nil {
-		return fake.StateStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.stateReturns.result1
-}
-
-func (fake *FakeFailedContainer) StateCallCount() int {
-	fake.stateMutex.RLock()
-	defer fake.stateMutex.RUnlock()
-	return len(fake.stateArgsForCall)
-}
-
-func (fake *FakeFailedContainer) StateReturns(result1 string) {
-	fake.StateStub = nil
-	fake.stateReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeFailedContainer) StateReturnsOnCall(i int, result1 string) {
-	fake.StateStub = nil
-	if fake.stateReturnsOnCall == nil {
-		fake.stateReturnsOnCall = make(map[int]struct {
-			result1 string
-		})
-	}
-	fake.stateReturnsOnCall[i] = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeFailedContainer) Handle() string {
-	fake.handleMutex.Lock()
-	ret, specificReturn := fake.handleReturnsOnCall[len(fake.handleArgsForCall)]
-	fake.handleArgsForCall = append(fake.handleArgsForCall, struct{}{})
-	fake.recordInvocation("Handle", []interface{}{})
-	fake.handleMutex.Unlock()
-	if fake.HandleStub != nil {
-		return fake.HandleStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.handleReturns.result1
-}
-
-func (fake *FakeFailedContainer) HandleCallCount() int {
-	fake.handleMutex.RLock()
-	defer fake.handleMutex.RUnlock()
-	return len(fake.handleArgsForCall)
-}
-
-func (fake *FakeFailedContainer) HandleReturns(result1 string) {
-	fake.HandleStub = nil
-	fake.handleReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeFailedContainer) HandleReturnsOnCall(i int, result1 string) {
-	fake.HandleStub = nil
-	if fake.handleReturnsOnCall == nil {
-		fake.handleReturnsOnCall = make(map[int]struct {
-			result1 string
-		})
-	}
-	fake.handleReturnsOnCall[i] = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeFailedContainer) WorkerName() string {
-	fake.workerNameMutex.Lock()
-	ret, specificReturn := fake.workerNameReturnsOnCall[len(fake.workerNameArgsForCall)]
-	fake.workerNameArgsForCall = append(fake.workerNameArgsForCall, struct{}{})
-	fake.recordInvocation("WorkerName", []interface{}{})
-	fake.workerNameMutex.Unlock()
-	if fake.WorkerNameStub != nil {
-		return fake.WorkerNameStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.workerNameReturns.result1
-}
-
-func (fake *FakeFailedContainer) WorkerNameCallCount() int {
-	fake.workerNameMutex.RLock()
-	defer fake.workerNameMutex.RUnlock()
-	return len(fake.workerNameArgsForCall)
-}
-
-func (fake *FakeFailedContainer) WorkerNameReturns(result1 string) {
-	fake.WorkerNameStub = nil
-	fake.workerNameReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeFailedContainer) WorkerNameReturnsOnCall(i int, result1 string) {
-	fake.WorkerNameStub = nil
-	if fake.workerNameReturnsOnCall == nil {
-		fake.workerNameReturnsOnCall = make(map[int]struct {
-			result1 string
-		})
-	}
-	fake.workerNameReturnsOnCall[i] = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeFailedContainer) Metadata() db.ContainerMetadata {
-	fake.metadataMutex.Lock()
-	ret, specificReturn := fake.metadataReturnsOnCall[len(fake.metadataArgsForCall)]
-	fake.metadataArgsForCall = append(fake.metadataArgsForCall, struct{}{})
-	fake.recordInvocation("Metadata", []interface{}{})
-	fake.metadataMutex.Unlock()
-	if fake.MetadataStub != nil {
-		return fake.MetadataStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.metadataReturns.result1
-}
-
-func (fake *FakeFailedContainer) MetadataCallCount() int {
-	fake.metadataMutex.RLock()
-	defer fake.metadataMutex.RUnlock()
-	return len(fake.metadataArgsForCall)
-}
-
-func (fake *FakeFailedContainer) MetadataReturns(result1 db.ContainerMetadata) {
-	fake.MetadataStub = nil
-	fake.metadataReturns = struct {
-		result1 db.ContainerMetadata
-	}{result1}
-}
-
-func (fake *FakeFailedContainer) MetadataReturnsOnCall(i int, result1 db.ContainerMetadata) {
-	fake.MetadataStub = nil
-	if fake.metadataReturnsOnCall == nil {
-		fake.metadataReturnsOnCall = make(map[int]struct {
-			result1 db.ContainerMetadata
-		})
-	}
-	fake.metadataReturnsOnCall[i] = struct {
-		result1 db.ContainerMetadata
-	}{result1}
 }
 
 func (fake *FakeFailedContainer) Destroy() (bool, error) {
 	fake.destroyMutex.Lock()
 	ret, specificReturn := fake.destroyReturnsOnCall[len(fake.destroyArgsForCall)]
-	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct{}{})
+	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Destroy", []interface{}{})
 	fake.destroyMutex.Unlock()
 	if fake.DestroyStub != nil {
@@ -280,7 +87,8 @@ func (fake *FakeFailedContainer) Destroy() (bool, error) {
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.destroyReturns.result1, fake.destroyReturns.result2
+	fakeReturns := fake.destroyReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeFailedContainer) DestroyCallCount() int {
@@ -311,21 +119,231 @@ func (fake *FakeFailedContainer) DestroyReturnsOnCall(i int, result1 bool, resul
 	}{result1, result2}
 }
 
+func (fake *FakeFailedContainer) Handle() string {
+	fake.handleMutex.Lock()
+	ret, specificReturn := fake.handleReturnsOnCall[len(fake.handleArgsForCall)]
+	fake.handleArgsForCall = append(fake.handleArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Handle", []interface{}{})
+	fake.handleMutex.Unlock()
+	if fake.HandleStub != nil {
+		return fake.HandleStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.handleReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeFailedContainer) HandleCallCount() int {
+	fake.handleMutex.RLock()
+	defer fake.handleMutex.RUnlock()
+	return len(fake.handleArgsForCall)
+}
+
+func (fake *FakeFailedContainer) HandleReturns(result1 string) {
+	fake.HandleStub = nil
+	fake.handleReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeFailedContainer) HandleReturnsOnCall(i int, result1 string) {
+	fake.HandleStub = nil
+	if fake.handleReturnsOnCall == nil {
+		fake.handleReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.handleReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeFailedContainer) ID() int {
+	fake.iDMutex.Lock()
+	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
+	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ID", []interface{}{})
+	fake.iDMutex.Unlock()
+	if fake.IDStub != nil {
+		return fake.IDStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.iDReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeFailedContainer) IDCallCount() int {
+	fake.iDMutex.RLock()
+	defer fake.iDMutex.RUnlock()
+	return len(fake.iDArgsForCall)
+}
+
+func (fake *FakeFailedContainer) IDReturns(result1 int) {
+	fake.IDStub = nil
+	fake.iDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeFailedContainer) IDReturnsOnCall(i int, result1 int) {
+	fake.IDStub = nil
+	if fake.iDReturnsOnCall == nil {
+		fake.iDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.iDReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeFailedContainer) Metadata() db.ContainerMetadata {
+	fake.metadataMutex.Lock()
+	ret, specificReturn := fake.metadataReturnsOnCall[len(fake.metadataArgsForCall)]
+	fake.metadataArgsForCall = append(fake.metadataArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Metadata", []interface{}{})
+	fake.metadataMutex.Unlock()
+	if fake.MetadataStub != nil {
+		return fake.MetadataStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.metadataReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeFailedContainer) MetadataCallCount() int {
+	fake.metadataMutex.RLock()
+	defer fake.metadataMutex.RUnlock()
+	return len(fake.metadataArgsForCall)
+}
+
+func (fake *FakeFailedContainer) MetadataReturns(result1 db.ContainerMetadata) {
+	fake.MetadataStub = nil
+	fake.metadataReturns = struct {
+		result1 db.ContainerMetadata
+	}{result1}
+}
+
+func (fake *FakeFailedContainer) MetadataReturnsOnCall(i int, result1 db.ContainerMetadata) {
+	fake.MetadataStub = nil
+	if fake.metadataReturnsOnCall == nil {
+		fake.metadataReturnsOnCall = make(map[int]struct {
+			result1 db.ContainerMetadata
+		})
+	}
+	fake.metadataReturnsOnCall[i] = struct {
+		result1 db.ContainerMetadata
+	}{result1}
+}
+
+func (fake *FakeFailedContainer) State() string {
+	fake.stateMutex.Lock()
+	ret, specificReturn := fake.stateReturnsOnCall[len(fake.stateArgsForCall)]
+	fake.stateArgsForCall = append(fake.stateArgsForCall, struct {
+	}{})
+	fake.recordInvocation("State", []interface{}{})
+	fake.stateMutex.Unlock()
+	if fake.StateStub != nil {
+		return fake.StateStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.stateReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeFailedContainer) StateCallCount() int {
+	fake.stateMutex.RLock()
+	defer fake.stateMutex.RUnlock()
+	return len(fake.stateArgsForCall)
+}
+
+func (fake *FakeFailedContainer) StateReturns(result1 string) {
+	fake.StateStub = nil
+	fake.stateReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeFailedContainer) StateReturnsOnCall(i int, result1 string) {
+	fake.StateStub = nil
+	if fake.stateReturnsOnCall == nil {
+		fake.stateReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.stateReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeFailedContainer) WorkerName() string {
+	fake.workerNameMutex.Lock()
+	ret, specificReturn := fake.workerNameReturnsOnCall[len(fake.workerNameArgsForCall)]
+	fake.workerNameArgsForCall = append(fake.workerNameArgsForCall, struct {
+	}{})
+	fake.recordInvocation("WorkerName", []interface{}{})
+	fake.workerNameMutex.Unlock()
+	if fake.WorkerNameStub != nil {
+		return fake.WorkerNameStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.workerNameReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeFailedContainer) WorkerNameCallCount() int {
+	fake.workerNameMutex.RLock()
+	defer fake.workerNameMutex.RUnlock()
+	return len(fake.workerNameArgsForCall)
+}
+
+func (fake *FakeFailedContainer) WorkerNameReturns(result1 string) {
+	fake.WorkerNameStub = nil
+	fake.workerNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeFailedContainer) WorkerNameReturnsOnCall(i int, result1 string) {
+	fake.WorkerNameStub = nil
+	if fake.workerNameReturnsOnCall == nil {
+		fake.workerNameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.workerNameReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeFailedContainer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	fake.stateMutex.RLock()
-	defer fake.stateMutex.RUnlock()
-	fake.handleMutex.RLock()
-	defer fake.handleMutex.RUnlock()
-	fake.workerNameMutex.RLock()
-	defer fake.workerNameMutex.RUnlock()
-	fake.metadataMutex.RLock()
-	defer fake.metadataMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
+	fake.handleMutex.RLock()
+	defer fake.handleMutex.RUnlock()
+	fake.iDMutex.RLock()
+	defer fake.iDMutex.RUnlock()
+	fake.metadataMutex.RLock()
+	defer fake.metadataMutex.RUnlock()
+	fake.stateMutex.RLock()
+	defer fake.stateMutex.RUnlock()
+	fake.workerNameMutex.RLock()
+	defer fake.workerNameMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

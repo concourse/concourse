@@ -2,57 +2,21 @@
 package dbfakes
 
 import (
-	"sync"
-	"time"
+	sync "sync"
+	time "time"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
+	lager "code.cloudfoundry.org/lager"
+	db "github.com/concourse/concourse/atc/db"
+	lock "github.com/concourse/concourse/atc/db/lock"
 )
 
 type FakeResourceConfig struct {
-	IDStub        func() int
-	iDMutex       sync.RWMutex
-	iDArgsForCall []struct{}
-	iDReturns     struct {
-		result1 int
-	}
-	iDReturnsOnCall map[int]struct {
-		result1 int
-	}
-	CreatedByResourceCacheStub        func() db.UsedResourceCache
-	createdByResourceCacheMutex       sync.RWMutex
-	createdByResourceCacheArgsForCall []struct{}
-	createdByResourceCacheReturns     struct {
-		result1 db.UsedResourceCache
-	}
-	createdByResourceCacheReturnsOnCall map[int]struct {
-		result1 db.UsedResourceCache
-	}
-	CreatedByBaseResourceTypeStub        func() *db.UsedBaseResourceType
-	createdByBaseResourceTypeMutex       sync.RWMutex
-	createdByBaseResourceTypeArgsForCall []struct{}
-	createdByBaseResourceTypeReturns     struct {
-		result1 *db.UsedBaseResourceType
-	}
-	createdByBaseResourceTypeReturnsOnCall map[int]struct {
-		result1 *db.UsedBaseResourceType
-	}
-	OriginBaseResourceTypeStub        func() *db.UsedBaseResourceType
-	originBaseResourceTypeMutex       sync.RWMutex
-	originBaseResourceTypeArgsForCall []struct{}
-	originBaseResourceTypeReturns     struct {
-		result1 *db.UsedBaseResourceType
-	}
-	originBaseResourceTypeReturnsOnCall map[int]struct {
-		result1 *db.UsedBaseResourceType
-	}
-	AcquireResourceConfigCheckingLockWithIntervalCheckStub        func(logger lager.Logger, interval time.Duration, immediate bool) (lock.Lock, bool, error)
+	AcquireResourceConfigCheckingLockWithIntervalCheckStub        func(lager.Logger, time.Duration, bool) (lock.Lock, bool, error)
 	acquireResourceConfigCheckingLockWithIntervalCheckMutex       sync.RWMutex
 	acquireResourceConfigCheckingLockWithIntervalCheckArgsForCall []struct {
-		logger    lager.Logger
-		interval  time.Duration
-		immediate bool
+		arg1 lager.Logger
+		arg2 time.Duration
+		arg3 bool
 	}
 	acquireResourceConfigCheckingLockWithIntervalCheckReturns struct {
 		result1 lock.Lock
@@ -64,187 +28,68 @@ type FakeResourceConfig struct {
 		result2 bool
 		result3 error
 	}
+	CreatedByBaseResourceTypeStub        func() *db.UsedBaseResourceType
+	createdByBaseResourceTypeMutex       sync.RWMutex
+	createdByBaseResourceTypeArgsForCall []struct {
+	}
+	createdByBaseResourceTypeReturns struct {
+		result1 *db.UsedBaseResourceType
+	}
+	createdByBaseResourceTypeReturnsOnCall map[int]struct {
+		result1 *db.UsedBaseResourceType
+	}
+	CreatedByResourceCacheStub        func() db.UsedResourceCache
+	createdByResourceCacheMutex       sync.RWMutex
+	createdByResourceCacheArgsForCall []struct {
+	}
+	createdByResourceCacheReturns struct {
+		result1 db.UsedResourceCache
+	}
+	createdByResourceCacheReturnsOnCall map[int]struct {
+		result1 db.UsedResourceCache
+	}
+	IDStub        func() int
+	iDMutex       sync.RWMutex
+	iDArgsForCall []struct {
+	}
+	iDReturns struct {
+		result1 int
+	}
+	iDReturnsOnCall map[int]struct {
+		result1 int
+	}
+	OriginBaseResourceTypeStub        func() *db.UsedBaseResourceType
+	originBaseResourceTypeMutex       sync.RWMutex
+	originBaseResourceTypeArgsForCall []struct {
+	}
+	originBaseResourceTypeReturns struct {
+		result1 *db.UsedBaseResourceType
+	}
+	originBaseResourceTypeReturnsOnCall map[int]struct {
+		result1 *db.UsedBaseResourceType
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceConfig) ID() int {
-	fake.iDMutex.Lock()
-	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
-	fake.iDArgsForCall = append(fake.iDArgsForCall, struct{}{})
-	fake.recordInvocation("ID", []interface{}{})
-	fake.iDMutex.Unlock()
-	if fake.IDStub != nil {
-		return fake.IDStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.iDReturns.result1
-}
-
-func (fake *FakeResourceConfig) IDCallCount() int {
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	return len(fake.iDArgsForCall)
-}
-
-func (fake *FakeResourceConfig) IDReturns(result1 int) {
-	fake.IDStub = nil
-	fake.iDReturns = struct {
-		result1 int
-	}{result1}
-}
-
-func (fake *FakeResourceConfig) IDReturnsOnCall(i int, result1 int) {
-	fake.IDStub = nil
-	if fake.iDReturnsOnCall == nil {
-		fake.iDReturnsOnCall = make(map[int]struct {
-			result1 int
-		})
-	}
-	fake.iDReturnsOnCall[i] = struct {
-		result1 int
-	}{result1}
-}
-
-func (fake *FakeResourceConfig) CreatedByResourceCache() db.UsedResourceCache {
-	fake.createdByResourceCacheMutex.Lock()
-	ret, specificReturn := fake.createdByResourceCacheReturnsOnCall[len(fake.createdByResourceCacheArgsForCall)]
-	fake.createdByResourceCacheArgsForCall = append(fake.createdByResourceCacheArgsForCall, struct{}{})
-	fake.recordInvocation("CreatedByResourceCache", []interface{}{})
-	fake.createdByResourceCacheMutex.Unlock()
-	if fake.CreatedByResourceCacheStub != nil {
-		return fake.CreatedByResourceCacheStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.createdByResourceCacheReturns.result1
-}
-
-func (fake *FakeResourceConfig) CreatedByResourceCacheCallCount() int {
-	fake.createdByResourceCacheMutex.RLock()
-	defer fake.createdByResourceCacheMutex.RUnlock()
-	return len(fake.createdByResourceCacheArgsForCall)
-}
-
-func (fake *FakeResourceConfig) CreatedByResourceCacheReturns(result1 db.UsedResourceCache) {
-	fake.CreatedByResourceCacheStub = nil
-	fake.createdByResourceCacheReturns = struct {
-		result1 db.UsedResourceCache
-	}{result1}
-}
-
-func (fake *FakeResourceConfig) CreatedByResourceCacheReturnsOnCall(i int, result1 db.UsedResourceCache) {
-	fake.CreatedByResourceCacheStub = nil
-	if fake.createdByResourceCacheReturnsOnCall == nil {
-		fake.createdByResourceCacheReturnsOnCall = make(map[int]struct {
-			result1 db.UsedResourceCache
-		})
-	}
-	fake.createdByResourceCacheReturnsOnCall[i] = struct {
-		result1 db.UsedResourceCache
-	}{result1}
-}
-
-func (fake *FakeResourceConfig) CreatedByBaseResourceType() *db.UsedBaseResourceType {
-	fake.createdByBaseResourceTypeMutex.Lock()
-	ret, specificReturn := fake.createdByBaseResourceTypeReturnsOnCall[len(fake.createdByBaseResourceTypeArgsForCall)]
-	fake.createdByBaseResourceTypeArgsForCall = append(fake.createdByBaseResourceTypeArgsForCall, struct{}{})
-	fake.recordInvocation("CreatedByBaseResourceType", []interface{}{})
-	fake.createdByBaseResourceTypeMutex.Unlock()
-	if fake.CreatedByBaseResourceTypeStub != nil {
-		return fake.CreatedByBaseResourceTypeStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.createdByBaseResourceTypeReturns.result1
-}
-
-func (fake *FakeResourceConfig) CreatedByBaseResourceTypeCallCount() int {
-	fake.createdByBaseResourceTypeMutex.RLock()
-	defer fake.createdByBaseResourceTypeMutex.RUnlock()
-	return len(fake.createdByBaseResourceTypeArgsForCall)
-}
-
-func (fake *FakeResourceConfig) CreatedByBaseResourceTypeReturns(result1 *db.UsedBaseResourceType) {
-	fake.CreatedByBaseResourceTypeStub = nil
-	fake.createdByBaseResourceTypeReturns = struct {
-		result1 *db.UsedBaseResourceType
-	}{result1}
-}
-
-func (fake *FakeResourceConfig) CreatedByBaseResourceTypeReturnsOnCall(i int, result1 *db.UsedBaseResourceType) {
-	fake.CreatedByBaseResourceTypeStub = nil
-	if fake.createdByBaseResourceTypeReturnsOnCall == nil {
-		fake.createdByBaseResourceTypeReturnsOnCall = make(map[int]struct {
-			result1 *db.UsedBaseResourceType
-		})
-	}
-	fake.createdByBaseResourceTypeReturnsOnCall[i] = struct {
-		result1 *db.UsedBaseResourceType
-	}{result1}
-}
-
-func (fake *FakeResourceConfig) OriginBaseResourceType() *db.UsedBaseResourceType {
-	fake.originBaseResourceTypeMutex.Lock()
-	ret, specificReturn := fake.originBaseResourceTypeReturnsOnCall[len(fake.originBaseResourceTypeArgsForCall)]
-	fake.originBaseResourceTypeArgsForCall = append(fake.originBaseResourceTypeArgsForCall, struct{}{})
-	fake.recordInvocation("OriginBaseResourceType", []interface{}{})
-	fake.originBaseResourceTypeMutex.Unlock()
-	if fake.OriginBaseResourceTypeStub != nil {
-		return fake.OriginBaseResourceTypeStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.originBaseResourceTypeReturns.result1
-}
-
-func (fake *FakeResourceConfig) OriginBaseResourceTypeCallCount() int {
-	fake.originBaseResourceTypeMutex.RLock()
-	defer fake.originBaseResourceTypeMutex.RUnlock()
-	return len(fake.originBaseResourceTypeArgsForCall)
-}
-
-func (fake *FakeResourceConfig) OriginBaseResourceTypeReturns(result1 *db.UsedBaseResourceType) {
-	fake.OriginBaseResourceTypeStub = nil
-	fake.originBaseResourceTypeReturns = struct {
-		result1 *db.UsedBaseResourceType
-	}{result1}
-}
-
-func (fake *FakeResourceConfig) OriginBaseResourceTypeReturnsOnCall(i int, result1 *db.UsedBaseResourceType) {
-	fake.OriginBaseResourceTypeStub = nil
-	if fake.originBaseResourceTypeReturnsOnCall == nil {
-		fake.originBaseResourceTypeReturnsOnCall = make(map[int]struct {
-			result1 *db.UsedBaseResourceType
-		})
-	}
-	fake.originBaseResourceTypeReturnsOnCall[i] = struct {
-		result1 *db.UsedBaseResourceType
-	}{result1}
-}
-
-func (fake *FakeResourceConfig) AcquireResourceConfigCheckingLockWithIntervalCheck(logger lager.Logger, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
+func (fake *FakeResourceConfig) AcquireResourceConfigCheckingLockWithIntervalCheck(arg1 lager.Logger, arg2 time.Duration, arg3 bool) (lock.Lock, bool, error) {
 	fake.acquireResourceConfigCheckingLockWithIntervalCheckMutex.Lock()
 	ret, specificReturn := fake.acquireResourceConfigCheckingLockWithIntervalCheckReturnsOnCall[len(fake.acquireResourceConfigCheckingLockWithIntervalCheckArgsForCall)]
 	fake.acquireResourceConfigCheckingLockWithIntervalCheckArgsForCall = append(fake.acquireResourceConfigCheckingLockWithIntervalCheckArgsForCall, struct {
-		logger    lager.Logger
-		interval  time.Duration
-		immediate bool
-	}{logger, interval, immediate})
-	fake.recordInvocation("AcquireResourceConfigCheckingLockWithIntervalCheck", []interface{}{logger, interval, immediate})
+		arg1 lager.Logger
+		arg2 time.Duration
+		arg3 bool
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("AcquireResourceConfigCheckingLockWithIntervalCheck", []interface{}{arg1, arg2, arg3})
 	fake.acquireResourceConfigCheckingLockWithIntervalCheckMutex.Unlock()
 	if fake.AcquireResourceConfigCheckingLockWithIntervalCheckStub != nil {
-		return fake.AcquireResourceConfigCheckingLockWithIntervalCheckStub(logger, interval, immediate)
+		return fake.AcquireResourceConfigCheckingLockWithIntervalCheckStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.acquireResourceConfigCheckingLockWithIntervalCheckReturns.result1, fake.acquireResourceConfigCheckingLockWithIntervalCheckReturns.result2, fake.acquireResourceConfigCheckingLockWithIntervalCheckReturns.result3
+	fakeReturns := fake.acquireResourceConfigCheckingLockWithIntervalCheckReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
 func (fake *FakeResourceConfig) AcquireResourceConfigCheckingLockWithIntervalCheckCallCount() int {
@@ -256,7 +101,8 @@ func (fake *FakeResourceConfig) AcquireResourceConfigCheckingLockWithIntervalChe
 func (fake *FakeResourceConfig) AcquireResourceConfigCheckingLockWithIntervalCheckArgsForCall(i int) (lager.Logger, time.Duration, bool) {
 	fake.acquireResourceConfigCheckingLockWithIntervalCheckMutex.RLock()
 	defer fake.acquireResourceConfigCheckingLockWithIntervalCheckMutex.RUnlock()
-	return fake.acquireResourceConfigCheckingLockWithIntervalCheckArgsForCall[i].logger, fake.acquireResourceConfigCheckingLockWithIntervalCheckArgsForCall[i].interval, fake.acquireResourceConfigCheckingLockWithIntervalCheckArgsForCall[i].immediate
+	argsForCall := fake.acquireResourceConfigCheckingLockWithIntervalCheckArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeResourceConfig) AcquireResourceConfigCheckingLockWithIntervalCheckReturns(result1 lock.Lock, result2 bool, result3 error) {
@@ -284,19 +130,187 @@ func (fake *FakeResourceConfig) AcquireResourceConfigCheckingLockWithIntervalChe
 	}{result1, result2, result3}
 }
 
+func (fake *FakeResourceConfig) CreatedByBaseResourceType() *db.UsedBaseResourceType {
+	fake.createdByBaseResourceTypeMutex.Lock()
+	ret, specificReturn := fake.createdByBaseResourceTypeReturnsOnCall[len(fake.createdByBaseResourceTypeArgsForCall)]
+	fake.createdByBaseResourceTypeArgsForCall = append(fake.createdByBaseResourceTypeArgsForCall, struct {
+	}{})
+	fake.recordInvocation("CreatedByBaseResourceType", []interface{}{})
+	fake.createdByBaseResourceTypeMutex.Unlock()
+	if fake.CreatedByBaseResourceTypeStub != nil {
+		return fake.CreatedByBaseResourceTypeStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.createdByBaseResourceTypeReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceConfig) CreatedByBaseResourceTypeCallCount() int {
+	fake.createdByBaseResourceTypeMutex.RLock()
+	defer fake.createdByBaseResourceTypeMutex.RUnlock()
+	return len(fake.createdByBaseResourceTypeArgsForCall)
+}
+
+func (fake *FakeResourceConfig) CreatedByBaseResourceTypeReturns(result1 *db.UsedBaseResourceType) {
+	fake.CreatedByBaseResourceTypeStub = nil
+	fake.createdByBaseResourceTypeReturns = struct {
+		result1 *db.UsedBaseResourceType
+	}{result1}
+}
+
+func (fake *FakeResourceConfig) CreatedByBaseResourceTypeReturnsOnCall(i int, result1 *db.UsedBaseResourceType) {
+	fake.CreatedByBaseResourceTypeStub = nil
+	if fake.createdByBaseResourceTypeReturnsOnCall == nil {
+		fake.createdByBaseResourceTypeReturnsOnCall = make(map[int]struct {
+			result1 *db.UsedBaseResourceType
+		})
+	}
+	fake.createdByBaseResourceTypeReturnsOnCall[i] = struct {
+		result1 *db.UsedBaseResourceType
+	}{result1}
+}
+
+func (fake *FakeResourceConfig) CreatedByResourceCache() db.UsedResourceCache {
+	fake.createdByResourceCacheMutex.Lock()
+	ret, specificReturn := fake.createdByResourceCacheReturnsOnCall[len(fake.createdByResourceCacheArgsForCall)]
+	fake.createdByResourceCacheArgsForCall = append(fake.createdByResourceCacheArgsForCall, struct {
+	}{})
+	fake.recordInvocation("CreatedByResourceCache", []interface{}{})
+	fake.createdByResourceCacheMutex.Unlock()
+	if fake.CreatedByResourceCacheStub != nil {
+		return fake.CreatedByResourceCacheStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.createdByResourceCacheReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceConfig) CreatedByResourceCacheCallCount() int {
+	fake.createdByResourceCacheMutex.RLock()
+	defer fake.createdByResourceCacheMutex.RUnlock()
+	return len(fake.createdByResourceCacheArgsForCall)
+}
+
+func (fake *FakeResourceConfig) CreatedByResourceCacheReturns(result1 db.UsedResourceCache) {
+	fake.CreatedByResourceCacheStub = nil
+	fake.createdByResourceCacheReturns = struct {
+		result1 db.UsedResourceCache
+	}{result1}
+}
+
+func (fake *FakeResourceConfig) CreatedByResourceCacheReturnsOnCall(i int, result1 db.UsedResourceCache) {
+	fake.CreatedByResourceCacheStub = nil
+	if fake.createdByResourceCacheReturnsOnCall == nil {
+		fake.createdByResourceCacheReturnsOnCall = make(map[int]struct {
+			result1 db.UsedResourceCache
+		})
+	}
+	fake.createdByResourceCacheReturnsOnCall[i] = struct {
+		result1 db.UsedResourceCache
+	}{result1}
+}
+
+func (fake *FakeResourceConfig) ID() int {
+	fake.iDMutex.Lock()
+	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
+	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ID", []interface{}{})
+	fake.iDMutex.Unlock()
+	if fake.IDStub != nil {
+		return fake.IDStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.iDReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceConfig) IDCallCount() int {
+	fake.iDMutex.RLock()
+	defer fake.iDMutex.RUnlock()
+	return len(fake.iDArgsForCall)
+}
+
+func (fake *FakeResourceConfig) IDReturns(result1 int) {
+	fake.IDStub = nil
+	fake.iDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeResourceConfig) IDReturnsOnCall(i int, result1 int) {
+	fake.IDStub = nil
+	if fake.iDReturnsOnCall == nil {
+		fake.iDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.iDReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeResourceConfig) OriginBaseResourceType() *db.UsedBaseResourceType {
+	fake.originBaseResourceTypeMutex.Lock()
+	ret, specificReturn := fake.originBaseResourceTypeReturnsOnCall[len(fake.originBaseResourceTypeArgsForCall)]
+	fake.originBaseResourceTypeArgsForCall = append(fake.originBaseResourceTypeArgsForCall, struct {
+	}{})
+	fake.recordInvocation("OriginBaseResourceType", []interface{}{})
+	fake.originBaseResourceTypeMutex.Unlock()
+	if fake.OriginBaseResourceTypeStub != nil {
+		return fake.OriginBaseResourceTypeStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.originBaseResourceTypeReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceConfig) OriginBaseResourceTypeCallCount() int {
+	fake.originBaseResourceTypeMutex.RLock()
+	defer fake.originBaseResourceTypeMutex.RUnlock()
+	return len(fake.originBaseResourceTypeArgsForCall)
+}
+
+func (fake *FakeResourceConfig) OriginBaseResourceTypeReturns(result1 *db.UsedBaseResourceType) {
+	fake.OriginBaseResourceTypeStub = nil
+	fake.originBaseResourceTypeReturns = struct {
+		result1 *db.UsedBaseResourceType
+	}{result1}
+}
+
+func (fake *FakeResourceConfig) OriginBaseResourceTypeReturnsOnCall(i int, result1 *db.UsedBaseResourceType) {
+	fake.OriginBaseResourceTypeStub = nil
+	if fake.originBaseResourceTypeReturnsOnCall == nil {
+		fake.originBaseResourceTypeReturnsOnCall = make(map[int]struct {
+			result1 *db.UsedBaseResourceType
+		})
+	}
+	fake.originBaseResourceTypeReturnsOnCall[i] = struct {
+		result1 *db.UsedBaseResourceType
+	}{result1}
+}
+
 func (fake *FakeResourceConfig) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	fake.createdByResourceCacheMutex.RLock()
-	defer fake.createdByResourceCacheMutex.RUnlock()
-	fake.createdByBaseResourceTypeMutex.RLock()
-	defer fake.createdByBaseResourceTypeMutex.RUnlock()
-	fake.originBaseResourceTypeMutex.RLock()
-	defer fake.originBaseResourceTypeMutex.RUnlock()
 	fake.acquireResourceConfigCheckingLockWithIntervalCheckMutex.RLock()
 	defer fake.acquireResourceConfigCheckingLockWithIntervalCheckMutex.RUnlock()
+	fake.createdByBaseResourceTypeMutex.RLock()
+	defer fake.createdByBaseResourceTypeMutex.RUnlock()
+	fake.createdByResourceCacheMutex.RLock()
+	defer fake.createdByResourceCacheMutex.RUnlock()
+	fake.iDMutex.RLock()
+	defer fake.iDMutex.RUnlock()
+	fake.originBaseResourceTypeMutex.RLock()
+	defer fake.originBaseResourceTypeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

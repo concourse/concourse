@@ -2,10 +2,10 @@
 package drainerfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/worker/drainer"
+	lager "code.cloudfoundry.org/lager"
+	drainer "github.com/concourse/concourse/worker/drainer"
 )
 
 type FakeWatchProcess struct {
@@ -40,7 +40,8 @@ func (fake *FakeWatchProcess) IsRunning(arg1 lager.Logger) (bool, error) {
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.isRunningReturns.result1, fake.isRunningReturns.result2
+	fakeReturns := fake.isRunningReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeWatchProcess) IsRunningCallCount() int {
@@ -52,7 +53,8 @@ func (fake *FakeWatchProcess) IsRunningCallCount() int {
 func (fake *FakeWatchProcess) IsRunningArgsForCall(i int) lager.Logger {
 	fake.isRunningMutex.RLock()
 	defer fake.isRunningMutex.RUnlock()
-	return fake.isRunningArgsForCall[i].arg1
+	argsForCall := fake.isRunningArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeWatchProcess) IsRunningReturns(result1 bool, result2 error) {

@@ -2,24 +2,15 @@
 package enginefakes
 
 import (
-	"io"
-	"sync"
+	io "io"
+	sync "sync"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/engine"
+	lager "code.cloudfoundry.org/lager"
+	atc "github.com/concourse/concourse/atc"
+	engine "github.com/concourse/concourse/atc/engine"
 )
 
 type FakeBuild struct {
-	MetadataStub        func() string
-	metadataMutex       sync.RWMutex
-	metadataArgsForCall []struct{}
-	metadataReturns     struct {
-		result1 string
-	}
-	metadataReturnsOnCall map[int]struct {
-		result1 string
-	}
 	AbortStub        func(lager.Logger) error
 	abortMutex       sync.RWMutex
 	abortArgsForCall []struct {
@@ -31,10 +22,15 @@ type FakeBuild struct {
 	abortReturnsOnCall map[int]struct {
 		result1 error
 	}
-	ResumeStub        func(lager.Logger)
-	resumeMutex       sync.RWMutex
-	resumeArgsForCall []struct {
-		arg1 lager.Logger
+	MetadataStub        func() string
+	metadataMutex       sync.RWMutex
+	metadataArgsForCall []struct {
+	}
+	metadataReturns struct {
+		result1 string
+	}
+	metadataReturnsOnCall map[int]struct {
+		result1 string
 	}
 	ReceiveInputStub        func(lager.Logger, atc.PlanID, io.ReadCloser)
 	receiveInputMutex       sync.RWMutex
@@ -42,6 +38,11 @@ type FakeBuild struct {
 		arg1 lager.Logger
 		arg2 atc.PlanID
 		arg3 io.ReadCloser
+	}
+	ResumeStub        func(lager.Logger)
+	resumeMutex       sync.RWMutex
+	resumeArgsForCall []struct {
+		arg1 lager.Logger
 	}
 	SendOutputStub        func(lager.Logger, atc.PlanID, io.Writer)
 	sendOutputMutex       sync.RWMutex
@@ -54,10 +55,61 @@ type FakeBuild struct {
 	invocationsMutex sync.RWMutex
 }
 
+func (fake *FakeBuild) Abort(arg1 lager.Logger) error {
+	fake.abortMutex.Lock()
+	ret, specificReturn := fake.abortReturnsOnCall[len(fake.abortArgsForCall)]
+	fake.abortArgsForCall = append(fake.abortArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	fake.recordInvocation("Abort", []interface{}{arg1})
+	fake.abortMutex.Unlock()
+	if fake.AbortStub != nil {
+		return fake.AbortStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.abortReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) AbortCallCount() int {
+	fake.abortMutex.RLock()
+	defer fake.abortMutex.RUnlock()
+	return len(fake.abortArgsForCall)
+}
+
+func (fake *FakeBuild) AbortArgsForCall(i int) lager.Logger {
+	fake.abortMutex.RLock()
+	defer fake.abortMutex.RUnlock()
+	argsForCall := fake.abortArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeBuild) AbortReturns(result1 error) {
+	fake.AbortStub = nil
+	fake.abortReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuild) AbortReturnsOnCall(i int, result1 error) {
+	fake.AbortStub = nil
+	if fake.abortReturnsOnCall == nil {
+		fake.abortReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.abortReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeBuild) Metadata() string {
 	fake.metadataMutex.Lock()
 	ret, specificReturn := fake.metadataReturnsOnCall[len(fake.metadataArgsForCall)]
-	fake.metadataArgsForCall = append(fake.metadataArgsForCall, struct{}{})
+	fake.metadataArgsForCall = append(fake.metadataArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Metadata", []interface{}{})
 	fake.metadataMutex.Unlock()
 	if fake.MetadataStub != nil {
@@ -66,7 +118,8 @@ func (fake *FakeBuild) Metadata() string {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.metadataReturns.result1
+	fakeReturns := fake.metadataReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeBuild) MetadataCallCount() int {
@@ -94,78 +147,6 @@ func (fake *FakeBuild) MetadataReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeBuild) Abort(arg1 lager.Logger) error {
-	fake.abortMutex.Lock()
-	ret, specificReturn := fake.abortReturnsOnCall[len(fake.abortArgsForCall)]
-	fake.abortArgsForCall = append(fake.abortArgsForCall, struct {
-		arg1 lager.Logger
-	}{arg1})
-	fake.recordInvocation("Abort", []interface{}{arg1})
-	fake.abortMutex.Unlock()
-	if fake.AbortStub != nil {
-		return fake.AbortStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.abortReturns.result1
-}
-
-func (fake *FakeBuild) AbortCallCount() int {
-	fake.abortMutex.RLock()
-	defer fake.abortMutex.RUnlock()
-	return len(fake.abortArgsForCall)
-}
-
-func (fake *FakeBuild) AbortArgsForCall(i int) lager.Logger {
-	fake.abortMutex.RLock()
-	defer fake.abortMutex.RUnlock()
-	return fake.abortArgsForCall[i].arg1
-}
-
-func (fake *FakeBuild) AbortReturns(result1 error) {
-	fake.AbortStub = nil
-	fake.abortReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBuild) AbortReturnsOnCall(i int, result1 error) {
-	fake.AbortStub = nil
-	if fake.abortReturnsOnCall == nil {
-		fake.abortReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.abortReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBuild) Resume(arg1 lager.Logger) {
-	fake.resumeMutex.Lock()
-	fake.resumeArgsForCall = append(fake.resumeArgsForCall, struct {
-		arg1 lager.Logger
-	}{arg1})
-	fake.recordInvocation("Resume", []interface{}{arg1})
-	fake.resumeMutex.Unlock()
-	if fake.ResumeStub != nil {
-		fake.ResumeStub(arg1)
-	}
-}
-
-func (fake *FakeBuild) ResumeCallCount() int {
-	fake.resumeMutex.RLock()
-	defer fake.resumeMutex.RUnlock()
-	return len(fake.resumeArgsForCall)
-}
-
-func (fake *FakeBuild) ResumeArgsForCall(i int) lager.Logger {
-	fake.resumeMutex.RLock()
-	defer fake.resumeMutex.RUnlock()
-	return fake.resumeArgsForCall[i].arg1
-}
-
 func (fake *FakeBuild) ReceiveInput(arg1 lager.Logger, arg2 atc.PlanID, arg3 io.ReadCloser) {
 	fake.receiveInputMutex.Lock()
 	fake.receiveInputArgsForCall = append(fake.receiveInputArgsForCall, struct {
@@ -189,7 +170,33 @@ func (fake *FakeBuild) ReceiveInputCallCount() int {
 func (fake *FakeBuild) ReceiveInputArgsForCall(i int) (lager.Logger, atc.PlanID, io.ReadCloser) {
 	fake.receiveInputMutex.RLock()
 	defer fake.receiveInputMutex.RUnlock()
-	return fake.receiveInputArgsForCall[i].arg1, fake.receiveInputArgsForCall[i].arg2, fake.receiveInputArgsForCall[i].arg3
+	argsForCall := fake.receiveInputArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeBuild) Resume(arg1 lager.Logger) {
+	fake.resumeMutex.Lock()
+	fake.resumeArgsForCall = append(fake.resumeArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	fake.recordInvocation("Resume", []interface{}{arg1})
+	fake.resumeMutex.Unlock()
+	if fake.ResumeStub != nil {
+		fake.ResumeStub(arg1)
+	}
+}
+
+func (fake *FakeBuild) ResumeCallCount() int {
+	fake.resumeMutex.RLock()
+	defer fake.resumeMutex.RUnlock()
+	return len(fake.resumeArgsForCall)
+}
+
+func (fake *FakeBuild) ResumeArgsForCall(i int) lager.Logger {
+	fake.resumeMutex.RLock()
+	defer fake.resumeMutex.RUnlock()
+	argsForCall := fake.resumeArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeBuild) SendOutput(arg1 lager.Logger, arg2 atc.PlanID, arg3 io.Writer) {
@@ -215,20 +222,21 @@ func (fake *FakeBuild) SendOutputCallCount() int {
 func (fake *FakeBuild) SendOutputArgsForCall(i int) (lager.Logger, atc.PlanID, io.Writer) {
 	fake.sendOutputMutex.RLock()
 	defer fake.sendOutputMutex.RUnlock()
-	return fake.sendOutputArgsForCall[i].arg1, fake.sendOutputArgsForCall[i].arg2, fake.sendOutputArgsForCall[i].arg3
+	argsForCall := fake.sendOutputArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.metadataMutex.RLock()
-	defer fake.metadataMutex.RUnlock()
 	fake.abortMutex.RLock()
 	defer fake.abortMutex.RUnlock()
-	fake.resumeMutex.RLock()
-	defer fake.resumeMutex.RUnlock()
+	fake.metadataMutex.RLock()
+	defer fake.metadataMutex.RUnlock()
 	fake.receiveInputMutex.RLock()
 	defer fake.receiveInputMutex.RUnlock()
+	fake.resumeMutex.RLock()
+	defer fake.resumeMutex.RUnlock()
 	fake.sendOutputMutex.RLock()
 	defer fake.sendOutputMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

@@ -2,10 +2,10 @@
 package metricfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/metric"
+	lager "code.cloudfoundry.org/lager"
+	metric "github.com/concourse/concourse/atc/metric"
 )
 
 type FakeEmitter struct {
@@ -41,7 +41,8 @@ func (fake *FakeEmitter) EmitCallCount() int {
 func (fake *FakeEmitter) EmitArgsForCall(i int) (lager.Logger, metric.Event) {
 	fake.emitMutex.RLock()
 	defer fake.emitMutex.RUnlock()
-	return fake.emitArgsForCall[i].arg1, fake.emitArgsForCall[i].arg2
+	argsForCall := fake.emitArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeEmitter) Invocations() map[string][][]interface{} {

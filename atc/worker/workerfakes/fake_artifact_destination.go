@@ -2,10 +2,10 @@
 package workerfakes
 
 import (
-	"io"
-	"sync"
+	io "io"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/worker"
+	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakeArtifactDestination struct {
@@ -40,7 +40,8 @@ func (fake *FakeArtifactDestination) StreamIn(arg1 string, arg2 io.Reader) error
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.streamInReturns.result1
+	fakeReturns := fake.streamInReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeArtifactDestination) StreamInCallCount() int {
@@ -52,7 +53,8 @@ func (fake *FakeArtifactDestination) StreamInCallCount() int {
 func (fake *FakeArtifactDestination) StreamInArgsForCall(i int) (string, io.Reader) {
 	fake.streamInMutex.RLock()
 	defer fake.streamInMutex.RUnlock()
-	return fake.streamInArgsForCall[i].arg1, fake.streamInArgsForCall[i].arg2
+	argsForCall := fake.streamInArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeArtifactDestination) StreamInReturns(result1 error) {

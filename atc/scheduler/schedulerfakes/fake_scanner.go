@@ -2,10 +2,10 @@
 package schedulerfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/scheduler"
+	lager "code.cloudfoundry.org/lager"
+	scheduler "github.com/concourse/concourse/atc/scheduler"
 )
 
 type FakeScanner struct {
@@ -40,7 +40,8 @@ func (fake *FakeScanner) Scan(arg1 lager.Logger, arg2 string) error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.scanReturns.result1
+	fakeReturns := fake.scanReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeScanner) ScanCallCount() int {
@@ -52,7 +53,8 @@ func (fake *FakeScanner) ScanCallCount() int {
 func (fake *FakeScanner) ScanArgsForCall(i int) (lager.Logger, string) {
 	fake.scanMutex.RLock()
 	defer fake.scanMutex.RUnlock()
-	return fake.scanArgsForCall[i].arg1, fake.scanArgsForCall[i].arg2
+	argsForCall := fake.scanArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeScanner) ScanReturns(result1 error) {

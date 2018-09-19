@@ -2,15 +2,21 @@
 package execfakes
 
 import (
-	"io"
-	"sync"
+	io "io"
+	sync "sync"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/exec"
+	lager "code.cloudfoundry.org/lager"
+	db "github.com/concourse/concourse/atc/db"
+	exec "github.com/concourse/concourse/atc/exec"
 )
 
 type FakeBuildStepDelegate struct {
+	ErroredStub        func(lager.Logger, string)
+	erroredMutex       sync.RWMutex
+	erroredArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 string
+	}
 	ImageVersionDeterminedStub        func(db.UsedResourceCache) error
 	imageVersionDeterminedMutex       sync.RWMutex
 	imageVersionDeterminedArgsForCall []struct {
@@ -22,32 +28,54 @@ type FakeBuildStepDelegate struct {
 	imageVersionDeterminedReturnsOnCall map[int]struct {
 		result1 error
 	}
-	StdoutStub        func() io.Writer
-	stdoutMutex       sync.RWMutex
-	stdoutArgsForCall []struct{}
-	stdoutReturns     struct {
-		result1 io.Writer
-	}
-	stdoutReturnsOnCall map[int]struct {
-		result1 io.Writer
-	}
 	StderrStub        func() io.Writer
 	stderrMutex       sync.RWMutex
-	stderrArgsForCall []struct{}
-	stderrReturns     struct {
+	stderrArgsForCall []struct {
+	}
+	stderrReturns struct {
 		result1 io.Writer
 	}
 	stderrReturnsOnCall map[int]struct {
 		result1 io.Writer
 	}
-	ErroredStub        func(lager.Logger, string)
-	erroredMutex       sync.RWMutex
-	erroredArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 string
+	StdoutStub        func() io.Writer
+	stdoutMutex       sync.RWMutex
+	stdoutArgsForCall []struct {
+	}
+	stdoutReturns struct {
+		result1 io.Writer
+	}
+	stdoutReturnsOnCall map[int]struct {
+		result1 io.Writer
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeBuildStepDelegate) Errored(arg1 lager.Logger, arg2 string) {
+	fake.erroredMutex.Lock()
+	fake.erroredArgsForCall = append(fake.erroredArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("Errored", []interface{}{arg1, arg2})
+	fake.erroredMutex.Unlock()
+	if fake.ErroredStub != nil {
+		fake.ErroredStub(arg1, arg2)
+	}
+}
+
+func (fake *FakeBuildStepDelegate) ErroredCallCount() int {
+	fake.erroredMutex.RLock()
+	defer fake.erroredMutex.RUnlock()
+	return len(fake.erroredArgsForCall)
+}
+
+func (fake *FakeBuildStepDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
+	fake.erroredMutex.RLock()
+	defer fake.erroredMutex.RUnlock()
+	argsForCall := fake.erroredArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeBuildStepDelegate) ImageVersionDetermined(arg1 db.UsedResourceCache) error {
@@ -64,7 +92,8 @@ func (fake *FakeBuildStepDelegate) ImageVersionDetermined(arg1 db.UsedResourceCa
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.imageVersionDeterminedReturns.result1
+	fakeReturns := fake.imageVersionDeterminedReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeBuildStepDelegate) ImageVersionDeterminedCallCount() int {
@@ -76,7 +105,8 @@ func (fake *FakeBuildStepDelegate) ImageVersionDeterminedCallCount() int {
 func (fake *FakeBuildStepDelegate) ImageVersionDeterminedArgsForCall(i int) db.UsedResourceCache {
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
-	return fake.imageVersionDeterminedArgsForCall[i].arg1
+	argsForCall := fake.imageVersionDeterminedArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeBuildStepDelegate) ImageVersionDeterminedReturns(result1 error) {
@@ -98,50 +128,11 @@ func (fake *FakeBuildStepDelegate) ImageVersionDeterminedReturnsOnCall(i int, re
 	}{result1}
 }
 
-func (fake *FakeBuildStepDelegate) Stdout() io.Writer {
-	fake.stdoutMutex.Lock()
-	ret, specificReturn := fake.stdoutReturnsOnCall[len(fake.stdoutArgsForCall)]
-	fake.stdoutArgsForCall = append(fake.stdoutArgsForCall, struct{}{})
-	fake.recordInvocation("Stdout", []interface{}{})
-	fake.stdoutMutex.Unlock()
-	if fake.StdoutStub != nil {
-		return fake.StdoutStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.stdoutReturns.result1
-}
-
-func (fake *FakeBuildStepDelegate) StdoutCallCount() int {
-	fake.stdoutMutex.RLock()
-	defer fake.stdoutMutex.RUnlock()
-	return len(fake.stdoutArgsForCall)
-}
-
-func (fake *FakeBuildStepDelegate) StdoutReturns(result1 io.Writer) {
-	fake.StdoutStub = nil
-	fake.stdoutReturns = struct {
-		result1 io.Writer
-	}{result1}
-}
-
-func (fake *FakeBuildStepDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
-	fake.StdoutStub = nil
-	if fake.stdoutReturnsOnCall == nil {
-		fake.stdoutReturnsOnCall = make(map[int]struct {
-			result1 io.Writer
-		})
-	}
-	fake.stdoutReturnsOnCall[i] = struct {
-		result1 io.Writer
-	}{result1}
-}
-
 func (fake *FakeBuildStepDelegate) Stderr() io.Writer {
 	fake.stderrMutex.Lock()
 	ret, specificReturn := fake.stderrReturnsOnCall[len(fake.stderrArgsForCall)]
-	fake.stderrArgsForCall = append(fake.stderrArgsForCall, struct{}{})
+	fake.stderrArgsForCall = append(fake.stderrArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Stderr", []interface{}{})
 	fake.stderrMutex.Unlock()
 	if fake.StderrStub != nil {
@@ -150,7 +141,8 @@ func (fake *FakeBuildStepDelegate) Stderr() io.Writer {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.stderrReturns.result1
+	fakeReturns := fake.stderrReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeBuildStepDelegate) StderrCallCount() int {
@@ -178,42 +170,59 @@ func (fake *FakeBuildStepDelegate) StderrReturnsOnCall(i int, result1 io.Writer)
 	}{result1}
 }
 
-func (fake *FakeBuildStepDelegate) Errored(arg1 lager.Logger, arg2 string) {
-	fake.erroredMutex.Lock()
-	fake.erroredArgsForCall = append(fake.erroredArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 string
-	}{arg1, arg2})
-	fake.recordInvocation("Errored", []interface{}{arg1, arg2})
-	fake.erroredMutex.Unlock()
-	if fake.ErroredStub != nil {
-		fake.ErroredStub(arg1, arg2)
+func (fake *FakeBuildStepDelegate) Stdout() io.Writer {
+	fake.stdoutMutex.Lock()
+	ret, specificReturn := fake.stdoutReturnsOnCall[len(fake.stdoutArgsForCall)]
+	fake.stdoutArgsForCall = append(fake.stdoutArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Stdout", []interface{}{})
+	fake.stdoutMutex.Unlock()
+	if fake.StdoutStub != nil {
+		return fake.StdoutStub()
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.stdoutReturns
+	return fakeReturns.result1
 }
 
-func (fake *FakeBuildStepDelegate) ErroredCallCount() int {
-	fake.erroredMutex.RLock()
-	defer fake.erroredMutex.RUnlock()
-	return len(fake.erroredArgsForCall)
+func (fake *FakeBuildStepDelegate) StdoutCallCount() int {
+	fake.stdoutMutex.RLock()
+	defer fake.stdoutMutex.RUnlock()
+	return len(fake.stdoutArgsForCall)
 }
 
-func (fake *FakeBuildStepDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
-	fake.erroredMutex.RLock()
-	defer fake.erroredMutex.RUnlock()
-	return fake.erroredArgsForCall[i].arg1, fake.erroredArgsForCall[i].arg2
+func (fake *FakeBuildStepDelegate) StdoutReturns(result1 io.Writer) {
+	fake.StdoutStub = nil
+	fake.stdoutReturns = struct {
+		result1 io.Writer
+	}{result1}
+}
+
+func (fake *FakeBuildStepDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
+	fake.StdoutStub = nil
+	if fake.stdoutReturnsOnCall == nil {
+		fake.stdoutReturnsOnCall = make(map[int]struct {
+			result1 io.Writer
+		})
+	}
+	fake.stdoutReturnsOnCall[i] = struct {
+		result1 io.Writer
+	}{result1}
 }
 
 func (fake *FakeBuildStepDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.imageVersionDeterminedMutex.RLock()
-	defer fake.imageVersionDeterminedMutex.RUnlock()
-	fake.stdoutMutex.RLock()
-	defer fake.stdoutMutex.RUnlock()
-	fake.stderrMutex.RLock()
-	defer fake.stderrMutex.RUnlock()
 	fake.erroredMutex.RLock()
 	defer fake.erroredMutex.RUnlock()
+	fake.imageVersionDeterminedMutex.RLock()
+	defer fake.imageVersionDeterminedMutex.RUnlock()
+	fake.stderrMutex.RLock()
+	defer fake.stderrMutex.RUnlock()
+	fake.stdoutMutex.RLock()
+	defer fake.stdoutMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

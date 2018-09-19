@@ -2,10 +2,10 @@
 package accessorfakes
 
 import (
-	"net/http"
-	"sync"
+	http "net/http"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/api/accessor"
+	accessor "github.com/concourse/concourse/atc/api/accessor"
 )
 
 type FakeAccessFactory struct {
@@ -38,7 +38,8 @@ func (fake *FakeAccessFactory) Create(arg1 *http.Request) accessor.Access {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.createReturns.result1
+	fakeReturns := fake.createReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeAccessFactory) CreateCallCount() int {
@@ -50,7 +51,8 @@ func (fake *FakeAccessFactory) CreateCallCount() int {
 func (fake *FakeAccessFactory) CreateArgsForCall(i int) *http.Request {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
-	return fake.createArgsForCall[i].arg1
+	argsForCall := fake.createArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeAccessFactory) CreateReturns(result1 accessor.Access) {

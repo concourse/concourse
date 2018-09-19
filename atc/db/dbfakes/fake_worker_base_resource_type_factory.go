@@ -2,17 +2,17 @@
 package dbfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/db"
+	db "github.com/concourse/concourse/atc/db"
 )
 
 type FakeWorkerBaseResourceTypeFactory struct {
-	FindStub        func(name string, worker db.Worker) (*db.UsedWorkerBaseResourceType, bool, error)
+	FindStub        func(string, db.Worker) (*db.UsedWorkerBaseResourceType, bool, error)
 	findMutex       sync.RWMutex
 	findArgsForCall []struct {
-		name   string
-		worker db.Worker
+		arg1 string
+		arg2 db.Worker
 	}
 	findReturns struct {
 		result1 *db.UsedWorkerBaseResourceType
@@ -28,22 +28,23 @@ type FakeWorkerBaseResourceTypeFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeWorkerBaseResourceTypeFactory) Find(name string, worker db.Worker) (*db.UsedWorkerBaseResourceType, bool, error) {
+func (fake *FakeWorkerBaseResourceTypeFactory) Find(arg1 string, arg2 db.Worker) (*db.UsedWorkerBaseResourceType, bool, error) {
 	fake.findMutex.Lock()
 	ret, specificReturn := fake.findReturnsOnCall[len(fake.findArgsForCall)]
 	fake.findArgsForCall = append(fake.findArgsForCall, struct {
-		name   string
-		worker db.Worker
-	}{name, worker})
-	fake.recordInvocation("Find", []interface{}{name, worker})
+		arg1 string
+		arg2 db.Worker
+	}{arg1, arg2})
+	fake.recordInvocation("Find", []interface{}{arg1, arg2})
 	fake.findMutex.Unlock()
 	if fake.FindStub != nil {
-		return fake.FindStub(name, worker)
+		return fake.FindStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.findReturns.result1, fake.findReturns.result2, fake.findReturns.result3
+	fakeReturns := fake.findReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
 func (fake *FakeWorkerBaseResourceTypeFactory) FindCallCount() int {
@@ -55,7 +56,8 @@ func (fake *FakeWorkerBaseResourceTypeFactory) FindCallCount() int {
 func (fake *FakeWorkerBaseResourceTypeFactory) FindArgsForCall(i int) (string, db.Worker) {
 	fake.findMutex.RLock()
 	defer fake.findMutex.RUnlock()
-	return fake.findArgsForCall[i].name, fake.findArgsForCall[i].worker
+	argsForCall := fake.findArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeWorkerBaseResourceTypeFactory) FindReturns(result1 *db.UsedWorkerBaseResourceType, result2 bool, result3 error) {

@@ -2,30 +2,32 @@
 package workerfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	gconn "code.cloudfoundry.org/garden/client/connection"
-	"github.com/concourse/concourse/atc/worker"
+	connection "code.cloudfoundry.org/garden/client/connection"
+	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakeGardenConnectionFactory struct {
-	BuildConnectionStub        func() gconn.Connection
+	BuildConnectionStub        func() connection.Connection
 	buildConnectionMutex       sync.RWMutex
-	buildConnectionArgsForCall []struct{}
-	buildConnectionReturns     struct {
-		result1 gconn.Connection
+	buildConnectionArgsForCall []struct {
+	}
+	buildConnectionReturns struct {
+		result1 connection.Connection
 	}
 	buildConnectionReturnsOnCall map[int]struct {
-		result1 gconn.Connection
+		result1 connection.Connection
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeGardenConnectionFactory) BuildConnection() gconn.Connection {
+func (fake *FakeGardenConnectionFactory) BuildConnection() connection.Connection {
 	fake.buildConnectionMutex.Lock()
 	ret, specificReturn := fake.buildConnectionReturnsOnCall[len(fake.buildConnectionArgsForCall)]
-	fake.buildConnectionArgsForCall = append(fake.buildConnectionArgsForCall, struct{}{})
+	fake.buildConnectionArgsForCall = append(fake.buildConnectionArgsForCall, struct {
+	}{})
 	fake.recordInvocation("BuildConnection", []interface{}{})
 	fake.buildConnectionMutex.Unlock()
 	if fake.BuildConnectionStub != nil {
@@ -34,7 +36,8 @@ func (fake *FakeGardenConnectionFactory) BuildConnection() gconn.Connection {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.buildConnectionReturns.result1
+	fakeReturns := fake.buildConnectionReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeGardenConnectionFactory) BuildConnectionCallCount() int {
@@ -43,22 +46,22 @@ func (fake *FakeGardenConnectionFactory) BuildConnectionCallCount() int {
 	return len(fake.buildConnectionArgsForCall)
 }
 
-func (fake *FakeGardenConnectionFactory) BuildConnectionReturns(result1 gconn.Connection) {
+func (fake *FakeGardenConnectionFactory) BuildConnectionReturns(result1 connection.Connection) {
 	fake.BuildConnectionStub = nil
 	fake.buildConnectionReturns = struct {
-		result1 gconn.Connection
+		result1 connection.Connection
 	}{result1}
 }
 
-func (fake *FakeGardenConnectionFactory) BuildConnectionReturnsOnCall(i int, result1 gconn.Connection) {
+func (fake *FakeGardenConnectionFactory) BuildConnectionReturnsOnCall(i int, result1 connection.Connection) {
 	fake.BuildConnectionStub = nil
 	if fake.buildConnectionReturnsOnCall == nil {
 		fake.buildConnectionReturnsOnCall = make(map[int]struct {
-			result1 gconn.Connection
+			result1 connection.Connection
 		})
 	}
 	fake.buildConnectionReturnsOnCall[i] = struct {
-		result1 gconn.Connection
+		result1 connection.Connection
 	}{result1}
 }
 

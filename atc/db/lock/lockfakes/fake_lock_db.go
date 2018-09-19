@@ -2,16 +2,16 @@
 package lockfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/db/lock"
+	lock "github.com/concourse/concourse/atc/db/lock"
 )
 
 type FakeLockDB struct {
-	AcquireStub        func(id lock.LockID) (bool, error)
+	AcquireStub        func(lock.LockID) (bool, error)
 	acquireMutex       sync.RWMutex
 	acquireArgsForCall []struct {
-		id lock.LockID
+		arg1 lock.LockID
 	}
 	acquireReturns struct {
 		result1 bool
@@ -21,10 +21,10 @@ type FakeLockDB struct {
 		result1 bool
 		result2 error
 	}
-	ReleaseStub        func(id lock.LockID) (bool, error)
+	ReleaseStub        func(lock.LockID) (bool, error)
 	releaseMutex       sync.RWMutex
 	releaseArgsForCall []struct {
-		id lock.LockID
+		arg1 lock.LockID
 	}
 	releaseReturns struct {
 		result1 bool
@@ -38,21 +38,22 @@ type FakeLockDB struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeLockDB) Acquire(id lock.LockID) (bool, error) {
+func (fake *FakeLockDB) Acquire(arg1 lock.LockID) (bool, error) {
 	fake.acquireMutex.Lock()
 	ret, specificReturn := fake.acquireReturnsOnCall[len(fake.acquireArgsForCall)]
 	fake.acquireArgsForCall = append(fake.acquireArgsForCall, struct {
-		id lock.LockID
-	}{id})
-	fake.recordInvocation("Acquire", []interface{}{id})
+		arg1 lock.LockID
+	}{arg1})
+	fake.recordInvocation("Acquire", []interface{}{arg1})
 	fake.acquireMutex.Unlock()
 	if fake.AcquireStub != nil {
-		return fake.AcquireStub(id)
+		return fake.AcquireStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.acquireReturns.result1, fake.acquireReturns.result2
+	fakeReturns := fake.acquireReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeLockDB) AcquireCallCount() int {
@@ -64,7 +65,8 @@ func (fake *FakeLockDB) AcquireCallCount() int {
 func (fake *FakeLockDB) AcquireArgsForCall(i int) lock.LockID {
 	fake.acquireMutex.RLock()
 	defer fake.acquireMutex.RUnlock()
-	return fake.acquireArgsForCall[i].id
+	argsForCall := fake.acquireArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeLockDB) AcquireReturns(result1 bool, result2 error) {
@@ -89,21 +91,22 @@ func (fake *FakeLockDB) AcquireReturnsOnCall(i int, result1 bool, result2 error)
 	}{result1, result2}
 }
 
-func (fake *FakeLockDB) Release(id lock.LockID) (bool, error) {
+func (fake *FakeLockDB) Release(arg1 lock.LockID) (bool, error) {
 	fake.releaseMutex.Lock()
 	ret, specificReturn := fake.releaseReturnsOnCall[len(fake.releaseArgsForCall)]
 	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
-		id lock.LockID
-	}{id})
-	fake.recordInvocation("Release", []interface{}{id})
+		arg1 lock.LockID
+	}{arg1})
+	fake.recordInvocation("Release", []interface{}{arg1})
 	fake.releaseMutex.Unlock()
 	if fake.ReleaseStub != nil {
-		return fake.ReleaseStub(id)
+		return fake.ReleaseStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.releaseReturns.result1, fake.releaseReturns.result2
+	fakeReturns := fake.releaseReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeLockDB) ReleaseCallCount() int {
@@ -115,7 +118,8 @@ func (fake *FakeLockDB) ReleaseCallCount() int {
 func (fake *FakeLockDB) ReleaseArgsForCall(i int) lock.LockID {
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
-	return fake.releaseArgsForCall[i].id
+	argsForCall := fake.releaseArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeLockDB) ReleaseReturns(result1 bool, result2 error) {

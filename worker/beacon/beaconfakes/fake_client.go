@@ -2,18 +2,31 @@
 package beaconfakes
 
 import (
-	"io"
-	"net"
-	"sync"
+	io "io"
+	net "net"
+	sync "sync"
 
-	"github.com/concourse/concourse/worker/beacon"
+	beacon "github.com/concourse/concourse/worker/beacon"
 )
 
 type FakeClient struct {
+	DialStub        func() (beacon.Closeable, error)
+	dialMutex       sync.RWMutex
+	dialArgsForCall []struct {
+	}
+	dialReturns struct {
+		result1 beacon.Closeable
+		result2 error
+	}
+	dialReturnsOnCall map[int]struct {
+		result1 beacon.Closeable
+		result2 error
+	}
 	KeepAliveStub        func() (<-chan error, chan<- struct{})
 	keepAliveMutex       sync.RWMutex
-	keepAliveArgsForCall []struct{}
-	keepAliveReturns     struct {
+	keepAliveArgsForCall []struct {
+	}
+	keepAliveReturns struct {
 		result1 <-chan error
 		result2 chan<- struct{}
 	}
@@ -21,26 +34,11 @@ type FakeClient struct {
 		result1 <-chan error
 		result2 chan<- struct{}
 	}
-	NewSessionStub        func(stdin io.Reader, stdout io.Writer, stderr io.Writer) (beacon.Session, error)
-	newSessionMutex       sync.RWMutex
-	newSessionArgsForCall []struct {
-		stdin  io.Reader
-		stdout io.Writer
-		stderr io.Writer
-	}
-	newSessionReturns struct {
-		result1 beacon.Session
-		result2 error
-	}
-	newSessionReturnsOnCall map[int]struct {
-		result1 beacon.Session
-		result2 error
-	}
-	ListenStub        func(n, addr string) (net.Listener, error)
+	ListenStub        func(string, string) (net.Listener, error)
 	listenMutex       sync.RWMutex
 	listenArgsForCall []struct {
-		n    string
-		addr string
+		arg1 string
+		arg2 string
 	}
 	listenReturns struct {
 		result1 net.Listener
@@ -50,11 +48,26 @@ type FakeClient struct {
 		result1 net.Listener
 		result2 error
 	}
-	ProxyStub        func(from, to string) error
+	NewSessionStub        func(io.Reader, io.Writer, io.Writer) (beacon.Session, error)
+	newSessionMutex       sync.RWMutex
+	newSessionArgsForCall []struct {
+		arg1 io.Reader
+		arg2 io.Writer
+		arg3 io.Writer
+	}
+	newSessionReturns struct {
+		result1 beacon.Session
+		result2 error
+	}
+	newSessionReturnsOnCall map[int]struct {
+		result1 beacon.Session
+		result2 error
+	}
+	ProxyStub        func(string, string) error
 	proxyMutex       sync.RWMutex
 	proxyArgsForCall []struct {
-		from string
-		to   string
+		arg1 string
+		arg2 string
 	}
 	proxyReturns struct {
 		result1 error
@@ -62,222 +75,15 @@ type FakeClient struct {
 	proxyReturnsOnCall map[int]struct {
 		result1 error
 	}
-	DialStub        func() (beacon.Closeable, error)
-	dialMutex       sync.RWMutex
-	dialArgsForCall []struct{}
-	dialReturns     struct {
-		result1 beacon.Closeable
-		result2 error
-	}
-	dialReturnsOnCall map[int]struct {
-		result1 beacon.Closeable
-		result2 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeClient) KeepAlive() (<-chan error, chan<- struct{}) {
-	fake.keepAliveMutex.Lock()
-	ret, specificReturn := fake.keepAliveReturnsOnCall[len(fake.keepAliveArgsForCall)]
-	fake.keepAliveArgsForCall = append(fake.keepAliveArgsForCall, struct{}{})
-	fake.recordInvocation("KeepAlive", []interface{}{})
-	fake.keepAliveMutex.Unlock()
-	if fake.KeepAliveStub != nil {
-		return fake.KeepAliveStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.keepAliveReturns.result1, fake.keepAliveReturns.result2
-}
-
-func (fake *FakeClient) KeepAliveCallCount() int {
-	fake.keepAliveMutex.RLock()
-	defer fake.keepAliveMutex.RUnlock()
-	return len(fake.keepAliveArgsForCall)
-}
-
-func (fake *FakeClient) KeepAliveReturns(result1 <-chan error, result2 chan<- struct{}) {
-	fake.KeepAliveStub = nil
-	fake.keepAliveReturns = struct {
-		result1 <-chan error
-		result2 chan<- struct{}
-	}{result1, result2}
-}
-
-func (fake *FakeClient) KeepAliveReturnsOnCall(i int, result1 <-chan error, result2 chan<- struct{}) {
-	fake.KeepAliveStub = nil
-	if fake.keepAliveReturnsOnCall == nil {
-		fake.keepAliveReturnsOnCall = make(map[int]struct {
-			result1 <-chan error
-			result2 chan<- struct{}
-		})
-	}
-	fake.keepAliveReturnsOnCall[i] = struct {
-		result1 <-chan error
-		result2 chan<- struct{}
-	}{result1, result2}
-}
-
-func (fake *FakeClient) NewSession(stdin io.Reader, stdout io.Writer, stderr io.Writer) (beacon.Session, error) {
-	fake.newSessionMutex.Lock()
-	ret, specificReturn := fake.newSessionReturnsOnCall[len(fake.newSessionArgsForCall)]
-	fake.newSessionArgsForCall = append(fake.newSessionArgsForCall, struct {
-		stdin  io.Reader
-		stdout io.Writer
-		stderr io.Writer
-	}{stdin, stdout, stderr})
-	fake.recordInvocation("NewSession", []interface{}{stdin, stdout, stderr})
-	fake.newSessionMutex.Unlock()
-	if fake.NewSessionStub != nil {
-		return fake.NewSessionStub(stdin, stdout, stderr)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.newSessionReturns.result1, fake.newSessionReturns.result2
-}
-
-func (fake *FakeClient) NewSessionCallCount() int {
-	fake.newSessionMutex.RLock()
-	defer fake.newSessionMutex.RUnlock()
-	return len(fake.newSessionArgsForCall)
-}
-
-func (fake *FakeClient) NewSessionArgsForCall(i int) (io.Reader, io.Writer, io.Writer) {
-	fake.newSessionMutex.RLock()
-	defer fake.newSessionMutex.RUnlock()
-	return fake.newSessionArgsForCall[i].stdin, fake.newSessionArgsForCall[i].stdout, fake.newSessionArgsForCall[i].stderr
-}
-
-func (fake *FakeClient) NewSessionReturns(result1 beacon.Session, result2 error) {
-	fake.NewSessionStub = nil
-	fake.newSessionReturns = struct {
-		result1 beacon.Session
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) NewSessionReturnsOnCall(i int, result1 beacon.Session, result2 error) {
-	fake.NewSessionStub = nil
-	if fake.newSessionReturnsOnCall == nil {
-		fake.newSessionReturnsOnCall = make(map[int]struct {
-			result1 beacon.Session
-			result2 error
-		})
-	}
-	fake.newSessionReturnsOnCall[i] = struct {
-		result1 beacon.Session
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) Listen(n string, addr string) (net.Listener, error) {
-	fake.listenMutex.Lock()
-	ret, specificReturn := fake.listenReturnsOnCall[len(fake.listenArgsForCall)]
-	fake.listenArgsForCall = append(fake.listenArgsForCall, struct {
-		n    string
-		addr string
-	}{n, addr})
-	fake.recordInvocation("Listen", []interface{}{n, addr})
-	fake.listenMutex.Unlock()
-	if fake.ListenStub != nil {
-		return fake.ListenStub(n, addr)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.listenReturns.result1, fake.listenReturns.result2
-}
-
-func (fake *FakeClient) ListenCallCount() int {
-	fake.listenMutex.RLock()
-	defer fake.listenMutex.RUnlock()
-	return len(fake.listenArgsForCall)
-}
-
-func (fake *FakeClient) ListenArgsForCall(i int) (string, string) {
-	fake.listenMutex.RLock()
-	defer fake.listenMutex.RUnlock()
-	return fake.listenArgsForCall[i].n, fake.listenArgsForCall[i].addr
-}
-
-func (fake *FakeClient) ListenReturns(result1 net.Listener, result2 error) {
-	fake.ListenStub = nil
-	fake.listenReturns = struct {
-		result1 net.Listener
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) ListenReturnsOnCall(i int, result1 net.Listener, result2 error) {
-	fake.ListenStub = nil
-	if fake.listenReturnsOnCall == nil {
-		fake.listenReturnsOnCall = make(map[int]struct {
-			result1 net.Listener
-			result2 error
-		})
-	}
-	fake.listenReturnsOnCall[i] = struct {
-		result1 net.Listener
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) Proxy(from string, to string) error {
-	fake.proxyMutex.Lock()
-	ret, specificReturn := fake.proxyReturnsOnCall[len(fake.proxyArgsForCall)]
-	fake.proxyArgsForCall = append(fake.proxyArgsForCall, struct {
-		from string
-		to   string
-	}{from, to})
-	fake.recordInvocation("Proxy", []interface{}{from, to})
-	fake.proxyMutex.Unlock()
-	if fake.ProxyStub != nil {
-		return fake.ProxyStub(from, to)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.proxyReturns.result1
-}
-
-func (fake *FakeClient) ProxyCallCount() int {
-	fake.proxyMutex.RLock()
-	defer fake.proxyMutex.RUnlock()
-	return len(fake.proxyArgsForCall)
-}
-
-func (fake *FakeClient) ProxyArgsForCall(i int) (string, string) {
-	fake.proxyMutex.RLock()
-	defer fake.proxyMutex.RUnlock()
-	return fake.proxyArgsForCall[i].from, fake.proxyArgsForCall[i].to
-}
-
-func (fake *FakeClient) ProxyReturns(result1 error) {
-	fake.ProxyStub = nil
-	fake.proxyReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeClient) ProxyReturnsOnCall(i int, result1 error) {
-	fake.ProxyStub = nil
-	if fake.proxyReturnsOnCall == nil {
-		fake.proxyReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.proxyReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeClient) Dial() (beacon.Closeable, error) {
 	fake.dialMutex.Lock()
 	ret, specificReturn := fake.dialReturnsOnCall[len(fake.dialArgsForCall)]
-	fake.dialArgsForCall = append(fake.dialArgsForCall, struct{}{})
+	fake.dialArgsForCall = append(fake.dialArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Dial", []interface{}{})
 	fake.dialMutex.Unlock()
 	if fake.DialStub != nil {
@@ -286,7 +92,8 @@ func (fake *FakeClient) Dial() (beacon.Closeable, error) {
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.dialReturns.result1, fake.dialReturns.result2
+	fakeReturns := fake.dialReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeClient) DialCallCount() int {
@@ -317,19 +124,224 @@ func (fake *FakeClient) DialReturnsOnCall(i int, result1 beacon.Closeable, resul
 	}{result1, result2}
 }
 
+func (fake *FakeClient) KeepAlive() (<-chan error, chan<- struct{}) {
+	fake.keepAliveMutex.Lock()
+	ret, specificReturn := fake.keepAliveReturnsOnCall[len(fake.keepAliveArgsForCall)]
+	fake.keepAliveArgsForCall = append(fake.keepAliveArgsForCall, struct {
+	}{})
+	fake.recordInvocation("KeepAlive", []interface{}{})
+	fake.keepAliveMutex.Unlock()
+	if fake.KeepAliveStub != nil {
+		return fake.KeepAliveStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.keepAliveReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeClient) KeepAliveCallCount() int {
+	fake.keepAliveMutex.RLock()
+	defer fake.keepAliveMutex.RUnlock()
+	return len(fake.keepAliveArgsForCall)
+}
+
+func (fake *FakeClient) KeepAliveReturns(result1 <-chan error, result2 chan<- struct{}) {
+	fake.KeepAliveStub = nil
+	fake.keepAliveReturns = struct {
+		result1 <-chan error
+		result2 chan<- struct{}
+	}{result1, result2}
+}
+
+func (fake *FakeClient) KeepAliveReturnsOnCall(i int, result1 <-chan error, result2 chan<- struct{}) {
+	fake.KeepAliveStub = nil
+	if fake.keepAliveReturnsOnCall == nil {
+		fake.keepAliveReturnsOnCall = make(map[int]struct {
+			result1 <-chan error
+			result2 chan<- struct{}
+		})
+	}
+	fake.keepAliveReturnsOnCall[i] = struct {
+		result1 <-chan error
+		result2 chan<- struct{}
+	}{result1, result2}
+}
+
+func (fake *FakeClient) Listen(arg1 string, arg2 string) (net.Listener, error) {
+	fake.listenMutex.Lock()
+	ret, specificReturn := fake.listenReturnsOnCall[len(fake.listenArgsForCall)]
+	fake.listenArgsForCall = append(fake.listenArgsForCall, struct {
+		arg1 string
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("Listen", []interface{}{arg1, arg2})
+	fake.listenMutex.Unlock()
+	if fake.ListenStub != nil {
+		return fake.ListenStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.listenReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeClient) ListenCallCount() int {
+	fake.listenMutex.RLock()
+	defer fake.listenMutex.RUnlock()
+	return len(fake.listenArgsForCall)
+}
+
+func (fake *FakeClient) ListenArgsForCall(i int) (string, string) {
+	fake.listenMutex.RLock()
+	defer fake.listenMutex.RUnlock()
+	argsForCall := fake.listenArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeClient) ListenReturns(result1 net.Listener, result2 error) {
+	fake.ListenStub = nil
+	fake.listenReturns = struct {
+		result1 net.Listener
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) ListenReturnsOnCall(i int, result1 net.Listener, result2 error) {
+	fake.ListenStub = nil
+	if fake.listenReturnsOnCall == nil {
+		fake.listenReturnsOnCall = make(map[int]struct {
+			result1 net.Listener
+			result2 error
+		})
+	}
+	fake.listenReturnsOnCall[i] = struct {
+		result1 net.Listener
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) NewSession(arg1 io.Reader, arg2 io.Writer, arg3 io.Writer) (beacon.Session, error) {
+	fake.newSessionMutex.Lock()
+	ret, specificReturn := fake.newSessionReturnsOnCall[len(fake.newSessionArgsForCall)]
+	fake.newSessionArgsForCall = append(fake.newSessionArgsForCall, struct {
+		arg1 io.Reader
+		arg2 io.Writer
+		arg3 io.Writer
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("NewSession", []interface{}{arg1, arg2, arg3})
+	fake.newSessionMutex.Unlock()
+	if fake.NewSessionStub != nil {
+		return fake.NewSessionStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.newSessionReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeClient) NewSessionCallCount() int {
+	fake.newSessionMutex.RLock()
+	defer fake.newSessionMutex.RUnlock()
+	return len(fake.newSessionArgsForCall)
+}
+
+func (fake *FakeClient) NewSessionArgsForCall(i int) (io.Reader, io.Writer, io.Writer) {
+	fake.newSessionMutex.RLock()
+	defer fake.newSessionMutex.RUnlock()
+	argsForCall := fake.newSessionArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeClient) NewSessionReturns(result1 beacon.Session, result2 error) {
+	fake.NewSessionStub = nil
+	fake.newSessionReturns = struct {
+		result1 beacon.Session
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) NewSessionReturnsOnCall(i int, result1 beacon.Session, result2 error) {
+	fake.NewSessionStub = nil
+	if fake.newSessionReturnsOnCall == nil {
+		fake.newSessionReturnsOnCall = make(map[int]struct {
+			result1 beacon.Session
+			result2 error
+		})
+	}
+	fake.newSessionReturnsOnCall[i] = struct {
+		result1 beacon.Session
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) Proxy(arg1 string, arg2 string) error {
+	fake.proxyMutex.Lock()
+	ret, specificReturn := fake.proxyReturnsOnCall[len(fake.proxyArgsForCall)]
+	fake.proxyArgsForCall = append(fake.proxyArgsForCall, struct {
+		arg1 string
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("Proxy", []interface{}{arg1, arg2})
+	fake.proxyMutex.Unlock()
+	if fake.ProxyStub != nil {
+		return fake.ProxyStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.proxyReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeClient) ProxyCallCount() int {
+	fake.proxyMutex.RLock()
+	defer fake.proxyMutex.RUnlock()
+	return len(fake.proxyArgsForCall)
+}
+
+func (fake *FakeClient) ProxyArgsForCall(i int) (string, string) {
+	fake.proxyMutex.RLock()
+	defer fake.proxyMutex.RUnlock()
+	argsForCall := fake.proxyArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeClient) ProxyReturns(result1 error) {
+	fake.ProxyStub = nil
+	fake.proxyReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeClient) ProxyReturnsOnCall(i int, result1 error) {
+	fake.ProxyStub = nil
+	if fake.proxyReturnsOnCall == nil {
+		fake.proxyReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.proxyReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.keepAliveMutex.RLock()
-	defer fake.keepAliveMutex.RUnlock()
-	fake.newSessionMutex.RLock()
-	defer fake.newSessionMutex.RUnlock()
-	fake.listenMutex.RLock()
-	defer fake.listenMutex.RUnlock()
-	fake.proxyMutex.RLock()
-	defer fake.proxyMutex.RUnlock()
 	fake.dialMutex.RLock()
 	defer fake.dialMutex.RUnlock()
+	fake.keepAliveMutex.RLock()
+	defer fake.keepAliveMutex.RUnlock()
+	fake.listenMutex.RLock()
+	defer fake.listenMutex.RUnlock()
+	fake.newSessionMutex.RLock()
+	defer fake.newSessionMutex.RUnlock()
+	fake.proxyMutex.RLock()
+	defer fake.proxyMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

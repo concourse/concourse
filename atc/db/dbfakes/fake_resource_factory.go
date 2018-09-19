@@ -2,9 +2,9 @@
 package dbfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/db"
+	db "github.com/concourse/concourse/atc/db"
 )
 
 type FakeResourceFactory struct {
@@ -44,7 +44,8 @@ func (fake *FakeResourceFactory) VisibleResources(arg1 []string) ([]db.Resource,
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.visibleResourcesReturns.result1, fake.visibleResourcesReturns.result2
+	fakeReturns := fake.visibleResourcesReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeResourceFactory) VisibleResourcesCallCount() int {
@@ -56,7 +57,8 @@ func (fake *FakeResourceFactory) VisibleResourcesCallCount() int {
 func (fake *FakeResourceFactory) VisibleResourcesArgsForCall(i int) []string {
 	fake.visibleResourcesMutex.RLock()
 	defer fake.visibleResourcesMutex.RUnlock()
-	return fake.visibleResourcesArgsForCall[i].arg1
+	argsForCall := fake.visibleResourcesArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeResourceFactory) VisibleResourcesReturns(result1 []db.Resource, result2 error) {

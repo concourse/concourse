@@ -2,25 +2,25 @@
 package imagefakes
 
 import (
-	"context"
-	"io"
-	"sync"
+	context "context"
+	io "io"
+	sync "sync"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/atc/worker/image"
+	lager "code.cloudfoundry.org/lager"
+	atc "github.com/concourse/concourse/atc"
+	db "github.com/concourse/concourse/atc/db"
+	worker "github.com/concourse/concourse/atc/worker"
+	image "github.com/concourse/concourse/atc/worker/image"
 )
 
 type FakeImageResourceFetcher struct {
-	FetchStub        func(ctx context.Context, logger lager.Logger, container db.CreatingContainer, privileged bool) (worker.Volume, io.ReadCloser, atc.Version, error)
+	FetchStub        func(context.Context, lager.Logger, db.CreatingContainer, bool) (worker.Volume, io.ReadCloser, atc.Version, error)
 	fetchMutex       sync.RWMutex
 	fetchArgsForCall []struct {
-		ctx        context.Context
-		logger     lager.Logger
-		container  db.CreatingContainer
-		privileged bool
+		arg1 context.Context
+		arg2 lager.Logger
+		arg3 db.CreatingContainer
+		arg4 bool
 	}
 	fetchReturns struct {
 		result1 worker.Volume
@@ -38,24 +38,25 @@ type FakeImageResourceFetcher struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeImageResourceFetcher) Fetch(ctx context.Context, logger lager.Logger, container db.CreatingContainer, privileged bool) (worker.Volume, io.ReadCloser, atc.Version, error) {
+func (fake *FakeImageResourceFetcher) Fetch(arg1 context.Context, arg2 lager.Logger, arg3 db.CreatingContainer, arg4 bool) (worker.Volume, io.ReadCloser, atc.Version, error) {
 	fake.fetchMutex.Lock()
 	ret, specificReturn := fake.fetchReturnsOnCall[len(fake.fetchArgsForCall)]
 	fake.fetchArgsForCall = append(fake.fetchArgsForCall, struct {
-		ctx        context.Context
-		logger     lager.Logger
-		container  db.CreatingContainer
-		privileged bool
-	}{ctx, logger, container, privileged})
-	fake.recordInvocation("Fetch", []interface{}{ctx, logger, container, privileged})
+		arg1 context.Context
+		arg2 lager.Logger
+		arg3 db.CreatingContainer
+		arg4 bool
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("Fetch", []interface{}{arg1, arg2, arg3, arg4})
 	fake.fetchMutex.Unlock()
 	if fake.FetchStub != nil {
-		return fake.FetchStub(ctx, logger, container, privileged)
+		return fake.FetchStub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3, ret.result4
 	}
-	return fake.fetchReturns.result1, fake.fetchReturns.result2, fake.fetchReturns.result3, fake.fetchReturns.result4
+	fakeReturns := fake.fetchReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3, fakeReturns.result4
 }
 
 func (fake *FakeImageResourceFetcher) FetchCallCount() int {
@@ -67,7 +68,8 @@ func (fake *FakeImageResourceFetcher) FetchCallCount() int {
 func (fake *FakeImageResourceFetcher) FetchArgsForCall(i int) (context.Context, lager.Logger, db.CreatingContainer, bool) {
 	fake.fetchMutex.RLock()
 	defer fake.fetchMutex.RUnlock()
-	return fake.fetchArgsForCall[i].ctx, fake.fetchArgsForCall[i].logger, fake.fetchArgsForCall[i].container, fake.fetchArgsForCall[i].privileged
+	argsForCall := fake.fetchArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeImageResourceFetcher) FetchReturns(result1 worker.Volume, result2 io.ReadCloser, result3 atc.Version, result4 error) {

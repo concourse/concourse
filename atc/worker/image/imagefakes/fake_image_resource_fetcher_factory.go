@@ -2,13 +2,13 @@
 package imagefakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/resource"
-	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/atc/worker/image"
+	atc "github.com/concourse/concourse/atc"
+	creds "github.com/concourse/concourse/atc/creds"
+	resource "github.com/concourse/concourse/atc/resource"
+	worker "github.com/concourse/concourse/atc/worker"
+	image "github.com/concourse/concourse/atc/worker/image"
 )
 
 type FakeImageResourceFetcherFactory struct {
@@ -53,7 +53,8 @@ func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcher(arg1 worker
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.newImageResourceFetcherReturns.result1
+	fakeReturns := fake.newImageResourceFetcherReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherCallCount() int {
@@ -65,7 +66,8 @@ func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherCallCount() 
 func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherArgsForCall(i int) (worker.Worker, resource.ResourceFactory, worker.ImageResource, atc.Version, int, creds.VersionedResourceTypes, worker.ImageFetchingDelegate) {
 	fake.newImageResourceFetcherMutex.RLock()
 	defer fake.newImageResourceFetcherMutex.RUnlock()
-	return fake.newImageResourceFetcherArgsForCall[i].arg1, fake.newImageResourceFetcherArgsForCall[i].arg2, fake.newImageResourceFetcherArgsForCall[i].arg3, fake.newImageResourceFetcherArgsForCall[i].arg4, fake.newImageResourceFetcherArgsForCall[i].arg5, fake.newImageResourceFetcherArgsForCall[i].arg6, fake.newImageResourceFetcherArgsForCall[i].arg7
+	argsForCall := fake.newImageResourceFetcherArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
 }
 
 func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherReturns(result1 image.ImageResourceFetcher) {

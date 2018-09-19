@@ -2,25 +2,38 @@
 package schedulerfakes
 
 import (
-	"sync"
-	"time"
+	sync "sync"
+	time "time"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/algorithm"
-	"github.com/concourse/concourse/atc/scheduler"
+	lager "code.cloudfoundry.org/lager"
+	atc "github.com/concourse/concourse/atc"
+	db "github.com/concourse/concourse/atc/db"
+	algorithm "github.com/concourse/concourse/atc/db/algorithm"
+	scheduler "github.com/concourse/concourse/atc/scheduler"
 )
 
 type FakeBuildScheduler struct {
-	ScheduleStub        func(logger lager.Logger, versions *algorithm.VersionsDB, jobs []db.Job, resources db.Resources, resourceTypes atc.VersionedResourceTypes) (map[string]time.Duration, error)
+	SaveNextInputMappingStub        func(lager.Logger, db.Job, db.Resources) error
+	saveNextInputMappingMutex       sync.RWMutex
+	saveNextInputMappingArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 db.Job
+		arg3 db.Resources
+	}
+	saveNextInputMappingReturns struct {
+		result1 error
+	}
+	saveNextInputMappingReturnsOnCall map[int]struct {
+		result1 error
+	}
+	ScheduleStub        func(lager.Logger, *algorithm.VersionsDB, []db.Job, db.Resources, atc.VersionedResourceTypes) (map[string]time.Duration, error)
 	scheduleMutex       sync.RWMutex
 	scheduleArgsForCall []struct {
-		logger        lager.Logger
-		versions      *algorithm.VersionsDB
-		jobs          []db.Job
-		resources     db.Resources
-		resourceTypes atc.VersionedResourceTypes
+		arg1 lager.Logger
+		arg2 *algorithm.VersionsDB
+		arg3 []db.Job
+		arg4 db.Resources
+		arg5 atc.VersionedResourceTypes
 	}
 	scheduleReturns struct {
 		result1 map[string]time.Duration
@@ -30,13 +43,13 @@ type FakeBuildScheduler struct {
 		result1 map[string]time.Duration
 		result2 error
 	}
-	TriggerImmediatelyStub        func(logger lager.Logger, job db.Job, resources db.Resources, resourceTypes atc.VersionedResourceTypes) (db.Build, scheduler.Waiter, error)
+	TriggerImmediatelyStub        func(lager.Logger, db.Job, db.Resources, atc.VersionedResourceTypes) (db.Build, scheduler.Waiter, error)
 	triggerImmediatelyMutex       sync.RWMutex
 	triggerImmediatelyArgsForCall []struct {
-		logger        lager.Logger
-		job           db.Job
-		resources     db.Resources
-		resourceTypes atc.VersionedResourceTypes
+		arg1 lager.Logger
+		arg2 db.Job
+		arg3 db.Resources
+		arg4 atc.VersionedResourceTypes
 	}
 	triggerImmediatelyReturns struct {
 		result1 db.Build
@@ -48,47 +61,87 @@ type FakeBuildScheduler struct {
 		result2 scheduler.Waiter
 		result3 error
 	}
-	SaveNextInputMappingStub        func(logger lager.Logger, job db.Job, resource db.Resources) error
-	saveNextInputMappingMutex       sync.RWMutex
-	saveNextInputMappingArgsForCall []struct {
-		logger   lager.Logger
-		job      db.Job
-		resource db.Resources
-	}
-	saveNextInputMappingReturns struct {
-		result1 error
-	}
-	saveNextInputMappingReturnsOnCall map[int]struct {
-		result1 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildScheduler) Schedule(logger lager.Logger, versions *algorithm.VersionsDB, jobs []db.Job, resources db.Resources, resourceTypes atc.VersionedResourceTypes) (map[string]time.Duration, error) {
-	var jobsCopy []db.Job
-	if jobs != nil {
-		jobsCopy = make([]db.Job, len(jobs))
-		copy(jobsCopy, jobs)
+func (fake *FakeBuildScheduler) SaveNextInputMapping(arg1 lager.Logger, arg2 db.Job, arg3 db.Resources) error {
+	fake.saveNextInputMappingMutex.Lock()
+	ret, specificReturn := fake.saveNextInputMappingReturnsOnCall[len(fake.saveNextInputMappingArgsForCall)]
+	fake.saveNextInputMappingArgsForCall = append(fake.saveNextInputMappingArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 db.Job
+		arg3 db.Resources
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("SaveNextInputMapping", []interface{}{arg1, arg2, arg3})
+	fake.saveNextInputMappingMutex.Unlock()
+	if fake.SaveNextInputMappingStub != nil {
+		return fake.SaveNextInputMappingStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.saveNextInputMappingReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuildScheduler) SaveNextInputMappingCallCount() int {
+	fake.saveNextInputMappingMutex.RLock()
+	defer fake.saveNextInputMappingMutex.RUnlock()
+	return len(fake.saveNextInputMappingArgsForCall)
+}
+
+func (fake *FakeBuildScheduler) SaveNextInputMappingArgsForCall(i int) (lager.Logger, db.Job, db.Resources) {
+	fake.saveNextInputMappingMutex.RLock()
+	defer fake.saveNextInputMappingMutex.RUnlock()
+	argsForCall := fake.saveNextInputMappingArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeBuildScheduler) SaveNextInputMappingReturns(result1 error) {
+	fake.SaveNextInputMappingStub = nil
+	fake.saveNextInputMappingReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildScheduler) SaveNextInputMappingReturnsOnCall(i int, result1 error) {
+	fake.SaveNextInputMappingStub = nil
+	if fake.saveNextInputMappingReturnsOnCall == nil {
+		fake.saveNextInputMappingReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.saveNextInputMappingReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildScheduler) Schedule(arg1 lager.Logger, arg2 *algorithm.VersionsDB, arg3 []db.Job, arg4 db.Resources, arg5 atc.VersionedResourceTypes) (map[string]time.Duration, error) {
+	var arg3Copy []db.Job
+	if arg3 != nil {
+		arg3Copy = make([]db.Job, len(arg3))
+		copy(arg3Copy, arg3)
 	}
 	fake.scheduleMutex.Lock()
 	ret, specificReturn := fake.scheduleReturnsOnCall[len(fake.scheduleArgsForCall)]
 	fake.scheduleArgsForCall = append(fake.scheduleArgsForCall, struct {
-		logger        lager.Logger
-		versions      *algorithm.VersionsDB
-		jobs          []db.Job
-		resources     db.Resources
-		resourceTypes atc.VersionedResourceTypes
-	}{logger, versions, jobsCopy, resources, resourceTypes})
-	fake.recordInvocation("Schedule", []interface{}{logger, versions, jobsCopy, resources, resourceTypes})
+		arg1 lager.Logger
+		arg2 *algorithm.VersionsDB
+		arg3 []db.Job
+		arg4 db.Resources
+		arg5 atc.VersionedResourceTypes
+	}{arg1, arg2, arg3Copy, arg4, arg5})
+	fake.recordInvocation("Schedule", []interface{}{arg1, arg2, arg3Copy, arg4, arg5})
 	fake.scheduleMutex.Unlock()
 	if fake.ScheduleStub != nil {
-		return fake.ScheduleStub(logger, versions, jobs, resources, resourceTypes)
+		return fake.ScheduleStub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.scheduleReturns.result1, fake.scheduleReturns.result2
+	fakeReturns := fake.scheduleReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeBuildScheduler) ScheduleCallCount() int {
@@ -100,7 +153,8 @@ func (fake *FakeBuildScheduler) ScheduleCallCount() int {
 func (fake *FakeBuildScheduler) ScheduleArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, []db.Job, db.Resources, atc.VersionedResourceTypes) {
 	fake.scheduleMutex.RLock()
 	defer fake.scheduleMutex.RUnlock()
-	return fake.scheduleArgsForCall[i].logger, fake.scheduleArgsForCall[i].versions, fake.scheduleArgsForCall[i].jobs, fake.scheduleArgsForCall[i].resources, fake.scheduleArgsForCall[i].resourceTypes
+	argsForCall := fake.scheduleArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
 func (fake *FakeBuildScheduler) ScheduleReturns(result1 map[string]time.Duration, result2 error) {
@@ -125,24 +179,25 @@ func (fake *FakeBuildScheduler) ScheduleReturnsOnCall(i int, result1 map[string]
 	}{result1, result2}
 }
 
-func (fake *FakeBuildScheduler) TriggerImmediately(logger lager.Logger, job db.Job, resources db.Resources, resourceTypes atc.VersionedResourceTypes) (db.Build, scheduler.Waiter, error) {
+func (fake *FakeBuildScheduler) TriggerImmediately(arg1 lager.Logger, arg2 db.Job, arg3 db.Resources, arg4 atc.VersionedResourceTypes) (db.Build, scheduler.Waiter, error) {
 	fake.triggerImmediatelyMutex.Lock()
 	ret, specificReturn := fake.triggerImmediatelyReturnsOnCall[len(fake.triggerImmediatelyArgsForCall)]
 	fake.triggerImmediatelyArgsForCall = append(fake.triggerImmediatelyArgsForCall, struct {
-		logger        lager.Logger
-		job           db.Job
-		resources     db.Resources
-		resourceTypes atc.VersionedResourceTypes
-	}{logger, job, resources, resourceTypes})
-	fake.recordInvocation("TriggerImmediately", []interface{}{logger, job, resources, resourceTypes})
+		arg1 lager.Logger
+		arg2 db.Job
+		arg3 db.Resources
+		arg4 atc.VersionedResourceTypes
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("TriggerImmediately", []interface{}{arg1, arg2, arg3, arg4})
 	fake.triggerImmediatelyMutex.Unlock()
 	if fake.TriggerImmediatelyStub != nil {
-		return fake.TriggerImmediatelyStub(logger, job, resources, resourceTypes)
+		return fake.TriggerImmediatelyStub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.triggerImmediatelyReturns.result1, fake.triggerImmediatelyReturns.result2, fake.triggerImmediatelyReturns.result3
+	fakeReturns := fake.triggerImmediatelyReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
 func (fake *FakeBuildScheduler) TriggerImmediatelyCallCount() int {
@@ -154,7 +209,8 @@ func (fake *FakeBuildScheduler) TriggerImmediatelyCallCount() int {
 func (fake *FakeBuildScheduler) TriggerImmediatelyArgsForCall(i int) (lager.Logger, db.Job, db.Resources, atc.VersionedResourceTypes) {
 	fake.triggerImmediatelyMutex.RLock()
 	defer fake.triggerImmediatelyMutex.RUnlock()
-	return fake.triggerImmediatelyArgsForCall[i].logger, fake.triggerImmediatelyArgsForCall[i].job, fake.triggerImmediatelyArgsForCall[i].resources, fake.triggerImmediatelyArgsForCall[i].resourceTypes
+	argsForCall := fake.triggerImmediatelyArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeBuildScheduler) TriggerImmediatelyReturns(result1 db.Build, result2 scheduler.Waiter, result3 error) {
@@ -182,65 +238,15 @@ func (fake *FakeBuildScheduler) TriggerImmediatelyReturnsOnCall(i int, result1 d
 	}{result1, result2, result3}
 }
 
-func (fake *FakeBuildScheduler) SaveNextInputMapping(logger lager.Logger, job db.Job, resource db.Resources) error {
-	fake.saveNextInputMappingMutex.Lock()
-	ret, specificReturn := fake.saveNextInputMappingReturnsOnCall[len(fake.saveNextInputMappingArgsForCall)]
-	fake.saveNextInputMappingArgsForCall = append(fake.saveNextInputMappingArgsForCall, struct {
-		logger   lager.Logger
-		job      db.Job
-		resource db.Resources
-	}{logger, job, resource})
-	fake.recordInvocation("SaveNextInputMapping", []interface{}{logger, job, resource})
-	fake.saveNextInputMappingMutex.Unlock()
-	if fake.SaveNextInputMappingStub != nil {
-		return fake.SaveNextInputMappingStub(logger, job, resource)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.saveNextInputMappingReturns.result1
-}
-
-func (fake *FakeBuildScheduler) SaveNextInputMappingCallCount() int {
-	fake.saveNextInputMappingMutex.RLock()
-	defer fake.saveNextInputMappingMutex.RUnlock()
-	return len(fake.saveNextInputMappingArgsForCall)
-}
-
-func (fake *FakeBuildScheduler) SaveNextInputMappingArgsForCall(i int) (lager.Logger, db.Job, db.Resources) {
-	fake.saveNextInputMappingMutex.RLock()
-	defer fake.saveNextInputMappingMutex.RUnlock()
-	return fake.saveNextInputMappingArgsForCall[i].logger, fake.saveNextInputMappingArgsForCall[i].job, fake.saveNextInputMappingArgsForCall[i].resource
-}
-
-func (fake *FakeBuildScheduler) SaveNextInputMappingReturns(result1 error) {
-	fake.SaveNextInputMappingStub = nil
-	fake.saveNextInputMappingReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBuildScheduler) SaveNextInputMappingReturnsOnCall(i int, result1 error) {
-	fake.SaveNextInputMappingStub = nil
-	if fake.saveNextInputMappingReturnsOnCall == nil {
-		fake.saveNextInputMappingReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.saveNextInputMappingReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeBuildScheduler) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.saveNextInputMappingMutex.RLock()
+	defer fake.saveNextInputMappingMutex.RUnlock()
 	fake.scheduleMutex.RLock()
 	defer fake.scheduleMutex.RUnlock()
 	fake.triggerImmediatelyMutex.RLock()
 	defer fake.triggerImmediatelyMutex.RUnlock()
-	fake.saveNextInputMappingMutex.RLock()
-	defer fake.saveNextInputMappingMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -2,27 +2,27 @@
 package resourcefakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/resource"
-	"github.com/concourse/concourse/atc/worker"
+	lager "code.cloudfoundry.org/lager"
+	atc "github.com/concourse/concourse/atc"
+	creds "github.com/concourse/concourse/atc/creds"
+	resource "github.com/concourse/concourse/atc/resource"
+	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakeFetchSourceProviderFactory struct {
-	NewFetchSourceProviderStub        func(logger lager.Logger, session resource.Session, metadata resource.Metadata, tags atc.Tags, teamID int, resourceTypes creds.VersionedResourceTypes, resourceInstance resource.ResourceInstance, imageFetchingDelegate worker.ImageFetchingDelegate) resource.FetchSourceProvider
+	NewFetchSourceProviderStub        func(lager.Logger, resource.Session, resource.Metadata, atc.Tags, int, creds.VersionedResourceTypes, resource.ResourceInstance, worker.ImageFetchingDelegate) resource.FetchSourceProvider
 	newFetchSourceProviderMutex       sync.RWMutex
 	newFetchSourceProviderArgsForCall []struct {
-		logger                lager.Logger
-		session               resource.Session
-		metadata              resource.Metadata
-		tags                  atc.Tags
-		teamID                int
-		resourceTypes         creds.VersionedResourceTypes
-		resourceInstance      resource.ResourceInstance
-		imageFetchingDelegate worker.ImageFetchingDelegate
+		arg1 lager.Logger
+		arg2 resource.Session
+		arg3 resource.Metadata
+		arg4 atc.Tags
+		arg5 int
+		arg6 creds.VersionedResourceTypes
+		arg7 resource.ResourceInstance
+		arg8 worker.ImageFetchingDelegate
 	}
 	newFetchSourceProviderReturns struct {
 		result1 resource.FetchSourceProvider
@@ -34,28 +34,29 @@ type FakeFetchSourceProviderFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProvider(logger lager.Logger, session resource.Session, metadata resource.Metadata, tags atc.Tags, teamID int, resourceTypes creds.VersionedResourceTypes, resourceInstance resource.ResourceInstance, imageFetchingDelegate worker.ImageFetchingDelegate) resource.FetchSourceProvider {
+func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProvider(arg1 lager.Logger, arg2 resource.Session, arg3 resource.Metadata, arg4 atc.Tags, arg5 int, arg6 creds.VersionedResourceTypes, arg7 resource.ResourceInstance, arg8 worker.ImageFetchingDelegate) resource.FetchSourceProvider {
 	fake.newFetchSourceProviderMutex.Lock()
 	ret, specificReturn := fake.newFetchSourceProviderReturnsOnCall[len(fake.newFetchSourceProviderArgsForCall)]
 	fake.newFetchSourceProviderArgsForCall = append(fake.newFetchSourceProviderArgsForCall, struct {
-		logger                lager.Logger
-		session               resource.Session
-		metadata              resource.Metadata
-		tags                  atc.Tags
-		teamID                int
-		resourceTypes         creds.VersionedResourceTypes
-		resourceInstance      resource.ResourceInstance
-		imageFetchingDelegate worker.ImageFetchingDelegate
-	}{logger, session, metadata, tags, teamID, resourceTypes, resourceInstance, imageFetchingDelegate})
-	fake.recordInvocation("NewFetchSourceProvider", []interface{}{logger, session, metadata, tags, teamID, resourceTypes, resourceInstance, imageFetchingDelegate})
+		arg1 lager.Logger
+		arg2 resource.Session
+		arg3 resource.Metadata
+		arg4 atc.Tags
+		arg5 int
+		arg6 creds.VersionedResourceTypes
+		arg7 resource.ResourceInstance
+		arg8 worker.ImageFetchingDelegate
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
+	fake.recordInvocation("NewFetchSourceProvider", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
 	fake.newFetchSourceProviderMutex.Unlock()
 	if fake.NewFetchSourceProviderStub != nil {
-		return fake.NewFetchSourceProviderStub(logger, session, metadata, tags, teamID, resourceTypes, resourceInstance, imageFetchingDelegate)
+		return fake.NewFetchSourceProviderStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.newFetchSourceProviderReturns.result1
+	fakeReturns := fake.newFetchSourceProviderReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderCallCount() int {
@@ -67,7 +68,8 @@ func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderCallCount() in
 func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderArgsForCall(i int) (lager.Logger, resource.Session, resource.Metadata, atc.Tags, int, creds.VersionedResourceTypes, resource.ResourceInstance, worker.ImageFetchingDelegate) {
 	fake.newFetchSourceProviderMutex.RLock()
 	defer fake.newFetchSourceProviderMutex.RUnlock()
-	return fake.newFetchSourceProviderArgsForCall[i].logger, fake.newFetchSourceProviderArgsForCall[i].session, fake.newFetchSourceProviderArgsForCall[i].metadata, fake.newFetchSourceProviderArgsForCall[i].tags, fake.newFetchSourceProviderArgsForCall[i].teamID, fake.newFetchSourceProviderArgsForCall[i].resourceTypes, fake.newFetchSourceProviderArgsForCall[i].resourceInstance, fake.newFetchSourceProviderArgsForCall[i].imageFetchingDelegate
+	argsForCall := fake.newFetchSourceProviderArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8
 }
 
 func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderReturns(result1 resource.FetchSourceProvider) {

@@ -2,18 +2,18 @@
 package lockfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/db/lock"
+	lager "code.cloudfoundry.org/lager"
+	lock "github.com/concourse/concourse/atc/db/lock"
 )
 
 type FakeLockFactory struct {
-	AcquireStub        func(logger lager.Logger, ids lock.LockID) (lock.Lock, bool, error)
+	AcquireStub        func(lager.Logger, lock.LockID) (lock.Lock, bool, error)
 	acquireMutex       sync.RWMutex
 	acquireArgsForCall []struct {
-		logger lager.Logger
-		ids    lock.LockID
+		arg1 lager.Logger
+		arg2 lock.LockID
 	}
 	acquireReturns struct {
 		result1 lock.Lock
@@ -29,22 +29,23 @@ type FakeLockFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeLockFactory) Acquire(logger lager.Logger, ids lock.LockID) (lock.Lock, bool, error) {
+func (fake *FakeLockFactory) Acquire(arg1 lager.Logger, arg2 lock.LockID) (lock.Lock, bool, error) {
 	fake.acquireMutex.Lock()
 	ret, specificReturn := fake.acquireReturnsOnCall[len(fake.acquireArgsForCall)]
 	fake.acquireArgsForCall = append(fake.acquireArgsForCall, struct {
-		logger lager.Logger
-		ids    lock.LockID
-	}{logger, ids})
-	fake.recordInvocation("Acquire", []interface{}{logger, ids})
+		arg1 lager.Logger
+		arg2 lock.LockID
+	}{arg1, arg2})
+	fake.recordInvocation("Acquire", []interface{}{arg1, arg2})
 	fake.acquireMutex.Unlock()
 	if fake.AcquireStub != nil {
-		return fake.AcquireStub(logger, ids)
+		return fake.AcquireStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.acquireReturns.result1, fake.acquireReturns.result2, fake.acquireReturns.result3
+	fakeReturns := fake.acquireReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
 func (fake *FakeLockFactory) AcquireCallCount() int {
@@ -56,7 +57,8 @@ func (fake *FakeLockFactory) AcquireCallCount() int {
 func (fake *FakeLockFactory) AcquireArgsForCall(i int) (lager.Logger, lock.LockID) {
 	fake.acquireMutex.RLock()
 	defer fake.acquireMutex.RUnlock()
-	return fake.acquireArgsForCall[i].logger, fake.acquireArgsForCall[i].ids
+	argsForCall := fake.acquireArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeLockFactory) AcquireReturns(result1 lock.Lock, result2 bool, result3 error) {

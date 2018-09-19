@@ -2,11 +2,11 @@
 package schedulerfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/scheduler"
+	atc "github.com/concourse/concourse/atc"
+	db "github.com/concourse/concourse/atc/db"
+	scheduler "github.com/concourse/concourse/atc/scheduler"
 )
 
 type FakeBuildFactory struct {
@@ -52,7 +52,8 @@ func (fake *FakeBuildFactory) Create(arg1 atc.JobConfig, arg2 atc.ResourceConfig
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.createReturns.result1, fake.createReturns.result2
+	fakeReturns := fake.createReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeBuildFactory) CreateCallCount() int {
@@ -64,7 +65,8 @@ func (fake *FakeBuildFactory) CreateCallCount() int {
 func (fake *FakeBuildFactory) CreateArgsForCall(i int) (atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
-	return fake.createArgsForCall[i].arg1, fake.createArgsForCall[i].arg2, fake.createArgsForCall[i].arg3, fake.createArgsForCall[i].arg4
+	argsForCall := fake.createArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeBuildFactory) CreateReturns(result1 atc.Plan, result2 error) {

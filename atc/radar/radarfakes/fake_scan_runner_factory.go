@@ -2,10 +2,10 @@
 package radarfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/radar"
+	lager "code.cloudfoundry.org/lager"
+	radar "github.com/concourse/concourse/atc/radar"
 )
 
 type FakeScanRunnerFactory struct {
@@ -52,7 +52,8 @@ func (fake *FakeScanRunnerFactory) ScanResourceRunner(arg1 lager.Logger, arg2 st
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.scanResourceRunnerReturns.result1
+	fakeReturns := fake.scanResourceRunnerReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeScanRunnerFactory) ScanResourceRunnerCallCount() int {
@@ -64,7 +65,8 @@ func (fake *FakeScanRunnerFactory) ScanResourceRunnerCallCount() int {
 func (fake *FakeScanRunnerFactory) ScanResourceRunnerArgsForCall(i int) (lager.Logger, string) {
 	fake.scanResourceRunnerMutex.RLock()
 	defer fake.scanResourceRunnerMutex.RUnlock()
-	return fake.scanResourceRunnerArgsForCall[i].arg1, fake.scanResourceRunnerArgsForCall[i].arg2
+	argsForCall := fake.scanResourceRunnerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeScanRunnerFactory) ScanResourceRunnerReturns(result1 radar.IntervalRunner) {
@@ -101,7 +103,8 @@ func (fake *FakeScanRunnerFactory) ScanResourceTypeRunner(arg1 lager.Logger, arg
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.scanResourceTypeRunnerReturns.result1
+	fakeReturns := fake.scanResourceTypeRunnerReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerCallCount() int {
@@ -113,7 +116,8 @@ func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerCallCount() int {
 func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerArgsForCall(i int) (lager.Logger, string) {
 	fake.scanResourceTypeRunnerMutex.RLock()
 	defer fake.scanResourceTypeRunnerMutex.RUnlock()
-	return fake.scanResourceTypeRunnerArgsForCall[i].arg1, fake.scanResourceTypeRunnerArgsForCall[i].arg2
+	argsForCall := fake.scanResourceTypeRunnerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerReturns(result1 radar.IntervalRunner) {

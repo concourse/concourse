@@ -2,25 +2,17 @@
 package dbfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/db"
+	db "github.com/concourse/concourse/atc/db"
 )
 
 type FakeDestroyingVolume struct {
-	HandleStub        func() string
-	handleMutex       sync.RWMutex
-	handleArgsForCall []struct{}
-	handleReturns     struct {
-		result1 string
-	}
-	handleReturnsOnCall map[int]struct {
-		result1 string
-	}
 	DestroyStub        func() (bool, error)
 	destroyMutex       sync.RWMutex
-	destroyArgsForCall []struct{}
-	destroyReturns     struct {
+	destroyArgsForCall []struct {
+	}
+	destroyReturns struct {
 		result1 bool
 		result2 error
 	}
@@ -28,10 +20,21 @@ type FakeDestroyingVolume struct {
 		result1 bool
 		result2 error
 	}
+	HandleStub        func() string
+	handleMutex       sync.RWMutex
+	handleArgsForCall []struct {
+	}
+	handleReturns struct {
+		result1 string
+	}
+	handleReturnsOnCall map[int]struct {
+		result1 string
+	}
 	WorkerNameStub        func() string
 	workerNameMutex       sync.RWMutex
-	workerNameArgsForCall []struct{}
-	workerNameReturns     struct {
+	workerNameArgsForCall []struct {
+	}
+	workerNameReturns struct {
 		result1 string
 	}
 	workerNameReturnsOnCall map[int]struct {
@@ -41,50 +44,11 @@ type FakeDestroyingVolume struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeDestroyingVolume) Handle() string {
-	fake.handleMutex.Lock()
-	ret, specificReturn := fake.handleReturnsOnCall[len(fake.handleArgsForCall)]
-	fake.handleArgsForCall = append(fake.handleArgsForCall, struct{}{})
-	fake.recordInvocation("Handle", []interface{}{})
-	fake.handleMutex.Unlock()
-	if fake.HandleStub != nil {
-		return fake.HandleStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.handleReturns.result1
-}
-
-func (fake *FakeDestroyingVolume) HandleCallCount() int {
-	fake.handleMutex.RLock()
-	defer fake.handleMutex.RUnlock()
-	return len(fake.handleArgsForCall)
-}
-
-func (fake *FakeDestroyingVolume) HandleReturns(result1 string) {
-	fake.HandleStub = nil
-	fake.handleReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeDestroyingVolume) HandleReturnsOnCall(i int, result1 string) {
-	fake.HandleStub = nil
-	if fake.handleReturnsOnCall == nil {
-		fake.handleReturnsOnCall = make(map[int]struct {
-			result1 string
-		})
-	}
-	fake.handleReturnsOnCall[i] = struct {
-		result1 string
-	}{result1}
-}
-
 func (fake *FakeDestroyingVolume) Destroy() (bool, error) {
 	fake.destroyMutex.Lock()
 	ret, specificReturn := fake.destroyReturnsOnCall[len(fake.destroyArgsForCall)]
-	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct{}{})
+	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Destroy", []interface{}{})
 	fake.destroyMutex.Unlock()
 	if fake.DestroyStub != nil {
@@ -93,7 +57,8 @@ func (fake *FakeDestroyingVolume) Destroy() (bool, error) {
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.destroyReturns.result1, fake.destroyReturns.result2
+	fakeReturns := fake.destroyReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeDestroyingVolume) DestroyCallCount() int {
@@ -124,10 +89,53 @@ func (fake *FakeDestroyingVolume) DestroyReturnsOnCall(i int, result1 bool, resu
 	}{result1, result2}
 }
 
+func (fake *FakeDestroyingVolume) Handle() string {
+	fake.handleMutex.Lock()
+	ret, specificReturn := fake.handleReturnsOnCall[len(fake.handleArgsForCall)]
+	fake.handleArgsForCall = append(fake.handleArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Handle", []interface{}{})
+	fake.handleMutex.Unlock()
+	if fake.HandleStub != nil {
+		return fake.HandleStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.handleReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeDestroyingVolume) HandleCallCount() int {
+	fake.handleMutex.RLock()
+	defer fake.handleMutex.RUnlock()
+	return len(fake.handleArgsForCall)
+}
+
+func (fake *FakeDestroyingVolume) HandleReturns(result1 string) {
+	fake.HandleStub = nil
+	fake.handleReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeDestroyingVolume) HandleReturnsOnCall(i int, result1 string) {
+	fake.HandleStub = nil
+	if fake.handleReturnsOnCall == nil {
+		fake.handleReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.handleReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeDestroyingVolume) WorkerName() string {
 	fake.workerNameMutex.Lock()
 	ret, specificReturn := fake.workerNameReturnsOnCall[len(fake.workerNameArgsForCall)]
-	fake.workerNameArgsForCall = append(fake.workerNameArgsForCall, struct{}{})
+	fake.workerNameArgsForCall = append(fake.workerNameArgsForCall, struct {
+	}{})
 	fake.recordInvocation("WorkerName", []interface{}{})
 	fake.workerNameMutex.Unlock()
 	if fake.WorkerNameStub != nil {
@@ -136,7 +144,8 @@ func (fake *FakeDestroyingVolume) WorkerName() string {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.workerNameReturns.result1
+	fakeReturns := fake.workerNameReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeDestroyingVolume) WorkerNameCallCount() int {
@@ -167,10 +176,10 @@ func (fake *FakeDestroyingVolume) WorkerNameReturnsOnCall(i int, result1 string)
 func (fake *FakeDestroyingVolume) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.handleMutex.RLock()
-	defer fake.handleMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
+	fake.handleMutex.RLock()
+	defer fake.handleMutex.RUnlock()
 	fake.workerNameMutex.RLock()
 	defer fake.workerNameMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

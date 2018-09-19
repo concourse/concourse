@@ -2,78 +2,41 @@
 package workerfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/worker"
+	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakeInputSource struct {
-	SourceStub        func() worker.ArtifactSource
-	sourceMutex       sync.RWMutex
-	sourceArgsForCall []struct{}
-	sourceReturns     struct {
-		result1 worker.ArtifactSource
-	}
-	sourceReturnsOnCall map[int]struct {
-		result1 worker.ArtifactSource
-	}
 	DestinationPathStub        func() string
 	destinationPathMutex       sync.RWMutex
-	destinationPathArgsForCall []struct{}
-	destinationPathReturns     struct {
+	destinationPathArgsForCall []struct {
+	}
+	destinationPathReturns struct {
 		result1 string
 	}
 	destinationPathReturnsOnCall map[int]struct {
 		result1 string
 	}
+	SourceStub        func() worker.ArtifactSource
+	sourceMutex       sync.RWMutex
+	sourceArgsForCall []struct {
+	}
+	sourceReturns struct {
+		result1 worker.ArtifactSource
+	}
+	sourceReturnsOnCall map[int]struct {
+		result1 worker.ArtifactSource
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeInputSource) Source() worker.ArtifactSource {
-	fake.sourceMutex.Lock()
-	ret, specificReturn := fake.sourceReturnsOnCall[len(fake.sourceArgsForCall)]
-	fake.sourceArgsForCall = append(fake.sourceArgsForCall, struct{}{})
-	fake.recordInvocation("Source", []interface{}{})
-	fake.sourceMutex.Unlock()
-	if fake.SourceStub != nil {
-		return fake.SourceStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.sourceReturns.result1
-}
-
-func (fake *FakeInputSource) SourceCallCount() int {
-	fake.sourceMutex.RLock()
-	defer fake.sourceMutex.RUnlock()
-	return len(fake.sourceArgsForCall)
-}
-
-func (fake *FakeInputSource) SourceReturns(result1 worker.ArtifactSource) {
-	fake.SourceStub = nil
-	fake.sourceReturns = struct {
-		result1 worker.ArtifactSource
-	}{result1}
-}
-
-func (fake *FakeInputSource) SourceReturnsOnCall(i int, result1 worker.ArtifactSource) {
-	fake.SourceStub = nil
-	if fake.sourceReturnsOnCall == nil {
-		fake.sourceReturnsOnCall = make(map[int]struct {
-			result1 worker.ArtifactSource
-		})
-	}
-	fake.sourceReturnsOnCall[i] = struct {
-		result1 worker.ArtifactSource
-	}{result1}
 }
 
 func (fake *FakeInputSource) DestinationPath() string {
 	fake.destinationPathMutex.Lock()
 	ret, specificReturn := fake.destinationPathReturnsOnCall[len(fake.destinationPathArgsForCall)]
-	fake.destinationPathArgsForCall = append(fake.destinationPathArgsForCall, struct{}{})
+	fake.destinationPathArgsForCall = append(fake.destinationPathArgsForCall, struct {
+	}{})
 	fake.recordInvocation("DestinationPath", []interface{}{})
 	fake.destinationPathMutex.Unlock()
 	if fake.DestinationPathStub != nil {
@@ -82,7 +45,8 @@ func (fake *FakeInputSource) DestinationPath() string {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.destinationPathReturns.result1
+	fakeReturns := fake.destinationPathReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeInputSource) DestinationPathCallCount() int {
@@ -110,13 +74,55 @@ func (fake *FakeInputSource) DestinationPathReturnsOnCall(i int, result1 string)
 	}{result1}
 }
 
+func (fake *FakeInputSource) Source() worker.ArtifactSource {
+	fake.sourceMutex.Lock()
+	ret, specificReturn := fake.sourceReturnsOnCall[len(fake.sourceArgsForCall)]
+	fake.sourceArgsForCall = append(fake.sourceArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Source", []interface{}{})
+	fake.sourceMutex.Unlock()
+	if fake.SourceStub != nil {
+		return fake.SourceStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.sourceReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeInputSource) SourceCallCount() int {
+	fake.sourceMutex.RLock()
+	defer fake.sourceMutex.RUnlock()
+	return len(fake.sourceArgsForCall)
+}
+
+func (fake *FakeInputSource) SourceReturns(result1 worker.ArtifactSource) {
+	fake.SourceStub = nil
+	fake.sourceReturns = struct {
+		result1 worker.ArtifactSource
+	}{result1}
+}
+
+func (fake *FakeInputSource) SourceReturnsOnCall(i int, result1 worker.ArtifactSource) {
+	fake.SourceStub = nil
+	if fake.sourceReturnsOnCall == nil {
+		fake.sourceReturnsOnCall = make(map[int]struct {
+			result1 worker.ArtifactSource
+		})
+	}
+	fake.sourceReturnsOnCall[i] = struct {
+		result1 worker.ArtifactSource
+	}{result1}
+}
+
 func (fake *FakeInputSource) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.sourceMutex.RLock()
-	defer fake.sourceMutex.RUnlock()
 	fake.destinationPathMutex.RLock()
 	defer fake.destinationPathMutex.RUnlock()
+	fake.sourceMutex.RLock()
+	defer fake.sourceMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

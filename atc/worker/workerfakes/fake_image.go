@@ -2,21 +2,21 @@
 package workerfakes
 
 import (
-	"context"
-	"sync"
+	context "context"
+	sync "sync"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/worker"
+	lager "code.cloudfoundry.org/lager"
+	db "github.com/concourse/concourse/atc/db"
+	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakeImage struct {
-	FetchForContainerStub        func(ctx context.Context, logger lager.Logger, container db.CreatingContainer) (worker.FetchedImage, error)
+	FetchForContainerStub        func(context.Context, lager.Logger, db.CreatingContainer) (worker.FetchedImage, error)
 	fetchForContainerMutex       sync.RWMutex
 	fetchForContainerArgsForCall []struct {
-		ctx       context.Context
-		logger    lager.Logger
-		container db.CreatingContainer
+		arg1 context.Context
+		arg2 lager.Logger
+		arg3 db.CreatingContainer
 	}
 	fetchForContainerReturns struct {
 		result1 worker.FetchedImage
@@ -30,23 +30,24 @@ type FakeImage struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeImage) FetchForContainer(ctx context.Context, logger lager.Logger, container db.CreatingContainer) (worker.FetchedImage, error) {
+func (fake *FakeImage) FetchForContainer(arg1 context.Context, arg2 lager.Logger, arg3 db.CreatingContainer) (worker.FetchedImage, error) {
 	fake.fetchForContainerMutex.Lock()
 	ret, specificReturn := fake.fetchForContainerReturnsOnCall[len(fake.fetchForContainerArgsForCall)]
 	fake.fetchForContainerArgsForCall = append(fake.fetchForContainerArgsForCall, struct {
-		ctx       context.Context
-		logger    lager.Logger
-		container db.CreatingContainer
-	}{ctx, logger, container})
-	fake.recordInvocation("FetchForContainer", []interface{}{ctx, logger, container})
+		arg1 context.Context
+		arg2 lager.Logger
+		arg3 db.CreatingContainer
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("FetchForContainer", []interface{}{arg1, arg2, arg3})
 	fake.fetchForContainerMutex.Unlock()
 	if fake.FetchForContainerStub != nil {
-		return fake.FetchForContainerStub(ctx, logger, container)
+		return fake.FetchForContainerStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.fetchForContainerReturns.result1, fake.fetchForContainerReturns.result2
+	fakeReturns := fake.fetchForContainerReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeImage) FetchForContainerCallCount() int {
@@ -58,7 +59,8 @@ func (fake *FakeImage) FetchForContainerCallCount() int {
 func (fake *FakeImage) FetchForContainerArgsForCall(i int) (context.Context, lager.Logger, db.CreatingContainer) {
 	fake.fetchForContainerMutex.RLock()
 	defer fake.fetchForContainerMutex.RUnlock()
-	return fake.fetchForContainerArgsForCall[i].ctx, fake.fetchForContainerArgsForCall[i].logger, fake.fetchForContainerArgsForCall[i].container
+	argsForCall := fake.fetchForContainerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeImage) FetchForContainerReturns(result1 worker.FetchedImage, result2 error) {

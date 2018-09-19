@@ -2,9 +2,9 @@
 package dbfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/db"
+	db "github.com/concourse/concourse/atc/db"
 )
 
 type FakeJobFactory struct {
@@ -44,7 +44,8 @@ func (fake *FakeJobFactory) VisibleJobs(arg1 []string) (db.Dashboard, error) {
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.visibleJobsReturns.result1, fake.visibleJobsReturns.result2
+	fakeReturns := fake.visibleJobsReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeJobFactory) VisibleJobsCallCount() int {
@@ -56,7 +57,8 @@ func (fake *FakeJobFactory) VisibleJobsCallCount() int {
 func (fake *FakeJobFactory) VisibleJobsArgsForCall(i int) []string {
 	fake.visibleJobsMutex.RLock()
 	defer fake.visibleJobsMutex.RUnlock()
-	return fake.visibleJobsArgsForCall[i].arg1
+	argsForCall := fake.visibleJobsArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeJobFactory) VisibleJobsReturns(result1 db.Dashboard, result2 error) {

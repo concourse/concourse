@@ -2,10 +2,10 @@
 package transportfakes
 
 import (
-	"net/http"
-	"sync"
+	http "net/http"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/worker/transport"
+	transport "github.com/concourse/concourse/atc/worker/transport"
 )
 
 type FakeRoundTripper struct {
@@ -40,7 +40,8 @@ func (fake *FakeRoundTripper) RoundTrip(arg1 *http.Request) (*http.Response, err
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.roundTripReturns.result1, fake.roundTripReturns.result2
+	fakeReturns := fake.roundTripReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeRoundTripper) RoundTripCallCount() int {
@@ -52,7 +53,8 @@ func (fake *FakeRoundTripper) RoundTripCallCount() int {
 func (fake *FakeRoundTripper) RoundTripArgsForCall(i int) *http.Request {
 	fake.roundTripMutex.RLock()
 	defer fake.roundTripMutex.RUnlock()
-	return fake.roundTripArgsForCall[i].arg1
+	argsForCall := fake.roundTripArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeRoundTripper) RoundTripReturns(result1 *http.Response, result2 error) {

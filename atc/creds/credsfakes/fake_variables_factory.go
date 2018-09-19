@@ -2,9 +2,9 @@
 package credsfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/creds"
+	creds "github.com/concourse/concourse/atc/creds"
 )
 
 type FakeVariablesFactory struct {
@@ -39,7 +39,8 @@ func (fake *FakeVariablesFactory) NewVariables(arg1 string, arg2 string) creds.V
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.newVariablesReturns.result1
+	fakeReturns := fake.newVariablesReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeVariablesFactory) NewVariablesCallCount() int {
@@ -51,7 +52,8 @@ func (fake *FakeVariablesFactory) NewVariablesCallCount() int {
 func (fake *FakeVariablesFactory) NewVariablesArgsForCall(i int) (string, string) {
 	fake.newVariablesMutex.RLock()
 	defer fake.newVariablesMutex.RUnlock()
-	return fake.newVariablesArgsForCall[i].arg1, fake.newVariablesArgsForCall[i].arg2
+	argsForCall := fake.newVariablesArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeVariablesFactory) NewVariablesReturns(result1 creds.Variables) {

@@ -2,10 +2,10 @@
 package radarfakes
 
 import (
-	"context"
-	"sync"
+	context "context"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/radar"
+	radar "github.com/concourse/concourse/atc/radar"
 )
 
 type FakeIntervalRunner struct {
@@ -38,7 +38,8 @@ func (fake *FakeIntervalRunner) Run(arg1 context.Context) error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.runReturns.result1
+	fakeReturns := fake.runReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeIntervalRunner) RunCallCount() int {
@@ -50,7 +51,8 @@ func (fake *FakeIntervalRunner) RunCallCount() int {
 func (fake *FakeIntervalRunner) RunArgsForCall(i int) context.Context {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
-	return fake.runArgsForCall[i].arg1
+	argsForCall := fake.runArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeIntervalRunner) RunReturns(result1 error) {

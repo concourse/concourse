@@ -2,10 +2,10 @@
 package tokenfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/skymarshal/token"
-	"golang.org/x/oauth2"
+	token "github.com/concourse/concourse/skymarshal/token"
+	oauth2 "golang.org/x/oauth2"
 )
 
 type FakeIssuer struct {
@@ -40,7 +40,8 @@ func (fake *FakeIssuer) Issue(arg1 *token.VerifiedClaims) (*oauth2.Token, error)
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.issueReturns.result1, fake.issueReturns.result2
+	fakeReturns := fake.issueReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeIssuer) IssueCallCount() int {
@@ -52,7 +53,8 @@ func (fake *FakeIssuer) IssueCallCount() int {
 func (fake *FakeIssuer) IssueArgsForCall(i int) *token.VerifiedClaims {
 	fake.issueMutex.RLock()
 	defer fake.issueMutex.RUnlock()
-	return fake.issueArgsForCall[i].arg1
+	argsForCall := fake.issueArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeIssuer) IssueReturns(result1 *oauth2.Token, result2 error) {

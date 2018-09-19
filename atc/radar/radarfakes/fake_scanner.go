@@ -2,12 +2,12 @@
 package radarfakes
 
 import (
-	"sync"
-	"time"
+	sync "sync"
+	time "time"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/radar"
+	lager "code.cloudfoundry.org/lager"
+	atc "github.com/concourse/concourse/atc"
+	radar "github.com/concourse/concourse/atc/radar"
 )
 
 type FakeScanner struct {
@@ -69,7 +69,8 @@ func (fake *FakeScanner) Run(arg1 lager.Logger, arg2 string) (time.Duration, err
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.runReturns.result1, fake.runReturns.result2
+	fakeReturns := fake.runReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeScanner) RunCallCount() int {
@@ -81,7 +82,8 @@ func (fake *FakeScanner) RunCallCount() int {
 func (fake *FakeScanner) RunArgsForCall(i int) (lager.Logger, string) {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
-	return fake.runArgsForCall[i].arg1, fake.runArgsForCall[i].arg2
+	argsForCall := fake.runArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeScanner) RunReturns(result1 time.Duration, result2 error) {
@@ -121,7 +123,8 @@ func (fake *FakeScanner) Scan(arg1 lager.Logger, arg2 string) error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.scanReturns.result1
+	fakeReturns := fake.scanReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeScanner) ScanCallCount() int {
@@ -133,7 +136,8 @@ func (fake *FakeScanner) ScanCallCount() int {
 func (fake *FakeScanner) ScanArgsForCall(i int) (lager.Logger, string) {
 	fake.scanMutex.RLock()
 	defer fake.scanMutex.RUnlock()
-	return fake.scanArgsForCall[i].arg1, fake.scanArgsForCall[i].arg2
+	argsForCall := fake.scanArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeScanner) ScanReturns(result1 error) {
@@ -171,7 +175,8 @@ func (fake *FakeScanner) ScanFromVersion(arg1 lager.Logger, arg2 string, arg3 at
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.scanFromVersionReturns.result1
+	fakeReturns := fake.scanFromVersionReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeScanner) ScanFromVersionCallCount() int {
@@ -183,7 +188,8 @@ func (fake *FakeScanner) ScanFromVersionCallCount() int {
 func (fake *FakeScanner) ScanFromVersionArgsForCall(i int) (lager.Logger, string, atc.Version) {
 	fake.scanFromVersionMutex.RLock()
 	defer fake.scanFromVersionMutex.RUnlock()
-	return fake.scanFromVersionArgsForCall[i].arg1, fake.scanFromVersionArgsForCall[i].arg2, fake.scanFromVersionArgsForCall[i].arg3
+	argsForCall := fake.scanFromVersionArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeScanner) ScanFromVersionReturns(result1 error) {

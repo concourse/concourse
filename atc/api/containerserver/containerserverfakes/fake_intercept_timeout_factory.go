@@ -2,16 +2,17 @@
 package containerserverfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/api/containerserver"
+	containerserver "github.com/concourse/concourse/atc/api/containerserver"
 )
 
 type FakeInterceptTimeoutFactory struct {
 	NewInterceptTimeoutStub        func() containerserver.InterceptTimeout
 	newInterceptTimeoutMutex       sync.RWMutex
-	newInterceptTimeoutArgsForCall []struct{}
-	newInterceptTimeoutReturns     struct {
+	newInterceptTimeoutArgsForCall []struct {
+	}
+	newInterceptTimeoutReturns struct {
 		result1 containerserver.InterceptTimeout
 	}
 	newInterceptTimeoutReturnsOnCall map[int]struct {
@@ -24,7 +25,8 @@ type FakeInterceptTimeoutFactory struct {
 func (fake *FakeInterceptTimeoutFactory) NewInterceptTimeout() containerserver.InterceptTimeout {
 	fake.newInterceptTimeoutMutex.Lock()
 	ret, specificReturn := fake.newInterceptTimeoutReturnsOnCall[len(fake.newInterceptTimeoutArgsForCall)]
-	fake.newInterceptTimeoutArgsForCall = append(fake.newInterceptTimeoutArgsForCall, struct{}{})
+	fake.newInterceptTimeoutArgsForCall = append(fake.newInterceptTimeoutArgsForCall, struct {
+	}{})
 	fake.recordInvocation("NewInterceptTimeout", []interface{}{})
 	fake.newInterceptTimeoutMutex.Unlock()
 	if fake.NewInterceptTimeoutStub != nil {
@@ -33,7 +35,8 @@ func (fake *FakeInterceptTimeoutFactory) NewInterceptTimeout() containerserver.I
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.newInterceptTimeoutReturns.result1
+	fakeReturns := fake.newInterceptTimeoutReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeInterceptTimeoutFactory) NewInterceptTimeoutCallCount() int {

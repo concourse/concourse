@@ -2,12 +2,12 @@
 package execfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/exec"
+	lager "code.cloudfoundry.org/lager"
+	atc "github.com/concourse/concourse/atc"
+	db "github.com/concourse/concourse/atc/db"
+	exec "github.com/concourse/concourse/atc/exec"
 )
 
 type FakeFactory struct {
@@ -81,7 +81,8 @@ func (fake *FakeFactory) Get(arg1 lager.Logger, arg2 atc.Plan, arg3 db.Build, ar
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.getReturns.result1
+	fakeReturns := fake.getReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeFactory) GetCallCount() int {
@@ -93,7 +94,8 @@ func (fake *FakeFactory) GetCallCount() int {
 func (fake *FakeFactory) GetArgsForCall(i int) (lager.Logger, atc.Plan, db.Build, exec.StepMetadata, db.ContainerMetadata, exec.GetDelegate) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
-	return fake.getArgsForCall[i].arg1, fake.getArgsForCall[i].arg2, fake.getArgsForCall[i].arg3, fake.getArgsForCall[i].arg4, fake.getArgsForCall[i].arg5, fake.getArgsForCall[i].arg6
+	argsForCall := fake.getArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6
 }
 
 func (fake *FakeFactory) GetReturns(result1 exec.Step) {
@@ -134,7 +136,8 @@ func (fake *FakeFactory) Put(arg1 lager.Logger, arg2 atc.Plan, arg3 db.Build, ar
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.putReturns.result1
+	fakeReturns := fake.putReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeFactory) PutCallCount() int {
@@ -146,7 +149,8 @@ func (fake *FakeFactory) PutCallCount() int {
 func (fake *FakeFactory) PutArgsForCall(i int) (lager.Logger, atc.Plan, db.Build, exec.StepMetadata, db.ContainerMetadata, exec.PutDelegate) {
 	fake.putMutex.RLock()
 	defer fake.putMutex.RUnlock()
-	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3, fake.putArgsForCall[i].arg4, fake.putArgsForCall[i].arg5, fake.putArgsForCall[i].arg6
+	argsForCall := fake.putArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6
 }
 
 func (fake *FakeFactory) PutReturns(result1 exec.Step) {
@@ -186,7 +190,8 @@ func (fake *FakeFactory) Task(arg1 lager.Logger, arg2 atc.Plan, arg3 db.Build, a
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.taskReturns.result1
+	fakeReturns := fake.taskReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeFactory) TaskCallCount() int {
@@ -198,7 +203,8 @@ func (fake *FakeFactory) TaskCallCount() int {
 func (fake *FakeFactory) TaskArgsForCall(i int) (lager.Logger, atc.Plan, db.Build, db.ContainerMetadata, exec.TaskDelegate) {
 	fake.taskMutex.RLock()
 	defer fake.taskMutex.RUnlock()
-	return fake.taskArgsForCall[i].arg1, fake.taskArgsForCall[i].arg2, fake.taskArgsForCall[i].arg3, fake.taskArgsForCall[i].arg4, fake.taskArgsForCall[i].arg5
+	argsForCall := fake.taskArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
 func (fake *FakeFactory) TaskReturns(result1 exec.Step) {

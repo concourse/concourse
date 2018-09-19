@@ -2,17 +2,17 @@
 package resourcefakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/resource"
-	"github.com/concourse/concourse/atc/worker"
+	resource "github.com/concourse/concourse/atc/resource"
+	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakeFetcherFactory struct {
-	FetcherForStub        func(workerClient worker.Client) resource.Fetcher
+	FetcherForStub        func(worker.Client) resource.Fetcher
 	fetcherForMutex       sync.RWMutex
 	fetcherForArgsForCall []struct {
-		workerClient worker.Client
+		arg1 worker.Client
 	}
 	fetcherForReturns struct {
 		result1 resource.Fetcher
@@ -24,21 +24,22 @@ type FakeFetcherFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFetcherFactory) FetcherFor(workerClient worker.Client) resource.Fetcher {
+func (fake *FakeFetcherFactory) FetcherFor(arg1 worker.Client) resource.Fetcher {
 	fake.fetcherForMutex.Lock()
 	ret, specificReturn := fake.fetcherForReturnsOnCall[len(fake.fetcherForArgsForCall)]
 	fake.fetcherForArgsForCall = append(fake.fetcherForArgsForCall, struct {
-		workerClient worker.Client
-	}{workerClient})
-	fake.recordInvocation("FetcherFor", []interface{}{workerClient})
+		arg1 worker.Client
+	}{arg1})
+	fake.recordInvocation("FetcherFor", []interface{}{arg1})
 	fake.fetcherForMutex.Unlock()
 	if fake.FetcherForStub != nil {
-		return fake.FetcherForStub(workerClient)
+		return fake.FetcherForStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.fetcherForReturns.result1
+	fakeReturns := fake.fetcherForReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeFetcherFactory) FetcherForCallCount() int {
@@ -50,7 +51,8 @@ func (fake *FakeFetcherFactory) FetcherForCallCount() int {
 func (fake *FakeFetcherFactory) FetcherForArgsForCall(i int) worker.Client {
 	fake.fetcherForMutex.RLock()
 	defer fake.fetcherForMutex.RUnlock()
-	return fake.fetcherForArgsForCall[i].workerClient
+	argsForCall := fake.fetcherForArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeFetcherFactory) FetcherForReturns(result1 resource.Fetcher) {

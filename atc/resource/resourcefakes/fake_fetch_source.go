@@ -2,37 +2,13 @@
 package resourcefakes
 
 import (
-	"context"
-	"sync"
+	context "context"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/resource"
+	resource "github.com/concourse/concourse/atc/resource"
 )
 
 type FakeFetchSource struct {
-	LockNameStub        func() (string, error)
-	lockNameMutex       sync.RWMutex
-	lockNameArgsForCall []struct{}
-	lockNameReturns     struct {
-		result1 string
-		result2 error
-	}
-	lockNameReturnsOnCall map[int]struct {
-		result1 string
-		result2 error
-	}
-	FindStub        func() (resource.VersionedSource, bool, error)
-	findMutex       sync.RWMutex
-	findArgsForCall []struct{}
-	findReturns     struct {
-		result1 resource.VersionedSource
-		result2 bool
-		result3 error
-	}
-	findReturnsOnCall map[int]struct {
-		result1 resource.VersionedSource
-		result2 bool
-		result3 error
-	}
 	CreateStub        func(context.Context) (resource.VersionedSource, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
@@ -46,49 +22,85 @@ type FakeFetchSource struct {
 		result1 resource.VersionedSource
 		result2 error
 	}
+	FindStub        func() (resource.VersionedSource, bool, error)
+	findMutex       sync.RWMutex
+	findArgsForCall []struct {
+	}
+	findReturns struct {
+		result1 resource.VersionedSource
+		result2 bool
+		result3 error
+	}
+	findReturnsOnCall map[int]struct {
+		result1 resource.VersionedSource
+		result2 bool
+		result3 error
+	}
+	LockNameStub        func() (string, error)
+	lockNameMutex       sync.RWMutex
+	lockNameArgsForCall []struct {
+	}
+	lockNameReturns struct {
+		result1 string
+		result2 error
+	}
+	lockNameReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFetchSource) LockName() (string, error) {
-	fake.lockNameMutex.Lock()
-	ret, specificReturn := fake.lockNameReturnsOnCall[len(fake.lockNameArgsForCall)]
-	fake.lockNameArgsForCall = append(fake.lockNameArgsForCall, struct{}{})
-	fake.recordInvocation("LockName", []interface{}{})
-	fake.lockNameMutex.Unlock()
-	if fake.LockNameStub != nil {
-		return fake.LockNameStub()
+func (fake *FakeFetchSource) Create(arg1 context.Context) (resource.VersionedSource, error) {
+	fake.createMutex.Lock()
+	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
+	fake.createArgsForCall = append(fake.createArgsForCall, struct {
+		arg1 context.Context
+	}{arg1})
+	fake.recordInvocation("Create", []interface{}{arg1})
+	fake.createMutex.Unlock()
+	if fake.CreateStub != nil {
+		return fake.CreateStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.lockNameReturns.result1, fake.lockNameReturns.result2
+	fakeReturns := fake.createReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeFetchSource) LockNameCallCount() int {
-	fake.lockNameMutex.RLock()
-	defer fake.lockNameMutex.RUnlock()
-	return len(fake.lockNameArgsForCall)
+func (fake *FakeFetchSource) CreateCallCount() int {
+	fake.createMutex.RLock()
+	defer fake.createMutex.RUnlock()
+	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeFetchSource) LockNameReturns(result1 string, result2 error) {
-	fake.LockNameStub = nil
-	fake.lockNameReturns = struct {
-		result1 string
+func (fake *FakeFetchSource) CreateArgsForCall(i int) context.Context {
+	fake.createMutex.RLock()
+	defer fake.createMutex.RUnlock()
+	argsForCall := fake.createArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeFetchSource) CreateReturns(result1 resource.VersionedSource, result2 error) {
+	fake.CreateStub = nil
+	fake.createReturns = struct {
+		result1 resource.VersionedSource
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeFetchSource) LockNameReturnsOnCall(i int, result1 string, result2 error) {
-	fake.LockNameStub = nil
-	if fake.lockNameReturnsOnCall == nil {
-		fake.lockNameReturnsOnCall = make(map[int]struct {
-			result1 string
+func (fake *FakeFetchSource) CreateReturnsOnCall(i int, result1 resource.VersionedSource, result2 error) {
+	fake.CreateStub = nil
+	if fake.createReturnsOnCall == nil {
+		fake.createReturnsOnCall = make(map[int]struct {
+			result1 resource.VersionedSource
 			result2 error
 		})
 	}
-	fake.lockNameReturnsOnCall[i] = struct {
-		result1 string
+	fake.createReturnsOnCall[i] = struct {
+		result1 resource.VersionedSource
 		result2 error
 	}{result1, result2}
 }
@@ -96,7 +108,8 @@ func (fake *FakeFetchSource) LockNameReturnsOnCall(i int, result1 string, result
 func (fake *FakeFetchSource) Find() (resource.VersionedSource, bool, error) {
 	fake.findMutex.Lock()
 	ret, specificReturn := fake.findReturnsOnCall[len(fake.findArgsForCall)]
-	fake.findArgsForCall = append(fake.findArgsForCall, struct{}{})
+	fake.findArgsForCall = append(fake.findArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Find", []interface{}{})
 	fake.findMutex.Unlock()
 	if fake.FindStub != nil {
@@ -105,7 +118,8 @@ func (fake *FakeFetchSource) Find() (resource.VersionedSource, bool, error) {
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.findReturns.result1, fake.findReturns.result2, fake.findReturns.result3
+	fakeReturns := fake.findReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
 func (fake *FakeFetchSource) FindCallCount() int {
@@ -139,53 +153,47 @@ func (fake *FakeFetchSource) FindReturnsOnCall(i int, result1 resource.Versioned
 	}{result1, result2, result3}
 }
 
-func (fake *FakeFetchSource) Create(arg1 context.Context) (resource.VersionedSource, error) {
-	fake.createMutex.Lock()
-	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
-	fake.createArgsForCall = append(fake.createArgsForCall, struct {
-		arg1 context.Context
-	}{arg1})
-	fake.recordInvocation("Create", []interface{}{arg1})
-	fake.createMutex.Unlock()
-	if fake.CreateStub != nil {
-		return fake.CreateStub(arg1)
+func (fake *FakeFetchSource) LockName() (string, error) {
+	fake.lockNameMutex.Lock()
+	ret, specificReturn := fake.lockNameReturnsOnCall[len(fake.lockNameArgsForCall)]
+	fake.lockNameArgsForCall = append(fake.lockNameArgsForCall, struct {
+	}{})
+	fake.recordInvocation("LockName", []interface{}{})
+	fake.lockNameMutex.Unlock()
+	if fake.LockNameStub != nil {
+		return fake.LockNameStub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.createReturns.result1, fake.createReturns.result2
+	fakeReturns := fake.lockNameReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeFetchSource) CreateCallCount() int {
-	fake.createMutex.RLock()
-	defer fake.createMutex.RUnlock()
-	return len(fake.createArgsForCall)
+func (fake *FakeFetchSource) LockNameCallCount() int {
+	fake.lockNameMutex.RLock()
+	defer fake.lockNameMutex.RUnlock()
+	return len(fake.lockNameArgsForCall)
 }
 
-func (fake *FakeFetchSource) CreateArgsForCall(i int) context.Context {
-	fake.createMutex.RLock()
-	defer fake.createMutex.RUnlock()
-	return fake.createArgsForCall[i].arg1
-}
-
-func (fake *FakeFetchSource) CreateReturns(result1 resource.VersionedSource, result2 error) {
-	fake.CreateStub = nil
-	fake.createReturns = struct {
-		result1 resource.VersionedSource
+func (fake *FakeFetchSource) LockNameReturns(result1 string, result2 error) {
+	fake.LockNameStub = nil
+	fake.lockNameReturns = struct {
+		result1 string
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeFetchSource) CreateReturnsOnCall(i int, result1 resource.VersionedSource, result2 error) {
-	fake.CreateStub = nil
-	if fake.createReturnsOnCall == nil {
-		fake.createReturnsOnCall = make(map[int]struct {
-			result1 resource.VersionedSource
+func (fake *FakeFetchSource) LockNameReturnsOnCall(i int, result1 string, result2 error) {
+	fake.LockNameStub = nil
+	if fake.lockNameReturnsOnCall == nil {
+		fake.lockNameReturnsOnCall = make(map[int]struct {
+			result1 string
 			result2 error
 		})
 	}
-	fake.createReturnsOnCall[i] = struct {
-		result1 resource.VersionedSource
+	fake.lockNameReturnsOnCall[i] = struct {
+		result1 string
 		result2 error
 	}{result1, result2}
 }
@@ -193,12 +201,12 @@ func (fake *FakeFetchSource) CreateReturnsOnCall(i int, result1 resource.Version
 func (fake *FakeFetchSource) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.lockNameMutex.RLock()
-	defer fake.lockNameMutex.RUnlock()
-	fake.findMutex.RLock()
-	defer fake.findMutex.RUnlock()
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
+	fake.findMutex.RLock()
+	defer fake.findMutex.RUnlock()
+	fake.lockNameMutex.RLock()
+	defer fake.lockNameMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

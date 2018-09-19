@@ -2,18 +2,18 @@
 package resourceserverfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/api/resourceserver"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/radar"
+	resourceserver "github.com/concourse/concourse/atc/api/resourceserver"
+	db "github.com/concourse/concourse/atc/db"
+	radar "github.com/concourse/concourse/atc/radar"
 )
 
 type FakeScannerFactory struct {
-	NewResourceScannerStub        func(pipeline db.Pipeline) radar.Scanner
+	NewResourceScannerStub        func(db.Pipeline) radar.Scanner
 	newResourceScannerMutex       sync.RWMutex
 	newResourceScannerArgsForCall []struct {
-		pipeline db.Pipeline
+		arg1 db.Pipeline
 	}
 	newResourceScannerReturns struct {
 		result1 radar.Scanner
@@ -21,10 +21,10 @@ type FakeScannerFactory struct {
 	newResourceScannerReturnsOnCall map[int]struct {
 		result1 radar.Scanner
 	}
-	NewResourceTypeScannerStub        func(dbPipeline db.Pipeline) radar.Scanner
+	NewResourceTypeScannerStub        func(db.Pipeline) radar.Scanner
 	newResourceTypeScannerMutex       sync.RWMutex
 	newResourceTypeScannerArgsForCall []struct {
-		dbPipeline db.Pipeline
+		arg1 db.Pipeline
 	}
 	newResourceTypeScannerReturns struct {
 		result1 radar.Scanner
@@ -36,21 +36,22 @@ type FakeScannerFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeScannerFactory) NewResourceScanner(pipeline db.Pipeline) radar.Scanner {
+func (fake *FakeScannerFactory) NewResourceScanner(arg1 db.Pipeline) radar.Scanner {
 	fake.newResourceScannerMutex.Lock()
 	ret, specificReturn := fake.newResourceScannerReturnsOnCall[len(fake.newResourceScannerArgsForCall)]
 	fake.newResourceScannerArgsForCall = append(fake.newResourceScannerArgsForCall, struct {
-		pipeline db.Pipeline
-	}{pipeline})
-	fake.recordInvocation("NewResourceScanner", []interface{}{pipeline})
+		arg1 db.Pipeline
+	}{arg1})
+	fake.recordInvocation("NewResourceScanner", []interface{}{arg1})
 	fake.newResourceScannerMutex.Unlock()
 	if fake.NewResourceScannerStub != nil {
-		return fake.NewResourceScannerStub(pipeline)
+		return fake.NewResourceScannerStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.newResourceScannerReturns.result1
+	fakeReturns := fake.newResourceScannerReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeScannerFactory) NewResourceScannerCallCount() int {
@@ -62,7 +63,8 @@ func (fake *FakeScannerFactory) NewResourceScannerCallCount() int {
 func (fake *FakeScannerFactory) NewResourceScannerArgsForCall(i int) db.Pipeline {
 	fake.newResourceScannerMutex.RLock()
 	defer fake.newResourceScannerMutex.RUnlock()
-	return fake.newResourceScannerArgsForCall[i].pipeline
+	argsForCall := fake.newResourceScannerArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeScannerFactory) NewResourceScannerReturns(result1 radar.Scanner) {
@@ -84,21 +86,22 @@ func (fake *FakeScannerFactory) NewResourceScannerReturnsOnCall(i int, result1 r
 	}{result1}
 }
 
-func (fake *FakeScannerFactory) NewResourceTypeScanner(dbPipeline db.Pipeline) radar.Scanner {
+func (fake *FakeScannerFactory) NewResourceTypeScanner(arg1 db.Pipeline) radar.Scanner {
 	fake.newResourceTypeScannerMutex.Lock()
 	ret, specificReturn := fake.newResourceTypeScannerReturnsOnCall[len(fake.newResourceTypeScannerArgsForCall)]
 	fake.newResourceTypeScannerArgsForCall = append(fake.newResourceTypeScannerArgsForCall, struct {
-		dbPipeline db.Pipeline
-	}{dbPipeline})
-	fake.recordInvocation("NewResourceTypeScanner", []interface{}{dbPipeline})
+		arg1 db.Pipeline
+	}{arg1})
+	fake.recordInvocation("NewResourceTypeScanner", []interface{}{arg1})
 	fake.newResourceTypeScannerMutex.Unlock()
 	if fake.NewResourceTypeScannerStub != nil {
-		return fake.NewResourceTypeScannerStub(dbPipeline)
+		return fake.NewResourceTypeScannerStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.newResourceTypeScannerReturns.result1
+	fakeReturns := fake.newResourceTypeScannerReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeScannerFactory) NewResourceTypeScannerCallCount() int {
@@ -110,7 +113,8 @@ func (fake *FakeScannerFactory) NewResourceTypeScannerCallCount() int {
 func (fake *FakeScannerFactory) NewResourceTypeScannerArgsForCall(i int) db.Pipeline {
 	fake.newResourceTypeScannerMutex.RLock()
 	defer fake.newResourceTypeScannerMutex.RUnlock()
-	return fake.newResourceTypeScannerArgsForCall[i].dbPipeline
+	argsForCall := fake.newResourceTypeScannerArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeScannerFactory) NewResourceTypeScannerReturns(result1 radar.Scanner) {

@@ -2,20 +2,20 @@
 package maxinflightfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/scheduler/maxinflight"
+	lager "code.cloudfoundry.org/lager"
+	db "github.com/concourse/concourse/atc/db"
+	maxinflight "github.com/concourse/concourse/atc/scheduler/maxinflight"
 )
 
 type FakeUpdater struct {
-	UpdateMaxInFlightReachedStub        func(logger lager.Logger, job db.Job, buildID int) (bool, error)
+	UpdateMaxInFlightReachedStub        func(lager.Logger, db.Job, int) (bool, error)
 	updateMaxInFlightReachedMutex       sync.RWMutex
 	updateMaxInFlightReachedArgsForCall []struct {
-		logger  lager.Logger
-		job     db.Job
-		buildID int
+		arg1 lager.Logger
+		arg2 db.Job
+		arg3 int
 	}
 	updateMaxInFlightReachedReturns struct {
 		result1 bool
@@ -29,23 +29,24 @@ type FakeUpdater struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeUpdater) UpdateMaxInFlightReached(logger lager.Logger, job db.Job, buildID int) (bool, error) {
+func (fake *FakeUpdater) UpdateMaxInFlightReached(arg1 lager.Logger, arg2 db.Job, arg3 int) (bool, error) {
 	fake.updateMaxInFlightReachedMutex.Lock()
 	ret, specificReturn := fake.updateMaxInFlightReachedReturnsOnCall[len(fake.updateMaxInFlightReachedArgsForCall)]
 	fake.updateMaxInFlightReachedArgsForCall = append(fake.updateMaxInFlightReachedArgsForCall, struct {
-		logger  lager.Logger
-		job     db.Job
-		buildID int
-	}{logger, job, buildID})
-	fake.recordInvocation("UpdateMaxInFlightReached", []interface{}{logger, job, buildID})
+		arg1 lager.Logger
+		arg2 db.Job
+		arg3 int
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("UpdateMaxInFlightReached", []interface{}{arg1, arg2, arg3})
 	fake.updateMaxInFlightReachedMutex.Unlock()
 	if fake.UpdateMaxInFlightReachedStub != nil {
-		return fake.UpdateMaxInFlightReachedStub(logger, job, buildID)
+		return fake.UpdateMaxInFlightReachedStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.updateMaxInFlightReachedReturns.result1, fake.updateMaxInFlightReachedReturns.result2
+	fakeReturns := fake.updateMaxInFlightReachedReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeUpdater) UpdateMaxInFlightReachedCallCount() int {
@@ -57,7 +58,8 @@ func (fake *FakeUpdater) UpdateMaxInFlightReachedCallCount() int {
 func (fake *FakeUpdater) UpdateMaxInFlightReachedArgsForCall(i int) (lager.Logger, db.Job, int) {
 	fake.updateMaxInFlightReachedMutex.RLock()
 	defer fake.updateMaxInFlightReachedMutex.RUnlock()
-	return fake.updateMaxInFlightReachedArgsForCall[i].logger, fake.updateMaxInFlightReachedArgsForCall[i].job, fake.updateMaxInFlightReachedArgsForCall[i].buildID
+	argsForCall := fake.updateMaxInFlightReachedArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeUpdater) UpdateMaxInFlightReachedReturns(result1 bool, result2 error) {

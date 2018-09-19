@@ -2,11 +2,11 @@
 package tokenfakes
 
 import (
-	"context"
-	"sync"
+	context "context"
+	sync "sync"
 
-	"github.com/concourse/concourse/skymarshal/token"
-	"golang.org/x/oauth2"
+	token "github.com/concourse/concourse/skymarshal/token"
+	oauth2 "golang.org/x/oauth2"
 )
 
 type FakeVerifier struct {
@@ -43,7 +43,8 @@ func (fake *FakeVerifier) Verify(arg1 context.Context, arg2 *oauth2.Token) (*tok
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.verifyReturns.result1, fake.verifyReturns.result2
+	fakeReturns := fake.verifyReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeVerifier) VerifyCallCount() int {
@@ -55,7 +56,8 @@ func (fake *FakeVerifier) VerifyCallCount() int {
 func (fake *FakeVerifier) VerifyArgsForCall(i int) (context.Context, *oauth2.Token) {
 	fake.verifyMutex.RLock()
 	defer fake.verifyMutex.RUnlock()
-	return fake.verifyArgsForCall[i].arg1, fake.verifyArgsForCall[i].arg2
+	argsForCall := fake.verifyArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeVerifier) VerifyReturns(result1 *token.VerifiedClaims, result2 error) {

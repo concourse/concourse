@@ -2,12 +2,26 @@
 package encryptionfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/db/encryption"
+	encryption "github.com/concourse/concourse/atc/db/encryption"
 )
 
 type FakeStrategy struct {
+	DecryptStub        func(string, *string) ([]byte, error)
+	decryptMutex       sync.RWMutex
+	decryptArgsForCall []struct {
+		arg1 string
+		arg2 *string
+	}
+	decryptReturns struct {
+		result1 []byte
+		result2 error
+	}
+	decryptReturnsOnCall map[int]struct {
+		result1 []byte
+		result2 error
+	}
 	EncryptStub        func([]byte) (string, *string, error)
 	encryptMutex       sync.RWMutex
 	encryptArgsForCall []struct {
@@ -23,22 +37,62 @@ type FakeStrategy struct {
 		result2 *string
 		result3 error
 	}
-	DecryptStub        func(string, *string) ([]byte, error)
-	decryptMutex       sync.RWMutex
-	decryptArgsForCall []struct {
-		arg1 string
-		arg2 *string
-	}
-	decryptReturns struct {
-		result1 []byte
-		result2 error
-	}
-	decryptReturnsOnCall map[int]struct {
-		result1 []byte
-		result2 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeStrategy) Decrypt(arg1 string, arg2 *string) ([]byte, error) {
+	fake.decryptMutex.Lock()
+	ret, specificReturn := fake.decryptReturnsOnCall[len(fake.decryptArgsForCall)]
+	fake.decryptArgsForCall = append(fake.decryptArgsForCall, struct {
+		arg1 string
+		arg2 *string
+	}{arg1, arg2})
+	fake.recordInvocation("Decrypt", []interface{}{arg1, arg2})
+	fake.decryptMutex.Unlock()
+	if fake.DecryptStub != nil {
+		return fake.DecryptStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.decryptReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeStrategy) DecryptCallCount() int {
+	fake.decryptMutex.RLock()
+	defer fake.decryptMutex.RUnlock()
+	return len(fake.decryptArgsForCall)
+}
+
+func (fake *FakeStrategy) DecryptArgsForCall(i int) (string, *string) {
+	fake.decryptMutex.RLock()
+	defer fake.decryptMutex.RUnlock()
+	argsForCall := fake.decryptArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeStrategy) DecryptReturns(result1 []byte, result2 error) {
+	fake.DecryptStub = nil
+	fake.decryptReturns = struct {
+		result1 []byte
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeStrategy) DecryptReturnsOnCall(i int, result1 []byte, result2 error) {
+	fake.DecryptStub = nil
+	if fake.decryptReturnsOnCall == nil {
+		fake.decryptReturnsOnCall = make(map[int]struct {
+			result1 []byte
+			result2 error
+		})
+	}
+	fake.decryptReturnsOnCall[i] = struct {
+		result1 []byte
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeStrategy) Encrypt(arg1 []byte) (string, *string, error) {
@@ -60,7 +114,8 @@ func (fake *FakeStrategy) Encrypt(arg1 []byte) (string, *string, error) {
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.encryptReturns.result1, fake.encryptReturns.result2, fake.encryptReturns.result3
+	fakeReturns := fake.encryptReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
 func (fake *FakeStrategy) EncryptCallCount() int {
@@ -72,7 +127,8 @@ func (fake *FakeStrategy) EncryptCallCount() int {
 func (fake *FakeStrategy) EncryptArgsForCall(i int) []byte {
 	fake.encryptMutex.RLock()
 	defer fake.encryptMutex.RUnlock()
-	return fake.encryptArgsForCall[i].arg1
+	argsForCall := fake.encryptArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeStrategy) EncryptReturns(result1 string, result2 *string, result3 error) {
@@ -100,65 +156,13 @@ func (fake *FakeStrategy) EncryptReturnsOnCall(i int, result1 string, result2 *s
 	}{result1, result2, result3}
 }
 
-func (fake *FakeStrategy) Decrypt(arg1 string, arg2 *string) ([]byte, error) {
-	fake.decryptMutex.Lock()
-	ret, specificReturn := fake.decryptReturnsOnCall[len(fake.decryptArgsForCall)]
-	fake.decryptArgsForCall = append(fake.decryptArgsForCall, struct {
-		arg1 string
-		arg2 *string
-	}{arg1, arg2})
-	fake.recordInvocation("Decrypt", []interface{}{arg1, arg2})
-	fake.decryptMutex.Unlock()
-	if fake.DecryptStub != nil {
-		return fake.DecryptStub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.decryptReturns.result1, fake.decryptReturns.result2
-}
-
-func (fake *FakeStrategy) DecryptCallCount() int {
-	fake.decryptMutex.RLock()
-	defer fake.decryptMutex.RUnlock()
-	return len(fake.decryptArgsForCall)
-}
-
-func (fake *FakeStrategy) DecryptArgsForCall(i int) (string, *string) {
-	fake.decryptMutex.RLock()
-	defer fake.decryptMutex.RUnlock()
-	return fake.decryptArgsForCall[i].arg1, fake.decryptArgsForCall[i].arg2
-}
-
-func (fake *FakeStrategy) DecryptReturns(result1 []byte, result2 error) {
-	fake.DecryptStub = nil
-	fake.decryptReturns = struct {
-		result1 []byte
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeStrategy) DecryptReturnsOnCall(i int, result1 []byte, result2 error) {
-	fake.DecryptStub = nil
-	if fake.decryptReturnsOnCall == nil {
-		fake.decryptReturnsOnCall = make(map[int]struct {
-			result1 []byte
-			result2 error
-		})
-	}
-	fake.decryptReturnsOnCall[i] = struct {
-		result1 []byte
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeStrategy) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.encryptMutex.RLock()
-	defer fake.encryptMutex.RUnlock()
 	fake.decryptMutex.RLock()
 	defer fake.decryptMutex.RUnlock()
+	fake.encryptMutex.RLock()
+	defer fake.encryptMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

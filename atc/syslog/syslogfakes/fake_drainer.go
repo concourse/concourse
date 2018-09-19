@@ -2,10 +2,10 @@
 package syslogfakes
 
 import (
-	"context"
-	"sync"
+	context "context"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/syslog"
+	syslog "github.com/concourse/concourse/atc/syslog"
 )
 
 type FakeDrainer struct {
@@ -38,7 +38,8 @@ func (fake *FakeDrainer) Run(arg1 context.Context) error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.runReturns.result1
+	fakeReturns := fake.runReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeDrainer) RunCallCount() int {
@@ -50,7 +51,8 @@ func (fake *FakeDrainer) RunCallCount() int {
 func (fake *FakeDrainer) RunArgsForCall(i int) context.Context {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
-	return fake.runArgsForCall[i].arg1
+	argsForCall := fake.runArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeDrainer) RunReturns(result1 error) {

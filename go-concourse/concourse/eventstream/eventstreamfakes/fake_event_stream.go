@@ -2,17 +2,28 @@
 package eventstreamfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/go-concourse/concourse/eventstream"
+	atc "github.com/concourse/concourse/atc"
+	eventstream "github.com/concourse/concourse/go-concourse/concourse/eventstream"
 )
 
 type FakeEventStream struct {
+	CloseStub        func() error
+	closeMutex       sync.RWMutex
+	closeArgsForCall []struct {
+	}
+	closeReturns struct {
+		result1 error
+	}
+	closeReturnsOnCall map[int]struct {
+		result1 error
+	}
 	NextEventStub        func() (atc.Event, error)
 	nextEventMutex       sync.RWMutex
-	nextEventArgsForCall []struct{}
-	nextEventReturns     struct {
+	nextEventArgsForCall []struct {
+	}
+	nextEventReturns struct {
 		result1 atc.Event
 		result2 error
 	}
@@ -20,23 +31,57 @@ type FakeEventStream struct {
 		result1 atc.Event
 		result2 error
 	}
-	CloseStub        func() error
-	closeMutex       sync.RWMutex
-	closeArgsForCall []struct{}
-	closeReturns     struct {
-		result1 error
-	}
-	closeReturnsOnCall map[int]struct {
-		result1 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeEventStream) Close() error {
+	fake.closeMutex.Lock()
+	ret, specificReturn := fake.closeReturnsOnCall[len(fake.closeArgsForCall)]
+	fake.closeArgsForCall = append(fake.closeArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Close", []interface{}{})
+	fake.closeMutex.Unlock()
+	if fake.CloseStub != nil {
+		return fake.CloseStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.closeReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeEventStream) CloseCallCount() int {
+	fake.closeMutex.RLock()
+	defer fake.closeMutex.RUnlock()
+	return len(fake.closeArgsForCall)
+}
+
+func (fake *FakeEventStream) CloseReturns(result1 error) {
+	fake.CloseStub = nil
+	fake.closeReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeEventStream) CloseReturnsOnCall(i int, result1 error) {
+	fake.CloseStub = nil
+	if fake.closeReturnsOnCall == nil {
+		fake.closeReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.closeReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeEventStream) NextEvent() (atc.Event, error) {
 	fake.nextEventMutex.Lock()
 	ret, specificReturn := fake.nextEventReturnsOnCall[len(fake.nextEventArgsForCall)]
-	fake.nextEventArgsForCall = append(fake.nextEventArgsForCall, struct{}{})
+	fake.nextEventArgsForCall = append(fake.nextEventArgsForCall, struct {
+	}{})
 	fake.recordInvocation("NextEvent", []interface{}{})
 	fake.nextEventMutex.Unlock()
 	if fake.NextEventStub != nil {
@@ -45,7 +90,8 @@ func (fake *FakeEventStream) NextEvent() (atc.Event, error) {
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.nextEventReturns.result1, fake.nextEventReturns.result2
+	fakeReturns := fake.nextEventReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeEventStream) NextEventCallCount() int {
@@ -76,53 +122,13 @@ func (fake *FakeEventStream) NextEventReturnsOnCall(i int, result1 atc.Event, re
 	}{result1, result2}
 }
 
-func (fake *FakeEventStream) Close() error {
-	fake.closeMutex.Lock()
-	ret, specificReturn := fake.closeReturnsOnCall[len(fake.closeArgsForCall)]
-	fake.closeArgsForCall = append(fake.closeArgsForCall, struct{}{})
-	fake.recordInvocation("Close", []interface{}{})
-	fake.closeMutex.Unlock()
-	if fake.CloseStub != nil {
-		return fake.CloseStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.closeReturns.result1
-}
-
-func (fake *FakeEventStream) CloseCallCount() int {
-	fake.closeMutex.RLock()
-	defer fake.closeMutex.RUnlock()
-	return len(fake.closeArgsForCall)
-}
-
-func (fake *FakeEventStream) CloseReturns(result1 error) {
-	fake.CloseStub = nil
-	fake.closeReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeEventStream) CloseReturnsOnCall(i int, result1 error) {
-	fake.CloseStub = nil
-	if fake.closeReturnsOnCall == nil {
-		fake.closeReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.closeReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeEventStream) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.nextEventMutex.RLock()
-	defer fake.nextEventMutex.RUnlock()
 	fake.closeMutex.RLock()
 	defer fake.closeMutex.RUnlock()
+	fake.nextEventMutex.RLock()
+	defer fake.nextEventMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

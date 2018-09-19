@@ -2,10 +2,10 @@
 package gcfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/gc"
+	lager "code.cloudfoundry.org/lager"
+	gc "github.com/concourse/concourse/atc/gc"
 )
 
 type FakeWorkerJobRunner struct {
@@ -43,7 +43,8 @@ func (fake *FakeWorkerJobRunner) TryCallCount() int {
 func (fake *FakeWorkerJobRunner) TryArgsForCall(i int) (lager.Logger, string, gc.Job) {
 	fake.tryMutex.RLock()
 	defer fake.tryMutex.RUnlock()
-	return fake.tryArgsForCall[i].arg1, fake.tryArgsForCall[i].arg2, fake.tryArgsForCall[i].arg3
+	argsForCall := fake.tryArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeWorkerJobRunner) Invocations() map[string][][]interface{} {

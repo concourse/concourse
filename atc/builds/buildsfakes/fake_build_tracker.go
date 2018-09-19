@@ -2,41 +2,28 @@
 package buildsfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/builds"
+	builds "github.com/concourse/concourse/atc/builds"
 )
 
 type FakeBuildTracker struct {
-	TrackStub          func()
-	trackMutex         sync.RWMutex
-	trackArgsForCall   []struct{}
 	ReleaseStub        func()
 	releaseMutex       sync.RWMutex
-	releaseArgsForCall []struct{}
-	invocations        map[string][][]interface{}
-	invocationsMutex   sync.RWMutex
-}
-
-func (fake *FakeBuildTracker) Track() {
-	fake.trackMutex.Lock()
-	fake.trackArgsForCall = append(fake.trackArgsForCall, struct{}{})
-	fake.recordInvocation("Track", []interface{}{})
-	fake.trackMutex.Unlock()
-	if fake.TrackStub != nil {
-		fake.TrackStub()
+	releaseArgsForCall []struct {
 	}
-}
-
-func (fake *FakeBuildTracker) TrackCallCount() int {
-	fake.trackMutex.RLock()
-	defer fake.trackMutex.RUnlock()
-	return len(fake.trackArgsForCall)
+	TrackStub        func()
+	trackMutex       sync.RWMutex
+	trackArgsForCall []struct {
+	}
+	invocations      map[string][][]interface{}
+	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeBuildTracker) Release() {
 	fake.releaseMutex.Lock()
-	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct{}{})
+	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Release", []interface{}{})
 	fake.releaseMutex.Unlock()
 	if fake.ReleaseStub != nil {
@@ -50,13 +37,30 @@ func (fake *FakeBuildTracker) ReleaseCallCount() int {
 	return len(fake.releaseArgsForCall)
 }
 
+func (fake *FakeBuildTracker) Track() {
+	fake.trackMutex.Lock()
+	fake.trackArgsForCall = append(fake.trackArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Track", []interface{}{})
+	fake.trackMutex.Unlock()
+	if fake.TrackStub != nil {
+		fake.TrackStub()
+	}
+}
+
+func (fake *FakeBuildTracker) TrackCallCount() int {
+	fake.trackMutex.RLock()
+	defer fake.trackMutex.RUnlock()
+	return len(fake.trackArgsForCall)
+}
+
 func (fake *FakeBuildTracker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.trackMutex.RLock()
-	defer fake.trackMutex.RUnlock()
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
+	fake.trackMutex.RLock()
+	defer fake.trackMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

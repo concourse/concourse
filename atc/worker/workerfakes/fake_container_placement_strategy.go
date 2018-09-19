@@ -2,9 +2,9 @@
 package workerfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/worker"
+	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakeContainerPlacementStrategy struct {
@@ -46,7 +46,8 @@ func (fake *FakeContainerPlacementStrategy) Choose(arg1 []worker.Worker, arg2 wo
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.chooseReturns.result1, fake.chooseReturns.result2
+	fakeReturns := fake.chooseReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeContainerPlacementStrategy) ChooseCallCount() int {
@@ -58,7 +59,8 @@ func (fake *FakeContainerPlacementStrategy) ChooseCallCount() int {
 func (fake *FakeContainerPlacementStrategy) ChooseArgsForCall(i int) ([]worker.Worker, worker.ContainerSpec) {
 	fake.chooseMutex.RLock()
 	defer fake.chooseMutex.RUnlock()
-	return fake.chooseArgsForCall[i].arg1, fake.chooseArgsForCall[i].arg2
+	argsForCall := fake.chooseArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeContainerPlacementStrategy) ChooseReturns(result1 worker.Worker, result2 error) {

@@ -2,10 +2,10 @@
 package workerfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"code.cloudfoundry.org/garden"
-	"github.com/concourse/concourse/atc/worker"
+	garden "code.cloudfoundry.org/garden"
+	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakeBindMountSource struct {
@@ -42,7 +42,8 @@ func (fake *FakeBindMountSource) VolumeOn(arg1 worker.Worker) (garden.BindMount,
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.volumeOnReturns.result1, fake.volumeOnReturns.result2, fake.volumeOnReturns.result3
+	fakeReturns := fake.volumeOnReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
 func (fake *FakeBindMountSource) VolumeOnCallCount() int {
@@ -54,7 +55,8 @@ func (fake *FakeBindMountSource) VolumeOnCallCount() int {
 func (fake *FakeBindMountSource) VolumeOnArgsForCall(i int) worker.Worker {
 	fake.volumeOnMutex.RLock()
 	defer fake.volumeOnMutex.RUnlock()
-	return fake.volumeOnArgsForCall[i].arg1
+	argsForCall := fake.volumeOnArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeBindMountSource) VolumeOnReturns(result1 garden.BindMount, result2 bool, result3 error) {

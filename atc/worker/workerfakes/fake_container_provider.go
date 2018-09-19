@@ -2,22 +2,22 @@
 package workerfakes
 
 import (
-	"context"
-	"sync"
+	context "context"
+	sync "sync"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/worker"
+	lager "code.cloudfoundry.org/lager"
+	creds "github.com/concourse/concourse/atc/creds"
+	db "github.com/concourse/concourse/atc/db"
+	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakeContainerProvider struct {
-	FindCreatedContainerByHandleStub        func(logger lager.Logger, handle string, teamID int) (worker.Container, bool, error)
+	FindCreatedContainerByHandleStub        func(lager.Logger, string, int) (worker.Container, bool, error)
 	findCreatedContainerByHandleMutex       sync.RWMutex
 	findCreatedContainerByHandleArgsForCall []struct {
-		logger lager.Logger
-		handle string
-		teamID int
+		arg1 lager.Logger
+		arg2 string
+		arg3 int
 	}
 	findCreatedContainerByHandleReturns struct {
 		result1 worker.Container
@@ -29,16 +29,16 @@ type FakeContainerProvider struct {
 		result2 bool
 		result3 error
 	}
-	FindOrCreateContainerStub        func(ctx context.Context, logger lager.Logger, owner db.ContainerOwner, delegate worker.ImageFetchingDelegate, metadata db.ContainerMetadata, spec worker.ContainerSpec, resourceTypes creds.VersionedResourceTypes) (worker.Container, error)
+	FindOrCreateContainerStub        func(context.Context, lager.Logger, db.ContainerOwner, worker.ImageFetchingDelegate, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes) (worker.Container, error)
 	findOrCreateContainerMutex       sync.RWMutex
 	findOrCreateContainerArgsForCall []struct {
-		ctx           context.Context
-		logger        lager.Logger
-		owner         db.ContainerOwner
-		delegate      worker.ImageFetchingDelegate
-		metadata      db.ContainerMetadata
-		spec          worker.ContainerSpec
-		resourceTypes creds.VersionedResourceTypes
+		arg1 context.Context
+		arg2 lager.Logger
+		arg3 db.ContainerOwner
+		arg4 worker.ImageFetchingDelegate
+		arg5 db.ContainerMetadata
+		arg6 worker.ContainerSpec
+		arg7 creds.VersionedResourceTypes
 	}
 	findOrCreateContainerReturns struct {
 		result1 worker.Container
@@ -52,23 +52,24 @@ type FakeContainerProvider struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeContainerProvider) FindCreatedContainerByHandle(logger lager.Logger, handle string, teamID int) (worker.Container, bool, error) {
+func (fake *FakeContainerProvider) FindCreatedContainerByHandle(arg1 lager.Logger, arg2 string, arg3 int) (worker.Container, bool, error) {
 	fake.findCreatedContainerByHandleMutex.Lock()
 	ret, specificReturn := fake.findCreatedContainerByHandleReturnsOnCall[len(fake.findCreatedContainerByHandleArgsForCall)]
 	fake.findCreatedContainerByHandleArgsForCall = append(fake.findCreatedContainerByHandleArgsForCall, struct {
-		logger lager.Logger
-		handle string
-		teamID int
-	}{logger, handle, teamID})
-	fake.recordInvocation("FindCreatedContainerByHandle", []interface{}{logger, handle, teamID})
+		arg1 lager.Logger
+		arg2 string
+		arg3 int
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("FindCreatedContainerByHandle", []interface{}{arg1, arg2, arg3})
 	fake.findCreatedContainerByHandleMutex.Unlock()
 	if fake.FindCreatedContainerByHandleStub != nil {
-		return fake.FindCreatedContainerByHandleStub(logger, handle, teamID)
+		return fake.FindCreatedContainerByHandleStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.findCreatedContainerByHandleReturns.result1, fake.findCreatedContainerByHandleReturns.result2, fake.findCreatedContainerByHandleReturns.result3
+	fakeReturns := fake.findCreatedContainerByHandleReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
 func (fake *FakeContainerProvider) FindCreatedContainerByHandleCallCount() int {
@@ -80,7 +81,8 @@ func (fake *FakeContainerProvider) FindCreatedContainerByHandleCallCount() int {
 func (fake *FakeContainerProvider) FindCreatedContainerByHandleArgsForCall(i int) (lager.Logger, string, int) {
 	fake.findCreatedContainerByHandleMutex.RLock()
 	defer fake.findCreatedContainerByHandleMutex.RUnlock()
-	return fake.findCreatedContainerByHandleArgsForCall[i].logger, fake.findCreatedContainerByHandleArgsForCall[i].handle, fake.findCreatedContainerByHandleArgsForCall[i].teamID
+	argsForCall := fake.findCreatedContainerByHandleArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeContainerProvider) FindCreatedContainerByHandleReturns(result1 worker.Container, result2 bool, result3 error) {
@@ -108,27 +110,28 @@ func (fake *FakeContainerProvider) FindCreatedContainerByHandleReturnsOnCall(i i
 	}{result1, result2, result3}
 }
 
-func (fake *FakeContainerProvider) FindOrCreateContainer(ctx context.Context, logger lager.Logger, owner db.ContainerOwner, delegate worker.ImageFetchingDelegate, metadata db.ContainerMetadata, spec worker.ContainerSpec, resourceTypes creds.VersionedResourceTypes) (worker.Container, error) {
+func (fake *FakeContainerProvider) FindOrCreateContainer(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerOwner, arg4 worker.ImageFetchingDelegate, arg5 db.ContainerMetadata, arg6 worker.ContainerSpec, arg7 creds.VersionedResourceTypes) (worker.Container, error) {
 	fake.findOrCreateContainerMutex.Lock()
 	ret, specificReturn := fake.findOrCreateContainerReturnsOnCall[len(fake.findOrCreateContainerArgsForCall)]
 	fake.findOrCreateContainerArgsForCall = append(fake.findOrCreateContainerArgsForCall, struct {
-		ctx           context.Context
-		logger        lager.Logger
-		owner         db.ContainerOwner
-		delegate      worker.ImageFetchingDelegate
-		metadata      db.ContainerMetadata
-		spec          worker.ContainerSpec
-		resourceTypes creds.VersionedResourceTypes
-	}{ctx, logger, owner, delegate, metadata, spec, resourceTypes})
-	fake.recordInvocation("FindOrCreateContainer", []interface{}{ctx, logger, owner, delegate, metadata, spec, resourceTypes})
+		arg1 context.Context
+		arg2 lager.Logger
+		arg3 db.ContainerOwner
+		arg4 worker.ImageFetchingDelegate
+		arg5 db.ContainerMetadata
+		arg6 worker.ContainerSpec
+		arg7 creds.VersionedResourceTypes
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+	fake.recordInvocation("FindOrCreateContainer", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.findOrCreateContainerMutex.Unlock()
 	if fake.FindOrCreateContainerStub != nil {
-		return fake.FindOrCreateContainerStub(ctx, logger, owner, delegate, metadata, spec, resourceTypes)
+		return fake.FindOrCreateContainerStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.findOrCreateContainerReturns.result1, fake.findOrCreateContainerReturns.result2
+	fakeReturns := fake.findOrCreateContainerReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeContainerProvider) FindOrCreateContainerCallCount() int {
@@ -140,7 +143,8 @@ func (fake *FakeContainerProvider) FindOrCreateContainerCallCount() int {
 func (fake *FakeContainerProvider) FindOrCreateContainerArgsForCall(i int) (context.Context, lager.Logger, db.ContainerOwner, worker.ImageFetchingDelegate, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes) {
 	fake.findOrCreateContainerMutex.RLock()
 	defer fake.findOrCreateContainerMutex.RUnlock()
-	return fake.findOrCreateContainerArgsForCall[i].ctx, fake.findOrCreateContainerArgsForCall[i].logger, fake.findOrCreateContainerArgsForCall[i].owner, fake.findOrCreateContainerArgsForCall[i].delegate, fake.findOrCreateContainerArgsForCall[i].metadata, fake.findOrCreateContainerArgsForCall[i].spec, fake.findOrCreateContainerArgsForCall[i].resourceTypes
+	argsForCall := fake.findOrCreateContainerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
 }
 
 func (fake *FakeContainerProvider) FindOrCreateContainerReturns(result1 worker.Container, result2 error) {

@@ -2,10 +2,10 @@
 package execfakes
 
 import (
-	"context"
-	"sync"
+	context "context"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/exec"
+	exec "github.com/concourse/concourse/atc/exec"
 )
 
 type FakeStep struct {
@@ -23,8 +23,9 @@ type FakeStep struct {
 	}
 	SucceededStub        func() bool
 	succeededMutex       sync.RWMutex
-	succeededArgsForCall []struct{}
-	succeededReturns     struct {
+	succeededArgsForCall []struct {
+	}
+	succeededReturns struct {
 		result1 bool
 	}
 	succeededReturnsOnCall map[int]struct {
@@ -49,7 +50,8 @@ func (fake *FakeStep) Run(arg1 context.Context, arg2 exec.RunState) error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.runReturns.result1
+	fakeReturns := fake.runReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeStep) RunCallCount() int {
@@ -61,7 +63,8 @@ func (fake *FakeStep) RunCallCount() int {
 func (fake *FakeStep) RunArgsForCall(i int) (context.Context, exec.RunState) {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
-	return fake.runArgsForCall[i].arg1, fake.runArgsForCall[i].arg2
+	argsForCall := fake.runArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeStep) RunReturns(result1 error) {
@@ -86,7 +89,8 @@ func (fake *FakeStep) RunReturnsOnCall(i int, result1 error) {
 func (fake *FakeStep) Succeeded() bool {
 	fake.succeededMutex.Lock()
 	ret, specificReturn := fake.succeededReturnsOnCall[len(fake.succeededArgsForCall)]
-	fake.succeededArgsForCall = append(fake.succeededArgsForCall, struct{}{})
+	fake.succeededArgsForCall = append(fake.succeededArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Succeeded", []interface{}{})
 	fake.succeededMutex.Unlock()
 	if fake.SucceededStub != nil {
@@ -95,7 +99,8 @@ func (fake *FakeStep) Succeeded() bool {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.succeededReturns.result1
+	fakeReturns := fake.succeededReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeStep) SucceededCallCount() int {

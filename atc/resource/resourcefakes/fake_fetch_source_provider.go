@@ -2,16 +2,17 @@
 package resourcefakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/resource"
+	resource "github.com/concourse/concourse/atc/resource"
 )
 
 type FakeFetchSourceProvider struct {
 	GetStub        func() (resource.FetchSource, error)
 	getMutex       sync.RWMutex
-	getArgsForCall []struct{}
-	getReturns     struct {
+	getArgsForCall []struct {
+	}
+	getReturns struct {
 		result1 resource.FetchSource
 		result2 error
 	}
@@ -26,7 +27,8 @@ type FakeFetchSourceProvider struct {
 func (fake *FakeFetchSourceProvider) Get() (resource.FetchSource, error) {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
-	fake.getArgsForCall = append(fake.getArgsForCall, struct{}{})
+	fake.getArgsForCall = append(fake.getArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Get", []interface{}{})
 	fake.getMutex.Unlock()
 	if fake.GetStub != nil {
@@ -35,7 +37,8 @@ func (fake *FakeFetchSourceProvider) Get() (resource.FetchSource, error) {
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.getReturns.result1, fake.getReturns.result2
+	fakeReturns := fake.getReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeFetchSourceProvider) GetCallCount() int {

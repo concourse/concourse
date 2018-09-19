@@ -2,19 +2,19 @@
 package dbfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/db"
+	db "github.com/concourse/concourse/atc/db"
 )
 
 type FakeWorkerTaskCacheFactory struct {
-	FindStub        func(jobID int, stepName string, path string, workerName string) (*db.UsedWorkerTaskCache, bool, error)
+	FindStub        func(int, string, string, string) (*db.UsedWorkerTaskCache, bool, error)
 	findMutex       sync.RWMutex
 	findArgsForCall []struct {
-		jobID      int
-		stepName   string
-		path       string
-		workerName string
+		arg1 int
+		arg2 string
+		arg3 string
+		arg4 string
 	}
 	findReturns struct {
 		result1 *db.UsedWorkerTaskCache
@@ -26,13 +26,13 @@ type FakeWorkerTaskCacheFactory struct {
 		result2 bool
 		result3 error
 	}
-	FindOrCreateStub        func(jobID int, stepName string, path string, workerName string) (*db.UsedWorkerTaskCache, error)
+	FindOrCreateStub        func(int, string, string, string) (*db.UsedWorkerTaskCache, error)
 	findOrCreateMutex       sync.RWMutex
 	findOrCreateArgsForCall []struct {
-		jobID      int
-		stepName   string
-		path       string
-		workerName string
+		arg1 int
+		arg2 string
+		arg3 string
+		arg4 string
 	}
 	findOrCreateReturns struct {
 		result1 *db.UsedWorkerTaskCache
@@ -46,24 +46,25 @@ type FakeWorkerTaskCacheFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeWorkerTaskCacheFactory) Find(jobID int, stepName string, path string, workerName string) (*db.UsedWorkerTaskCache, bool, error) {
+func (fake *FakeWorkerTaskCacheFactory) Find(arg1 int, arg2 string, arg3 string, arg4 string) (*db.UsedWorkerTaskCache, bool, error) {
 	fake.findMutex.Lock()
 	ret, specificReturn := fake.findReturnsOnCall[len(fake.findArgsForCall)]
 	fake.findArgsForCall = append(fake.findArgsForCall, struct {
-		jobID      int
-		stepName   string
-		path       string
-		workerName string
-	}{jobID, stepName, path, workerName})
-	fake.recordInvocation("Find", []interface{}{jobID, stepName, path, workerName})
+		arg1 int
+		arg2 string
+		arg3 string
+		arg4 string
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("Find", []interface{}{arg1, arg2, arg3, arg4})
 	fake.findMutex.Unlock()
 	if fake.FindStub != nil {
-		return fake.FindStub(jobID, stepName, path, workerName)
+		return fake.FindStub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.findReturns.result1, fake.findReturns.result2, fake.findReturns.result3
+	fakeReturns := fake.findReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
 func (fake *FakeWorkerTaskCacheFactory) FindCallCount() int {
@@ -75,7 +76,8 @@ func (fake *FakeWorkerTaskCacheFactory) FindCallCount() int {
 func (fake *FakeWorkerTaskCacheFactory) FindArgsForCall(i int) (int, string, string, string) {
 	fake.findMutex.RLock()
 	defer fake.findMutex.RUnlock()
-	return fake.findArgsForCall[i].jobID, fake.findArgsForCall[i].stepName, fake.findArgsForCall[i].path, fake.findArgsForCall[i].workerName
+	argsForCall := fake.findArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeWorkerTaskCacheFactory) FindReturns(result1 *db.UsedWorkerTaskCache, result2 bool, result3 error) {
@@ -103,24 +105,25 @@ func (fake *FakeWorkerTaskCacheFactory) FindReturnsOnCall(i int, result1 *db.Use
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorkerTaskCacheFactory) FindOrCreate(jobID int, stepName string, path string, workerName string) (*db.UsedWorkerTaskCache, error) {
+func (fake *FakeWorkerTaskCacheFactory) FindOrCreate(arg1 int, arg2 string, arg3 string, arg4 string) (*db.UsedWorkerTaskCache, error) {
 	fake.findOrCreateMutex.Lock()
 	ret, specificReturn := fake.findOrCreateReturnsOnCall[len(fake.findOrCreateArgsForCall)]
 	fake.findOrCreateArgsForCall = append(fake.findOrCreateArgsForCall, struct {
-		jobID      int
-		stepName   string
-		path       string
-		workerName string
-	}{jobID, stepName, path, workerName})
-	fake.recordInvocation("FindOrCreate", []interface{}{jobID, stepName, path, workerName})
+		arg1 int
+		arg2 string
+		arg3 string
+		arg4 string
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("FindOrCreate", []interface{}{arg1, arg2, arg3, arg4})
 	fake.findOrCreateMutex.Unlock()
 	if fake.FindOrCreateStub != nil {
-		return fake.FindOrCreateStub(jobID, stepName, path, workerName)
+		return fake.FindOrCreateStub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.findOrCreateReturns.result1, fake.findOrCreateReturns.result2
+	fakeReturns := fake.findOrCreateReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeWorkerTaskCacheFactory) FindOrCreateCallCount() int {
@@ -132,7 +135,8 @@ func (fake *FakeWorkerTaskCacheFactory) FindOrCreateCallCount() int {
 func (fake *FakeWorkerTaskCacheFactory) FindOrCreateArgsForCall(i int) (int, string, string, string) {
 	fake.findOrCreateMutex.RLock()
 	defer fake.findOrCreateMutex.RUnlock()
-	return fake.findOrCreateArgsForCall[i].jobID, fake.findOrCreateArgsForCall[i].stepName, fake.findOrCreateArgsForCall[i].path, fake.findOrCreateArgsForCall[i].workerName
+	argsForCall := fake.findOrCreateArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeWorkerTaskCacheFactory) FindOrCreateReturns(result1 *db.UsedWorkerTaskCache, result2 error) {

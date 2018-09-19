@@ -2,22 +2,24 @@
 package pipelinesfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/pipelines"
+	pipelines "github.com/concourse/concourse/atc/pipelines"
 )
 
 type FakePipelineSyncer struct {
-	SyncStub         func()
-	syncMutex        sync.RWMutex
-	syncArgsForCall  []struct{}
+	SyncStub        func()
+	syncMutex       sync.RWMutex
+	syncArgsForCall []struct {
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakePipelineSyncer) Sync() {
 	fake.syncMutex.Lock()
-	fake.syncArgsForCall = append(fake.syncArgsForCall, struct{}{})
+	fake.syncArgsForCall = append(fake.syncArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Sync", []interface{}{})
 	fake.syncMutex.Unlock()
 	if fake.SyncStub != nil {

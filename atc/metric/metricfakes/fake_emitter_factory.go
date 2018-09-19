@@ -2,16 +2,17 @@
 package metricfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/metric"
+	metric "github.com/concourse/concourse/atc/metric"
 )
 
 type FakeEmitterFactory struct {
 	DescriptionStub        func() string
 	descriptionMutex       sync.RWMutex
-	descriptionArgsForCall []struct{}
-	descriptionReturns     struct {
+	descriptionArgsForCall []struct {
+	}
+	descriptionReturns struct {
 		result1 string
 	}
 	descriptionReturnsOnCall map[int]struct {
@@ -19,8 +20,9 @@ type FakeEmitterFactory struct {
 	}
 	IsConfiguredStub        func() bool
 	isConfiguredMutex       sync.RWMutex
-	isConfiguredArgsForCall []struct{}
-	isConfiguredReturns     struct {
+	isConfiguredArgsForCall []struct {
+	}
+	isConfiguredReturns struct {
 		result1 bool
 	}
 	isConfiguredReturnsOnCall map[int]struct {
@@ -28,8 +30,9 @@ type FakeEmitterFactory struct {
 	}
 	NewEmitterStub        func() (metric.Emitter, error)
 	newEmitterMutex       sync.RWMutex
-	newEmitterArgsForCall []struct{}
-	newEmitterReturns     struct {
+	newEmitterArgsForCall []struct {
+	}
+	newEmitterReturns struct {
 		result1 metric.Emitter
 		result2 error
 	}
@@ -44,7 +47,8 @@ type FakeEmitterFactory struct {
 func (fake *FakeEmitterFactory) Description() string {
 	fake.descriptionMutex.Lock()
 	ret, specificReturn := fake.descriptionReturnsOnCall[len(fake.descriptionArgsForCall)]
-	fake.descriptionArgsForCall = append(fake.descriptionArgsForCall, struct{}{})
+	fake.descriptionArgsForCall = append(fake.descriptionArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Description", []interface{}{})
 	fake.descriptionMutex.Unlock()
 	if fake.DescriptionStub != nil {
@@ -53,7 +57,8 @@ func (fake *FakeEmitterFactory) Description() string {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.descriptionReturns.result1
+	fakeReturns := fake.descriptionReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeEmitterFactory) DescriptionCallCount() int {
@@ -84,7 +89,8 @@ func (fake *FakeEmitterFactory) DescriptionReturnsOnCall(i int, result1 string) 
 func (fake *FakeEmitterFactory) IsConfigured() bool {
 	fake.isConfiguredMutex.Lock()
 	ret, specificReturn := fake.isConfiguredReturnsOnCall[len(fake.isConfiguredArgsForCall)]
-	fake.isConfiguredArgsForCall = append(fake.isConfiguredArgsForCall, struct{}{})
+	fake.isConfiguredArgsForCall = append(fake.isConfiguredArgsForCall, struct {
+	}{})
 	fake.recordInvocation("IsConfigured", []interface{}{})
 	fake.isConfiguredMutex.Unlock()
 	if fake.IsConfiguredStub != nil {
@@ -93,7 +99,8 @@ func (fake *FakeEmitterFactory) IsConfigured() bool {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.isConfiguredReturns.result1
+	fakeReturns := fake.isConfiguredReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeEmitterFactory) IsConfiguredCallCount() int {
@@ -124,7 +131,8 @@ func (fake *FakeEmitterFactory) IsConfiguredReturnsOnCall(i int, result1 bool) {
 func (fake *FakeEmitterFactory) NewEmitter() (metric.Emitter, error) {
 	fake.newEmitterMutex.Lock()
 	ret, specificReturn := fake.newEmitterReturnsOnCall[len(fake.newEmitterArgsForCall)]
-	fake.newEmitterArgsForCall = append(fake.newEmitterArgsForCall, struct{}{})
+	fake.newEmitterArgsForCall = append(fake.newEmitterArgsForCall, struct {
+	}{})
 	fake.recordInvocation("NewEmitter", []interface{}{})
 	fake.newEmitterMutex.Unlock()
 	if fake.NewEmitterStub != nil {
@@ -133,7 +141,8 @@ func (fake *FakeEmitterFactory) NewEmitter() (metric.Emitter, error) {
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.newEmitterReturns.result1, fake.newEmitterReturns.result2
+	fakeReturns := fake.newEmitterReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeEmitterFactory) NewEmitterCallCount() int {

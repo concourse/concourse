@@ -2,16 +2,17 @@
 package dbfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/db"
+	db "github.com/concourse/concourse/atc/db"
 )
 
 type FakeResourceConfigCheckSession struct {
 	IDStub        func() int
 	iDMutex       sync.RWMutex
-	iDArgsForCall []struct{}
-	iDReturns     struct {
+	iDArgsForCall []struct {
+	}
+	iDReturns struct {
 		result1 int
 	}
 	iDReturnsOnCall map[int]struct {
@@ -19,8 +20,9 @@ type FakeResourceConfigCheckSession struct {
 	}
 	ResourceConfigStub        func() db.ResourceConfig
 	resourceConfigMutex       sync.RWMutex
-	resourceConfigArgsForCall []struct{}
-	resourceConfigReturns     struct {
+	resourceConfigArgsForCall []struct {
+	}
+	resourceConfigReturns struct {
 		result1 db.ResourceConfig
 	}
 	resourceConfigReturnsOnCall map[int]struct {
@@ -33,7 +35,8 @@ type FakeResourceConfigCheckSession struct {
 func (fake *FakeResourceConfigCheckSession) ID() int {
 	fake.iDMutex.Lock()
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
-	fake.iDArgsForCall = append(fake.iDArgsForCall, struct{}{})
+	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
+	}{})
 	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
 	if fake.IDStub != nil {
@@ -42,7 +45,8 @@ func (fake *FakeResourceConfigCheckSession) ID() int {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.iDReturns.result1
+	fakeReturns := fake.iDReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeResourceConfigCheckSession) IDCallCount() int {
@@ -73,7 +77,8 @@ func (fake *FakeResourceConfigCheckSession) IDReturnsOnCall(i int, result1 int) 
 func (fake *FakeResourceConfigCheckSession) ResourceConfig() db.ResourceConfig {
 	fake.resourceConfigMutex.Lock()
 	ret, specificReturn := fake.resourceConfigReturnsOnCall[len(fake.resourceConfigArgsForCall)]
-	fake.resourceConfigArgsForCall = append(fake.resourceConfigArgsForCall, struct{}{})
+	fake.resourceConfigArgsForCall = append(fake.resourceConfigArgsForCall, struct {
+	}{})
 	fake.recordInvocation("ResourceConfig", []interface{}{})
 	fake.resourceConfigMutex.Unlock()
 	if fake.ResourceConfigStub != nil {
@@ -82,7 +87,8 @@ func (fake *FakeResourceConfigCheckSession) ResourceConfig() db.ResourceConfig {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.resourceConfigReturns.result1
+	fakeReturns := fake.resourceConfigReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeResourceConfigCheckSession) ResourceConfigCallCount() int {

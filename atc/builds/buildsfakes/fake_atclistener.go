@@ -2,16 +2,16 @@
 package buildsfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/builds"
+	builds "github.com/concourse/concourse/atc/builds"
 )
 
 type FakeATCListener struct {
-	ListenStub        func(channel string) (chan bool, error)
+	ListenStub        func(string) (chan bool, error)
 	listenMutex       sync.RWMutex
 	listenArgsForCall []struct {
-		channel string
+		arg1 string
 	}
 	listenReturns struct {
 		result1 chan bool
@@ -25,21 +25,22 @@ type FakeATCListener struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeATCListener) Listen(channel string) (chan bool, error) {
+func (fake *FakeATCListener) Listen(arg1 string) (chan bool, error) {
 	fake.listenMutex.Lock()
 	ret, specificReturn := fake.listenReturnsOnCall[len(fake.listenArgsForCall)]
 	fake.listenArgsForCall = append(fake.listenArgsForCall, struct {
-		channel string
-	}{channel})
-	fake.recordInvocation("Listen", []interface{}{channel})
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Listen", []interface{}{arg1})
 	fake.listenMutex.Unlock()
 	if fake.ListenStub != nil {
-		return fake.ListenStub(channel)
+		return fake.ListenStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.listenReturns.result1, fake.listenReturns.result2
+	fakeReturns := fake.listenReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeATCListener) ListenCallCount() int {
@@ -51,7 +52,8 @@ func (fake *FakeATCListener) ListenCallCount() int {
 func (fake *FakeATCListener) ListenArgsForCall(i int) string {
 	fake.listenMutex.RLock()
 	defer fake.listenMutex.RUnlock()
-	return fake.listenArgsForCall[i].channel
+	argsForCall := fake.listenArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeATCListener) ListenReturns(result1 chan bool, result2 error) {
