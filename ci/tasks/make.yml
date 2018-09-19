@@ -8,12 +8,12 @@ image_resource:
 inputs:
 - name: concourse
 
+caches:
+- path: concourse/web/node_modules
+- path: concourse/web/elm/elm-stuff
+
 outputs:
 - name: built-concourse
-
-caches:
-- path: built-concourse/web/node_modules
-- path: built-concourse/web/elm/elm-stuff
 
 run:
   path: concourse/ci/tasks/scripts/make
