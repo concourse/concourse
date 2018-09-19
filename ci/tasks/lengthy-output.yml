@@ -17,4 +17,4 @@ caches:
 - path: concourse/pkg
 
 run:
-  path: concourse/ci/scripts/lengthy-output
+  path: concourse/ci/tasks/scripts/lengthy-output

@@ -16,4 +16,4 @@ outputs:
 - name: final-release-tarball
 
 run:
-  path: concourse-head/ci/scripts/finalize-release
+  path: concourse-head/ci/tasks/scripts/finalize-release

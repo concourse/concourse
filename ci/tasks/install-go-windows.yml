@@ -9,4 +9,4 @@ run:
   path: powershell.exe
   args:
   - -File
-  - '.\concourse\ci\scripts\install-go-windows.ps1'
+  - '.\concourse\ci\tasks\scripts\install-go-windows.ps1'

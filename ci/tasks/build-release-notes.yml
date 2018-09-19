@@ -14,4 +14,4 @@ outputs:
 - name: release-notes
 
 run:
-  path: concourse/ci/scripts/build-release-notes
+  path: concourse/ci/tasks/scripts/build-release-notes

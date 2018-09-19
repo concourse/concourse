@@ -16,4 +16,4 @@ outputs:
 - name: bosh-rc
 
 run:
-  path: concourse/ci/scripts/create-bosh-rc
+  path: concourse/ci/tasks/scripts/create-bosh-rc

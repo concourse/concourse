@@ -12,4 +12,4 @@ outputs:
 - name: btrfs-tools
 
 run:
-  path: concourse/ci/scripts/build-btrfs-tools
+  path: concourse/ci/tasks/scripts/build-btrfs-tools

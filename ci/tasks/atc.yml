@@ -13,4 +13,4 @@ caches:
 - path: gopath
 
 run:
-  path: concourse/ci/scripts/atc
+  path: concourse/ci/tasks/scripts/atc

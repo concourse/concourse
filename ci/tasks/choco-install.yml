@@ -11,4 +11,4 @@ run:
   path: powershell.exe
   args:
   - -File
-  - '.\concourse\ci\scripts\choco-install.ps1'
+  - '.\concourse\ci\tasks\scripts\choco-install.ps1'

@@ -11,4 +11,4 @@ inputs:
 - name: concourse
 
 run:
-  path: concourse/ci/scripts/check-helm-chart-parameters
+  path: concourse/ci/tasks/scripts/check-helm-chart-parameters

@@ -31,4 +31,4 @@ inputs:
 - name: bosh-cli
 
 run:
-  path: concourse/ci/scripts/topgun
+  path: concourse/ci/tasks/scripts/topgun

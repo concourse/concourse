@@ -14,4 +14,4 @@ outputs:
 - name: bosh-dev
 
 run:
-  path: concourse/ci/scripts/web-pr
+  path: concourse/ci/tasks/scripts/web-pr

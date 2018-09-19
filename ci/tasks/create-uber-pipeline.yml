@@ -17,4 +17,4 @@ params:
   PIPELINE_NAME:
 
 run:
-  path: concourse/ci/scripts/create-uber-pipeline
+  path: concourse/ci/tasks/scripts/create-uber-pipeline

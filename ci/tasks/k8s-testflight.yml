@@ -16,4 +16,4 @@ params:
   ATC_USERNAME:
   ATC_PASSWORD:
 run:
-  path: concourse/ci/scripts/k8s-testflight
+  path: concourse/ci/tasks/scripts/k8s-testflight

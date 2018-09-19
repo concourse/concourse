@@ -18,4 +18,4 @@ params:
   HEADING:
 
 run:
-  path: concourse/ci/scripts/issues-for-commit-range
+  path: concourse/ci/tasks/scripts/issues-for-commit-range

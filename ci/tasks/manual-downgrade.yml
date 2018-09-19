@@ -18,4 +18,4 @@ params:
   BOSH_KEY:
 
 run:
-  path: concourse/ci/scripts/manual-downgrade
+  path: concourse/ci/tasks/scripts/manual-downgrade

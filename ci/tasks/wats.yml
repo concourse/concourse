@@ -17,4 +17,4 @@ caches:
 - path: concourse/pkg
 
 run:
-  path: concourse/ci/scripts/wats
+  path: concourse/ci/tasks/scripts/wats

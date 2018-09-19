@@ -14,4 +14,4 @@ outputs:
   - name: renamed-release
 
 run:
-  path: concourse/ci/scripts/rename-release
+  path: concourse/ci/tasks/scripts/rename-release

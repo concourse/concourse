@@ -9,4 +9,4 @@ outputs:
 - name: darwin-binary
 
 run:
-  path: concourse/ci/scripts/fly-build
+  path: concourse/ci/tasks/scripts/fly-build

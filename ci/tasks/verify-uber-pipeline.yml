@@ -17,4 +17,4 @@ params:
   PIPELINE_NAME:
 
 run:
-  path: concourse/ci/scripts/verify-uber-pipeline
+  path: concourse/ci/tasks/scripts/verify-uber-pipeline

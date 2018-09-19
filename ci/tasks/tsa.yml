@@ -10,4 +10,4 @@ inputs:
   - name: concourse
 
 run:
-  path: concourse/ci/scripts/tsa
+  path: concourse/ci/tasks/scripts/tsa
