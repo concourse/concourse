@@ -42,7 +42,7 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 
 		delegate = &pipelineDelegateHandler{}
 		checkPipelineAccessHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
-		handler = accessor.NewHandler(checkPipelineAccessHandler, fakeAccessor)
+		handler = accessor.NewHandler(checkPipelineAccessHandler, fakeAccessor, "some-action")
 	})
 
 	JustBeforeEach(func() {

@@ -13,7 +13,7 @@ import (
 //go:generate counterfeiter . AccessFactory
 
 type AccessFactory interface {
-	Create(*http.Request) Access
+	Create(*http.Request, string) Access
 }
 
 type accessFactory struct {
@@ -26,16 +26,14 @@ func NewAccessFactory(key *rsa.PublicKey) AccessFactory {
 	}
 }
 
-func (a *accessFactory) Create(r *http.Request) Access {
-	var token *jwt.Token
-	var err error
-	token, err = a.parseToken(r)
+func (a *accessFactory) Create(r *http.Request, action string) Access {
+
+	token, err := a.parseToken(r)
 	if err != nil {
 		token = &jwt.Token{}
 	}
-	return &access{
-		token,
-	}
+
+	return &access{token, action}
 }
 
 func (a *accessFactory) parseToken(r *http.Request) (*jwt.Token, error) {

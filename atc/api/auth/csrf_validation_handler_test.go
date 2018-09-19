@@ -56,6 +56,7 @@ var _ = Describe("CsrfValidationHandler", func() {
 			simpleHandler,
 			auth.UnauthorizedRejector{},
 		), fakeAccessor,
+			"some-action",
 		)
 
 		server = httptest.NewServer(csrfRequiredWrapHandler)

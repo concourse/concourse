@@ -25,6 +25,15 @@ func ExpectTeamWithUsersAndGroups(dbConn *sql.DB, team string, users, groups []s
 	Expect(auth["groups"]).To(ConsistOf(groups))
 }
 
+func ExpectTeamWithUsersAndGroupsForRole(dbConn *sql.DB, team string, role string, users, groups []string) {
+
+	auth := fetchTeamAuth(dbConn, team)
+
+	authForRole := auth[role].(map[string]interface{})
+	Expect(authForRole["users"]).To(ConsistOf(users))
+	Expect(authForRole["groups"]).To(ConsistOf(groups))
+}
+
 func ExpectTeamWithGithubProvider(dbConn *sql.DB, team, clientId, clientSecret string) {
 
 	auth := fetchTeamAuth(dbConn, team)

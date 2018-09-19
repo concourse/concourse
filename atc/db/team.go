@@ -27,7 +27,7 @@ type Team interface {
 	Name() string
 	Admin() bool
 
-	Auth() map[string][]string
+	Auth() atc.TeamAuth
 
 	Delete() error
 	Rename(string) error
@@ -64,7 +64,7 @@ type Team interface {
 	FindContainerOnWorker(workerName string, owner ContainerOwner) (CreatingContainer, CreatedContainer, error)
 	CreateContainer(workerName string, owner ContainerOwner, meta ContainerMetadata) (CreatingContainer, error)
 
-	UpdateProviderAuth(auth map[string][]string) error
+	UpdateProviderAuth(auth atc.TeamAuth) error
 }
 
 type team struct {
@@ -75,14 +75,14 @@ type team struct {
 	name  string
 	admin bool
 
-	auth map[string][]string
+	auth atc.TeamAuth
 }
 
 func (t *team) ID() int      { return t.id }
 func (t *team) Name() string { return t.name }
 func (t *team) Admin() bool  { return t.admin }
 
-func (t *team) Auth() map[string][]string { return t.auth }
+func (t *team) Auth() atc.TeamAuth { return t.auth }
 
 func (t *team) Delete() error {
 	_, err := psql.Delete("teams").
@@ -739,20 +739,44 @@ func (t *team) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, erro
 	return savedWorker, nil
 }
 
-func (t *team) UpdateProviderAuth(auth map[string][]string) error {
-	jsonEncodedProviderAuth, err := json.Marshal(auth)
+func (t *team) UpdateProviderAuth(auth atc.TeamAuth) error {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer Rollback(tx)
+
+	query := `
+		SELECT id, name, admin, auth, nonce
+		FROM teams
+		WHERE id = $1
+	`
+	err = t.queryTeam(tx, query, t.id)
 	if err != nil {
 		return err
 	}
 
-	query := `
+	for role, roleAuth := range auth {
+		t.auth[role] = roleAuth
+	}
+
+	jsonEncodedProviderAuth, err := json.Marshal(t.auth)
+	if err != nil {
+		return err
+	}
+
+	query = `
 		UPDATE teams
 		SET auth = $1, legacy_auth = NULL, nonce = NULL
 		WHERE id = $2
 		RETURNING id, name, admin, auth, nonce
 	`
-	params := []interface{}{jsonEncodedProviderAuth, t.id}
-	return t.queryTeam(query, params)
+	err = t.queryTeam(tx, query, jsonEncodedProviderAuth, t.id)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int, groups []string) error {
@@ -964,16 +988,10 @@ func scanPipelines(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]P
 	return pipelines, nil
 }
 
-func (t *team) queryTeam(query string, params []interface{}) error {
+func (t *team) queryTeam(tx Tx, query string, params ...interface{}) error {
 	var providerAuth, nonce sql.NullString
 
-	tx, err := t.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer Rollback(tx)
-
-	err = tx.QueryRow(query, params...).Scan(
+	err := tx.QueryRow(query, params...).Scan(
 		&t.id,
 		&t.name,
 		&t.admin,
@@ -983,16 +1001,16 @@ func (t *team) queryTeam(query string, params []interface{}) error {
 	if err != nil {
 		return err
 	}
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
 
 	if providerAuth.Valid {
 		err = json.Unmarshal([]byte(providerAuth.String), &t.auth)
 		if err != nil {
 			return err
 		}
+	}
+
+	if t.auth == nil {
+		t.auth = atc.TeamAuth{}
 	}
 
 	return nil

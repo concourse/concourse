@@ -50,7 +50,7 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 		server = httptest.NewServer(accessor.NewHandler(auth.CheckAuthorizationHandler(
 			simpleHandler,
 			fakeRejector,
-		), fakeAccessor),
+		), fakeAccessor, "some-action"),
 		)
 
 		client = &http.Client{

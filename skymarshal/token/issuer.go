@@ -2,6 +2,7 @@ package token
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -63,41 +64,45 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 	teamSet := map[string]bool{}
 
 	for _, team := range dbTeams {
-		userAuth := team.Auth()["users"]
-		groupAuth := team.Auth()["groups"]
+		for role, auth := range team.Auth() {
+			userAuth := auth["users"]
+			groupAuth := auth["groups"]
 
-		if len(userAuth) == 0 && len(groupAuth) == 0 {
-			teamSet[team.Name()] = true
-			isAdmin = isAdmin || team.Admin()
-		}
+			teamRole := fmt.Sprintf("%s:%s", team.Name(), role)
 
-		for _, user := range userAuth {
-			if strings.EqualFold(user, connectorId+":"+userId) {
-				teamSet[team.Name()] = true
+			if len(userAuth) == 0 && len(groupAuth) == 0 {
+				teamSet[teamRole] = true
 				isAdmin = isAdmin || team.Admin()
 			}
-			if strings.EqualFold(user, connectorId+":"+userName) {
-				teamSet[team.Name()] = true
-				isAdmin = isAdmin || team.Admin()
+
+			for _, user := range userAuth {
+				if strings.EqualFold(user, connectorId+":"+userId) {
+					teamSet[teamRole] = true
+					isAdmin = isAdmin || team.Admin()
+				}
+				if strings.EqualFold(user, connectorId+":"+userName) {
+					teamSet[teamRole] = true
+					isAdmin = isAdmin || team.Admin()
+				}
 			}
-		}
 
-		for _, group := range groupAuth {
-			for _, claimGroup := range claimGroups {
+			for _, group := range groupAuth {
+				for _, claimGroup := range claimGroups {
 
-				parts := strings.Split(claimGroup, ":")
+					parts := strings.Split(claimGroup, ":")
 
-				if len(parts) > 0 {
-					// match the provider plus the org e.g. github:org-name
-					if strings.EqualFold(group, connectorId+":"+parts[0]) {
-						teamSet[team.Name()] = true
-						isAdmin = isAdmin || team.Admin()
-					}
+					if len(parts) > 0 {
+						// match the provider plus the org e.g. github:org-name
+						if strings.EqualFold(group, connectorId+":"+parts[0]) {
+							teamSet[teamRole] = true
+							isAdmin = isAdmin || team.Admin()
+						}
 
-					// match the provider plus the entire claim group e.g. github:org-name:team-name
-					if strings.EqualFold(group, connectorId+":"+claimGroup) {
-						teamSet[team.Name()] = true
-						isAdmin = isAdmin || team.Admin()
+						// match the provider plus the entire claim group e.g. github:org-name:team-name
+						if strings.EqualFold(group, connectorId+":"+claimGroup) {
+							teamSet[teamRole] = true
+							isAdmin = isAdmin || team.Admin()
+						}
 					}
 				}
 			}

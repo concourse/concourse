@@ -15,8 +15,8 @@ var _ = Describe("Team Factory", func() {
 	BeforeEach(func() {
 		atcTeam = atc.Team{
 			Name: "some-team",
-			Auth: map[string][]string{
-				"users": []string{"local:username"},
+			Auth: atc.TeamAuth{
+				"admin": {"users": []string{"local:username"}},
 			},
 		}
 	})

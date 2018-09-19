@@ -721,12 +721,12 @@ var _ = Describe("Team", func() {
 
 	Describe("Updating Auth", func() {
 		var (
-			authProvider map[string][]string
+			authProvider atc.TeamAuth
 		)
 
 		BeforeEach(func() {
-			authProvider = map[string][]string{
-				"users": []string{"local:username"},
+			authProvider = atc.TeamAuth{
+				"admin": {"users": []string{"local:username"}},
 			}
 		})
 
@@ -738,18 +738,26 @@ var _ = Describe("Team", func() {
 				Expect(team.Auth()).To(Equal(authProvider))
 			})
 
-			It("saves github auth team info without over writing the basic auth", func() {
+			It("saves the auth for a given role without overwriting another role", func() {
+				viewer := atc.TeamRole{"users": []string{"local:existing-username"}}
+
+				team.UpdateProviderAuth(atc.TeamAuth{"viewer": viewer})
 				err := team.UpdateProviderAuth(authProvider)
 				Expect(err).ToNot(HaveOccurred())
+
+				Expect(team.Auth()["viewer"]).To(Equal(viewer))
+				Expect(team.Auth()["admin"]).To(Equal(authProvider["admin"]))
 			})
 
 			It("resets legacy_auth to NULL", func() {
 				oldLegacyAuth := `{"basicauth": {"username": "u", "password": "p"}}`
 				_, err := dbConn.Exec("UPDATE teams SET legacy_auth = $1 WHERE id = $2", oldLegacyAuth, team.ID())
 				team.UpdateProviderAuth(authProvider)
+
 				var newLegacyAuth sql.NullString
 				err = dbConn.QueryRow("SELECT legacy_auth FROM teams WHERE id = $1", team.ID()).Scan(&newLegacyAuth)
 				Expect(err).ToNot(HaveOccurred())
+
 				value, err := newLegacyAuth.Value()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(value).To(BeNil())

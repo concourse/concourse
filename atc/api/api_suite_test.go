@@ -204,7 +204,7 @@ var _ = BeforeEach(func() {
 	)
 
 	Expect(err).NotTo(HaveOccurred())
-	accessorHandler := accessor.NewHandler(handler, fakeAccessor)
+	accessorHandler := accessor.NewHandler(handler, fakeAccessor, "some-action")
 	handler = wrappa.LoggerHandler{
 		Logger:  logger,
 		Handler: accessorHandler,

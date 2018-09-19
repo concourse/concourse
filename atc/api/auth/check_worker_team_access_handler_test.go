@@ -38,7 +38,7 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 
 		delegate = &workerDelegateHandler{}
 		checkWorkerTeamAccessHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
-		handler = accessor.NewHandler(checkWorkerTeamAccessHandler, fakeAccessor)
+		handler = accessor.NewHandler(checkWorkerTeamAccessHandler, fakeAccessor, "some-action")
 	})
 
 	JustBeforeEach(func() {

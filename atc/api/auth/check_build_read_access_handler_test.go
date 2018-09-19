@@ -104,7 +104,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 	Context("AnyJobHandler", func() {
 		BeforeEach(func() {
 			checkBuildReadAccessHandler := handlerFactory.AnyJobHandler(delegate, auth.UnauthorizedRejector{})
-			handler = accessor.NewHandler(checkBuildReadAccessHandler, fakeAccessor)
+			handler = accessor.NewHandler(checkBuildReadAccessHandler, fakeAccessor, "some-action")
 		})
 
 		Context("when authenticated and accessing same team's build", func() {
@@ -212,7 +212,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 		BeforeEach(func() {
 			fakeJob = new(dbfakes.FakeJob)
 			checkBuildReadAccessHandler := handlerFactory.CheckIfPrivateJobHandler(delegate, auth.UnauthorizedRejector{})
-			handler = accessor.NewHandler(checkBuildReadAccessHandler, fakeAccessor)
+			handler = accessor.NewHandler(checkBuildReadAccessHandler, fakeAccessor, "some-action")
 		})
 
 		ItChecksIfJobIsPrivate := func(status int) {

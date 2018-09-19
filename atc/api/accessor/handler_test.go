@@ -41,7 +41,7 @@ var _ = Describe("Handler", func() {
 
 	Describe("Accessor Handler", func() {
 		BeforeEach(func() {
-			accessorHandler = accessor.NewHandler(dummyHandler, accessorFactory)
+			accessorHandler = accessor.NewHandler(dummyHandler, accessorFactory, "some-action")
 		})
 
 		Context("when access factory return valid access object", func() {

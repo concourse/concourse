@@ -1,14 +1,16 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 	"sort"
+
+	"strings"
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/fatih/color"
-	"strings"
 )
 
 type TeamsCommand struct {
@@ -54,38 +56,45 @@ func (command *TeamsCommand) Execute([]string) error {
 	table := ui.Table{Headers: headers}
 
 	for _, t := range teams {
-		row := ui.TableRow{
-			{Contents: t.Name},
-		}
 
 		if command.Details {
-			var usersCell, groupsCell ui.TableCell
+			for role, auth := range t.Auth {
+				row := ui.TableRow{
+					{Contents: fmt.Sprintf("%s/%s", t.Name, role)},
+				}
+				var usersCell, groupsCell ui.TableCell
 
-			hasUsers := len(t.Auth["users"]) != 0
-			hasGroups := len(t.Auth["groups"]) != 0
+				hasUsers := len(auth["users"]) != 0
+				hasGroups := len(auth["groups"]) != 0
 
-			if !hasUsers && !hasGroups {
-				usersCell.Contents = "all"
-				usersCell.Color = color.New(color.Faint)
-			} else if !hasUsers {
-				usersCell.Contents = "none"
-				usersCell.Color = color.New(color.Faint)
-			} else {
-				usersCell.Contents = strings.Join(t.Auth["users"], ",")
+				if !hasUsers && !hasGroups {
+					usersCell.Contents = "all"
+					usersCell.Color = color.New(color.Faint)
+				} else if !hasUsers {
+					usersCell.Contents = "none"
+					usersCell.Color = color.New(color.Faint)
+				} else {
+					usersCell.Contents = strings.Join(auth["users"], ",")
+				}
+
+				if hasGroups {
+					groupsCell.Contents = strings.Join(auth["groups"], ",")
+				} else {
+					groupsCell.Contents = "none"
+					groupsCell.Color = color.New(color.Faint)
+				}
+
+				row = append(row, usersCell)
+				row = append(row, groupsCell)
+				table.Data = append(table.Data, row)
 			}
 
-			if hasGroups {
-				groupsCell.Contents = strings.Join(t.Auth["groups"], ",")
-			} else {
-				groupsCell.Contents = "none"
-				groupsCell.Color = color.New(color.Faint)
+		} else {
+			row := ui.TableRow{
+				{Contents: t.Name},
 			}
-
-			row = append(row, usersCell)
-			row = append(row, groupsCell)
+			table.Data = append(table.Data, row)
 		}
-
-		table.Data = append(table.Data, row)
 	}
 
 	sort.Sort(table.Data)

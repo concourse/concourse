@@ -32,33 +32,49 @@ var _ = Describe("Fly CLI", func() {
 							{
 								ID:   1,
 								Name: "main",
-								Auth: map[string][]string{
-									"groups": []string{},
-									"users":  []string{},
+								Auth: atc.TeamAuth{
+									"admin": atc.TeamRole{
+										"groups": []string{},
+										"users":  []string{},
+									},
 								},
 							},
 							{
 								ID:   2,
 								Name: "a-team",
-								Auth: map[string][]string{
-									"groups": []string{"github:github-org"},
-									"users":  []string{},
+								Auth: atc.TeamAuth{
+									"admin": atc.TeamRole{
+										"groups": []string{"github:github-org"},
+										"users":  []string{},
+									},
 								},
 							},
 							{
 								ID:   3,
 								Name: "b-team",
-								Auth: map[string][]string{
-									"groups": []string{},
-									"users":  []string{"github:github-user"},
+								Auth: atc.TeamAuth{
+									"member": atc.TeamRole{
+										"groups": []string{},
+										"users":  []string{"github:github-user"},
+									},
 								},
 							},
 							{
 								ID:   4,
 								Name: "c-team",
-								Auth: map[string][]string{
-									"users":  []string{"github:github-user"},
-									"groups": []string{"github:github-org"},
+								Auth: atc.TeamAuth{
+									"admin": atc.TeamRole{
+										"users":  []string{"github:github-user"},
+										"groups": []string{"github:github-org"},
+									},
+									"member": atc.TeamRole{
+										"users":  []string{"github:github-user"},
+										"groups": []string{"github:github-org"},
+									},
+									"viewer": atc.TeamRole{
+										"users":  []string{"github:github-user"},
+										"groups": []string{"github:github-org"},
+									},
 								},
 							},
 						}),
@@ -98,31 +114,45 @@ var _ = Describe("Fly CLI", func() {
               {
                 "id": 1,
                 "name": "main",
-				"auth": {"groups":[], "users":[]}
+								"auth": { "admin":{"groups":[], "users":[]}}
               },
               {
                 "id": 2,
                 "name": "a-team",
-				"auth": {
-					"groups": ["github:github-org"],
-					"users": []
-				}
+								"auth": {
+									"admin": {
+										"groups": ["github:github-org"],
+										"users": []
+									}
+								}
               },
               {
                 "id": 3,
                 "name": "b-team",
-				"auth": {
-					"users": ["github:github-user"],
-					"groups": []
-				}
+								"auth": {
+									"member": {
+										"users": ["github:github-user"],
+										"groups": []
+									}
+								}
               },
               {
-				"id": 4,
-				"name": "c-team",
-				"auth": {
-					"groups":["github:github-org"],
-					"users":["github:github-user"]
-				}
+								"id": 4,
+								"name": "c-team",
+								"auth": {
+									"admin": {
+										"groups":["github:github-org"],
+										"users":["github:github-user"]
+									},
+									"member": {
+										"groups":["github:github-org"],
+										"users":["github:github-user"]
+									},
+									"viewer": {
+										"groups":["github:github-org"],
+										"users":["github:github-user"]
+									}
+								}
               }
             ]`))
 				})
@@ -144,10 +174,12 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "auth", Color: color.New(color.Bold)},
 						},
 						Data: []ui.TableRow{
-							{{Contents: "a-team"}, {Contents: "none"}, {Contents: "github:github-org"}},
-							{{Contents: "b-team"}, {Contents: "github:github-user"}, {Contents: "none"}},
-							{{Contents: "c-team"}, {Contents: "github:github-user"}, {Contents: "github:github-org"}},
-							{{Contents: "main"}, {Contents: "all"}, {Contents: "none"}},
+							{{Contents: "a-team/admin"}, {Contents: "none"}, {Contents: "github:github-org"}},
+							{{Contents: "b-team/member"}, {Contents: "github:github-user"}, {Contents: "none"}},
+							{{Contents: "c-team/admin"}, {Contents: "github:github-user"}, {Contents: "github:github-org"}},
+							{{Contents: "c-team/member"}, {Contents: "github:github-user"}, {Contents: "github:github-org"}},
+							{{Contents: "c-team/viewer"}, {Contents: "github:github-user"}, {Contents: "github:github-org"}},
+							{{Contents: "main/admin"}, {Contents: "all"}, {Contents: "none"}},
 						},
 					}))
 				})

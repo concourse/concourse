@@ -46,6 +46,7 @@ var _ = Describe("CheckAuthenticationHandler", func() {
 			simpleHandler,
 			fakeRejector,
 		), fakeAccessor,
+			"some-action",
 		))
 
 		client = &http.Client{

@@ -35,7 +35,7 @@ var _ = Describe("AccessorFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 		JustBeforeEach(func() {
-			access = accessorFactory.Create(req)
+			access = accessorFactory.Create(req, "some-action")
 		})
 
 		Context("when request has jwt token set", func() {

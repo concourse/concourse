@@ -48,7 +48,7 @@ var _ = Describe("CheckAdminHandler", func() {
 		server = httptest.NewServer(accessor.NewHandler(auth.CheckAdminHandler(
 			simpleHandler,
 			fakeRejector,
-		), fakeAccessor),
+		), fakeAccessor, "some-action"),
 		)
 
 		client = &http.Client{

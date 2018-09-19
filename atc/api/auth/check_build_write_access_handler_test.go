@@ -43,7 +43,7 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 		build.JobNameReturns("some-job")
 
 		checkBuildWriteAccessHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
-		handler = accessor.NewHandler(checkBuildWriteAccessHandler, fakeAccessor)
+		handler = accessor.NewHandler(checkBuildWriteAccessHandler, fakeAccessor, "some-action")
 	})
 
 	JustBeforeEach(func() {

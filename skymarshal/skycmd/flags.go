@@ -44,6 +44,7 @@ type AuthFlags struct {
 }
 
 type AuthTeamFlags struct {
+	TeamRole      string   `long:"role" description:"The role to assign to these users" choice:"admin" choice:"member" choice:"viewer" default:"admin"`
 	LocalUsers    []string `long:"local-user" description:"List of whitelisted local concourse users. These are the users you've added at atc startup with the --add-local-user flag." value-name:"USERNAME"`
 	AllowAllUsers bool     `long:"allow-all-users" description:"Setting this flag will whitelist all logged in users in the system. ALL OF THEM. If, for example, you've configured GitHub, any user with a GitHub account will have access to your team."`
 }

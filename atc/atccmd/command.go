@@ -516,6 +516,8 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbContainerRepository := db.NewContainerRepository(dbConn)
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
+	accessFactory := accessor.NewAccessFactory(authHandler.PublicKey())
+
 	apiHandler, err := cmd.constructAPIHandler(
 		logger,
 		reconfigurableSink,
@@ -536,14 +538,13 @@ func (cmd *RunCommand) constructAPIMembers(
 		radarScannerFactory,
 		variablesFactory,
 		credsManagers,
+		accessFactory,
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	accessFactory := accessor.NewAccessFactory(authHandler.PublicKey())
-	apiHandler = accessor.NewHandler(apiHandler, accessFactory)
 	webHandler, err := webHandler(logger)
 	if err != nil {
 		return nil, err
@@ -1149,7 +1150,11 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 		return fmt.Errorf("default team auth not configured: %v", err)
 	}
 
-	err = team.UpdateProviderAuth(auth)
+	teamAuth := atc.TeamAuth{
+		cmd.Auth.MainTeamFlags.TeamRole: auth,
+	}
+
+	err = team.UpdateProviderAuth(teamAuth)
 	if err != nil {
 		return err
 	}
@@ -1236,6 +1241,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	radarScannerFactory radar.ScannerFactory,
 	variablesFactory creds.VariablesFactory,
 	credsManagers creds.Managers,
+	accessFactory accessor.AccessFactory,
 ) (http.Handler, error) {
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)
@@ -1252,6 +1258,7 @@ func (cmd *RunCommand) constructAPIHandler(
 			checkWorkerTeamAccessHandlerFactory,
 		),
 		wrappa.NewConcourseVersionWrappa(Version),
+		wrappa.NewAccessorWrappa(accessFactory),
 	}
 
 	return api.NewHandler(

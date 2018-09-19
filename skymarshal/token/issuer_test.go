@@ -6,12 +6,13 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"golang.org/x/oauth2"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/concourse/concourse/skymarshal/token/tokenfakes"
+	"golang.org/x/oauth2"
 )
 
 var _ = Describe("Token Issuer", func() {
@@ -143,6 +144,7 @@ var _ = Describe("Token Issuer", func() {
 				Context("when team is admin", func() {
 					BeforeEach(func() {
 						fakeTeam1.AdminReturns(true)
+						fakeTeam1.AuthReturns(atc.TeamAuth{"admin": {}})
 					})
 					It("includes expected claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
@@ -153,6 +155,7 @@ var _ = Describe("Token Issuer", func() {
 				Context("when team is not admin", func() {
 					BeforeEach(func() {
 						fakeTeam1.AdminReturns(false)
+						fakeTeam1.AuthReturns(atc.TeamAuth{"admin": {}})
 					})
 					It("includes expected claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
@@ -164,14 +167,14 @@ var _ = Describe("Token Issuer", func() {
 			BeforeEach(func() {
 				fakeTeam1 = &dbfakes.FakeTeam{}
 				fakeTeam1.NameReturns("fake-team-1")
-				fakeTeam1.AuthReturns(map[string][]string{
-					"users": []string{"some-connector:some-user"},
+				fakeTeam1.AuthReturns(atc.TeamAuth{
+					"admin": {"users": []string{"some-connector:some-user"}},
 				})
 
 				fakeTeam2 = &dbfakes.FakeTeam{}
 				fakeTeam2.NameReturns("fake-team-2")
-				fakeTeam2.AuthReturns(map[string][]string{
-					"groups": []string{"some-connector:some-exclusive-group"},
+				fakeTeam2.AuthReturns(atc.TeamAuth{
+					"admin": {"groups": []string{"some-connector:some-exclusive-group"}},
 				})
 
 				teams = []db.Team{fakeTeam1, fakeTeam2}
@@ -184,16 +187,31 @@ var _ = Describe("Token Issuer", func() {
 				Expect(skyToken).To(Equal(fakeToken))
 			})
 
-			Context("when teams don't have auth configured", func() {
+			Context("when teams don't have roles configured", func() {
 				BeforeEach(func() {
-					fakeTeam1.AuthReturns(map[string][]string{})
-					fakeTeam2.AuthReturns(map[string][]string{})
+					fakeTeam1.AuthReturns(atc.TeamAuth{})
+					fakeTeam2.AuthReturns(atc.TeamAuth{})
 				})
 
 				It("calls generate with expected team claims", func() {
 					claims := fakeGenerator.GenerateArgsForCall(0)
-					Expect(claims["teams"]).To(ContainElement("fake-team-1"))
-					Expect(claims["teams"]).To(ContainElement("fake-team-2"))
+					Expect(claims["teams"]).To(HaveLen(0))
+				})
+
+				AssertTokenClaims()
+				AssertTokenAdminClaims()
+			})
+
+			Context("when teams don't have auth configured", func() {
+				BeforeEach(func() {
+					fakeTeam1.AuthReturns(atc.TeamAuth{"admin": {}})
+					fakeTeam2.AuthReturns(atc.TeamAuth{"admin": {}})
+				})
+
+				It("calls generate with expected team claims", func() {
+					claims := fakeGenerator.GenerateArgsForCall(0)
+					Expect(claims["teams"]).To(ContainElement("fake-team-1:admin"))
+					Expect(claims["teams"]).To(ContainElement("fake-team-2:admin"))
 				})
 
 				AssertTokenClaims()
@@ -216,15 +234,15 @@ var _ = Describe("Token Issuer", func() {
 
 				Context("when a team has user auth configured for the userid", func() {
 					BeforeEach(func() {
-						fakeTeam1.AuthReturns(map[string][]string{
-							"users": []string{"connector-id:user-id"},
+						fakeTeam1.AuthReturns(atc.TeamAuth{
+							"admin": {"users": []string{"connector-id:user-id"}},
 						})
 					})
 
 					It("calls generate with expected team claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
-						Expect(claims["teams"]).To(ContainElement("fake-team-1"))
-						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2"))
+						Expect(claims["teams"]).To(ContainElement("fake-team-1:admin"))
+						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2:admin"))
 					})
 
 					AssertTokenClaims()
@@ -233,20 +251,40 @@ var _ = Describe("Token Issuer", func() {
 
 				Context("when a team has user auth configured for the username", func() {
 					BeforeEach(func() {
-						fakeTeam1.AuthReturns(map[string][]string{
-							"users": []string{"connector-id:user-name"},
+						fakeTeam1.AuthReturns(atc.TeamAuth{
+							"admin": {"users": []string{"connector-id:user-name"}},
 						})
 					})
 
 					It("calls generate with expected team claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
-						Expect(claims["teams"]).To(ContainElement("fake-team-1"))
-						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2"))
+						Expect(claims["teams"]).To(ContainElement("fake-team-1:admin"))
+						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2:admin"))
 					})
 
 					AssertTokenClaims()
 					AssertTokenAdminClaims()
 				})
+			})
+
+			Context("when a team has different roles configured", func() {
+				BeforeEach(func() {
+					fakeTeam1.AuthReturns(atc.TeamAuth{
+						"admin":  {"users": []string{"connector-id:user-id"}},
+						"member": {"users": []string{"connector-id:user-id"}},
+						"viewer": {"users": []string{"connector-id:user-id"}},
+					})
+				})
+
+				It("calls generate with expected team claims", func() {
+					claims := fakeGenerator.GenerateArgsForCall(0)
+					Expect(claims["teams"]).To(ContainElement("fake-team-1:admin"))
+					Expect(claims["teams"]).To(ContainElement("fake-team-1:member"))
+					Expect(claims["teams"]).To(ContainElement("fake-team-1:viewer"))
+				})
+
+				AssertTokenClaims()
+				AssertTokenAdminClaims()
 			})
 
 			Context("when the verified claims contain an org group", func() {
@@ -256,15 +294,15 @@ var _ = Describe("Token Issuer", func() {
 
 				Context("when a team has group auth configured for an org", func() {
 					BeforeEach(func() {
-						fakeTeam1.AuthReturns(map[string][]string{
-							"groups": []string{"connector-id:org-1"},
+						fakeTeam1.AuthReturns(atc.TeamAuth{
+							"admin": {"groups": []string{"connector-id:org-1"}},
 						})
 					})
 
 					It("calls generate with expect team claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
-						Expect(claims["teams"]).To(ContainElement("fake-team-1"))
-						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2"))
+						Expect(claims["teams"]).To(ContainElement("fake-team-1:admin"))
+						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2:admin"))
 					})
 
 					AssertTokenClaims()
@@ -273,15 +311,15 @@ var _ = Describe("Token Issuer", func() {
 
 				Context("when a team has group auth configured for an org:team", func() {
 					BeforeEach(func() {
-						fakeTeam1.AuthReturns(map[string][]string{
-							"groups": []string{"connector-id:org-1:team-1"},
+						fakeTeam1.AuthReturns(atc.TeamAuth{
+							"admin": {"groups": []string{"connector-id:org-1:team-1"}},
 						})
 					})
 
 					It("calls generate with expect team claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
-						Expect(claims["teams"]).NotTo(ContainElement("fake-team-1"))
-						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2"))
+						Expect(claims["teams"]).NotTo(ContainElement("fake-team-1:admin"))
+						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2:admin"))
 					})
 
 					AssertTokenClaims()
@@ -295,15 +333,15 @@ var _ = Describe("Token Issuer", func() {
 
 				Context("when a team has group auth configured for an org", func() {
 					BeforeEach(func() {
-						fakeTeam1.AuthReturns(map[string][]string{
-							"groups": []string{"connector-id:org-1"},
+						fakeTeam1.AuthReturns(atc.TeamAuth{
+							"admin": {"groups": []string{"connector-id:org-1"}},
 						})
 					})
 
 					It("calls generate with expect team claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
-						Expect(claims["teams"]).To(ContainElement("fake-team-1"))
-						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2"))
+						Expect(claims["teams"]).To(ContainElement("fake-team-1:admin"))
+						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2:admin"))
 					})
 
 					AssertTokenClaims()
@@ -312,15 +350,15 @@ var _ = Describe("Token Issuer", func() {
 
 				Context("when a team has group auth configured for an org:team", func() {
 					BeforeEach(func() {
-						fakeTeam1.AuthReturns(map[string][]string{
-							"groups": []string{"connector-id:org-1:team-1"},
+						fakeTeam1.AuthReturns(atc.TeamAuth{
+							"admin": {"groups": []string{"connector-id:org-1:team-1"}},
 						})
 					})
 
 					It("calls generate with expect team claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
-						Expect(claims["teams"]).To(ContainElement("fake-team-1"))
-						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2"))
+						Expect(claims["teams"]).To(ContainElement("fake-team-1:admin"))
+						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2:admin"))
 					})
 
 					AssertTokenClaims()
