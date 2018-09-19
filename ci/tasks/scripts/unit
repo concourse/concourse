@@ -16,6 +16,7 @@ cd concourse
 go mod download
 
 pushd web
+  stty columns 80
   yarn
   PATH=$(yarn bin):$PATH make
 popd
