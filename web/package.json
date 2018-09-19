@@ -9,7 +9,8 @@
     "node": "^8.0.0"
   },
   "devDependencies": {
-    "elm-format": "^0.6.1-alpha",
+    "elm-format": "^0.8.0",
+    "elm-test": "^0.8.12",
     "elm": "^0.18.0",
     "uglify-js": "^3.3.22",
     "less": "^3.0.2",
