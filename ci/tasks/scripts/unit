@@ -17,7 +17,7 @@ go mod download
 
 pushd web
   yarn
-  make
+  PATH=$(yarn bin):$PATH make
 popd
 
 go install github.com/onsi/ginkgo/ginkgo
