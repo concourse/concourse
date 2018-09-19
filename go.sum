@@ -108,6 +108,8 @@ github.com/cockroachdb/cockroach-go v0.0.0-20160916181719-31611c0501c8 h1:0qNPJv
 github.com/cockroachdb/cockroach-go v0.0.0-20160916181719-31611c0501c8/go.mod h1:XGLbWH/ujMcbPbhZq52Nv6UrCghb1yGn//133kEsvDk=
 github.com/concourse/baggageclaim v0.0.0-20180813193019-8b2f78e159c4 h1:7ziRNpGypqIbTUgdVdGEvGtZJ2CvERkR6KQ4ihkxQcI=
 github.com/concourse/baggageclaim v0.0.0-20180813193019-8b2f78e159c4/go.mod h1:vM/dGNuIHSouhdCfTLwZ5LhmrBSxUPc5XhO4McTBxLg=
+github.com/concourse/baggageclaim v1.0.0 h1:/HyKrVHdrI4rCXaDlx9KqWRruP9o7LV9+fbqzEyRJNA=
+github.com/concourse/baggageclaim v1.0.0/go.mod h1:OrDNmeL57teiE4Otw4yXPE8GI1MRC5y7VgbFlTYHgOk=
 github.com/concourse/dex v0.0.0-20180906143828-2bb7b6850d06 h1:HGL+LQk5fGU5Cd/mS0L5PHPgXOD3bE0iV/4WPM+Jfo4=
 github.com/concourse/dex v0.0.0-20180906143828-2bb7b6850d06/go.mod h1:STWtPbe/d8ON/IO5kVxR3e9CkGxPFb1Oe9yMCBs5pAs=
 github.com/concourse/flag v0.0.0-20180709134844-b093f650fadb h1:E1ep58Drny+cfePT6DaWfYY2Jz3ypf38GG+/TkfC6uQ=
@@ -267,6 +269,7 @@ github.com/hashicorp/consul v1.2.2 h1:C5FurAZWLQ+XAjmL9g6rXbPlwxyyz8DvTL0WCAxTLA
 github.com/hashicorp/consul v1.2.2/go.mod h1:mFrjN1mfidgJfYP1xrJCF+AfRhr6Eaqhb2+sfyn/OOI=
 github.com/hashicorp/errwrap v0.0.0-20141028054710-7554cd9344ce h1:prjrVgOk2Yg6w+PflHoszQNLTUh4kaByUcEWM/9uin4=
 github.com/hashicorp/errwrap v0.0.0-20141028054710-7554cd9344ce/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
+github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
 github.com/hashicorp/go-cleanhttp v0.0.0-20171218145408-d5fe4b57a186 h1:URgjUo+bs1KwatoNbwG0uCO4dHN4r1jsp4a5AGgHRjo=
 github.com/hashicorp/go-cleanhttp v0.0.0-20171218145408-d5fe4b57a186/go.mod h1:JpRdi6/HCYpAwUzNwuwqhbovhLtngrth3wmdIIUrZ80=
 github.com/hashicorp/go-hclog v0.0.0-20180828044259-75ecd6e6d645 h1:remtZEHHwvD+FdeXwJfxO6KzeIslX73xufap8oJzi+0=
@@ -280,6 +283,7 @@ github.com/hashicorp/go-msgpack v0.0.0-20150518234257-fa3f63826f7c/go.mod h1:ahL
 github.com/hashicorp/go-multierror v0.0.0-20171204182908-b7773ae21874/go.mod h1:JMRHfdO9jKNzS/+BTlxCjKNQHg/jZAft8U7LloJvN7I=
 github.com/hashicorp/go-multierror v0.0.0-20180717150148-3d5d8f294aa0 h1:j30noezaCfvNLcdMYSvHLv81DxYRSt1grlpseG67vhU=
 github.com/hashicorp/go-multierror v0.0.0-20180717150148-3d5d8f294aa0/go.mod h1:JMRHfdO9jKNzS/+BTlxCjKNQHg/jZAft8U7LloJvN7I=
+github.com/hashicorp/go-multierror v1.0.0/go.mod h1:dHtQlpGsu+cZNNAkkCN/P3hoUDHhCYQXV3UM06sGGrk=
 github.com/hashicorp/go-plugin v0.0.0-20180814222501-a4620f9913d1 h1:VOzBI0phmFk2VWekzswI3F7yEu6LPMKz/Bjd9wzRsI0=
 github.com/hashicorp/go-plugin v0.0.0-20180814222501-a4620f9913d1/go.mod h1:JSqWYsict+jzcj0+xElxyrBQRPNoiWQuddnxArJ7XHQ=
 github.com/hashicorp/go-retryablehttp v0.0.0-20180718195005-e651d75abec6 h1:qCv4319q2q7XKn0MQbi8p37hsJ+9Xo8e6yojA73JVxk=
@@ -399,6 +403,7 @@ github.com/onsi/ginkgo v1.6.0 h1:Ix8l273rp3QzYgXSR+c8d1fTG7UPgYkOSELPhiY/YGw=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/gomega v1.4.1 h1:PZSj/UFNaVp3KxrzHOcS7oyuWA7LoOY/77yCTEFu21U=
 github.com/onsi/gomega v1.4.1/go.mod h1:C1qb7wdrVGGVU+Z6iS04AVkA3Q65CEZX59MT0QO5uiA=
+github.com/onsi/gomega v1.4.2/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
 github.com/opencontainers/go-digest v1.0.0-rc1 h1:WzifXhOVOEOuFYOJAW6aQqW0TooG2iki3E3Ii+WN7gQ=
 github.com/opencontainers/go-digest v1.0.0-rc1/go.mod h1:cMLVZDEM3+U2I4VmLI6N8jQYUd2OVphdqWwCJHrFt2s=
 github.com/opencontainers/image-spec v1.0.1 h1:JMemWkRwHx4Zj+fVxWoMCFm/8sYGGrUVojFA6h/TRcI=
@@ -488,6 +493,8 @@ github.com/tedsuo/ifrit v0.0.0-20180802180643-bea94bb476cc h1:LUUe4cdABGrIJAhl1P
 github.com/tedsuo/ifrit v0.0.0-20180802180643-bea94bb476cc/go.mod h1:eyZnKCc955uh98WQvzOm0dgAeLnf2O0Rz0LPoC5ze+0=
 github.com/tedsuo/rata v1.0.0 h1:Sf9aZrYy6ElSTncjnGkyC2yuVvz5YJetBIUKJ4CmeKE=
 github.com/tedsuo/rata v1.0.0/go.mod h1:X47ELzhOoLbfFIY0Cql9P6yo3Cdwf2CMX3FVZxRzJPc=
+github.com/tedsuo/rata v1.0.1-0.20170830210128-07d200713958 h1:mueRRuRjR35dEOkHdhpoRcruNgBz0ohG659HxxmcAwA=
+github.com/tedsuo/rata v1.0.1-0.20170830210128-07d200713958/go.mod h1:X47ELzhOoLbfFIY0Cql9P6yo3Cdwf2CMX3FVZxRzJPc=
 github.com/tscolari/lagregator v0.0.0-20161103133944-b0fb43b01861 h1:lB2XrnIvTdJdfhLJ7+3hCmzaS9n3oJ3uy40C6ETkEjY=
 github.com/tscolari/lagregator v0.0.0-20161103133944-b0fb43b01861/go.mod h1:Bk476IH9wMKENKHSERaFD+30wigZMc4b03Km8A/xsPc=
 github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926 h1:G3dpKMzFDjgEh2q1Z7zUUtKa8ViPtH+ocF0bE0g00O8=
@@ -511,6 +518,7 @@ golang.org/x/crypto v0.0.0-20160711182412-2c99acdd1e9b/go.mod h1:6SG95UA2DQfeDnf
 golang.org/x/crypto v0.0.0-20180515001509-1a580b3eff78/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793 h1:u+LnwYTOOW7Ukr/fppxEb1Nwz0AtPflrblfvUudpo+I=
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
+golang.org/x/crypto v0.0.0-20180910181607-0e37d006457b/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/net v0.0.0-20170413175226-5602c733f70a/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20180522190444-9ef9f5bb98a1 h1:+2KJRQYVS4oeIZqXrgNLH7FxyXp+eVs2kLuG5pWupfY=
 golang.org/x/net v0.0.0-20180522190444-9ef9f5bb98a1/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
@@ -518,6 +526,8 @@ golang.org/x/net v0.0.0-20180801234040-f4c29de78a2a/go.mod h1:mL1N/T3taQHkDXs73r
 golang.org/x/net v0.0.0-20180811021610-c39426892332/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20180826012351-8a410e7b638d h1:g9qWBGx4puODJTMVyoPrpoxPFgVGd+z1DZwjfRu4d0I=
 golang.org/x/net v0.0.0-20180826012351-8a410e7b638d/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
+golang.org/x/net v0.0.0-20180906233101-161cd47e91fd/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
+golang.org/x/net v0.0.0-20180911220305-26e67e76b6c3/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/oauth2 v0.0.0-20160718223228-08c8d727d239/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be h1:vEDujvNQGv4jgYKudGeI/+DAX4Jffq6hpD55MmoEvKs=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
@@ -528,6 +538,8 @@ golang.org/x/sys v0.0.0-20180525142821-c11f84a56e43 h1:PvnWIWTbA7gsEBkKjt0HV9hck
 golang.org/x/sys v0.0.0-20180525142821-c11f84a56e43/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20180905080454-ebe1bf3edb33 h1:I6FyU15t786LL7oL/hn43zqTuEGr4PN7F4XJ1p4E3Y8=
 golang.org/x/sys v0.0.0-20180905080454-ebe1bf3edb33/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+golang.org/x/sys v0.0.0-20180909124046-d0be0721c37e/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+golang.org/x/sys v0.0.0-20180918153733-ee1b12c67af4/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/text v0.0.0-20170401064109-f4b4367115ec/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.0 h1:g61tztE5qeGQ89tm6NTjjM9VPIm088od1l6aSorWRWg=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=

@@ -35,7 +35,7 @@ require (
 	github.com/cloudfoundry/bosh-utils v0.0.0-20180725223622-407dd7546455 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
-	github.com/concourse/baggageclaim v0.0.0-20180813193019-8b2f78e159c4
+	github.com/concourse/baggageclaim v1.0.0
 	github.com/concourse/dex v0.0.0-20180906143828-2bb7b6850d06
 	github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c
 	github.com/concourse/go-archive v0.0.0-20180803203406-784931698f4f
@@ -75,7 +75,7 @@ require (
 	github.com/hashicorp/go-immutable-radix v0.0.0-20180129170900-7f3cd4390caa // indirect
 	github.com/hashicorp/go-memdb v0.0.0-20180223233045-1289e7fffe71 // indirect
 	github.com/hashicorp/go-msgpack v0.0.0-20150518234257-fa3f63826f7c // indirect
-	github.com/hashicorp/go-multierror v0.0.0-20180717150148-3d5d8f294aa0
+	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/go-plugin v0.0.0-20180814222501-a4620f9913d1 // indirect
 	github.com/hashicorp/go-retryablehttp v0.0.0-20180718195005-e651d75abec6 // indirect
 	github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90 // indirect
@@ -117,7 +117,7 @@ require (
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/oklog/run v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.6.0
-	github.com/onsi/gomega v1.4.1
+	github.com/onsi/gomega v1.4.2
 	github.com/ory/dockertest v3.3.2+incompatible // indirect
 	github.com/papertrail/remote_syslog2 v0.0.0-20170912230402-5bae4a1ac1c2
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
@@ -136,13 +136,13 @@ require (
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	github.com/spf13/pflag v1.0.2 // indirect
 	github.com/tedsuo/ifrit v0.0.0-20180802180643-bea94bb476cc
-	github.com/tedsuo/rata v1.0.0
+	github.com/tedsuo/rata v1.0.1-0.20170830210128-07d200713958
 	github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926 // indirect
 	github.com/vito/go-interact v0.0.0-20171111012221-fa338ed9e9ec
 	github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac
 	github.com/vito/houdini v0.0.0-20170630141751-8dda540e3245
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
-	golang.org/x/crypto v0.0.0-20180904163835-0709b304e793
+	golang.org/x/crypto v0.0.0-20180910181607-0e37d006457b
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.25
