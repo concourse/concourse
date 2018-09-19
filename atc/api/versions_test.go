@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -33,9 +34,11 @@ var _ = Describe("Versions API", func() {
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions", func() {
 		var response *http.Response
 		var queryParams string
+		var fakeResource *dbfakes.FakeResource
 
 		BeforeEach(func() {
 			queryParams = ""
+			fakeResource = new(dbfakes.FakeResource)
 		})
 
 		JustBeforeEach(func() {
@@ -82,7 +85,8 @@ var _ = Describe("Versions API", func() {
 			Context("and the pipeline is public", func() {
 				BeforeEach(func() {
 					fakePipeline.PublicReturns(true)
-					fakePipeline.GetResourceVersionsReturns([]db.SavedVersionedResource{}, db.Pagination{}, true, nil)
+					fakePipeline.ResourceReturns(fakeResource, true, nil)
+					fakeResource.VersionsReturns([]atc.ResourceVersion{}, db.Pagination{}, true, nil)
 				})
 
 				It("returns 200 OK", func() {
@@ -97,105 +101,103 @@ var _ = Describe("Versions API", func() {
 				fakeaccess.IsAuthorizedReturns(true)
 			})
 
-			Context("when no params are passed", func() {
-				It("does not set defaults for since and until", func() {
-					Expect(fakePipeline.GetResourceVersionsCallCount()).To(Equal(1))
-
-					resourceName, page := fakePipeline.GetResourceVersionsArgsForCall(0)
-					Expect(resourceName).To(Equal("some-resource"))
-					Expect(page).To(Equal(db.Page{
-						Since: 0,
-						Until: 0,
-						From:  0,
-						To:    0,
-						Limit: 100,
-					}))
-				})
+			It("finds the resource", func() {
+				Expect(fakePipeline.ResourceCallCount()).To(Equal(1))
+				Expect(fakePipeline.ResourceArgsForCall(0)).To(Equal("some-resource"))
 			})
 
-			Context("when all the params are passed", func() {
+			Context("when finding the resource succeeds", func() {
 				BeforeEach(func() {
-					queryParams = "?since=2&until=3&from=5&to=7&limit=8"
+					fakePipeline.ResourceReturns(fakeResource, true, nil)
 				})
 
-				It("passes them through", func() {
-					Expect(fakePipeline.GetResourceVersionsCallCount()).To(Equal(1))
+				Context("when no params are passed", func() {
+					It("does not set defaults for since and until", func() {
+						Expect(fakeResource.VersionsCallCount()).To(Equal(1))
 
-					resourceName, page := fakePipeline.GetResourceVersionsArgsForCall(0)
-					Expect(resourceName).To(Equal("some-resource"))
-					Expect(page).To(Equal(db.Page{
-						Since: 2,
-						Until: 3,
-						From:  5,
-						To:    7,
-						Limit: 8,
-					}))
+						page := fakeResource.VersionsArgsForCall(0)
+						Expect(page).To(Equal(db.Page{
+							Since: 0,
+							Until: 0,
+							From:  0,
+							To:    0,
+							Limit: 100,
+						}))
+					})
 				})
-			})
 
-			Context("when getting the versions succeeds", func() {
-				var returnedVersions []db.SavedVersionedResource
+				Context("when all the params are passed", func() {
+					BeforeEach(func() {
+						queryParams = "?since=2&until=3&from=5&to=7&limit=8"
+					})
 
-				BeforeEach(func() {
-					queryParams = "?since=5&limit=2"
-					returnedVersions = []db.SavedVersionedResource{
-						{
-							ID:      4,
-							Enabled: true,
-							VersionedResource: db.VersionedResource{
-								Resource: "some-resource",
-								Type:     "some-type",
-								Version: db.ResourceVersion{
+					It("passes them through", func() {
+						Expect(fakeResource.VersionsCallCount()).To(Equal(1))
+
+						page := fakeResource.VersionsArgsForCall(0)
+						Expect(page).To(Equal(db.Page{
+							Since: 2,
+							Until: 3,
+							From:  5,
+							To:    7,
+							Limit: 8,
+						}))
+					})
+				})
+
+				Context("when getting the versions succeeds", func() {
+					var returnedVersions []atc.ResourceVersion
+
+					BeforeEach(func() {
+						queryParams = "?since=5&limit=2"
+						returnedVersions = []atc.ResourceVersion{
+							{
+								ID:      4,
+								Enabled: true,
+								Version: atc.Version{
 									"some": "version",
 								},
-								Metadata: []db.ResourceMetadataField{
+								Metadata: []atc.MetadataField{
 									{
 										Name:  "some",
 										Value: "metadata",
 									},
 								},
 							},
-						},
-						{
-							ID:      2,
-							Enabled: false,
-							VersionedResource: db.VersionedResource{
-								Resource: "some-resource",
-								Type:     "some-type",
-								Version: db.ResourceVersion{
+							{
+								ID:      2,
+								Enabled: false,
+								Version: atc.Version{
 									"some": "version",
 								},
-								Metadata: []db.ResourceMetadataField{
+								Metadata: []atc.MetadataField{
 									{
 										Name:  "some",
 										Value: "metadata",
 									},
 								},
 							},
-						},
-					}
+						}
 
-					fakePipeline.GetResourceVersionsReturns(returnedVersions, db.Pagination{}, true, nil)
-				})
+						fakeResource.VersionsReturns(returnedVersions, db.Pagination{}, true, nil)
+					})
 
-				It("returns 200 OK", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
+					It("returns 200 OK", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
 
-				It("returns content type application/json", func() {
-					Expect(response.Header.Get("Content-type")).To(Equal("application/json"))
-				})
+					It("returns content type application/json", func() {
+						Expect(response.Header.Get("Content-type")).To(Equal("application/json"))
+					})
 
-				It("returns the json", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
+					It("returns the json", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
 
-					Expect(body).To(MatchJSON(`[
+						Expect(body).To(MatchJSON(`[
 					{
 						"id": 4,
 						"enabled": true,
-						"resource": "some-resource",
-						"type": "some-type",
 						"version": {"some":"version"},
 						"metadata": [
 							{
@@ -207,8 +209,6 @@ var _ = Describe("Versions API", func() {
 					{
 						"id":2,
 						"enabled": false,
-						"resource": "some-resource",
-						"type": "some-type",
 						"version": {"some":"version"},
 						"metadata": [
 							{
@@ -218,43 +218,64 @@ var _ = Describe("Versions API", func() {
 						]
 					}
 				]`))
+					})
+
+					Context("when next/previous pages are available", func() {
+						BeforeEach(func() {
+							fakePipeline.NameReturns("some-pipeline")
+							fakeResource.VersionsReturns(returnedVersions, db.Pagination{
+								Previous: &db.Page{Until: 4, Limit: 2},
+								Next:     &db.Page{Since: 2, Limit: 2},
+							}, true, nil)
+						})
+
+						It("returns Link headers per rfc5988", func() {
+							Expect(response.Header["Link"]).To(ConsistOf([]string{
+								fmt.Sprintf(`<%s/api/v1/teams/a-team/pipelines/some-pipeline/resources/some-resource/versions?until=4&limit=2>; rel="previous"`, externalURL),
+								fmt.Sprintf(`<%s/api/v1/teams/a-team/pipelines/some-pipeline/resources/some-resource/versions?since=2&limit=2>; rel="next"`, externalURL),
+							}))
+						})
+					})
 				})
 
-				Context("when next/previous pages are available", func() {
+				Context("when the versions can't be found", func() {
 					BeforeEach(func() {
-						fakePipeline.NameReturns("some-pipeline")
-						fakePipeline.GetResourceVersionsReturns(returnedVersions, db.Pagination{
-							Previous: &db.Page{Until: 4, Limit: 2},
-							Next:     &db.Page{Since: 2, Limit: 2},
-						}, true, nil)
+						fakeResource.VersionsReturns(nil, db.Pagination{}, false, nil)
 					})
 
-					It("returns Link headers per rfc5988", func() {
-						Expect(response.Header["Link"]).To(ConsistOf([]string{
-							fmt.Sprintf(`<%s/api/v1/teams/a-team/pipelines/some-pipeline/resources/some-resource/versions?until=4&limit=2>; rel="previous"`, externalURL),
-							fmt.Sprintf(`<%s/api/v1/teams/a-team/pipelines/some-pipeline/resources/some-resource/versions?since=2&limit=2>; rel="next"`, externalURL),
-						}))
+					It("returns 404 not found", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when getting the versions fails", func() {
+					BeforeEach(func() {
+						fakeResource.VersionsReturns(nil, db.Pagination{}, false, errors.New("oh no!"))
+					})
+
+					It("returns 500 Internal Server Error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
 			})
 
-			Context("when the versions can't be found", func() {
+			Context("when finding the resource fails", func() {
 				BeforeEach(func() {
-					fakePipeline.GetResourceVersionsReturns(nil, db.Pagination{}, false, nil)
-				})
-
-				It("returns 404 not found", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
-
-			Context("when getting the versions fails", func() {
-				BeforeEach(func() {
-					fakePipeline.GetResourceVersionsReturns(nil, db.Pagination{}, false, errors.New("oh no!"))
+					fakePipeline.ResourceReturns(nil, false, errors.New("oh no!"))
 				})
 
 				It("returns 500 Internal Server Error", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when the resource is not found", func() {
+				BeforeEach(func() {
+					fakePipeline.ResourceReturns(nil, false, nil)
+				})
+
+				It("returns 404 not found", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 		})

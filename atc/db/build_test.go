@@ -1015,17 +1015,20 @@ var _ = Describe("Build", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					versions, _, found, err := resourceConfig1.Versions(db.Page{Limit: 1})
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(versions).To(HaveLen(1))
-
 					resource1, found, err := pipeline.Resource("input1")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
+					err = resource1.SetResourceConfig(resourceConfig1.ID())
+					Expect(err).NotTo(HaveOccurred())
+
+					versions, _, found, err := resource1.Versions(db.Page{Limit: 1})
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(versions).To(HaveLen(1))
+
 					err = job.SaveIndependentInputMapping(algorithm.InputMapping{
-						"input1": {VersionID: versions[0].ID(), ResourceID: resource1.ID(), FirstOccurrence: true},
+						"input1": {VersionID: versions[0].ID, ResourceID: resource1.ID(), FirstOccurrence: true},
 					})
 					Expect(err).NotTo(HaveOccurred())
 

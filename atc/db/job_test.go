@@ -581,7 +581,7 @@ var _ = Describe("Job", func() {
 	Describe("GetIndependentBuildInputs", func() {
 		var (
 			pipeline2      db.Pipeline
-			versions       db.ResourceConfigVersions
+			versions       []atc.ResourceVersion
 			job            db.Job
 			job2           db.Job
 			resourceConfig db.ResourceConfig
@@ -619,6 +619,9 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
+			err = resource.SetResourceConfig(resourceConfig.ID())
+			Expect(err).ToNot(HaveOccurred())
+
 			// save metadata for v1
 			_, err = resourceConfig.SaveVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
 				db.ResourceConfigMetadataField{
@@ -628,11 +631,11 @@ var _ = Describe("Job", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			reversions, _, found, err := resourceConfig.Versions(db.Page{Limit: 3})
+			reversions, _, found, err := resource.Versions(db.Page{Limit: 3})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			versions = []db.ResourceConfigVersion{reversions[2], reversions[1], reversions[0]}
+			versions = []atc.ResourceVersion{reversions[2], reversions[1], reversions[0]}
 
 			config := atc.Config{
 				Jobs: atc.JobConfigs{
@@ -667,12 +670,12 @@ var _ = Describe("Job", func() {
 			It("gets independent build inputs for the given job name", func() {
 				inputVersions := algorithm.InputMapping{
 					"some-input-1": algorithm.InputVersion{
-						VersionID:       versions[0].ID(),
+						VersionID:       versions[0].ID,
 						ResourceID:      resource.ID(),
 						FirstOccurrence: false,
 					},
 					"some-input-2": algorithm.InputVersion{
-						VersionID:       versions[1].ID(),
+						VersionID:       versions[1].ID,
 						ResourceID:      resource.ID(),
 						FirstOccurrence: true,
 					},
@@ -682,7 +685,7 @@ var _ = Describe("Job", func() {
 
 				pipeline2InputVersions := algorithm.InputMapping{
 					"some-input-3": algorithm.InputVersion{
-						VersionID:       versions[2].ID(),
+						VersionID:       versions[2].ID,
 						ResourceID:      resource2.ID(),
 						FirstOccurrence: false,
 					},
@@ -713,12 +716,12 @@ var _ = Describe("Job", func() {
 				By("updating the set of independent build inputs")
 				inputVersions2 := algorithm.InputMapping{
 					"some-input-2": algorithm.InputVersion{
-						VersionID:       versions[2].ID(),
+						VersionID:       versions[2].ID,
 						ResourceID:      resource.ID(),
 						FirstOccurrence: false,
 					},
 					"some-input-3": algorithm.InputVersion{
-						VersionID:       versions[2].ID(),
+						VersionID:       versions[2].ID,
 						ResourceID:      resource.ID(),
 						FirstOccurrence: true,
 					},
@@ -760,7 +763,7 @@ var _ = Describe("Job", func() {
 	Describe("GetNextBuildInputs", func() {
 		var (
 			pipeline2      db.Pipeline
-			versions       db.ResourceConfigVersions
+			versions       []atc.ResourceVersion
 			job            db.Job
 			job2           db.Job
 			resourceConfig db.ResourceConfig
@@ -798,6 +801,9 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
+			err = resource.SetResourceConfig(resourceConfig.ID())
+			Expect(err).ToNot(HaveOccurred())
+
 			// save metadata for v1
 			_, err = resourceConfig.SaveVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
 				db.ResourceConfigMetadataField{
@@ -807,11 +813,11 @@ var _ = Describe("Job", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			reversions, _, found, err := resourceConfig.Versions(db.Page{Limit: 3})
+			reversions, _, found, err := resource.Versions(db.Page{Limit: 3})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			versions = []db.ResourceConfigVersion{reversions[2], reversions[1], reversions[0]}
+			versions = []atc.ResourceVersion{reversions[2], reversions[1], reversions[0]}
 
 			config := atc.Config{
 				Jobs: atc.JobConfigs{
@@ -845,12 +851,12 @@ var _ = Describe("Job", func() {
 		It("gets next build inputs for the given job name", func() {
 			inputVersions := algorithm.InputMapping{
 				"some-input-1": algorithm.InputVersion{
-					VersionID:       versions[0].ID(),
+					VersionID:       versions[0].ID,
 					ResourceID:      resource.ID(),
 					FirstOccurrence: false,
 				},
 				"some-input-2": algorithm.InputVersion{
-					VersionID:       versions[1].ID(),
+					VersionID:       versions[1].ID,
 					ResourceID:      resource.ID(),
 					FirstOccurrence: true,
 				},
@@ -860,7 +866,7 @@ var _ = Describe("Job", func() {
 
 			pipeline2InputVersions := algorithm.InputMapping{
 				"some-input-3": algorithm.InputVersion{
-					VersionID:       versions[2].ID(),
+					VersionID:       versions[2].ID,
 					ResourceID:      resource2.ID(),
 					FirstOccurrence: false,
 				},
@@ -892,12 +898,12 @@ var _ = Describe("Job", func() {
 			By("updating the set of next build inputs")
 			inputVersions2 := algorithm.InputMapping{
 				"some-input-2": algorithm.InputVersion{
-					VersionID:       versions[2].ID(),
+					VersionID:       versions[2].ID,
 					ResourceID:      resource.ID(),
 					FirstOccurrence: false,
 				},
 				"some-input-3": algorithm.InputVersion{
-					VersionID:       versions[2].ID(),
+					VersionID:       versions[2].ID,
 					ResourceID:      resource.ID(),
 					FirstOccurrence: true,
 				},

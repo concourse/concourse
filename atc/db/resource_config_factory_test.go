@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -14,65 +15,142 @@ import (
 var _ = Describe("ResourceConfigFactory", func() {
 	var build db.Build
 
-	BeforeEach(func() {
-		var err error
-		job, found, err := defaultPipeline.Job("some-job")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue())
-
-		build, err = job.CreateBuild()
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	Context("when the resource config is concurrently deleted and created", func() {
+	Describe("CleanUnreferencedConfigs", func() {
 		BeforeEach(func() {
-			Expect(build.Finish(db.BuildStatusSucceeded)).To(Succeed())
-			Expect(build.SetInterceptible(false)).To(Succeed())
+			var err error
+			job, found, err := defaultPipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			build, err = job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
 		})
 
-		ownerExpiries := db.ContainerOwnerExpiries{
-			GraceTime: 5 * time.Second,
-			Min:       10 * time.Second,
-			Max:       10 * time.Second,
-		}
+		Context("when the resource config is concurrently deleted and created", func() {
+			BeforeEach(func() {
+				Expect(build.Finish(db.BuildStatusSucceeded)).To(Succeed())
+				Expect(build.SetInterceptible(false)).To(Succeed())
+			})
 
-		It("consistently is able to be used", func() {
-			// enable concurrent use of database. this is set to 1 by default to
-			// ensure methods don't require more than one in a single connection,
-			// which can cause deadlocking as the pool is limited.
-			dbConn.SetMaxOpenConns(2)
+			ownerExpiries := db.ContainerOwnerExpiries{
+				GraceTime: 5 * time.Second,
+				Min:       10 * time.Second,
+				Max:       10 * time.Second,
+			}
 
-			done := make(chan struct{})
+			It("consistently is able to be used", func() {
+				// enable concurrent use of database. this is set to 1 by default to
+				// ensure methods don't require more than one in a single connection,
+				// which can cause deadlocking as the pool is limited.
+				dbConn.SetMaxOpenConns(2)
 
-			wg := new(sync.WaitGroup)
-			wg.Add(1)
-			go func() {
-				defer GinkgoRecover()
-				defer wg.Done()
+				done := make(chan struct{})
 
-				for {
-					select {
-					case <-done:
-						return
-					default:
-						Expect(resourceConfigFactory.CleanUnreferencedConfigs()).To(Succeed())
+				wg := new(sync.WaitGroup)
+				wg.Add(1)
+				go func() {
+					defer GinkgoRecover()
+					defer wg.Done()
+
+					for {
+						select {
+						case <-done:
+							return
+						default:
+							Expect(resourceConfigFactory.CleanUnreferencedConfigs()).To(Succeed())
+						}
 					}
-				}
-			}()
+				}()
 
-			wg.Add(1)
-			go func() {
-				defer GinkgoRecover()
-				defer close(done)
-				defer wg.Done()
+				wg.Add(1)
+				go func() {
+					defer GinkgoRecover()
+					defer close(done)
+					defer wg.Done()
 
-				for i := 0; i < 100; i++ {
-					_, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(logger, "some-base-resource-type", atc.Source{"some": "unique-source"}, creds.VersionedResourceTypes{}, ownerExpiries)
+					for i := 0; i < 100; i++ {
+						_, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(logger, "some-base-resource-type", atc.Source{"some": "unique-source"}, creds.VersionedResourceTypes{}, ownerExpiries)
+						Expect(err).ToNot(HaveOccurred())
+					}
+				}()
+
+				wg.Wait()
+			})
+		})
+	})
+
+	Describe("FindResourceConfigByID", func() {
+		var (
+			resourceConfigID      int
+			resourceConfig        db.ResourceConfig
+			createdResourceConfig db.ResourceConfig
+			found                 bool
+			err                   error
+		)
+
+		JustBeforeEach(func() {
+			resourceConfig, found, err = resourceConfigFactory.FindResourceConfigByID(resourceConfigID)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when the resource config does exist", func() {
+			Context("when the resource config uses a base resource type", func() {
+				BeforeEach(func() {
+					setupTx, err := dbConn.Begin()
 					Expect(err).ToNot(HaveOccurred())
-				}
-			}()
 
-			wg.Wait()
+					brt := db.BaseResourceType{
+						Name: "base-resource-type-name",
+					}
+					_, err = brt.FindOrCreate(setupTx)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(setupTx.Commit()).To(Succeed())
+
+					createdResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "base-resource-type-name", atc.Source{}, creds.VersionedResourceTypes{})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(createdResourceConfig).ToNot(BeNil())
+
+					resourceConfigID = createdResourceConfig.ID()
+				})
+
+				It("should find the resource config using the resource's config id", func() {
+					Expect(found).To(BeTrue())
+					Expect(resourceConfig).ToNot(BeNil())
+					Expect(resourceConfig.ID()).To(Equal(resourceConfigID))
+					Expect(resourceConfig.CreatedByBaseResourceType()).To(Equal(createdResourceConfig.CreatedByBaseResourceType()))
+				})
+			})
+
+			Context("when the resource config uses a custom resource type", func() {
+				BeforeEach(func() {
+					pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
+					Expect(err).ToNot(HaveOccurred())
+
+					createdResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{}, creds.NewVersionedResourceTypes(template.StaticVariables{}, pipelineResourceTypes.Deserialize()))
+					Expect(err).ToNot(HaveOccurred())
+					Expect(createdResourceConfig).ToNot(BeNil())
+
+					resourceConfigID = createdResourceConfig.ID()
+				})
+
+				It("should find the resource config using the resource's config id", func() {
+					Expect(found).To(BeTrue())
+					Expect(resourceConfig).ToNot(BeNil())
+					Expect(resourceConfig.ID()).To(Equal(resourceConfigID))
+					Expect(resourceConfig.CreatedByResourceCache().ID()).To(Equal(createdResourceConfig.CreatedByResourceCache().ID()))
+					Expect(resourceConfig.CreatedByResourceCache().ResourceConfig().ID()).To(Equal(createdResourceConfig.CreatedByResourceCache().ResourceConfig().ID()))
+				})
+			})
+		})
+
+		Context("when the resource config id does not exist", func() {
+			BeforeEach(func() {
+				resourceConfigID = 123
+			})
+
+			It("should not find the resource config", func() {
+				Expect(found).To(BeFalse())
+			})
 		})
 	})
 })

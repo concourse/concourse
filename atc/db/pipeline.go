@@ -55,7 +55,7 @@ type Pipeline interface {
 	GetLatestVersionedResource(resourceName string) (SavedVersionedResource, bool, error)
 	GetVersionedResourceByVersion(atcVersion atc.Version, resourceName string) (SavedVersionedResource, bool, error)
 
-	VersionedResource(versionedResourceID int) (SavedVersionedResource, bool, error)
+	ResourceVersion(resourceConfigVersionID int) (atc.ResourceVersion, bool, error)
 	DisableResourceVersion(int, int) error
 	EnableResourceVersion(int, int) error
 	GetBuildsWithVersionAsInput(int, int) ([]Build, error)
@@ -183,6 +183,7 @@ func (p *pipeline) ScopedName(n string) string {
 	return p.name + ":" + n
 }
 
+// IMPORTANT: This method is broken with the new resource config versions changes
 func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
 	rows, err := p.conn.Query(`
 		WITH RECURSIVE causality(versioned_resource_id, build_id) AS (
@@ -638,38 +639,53 @@ func (p *pipeline) GetVersionedResourceByVersion(atcVersion atc.Version, resourc
 	return svr, true, nil
 }
 
-func (p *pipeline) VersionedResource(versionedResourceID int) (SavedVersionedResource, bool, error) {
-	svr := SavedVersionedResource{
-		VersionedResource: VersionedResource{},
-	}
+// ResourceVersion is given a resource config version id and returns the
+// resource version struct. This method is used by the API call
+// GetResourceVersion to get all the attributes for that version of the
+// resource.
+func (p *pipeline) ResourceVersion(resourceConfigVersionID int) (atc.ResourceVersion, bool, error) {
+	rv := atc.ResourceVersion{}
+	var (
+		versionBytes  string
+		metadataBytes string
+	)
 
-	var versionBytes, metadataBytes string
-	err := psql.Select("v.id", "v.enabled", "v.type", "v.version", "v.metadata", "v.check_order", "r.name").
-		From("versioned_resources v").
-		Join("resources r ON r.id = v.resource_id").
-		Where(sq.Eq{"v.id": versionedResourceID}).
+	enabled := `
+		NOT EXISTS (
+			SELECT 1
+			FROM resource_disabled_versions d, resources r
+			WHERE v.version_md5 = d.version_md5
+			AND r.resource_config_id = v.resource_config_id
+			AND r.id = d.resource_id
+		)`
+
+	err := psql.Select("v.id", "v.version", "v.metadata", enabled).
+		From("resource_config_versions v").
+		Where(sq.Eq{
+			"v.id": resourceConfigVersionID,
+		}).
 		RunWith(p.conn).
 		QueryRow().
-		Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionBytes, &metadataBytes, &svr.CheckOrder, &svr.VersionedResource.Resource)
+		Scan(&rv.ID, &versionBytes, &metadataBytes, &rv.Enabled)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return SavedVersionedResource{}, false, nil
+			return atc.ResourceVersion{}, false, nil
 		}
 
-		return SavedVersionedResource{}, false, err
+		return atc.ResourceVersion{}, false, err
 	}
 
-	err = json.Unmarshal([]byte(versionBytes), &svr.Version)
+	err = json.Unmarshal([]byte(versionBytes), &rv.Version)
 	if err != nil {
-		return SavedVersionedResource{}, false, err
+		return atc.ResourceVersion{}, false, err
 	}
 
-	err = json.Unmarshal([]byte(metadataBytes), &svr.Metadata)
+	err = json.Unmarshal([]byte(metadataBytes), &rv.Metadata)
 	if err != nil {
-		return SavedVersionedResource{}, false, err
+		return atc.ResourceVersion{}, false, err
 	}
 
-	return svr, true, nil
+	return rv, true, nil
 }
 
 func (p *pipeline) DisableResourceVersion(resourceID int, resourceConfigVersionID int) error {

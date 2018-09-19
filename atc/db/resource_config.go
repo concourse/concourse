@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -54,7 +53,6 @@ type ResourceConfig interface {
 	SaveVersions(versions []atc.Version) error
 	SetCheckError(error) error
 	FindVersion(atc.Version) (ResourceConfigVersion, bool, error)
-	Versions(page Page) (ResourceConfigVersions, Pagination, bool, error)
 }
 
 type resourceConfig struct {
@@ -118,7 +116,10 @@ func (r *resourceConfig) AcquireResourceConfigCheckingLockWithIntervalCheck(
 }
 
 func (r *resourceConfig) LatestVersion() (ResourceConfigVersion, bool, error) {
-	rcv := &resourceConfigVersion{conn: r.conn}
+	rcv := &resourceConfigVersion{
+		conn:           r.conn,
+		resourceConfig: r,
+	}
 
 	row := resourceConfigVersionQuery.
 		Where(sq.Eq{"v.resource_config_id": r.id}).
@@ -231,130 +232,6 @@ func (r *resourceConfig) FindVersion(v atc.Version) (ResourceConfigVersion, bool
 	}
 
 	return rcv, true, nil
-}
-
-func (r *resourceConfig) Versions(page Page) (ResourceConfigVersions, Pagination, bool, error) {
-	query := `
-		SELECT v.id, v.version, v.metadata, v.check_order
-		FROM resource_config_versions v
-		WHERE v.resource_config_id = $1 AND v.check_order != 0
-	`
-
-	var rows *sql.Rows
-	var err error
-	if page.Until != 0 {
-		rows, err = r.conn.Query(fmt.Sprintf(`
-			SELECT sub.*
-				FROM (
-						%s
-					AND v.check_order > (SELECT check_order FROM resource_config_versions WHERE id = $2)
-				ORDER BY v.check_order ASC
-				LIMIT $3
-			) sub
-			ORDER BY sub.check_order DESC
-		`, query), r.id, page.Until, page.Limit)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-	} else if page.Since != 0 {
-		rows, err = r.conn.Query(fmt.Sprintf(`
-			%s
-				AND v.check_order < (SELECT check_order FROM resource_config_versions WHERE id = $2)
-			ORDER BY v.check_order DESC
-			LIMIT $3
-		`, query), r.id, page.Since, page.Limit)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-	} else if page.To != 0 {
-		rows, err = r.conn.Query(fmt.Sprintf(`
-			SELECT sub.*
-				FROM (
-						%s
-					AND v.check_order >= (SELECT check_order FROM resource_config_versions WHERE id = $2)
-				ORDER BY v.check_order ASC
-				LIMIT $3
-			) sub
-			ORDER BY sub.check_order DESC
-		`, query), r.id, page.To, page.Limit)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-	} else if page.From != 0 {
-		rows, err = r.conn.Query(fmt.Sprintf(`
-			%s
-				AND v.check_order <= (SELECT check_order FROM resource_config_versions WHERE id = $2)
-			ORDER BY v.check_order DESC
-			LIMIT $3
-		`, query), r.id, page.From, page.Limit)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-	} else {
-		rows, err = r.conn.Query(fmt.Sprintf(`
-			%s
-			ORDER BY v.check_order DESC
-			LIMIT $2
-		`, query), r.id, page.Limit)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-	}
-
-	defer Close(rows)
-
-	rcvs := make([]ResourceConfigVersion, 0)
-	for rows.Next() {
-		rcv := &resourceConfigVersion{
-			resourceConfig: r,
-			conn:           r.conn,
-		}
-
-		err = scanResourceConfigVersion(rcv, rows)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-
-		rcvs = append(rcvs, rcv)
-	}
-
-	if len(rcvs) == 0 {
-		return ResourceConfigVersions{}, Pagination{}, true, nil
-	}
-
-	var minCheckOrder int
-	var maxCheckOrder int
-
-	err = r.conn.QueryRow(`
-		SELECT COALESCE(MAX(v.check_order), 0) as maxCheckOrder,
-			COALESCE(MIN(v.check_order), 0) as minCheckOrder
-		FROM resource_config_versions v
-		WHERE v.resource_config_id = $1
-	`, r.id).Scan(&maxCheckOrder, &minCheckOrder)
-	if err != nil {
-		return nil, Pagination{}, false, err
-	}
-
-	firstResourceConfigVersion := rcvs[0]
-	lastResourceConfigVersion := rcvs[len(rcvs)-1]
-
-	var pagination Pagination
-
-	if firstResourceConfigVersion.CheckOrder() < maxCheckOrder {
-		pagination.Previous = &Page{
-			Until: firstResourceConfigVersion.ID(),
-			Limit: page.Limit,
-		}
-	}
-
-	if lastResourceConfigVersion.CheckOrder() > minCheckOrder {
-		pagination.Next = &Page{
-			Since: lastResourceConfigVersion.ID(),
-			Limit: page.Limit,
-		}
-	}
-
-	return rcvs, pagination, true, nil
 }
 
 func (r *resourceConfig) SetCheckError(cause error) error {

@@ -1265,15 +1265,15 @@ var _ = Describe("Pipeline", func() {
 				err = build.SaveOutput(resourceConfig, atc.Version(beforeVR.Version()), "some-output-name", "some-resource", false)
 				Expect(err).ToNot(HaveOccurred())
 
-				versions, _, found, err := resourceConfig.Versions(db.Page{Limit: 10})
+				versions, _, found, err := resource.Versions(db.Page{Limit: 10})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(versions).To(HaveLen(5))
-				Expect(versions[0].Version()).To(Equal(db.Version{"version": "5"}))
-				Expect(versions[1].Version()).To(Equal(db.Version{"version": "4"}))
-				Expect(versions[2].Version()).To(Equal(db.Version{"version": "3"}))
-				Expect(versions[3].Version()).To(Equal(db.Version{"version": "2"}))
-				Expect(versions[4].Version()).To(Equal(db.Version{"version": "1"}))
+				Expect(versions[0].Version).To(Equal(atc.Version{"version": "5"}))
+				Expect(versions[1].Version).To(Equal(atc.Version{"version": "4"}))
+				Expect(versions[2].Version).To(Equal(atc.Version{"version": "3"}))
+				Expect(versions[3].Version).To(Equal(atc.Version{"version": "2"}))
+				Expect(versions[4].Version).To(Equal(atc.Version{"version": "1"}))
 			})
 		})
 
@@ -2376,8 +2376,75 @@ var _ = Describe("Pipeline", func() {
 		})
 
 		It("returns the version", func() {
-			Expect(resourceTypes[0].Version()).To(Equal(atc.Version{"version": "2"}))
-			Expect(resourceTypes[1].Version()).To(Equal(atc.Version{"version": "5"}))
+			resourceTypeVersions := []atc.Version{resourceTypes[0].Version()}
+			resourceTypeVersions = append(resourceTypeVersions, resourceTypes[1].Version())
+			Expect(resourceTypeVersions).To(ConsistOf(atc.Version{"version": "2"}, atc.Version{"version": "5"}))
+		})
+	})
+
+	Describe("ResourceVersion", func() {
+		var (
+			resourceVersion, rv   atc.ResourceVersion
+			resourceConfigVersion db.ResourceConfigVersion
+			resource              db.Resource
+		)
+
+		BeforeEach(func() {
+			var found bool
+			var err error
+			resource, found, err = pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			err = resource.SetResourceConfig(resourceConfig.ID())
+			Expect(err).ToNot(HaveOccurred())
+
+			version := atc.Version{"version": "1"}
+			err = resourceConfig.SaveVersions([]atc.Version{
+				version,
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceConfigVersion, found, err = resourceConfig.FindVersion(version)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resourceVersion = atc.ResourceVersion{
+				Version: version,
+				ID:      resourceConfigVersion.ID(),
+				Enabled: true,
+			}
+		})
+
+		JustBeforeEach(func() {
+			var found bool
+			var err error
+
+			rv, found, err = pipeline.ResourceVersion(resourceConfigVersion.ID())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
+		Context("when a resource is enabled", func() {
+			It("should return the version with enabled set to true", func() {
+				Expect(rv).To(Equal(resourceVersion))
+			})
+		})
+
+		Context("when a resource is not enabled", func() {
+			BeforeEach(func() {
+				err := pipeline.DisableResourceVersion(resource.ID(), resourceConfigVersion.ID())
+				Expect(err).ToNot(HaveOccurred())
+
+				resourceVersion.Enabled = false
+			})
+
+			It("should return the version with enabled set to false", func() {
+				Expect(rv).To(Equal(resourceVersion))
+			})
 		})
 	})
 })

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -31,8 +32,11 @@ type Resource interface {
 	PinnedVersion() atc.Version
 	FailingToCheck() bool
 	ResourceConfigCheckError() error
+	ResourceConfigID() int
 
 	ResourceConfigVersionID(atc.Version) (int, bool, error)
+	Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error)
+	IsVersionDisabled(version atc.Version) (bool, error)
 
 	SetResourceConfig(int) error
 	SetCheckError(error) error
@@ -43,7 +47,7 @@ type Resource interface {
 	Reload() (bool, error)
 }
 
-var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, r.paused, r.last_checked, r.pipeline_id, r.nonce, p.name, t.name, c.check_error").
+var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, r.paused, r.last_checked, r.pipeline_id, r.nonce, r.resource_config_id, p.name, t.name, c.check_error").
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
@@ -67,6 +71,7 @@ type resource struct {
 	webhookToken             string
 	pinnedVersion            atc.Version
 	resourceConfigCheckError error
+	resourceConfigID         int
 
 	conn Conn
 }
@@ -133,6 +138,7 @@ func (r *resource) Paused() bool                    { return r.paused }
 func (r *resource) WebhookToken() string            { return r.webhookToken }
 func (r *resource) PinnedVersion() atc.Version      { return r.pinnedVersion }
 func (r *resource) ResourceConfigCheckError() error { return r.resourceConfigCheckError }
+func (r *resource) ResourceConfigID() int           { return r.resourceConfigID }
 func (r *resource) FailingToCheck() bool {
 	return r.checkError != nil
 }
@@ -237,14 +243,196 @@ func (r *resource) ResourceConfigVersionID(version atc.Version) (int, bool, erro
 	return id, true, nil
 }
 
+func (r *resource) IsVersionDisabled(version atc.Version) (bool, error) {
+	versionBytes, err := json.Marshal(version)
+	if err != nil {
+		return false, err
+	}
+
+	var enabled bool
+	err = psql.Select("1").
+		From("resource_disabled_versions").
+		Where(sq.Eq{"resource_id": r.id}).
+		Where(sq.Expr(fmt.Sprintf("version_md5 = md5('%s')", versionBytes))).
+		RunWith(r.conn).
+		QueryRow().
+		Scan(&enabled)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return enabled, nil
+}
+
+func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error) {
+	query := `
+		SELECT v.id, v.version, v.metadata, v.check_order,
+			NOT EXISTS (
+				SELECT 1
+				FROM resource_disabled_versions d
+				WHERE v.version_md5 = d.version_md5
+				AND r.resource_config_id = v.resource_config_id
+				AND r.id = d.resource_id
+			)
+		FROM resource_config_versions v, resources r
+		WHERE r.id = $1 AND r.resource_config_id = v.resource_config_id AND v.check_order != 0
+	`
+
+	var rows *sql.Rows
+	var err error
+	if page.Until != 0 {
+		rows, err = r.conn.Query(fmt.Sprintf(`
+			SELECT sub.*
+				FROM (
+						%s
+					AND v.check_order > (SELECT check_order FROM resource_config_versions WHERE id = $2)
+				ORDER BY v.check_order ASC
+				LIMIT $3
+			) sub
+			ORDER BY sub.check_order DESC
+		`, query), r.id, page.Until, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+	} else if page.Since != 0 {
+		rows, err = r.conn.Query(fmt.Sprintf(`
+			%s
+				AND v.check_order < (SELECT check_order FROM resource_config_versions WHERE id = $2)
+			ORDER BY v.check_order DESC
+			LIMIT $3
+		`, query), r.id, page.Since, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+	} else if page.To != 0 {
+		rows, err = r.conn.Query(fmt.Sprintf(`
+			SELECT sub.*
+				FROM (
+						%s
+					AND v.check_order >= (SELECT check_order FROM resource_config_versions WHERE id = $2)
+				ORDER BY v.check_order ASC
+				LIMIT $3
+			) sub
+			ORDER BY sub.check_order DESC
+		`, query), r.id, page.To, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+	} else if page.From != 0 {
+		rows, err = r.conn.Query(fmt.Sprintf(`
+			%s
+				AND v.check_order <= (SELECT check_order FROM resource_config_versions WHERE id = $2)
+			ORDER BY v.check_order DESC
+			LIMIT $3
+		`, query), r.id, page.From, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+	} else {
+		rows, err = r.conn.Query(fmt.Sprintf(`
+			%s
+			ORDER BY v.check_order DESC
+			LIMIT $2
+		`, query), r.id, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+	}
+
+	defer Close(rows)
+
+	type rcvCheckOrder struct {
+		ResourceConfigVersionID int
+		CheckOrder              int
+	}
+
+	rvs := make([]atc.ResourceVersion, 0)
+	checkOrderRVs := make([]rcvCheckOrder, 0)
+	for rows.Next() {
+		var (
+			metadataBytes sql.NullString
+			versionBytes  string
+			checkOrder    int
+		)
+
+		rv := atc.ResourceVersion{}
+		err := rows.Scan(&rv.ID, &versionBytes, &metadataBytes, &checkOrder, &rv.Enabled)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+
+		err = json.Unmarshal([]byte(versionBytes), &rv.Version)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+
+		if metadataBytes.Valid {
+			err = json.Unmarshal([]byte(metadataBytes.String), &rv.Metadata)
+			if err != nil {
+				return nil, Pagination{}, false, err
+			}
+		}
+
+		checkOrderRV := rcvCheckOrder{
+			ResourceConfigVersionID: rv.ID,
+			CheckOrder:              checkOrder,
+		}
+
+		rvs = append(rvs, rv)
+		checkOrderRVs = append(checkOrderRVs, checkOrderRV)
+	}
+
+	if len(rvs) == 0 {
+		return nil, Pagination{}, true, nil
+	}
+
+	var minCheckOrder int
+	var maxCheckOrder int
+
+	err = r.conn.QueryRow(`
+		SELECT COALESCE(MAX(v.check_order), 0) as maxCheckOrder,
+			COALESCE(MIN(v.check_order), 0) as minCheckOrder
+		FROM resource_config_versions v, resources r
+		WHERE r.id = $1 AND v.resource_config_id = r.resource_config_id
+	`, r.id).Scan(&maxCheckOrder, &minCheckOrder)
+	if err != nil {
+		return nil, Pagination{}, false, err
+	}
+
+	firstRCVCheckOrder := checkOrderRVs[0]
+	lastRCVCheckOrder := checkOrderRVs[len(checkOrderRVs)-1]
+
+	var pagination Pagination
+
+	if firstRCVCheckOrder.CheckOrder < maxCheckOrder {
+		pagination.Previous = &Page{
+			Until: firstRCVCheckOrder.ResourceConfigVersionID,
+			Limit: page.Limit,
+		}
+	}
+
+	if lastRCVCheckOrder.CheckOrder > minCheckOrder {
+		pagination.Next = &Page{
+			Since: lastRCVCheckOrder.ResourceConfigVersionID,
+			Limit: page.Limit,
+		}
+	}
+
+	return rvs, pagination, true, nil
+}
+
 func scanResource(r *resource, row scannable) error {
 	var (
-		configBlob                  []byte
-		checkErr, rcCheckErr, nonce sql.NullString
-		lastChecked                 pq.NullTime
+		configBlob                        []byte
+		checkErr, rcCheckErr, nonce, rcID sql.NullString
+		lastChecked                       pq.NullTime
 	)
 
-	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &r.paused, &lastChecked, &r.pipelineID, &nonce, &r.pipelineName, &r.teamName, &rcCheckErr)
+	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &r.paused, &lastChecked, &r.pipelineID, &nonce, &rcID, &r.pipelineName, &r.teamName, &rcCheckErr)
 	if err != nil {
 		return err
 	}
@@ -283,6 +471,13 @@ func scanResource(r *resource, row scannable) error {
 
 	if rcCheckErr.Valid {
 		r.resourceConfigCheckError = errors.New(rcCheckErr.String)
+	}
+
+	if rcID.Valid {
+		r.resourceConfigID, err = strconv.Atoi(rcID.String)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

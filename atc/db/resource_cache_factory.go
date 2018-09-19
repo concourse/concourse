@@ -124,3 +124,47 @@ func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache UsedResourceC
 
 	return metadata, nil
 }
+
+func findResourceCacheByID(tx Tx, resourceCacheID int, lock lock.LockFactory, conn Conn) (UsedResourceCache, bool, error) {
+	var rcID int
+	var versionBytes string
+
+	err := psql.Select("resource_config_id", "version").
+		From("resource_caches").
+		Where(sq.Eq{"id": resourceCacheID}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&rcID, &versionBytes)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+
+	var version atc.Version
+	err = json.Unmarshal([]byte(versionBytes), &version)
+	if err != nil {
+		return nil, false, err
+	}
+
+	rc, found, err := findResourceConfigByID(tx, rcID, lock, conn)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	usedResourceCache := &usedResourceCache{
+		id:             resourceCacheID,
+		version:        version,
+		resourceConfig: rc,
+		lockFactory:    lock,
+		conn:           conn,
+	}
+
+	return usedResourceCache, true, nil
+}

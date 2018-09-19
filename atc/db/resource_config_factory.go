@@ -1,7 +1,10 @@
 package db
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
+	"strconv"
 
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
@@ -22,19 +25,14 @@ func (e ErrCustomResourceTypeVersionNotFound) Error() string {
 //go:generate counterfeiter . ResourceConfigFactory
 
 type ResourceConfigFactory interface {
-	FindResourceConfig(
-		logger lager.Logger,
-		resourceType string,
-		source atc.Source,
-		resourceTypes creds.VersionedResourceTypes,
-	) (ResourceConfig, bool, error)
-
 	FindOrCreateResourceConfig(
 		logger lager.Logger,
 		resourceType string,
 		source atc.Source,
 		resourceTypes creds.VersionedResourceTypes,
 	) (ResourceConfig, error)
+
+	FindResourceConfigByID(int) (ResourceConfig, bool, error)
 
 	CleanUnreferencedConfigs() error
 }
@@ -51,37 +49,25 @@ func NewResourceConfigFactory(conn Conn, lockFactory lock.LockFactory) ResourceC
 	}
 }
 
-func (f *resourceConfigFactory) FindResourceConfig(
-	logger lager.Logger,
-	resourceType string,
-	source atc.Source,
-	resourceTypes creds.VersionedResourceTypes,
-) (ResourceConfig, bool, error) {
-	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceType, source, resourceTypes)
-	if err != nil {
-		return nil, false, err
-	}
-
-	var resourceConfig ResourceConfig
-
+func (f *resourceConfigFactory) FindResourceConfigByID(resourceConfigID int) (ResourceConfig, bool, error) {
 	tx, err := f.conn.Begin()
 	if err != nil {
 		return nil, false, err
 	}
 	defer Rollback(tx)
 
-	resourceConfig, found, err := resourceConfigDescriptor.find(tx, f.lockFactory, f.conn)
-	if err != nil {
-		return nil, false, err
-	}
-
-	err = tx.Commit()
+	resourceConfig, found, err := findResourceConfigByID(tx, resourceConfigID, f.lockFactory, f.conn)
 	if err != nil {
 		return nil, false, err
 	}
 
 	if !found {
 		return nil, false, nil
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
 	}
 
 	return resourceConfig, true, nil
@@ -190,4 +176,72 @@ func (f *resourceConfigFactory) CleanUnreferencedConfigs() error {
 	}
 
 	return nil
+}
+
+func findResourceConfigByID(tx Tx, resourceConfigID int, lockFactory lock.LockFactory, conn Conn) (ResourceConfig, bool, error) {
+	var brtIDString, cacheIDString, chkErr sql.NullString
+
+	err := psql.Select("base_resource_type_id", "resource_cache_id", "check_error").
+		From("resource_configs").
+		Where(sq.Eq{"id": resourceConfigID}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&brtIDString, &cacheIDString, &chkErr)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+
+	var checkErr error
+	if chkErr.Valid {
+		checkErr = errors.New(chkErr.String)
+	}
+
+	rc := &resourceConfig{
+		id:          resourceConfigID,
+		checkError:  checkErr,
+		lockFactory: lockFactory,
+		conn:        conn,
+	}
+
+	if brtIDString.Valid {
+		var brtName string
+		brtID, err := strconv.Atoi(brtIDString.String)
+		if err != nil {
+			return nil, false, err
+		}
+
+		err = psql.Select("name").
+			From("base_resource_types").
+			Where(sq.Eq{"id": brtID}).
+			RunWith(tx).
+			QueryRow().
+			Scan(&brtName)
+		if err != nil {
+			return nil, false, err
+		}
+
+		rc.createdByBaseResourceType = &UsedBaseResourceType{brtID, brtName}
+
+	} else if cacheIDString.Valid {
+		cacheID, err := strconv.Atoi(cacheIDString.String)
+		if err != nil {
+			return nil, false, err
+		}
+
+		usedByResourceCache, found, err := findResourceCacheByID(tx, cacheID, lockFactory, conn)
+		if err != nil {
+			return nil, false, err
+		}
+
+		if !found {
+			return nil, false, nil
+		}
+
+		rc.createdByResourceCache = usedByResourceCache
+	}
+
+	return rc, true, nil
 }
