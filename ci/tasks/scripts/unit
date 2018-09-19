@@ -15,6 +15,11 @@ cd concourse
 
 go mod download
 
+pushd web
+  yarn
+  make
+popd
+
 go install github.com/onsi/ginkgo/ginkgo
 
 ginkgo -r -p -race -skipPackage testflight "$@"

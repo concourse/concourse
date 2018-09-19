@@ -3,14 +3,15 @@ platform: linux
 
 image_resource:
   type: registry-image
-  source:
-    repository: concourse/atc-ci
+  source: {repository: concourse/unit}
 
 inputs:
 - name: concourse
 
 caches:
 - path: gopath
+- path: concourse/web/node_modules
+- path: concourse/web/elm/elm-stuff
 
 run:
   path: concourse/ci/tasks/scripts/unit
