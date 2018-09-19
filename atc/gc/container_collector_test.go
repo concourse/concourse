@@ -26,8 +26,6 @@ var _ = Describe("ContainerCollector", func() {
 		fakeWorkerProvider      *workerfakes.FakeWorkerProvider
 		fakeJobRunner           *gcfakes.FakeWorkerJobRunner
 
-		jobRunner gc.WorkerJobRunner
-
 		fakeWorker       *workerfakes.FakeWorker
 		fakeGardenClient *gardenfakes.FakeClient
 
@@ -49,7 +47,6 @@ var _ = Describe("ContainerCollector", func() {
 
 		logger = lagertest.NewTestLogger("test")
 
-		jobRunner = gc.NewWorkerJobRunner(logger, fakeWorkerProvider, time.Second)
 		fakeJobRunner = new(gcfakes.FakeWorkerJobRunner)
 		fakeJobRunner.TryStub = func(logger lager.Logger, workerName string, job gc.Job) {
 			job.Run(fakeWorker)
@@ -57,7 +54,7 @@ var _ = Describe("ContainerCollector", func() {
 
 		realCollector = gc.NewContainerCollector(
 			fakeContainerRepository,
-			jobRunner,
+			fakeJobRunner,
 		)
 
 		fakeCollector = gc.NewContainerCollector(
