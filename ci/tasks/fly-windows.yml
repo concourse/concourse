@@ -4,8 +4,9 @@ platform: windows
 inputs:
 - name: concourse
 
-caches:
-- path: gopath
+# won't work until https://github.com/concourse/concourse/issues/2506 is fixed
+# caches:
+# - path: gopath
 
 run:
   path: concourse/ci/tasks/scripts/fly.bat
