@@ -2,7 +2,10 @@
 platform: darwin
 
 inputs:
-  - name: concourse
+- name: concourse
+
+caches:
+- path: gopath
 
 run:
-  path: concourse/ci/tasks/scripts/fly
+  path: concourse/ci/tasks/scripts/fly-darwin

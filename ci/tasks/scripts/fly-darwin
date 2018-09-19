@@ -1,0 +1,15 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -u
+
+export GOPATH=$PWD/gopath
+export PATH=$GOPATH/bin:$PATH
+
+cd concourse/fly
+
+go mod download
+
+go install github.com/onsi/ginkgo/ginkgo
+
+ginkgo -r -p -race "$@"
