@@ -107,7 +107,6 @@ require (
 	github.com/mattn/go-colorable v0.0.9
 	github.com/mattn/go-isatty v0.0.3
 	github.com/mattn/go-runewidth v0.0.3 // indirect
-	github.com/maxbrunsfeld/counterfeiter v0.0.0-20180914073724-e81645399082 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 	github.com/miekg/dns v1.0.8
 	github.com/mitchellh/go-homedir v1.0.0 // indirect
