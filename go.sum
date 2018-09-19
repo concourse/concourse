@@ -1,3 +1,4 @@
+bou.ke/monkey v1.0.1/go.mod h1:FgHuK96Rv2Nlf+0u1OOVDpCMdsWyOFmeeketDHE7LIg=
 cloud.google.com/go v0.26.0 h1:e0WKqKTd5BnrG8aKH3J3h+QvEIQtSUcf2n5UZ5ZgLtQ=
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 code.cloudfoundry.org/archiver v0.0.0-20180525162158-e135af3d5a2a/go.mod h1:EU/KcUvh4qBVN6ffu/b8t9x7SurDot+AO0HqEZ+9QOg=
@@ -108,6 +109,8 @@ github.com/cockroachdb/cockroach-go v0.0.0-20160916181719-31611c0501c8 h1:0qNPJv
 github.com/cockroachdb/cockroach-go v0.0.0-20160916181719-31611c0501c8/go.mod h1:XGLbWH/ujMcbPbhZq52Nv6UrCghb1yGn//133kEsvDk=
 github.com/concourse/baggageclaim v1.0.0 h1:/HyKrVHdrI4rCXaDlx9KqWRruP9o7LV9+fbqzEyRJNA=
 github.com/concourse/baggageclaim v1.0.0/go.mod h1:OrDNmeL57teiE4Otw4yXPE8GI1MRC5y7VgbFlTYHgOk=
+github.com/concourse/baggageclaim v1.1.0 h1:WCETyNgFWo6W47Y5ivxxSOWWfKe0EVQ7QCsx4UmB/pg=
+github.com/concourse/baggageclaim v1.1.0/go.mod h1:8tZxZHd3i7B3hrqxPc52gBCWDtWmJkMN5+gBVZ9E+y4=
 github.com/concourse/dex v0.0.0-20180906143828-2bb7b6850d06 h1:HGL+LQk5fGU5Cd/mS0L5PHPgXOD3bE0iV/4WPM+Jfo4=
 github.com/concourse/dex v0.0.0-20180906143828-2bb7b6850d06/go.mod h1:STWtPbe/d8ON/IO5kVxR3e9CkGxPFb1Oe9yMCBs5pAs=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c h1:SwMKBc36jGTSS5/3AqVtbRjbGTvDfR3pJ5MkzfiYSas=
@@ -410,6 +413,8 @@ github.com/opencontainers/selinux v1.0.0-rc1 h1:Q70KvmpJSrYzryl/d0tC3vWUiTn23cSd
 github.com/opencontainers/selinux v1.0.0-rc1/go.mod h1:+BLncwf63G4dgOzykXAxcmnFlUaOlkDdmw/CqsW6pjs=
 github.com/ory/dockertest v3.3.2+incompatible h1:uO+NcwH6GuFof/Uz8yzjNi1g0sGT5SLAJbdBvD8bUYc=
 github.com/ory/dockertest v3.3.2+incompatible/go.mod h1:1vX4m9wsvi00u5bseYwXaSnhNrne+V0E6LAcBILJdPs=
+github.com/otiai10/copy v0.0.0-20180813032824-7e9a647135a1/go.mod h1:pXzZSDlN+HPzSdyIBnKNN9ptD9Hx7iZMWIJPTwo4FPE=
+github.com/otiai10/mint v1.2.1/go.mod h1:YnfyPNhBvnY8bW4SGQHCs/aAFhkgySlMZbrF5U0bOVw=
 github.com/papertrail/remote_syslog2 v0.0.0-20170912230402-5bae4a1ac1c2 h1:jyEKV+Fvg1mgmvjp10Ybcia7Odslj+r7MTcZgl+/LNw=
 github.com/papertrail/remote_syslog2 v0.0.0-20170912230402-5bae4a1ac1c2/go.mod h1:bKQTGf39M2hRwOZCSh/I+LoV6PUW857XAAwzYQKqeBw=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c h1:Lgl0gzECD8GnQ5QCWA8o6BtfL6mDH5rQgM4/fX3avOs=
@@ -530,6 +535,7 @@ golang.org/x/sys v0.0.0-20180905080454-ebe1bf3edb33/go.mod h1:STP8DvDyc/dI5b8T5h
 golang.org/x/sys v0.0.0-20180909124046-d0be0721c37e/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20180918153733-ee1b12c67af4 h1:h8ij2QOL81JqJ/Vi5Ru+hl4a1yct8+XDGrgBhG0XbuE=
 golang.org/x/sys v0.0.0-20180918153733-ee1b12c67af4/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+golang.org/x/sys v0.0.0-20180919162611-1561086e645b/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/text v0.0.0-20170401064109-f4b4367115ec/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.0 h1:g61tztE5qeGQ89tm6NTjjM9VPIm088od1l6aSorWRWg=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
