@@ -66,9 +66,6 @@ func (runner *workerJobRunner) Try(logger lager.Logger, workerName string, job J
 
 	if !found {
 		// drop the job on the floor; it'll be queued up again later
-		//TODO: move this over to container collector, as we only need the
-		//worker to be running if the container to be GC'd is hijacked
-		//so we shouldn't be dropping every job for non-running workers
 		logger.Info("worker-not-found")
 		return
 	}

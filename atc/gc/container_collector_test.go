@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/gc"
 	"github.com/concourse/concourse/atc/gc/gcfakes"
+	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
 	"code.cloudfoundry.org/garden"
@@ -22,14 +23,19 @@ import (
 var _ = Describe("ContainerCollector", func() {
 	var (
 		fakeContainerRepository *dbfakes.FakeContainerRepository
+		fakeWorkerProvider      *workerfakes.FakeWorkerProvider
 		fakeJobRunner           *gcfakes.FakeWorkerJobRunner
+
+		jobRunner gc.WorkerJobRunner
 
 		fakeWorker       *workerfakes.FakeWorker
 		fakeGardenClient *gardenfakes.FakeClient
 
 		creatingContainer *dbfakes.FakeCreatingContainer
 
-		collector gc.Collector
+		collector     gc.Collector
+		realCollector gc.Collector
+		fakeCollector gc.Collector
 	)
 
 	BeforeEach(func() {
@@ -38,13 +44,23 @@ var _ = Describe("ContainerCollector", func() {
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeGardenClient = new(gardenfakes.FakeClient)
 		fakeWorker.GardenClientReturns(fakeGardenClient)
+
+		fakeWorkerProvider = new(workerfakes.FakeWorkerProvider)
+
+		logger = lagertest.NewTestLogger("test")
+
+		jobRunner = gc.NewWorkerJobRunner(logger, fakeWorkerProvider, time.Second)
 		fakeJobRunner = new(gcfakes.FakeWorkerJobRunner)
 		fakeJobRunner.TryStub = func(logger lager.Logger, workerName string, job gc.Job) {
 			job.Run(fakeWorker)
 		}
 
-		logger = lagertest.NewTestLogger("test")
-		collector = gc.NewContainerCollector(
+		realCollector = gc.NewContainerCollector(
+			fakeContainerRepository,
+			jobRunner,
+		)
+
+		fakeCollector = gc.NewContainerCollector(
 			fakeContainerRepository,
 			fakeJobRunner,
 		)
@@ -57,6 +73,10 @@ var _ = Describe("ContainerCollector", func() {
 
 		JustBeforeEach(func() {
 			err = collector.Run(context.TODO())
+		})
+
+		BeforeEach(func() {
+			collector = fakeCollector
 		})
 
 		It("succeeds", func() {
@@ -123,6 +143,45 @@ var _ = Describe("ContainerCollector", func() {
 				)
 			})
 
+			Context("when there are created containers in non-hijacked state", func() {
+				BeforeEach(func() {
+					collector = realCollector
+					createdContainer.IsHijackedReturns(false)
+				})
+
+				Context("when the worker is running", func() {
+					BeforeEach(func() {
+						fakeWorkerProvider.RunningWorkersReturns([]worker.Worker{fakeWorker}, nil)
+					})
+
+					It("succeeds", func() {
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("marks the container as destroying", func() {
+						Eventually(func() int {
+							return createdContainer.DestroyingCallCount()
+						}).Should(Equal(1))
+					})
+				})
+
+				Context("when the worker is not running", func() {
+					BeforeEach(func() {
+						fakeWorkerProvider.RunningWorkersReturns([]worker.Worker{}, nil)
+					})
+
+					It("succeeds", func() {
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("marks the container as destroying", func() {
+						Eventually(func() int {
+							return createdContainer.DestroyingCallCount()
+						}).Should(Equal(1))
+					})
+				})
+			})
+
 			Context("when there are created containers in hijacked state", func() {
 				var (
 					fakeGardenContainer *gardenfakes.FakeContainer
@@ -167,7 +226,10 @@ var _ = Describe("ContainerCollector", func() {
 			It("marks all found containers (created and destroying only, no creating) as destroying", func() {
 				Expect(fakeContainerRepository.FindOrphanedContainersCallCount()).To(Equal(1))
 
-				Expect(createdContainer.DestroyingCallCount()).To(Equal(1))
+				Eventually(func() int {
+					return createdContainer.DestroyingCallCount()
+				}).Should(Equal(1))
+
 				Expect(destroyingContainerFromCreated.DestroyCallCount()).To(Equal(0))
 
 				Expect(destroyingContainer.DestroyCallCount()).To(Equal(0))

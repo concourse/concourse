@@ -134,12 +134,14 @@ func (c *containerCollector) cleanupOrphanedContainers(logger lager.Logger) erro
 	}
 
 	for worker, createdContainers := range workerCreatedContainers {
+		go destroyNonHijackedCreatedContainers(logger, createdContainers)
+
 		// prevent closure from capturing last value of loop
 		c.jobRunner.Try(logger,
 			worker,
 			&job{
-				JobName: fmt.Sprintf("created-containers-%d", len(createdContainers)),
-				RunFunc: destroyCreatedContainers(logger, createdContainers),
+				JobName: fmt.Sprintf("destroy-hijacked-containers"),
+				RunFunc: destroyHijackedCreatedContainers(logger, createdContainers),
 			},
 		)
 	}
@@ -147,33 +149,41 @@ func (c *containerCollector) cleanupOrphanedContainers(logger lager.Logger) erro
 	return nil
 }
 
-func destroyCreatedContainers(logger lager.Logger, containers []db.CreatedContainer) func(worker.Worker) {
+func destroyNonHijackedCreatedContainers(logger lager.Logger, containers []db.CreatedContainer) {
+	cLog := logger.Session("mark-created-as-destroying")
+
+	for _, container := range containers {
+		if container.IsHijacked() {
+			continue
+		}
+
+		_, err := container.Destroying()
+		if err != nil {
+			cLog.Error("failed-to-transition", err, lager.Data{
+				"container": container.Handle(),
+			})
+			return
+		}
+	}
+}
+
+func destroyHijackedCreatedContainers(logger lager.Logger, containers []db.CreatedContainer) func(worker.Worker) {
 	return func(workerClient worker.Worker) {
+		cLog := logger.Session("mark-hijacked-container", lager.Data{
+			"worker": workerClient.Name(),
+		})
 
 		for _, container := range containers {
-			var err error
-			if container.IsHijacked() {
-				cLog := logger.Session("mark-hijacked-container", lager.Data{
-					"container": container.Handle(),
-					"worker":    workerClient.Name(),
-				})
+			if !container.IsHijacked() {
+				continue
+			}
 
-				_, err = markHijackedContainerAsDestroying(cLog, container, workerClient.GardenClient())
-				if err != nil {
-					cLog.Error("failed-to-transition", err)
-					return
-				}
-			} else {
-				cLog := logger.Session("mark-created-as-destroying", lager.Data{
+			_, err := markHijackedContainerAsDestroying(cLog, container, workerClient.GardenClient())
+			if err != nil {
+				cLog.Error("failed-to-transition", err, lager.Data{
 					"container": container.Handle(),
-					"worker":    workerClient.Name(),
 				})
-
-				_, err = container.Destroying()
-				if err != nil {
-					cLog.Error("failed-to-transition", err)
-					return
-				}
+				return
 			}
 		}
 	}
