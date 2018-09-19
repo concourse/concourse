@@ -1,0 +1,14 @@
+---
+platform: windows
+
+inputs:
+- name: concourse
+
+params:
+  PACKAGE:
+
+run:
+  path: powershell.exe
+  args:
+  - -File
+  - '.\concourse\ci\scripts\choco-install.ps1'
