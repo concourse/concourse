@@ -10,8 +10,6 @@ inputs:
 
 caches:
 - path: gopath
-- path: concourse/web/node_modules
-- path: concourse/web/elm/elm-stuff
 
 run:
   path: concourse/ci/tasks/scripts/unit
