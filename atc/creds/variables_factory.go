@@ -2,11 +2,13 @@ package creds
 
 import "github.com/cloudfoundry/bosh-cli/director/template"
 
-//go:generate counterfeiter . VariablesFactory Variables
+//go:generate counterfeiter . VariablesFactory
 
 type VariablesFactory interface {
 	NewVariables(string, string) Variables
 }
+
+//go:generate counterfeiter . Variables
 
 type Variables interface {
 	Get(template.VariableDefinition) (interface{}, bool, error)
