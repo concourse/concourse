@@ -10,7 +10,7 @@
   },
   "devDependencies": {
     "elm-format": "^0.8.0",
-    "elm-test": "^0.8.12",
+    "elm-test": "^0.18.12",
     "elm": "^0.18.0",
     "uglify-js": "^3.3.22",
     "less": "^3.0.2",

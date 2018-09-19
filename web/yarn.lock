@@ -516,7 +516,7 @@ elm-format@^0.8.0:
   dependencies:
     binwrap "^0.2.0"
 
-elm-test@^0.8.12:
+elm-test@^0.18.12:
   version "0.18.12"
   resolved "https://registry.yarnpkg.com/elm-test/-/elm-test-0.18.12.tgz#8586a056980eb383fd35ad2ef2b74a6ee4c410f7"
   dependencies:
