@@ -1,7 +1,7 @@
 #!/bin/bash
 # vim: set ft=sh
 
-set -e -x
+set -e -u
 
 export GOPATH=$PWD/gopath
 export PATH=$GOPATH/bin:$PATH
@@ -17,4 +17,4 @@ go mod download
 
 go install github.com/onsi/ginkgo/ginkgo
 
-ginkgo -r -p -race ./atc "$@"
+ginkgo -r -p -race -skipPackage testflight "$@"
