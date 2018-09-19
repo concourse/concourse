@@ -1,0 +1,19 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: concourse/unit}
+
+inputs:
+- name: concourse
+
+outputs:
+- name: built-concourse
+
+caches:
+- path: concourse/web/node_modules
+- path: concourse/web/elm/elm-stuff
+
+run:
+  path: concourse/ci/tasks/scripts/make

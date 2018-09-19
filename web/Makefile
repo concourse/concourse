@@ -20,7 +20,7 @@ public/elm.min.js: public/elm.js
 	uglifyjs < $< > $@
 
 test: all
-	cd elm && elm-test
+	cd elm && elm test
 
 test-watch: all
-	cd elm && elm-test --watch
+	cd elm && elm test --watch

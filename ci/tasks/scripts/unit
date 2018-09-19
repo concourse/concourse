@@ -21,12 +21,6 @@ cd concourse
 
 go mod download
 
-pushd web
-  stty columns 80
-  yarn
-  PATH=$(yarn bin):$PATH make
-popd
-
 go install github.com/onsi/ginkgo/ginkgo
 
 ginkgo -r -p -race -skipPackage testflight "$@"
