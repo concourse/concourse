@@ -534,7 +534,7 @@ var _ = Describe("Resource", func() {
 
 			Context("when a version is disabled", func() {
 				BeforeEach(func() {
-					err := pipeline.DisableResourceVersion(resource.ID(), resourceVersions[9].ID)
+					err := resource.DisableVersion(resourceVersions[9].ID)
 					Expect(err).ToNot(HaveOccurred())
 
 					resourceVersions[9].Enabled = false
@@ -773,7 +773,7 @@ var _ = Describe("Resource", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				err = pipeline.DisableResourceVersion(resource.ID(), rcv.ID())
+				err = resource.DisableVersion(rcv.ID())
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -781,6 +781,57 @@ var _ = Describe("Resource", func() {
 				isResourceDisabled, err := resource.IsVersionDisabled(version)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(isResourceDisabled).To(BeTrue())
+			})
+		})
+	})
+
+	Describe("EnableVersion/DisableVersion", func() {
+		version := atc.Version{"version": "some-version"}
+		var resourceConfig db.ResourceConfig
+		var resource db.Resource
+
+		BeforeEach(func() {
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			brt := db.BaseResourceType{
+				Name: "git",
+			}
+			_, err = brt.FindOrCreate(setupTx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "git", atc.Source{"some": "other-repository"}, creds.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			err = resourceConfig.SaveVersions([]atc.Version{version})
+			Expect(err).ToNot(HaveOccurred())
+
+			var found bool
+			resource, found, err = pipeline.Resource("some-other-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			err = resource.SetResourceConfig(resourceConfig.ID())
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when disabling the resource version", func() {
+			BeforeEach(func() {
+				err := resource.DisableVersion(resourceConfig.ID())
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should disable the version", func() {
+				Expect(resource.IsVersionDisabled(version)).To(BeTrue())
+			})
+
+			Context("when enabling the resource version", func() {
+				It("should enable the version", func() {
+					err := resource.EnableVersion(resourceConfig.ID())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(resource.IsVersionDisabled(version)).To(BeFalse())
+				})
 			})
 		})
 	})

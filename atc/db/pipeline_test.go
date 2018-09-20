@@ -1160,7 +1160,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(otherPipelineSavedVR.Version()).To(Equal(db.Version{"version": "3"}))
 
 			By("including disabled versions")
-			err = dbPipeline.DisableResourceVersion(resource.ID(), savedVR2.ID())
+			err = resource.DisableVersion(savedVR2.ID())
 			Expect(err).ToNot(HaveOccurred())
 
 			latestVR, found, err := resourceConfig.LatestVersion()
@@ -1171,11 +1171,11 @@ var _ = Describe("Pipeline", func() {
 		})
 
 		Describe("enabling and disabling versioned resources", func() {
-			It("returns an error if the resource or version is bogus", func() {
-				err := dbPipeline.EnableResourceVersion(42, 42)
+			It("returns an error if the version is bogus", func() {
+				err := resource.EnableVersion(42)
 				Expect(err).To(HaveOccurred())
 
-				err = dbPipeline.DisableResourceVersion(42, 42)
+				err = resource.DisableVersion(42)
 				Expect(err).To(HaveOccurred())
 			})
 
@@ -1189,7 +1189,7 @@ var _ = Describe("Pipeline", func() {
 
 				Expect(savedRCV.Version()).To(Equal(db.Version{"version": "1"}))
 
-				err = dbPipeline.DisableResourceVersion(resource.ID(), savedRCV.ID())
+				err = resource.DisableVersion(savedRCV.ID())
 				Expect(err).ToNot(HaveOccurred())
 
 				latestVR, found, err := resourceConfig.LatestVersion()
@@ -1197,7 +1197,7 @@ var _ = Describe("Pipeline", func() {
 				Expect(found).To(BeTrue())
 				Expect(latestVR.Version()).To(Equal(db.Version{"version": "1"}))
 
-				err = dbPipeline.EnableResourceVersion(resource.ID(), savedRCV.ID())
+				err = resource.EnableVersion(savedRCV.ID())
 				Expect(err).ToNot(HaveOccurred())
 
 				latestVR, found, err = resourceConfig.LatestVersion()
@@ -1405,13 +1405,13 @@ var _ = Describe("Pipeline", func() {
 				err = build1.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = pipelineDB.DisableResourceVersion(resource.ID(), disabledVersion.ID())
+				err = resource.DisableVersion(disabledVersion.ID())
 				Expect(err).ToNot(HaveOccurred())
 
-				err = pipelineDB.DisableResourceVersion(resource.ID(), enabledVersion.ID())
+				err = resource.DisableVersion(enabledVersion.ID())
 				Expect(err).ToNot(HaveOccurred())
 
-				err = pipelineDB.EnableResourceVersion(resource.ID(), enabledVersion.ID())
+				err = resource.EnableVersion(enabledVersion.ID())
 				Expect(err).ToNot(HaveOccurred())
 
 				versions, err := pipelineDB.LoadVersionsDB()
@@ -1651,14 +1651,14 @@ var _ = Describe("Pipeline", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				err = pipeline.DisableResourceVersion(savedResource.ID(), rcv.ID())
+				err = savedResource.DisableVersion(rcv.ID())
 				Expect(err).ToNot(HaveOccurred())
 
 				cachedVersionsDB, err := pipeline.LoadVersionsDB()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(versionsDB != cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be different objects")
 
-				err = pipeline.EnableResourceVersion(savedResource.ID(), rcv.ID())
+				err = savedResource.EnableVersion(rcv.ID())
 				Expect(err).ToNot(HaveOccurred())
 
 				cachedVersionsDB2, err := pipeline.LoadVersionsDB()
@@ -2436,7 +2436,7 @@ var _ = Describe("Pipeline", func() {
 
 		Context("when a resource is not enabled", func() {
 			BeforeEach(func() {
-				err := pipeline.DisableResourceVersion(resource.ID(), resourceConfigVersion.ID())
+				err := resource.DisableVersion(resourceConfigVersion.ID())
 				Expect(err).ToNot(HaveOccurred())
 
 				resourceVersion.Enabled = false

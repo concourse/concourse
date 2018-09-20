@@ -56,8 +56,6 @@ type Pipeline interface {
 	GetVersionedResourceByVersion(atcVersion atc.Version, resourceName string) (SavedVersionedResource, bool, error)
 
 	ResourceVersion(resourceConfigVersionID int) (atc.ResourceVersion, bool, error)
-	DisableResourceVersion(int, int) error
-	EnableResourceVersion(int, int) error
 	GetBuildsWithVersionAsInput(int, int) ([]Build, error)
 	GetBuildsWithVersionAsOutput(int, int) ([]Build, error)
 	Builds(page Page) ([]Build, Pagination, error)
@@ -686,14 +684,6 @@ func (p *pipeline) ResourceVersion(resourceConfigVersionID int) (atc.ResourceVer
 	}
 
 	return rv, true, nil
-}
-
-func (p *pipeline) DisableResourceVersion(resourceID int, resourceConfigVersionID int) error {
-	return p.toggleResourceVersion(resourceID, resourceConfigVersionID, false)
-}
-
-func (p *pipeline) EnableResourceVersion(resourceID int, resourceConfigVersionID int) error {
-	return p.toggleResourceVersion(resourceID, resourceConfigVersionID, true)
 }
 
 func (p *pipeline) GetBuildsWithVersionAsInput(resourceID, resourceConfigVersionID int) ([]Build, error) {
@@ -1387,50 +1377,6 @@ func (p *pipeline) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, re
 		AND version = $3
 		AND check_order <= mc.co;`, resourceID, resourceType, version)
 	return err
-}
-
-func (p *pipeline) toggleResourceVersion(resourceID int, rcvID int, enable bool) error {
-	tx, err := p.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer Rollback(tx)
-
-	var results sql.Result
-	if enable {
-		results, err = tx.Exec(`
-			DELETE FROM resource_disabled_versions
-			WHERE resource_id = $1
-			AND version_md5 = (SELECT version_md5 FROM resource_config_versions rcv WHERE rcv.id = $2)
-			`, resourceID, rcvID)
-	} else {
-		results, err = tx.Exec(`
-			INSERT INTO resource_disabled_versions (resource_id, version_md5)
-			SELECT $1, rcv.version_md5
-			FROM resource_config_versions rcv
-			WHERE rcv.id = $2
-			`, resourceID, rcvID)
-	}
-	if err != nil {
-		return err
-	}
-
-	rowsAffected, err := results.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
-	}
-
-	err = bumpCacheIndex(tx, p.id)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
 }
 
 func (p *pipeline) getBuildsFrom(col string) (map[string]Build, error) {

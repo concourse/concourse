@@ -317,15 +317,14 @@ var _ = Describe("Versions API", func() {
 						fakePipeline.ResourceReturns(fakeResource, true, nil)
 					})
 
+					It("tries to enable the right resource config version", func() {
+						resourceConfigVersionID := fakeResource.EnableVersionArgsForCall(0)
+						Expect(resourceConfigVersionID).To(Equal(42))
+					})
+
 					Context("when enabling the resource succeeds", func() {
 						BeforeEach(func() {
-							fakePipeline.EnableResourceVersionReturns(nil)
-						})
-
-						It("enabled the right versioned resource", func() {
-							resourceID, resourceConfigVersionID := fakePipeline.EnableResourceVersionArgsForCall(0)
-							Expect(resourceID).To(Equal(1))
-							Expect(resourceConfigVersionID).To(Equal(42))
+							fakeResource.EnableVersionReturns(nil)
 						})
 
 						It("returns 200", func() {
@@ -335,7 +334,7 @@ var _ = Describe("Versions API", func() {
 
 					Context("when enabling the resource fails", func() {
 						BeforeEach(func() {
-							fakePipeline.EnableResourceVersionReturns(errors.New("welp"))
+							fakeResource.EnableVersionReturns(errors.New("welp"))
 						})
 
 						It("returns 500", func() {
@@ -422,15 +421,14 @@ var _ = Describe("Versions API", func() {
 						fakePipeline.ResourceReturns(fakeResource, true, nil)
 					})
 
-					Context("when disabling the resource succeeds", func() {
-						BeforeEach(func() {
-							fakePipeline.DisableResourceVersionReturns(nil)
-						})
+					It("tries to disable the right resource config version", func() {
+						resourceConfigVersionID := fakeResource.DisableVersionArgsForCall(0)
+						Expect(resourceConfigVersionID).To(Equal(42))
+					})
 
-						It("disabled the right versioned resource", func() {
-							resourceID, resourceConfigVersionID := fakePipeline.DisableResourceVersionArgsForCall(0)
-							Expect(resourceID).To(Equal(1))
-							Expect(resourceConfigVersionID).To(Equal(42))
+					Context("when disabling the resource version succeeds", func() {
+						BeforeEach(func() {
+							fakeResource.DisableVersionReturns(nil)
 						})
 
 						It("returns 200", func() {
@@ -440,7 +438,7 @@ var _ = Describe("Versions API", func() {
 
 					Context("when enabling the resource fails", func() {
 						BeforeEach(func() {
-							fakePipeline.DisableResourceVersionReturns(errors.New("welp"))
+							fakeResource.DisableVersionReturns(errors.New("welp"))
 						})
 
 						It("returns 500", func() {

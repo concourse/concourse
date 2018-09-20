@@ -18,6 +18,7 @@ import (
 type Resource interface {
 	ID() int
 	Name() string
+	PipelineID() int
 	PipelineName() string
 	TeamName() string
 	Type() string
@@ -37,6 +38,9 @@ type Resource interface {
 	ResourceConfigVersionID(atc.Version) (int, bool, error)
 	Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error)
 	IsVersionDisabled(version atc.Version) (bool, error)
+
+	EnableVersion(rcvID int) error
+	DisableVersion(rcvID int) error
 
 	SetResourceConfig(int) error
 	SetCheckError(error) error
@@ -423,6 +427,58 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 	}
 
 	return rvs, pagination, true, nil
+}
+
+func (r *resource) EnableVersion(rcvID int) error {
+	return r.toggleVersion(rcvID, true)
+}
+
+func (r *resource) DisableVersion(rcvID int) error {
+	return r.toggleVersion(rcvID, false)
+}
+
+func (r *resource) toggleVersion(rcvID int, enable bool) error {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	var results sql.Result
+	if enable {
+		results, err = tx.Exec(`
+			DELETE FROM resource_disabled_versions
+			WHERE resource_id = $1
+			AND version_md5 = (SELECT version_md5 FROM resource_config_versions rcv WHERE rcv.id = $2)
+			`, r.id, rcvID)
+	} else {
+		results, err = tx.Exec(`
+			INSERT INTO resource_disabled_versions (resource_id, version_md5)
+			SELECT $1, rcv.version_md5
+			FROM resource_config_versions rcv
+			WHERE rcv.id = $2
+			`, r.id, rcvID)
+	}
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := results.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected != 1 {
+		return nonOneRowAffectedError{rowsAffected}
+	}
+
+	err = bumpCacheIndex(tx, r.pipelineID)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func scanResource(r *resource, row scannable) error {

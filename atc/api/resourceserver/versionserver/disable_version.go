@@ -30,7 +30,7 @@ func (s *Server) DisableResourceVersion(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		err = pipeline.DisableResourceVersion(resource.ID(), resourceConfigVersionID)
+		err = resource.DisableVersion(resourceConfigVersionID)
 		if err != nil {
 			logger.Error("failed-to-disable-resource-version", err)
 			w.WriteHeader(http.StatusInternalServerError)
