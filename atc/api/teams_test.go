@@ -68,7 +68,7 @@ var _ = Describe("Teams API", func() {
 			fakeTeamOne.IDReturns(5)
 			fakeTeamOne.NameReturns(teamNames[0])
 			fakeTeamOne.AuthReturns(atc.TeamAuth{
-				"admin": atc.TeamRole{
+				"owner": atc.TeamRole{
 					"groups": []string{}, "users": []string{"local:username"},
 				},
 			})
@@ -76,7 +76,7 @@ var _ = Describe("Teams API", func() {
 			fakeTeamTwo.IDReturns(9)
 			fakeTeamTwo.NameReturns(teamNames[1])
 			fakeTeamTwo.AuthReturns(atc.TeamAuth{
-				"admin": atc.TeamRole{
+				"owner": atc.TeamRole{
 					"groups": []string{}, "users": []string{"local:username"},
 				},
 			})
@@ -84,13 +84,13 @@ var _ = Describe("Teams API", func() {
 			fakeTeamThree.IDReturns(22)
 			fakeTeamThree.NameReturns(teamNames[2])
 			fakeTeamThree.AuthReturns(atc.TeamAuth{
-				"admin": atc.TeamRole{
+				"owner": atc.TeamRole{
 					"groups": []string{}, "users": []string{"local:username"},
 				},
 			})
 		})
 
-		Context("when the requester is an admin user", func() {
+		Context("when the requester is an admin", func() {
 			BeforeEach(func() {
 				fakeaccess.IsAdminReturns(true)
 
@@ -106,23 +106,23 @@ var _ = Describe("Teams API", func() {
  					{
  						"id": 5,
  						"name": "avengers",
-						"auth": { "admin":{"users":["local:username"],"groups":[]}}
+						"auth": { "owner":{"users":["local:username"],"groups":[]}}
  					},
  					{
  						"id": 9,
  						"name": "aliens",
-						"auth": { "admin":{"users":["local:username"],"groups":[]}}
+						"auth": { "owner":{"users":["local:username"],"groups":[]}}
 					},
  					{
  						"id": 22,
  						"name": "predators",
-						"auth": { "admin":{"users":["local:username"],"groups":[]}}
+						"auth": { "owner":{"users":["local:username"],"groups":[]}}
 					}
  				]`))
 			})
 		})
 
-		Context("when the requester is NOT an admin user", func() {
+		Context("when the requester is NOT an admin", func() {
 			BeforeEach(func() {
 				fakeaccess.IsAdminReturns(false)
 
@@ -141,12 +141,12 @@ var _ = Describe("Teams API", func() {
  					{
  						"id": 5,
  						"name": "avengers",
-						"auth": { "admin":{"users":["local:username"],"groups":[]}}
+						"auth": { "owner":{"users":["local:username"],"groups":[]}}
  					},
  					{
  						"id": 22,
  						"name": "predators",
-						"auth": { "admin":{"users":["local:username"],"groups":[]}}
+						"auth": { "owner":{"users":["local:username"],"groups":[]}}
  					}
  				]`))
 			})
@@ -195,7 +195,7 @@ var _ = Describe("Teams API", func() {
 				BeforeEach(func() {
 					atcTeam = atc.Team{
 						Auth: atc.TeamAuth{
-							"admin": atc.TeamRole{
+							"owner": atc.TeamRole{
 								"users": []string{"local:username"},
 							},
 						},

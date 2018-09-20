@@ -16,14 +16,14 @@ var _ = Describe("Add team roles", func() {
 	)
 
 	Context("Up", func() {
-		It("successfully adds the default 'admin' role to existing team auth", func() {
+		It("successfully adds the default 'owner' role to existing team auth", func() {
 
 			db = postgresRunner.OpenDBAtVersion(preMigrationVersion)
 			SetupTeam(db, "main", `{"users": ["local:user1"], "groups": [] }`)
 			db.Close()
 
 			db = postgresRunner.OpenDBAtVersion(postMigrationVersion)
-			ExpectTeamWithUsersAndGroupsForRole(db, "main", "admin", []string{"local:user1"}, []string{})
+			ExpectTeamWithUsersAndGroupsForRole(db, "main", "owner", []string{"local:user1"}, []string{})
 			db.Close()
 
 		})
@@ -33,7 +33,7 @@ var _ = Describe("Add team roles", func() {
 		It("successfully removes roles from team auth", func() {
 
 			db = postgresRunner.OpenDBAtVersion(postMigrationVersion)
-			SetupTeam(db, "main", `{ "admin": {"users": ["local:user1"], "groups": [] }}`)
+			SetupTeam(db, "main", `{ "owner": {"users": ["local:user1"], "groups": [] }}`)
 			db.Close()
 
 			db = postgresRunner.OpenDBAtVersion(preMigrationVersion)

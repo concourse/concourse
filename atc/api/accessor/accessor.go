@@ -36,7 +36,7 @@ func (a *access) IsAuthorized(team string) bool {
 
 		if len(teamParts) == 1 {
 			teamName = teamParts[0]
-			roleName = "admin"
+			roleName = "owner"
 
 		} else if len(teamParts) > 1 {
 			teamName = teamParts[0]
@@ -52,12 +52,12 @@ func (a *access) IsAuthorized(team string) bool {
 
 func (a *access) HasPermission(role string) bool {
 	switch requiredRoles[a.action] {
-	case "admin":
-		return role == "admin"
+	case "owner":
+		return role == "owner"
 	case "member":
-		return role == "admin" || role == "member"
+		return role == "owner" || role == "member"
 	case "viewer":
-		return role == "admin" || role == "member" || role == "viewer"
+		return role == "owner" || role == "member" || role == "viewer"
 	default:
 		return false
 	}
@@ -203,9 +203,9 @@ var requiredRoles = map[string]string{
 	atc.ListDestroyingVolumes:         "viewer",
 	atc.ReportWorkerVolumes:           "member",
 	atc.ListTeams:                     "viewer",
-	atc.SetTeam:                       "admin",
-	atc.RenameTeam:                    "admin",
-	atc.DestroyTeam:                   "admin",
+	atc.SetTeam:                       "owner",
+	atc.RenameTeam:                    "owner",
+	atc.DestroyTeam:                   "owner",
 	atc.ListTeamBuilds:                "viewer",
 	atc.SendInputToBuildPlan:          "member",
 	atc.ReadOutputFromBuildPlan:       "member",

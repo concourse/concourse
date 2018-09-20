@@ -86,7 +86,7 @@ var _ = Describe("Fly CLI", func() {
 				cmdParams = []string{"--allow-all-users"}
 				confirmHandlers()
 			})
-			It("displays the default admin role", func() {
+			It("displays the default owner role", func() {
 
 				stdin, err := flyCmd.StdinPipe()
 				Expect(err).NotTo(HaveOccurred())
@@ -95,7 +95,7 @@ var _ = Describe("Fly CLI", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-				Eventually(sess.Out).Should(gbytes.Say("Role: admin"))
+				Eventually(sess.Out).Should(gbytes.Say("Role: owner"))
 				Eventually(sess.Out).Should(gbytes.Say("Users:"))
 				Eventually(sess.Out).Should(gbytes.Say("- none"))
 				Eventually(sess.Out).Should(gbytes.Say("Groups:"))
@@ -123,7 +123,7 @@ var _ = Describe("Fly CLI", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-					Eventually(sess.Out).Should(gbytes.Say("Role: admin"))
+					Eventually(sess.Out).Should(gbytes.Say("Role: owner"))
 					Eventually(sess.Out).Should(gbytes.Say("Users:"))
 					Eventually(sess.Out).Should(gbytes.Say("- none"))
 					Eventually(sess.Out).Should(gbytes.Say("Groups:"))
@@ -152,7 +152,7 @@ var _ = Describe("Fly CLI", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-					Eventually(sess.Out).Should(gbytes.Say("Role: admin"))
+					Eventually(sess.Out).Should(gbytes.Say("Role: owner"))
 					Eventually(sess.Out).Should(gbytes.Say("Users:"))
 					Eventually(sess.Out).Should(gbytes.Say("- local:brock-samson"))
 					Eventually(sess.Out).Should(gbytes.Say("Groups:"))
@@ -178,7 +178,7 @@ var _ = Describe("Fly CLI", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-				Eventually(sess.Out).Should(gbytes.Say("Role: admin"))
+				Eventually(sess.Out).Should(gbytes.Say("Role: owner"))
 				Eventually(sess.Out).Should(gbytes.Say("Users:"))
 				Eventually(sess.Out).Should(gbytes.Say("- local:brock-samson"))
 				Eventually(sess.Out).Should(gbytes.Say("Groups:"))
@@ -198,7 +198,7 @@ var _ = Describe("Fly CLI", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-				Eventually(sess.Out).Should(gbytes.Say("Role: admin"))
+				Eventually(sess.Out).Should(gbytes.Say("Role: owner"))
 				Eventually(sess.Out).Should(gbytes.Say("Users:"))
 				Eventually(sess.Out).Should(gbytes.Say("- github:samsonite"))
 				Eventually(sess.Out).Should(gbytes.Say("Groups:"))
@@ -219,7 +219,7 @@ var _ = Describe("Fly CLI", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-				Eventually(sess.Out).Should(gbytes.Say("Role: admin"))
+				Eventually(sess.Out).Should(gbytes.Say("Role: owner"))
 				Eventually(sess.Out).Should(gbytes.Say("Users:"))
 				Eventually(sess.Out).Should(gbytes.Say("- cf:my-username"))
 				Eventually(sess.Out).Should(gbytes.Say("Groups:"))
@@ -241,7 +241,7 @@ var _ = Describe("Fly CLI", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-				Eventually(sess.Out).Should(gbytes.Say("Role: admin"))
+				Eventually(sess.Out).Should(gbytes.Say("Role: owner"))
 				Eventually(sess.Out).Should(gbytes.Say("Users:"))
 				Eventually(sess.Out).Should(gbytes.Say("- ldap:my-username"))
 				Eventually(sess.Out).Should(gbytes.Say("Groups:"))
@@ -263,7 +263,7 @@ var _ = Describe("Fly CLI", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-				Eventually(sess.Out).Should(gbytes.Say("Role: admin"))
+				Eventually(sess.Out).Should(gbytes.Say("Role: owner"))
 				Eventually(sess.Out).Should(gbytes.Say("Users:"))
 				Eventually(sess.Out).Should(gbytes.Say("- none"))
 				Eventually(sess.Out).Should(gbytes.Say("Groups:"))
@@ -393,7 +393,7 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.VerifyRequest("PUT", "/api/v1/teams/venture"),
 						ghttp.VerifyJSON(`{
 							"auth": {
-								"admin":{
+								"owner":{
 									"users": [
 										"local:brock-obama"
 									],

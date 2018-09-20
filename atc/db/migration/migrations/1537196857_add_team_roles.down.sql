@@ -1,3 +1,3 @@
 BEGIN;
-  UPDATE teams SET auth = auth::json->'admin';
+  UPDATE teams SET auth = auth::json->'owner';
 COMMIT;

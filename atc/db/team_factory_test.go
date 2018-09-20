@@ -16,7 +16,7 @@ var _ = Describe("Team Factory", func() {
 		atcTeam = atc.Team{
 			Name: "some-team",
 			Auth: atc.TeamAuth{
-				"admin": {"users": []string{"local:username"}},
+				"owner": {"users": []string{"local:username"}},
 			},
 		}
 	})

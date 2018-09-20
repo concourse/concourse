@@ -170,9 +170,9 @@ var _ = Describe("Accessor", func() {
 			access = accessorFactory.Create(req, atc.SetTeam)
 		})
 
-		Context("when request has team name claim set to some-team:admin", func() {
+		Context("when request has team name claim set to some-team:owner", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"teams": []string{"some-team:admin"}}
+				claims = &jwt.MapClaims{"teams": []string{"some-team:owner"}}
 			})
 			It("returns true", func() {
 				Expect(access.IsAuthorized("some-team")).To(BeTrue())
@@ -183,7 +183,7 @@ var _ = Describe("Accessor", func() {
 			BeforeEach(func() {
 				claims = &jwt.MapClaims{"teams": []string{"some-team"}}
 			})
-			It("returns true and defaults to role 'admin'", func() {
+			It("returns true and defaults to role 'owner'", func() {
 				Expect(access.IsAuthorized("some-team")).To(BeTrue())
 			})
 		})
@@ -206,9 +206,9 @@ var _ = Describe("Accessor", func() {
 			})
 		})
 
-		Context("when request has team name claim set to other team:admin", func() {
+		Context("when request has team name claim set to other team:owner", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"teams": []string{"other-team:admin"}}
+				claims = &jwt.MapClaims{"teams": []string{"other-team:owner"}}
 			})
 			It("returns false", func() {
 				Expect(access.IsAuthorized("some-team")).To(BeFalse())
@@ -313,7 +313,7 @@ var _ = Describe("Accessor", func() {
 		})
 		Context("when request has teams with multiple roles", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"teams": []string{"team-1:admin", "team-1:member", "team-2:viewer"}}
+				claims = &jwt.MapClaims{"teams": []string{"team-1:owner", "team-1:member", "team-2:viewer"}}
 			})
 			It("returns empty list", func() {
 				Expect(access.TeamNames()).To(ConsistOf("team-1", "team-2"))
@@ -332,319 +332,319 @@ var _ = Describe("Accessor", func() {
 
 			Expect(access.IsAuthorized("some-team")).To(Equal(authorized))
 		},
-		Entry("admin :: "+atc.SaveConfig, atc.SaveConfig, "admin", true),
+		Entry("owner :: "+atc.SaveConfig, atc.SaveConfig, "owner", true),
 		Entry("member :: "+atc.SaveConfig, atc.SaveConfig, "member", true),
 		Entry("viewer :: "+atc.SaveConfig, atc.SaveConfig, "viewer", false),
 
-		Entry("admin :: "+atc.GetConfig, atc.GetConfig, "admin", true),
+		Entry("owner :: "+atc.GetConfig, atc.GetConfig, "owner", true),
 		Entry("member :: "+atc.GetConfig, atc.GetConfig, "member", true),
 		Entry("viewer :: "+atc.GetConfig, atc.GetConfig, "viewer", true),
 
-		Entry("admin :: "+atc.GetBuild, atc.GetBuild, "admin", true),
+		Entry("owner :: "+atc.GetBuild, atc.GetBuild, "owner", true),
 		Entry("member :: "+atc.GetBuild, atc.GetBuild, "member", true),
 		Entry("viewer :: "+atc.GetBuild, atc.GetBuild, "viewer", true),
 
-		Entry("admin :: "+atc.GetBuildPlan, atc.GetBuildPlan, "admin", true),
+		Entry("owner :: "+atc.GetBuildPlan, atc.GetBuildPlan, "owner", true),
 		Entry("member :: "+atc.GetBuildPlan, atc.GetBuildPlan, "member", true),
 		Entry("viewer :: "+atc.GetBuildPlan, atc.GetBuildPlan, "viewer", true),
 
-		Entry("admin :: "+atc.CreateBuild, atc.CreateBuild, "admin", true),
+		Entry("owner :: "+atc.CreateBuild, atc.CreateBuild, "owner", true),
 		Entry("member :: "+atc.CreateBuild, atc.CreateBuild, "member", true),
 		Entry("viewer :: "+atc.CreateBuild, atc.CreateBuild, "viewer", false),
 
-		Entry("admin :: "+atc.ListBuilds, atc.ListBuilds, "admin", true),
+		Entry("owner :: "+atc.ListBuilds, atc.ListBuilds, "owner", true),
 		Entry("member :: "+atc.ListBuilds, atc.ListBuilds, "member", true),
 		Entry("viewer :: "+atc.ListBuilds, atc.ListBuilds, "viewer", true),
 
-		Entry("admin :: "+atc.BuildEvents, atc.BuildEvents, "admin", true),
+		Entry("owner :: "+atc.BuildEvents, atc.BuildEvents, "owner", true),
 		Entry("member :: "+atc.BuildEvents, atc.BuildEvents, "member", true),
 		Entry("viewer :: "+atc.BuildEvents, atc.BuildEvents, "viewer", true),
 
-		Entry("admin :: "+atc.BuildResources, atc.BuildResources, "admin", true),
+		Entry("owner :: "+atc.BuildResources, atc.BuildResources, "owner", true),
 		Entry("member :: "+atc.BuildResources, atc.BuildResources, "member", true),
 		Entry("viewer :: "+atc.BuildResources, atc.BuildResources, "viewer", true),
 
-		Entry("admin :: "+atc.AbortBuild, atc.AbortBuild, "admin", true),
+		Entry("owner :: "+atc.AbortBuild, atc.AbortBuild, "owner", true),
 		Entry("member :: "+atc.AbortBuild, atc.AbortBuild, "member", true),
 		Entry("viewer :: "+atc.AbortBuild, atc.AbortBuild, "viewer", false),
 
-		Entry("admin :: "+atc.GetBuildPreparation, atc.GetBuildPreparation, "admin", true),
+		Entry("owner :: "+atc.GetBuildPreparation, atc.GetBuildPreparation, "owner", true),
 		Entry("member :: "+atc.GetBuildPreparation, atc.GetBuildPreparation, "member", true),
 		Entry("viewer :: "+atc.GetBuildPreparation, atc.GetBuildPreparation, "viewer", true),
 
-		Entry("admin :: "+atc.GetJob, atc.GetJob, "admin", true),
+		Entry("owner :: "+atc.GetJob, atc.GetJob, "owner", true),
 		Entry("member :: "+atc.GetJob, atc.GetJob, "member", true),
 		Entry("viewer :: "+atc.GetJob, atc.GetJob, "viewer", true),
 
-		Entry("admin :: "+atc.CreateJobBuild, atc.CreateJobBuild, "admin", true),
+		Entry("owner :: "+atc.CreateJobBuild, atc.CreateJobBuild, "owner", true),
 		Entry("member :: "+atc.CreateJobBuild, atc.CreateJobBuild, "member", true),
 		Entry("viewer :: "+atc.CreateJobBuild, atc.CreateJobBuild, "viewer", false),
 
-		Entry("admin :: "+atc.ListAllJobs, atc.ListAllJobs, "admin", true),
+		Entry("owner :: "+atc.ListAllJobs, atc.ListAllJobs, "owner", true),
 		Entry("member :: "+atc.ListAllJobs, atc.ListAllJobs, "member", true),
 		Entry("viewer :: "+atc.ListAllJobs, atc.ListAllJobs, "viewer", true),
 
-		Entry("admin :: "+atc.ListJobs, atc.ListJobs, "admin", true),
+		Entry("owner :: "+atc.ListJobs, atc.ListJobs, "owner", true),
 		Entry("member :: "+atc.ListJobs, atc.ListJobs, "member", true),
 		Entry("viewer :: "+atc.ListJobs, atc.ListJobs, "viewer", true),
 
-		Entry("admin :: "+atc.ListJobBuilds, atc.ListJobBuilds, "admin", true),
+		Entry("owner :: "+atc.ListJobBuilds, atc.ListJobBuilds, "owner", true),
 		Entry("member :: "+atc.ListJobBuilds, atc.ListJobBuilds, "member", true),
 		Entry("viewer :: "+atc.ListJobBuilds, atc.ListJobBuilds, "viewer", true),
 
-		Entry("admin :: "+atc.ListJobInputs, atc.ListJobInputs, "admin", true),
+		Entry("owner :: "+atc.ListJobInputs, atc.ListJobInputs, "owner", true),
 		Entry("member :: "+atc.ListJobInputs, atc.ListJobInputs, "member", true),
 		Entry("viewer :: "+atc.ListJobInputs, atc.ListJobInputs, "viewer", true),
 
-		Entry("admin :: "+atc.GetJobBuild, atc.GetJobBuild, "admin", true),
+		Entry("owner :: "+atc.GetJobBuild, atc.GetJobBuild, "owner", true),
 		Entry("member :: "+atc.GetJobBuild, atc.GetJobBuild, "member", true),
 		Entry("viewer :: "+atc.GetJobBuild, atc.GetJobBuild, "viewer", true),
 
-		Entry("admin :: "+atc.PauseJob, atc.PauseJob, "admin", true),
+		Entry("owner :: "+atc.PauseJob, atc.PauseJob, "owner", true),
 		Entry("member :: "+atc.PauseJob, atc.PauseJob, "member", true),
 		Entry("viewer :: "+atc.PauseJob, atc.PauseJob, "viewer", false),
 
-		Entry("admin :: "+atc.UnpauseJob, atc.UnpauseJob, "admin", true),
+		Entry("owner :: "+atc.UnpauseJob, atc.UnpauseJob, "owner", true),
 		Entry("member :: "+atc.UnpauseJob, atc.UnpauseJob, "member", true),
 		Entry("viewer :: "+atc.UnpauseJob, atc.UnpauseJob, "viewer", false),
 
-		Entry("admin :: "+atc.GetVersionsDB, atc.GetVersionsDB, "admin", true),
+		Entry("owner :: "+atc.GetVersionsDB, atc.GetVersionsDB, "owner", true),
 		Entry("member :: "+atc.GetVersionsDB, atc.GetVersionsDB, "member", true),
 		Entry("viewer :: "+atc.GetVersionsDB, atc.GetVersionsDB, "viewer", true),
 
-		Entry("admin :: "+atc.JobBadge, atc.JobBadge, "admin", true),
+		Entry("owner :: "+atc.JobBadge, atc.JobBadge, "owner", true),
 		Entry("member :: "+atc.JobBadge, atc.JobBadge, "member", true),
 		Entry("viewer :: "+atc.JobBadge, atc.JobBadge, "viewer", true),
 
-		Entry("admin :: "+atc.MainJobBadge, atc.MainJobBadge, "admin", true),
+		Entry("owner :: "+atc.MainJobBadge, atc.MainJobBadge, "owner", true),
 		Entry("member :: "+atc.MainJobBadge, atc.MainJobBadge, "member", true),
 		Entry("viewer :: "+atc.MainJobBadge, atc.MainJobBadge, "viewer", true),
 
-		Entry("admin :: "+atc.ClearTaskCache, atc.ClearTaskCache, "admin", true),
+		Entry("owner :: "+atc.ClearTaskCache, atc.ClearTaskCache, "owner", true),
 		Entry("member :: "+atc.ClearTaskCache, atc.ClearTaskCache, "member", true),
 		Entry("viewer :: "+atc.ClearTaskCache, atc.ClearTaskCache, "viewer", false),
 
-		Entry("admin :: "+atc.ListAllResources, atc.ListAllResources, "admin", true),
+		Entry("owner :: "+atc.ListAllResources, atc.ListAllResources, "owner", true),
 		Entry("member :: "+atc.ListAllResources, atc.ListAllResources, "member", true),
 		Entry("viewer :: "+atc.ListAllResources, atc.ListAllResources, "viewer", true),
 
-		Entry("admin :: "+atc.ListResources, atc.ListResources, "admin", true),
+		Entry("owner :: "+atc.ListResources, atc.ListResources, "owner", true),
 		Entry("member :: "+atc.ListResources, atc.ListResources, "member", true),
 		Entry("viewer :: "+atc.ListResources, atc.ListResources, "viewer", true),
 
-		Entry("admin :: "+atc.ListResourceTypes, atc.ListResourceTypes, "admin", true),
+		Entry("owner :: "+atc.ListResourceTypes, atc.ListResourceTypes, "owner", true),
 		Entry("member :: "+atc.ListResourceTypes, atc.ListResourceTypes, "member", true),
 		Entry("viewer :: "+atc.ListResourceTypes, atc.ListResourceTypes, "viewer", true),
 
-		Entry("admin :: "+atc.GetResource, atc.GetResource, "admin", true),
+		Entry("owner :: "+atc.GetResource, atc.GetResource, "owner", true),
 		Entry("member :: "+atc.GetResource, atc.GetResource, "member", true),
 		Entry("viewer :: "+atc.GetResource, atc.GetResource, "viewer", true),
 
-		Entry("admin :: "+atc.PauseResource, atc.PauseResource, "admin", true),
+		Entry("owner :: "+atc.PauseResource, atc.PauseResource, "owner", true),
 		Entry("member :: "+atc.PauseResource, atc.PauseResource, "member", true),
 		Entry("viewer :: "+atc.PauseResource, atc.PauseResource, "viewer", false),
 
-		Entry("admin :: "+atc.UnpauseResource, atc.UnpauseResource, "admin", true),
+		Entry("owner :: "+atc.UnpauseResource, atc.UnpauseResource, "owner", true),
 		Entry("member :: "+atc.UnpauseResource, atc.UnpauseResource, "member", true),
 		Entry("viewer :: "+atc.UnpauseResource, atc.UnpauseResource, "viewer", false),
 
-		Entry("admin :: "+atc.CheckResource, atc.CheckResource, "admin", true),
+		Entry("owner :: "+atc.CheckResource, atc.CheckResource, "owner", true),
 		Entry("member :: "+atc.CheckResource, atc.CheckResource, "member", true),
 		Entry("viewer :: "+atc.CheckResource, atc.CheckResource, "viewer", false),
 
-		Entry("admin :: "+atc.CheckResourceWebHook, atc.CheckResourceWebHook, "admin", true),
+		Entry("owner :: "+atc.CheckResourceWebHook, atc.CheckResourceWebHook, "owner", true),
 		Entry("member :: "+atc.CheckResourceWebHook, atc.CheckResourceWebHook, "member", true),
 		Entry("viewer :: "+atc.CheckResourceWebHook, atc.CheckResourceWebHook, "viewer", false),
 
-		Entry("admin :: "+atc.CheckResourceType, atc.CheckResourceType, "admin", true),
+		Entry("owner :: "+atc.CheckResourceType, atc.CheckResourceType, "owner", true),
 		Entry("member :: "+atc.CheckResourceType, atc.CheckResourceType, "member", true),
 		Entry("viewer :: "+atc.CheckResourceType, atc.CheckResourceType, "viewer", false),
 
-		Entry("admin :: "+atc.ListResourceVersions, atc.ListResourceVersions, "admin", true),
+		Entry("owner :: "+atc.ListResourceVersions, atc.ListResourceVersions, "owner", true),
 		Entry("member :: "+atc.ListResourceVersions, atc.ListResourceVersions, "member", true),
 		Entry("viewer :: "+atc.ListResourceVersions, atc.ListResourceVersions, "viewer", true),
 
-		Entry("admin :: "+atc.GetResourceVersion, atc.GetResourceVersion, "admin", true),
+		Entry("owner :: "+atc.GetResourceVersion, atc.GetResourceVersion, "owner", true),
 		Entry("member :: "+atc.GetResourceVersion, atc.GetResourceVersion, "member", true),
 		Entry("viewer :: "+atc.GetResourceVersion, atc.GetResourceVersion, "viewer", true),
 
-		Entry("admin :: "+atc.EnableResourceVersion, atc.EnableResourceVersion, "admin", true),
+		Entry("owner :: "+atc.EnableResourceVersion, atc.EnableResourceVersion, "owner", true),
 		Entry("member :: "+atc.EnableResourceVersion, atc.EnableResourceVersion, "member", true),
 		Entry("viewer :: "+atc.EnableResourceVersion, atc.EnableResourceVersion, "viewer", false),
 
-		Entry("admin :: "+atc.DisableResourceVersion, atc.DisableResourceVersion, "admin", true),
+		Entry("owner :: "+atc.DisableResourceVersion, atc.DisableResourceVersion, "owner", true),
 		Entry("member :: "+atc.DisableResourceVersion, atc.DisableResourceVersion, "member", true),
 		Entry("viewer :: "+atc.DisableResourceVersion, atc.DisableResourceVersion, "viewer", false),
 
-		Entry("admin :: "+atc.ListBuildsWithVersionAsInput, atc.ListBuildsWithVersionAsInput, "admin", true),
+		Entry("owner :: "+atc.ListBuildsWithVersionAsInput, atc.ListBuildsWithVersionAsInput, "owner", true),
 		Entry("member :: "+atc.ListBuildsWithVersionAsInput, atc.ListBuildsWithVersionAsInput, "member", true),
 		Entry("viewer :: "+atc.ListBuildsWithVersionAsInput, atc.ListBuildsWithVersionAsInput, "viewer", true),
 
-		Entry("admin :: "+atc.ListBuildsWithVersionAsOutput, atc.ListBuildsWithVersionAsOutput, "admin", true),
+		Entry("owner :: "+atc.ListBuildsWithVersionAsOutput, atc.ListBuildsWithVersionAsOutput, "owner", true),
 		Entry("member :: "+atc.ListBuildsWithVersionAsOutput, atc.ListBuildsWithVersionAsOutput, "member", true),
 		Entry("viewer :: "+atc.ListBuildsWithVersionAsOutput, atc.ListBuildsWithVersionAsOutput, "viewer", true),
 
-		Entry("admin :: "+atc.GetResourceCausality, atc.GetResourceCausality, "admin", true),
+		Entry("owner :: "+atc.GetResourceCausality, atc.GetResourceCausality, "owner", true),
 		Entry("member :: "+atc.GetResourceCausality, atc.GetResourceCausality, "member", true),
 		Entry("viewer :: "+atc.GetResourceCausality, atc.GetResourceCausality, "viewer", true),
 
-		Entry("admin :: "+atc.ListAllPipelines, atc.ListAllPipelines, "admin", true),
+		Entry("owner :: "+atc.ListAllPipelines, atc.ListAllPipelines, "owner", true),
 		Entry("member :: "+atc.ListAllPipelines, atc.ListAllPipelines, "member", true),
 		Entry("viewer :: "+atc.ListAllPipelines, atc.ListAllPipelines, "viewer", true),
 
-		Entry("admin :: "+atc.ListPipelines, atc.ListPipelines, "admin", true),
+		Entry("owner :: "+atc.ListPipelines, atc.ListPipelines, "owner", true),
 		Entry("member :: "+atc.ListPipelines, atc.ListPipelines, "member", true),
 		Entry("viewer :: "+atc.ListPipelines, atc.ListPipelines, "viewer", true),
 
-		Entry("admin :: "+atc.GetPipeline, atc.GetPipeline, "admin", true),
+		Entry("owner :: "+atc.GetPipeline, atc.GetPipeline, "owner", true),
 		Entry("member :: "+atc.GetPipeline, atc.GetPipeline, "member", true),
 		Entry("viewer :: "+atc.GetPipeline, atc.GetPipeline, "viewer", true),
 
-		Entry("admin :: "+atc.DeletePipeline, atc.DeletePipeline, "admin", true),
+		Entry("owner :: "+atc.DeletePipeline, atc.DeletePipeline, "owner", true),
 		Entry("member :: "+atc.DeletePipeline, atc.DeletePipeline, "member", true),
 		Entry("viewer :: "+atc.DeletePipeline, atc.DeletePipeline, "viewer", false),
 
-		Entry("admin :: "+atc.OrderPipelines, atc.OrderPipelines, "admin", true),
+		Entry("owner :: "+atc.OrderPipelines, atc.OrderPipelines, "owner", true),
 		Entry("member :: "+atc.OrderPipelines, atc.OrderPipelines, "member", true),
 		Entry("viewer :: "+atc.OrderPipelines, atc.OrderPipelines, "viewer", false),
 
-		Entry("admin :: "+atc.PausePipeline, atc.PausePipeline, "admin", true),
+		Entry("owner :: "+atc.PausePipeline, atc.PausePipeline, "owner", true),
 		Entry("member :: "+atc.PausePipeline, atc.PausePipeline, "member", true),
 		Entry("viewer :: "+atc.PausePipeline, atc.PausePipeline, "viewer", false),
 
-		Entry("admin :: "+atc.UnpausePipeline, atc.UnpausePipeline, "admin", true),
+		Entry("owner :: "+atc.UnpausePipeline, atc.UnpausePipeline, "owner", true),
 		Entry("member :: "+atc.UnpausePipeline, atc.UnpausePipeline, "member", true),
 		Entry("viewer :: "+atc.UnpausePipeline, atc.UnpausePipeline, "viewer", false),
 
-		Entry("admin :: "+atc.ExposePipeline, atc.ExposePipeline, "admin", true),
+		Entry("owner :: "+atc.ExposePipeline, atc.ExposePipeline, "owner", true),
 		Entry("member :: "+atc.ExposePipeline, atc.ExposePipeline, "member", true),
 		Entry("viewer :: "+atc.ExposePipeline, atc.ExposePipeline, "viewer", false),
 
-		Entry("admin :: "+atc.HidePipeline, atc.HidePipeline, "admin", true),
+		Entry("owner :: "+atc.HidePipeline, atc.HidePipeline, "owner", true),
 		Entry("member :: "+atc.HidePipeline, atc.HidePipeline, "member", true),
 		Entry("viewer :: "+atc.HidePipeline, atc.HidePipeline, "viewer", false),
 
-		Entry("admin :: "+atc.RenamePipeline, atc.RenamePipeline, "admin", true),
+		Entry("owner :: "+atc.RenamePipeline, atc.RenamePipeline, "owner", true),
 		Entry("member :: "+atc.RenamePipeline, atc.RenamePipeline, "member", true),
 		Entry("viewer :: "+atc.RenamePipeline, atc.RenamePipeline, "viewer", false),
 
-		Entry("admin :: "+atc.ListPipelineBuilds, atc.ListPipelineBuilds, "admin", true),
+		Entry("owner :: "+atc.ListPipelineBuilds, atc.ListPipelineBuilds, "owner", true),
 		Entry("member :: "+atc.ListPipelineBuilds, atc.ListPipelineBuilds, "member", true),
 		Entry("viewer :: "+atc.ListPipelineBuilds, atc.ListPipelineBuilds, "viewer", true),
 
-		Entry("admin :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "admin", true),
+		Entry("owner :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "owner", true),
 		Entry("member :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "member", true),
 		Entry("viewer :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "viewer", false),
 
-		Entry("admin :: "+atc.PipelineBadge, atc.PipelineBadge, "admin", true),
+		Entry("owner :: "+atc.PipelineBadge, atc.PipelineBadge, "owner", true),
 		Entry("member :: "+atc.PipelineBadge, atc.PipelineBadge, "member", true),
 		Entry("viewer :: "+atc.PipelineBadge, atc.PipelineBadge, "viewer", true),
 
-		Entry("admin :: "+atc.RegisterWorker, atc.RegisterWorker, "admin", true),
+		Entry("owner :: "+atc.RegisterWorker, atc.RegisterWorker, "owner", true),
 		Entry("member :: "+atc.RegisterWorker, atc.RegisterWorker, "member", true),
 		Entry("viewer :: "+atc.RegisterWorker, atc.RegisterWorker, "viewer", false),
 
-		Entry("admin :: "+atc.LandWorker, atc.LandWorker, "admin", true),
+		Entry("owner :: "+atc.LandWorker, atc.LandWorker, "owner", true),
 		Entry("member :: "+atc.LandWorker, atc.LandWorker, "member", true),
 		Entry("viewer :: "+atc.LandWorker, atc.LandWorker, "viewer", false),
 
-		Entry("admin :: "+atc.RetireWorker, atc.RetireWorker, "admin", true),
+		Entry("owner :: "+atc.RetireWorker, atc.RetireWorker, "owner", true),
 		Entry("member :: "+atc.RetireWorker, atc.RetireWorker, "member", true),
 		Entry("viewer :: "+atc.RetireWorker, atc.RetireWorker, "viewer", false),
 
-		Entry("admin :: "+atc.PruneWorker, atc.PruneWorker, "admin", true),
+		Entry("owner :: "+atc.PruneWorker, atc.PruneWorker, "owner", true),
 		Entry("member :: "+atc.PruneWorker, atc.PruneWorker, "member", true),
 		Entry("viewer :: "+atc.PruneWorker, atc.PruneWorker, "viewer", false),
 
-		Entry("admin :: "+atc.HeartbeatWorker, atc.HeartbeatWorker, "admin", true),
+		Entry("owner :: "+atc.HeartbeatWorker, atc.HeartbeatWorker, "owner", true),
 		Entry("member :: "+atc.HeartbeatWorker, atc.HeartbeatWorker, "member", true),
 		Entry("viewer :: "+atc.HeartbeatWorker, atc.HeartbeatWorker, "viewer", false),
 
-		Entry("admin :: "+atc.ListWorkers, atc.ListWorkers, "admin", true),
+		Entry("owner :: "+atc.ListWorkers, atc.ListWorkers, "owner", true),
 		Entry("member :: "+atc.ListWorkers, atc.ListWorkers, "member", true),
 		Entry("viewer :: "+atc.ListWorkers, atc.ListWorkers, "viewer", true),
 
-		Entry("admin :: "+atc.DeleteWorker, atc.DeleteWorker, "admin", true),
+		Entry("owner :: "+atc.DeleteWorker, atc.DeleteWorker, "owner", true),
 		Entry("member :: "+atc.DeleteWorker, atc.DeleteWorker, "member", true),
 		Entry("viewer :: "+atc.DeleteWorker, atc.DeleteWorker, "viewer", false),
 
-		Entry("admin :: "+atc.SetLogLevel, atc.SetLogLevel, "admin", true),
+		Entry("owner :: "+atc.SetLogLevel, atc.SetLogLevel, "owner", true),
 		Entry("member :: "+atc.SetLogLevel, atc.SetLogLevel, "member", true),
 		Entry("viewer :: "+atc.SetLogLevel, atc.SetLogLevel, "viewer", false),
 
-		Entry("admin :: "+atc.GetLogLevel, atc.GetLogLevel, "admin", true),
+		Entry("owner :: "+atc.GetLogLevel, atc.GetLogLevel, "owner", true),
 		Entry("member :: "+atc.GetLogLevel, atc.GetLogLevel, "member", true),
 		Entry("viewer :: "+atc.GetLogLevel, atc.GetLogLevel, "viewer", true),
 
-		Entry("admin :: "+atc.DownloadCLI, atc.DownloadCLI, "admin", true),
+		Entry("owner :: "+atc.DownloadCLI, atc.DownloadCLI, "owner", true),
 		Entry("member :: "+atc.DownloadCLI, atc.DownloadCLI, "member", true),
 		Entry("viewer :: "+atc.DownloadCLI, atc.DownloadCLI, "viewer", true),
 
-		Entry("admin :: "+atc.GetInfo, atc.GetInfo, "admin", true),
+		Entry("owner :: "+atc.GetInfo, atc.GetInfo, "owner", true),
 		Entry("member :: "+atc.GetInfo, atc.GetInfo, "member", true),
 		Entry("viewer :: "+atc.GetInfo, atc.GetInfo, "viewer", true),
 
-		Entry("admin :: "+atc.GetInfoCreds, atc.GetInfoCreds, "admin", true),
+		Entry("owner :: "+atc.GetInfoCreds, atc.GetInfoCreds, "owner", true),
 		Entry("member :: "+atc.GetInfoCreds, atc.GetInfoCreds, "member", true),
 		Entry("viewer :: "+atc.GetInfoCreds, atc.GetInfoCreds, "viewer", true),
 
-		Entry("admin :: "+atc.ListContainers, atc.ListContainers, "admin", true),
+		Entry("owner :: "+atc.ListContainers, atc.ListContainers, "owner", true),
 		Entry("member :: "+atc.ListContainers, atc.ListContainers, "member", true),
 		Entry("viewer :: "+atc.ListContainers, atc.ListContainers, "viewer", true),
 
-		Entry("admin :: "+atc.GetContainer, atc.GetContainer, "admin", true),
+		Entry("owner :: "+atc.GetContainer, atc.GetContainer, "owner", true),
 		Entry("member :: "+atc.GetContainer, atc.GetContainer, "member", true),
 		Entry("viewer :: "+atc.GetContainer, atc.GetContainer, "viewer", true),
 
-		Entry("admin :: "+atc.HijackContainer, atc.HijackContainer, "admin", true),
+		Entry("owner :: "+atc.HijackContainer, atc.HijackContainer, "owner", true),
 		Entry("member :: "+atc.HijackContainer, atc.HijackContainer, "member", true),
 		Entry("viewer :: "+atc.HijackContainer, atc.HijackContainer, "viewer", false),
 
-		Entry("admin :: "+atc.ListDestroyingContainers, atc.ListDestroyingContainers, "admin", true),
+		Entry("owner :: "+atc.ListDestroyingContainers, atc.ListDestroyingContainers, "owner", true),
 		Entry("member :: "+atc.ListDestroyingContainers, atc.ListDestroyingContainers, "member", true),
 		Entry("viewer :: "+atc.ListDestroyingContainers, atc.ListDestroyingContainers, "viewer", true),
 
-		Entry("admin :: "+atc.ReportWorkerContainers, atc.ReportWorkerContainers, "admin", true),
+		Entry("owner :: "+atc.ReportWorkerContainers, atc.ReportWorkerContainers, "owner", true),
 		Entry("member :: "+atc.ReportWorkerContainers, atc.ReportWorkerContainers, "member", true),
 		Entry("viewer :: "+atc.ReportWorkerContainers, atc.ReportWorkerContainers, "viewer", false),
 
-		Entry("admin :: "+atc.ListVolumes, atc.ListVolumes, "admin", true),
+		Entry("owner :: "+atc.ListVolumes, atc.ListVolumes, "owner", true),
 		Entry("member :: "+atc.ListVolumes, atc.ListVolumes, "member", true),
 		Entry("viewer :: "+atc.ListVolumes, atc.ListVolumes, "viewer", true),
 
-		Entry("admin :: "+atc.ListDestroyingVolumes, atc.ListDestroyingVolumes, "admin", true),
+		Entry("owner :: "+atc.ListDestroyingVolumes, atc.ListDestroyingVolumes, "owner", true),
 		Entry("member :: "+atc.ListDestroyingVolumes, atc.ListDestroyingVolumes, "member", true),
 		Entry("viewer :: "+atc.ListDestroyingVolumes, atc.ListDestroyingVolumes, "viewer", true),
 
-		Entry("admin :: "+atc.ReportWorkerVolumes, atc.ReportWorkerVolumes, "admin", true),
+		Entry("owner :: "+atc.ReportWorkerVolumes, atc.ReportWorkerVolumes, "owner", true),
 		Entry("member :: "+atc.ReportWorkerVolumes, atc.ReportWorkerVolumes, "member", true),
 		Entry("viewer :: "+atc.ReportWorkerVolumes, atc.ReportWorkerVolumes, "viewer", false),
 
-		Entry("admin :: "+atc.ListTeams, atc.ListTeams, "admin", true),
+		Entry("owner :: "+atc.ListTeams, atc.ListTeams, "owner", true),
 		Entry("member :: "+atc.ListTeams, atc.ListTeams, "member", true),
 		Entry("viewer :: "+atc.ListTeams, atc.ListTeams, "viewer", true),
 
-		Entry("admin :: "+atc.SetTeam, atc.SetTeam, "admin", true),
+		Entry("owner :: "+atc.SetTeam, atc.SetTeam, "owner", true),
 		Entry("member :: "+atc.SetTeam, atc.SetTeam, "member", false),
 		Entry("viewer :: "+atc.SetTeam, atc.SetTeam, "viewer", false),
 
-		Entry("admin :: "+atc.RenameTeam, atc.RenameTeam, "admin", true),
+		Entry("owner :: "+atc.RenameTeam, atc.RenameTeam, "owner", true),
 		Entry("member :: "+atc.RenameTeam, atc.RenameTeam, "member", false),
 		Entry("viewer :: "+atc.RenameTeam, atc.RenameTeam, "viewer", false),
 
-		Entry("admin :: "+atc.DestroyTeam, atc.DestroyTeam, "admin", true),
+		Entry("owner :: "+atc.DestroyTeam, atc.DestroyTeam, "owner", true),
 		Entry("member :: "+atc.DestroyTeam, atc.DestroyTeam, "member", false),
 		Entry("viewer :: "+atc.DestroyTeam, atc.DestroyTeam, "viewer", false),
 
-		Entry("admin :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "admin", true),
+		Entry("owner :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "owner", true),
 		Entry("member :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "member", true),
 		Entry("viewer :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "viewer", true),
 
-		Entry("admin :: "+atc.SendInputToBuildPlan, atc.SendInputToBuildPlan, "admin", true),
+		Entry("owner :: "+atc.SendInputToBuildPlan, atc.SendInputToBuildPlan, "owner", true),
 		Entry("member :: "+atc.SendInputToBuildPlan, atc.SendInputToBuildPlan, "member", true),
 		Entry("viewer :: "+atc.SendInputToBuildPlan, atc.SendInputToBuildPlan, "viewer", false),
 
-		Entry("admin :: "+atc.ReadOutputFromBuildPlan, atc.ReadOutputFromBuildPlan, "admin", true),
+		Entry("owner :: "+atc.ReadOutputFromBuildPlan, atc.ReadOutputFromBuildPlan, "owner", true),
 		Entry("member :: "+atc.ReadOutputFromBuildPlan, atc.ReadOutputFromBuildPlan, "member", true),
 		Entry("viewer :: "+atc.ReadOutputFromBuildPlan, atc.ReadOutputFromBuildPlan, "viewer", false),
 	)

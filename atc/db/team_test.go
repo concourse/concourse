@@ -726,7 +726,7 @@ var _ = Describe("Team", func() {
 
 		BeforeEach(func() {
 			authProvider = atc.TeamAuth{
-				"admin": {"users": []string{"local:username"}},
+				"owner": {"users": []string{"local:username"}},
 			}
 		})
 
@@ -746,7 +746,7 @@ var _ = Describe("Team", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(team.Auth()["viewer"]).To(Equal(viewer))
-				Expect(team.Auth()["admin"]).To(Equal(authProvider["admin"]))
+				Expect(team.Auth()["owner"]).To(Equal(authProvider["owner"]))
 			})
 
 			It("resets legacy_auth to NULL", func() {
