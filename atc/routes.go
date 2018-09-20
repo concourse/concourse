@@ -155,14 +155,14 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/unpause", Method: "PUT", Name: UnpauseResource},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/check", Method: "POST", Name: CheckResource},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/check/webhook", Method: "POST", Name: CheckResourceWebHook},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types/:resource_name/check", Method: "POST", Name: CheckResourceType},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types/:resource_type/check", Method: "POST", Name: CheckResourceType},
 
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions", Method: "GET", Name: ListResourceVersions},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id", Method: "GET", Name: GetResourceVersion},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/enable", Method: "PUT", Name: EnableResourceVersion},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/disable", Method: "PUT", Name: DisableResourceVersion},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/input_to", Method: "GET", Name: ListBuildsWithVersionAsInput},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/output_of", Method: "GET", Name: ListBuildsWithVersionAsOutput},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/input_to", Method: "GET", Name: ListBuildsWithVersionAsInput},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/output_of", Method: "GET", Name: ListBuildsWithVersionAsOutput},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/causality", Method: "GET", Name: GetResourceCausality},
 
 	{Path: "/api/v1/workers", Method: "GET", Name: ListWorkers},

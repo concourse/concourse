@@ -46,6 +46,7 @@ func NewHandler(
 	containerRepository db.ContainerRepository,
 	destroyer gc.Destroyer,
 	dbBuildFactory db.BuildFactory,
+	dbResourceConfigFactory db.ResourceConfigFactory,
 
 	peerURL string,
 	eventHandlerFactory buildserver.EventHandlerFactory,
@@ -81,7 +82,7 @@ func NewHandler(
 
 	buildServer := buildserver.NewServer(logger, externalURL, peerURL, engine, workerClient, dbTeamFactory, dbBuildFactory, eventHandlerFactory, drain)
 	jobServer := jobserver.NewServer(logger, schedulerFactory, externalURL, variablesFactory, dbJobFactory)
-	resourceServer := resourceserver.NewServer(logger, scannerFactory, variablesFactory, dbResourceFactory)
+	resourceServer := resourceserver.NewServer(logger, scannerFactory, variablesFactory, dbResourceFactory, dbResourceConfigFactory)
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL, engine)
 	configServer := configserver.NewServer(logger, dbTeamFactory, variablesFactory)
