@@ -3,7 +3,6 @@ module Dashboard.GroupWithTag exposing (TaggedGroup, addTag, addTagsAndSort, hea
 import Concourse
 import Dashboard.Group as Group
 import Dashboard.Group.Tag as Tag
-import Dashboard.Pipeline as Pipeline
 import Html
 import Html.Attributes exposing (class)
 import Ordering exposing (Ordering)
@@ -31,7 +30,7 @@ ordering =
         |> Ordering.breakTiesWith (Ordering.byFieldWith Group.ordering .group)
 
 
-headerView : TaggedGroup -> List (Html.Html Pipeline.Msg)
+headerView : TaggedGroup -> List (Html.Html Group.Msg)
 headerView taggedGroup =
     [ Html.div [ class "dashboard-team-name" ] [ Html.text taggedGroup.group.teamName ]
     , Html.div [ class "dashboard-team-tag" ] [ Html.text <| Tag.text taggedGroup.tag ]

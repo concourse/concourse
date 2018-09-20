@@ -1,12 +1,12 @@
 module Dashboard.Pipeline
     exposing
         ( Msg(..)
-        , DragState(..)
-        , DropState(..)
         , PipelineWithJobs
+        , SummaryPipeline
+        , PreviewPipeline
         , pipelineNotSetView
-        , pipelineDropAreaView
         , pipelineView
+        , hdPipelineView
         , pipelineStatus
         , pipelineStatusFromJobs
         )
@@ -21,10 +21,17 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (on, onMouseEnter)
 import List.Extra
 import Maybe.Extra
-import Json.Decode
 import Routes
 import StrictEvents exposing (onLeftClick)
 import Time exposing (Time)
+
+
+type SummaryPipeline
+    = SummaryPipeline PipelineWithJobs
+
+
+type PreviewPipeline
+    = PreviewPipeline PipelineWithJobs
 
 
 type alias PipelineWithJobs =
@@ -34,25 +41,9 @@ type alias PipelineWithJobs =
     }
 
 
-type alias PipelineIndex =
-    Int
-
-
-type DragState
-    = NotDragging
-    | Dragging Concourse.TeamName PipelineIndex
-
-
-type DropState
-    = NotDropping
-    | Dropping PipelineIndex
-
-
 type Msg
-    = DragStart String Int
-    | DragOver String Int
-    | DragEnd
-    | Tooltip String String
+    = Tooltip String String
+    | TooltipHd String String
     | TogglePipelinePaused Concourse.Pipeline
 
 
@@ -71,50 +62,51 @@ pipelineNotSetView =
         ]
 
 
-pipelineDropAreaView : DragState -> DropState -> String -> Int -> Html Msg
-pipelineDropAreaView dragState dropState teamName index =
-    let
-        ( active, over ) =
-            case ( dragState, dropState ) of
-                ( Dragging team dragIndex, NotDropping ) ->
-                    ( team == teamName, index == dragIndex )
-
-                ( Dragging team dragIndex, Dropping dropIndex ) ->
-                    ( team == teamName, index == dropIndex )
-
-                _ ->
-                    ( False, False )
-    in
-        Html.div
-            [ classList [ ( "drop-area", True ), ( "active", active ), ( "over", over ), ( "animation", dropState /= NotDropping ) ]
-            , on "dragenter" (Json.Decode.succeed (DragOver teamName index))
-            ]
-            [ Html.text "" ]
+viewPreview : Time -> PreviewPipeline -> Html Msg
+viewPreview now (PreviewPipeline pwj) =
+    pipelineView now pwj
 
 
-pipelineView : DragState -> Time -> PipelineWithJobs -> Int -> Html Msg
-pipelineView dragState now ({ pipeline, jobs, resourceError } as pipelineWithJobs) index =
+viewSummary : SummaryPipeline -> Html Msg
+viewSummary (SummaryPipeline pwj) =
+    hdPipelineView pwj
+
+
+hdPipelineView : PipelineWithJobs -> Html Msg
+hdPipelineView { pipeline, jobs, resourceError } =
     Html.div
         [ classList
             [ ( "dashboard-pipeline", True )
             , ( "dashboard-paused", pipeline.paused )
-            , ( "dashboard-running", not <| List.isEmpty <| List.filterMap .nextBuild jobs )
+            , ( "dashboard-running", List.any (\job -> job.nextBuild /= Nothing) jobs )
             , ( "dashboard-status-" ++ Concourse.PipelineStatus.show (pipelineStatusFromJobs jobs False), not pipeline.paused )
-            , ( "dragging", dragState == Dragging pipeline.teamName index )
             ]
         , attribute "data-pipeline-name" pipeline.name
-        , attribute "ondragstart" "event.dataTransfer.setData('text/plain', '');"
-        , draggable "true"
-        , on "dragstart" (Json.Decode.succeed (DragStart pipeline.teamName index))
-        , on "dragend" (Json.Decode.succeed DragEnd)
+        , attribute "data-team-name" pipeline.teamName
         ]
         [ Html.div [ class "dashboard-pipeline-banner" ] []
         , Html.div
-            [ class "dashboard-pipeline-content" ]
-            [ headerView pipelineWithJobs
-            , DashboardPreview.view jobs
-            , footerView pipelineWithJobs now
+            [ class "dashboard-pipeline-content"
+            , onMouseEnter <| TooltipHd pipeline.name pipeline.teamName
             ]
+            [ Html.a [ href <| Routes.pipelineRoute pipeline ]
+                [ Html.div
+                    [ class "dashboardhd-pipeline-name"
+                    , attribute "data-team-name" pipeline.teamName
+                    ]
+                    [ Html.text pipeline.name ]
+                ]
+            ]
+        , Html.div [ classList [ ( "dashboard-resource-error", resourceError ) ] ] []
+        ]
+
+
+pipelineView : Time -> PipelineWithJobs -> Html Msg
+pipelineView now ({ pipeline, jobs, resourceError } as pipelineWithJobs) =
+    Html.div [ class "dashboard-pipeline-content" ]
+        [ headerView pipelineWithJobs
+        , DashboardPreview.view jobs
+        , footerView pipelineWithJobs now
         ]
 
 

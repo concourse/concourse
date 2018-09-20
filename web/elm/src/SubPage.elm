@@ -138,11 +138,23 @@ init flags route =
 
         Routes.Dashboard ->
             superDupleWrap ( DashboardModel, DashboardMsg ) <|
-                Dashboard.init { title = setTitle } { turbulencePath = flags.turbulencePath, csrfToken = flags.csrfToken, search = querySearchForRoute route }
+                Dashboard.init
+                    { title = setTitle }
+                    { turbulencePath = flags.turbulencePath
+                    , csrfToken = flags.csrfToken
+                    , search = querySearchForRoute route
+                    , highDensity = False
+                    }
 
         Routes.DashboardHd ->
-            superDupleWrap ( DashboardHdModel, DashboardHdMsg ) <|
-                DashboardHd.init { title = setTitle } flags.turbulencePath (querySearchForRoute route)
+            superDupleWrap ( DashboardModel, DashboardMsg ) <|
+                Dashboard.init
+                    { title = setTitle }
+                    { turbulencePath = flags.turbulencePath
+                    , csrfToken = flags.csrfToken
+                    , search = querySearchForRoute route
+                    , highDensity = True
+                    }
 
 
 handleNotFound : String -> ( a -> Model, c -> Msg ) -> ( a, Cmd c, Maybe UpdateMsg ) -> ( Model, Cmd Msg )

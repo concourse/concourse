@@ -6,9 +6,12 @@ import Concourse.Cli
 import Concourse.Pipeline
 import Concourse.PipelineStatus
 import Concourse.User
+import Dashboard.Details as Details
 import Dashboard.Group as Group
 import Dashboard.GroupWithTag as GroupWithTag
 import Dashboard.Pipeline as Pipeline
+import Dashboard.SubState as SubState
+import DashboardHd
 import Dom
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, draggable, href, id, src)
@@ -16,7 +19,12 @@ import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Keyboard
 import List.Extra
+import Maybe.Extra
 import Mouse
+import Monocle.Common exposing ((=>), (<|>))
+import Monocle.Optional
+import Monocle.Lens
+import MonocleHelpers exposing (..)
 import NewTopBar
 import NoPipeline exposing (Msg, view)
 import Regex exposing (HowMany(All), regex, replace)
@@ -38,58 +46,42 @@ port pinTeamNames : () -> Cmd msg
 port tooltip : ( String, String ) -> Cmd msg
 
 
+
+-- TODO all the crsfToken stuff in this file only gets actually used for ordering and toggling pipelines.
+-- honestly it seems like it could live in a completely different module.
+
+
 type alias Flags =
     { csrfToken : String
     , turbulencePath : String
     , search : String
+    , highDensity : Bool
     }
 
 
-type DashboardState
+type DashboardError
     = NotAsked
     | Turbulence String
     | NoPipelines
-    | HasData SubState
-
-
-type alias SubState =
-    { csrfToken : String
-    , dragState : Pipeline.DragState
-    , dropState : Pipeline.DropState
-    , hideFooter : Bool
-    , hideFooterCounter : Time
-    , now : Time
-    , teamData : TeamData
-    }
 
 
 type alias Model =
     { csrfToken : String
-    , state : DashboardState
+    , state : Result DashboardError SubState.SubState
     , topBar : NewTopBar.Model
-    , turbulencePath : String
-    , showHelp : Bool
+    , turbulencePath : String -- this doesn't vary, it's more a prop (in the sense of react) than state. should be a way to use a thunk for the Turbulence case of DashboardState
+    , highDensity : Bool
     }
 
 
-type TeamData
-    = Unauthenticated
-        { apiData : Group.APIData
-        }
-    | Authenticated
-        { apiData : Group.APIData
-        , user : Concourse.User
-        }
+stateLens : Monocle.Lens.Lens Model (Result DashboardError SubState.SubState)
+stateLens =
+    Monocle.Lens.Lens .state (\b a -> { a | state = b })
 
 
-teamApiData : TeamData -> Group.APIData
-teamApiData teamData =
-    case teamData of
-        Unauthenticated { apiData } ->
-            apiData
-
-        Authenticated { apiData } ->
-            apiData
+substateOptional : Monocle.Optional.Optional Model SubState.SubState
+substateOptional =
+    Monocle.Optional.Optional (.state >> Result.toMaybe) (\s m -> { m | state = Ok s })
 
 
 type Msg
@@ -103,19 +95,20 @@ type Msg
     | TopBarMsg NewTopBar.Msg
     | PipelinePauseToggled Concourse.Pipeline (Result Http.Error ())
     | PipelineMsg Pipeline.Msg
+    | GroupMsg Group.Msg
 
 
 init : Ports -> Flags -> ( Model, Cmd Msg )
 init ports flags =
     let
         ( topBar, topBarMsg ) =
-            NewTopBar.init True flags.search
+            NewTopBar.init (not flags.highDensity) flags.search
     in
-        ( { state = NotAsked
+        ( { state = Err NotAsked
           , topBar = topBar
           , csrfToken = flags.csrfToken
           , turbulencePath = flags.turbulencePath
-          , showHelp = False
+          , highDensity = flags.highDensity
           }
         , Cmd.batch
             [ fetchData
@@ -126,18 +119,58 @@ init ports flags =
         )
 
 
+handle : a -> a -> Result e v -> a
+handle onError onSuccess result =
+    case result of
+        Ok _ ->
+            onSuccess
+
+        Err _ ->
+            onError
+
+
+substateLens : Monocle.Lens.Lens Model (Maybe SubState.SubState)
+substateLens =
+    Monocle.Lens.Lens (.state >> Result.toMaybe)
+        (\mss model -> Maybe.map (\ss -> { model | state = Ok ss }) mss |> Maybe.withDefault model)
+
+
+noop : Model -> ( Model, Cmd msg )
+noop model =
+    ( model, Cmd.none )
+
+
+substate : String -> Bool -> ( Time.Time, ( Group.APIData, Maybe Concourse.User ) ) -> Result DashboardError SubState.SubState
+substate csrfToken highDensity ( now, ( apiData, user ) ) =
+    apiData.pipelines
+        |> List.head
+        |> Maybe.map
+            (always
+                { teamData = SubState.teamData apiData user
+                , details =
+                    if highDensity then
+                        Nothing
+                    else
+                        Just
+                            { now = now
+                            , dragState = Group.NotDragging
+                            , dropState = Group.NotDropping
+                            , showHelp = False
+                            }
+                , hideFooter = False
+                , hideFooterCounter = 0
+                , csrfToken = csrfToken
+                }
+            )
+        |> Result.fromMaybe (NoPipelines)
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
         reload =
             Cmd.batch <|
-                (case model.state of
-                    HasData _ ->
-                        [ fetchData ]
-
-                    _ ->
-                        []
-                )
+                handle [] [ fetchData ] model.state
                     ++ [ Cmd.map TopBarMsg NewTopBar.fetchUser ]
     in
         case msg of
@@ -145,54 +178,33 @@ update msg model =
                 ( model, Cmd.none )
 
             APIDataFetched remoteData ->
-                let
-                    state =
-                        case remoteData of
-                            RemoteData.NotAsked ->
-                                NotAsked
+                (case remoteData of
+                    RemoteData.NotAsked ->
+                        model |> stateLens.set (Err NotAsked)
 
-                            RemoteData.Loading ->
-                                NotAsked
+                    RemoteData.Loading ->
+                        model |> stateLens.set (Err NotAsked)
 
-                            RemoteData.Failure _ ->
-                                Turbulence ""
+                    RemoteData.Failure _ ->
+                        model |> stateLens.set (Err (Turbulence model.turbulencePath))
 
-                            RemoteData.Success ( now, ( apiData, user ) ) ->
-                                case apiData.pipelines of
-                                    [] ->
-                                        NoPipelines
-
-                                    _ ->
-                                        let
-                                            teamData =
-                                                user
-                                                    |> Maybe.map (\u -> Authenticated { apiData = apiData, user = u })
-                                                    |> Maybe.withDefault (Unauthenticated { apiData = apiData })
-                                        in
-                                            HasData
-                                                { teamData = teamData
-                                                , now = now
-                                                , hideFooter = False
-                                                , hideFooterCounter = 0
-                                                , dragState = Pipeline.NotDragging
-                                                , dropState = Pipeline.NotDropping
-                                                , csrfToken = model.csrfToken
-                                                }
-                in
-                    ( { model | state = state }
-                    , Cmd.none
-                    )
+                    RemoteData.Success ( now, ( apiData, user ) ) ->
+                        model
+                            |> Monocle.Lens.modify stateLens
+                                (Result.map
+                                    (.set SubState.teamDataLens (SubState.teamData apiData user)
+                                        >> .set (SubState.detailsOptional =|> Details.nowLens) now
+                                        >> Ok
+                                    )
+                                    >> Result.withDefault (substate model.csrfToken model.highDensity ( now, ( apiData, user ) ))
+                                )
+                )
+                    |> noop
 
             ClockTick now ->
-                case model.state of
-                    HasData substate ->
-                        if substate.hideFooterCounter + Time.second > 5 * Time.second then
-                            ( { model | state = HasData { substate | now = now, hideFooter = True } }, Cmd.none )
-                        else
-                            ( { model | state = HasData { substate | now = now, hideFooterCounter = substate.hideFooterCounter + Time.second } }, Cmd.none )
-
-                    _ ->
-                        ( model, Cmd.none )
+                model
+                    |> Monocle.Optional.modify substateOptional (SubState.tick now)
+                    |> noop
 
             AutoRefresh _ ->
                 ( model
@@ -206,13 +218,12 @@ update msg model =
                 update (TopBarMsg (NewTopBar.KeyDown keycode)) model
 
             ShowFooter ->
-                case model.state of
-                    HasData substate ->
-                        ( { model | state = HasData { substate | hideFooter = False, hideFooterCounter = 0 } }, Cmd.none )
+                model
+                    |> Monocle.Optional.modify substateOptional SubState.showFooter
+                    |> noop
 
-                    _ ->
-                        ( model, Cmd.none )
-
+            -- TODO pull the topbar logic right in here. right now there are wasted API calls and this crufty
+            -- nonsense going on. however, this feels like a big change and not a big burning fire
             TopBarMsg msg ->
                 let
                     ( newTopBar, newTopBarMsg ) =
@@ -237,118 +248,94 @@ update msg model =
                     togglePipelinePause pipelines =
                         List.Extra.updateIf
                             ((==) pipeline)
+                            -- TODO this lambda could be a utility/helper in the Concourse module
                             (\pipeline -> { pipeline | paused = not pipeline.paused })
                             pipelines
                 in
                     ( model
-                      -- | filteredPipelines = togglePipelinePause model.filteredPipelines
                     , Cmd.none
                     )
 
             PipelinePauseToggled _ (Err _) ->
                 ( model, Cmd.none )
 
-            PipelineMsg (Pipeline.DragStart teamName index) ->
-                case model.state of
-                    HasData substate ->
-                        ( { model | state = HasData { substate | dragState = Pipeline.Dragging teamName index } }, Cmd.none )
+            GroupMsg (Group.DragStart teamName index) ->
+                model
+                    |> Monocle.Optional.modify
+                        (substateOptional => SubState.detailsOptional)
+                        ((Details.dragStateLens |> .set) <| Group.Dragging teamName index)
+                    |> noop
 
-                    _ ->
-                        ( model, Cmd.none )
+            GroupMsg (Group.DragOver teamName index) ->
+                model
+                    |> Monocle.Optional.modify
+                        (substateOptional => SubState.detailsOptional)
+                        ((Details.dropStateLens |> .set) <| Group.Dropping index)
+                    |> noop
 
-            PipelineMsg (Pipeline.DragOver teamName index) ->
-                case model.state of
-                    HasData substate ->
-                        ( { model | state = HasData { substate | dropState = Pipeline.Dropping index } }, Cmd.none )
+            GroupMsg (Group.PipelineMsg msg) ->
+                flip update model <| PipelineMsg msg
 
-                    _ ->
-                        ( model, Cmd.none )
+            PipelineMsg (Pipeline.TooltipHd pipelineName teamName) ->
+                ( model, DashboardHd.tooltipHd ( pipelineName, teamName ) )
 
             PipelineMsg (Pipeline.Tooltip pipelineName teamName) ->
                 ( model, tooltip ( pipelineName, teamName ) )
 
-            PipelineMsg Pipeline.DragEnd ->
-                case model.state of
-                    HasData substate ->
-                        case ( substate.dragState, substate.dropState ) of
-                            ( Pipeline.Dragging teamName dragIndex, Pipeline.Dropping dropIndex ) ->
-                                let
-                                    shiftPipelines : List Pipeline.PipelineWithJobs -> List Pipeline.PipelineWithJobs
-                                    shiftPipelines pipelines =
-                                        if dragIndex == dropIndex then
-                                            pipelines
-                                        else
-                                            case
-                                                List.head <|
-                                                    List.drop dragIndex <|
-                                                        pipelines
-                                            of
-                                                Nothing ->
-                                                    pipelines
+            GroupMsg Group.DragEnd ->
+                let
+                    updatePipelines : ( Group.PipelineIndex, Group.PipelineIndex ) -> Group.Group -> ( Group.Group, Cmd Msg )
+                    updatePipelines ( dragIndex, dropIndex ) group =
+                        let
+                            newGroup =
+                                Group.shiftPipelines dragIndex dropIndex group
+                        in
+                            ( newGroup, orderPipelines newGroup.teamName newGroup.pipelines model.csrfToken )
 
-                                                Just pipeline ->
-                                                    shiftPipelineTo pipeline dropIndex pipelines
+                    dragDropOptional : Monocle.Optional.Optional Model ( Group.DragState, Group.DropState )
+                    dragDropOptional =
+                        substateOptional
+                            => SubState.detailsOptional
+                            =|> Monocle.Lens.tuple (Details.dragStateLens) (Details.dropStateLens)
 
-                                    groups =
-                                        substate.teamData |> teamApiData |> Group.groups
+                    dragDropIndexOptional : Monocle.Optional.Optional Model ( Group.PipelineIndex, Group.PipelineIndex )
+                    dragDropIndexOptional =
+                        dragDropOptional
+                            => Monocle.Optional.zip
+                                Group.dragIndexOptional
+                                Group.dropIndexOptional
 
-                                    filteredPipelines =
-                                        groups
-                                            |> List.Extra.find (.teamName >> (==) teamName)
-                                            |> Maybe.map (.pipelines >> shiftPipelines)
-
-                                    newGroups =
-                                        filteredPipelines
-                                            |> Maybe.map (\fps -> groups |> List.Extra.updateIf (.teamName >> (==) teamName) (\g -> { g | pipelines = fps }))
-                                            |> Maybe.withDefault groups
-
-                                    newSubstate =
-                                        { substate
-                                            | dragState = Pipeline.NotDragging
-                                            , dropState = Pipeline.NotDropping
-                                        }
-
-                                    newModel =
-                                        case newSubstate.teamData of
-                                            Unauthenticated { apiData } ->
-                                                HasData { newSubstate | teamData = Unauthenticated { apiData = Group.apiData newGroups } }
-
-                                            Authenticated { apiData, user } ->
-                                                HasData { newSubstate | teamData = Authenticated { apiData = Group.apiData newGroups, user = user } }
-                                in
-                                    ( { model | state = newModel }
-                                    , filteredPipelines
-                                        |> Maybe.map (\ps -> orderPipelines teamName ps model.csrfToken)
-                                        |> Maybe.withDefault reload
-                                    )
-
-                            _ ->
-                                ( { model | state = HasData { substate | dragState = Pipeline.NotDragging, dropState = Pipeline.NotDropping } }
-                                , Cmd.none
+                    groupOptional : Monocle.Optional.Optional Model Group.Group
+                    groupOptional =
+                        (substateOptional
+                            => SubState.detailsOptional
+                            =|> Details.dragStateLens
+                            => Group.teamNameOptional
+                        )
+                            >>= (\teamName ->
+                                    substateOptional
+                                        =|> SubState.teamDataLens
+                                        =|> SubState.apiDataLens
+                                        =|> Group.groupsLens
+                                        => Group.findGroupOptional teamName
                                 )
 
-                    _ ->
-                        ( model, Cmd.none )
-
-
-shiftPipelineTo : Pipeline.PipelineWithJobs -> Int -> List Pipeline.PipelineWithJobs -> List Pipeline.PipelineWithJobs
-shiftPipelineTo ({ pipeline } as pipelineWithJobs) position pipelines =
-    case pipelines of
-        [] ->
-            if position < 0 then
-                []
-            else
-                [ pipelineWithJobs ]
-
-        p :: ps ->
-            if p.pipeline.teamName /= pipeline.teamName then
-                p :: shiftPipelineTo pipelineWithJobs position ps
-            else if p.pipeline == pipeline then
-                shiftPipelineTo pipelineWithJobs (position - 1) ps
-            else if position == 0 then
-                pipelineWithJobs :: p :: shiftPipelineTo pipelineWithJobs (position - 1) ps
-            else
-                p :: shiftPipelineTo pipelineWithJobs (position - 1) ps
+                    bigOptional : Monocle.Optional.Optional Model ( ( Group.PipelineIndex, Group.PipelineIndex ), Group.Group )
+                    bigOptional =
+                        Monocle.Optional.tuple
+                            dragDropIndexOptional
+                            groupOptional
+                in
+                    model
+                        |> modifyWithEffect bigOptional
+                            (\( t, g ) ->
+                                let
+                                    ( newG, msg ) =
+                                        updatePipelines t g
+                                in
+                                    ( ( t, newG ), msg )
+                            )
+                        |> Tuple.mapFirst (dragDropOptional.set ( Group.NotDragging, Group.NotDropping ))
 
 
 orderPipelines : String -> List Pipeline.PipelineWithJobs -> Concourse.CSRFToken -> Cmd Msg
@@ -358,6 +345,10 @@ orderPipelines teamName pipelines csrfToken =
             teamName
             (List.map (.name << .pipeline) <| pipelines)
             csrfToken
+
+
+
+-- TODO this seems obsessed with pipelines. shouldn't be the dashboard's business
 
 
 togglePipelinePaused : Concourse.Pipeline -> Concourse.CSRFToken -> Cmd Msg
@@ -394,23 +385,21 @@ dashboardView model =
     let
         mainContent =
             case model.state of
-                NotAsked ->
-                    Html.text ""
+                Err NotAsked ->
+                    [ Html.text "" ]
 
-                Turbulence path ->
-                    turbulenceView path
+                Err (Turbulence path) ->
+                    [ turbulenceView path ]
 
-                NoPipelines ->
-                    Html.map (always Noop) NoPipeline.view
+                Err NoPipelines ->
+                    [ Html.map (always Noop) NoPipeline.view ]
 
-                HasData substate ->
-                    pipelinesView substate model.showHelp model.topBar.query
+                Ok substate ->
+                    pipelinesView substate model.topBar.query ++ [ footerView substate ]
     in
         Html.div
-            [ class "dashboard" ]
-            [ mainContent
-            , helpView model
-            ]
+            [ classList [ ( "dashboard", True ), ( "dashboard-hd", model.highDensity ) ] ]
+            [ Html.div [ class "dashboard-content" ] mainContent ]
 
 
 noResultsView : String -> Html Msg
@@ -436,12 +425,12 @@ noResultsView query =
             ]
 
 
-helpView : Model -> Html Msg
-helpView model =
+helpView : Details.Details -> Html Msg
+helpView details =
     Html.div
         [ classList
             [ ( "keyboard-help", True )
-            , ( "hidden", not model.showHelp )
+            , ( "hidden", not details.showHelp )
             ]
         ]
         [ Html.div [ class "help-title" ] [ Html.text "keyboard shortcuts" ]
@@ -450,49 +439,81 @@ helpView model =
         ]
 
 
-footerView : SubState -> Bool -> Html Msg
-footerView substate showHelp =
-    Html.div
-        [ if substate.hideFooter || showHelp then
-            class "dashboard-footer hidden"
-          else
-            class "dashboard-footer"
-        ]
-        [ Html.div [ class "dashboard-legend" ]
-            [ Html.div [ class "dashboard-status-pending" ]
-                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "pending" ]
-            , Html.div [ class "dashboard-paused" ]
-                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "paused" ]
-            , Html.div [ class "dashboard-running" ]
-                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "running" ]
-            , Html.div [ class "dashboard-status-failed" ]
-                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "failing" ]
-            , Html.div [ class "dashboard-status-errored" ]
-                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "errored" ]
-            , Html.div [ class "dashboard-status-aborted" ]
-                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "aborted" ]
-            , Html.div [ class "dashboard-status-succeeded" ]
-                [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "succeeded" ]
-            , Html.div [ class "dashboard-status-separator" ] [ Html.text "|" ]
-            , Html.div [ class "dashboard-high-density" ]
-                [ Html.a [ class "toggle-high-density", href Routes.dashboardHdRoute, ariaLabel "Toggle high-density view" ]
-                    [ Html.div [ class "dashboard-pipeline-icon hd-off" ] [], Html.text "high-density" ]
+toggleView : Bool -> Html Msg
+toggleView highDensity =
+    let
+        hdClass =
+            if highDensity then
+                "hd-on"
+            else
+                "hd-off"
+
+        route =
+            if highDensity then
+                Routes.dashboardRoute
+            else
+                Routes.dashboardHdRoute
+    in
+        Html.a [ class "toggle-high-density", href route, ariaLabel "Toggle high-density view" ]
+            [ Html.div [ class <| "dashboard-pipeline-icon " ++ hdClass ] [], Html.text "high-density" ]
+
+
+footerView : SubState.SubState -> Html Msg
+footerView substate =
+    let
+        showHelp =
+            substate.details |> Maybe.map .showHelp |> Maybe.withDefault False
+    in
+        Html.div [] <|
+            [ Html.div
+                [ if substate.hideFooter || showHelp then
+                    class "dashboard-footer hidden"
+                  else
+                    class "dashboard-footer"
+                ]
+                [ Html.div [ class "dashboard-legend" ]
+                    [ Html.div [ class "dashboard-status-pending" ]
+                        [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "pending" ]
+                    , Html.div [ class "dashboard-paused" ]
+                        [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "paused" ]
+                    , Html.div [ class "dashboard-running" ]
+                        [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "running" ]
+                    , Html.div [ class "dashboard-status-failed" ]
+                        [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "failing" ]
+                    , Html.div [ class "dashboard-status-errored" ]
+                        [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "errored" ]
+                    , Html.div [ class "dashboard-status-aborted" ]
+                        [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "aborted" ]
+                    , Html.div [ class "dashboard-status-succeeded" ]
+                        [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "succeeded" ]
+                    , Html.div [ class "dashboard-status-separator" ] [ Html.text "|" ]
+                    , Html.div [ class "dashboard-high-density" ] [ substate.details |> Maybe.Extra.isJust |> not |> toggleView ]
+                    ]
+                , Html.div [ class "concourse-info" ]
+                    [ Html.div [ class "concourse-version" ]
+                        [ Html.text "version: v", substate.teamData |> SubState.apiData |> .version |> Html.text ]
+                    , Html.div [ class "concourse-cli" ]
+                        [ Html.text "cli: "
+                        , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "darwin"), ariaLabel "Download OS X CLI" ]
+                            [ Html.i [ class "fa fa-apple" ] [] ]
+                        , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "windows"), ariaLabel "Download Windows CLI" ]
+                            [ Html.i [ class "fa fa-windows" ] [] ]
+                        , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "linux"), ariaLabel "Download Linux CLI" ]
+                            [ Html.i [ class "fa fa-linux" ] [] ]
+                        ]
+                    ]
+                ]
+            , Html.div
+                [ classList
+                    [ ( "keyboard-help", True )
+                    , ( "hidden", not showHelp )
+                    ]
+                ]
+                [ Html.div [ class "help-title" ] [ Html.text "keyboard shortcuts" ]
+                , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "/" ] ], Html.text "search" ]
+                , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "?" ] ], Html.text "hide/show help" ]
                 ]
             ]
-        , Html.div [ class "concourse-info" ]
-            [ Html.div [ class "concourse-version" ]
-                [ Html.text "version: v", substate.teamData |> teamApiData |> .version |> Html.text ]
-            , Html.div [ class "concourse-cli" ]
-                [ Html.text "cli: "
-                , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "darwin"), ariaLabel "Download OS X CLI" ]
-                    [ Html.i [ class "fa fa-apple" ] [] ]
-                , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "windows"), ariaLabel "Download Windows CLI" ]
-                    [ Html.i [ class "fa fa-windows" ] [] ]
-                , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "linux"), ariaLabel "Download Linux CLI" ]
-                    [ Html.i [ class "fa fa-linux" ] [] ]
-                ]
-            ]
-        ]
 
 
 turbulenceView : String -> Html Msg
@@ -507,11 +528,11 @@ turbulenceView path =
         ]
 
 
-pipelinesView : SubState -> Bool -> String -> Html Msg
-pipelinesView substate showHelp query =
+pipelinesView : SubState.SubState -> String -> List (Html Msg)
+pipelinesView substate query =
     let
         filteredGroups =
-            substate.teamData |> teamApiData |> Group.groups |> filter query
+            substate.teamData |> SubState.apiData |> Group.groups |> filter query
 
         groupsToDisplay =
             if List.all (String.startsWith "team:") (filterTerms query) then
@@ -519,19 +540,39 @@ pipelinesView substate showHelp query =
             else
                 filteredGroups |> List.filter (.pipelines >> List.isEmpty >> not)
 
-        groupViews =
-            case substate.teamData of
-                Unauthenticated _ ->
-                    List.map (\g -> Group.view (Group.headerView g) substate.dragState substate.dropState substate.now g) groupsToDisplay
+        highDensity =
+            substate.details |> Maybe.Extra.isJust |> not
 
-                Authenticated { user } ->
-                    List.map (\g -> Group.view (GroupWithTag.headerView g) substate.dragState substate.dropState substate.now g.group) (GroupWithTag.addTagsAndSort user groupsToDisplay)
+        groupViews =
+            case substate.details of
+                Just details ->
+                    case substate.teamData of
+                        SubState.Unauthenticated _ ->
+                            List.map
+                                (\g -> Group.view (Group.headerView g) details.dragState details.dropState details.now g)
+                                groupsToDisplay
+
+                        SubState.Authenticated { user } ->
+                            List.map
+                                (\g -> Group.view (GroupWithTag.headerView g) details.dragState details.dropState details.now g.group)
+                                (GroupWithTag.addTagsAndSort user groupsToDisplay)
+
+                Nothing ->
+                    case substate.teamData of
+                        SubState.Unauthenticated _ ->
+                            List.map
+                                (\g -> Group.hdView (Group.headerView g) g.teamName g.pipelines)
+                                groupsToDisplay
+
+                        SubState.Authenticated { user } ->
+                            List.map
+                                (\g -> Group.hdView (GroupWithTag.headerView g) g.group.teamName g.group.pipelines)
+                                (GroupWithTag.addTagsAndSort user groupsToDisplay)
     in
         if List.isEmpty groupViews then
-            noResultsView (toString query)
+            [ noResultsView (toString query) ]
         else
-            Html.div [ class "dashboard-content" ] <|
-                (List.map (Html.map PipelineMsg) groupViews ++ [ footerView substate showHelp ])
+            List.map (Html.map GroupMsg) groupViews
 
 
 handleKeyPressed : Char -> Model -> ( Model, Cmd Msg )
@@ -541,7 +582,9 @@ handleKeyPressed key model =
             ( model, Task.attempt (always Noop) (Dom.focus "search-input-field") )
 
         '?' ->
-            ( { model | showHelp = not model.showHelp }, Cmd.none )
+            model
+                |> Monocle.Optional.modify (substateOptional => SubState.detailsOptional) Details.toggleHelp
+                |> noop
 
         _ ->
             update ShowFooter model
