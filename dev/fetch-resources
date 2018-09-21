@@ -3,23 +3,25 @@
 set -e -u
 
 cd $(dirname $0)/..
+source dev/ui.sh
 
-ROOT=$(pwd)
+[ "$#" -lt 1 ] && abort "usage: $0 <destination>"
+
+destination=$1
 
 for r in registry-image git s3 mirror; do
-  resdir=$ROOT/dev/resources/$r
+  resdir=$destination/$r
 
   if [ -e "$resdir/resource_metadata.json" ]; then
-    echo "$r already fetched; skipping"
+    progress "$r already fetched; skipping"
     continue
   fi
 
   url=$(curl --silent https://api.github.com/repos/concourse/${r}-resource/releases/latest | jq -r '.assets[0].browser_download_url')
-  if [ -z "$url" ]; then
-    echo "could not get download URL for $r resource"
-    exit 1
-  fi
+  [ -z "$url" ] && abort "could not get download URL for $r resource"
 
-  sudo mkdir -p $resdir
-  curl -L $url | sudo tar -C $resdir -zxf -
+  by "fetching $r resource..."
+
+  mkdir -p $resdir
+  curl -L $url | tar -C $resdir -zxf -
 done

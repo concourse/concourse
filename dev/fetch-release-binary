@@ -2,32 +2,30 @@
 
 set -e -u
 
-if [ "$#" -gt 3 ]; then
-  echo "usage: $1 <user/repo> <matcher> <asset name>"
-  exit 1
-fi
+cd $(dirname $0)/..
+source dev/ui.sh
+
+[ "$#" -lt 3 ] && abort "usage: $1 <user/repo> <asset regex> <destination>"
 
 repo=$1
-asset_matcher=$2
-asset_name=$3
+regex=$2
+destination=$3
 
-cd $(dirname $0)/..
-
-ROOT=$(pwd)
-ASSETSDIR=$ROOT/dev/image
-
-asset=$ASSETSDIR/$asset_name
-if [ -e $asset ]; then
-  echo "gdn already fetched; skipping"
+if [ -e $destination ]; then
+  by "$destination already fetched; skipping"
   exit 0
 fi
 
-url=$(curl --silent https://api.github.com/repos/$repo/releases/latest | jq -r '.assets[] | select(.name | test($regex)) | .browser_download_url' --arg regex "$asset_matcher")
-if [ -z "$url" ]; then
-  echo "could not get download URL for $asset_name"
-  exit 1
+asset_url=$(
+  curl --silent https://api.github.com/repos/$repo/releases/latest | \
+    jq -r '.assets[] | select(.name | test($regex)) | .browser_download_url' \
+      --arg regex "$regex"
+)
+if [ -z "$asset_url" ]; then
+  abort "could not get download URL for $repo latest release (asset: $regex)"
 fi
 
-mkdir -p $(dirname $asset)
-curl -L $url -o $asset
-chmod +x $asset
+by "fetching $destination"
+mkdir -p $(dirname $destination)
+curl -L $asset_url -o $destination
+chmod +x $destination
