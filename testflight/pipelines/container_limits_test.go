@@ -1,6 +1,8 @@
 package pipelines_test
 
 import (
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -17,6 +19,11 @@ var _ = Describe("A job with a task that has container limits", func() {
 
 		watch := flyHelper.TriggerJob(pipelineName, "container-limits-job")
 		<-watch.Exited
+
+		if strings.Contains(string(watch.Out.Contents()), "memsw.limit_in_bytes: permission denied") {
+			Skip("swap limits not enabled; skipping")
+		}
+
 		Expect(watch).To(gbytes.Say("initializing"))
 		Expect(watch).To(gbytes.Say("hello"))
 	})
@@ -29,6 +36,11 @@ var _ = Describe("A job with a task that has container limits", func() {
 
 		watch := flyHelper.TriggerJob(pipelineName, "container-limits-failing-job")
 		<-watch.Exited
+
+		if strings.Contains(string(watch.Out.Contents()), "memsw.limit_in_bytes: permission denied") {
+			Skip("swap limits not enabled; skipping")
+		}
+
 		Expect(watch).To(gbytes.Say("initializing"))
 		Expect(watch).To(gbytes.Say("failed"))
 		Expect(watch).To(gexec.Exit(1))
