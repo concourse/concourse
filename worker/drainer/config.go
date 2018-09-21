@@ -43,12 +43,13 @@ func (cmd *Config) Execute(args []string) error {
 	beacon.DisableKeepAlive()
 
 	drainer := &Drainer{
-		BeaconClient: beacon,
-		IsShutdown:   cmd.IsShutdown,
-		WatchProcess: NewBeaconWatchProcess(cmd.BeaconPidFile),
-		WaitInterval: 15 * time.Second,
-		Clock:        clock.NewClock(),
-		Timeout:      cmd.Timeout,
+		BeaconClient:             beacon,
+		IsShutdown:               cmd.IsShutdown,
+		WatchProcess:             NewBeaconWatchProcess(cmd.BeaconPidFile),
+		CheckProcessInterval:     time.Second,
+		NumProcessChecksPerCycle: 15,
+		Clock:   clock.NewClock(),
+		Timeout: cmd.Timeout,
 	}
 
 	return drainer.Drain(logger)
