@@ -1,27 +1,28 @@
 ---
 resources:
-- name: timed-trigger
-  type: time
-  source: {interval: 1h}
+- name: some-resource
+  type: mirror
+  source: {}
 
 - name: pushed-resource
-  type: time
-  source: {interval: 24h}
+  type: mirror
+  source: {}
 
 jobs:
 - name: first-job
   plan:
-  - get: timed-trigger
+  - get: some-resource
 
 - name: pushing-job
   plan:
-  - get: timed-trigger
+  - get: some-resource
     passed: [first-job]
   - put: pushed-resource
+    params: {version: some-pushed-version}
 
 - name: downstream-job
   plan:
-  - get: timed-trigger
+  - get: some-resource
     passed: [pushing-job]
   - get: pushed-resource
     passed: [pushing-job]

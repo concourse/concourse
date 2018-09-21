@@ -23,15 +23,15 @@ var _ = Describe("Configuring a resource in a pipeline config", func() {
 platform: linux
 
 image_resource:
-  type: registry-image
-  source: {repository: busybox}
+  type: mirror
+  source: {mirror_self: true}
+
+params:
+  SOURCE_PARAM: file_source
 
 run:
   path: sh
   args: ["-ec", "echo -n 'SOURCE_PARAM is '; printenv SOURCE_PARAM; echo ."]
-
-params:
-  SOURCE_PARAM: file_source
 `
 		gitServer.WriteFile("some-repo/task.yml", taskFileContents)
 		gitServer.CommitResourceWithFile("task.yml")

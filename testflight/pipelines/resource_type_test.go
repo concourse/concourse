@@ -3,7 +3,6 @@ package pipelines_test
 import (
 	"fmt"
 
-	"github.com/concourse/concourse/testflight/gitserver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -11,40 +10,29 @@ import (
 )
 
 var _ = Describe("Configuring a resource type in a pipeline config", func() {
-	var originGitServer *gitserver.Server
-
-	BeforeEach(func() {
-		originGitServer = gitserver.Start(client)
-		originGitServer.CommitResource()
-		originGitServer.CommitFileToBranch("initial", "initial", "trigger")
-	})
-
-	AfterEach(func() {
-		originGitServer.Stop()
-	})
-
 	Context("with custom resource types", func() {
 		BeforeEach(func() {
 			flyHelper.ConfigurePipeline(
 				pipelineName,
 				"-c", "fixtures/resource-types.yml",
-				"-v", "origin-git-server="+originGitServer.URI(),
-				"-y", "privileged=true",
 			)
 		})
 
 		It("can use custom resource types for 'get', 'put', and task 'image_resource's", func() {
-			watch := flyHelper.Watch(pipelineName, "resource-getter")
+			watch := flyHelper.TriggerJob(pipelineName, "resource-getter")
 			<-watch.Exited
 			Expect(watch.ExitCode()).To(Equal(0))
+			Expect(watch).To(gbytes.Say("fetched version: hello-from-custom-type"))
 
-			watch = flyHelper.Watch(pipelineName, "resource-putter")
-			Expect(watch).To(gbytes.Say("pushing using custom resource"))
-			Expect(watch).To(gbytes.Say("some-output/some-file"))
+			watch = flyHelper.TriggerJob(pipelineName, "resource-putter")
+			<-watch.Exited
+			Expect(watch.ExitCode()).To(Equal(0))
+			Expect(watch).To(gbytes.Say("pushing version: some-pushed-version"))
 
-			watch = flyHelper.Watch(pipelineName, "resource-imgur")
-			Expect(watch).To(gbytes.Say("fetched from custom resource"))
-			Expect(watch).To(gbytes.Say("SOME_ENV=yep"))
+			watch = flyHelper.TriggerJob(pipelineName, "resource-imgur")
+			<-watch.Exited
+			Expect(watch.ExitCode()).To(Equal(0))
+			Expect(watch).To(gbytes.Say("MIRRORED_VERSION=image-version"))
 		})
 
 		It("can check for resources using a custom type", func() {
@@ -54,7 +42,7 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			Expect(checkResource).To(gbytes.Say("checked 'my-resource'"))
 		})
 
-		It("should be able to run privileged operations in 'check', 'get' and 'put' steps", func() {
+		XIt("should be able to run privileged operations in 'check', 'get' and 'put' steps", func() {
 			watch := flyHelper.TriggerJob(pipelineName, "failing-task")
 			<-watch.Exited
 			By("hijacking into get container for my-resource")
@@ -86,12 +74,11 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			Eventually(hijackS).Should(gexec.Exit(0))
 		})
 
-		Context("when the custom resource type is not privileged", func() {
+		XContext("when the custom resource type is not privileged", func() {
 			BeforeEach(func() {
 				flyHelper.ConfigurePipeline(
 					pipelineName,
 					"-c", "fixtures/resource-types.yml",
-					"-v", "origin-git-server="+originGitServer.URI(),
 					"-y", "privileged=false",
 				)
 			})
@@ -135,10 +122,6 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			flyHelper.ConfigurePipeline(
 				pipelineName,
 				"-c", "fixtures/resource-types-with-params.yml",
-				"-v", "s3_bucket=jghiloni-testflight2",
-				"-v", "s3_regexp=time-resource-(.*).tar.gz",
-				"-v", "s3_region=us-east-2",
-				"-y", "privileged=false",
 			)
 		})
 
@@ -146,6 +129,7 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			watch := flyHelper.TriggerJob(pipelineName, "resource-test")
 			<-watch.Exited
 			Expect(watch.ExitCode()).To(Equal(0))
+			Expect(watch).To(gbytes.Say("mirror"))
 		})
 	})
 
@@ -154,14 +138,14 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			flyHelper.ConfigurePipeline(
 				pipelineName,
 				"-c", "fixtures/resource-type-named-as-base-type.yml",
-				"-v", "origin-git-server="+originGitServer.URI(),
 			)
 		})
 
 		It("can use custom resource type named as base resource type", func() {
-			watch := flyHelper.Watch(pipelineName, "resource-getter")
+			watch := flyHelper.TriggerJob(pipelineName, "resource-getter")
 			<-watch.Exited
 			Expect(watch.ExitCode()).To(Equal(0))
+			Expect(watch).To(gbytes.Say("mirror-mirror"))
 		})
 	})
 })

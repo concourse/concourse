@@ -6,7 +6,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 )
 
-var _ = FDescribe("A job with an input with trigger: true", func() {
+var _ = Describe("A job with an input with trigger: true", func() {
 	BeforeEach(func() {
 		flyHelper.ConfigurePipeline(
 			pipelineName,

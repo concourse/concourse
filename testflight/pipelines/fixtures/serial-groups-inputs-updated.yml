@@ -23,8 +23,8 @@ jobs:
         config:
           platform: linux
           image_resource:
-            type: registry-image
-            source: {repository: busybox}
+            type: mirror
+            source: {mirror_self: true}
           inputs:
             - name: some-git-resource
               path: .
@@ -43,8 +43,8 @@ jobs:
         config:
           platform: linux
           image_resource:
-            type: registry-image
-            source: {repository: busybox}
+            type: mirror
+            source: {mirror_self: true}
           inputs:
             - name: other-git-resource
               path: .
@@ -55,8 +55,8 @@ jobs:
         config:
           platform: linux
           image_resource:
-            type: registry-image
-            source: {repository: busybox}
+            type: mirror
+            source: {mirror_self: true}
           inputs:
             - name: some-git-resource
               path: .

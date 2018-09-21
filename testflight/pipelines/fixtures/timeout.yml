@@ -2,10 +2,10 @@
 jobs:
 - name: duration-successful-job
   plan:
-  - get: busybox
+  - get: image
   - task: passing-task
     timeout: 5m
-    image: busybox
+    image: image
     config:
       platform: linux
       run:
@@ -14,9 +14,9 @@ jobs:
 
 - name: duration-fail-job
   plan:
-  - get: busybox
+  - get: image
   - task: timeout-task
-    image: busybox
+    image: image
     timeout: 5s
     config:
       platform: linux
@@ -25,7 +25,6 @@ jobs:
         args: ["10"]
 
 resources:
-- name: busybox
-  type: registry-image
-  source:
-    repository: busybox
+- name: image
+  type: mirror
+  source: {mirror_self: true}

@@ -1,14 +1,14 @@
 ---
 resource_types:
-- name: git
-  type: git
+- name: mirror
+  type: mirror
   source:
-    uri: {{origin-git-server}}
-    branch: master
+    mirror_self: true
+    initial_version: mirror-mirror
 
 resources:
 - name: my-resource
-  type: git
+  type: mirror
   source: {}
 
 jobs:
@@ -19,11 +19,14 @@ jobs:
   - task: print-fetched-stuff
     config:
       platform: linux
+
       image_resource:
-        type: registry-image
-        source: {repository: concourse/bosh-deployment-resource}
+        type: mirror
+        source: {mirror_self: true}
+
       inputs:
       - name: my-resource
+
       run:
-        path: test
-        args: ["-e", "my-resource/rootfs/some-file"]
+        path: cat
+        args: [my-resource/version]

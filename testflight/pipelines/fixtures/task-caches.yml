@@ -17,9 +17,8 @@ jobs:
       outputs:
       - name: first-task-output
       image_resource:
-        type: registry-image
-        source:
-          repository: busybox
+        type: mirror
+        source: {mirror_self: true}
       platform: linux
       run:
         path: sh
@@ -34,9 +33,8 @@ jobs:
       - path: first-task-output/blobs
       - path: second-task-cache
       image_resource:
-        type: registry-image
-        source:
-          repository: busybox
+        type: mirror
+        source: {mirror_self: true}
       platform: linux
       run:
         path: sh

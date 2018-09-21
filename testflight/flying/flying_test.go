@@ -63,8 +63,8 @@ exit 0
 platform: linux
 
 image_resource:
-  type: registry-image
-  source: {repository: busybox}
+  type: mirror
+  source: {mirror_self: true}
 
 inputs:
 - name: fixture
@@ -325,8 +325,8 @@ ls`),
 platform: linux
 
 image_resource:
-  type: registry-image
-  source: {repository: busybox}
+  type: mirror
+  source: {mirror_self: true}
 
 inputs:
 - name: git-repo
@@ -410,8 +410,8 @@ echo hello > output-1/file-1
 platform: linux
 
 image_resource:
-  type: registry-image
-  source: {repository: busybox}
+  type: mirror
+  source: {mirror_self: true}
 
 inputs:
 - name: git-repo

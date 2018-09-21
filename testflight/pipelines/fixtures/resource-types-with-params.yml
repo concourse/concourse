@@ -1,31 +1,30 @@
 ---
 resource_types:
-- name: time-from-s3
-  type: s3
-  source:
-    bucket: ((s3_bucket))
-    regexp: ((s3_regexp))
-    region_name: ((s3_region))
-  params:
-    unpack: true
+- name: mirror-via-params
+  type: mirror
+  source: {}
+  params: {mirror_self_via_params: true}
 
 resources:
 - name: my-resource
-  type: time-from-s3
-  source:
-    interval: 5s
+  type: mirror-via-params
+  source: {}
+
 jobs:
 - name: resource-test
   plan:
   - get: my-resource
   - task: use-custom-resource-type
     config:
+      platform: linux
+
+      image_resource:
+        type: mirror
+        source: {mirror_self: true}
+
       inputs:
       - name: my-resource
-      platform: linux
-      image_resource:
-        type: registry-image
-        source: {repository: alpine}
+
       run:
-        path: test
-        args: [-e, "my-resource/input"]
+        path: cat
+        args: [my-resource/version]

@@ -6,8 +6,8 @@ jobs:
         config:
           platform: linux
           image_resource:
-            type: registry-image
-            source: {repository: busybox}
+            type: mirror
+            source: {mirror_self: true}
           run:
             path: echo
             args: ["pass"]
@@ -16,8 +16,8 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: registry-image
-              source: {repository: busybox}
+              type: mirror
+              source: {mirror_self: true}
             run:
               path: echo
               args: ["passing job ensure"]
@@ -26,8 +26,8 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: registry-image
-              source: {repository: busybox}
+              type: mirror
+              source: {mirror_self: true}
             run:
               path: echo
               args: ["passing job on success"]
@@ -36,8 +36,8 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: registry-image
-              source: {repository: busybox}
+              type: mirror
+              source: {mirror_self: true}
             run:
               path: echo
               args: ["passing job on failure"]
@@ -46,8 +46,8 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: registry-image
-              source: {repository: busybox}
+              type: mirror
+              source: {mirror_self: true}
             run:
               path: echo
               args: ["passing job on abort"]
@@ -56,8 +56,8 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: registry-image
-          source: {repository: busybox}
+          type: mirror
+          source: {mirror_self: true}
         run:
           path: echo
           args: ["passing job on job ensure"]
@@ -66,8 +66,8 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: registry-image
-          source: {repository: busybox}
+          type: mirror
+          source: {mirror_self: true}
         run:
           path: echo
           args: ["passing job on job success"]
@@ -76,8 +76,8 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: registry-image
-          source: {repository: busybox}
+          type: mirror
+          source: {mirror_self: true}
         run:
           path: echo
           args: ["passing job on job failure"]
@@ -86,8 +86,8 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: registry-image
-          source: {repository: busybox}
+          type: mirror
+          source: {mirror_self: true}
         run:
           path: echo
           args: ["passing job on job abort"]
@@ -98,8 +98,8 @@ jobs:
         config:
           platform: linux
           image_resource:
-            type: registry-image
-            source: {repository: busybox}
+            type: mirror
+            source: {mirror_self: true}
           run:
             path: "false"
         ensure:
@@ -107,8 +107,8 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: registry-image
-              source: {repository: busybox}
+              type: mirror
+              source: {mirror_self: true}
             run:
               path: echo
               args: ["failing job ensure"]
@@ -117,8 +117,8 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: registry-image
-              source: {repository: busybox}
+              type: mirror
+              source: {mirror_self: true}
             run:
               path: echo
               args: ["failing job on success"]
@@ -127,8 +127,8 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: registry-image
-              source: {repository: busybox}
+              type: mirror
+              source: {mirror_self: true}
             run:
               path: echo
               args: ["failing job on failure"]
@@ -137,8 +137,8 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: registry-image
-              source: {repository: busybox}
+              type: mirror
+              source: {mirror_self: true}
             run:
               path: echo
               args: ["failing job on abort"]
@@ -147,8 +147,8 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: registry-image
-          source: {repository: busybox}
+          type: mirror
+          source: {mirror_self: true}
         run:
           path: echo
           args: ["failing job on job ensure"]
@@ -157,8 +157,8 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: registry-image
-          source: {repository: busybox}
+          type: mirror
+          source: {mirror_self: true}
         run:
           path: echo
           args: ["failing job on job success"]
@@ -167,8 +167,8 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: registry-image
-          source: {repository: busybox}
+          type: mirror
+          source: {mirror_self: true}
         run:
           path: echo
           args: ["failing job on job failure"]
@@ -177,8 +177,8 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: registry-image
-          source: {repository: busybox}
+          type: mirror
+          source: {mirror_self: true}
         run:
           path: echo
           args: ["failing job on job abort"]
@@ -189,8 +189,8 @@ jobs:
         config:
           platform: linux
           image_resource:
-            type: registry-image
-            source: {repository: busybox}
+            type: mirror
+            source: {mirror_self: true}
           run:
             path: sh
             args:
@@ -204,8 +204,8 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: registry-image
-              source: {repository: busybox}
+              type: mirror
+              source: {mirror_self: true}
             run:
               path: echo
               args: ["aborted job ensure"]
@@ -214,8 +214,8 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: registry-image
-              source: {repository: busybox}
+              type: mirror
+              source: {mirror_self: true}
             run:
               path: echo
               args: ["aborted job on success"]
@@ -224,8 +224,8 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: registry-image
-              source: {repository: busybox}
+              type: mirror
+              source: {mirror_self: true}
             run:
               path: echo
               args: ["aborted job on failure"]
@@ -234,8 +234,8 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: registry-image
-              source: {repository: busybox}
+              type: mirror
+              source: {mirror_self: true}
             run:
               path: echo
               args: ["aborted job on abort"]
@@ -244,8 +244,8 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: registry-image
-          source: {repository: busybox}
+          type: mirror
+          source: {mirror_self: true}
         run:
           path: echo
           args: ["aborted job on job ensure"]
@@ -254,8 +254,8 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: registry-image
-          source: {repository: busybox}
+          type: mirror
+          source: {mirror_self: true}
         run:
           path: echo
           args: ["aborted job on job success"]
@@ -264,8 +264,8 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: registry-image
-          source: {repository: busybox}
+          type: mirror
+          source: {mirror_self: true}
         run:
           path: echo
           args: ["aborted job on job failure"]
@@ -274,8 +274,8 @@ jobs:
       config:
         platform: linux
         image_resource:
-          type: registry-image
-          source: {repository: busybox}
+          type: mirror
+          source: {mirror_self: true}
         run:
           path: echo
           args: ["aborted job on job abort"]

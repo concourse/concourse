@@ -1,21 +1,19 @@
 ---
 resource_types:
-  - name: custom-type
-    type: registry-image
-    source:
-      repository: concourse/git-resource
+- name: custom-type
+  type: mirror
+  source:
+    mirror_self: true
+    initial_version: custom-type-version
 
 resources:
-  - name: git-repo
-    type: custom-type
-    source:
-      uri: {{git-server}}
-      branch: master
+- name: git-repo
+  type: custom-type
+  source: {}
 
 jobs:
 - name: input-test
   plan:
   - get: git-repo
-    trigger: true
   - task: input-test
     file: git-repo/task.yml

@@ -16,8 +16,8 @@ jobs:
             config:
               platform: linux
               image_resource:
-                type: registry-image
-                source: {repository: busybox}
+                type: mirror
+                source: {mirror_self: true}
               run:
                 path: touch
                 args: [file]
@@ -28,8 +28,8 @@ jobs:
             config:
               platform: linux
               image_resource:
-                type: registry-image
-                source: {repository: busybox}
+                type: mirror
+                source: {mirror_self: true}
               run:
                 path: touch
                 args: [file]
@@ -40,8 +40,8 @@ jobs:
         config:
           platform: linux
           image_resource:
-            type: registry-image
-            source: {repository: busybox}
+            type: mirror
+            source: {mirror_self: true}
           inputs:
             - name: passing-unit-1
             - name: passing-unit-2
@@ -54,8 +54,8 @@ jobs:
             config:
               platform: linux
               image_resource:
-                type: registry-image
-                source: {repository: busybox}
+                type: mirror
+                source: {mirror_self: true}
               run:
                 path: sh
                 args: [-c, exit 0]
@@ -63,8 +63,8 @@ jobs:
             config:
               platform: linux
               image_resource:
-                type: registry-image
-                source: {repository: busybox}
+                type: mirror
+                source: {mirror_self: true}
               run:
                 path: sh
                 args: [-c, exit 1]
@@ -73,8 +73,8 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: registry-image
-              source: {repository: busybox}
+              type: mirror
+              source: {mirror_self: true}
             inputs:
               - name: some-git-resource
             run:

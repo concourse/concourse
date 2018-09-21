@@ -7,8 +7,8 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: registry-image
-              source: {repository: busybox}
+              type: mirror
+              source: {mirror_self: true}
             run:
               path: exit
               args: ["1"]
@@ -16,8 +16,8 @@ jobs:
         config:
           platform: linux
           image_resource:
-            type: registry-image
-            source: {repository: busybox}
+            type: mirror
+            source: {mirror_self: true}
           run:
             path: echo
             args: ["passing-task succeeded"]
