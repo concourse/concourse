@@ -6,17 +6,14 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 
 	"github.com/concourse/concourse/atc/atccmd"
-	"github.com/concourse/flag"
 	"github.com/concourse/concourse/tsa/tsacmd"
+	"github.com/concourse/flag"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/sigmon"
-
-	"github.com/concourse/concourse/bin/bindata"
 )
 
 type WebCommand struct {
@@ -24,8 +21,6 @@ type WebCommand struct {
 
 	*tsacmd.TSACommand `group:"TSA Configuration" namespace:"tsa"`
 }
-
-const cliArtifactsBindata = "cli-artifacts"
 
 func (WebCommand) lessenRequirements(command *flags.Command) {
 	// defaults to address from external URL
@@ -48,11 +43,6 @@ func (cmd *WebCommand) Execute(args []string) error {
 }
 
 func (cmd *WebCommand) Runner(args []string) (ifrit.Runner, error) {
-	err := bindata.RestoreAssets(os.TempDir(), cliArtifactsBindata)
-	if err == nil {
-		cmd.RunCommand.CLIArtifactsDir = flag.Dir(filepath.Join(os.TempDir(), cliArtifactsBindata))
-	}
-
 	cmd.populateTSAFlagsFromATCFlags()
 
 	atcRunner, shouldSkipTSA, err := cmd.RunCommand.Runner(args)
