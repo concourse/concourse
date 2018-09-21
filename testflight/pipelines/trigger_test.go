@@ -1,38 +1,28 @@
 package pipelines_test
 
 import (
-	"github.com/concourse/concourse/testflight/gitserver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 )
 
-var _ = Describe("A job with a git input with trigger: true", func() {
-	var originGitServer *gitserver.Server
-
+var _ = FDescribe("A job with an input with trigger: true", func() {
 	BeforeEach(func() {
-		originGitServer = gitserver.Start(client)
-
 		flyHelper.ConfigurePipeline(
 			pipelineName,
 			"-c", "fixtures/simple-trigger.yml",
-			"-v", "origin-git-server="+originGitServer.URI(),
 		)
 	})
 
-	AfterEach(func() {
-		originGitServer.Stop()
-	})
-
-	It("triggers when the repo changes", func() {
-		By("building the initial commit")
-		guid1 := originGitServer.Commit()
+	It("triggers when the resource changes", func() {
+		By("running on the initial version")
+		flyHelper.CheckResource("-r", pipelineName+"/some-resource", "-f", "version:first-version")
 		watch := flyHelper.Watch(pipelineName, "some-passing-job")
-		Eventually(watch).Should(gbytes.Say(guid1))
+		Eventually(watch).Should(gbytes.Say("first-version"))
 
 		By("building another commit")
-		guid2 := originGitServer.Commit()
+		flyHelper.CheckResource("-r", pipelineName+"/some-resource", "-f", "version:second-version")
 		watch = flyHelper.Watch(pipelineName, "some-passing-job", "2")
-		Eventually(watch).Should(gbytes.Say(guid2))
+		Eventually(watch).Should(gbytes.Say("second-version"))
 	})
 })
