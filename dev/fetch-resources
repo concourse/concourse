@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -e -u
+
+cd $(dirname $0)/..
+
+ROOT=$(pwd)
+
+for r in registry-image git s3 mirror; do
+  resdir=$ROOT/dev/resources/$r
+
+  if [ -e "$resdir/resource_metadata.json" ]; then
+    echo "$r already fetched; skipping"
+    continue
+  fi
+
+  url=$(curl --silent https://api.github.com/repos/concourse/${r}-resource/releases/latest | jq -r '.assets[0].browser_download_url')
+  if [ -z "$url" ]; then
+    echo "could not get download URL for $r resource"
+    exit 1
+  fi
+
+  sudo mkdir -p $resdir
+  curl -L $url | sudo tar -C $resdir -zxf -
+done

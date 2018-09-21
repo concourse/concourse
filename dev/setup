@@ -5,24 +5,13 @@ set -e -u
 cd $(dirname $0)/..
 
 ROOT=$(pwd)
+ASSETSDIR=$ROOT/dev/image
 
-docker pull concourse/concourse-rc
+./dev/create-keys
+./dev/fetch-release-binary cloudfoundry/garden-runc-release gdn gdn
+./dev/fetch-release-binary Yelp/dumb-init 'dumb-init_.*_amd64$' dumb-init
+./dev/fetch-resources
 
-DEVDIR=/tmp/concourse-dev
-KEYSDIR=$DEVDIR/keys
-
-mkdir -p $KEYSDIR
-cd $KEYSDIR
-
-mkdir -p web worker
-
-function keygen() {
-  [ -f $1 ] || ssh-keygen -t rsa -f $1 -N ''
-}
-
-keygen ./web/tsa_host_key
-keygen ./web/session_signing_key
-keygen ./worker/worker_key
-
-cp ./worker/worker_key.pub ./web/authorized_worker_keys
-cp ./web/tsa_host_key.pub ./worker
+GOOS=linux GOARCH=amd64 packr build \
+  -o $ASSETSDIR/concourse \
+  github.com/concourse/concourse/bin/cmd/concourse
