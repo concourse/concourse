@@ -8,8 +8,8 @@ jobs:
       platform: linux
 
       image_resource:
-        type: registry-image
-        source: {repository: busybox}
+        type: mirror
+        source: {mirror_self: true}
 
       outputs:
       - name: attempts-log
@@ -23,8 +23,8 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: registry-image
-        source: {repository: busybox}
+        type: mirror
+        source: {mirror_self: true}
       inputs:
       - name: attempts-log
         path: old
@@ -60,7 +60,7 @@ jobs:
       platform: linux
 
       image_resource:
-        type: registry-image
-        source: {repository: busybox}
+        type: mirror
+        source: {mirror_self: true}
 
       run: {path: 'false'}

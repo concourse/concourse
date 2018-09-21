@@ -32,6 +32,9 @@ type Server struct {
 }
 
 func Start(client concourse.Client) *Server {
+	ginkgo.Skip("git server is being phased out; this test needs to be updated")
+	return nil
+
 	logger := lagertest.NewTestLogger("git-server")
 
 	gitServerRootfs, gardenClient, baggageclaimClient := helpers.WorkerWithResourceType(logger, client, "git")

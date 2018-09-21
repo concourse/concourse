@@ -1,100 +1,51 @@
 ---
 resource_types:
 - name: custom-resource-type
-  type: git
-  privileged: ((privileged))
-  check_every: 5s
+  type: mirror
   source:
-    uri: {{origin-git-server}}
-    branch: master
-
-- name: failing-custom-resource-type
-  type: git
-  privileged: ((privileged))
-  check_every: 5s
-  source:
-    uri: failure
-    something-nonexistent: something-nonexistent
+    mirror_self: true
+    initial_version: hello-from-custom-type
 
 resources:
 - name: my-resource
   type: custom-resource-type
   source: {}
 
-- name: my-resource-updated
-  type: custom-resource-type
-  source: {}
-
-- name: trigger-build
-  type: git
-  source:
-    uri: {{origin-git-server}}
-    branch: trigger
-
 jobs:
 - name: resource-getter
   plan:
   - get: my-resource
-    trigger: true
-  - task: print-fetched-stuff
+  - task: print-version
     config:
       platform: linux
+
       image_resource:
-        type: registry-image
-        source: {repository: concourse/bosh-deployment-resource}
+        type: custom-resource-type
+        source: {mirror_self: true}
+
       inputs:
       - name: my-resource
+
       run:
-        path: test
-        args: ["-e", "my-resource/rootfs/some-file"]
+        path: sh
+        args: [-c, 'echo fetched version: $(cat my-resource/version)']
 
 - name: resource-putter
   plan:
-  - get: my-resource
-    trigger: true
-  - task: make-some-output
-    config:
-      platform: linux
-      image_resource:
-        type: registry-image
-        source: {repository: concourse/bosh-deployment-resource}
-      outputs:
-      - name: some-output
-      run:
-        path: touch
-        args: [some-output/some-file]
-  - put: my-resource-updated
+  - put: my-resource
+    params: {version: some-pushed-version}
 
 - name: resource-imgur
   plan:
-  - get: my-resource
-    trigger: true
-  - get: trigger-build
-    trigger: true
   - task: use-custom-resource-type
     config:
-      inputs:
-      - name: my-resource
       platform: linux
-      image_resource:
-        type: custom-resource-type
-        source: {}
-      run:
-        path: sh
-        args: [-exc, "cat /some-file; env"]
 
-- name: failing-task
-  plan:
-  - get: my-resource
-  - put: my-resource
-  - task: failing-task
-    config:
-      inputs:
-      - name: my-resource
-      platform: linux
       image_resource:
         type: custom-resource-type
-        source: {}
+        source:
+          mirror_self: true
+          initial_version: image-version
+
       run:
-        path: sh
-        args: [-exc, "false"]
+        path: env

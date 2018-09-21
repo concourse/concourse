@@ -1,19 +1,19 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
 
-	"github.com/concourse/guardian/guardiancmd"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/localip"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/flag"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -24,33 +24,18 @@ type Certs struct {
 }
 
 type GardenBackend struct {
-	guardiancmd.ServerCommand
+	GDN          string    `long:"bin"    default:"gdn" description:"Path to 'gdn' executable (or leave as 'gdn' to find it in $PATH)."`
+	GardenConfig flag.File `long:"config"               description:"Path to a config file to use for Garden."`
 
 	DNS DNSConfig `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
 }
 
 func (cmd WorkerCommand) lessenRequirements(prefix string, command *flags.Command) {
-	command.FindOptionByLongName(prefix + "garden-bind-port").Default = []string{"7777"}
-
-	// configured as work-dir/depot
-	command.FindOptionByLongName(prefix + "garden-depot").Required = false
-
-	// un-configure graph (default /var/gdn/graph)
-	command.FindOptionByLongName(prefix + "garden-graph").Required = false
-	command.FindOptionByLongName(prefix + "garden-graph").Default = []string{}
-
-	// these are provided as assets embedded in the 'concourse' binary
-	command.FindOptionByLongName(prefix + "garden-runtime-plugin").Required = false
-	command.FindOptionByLongName(prefix + "garden-dadoo-bin").Required = false
-	command.FindOptionByLongName(prefix + "garden-init-bin").Required = false
-	command.FindOptionByLongName(prefix + "garden-nstar-bin").Required = false
-	command.FindOptionByLongName(prefix + "garden-tar-bin").Required = false
-
 	// configured as work-dir/volumes
 	command.FindOptionByLongName(prefix + "baggageclaim-volumes").Required = false
 }
 
-func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc.Worker, ifrit.Runner, error) {
+func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.Runner, error) {
 	err := cmd.checkRoot()
 	if err != nil {
 		return atc.Worker{}, nil, err
@@ -65,29 +50,34 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc
 		return atc.Worker{}, nil, err
 	}
 
-	cmd.Garden.Server.BindIP = guardiancmd.IPFlag(cmd.BindIP.IP)
-	cmd.Garden.Containers.Dir = depotDir
+	gdnFlags := []string{}
 
-	cmd.Garden.Network.AllowHostAccess = true
+	if cmd.Garden.GardenConfig.Path() != "" {
+		gdnFlags = append(gdnFlags, "-config", cmd.Garden.GardenConfig.Path())
+	}
+
+	gdnServerFlags := []string{
+		"--bind-ip", cmd.BindIP.IP.String(),
+		"--bind-port", fmt.Sprintf("%d", cmd.BindPort),
+
+		"--depot", depotDir,
+
+		// disable graph; all images passed to Concourse containers are raw://
+		"--graph", "",
+
+		// XXX: we've been setting this the whole time. is it necessary anymore?
+		// XXX: it's probably necessary for testflight
+		// XXX: self-contained 'gdn' binary automatically sets this (for some reason)
+		"--allow-host-access",
+	}
 
 	worker := cmd.Worker.Worker()
 	worker.Platform = "linux"
 	worker.CertsPath = &cmd.Certs.Dir
 
-	if hasAssets {
-		cmd.Garden.Runtime.Plugin = cmd.assetPath("bin", "runc")
-		cmd.Garden.Bin.Dadoo = guardiancmd.FileFlag(cmd.assetPath("bin", "dadoo"))
-		cmd.Garden.Bin.Init = guardiancmd.FileFlag(cmd.assetPath("bin", "init"))
-		cmd.Garden.Bin.NSTar = guardiancmd.FileFlag(cmd.assetPath("bin", "nstar"))
-		cmd.Garden.Bin.Tar = guardiancmd.FileFlag(cmd.assetPath("bin", "tar"))
-
-		iptablesDir := cmd.assetPath("iptables")
-		cmd.Garden.Bin.IPTables = guardiancmd.FileFlag(filepath.Join(iptablesDir, "sbin", "iptables"))
-
-		worker.ResourceTypes, err = cmd.extractResources(logger.Session("extract-resources"))
-		if err != nil {
-			return atc.Worker{}, nil, err
-		}
+	worker.ResourceTypes, err = cmd.loadResources(logger.Session("load-resources"))
+	if err != nil {
+		return atc.Worker{}, nil, err
 	}
 
 	worker.Name, err = cmd.workerName()
@@ -95,12 +85,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc
 		return atc.Worker{}, nil, err
 	}
 
-	members := grouper.Members{
-		{
-			Name:   "garden-runc",
-			Runner: &cmd.Garden.ServerCommand,
-		},
-	}
+	members := grouper.Members{}
 
 	if cmd.Garden.DNS.Enable {
 		dnsProxyRunner, err := cmd.dnsProxyRunner(logger.Session("dns-proxy"))
@@ -113,133 +98,25 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc
 			return atc.Worker{}, nil, err
 		}
 
-		cmd.Garden.Network.AdditionalDNSServers = append(
-			cmd.Garden.Network.AdditionalDNSServers,
-			guardiancmd.IPFlag(net.ParseIP(lip)),
-		)
-
 		members = append(members, grouper.Member{
 			Name:   "dns-proxy",
 			Runner: dnsProxyRunner,
 		})
+
+		gdnServerFlags = append(gdnServerFlags, "--dns-server", lip)
 	}
+
+	gdnArgs := append(gdnFlags, append([]string{"server"}, gdnServerFlags...)...)
+	gdnCmd := exec.Command(cmd.Garden.GDN, gdnArgs...)
+	gdnCmd.Stdout = os.Stdout
+	gdnCmd.Stderr = os.Stderr
+
+	members = append(members, grouper.Member{
+		Name:   "gdn",
+		Runner: cmdRunner{gdnCmd},
+	})
 
 	return worker, grouper.NewParallel(os.Interrupt, members), nil
-}
-
-func (cmd *WorkerCommand) extractResources(logger lager.Logger) ([]atc.WorkerResourceType, error) {
-	var resourceTypes []atc.WorkerResourceType
-
-	resourcesDir := cmd.assetPath("resources")
-
-	infos, err := ioutil.ReadDir(resourcesDir)
-	if err != nil {
-		logger.Error("failed-to-list-resource-assets", err)
-		return nil, err
-	}
-
-	for _, info := range infos {
-		resourceType := info.Name()
-
-		workerResourceType, err := cmd.extractResource(
-			logger.Session("extract", lager.Data{"resource-type": resourceType}),
-			resourcesDir,
-			resourceType,
-		)
-		if err != nil {
-			logger.Error("failed-to-extract-resource", err)
-			return nil, err
-		}
-
-		resourceTypes = append(resourceTypes, workerResourceType)
-	}
-
-	return resourceTypes, nil
-}
-
-func (cmd *WorkerCommand) extractResource(
-	logger lager.Logger,
-	resourcesDir string,
-	resourceType string,
-) (atc.WorkerResourceType, error) {
-	resourceImagesDir := cmd.assetPath("resource-images")
-	tarBin := cmd.assetPath("bin", "tar")
-
-	archive := filepath.Join(resourcesDir, resourceType, "rootfs.tar.gz")
-
-	extractedDir := filepath.Join(resourceImagesDir, resourceType)
-
-	rootfsDir := filepath.Join(extractedDir, "rootfs")
-	okMarker := filepath.Join(extractedDir, "ok")
-
-	var version string
-	versionFile, err := os.Open(filepath.Join(resourcesDir, resourceType, "version"))
-	if err != nil {
-		logger.Error("failed-to-read-version", err)
-		return atc.WorkerResourceType{}, err
-	}
-
-	_, err = fmt.Fscanf(versionFile, "%s", &version)
-	if err != nil {
-		logger.Error("failed-to-parse-version", err)
-		return atc.WorkerResourceType{}, err
-	}
-
-	defer versionFile.Close()
-
-	var privileged bool
-	_, err = os.Stat(filepath.Join(resourcesDir, resourceType, "privileged"))
-	if err == nil {
-		privileged = true
-	}
-
-	_, err = os.Stat(okMarker)
-	if err == nil {
-		logger.Info("already-extracted")
-	} else {
-		logger.Info("extracting")
-
-		err := os.RemoveAll(rootfsDir)
-		if err != nil {
-			logger.Error("failed-to-clear-out-existing-rootfs", err)
-			return atc.WorkerResourceType{}, err
-		}
-
-		err = os.MkdirAll(rootfsDir, 0755)
-		if err != nil {
-			logger.Error("failed-to-create-rootfs-dir", err)
-			return atc.WorkerResourceType{}, err
-		}
-
-		tar := exec.Command(tarBin, "-zxf", archive, "-C", rootfsDir)
-
-		output, err := tar.CombinedOutput()
-		if err != nil {
-			logger.Error("failed-to-extract-resource", err, lager.Data{
-				"output": string(output),
-			})
-			return atc.WorkerResourceType{}, err
-		}
-
-		ok, err := os.Create(okMarker)
-		if err != nil {
-			logger.Error("failed-to-create-ok-marker", err)
-			return atc.WorkerResourceType{}, err
-		}
-
-		err = ok.Close()
-		if err != nil {
-			logger.Error("failed-to-close-ok-marker", err)
-			return atc.WorkerResourceType{}, err
-		}
-	}
-
-	return atc.WorkerResourceType{
-		Type:       resourceType,
-		Image:      rootfsDir,
-		Version:    version,
-		Privileged: privileged,
-	}, nil
 }
 
 var ErrNotRoot = errors.New("worker must be run as root")
@@ -284,4 +161,39 @@ func (cmd *WorkerCommand) dnsProxyRunner(logger lager.Logger) (ifrit.Runner, err
 			}
 		}
 	}), nil
+}
+
+func (cmd *WorkerCommand) loadResources(logger lager.Logger) ([]atc.WorkerResourceType, error) {
+	var types []atc.WorkerResourceType
+
+	if cmd.ResourceTypes != "" {
+		basePath := cmd.ResourceTypes.Path()
+
+		entries, err := ioutil.ReadDir(basePath)
+		if err != nil {
+			logger.Error("failed-to-read-resources-dir", err)
+			return nil, err
+		}
+
+		for _, e := range entries {
+			meta, err := ioutil.ReadFile(filepath.Join(basePath, e.Name(), "resource_metadata.json"))
+			if err != nil {
+				logger.Error("failed-to-read-resource-type-metadata", err)
+				return nil, err
+			}
+
+			var t atc.WorkerResourceType
+			err = json.Unmarshal(meta, &t)
+			if err != nil {
+				logger.Error("failed-to-unmarshal-resource-type-metadata", err)
+				return nil, err
+			}
+
+			t.Image = filepath.Join(basePath, e.Name(), "rootfs")
+
+			types = append(types, t)
+		}
+	}
+
+	return types, nil
 }

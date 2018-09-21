@@ -12,15 +12,14 @@ jobs:
   - get: some-git-resource
   - task: some-task
     config:
+      platform: linux
+      image_resource:
+        type: mirror
+        source: {mirror_self: true}
       inputs:
       - name: some-git-resource
       caches:
       - path: some-git-resource/cache
-      image_resource:
-        type: registry-image
-        source:
-          repository: busybox
-      platform: linux
       run:
         path: sh
         args:
