@@ -34,20 +34,34 @@ RUN for i in $(seq 0 15); do \
       mknod -m 0660 /dev/loop$i b 7 $i; \
     done
 
-# warm the module cache so we don't have to fetch every time
+# fetch dependencies
+ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_amd64          /usr/local/bin/dumb-init
+ADD https://github.com/cloudfoundry/garden-runc-release/releases/download/v1.16.4/gdn-1.16.4  /usr/local/bin/gdn
+RUN chmod +x /usr/local/bin/dumb-init && chmod +x /usr/local/bin/gdn
+
+# fetch resources
+ADD https://github.com/concourse/mirror-resource/releases/download/v0.0.1/mirror-resource-0.0.1.tgz  /tmp/
+ADD https://github.com/concourse/registry-image-resource/releases/download/v0.1.0/registry-image-resource-0.1.0.tgz        /tmp/
+ADD https://github.com/concourse/git-resource/releases/download/v1.0.0/git-resource-1.0.0.tgz        /tmp/
+ADD https://github.com/concourse/s3-resource/releases/download/v1.0.0/s3-resource-1.0.0.tgz          /tmp/
+RUN mkdir -p /concourse-resource-types/mirror && \
+      tar -zxf /tmp/mirror-resource-*.tgz -C /concourse-resource-types/mirror && \
+      mkdir -p /concourse-resource-types/registry-image && \
+      tar -zxf /tmp/registry-image-resource-*.tgz -C /concourse-resource-types/registry-image && \
+      mkdir -p /concourse-resource-types/git && \
+      tar -zxf /tmp/git-resource-*.tgz -C /concourse-resource-types/git && \
+      mkdir -p /concourse-resource-types/s3 && \
+      tar -zxf /tmp/s3-resource-*.tgz -C /concourse-resource-types/s3 && \
+      rm /tmp/*.tgz
+
+# point to fetched resource types
+ENV CONCOURSE_RESOURCE_TYPES /concourse-resource-types
+
+# warm the module cache first so we don't have to fetch every time
 WORKDIR /src
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
-
-# fetch dependencies and resources
-COPY dev ./dev
-RUN ./dev/fetch-release-binary cloudfoundry/garden-runc-release gdn /usr/local/bin/gdn
-RUN ./dev/fetch-release-binary Yelp/dumb-init 'dumb-init_.*_amd64$' /usr/local/bin/dumb-init
-RUN ./dev/fetch-resources /concourse-resource-types
-
-# point to fetched resource types
-ENV CONCOURSE_RESOURCE_TYPES /concourse-resource-types
 
 # build Concourse
 COPY . .
