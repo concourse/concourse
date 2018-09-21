@@ -13,6 +13,8 @@ services:
     build:
       context: .
       dockerfile: dev/Dockerfile
+    volumes:
+    - .:/src
     command: web
     depends_on: [db]
     ports: ["8080:8080"]

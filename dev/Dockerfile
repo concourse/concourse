@@ -62,4 +62,7 @@ ENV CONCOURSE_RESOURCE_TYPES /concourse-resource-types
 COPY . .
 RUN go build -o /usr/local/bin/concourse github.com/concourse/concourse/bin/cmd/concourse
 
+# override /src with a volume so we get live-updated packr stuff
+VOLUME /src
+
 ENTRYPOINT ["/usr/local/bin/dumb-init", "/usr/local/bin/concourse"]
