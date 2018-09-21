@@ -947,6 +947,22 @@ var _ = Describe("ResourceScanner", func() {
 					_, _, version := fakeResource.CheckArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"version": "1"}))
 				})
+
+				Context("when the check returns only the latest version", func() {
+					BeforeEach(func() {
+						fakeResource.CheckReturns([]atc.Version{fromVersion}, nil)
+					})
+
+					It("saves it", func() {
+						Expect(fakeDBPipeline.SaveResourceVersionsCallCount()).To(Equal(1))
+						resourceConfig, versions := fakeDBPipeline.SaveResourceVersionsArgsForCall(0)
+						Expect(resourceConfig).To(Equal(atc.ResourceConfig{
+							Name: "some-resource",
+							Type: "git",
+						}))
+						Expect(versions).To(Equal([]atc.Version{fromVersion}))
+					})
+				})
 			})
 
 			Context("when checking fails with ErrResourceScriptFailed", func() {

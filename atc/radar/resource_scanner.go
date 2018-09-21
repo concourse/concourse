@@ -55,7 +55,7 @@ func NewResourceScanner(
 var ErrFailedToAcquireLock = errors.New("failed-to-acquire-lock")
 
 func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (time.Duration, error) {
-	interval, err := scanner.scan(logger.Session("tick"), resourceName, nil, false)
+	interval, err := scanner.scan(logger.Session("tick"), resourceName, nil, false, false)
 
 	err = swallowErrResourceScriptFailed(err)
 
@@ -63,20 +63,20 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 }
 
 func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceName string, fromVersion atc.Version) error {
-	_, err := scanner.scan(logger, resourceName, fromVersion, true)
+	_, err := scanner.scan(logger, resourceName, fromVersion, true, true)
 
 	return err
 }
 
 func (scanner *resourceScanner) Scan(logger lager.Logger, resourceName string) error {
-	_, err := scanner.scan(logger, resourceName, nil, true)
+	_, err := scanner.scan(logger, resourceName, nil, true, false)
 
 	err = swallowErrResourceScriptFailed(err)
 
 	return err
 }
 
-func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, fromVersion atc.Version, mustComplete bool) (time.Duration, error) {
+func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, fromVersion atc.Version, mustComplete bool, saveGiven bool) (time.Duration, error) {
 	lockLogger := logger.Session("lock", lager.Data{
 		"resource": resourceName,
 	})
@@ -204,6 +204,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		fromVersion,
 		versionedResourceTypes,
 		source,
+		saveGiven,
 	)
 }
 
@@ -214,6 +215,7 @@ func (scanner *resourceScanner) check(
 	fromVersion atc.Version,
 	resourceTypes creds.VersionedResourceTypes,
 	source atc.Source,
+	saveGiven bool,
 ) error {
 	pipelinePaused, err := scanner.dbPipeline.CheckPaused()
 	if err != nil {
@@ -310,7 +312,7 @@ func (scanner *resourceScanner) check(
 		return err
 	}
 
-	if len(newVersions) == 0 || reflect.DeepEqual(newVersions, []atc.Version{fromVersion}) {
+	if len(newVersions) == 0 || (!saveGiven && reflect.DeepEqual(newVersions, []atc.Version{fromVersion})) {
 		logger.Debug("no-new-versions")
 		return nil
 	}
