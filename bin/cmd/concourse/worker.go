@@ -79,7 +79,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		},
 	}
 
-	if cmd.TSA.WorkerPrivateKey.PrivateKey != nil {
+	if cmd.TSA.WorkerPrivateKey != nil {
 		beaconConfig := beacon.Config{
 			TSAConfig: cmd.TSA,
 		}
