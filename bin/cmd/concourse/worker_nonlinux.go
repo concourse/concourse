@@ -20,6 +20,6 @@ func (cmd WorkerCommand) lessenRequirements(prefix string, command *flags.Comman
 	command.FindOptionByLongName(prefix + "baggageclaim-volumes").Required = false
 }
 
-func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, hasAssets bool) (atc.Worker, ifrit.Runner, error) {
+func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.Runner, error) {
 	return cmd.houdiniRunner(logger, runtime.GOOS)
 }
