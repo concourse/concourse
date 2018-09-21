@@ -5,9 +5,6 @@
   "repository": "https://github.com/concourse/web",
   "license": "MIT",
   "dependencies": {},
-  "engines": {
-    "node": "^8.0.0"
-  },
   "devDependencies": {
     "elm-format": "^0.8.0",
     "elm-test": "^0.18.12",
