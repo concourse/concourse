@@ -518,18 +518,6 @@ var _ = Describe("VolumeFactory", func() {
 		JustBeforeEach(func() {
 			numDeleted, failedErr = volumeRepository.RemoveDestroyingVolumes(defaultWorker.Name(), handles)
 		})
-		ItClosesConnection := func() {
-			It("closes the connection", func() {
-				closed := make(chan bool)
-
-				go func() {
-					_, _ = volumeRepository.RemoveDestroyingVolumes(defaultWorker.Name(), handles)
-					closed <- true
-				}()
-
-				Eventually(closed).Should(Receive())
-			})
-		}
 
 		Context("when there are volumes to destroy", func() {
 
@@ -613,8 +601,6 @@ var _ = Describe("VolumeFactory", func() {
 					Expect(failedErr).ToNot(HaveOccurred())
 				})
 			})
-
-			ItClosesConnection()
 		})
 
 		Context("when there are no volumes to destroy", func() {
@@ -656,9 +642,6 @@ var _ = Describe("VolumeFactory", func() {
 			It("returns the correct number of rows removed", func() {
 				Expect(numDeleted).To(Equal(0))
 			})
-
-			ItClosesConnection()
 		})
-
 	})
 })

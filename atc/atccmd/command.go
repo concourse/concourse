@@ -42,11 +42,11 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/image"
 	"github.com/concourse/concourse/atc/wrappa"
-	"github.com/concourse/flag"
-	"github.com/concourse/retryhttp"
 	"github.com/concourse/concourse/skymarshal"
 	"github.com/concourse/concourse/skymarshal/skycmd"
 	"github.com/concourse/concourse/web"
+	"github.com/concourse/flag"
+	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
 	"github.com/hashicorp/go-multierror"
 	"github.com/jessevdk/go-flags"
@@ -760,6 +760,7 @@ func (cmd *RunCommand) constructBackendMembers(
 						workerProvider,
 						time.Minute,
 					),
+					cmd.GC.Interval*3, // container last-seen TTL (must be bigger than gc.interval so it doesn't race)
 				),
 				gc.NewResourceConfigCheckSessionCollector(
 					resourceConfigCheckSessionLifecycle,

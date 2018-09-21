@@ -2,6 +2,8 @@
 
 set -e -u
 
-go build -tags 'postgres' -o $GOPATH/bin/migrate github.com/concourse/atc/db/migration/cli
+DIR="$(dirname $0)/.."
 
-migrate generate -d db/migration/migrations/ -n"$1" -t ${2-"sql"}
+go build -tags 'postgres' -o $GOPATH/bin/migrate $DIR/db/migration/cli
+
+migrate generate -d $DIR/db/migration/migrations/ -n"$1" -t ${2-"sql"}

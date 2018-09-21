@@ -42,7 +42,6 @@ var _ = Describe("Destroyer", func() {
 			BeforeEach(func() {
 				handles = []string{"some-handle1", "some-handle2"}
 				workerName = "some-worker"
-
 			})
 
 			It("succeed", func() {
@@ -70,6 +69,7 @@ var _ = Describe("Destroyer", func() {
 				handles = []string{}
 				workerName = "some-worker"
 			})
+
 			It("returned no error and called container repository", func() {
 				err = destroyer.DestroyContainers(workerName, handles)
 

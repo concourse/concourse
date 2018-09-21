@@ -1,6 +1,9 @@
 package db
 
 import (
+	"fmt"
+	"time"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 )
@@ -12,6 +15,8 @@ type ContainerRepository interface {
 	DestroyFailedContainers() (int, error)
 	FindDestroyingContainers(workerName string) ([]string, error)
 	RemoveDestroyingContainers(workerName string, currentHandles []string) (int, error)
+	UpdateContainersLastSeen(handles []string) error
+	RemoveMissingContainers(time.Duration) (int, error)
 }
 
 type containerRepository struct {
@@ -22,6 +27,22 @@ func NewContainerRepository(conn Conn) ContainerRepository {
 	return &containerRepository{
 		conn: conn,
 	}
+}
+
+func (repository *containerRepository) UpdateContainersLastSeen(handles []string) error {
+	query, args, err := psql.Update("containers").
+		Set("last_seen", sq.Expr("now()")).
+		Where(sq.Eq{"handle": handles}).ToSql()
+	if err != nil {
+		return err
+	}
+
+	rows, err := repository.conn.Query(query, args...)
+	if err != nil {
+		return err
+	}
+	defer Close(rows)
+	return nil
 }
 
 func (repository *containerRepository) FindDestroyingContainers(workerName string) ([]string, error) {
@@ -60,7 +81,28 @@ func (repository *containerRepository) FindDestroyingContainers(workerName strin
 	return handles, nil
 }
 
-func (repository *containerRepository) RemoveDestroyingContainers(workerName string, handles []string) (int, error) {
+func (repository *containerRepository) RemoveMissingContainers(ttl time.Duration) (int, error) {
+	result, err := psql.Delete("containers").
+		Where(
+			sq.Gt{
+				"NOW() - last_seen": fmt.Sprintf("%.0f seconds", ttl.Seconds()),
+			},
+		).RunWith(repository.conn).
+		Exec()
+
+	if err != nil {
+		return 0, err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(affected), nil
+}
+
+func (repository *containerRepository) RemoveDestroyingContainers(workerName string, handlesToIgnore []string) (int, error) {
 	rows, err := psql.Delete("containers").
 		Where(
 			sq.And{
@@ -68,7 +110,7 @@ func (repository *containerRepository) RemoveDestroyingContainers(workerName str
 					"worker_name": workerName,
 				},
 				sq.NotEq{
-					"handle": handles,
+					"handle": handlesToIgnore,
 				},
 				sq.Eq{
 					"state": atc.ContainerStateDestroying,

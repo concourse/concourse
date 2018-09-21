@@ -974,7 +974,7 @@ var _ = Describe("Containers API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/containers/report", func() {
+	Describe("PUT /api/v1/containers/report", func() {
 		var response *http.Response
 		var body io.Reader
 		var err error
@@ -987,8 +987,8 @@ var _ = Describe("Containers API", func() {
 				]
 			`)
 		})
-		JustBeforeEach(func() {
 
+		JustBeforeEach(func() {
 			req, err = http.NewRequest("PUT", server.URL+"/api/v1/containers/report", body)
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set("Content-Type", "application/json")
