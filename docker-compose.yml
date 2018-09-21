@@ -16,8 +16,6 @@ services:
     command: web
     depends_on: [db]
     ports: ["8080:8080"]
-    volumes:
-    - ./dev/keys/web:/concourse-keys
     environment:
     - CONCOURSE_POSTGRES_HOST=db
     - CONCOURSE_POSTGRES_USER=dev
@@ -37,8 +35,6 @@ services:
     privileged: true
     depends_on: [web]
     ports: ["7777:7777", "7788:7788"]
-    volumes:
-    - ./dev/keys/worker:/concourse-keys
     environment:
     - CONCOURSE_TSA_HOST=web:2222
     - CONCOURSE_EPHEMERAL=true
