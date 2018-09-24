@@ -1,65 +1,37 @@
 ---
 resources:
-  - name: some-git-resource
-    type: git
-    source:
-      uri: {{origin-git-server}}
-      branch: master
+- name: some-resource
+  type: mock
+  source: {no_initial_version: true}
 
-  - name: other-git-resource
-    type: git
-    source:
-      uri: {{origin-git-server}}
-      branch: other-branch
+- name: other-resource
+  type: mock
+  source: {no_initial_version: true}
 
 jobs:
-  - name: some-passing-job
-    serial_groups:
-      - serial-group-1
-    plan:
-      - get: some-git-resource
-        trigger: true
-      - task: print-guid
-        config:
-          platform: linux
-          image_resource:
-            type: mock
-            source: {mirror_self: true}
-          inputs:
-            - name: some-git-resource
-              path: .
-          run:
-            path: tail
-            args: ["-1", "guids"]
+- name: some-passing-job
+  serial_groups: [serial-group-1]
+  plan:
+  - get: some-resource
 
-  - name: some-pending-job
-    serial_groups:
-      - serial-group-1
-    plan:
-      - get: other-git-resource
-        trigger: true
-      - get: some-git-resource
-      - task: print-guid-other-git-resource
-        config:
-          platform: linux
-          image_resource:
-            type: mock
-            source: {mirror_self: true}
-          inputs:
-            - name: other-git-resource
-              path: .
-          run:
-            path: tail
-            args: ["-1", "guids"]
-      - task: print-guid-some-git-resource
-        config:
-          platform: linux
-          image_resource:
-            type: mock
-            source: {mirror_self: true}
-          inputs:
-            - name: some-git-resource
-              path: .
-          run:
-            path: tail
-            args: ["-1", "guids"]
+- name: some-pending-job
+  serial_groups: [serial-group-1]
+  plan:
+  - get: other-resource
+  - get: some-resource
+  - task: print-versions
+    config:
+      platform: linux
+      image_resource:
+        type: mock
+        source: {mirror_self: true}
+      inputs:
+      - name: some-resource
+      - name: other-resource
+      run:
+        path: sh
+        args:
+        - -c
+        - |
+          cat some-resource/version
+          cat other-resource/version

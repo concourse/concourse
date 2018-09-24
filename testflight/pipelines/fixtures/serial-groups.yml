@@ -1,47 +1,20 @@
 ---
 resources:
-  - name: some-git-resource
-    type: git
-    source:
-      uri: {{origin-git-server}}
-      branch: master
+- name: some-resource
+  type: mock
+  source: {}
 
-  - name: fake-git-resource
-    type: git
-    source:
-      uri: fake-uri
+- name: pending-resource
+  type: mock
+  source: {no_initial_version: true}
 
 jobs:
-  - name: some-passing-job
-    serial_groups:
-      - serial-group-1
-    plan:
-      - get: some-git-resource
-        trigger: true
-      - task: print-guid
-        config:
-          platform: linux
-          image_resource:
-            type: mock
-            source: {mirror_self: true}
-          inputs:
-            - name: some-git-resource
-              path: .
-          run:
-            path: tail
-            args: ["-1", "guids"]
+- name: some-passing-job
+  serial_groups: [serial-group-1]
+  plan:
+  - get: some-resource
 
-  - name: some-pending-job
-    serial_groups:
-      - serial-group-1
-    plan:
-      - get: fake-git-resource
-      - task: say-hello
-        config:
-          platform: linux
-          image_resource:
-            type: mock
-            source: {mirror_self: true}
-          run:
-            path: echo
-            args: ["Hello, world!"]
+- name: some-pending-job
+  serial_groups: [serial-group-1]
+  plan:
+  - get: pending-resource
