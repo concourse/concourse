@@ -1,7 +1,6 @@
 package flying_test
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,11 +8,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"syscall"
-	"time"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/concourse/concourse/testflight/gitserver"
 	"github.com/concourse/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
@@ -197,7 +193,6 @@ cp -a input-2/. output-2/
 
 			session := helpers.StartFly(fly)
 			<-session.Exited
-
 			Expect(session.ExitCode()).To(Equal(0))
 
 			fileToBeIgnoredPath := filepath.Join(tmpdir, "output-1", "expect-not-to.exist")
@@ -317,9 +312,11 @@ ls`),
 	})
 
 	Context("when excute with -j inputs-from", func() {
-		var gitServer *gitserver.Server
 		BeforeEach(func() {
-			gitServer = gitserver.Start(concourseClient)
+			flyHelper.ConfigurePipeline(
+				"some-pipeline",
+				"-c", "fixtures/config-test.yml",
+			)
 
 			taskFileContents := `---
 platform: linux
@@ -329,16 +326,11 @@ image_resource:
   source: {mirror_self: true}
 
 inputs:
-- name: git-repo
-
-outputs:
-- name: output-1
+- name: some-resource
 
 run:
-  path: git-repo/run
-`
-			runFileContents := `#!/bin/sh
-echo hello > output-1/file-1
+  path: cat
+  args: [some-resource/version]
 `
 
 			err := ioutil.WriteFile(
@@ -347,65 +339,57 @@ echo hello > output-1/file-1
 				0644,
 			)
 			Expect(err).NotTo(HaveOccurred())
-
-			gitServer.WriteFile("some-repo/task.yml", taskFileContents)
-			gitServer.WriteFile("some-repo/run", runFileContents)
-			gitServer.CommitResourceWithFile("task.yml", "run")
-
-			Eventually(gitServer.Alive).Should(BeTrue())
-
-			flyHelper.ConfigurePipeline(
-				"some-pipeline",
-				"-c", "fixtures/config-test.yml",
-				"-v", "git-server="+gitServer.URI(),
-			)
-
-			cTeam := concourseClient.Team(teamName)
-			Eventually(func() error {
-				versionedResource, _, found, err := cTeam.ResourceVersions("some-pipeline", "git-repo", concourse.Page{})
-				Expect(err).ToNot(HaveOccurred())
-				if !found {
-					return errors.New("not found")
-				}
-
-				if len(versionedResource) == 0 {
-					cTeam.CheckResource("some-pipeline", "git-repo", atc.Version{})
-					return errors.New("did not find any version for resource")
-				}
-
-				Expect(versionedResource).To(HaveLen(1))
-				Expect(versionedResource[0].Type).To(Equal("git"))
-				Expect(versionedResource[0].Version).ToNot(BeNil())
-
-				return nil
-			}, 10*time.Minute).ShouldNot(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			gitServer.Stop()
 		})
 
 		It("runs the task without error", func() {
-			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", "some-pipeline/input-test", "-o", "output-1=./output-1")
-			fly.Dir = tmpdir
+			cTeam := concourseClient.Team(teamName)
 
-			session := helpers.StartFly(fly)
+			By("having an initial version")
+			cTeam.CheckResource("some-pipeline", "some-resource", atc.Version{"version": "first-version"})
+
+			By("satsifying the job's passed constraint for the first version")
+			session := flyHelper.TriggerJob("some-pipeline", "upstream-job")
 			<-session.Exited
+			Expect(session.ExitCode()).To(Equal(0))
 
-			Eventually(session).Should(gexec.Exit(0))
+			By("executing using the first version via -j")
+			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", "some-pipeline/downstream-job")
+			fly.Dir = tmpdir
+			session = helpers.StartFly(fly)
+			<-session.Exited
+			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session).To(gbytes.Say("first-version"))
 
-			file1 := filepath.Join(tmpdir, "output-1", "file-1")
+			By("finding another version that doesn't yet satisfy the passed constraint")
+			cTeam.CheckResource("some-pipeline", "some-resource", atc.Version{"version": "second-version"})
 
-			Expect(ioutil.ReadFile(file1)).To(Equal([]byte("hello\n")))
+			By("still executing using the first version via -j")
+			fly = exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", "some-pipeline/downstream-job")
+			fly.Dir = tmpdir
+			session = helpers.StartFly(fly)
+			<-session.Exited
+			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session).To(gbytes.Say("first-version"))
+
+			By("satsifying the job's passed constraint for the second version")
+			session = flyHelper.TriggerJob("some-pipeline", "upstream-job")
+			<-session.Exited
+			Expect(session.ExitCode()).To(Equal(0))
+
+			By("now executing using the second version via -j")
+			fly = exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", "some-pipeline/downstream-job")
+			fly.Dir = tmpdir
+			session = helpers.StartFly(fly)
+			<-session.Exited
+			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session).To(gbytes.Say("second-version"))
 		})
 	})
 
 	Context("when the input is custom resource", func() {
-		var gitServer *gitserver.Server
 		var pipelineName string
-		BeforeEach(func() {
-			gitServer = gitserver.Start(concourseClient)
 
+		BeforeEach(func() {
 			taskFileContents := `---
 platform: linux
 
@@ -414,82 +398,46 @@ image_resource:
   source: {mirror_self: true}
 
 inputs:
-- name: git-repo
-
-outputs:
-- name: output-1
+- name: some-resource
 
 run:
-  path: git-repo/run
+  path: cat
+  args: [some-resource/version]
 `
-			runFileContents := `#!/bin/sh
-echo hello > output-1/file-1
-`
-
 			err := ioutil.WriteFile(
 				filepath.Join(tmpdir, "task.yml"),
 				[]byte(taskFileContents),
 				0644,
 			)
 			Expect(err).NotTo(HaveOccurred())
-
-			gitServer.WriteFile("some-repo/task.yml", taskFileContents)
-			gitServer.WriteFile("some-repo/run", runFileContents)
-			gitServer.CommitResourceWithFile("task.yml", "run")
-
-			Eventually(gitServer.Alive).Should(BeTrue())
 
 			pipelineName = fmt.Sprintf("some-pipeline-custom-resource-%d", config.GinkgoConfig.ParallelNode)
 			flyHelper.ConfigurePipeline(
 				pipelineName,
 				"-c", "fixtures/custom-resource-type.yml",
-				"-v", "git-server="+gitServer.URI(),
 			)
 
 			cTeam := concourseClient.Team(teamName)
-			Eventually(func() error {
-				versionedResource, _, found, err := cTeam.ResourceVersions(pipelineName, "git-repo", concourse.Page{})
-				Expect(err).ToNot(HaveOccurred())
-				if !found {
-					return errors.New("not found")
-				}
-
-				if len(versionedResource) == 0 {
-					// force resource check
-					cTeam.CheckResource(pipelineName, "git-repo", atc.Version{})
-					return errors.New("did not find any version for custom resource")
-				}
-
-				Expect(versionedResource).To(HaveLen(1))
-				Expect(versionedResource[0].Type).To(Equal("custom-type"))
-				Expect(versionedResource[0].Version).ToNot(BeNil())
-
-				return nil
-			}, 10*time.Minute).ShouldNot(HaveOccurred())
+			cTeam.CheckResource(pipelineName, "some-resource", nil)
 		})
 
 		Context("when -j is specified", func() {
-			It("runs the task without error by infer the pipeline name from -j", func() {
-				fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", pipelineName+"/input-test", "-o", "output-1=./output-1")
+			It("runs the task without error by infer the pipeline resource types from -j", func() {
+				fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", pipelineName+"/input-test")
 				fly.Dir = tmpdir
-
 				session := helpers.StartFly(fly)
 				<-session.Exited
-
-				Eventually(session).Should(gexec.Exit(0))
-
-				file1 := filepath.Join(tmpdir, "output-1", "file-1")
-
-				Expect(ioutil.ReadFile(file1)).To(Equal([]byte("hello\n")))
+				Expect(session.ExitCode()).To(Equal(0))
+				Expect(session).To(gbytes.Say("custom-type-version"))
 			})
 		})
 
 		Context("when -j is not specified and local input in custom resource type is provided", func() {
 			BeforeEach(func() {
 				err := ioutil.WriteFile(
-					filepath.Join(fixture, "run"),
+					filepath.Join(fixture, "version"),
 					[]byte(`#!/bin/sh
-echo helloo > output-1/file-1
+echo hello from fixture
 `),
 					0755,
 				)
@@ -497,18 +445,13 @@ echo helloo > output-1/file-1
 			})
 
 			It("runs the task without error", func() {
-				fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-i", "git-repo=./fixture", "-o", "output-1=./output-1")
+				fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-i", "some-resource=./fixture")
 				fly.Dir = tmpdir
 
 				session := helpers.StartFly(fly)
 				<-session.Exited
-
-				session.Buffer()
-				Eventually(session).Should(gexec.Exit(0))
-
-				file1 := filepath.Join(tmpdir, "output-1", "file-1")
-
-				Expect(ioutil.ReadFile(file1)).To(Equal([]byte("helloo\n")))
+				Expect(session.ExitCode()).To(Equal(0))
+				Expect(session).To(gbytes.Say("hello from fixture"))
 			})
 		})
 	})

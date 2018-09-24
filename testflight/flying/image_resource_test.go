@@ -6,28 +6,20 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/concourse/concourse/testflight/gitserver"
 	"github.com/concourse/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Flying with an image_resource", func() {
 	var (
-		rootfsGitServer *gitserver.Server
-
 		tmpdir  string
 		fixture string
 	)
 
 	BeforeEach(func() {
 		var err error
-
-		rootfsGitServer = gitserver.Start(concourseClient)
-
-		rootfsGitServer.CommitRootfs()
 
 		tmpdir, err = ioutil.TempDir("", "fly-test")
 		Expect(err).NotTo(HaveOccurred())
@@ -59,8 +51,10 @@ ls /bin
 platform: linux
 
 image_resource:
-  type: git
-  source: {uri: "`+rootfsGitServer.URI()+`"}
+  type: mirror
+  source:
+    mirror_self: true
+    initial_version: hello-version
 
 inputs:
 - name: fixture
@@ -70,8 +64,8 @@ run:
   args:
   - -c
   - |
-    ls /hello-im-a-git-rootfs
-    echo $IMAGE_PROVIDED_ENV
+    ls /opt/resource/check
+    env
 `),
 			0644,
 		)
@@ -80,60 +74,38 @@ run:
 		fly.Dir = fixture
 
 		session := helpers.StartFly(fly)
-
-		Eventually(session).Should(gexec.Exit(0))
-
-		Expect(session).To(gbytes.Say("/hello-im-a-git-rootfs"))
-		Expect(session).To(gbytes.Say("hello-im-image-provided-env"))
+		<-session.Exited
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).To(gbytes.Say("/opt/resource/check"))
+		Expect(session).To(gbytes.Say("VERSION=hello-version"))
 	})
 
 	It("allows a version to be specified", func() {
-		createFixture := func(ref string) {
-			err := ioutil.WriteFile(
-				filepath.Join(fixture, "task.yml"),
-				[]byte(`---
+		err := ioutil.WriteFile(
+			filepath.Join(fixture, "task.yml"),
+			[]byte(`---
 platform: linux
 
 image_resource:
-  type: git
-  source: {uri: "`+rootfsGitServer.URI()+`"}
-  version: { ref: "`+ref+`"}
+  type: mirror
+  source: {mirror_self: true}
+  version: {version: hi-im-a-version}
 
 inputs:
 - name: fixture
 
 run:
-  path: sh
-  args:
-  - -c
-  - |
-    touch /some-file.txt && cat /some-file.txt
+  path: env
 `),
-				0644,
-			)
-			Expect(err).NotTo(HaveOccurred())
-		}
+			0644,
+		)
+		Expect(err).NotTo(HaveOccurred())
 
-		oldRef := rootfsGitServer.RevParse("master")
-		rootfsGitServer.CommitFileToBranch("hello, world", "rootfs/some-file.txt", "master")
-		newRef := rootfsGitServer.RevParse("master")
-
-		createFixture(oldRef)
 		fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml")
 		fly.Dir = fixture
-
 		session := helpers.StartFly(fly)
-
-		Eventually(session).Should(gexec.Exit(0))
-		Expect(session).ToNot(gbytes.Say("hello, world"))
-
-		createFixture(newRef)
-		fly = exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml")
-		fly.Dir = fixture
-
-		session = helpers.StartFly(fly)
-
-		Eventually(session).Should(gexec.Exit(0))
-		Expect(session).To(gbytes.Say("hello, world"))
+		<-session.Exited
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).To(gbytes.Say("VERSION=hi-im-a-version"))
 	})
 })

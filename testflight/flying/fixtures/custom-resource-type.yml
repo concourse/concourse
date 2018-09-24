@@ -7,13 +7,11 @@ resource_types:
     initial_version: custom-type-version
 
 resources:
-- name: git-repo
+- name: some-resource
   type: custom-type
   source: {}
 
 jobs:
 - name: input-test
   plan:
-  - get: git-repo
-  - task: input-test
-    file: git-repo/task.yml
+  - get: some-resource

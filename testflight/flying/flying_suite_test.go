@@ -4,7 +4,6 @@ import (
 	"os"
 
 	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/concourse/concourse/testflight/gitserver"
 	"github.com/concourse/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -31,9 +30,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	data, err := helpers.FirstNodeFlySetup(atcURL, targetedConcourse, teamName, username, password)
 	Expect(err).NotTo(HaveOccurred())
-
-	concourseClient := helpers.ConcourseClient(atcURL, username, password)
-	gitserver.Cleanup(concourseClient)
 
 	return data
 }, func(data []byte) {

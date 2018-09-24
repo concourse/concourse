@@ -1,15 +1,15 @@
 ---
 resources:
-  - name: git-repo
-    type: git
-    source:
-      uri: {{git-server}}
-      branch: master
+- name: some-resource
+  type: mirror
+  source: {}
 
 jobs:
-- name: input-test
+- name: upstream-job
   plan:
-  - get: git-repo
-    trigger: true
-  - task: input-test
-    file: git-repo/task.yml
+  - get: some-resource
+
+- name: downstream-job
+  plan:
+  - get: some-resource
+    passed: [upstream-job]
