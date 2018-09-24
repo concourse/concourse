@@ -8,7 +8,7 @@ jobs:
 - name: some-passing-job
   plan:
   - get: some-resource
-    version: every
+    version: latest
   - task: print-version
     config:
       platform: linux
