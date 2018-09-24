@@ -5,7 +5,6 @@ import (
 
 	"time"
 
-	"github.com/concourse/concourse/testflight/gitserver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -13,28 +12,23 @@ import (
 )
 
 var _ = Describe("A resource check which times out", func() {
-	var originGitServer *gitserver.Server
-	var checkContents string
+	var checkDelay time.Duration
+
+	BeforeEach(func() {
+		checkDelay = 0
+	})
 
 	JustBeforeEach(func() {
-		originGitServer = gitserver.Start(client)
-		originGitServer.CommitResource()
-		originGitServer.CommitFileToBranch(checkContents, "rootfs/opt/resource/check", "master")
-
 		flyHelper.ConfigurePipeline(
 			pipelineName,
 			"-c", "fixtures/resource-check-timeouts.yml",
-			"-v", "origin-git-server="+originGitServer.URI(),
-			"-y", "privileged=true",
+			"-v", "check_delay="+checkDelay.String(),
 		)
 	})
 
 	Context("when check script times out", func() {
 		BeforeEach(func() {
-			checkContents = `#!/bin/sh
-				sleep 50
-				echo 'should not get here' > /tmp/some-random-file
-			`
+			checkDelay = time.Minute
 		})
 
 		It("prints an error and cancels the job", func() {
@@ -53,9 +47,7 @@ var _ = Describe("A resource check which times out", func() {
 
 	Context("when check script finishes before timeout", func() {
 		BeforeEach(func() {
-			checkContents = `#!/bin/sh
-				echo '[{"version":"1"}]'
-			`
+			checkDelay = time.Second
 		})
 
 		It("succeeds if the check script returns before the timeout", func() {
