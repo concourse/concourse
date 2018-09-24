@@ -1,37 +1,31 @@
 ---
 resources:
-  - name: git-repo-a
-    type: git
-    source:
-      uri: {{git-server-a}}
-      branch: master
+- name: some-resource-a
+  type: mock
+  source: {no_initial_version: true}
 
-  - name: git-repo-b
-    type: git
-    source:
-      uri: {{git-server-b}}
-      branch: master
+- name: some-resource-b
+  type: mock
+  source: {no_initial_version: true}
 
 jobs:
-  - name: some-job
-    plan:
-      - get: git-repo-a
-        trigger: true
-      - get: git-repo-b
-        trigger: true
-      - task: cat-files
-        config:
-          platform: linux
-          image_resource:
-            type: mock
-            source: {mirror_self: true}
-          inputs:
-            - name: git-repo-a
-            - name: git-repo-b
-          run:
-            path: sh
-            args:
-              - -c
-              - |
-                echo a has $(cat git-repo-a/guids)
-                echo b has $(cat git-repo-b/guids)
+- name: some-job
+  plan:
+  - get: some-resource-a
+  - get: some-resource-b
+  - task: cat-files
+    config:
+      platform: linux
+      image_resource:
+        type: mock
+        source: {mirror_self: true}
+      inputs:
+        - name: some-resource-a
+        - name: some-resource-b
+      run:
+        path: sh
+        args:
+          - -c
+          - |
+            echo a has $(cat some-resource-a/version)
+            echo b has $(cat some-resource-b/version)

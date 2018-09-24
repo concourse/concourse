@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/concourse/concourse/testflight/gitserver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -14,11 +13,8 @@ import (
 
 var _ = Describe("A job with multiple inputs", func() {
 	var (
-		gitServerA *gitserver.Server
-		gitServerB *gitserver.Server
-
-		firstGuidA string
-		firstGuidB string
+		firstVersionA string
+		firstVersionB string
 
 		tmpdir           string
 		taskConfig       string
@@ -26,18 +22,13 @@ var _ = Describe("A job with multiple inputs", func() {
 	)
 
 	BeforeEach(func() {
-		gitServerA = gitserver.Start(client)
-		gitServerB = gitserver.Start(client)
-
 		flyHelper.ConfigurePipeline(
 			pipelineName,
 			"-c", "fixtures/many-inputs.yml",
-			"-v", "git-server-a="+gitServerA.URI(),
-			"-v", "git-server-b="+gitServerB.URI(),
 		)
 
-		firstGuidA = gitServerA.Commit()
-		firstGuidB = gitServerB.Commit()
+		firstVersionA = newMockVersion("some-resource-a")
+		firstVersionB = newMockVersion("some-resource-b")
 
 		var err error
 		tmpdir, err = ioutil.TempDir("", "fly-test")
@@ -47,33 +38,36 @@ var _ = Describe("A job with multiple inputs", func() {
 			filepath.Join(tmpdir, "task.yml"),
 			[]byte(`---
 platform: linux
+
 image_resource:
   type: mock
   source: {mirror_self: true}
+
 inputs:
-- name: git-repo-a
-- name: git-repo-b
+- name: some-resource-a
+- name: some-resource-b
+
 run:
   path: sh
   args:
     - -c
     - |
-      echo a has $(cat git-repo-a/guids)
-      echo b has $(cat git-repo-b/guids)
+      echo a has $(cat some-resource-a/version)
+      echo b has $(cat some-resource-b/version)
 `),
 			0644,
 		)
 		Expect(err).NotTo(HaveOccurred())
 
 		taskConfig = filepath.Join(tmpdir, "task.yml")
-		localGitRepoBDir = filepath.Join(tmpdir, "git-repo-b")
+		localGitRepoBDir = filepath.Join(tmpdir, "some-resource-b")
 
 		err = os.Mkdir(localGitRepoBDir, 0755)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = ioutil.WriteFile(
-			filepath.Join(localGitRepoBDir, "guids"),
-			[]byte("some-overridden-guid"),
+			filepath.Join(localGitRepoBDir, "version"),
+			[]byte("some-overridden-version"),
 			0644,
 		)
 		Expect(err).NotTo(HaveOccurred())
@@ -81,19 +75,17 @@ run:
 
 	AfterEach(func() {
 		os.RemoveAll(tmpdir)
-
-		gitServerA.Stop()
-		gitServerB.Stop()
 	})
 
 	It("can have its inputs used as the basis for a one-off build", func() {
 		By("waiting for an initial build so the job has inputs")
-		watch := flyHelper.Watch(pipelineName, "some-job")
+		watch := flyHelper.TriggerJob(pipelineName, "some-job")
+		<-watch.Exited
+		Expect(watch.ExitCode()).To(Equal(0))
 		Expect(watch).To(gbytes.Say("initializing"))
-		Expect(watch).To(gbytes.Say("a has " + firstGuidA))
-		Expect(watch).To(gbytes.Say("b has " + firstGuidB))
+		Expect(watch).To(gbytes.Say("a has " + firstVersionA))
+		Expect(watch).To(gbytes.Say("b has " + firstVersionB))
 		Expect(watch).To(gbytes.Say("succeeded"))
-		Expect(watch).To(gexec.Exit(0))
 
 		By("running a one-off with the same inputs and no local inputs")
 		execute := flyHelper.Execute(
@@ -103,8 +95,8 @@ run:
 		)
 		<-execute.Exited
 		Expect(execute).To(gbytes.Say("initializing"))
-		Expect(execute).To(gbytes.Say("a has " + firstGuidA))
-		Expect(execute).To(gbytes.Say("b has " + firstGuidB))
+		Expect(execute).To(gbytes.Say("a has " + firstVersionA))
+		Expect(execute).To(gbytes.Say("b has " + firstVersionB))
 		Expect(execute).To(gbytes.Say("succeeded"))
 		Expect(execute).To(gexec.Exit(0))
 
@@ -112,12 +104,12 @@ run:
 		execute = flyHelper.Execute(localGitRepoBDir,
 			"-c", taskConfig,
 			"--inputs-from", pipelineName+"/some-job",
-			"--input", "git-repo-b="+localGitRepoBDir,
+			"--input", "some-resource-b="+localGitRepoBDir,
 		)
 		<-execute.Exited
 		Expect(execute).To(gbytes.Say("initializing"))
-		Expect(execute).To(gbytes.Say("a has " + firstGuidA))
-		Expect(execute).To(gbytes.Say("b has some-overridden-guid"))
+		Expect(execute).To(gbytes.Say("a has " + firstVersionA))
+		Expect(execute).To(gbytes.Say("b has some-overridden-version"))
 		Expect(execute).To(gbytes.Say("succeeded"))
 		Expect(execute).To(gexec.Exit(0))
 	})
