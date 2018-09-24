@@ -9,7 +9,6 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/concourse/concourse/testflight/gitserver"
 	"github.com/concourse/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -43,8 +42,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Expect(err).NotTo(HaveOccurred())
 
 	client := helpers.ConcourseClient(atcURL, username, password)
-
-	gitserver.Cleanup(client)
 
 	team = client.Team(teamName)
 
