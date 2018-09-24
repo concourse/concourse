@@ -771,7 +771,12 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		Context("if the lock can be acquired", func() {
 			BeforeEach(func() {
-				fakeDBPipeline.AcquireResourceTypeCheckingLockWithIntervalCheckReturns(fakeLock, true, nil)
+				fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckReturns(fakeLock, true, nil)
+				fakeResourceConfigVersion := new(dbfakes.FakeResourceConfigVersion)
+				fakeResourceConfigVersion.IDReturns(1)
+				fakeResourceConfigVersion.VersionReturns(db.Version{"custom": "version"})
+
+				fakeResourceConfig.LatestVersionReturns(fakeResourceConfigVersion, true, nil)
 			})
 
 			Context("when fromVersion is nil", func() {
@@ -799,9 +804,9 @@ var _ = Describe("ResourceTypeScanner", func() {
 					})
 
 					It("saves it", func() {
-						Expect(fakeResourceType.SaveVersionCallCount()).To(Equal(1))
-						versions := fakeResourceType.SaveVersionArgsForCall(0)
-						Expect(versions).To(Equal(fromVersion))
+						Expect(fakeResourceConfig.SaveVersionsCallCount()).To(Equal(1))
+						versions := fakeResourceConfig.SaveVersionsArgsForCall(0)
+						Expect(versions[0]).To(Equal(fromVersion))
 					})
 				})
 			})

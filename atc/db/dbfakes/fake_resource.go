@@ -82,19 +82,6 @@ type FakeResource struct {
 	iDReturnsOnCall map[int]struct {
 		result1 int
 	}
-	IsVersionDisabledStub        func(atc.Version) (bool, error)
-	isVersionDisabledMutex       sync.RWMutex
-	isVersionDisabledArgsForCall []struct {
-		arg1 atc.Version
-	}
-	isVersionDisabledReturns struct {
-		result1 bool
-		result2 error
-	}
-	isVersionDisabledReturnsOnCall map[int]struct {
-		result1 bool
-		result2 error
-	}
 	LastCheckedStub        func() time.Time
 	lastCheckedMutex       sync.RWMutex
 	lastCheckedArgsForCall []struct {
@@ -623,59 +610,6 @@ func (fake *FakeResource) IDReturnsOnCall(i int, result1 int) {
 	fake.iDReturnsOnCall[i] = struct {
 		result1 int
 	}{result1}
-}
-
-func (fake *FakeResource) IsVersionDisabled(arg1 atc.Version) (bool, error) {
-	fake.isVersionDisabledMutex.Lock()
-	ret, specificReturn := fake.isVersionDisabledReturnsOnCall[len(fake.isVersionDisabledArgsForCall)]
-	fake.isVersionDisabledArgsForCall = append(fake.isVersionDisabledArgsForCall, struct {
-		arg1 atc.Version
-	}{arg1})
-	fake.recordInvocation("IsVersionDisabled", []interface{}{arg1})
-	fake.isVersionDisabledMutex.Unlock()
-	if fake.IsVersionDisabledStub != nil {
-		return fake.IsVersionDisabledStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.isVersionDisabledReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeResource) IsVersionDisabledCallCount() int {
-	fake.isVersionDisabledMutex.RLock()
-	defer fake.isVersionDisabledMutex.RUnlock()
-	return len(fake.isVersionDisabledArgsForCall)
-}
-
-func (fake *FakeResource) IsVersionDisabledArgsForCall(i int) atc.Version {
-	fake.isVersionDisabledMutex.RLock()
-	defer fake.isVersionDisabledMutex.RUnlock()
-	argsForCall := fake.isVersionDisabledArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeResource) IsVersionDisabledReturns(result1 bool, result2 error) {
-	fake.IsVersionDisabledStub = nil
-	fake.isVersionDisabledReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeResource) IsVersionDisabledReturnsOnCall(i int, result1 bool, result2 error) {
-	fake.IsVersionDisabledStub = nil
-	if fake.isVersionDisabledReturnsOnCall == nil {
-		fake.isVersionDisabledReturnsOnCall = make(map[int]struct {
-			result1 bool
-			result2 error
-		})
-	}
-	fake.isVersionDisabledReturnsOnCall[i] = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeResource) LastChecked() time.Time {
@@ -1585,8 +1519,6 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.failingToCheckMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
-	fake.isVersionDisabledMutex.RLock()
-	defer fake.isVersionDisabledMutex.RUnlock()
 	fake.lastCheckedMutex.RLock()
 	defer fake.lastCheckedMutex.RUnlock()
 	fake.nameMutex.RLock()

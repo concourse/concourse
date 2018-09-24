@@ -42,17 +42,19 @@ type ResourceConfig interface {
 	CreatedByResourceCache() UsedResourceCache
 	CreatedByBaseResourceType() *UsedBaseResourceType
 	OriginBaseResourceType() *UsedBaseResourceType
+
 	AcquireResourceConfigCheckingLockWithIntervalCheck(
 		logger lager.Logger,
 		interval time.Duration,
 		immediate bool,
 	) (lock.Lock, bool, error)
 
-	LatestVersion() (ResourceConfigVersion, bool, error)
-	SaveVersion(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error)
+	SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error)
 	SaveVersions(versions []atc.Version) error
-	SetCheckError(error) error
 	FindVersion(atc.Version) (ResourceConfigVersion, bool, error)
+	LatestVersion() (ResourceConfigVersion, bool, error)
+
+	SetCheckError(error) error
 }
 
 type resourceConfig struct {
@@ -139,7 +141,7 @@ func (r *resourceConfig) LatestVersion() (ResourceConfigVersion, bool, error) {
 	return rcv, true, nil
 }
 
-// SaveVersion is used by the "get" and "put" step to find or create of a
+// SaveUncheckedVersion is used by the "get" and "put" step to find or create of a
 // resource config version. We want to do an upsert because there will be cases
 // where resource config versions can become outdated while the versions
 // associated to it are still valid. This will be special case where we save
@@ -148,7 +150,7 @@ func (r *resourceConfig) LatestVersion() (ResourceConfigVersion, bool, error) {
 // index for the pipeline because we want to ignore these versions until the
 // check orders get updated. The bumping of the index will be done in
 // SaveOutput for the put step.
-func (r *resourceConfig) SaveVersion(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
+func (r *resourceConfig) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return false, err

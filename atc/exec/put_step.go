@@ -168,7 +168,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 			return err
 		}
 
-		created, err := resourceConfig.SaveVersion(step.versionInfo.Version, db.NewResourceConfigMetadataFields(step.versionInfo.Metadata))
+		created, err := resourceConfig.SaveUncheckedVersion(step.versionInfo.Version, db.NewResourceConfigMetadataFields(step.versionInfo.Metadata))
 		if err != nil {
 			logger.Error("failed-to-save-version", err)
 			return err

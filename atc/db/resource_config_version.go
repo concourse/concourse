@@ -41,6 +41,18 @@ func NewResourceConfigMetadataFields(atcm []atc.MetadataField) ResourceConfigMet
 	return metadata
 }
 
+func (rmf ResourceConfigMetadataFields) ToATCMetadata() []atc.MetadataField {
+	metadata := make([]atc.MetadataField, len(rmf))
+	for i, md := range rmf {
+		metadata[i] = atc.MetadataField{
+			Name:  md.Name,
+			Value: md.Value,
+		}
+	}
+
+	return metadata
+}
+
 type Version map[string]string
 
 type resourceConfigVersion struct {

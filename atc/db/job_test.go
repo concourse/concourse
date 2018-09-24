@@ -623,7 +623,7 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// save metadata for v1
-			_, err = resourceConfig.SaveVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
+			_, err = resourceConfig.SaveUncheckedVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
 				db.ResourceConfigMetadataField{
 					Name:  "name1",
 					Value: "value1",
@@ -805,7 +805,7 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// save metadata for v1
-			_, err = resourceConfig.SaveVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
+			_, err = resourceConfig.SaveUncheckedVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
 				db.ResourceConfigMetadataField{
 					Name:  "name1",
 					Value: "value1",

@@ -110,36 +110,6 @@ var _ = Describe("ResourceCacheFactory", func() {
 			Version: atc.Version{"some-image-type": "version"},
 		}
 
-		pipelineWithTypes, _, err := defaultTeam.SavePipeline(
-			"pipeline-with-types",
-			atc.Config{
-				ResourceTypes: atc.ResourceTypes{
-					resourceType1.ResourceType,
-					resourceType2.ResourceType,
-					resourceType3.ResourceType,
-					resourceTypeUsingBogusBaseType.ResourceType,
-					resourceTypeOverridingBaseType.ResourceType,
-				},
-			},
-			db.ConfigVersion(0),
-			db.PipelineUnpaused,
-		)
-		Expect(err).ToNot(HaveOccurred())
-
-		for _, rt := range []atc.VersionedResourceType{
-			resourceType1,
-			resourceType2,
-			resourceType3,
-			resourceTypeUsingBogusBaseType,
-			resourceTypeOverridingBaseType,
-		} {
-			dbType, found, err := pipelineWithTypes.ResourceType("some-type")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			err = dbType.SaveVersion(rt.Version)
-			Expect(err).NotTo(HaveOccurred())
-		}
-
 		build, err = defaultTeam.CreateOneOffBuild()
 		Expect(err).NotTo(HaveOccurred())
 

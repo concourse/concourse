@@ -50,9 +50,7 @@ type Team interface {
 
 	FindContainerByHandle(string) (Container, bool, error)
 	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
-
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
-
 	FindWorkerForContainer(handle string) (Worker, bool, error)
 
 	UpdateProviderAuth(auth atc.TeamAuth) error

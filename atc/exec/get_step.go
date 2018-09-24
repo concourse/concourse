@@ -208,7 +208,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		// Find or Save* the version used in the get step, and update the Metadata
 		// *saving will occur when the resource's config has changed, but it hasn't
 		// checked yet, so the resource config versions don't exist
-		_, err := resourceCache.ResourceConfig().SaveVersion(versionedSource.Version(), db.NewResourceConfigMetadataFields(versionedSource.Metadata()))
+		_, err := resourceCache.ResourceConfig().SaveUncheckedVersion(versionedSource.Version(), db.NewResourceConfigMetadataFields(versionedSource.Metadata()))
 		if err != nil {
 			logger.Error("failed-to-save-resource-config-version", err, lager.Data{"name": step.name, "resource": step.resource, "version": versionedSource.Version()})
 			return err

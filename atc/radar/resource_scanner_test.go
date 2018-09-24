@@ -921,12 +921,8 @@ var _ = Describe("ResourceScanner", func() {
 					})
 
 					It("saves it", func() {
-						Expect(fakeDBPipeline.SaveResourceVersionsCallCount()).To(Equal(1))
-						resourceConfig, versions := fakeDBPipeline.SaveResourceVersionsArgsForCall(0)
-						Expect(resourceConfig).To(Equal(atc.ResourceConfig{
-							Name: "some-resource",
-							Type: "git",
-						}))
+						Expect(fakeResourceConfig.SaveVersionsCallCount()).To(Equal(1))
+						versions := fakeResourceConfig.SaveVersionsArgsForCall(0)
 						Expect(versions).To(Equal([]atc.Version{fromVersion}))
 					})
 				})

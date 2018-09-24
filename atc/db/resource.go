@@ -37,7 +37,6 @@ type Resource interface {
 
 	ResourceConfigVersionID(atc.Version) (int, bool, error)
 	Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error)
-	IsVersionDisabled(version atc.Version) (bool, error)
 
 	EnableVersion(rcvID int) error
 	DisableVersion(rcvID int) error
@@ -51,7 +50,7 @@ type Resource interface {
 	Reload() (bool, error)
 }
 
-var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, r.paused, r.last_checked, r.pipeline_id, r.nonce, r.resource_config_id, p.name, t.name, c.check_error").
+var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, r.paused, c.last_checked, r.pipeline_id, r.nonce, r.resource_config_id, p.name, t.name, c.check_error").
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
@@ -245,31 +244,6 @@ func (r *resource) ResourceConfigVersionID(version atc.Version) (int, bool, erro
 	}
 
 	return id, true, nil
-}
-
-func (r *resource) IsVersionDisabled(version atc.Version) (bool, error) {
-	versionBytes, err := json.Marshal(version)
-	if err != nil {
-		return false, err
-	}
-
-	var enabled bool
-	err = psql.Select("1").
-		From("resource_disabled_versions").
-		Where(sq.Eq{"resource_id": r.id}).
-		Where(sq.Expr(fmt.Sprintf("version_md5 = md5('%s')", versionBytes))).
-		RunWith(r.conn).
-		QueryRow().
-		Scan(&enabled)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return false, nil
-		}
-		return false, err
-	}
-
-	return enabled, nil
 }
 
 func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error) {

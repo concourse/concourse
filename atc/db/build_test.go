@@ -342,96 +342,6 @@ var _ = Describe("Build", func() {
 		})
 	})
 
-	Describe("SaveInput", func() {
-		var (
-			pipeline       db.Pipeline
-			job            db.Job
-			resourceConfig db.ResourceConfig
-			resource       db.Resource
-			build          db.Build
-		)
-
-		BeforeEach(func() {
-			pipelineConfig := atc.Config{
-				Jobs: atc.JobConfigs{
-					{
-						Name: "some-job",
-					},
-				},
-				Resources: atc.ResourceConfigs{
-					{
-						Name:   "some-resource",
-						Type:   "some-type",
-						Source: atc.Source{"some": "source"},
-					},
-				},
-			}
-
-			var err error
-			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
-			Expect(err).ToNot(HaveOccurred())
-
-			var found bool
-			job, found, err = pipeline.Job("some-job")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			brt := db.BaseResourceType{
-				Name: "some-type",
-			}
-			_, err = brt.FindOrCreate(setupTx)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			resource, found, err = pipeline.Resource("some-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			err = resource.SetResourceConfig(resourceConfig.ID())
-			Expect(err).ToNot(HaveOccurred())
-
-			build, err = job.CreateBuild()
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resourceConfig.SaveVersions([]atc.Version{atc.Version{"some": "version"}})
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("fails to save build input if resource id does not exist", func() {
-			build, err := job.CreateBuild()
-			Expect(err).NotTo(HaveOccurred())
-
-			input := db.BuildInput{
-				Name:       "some-input",
-				Version:    atc.Version{"ver": "2"},
-				ResourceID: 123,
-			}
-
-			err = build.SaveInput(input)
-			Expect(err).To(HaveOccurred())
-		})
-
-		It("saves the build's input", func() {
-			err := build.SaveInput(db.BuildInput{
-				Name:       "some-input",
-				ResourceID: resource.ID(),
-				Version:    atc.Version{"some": "version"},
-			})
-			Expect(err).ToNot(HaveOccurred())
-
-			actualBuildInput, _, err := build.Resources()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(len(actualBuildInput)).To(Equal(1))
-			Expect(actualBuildInput[0].Version).To(Equal(atc.Version{"some": "version"}))
-		})
-	})
-
 	Describe("SaveOutput", func() {
 		var pipeline db.Pipeline
 		var job db.Job
@@ -491,7 +401,7 @@ var _ = Describe("Build", func() {
 			build, err := job.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			created, err := resourceConfig.SaveVersion(atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{
+			created, err := resourceConfig.SaveUncheckedVersion(atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{
 				{
 					Name:  "meta1",
 					Value: "data1",
@@ -511,16 +421,11 @@ var _ = Describe("Build", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			actualBuildOutput, err := build.ResourceConfigVersions()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(len(actualBuildOutput)).To(Equal(1))
-			Expect(actualBuildOutput[0]).To(Equal(rcv.ID()))
-
 			_, buildOutputs, err := build.Resources()
 			Expect(err).ToNot(HaveOccurred())
-			Expect(len(actualBuildOutput)).To(Equal(1))
+			Expect(len(buildOutputs)).To(Equal(1))
 			Expect(buildOutputs[0].Name).To(Equal("output-name"))
-			Expect(buildOutputs[0].Version).To(Equal(atc.Version{"some": "version"}))
+			Expect(buildOutputs[0].Version).To(Equal(atc.Version(rcv.Version())))
 		})
 	})
 
@@ -604,7 +509,7 @@ var _ = Describe("Build", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// This version should not be returned by the Resources method because it has a check order of 0
-			created, err := resourceConfig1.SaveVersion(atc.Version{"ver": "not-returned"}, nil)
+			created, err := resourceConfig1.SaveUncheckedVersion(atc.Version{"ver": "not-returned"}, nil)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(created).To(BeTrue())
 
@@ -617,10 +522,12 @@ var _ = Describe("Build", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// save a normal 'get'
-			err = build.SaveInput(db.BuildInput{
-				Name:       "some-input",
-				Version:    atc.Version{"ver": "1"},
-				ResourceID: resource1.ID(),
+			err = build.UseInputs([]db.BuildInput{
+				db.BuildInput{
+					Name:       "some-input",
+					Version:    atc.Version{"ver": "1"},
+					ResourceID: resource1.ID(),
+				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -1182,10 +1089,12 @@ var _ = Describe("Build", func() {
 			err = resourceConfig.SaveVersions([]atc.Version{atc.Version{"some": "version"}})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = build.SaveInput(db.BuildInput{
-				Name:       "some-input",
-				ResourceID: resource.ID(),
-				Version:    atc.Version{"some": "version"},
+			err = build.UseInputs([]db.BuildInput{
+				db.BuildInput{
+					Name:       "some-input",
+					ResourceID: resource.ID(),
+					Version:    atc.Version{"some": "version"},
+				},
 			})
 			Expect(err).ToNot(HaveOccurred())
 		})

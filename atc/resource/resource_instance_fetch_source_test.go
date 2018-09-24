@@ -80,7 +80,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		fakeResourceInstance.ResourceCacheReturns(fakeUsedResourceCache)
 		fakeResourceInstance.ContainerOwnerReturns(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"), 42))
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
-		fakeResourceCacheFactory.ResourceCacheMetadataReturns([]db.ResourceMetadataField{
+		fakeResourceCacheFactory.ResourceCacheMetadataReturns([]db.ResourceConfigMetadataField{
 			{Name: "some", Value: "metadata"},
 		}, nil)
 

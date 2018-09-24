@@ -79,4 +79,15 @@ BEGIN;
   CREATE UNIQUE INDEX worker_resource_config_check_sessions_uniq
   ON worker_resource_config_check_sessions (resource_config_check_session_id, worker_base_resource_type_id);
 
+  DROP TABLE build_inputs;
+
+  DROP TABLE build_outputs;
+
+  ALTER TABLE resources
+    DROP COLUMN last_checked;
+
+  ALTER TABLE resource_types
+    DROP COLUMN last_checked,
+    DROP COLUMN version;
+
 COMMIT;

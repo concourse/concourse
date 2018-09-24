@@ -108,17 +108,17 @@ type FakeResourceConfig struct {
 	originBaseResourceTypeReturnsOnCall map[int]struct {
 		result1 *db.UsedBaseResourceType
 	}
-	SaveVersionStub        func(atc.Version, db.ResourceConfigMetadataFields) (bool, error)
-	saveVersionMutex       sync.RWMutex
-	saveVersionArgsForCall []struct {
+	SaveUncheckedVersionStub        func(atc.Version, db.ResourceConfigMetadataFields) (bool, error)
+	saveUncheckedVersionMutex       sync.RWMutex
+	saveUncheckedVersionArgsForCall []struct {
 		arg1 atc.Version
 		arg2 db.ResourceConfigMetadataFields
 	}
-	saveVersionReturns struct {
+	saveUncheckedVersionReturns struct {
 		result1 bool
 		result2 error
 	}
-	saveVersionReturnsOnCall map[int]struct {
+	saveUncheckedVersionReturnsOnCall map[int]struct {
 		result1 bool
 		result2 error
 	}
@@ -520,55 +520,55 @@ func (fake *FakeResourceConfig) OriginBaseResourceTypeReturnsOnCall(i int, resul
 	}{result1}
 }
 
-func (fake *FakeResourceConfig) SaveVersion(arg1 atc.Version, arg2 db.ResourceConfigMetadataFields) (bool, error) {
-	fake.saveVersionMutex.Lock()
-	ret, specificReturn := fake.saveVersionReturnsOnCall[len(fake.saveVersionArgsForCall)]
-	fake.saveVersionArgsForCall = append(fake.saveVersionArgsForCall, struct {
+func (fake *FakeResourceConfig) SaveUncheckedVersion(arg1 atc.Version, arg2 db.ResourceConfigMetadataFields) (bool, error) {
+	fake.saveUncheckedVersionMutex.Lock()
+	ret, specificReturn := fake.saveUncheckedVersionReturnsOnCall[len(fake.saveUncheckedVersionArgsForCall)]
+	fake.saveUncheckedVersionArgsForCall = append(fake.saveUncheckedVersionArgsForCall, struct {
 		arg1 atc.Version
 		arg2 db.ResourceConfigMetadataFields
 	}{arg1, arg2})
-	fake.recordInvocation("SaveVersion", []interface{}{arg1, arg2})
-	fake.saveVersionMutex.Unlock()
-	if fake.SaveVersionStub != nil {
-		return fake.SaveVersionStub(arg1, arg2)
+	fake.recordInvocation("SaveUncheckedVersion", []interface{}{arg1, arg2})
+	fake.saveUncheckedVersionMutex.Unlock()
+	if fake.SaveUncheckedVersionStub != nil {
+		return fake.SaveUncheckedVersionStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.saveVersionReturns
+	fakeReturns := fake.saveUncheckedVersionReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeResourceConfig) SaveVersionCallCount() int {
-	fake.saveVersionMutex.RLock()
-	defer fake.saveVersionMutex.RUnlock()
-	return len(fake.saveVersionArgsForCall)
+func (fake *FakeResourceConfig) SaveUncheckedVersionCallCount() int {
+	fake.saveUncheckedVersionMutex.RLock()
+	defer fake.saveUncheckedVersionMutex.RUnlock()
+	return len(fake.saveUncheckedVersionArgsForCall)
 }
 
-func (fake *FakeResourceConfig) SaveVersionArgsForCall(i int) (atc.Version, db.ResourceConfigMetadataFields) {
-	fake.saveVersionMutex.RLock()
-	defer fake.saveVersionMutex.RUnlock()
-	argsForCall := fake.saveVersionArgsForCall[i]
+func (fake *FakeResourceConfig) SaveUncheckedVersionArgsForCall(i int) (atc.Version, db.ResourceConfigMetadataFields) {
+	fake.saveUncheckedVersionMutex.RLock()
+	defer fake.saveUncheckedVersionMutex.RUnlock()
+	argsForCall := fake.saveUncheckedVersionArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeResourceConfig) SaveVersionReturns(result1 bool, result2 error) {
-	fake.SaveVersionStub = nil
-	fake.saveVersionReturns = struct {
+func (fake *FakeResourceConfig) SaveUncheckedVersionReturns(result1 bool, result2 error) {
+	fake.SaveUncheckedVersionStub = nil
+	fake.saveUncheckedVersionReturns = struct {
 		result1 bool
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeResourceConfig) SaveVersionReturnsOnCall(i int, result1 bool, result2 error) {
-	fake.SaveVersionStub = nil
-	if fake.saveVersionReturnsOnCall == nil {
-		fake.saveVersionReturnsOnCall = make(map[int]struct {
+func (fake *FakeResourceConfig) SaveUncheckedVersionReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.SaveUncheckedVersionStub = nil
+	if fake.saveUncheckedVersionReturnsOnCall == nil {
+		fake.saveUncheckedVersionReturnsOnCall = make(map[int]struct {
 			result1 bool
 			result2 error
 		})
 	}
-	fake.saveVersionReturnsOnCall[i] = struct {
+	fake.saveUncheckedVersionReturnsOnCall[i] = struct {
 		result1 bool
 		result2 error
 	}{result1, result2}
@@ -698,8 +698,8 @@ func (fake *FakeResourceConfig) Invocations() map[string][][]interface{} {
 	defer fake.latestVersionMutex.RUnlock()
 	fake.originBaseResourceTypeMutex.RLock()
 	defer fake.originBaseResourceTypeMutex.RUnlock()
-	fake.saveVersionMutex.RLock()
-	defer fake.saveVersionMutex.RUnlock()
+	fake.saveUncheckedVersionMutex.RLock()
+	defer fake.saveUncheckedVersionMutex.RUnlock()
 	fake.saveVersionsMutex.RLock()
 	defer fake.saveVersionsMutex.RUnlock()
 	fake.setCheckErrorMutex.RLock()

@@ -36,7 +36,6 @@ type ResourceType interface {
 	SetCheckError(error) error
 
 	Version() atc.Version
-	SaveVersion(atc.Version) error
 
 	Reload() (bool, error)
 }
@@ -122,32 +121,6 @@ func (t *resourceType) CheckError() error               { return t.checkError }
 func (t *resourceType) ResourceConfigCheckError() error { return t.resourceConfigCheckError }
 
 func (t *resourceType) Version() atc.Version { return t.version }
-func (t *resourceType) SaveVersion(version atc.Version) error {
-	versionJSON, err := json.Marshal(version)
-	if err != nil {
-		return err
-	}
-
-	result, err := psql.Update("resource_types").
-		Where(sq.Eq{"id": t.id}).
-		Set("version", versionJSON).
-		RunWith(t.conn).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	num, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if num == 0 {
-		return ResourceTypeNotFoundError{t.name}
-	}
-
-	return nil
-}
 
 func (t *resourceType) Reload() (bool, error) {
 	row := resourceTypesQuery.Where(sq.Eq{"r.id": t.id}).RunWith(t.conn).QueryRow()

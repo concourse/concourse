@@ -193,7 +193,7 @@ var _ = Describe("ResourceConfig", func() {
 		})
 	})
 
-	Describe("SaveResourceVersions", func() {
+	Describe("SaveVersions", func() {
 		var (
 			originalVersionSlice []atc.Version
 			resourceConfig       db.ResourceConfig

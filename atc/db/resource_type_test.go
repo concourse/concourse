@@ -230,7 +230,7 @@ var _ = Describe("ResourceType", func() {
 
 		Context("when the version has a check order of 0", func() {
 			BeforeEach(func() {
-				created, err := resourceTypeConfig.SaveVersion(atc.Version{"version": "not-returned"}, nil)
+				created, err := resourceTypeConfig.SaveUncheckedVersion(atc.Version{"version": "not-returned"}, nil)
 				Expect(created).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 			})

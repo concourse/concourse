@@ -29,7 +29,7 @@ type ResourceCacheFactory interface {
 	// Also, metadata will be available to us before we create resource cache so this
 	// method can be removed at that point. See  https://github.com/concourse/concourse/issues/534
 	UpdateResourceCacheMetadata(UsedResourceCache, []atc.MetadataField) error
-	ResourceCacheMetadata(UsedResourceCache) (ResourceMetadataFields, error)
+	ResourceCacheMetadata(UsedResourceCache) (ResourceConfigMetadataFields, error)
 }
 
 type resourceCacheFactory struct {
@@ -102,7 +102,7 @@ func (f *resourceCacheFactory) UpdateResourceCacheMetadata(resourceCache UsedRes
 	return err
 }
 
-func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache UsedResourceCache) (ResourceMetadataFields, error) {
+func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache UsedResourceCache) (ResourceConfigMetadataFields, error) {
 	var metadataJSON sql.NullString
 	err := psql.Select("metadata").
 		From("resource_caches").
@@ -114,7 +114,7 @@ func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache UsedResourceC
 		return nil, err
 	}
 
-	var metadata []ResourceMetadataField
+	var metadata []ResourceConfigMetadataField
 	if metadataJSON.Valid {
 		err = json.Unmarshal([]byte(metadataJSON.String), &metadata)
 		if err != nil {

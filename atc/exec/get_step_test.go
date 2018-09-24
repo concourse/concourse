@@ -211,9 +211,9 @@ var _ = Describe("GetStep", func() {
 			})
 
 			It("saves the resource config version", func() {
-				Expect(fakeResourceConfig.SaveVersionCallCount()).To(Equal(1))
+				Expect(fakeResourceConfig.SaveUncheckedVersionCallCount()).To(Equal(1))
 
-				version, metadata := fakeResourceConfig.SaveVersionArgsForCall(0)
+				version, metadata := fakeResourceConfig.SaveUncheckedVersionArgsForCall(0)
 				Expect(version).To(Equal(atc.Version{"some": "version"}))
 				Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields([]atc.MetadataField{{"some", "metadata"}})))
 			})
@@ -222,7 +222,7 @@ var _ = Describe("GetStep", func() {
 				disaster := errors.New("oops")
 
 				BeforeEach(func() {
-					fakeResourceConfig.SaveVersionReturns(false, disaster)
+					fakeResourceConfig.SaveUncheckedVersionReturns(false, disaster)
 				})
 
 				It("returns an error", func() {
@@ -245,7 +245,7 @@ var _ = Describe("GetStep", func() {
 
 			It("does not save the resource config version", func() {
 				// TODO: this can be removed once /check returns metadata
-				Expect(fakeResourceConfig.SaveVersionCallCount()).To(Equal(0))
+				Expect(fakeResourceConfig.SaveUncheckedVersionCallCount()).To(Equal(0))
 			})
 		})
 

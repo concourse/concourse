@@ -235,16 +235,16 @@ var _ = Describe("PutStep", func() {
 
 			Context("when finding or creating a resource config", func() {
 				It("saves the version", func() {
-					Expect(fakeResourceConfig.SaveVersionCallCount()).To(Equal(1))
+					Expect(fakeResourceConfig.SaveUncheckedVersionCallCount()).To(Equal(1))
 
-					version, metadata := fakeResourceConfig.SaveVersionArgsForCall(0)
+					version, metadata := fakeResourceConfig.SaveUncheckedVersionArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"some": "version"}))
 					Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields([]atc.MetadataField{{"some", "metadata"}})))
 				})
 
 				Context("when saving a version", func() {
 					BeforeEach(func() {
-						fakeResourceConfig.SaveVersionReturns(true, nil)
+						fakeResourceConfig.SaveUncheckedVersionReturns(true, nil)
 					})
 
 					It("saves the build output", func() {
@@ -296,7 +296,7 @@ var _ = Describe("PutStep", func() {
 				disaster := errors.New("nah")
 
 				BeforeEach(func() {
-					fakeResourceConfig.SaveVersionReturns(false, disaster)
+					fakeResourceConfig.SaveUncheckedVersionReturns(false, disaster)
 				})
 
 				It("returns the error", func() {

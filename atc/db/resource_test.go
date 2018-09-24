@@ -339,7 +339,7 @@ var _ = Describe("Resource", func() {
 			Context("when the check order is 0", func() {
 				BeforeEach(func() {
 					version = atc.Version{"version": "2"}
-					created, err := resourceConfig.SaveVersion(version, nil)
+					created, err := resourceConfig.SaveUncheckedVersion(version, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(created).To(BeTrue())
 				})
@@ -435,14 +435,11 @@ var _ = Describe("Resource", func() {
 						metadata = append(metadata, atc.MetadataField(v))
 					}
 
-					disabled, err := resource.IsVersionDisabled(atc.Version(rcv.Version()))
-					Expect(err).ToNot(HaveOccurred())
-
 					resourceVersion := atc.ResourceVersion{
 						ID:       rcv.ID(),
 						Version:  atc.Version(rcv.Version()),
 						Metadata: metadata,
-						Enabled:  !disabled,
+						Enabled:  true,
 					}
 
 					resourceVersions = append(resourceVersions, resourceVersion)
@@ -519,7 +516,7 @@ var _ = Describe("Resource", func() {
 					metadata := []db.ResourceConfigMetadataField{{Name: "name1", Value: "value1"}}
 
 					// save metadata
-					_, err := resourceConfig.SaveVersion(atc.Version(resourceVersions[9].Version), metadata)
+					_, err := resourceConfig.SaveUncheckedVersion(atc.Version(resourceVersions[9].Version), metadata)
 					Expect(err).ToNot(HaveOccurred())
 				})
 
@@ -604,14 +601,11 @@ var _ = Describe("Resource", func() {
 						metadata = append(metadata, atc.MetadataField(v))
 					}
 
-					disabled, err := resource.IsVersionDisabled(atc.Version(rcv.Version()))
-					Expect(err).ToNot(HaveOccurred())
-
 					resourceVersion := atc.ResourceVersion{
 						ID:       rcv.ID(),
 						Version:  atc.Version(rcv.Version()),
 						Metadata: metadata,
-						Enabled:  !disabled,
+						Enabled:  true,
 					}
 
 					resourceVersions = append(resourceVersions, resourceVersion)
@@ -713,7 +707,7 @@ var _ = Describe("Resource", func() {
 				err = resource.SetResourceConfig(resourceConfig.ID())
 				Expect(err).ToNot(HaveOccurred())
 
-				created, err := resourceConfig.SaveVersion(atc.Version{"version": "not-returned"}, nil)
+				created, err := resourceConfig.SaveUncheckedVersion(atc.Version{"version": "not-returned"}, nil)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeTrue())
 			})
@@ -724,114 +718,6 @@ var _ = Describe("Resource", func() {
 				Expect(found).To(BeTrue())
 				Expect(historyPage).To(BeNil())
 				Expect(pagination).To(Equal(db.Pagination{Previous: nil, Next: nil}))
-			})
-		})
-	})
-
-	Describe("IsVersionDisabled", func() {
-		version := atc.Version{"version": "some-version"}
-		var resourceConfig db.ResourceConfig
-		var resource db.Resource
-
-		BeforeEach(func() {
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			brt := db.BaseResourceType{
-				Name: "git",
-			}
-			_, err = brt.FindOrCreate(setupTx)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "git", atc.Source{"some": "other-repository"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resourceConfig.SaveVersions([]atc.Version{version})
-			Expect(err).ToNot(HaveOccurred())
-
-			var found bool
-			resource, found, err = pipeline.Resource("some-other-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			err = resource.SetResourceConfig(resourceConfig.ID())
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		Context("when the resource is enabled", func() {
-			It("should return false", func() {
-				isResourceDisabled, err := resource.IsVersionDisabled(version)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(isResourceDisabled).To(BeFalse())
-			})
-		})
-
-		Context("when the resource is disabled", func() {
-			BeforeEach(func() {
-				rcv, found, err := resourceConfig.FindVersion(version)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				err = resource.DisableVersion(rcv.ID())
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("should return true", func() {
-				isResourceDisabled, err := resource.IsVersionDisabled(version)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(isResourceDisabled).To(BeTrue())
-			})
-		})
-	})
-
-	Describe("EnableVersion/DisableVersion", func() {
-		version := atc.Version{"version": "some-version"}
-		var resourceConfig db.ResourceConfig
-		var resource db.Resource
-
-		BeforeEach(func() {
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			brt := db.BaseResourceType{
-				Name: "git",
-			}
-			_, err = brt.FindOrCreate(setupTx)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "git", atc.Source{"some": "other-repository"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resourceConfig.SaveVersions([]atc.Version{version})
-			Expect(err).ToNot(HaveOccurred())
-
-			var found bool
-			resource, found, err = pipeline.Resource("some-other-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			err = resource.SetResourceConfig(resourceConfig.ID())
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		Context("when disabling the resource version", func() {
-			BeforeEach(func() {
-				err := resource.DisableVersion(resourceConfig.ID())
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("should disable the version", func() {
-				Expect(resource.IsVersionDisabled(version)).To(BeTrue())
-			})
-
-			Context("when enabling the resource version", func() {
-				It("should enable the version", func() {
-					err := resource.EnableVersion(resourceConfig.ID())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(resource.IsVersionDisabled(version)).To(BeFalse())
-				})
 			})
 		})
 	})

@@ -18,6 +18,19 @@ import (
 	"github.com/lib/pq"
 )
 
+type BuildInput struct {
+	Name       string
+	Version    atc.Version
+	ResourceID int
+
+	FirstOccurrence bool
+}
+
+type BuildOutput struct {
+	Name    string
+	Version atc.Version
+}
+
 type BuildStatus string
 
 const (
@@ -75,7 +88,6 @@ type Build interface {
 	Events(uint) (EventSource, error)
 	SaveEvent(event atc.Event) error
 
-	SaveInput(input BuildInput) error
 	SaveOutput(ResourceConfig, atc.Version, string, string, bool) error
 	UseInputs(inputs []BuildInput) error
 
@@ -91,9 +103,6 @@ type Build interface {
 
 	IsDrained() bool
 	SetDrained(bool) error
-
-	// XXX: This is only being used in tests
-	ResourceConfigVersions() ([]int, error)
 }
 
 type build struct {
@@ -762,29 +771,6 @@ func (b *build) SaveEvent(event atc.Event) error {
 	return b.conn.Bus().Notify(buildEventsChannel(b.id))
 }
 
-func (b *build) SaveInput(input BuildInput) error {
-	tx, err := b.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer Rollback(tx)
-
-	err = b.saveInputTx(tx, b.id, input)
-	if err != nil {
-		return err
-	}
-
-	if b.pipelineID != 0 {
-		err = bumpCacheIndex(tx, b.pipelineID)
-		if err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit()
-}
-
 func (b *build) SaveOutput(
 	rc ResourceConfig,
 	version atc.Version,
@@ -993,51 +979,6 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	}
 
 	return inputs, outputs, nil
-}
-
-// ResourceConfigVersions gets the list of ids of the resource config
-// versions used by the build
-
-// TODO: remove this as it is only used in tests
-func (b *build) ResourceConfigVersions() ([]int, error) {
-	rows, err := b.conn.Query(`
-		SELECT vr.id
-		FROM builds b
-		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN build_resource_config_version_inputs bi ON bi.build_id = b.id
-		INNER JOIN resource_config_versions vr ON bi.version_md5 = vr.version_md5
-		INNER JOIN resources r ON bi.resource_id = r.id
-		WHERE b.id = $1 AND r.resource_config_id = vr.resource_config_id
-
-		UNION ALL
-
-		SELECT vr.id
-		FROM builds b
-		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN build_resource_config_version_outputs bo ON bo.build_id = b.id
-		INNER JOIN resource_config_versions vr ON bo.version_md5 = vr.version_md5
-		INNER JOIN resources r ON bo.resource_id = r.id
-		WHERE b.id = $1 AND r.resource_config_id = vr.resource_config_id
-	`, b.id)
-	if err != nil {
-		return nil, err
-	}
-
-	defer Close(rows)
-
-	var ids []int
-	for rows.Next() {
-		var id int
-
-		err = rows.Scan(&id)
-		if err != nil {
-			return nil, err
-		}
-
-		ids = append(ids, id)
-	}
-
-	return ids, nil
 }
 
 func (p *build) saveInputTx(tx Tx, buildID int, input BuildInput) error {
