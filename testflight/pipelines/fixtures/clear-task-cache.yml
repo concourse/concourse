@@ -1,26 +1,36 @@
 ---
 resources:
-- name: some-git-resource
-  type: git
+- name: some-resource
+  type: mock
   source:
-    uri: {{origin-git-server}}
-    branch: master
+    create_files:
+      script.sh: |
+        if [ ! -f some-resource/cache/cached-file ]; then
+          echo the-cached-file-already-exists >> some-resource/cache/cached-file
+          echo 'created-cache-file'
+        else
+          cat some-resource/cache/cached-file
+        fi
 
 jobs:
 - name: clear-task-cache
   plan:
-  - get: some-git-resource
+  - get: some-resource
   - task: some-task
     config:
       platform: linux
+
       image_resource:
         type: mock
         source: {mirror_self: true}
+
       inputs:
-      - name: some-git-resource
+      - name: some-resource
+
       caches:
-      - path: some-git-resource/cache
+      - path: some-resource/cache
+
       run:
         path: sh
         args:
-        - some-git-resource/script.sh
+        - some-resource/script.sh
