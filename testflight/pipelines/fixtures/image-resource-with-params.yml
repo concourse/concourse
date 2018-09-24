@@ -15,7 +15,8 @@ jobs:
   plan:
   - get: some-resource
     params:
-      foo: bar
+      create_files_via_params:
+        foo: bar
 
 - name: image-resource-with-params
   plan:
@@ -26,7 +27,8 @@ jobs:
         type: mock
         source: *some_resource_source
         params:
-          foo: bar
+          create_files_via_params:
+            foo: bar
       run:
         path: /bin/true
 
