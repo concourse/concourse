@@ -48,7 +48,7 @@ var _ = Describe("A job with multiple inputs", func() {
 			[]byte(`---
 platform: linux
 image_resource:
-  type: mirror
+  type: mock
   source: {mirror_self: true}
 inputs:
 - name: git-repo-a

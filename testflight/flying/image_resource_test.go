@@ -51,7 +51,7 @@ ls /bin
 platform: linux
 
 image_resource:
-  type: mirror
+  type: mock
   source:
     mirror_self: true
     initial_version: hello-version
@@ -87,7 +87,7 @@ run:
 platform: linux
 
 image_resource:
-  type: mirror
+  type: mock
   source: {mirror_self: true}
   version: {version: hi-im-a-version}
 

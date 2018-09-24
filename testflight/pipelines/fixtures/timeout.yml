@@ -26,5 +26,5 @@ jobs:
 
 resources:
 - name: image
-  type: mirror
+  type: mock
   source: {mirror_self: true}

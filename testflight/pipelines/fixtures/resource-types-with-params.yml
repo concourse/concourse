@@ -1,13 +1,13 @@
 ---
 resource_types:
-- name: mirror-via-params
-  type: mirror
+- name: mock-via-params
+  type: mock
   source: {}
   params: {mirror_self_via_params: true}
 
 resources:
 - name: my-resource
-  type: mirror-via-params
+  type: mock-via-params
   source: {}
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
       platform: linux
 
       image_resource:
-        type: mirror
+        type: mock
         source: {mirror_self: true}
 
       inputs:

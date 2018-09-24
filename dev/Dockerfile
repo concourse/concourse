@@ -1,4 +1,4 @@
-FROM concourse/mirror-resource AS mirror
+FROM concourse/mock-resource AS mock
 
 FROM golang:1
 
@@ -52,8 +52,8 @@ COPY go.sum .
 RUN go mod download
 
 # fetch resources
-COPY --from=mirror / /concourse-resource-types/mirror/rootfs
-RUN echo '{"type":"mirror","version":"'$(date +%s)'"}' > /concourse-resource-types/mirror/resource_metadata.json
+COPY --from=mock / /concourse-resource-types/mock/rootfs
+RUN echo '{"type":"mock","version":"'$(date +%s)'"}' > /concourse-resource-types/mock/resource_metadata.json
 
 # point to fetched resource types
 ENV CONCOURSE_RESOURCE_TYPES /concourse-resource-types

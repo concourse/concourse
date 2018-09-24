@@ -23,7 +23,7 @@ var _ = Describe("Configuring a resource in a pipeline config", func() {
 platform: linux
 
 image_resource:
-  type: mirror
+  type: mock
   source: {mirror_self: true}
 
 params:

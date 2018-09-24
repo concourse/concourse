@@ -6,7 +6,7 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: mirror
+        type: mock
         source: {mirror_self: true}
       outputs:
       - name: output-1
@@ -24,7 +24,7 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: mirror
+        type: mock
         source: {mirror_self: true}
       inputs:
       - name: output-1

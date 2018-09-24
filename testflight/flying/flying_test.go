@@ -59,7 +59,7 @@ exit 0
 platform: linux
 
 image_resource:
-  type: mirror
+  type: mock
   source: {mirror_self: true}
 
 inputs:
@@ -322,7 +322,7 @@ ls`),
 platform: linux
 
 image_resource:
-  type: mirror
+  type: mock
   source: {mirror_self: true}
 
 inputs:
@@ -394,7 +394,7 @@ run:
 platform: linux
 
 image_resource:
-  type: mirror
+  type: mock
   source: {mirror_self: true}
 
 inputs:

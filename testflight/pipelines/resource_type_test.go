@@ -129,7 +129,7 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			watch := flyHelper.TriggerJob(pipelineName, "resource-test")
 			<-watch.Exited
 			Expect(watch.ExitCode()).To(Equal(0))
-			Expect(watch).To(gbytes.Say("mirror"))
+			Expect(watch).To(gbytes.Say("mock"))
 		})
 	})
 

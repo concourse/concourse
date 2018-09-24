@@ -1,14 +1,14 @@
 ---
 resource_types:
-- name: mirror
-  type: mirror
+- name: mock
+  type: mock
   source:
     mirror_self: true
     initial_version: mirror-mirror
 
 resources:
 - name: my-resource
-  type: mirror
+  type: mock
   source: {}
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
       platform: linux
 
       image_resource:
-        type: mirror
+        type: mock
         source: {mirror_self: true}
 
       inputs:

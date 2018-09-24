@@ -1,7 +1,7 @@
 ---
 resources:
 - name: some-resource
-  type: mirror
+  type: mock
   source: {}
 
 jobs:

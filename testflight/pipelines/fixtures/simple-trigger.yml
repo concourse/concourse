@@ -1,7 +1,7 @@
 ---
 resources:
 - name: some-resource
-  type: mirror
+  type: mock
   source: {no_initial_version: true}
 
 jobs:
@@ -14,7 +14,7 @@ jobs:
       platform: linux
 
       image_resource:
-        type: mirror
+        type: mock
         source: {mirror_self: true}
 
       inputs:

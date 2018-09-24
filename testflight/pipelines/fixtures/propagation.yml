@@ -1,11 +1,11 @@
 ---
 resources:
 - name: some-resource
-  type: mirror
+  type: mock
   source: {}
 
 - name: pushed-resource
-  type: mirror
+  type: mock
   source: {}
 
 jobs:

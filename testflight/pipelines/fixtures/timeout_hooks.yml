@@ -7,7 +7,7 @@ jobs:
         config:
           platform: linux
           image_resource:
-            type: mirror
+            type: mock
             source: {mirror_self: true}
           run:
             path: sleep
@@ -17,7 +17,7 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: mirror
+              type: mock
               source: {mirror_self: true}
             run:
               path: echo
@@ -27,7 +27,7 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: mirror
+              type: mock
               source: {mirror_self: true}
             run:
               path: echo
@@ -37,7 +37,7 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: mirror
+              type: mock
               source: {mirror_self: true}
             run:
               path: echo

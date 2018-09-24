@@ -17,7 +17,7 @@ jobs:
       outputs:
       - name: first-task-output
       image_resource:
-        type: mirror
+        type: mock
         source: {mirror_self: true}
       platform: linux
       run:
@@ -33,7 +33,7 @@ jobs:
       - path: first-task-output/blobs
       - path: second-task-cache
       image_resource:
-        type: mirror
+        type: mock
         source: {mirror_self: true}
       platform: linux
       run:

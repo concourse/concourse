@@ -16,7 +16,7 @@ jobs:
             config:
               platform: linux
               image_resource:
-                type: mirror
+                type: mock
                 source: {mirror_self: true}
               run:
                 path: touch
@@ -28,7 +28,7 @@ jobs:
             config:
               platform: linux
               image_resource:
-                type: mirror
+                type: mock
                 source: {mirror_self: true}
               run:
                 path: touch
@@ -40,7 +40,7 @@ jobs:
         config:
           platform: linux
           image_resource:
-            type: mirror
+            type: mock
             source: {mirror_self: true}
           inputs:
             - name: passing-unit-1
@@ -54,7 +54,7 @@ jobs:
             config:
               platform: linux
               image_resource:
-                type: mirror
+                type: mock
                 source: {mirror_self: true}
               run:
                 path: sh
@@ -63,7 +63,7 @@ jobs:
             config:
               platform: linux
               image_resource:
-                type: mirror
+                type: mock
                 source: {mirror_self: true}
               run:
                 path: sh
@@ -73,7 +73,7 @@ jobs:
           config:
             platform: linux
             image_resource:
-              type: mirror
+              type: mock
               source: {mirror_self: true}
             inputs:
               - name: some-git-resource

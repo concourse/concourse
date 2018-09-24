@@ -1,7 +1,7 @@
 ---
 resource_types:
 - name: custom-type
-  type: mirror
+  type: mock
   source:
     mirror_self: true
     initial_version: custom-type-version
