@@ -1,19 +1,19 @@
 ---
 resources:
-- name: some-git-resource
-  type: git
-  source:
-    uri: {{origin-git-server}}
-    branch: master
+- name: some-resource
+  type: mock
+  source: &some_resource_source
+    initial_version: ((initial_version))
+    mirror_self: true
 
 jobs:
 - name: without-params
   plan:
-  - get: some-git-resource
+  - get: some-resource
 
 - name: with-params
   plan:
-  - get: some-git-resource
+  - get: some-resource
     params:
       foo: bar
 
@@ -23,10 +23,8 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: git
-        source:
-          uri: {{origin-git-server}}
-          branch: master
+        type: mock
+        source: *some_resource_source
         params:
           foo: bar
       run:
@@ -38,9 +36,7 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: git
-        source:
-          uri: {{origin-git-server}}
-          branch: master
+        type: mock
+        source: *some_resource_source
       run:
         path: /bin/true
