@@ -26,24 +26,9 @@ func (s *Server) CheckResource(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		fromVersion := reqBody.From
-		if fromVersion == nil {
-			latestVersion, found, err := dbPipeline.GetLatestVersionedResource(resourceName)
-			if err != nil {
-				logger.Info("failed-to-get-latest-versioned-resource", lager.Data{"error": err.Error()})
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(err.Error()))
-				return
-			}
-
-			if found {
-				fromVersion = atc.Version(latestVersion.Version)
-			}
-		}
-
 		scanner := s.scannerFactory.NewResourceScanner(dbPipeline)
 
-		err = scanner.ScanFromVersion(logger, resourceName, fromVersion)
+		err = scanner.ScanFromVersion(logger, resourceName, reqBody.From)
 		switch scanErr := err.(type) {
 		case resource.ErrResourceScriptFailed:
 			checkResponseBody := atc.CheckResponseBody{

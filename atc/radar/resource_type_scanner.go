@@ -45,20 +45,20 @@ func NewResourceTypeScanner(
 }
 
 func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName string) (time.Duration, error) {
-	return scanner.scan(logger.Session("tick"), resourceTypeName, nil, false)
+	return scanner.scan(logger.Session("tick"), resourceTypeName, nil, false, false)
 }
 
 func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourceTypeName string, fromVersion atc.Version) error {
-	return nil
-}
-
-func (scanner *resourceTypeScanner) Scan(logger lager.Logger, resourceTypeName string) error {
-	_, err := scanner.scan(logger, resourceTypeName, nil, true)
-
+	_, err := scanner.scan(logger, resourceTypeName, fromVersion, true, true)
 	return err
 }
 
-func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName string, fromVersion atc.Version, mustComplete bool) (time.Duration, error) {
+func (scanner *resourceTypeScanner) Scan(logger lager.Logger, resourceTypeName string) error {
+	_, err := scanner.scan(logger, resourceTypeName, nil, true, false)
+	return err
+}
+
+func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName string, fromVersion atc.Version, mustComplete bool, saveGiven bool) (time.Duration, error) {
 	lockLogger := logger.Session("lock", lager.Data{
 		"resource-type": resourceTypeName,
 	})
@@ -177,6 +177,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 		fromVersion,
 		versionedResourceTypes,
 		source,
+		saveGiven,
 	)
 }
 
@@ -187,6 +188,7 @@ func (scanner *resourceTypeScanner) check(
 	fromVersion atc.Version,
 	versionedResourceTypes creds.VersionedResourceTypes,
 	source atc.Source,
+	saveGiven bool,
 ) error {
 	pipelinePaused, err := scanner.dbPipeline.CheckPaused()
 	if err != nil {
@@ -234,7 +236,7 @@ func (scanner *resourceTypeScanner) check(
 		return err
 	}
 
-	if len(newVersions) == 0 || reflect.DeepEqual(newVersions, []atc.Version{fromVersion}) {
+	if len(newVersions) == 0 || (!saveGiven && reflect.DeepEqual(newVersions, []atc.Version{fromVersion})) {
 		logger.Debug("no-new-versions")
 		return nil
 	}

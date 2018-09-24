@@ -331,10 +331,18 @@ var _ = Describe("Resources API", func() {
 	})
 
 	Describe("POST /api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types/:resource_name/check", func() {
+		var checkRequestBody atc.CheckRequestBody
 		var response *http.Response
 
+		BeforeEach(func() {
+			checkRequestBody = atc.CheckRequestBody{}
+		})
+
 		JustBeforeEach(func() {
-			request, err := http.NewRequest("POST", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resource-types/resource-type-name/check", nil)
+			reqPayload, err := json.Marshal(checkRequestBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			request, err := http.NewRequest("POST", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resource-types/resource-type-name/check", bytes.NewBuffer(reqPayload))
 			Expect(err).NotTo(HaveOccurred())
 			request.Header.Set("Content-Type", "application/json")
 
@@ -379,12 +387,29 @@ var _ = Describe("Resources API", func() {
 			})
 
 			It("calls Scan", func() {
-				Expect(fakeScanner.ScanCallCount()).To(Equal(1))
+				Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+			})
+
+			Context("when checking with a version specified", func() {
+				BeforeEach(func() {
+					checkRequestBody = atc.CheckRequestBody{
+						From: atc.Version{
+							"some-version-key": "some-version-value",
+						},
+					}
+				})
+
+				It("tries to scan with the version specified", func() {
+					Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+					_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+					Expect(actualResourceName).To(Equal("resource-type-name"))
+					Expect(actualFromVersion).To(Equal(checkRequestBody.From))
+				})
 			})
 
 			Context("when resource type checking fails with ResourceNotFoundError", func() {
 				BeforeEach(func() {
-					fakeScanner.ScanReturns(db.ResourceTypeNotFoundError{})
+					fakeScanner.ScanFromVersionReturns(db.ResourceTypeNotFoundError{})
 				})
 
 				It("returns 404", func() {
@@ -395,7 +420,7 @@ var _ = Describe("Resources API", func() {
 			Context("when resource type fails with unexpected error", func() {
 				BeforeEach(func() {
 					err := errors.New("some-error")
-					fakeScanner.ScanReturns(err)
+					fakeScanner.ScanFromVersionReturns(err)
 				})
 
 				It("returns 500", func() {
@@ -1015,55 +1040,6 @@ var _ = Describe("Resources API", func() {
 					_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
 					Expect(actualResourceName).To(Equal("resource-name"))
 					Expect(actualFromVersion).To(Equal(checkRequestBody.From))
-				})
-			})
-
-			Context("when the resource already has versions", func() {
-				BeforeEach(func() {
-					returnedVersion := db.SavedVersionedResource{
-						ID:      4,
-						Enabled: true,
-						VersionedResource: db.VersionedResource{
-							Resource: "some-resource",
-							Type:     "some-type",
-							Version: db.ResourceVersion{
-								"some": "version",
-							},
-							Metadata: []db.ResourceMetadataField{
-								{
-									Name:  "some",
-									Value: "metadata",
-								},
-							},
-						},
-					}
-					fakePipeline.GetLatestVersionedResourceReturns(returnedVersion, true, nil)
-				})
-
-				It("tries to scan with the latest version when no version is passed", func() {
-					Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
-					_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
-					Expect(actualResourceName).To(Equal("resource-name"))
-					Expect(actualFromVersion).To(Equal(atc.Version{"some": "version"}))
-				})
-			})
-
-			Context("when failing to get latest version for resource", func() {
-				BeforeEach(func() {
-					fakePipeline.GetLatestVersionedResourceReturns(db.SavedVersionedResource{}, false, errors.New("disaster"))
-				})
-
-				It("returns 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-
-					buf := new(bytes.Buffer)
-					buf.ReadFrom(response.Body)
-					body := buf.String()
-					Expect(body).To(Equal("disaster"))
-				})
-
-				It("does not scan from version", func() {
-					Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(0))
 				})
 			})
 

@@ -3,12 +3,14 @@ package commands
 import (
 	"fmt"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 )
 
 type CheckResourceTypeCommand struct {
 	ResourceType flaghelpers.ResourceFlag `short:"r" long:"resource-type" required:"true" value-name:"PIPELINE/RESOURCE-TYPE" description:"Name of a resource-type to check"`
+	Version      *atc.Version             `short:"f" long:"from"                     value-name:"VERSION"           description:"Version of the resource type to check from, e.g. digest:sha256@..."`
 }
 
 func (command *CheckResourceTypeCommand) Execute(args []string) error {
@@ -22,7 +24,12 @@ func (command *CheckResourceTypeCommand) Execute(args []string) error {
 		return err
 	}
 
-	found, err := target.Team().CheckResourceType(command.ResourceType.PipelineName, command.ResourceType.ResourceName)
+	var version atc.Version
+	if command.Version != nil {
+		version = *command.Version
+	}
+
+	found, err := target.Team().CheckResourceType(command.ResourceType.PipelineName, command.ResourceType.ResourceName, version)
 	if err != nil {
 		return err
 	}

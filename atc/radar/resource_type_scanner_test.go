@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/concourse/atc/radar"
+	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 
 	rfakes "github.com/concourse/concourse/atc/resource/resourcefakes"
@@ -670,6 +671,86 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 				It("does not return an error", func() {
 					Expect(runErr).NotTo(HaveOccurred())
+				})
+			})
+		})
+	})
+
+	Describe("ScanFromVersion", func() {
+		var (
+			fakeResource *rfakes.FakeResource
+			fromVersion  atc.Version
+
+			scanErr error
+		)
+
+		BeforeEach(func() {
+			fakeResource = new(rfakes.FakeResource)
+			fakeResourceFactory.NewResourceReturns(fakeResource, nil)
+			fromVersion = nil
+		})
+
+		JustBeforeEach(func() {
+			scanErr = scanner.ScanFromVersion(lagertest.NewTestLogger("test"), "some-resource-type", fromVersion)
+		})
+
+		Context("if the lock can be acquired", func() {
+			BeforeEach(func() {
+				fakeDBPipeline.AcquireResourceTypeCheckingLockWithIntervalCheckReturns(fakeLock, true, nil)
+			})
+
+			Context("when fromVersion is nil", func() {
+				It("checks from the current version", func() {
+					_, _, version := fakeResource.CheckArgsForCall(0)
+					Expect(version).To(Equal(atc.Version{"custom": "version"}))
+				})
+			})
+
+			Context("when fromVersion is specified", func() {
+				BeforeEach(func() {
+					fromVersion = atc.Version{
+						"version": "1",
+					}
+				})
+
+				It("checks from it", func() {
+					_, _, version := fakeResource.CheckArgsForCall(0)
+					Expect(version).To(Equal(atc.Version{"version": "1"}))
+				})
+
+				Context("when the check returns only the latest version", func() {
+					BeforeEach(func() {
+						fakeResource.CheckReturns([]atc.Version{fromVersion}, nil)
+					})
+
+					It("saves it", func() {
+						Expect(fakeResourceType.SaveVersionCallCount()).To(Equal(1))
+						versions := fakeResourceType.SaveVersionArgsForCall(0)
+						Expect(versions).To(Equal(fromVersion))
+					})
+				})
+			})
+
+			Context("when checking fails with ErrResourceScriptFailed", func() {
+				scriptFail := resource.ErrResourceScriptFailed{}
+
+				BeforeEach(func() {
+					fakeResource.CheckReturns(nil, scriptFail)
+				})
+
+				It("returns the error", func() {
+					Expect(scanErr).To(Equal(scriptFail))
+				})
+			})
+
+			Context("when the resource is not in the database", func() {
+				BeforeEach(func() {
+					fakeDBPipeline.ResourceTypeReturns(nil, false, nil)
+				})
+
+				It("returns an error", func() {
+					Expect(scanErr).To(HaveOccurred())
+					Expect(scanErr.Error()).To(ContainSubstring("resource type not found: some-resource-type"))
 				})
 			})
 		})

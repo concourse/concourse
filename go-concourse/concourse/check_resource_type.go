@@ -1,6 +1,8 @@
 package concourse
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
@@ -8,18 +10,24 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) CheckResourceType(pipelineName string, resourceTypeName string) (bool, error) {
+func (team *team) CheckResourceType(pipelineName string, resourceTypeName string, version atc.Version) (bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"resource_name": resourceTypeName,
 		"team_name":     team.name,
 	}
 
+	jsonBytes, err := json.Marshal(atc.CheckRequestBody{From: version})
+	if err != nil {
+		return false, err
+	}
+
 	response := internal.Response{}
-	err := team.connection.Send(internal.Request{
+	err = team.connection.Send(internal.Request{
 		ReturnResponseBody: true,
 		RequestName:        atc.CheckResourceType,
 		Params:             params,
+		Body:               bytes.NewBuffer(jsonBytes),
 		Header:             http.Header{"Content-Type": []string{"application/json"}},
 	}, &response)
 

@@ -17,12 +17,41 @@ var _ = Describe("CheckResourceType", func() {
 		flyCmd *exec.Cmd
 	)
 
-	Context("when ATC request succeeds", func() {
+	Context("when version is specified", func() {
 		BeforeEach(func() {
 			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresource/check"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"}}`),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, ""),
+				),
+			)
+		})
+
+		It("sends check resource request to ATC", func() {
+			Expect(func() {
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "-f", "ref:fake-ref")
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess).Should(gexec.Exit(0))
+
+				Expect(sess.Out).To(gbytes.Say("checked 'myresource'"))
+
+			}).To(Change(func() int {
+				return len(atcServer.ReceivedRequests())
+			}).By(2))
+		})
+	})
+
+	Context("when version is omitted", func() {
+		BeforeEach(func() {
+			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresource/check"
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyJSON(`{"from":null}`),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, ""),
 				),
 			)

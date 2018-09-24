@@ -89,11 +89,12 @@ type FakeTeam struct {
 		result1 bool
 		result2 error
 	}
-	CheckResourceTypeStub        func(string, string) (bool, error)
+	CheckResourceTypeStub        func(string, string, atc.Version) (bool, error)
 	checkResourceTypeMutex       sync.RWMutex
 	checkResourceTypeArgsForCall []struct {
 		arg1 string
 		arg2 string
+		arg3 atc.Version
 	}
 	checkResourceTypeReturns struct {
 		result1 bool
@@ -900,17 +901,18 @@ func (fake *FakeTeam) CheckResourceReturnsOnCall(i int, result1 bool, result2 er
 	}{result1, result2}
 }
 
-func (fake *FakeTeam) CheckResourceType(arg1 string, arg2 string) (bool, error) {
+func (fake *FakeTeam) CheckResourceType(arg1 string, arg2 string, arg3 atc.Version) (bool, error) {
 	fake.checkResourceTypeMutex.Lock()
 	ret, specificReturn := fake.checkResourceTypeReturnsOnCall[len(fake.checkResourceTypeArgsForCall)]
 	fake.checkResourceTypeArgsForCall = append(fake.checkResourceTypeArgsForCall, struct {
 		arg1 string
 		arg2 string
-	}{arg1, arg2})
-	fake.recordInvocation("CheckResourceType", []interface{}{arg1, arg2})
+		arg3 atc.Version
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("CheckResourceType", []interface{}{arg1, arg2, arg3})
 	fake.checkResourceTypeMutex.Unlock()
 	if fake.CheckResourceTypeStub != nil {
-		return fake.CheckResourceTypeStub(arg1, arg2)
+		return fake.CheckResourceTypeStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -925,11 +927,11 @@ func (fake *FakeTeam) CheckResourceTypeCallCount() int {
 	return len(fake.checkResourceTypeArgsForCall)
 }
 
-func (fake *FakeTeam) CheckResourceTypeArgsForCall(i int) (string, string) {
+func (fake *FakeTeam) CheckResourceTypeArgsForCall(i int) (string, string, atc.Version) {
 	fake.checkResourceTypeMutex.RLock()
 	defer fake.checkResourceTypeMutex.RUnlock()
 	argsForCall := fake.checkResourceTypeArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeTeam) CheckResourceTypeReturns(result1 bool, result2 error) {
