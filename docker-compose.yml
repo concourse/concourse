@@ -11,9 +11,7 @@ services:
     - PGDATA=/database
 
   web:
-    build:
-      context: .
-      dockerfile: dev/Dockerfile
+    build: .
     volumes:
     - .:/src
     command: web
@@ -31,9 +29,7 @@ services:
     - CONCOURSE_LOG_LEVEL=debug
 
   worker:
-    build:
-      context: .
-      dockerfile: dev/Dockerfile
+    build: .
     command: worker
     privileged: true
     depends_on: [web]
