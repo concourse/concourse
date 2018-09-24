@@ -1,0 +1,45 @@
+---
+resource_types:
+- name: custom-resource-type
+  type: mock
+  privileged: ((privileged))
+  source:
+    mirror_self: true
+    create_files:
+      # ensure resources are unique so that caches aren't shared; otherwise a
+      # privileged container may warm the cache which can propagate to
+      # pipelines that don't have it marked privileged
+      unique: ((unique_config))
+
+resources:
+- name: my-resource
+  type: custom-resource-type
+  source: {}
+
+jobs:
+- name: resource-getter
+  plan:
+  - get: my-resource
+  - task: print-version
+    config:
+      platform: linux
+
+      image_resource:
+        type: custom-resource-type
+        source: {mirror_self: true}
+
+      inputs:
+      - name: my-resource
+
+      run:
+        path: sh
+        args:
+        - -c
+        - |
+          echo fetched version: $(cat my-resource/version)
+          echo privileged: $(cat my-resource/privileged)
+
+- name: resource-putter
+  plan:
+  - put: my-resource
+    params: {version: some-pushed-version}
