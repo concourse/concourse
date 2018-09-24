@@ -1,32 +1,23 @@
 ---
 resource_types:
-- name: echo-resource-parent
-  type: registry-image
-  privileged: true
-  source:
-    repository: concourse/registry-image-resource
-    tag: latest
+- name: mock-resource-parent
+  type: mock
+  source: {mirror_self: true, initial_version: parent-version}
 
-- name: echo-resource-child
-  type: echo-resource-parent
-  source:
-    repository: concourse/echo-resource
-    tag: latest
+- name: mock-resource-child
+  type: mock-resource-parent
+  source: {mirror_self: true, initial_version: child-version}
 
-- name: echo-resource
-  type: registry-image
-  source:
-    repository: concourse/echo-resource
-    tag: latest
+- name: mock-resource-grandchild
+  type: mock-resource-child
+  source: {mirror_self: true, initial_version: grandchild-version}
+
+resources:
+- name: recursive-custom-resource
+  type: mock-resource-grandchild
+  source: {initial_version: hella-nested}
 
 jobs:
 - name: get-resource
   plan:
   - get: recursive-custom-resource
-
-resources:
-- name: recursive-custom-resource
-  type: echo-resource-child
-  source:
-    versions:
-      - { version: "1" }
