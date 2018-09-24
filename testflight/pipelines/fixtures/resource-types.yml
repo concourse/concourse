@@ -6,6 +6,11 @@ resource_types:
     mirror_self: true
     initial_version: hello-from-custom-type
 
+- name: failing-custom-resource-type
+  type: mock
+  source:
+    check_failure: im totally failing to check
+
 resources:
 - name: my-resource
   type: custom-resource-type
