@@ -67,6 +67,26 @@ type FakePipeline struct {
 		result2 bool
 		result3 error
 	}
+	ArchiveStub        func() error
+	archiveMutex       sync.RWMutex
+	archiveArgsForCall []struct {
+	}
+	archiveReturns struct {
+		result1 error
+	}
+	archiveReturnsOnCall map[int]struct {
+		result1 error
+	}
+	ArchivedStub        func() bool
+	archivedMutex       sync.RWMutex
+	archivedArgsForCall []struct {
+	}
+	archivedReturns struct {
+		result1 bool
+	}
+	archivedReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	BuildsStub        func(db.Page) ([]db.Build, db.Pagination, error)
 	buildsMutex       sync.RWMutex
 	buildsArgsForCall []struct {
@@ -522,6 +542,16 @@ type FakePipeline struct {
 	teamNameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	UnarchiveStub        func() error
+	unarchiveMutex       sync.RWMutex
+	unarchiveArgsForCall []struct {
+	}
+	unarchiveReturns struct {
+		result1 error
+	}
+	unarchiveReturnsOnCall map[int]struct {
+		result1 error
+	}
 	UnpauseStub        func() error
 	unpauseMutex       sync.RWMutex
 	unpauseArgsForCall []struct {
@@ -726,6 +756,90 @@ func (fake *FakePipeline) AcquireSchedulingLockReturnsOnCall(i int, result1 lock
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakePipeline) Archive() error {
+	fake.archiveMutex.Lock()
+	ret, specificReturn := fake.archiveReturnsOnCall[len(fake.archiveArgsForCall)]
+	fake.archiveArgsForCall = append(fake.archiveArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Archive", []interface{}{})
+	fake.archiveMutex.Unlock()
+	if fake.ArchiveStub != nil {
+		return fake.ArchiveStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.archiveReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakePipeline) ArchiveCallCount() int {
+	fake.archiveMutex.RLock()
+	defer fake.archiveMutex.RUnlock()
+	return len(fake.archiveArgsForCall)
+}
+
+func (fake *FakePipeline) ArchiveReturns(result1 error) {
+	fake.ArchiveStub = nil
+	fake.archiveReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) ArchiveReturnsOnCall(i int, result1 error) {
+	fake.ArchiveStub = nil
+	if fake.archiveReturnsOnCall == nil {
+		fake.archiveReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.archiveReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) Archived() bool {
+	fake.archivedMutex.Lock()
+	ret, specificReturn := fake.archivedReturnsOnCall[len(fake.archivedArgsForCall)]
+	fake.archivedArgsForCall = append(fake.archivedArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Archived", []interface{}{})
+	fake.archivedMutex.Unlock()
+	if fake.ArchivedStub != nil {
+		return fake.ArchivedStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.archivedReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakePipeline) ArchivedCallCount() int {
+	fake.archivedMutex.RLock()
+	defer fake.archivedMutex.RUnlock()
+	return len(fake.archivedArgsForCall)
+}
+
+func (fake *FakePipeline) ArchivedReturns(result1 bool) {
+	fake.ArchivedStub = nil
+	fake.archivedReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakePipeline) ArchivedReturnsOnCall(i int, result1 bool) {
+	fake.ArchivedStub = nil
+	if fake.archivedReturnsOnCall == nil {
+		fake.archivedReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.archivedReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
 }
 
 func (fake *FakePipeline) Builds(arg1 db.Page) ([]db.Build, db.Pagination, error) {
@@ -2555,6 +2669,48 @@ func (fake *FakePipeline) TeamNameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakePipeline) Unarchive() error {
+	fake.unarchiveMutex.Lock()
+	ret, specificReturn := fake.unarchiveReturnsOnCall[len(fake.unarchiveArgsForCall)]
+	fake.unarchiveArgsForCall = append(fake.unarchiveArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Unarchive", []interface{}{})
+	fake.unarchiveMutex.Unlock()
+	if fake.UnarchiveStub != nil {
+		return fake.UnarchiveStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.unarchiveReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakePipeline) UnarchiveCallCount() int {
+	fake.unarchiveMutex.RLock()
+	defer fake.unarchiveMutex.RUnlock()
+	return len(fake.unarchiveArgsForCall)
+}
+
+func (fake *FakePipeline) UnarchiveReturns(result1 error) {
+	fake.UnarchiveStub = nil
+	fake.unarchiveReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) UnarchiveReturnsOnCall(i int, result1 error) {
+	fake.UnarchiveStub = nil
+	if fake.unarchiveReturnsOnCall == nil {
+		fake.unarchiveReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.unarchiveReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakePipeline) Unpause() error {
 	fake.unpauseMutex.Lock()
 	ret, specificReturn := fake.unpauseReturnsOnCall[len(fake.unpauseArgsForCall)]
@@ -2662,6 +2818,10 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.acquireResourceTypeCheckingLockWithIntervalCheckMutex.RUnlock()
 	fake.acquireSchedulingLockMutex.RLock()
 	defer fake.acquireSchedulingLockMutex.RUnlock()
+	fake.archiveMutex.RLock()
+	defer fake.archiveMutex.RUnlock()
+	fake.archivedMutex.RLock()
+	defer fake.archivedMutex.RUnlock()
 	fake.buildsMutex.RLock()
 	defer fake.buildsMutex.RUnlock()
 	fake.causalityMutex.RLock()
@@ -2738,6 +2898,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.teamIDMutex.RUnlock()
 	fake.teamNameMutex.RLock()
 	defer fake.teamNameMutex.RUnlock()
+	fake.unarchiveMutex.RLock()
+	defer fake.unarchiveMutex.RUnlock()
 	fake.unpauseMutex.RLock()
 	defer fake.unpauseMutex.RUnlock()
 	fake.versionedResourceMutex.RLock()

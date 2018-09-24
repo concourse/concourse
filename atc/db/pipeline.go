@@ -40,6 +40,7 @@ type Pipeline interface {
 	ConfigVersion() ConfigVersion
 	Public() bool
 	Paused() bool
+	Archived() bool
 	ScopedName(string) string
 
 	CheckPaused() (bool, error)
@@ -101,6 +102,9 @@ type Pipeline interface {
 	Pause() error
 	Unpause() error
 
+	Archive() error
+	Unarchive() error
+
 	Destroy() error
 	Rename(string) error
 
@@ -116,6 +120,7 @@ type pipeline struct {
 	configVersion ConfigVersion
 	paused        bool
 	public        bool
+	archived      bool
 
 	cacheIndex int
 	versionsDB *algorithm.VersionsDB
@@ -137,7 +142,8 @@ var pipelinesQuery = psql.Select(`
 		p.team_id,
 		t.name,
 		p.paused,
-		p.public
+		p.public,
+		p.archived
 	`).
 	From("pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id")
@@ -179,9 +185,31 @@ func (p *pipeline) Groups() atc.GroupConfigs     { return p.groups }
 func (p *pipeline) ConfigVersion() ConfigVersion { return p.configVersion }
 func (p *pipeline) Public() bool                 { return p.public }
 func (p *pipeline) Paused() bool                 { return p.paused }
+func (p *pipeline) Archived() bool               { return p.archived }
 
 func (p *pipeline) ScopedName(n string) string {
 	return p.name + ":" + n
+}
+
+func (p *pipeline) Archive() error {
+	_, err := psql.Update("pipelines").
+		Set("archived", true).
+		Where(sq.Eq{
+			"id": p.id,
+		}).
+		RunWith(p.conn).
+		Exec()
+	return err
+}
+func (p *pipeline) Unarchive() error {
+	_, err := psql.Update("pipelines").
+		Set("archived", false).
+		Where(sq.Eq{
+			"id": p.id,
+		}).
+		RunWith(p.conn).
+		Exec()
+	return err
 }
 
 func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {

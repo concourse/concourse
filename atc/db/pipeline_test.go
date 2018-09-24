@@ -185,6 +185,40 @@ var _ = Describe("Pipeline", func() {
 		})
 	})
 
+	Describe("Archive", func() {
+		JustBeforeEach(func() {
+			Expect(pipeline.Archive()).To(Succeed())
+			found, err := pipeline.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+		Context("when the pipeline is unarchived", func() {
+			BeforeEach(func() {
+				Expect(pipeline.Unarchive()).To(Succeed())
+			})
+			It("archives the pipeline", func() {
+				Expect(pipeline.Archived()).To(BeTrue())
+			})
+		})
+	})
+
+	Describe("Unarchive", func() {
+		JustBeforeEach(func() {
+			Expect(pipeline.Unarchive()).To(Succeed())
+			found, err := pipeline.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+		Context("when the pipeline is archived", func() {
+			BeforeEach(func() {
+				Expect(pipeline.Archive()).To(Succeed())
+			})
+			It("unarchives the pipeline", func() {
+				Expect(pipeline.Archived()).To(BeFalse())
+			})
+		})
+	})
+
 	Describe("Rename", func() {
 		JustBeforeEach(func() {
 			Expect(pipeline.Rename("oopsies")).To(Succeed())

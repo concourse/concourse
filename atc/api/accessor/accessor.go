@@ -59,6 +59,8 @@ func (a *access) HasPermission(role string) bool {
 	case "viewer":
 		return role == "owner" || role == "member" || role == "viewer"
 	default:
+		// TODO: need debug logging here to help future maintainers find this
+		// codepath when they don't realize requiredRoles exists
 		return false
 	}
 }
@@ -176,6 +178,8 @@ var requiredRoles = map[string]string{
 	atc.OrderPipelines:                "member",
 	atc.PausePipeline:                 "member",
 	atc.UnpausePipeline:               "member",
+	atc.ArchivePipeline:               "member",
+	atc.UnarchivePipeline:             "member",
 	atc.ExposePipeline:                "member",
 	atc.HidePipeline:                  "member",
 	atc.RenamePipeline:                "member",

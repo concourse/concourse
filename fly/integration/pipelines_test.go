@@ -28,9 +28,9 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
 							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
-								{Name: "pipeline-1-longer", Paused: false, Public: false},
-								{Name: "pipeline-2", Paused: true, Public: false},
-								{Name: "pipeline-3", Paused: false, Public: true},
+								{Name: "pipeline-1-longer", Paused: false, Public: false, Archived: false},
+								{Name: "pipeline-2", Paused: true, Public: false, Archived: false},
+								{Name: "pipeline-3", Paused: false, Public: true, Archived: false},
 							}),
 						),
 					)
@@ -52,6 +52,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-1-longer",
                   "paused": false,
                   "public": false,
+                  "archived": false,
                   "team_name": ""
                 },
                 {
@@ -59,6 +60,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-2",
                   "paused": true,
                   "public": false,
+                  "archived": false,
                   "team_name": ""
                 },
                 {
@@ -66,6 +68,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-3",
                   "paused": false,
                   "public": true,
+                  "archived": false,
                   "team_name": ""
                 }
               ]`))
@@ -125,6 +128,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-1-longer",
                   "paused": false,
                   "public": false,
+                  "archived": false,
                   "team_name": "main"
                 },
                 {
@@ -132,6 +136,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-2",
                   "paused": true,
                   "public": false,
+                  "archived": false,
                   "team_name": "main"
                 },
                 {
@@ -139,6 +144,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-3",
                   "paused": false,
                   "public": true,
+                  "archived": false,
                   "team_name": "main"
                 },
                 {
@@ -146,6 +152,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "foreign-pipeline-1",
                   "paused": false,
                   "public": true,
+                  "archived": false,
                   "team_name": "other"
                 },
                 {
@@ -153,6 +160,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "foreign-pipeline-2",
                   "paused": false,
                   "public": true,
+                  "archived": false,
                   "team_name": "other"
                 }
               ]`))
@@ -190,9 +198,9 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
 							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
-								{Name: "some-pipeline-1", Paused: false, Public: false},
-								{Name: "some-pipeline-2", Paused: false, Public: false},
-								{Name: "another-pipeline", Paused: false, Public: false},
+								{Name: "some-pipeline-1", Paused: false, Public: false, Archived: false},
+								{Name: "some-pipeline-2", Paused: false, Public: false, Archived: false},
+								{Name: "another-pipeline", Paused: false, Public: false, Archived: false},
 							}),
 						),
 					)

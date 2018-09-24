@@ -937,7 +937,7 @@ func (t *team) findContainer(whereClause sq.Sqlizer) (CreatingContainer, Created
 
 func scanPipeline(p *pipeline, scan scannable) error {
 	var groups sql.NullString
-	err := scan.Scan(&p.id, &p.name, &groups, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public)
+	err := scan.Scan(&p.id, &p.name, &groups, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived)
 	if err != nil {
 		return err
 	}

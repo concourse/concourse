@@ -129,6 +129,14 @@ func (team *team) HidePipeline(pipelineName string) (bool, error) {
 	return team.managePipeline(pipelineName, atc.HidePipeline)
 }
 
+func (team *team) ArchivePipeline(pipelineName string) (bool, error) {
+	return team.managePipeline(pipelineName, atc.ArchivePipeline)
+}
+
+func (team *team) UnarchivePipeline(pipelineName string) (bool, error) {
+	return team.managePipeline(pipelineName, atc.UnarchivePipeline)
+}
+
 func (team *team) managePipeline(pipelineName string, endpoint string) (bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,

@@ -24,6 +24,8 @@ type Team interface {
 	RenamePipeline(pipelineName, name string) (bool, error)
 	PauseResource(pipelineName string, resourceName string) (bool, error)
 	UnpauseResource(pipelineName string, resourceName string) (bool, error)
+	ArchivePipeline(pipelineName string) (bool, error)
+	UnarchivePipeline(pipelineName string) (bool, error)
 	ListPipelines() ([]atc.Pipeline, error)
 	PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error)
 	CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte, checkCredentials bool) (bool, bool, []ConfigWarning, error)

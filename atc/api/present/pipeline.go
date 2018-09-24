@@ -11,6 +11,7 @@ func Pipeline(savedPipeline db.Pipeline) atc.Pipeline {
 		Name:     savedPipeline.Name(),
 		TeamName: savedPipeline.TeamName(),
 		Paused:   savedPipeline.Paused(),
+		Archived: savedPipeline.Archived(),
 		Public:   savedPipeline.Public(),
 		Groups:   savedPipeline.Groups(),
 	}
