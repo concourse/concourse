@@ -1,10 +1,8 @@
 ---
 resources:
 - name: some-git-resource
-  type: git
-  source:
-    uri: {{origin-git-server}}
-    branch: master
+  type: mock
+  source: {force_version: ((unique_version))}
 
 jobs:
 - name: without-params
@@ -15,4 +13,5 @@ jobs:
   plan:
   - get: some-git-resource
     params:
-      foo: bar
+      create_files_via_params:
+        hello: hello
