@@ -1,6 +1,7 @@
 package flying_test
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/concourse/concourse/go-concourse/concourse"
@@ -9,6 +10,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	"testing"
+
+	"github.com/nu7hatch/gouuid"
 )
 
 var (
@@ -17,6 +20,8 @@ var (
 
 	flyHelper       *helpers.FlyHelper
 	concourseClient concourse.Client
+
+	pipelineName string
 )
 
 var atcURL = helpers.AtcURL()
@@ -45,6 +50,17 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 var _ = SynchronizedAfterSuite(func() {
 }, func() {
 	os.RemoveAll(tmpHome)
+})
+
+var _ = BeforeEach(func() {
+	guid, err := uuid.NewV4()
+	Expect(err).ToNot(HaveOccurred())
+
+	pipelineName = fmt.Sprintf("test-pipeline-%d-%s", GinkgoParallelNode(), guid)
+})
+
+var _ = AfterEach(func() {
+	flyHelper.DestroyPipeline(pipelineName)
 })
 
 func TestFlying(t *testing.T) {

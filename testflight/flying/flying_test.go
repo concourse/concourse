@@ -1,7 +1,6 @@
 package flying_test
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -12,7 +11,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
@@ -314,7 +312,7 @@ ls`),
 	Context("when excute with -j inputs-from", func() {
 		BeforeEach(func() {
 			flyHelper.ConfigurePipeline(
-				"some-pipeline",
+				pipelineName,
 				"-c", "fixtures/config-test.yml",
 			)
 
@@ -345,15 +343,15 @@ run:
 			cTeam := concourseClient.Team(teamName)
 
 			By("having an initial version")
-			cTeam.CheckResource("some-pipeline", "some-resource", atc.Version{"version": "first-version"})
+			cTeam.CheckResource(pipelineName, "some-resource", atc.Version{"version": "first-version"})
 
 			By("satsifying the job's passed constraint for the first version")
-			session := flyHelper.TriggerJob("some-pipeline", "upstream-job")
+			session := flyHelper.TriggerJob(pipelineName, "upstream-job")
 			<-session.Exited
 			Expect(session.ExitCode()).To(Equal(0))
 
 			By("executing using the first version via -j")
-			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", "some-pipeline/downstream-job")
+			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job")
 			fly.Dir = tmpdir
 			session = helpers.StartFly(fly)
 			<-session.Exited
@@ -361,10 +359,10 @@ run:
 			Expect(session).To(gbytes.Say("first-version"))
 
 			By("finding another version that doesn't yet satisfy the passed constraint")
-			cTeam.CheckResource("some-pipeline", "some-resource", atc.Version{"version": "second-version"})
+			cTeam.CheckResource(pipelineName, "some-resource", atc.Version{"version": "second-version"})
 
 			By("still executing using the first version via -j")
-			fly = exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", "some-pipeline/downstream-job")
+			fly = exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job")
 			fly.Dir = tmpdir
 			session = helpers.StartFly(fly)
 			<-session.Exited
@@ -372,12 +370,12 @@ run:
 			Expect(session).To(gbytes.Say("first-version"))
 
 			By("satsifying the job's passed constraint for the second version")
-			session = flyHelper.TriggerJob("some-pipeline", "upstream-job")
+			session = flyHelper.TriggerJob(pipelineName, "upstream-job")
 			<-session.Exited
 			Expect(session.ExitCode()).To(Equal(0))
 
 			By("now executing using the second version via -j")
-			fly = exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", "some-pipeline/downstream-job")
+			fly = exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job")
 			fly.Dir = tmpdir
 			session = helpers.StartFly(fly)
 			<-session.Exited
@@ -387,8 +385,6 @@ run:
 	})
 
 	Context("when the input is custom resource", func() {
-		var pipelineName string
-
 		BeforeEach(func() {
 			taskFileContents := `---
 platform: linux
@@ -411,7 +407,6 @@ run:
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			pipelineName = fmt.Sprintf("some-pipeline-custom-resource-%d", config.GinkgoConfig.ParallelNode)
 			flyHelper.ConfigurePipeline(
 				pipelineName,
 				"-c", "fixtures/custom-resource-type.yml",
