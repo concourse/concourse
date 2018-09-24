@@ -1,18 +1,15 @@
 ---
 resources:
-- name: some-git-resource
-  type: git
-  source:
-    uri: {{origin-git-server}}
-    branch: master
-- name: some-cached-resource
-  type: git
-  source:
-    uri: {{cached-git-server}}
-    branch: master
+- name: some-resource
+  type: mock
+  source: {}
+
+- name: cached-resource
+  type: mock
+  source: {}
 
 jobs:
 - name: some-passing-job
   plan:
-  - get: some-git-resource
-  - get: some-cached-resource
+  - get: some-resource
+  - get: cached-resource
