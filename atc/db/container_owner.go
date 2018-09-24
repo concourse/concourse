@@ -117,7 +117,7 @@ func NewResourceConfigCheckSessionContainerOwner(
 ) ContainerOwner {
 	return resourceConfigCheckSessionContainerOwner{
 		resourceConfigCheckSession: resourceConfigCheckSession,
-		teamID: teamID,
+		teamID:                     teamID,
 	}
 }
 

@@ -31,10 +31,10 @@ var _ = Describe("ContainerCollector", func() {
 
 		creatingContainer *dbfakes.FakeCreatingContainer
 
-		collector     gc.Collector
-		realCollector gc.Collector
-		fakeCollector gc.Collector
-		ttl           time.Duration
+		collector                   gc.Collector
+		realCollector               gc.Collector
+		fakeCollector               gc.Collector
+		missingContainerGracePeriod time.Duration
 	)
 
 	BeforeEach(func() {
@@ -53,18 +53,18 @@ var _ = Describe("ContainerCollector", func() {
 			job.Run(fakeWorker)
 		}
 
-		ttl = 1 * time.Minute
+		missingContainerGracePeriod = 1 * time.Minute
 
 		realCollector = gc.NewContainerCollector(
 			fakeContainerRepository,
 			fakeJobRunner,
-			ttl,
+			missingContainerGracePeriod,
 		)
 
 		fakeCollector = gc.NewContainerCollector(
 			fakeContainerRepository,
 			fakeJobRunner,
-			ttl,
+			missingContainerGracePeriod,
 		)
 	})
 
@@ -87,7 +87,7 @@ var _ = Describe("ContainerCollector", func() {
 
 		It("always tries to delete expired containers", func() {
 			Expect(fakeContainerRepository.RemoveMissingContainersCallCount()).To(Equal(1))
-			Expect(fakeContainerRepository.RemoveMissingContainersArgsForCall(0)).To(Equal(ttl))
+			Expect(fakeContainerRepository.RemoveMissingContainersArgsForCall(0)).To(Equal(missingContainerGracePeriod))
 		})
 
 		Describe("Failed Containers", func() {

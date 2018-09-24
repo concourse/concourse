@@ -41,9 +41,9 @@ func (s *Server) ReportWorkerContainers(w http.ResponseWriter, r *http.Request) 
 		"num-handles": len(handles),
 	})
 
-	err = s.containerRepository.UpdateContainersLastSeen(handles)
+	err = s.containerRepository.UpdateContainersMissingSince(workerName, handles)
 	if err != nil {
-		logger.Error("failed-to-update-containers-last-seen", err)
+		logger.Error("failed-to-update-containers-missing-since", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

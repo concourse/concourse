@@ -7,15 +7,15 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/baggageclaim"
 
-	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

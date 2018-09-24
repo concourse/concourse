@@ -77,15 +77,16 @@ type FakeContainerRepository struct {
 		result1 int
 		result2 error
 	}
-	UpdateContainersLastSeenStub        func([]string) error
-	updateContainersLastSeenMutex       sync.RWMutex
-	updateContainersLastSeenArgsForCall []struct {
-		arg1 []string
+	UpdateContainersMissingSinceStub        func(string, []string) error
+	updateContainersMissingSinceMutex       sync.RWMutex
+	updateContainersMissingSinceArgsForCall []struct {
+		arg1 string
+		arg2 []string
 	}
-	updateContainersLastSeenReturns struct {
+	updateContainersMissingSinceReturns struct {
 		result1 error
 	}
-	updateContainersLastSeenReturnsOnCall map[int]struct {
+	updateContainersMissingSinceReturnsOnCall map[int]struct {
 		result1 error
 	}
 	invocations      map[string][][]interface{}
@@ -353,57 +354,58 @@ func (fake *FakeContainerRepository) RemoveMissingContainersReturnsOnCall(i int,
 	}{result1, result2}
 }
 
-func (fake *FakeContainerRepository) UpdateContainersLastSeen(arg1 []string) error {
-	var arg1Copy []string
-	if arg1 != nil {
-		arg1Copy = make([]string, len(arg1))
-		copy(arg1Copy, arg1)
+func (fake *FakeContainerRepository) UpdateContainersMissingSince(arg1 string, arg2 []string) error {
+	var arg2Copy []string
+	if arg2 != nil {
+		arg2Copy = make([]string, len(arg2))
+		copy(arg2Copy, arg2)
 	}
-	fake.updateContainersLastSeenMutex.Lock()
-	ret, specificReturn := fake.updateContainersLastSeenReturnsOnCall[len(fake.updateContainersLastSeenArgsForCall)]
-	fake.updateContainersLastSeenArgsForCall = append(fake.updateContainersLastSeenArgsForCall, struct {
-		arg1 []string
-	}{arg1Copy})
-	fake.recordInvocation("UpdateContainersLastSeen", []interface{}{arg1Copy})
-	fake.updateContainersLastSeenMutex.Unlock()
-	if fake.UpdateContainersLastSeenStub != nil {
-		return fake.UpdateContainersLastSeenStub(arg1)
+	fake.updateContainersMissingSinceMutex.Lock()
+	ret, specificReturn := fake.updateContainersMissingSinceReturnsOnCall[len(fake.updateContainersMissingSinceArgsForCall)]
+	fake.updateContainersMissingSinceArgsForCall = append(fake.updateContainersMissingSinceArgsForCall, struct {
+		arg1 string
+		arg2 []string
+	}{arg1, arg2Copy})
+	fake.recordInvocation("UpdateContainersMissingSince", []interface{}{arg1, arg2Copy})
+	fake.updateContainersMissingSinceMutex.Unlock()
+	if fake.UpdateContainersMissingSinceStub != nil {
+		return fake.UpdateContainersMissingSinceStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.updateContainersLastSeenReturns
+	fakeReturns := fake.updateContainersMissingSinceReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeContainerRepository) UpdateContainersLastSeenCallCount() int {
-	fake.updateContainersLastSeenMutex.RLock()
-	defer fake.updateContainersLastSeenMutex.RUnlock()
-	return len(fake.updateContainersLastSeenArgsForCall)
+func (fake *FakeContainerRepository) UpdateContainersMissingSinceCallCount() int {
+	fake.updateContainersMissingSinceMutex.RLock()
+	defer fake.updateContainersMissingSinceMutex.RUnlock()
+	return len(fake.updateContainersMissingSinceArgsForCall)
 }
 
-func (fake *FakeContainerRepository) UpdateContainersLastSeenArgsForCall(i int) []string {
-	fake.updateContainersLastSeenMutex.RLock()
-	defer fake.updateContainersLastSeenMutex.RUnlock()
-	argsForCall := fake.updateContainersLastSeenArgsForCall[i]
-	return argsForCall.arg1
+func (fake *FakeContainerRepository) UpdateContainersMissingSinceArgsForCall(i int) (string, []string) {
+	fake.updateContainersMissingSinceMutex.RLock()
+	defer fake.updateContainersMissingSinceMutex.RUnlock()
+	argsForCall := fake.updateContainersMissingSinceArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeContainerRepository) UpdateContainersLastSeenReturns(result1 error) {
-	fake.UpdateContainersLastSeenStub = nil
-	fake.updateContainersLastSeenReturns = struct {
+func (fake *FakeContainerRepository) UpdateContainersMissingSinceReturns(result1 error) {
+	fake.UpdateContainersMissingSinceStub = nil
+	fake.updateContainersMissingSinceReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeContainerRepository) UpdateContainersLastSeenReturnsOnCall(i int, result1 error) {
-	fake.UpdateContainersLastSeenStub = nil
-	if fake.updateContainersLastSeenReturnsOnCall == nil {
-		fake.updateContainersLastSeenReturnsOnCall = make(map[int]struct {
+func (fake *FakeContainerRepository) UpdateContainersMissingSinceReturnsOnCall(i int, result1 error) {
+	fake.UpdateContainersMissingSinceStub = nil
+	if fake.updateContainersMissingSinceReturnsOnCall == nil {
+		fake.updateContainersMissingSinceReturnsOnCall = make(map[int]struct {
 			result1 error
 		})
 	}
-	fake.updateContainersLastSeenReturnsOnCall[i] = struct {
+	fake.updateContainersMissingSinceReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -421,8 +423,8 @@ func (fake *FakeContainerRepository) Invocations() map[string][][]interface{} {
 	defer fake.removeDestroyingContainersMutex.RUnlock()
 	fake.removeMissingContainersMutex.RLock()
 	defer fake.removeMissingContainersMutex.RUnlock()
-	fake.updateContainersLastSeenMutex.RLock()
-	defer fake.updateContainersLastSeenMutex.RUnlock()
+	fake.updateContainersMissingSinceMutex.RLock()
+	defer fake.updateContainersMissingSinceMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -7,9 +7,9 @@ import (
 	"code.cloudfoundry.org/clock"
 	gclient "code.cloudfoundry.org/garden/client"
 	"code.cloudfoundry.org/lager"
+	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/worker/transport"
-	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
 

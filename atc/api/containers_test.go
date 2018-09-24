@@ -1080,6 +1080,17 @@ var _ = Describe("Containers API", func() {
 					Expect(workerName).To(Equal("some-worker-name"))
 					Expect(handles).To(Equal([]string{"handle1", "handle2"}))
 				})
+
+				It("marks containers as missing", func() {
+					_, err = client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(fakeContainerRepository.UpdateContainersMissingSinceCallCount()).To(Equal(1))
+
+					workerName, handles := fakeContainerRepository.UpdateContainersMissingSinceArgsForCall(0)
+					Expect(workerName).To(Equal("some-worker-name"))
+					Expect(handles).To(Equal([]string{"handle1", "handle2"}))
+
+				})
 			})
 		})
 	})

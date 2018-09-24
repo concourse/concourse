@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/baggageclaim"
 )
 
 //go:generate counterfeiter . TaskConfigSource

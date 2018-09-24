@@ -17,20 +17,20 @@ import (
 const HijackedContainerTimeout = 5 * time.Minute
 
 type containerCollector struct {
-	containerTtl        time.Duration
-	containerRepository db.ContainerRepository
-	jobRunner           WorkerJobRunner
+	containerRepository         db.ContainerRepository
+	jobRunner                   WorkerJobRunner
+	missingContainerGracePeriod time.Duration
 }
 
 func NewContainerCollector(
 	containerRepository db.ContainerRepository,
 	jobRunner WorkerJobRunner,
-	containerTtl time.Duration,
+	missingContainerGracePeriod time.Duration,
 ) Collector {
 	return &containerCollector{
-		containerRepository: containerRepository,
-		jobRunner:           jobRunner,
-		containerTtl:        containerTtl,
+		containerRepository:         containerRepository,
+		jobRunner:                   jobRunner,
+		missingContainerGracePeriod: missingContainerGracePeriod,
 	}
 }
 
@@ -67,10 +67,10 @@ func (c *containerCollector) Run(ctx context.Context) error {
 		logger.Error("failed-to-clean-up-failed-containers", err)
 	}
 
-	_, err = c.containerRepository.RemoveMissingContainers(c.containerTtl)
+	_, err = c.containerRepository.RemoveMissingContainers(c.missingContainerGracePeriod)
 	if err != nil {
 		errs = multierror.Append(errs, err)
-		logger.Error("failed-to-clean-up-containers-with-expired-ttl", err)
+		logger.Error("failed-to-clean-up-missing-containers", err)
 	}
 
 	return errs
