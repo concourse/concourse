@@ -23,8 +23,8 @@ RUN for i in $(seq 0 15); do \
     done
 
 # fetch dependencies
-COPY dumb-init/dumb_init_*_amd64 /usr/local/bin/dumb-init
-COPY garden-runc/gdn-* /usr/local/bin/gdn
+COPY dumb-init/dumb-init_*_amd64 /usr/local/bin/dumb-init
+COPY gdn/gdn-* /usr/local/bin/gdn
 RUN chmod +x /usr/local/bin/dumb-init && chmod +x /usr/local/bin/gdn
 
 # extract resource types
