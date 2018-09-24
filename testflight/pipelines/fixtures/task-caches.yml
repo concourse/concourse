@@ -1,42 +1,73 @@
 ---
 resources:
-- name: some-git-resource
-  type: git
+- name: some-resource
+  type: mock
   source:
-    uri: {{origin-git-server}}
-    branch: master
+    # If we were to just inline these in the task config, we would see the
+    # echoing of the things we are looking for when it says "running ...".
+    #
+    # So to prevent this we put the scripts in to files so it just says
+    # "running sh some-resource/first-script.sh" and only prints what the
+    # scripts actually print.
+    create_files:
+      first-script.sh: |
+        echo not-cached-from-first-task >> first-task-output/not-cached-from-first-task
+
+        mkdir first-task-output/blobs
+        echo blob-contents-from-first-task >> first-task-output/blobs/blob
+
+      second-script.sh: |
+        cat ./first-task-output/not-cached-from-first-task
+
+        echo not-cached-from-second-task >> first-task-output/not-cached-from-second-task
+        cat ./first-task-output/not-cached-from-second-task
+
+        echo blob-contents-from-second-task >> ./first-task-output/blobs/blob
+        cat ./first-task-output/blobs/blob
+
+        echo second-task-cache-contents >> ./second-task-cache/cache
+        cat ./second-task-cache/cache
 
 jobs:
 - name: simple
   plan:
-  - get: some-git-resource
+  - get: some-resource
   - task: first-task
     config:
-      inputs:
-      - name: some-git-resource
-      outputs:
-      - name: first-task-output
+      platform: linux
+
       image_resource:
         type: mock
         source: {mirror_self: true}
-      platform: linux
+
+      inputs:
+      - name: some-resource
+
+      outputs:
+      - name: first-task-output
+
       run:
         path: sh
         args:
-        - some-git-resource/first-script.sh
+        - some-resource/first-script.sh
+
   - task: second-task
     config:
+      platform: linux
+
+      image_resource:
+        type: mock
+        source: {mirror_self: true}
+
       inputs:
-      - name: some-git-resource
+      - name: some-resource
       - name: first-task-output
+
       caches:
       - path: first-task-output/blobs
       - path: second-task-cache
-      image_resource:
-        type: mock
-        source: {mirror_self: true}
-      platform: linux
+
       run:
         path: sh
         args:
-        - some-git-resource/second-script.sh
+        - some-resource/second-script.sh
