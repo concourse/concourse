@@ -33,7 +33,7 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			privileged = "true"
 		})
 
-		FIt("performs 'check', 'get', and 'put' with privileged containers", func() {
+		It("performs 'check', 'get', and 'put' with privileged containers", func() {
 			By("running 'get' with a privileged container")
 			watch := flyHelper.TriggerJob(pipelineName, "resource-getter")
 			<-watch.Exited
@@ -62,7 +62,7 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			privileged = "false"
 		})
 
-		FIt("performs 'check', 'get', and 'put' with unprivileged containers", func() {
+		It("performs 'check', 'get', and 'put' with unprivileged containers", func() {
 			By("running 'get' with an unprivileged container")
 			watch := flyHelper.TriggerJob(pipelineName, "resource-getter")
 			<-watch.Exited
