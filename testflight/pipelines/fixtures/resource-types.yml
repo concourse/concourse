@@ -16,6 +16,11 @@ resources:
   type: custom-resource-type
   source: {}
 
+- name: my-resource-image
+  type: custom-resource-type
+  source: {mirror_self: true}
+
+
 jobs:
 - name: resource-getter
   plan:
@@ -40,7 +45,7 @@ jobs:
   - put: my-resource
     params: {version: some-pushed-version}
 
-- name: resource-imgur
+- name: resource-image-resourcer
   plan:
   - task: use-custom-resource-type
     config:
@@ -52,5 +57,15 @@ jobs:
           mirror_self: true
           initial_version: image-version
 
+      run:
+        path: env
+
+- name: resource-imager
+  plan:
+  - get: my-resource-image
+  - task: use-custom-resource-type
+    image: my-resource-image
+    config:
+      platform: linux
       run:
         path: env

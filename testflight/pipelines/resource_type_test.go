@@ -29,7 +29,7 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			Expect(watch.ExitCode()).To(Equal(0))
 			Expect(watch).To(gbytes.Say("pushing version: some-pushed-version"))
 
-			watch = flyHelper.TriggerJob(pipelineName, "resource-imgur")
+			watch = flyHelper.TriggerJob(pipelineName, "resource-image-resourcer")
 			<-watch.Exited
 			Expect(watch.ExitCode()).To(Equal(0))
 			Expect(watch).To(gbytes.Say("MIRRORED_VERSION=image-version"))
