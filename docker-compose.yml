@@ -3,6 +3,7 @@ version: '3'
 services:
   db:
     image: postgres
+    ports: ["6543:5432"]
     environment:
     - POSTGRES_DB=concourse
     - POSTGRES_PASSWORD=dev
