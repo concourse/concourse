@@ -343,7 +343,9 @@ run:
 			cTeam := concourseClient.Team(teamName)
 
 			By("having an initial version")
-			cTeam.CheckResource(pipelineName, "some-resource", atc.Version{"version": "first-version"})
+			found, err := cTeam.CheckResource(pipelineName, "some-resource", atc.Version{"version": "first-version"})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			By("satsifying the job's passed constraint for the first version")
 			session := flyHelper.TriggerJob(pipelineName, "upstream-job")
@@ -359,7 +361,9 @@ run:
 			Expect(session).To(gbytes.Say("first-version"))
 
 			By("finding another version that doesn't yet satisfy the passed constraint")
-			cTeam.CheckResource(pipelineName, "some-resource", atc.Version{"version": "second-version"})
+			found, err = cTeam.CheckResource(pipelineName, "some-resource", atc.Version{"version": "second-version"})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			By("still executing using the first version via -j")
 			fly = exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job")
@@ -413,7 +417,9 @@ run:
 			)
 
 			cTeam := concourseClient.Team(teamName)
-			cTeam.CheckResource(pipelineName, "some-resource", nil)
+			found, err := cTeam.CheckResource(pipelineName, "some-resource", nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
 		})
 
 		Context("when -j is specified", func() {
