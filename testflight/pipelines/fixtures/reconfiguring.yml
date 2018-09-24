@@ -1,0 +1,11 @@
+---
+resources:
+- name: some-resource
+  type: mock
+  source: {force_version: ((force_version))}
+
+jobs:
+- name: some-passing-job
+  plan:
+  - get: some-resource
+    trigger: true
