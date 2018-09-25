@@ -72,8 +72,10 @@ Once `fly` is built, you can target the locally-running Concourse instance like
 so:
 
 ```sh
-$ fly -t local login -c http://localhost:8080 -u test -p test
+$ fly -t dev login -c http://localhost:8080 -u test -p test
 ```
+
+This will save the target as `dev`, but you can name it whatever you like.
 
 ### Rebuilding to test your changes
 
