@@ -881,7 +881,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			FROM build_resource_config_version_inputs i, builds b
 			WHERE versions.version_md5 = i.version_md5
 			AND resources.resource_config_id = versions.resource_config_id
-			AND resources.id = inputs.resource_id
+			AND resources.id = i.resource_id
 			AND b.job_id = builds.job_id
 			AND i.build_id = b.id
 			AND i.build_id < builds.id

@@ -161,8 +161,17 @@ func (f *resourceConfigFactory) CleanUnreferencedConfigs() error {
 		return err
 	}
 
+	usedByResourceIds, _, err := sq.
+		Select("resource_config_id").
+		From("resources").
+		Where("resource_config_id IS NOT NULL").
+		ToSql()
+	if err != nil {
+		return err
+	}
+
 	_, err = psql.Delete("resource_configs").
-		Where("id NOT IN (" + usedByResourceConfigCheckSessionIds + " UNION " + usedByResourceCachesIds + ")").
+		Where("id NOT IN (" + usedByResourceConfigCheckSessionIds + " UNION " + usedByResourceCachesIds + " UNION " + usedByResourceIds + ")").
 		PlaceholderFormat(sq.Dollar).
 		RunWith(f.conn).Exec()
 	if err != nil {

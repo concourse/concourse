@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -220,8 +221,8 @@ func (r *resourceConfig) FindVersion(v atc.Version) (ResourceConfigVersion, bool
 	row := resourceConfigVersionQuery.
 		Where(sq.Eq{
 			"v.resource_config_id": r.id,
-			"v.version":            versionByte,
 		}).
+		Where(sq.Expr(fmt.Sprintf("v.version_md5 = md5('%s')", versionByte))).
 		RunWith(r.conn).
 		QueryRow()
 
@@ -332,7 +333,7 @@ func saveResourceConfigVersion(tx Tx, r ResourceConfig, version atc.Version, met
 	err = tx.QueryRow(`
 		INSERT INTO resource_config_versions (resource_config_id, version, version_md5, metadata)
 		SELECT $1, $2, md5($3), $4
-		ON CONFLICT (resource_config_id, version) DO UPDATE SET metadata = $4
+		ON CONFLICT (resource_config_id, version_md5) DO UPDATE SET metadata = $4
 		RETURNING check_order
 		`, r.ID(), string(versionJSON), string(versionJSON), string(metadataJSON)).Scan(&checkOrder)
 	if err != nil {

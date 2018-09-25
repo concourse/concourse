@@ -157,14 +157,16 @@ func (self *migrations) Down_1537546150() error {
 	}
 
 	_, err = tx.Exec(`ALTER TABLE resources
-    ADD COLUMN last_checked timestamp with time zone`)
+    ADD COLUMN last_checked timestamp with time zone,
+		DROP CONSTRAINT resources_resource_config_id_fkey,
+    ADD CONSTRAINT resources_resource_config_id_fkey FOREIGN KEY (resource_config_id) REFERENCES resource_configs(id) ON DELETE SET NULL`)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`ALTER TABLE resource_types
-    ADD COLUMN last_checked timestamp DEFAULT '1970-01-01 00:00:00'::timestamp with time zone NOT NULL,
+    ADD COLUMN last_checked timestamp with time zone DEFAULT '1970-01-01 00:00:00' NOT NULL,
 		ADD COLUMN version text`)
 	if err != nil {
 		tx.Rollback()

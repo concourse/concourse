@@ -10,7 +10,7 @@ BEGIN;
   );
 
   ALTER TABLE resource_config_versions
-    ADD CONSTRAINT "resource_config_id_and_version_unique" UNIQUE ("resource_config_id", "version");
+    ADD CONSTRAINT "resource_config_id_and_version_md5_unique" UNIQUE ("resource_config_id", "version_md5");
 
   CREATE TABLE resource_disabled_versions (
     "resource_id" integer NOT NULL REFERENCES resources (id) ON DELETE CASCADE,
@@ -26,7 +26,7 @@ BEGIN;
   WHERE NOT enabled;
 
   ALTER TABLE resource_configs
-    ADD COLUMN last_checked timestamp NOT NULL DEFAULT '1970-01-01 00:00:00'::timestamp with time zone,
+    ADD COLUMN last_checked timestamp with time zone NOT NULL DEFAULT '1970-01-01 00:00:00',
     ADD COLUMN check_error text;
 
   ALTER TABLE resource_types
@@ -59,12 +59,16 @@ BEGIN;
     ADD COLUMN resource_id integer NOT NULL REFERENCES resources (id) ON DELETE CASCADE,
     DROP COLUMN version_id;
 
+  CREATE INDEX next_build_inputs_resource_config_version_id ON next_build_inputs (resource_config_version_id);
+
   TRUNCATE TABLE independent_build_inputs;
 
   ALTER TABLE independent_build_inputs
     ADD COLUMN resource_config_version_id integer NOT NULL REFERENCES resource_config_versions (id) ON DELETE CASCADE,
     ADD COLUMN resource_id integer NOT NULL REFERENCES resources (id) ON DELETE CASCADE,
     DROP COLUMN version_id;
+
+  CREATE INDEX independent_build_inputs_resource_config_version_id ON independent_build_inputs (resource_config_version_id);
 
   DROP INDEX resource_caches_resource_config_id_version_params_hash_key;
 
@@ -84,7 +88,9 @@ BEGIN;
   DROP TABLE build_outputs;
 
   ALTER TABLE resources
-    DROP COLUMN last_checked;
+    DROP COLUMN last_checked,
+    DROP CONSTRAINT resources_resource_config_id_fkey,
+    ADD CONSTRAINT resources_resource_config_id_fkey FOREIGN KEY (resource_config_id) REFERENCES resource_configs(id) ON DELETE RESTRICT;
 
   ALTER TABLE resource_types
     DROP COLUMN last_checked,

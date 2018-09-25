@@ -155,6 +155,47 @@ var _ = Describe("ResourceConfigCollector", func() {
 					Expect(countResourceConfigs()).To(BeZero())
 				})
 			})
+
+			Context("when config is referenced in resources", func() {
+				BeforeEach(func() {
+					resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
+						logger,
+						"some-base-type",
+						atc.Source{"some": "source"},
+						creds.VersionedResourceTypes{},
+					)
+					Expect(err).NotTo(HaveOccurred())
+					err = usedResource.SetResourceConfig(resourceConfig.ID())
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("preserve the config", func() {
+					Expect(countResourceConfigs()).NotTo(BeZero())
+					Expect(collector.Run(context.TODO())).To(Succeed())
+					Expect(countResourceConfigs()).NotTo(BeZero())
+				})
+			})
+
+			Context("when config is not referenced in resources", func() {
+				BeforeEach(func() {
+					_, err := resourceConfigFactory.FindOrCreateResourceConfig(
+						logger,
+						"some-base-type",
+						atc.Source{"some": "source"},
+						creds.VersionedResourceTypes{},
+					)
+					Expect(err).NotTo(HaveOccurred())
+					_, err = usedResource.Reload()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(usedResource.ResourceConfigID()).To(BeZero())
+				})
+
+				It("cleans up the config", func() {
+					Expect(countResourceConfigs()).NotTo(BeZero())
+					Expect(collector.Run(context.TODO())).To(Succeed())
+					Expect(countResourceConfigs()).To(BeZero())
+				})
+			})
 		})
 	})
 })
