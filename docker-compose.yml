@@ -6,9 +6,8 @@ services:
     ports: ["6543:5432"]
     environment:
     - POSTGRES_DB=concourse
-    - POSTGRES_PASSWORD=dev
     - POSTGRES_USER=dev
-    - PGDATA=/database
+    - POSTGRES_PASSWORD=
 
   web:
     build: .

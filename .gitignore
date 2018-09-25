@@ -1,0 +1,8 @@
+.DS_Store
+.idea
+node_modules
+*-packr.go
+tags
+web/public/elm.js
+web/public/elm.min.js
+web/public/main.css
