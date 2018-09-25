@@ -47,7 +47,7 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	Expect(err).NotTo(HaveOccurred())
 
 	initCmd := exec.Command(initdbPath, "-U", "postgres", "-D", tmpdir, "-E", "UTF8", "--no-local")
-	startCmd := exec.Command(postgresPath, "-D", tmpdir, "-h", "127.0.0.1", "-p", strconv.Itoa(runner.Port))
+	startCmd := exec.Command(postgresPath, "-k", "/tmp", "-D", tmpdir, "-h", "127.0.0.1", "-p", strconv.Itoa(runner.Port))
 
 	if currentUser.Uid == "0" {
 		pgUser, err := user.Lookup("postgres")
@@ -180,11 +180,11 @@ func (runner *Runner) OpenSingleton() *sql.DB {
 }
 
 func (runner *Runner) DataSourceName() string {
-	return fmt.Sprintf("user=postgres dbname=testdb sslmode=disable port=%d", runner.Port)
+	return fmt.Sprintf("host=/tmp user=postgres dbname=testdb sslmode=disable port=%d", runner.Port)
 }
 
 func (runner *Runner) CreateTestDB() {
-	createdb := exec.Command("createdb", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
+	createdb := exec.Command("createdb", "-h", "/tmp", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
 
 	createS, err := gexec.Start(createdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
@@ -194,7 +194,7 @@ func (runner *Runner) CreateTestDB() {
 	if createS.ExitCode() != 0 {
 		runner.DropTestDB()
 
-		createdb := exec.Command("createdb", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
+		createdb := exec.Command("createdb", "-h", "/tmp", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
 		createS, err = gexec.Start(createdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 	}
@@ -205,7 +205,7 @@ func (runner *Runner) CreateTestDB() {
 }
 
 func (runner *Runner) DropTestDB() {
-	dropdb := exec.Command("dropdb", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
+	dropdb := exec.Command("dropdb", "-h", "/tmp", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
 	dropS, err := gexec.Start(dropdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
 
