@@ -20,22 +20,23 @@ You'll need a few things installed in order to build and run Concourse during
 development:
 
 * [`go`](https://golang.org/dl/) v1.11+
-* `make`
 * [`yarn`](https://yarnpkg.com/en/docs/install)
 * [`docker-compose`](https://docs.docker.com/compose/install/)
 
 
 ## Prerequisite: building the web UI
 
-Concourse is written in Go, but the web UI is written in Elm and needs to be
-built on its own:
+Concourse is written in Go, but the web UI is written in
+[Elm](https://elm-lang.org) and Less. Before running Concourse you'll need to
+build the JS/CSS assets, like so:
 
 ```sh
-$ yarn
-$ make
-```
+# install dependencies
+$ yarn install
 
-Everything else will be built in the Docker image.
+# build Elm/Less source
+$ yarn build
+```
 
 
 ## Running Concourse
@@ -45,6 +46,16 @@ To build and run Concourse from the repo, just run:
 ```sh
 $ docker-compose up
 ```
+
+Concourse will be running and reachable at
+[localhost:8080](http://localhost:8080). Next you may want to build `fly` and
+target your local Concourse:
+
+```sh
+$ go install ./fly
+$ fly -t local login -c http://localhost:8080 -u test -p test
+```
+
 
 ### Rebuilding to test your changes
 
@@ -67,10 +78,16 @@ container.
 So any time you want to see your changes to the web UI, just run:
 
 ```sh
-$ make
+$ yarn build
 ```
 
 ...and then reload your browser.
+
+You can also auto-rebuild when files change by running the following:
+
+```sh
+$ yarn watch
+```
 
 ### Working on `fly`
 

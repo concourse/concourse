@@ -6,12 +6,20 @@
   "license": "MIT",
   "dependencies": {},
   "devDependencies": {
+    "chokidar-cli": "^1.2.1",
+    "elm": "^0.18.0",
     "elm-format": "^0.8.0",
     "elm-test": "^0.18.12",
-    "elm": "^0.18.0",
-    "uglify-js": "^3.3.22",
     "less": "^3.0.2",
     "less-plugin-autoprefix": "^1.5.1",
-    "less-plugin-clean-css": "^1.5.1"
+    "less-plugin-clean-css": "^1.5.1",
+    "uglify-js": "^3.3.22"
+  },
+  "scripts": {
+    "build": "yarn run build-less && yarn run build-elm",
+    "test": "cd web/elm && elm test",
+    "build-less": "lessc --clean-css=--advanced web/assets/css/main.less web/public/main.css",
+    "build-elm": "cd web/elm && elm make --warn --output ../public/elm.js --yes src/Main.elm && uglifyjs < ../public/elm.js > ../public/elm.min.js",
+    "watch": "chokidar -i elm-stuff 'web/elm/src/**/*.elm' 'web/assets/css/*.less' -c 'yarn run build' --initial"
   }
 }
