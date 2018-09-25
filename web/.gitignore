@@ -1,9 +1,0 @@
-.DS_Store
-.idea
-wats/node_modules
-node_modules
-*-packr.go
-tags
-public/elm.js
-public/elm.min.js
-public/main.css
