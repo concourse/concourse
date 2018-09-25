@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -127,6 +128,11 @@ func (command *LoginCommand) Execute(args []string) error {
 
 	fmt.Println("")
 
+	err = checkTokenTeams(tokenValue, command.TeamName)
+	if err != nil {
+		return err
+	}
+
 	return command.saveTarget(
 		client.URL(),
 		&rc.TargetToken{
@@ -201,6 +207,36 @@ func (command *LoginCommand) authCodeGrant(targetUrl string) (string, string, er
 	segments := strings.SplitN(tokenStr, " ", 2)
 
 	return segments[0], segments[1], nil
+}
+
+func checkTokenTeams(tokenValue string, loggingTeam string) error {
+
+	tokenContents := strings.Split(tokenValue, ".")
+	if len(tokenContents) < 2 {
+		return nil
+	}
+
+	rawData, err := base64.StdEncoding.WithPadding(base64.NoPadding).DecodeString(tokenContents[1])
+	if err != nil {
+		return err
+	}
+
+	var payload map[string]interface{}
+	if err := json.Unmarshal(rawData, &payload); err != nil {
+		return err
+	}
+
+	teams := payload["teams"].([]interface{})
+	userName := payload["user_name"].(string)
+	for _, team := range teams {
+		tokenTeam := strings.Split(team.(string), ":")[0]
+
+		if loggingTeam == tokenTeam {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("user [%s] is not in team [%s]", userName, loggingTeam)
 }
 
 func listenForTokenCallback(tokenChannel chan string, errorChannel chan error, portChannel chan string, targetUrl string) {

@@ -168,6 +168,42 @@ var _ = Describe("login Command", func() {
 			Expect(sess.ExitCode()).To(Equal(0))
 		})
 
+		It("fails if user is not in the team", func() {
+			loginATCServer.AppendHandlers(
+				infoHandler(),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/sky/token"),
+					ghttp.RespondWithJSONEncoded(
+						200,
+						map[string]string{
+							"token_type": "Bearer",
+							/**
+							{
+								"teams": [
+									"some-other-team:owner"
+								],
+								"user_id": "test",
+								"user_name": "test"
+							}
+							*/
+							"access_token": "ewog.ewogICJ0ZWFtcyI6IFsKICAgICJzb21lLW90aGVyLXRlYW06b3duZXIiCiAgXSwKICAidXNlcl9pZCI6ICJ0ZXN0IiwKICAidXNlcl9uYW1lIjogInRlc3QiCn0",
+						},
+					),
+				),
+			)
+
+			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "dummy-user", "-p", "dummy-pass")
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess).Should(gbytes.Say("logging in to team 'some-team'"))
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(1))
+			Expect(sess.Err.Contents()).To(ContainSubstring("user [test] is not in team [some-team]"))
+		})
+
 		Context("when tracing is not enabled", func() {
 			It("does not print out API calls", func() {
 				loginATCServer.AppendHandlers(
