@@ -7,8 +7,9 @@ set -e -u
 stty columns 80
 
 pushd concourse/web
-  yarn
-  PATH=$(yarn bin):$PATH make test
+  yarn install
+  yarn build
+  yarn test
 popd
 
 cp -a ./concourse/. ./built-concourse
