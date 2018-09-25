@@ -752,6 +752,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
 				gc.NewVolumeCollector(
 					dbVolumeRepository,
+					cmd.GC.Interval*3, // volume missing-since grace period (must be larger than gc.interval so it doesn't race)
 				),
 				gc.NewContainerCollector(
 					dbContainerRepository,

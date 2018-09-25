@@ -2,6 +2,7 @@ package gc
 
 import (
 	"context"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -11,12 +12,17 @@ import (
 )
 
 type volumeCollector struct {
-	volumeRepository db.VolumeRepository
+	volumeRepository         db.VolumeRepository
+	missingVolumeGracePeriod time.Duration
 }
 
-func NewVolumeCollector(volumeRepository db.VolumeRepository) Collector {
+func NewVolumeCollector(
+	volumeRepository db.VolumeRepository,
+	missingVolumeGracePeriod time.Duration,
+) Collector {
 	return &volumeCollector{
-		volumeRepository: volumeRepository,
+		volumeRepository:         volumeRepository,
+		missingVolumeGracePeriod: missingVolumeGracePeriod,
 	}
 }
 
@@ -38,6 +44,12 @@ func (vc *volumeCollector) Run(ctx context.Context) error {
 	if err != nil {
 		errs = multierror.Append(errs, err)
 		logger.Error("failed-to-transition-created-volumes-to-destroying", err)
+	}
+
+	_, err = vc.volumeRepository.RemoveMissingVolumes(vc.missingVolumeGracePeriod)
+	if err != nil {
+		errs = multierror.Append(errs, err)
+		logger.Error("failed-to-clean-up-missing-volumes", err)
 	}
 
 	return errs

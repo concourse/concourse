@@ -1089,7 +1089,6 @@ var _ = Describe("Containers API", func() {
 					workerName, handles := fakeContainerRepository.UpdateContainersMissingSinceArgsForCall(0)
 					Expect(workerName).To(Equal("some-worker-name"))
 					Expect(handles).To(Equal([]string{"handle1", "handle2"}))
-
 				})
 			})
 		})
