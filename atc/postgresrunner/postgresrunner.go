@@ -217,6 +217,7 @@ func (runner *Runner) DropTestDB() {
 func (runner *Runner) Truncate() {
 	truncate := exec.Command(
 		"psql",
+		"-h", "/tmp",
 		"-U", "postgres",
 		"-p", strconv.Itoa(runner.Port),
 		"testdb",
