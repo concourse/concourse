@@ -36,12 +36,14 @@ Concourse is written in Go, but the web UI is written in
 [Elm](https://elm-lang.org) and [Less](http://lesscss.org/). Before running
 Concourse you'll need to compile them to their `.js`/.`css` assets, like so:
 
+**Install dependencies:**
 ```sh
-# install dependencies
-$ yarn install
+yarn install
+```
 
-# build Elm/Less source
-$ yarn build
+**build Elm/Less source:**
+```sh
+yarn build
 ```
 
 
@@ -51,7 +53,7 @@ To build and run a Concourse cluster from source, run the following in the root
 of this repo:
 
 ```sh
-$ docker-compose up
+docker-compose up
 ```
 
 Concourse will be running and reachable at
@@ -62,20 +64,60 @@ Concourse will be running and reachable at
 To build and install the `fly` CLI from source, run:
 
 ```sh
-$ go install ./fly
+go install ./fly
 ```
 
 This will install a `fly` executable to your `$GOPATH/bin`, so make sure that's
 on your `$PATH`!
 
-Once `fly` is built, you can target the locally-running Concourse instance like
-so:
+Once `fly` is built, you can get a test pipeline running like this:
 
+**Log into the locally-running Concourse instance targeted as `dev`:**
 ```sh
-$ fly -t dev login -c http://localhost:8080 -u test -p test
+fly -t dev login -c http://localhost:8080 -u test -p test
 ```
 
-This will save the target as `dev`, but you can name it whatever you like.
+**Create an example pipeline that runs a hello world job every minute:**
+```sh
+fly -t dev sp -p example -c <(cat <<EOF
+resource_types:
+  - name: time
+    type: registry-image
+    source:
+      repository: concourse/time-resource
+      tag: latest
+
+resources:
+  - name: every-minute
+    type: time
+    source:
+      interval: 1m
+
+jobs:
+  - name: hello-world
+    public: true
+    plan:
+      - get: every-minute
+        trigger: true
+      - task: echo
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: busybox
+          run:
+            path: echo
+            args:
+              - hello world
+EOF
+)
+```
+
+**Unpause the example pipeline:**
+```sh
+fly -t dev up -p example
+```
 
 ### Rebuilding to test your changes
 
@@ -83,7 +125,7 @@ As you're working on server-side components, you can try out your changes by
 rebuilding and recreating the `web` and `worker` containers:
 
 ```sh
-$ docker-compose up --build -d
+docker-compose up --build -d
 ```
 
 This can be run while the original `docker-compose up` command is still running.
@@ -95,7 +137,7 @@ you're actually working on the web UI you'll probably want to use `watch`
 instead:
 
 ```sh
-$ yarn watch
+yarn watch
 ```
 
 This will continuously monitor your local `.elm`/`.less` files and run `yarn
@@ -121,7 +163,7 @@ the following parameters:
 So you'd connect with something like `psql` like so:
 
 ```sh
-$ psql -h localhost -p 6543 -U dev concourse
+psql -h localhost -p 6543 -U dev concourse
 ```
 
 To reset the database, you'll need to stop everything and then blow away the
@@ -142,7 +184,7 @@ and suite runner of choice.
 You'll need to install the `ginkgo` CLI to run the tests:
 
 ```sh
-$ go get github.com/onsi/ginkgo/ginkgo
+go get github.com/onsi/ginkgo/ginkgo
 ```
 
 ### Running unit tests
@@ -153,7 +195,7 @@ component you're changing.
 To run the tests for the package you're in, run:
 
 ```sh
-$ ginkgo -r -p
+ginkgo -r -p
 ```
 
 This will run the tests for all packages found in the current working directory,
@@ -178,7 +220,7 @@ able to just run the acceptance tests by running `ginkgo` the same way you would
 run it for unit tests:
 
 ```sh
-$ ginkgo -r -p testflight
+ginkgo -r -p testflight
 ```
 
 Note: because Testflight actually runs real workloads, you *may* want to limit
@@ -186,7 +228,7 @@ the parallelism if you're on a machine with more than, say, 8 cores. This can be
 done by specifying `--nodes`:
 
 ```sh
-$ ginkgo -r --nodes=4 testflight
+ginkgo -r --nodes=4 testflight
 ```
 
 ### Writing tests
