@@ -135,6 +135,7 @@ var _ = Describe("Pipelines API", func() {
 					"name": "public-pipeline",
 					"paused": true,
 					"public": true,
+					"archived": false,
 					"team_name": "main",
 					"groups": [
 						{
@@ -149,6 +150,7 @@ var _ = Describe("Pipelines API", func() {
 					"name": "another-pipeline",
 					"paused": true,
 					"public": true,
+					"archived": false,
 					"team_name": "another"
 				}]`))
 			})
@@ -174,6 +176,7 @@ var _ = Describe("Pipelines API", func() {
 					"name": "private-pipeline",
 					"paused": false,
 					"public": false,
+					"archived": false,
 					"team_name": "main",
 					"groups": [
 						{
@@ -188,6 +191,7 @@ var _ = Describe("Pipelines API", func() {
 					"name": "public-pipeline",
 					"paused": true,
 					"public": true,
+					"archived": false,
 					"team_name": "main",
 					"groups": [
 						{
@@ -202,6 +206,7 @@ var _ = Describe("Pipelines API", func() {
 					"name": "another-pipeline",
 					"paused": true,
 					"public": true,
+					"archived": false,
 					"team_name": "another"
 				}]`))
 			})
@@ -260,6 +265,7 @@ var _ = Describe("Pipelines API", func() {
 						"name": "private-pipeline",
 						"paused": false,
 						"public": false,
+						"archived": false,
 						"team_name": "main",
 						"groups": [
 							{
@@ -274,6 +280,7 @@ var _ = Describe("Pipelines API", func() {
 						"name": "public-pipeline",
 						"paused": true,
 						"public": true,
+						"archived": false,
 						"team_name": "main",
 						"groups": [
 							{
@@ -312,6 +319,7 @@ var _ = Describe("Pipelines API", func() {
 						"name": "public-pipeline",
 						"paused": true,
 						"public": true,
+						"archived": false,
 						"team_name": "main",
 						"groups": [
 							{
@@ -340,6 +348,7 @@ var _ = Describe("Pipelines API", func() {
 						"name": "public-pipeline",
 						"paused": true,
 						"public": true,
+						"archived": false,
 						"team_name": "main",
 						"groups": [
 							{
@@ -423,6 +432,7 @@ var _ = Describe("Pipelines API", func() {
 						"name": "some-specific-pipeline",
 						"paused": false,
 						"public": true,
+						"archived": false,
 						"team_name": "a-team",
 						"groups": [
 							{
