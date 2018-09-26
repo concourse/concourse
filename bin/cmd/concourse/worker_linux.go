@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/localip"
@@ -25,7 +26,7 @@ type Certs struct {
 
 type GardenBackend struct {
 	GDN          string    `long:"bin"    default:"gdn" description:"Path to 'gdn' executable (or leave as 'gdn' to find it in $PATH)."`
-	GardenConfig flag.File `long:"config"               description:"Path to a config file to use for Garden."`
+	GardenConfig flag.File `long:"config"               description:"Path to a config file to use for Garden. You can also specify Garden flags as env vars, e.g. 'CONCOURSE_GARDEN_FOO_BAR=a,b' for '--foo-bar a --foo-bar b'."`
 
 	DNS DNSConfig `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
 }
@@ -70,6 +71,8 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 		// XXX: self-contained 'gdn' binary automatically sets this (for some reason)
 		"--allow-host-access",
 	}
+
+	gdnServerFlags = append(gdnServerFlags, detectGardenFlags(logger)...)
 
 	worker := cmd.Worker.Worker()
 	worker.Platform = "linux"
@@ -196,4 +199,49 @@ func (cmd *WorkerCommand) loadResources(logger lager.Logger) ([]atc.WorkerResour
 	}
 
 	return types, nil
+}
+
+var gardenEnvPrefix = "CONCOURSE_GARDEN_"
+
+func detectGardenFlags(logger lager.Logger) []string {
+	env := os.Environ()
+
+	flags := []string{}
+	for _, e := range env {
+		spl := strings.SplitN(e, "=", 2)
+		if len(spl) != 2 {
+			logger.Info("bogus-env", lager.Data{"env": spl})
+			continue
+		}
+
+		name := spl[0]
+		val := spl[1]
+
+		if !strings.HasPrefix(name, gardenEnvPrefix) {
+			continue
+		}
+
+		strip := strings.Replace(name, gardenEnvPrefix, "", 1)
+		flag := flagify(strip)
+
+		logger.Info("forwarding-garden-env-var", lager.Data{
+			"env":  name,
+			"flag": flag,
+		})
+
+		vals := strings.Split(val, ",")
+
+		for _, v := range vals {
+			flags = append(flags, "--"+flag, v)
+		}
+
+		// clear out env (as twentythousandtonnesofcrudeoil does)
+		_ = os.Unsetenv(name)
+	}
+
+	return flags
+}
+
+func flagify(env string) string {
+	return strings.Replace(strings.ToLower(env), "_", "-", -1)
 }
