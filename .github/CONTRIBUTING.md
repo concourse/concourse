@@ -36,11 +36,13 @@ Concourse is written in Go, but the web UI is written in
 [Elm](https://elm-lang.org) and [Less](http://lesscss.org/). Before running
 Concourse you'll need to compile them to their `.js`/.`css` assets, like so:
 
+**Install dependencies:**
 ```sh
-# install dependencies
 $ yarn install
+```
 
-# build Elm/Less source
+**build Elm/Less source:**
+```sh
 $ yarn build
 ```
 
@@ -68,14 +70,22 @@ $ go install ./fly
 This will install a `fly` executable to your `$GOPATH/bin`, so make sure that's
 on your `$PATH`!
 
-Once `fly` is built, you can target the locally-running Concourse instance like
-so:
+Once `fly` is built, you can get a test pipeline running like this:
 
+**Log into the locally-running Concourse instance targeted as `dev`:**
 ```sh
 $ fly -t dev login -c http://localhost:8080 -u test -p test
 ```
 
-This will save the target as `dev`, but you can name it whatever you like.
+**Create an example pipeline that runs a hello world job every minute:**
+```sh
+$ fly -t dev set-pipeline -p example -c examples/hello-world-every-minute.yml
+```
+
+**Unpause the example pipeline:**
+```sh
+$ fly -t dev unpause-pipeline -p example
+```
 
 ### Rebuilding to test your changes
 
@@ -128,9 +138,9 @@ To reset the database, you'll need to stop everything and then blow away the
 `db` container:
 
 ```sh
-docker-compose stop # or Ctrl+C the running session
-docker-compose rm db
-docker-compose start
+$ docker-compose stop # or Ctrl+C the running session
+$ docker-compose rm db
+$ docker-compose start
 ```
 
 

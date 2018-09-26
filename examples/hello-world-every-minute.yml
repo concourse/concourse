@@ -1,0 +1,29 @@
+resource_types:
+  - name: time
+    type: registry-image
+    source:
+      repository: concourse/time-resource
+
+resources:
+  - name: every-minute
+    type: time
+    source:
+      interval: 1m
+
+jobs:
+  - name: hello-world
+    public: true
+    plan:
+      - get: every-minute
+        trigger: true
+      - task: echo
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: busybox
+          run:
+            path: echo
+            args:
+              - hello world
