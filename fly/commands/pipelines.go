@@ -31,10 +31,10 @@ func (command *PipelinesCommand) Execute([]string) error {
 
 	if command.All {
 		pipelines, err = target.Client().ListPipelines()
-		headers = []string{"name", "team", "paused", "public"}
+		headers = []string{"name", "team", "paused", "archived", "public"}
 	} else {
 		pipelines, err = target.Team().ListPipelines()
-		headers = []string{"name", "paused", "public"}
+		headers = []string{"name", "paused", "archived", "public"}
 	}
 	if err != nil {
 		return err
@@ -62,6 +62,14 @@ func (command *PipelinesCommand) Execute([]string) error {
 			pausedColumn.Contents = "no"
 		}
 
+		var archivedColumn ui.TableCell
+		if p.Archived {
+			archivedColumn.Contents = "yes"
+			archivedColumn.Color = color.New(color.FgCyan)
+		} else {
+			archivedColumn.Contents = "no"
+		}
+
 		var publicColumn ui.TableCell
 		if p.Public {
 			publicColumn.Contents = "yes"
@@ -76,6 +84,7 @@ func (command *PipelinesCommand) Execute([]string) error {
 			row = append(row, ui.TableCell{Contents: p.TeamName})
 		}
 		row = append(row, pausedColumn)
+		row = append(row, archivedColumn)
 		row = append(row, publicColumn)
 
 		table.Data = append(table.Data, row)

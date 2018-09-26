@@ -84,12 +84,13 @@ var _ = Describe("Fly CLI", func() {
 						Headers: ui.TableRow{
 							{Contents: "name", Color: color.New(color.Bold)},
 							{Contents: "paused", Color: color.New(color.Bold)},
+							{Contents: "archived", Color: color.New(color.Bold)},
 							{Contents: "public", Color: color.New(color.Bold)},
 						},
 						Data: []ui.TableRow{
-							{{Contents: "pipeline-1-longer"}, {Contents: "no"}, {Contents: "no"}},
-							{{Contents: "pipeline-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "no"}},
-							{{Contents: "pipeline-3"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
+							{{Contents: "pipeline-1-longer"}, {Contents: "no"}, {Contents: "no"}, {Contents: "no"}},
+							{{Contents: "pipeline-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "no"}, {Contents: "no"}},
+							{{Contents: "pipeline-3"}, {Contents: "no"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
 						},
 					}))
 				})
@@ -102,11 +103,11 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
 							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
-								{Name: "pipeline-1-longer", Paused: false, Public: false, TeamName: "main"},
-								{Name: "pipeline-2", Paused: true, Public: false, TeamName: "main"},
-								{Name: "pipeline-3", Paused: false, Public: true, TeamName: "main"},
-								{Name: "foreign-pipeline-1", Paused: false, Public: true, TeamName: "other"},
-								{Name: "foreign-pipeline-2", Paused: false, Public: true, TeamName: "other"},
+								{Name: "pipeline-1-longer", Paused: false, Archived: false, Public: false, TeamName: "main"},
+								{Name: "pipeline-2", Paused: true, Archived: false, Public: false, TeamName: "main"},
+								{Name: "pipeline-3", Paused: false, Archived: false, Public: true, TeamName: "main"},
+								{Name: "foreign-pipeline-1", Paused: false, Archived: false, Public: true, TeamName: "other"},
+								{Name: "foreign-pipeline-2", Paused: false, Archived: false, Public: true, TeamName: "other"},
 							}),
 						),
 					)
@@ -177,14 +178,15 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "name", Color: color.New(color.Bold)},
 							{Contents: "team", Color: color.New(color.Bold)},
 							{Contents: "paused", Color: color.New(color.Bold)},
+							{Contents: "archived", Color: color.New(color.Bold)},
 							{Contents: "public", Color: color.New(color.Bold)},
 						},
 						Data: []ui.TableRow{
-							{{Contents: "pipeline-1-longer"}, {Contents: "main"}, {Contents: "no"}, {Contents: "no"}},
-							{{Contents: "pipeline-2"}, {Contents: "main"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "no"}},
-							{{Contents: "pipeline-3"}, {Contents: "main"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
-							{{Contents: "foreign-pipeline-1"}, {Contents: "other"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
-							{{Contents: "foreign-pipeline-2"}, {Contents: "other"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
+							{{Contents: "pipeline-1-longer"}, {Contents: "main"}, {Contents: "no"}, {Contents: "no"}, {Contents: "no"}},
+							{{Contents: "pipeline-2"}, {Contents: "main"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "no"}, {Contents: "no"}},
+							{{Contents: "pipeline-3"}, {Contents: "main"}, {Contents: "no"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
+							{{Contents: "foreign-pipeline-1"}, {Contents: "other"}, {Contents: "no"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
+							{{Contents: "foreign-pipeline-2"}, {Contents: "other"}, {Contents: "no"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
 						},
 					}))
 				})
