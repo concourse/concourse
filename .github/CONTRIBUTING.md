@@ -79,7 +79,7 @@ fly -t dev login -c http://localhost:8080 -u test -p test
 
 **Create an example pipeline that runs a hello world job every minute:**
 ```sh
-fly -t dev sp -p example -c <(cat <<EOF
+fly -t dev set-pipeline -p example -c <(cat <<EOF
 resource_types:
   - name: time
     type: registry-image
@@ -115,7 +115,7 @@ EOF
 
 **Unpause the example pipeline:**
 ```sh
-fly -t dev up -p example
+fly -t dev unpause-pipeline -p example
 ```
 
 ### Rebuilding to test your changes
