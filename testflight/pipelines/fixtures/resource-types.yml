@@ -4,7 +4,7 @@ resource_types:
   type: mock
   source:
     mirror_self: true
-    initial_version: hello-from-custom-type
+    initial_version: ((hash))
 
 - name: failing-custom-resource-type
   type: mock
@@ -14,11 +14,13 @@ resource_types:
 resources:
 - name: my-resource
   type: custom-resource-type
-  source: {}
+  source:
+    initial_version: ((hash))
 
 - name: my-resource-image
   type: custom-resource-type
-  source: {mirror_self: true}
+  source:
+    mirror_self: true
 
 
 jobs:

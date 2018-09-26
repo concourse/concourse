@@ -13,9 +13,13 @@ import (
 var _ = Describe("serial groups", func() {
 	Context("when no inputs are available for one resource", func() {
 		BeforeEach(func() {
+			hash, err := uuid.NewV4()
+			Expect(err).ToNot(HaveOccurred())
+
 			flyHelper.ConfigurePipeline(
 				pipelineName,
 				"-c", "fixtures/serial-groups.yml",
+				"-v", "hash="+hash.String(),
 			)
 		})
 
@@ -36,9 +40,17 @@ var _ = Describe("serial groups", func() {
 
 	Context("when inputs eventually become available for one resource", func() {
 		BeforeEach(func() {
+			hash, err := uuid.NewV4()
+			Expect(err).ToNot(HaveOccurred())
+
+			hash2, err := uuid.NewV4()
+			Expect(err).ToNot(HaveOccurred())
+
 			flyHelper.ConfigurePipeline(
 				pipelineName,
 				"-c", "fixtures/serial-groups-inputs-updated.yml",
+				"-v", "hash-1="+hash.String(),
+				"-v", "hash-2="+hash2.String(),
 			)
 		})
 

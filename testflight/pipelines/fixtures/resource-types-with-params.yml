@@ -2,13 +2,15 @@
 resource_types:
 - name: mock-via-params
   type: mock
-  source: {}
+  source:
+    initial_version: ((hash))
   params: {mirror_self_via_params: true}
 
 resources:
 - name: my-resource
   type: mock-via-params
-  source: {}
+  source:
+    initial_version: ((hash))
 
 jobs:
 - name: resource-test

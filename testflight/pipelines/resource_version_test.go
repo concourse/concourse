@@ -23,9 +23,13 @@ var _ = Describe("Resource version", func() {
 	Describe("when the version is not pinned on the resource", func() {
 		Describe("version: latest", func() {
 			It("only runs builds with latest version", func() {
+				hash, err := uuid.NewV4()
+				Expect(err).ToNot(HaveOccurred())
+
 				flyHelper.ConfigurePipeline(
 					pipelineName,
 					"-c", "fixtures/resource-version-latest.yml",
+					"-v", "hash="+hash.String(),
 				)
 
 				guid1 := newMockVersion("some-resource")
@@ -53,9 +57,13 @@ var _ = Describe("Resource version", func() {
 
 		Describe("version: every", func() {
 			It("runs builds with every version", func() {
+				hash, err := uuid.NewV4()
+				Expect(err).ToNot(HaveOccurred())
+
 				flyHelper.ConfigurePipeline(
 					pipelineName,
 					"-c", "fixtures/resource-version-every.yml",
+					"-v", "hash="+hash.String(),
 				)
 
 				guid1 := newMockVersion("some-resource")
@@ -87,9 +95,13 @@ var _ = Describe("Resource version", func() {
 
 		Describe("version: pinned", func() {
 			It("only runs builds with the pinned version", func() {
+				hash, err := uuid.NewV4()
+				Expect(err).ToNot(HaveOccurred())
+
 				flyHelper.ConfigurePipeline(
 					pipelineName,
-					"-c", "fixtures/resource-version-every.yml",
+					"-c", "fixtures/resource-version-latest.yml",
+					"-v", "hash="+hash.String(),
 				)
 
 				guid1 := newMockVersion("some-resource")
@@ -100,10 +112,12 @@ var _ = Describe("Resource version", func() {
 				_ = newMockVersion("some-resource")
 				guid3 := newMockVersion("some-resource")
 				_ = newMockVersion("some-resource")
+
 				flyHelper.ReconfigurePipeline(
 					pipelineName,
 					"-c", "fixtures/pinned-version.yml",
 					"-v", "pinned_version="+guid3,
+					"-v", "hash="+hash.String(),
 				)
 
 				watch = flyHelper.TriggerJob(pipelineName, "some-passing-job")
@@ -124,15 +138,21 @@ var _ = Describe("Resource version", func() {
 		var olderGuid string
 		var pinnedGuid string
 		var versionConfig string
+		var hash *uuid.UUID
 
 		BeforeEach(func() {
 			versionConfig = "nil"
+
+			var err error
+			hash, err = uuid.NewV4()
+			Expect(err).ToNot(HaveOccurred())
 
 			flyHelper.ConfigurePipeline(
 				pipelineName,
 				"-c", "fixtures/pinned-resource-simple-trigger.yml",
 				"-v", "pinned_resource_version=bogus",
 				"-y", "version_config="+versionConfig,
+				"-v", "hash="+hash.String(),
 			)
 
 			olderGuid = newMockVersion("some-resource")
@@ -146,6 +166,7 @@ var _ = Describe("Resource version", func() {
 				"-c", "fixtures/pinned-resource-simple-trigger.yml",
 				"-v", "pinned_resource_version="+pinnedGuid,
 				"-y", "version_config="+versionConfig,
+				"-v", "hash="+hash.String(),
 			)
 		})
 

@@ -3,17 +3,25 @@ package pipelines_test
 import (
 	"fmt"
 
+	uuid "github.com/nu7hatch/gouuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("Configuring a resource type in a pipeline config", func() {
+	var hash *uuid.UUID
+
 	Context("with custom resource types", func() {
 		BeforeEach(func() {
+			var err error
+			hash, err = uuid.NewV4()
+			Expect(err).ToNot(HaveOccurred())
+
 			flyHelper.ConfigurePipeline(
 				pipelineName,
 				"-c", "fixtures/resource-types.yml",
+				"-v", "hash="+hash.String(),
 			)
 		})
 
@@ -21,7 +29,7 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			watch := flyHelper.TriggerJob(pipelineName, "resource-getter")
 			<-watch.Exited
 			Expect(watch.ExitCode()).To(Equal(0))
-			Expect(watch).To(gbytes.Say("fetched version: hello-from-custom-type"))
+			Expect(watch).To(gbytes.Say("fetched version: " + hash.String()))
 
 			watch = flyHelper.TriggerJob(pipelineName, "resource-putter")
 			<-watch.Exited
@@ -43,10 +51,17 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 	})
 
 	Context("with custom resource types that have params", func() {
+		var hash *uuid.UUID
+
 		BeforeEach(func() {
+			var err error
+			hash, err = uuid.NewV4()
+			Expect(err).ToNot(HaveOccurred())
+
 			flyHelper.ConfigurePipeline(
 				pipelineName,
 				"-c", "fixtures/resource-types-with-params.yml",
+				"-v", "hash="+hash.String(),
 			)
 		})
 
@@ -54,15 +69,19 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			watch := flyHelper.TriggerJob(pipelineName, "resource-test")
 			<-watch.Exited
 			Expect(watch.ExitCode()).To(Equal(0))
-			Expect(watch).To(gbytes.Say("mock"))
+			Expect(watch).To(gbytes.Say(hash.String()))
 		})
 	})
 
 	Context("when resource type named as base resource type", func() {
 		BeforeEach(func() {
+			hash, err := uuid.NewV4()
+			Expect(err).ToNot(HaveOccurred())
+
 			flyHelper.ConfigurePipeline(
 				pipelineName,
 				"-c", "fixtures/resource-type-named-as-base-type.yml",
+				"-v", "hash="+hash.String(),
 			)
 		})
 

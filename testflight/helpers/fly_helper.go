@@ -163,6 +163,13 @@ func (h *FlyHelper) TriggerJob(pipelineName string, jobName string) *gexec.Sessi
 	return h.TriggerPipelineJob(pipelineName, jobName)
 }
 
+func (h *FlyHelper) Builds(pipelineName string, jobName string) []map[string]string {
+	return h.Table(
+		"builds",
+		"-j", pipelineName+"/"+jobName,
+	)
+}
+
 func (h *FlyHelper) AbortBuild(pipelineName string, jobName string, build int) {
 	sess := start(exec.Command(
 		h.Path,

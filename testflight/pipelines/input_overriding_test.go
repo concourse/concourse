@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	uuid "github.com/nu7hatch/gouuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -22,15 +23,22 @@ var _ = Describe("A job with multiple inputs", func() {
 	)
 
 	BeforeEach(func() {
+		hash, err := uuid.NewV4()
+		Expect(err).ToNot(HaveOccurred())
+
+		hash2, err := uuid.NewV4()
+		Expect(err).ToNot(HaveOccurred())
+
 		flyHelper.ConfigurePipeline(
 			pipelineName,
 			"-c", "fixtures/many-inputs.yml",
+			"-v", "hash-1="+hash.String(),
+			"-v", "hash-2="+hash2.String(),
 		)
 
 		firstVersionA = newMockVersion("some-resource-a")
 		firstVersionB = newMockVersion("some-resource-b")
 
-		var err error
 		tmpdir, err = ioutil.TempDir("", "fly-test")
 		Expect(err).NotTo(HaveOccurred())
 

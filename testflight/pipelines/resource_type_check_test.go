@@ -10,9 +10,13 @@ import (
 
 var _ = Describe("Resource-types checks", func() {
 	BeforeEach(func() {
+		hash, err := uuid.NewV4()
+		Expect(err).ToNot(HaveOccurred())
+
 		flyHelper.ConfigurePipeline(
 			pipelineName,
 			"-c", "fixtures/resource-types.yml",
+			"-v", "hash="+hash.String(),
 		)
 	})
 
