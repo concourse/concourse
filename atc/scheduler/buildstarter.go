@@ -136,12 +136,12 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return false, nil
 	}
 
-	pipelinePaused, err := s.pipeline.CheckPaused()
+	pipelineInactive, err := s.pipeline.CheckInactive()
 	if err != nil {
-		logger.Error("failed-to-check-if-pipeline-is-paused", err)
+		logger.Error("failed-to-check-if-pipeline-is-inactive", err)
 		return false, err
 	}
-	if pipelinePaused {
+	if pipelineInactive {
 		return false, nil
 	}
 

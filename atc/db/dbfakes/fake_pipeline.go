@@ -115,7 +115,7 @@ type FakePipeline struct {
 		result1 []db.Cause
 		result2 error
 	}
-	CheckPausedStub        func() (bool, error)
+	CheckInactiveStub        func() (bool, error)
 	checkPausedMutex       sync.RWMutex
 	checkPausedArgsForCall []struct {
 	}
@@ -951,15 +951,15 @@ func (fake *FakePipeline) CausalityReturnsOnCall(i int, result1 []db.Cause, resu
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) CheckPaused() (bool, error) {
+func (fake *FakePipeline) CheckInactive() (bool, error) {
 	fake.checkPausedMutex.Lock()
 	ret, specificReturn := fake.checkPausedReturnsOnCall[len(fake.checkPausedArgsForCall)]
 	fake.checkPausedArgsForCall = append(fake.checkPausedArgsForCall, struct {
 	}{})
-	fake.recordInvocation("CheckPaused", []interface{}{})
+	fake.recordInvocation("CheckInactive", []interface{}{})
 	fake.checkPausedMutex.Unlock()
-	if fake.CheckPausedStub != nil {
-		return fake.CheckPausedStub()
+	if fake.CheckInactiveStub != nil {
+		return fake.CheckInactiveStub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -968,22 +968,22 @@ func (fake *FakePipeline) CheckPaused() (bool, error) {
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakePipeline) CheckPausedCallCount() int {
+func (fake *FakePipeline) CheckInactiveCallCount() int {
 	fake.checkPausedMutex.RLock()
 	defer fake.checkPausedMutex.RUnlock()
 	return len(fake.checkPausedArgsForCall)
 }
 
-func (fake *FakePipeline) CheckPausedReturns(result1 bool, result2 error) {
-	fake.CheckPausedStub = nil
+func (fake *FakePipeline) CheckInactiveReturns(result1 bool, result2 error) {
+	fake.CheckInactiveStub = nil
 	fake.checkPausedReturns = struct {
 		result1 bool
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) CheckPausedReturnsOnCall(i int, result1 bool, result2 error) {
-	fake.CheckPausedStub = nil
+func (fake *FakePipeline) CheckInactiveReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.CheckInactiveStub = nil
 	if fake.checkPausedReturnsOnCall == nil {
 		fake.checkPausedReturnsOnCall = make(map[int]struct {
 			result1 bool

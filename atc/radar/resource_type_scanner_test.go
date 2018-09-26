@@ -343,7 +343,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 			Context("when the pipeline is paused", func() {
 				BeforeEach(func() {
-					fakeDBPipeline.CheckPausedReturns(true, nil)
+					fakeDBPipeline.CheckInactiveReturns(true, nil)
 				})
 
 				It("does not check", func() {
@@ -662,7 +662,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 			Context("when the pipeline is paused", func() {
 				BeforeEach(func() {
-					fakeDBPipeline.CheckPausedReturns(true, nil)
+					fakeDBPipeline.CheckInactiveReturns(true, nil)
 				})
 
 				It("does not check", func() {

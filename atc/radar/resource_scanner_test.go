@@ -411,7 +411,7 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when the pipeline is paused", func() {
 				BeforeEach(func() {
-					fakeDBPipeline.CheckPausedReturns(true, nil)
+					fakeDBPipeline.CheckInactiveReturns(true, nil)
 				})
 
 				It("does not check", func() {
@@ -453,7 +453,7 @@ var _ = Describe("ResourceScanner", func() {
 				disaster := errors.New("disaster")
 
 				BeforeEach(func() {
-					fakeDBPipeline.CheckPausedReturns(false, disaster)
+					fakeDBPipeline.CheckInactiveReturns(false, disaster)
 				})
 
 				It("returns an error", func() {

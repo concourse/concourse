@@ -43,7 +43,7 @@ type Pipeline interface {
 	Archived() bool
 	ScopedName(string) string
 
-	CheckPaused() (bool, error)
+	CheckInactive() (bool, error)
 	Reload() (bool, error)
 
 	Causality(versionedResourceID int) ([]Cause, error)
@@ -259,21 +259,21 @@ func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
 	return causality, nil
 }
 
-func (p *pipeline) CheckPaused() (bool, error) {
-	var paused bool
+func (p *pipeline) CheckInactive() (bool, error) {
+	var inactive bool
 
-	err := psql.Select("paused").
+	err := psql.Select("paused OR archived").
 		From("pipelines").
 		Where(sq.Eq{"id": p.id}).
 		RunWith(p.conn).
 		QueryRow().
-		Scan(&paused)
+		Scan(&inactive)
 
 	if err != nil {
 		return false, err
 	}
 
-	return paused, nil
+	return inactive, nil
 }
 func (p *pipeline) Reload() (bool, error) {
 	row := pipelinesQuery.Where(sq.Eq{"p.id": p.id}).

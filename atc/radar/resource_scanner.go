@@ -217,7 +217,7 @@ func (scanner *resourceScanner) check(
 	source atc.Source,
 	saveGiven bool,
 ) error {
-	pipelinePaused, err := scanner.dbPipeline.CheckPaused()
+	pipelinePaused, err := scanner.dbPipeline.CheckInactive()
 	if err != nil {
 		logger.Error("failed-to-check-if-pipeline-paused", err)
 		return err

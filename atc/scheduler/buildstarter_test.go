@@ -257,7 +257,7 @@ var _ = Describe("BuildStarter", func() {
 							Context("when creaing a build plan", func() {
 								BeforeEach(func() {
 									job.GetNextBuildInputsReturns([]db.BuildInput{}, true, nil)
-									fakePipeline.CheckPausedReturns(false, nil)
+									fakePipeline.CheckInactiveReturns(false, nil)
 									createdBuild.ScheduleReturns(true, nil)
 									createdBuild.UseInputsReturns(nil)
 									fakeEngine.CreateBuildReturns(new(enginefakes.FakeBuild), nil)
@@ -600,7 +600,7 @@ var _ = Describe("BuildStarter", func() {
 
 					Context("when checking if the pipeline is paused fails", func() {
 						BeforeEach(func() {
-							fakePipeline.CheckPausedReturns(false, disaster)
+							fakePipeline.CheckInactiveReturns(false, disaster)
 						})
 
 						itReturnsTheError()
@@ -609,7 +609,7 @@ var _ = Describe("BuildStarter", func() {
 
 					Context("when the pipeline is paused", func() {
 						BeforeEach(func() {
-							fakePipeline.CheckPausedReturns(true, nil)
+							fakePipeline.CheckInactiveReturns(true, nil)
 						})
 
 						itDoesntReturnAnErrorOrMarkTheBuildAsScheduled()

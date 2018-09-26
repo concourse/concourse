@@ -116,31 +116,44 @@ var _ = Describe("Pipeline", func() {
 		Expect(found).To(BeTrue())
 	})
 
-	Describe("CheckPaused", func() {
-		var paused bool
+	Describe("CheckInactive", func() {
+		var inactive bool
 		JustBeforeEach(func() {
 			var err error
-			paused, err = pipeline.CheckPaused()
+			inactive, err = pipeline.CheckInactive()
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		Context("when the pipeline is unpaused", func() {
+		Context("when the pipeline is unpaused and unarchived", func() {
 			BeforeEach(func() {
 				Expect(pipeline.Unpause()).To(Succeed())
+				Expect(pipeline.Unarchive()).To(Succeed())
 			})
 
-			It("returns the pipeline is paused", func() {
-				Expect(paused).To(BeFalse())
+			It("returns the pipeline is active", func() {
+				Expect(inactive).To(BeFalse())
 			})
 		})
 
-		Context("when the pipeline is paused", func() {
+		Context("when the pipeline is paused and unarchived", func() {
 			BeforeEach(func() {
 				Expect(pipeline.Pause()).To(Succeed())
+				Expect(pipeline.Unarchive()).To(Succeed())
 			})
 
-			It("returns the pipeline is paused", func() {
-				Expect(paused).To(BeTrue())
+			It("returns the pipeline is inactive", func() {
+				Expect(inactive).To(BeTrue())
+			})
+		})
+
+		Context("when the pipeline is unpaused and archived", func() {
+			BeforeEach(func() {
+				Expect(pipeline.Unpause()).To(Succeed())
+				Expect(pipeline.Archive()).To(Succeed())
+			})
+
+			It("returns the pipeline is inactive", func() {
+				Expect(inactive).To(BeTrue())
 			})
 		})
 	})
