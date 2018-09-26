@@ -27,8 +27,8 @@ var _ = Describe("A job with multiple inputs", func() {
 			"-c", "fixtures/many-inputs.yml",
 		)
 
-		firstVersionA = newMockVersion("some-resource-a")
-		firstVersionB = newMockVersion("some-resource-b")
+		firstVersionA = newMockVersion("some-resource-a", "first-a")
+		firstVersionB = newMockVersion("some-resource-b", "first-b")
 
 		var err error
 		tmpdir, err = ioutil.TempDir("", "fly-test")

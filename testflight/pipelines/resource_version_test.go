@@ -1,23 +1,10 @@
 package pipelines_test
 
 import (
-	"github.com/concourse/concourse/atc"
-	uuid "github.com/nu7hatch/gouuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 )
-
-func newMockVersion(resourceName string) string {
-	guid, err := uuid.NewV4()
-	Expect(err).ToNot(HaveOccurred())
-
-	found, err := team.CheckResource(pipelineName, resourceName, atc.Version{"version": guid.String()})
-	Expect(err).ToNot(HaveOccurred())
-	Expect(found).To(BeTrue())
-
-	return guid.String()
-}
 
 var _ = Describe("Resource version", func() {
 	Describe("when the version is not pinned on the resource", func() {
@@ -28,15 +15,15 @@ var _ = Describe("Resource version", func() {
 					"-c", "fixtures/resource-version-latest.yml",
 				)
 
-				guid1 := newMockVersion("some-resource")
+				guid1 := newMockVersion("some-resource", "guid1")
 				watch := flyHelper.TriggerJob(pipelineName, "some-passing-job")
 				<-watch.Exited
 				Expect(watch.ExitCode()).To(Equal(0))
 				Expect(watch).To(gbytes.Say(guid1))
 
-				_ = newMockVersion("some-resource")
-				_ = newMockVersion("some-resource")
-				guid4 := newMockVersion("some-resource")
+				_ = newMockVersion("some-resource", "guid2")
+				_ = newMockVersion("some-resource", "guid3")
+				guid4 := newMockVersion("some-resource", "guid4")
 
 				watch = flyHelper.TriggerJob(pipelineName, "some-passing-job")
 				<-watch.Exited
@@ -52,21 +39,21 @@ var _ = Describe("Resource version", func() {
 		})
 
 		Describe("version: every", func() {
-			It("runs builds with every version", func() {
+			FIt("runs builds with every version", func() {
 				flyHelper.ConfigurePipeline(
 					pipelineName,
 					"-c", "fixtures/resource-version-every.yml",
 				)
 
-				guid1 := newMockVersion("some-resource")
+				guid1 := newMockVersion("some-resource", "guid1")
 				watch := flyHelper.TriggerJob(pipelineName, "some-passing-job")
 				<-watch.Exited
 				Expect(watch.ExitCode()).To(Equal(0))
 				Expect(watch).To(gbytes.Say(guid1))
 
-				guid2 := newMockVersion("some-resource")
-				guid3 := newMockVersion("some-resource")
-				guid4 := newMockVersion("some-resource")
+				guid2 := newMockVersion("some-resource", "guid2")
+				guid3 := newMockVersion("some-resource", "guid3")
+				guid4 := newMockVersion("some-resource", "guid4")
 
 				watch = flyHelper.TriggerJob(pipelineName, "some-passing-job")
 				<-watch.Exited
@@ -92,14 +79,14 @@ var _ = Describe("Resource version", func() {
 					"-c", "fixtures/resource-version-every.yml",
 				)
 
-				guid1 := newMockVersion("some-resource")
+				guid1 := newMockVersion("some-resource", "guid1")
 
 				watch := flyHelper.TriggerJob(pipelineName, "some-passing-job")
 				Eventually(watch).Should(gbytes.Say(guid1))
 
-				_ = newMockVersion("some-resource")
-				guid3 := newMockVersion("some-resource")
-				_ = newMockVersion("some-resource")
+				_ = newMockVersion("some-resource", "guid2")
+				guid3 := newMockVersion("some-resource", "guid3")
+				_ = newMockVersion("some-resource", "guid4")
 				flyHelper.ReconfigurePipeline(
 					pipelineName,
 					"-c", "fixtures/pinned-version.yml",
@@ -135,9 +122,9 @@ var _ = Describe("Resource version", func() {
 				"-y", "version_config="+versionConfig,
 			)
 
-			olderGuid = newMockVersion("some-resource")
-			pinnedGuid = newMockVersion("some-resource")
-			_ = newMockVersion("some-resource")
+			olderGuid = newMockVersion("some-resource", "older")
+			pinnedGuid = newMockVersion("some-resource", "pinned")
+			_ = newMockVersion("some-resource", "newer")
 		})
 
 		JustBeforeEach(func() {

@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/concourse/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
@@ -90,4 +91,17 @@ var _ = AfterEach(func() {
 func TestGitPipeline(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Pipelines Suite")
+}
+
+func newMockVersion(resourceName string, tag string) string {
+	guid, err := uuid.NewV4()
+	Expect(err).ToNot(HaveOccurred())
+
+	version := guid.String() + "-" + tag
+
+	found, err := team.CheckResource(pipelineName, resourceName, atc.Version{"version": version})
+	Expect(err).ToNot(HaveOccurred())
+	Expect(found).To(BeTrue())
+
+	return version
 }
