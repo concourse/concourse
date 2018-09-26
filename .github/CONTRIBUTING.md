@@ -85,7 +85,6 @@ resource_types:
     type: registry-image
     source:
       repository: concourse/time-resource
-      tag: latest
 
 resources:
   - name: every-minute
