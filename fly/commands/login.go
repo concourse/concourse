@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/concourse/concourse/atc"
@@ -24,6 +23,7 @@ import (
 type LoginCommand struct {
 	ATCURL      string       `short:"c" long:"concourse-url" description:"Concourse URL to authenticate with"`
 	Insecure    bool         `short:"k" long:"insecure" description:"Skip verification of the endpoint's SSL certificate"`
+	Remote      bool         `short:"r" long:"remote" description:"Login redirect to token page on browser"`
 	Username    string       `short:"u" long:"username" description:"Username for basic auth"`
 	Password    string       `short:"p" long:"password" description:"Password for basic auth"`
 	TeamName    string       `short:"n" long:"team-name" description:"Team to authenticate with"`
@@ -175,17 +175,25 @@ func (command *LoginCommand) authCodeGrant(targetUrl string) (string, string, er
 
 	port := <-portChannel
 
-	redirectUri, err := url.Parse("http://127.0.0.1:" + port + "/auth/callback")
-	if err != nil {
-		panic(err)
-	}
-
-	openURL := fmt.Sprintf("%s/sky/login?redirect_uri=%s", targetUrl, redirectUri.String())
+	var openURL string
 
 	fmt.Println("navigate to the following URL in your browser:")
 	fmt.Println("")
-	fmt.Printf("  %s\n", openURL)
-	fmt.Println("")
+
+	if command.Remote {
+		openURL = fmt.Sprintf("%s/sky/login?redirect_uri=%s", targetUrl, "/sky/token")
+
+		fmt.Printf("  %s\n", openURL)
+		fmt.Println("")
+		fmt.Printf("and enter token manually: ")
+	} else {
+		redirectUri := "http://127.0.0.1:" + port + "/auth/callback"
+		openURL = fmt.Sprintf("%s/sky/login?redirect_uri=%s", targetUrl, redirectUri)
+
+		fmt.Printf("  %s\n", openURL)
+		fmt.Println("")
+		fmt.Printf("or enter token manually: ")
+	}
 
 	if command.OpenBrowser {
 		// try to open the browser window, but don't get all hung up if it
@@ -278,8 +286,6 @@ type tcpKeepAliveListener struct {
 
 func waitForTokenInput(tokenChannel chan string, errorChannel chan error) {
 	for {
-		fmt.Printf("or enter token manually: ")
-
 		var tokenType string
 		var tokenValue string
 		count, err := fmt.Scanf("%s %s", &tokenType, &tokenValue)
@@ -401,6 +407,7 @@ func (command *LoginCommand) legacyAuth(target rc.Target) (string, string, error
 		fmt.Println("")
 		fmt.Printf("    %s", theURL)
 		fmt.Println("")
+		fmt.Printf("or enter token manually: ")
 
 		if command.OpenBrowser {
 			// try to open the browser window, but don't get all hung up if it
