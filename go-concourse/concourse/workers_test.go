@@ -126,4 +126,38 @@ var _ = Describe("ATC Handler Workers", func() {
 			})
 		})
 	})
+
+	Describe("LandWorker", func() {
+		Context("when succeeds", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+						ghttp.RespondWith(http.StatusOK, nil),
+					),
+				)
+			})
+
+			It("lands the worker", func() {
+				err := client.LandWorker("some-worker")
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("failing to land worker", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+						ghttp.RespondWith(http.StatusInternalServerError, nil),
+					),
+				)
+			})
+
+			It("returns the error", func() {
+				err := client.LandWorker("some-worker")
+				Expect(err).To(HaveOccurred())
+			})
+		})
+	})
 })

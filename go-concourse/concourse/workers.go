@@ -79,3 +79,16 @@ func (client *client) PruneWorker(workerName string) error {
 
 	return err
 }
+
+func (client *client) LandWorker(workerName string) error {
+	params := rata.Params{"worker_name": workerName}
+	err := client.connection.Send(internal.Request{
+		RequestName: atc.LandWorker,
+		Params:      params,
+		Header: http.Header{
+			"Content-Type": {"application/json"},
+		},
+	}, nil)
+
+	return err
+}
