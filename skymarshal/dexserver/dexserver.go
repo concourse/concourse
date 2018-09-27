@@ -2,17 +2,15 @@ package dexserver
 
 import (
 	"context"
-	"io/ioutil"
 	"strings"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/skymarshal/logger"
+	"github.com/concourse/concourse/skymarshal/skycmd"
+	s "github.com/concourse/concourse/skymarshal/storage"
 	"github.com/concourse/dex/server"
 	"github.com/concourse/dex/storage"
-	"github.com/concourse/dex/storage/sql"
-	"github.com/concourse/flag"
-	"github.com/concourse/concourse/skymarshal/skycmd"
 	"github.com/gobuffalo/packr"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -24,7 +22,7 @@ type DexConfig struct {
 	ClientSecret string
 	RedirectURL  string
 	Flags        skycmd.AuthFlags
-	Postgres     flag.PostgresConfig
+	Storage      s.Storage
 }
 
 func NewDexServer(config *DexConfig) (*server.Server, error) {
@@ -37,47 +35,12 @@ func NewDexServer(config *DexConfig) (*server.Server, error) {
 }
 
 func NewDexServerConfig(config *DexConfig) (server.Config, error) {
-	var log = &logrus.Logger{
-		Out:       ioutil.Discard,
-		Hooks:     make(logrus.LevelHooks),
-		Formatter: new(logrus.JSONFormatter),
-		Level:     logrus.DebugLevel,
-	}
 
-	log.Hooks.Add(NewLagerHook(config.Logger))
-
-	postgres := config.Postgres
-
-	var host string
-
-	if postgres.Socket != "" {
-		host = postgres.Socket
-	} else {
-		host = postgres.Host
-	}
-
-	db := sql.Postgres{
-		Database: postgres.Database,
-		User:     postgres.User,
-		Password: postgres.Password,
-		Host:     host,
-		Port:     postgres.Port,
-		SSL: sql.PostgresSSL{
-			Mode:     postgres.SSLMode,
-			CAFile:   string(postgres.CACert),
-			CertFile: string(postgres.ClientCert),
-			KeyFile:  string(postgres.ClientKey),
-		},
-		ConnectionTimeout: int(postgres.ConnectTimeout.Seconds()),
-	}
-
-	store, err := db.Open(log)
-	if err != nil {
-		return server.Config{}, err
-	}
+	log := logger.New(config.Logger)
 
 	localUsersToAdd := newLocalUsers(config)
 
+	store := config.Storage
 	storedPasses, err := store.ListPasswords()
 	if err != nil {
 		return server.Config{}, err
@@ -268,42 +231,6 @@ func removeConnectorFromStore(store storage.Storage, connectorID string) error {
 		return err
 	}
 
-	return nil
-}
-
-func NewLagerHook(logger lager.Logger) *lagerHook {
-	return &lagerHook{logger}
-}
-
-type lagerHook struct {
-	lager.Logger
-}
-
-func (self *lagerHook) Levels() []logrus.Level {
-	return logrus.AllLevels
-}
-
-func (self *lagerHook) Fire(entry *logrus.Entry) error {
-	switch entry.Level {
-	case logrus.DebugLevel:
-		self.Logger.Debug("event", lager.Data{"message": entry.Message, "fields": entry.Data})
-		break
-	case logrus.InfoLevel:
-		self.Logger.Info("event", lager.Data{"message": entry.Message, "fields": entry.Data})
-		break
-	case logrus.WarnLevel:
-		self.Logger.Info("event", lager.Data{"message": entry.Message, "fields": entry.Data})
-		break
-	case logrus.ErrorLevel:
-		self.Logger.Error("event", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
-		break
-	case logrus.FatalLevel:
-		self.Logger.Fatal("event", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
-		break
-	case logrus.PanicLevel:
-		self.Logger.Fatal("event", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
-		break
-	}
 	return nil
 }
 

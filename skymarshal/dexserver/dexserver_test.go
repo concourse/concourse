@@ -6,12 +6,15 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/atccmd"
-	"github.com/concourse/dex/server"
-	"github.com/concourse/flag"
 	"github.com/concourse/concourse/skymarshal/dexserver"
 	"github.com/concourse/concourse/skymarshal/skycmd"
+	store "github.com/concourse/concourse/skymarshal/storage"
+	"github.com/concourse/dex/server"
+	"github.com/concourse/dex/storage"
+	"github.com/concourse/flag"
 	"github.com/jessevdk/go-flags"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -19,23 +22,29 @@ import (
 var _ = Describe("Dex Server", func() {
 	var config *dexserver.DexConfig
 	var serverConfig server.Config
-	var postgresConfig flag.PostgresConfig
+	var storage storage.Storage
+	var logger lager.Logger
 	var err error
+
+	BeforeEach(func() {
+		logger = lagertest.NewTestLogger("dex")
+	})
 
 	Describe("Configuration", func() {
 		BeforeEach(func() {
 			config = &dexserver.DexConfig{}
-			postgresConfig = flag.PostgresConfig{
+			storage, err = store.NewPostgresStorage(logger, flag.PostgresConfig{
 				Host:     "127.0.0.1",
 				Port:     uint16(5433 + GinkgoParallelNode()),
 				User:     "postgres",
 				SSLMode:  "disable",
 				Database: "testdb",
-			}
+			})
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		AfterEach(func() {
-			serverConfig.Storage.Close()
+			storage.Close()
 		})
 
 		JustBeforeEach(func() {
@@ -46,9 +55,9 @@ var _ = Describe("Dex Server", func() {
 		Context("static configuration", func() {
 			BeforeEach(func() {
 				config = &dexserver.DexConfig{
-					Logger:    lagertest.NewTestLogger("dex"),
+					Logger:    logger,
 					IssuerURL: "http://example.com/",
-					Postgres:  postgresConfig,
+					Storage:   storage,
 				}
 			})
 
@@ -97,8 +106,8 @@ var _ = Describe("Dex Server", func() {
 			Context("when the user's password is provided as a bcrypt hash", func() {
 				BeforeEach(func() {
 					config = &dexserver.DexConfig{
-						Logger:   lagertest.NewTestLogger("dex"),
-						Postgres: postgresConfig,
+						Logger:  logger,
+						Storage: storage,
 						Flags: skycmd.AuthFlags{
 							LocalUsers: map[string]string{
 								"some-user-0": "$2a$10$3veRX245rLrpOKrgu7jIyOEKF5Km5tY86bZql6/oTMssgPO/6XJju",
@@ -114,8 +123,8 @@ var _ = Describe("Dex Server", func() {
 			Context("when the user's password is provided in plaintext", func() {
 				BeforeEach(func() {
 					config = &dexserver.DexConfig{
-						Logger:   lagertest.NewTestLogger("dex"),
-						Postgres: postgresConfig,
+						Logger:  logger,
+						Storage: storage,
 						Flags: skycmd.AuthFlags{
 							LocalUsers: map[string]string{
 								"some-user-0": "some-password-0",
@@ -132,12 +141,11 @@ var _ = Describe("Dex Server", func() {
 						// First create the first config based on the parent Context
 						serverConfig, err = dexserver.NewDexServerConfig(config)
 						Expect(err).ToNot(HaveOccurred())
-						serverConfig.Storage.Close()
 
 						// The final config will be created in the JustBeforeEach block
 						config = &dexserver.DexConfig{
-							Logger:   lagertest.NewTestLogger("dex"),
-							Postgres: postgresConfig,
+							Logger:  logger,
+							Storage: storage,
 							Flags: skycmd.AuthFlags{
 								LocalUsers: map[string]string{
 									"some-user-0": "some-password-0",
@@ -173,12 +181,11 @@ var _ = Describe("Dex Server", func() {
 						// First create the first config based on the parent Context
 						serverConfig, err = dexserver.NewDexServerConfig(config)
 						Expect(err).ToNot(HaveOccurred())
-						serverConfig.Storage.Close()
 
 						// The final config will be created in the JustBeforeEach block
 						config = &dexserver.DexConfig{
-							Logger:   lagertest.NewTestLogger("dex"),
-							Postgres: postgresConfig,
+							Logger:  logger,
+							Storage: storage,
 							Flags: skycmd.AuthFlags{
 								LocalUsers: map[string]string{
 									"some-user-0": "some-password-0",
@@ -205,8 +212,8 @@ var _ = Describe("Dex Server", func() {
 		Context("when clientId and clientSecret are configured", func() {
 			BeforeEach(func() {
 				config = &dexserver.DexConfig{
-					Logger:       lagertest.NewTestLogger("dex"),
-					Postgres:     postgresConfig,
+					Logger:       logger,
+					Storage:      storage,
 					ClientID:     "some-client-id",
 					ClientSecret: "some-client-secret",
 					RedirectURL:  "http://example.com",
@@ -253,10 +260,10 @@ var _ = Describe("Dex Server", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				config = &dexserver.DexConfig{
-					Logger:    lagertest.NewTestLogger("dex"),
+					Logger:    logger,
 					Flags:     cmd.Auth.AuthFlags,
 					IssuerURL: "http://example.com/",
-					Postgres:  postgresConfig,
+					Storage:   storage,
 				}
 			})
 
@@ -273,7 +280,6 @@ var _ = Describe("Dex Server", func() {
 					// First create the first config based on the parent Context
 					serverConfig, err = dexserver.NewDexServerConfig(config)
 					Expect(err).ToNot(HaveOccurred())
-					serverConfig.Storage.Close()
 
 					// The final config will be created in the JustBeforeEach block
 					args := []string{
@@ -303,7 +309,6 @@ var _ = Describe("Dex Server", func() {
 					// First create the first config based on the parent Context
 					serverConfig, err = dexserver.NewDexServerConfig(config)
 					Expect(err).ToNot(HaveOccurred())
-					serverConfig.Storage.Close()
 
 					// The final config will be created in the JustBeforeEach block
 					args := []string{
