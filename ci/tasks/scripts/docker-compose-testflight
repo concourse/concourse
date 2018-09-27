@@ -9,25 +9,43 @@ source concourse/ci/tasks/scripts/docker-helpers.sh
 
 # make loopback devices available for 'gdn' and the btrfs volume driver
 # XXX: remove once 'gdn' doesn't need xfs and we're back to overlay as default
-for i in $(seq 0 15); do \
-  mknod -m 0660 /dev/loop$i b 7 $i; \
-done
+function create_loopbacks() {
+  for i in $(seq 128 143); do
+    mknod -m 0660 /dev/loop$i b 7 $i
+  done
+}
 
+function cleanup_loopbacks() {
+  for loop in $(losetup -a | cut -d: -f1); do
+    losetup -d $loop
+  done
+}
+
+concourse_dir=$PWD/concourse
+if [ -d built-concourse ]; then
+  concourse_dir=$PWD/built-concourse
+fi
+
+function cleanup() {
+  docker-compose -f $concourse_dir/docker-compose.yml down
+  stop_docker
+  cleanup_loopbacks
+}
+
+trap cleanup EXIT
+
+create_loopbacks
 start_docker
 
 [ -d dev-image ] && docker load -i dev-image/image.tar
 [ -d postgres-image ] && docker load -i postgres-image/image.tar
 
-if [ -d built-concourse ]; then
-  cd built-concourse
-else
-  cd concourse
+cd $concourse_dir
 
-  # for better yarn output
-  stty columns 80
-  yarn install
-  yarn build
-fi
+# for better yarn output
+stty columns 80
+yarn install
+yarn build
 
 # do not collide with outer Concourse network
 export CONCOURSE_GARDEN_NETWORK_POOL="10.224.0.0/16"
