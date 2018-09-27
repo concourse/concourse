@@ -51,11 +51,6 @@ yarn build
 export CONCOURSE_GARDEN_NETWORK_POOL="10.224.0.0/16"
 docker-compose up -d
 
-until test $(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/v1/info) -eq 200; do
-  echo "waiting for ATC..."
-  sleep 1
-done
-
 go mod download
 
 go install github.com/onsi/ginkgo/ginkgo
