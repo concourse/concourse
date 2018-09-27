@@ -56,9 +56,9 @@ jobs:
     - get: unit-image
       passed: [unit]
     - get: dev-image
-      params: {save: true}
+      params: {format: oci}
     - get: postgres-image
-      params: {save: true}
+      params: {format: oci}
   - task: make
     image: unit-image
     file: concourse/ci/tasks/make.yml
@@ -71,7 +71,7 @@ jobs:
   plan:
   - get: concourse
     trigger: true
-  - put: unit-image
+  - put: unit-image-build
     params: {build: concourse/ci/dockerfiles/unit}
 
 - name: dev-image
@@ -97,12 +97,12 @@ jobs:
     - get: golang-1.x
       trigger: true
       params: {save: true}
-    - get: dev-image
+    - get: dev-image-build
       params: {save: true}
-  - put: dev-image
+  - put: dev-image-build
     params:
       load_base: golang-1.x
-      cache_from: [dev-image]
+      cache_from: [dev-image-build]
       dockerfile: concourse/ci/dockerfiles/dev/Dockerfile
       build: .
 
@@ -126,6 +126,10 @@ resources:
     tag: 1
 
 - name: dev-image
+  type: registry-image
+  source: {repository: concourse/dev}
+
+- name: dev-image-build
   type: docker-image
   source:
     repository: concourse/dev
@@ -133,6 +137,10 @@ resources:
     password: ((docker.password))
 
 - name: unit-image
+  type: registry-image
+  source: {repository: concourse/unit}
+
+- name: unit-image-build
   type: docker-image
   source:
     repository: concourse/unit
@@ -141,9 +149,7 @@ resources:
 
 - name: postgres-image
   type: registry-image
-  source:
-    repository: postgres
-    tag: latest
+  source: {repository: postgres}
 
 - name: dumb-init
   type: github-release
