@@ -1,11 +1,9 @@
 #!/bin/bash
 
-set -e -u -x
+set -e -u
 
 export GOPATH=$PWD/gopath
 export PATH=$GOPATH/bin:$PATH
-
-source concourse/ci/tasks/scripts/docker-helpers.sh
 
 # make loopback devices available for 'gdn' and the btrfs volume driver
 # XXX: remove once 'gdn' doesn't need xfs and we're back to overlay as default
@@ -28,14 +26,13 @@ fi
 
 function cleanup() {
   docker-compose -f $concourse_dir/docker-compose.yml down
-  stop_docker
+  service docker stop
   cleanup_loopbacks
 }
 
-trap cleanup EXIT
-
 create_loopbacks
-start_docker
+service docker start
+trap cleanup EXIT
 
 [ -d dev-image ] && docker load -i dev-image/image.tar
 [ -d postgres-image ] && docker load -i postgres-image/image.tar
