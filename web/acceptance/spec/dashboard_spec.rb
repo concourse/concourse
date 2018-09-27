@@ -134,7 +134,6 @@ describe 'dashboard', type: :feature do
 
         expect(page).to have_content(team_name)
         expect(page).to have_content(other_team_name)
-        save_and_open_screenshot
         expect(page.find_all('.dashboard-team-name').map(&:text)).to eq(['main', team_name, other_team_name])
       end
     end

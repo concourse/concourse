@@ -66,9 +66,8 @@ var _ = Describe("Resources API", func() {
 
 				resource2 := new(dbfakes.FakeResource)
 				resource2.IDReturns(2)
-				resource2.CheckErrorReturns(nil)
 				resource2.ResourceConfigCheckErrorReturns(errors.New("sup"))
-				resource2.FailingToCheckReturns(true)
+				resource2.CheckErrorReturns(nil)
 				resource2.PausedReturns(false)
 				resource2.PipelineNameReturns("a-pipeline")
 				resource2.TeamNameReturns("other-team")
@@ -125,6 +124,7 @@ var _ = Describe("Resources API", func() {
 							"team_name": "another-team",
 							"type": "type-3",
 							"paused": true,
+							"failing_to_check": true,
 							"check_setup_error": "sup"
 						}
 					]`))
@@ -184,9 +184,8 @@ var _ = Describe("Resources API", func() {
 
 				resource2 := new(dbfakes.FakeResource)
 				resource2.IDReturns(2)
-				resource2.CheckErrorReturns(nil)
 				resource2.ResourceConfigCheckErrorReturns(errors.New("sup"))
-				resource2.FailingToCheckReturns(true)
+				resource2.CheckErrorReturns(nil)
 				resource2.PausedReturns(false)
 				resource2.PipelineNameReturns("a-pipeline")
 				resource2.NameReturns("resource-2")
@@ -194,8 +193,8 @@ var _ = Describe("Resources API", func() {
 
 				resource3 := new(dbfakes.FakeResource)
 				resource3.IDReturns(3)
-				resource3.CheckErrorReturns(errors.New("sup"))
 				resource3.ResourceConfigCheckErrorReturns(nil)
+				resource3.CheckErrorReturns(errors.New("sup"))
 				resource3.PausedReturns(true)
 				resource3.PipelineNameReturns("a-pipeline")
 				resource3.NameReturns("resource-3")
@@ -260,7 +259,8 @@ var _ = Describe("Resources API", func() {
 						"pipeline_name": "a-pipeline",
 						"team_name": "a-team",
 						"type": "type-3",
-						"paused": true
+						"paused": true,
+						"failing_to_check": true
 					}
 				]`))
 					})
@@ -308,7 +308,8 @@ var _ = Describe("Resources API", func() {
 							"team_name": "a-team",
 							"type": "type-3",
 							"paused": true,
-							"check_setup_error": "sup"
+							"check_setup_error": "sup",
+							"failing_to_check": true
 						}
 					]`))
 				})
@@ -708,7 +709,6 @@ var _ = Describe("Resources API", func() {
 					resource1.ResourceConfigCheckErrorReturns(errors.New("sup"))
 					resource1.PipelineNameReturns("a-pipeline")
 					resource1.NameReturns("resource-1")
-					resource1.FailingToCheckReturns(true)
 					resource1.TypeReturns("type-1")
 					resource1.LastCheckedReturns(time.Unix(1513364881, 0))
 
@@ -779,7 +779,6 @@ var _ = Describe("Resources API", func() {
 					resource1.PausedReturns(true)
 					resource1.PipelineNameReturns("a-pipeline")
 					resource1.NameReturns("resource-1")
-					resource1.FailingToCheckReturns(true)
 					resource1.TypeReturns("type-1")
 					resource1.LastCheckedReturns(time.Unix(1513364881, 0))
 
@@ -839,7 +838,6 @@ var _ = Describe("Resources API", func() {
 					resource1.CheckErrorReturns(errors.New("sup"))
 					resource1.PipelineNameReturns("a-pipeline")
 					resource1.NameReturns("resource-1")
-					resource1.FailingToCheckReturns(true)
 					resource1.TypeReturns("type-1")
 					resource1.LastCheckedReturns(time.Unix(1513364881, 0))
 

@@ -88,7 +88,7 @@ resourceErrorsByPipelineIdentifier resources =
                     ( resource.teamName, resource.pipelineName )
 
                 resourceCheckError =
-                    not (String.isEmpty resource.checkError)
+                    resource.failingToCheck
 
                 resourceError =
                     case Dict.get pipelineIdentifier byPipelineId of

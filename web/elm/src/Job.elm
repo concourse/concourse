@@ -616,7 +616,7 @@ viewBuildInputs : Model -> Concourse.BuildResourcesInput -> Html Msg
 viewBuildInputs model bi =
     Html.tr [ class "mbs pas resource fl clearfix" ]
         [ Html.td [ class "resource-name mrm" ]
-            [ Html.text (bi.resource)
+            [ Html.text (bi.name)
             ]
         , Html.td [ class "resource-version" ]
             [ viewVersion bi.version
@@ -628,7 +628,7 @@ viewBuildOutputs : Model -> Concourse.BuildResourcesOutput -> Html Msg
 viewBuildOutputs model bo =
     Html.tr [ class "mbs pas resource fl clearfix" ]
         [ Html.td [ class "resource-name mrm" ]
-            [ Html.text (bo.resource)
+            [ Html.text (bo.name)
             ]
         , Html.td [ class "resource-version" ]
             [ viewVersion bo.version

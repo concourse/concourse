@@ -487,13 +487,22 @@ view model =
             let
                 ( checkStatus, checkMessage, stepBody ) =
                     if resource.failingToCheck then
-                        ( "fr errored fa fa-fw fa-exclamation-triangle"
-                        , "checking failed"
-                        , [ Html.div [ class "step-body" ]
-                                [ Html.pre [] [ Html.text resource.checkError ]
-                                ]
-                          ]
-                        )
+                        if not (String.isEmpty resource.checkSetupError) then
+                            ( "fr errored fa fa-fw fa-exclamation-triangle"
+                            , "checking failed"
+                            , [ Html.div [ class "step-body" ]
+                                    [ Html.pre [] [ Html.text resource.checkSetupError ]
+                                    ]
+                              ]
+                            )
+                        else
+                            ( "fr errored fa fa-fw fa-exclamation-triangle"
+                            , "checking failed"
+                            , [ Html.div [ class "step-body" ]
+                                    [ Html.pre [] [ Html.text resource.checkError ]
+                                    ]
+                              ]
+                            )
                     else
                         ( "fr succeeded fa fa-fw fa-check", "checking successfully", [] )
 

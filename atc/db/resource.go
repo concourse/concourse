@@ -31,7 +31,6 @@ type Resource interface {
 	Paused() bool
 	WebhookToken() string
 	PinnedVersion() atc.Version
-	FailingToCheck() bool
 	ResourceConfigCheckError() error
 	ResourceConfigID() int
 
@@ -142,9 +141,6 @@ func (r *resource) WebhookToken() string            { return r.webhookToken }
 func (r *resource) PinnedVersion() atc.Version      { return r.pinnedVersion }
 func (r *resource) ResourceConfigCheckError() error { return r.resourceConfigCheckError }
 func (r *resource) ResourceConfigID() int           { return r.resourceConfigID }
-func (r *resource) FailingToCheck() bool {
-	return r.checkError != nil
-}
 
 func (r *resource) Reload() (bool, error) {
 	row := resourcesQuery.Where(sq.Eq{"r.id": r.id}).

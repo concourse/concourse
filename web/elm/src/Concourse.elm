@@ -279,16 +279,13 @@ type alias BuildResources =
 
 type alias BuildResourcesInput =
     { name : String
-    , resource : String
-    , type_ : String
     , version : Version
-    , metadata : Metadata
     , firstOccurrence : Bool
     }
 
 
 type alias BuildResourcesOutput =
-    { resource : String
+    { name : String
     , version : Version
     }
 
@@ -304,17 +301,14 @@ decodeResourcesInput : Json.Decode.Decoder BuildResourcesInput
 decodeResourcesInput =
     Json.Decode.succeed BuildResourcesInput
         |: Json.Decode.field "name" Json.Decode.string
-        |: Json.Decode.field "resource" Json.Decode.string
-        |: Json.Decode.field "type" Json.Decode.string
         |: Json.Decode.field "version" decodeVersion
-        |: Json.Decode.field "metadata" decodeMetadata
         |: Json.Decode.field "first_occurrence" Json.Decode.bool
 
 
 decodeResourcesOutput : Json.Decode.Decoder BuildResourcesOutput
 decodeResourcesOutput =
     Json.Decode.succeed BuildResourcesOutput
-        |: Json.Decode.field "resource" Json.Decode.string
+        |: Json.Decode.field "name" Json.Decode.string
         |: (Json.Decode.field "version" <| Json.Decode.dict Json.Decode.string)
 
 
@@ -632,6 +626,7 @@ type alias Resource =
     , paused : Bool
     , failingToCheck : Bool
     , checkError : String
+    , checkSetupError : String
     , lastChecked : Maybe Date
     }
 
@@ -648,8 +643,6 @@ type alias VersionedResource =
     , version : Version
     , enabled : Bool
     , metadata : Metadata
-    , resourceType : String
-    , resourceName : String
     }
 
 
@@ -670,6 +663,7 @@ decodeResource =
         |: (defaultTo False <| Json.Decode.field "paused" Json.Decode.bool)
         |: (defaultTo False <| Json.Decode.field "failing_to_check" Json.Decode.bool)
         |: (defaultTo "" <| Json.Decode.field "check_error" Json.Decode.string)
+        |: (defaultTo "" <| Json.Decode.field "check_setup_error" Json.Decode.string)
         |: Json.Decode.maybe (Json.Decode.field "last_checked" (Json.Decode.map dateFromSeconds Json.Decode.float))
 
 
@@ -680,8 +674,6 @@ decodeVersionedResource =
         |: Json.Decode.field "version" decodeVersion
         |: Json.Decode.field "enabled" Json.Decode.bool
         |: defaultTo [] (Json.Decode.field "metadata" decodeMetadata)
-        |: Json.Decode.field "type" Json.Decode.string
-        |: Json.Decode.field "resource" Json.Decode.string
 
 
 
