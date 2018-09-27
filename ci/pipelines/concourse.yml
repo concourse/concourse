@@ -3,7 +3,6 @@ groups:
   jobs:
   - unit
   - testflight
-  - baggageclaim
 
 - name: images
   jobs:
@@ -31,21 +30,6 @@ jobs:
       file: concourse/ci/tasks/fly-darwin.yml
     - task: fly-windows
       file: concourse/ci/tasks/fly-windows.yml
-
-- name: baggageclaim
-  public: true
-  serial: true
-  plan:
-  - get: baggageclaim
-    trigger: true
-  - aggregate:
-    - task: unit-linux
-      privileged: true
-      file: baggageclaim/ci/unit-linux.yml
-    - task: unit-darwin
-      file: baggageclaim/ci/unit-darwin.yml
-    - task: unit-windows
-      file: baggageclaim/ci/unit-windows.yml
 
 - name: testflight
   public: true
@@ -111,12 +95,6 @@ resources:
   type: git
   source:
     uri: https://github.com/concourse/concourse.git
-    branch: master
-
-- name: baggageclaim
-  type: git
-  source:
-    uri: https://github.com/concourse/baggageclaim.git
     branch: master
 
 - name: golang-1.x
