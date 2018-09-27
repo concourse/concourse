@@ -2,7 +2,7 @@ package atc
 
 type BuildInputsOutputs struct {
 	Inputs  []PublicBuildInput  `json:"inputs"`
-	Outputs []VersionedResource `json:"outputs"`
+	Outputs []PublicBuildOutput `json:"outputs"`
 }
 
 type PublicBuildInput struct {
@@ -12,13 +12,9 @@ type PublicBuildInput struct {
 	FirstOccurrence bool    `json:"first_occurrence"`
 }
 
-type VersionedResource struct {
-	ID       int             `json:"id"`
-	Type     string          `json:"type"`
-	Metadata []MetadataField `json:"metadata"`
-	Resource string          `json:"resource"`
-	Version  Version         `json:"version"`
-	Enabled  bool            `json:"enabled"`
+type PublicBuildOutput struct {
+	Name    string  `json:"name"`
+	Version Version `json:"version"`
 }
 
 type ResourceVersion struct {

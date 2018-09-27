@@ -31,14 +31,14 @@ var _ = Describe("ATC Handler Build Resources", func() {
 							FirstOccurrence: false,
 						},
 					},
-					Outputs: []atc.VersionedResource{
+					Outputs: []atc.PublicBuildOutput{
 						{
-							Resource: "myresource3",
-							Version:  atc.Version{"version": "value3"},
+							Name:    "myresource3",
+							Version: atc.Version{"version": "value3"},
 						},
 						{
-							Resource: "myresource4",
-							Version:  atc.Version{"version": "value4"},
+							Name:    "myresource4",
+							Version: atc.Version{"version": "value4"},
 						},
 					},
 				}

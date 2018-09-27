@@ -9,14 +9,14 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) ResourceVersions(pipelineName string, resourceName string, page Page) ([]atc.VersionedResource, Pagination, bool, error) {
+func (team *team) ResourceVersions(pipelineName string, resourceName string, page Page) ([]atc.ResourceVersion, Pagination, bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"resource_name": resourceName,
 		"team_name":     team.name,
 	}
 
-	var versionedResources []atc.VersionedResource
+	var resourceVersions []atc.ResourceVersion
 	headers := http.Header{}
 
 	err := team.connection.Send(internal.Request{
@@ -24,21 +24,21 @@ func (team *team) ResourceVersions(pipelineName string, resourceName string, pag
 		Params:      params,
 		Query:       page.QueryParams(),
 	}, &internal.Response{
-		Result:  &versionedResources,
+		Result:  &resourceVersions,
 		Headers: &headers,
 	})
 	switch err.(type) {
 	case nil:
 		pagination, err := paginationFromHeaders(headers)
 		if err != nil {
-			return versionedResources, Pagination{}, false, err
+			return resourceVersions, Pagination{}, false, err
 		}
 
-		return versionedResources, pagination, true, nil
+		return resourceVersions, pagination, true, nil
 	case internal.ResourceNotFoundError:
-		return versionedResources, Pagination{}, false, nil
+		return resourceVersions, Pagination{}, false, nil
 	default:
-		return versionedResources, Pagination{}, false, err
+		return resourceVersions, Pagination{}, false, err
 	}
 }
 

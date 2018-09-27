@@ -6,11 +6,17 @@ import (
 )
 
 func PublicBuildInput(input db.BuildInput, pipelineID int) atc.PublicBuildInput {
-	// XXX: we probably don't need to expose this much here. name and version are all we show in the UI.
 	return atc.PublicBuildInput{
 		Name:            input.Name,
 		Version:         atc.Version(input.Version),
 		PipelineID:      pipelineID,
 		FirstOccurrence: input.FirstOccurrence,
+	}
+}
+
+func PublicBuildOutput(output db.BuildOutput) atc.PublicBuildOutput {
+	return atc.PublicBuildOutput{
+		Name:    output.Name,
+		Version: atc.Version(output.Version),
 	}
 }

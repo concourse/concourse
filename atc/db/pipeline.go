@@ -27,8 +27,8 @@ func (e ErrResourceNotFound) Error() string {
 //go:generate counterfeiter . Pipeline
 
 type Cause struct {
-	VersionedResourceID int `json:"versioned_resource_id"`
-	BuildID             int `json:"build_id"`
+	ResourceVersionID int `json:"resource_version_id"`
+	BuildID           int `json:"build_id"`
 }
 
 type Pipeline interface {
@@ -196,8 +196,8 @@ func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
 		}
 
 		causality = append(causality, Cause{
-			VersionedResourceID: vrID,
-			BuildID:             buildID,
+			ResourceVersionID: vrID,
+			BuildID:           buildID,
 		})
 	}
 
