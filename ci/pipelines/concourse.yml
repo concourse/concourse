@@ -72,7 +72,7 @@ jobs:
   - get: concourse
     trigger: true
   - put: unit-image
-    params: {build: concourse/ci/images/unit}
+    params: {build: concourse/ci/dockerfiles/unit}
 
 - name: dev-image
   public: true
