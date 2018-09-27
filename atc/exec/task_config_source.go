@@ -102,7 +102,7 @@ func (configSource FileConfigSource) FetchConfig(repo *worker.ArtifactRepository
 
 	source, found := repo.SourceFor(sourceName)
 	if !found {
-		return atc.TaskConfig{}, UnknownArtifactSourceError{sourceName}
+		return atc.TaskConfig{}, UnknownArtifactSourceError{sourceName, configSource.Path}
 	}
 
 	stream, err := source.StreamFile(filePath)
@@ -197,11 +197,12 @@ func (configSource ValidatingConfigSource) Warnings() []string {
 // path does not exist in the worker.ArtifactRepository.
 type UnknownArtifactSourceError struct {
 	SourceName worker.ArtifactName
+	ConfigPath string
 }
 
 // Error returns a human-friendly error message.
 func (err UnknownArtifactSourceError) Error() string {
-	return fmt.Sprintf("unknown artifact source: %s", err.SourceName)
+	return fmt.Sprintf("unknown artifact source: '%s' in task config file path '%s'", err.SourceName, err.ConfigPath)
 }
 
 // UnspecifiedArtifactSourceError is returned when the specified path is of a

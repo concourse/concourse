@@ -1,0 +1,173 @@
+groups:
+- name: develop
+  jobs:
+  - unit
+  - testflight
+
+- name: images
+  jobs:
+  - unit-image
+  - dev-image
+
+jobs:
+- name: unit
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      trigger: true
+    - get: unit-image
+  - task: make
+    image: unit-image
+    file: concourse/ci/tasks/make.yml
+  - aggregate:
+    - task: unit
+      image: unit-image
+      file: concourse/ci/tasks/unit.yml
+      input_mapping: {concourse: built-concourse}
+    - task: fly-darwin
+      file: concourse/ci/tasks/fly-darwin.yml
+    - task: fly-windows
+      file: concourse/ci/tasks/fly-windows.yml
+
+- name: testflight
+  public: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [unit]
+      trigger: true
+    - get: unit-image
+      passed: [unit]
+    - get: dev-image
+      params: {format: oci}
+    - get: postgres-image
+      params: {format: oci}
+  - task: make
+    image: unit-image
+    file: concourse/ci/tasks/make.yml
+  - task: testflight
+    image: unit-image
+    privileged: true
+    file: concourse/ci/tasks/docker-compose-testflight.yml
+
+- name: unit-image
+  plan:
+  - get: concourse
+    trigger: true
+  - put: unit-image-build
+    params: {build: concourse/ci/dockerfiles/unit}
+
+- name: dev-image
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [unit]
+      trigger: true
+    - get: gdn
+      trigger: true
+    - get: dumb-init
+      trigger: true
+    - get: mock-resource
+      trigger: true
+    - get: registry-image-resource
+      trigger: true
+    - get: git-resource
+      trigger: true
+    - get: time-resource
+      trigger: true
+    - get: golang-1.x
+      trigger: true
+      params: {save: true}
+    - get: dev-image-build
+      params: {save: true}
+  - put: dev-image-build
+    params:
+      load_base: golang-1.x
+      cache_from: [dev-image-build]
+      dockerfile: concourse/ci/dockerfiles/dev/Dockerfile
+      build: .
+
+resources:
+- name: concourse
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse.git
+    branch: master
+
+- name: golang-1.x
+  type: docker-image
+  source:
+    repository: golang
+    tag: 1
+
+- name: dev-image
+  type: registry-image
+  source: {repository: concourse/dev}
+
+- name: dev-image-build
+  type: docker-image
+  source:
+    repository: concourse/dev
+    username: ((docker.username))
+    password: ((docker.password))
+
+- name: unit-image
+  type: registry-image
+  source: {repository: concourse/unit}
+
+- name: unit-image-build
+  type: docker-image
+  source:
+    repository: concourse/unit
+    username: ((docker.username))
+    password: ((docker.password))
+
+- name: postgres-image
+  type: registry-image
+  source: {repository: postgres}
+
+- name: dumb-init
+  type: github-release
+  source:
+    owner: Yelp
+    repository: dumb-init
+    access_token: ((concourse_github_dummy.access_token))
+
+- name: gdn
+  type: github-release
+  source:
+    owner: cloudfoundry
+    repository: garden-runc-release
+    access_token: ((concourse_github_dummy.access_token))
+
+- name: mock-resource
+  type: github-release
+  source:
+    owner: concourse
+    repository: mock-resource
+    access_token: ((concourse_github_dummy.access_token))
+
+- name: registry-image-resource
+  type: github-release
+  source:
+    owner: concourse
+    repository: registry-image-resource
+    access_token: ((concourse_github_dummy.access_token))
+
+- name: git-resource
+  type: github-release
+  source:
+    owner: concourse
+    repository: git-resource
+    access_token: ((concourse_github_dummy.access_token))
+
+- name: time-resource
+  type: github-release
+  source:
+    owner: concourse
+    repository: time-resource
+    access_token: ((concourse_github_dummy.access_token))

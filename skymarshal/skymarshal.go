@@ -10,12 +10,13 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/flag"
 	"github.com/concourse/concourse/skymarshal/dexserver"
 	"github.com/concourse/concourse/skymarshal/legacyserver"
 	"github.com/concourse/concourse/skymarshal/skycmd"
 	"github.com/concourse/concourse/skymarshal/skyserver"
+	"github.com/concourse/concourse/skymarshal/storage"
 	"github.com/concourse/concourse/skymarshal/token"
+	"github.com/concourse/flag"
 )
 
 type Config struct {
@@ -24,7 +25,7 @@ type Config struct {
 	Flags       skycmd.AuthFlags
 	ExternalURL string
 	HttpClient  *http.Client
-	Postgres    flag.PostgresConfig
+	Storage     storage.Storage
 }
 
 type Server struct {
@@ -82,7 +83,7 @@ func NewServer(config *Config) (*Server, error) {
 		ClientID:     clientId,
 		ClientSecret: clientSecret,
 		RedirectURL:  redirectURL,
-		Postgres:     config.Postgres,
+		Storage:      config.Storage,
 	})
 	if err != nil {
 		return nil, err

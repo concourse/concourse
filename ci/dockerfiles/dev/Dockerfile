@@ -30,6 +30,8 @@ RUN chmod +x /usr/local/bin/dumb-init && chmod +x /usr/local/bin/gdn
 # extract resource types
 ADD mock-resource/mock-resource-*.tgz /concourse-resource-types/mock
 ADD registry-image-resource/registry-image-resource-*.tgz /concourse-resource-types/registry-image
+ADD time-resource/time-resource-*.tgz /concourse-resource-types/time
+ADD git-resource/git-resource-*.tgz /concourse-resource-types/git
 ENV CONCOURSE_RESOURCE_TYPES /concourse-resource-types
 
 # volume for non-aufs/etc. mount for baggageclaim's driver

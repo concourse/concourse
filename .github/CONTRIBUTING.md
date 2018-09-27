@@ -20,47 +20,78 @@ You'll need a few things installed in order to build and run Concourse during
 development:
 
 * [`go`](https://golang.org/dl/) v1.11+
+* [`git`](https://git-scm.com/) v2.11+
 * [`yarn`](https://yarnpkg.com/en/docs/install)
 * [`docker-compose`](https://docs.docker.com/compose/install/)
+
+You'll also, of course, need to clone this repo:
+
+```sh
+$ git clone https://github.com/concourse/concourse
+```
 
 
 ## Prerequisite: building the web UI
 
 Concourse is written in Go, but the web UI is written in
-[Elm](https://elm-lang.org) and Less. Before running Concourse you'll need to
-build the JS/CSS assets, like so:
+[Elm](https://elm-lang.org) and [Less](http://lesscss.org/). Before running
+Concourse you'll need to compile them to their `.js`/.`css` assets, like so:
 
+**Install dependencies:**
 ```sh
-# install dependencies
 $ yarn install
+```
 
-# build Elm/Less source
+**build Elm/Less source:**
+```sh
 $ yarn build
 ```
 
 
 ## Running Concourse
 
-To build and run Concourse from the repo, just run:
+To build and run a Concourse cluster from source, run the following in the root
+of this repo:
 
 ```sh
 $ docker-compose up
 ```
 
 Concourse will be running and reachable at
-[localhost:8080](http://localhost:8080). Next you may want to build `fly` and
-target your local Concourse:
+[localhost:8080](http://localhost:8080).
+
+### Building `fly` and targeting your local Concourse
+
+To build and install the `fly` CLI from source, run:
 
 ```sh
 $ go install ./fly
-$ fly -t local login -c http://localhost:8080 -u test -p test
 ```
 
+This will install a `fly` executable to your `$GOPATH/bin`, so make sure that's
+on your `$PATH`!
+
+Once `fly` is built, you can get a test pipeline running like this:
+
+**Log into the locally-running Concourse instance targeted as `dev`:**
+```sh
+$ fly -t dev login -c http://localhost:8080 -u test -p test
+```
+
+**Create an example pipeline that runs a hello world job every minute:**
+```sh
+$ fly -t dev set-pipeline -p example -c examples/hello-world-every-minute.yml
+```
+
+**Unpause the example pipeline:**
+```sh
+$ fly -t dev unpause-pipeline -p example
+```
 
 ### Rebuilding to test your changes
 
-If you're working on server-side components, you can try out your changes by
-rebuilding and recreating the `web` and `worker` containers, like so:
+As you're working on server-side components, you can try out your changes by
+rebuilding and recreating the `web` and `worker` containers:
 
 ```sh
 $ docker-compose up --build -d
@@ -70,40 +101,27 @@ This can be run while the original `docker-compose up` command is still running.
 
 ### Working on the web UI
 
-The feedback loop for the web UI is a bit quicker. The `Dockerfile` mounts the
-source code over `/src` after building the binary, which means changes to the
-frontend assets (compiled Elm code and CSS) will automatically propagate to the
-container.
-
-So any time you want to see your changes to the web UI, just run:
-
-```sh
-$ yarn build
-```
-
-...and then reload your browser.
-
-You can also auto-rebuild when files change by running the following:
+We already showed how to run `yarn build` during the initial setup, but if
+you're actually working on the web UI you'll probably want to use `watch`
+instead:
 
 ```sh
 $ yarn watch
 ```
 
-### Working on `fly`
+This will continuously monitor your local `.elm`/`.less` files and run `yarn
+build` whenever they change.
 
-If you're working on the `fly` CLI, you can install it locally like so:
-
-```sh
-$ go install ./fly
-```
-
-This will install a `fly` executable to your `$GOPATH/bin`.
+If you're just working on the web UI, you won't need to restart or rebuild the
+`docker-compose` containers. The `Dockerfile` mounts the local code to the `web`
+container as a shared volume, so changes to the `.js`/`.css` assets will
+automatically propagate without needing a restart.
 
 
 ## Connecting to Postgres
 
-If you're working on things like the database schema and want to inspect the
-database, you can connect to the `db` node using the following parameters:
+If you want to poke around the database, you can connect to the `db` node using
+the following parameters:
 
 * host: `localhost`
 * port: `6543`
@@ -115,6 +133,15 @@ So you'd connect with something like `psql` like so:
 
 ```sh
 $ psql -h localhost -p 6543 -U dev concourse
+```
+
+To reset the database, you'll need to stop everything and then blow away the
+`db` container:
+
+```sh
+$ docker-compose stop # or Ctrl+C the running session
+$ docker-compose rm db
+$ docker-compose start
 ```
 
 

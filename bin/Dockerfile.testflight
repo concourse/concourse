@@ -1,3 +1,0 @@
-FROM concourse/atc-ci
-
-RUN apt-get -y update && apt-get -y install openssh-client netcat iptables iproute2

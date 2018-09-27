@@ -4,7 +4,7 @@ import (
 	"os"
 )
 
-const defaultATCURL = "http://127.0.0.1:8080"
+const defaultATCURL = "http://localhost:8080"
 
 var storedATCURL string
 

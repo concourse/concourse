@@ -2,7 +2,6 @@ package dexserver_test
 
 import (
 	"os"
-	"time"
 
 	"github.com/concourse/concourse/atc/postgresrunner"
 	. "github.com/onsi/ginkgo"
@@ -37,5 +36,5 @@ var _ = AfterEach(func() {
 
 var _ = AfterSuite(func() {
 	dbProcess.Signal(os.Interrupt)
-	Eventually(dbProcess.Wait(), 10*time.Second).Should(Receive())
+	<-dbProcess.Wait()
 })

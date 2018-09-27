@@ -303,7 +303,7 @@ run: {path: a/file}
 
 		Context("when the file's artifact source cannot be found in the repository", func() {
 			It("returns an UnknownArtifactSourceError", func() {
-				Expect(fetchErr).To(Equal(UnknownArtifactSourceError{"some"}))
+				Expect(fetchErr).To(Equal(UnknownArtifactSourceError{SourceName: "some", ConfigPath: "some/build.yml"}))
 			})
 		})
 	})

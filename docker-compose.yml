@@ -22,8 +22,8 @@ services:
     - CONCOURSE_POSTGRES_PASSWORD=dev
     - CONCOURSE_POSTGRES_DATABASE=concourse
     - CONCOURSE_EXTERNAL_URL=http://localhost:8080
-    - CONCOURSE_ADD_LOCAL_USER=test:test
-    - CONCOURSE_MAIN_TEAM_ALLOW_ALL_USERS=true
+    - CONCOURSE_ADD_LOCAL_USER=test:test,guest:guest
+    - CONCOURSE_MAIN_TEAM_LOCAL_USER=test
     - CONCOURSE_TSA_HEARTBEAT_INTERVAL=5s
     - CONCOURSE_LOG_LEVEL=debug
 
@@ -36,3 +36,10 @@ services:
     environment:
     - CONCOURSE_TSA_HOST=web:2222
     - CONCOURSE_EPHEMERAL=true
+
+      # avoid using loopbacks
+    - CONCOURSE_BAGGAGECLAIM_DRIVER=overlay
+
+      # so that CI can configure a different network range that doesn't overlap
+      # with the outer Garden
+    - CONCOURSE_GARDEN_NETWORK_POOL

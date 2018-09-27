@@ -134,6 +134,17 @@ type FakeClient struct {
 	hTTPClientReturnsOnCall map[int]struct {
 		result1 *http.Client
 	}
+	LandWorkerStub        func(string) error
+	landWorkerMutex       sync.RWMutex
+	landWorkerArgsForCall []struct {
+		arg1 string
+	}
+	landWorkerReturns struct {
+		result1 error
+	}
+	landWorkerReturnsOnCall map[int]struct {
+		result1 error
+	}
 	ListPipelinesStub        func() ([]atc.Pipeline, error)
 	listPipelinesMutex       sync.RWMutex
 	listPipelinesArgsForCall []struct {
@@ -722,6 +733,56 @@ func (fake *FakeClient) HTTPClientReturnsOnCall(i int, result1 *http.Client) {
 	}{result1}
 }
 
+func (fake *FakeClient) LandWorker(arg1 string) error {
+	fake.landWorkerMutex.Lock()
+	ret, specificReturn := fake.landWorkerReturnsOnCall[len(fake.landWorkerArgsForCall)]
+	fake.landWorkerArgsForCall = append(fake.landWorkerArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("LandWorker", []interface{}{arg1})
+	fake.landWorkerMutex.Unlock()
+	if fake.LandWorkerStub != nil {
+		return fake.LandWorkerStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.landWorkerReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeClient) LandWorkerCallCount() int {
+	fake.landWorkerMutex.RLock()
+	defer fake.landWorkerMutex.RUnlock()
+	return len(fake.landWorkerArgsForCall)
+}
+
+func (fake *FakeClient) LandWorkerArgsForCall(i int) string {
+	fake.landWorkerMutex.RLock()
+	defer fake.landWorkerMutex.RUnlock()
+	argsForCall := fake.landWorkerArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeClient) LandWorkerReturns(result1 error) {
+	fake.LandWorkerStub = nil
+	fake.landWorkerReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeClient) LandWorkerReturnsOnCall(i int, result1 error) {
+	fake.LandWorkerStub = nil
+	if fake.landWorkerReturnsOnCall == nil {
+		fake.landWorkerReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.landWorkerReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeClient) ListPipelines() ([]atc.Pipeline, error) {
 	fake.listPipelinesMutex.Lock()
 	ret, specificReturn := fake.listPipelinesReturnsOnCall[len(fake.listPipelinesArgsForCall)]
@@ -1186,6 +1247,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.getInfoMutex.RUnlock()
 	fake.hTTPClientMutex.RLock()
 	defer fake.hTTPClientMutex.RUnlock()
+	fake.landWorkerMutex.RLock()
+	defer fake.landWorkerMutex.RUnlock()
 	fake.listPipelinesMutex.RLock()
 	defer fake.listPipelinesMutex.RUnlock()
 	fake.listTeamsMutex.RLock()

@@ -700,8 +700,10 @@ describe 'dashboard', type: :feature do
         expect(page).to_not have_content 'other-pipeline-private'
       end
 
-      it 'shows the teams ordered by the number of pipelines' do
+      it 'shows the teams ordered by the number of pipelines when unauthenticated' do
         fly_login 'main'
+        fly_login team_name
+        fly('expose-pipeline -p some-pipeline')
         fly_with_input("set-team -n #{other_team_name} --local-user=#{ATC_USERNAME}", 'y')
 
         fly_login other_team_name
@@ -713,11 +715,6 @@ describe 'dashboard', type: :feature do
         visit dash_route('/hd')
         expect(page).to have_css('.dashboard-team-name')
         expect(page.first('.dashboard-team-name').text).to eq(other_team_name)
-
-        visit_hd_dashboard
-        expect(page).to have_content(team_name)
-        expect(page).to have_content(other_team_name)
-        expect(page.first('.dashboard-team-name').text).to eq(team_name)
       end
     end
 

@@ -63,6 +63,7 @@ type FlyCommand struct {
 	Volumes VolumesCommand `command:"volumes" alias:"vs" description:"List the active volumes"`
 
 	Workers     WorkersCommand     `command:"workers" alias:"ws" description:"List the registered workers"`
+	LandWorker  LandWorkerCommand  `command:"land-worker" alias:"lw" description:"Land a worker"`
 	PruneWorker PruneWorkerCommand `command:"prune-worker" alias:"pw" description:"Prune a stalled, landing, landed, or retiring worker"`
 }
 

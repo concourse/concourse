@@ -36,8 +36,8 @@ var _ = Describe("A job with multiple inputs", func() {
 			"-v", "hash-2="+hash2.String(),
 		)
 
-		firstVersionA = newMockVersion("some-resource-a")
-		firstVersionB = newMockVersion("some-resource-b")
+		firstVersionA = newMockVersion("some-resource-a", "first-a")
+		firstVersionB = newMockVersion("some-resource-b", "first-b")
 
 		tmpdir, err = ioutil.TempDir("", "fly-test")
 		Expect(err).NotTo(HaveOccurred())
