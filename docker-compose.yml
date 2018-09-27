@@ -36,4 +36,10 @@ services:
     environment:
     - CONCOURSE_TSA_HOST=web:2222
     - CONCOURSE_EPHEMERAL=true
-    - CONCOURSE_GARDEN_NETWORK_POOL # for CI
+
+      # avoid using loopbacks
+    - CONCOURSE_BAGGAGECLAIM_DRIVER=overlay
+
+      # so that CI can configure a different network range that doesn't overlap
+      # with the outer Garden
+    - CONCOURSE_GARDEN_NETWORK_POOL
