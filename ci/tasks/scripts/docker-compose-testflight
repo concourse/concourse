@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e -u -x
+set -e -u
 
 export GOPATH=$PWD/gopath
 export PATH=$GOPATH/bin:$PATH
