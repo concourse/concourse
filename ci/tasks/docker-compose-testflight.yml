@@ -1,0 +1,21 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: concourse/unit}
+
+inputs:
+- name: concourse
+- name: built-concourse
+  optional: true
+- name: dev-image
+  optional: true
+- name: postgres-image
+  optional: true
+
+caches:
+- path: gopath
+
+run:
+  path: concourse/ci/tasks/scripts/docker-compose-testflight

@@ -1,0 +1,45 @@
+#!/bin/bash
+
+set -e -u -x
+
+export GOPATH=$PWD/gopath
+export PATH=$GOPATH/bin:$PATH
+
+source concourse/ci/tasks/scripts/docker-helpers.sh
+
+# make loopback devices available for 'gdn' and the btrfs volume driver
+# XXX: remove once 'gdn' doesn't need xfs and we're back to overlay as default
+for i in $(seq 0 15); do \
+  mknod -m 0660 /dev/loop$i b 7 $i; \
+done
+
+[ -d dev-image ] && docker load -i dev-image/image.tar
+[ -d postgres-image ] && docker load -i postgres-image/image.tar
+
+start_docker
+
+if [ -d built-concourse ]; then
+  cd built-concourse
+else
+  cd concourse
+
+  # for better yarn output
+  stty columns 80
+  yarn install
+  yarn build
+fi
+
+# do not collide with outer Concourse network
+export CONCOURSE_GARDEN_NETWORK_POOL="10.224.0.0/16"
+docker-compose up -d
+
+until test $(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/v1/info) -eq 200; do
+  echo "waiting for ATC..."
+  sleep 1
+done
+
+go mod download
+
+go install github.com/onsi/ginkgo/ginkgo
+
+ginkgo -r -nodes=3 -race ./testflight "$@"

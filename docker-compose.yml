@@ -36,3 +36,4 @@ services:
     environment:
     - CONCOURSE_TSA_HOST=web:2222
     - CONCOURSE_EPHEMERAL=true
+    - CONCOURSE_GARDEN_NETWORK_POOL # for CI
