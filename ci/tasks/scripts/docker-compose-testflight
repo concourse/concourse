@@ -13,10 +13,10 @@ for i in $(seq 0 15); do \
   mknod -m 0660 /dev/loop$i b 7 $i; \
 done
 
+start_docker
+
 [ -d dev-image ] && docker load -i dev-image/image.tar
 [ -d postgres-image ] && docker load -i postgres-image/image.tar
-
-start_docker
 
 if [ -d built-concourse ]; then
   cd built-concourse
