@@ -37,6 +37,7 @@ jobs:
   - aggregate:
     - get: concourse
       passed: [unit]
+      trigger: true
     - get: unit-image
       passed: [unit]
     - get: dev-image
