@@ -348,17 +348,17 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	}
 	lockFactory := lock.NewLockFactory(lockConn)
 
-	storage, err := storage.NewPostgresStorage(logger, cmd.Postgres)
-	if err != nil {
-		return nil, err
-	}
-
 	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, 32, "api", lockFactory)
 	if err != nil {
 		return nil, err
 	}
 
 	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, 32, "backend", lockFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	storage, err := storage.NewPostgresStorage(logger, cmd.Postgres)
 	if err != nil {
 		return nil, err
 	}
