@@ -90,6 +90,10 @@ jobs:
       trigger: true
     - get: registry-image-resource
       trigger: true
+    - get: git-resource
+      trigger: true
+    - get: time-resource
+      trigger: true
     - get: golang-1.x
       trigger: true
       params: {save: true}
@@ -99,7 +103,7 @@ jobs:
     params:
       load_base: golang-1.x
       cache_from: [dev-image]
-      dockerfile: concourse/dev/Dockerfile
+      dockerfile: concourse/ci/dockerfiles/dev/Dockerfile
       build: .
 
 resources:
@@ -167,4 +171,18 @@ resources:
   source:
     owner: concourse
     repository: registry-image-resource
+    access_token: ((concourse_github_dummy.access_token))
+
+- name: git-resource
+  type: github-release
+  source:
+    owner: concourse
+    repository: git-resource
+    access_token: ((concourse_github_dummy.access_token))
+
+- name: time-resource
+  type: github-release
+  source:
+    owner: concourse
+    repository: time-resource
     access_token: ((concourse_github_dummy.access_token))
