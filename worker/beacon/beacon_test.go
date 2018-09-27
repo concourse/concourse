@@ -10,8 +10,8 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/baggageclaim/volume"
+	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/worker/beacon"
 	"github.com/concourse/concourse/worker/beacon/beaconfakes"
 
@@ -72,13 +72,6 @@ var _ = Describe("Beacon", func() {
 				registerErr     chan error
 			)
 
-			JustBeforeEach(func() {
-				go func() {
-					registerErr <- beacon.Register(signals, make(chan struct{}, 1))
-					close(registerErr)
-				}()
-			})
-
 			BeforeEach(func() {
 				registerErr = make(chan error, 1)
 				keepAliveErr = make(chan error, 1)
@@ -92,6 +85,17 @@ var _ = Describe("Beacon", func() {
 				}
 
 				fakeClient.KeepAliveReturns(keepAliveErr, cancelKeepAlive)
+			})
+
+			JustBeforeEach(func() {
+				go func() {
+					registerErr <- beacon.Register(signals, make(chan struct{}, 1))
+					close(registerErr)
+				}()
+			})
+
+			AfterEach(func() {
+				Eventually(registerErr).Should(BeClosed())
 			})
 
 			It("closes the session and waits for it to shut down", func() {
@@ -218,10 +222,13 @@ var _ = Describe("Beacon", func() {
 			wait chan bool
 		)
 
-		JustBeforeEach(func() {
+		BeforeEach(func() {
 			signals = make(chan os.Signal)
-			retireErr = make(chan error)
+			retireErr = make(chan error, 1)
 			wait = make(chan bool, 1)
+		})
+
+		JustBeforeEach(func() {
 			go func() {
 				retireErr <- beacon.RetireWorker(signals, make(chan struct{}, 1))
 				close(retireErr)
@@ -363,18 +370,11 @@ var _ = Describe("Beacon", func() {
 				landErr         chan error
 			)
 
-			JustBeforeEach(func() {
-				go func() {
-					landErr <- beacon.LandWorker(signals, make(chan struct{}, 1))
-					close(landErr)
-				}()
-			})
-
 			BeforeEach(func() {
 				keepAliveErr = make(chan error, 1)
 				cancelKeepAlive = make(chan struct{}, 1)
 				wait = make(chan bool, 1)
-				landErr = make(chan error)
+				landErr = make(chan error, 1)
 
 				fakeSession.WaitStub = func() error {
 					<-wait
@@ -382,6 +382,17 @@ var _ = Describe("Beacon", func() {
 				}
 
 				fakeClient.KeepAliveReturns(keepAliveErr, cancelKeepAlive)
+			})
+
+			JustBeforeEach(func() {
+				go func() {
+					landErr <- beacon.LandWorker(signals, make(chan struct{}, 1))
+					close(landErr)
+				}()
+			})
+
+			AfterEach(func() {
+				Eventually(landErr).Should(BeClosed())
 			})
 
 			It("closes the session and waits for it to shut down", func() {
