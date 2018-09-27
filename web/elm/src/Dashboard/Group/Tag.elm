@@ -1,8 +1,6 @@
 module Dashboard.Group.Tag exposing (..)
 
 import Concourse
-import Html
-import Html.Attributes exposing (class)
 import List.Extra
 import Ordering exposing (Ordering)
 
