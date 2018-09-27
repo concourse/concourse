@@ -39,7 +39,7 @@ var _ = Describe("Resource version", func() {
 		})
 
 		Describe("version: every", func() {
-			FIt("runs builds with every version", func() {
+			It("runs builds with every version", func() {
 				flyHelper.ConfigurePipeline(
 					pipelineName,
 					"-c", "fixtures/resource-version-every.yml",
