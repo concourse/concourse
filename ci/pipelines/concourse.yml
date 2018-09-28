@@ -77,6 +77,7 @@ jobs:
 - name: unit-image
   plan:
   - get: concourse
+    resource: unit-dockerfile
     trigger: true
   - put: unit-image-build
     params: {build: concourse/ci/dockerfiles/unit}
@@ -119,6 +120,13 @@ resources:
   source:
     uri: https://github.com/concourse/concourse.git
     branch: master
+
+- name: unit-dockerfile
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse.git
+    branch: master
+    paths: [ci/dockerfiles/unit]
 
 - name: golang-1.x
   type: docker-image
