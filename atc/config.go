@@ -40,14 +40,14 @@ type GroupConfig struct {
 
 type GroupConfigs []GroupConfig
 
-func (groups GroupConfigs) Lookup(name string) (GroupConfig, bool) {
-	for _, group := range groups {
+func (groups GroupConfigs) Lookup(name string) (GroupConfig, int, bool) {
+	for index, group := range groups {
 		if group.Name == name {
-			return group, true
+			return group, index, true
 		}
 	}
 
-	return GroupConfig{}, false
+	return GroupConfig{}, -1, false
 }
 
 type ResourceConfig struct {

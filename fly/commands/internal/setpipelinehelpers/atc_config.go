@@ -314,7 +314,7 @@ func diff(existingConfig atc.Config, newConfig atc.Config) bool {
 
 	indent := gexec.NewPrefixedWriter("  ", os.Stdout)
 
-	groupDiffs := diffIndices(GroupIndex(existingConfig.Groups), GroupIndex(newConfig.Groups))
+	groupDiffs := groupDiffIndices(GroupIndex(existingConfig.Groups), GroupIndex(newConfig.Groups))
 	if len(groupDiffs) > 0 {
 		diffExists = true
 		fmt.Println("groups:")

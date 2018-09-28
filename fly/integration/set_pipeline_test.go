@@ -769,6 +769,64 @@ this is super secure
 				})
 			})
 
+			Context("when configuring with groups re-ordered", func() {
+				BeforeEach(func() {
+					changedConfig.Groups = atc.GroupConfigs{
+						{
+							Name:      "some-other-group",
+							Jobs:      []string{"job-3", "job-4"},
+							Resources: []string{"resource-6", "resource-4"},
+						},
+						{
+							Name:      "some-group",
+							Jobs:      []string{"job-1", "job-2"},
+							Resources: []string{"resource-1", "resource-2"},
+						},
+					}
+
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					Expect(err).NotTo(HaveOccurred())
+
+					atcServer.RouteToHandler("PUT", path,
+						ghttp.CombineHandlers(
+							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+							func(w http.ResponseWriter, r *http.Request) {
+								config := getConfig(r)
+								Expect(config).To(MatchYAML(payload))
+							},
+							ghttp.RespondWith(http.StatusOK, "{}"),
+						),
+					)
+				})
+
+				It("parses the config file and sends it to the ATC", func() {
+					Expect(func() {
+						flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
+
+						stdin, err := flyCmd.StdinPipe()
+						Expect(err).NotTo(HaveOccurred())
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+
+						Eventually(sess).Should(gbytes.Say("group some-group has changed"))
+
+						Eventually(sess).Should(gbytes.Say("group some-other-group has changed"))
+
+						Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+						yes(stdin)
+
+						Eventually(sess).Should(gbytes.Say("configuration updated"))
+
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
+
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(3))
+				})
+			})
+
 			Context("when configuring succeeds", func() {
 				BeforeEach(func() {
 					newGroup := changedConfig.Groups[1]
