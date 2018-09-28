@@ -76,11 +76,17 @@ jobs:
 
 - name: unit-image
   plan:
-  - get: concourse
-    resource: unit-dockerfile
-    trigger: true
+  - aggregate:
+    - get: concourse
+      resource: unit-dockerfile
+      trigger: true
+    - get: golang-1.x
+      trigger: true
+      params: {save: true}
   - put: unit-image-build
-    params: {build: concourse/ci/dockerfiles/unit}
+    params:
+      load_base: golang-1.x
+      build: concourse/ci/dockerfiles/unit
 
 - name: dev-image
   public: true
