@@ -34,4 +34,4 @@ RUN curl -L "https://github.com/docker/compose/releases/download/1.22.0/docker-c
 # install Chrome for Puppeteer
 RUN curl -fsSL https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
 RUN add-apt-repository "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main"
-RUN apt-get update && && apt-get -y install google-chrome-unstable --no-install-recommends
+RUN apt-get update && apt-get -y install google-chrome-unstable --no-install-recommends
