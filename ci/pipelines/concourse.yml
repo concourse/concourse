@@ -75,6 +75,8 @@ jobs:
     file: concourse/ci/tasks/docker-compose-watsjs.yml
 
 - name: unit-image
+  public: true
+  serial: true
   plan:
   - aggregate:
     - get: concourse
