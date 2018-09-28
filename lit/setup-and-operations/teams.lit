@@ -93,6 +93,18 @@ against the teams that have granted them access.
   }
 
   \section{
+    \title{\code{fly teams -d}\aux{: With Details}}{fly teams -d}
+
+    To list all the teams with authentication details and members, run:
+
+    \codeblock{bash}{{
+    $ fly -t example teams -d
+    }}
+
+    This can be helpful when debugging OAuth, OIDC groups or listing all individual members.
+  }
+
+  \section{
     \title{\code{rename-team}\aux{: Renaming Teams}}{fly-rename-team}
 
     To rename a team, run:
@@ -282,6 +294,24 @@ against the teams that have granted them access.
         --oidc-user my-username \
         --oidc-group my-group
     }}}
+  }
+
+  \section{
+    \title{Debugging Team Auth Configuration}{team-auth-debugging}
+
+    You can list users and groups for all teams pertaining how the team is 
+    created based on group or individual user. Helpful for troubleshooting.
+
+    For example:
+
+    \codeblock{bash}{{{
+    $ fly -t target teams -d 
+    }}}
+
+    When authentication errors occur look at concourse TSA logs.
+
+    Also, make sure workers and web UI are restarted when fundamental changes 
+    occur to the auth configurations (i.e. changing the callback URL.)
   }
 }
 
