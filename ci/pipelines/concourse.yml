@@ -3,6 +3,7 @@ groups:
   jobs:
   - unit
   - testflight
+  - watsjs
 
 - name: images
   jobs:
@@ -51,6 +52,27 @@ jobs:
     image: unit-image
     privileged: true
     file: concourse/ci/tasks/docker-compose-testflight.yml
+
+- name: watsjs
+  public: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [unit]
+      trigger: true
+    - get: unit-image
+      passed: [unit]
+    - get: dev-image
+      params: {format: oci}
+    - get: postgres-image
+      params: {format: oci}
+  - task: make
+    image: unit-image
+    file: concourse/ci/tasks/make.yml
+  - task: watsjs
+    image: unit-image
+    privileged: true
+    file: concourse/ci/tasks/docker-compose-watsjs.yml
 
 - name: unit-image
   plan:

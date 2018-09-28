@@ -19,4 +19,4 @@ caches:
 
 run:
   path: concourse/ci/tasks/scripts/with-docker-compose
-  args: [concourse/ci/tasks/scripts/testflight]
+  args: [concourse/ci/tasks/scripts/watsjs]
