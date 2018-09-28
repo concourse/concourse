@@ -34,6 +34,7 @@ jobs:
 
 - name: testflight
   public: true
+  max_in_flight: 2
   plan:
   - aggregate:
     - get: concourse
@@ -55,6 +56,7 @@ jobs:
 
 - name: watsjs
   public: true
+  max_in_flight: 2
   plan:
   - aggregate:
     - get: concourse
