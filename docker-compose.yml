@@ -11,6 +11,7 @@ services:
 
   web:
     build: .
+    image: concourse/build
     volumes:
     - .:/src
     command: web
@@ -29,6 +30,7 @@ services:
 
   worker:
     build: .
+    image: concourse/build
     command: worker
     privileged: true
     depends_on: [web]

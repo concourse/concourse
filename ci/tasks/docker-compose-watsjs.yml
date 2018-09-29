@@ -7,9 +7,7 @@ image_resource:
 
 inputs:
 - name: concourse
-- name: built-concourse
-  optional: true
-- name: dev-image
+- name: build-image
   optional: true
 - name: postgres-image
   optional: true

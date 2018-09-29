@@ -18,11 +18,6 @@ function cleanup_loopbacks() {
   done
 }
 
-concourse_dir=$PWD/concourse
-if [ -d built-concourse ]; then
-  concourse_dir=$PWD/built-concourse
-fi
-
 function cleanup() {
   docker-compose -f $concourse_dir/docker-compose.yml down
   stop_docker
@@ -34,14 +29,15 @@ trap cleanup EXIT
 create_loopbacks
 start_docker
 
-[ -d dev-image ] && docker load -i dev-image/image.tar
+[ -d build-image ] && docker load -i build-image/image.tar
 [ -d postgres-image ] && docker load -i postgres-image/image.tar
 
-pushd $concourse_dir
-  # for better yarn output
-  stty columns 80
-  yarn install
-  yarn build
+pushd concourse
+  if ! [ -d ../build-image ]; then
+    stty columns 80 # for better yarn output
+    yarn install
+    yarn build
+  fi
 
   # do not collide with outer Concourse network
   export CONCOURSE_GARDEN_NETWORK_POOL="10.224.0.0/16"

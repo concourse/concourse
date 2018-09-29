@@ -1,3 +1,8 @@
+resource_types:
+- name: registry-image-beta
+  type: registry-image
+  source: {repository: concourse/registry-image-resource}
+
 groups:
 - name: develop
   jobs:
@@ -19,6 +24,7 @@ jobs:
     - get: concourse
       trigger: true
     - get: unit-image
+    - get: builder
   - task: make
     image: unit-image
     file: concourse/ci/tasks/make.yml
@@ -31,6 +37,22 @@ jobs:
       file: concourse/ci/tasks/fly-darwin.yml
     - task: fly-windows
       file: concourse/ci/tasks/fly-windows.yml
+  - task: build
+    image: builder
+    privileged: true
+    input_mapping: {source: built-concourse}
+    config:
+      platform: linux
+      params:
+        REPOSITORY: concourse/build
+        TAG: latest
+        CONTEXT: ci/dockerfiles/unit
+        DOCKERFILE: ci/dockerfiles/unit/Dockerfile
+      inputs: [{name: source}]
+      outputs: [{name: image}]
+      run: {path: /kaniko/build}
+  - put: build-image
+    params: {image: image/image.tar}
 
 - name: testflight
   public: true
@@ -42,13 +64,11 @@ jobs:
       trigger: true
     - get: unit-image
       passed: [unit]
-    - get: dev-image
+    - get: build-image
+      passed: [unit]
       params: {format: oci}
     - get: postgres-image
       params: {format: oci}
-  - task: make
-    image: unit-image
-    file: concourse/ci/tasks/make.yml
   - task: testflight
     image: unit-image
     privileged: true
@@ -64,13 +84,11 @@ jobs:
       trigger: true
     - get: unit-image
       passed: [unit]
-    - get: dev-image
+    - get: build-image
+      passed: [unit]
       params: {format: oci}
     - get: postgres-image
       params: {format: oci}
-  - task: make
-    image: unit-image
-    file: concourse/ci/tasks/make.yml
   - task: watsjs
     image: unit-image
     privileged: true
@@ -148,6 +166,13 @@ resources:
   type: registry-image
   source: {repository: concourse/dev}
 
+- name: build-image
+  type: registry-image-beta
+  source:
+    repository: concourse/build
+    username: ((docker.username))
+    password: ((docker.password))
+
 - name: dev-image-build
   type: docker-image
   source:
@@ -211,3 +236,7 @@ resources:
     owner: concourse
     repository: time-resource
     access_token: ((concourse_github_dummy.access_token))
+
+- name: builder
+  type: registry-image
+  source: {repository: concourse/builder}
