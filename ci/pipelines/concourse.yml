@@ -1,3 +1,8 @@
+resource_types:
+- name: registry-image-beta
+  type: registry-image
+  source: {repository: concourse/registry-image-resource}
+
 groups:
 - name: develop
   jobs:
@@ -84,13 +89,22 @@ jobs:
     - get: concourse
       resource: unit-dockerfile
       trigger: true
-    - get: golang-1.x
-      trigger: true
-      params: {save: true}
-  - put: unit-image-build
-    params:
-      load_base: golang-1.x
-      build: concourse/ci/dockerfiles/unit
+    - get: builder
+  - task: build
+    image: builder
+    privileged: true
+    config:
+      platform: linux
+      params:
+        REPOSITORY: concourse/unit
+        TAG: latest
+        CONTEXT: concourse/ci/dockerfiles/unit
+        DOCKERFILE: concourse/ci/dockerfiles/unit/Dockerfile
+      inputs: [{name: concourse}]
+      outputs: [{name: image}]
+      run: {path: /kaniko/build}
+  - put: unit-image
+    params: {image: image/image.tar}
 
 - name: dev-image
   public: true
@@ -112,17 +126,30 @@ jobs:
       trigger: true
     - get: time-resource
       trigger: true
-    - get: golang-1.x
-      trigger: true
-      params: {save: true}
-    - get: dev-image-build
-      params: {save: true}
-  - put: dev-image-build
-    params:
-      load_base: golang-1.x
-      cache_from: [dev-image-build]
-      dockerfile: concourse/ci/dockerfiles/dev/Dockerfile
-      build: .
+    - get: builder
+  - task: build
+    image: builder
+    privileged: true
+    input_mapping: {source: concourse}
+    config:
+      platform: linux
+      params:
+        REPOSITORY: concourse/dev
+        TAG: latest
+        CONTEXT: .
+        DOCKERFILE: concourse/ci/dockerfiles/dev/Dockerfile
+      inputs:
+      - name: concourse
+      - name: dumb-init
+      - name: gdn
+      - name: mock-resource
+      - name: registry-image-resource
+      - name: time-resource
+      - name: git-resource
+      outputs: [{name: image}]
+      run: {path: /kaniko/build}
+  - put: dev-image
+    params: {image: image/image.tar}
 
 resources:
 - name: concourse
@@ -138,29 +165,15 @@ resources:
     branch: master
     paths: [ci/dockerfiles/unit]
 
-- name: golang-1.x
-  type: docker-image
-  source:
-    repository: golang
-    tag: 1
-
 - name: dev-image
-  type: registry-image
-  source: {repository: concourse/dev}
-
-- name: dev-image-build
-  type: docker-image
+  type: registry-image-beta
   source:
     repository: concourse/dev
     username: ((docker.username))
     password: ((docker.password))
 
 - name: unit-image
-  type: registry-image
-  source: {repository: concourse/unit}
-
-- name: unit-image-build
-  type: docker-image
+  type: registry-image-beta
   source:
     repository: concourse/unit
     username: ((docker.username))
@@ -211,3 +224,7 @@ resources:
     owner: concourse
     repository: time-resource
     access_token: ((concourse_github_dummy.access_token))
+
+- name: builder
+  type: registry-image
+  source: {repository: concourse/builder}
