@@ -99,10 +99,9 @@ jobs:
         REPOSITORY: concourse/unit
         TAG: latest
         CONTEXT: concourse/ci/dockerfiles/unit
-        DOCKERFILE: concourse/ci/dockerfiles/unit/Dockerfile
       inputs: [{name: concourse}]
       outputs: [{name: image}]
-      run: {path: /kaniko/build}
+      run: {path: build}
   - put: unit-image
     params: {image: image/image.tar}
 
@@ -147,7 +146,7 @@ jobs:
       - name: time-resource
       - name: git-resource
       outputs: [{name: image}]
-      run: {path: /kaniko/build}
+      run: {path: build}
   - put: dev-image
     params: {image: image/image.tar}
 
