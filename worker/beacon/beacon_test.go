@@ -91,7 +91,7 @@ var _ = Describe("Beacon", func() {
 				fakeClient.KeepAliveReturnsOnCall(0, make(chan error, 1), firstCancelKeepAlive)
 				fakeClient.KeepAliveReturnsOnCall(1, make(chan error, 1), make(chan struct{}))
 
-				beacon.RebalanceTime = 5 * time.Second
+				beacon.RebalanceTime = 400 * time.Millisecond
 				beacon.RegistrationMode = Forward
 			})
 
@@ -101,7 +101,7 @@ var _ = Describe("Beacon", func() {
 					close(registerErr)
 				}()
 
-				time.Sleep(time.Second * 6)
+				time.Sleep(time.Millisecond * 500)
 			})
 
 			AfterEach(func() {
@@ -159,8 +159,6 @@ var _ = Describe("Beacon", func() {
 		Context("having single connection", func() {
 
 			AfterEach(func() {
-				// CC: TODO - put this back again on when we separate the 'multiple connections'
-				//		 into a different context?
 				Expect(fakeCloseable.CloseCallCount()).To(Equal(1))
 			})
 
