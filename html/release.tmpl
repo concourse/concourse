@@ -12,11 +12,21 @@
       <table>
         <tr>
           <td><code>concourse</code></td>
-          <td><a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/concourse_linux_amd64">amd64</a></td>
+          <td>
+            <a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/concourse_linux_amd64"
+                onclick="gtag('event', 'click',{
+                  event_category: 'linux-downloads',
+                  event_label: '{{.Partial "Version" | render}}/concourse_linux_amd64'});">amd64</a>
+          </td>
         </tr>
         <tr>
           <td><code>fly</code></td>
-          <td><a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/fly_linux_amd64">amd64</a></td>
+          <td>
+            <a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/fly_linux_amd64"
+                onclick="gtag('event', 'click', {
+                  event_category: 'linux-downloads',
+                  event_label: '{{.Partial "Version" | render}}/fly_linux_amd64'});">amd64</a>
+          </td>
         </tr>
       </table>
     </div>
@@ -33,11 +43,21 @@
       <table>
         <tr>
           <td><code>concourse</code></td>
-          <td><a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/concourse_darwin_amd64">amd64</a></td>
+          <td>
+            <a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/concourse_darwin_amd64"
+                onclick="gtag('event', 'click', {
+                  event_category: 'darwin-downloads',
+                  event_label: '{{.Partial "Version" | render}}/concourse_darwin_amd64'});">amd64</a>
+          </td>
         </tr>
         <tr>
           <td><code>fly</code></td>
-          <td><a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/fly_darwin_amd64">amd64</a></td>
+          <td>
+            <a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/fly_darwin_amd64"
+                onclick="gtag('event', 'click, {
+                  event_category: 'darwin-downloads',
+                  event_label: '{{.Partial "Version" | render}}/fly_darwin_amd64');">amd64</a>
+          </td>
         </tr>
       </table>
     </div>
@@ -59,11 +79,21 @@
       <table>
         <tr>
           <td><code>concourse.exe</code></td>
-          <td><a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/concourse_windows_amd64.exe">amd64</a></td>
+          <td>
+            <a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/concourse_windows_amd64.exe"
+                onclick="gtag('event', 'click', {
+                  event_category: 'windows-downloads',
+                  event_label: '{{.Partial "Version" | render}}/concourse_windows_amd64.exe'});">amd64</a>
+          </td>
         </tr>
         <tr>
           <td><code>fly.exe</code></td>
-          <td><a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/fly_windows_amd64.exe">amd64</a></td>
+          <td>
+            <a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/fly_windows_amd64.exe"
+                onclick="gtag('event', 'click', {
+                  event_category: 'windows-downloads',
+                  event_label: '{{.Partial "Version" | render}}/fly_windows_amd64.exe'});">amd64</a>
+          </td>
         </tr>
       </table>
     </div>
@@ -89,7 +119,12 @@
 
 
     <div class="platform-note">
-      <em><p>See the <a href="https://github.com/concourse/concourse-docker">Concourse Docker repo</a> for documentation.</p></em>
+      <em><p>
+        See the <a href="https://github.com/concourse/concourse-docker"
+                    onclick="gtag('event', 'click', {
+                      event_category: 'docker-downloads',
+                      event_label: '{{.Partial "Version" | render}}/docker-repo'});">Concourse Docker repo</a> for documentation.
+      </p></em>
     </div>
   </div>
 
@@ -104,18 +139,30 @@
       <table>
         <tr>
           <td><code>concourse</code> release:</td>
-          <td><a href="http://bosh.io/releases/github.com/concourse/concourse?version={{.Partial "Version" | render}}">v{{.Partial "Version" | render}}</a></td>
+          <td>
+            <a href="http://bosh.io/releases/github.com/concourse/concourse?version={{.Partial "Version" | render}}"
+                onclick="gtag('event', 'click', {
+                  event_category: 'bosh-downloads',
+                  event_label: '{{.Partial "Version" | render}}/bosh-release'});">v{{.Partial "Version" | render}}</a>
+          </td>
         </tr>
 
         <tr>
           <td><code>garden-runc</code> release:</td>
-          <td><a href="http://bosh.io/releases/github.com/cloudfoundry/garden-runc-release?version={{.Partial "GardenVersion" | render}}">v{{.Partial "GardenVersion" | render}}</a></td>
+          <td>
+            <a href="http://bosh.io/releases/github.com/cloudfoundry/garden-runc-release?version={{.Partial "GardenVersion" | render}}"
+                onclick="gtag('event', 'click', {
+                  event_category: 'bosh-downloads',
+                  event_label: '{{.Partial "GardenVersion" | render}}}/garden'});">v{{.Partial "GardenVersion" | render}}</a></td>
         </tr>
       </table>
     </div>
 
     <div class="platform-note">
-      <em><p>See the <a href="https://github.com/concourse/concourse-bosh-deployment">Concourse BOSH Deployment repo</a> for documentation.</p></em>
+      <em><p>See the <a href="https://github.com/concourse/concourse-bosh-deployment"
+                          onclick="gtag('event', 'click', {
+                                        event_category: 'bosh-downloads',
+                                        event_label: '{{.Partial "Version" | render}}/bosh-ref'});">Concourse BOSH Deployment repo</a> for documentation.</p></em>
     </div>
   </div>
 {{end}}
