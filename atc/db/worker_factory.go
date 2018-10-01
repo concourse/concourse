@@ -77,13 +77,21 @@ func (f *workerFactory) Workers() ([]Worker, error) {
 	return getWorkers(f.conn, workersQuery)
 }
 
-func getWorker(conn Conn, query sq.SelectBuilder) (Worker, bool, error) {
+//This function can be run with either a db.Tx or a db.Conn
+//in case of Tx the returend worker will not have a connection set on it.
+func getWorker(runner sq.BaseRunner, query sq.SelectBuilder) (Worker, bool, error) {
 	row := query.
-		RunWith(conn).
+		RunWith(runner).
 		QueryRow()
 
-	worker := &worker{conn: conn}
-	err := scanWorker(worker, row)
+	conn, success := runner.(Conn)
+	var w *worker
+	if success {
+		w = &worker{conn: conn}
+	} else {
+		w = &worker{}
+	}
+	err := scanWorker(w, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -91,7 +99,7 @@ func getWorker(conn Conn, query sq.SelectBuilder) (Worker, bool, error) {
 		return nil, false, err
 	}
 
-	return worker, true, nil
+	return w, true, nil
 }
 
 func getWorkers(conn Conn, query sq.SelectBuilder) ([]Worker, error) {
@@ -251,26 +259,8 @@ func (f *workerFactory) HeartbeatWorker(atcWorker atc.Worker, ttl time.Duration)
 		return nil, err
 	}
 
-	addrSQL, _, err := sq.Case("state").
-		When("'landed'::worker_state", "NULL").
-		Else("'" + atcWorker.GardenAddr + "'").
-		ToSql()
-	if err != nil {
-		return nil, err
-	}
-
-	bcSQL, _, err := sq.Case("state").
-		When("'landed'::worker_state", "NULL").
-		Else("'" + atcWorker.BaggageclaimURL + "'").
-		ToSql()
-	if err != nil {
-		return nil, err
-	}
-
 	_, err = psql.Update("workers").
 		Set("expires", sq.Expr(expires)).
-		Set("addr", sq.Expr("("+addrSQL+")")).
-		Set("baggageclaim_url", sq.Expr("("+bcSQL+")")).
 		Set("active_containers", atcWorker.ActiveContainers).
 		Set("state", sq.Expr("("+cSQL+")")).
 		Where(sq.Eq{"name": atcWorker.Name}).
@@ -342,10 +332,19 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 	}
 
 	var workerState WorkerState
+
 	if atcWorker.State != "" {
 		workerState = WorkerState(atcWorker.State)
 	} else {
 		workerState = WorkerStateRunning
+	}
+
+	currWorker, found, err := getWorker(tx, workersQuery.Where(sq.Eq{"w.name": atcWorker.Name}))
+
+	if found {
+		if (currWorker.State() == WorkerStateLanding || currWorker.State() == WorkerStateRetiring) && atcWorker.State == "" {
+			workerState = currWorker.State()
+		}
 	}
 
 	var workerVersion *string

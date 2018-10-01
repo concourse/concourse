@@ -22,8 +22,9 @@ func NewBeacon(logger lager.Logger, worker atc.Worker, config beacon.Config) bea
 		Client:           client,
 		GardenAddr:       config.GardenForwardAddr,
 		BaggageclaimAddr: config.BaggageclaimForwardAddr,
-		RegistrationMode: config.RegistrationMode,
+		RegistrationMode: config.Registration.Mode,
 		KeepAlive:        true,
+		RebalanceTime: config.Registration.RebalanceTime,
 	}
 }
 
