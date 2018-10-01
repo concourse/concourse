@@ -54,60 +54,6 @@ var _ = Describe("Fly CLI", func() {
 	})
 
 	Describe("Display", func() {
-		Context("role is specified", func() {
-			BeforeEach(func() {
-				cmdParams = []string{"--allow-all-users", "--role=member"}
-				confirmHandlers()
-			})
-			It("displays the specified role", func() {
-
-				stdin, err := flyCmd.StdinPipe()
-				Expect(err).NotTo(HaveOccurred())
-
-				sess, err := gexec.Start(flyCmd, nil, nil)
-				Expect(err).ToNot(HaveOccurred())
-
-				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-				Eventually(sess.Out).Should(gbytes.Say("Role: member"))
-				Eventually(sess.Out).Should(gbytes.Say("Users:"))
-				Eventually(sess.Out).Should(gbytes.Say("- none"))
-				Eventually(sess.Out).Should(gbytes.Say("Groups:"))
-				Eventually(sess.Out).Should(gbytes.Say("- none"))
-
-				Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
-				yes(stdin)
-
-				Eventually(sess).Should(gexec.Exit(0))
-			})
-		})
-
-		Context("role is not specified", func() {
-			BeforeEach(func() {
-				cmdParams = []string{"--allow-all-users"}
-				confirmHandlers()
-			})
-			It("displays the default owner role", func() {
-
-				stdin, err := flyCmd.StdinPipe()
-				Expect(err).NotTo(HaveOccurred())
-
-				sess, err := gexec.Start(flyCmd, nil, nil)
-				Expect(err).ToNot(HaveOccurred())
-
-				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-				Eventually(sess.Out).Should(gbytes.Say("Role: owner"))
-				Eventually(sess.Out).Should(gbytes.Say("Users:"))
-				Eventually(sess.Out).Should(gbytes.Say("- none"))
-				Eventually(sess.Out).Should(gbytes.Say("Groups:"))
-				Eventually(sess.Out).Should(gbytes.Say("- none"))
-
-				Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
-				yes(stdin)
-
-				Eventually(sess).Should(gexec.Exit(0))
-			})
-		})
-
 		Context("Setting no auth", func() {
 			Context("allow-all-users flag provided", func() {
 				BeforeEach(func() {
@@ -123,7 +69,6 @@ var _ = Describe("Fly CLI", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-					Eventually(sess.Out).Should(gbytes.Say("Role: owner"))
 					Eventually(sess.Out).Should(gbytes.Say("Users:"))
 					Eventually(sess.Out).Should(gbytes.Say("- none"))
 					Eventually(sess.Out).Should(gbytes.Say("Groups:"))
@@ -152,7 +97,6 @@ var _ = Describe("Fly CLI", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-					Eventually(sess.Out).Should(gbytes.Say("Role: owner"))
 					Eventually(sess.Out).Should(gbytes.Say("Users:"))
 					Eventually(sess.Out).Should(gbytes.Say("- local:brock-samson"))
 					Eventually(sess.Out).Should(gbytes.Say("Groups:"))
@@ -178,7 +122,6 @@ var _ = Describe("Fly CLI", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-				Eventually(sess.Out).Should(gbytes.Say("Role: owner"))
 				Eventually(sess.Out).Should(gbytes.Say("Users:"))
 				Eventually(sess.Out).Should(gbytes.Say("- local:brock-samson"))
 				Eventually(sess.Out).Should(gbytes.Say("Groups:"))
@@ -198,7 +141,6 @@ var _ = Describe("Fly CLI", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-				Eventually(sess.Out).Should(gbytes.Say("Role: owner"))
 				Eventually(sess.Out).Should(gbytes.Say("Users:"))
 				Eventually(sess.Out).Should(gbytes.Say("- github:samsonite"))
 				Eventually(sess.Out).Should(gbytes.Say("Groups:"))
@@ -219,7 +161,6 @@ var _ = Describe("Fly CLI", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-				Eventually(sess.Out).Should(gbytes.Say("Role: owner"))
 				Eventually(sess.Out).Should(gbytes.Say("Users:"))
 				Eventually(sess.Out).Should(gbytes.Say("- cf:my-username"))
 				Eventually(sess.Out).Should(gbytes.Say("Groups:"))
@@ -241,7 +182,6 @@ var _ = Describe("Fly CLI", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-				Eventually(sess.Out).Should(gbytes.Say("Role: owner"))
 				Eventually(sess.Out).Should(gbytes.Say("Users:"))
 				Eventually(sess.Out).Should(gbytes.Say("- ldap:my-username"))
 				Eventually(sess.Out).Should(gbytes.Say("Groups:"))
@@ -263,7 +203,6 @@ var _ = Describe("Fly CLI", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-				Eventually(sess.Out).Should(gbytes.Say("Role: owner"))
 				Eventually(sess.Out).Should(gbytes.Say("Users:"))
 				Eventually(sess.Out).Should(gbytes.Say("- none"))
 				Eventually(sess.Out).Should(gbytes.Say("Groups:"))
@@ -318,7 +257,6 @@ var _ = Describe("Fly CLI", func() {
 	Describe("sending", func() {
 		BeforeEach(func() {
 			cmdParams = []string{
-				"--role", "member",
 				"--local-user", "brock-obama",
 				"--github-org", "obama-org",
 				"--github-team", "samson-org:venture-team",
@@ -331,7 +269,7 @@ var _ = Describe("Fly CLI", func() {
 					ghttp.VerifyRequest("PUT", "/api/v1/teams/venture"),
 					ghttp.VerifyJSON(`{
 							"auth": {
-								"member":{
+								"owner":{
 									"users": [
 										"github:lisa",
 										"github:frank",

@@ -46,8 +46,6 @@ func (command *SetTeamCommand) Execute([]string) error {
 
 	fmt.Println("Team Name:", command.TeamName)
 
-	fmt.Println("\nRole:", command.AuthFlags.TeamRole)
-
 	fmt.Println("\nUsers:")
 	if len(auth["users"]) > 0 {
 		for _, user := range auth["users"] {
@@ -83,7 +81,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 		displayhelpers.Failf("bailing out")
 	}
 
-	team := atc.Team{Auth: atc.TeamAuth{command.AuthFlags.TeamRole: atc.TeamRole(auth)}}
+	team := atc.Team{Auth: atc.TeamAuth{skycmd.DefaultAuthRole: atc.TeamRole(auth)}}
 
 	_, created, updated, err := target.Client().Team(command.TeamName).CreateOrUpdate(team)
 	if err != nil {
