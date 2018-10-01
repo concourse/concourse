@@ -198,6 +198,9 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 		Stderr: errW,
 	})
 	if err != nil {
+		conn.WriteJSON(atc.HijackOutput{
+			Error: err.Error(),
+		})
 		hLog.Error("failed-to-hijack", err)
 		return
 	}

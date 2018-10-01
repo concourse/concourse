@@ -591,6 +591,27 @@ var _ = Describe("Containers API", func() {
 					})
 				})
 
+				Context("when running the process fails", func() {
+					var containerRunError = errors.New("container-run-error")
+
+					BeforeEach(func() {
+						fakeContainer.RunReturns(nil, containerRunError)
+					})
+
+					It("receives the error in the output", func() {
+						Eventually(fakeContainer.RunCallCount).Should(Equal(1))
+
+						expectedHijackOutput := atc.HijackOutput{
+							Error: containerRunError.Error(),
+						}
+
+						var hijackOutput atc.HijackOutput
+						err := conn.ReadJSON(&hijackOutput)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(hijackOutput).To(Equal(expectedHijackOutput))
+					})
+				})
+
 				Context("when running the process succeeds", func() {
 					var (
 						fakeProcess *gfakes.FakeProcess
