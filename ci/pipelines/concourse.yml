@@ -104,6 +104,7 @@ jobs:
   - task: testflight
     image: unit-image
     privileged: true
+    timeout: 1h
     file: concourse/ci/tasks/docker-compose-testflight.yml
 
 - name: watsjs
@@ -124,6 +125,7 @@ jobs:
   - task: watsjs
     image: unit-image
     privileged: true
+    timeout: 1h
     file: concourse/ci/tasks/docker-compose-watsjs.yml
 
 - name: unit-image
