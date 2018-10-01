@@ -37,9 +37,9 @@ jobs:
     - task: fly-windows
       file: concourse/ci/tasks/fly-windows.yml
 
-- name: testflight
+- name: dev-image
   public: true
-  max_in_flight: 2
+  serial: true
   plan:
   - aggregate:
     - get: concourse
@@ -47,7 +47,57 @@ jobs:
       trigger: true
     - get: unit-image
       passed: [unit]
+    - get: gdn
+      trigger: true
+    - get: dumb-init
+      trigger: true
+    - get: mock-resource
+      trigger: true
+    - get: registry-image-resource
+      trigger: true
+    - get: git-resource
+      trigger: true
+    - get: time-resource
+      trigger: true
+    - get: builder
+  - task: make
+    image: unit-image
+    file: concourse/ci/tasks/make.yml
+  - task: build
+    image: builder
+    privileged: true
+    input_mapping: {concourse: built-concourse}
+    config:
+      platform: linux
+      params:
+        REPOSITORY: concourse/dev
+        DOCKERFILE: concourse/ci/dockerfiles/dev/Dockerfile
+      inputs:
+      - name: concourse
+      - name: dumb-init
+      - name: gdn
+      - name: mock-resource
+      - name: registry-image-resource
+      - name: time-resource
+      - name: git-resource
+      outputs: [{name: image}]
+      caches: [{path: cache}]
+      run: {path: build}
+  - put: dev-image
+    params: {image: image/image.tar}
+
+- name: testflight
+  public: true
+  max_in_flight: 2
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [dev-image]
+      trigger: true
+    - get: unit-image
+      passed: [dev-image]
     - get: dev-image
+      passed: [dev-image]
       params: {format: oci}
     - get: postgres-image
       params: {format: oci}
@@ -65,11 +115,12 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [unit]
+      passed: [dev-image]
       trigger: true
     - get: unit-image
-      passed: [unit]
+      passed: [dev-image]
     - get: dev-image
+      passed: [dev-image]
       params: {format: oci}
     - get: postgres-image
       params: {format: oci}
@@ -103,49 +154,6 @@ jobs:
       caches: [{path: cache}]
       run: {path: build}
   - put: unit-image
-    params: {image: image/image.tar}
-
-- name: dev-image
-  public: true
-  serial: true
-  plan:
-  - aggregate:
-    - get: concourse
-      passed: [unit]
-      trigger: true
-    - get: gdn
-      trigger: true
-    - get: dumb-init
-      trigger: true
-    - get: mock-resource
-      trigger: true
-    - get: registry-image-resource
-      trigger: true
-    - get: git-resource
-      trigger: true
-    - get: time-resource
-      trigger: true
-    - get: builder
-  - task: build
-    image: builder
-    privileged: true
-    config:
-      platform: linux
-      params:
-        REPOSITORY: concourse/dev
-        DOCKERFILE: concourse/ci/dockerfiles/dev/Dockerfile
-      inputs:
-      - name: concourse
-      - name: dumb-init
-      - name: gdn
-      - name: mock-resource
-      - name: registry-image-resource
-      - name: time-resource
-      - name: git-resource
-      outputs: [{name: image}]
-      caches: [{path: cache}]
-      run: {path: build}
-  - put: dev-image
     params: {image: image/image.tar}
 
 resources:

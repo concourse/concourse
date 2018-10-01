@@ -50,7 +50,8 @@ ENV CONCOURSE_GARDEN_DNS_PROXY_ENABLE true
 COPY concourse /src
 RUN cd /src && \
       go mod download && \
-      go build -o /usr/local/bin/concourse github.com/concourse/concourse/bin/cmd/concourse && \
+      go install github.com/gobuffalo/packr/packr && \
+      packr build -o /usr/local/bin/concourse github.com/concourse/concourse/bin/cmd/concourse && \
       rm -rf /src
 
 ENTRYPOINT ["/usr/local/bin/dumb-init", "/usr/local/bin/concourse"]
