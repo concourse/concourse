@@ -1,0 +1,11 @@
+roles:
+  - name: member
+    local:
+      users: ["some-member"]
+  - name: viewer
+    local:
+      users: ["some-viewer"]
+  - name: owner
+    local:
+      users: ["some-owner"]
+

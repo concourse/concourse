@@ -26,6 +26,7 @@ type DexConfig struct {
 }
 
 func NewDexServer(config *DexConfig) (*server.Server, error) {
+
 	newDexServerConfig, err := NewDexServerConfig(config)
 	if err != nil {
 		return nil, err
@@ -37,10 +38,10 @@ func NewDexServer(config *DexConfig) (*server.Server, error) {
 func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 
 	log := logger.New(config.Logger)
+	store := config.Storage
 
 	localUsersToAdd := newLocalUsers(config)
 
-	store := config.Storage
 	storedPasses, err := store.ListPasswords()
 	if err != nil {
 		return server.Config{}, err

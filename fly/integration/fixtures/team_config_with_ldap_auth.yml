@@ -1,0 +1,12 @@
+roles:
+  - name: member
+    ldap:
+      users: ["some-user"]
+  - name: viewer
+    ldap:
+      groups: ["some-group"]
+  - name: owner
+    ldap:
+      users: ["some-admin"]
+      groups: ["some-other-group"]
+

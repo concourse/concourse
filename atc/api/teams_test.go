@@ -68,7 +68,7 @@ var _ = Describe("Teams API", func() {
 			fakeTeamOne.IDReturns(5)
 			fakeTeamOne.NameReturns(teamNames[0])
 			fakeTeamOne.AuthReturns(atc.TeamAuth{
-				"owner": atc.TeamRole{
+				"owner": map[string][]string{
 					"groups": []string{}, "users": []string{"local:username"},
 				},
 			})
@@ -76,7 +76,7 @@ var _ = Describe("Teams API", func() {
 			fakeTeamTwo.IDReturns(9)
 			fakeTeamTwo.NameReturns(teamNames[1])
 			fakeTeamTwo.AuthReturns(atc.TeamAuth{
-				"owner": atc.TeamRole{
+				"owner": map[string][]string{
 					"groups": []string{}, "users": []string{"local:username"},
 				},
 			})
@@ -84,7 +84,7 @@ var _ = Describe("Teams API", func() {
 			fakeTeamThree.IDReturns(22)
 			fakeTeamThree.NameReturns(teamNames[2])
 			fakeTeamThree.AuthReturns(atc.TeamAuth{
-				"owner": atc.TeamRole{
+				"owner": map[string][]string{
 					"groups": []string{}, "users": []string{"local:username"},
 				},
 			})
@@ -195,7 +195,7 @@ var _ = Describe("Teams API", func() {
 				BeforeEach(func() {
 					atcTeam = atc.Team{
 						Auth: atc.TeamAuth{
-							"owner": atc.TeamRole{
+							"owner": map[string][]string{
 								"users": []string{"local:username"},
 							},
 						},

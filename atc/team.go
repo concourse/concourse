@@ -6,5 +6,4 @@ type Team struct {
 	Auth TeamAuth `json:"auth,omitempty"`
 }
 
-type TeamAuth map[string]TeamRole
-type TeamRole map[string][]string
+type TeamAuth map[string]map[string][]string

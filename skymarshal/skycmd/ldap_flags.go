@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/concourse/flag"
 	"github.com/concourse/dex/connector/ldap"
-	"github.com/hashicorp/go-multierror"
+	"github.com/concourse/flag"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 func init() {

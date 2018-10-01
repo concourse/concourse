@@ -989,14 +989,12 @@ func (t *team) queryTeam(tx Tx, query string, params ...interface{}) error {
 	}
 
 	if providerAuth.Valid {
-		err = json.Unmarshal([]byte(providerAuth.String), &t.auth)
+		var auth atc.TeamAuth
+		err = json.Unmarshal([]byte(providerAuth.String), &auth)
 		if err != nil {
 			return err
 		}
-	}
-
-	if t.auth == nil {
-		t.auth = atc.TeamAuth{}
+		t.auth = auth
 	}
 
 	return nil

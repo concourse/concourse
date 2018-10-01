@@ -1172,11 +1172,7 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 		return fmt.Errorf("default team auth not configured: %v", err)
 	}
 
-	teamAuth := atc.TeamAuth{
-		skycmd.DefaultAuthRole: auth,
-	}
-
-	err = team.UpdateProviderAuth(teamAuth)
+	err = team.UpdateProviderAuth(atc.TeamAuth(auth))
 	if err != nil {
 		return err
 	}
