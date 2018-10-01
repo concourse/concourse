@@ -28,10 +28,15 @@ COPY gdn/gdn-* /usr/local/bin/gdn
 RUN chmod +x /usr/local/bin/dumb-init && chmod +x /usr/local/bin/gdn
 
 # extract resource types
-ADD mock-resource/mock-resource-*.tgz /concourse-resource-types/mock
-ADD registry-image-resource/registry-image-resource-*.tgz /concourse-resource-types/registry-image
-ADD time-resource/time-resource-*.tgz /concourse-resource-types/time
-ADD git-resource/git-resource-*.tgz /concourse-resource-types/git
+COPY mock-resource/mock-resource-*.tgz /concourse-resource-types/mock.tgz
+COPY registry-image-resource/registry-image-resource-*.tgz /concourse-resource-types/registry-image.tgz
+COPY time-resource/time-resource-*.tgz /concourse-resource-types/time.tgz
+COPY git-resource/git-resource-*.tgz /concourse-resource-types/git.tgz
+RUN set -e; for t in mock registry-image time git; do \
+      mkdir /concourse-resource-types/$t; \
+      tar -C /concourse-resource-types/$t -zxf /concourse-resource-types/$t.tgz; \
+      rm /concourse-resource-types/$t.tgz; \
+    done
 ENV CONCOURSE_RESOURCE_TYPES /concourse-resource-types
 
 # volume for non-aufs/etc. mount for baggageclaim's driver
