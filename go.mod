@@ -36,7 +36,7 @@ require (
 	github.com/cloudfoundry/bosh-utils v0.0.0-20180919212956-15c556314b68 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
-	github.com/concourse/baggageclaim v1.1.1
+	github.com/concourse/baggageclaim v1.1.2
 	github.com/concourse/dex v0.0.0-20180906143828-2bb7b6850d06
 	github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c
 	github.com/concourse/go-archive v0.0.0-20180803203406-784931698f4f
@@ -152,8 +152,10 @@ require (
 	github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac
 	github.com/vito/houdini v0.0.0-20170630141751-8dda540e3245
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
-	golang.org/x/crypto v0.0.0-20180910181607-0e37d006457b
+	golang.org/x/crypto v0.0.0-20180927165925-5295e8364332
+	golang.org/x/net v0.0.0-20180926154720-4dfa2610cdf3 // indirect
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
+	golang.org/x/sys v0.0.0-20180928133829-e4b3c5e90611 // indirect
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.25
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
