@@ -7,13 +7,13 @@ groups:
 - name: develop
   jobs:
   - unit
+  - dev-image
   - testflight
   - watsjs
 
 - name: images
   jobs:
   - unit-image
-  - dev-image
 
 jobs:
 - name: unit
@@ -101,9 +101,6 @@ jobs:
       params: {format: oci}
     - get: postgres-image
       params: {format: oci}
-  - task: make
-    image: unit-image
-    file: concourse/ci/tasks/make.yml
   - task: testflight
     image: unit-image
     privileged: true
@@ -124,9 +121,6 @@ jobs:
       params: {format: oci}
     - get: postgres-image
       params: {format: oci}
-  - task: make
-    image: unit-image
-    file: concourse/ci/tasks/make.yml
   - task: watsjs
     image: unit-image
     privileged: true
