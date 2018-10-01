@@ -97,10 +97,10 @@ jobs:
       platform: linux
       params:
         REPOSITORY: concourse/unit
-        TAG: latest
         CONTEXT: concourse/ci/dockerfiles/unit
       inputs: [{name: concourse}]
       outputs: [{name: image}]
+      caches: [{path: cache}]
       run: {path: build}
   - put: unit-image
     params: {image: image/image.tar}
@@ -129,13 +129,10 @@ jobs:
   - task: build
     image: builder
     privileged: true
-    input_mapping: {source: concourse}
     config:
       platform: linux
       params:
         REPOSITORY: concourse/dev
-        TAG: latest
-        CONTEXT: .
         DOCKERFILE: concourse/ci/dockerfiles/dev/Dockerfile
       inputs:
       - name: concourse
@@ -146,6 +143,7 @@ jobs:
       - name: time-resource
       - name: git-resource
       outputs: [{name: image}]
+      caches: [{path: cache}]
       run: {path: build}
   - put: dev-image
     params: {image: image/image.tar}
