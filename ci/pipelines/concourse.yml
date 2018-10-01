@@ -24,9 +24,9 @@ jobs:
     - get: concourse
       trigger: true
     - get: unit-image
-  - task: make
+  - task: yarn-test
     image: unit-image
-    file: concourse/ci/tasks/make.yml
+    file: concourse/ci/tasks/yarn-test.yml
   - aggregate:
     - task: unit
       image: unit-image
@@ -60,9 +60,9 @@ jobs:
     - get: time-resource
       trigger: true
     - get: builder
-  - task: make
+  - task: yarn-build
     image: unit-image
-    file: concourse/ci/tasks/make.yml
+    file: concourse/ci/tasks/yarn-build.yml
   - task: build
     image: builder
     privileged: true

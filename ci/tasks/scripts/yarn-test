@@ -6,7 +6,7 @@ set -e -u
 # for better yarn output
 stty columns 80
 
-pushd concourse/web
+pushd concourse
   yarn install
   yarn build
   yarn test
