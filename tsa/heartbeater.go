@@ -87,7 +87,6 @@ func (heartbeater *heartbeater) Run(signals <-chan os.Signal, ready chan<- struc
 	close(ready)
 
 	currentInterval := heartbeater.interval
-	logger := heartbeater.logger.Session("heartbeat")
 
 	for {
 		select {
@@ -95,7 +94,7 @@ func (heartbeater *heartbeater) Run(signals <-chan os.Signal, ready chan<- struc
 			return nil
 
 		case <-heartbeater.clock.NewTimer(currentInterval).C():
-			status := heartbeater.heartbeat(logger)
+			status := heartbeater.heartbeat(heartbeater.logger.Session("heartbeat"))
 			switch status {
 			case HeartbeatStatusGoneAway:
 				return nil
