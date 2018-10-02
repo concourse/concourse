@@ -1,0 +1,22 @@
+---
+platform: darwin
+
+inputs:
+- name: concourse
+- name: final-version
+  optional: true
+- name: fly-linux
+  optional: true
+- name: fly-windows
+  optional: true
+- name: fly-darwin
+  optional: true
+
+outputs:
+- name: concourse-darwin
+
+caches:
+- path: gopath
+
+run:
+  path: concourse/ci/tasks/scripts/concourse-build-darwin

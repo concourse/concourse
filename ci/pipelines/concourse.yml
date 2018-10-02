@@ -10,6 +10,7 @@ groups:
   - dev-image
   - testflight
   - watsjs
+  - build-rc
 
 - name: images
   jobs:
@@ -85,6 +86,7 @@ jobs:
       run: {path: build}
   - put: dev-image
     params: {image: image/image.tar}
+    get_params: {format: oci}
 
 - name: testflight
   public: true
@@ -106,6 +108,7 @@ jobs:
     privileged: true
     timeout: 1h
     file: concourse/ci/tasks/docker-compose-testflight.yml
+    params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
 - name: watsjs
   public: true
@@ -127,6 +130,32 @@ jobs:
     privileged: true
     timeout: 1h
     file: concourse/ci/tasks/docker-compose-watsjs.yml
+    params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
+
+- name: build-rc
+  public: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [testflight, watsjs]
+      trigger: true
+    - get: dev-image
+      passed: [testflight, watsjs]
+  - aggregate:
+    - task: fly-linux
+      file: concourse/ci/fly-build-linux.yml
+    - task: fly-windows
+      file: concourse/ci/fly-build-windows.yml
+    - task: fly-darwin
+      file: concourse/ci/fly-build-darwin.yml
+  - aggregate:
+    - task: concourse-linux
+      image: dev-image
+      file: concourse/ci/concourse-build-linux.yml
+    - task: concourse-windows
+      file: concourse/ci/concourse-build-windows.yml
+    - task: concourse-darwin
+      file: concourse/ci/concourse-build-darwin.yml
 
 - name: unit-image
   public: true

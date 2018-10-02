@@ -63,12 +63,13 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 
 		"--depot", depotDir,
 
-		// disable graph; all images passed to Concourse containers are raw://
+		// disable graph and grootfs setup; all images passed to Concourse
+		// containers are raw://
+		"--no-image-plugin",
 		"--graph", "",
 
 		// XXX: we've been setting this the whole time. is it necessary anymore?
 		// XXX: it's probably necessary for testflight
-		// XXX: self-contained 'gdn' binary automatically sets this (for some reason)
 		"--allow-host-access",
 	}
 

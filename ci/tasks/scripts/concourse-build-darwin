@@ -1,0 +1,30 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -x
+
+export GOPATH=$PWD/gopath
+export PATH=$PWD/gopath/bin:$PATH
+
+ldflags=""
+if [ -e final-version/version ]; then
+  final_version="$(cat final-version/version)"
+  ldflags="-X main.Version=$final_version -X github.com/concourse/concourse/atc/atccmd.Version=$final_version"
+fi
+
+pushd concourse
+  go build -ldflags "$ldflags" -o concourse ./bin/cmd/concourse
+popd
+
+mv concourse/concourse concourse-darwin/concourse
+
+pushd concourse-darwin
+  mkdir fly-assets
+  [ -d fly-linux ] && cp -a ../fly-linux/fly-*.tgz fly-assets
+  [ -d fly-windows ] && cp -a ../fly-windows/fly-*.zip fly-assets
+  [ -d fly-darwin ] && cp -a ../fly-darwin/fly-*.tgz fly-assets
+
+  archive=concourse-darwin-amd64.tgz
+  tar -czf $archive concourse fly-assets
+  shasum "$archive" > "${archive}.sha1"
+popd

@@ -7,20 +7,12 @@
 
 FROM golang:1
 
-# XXX: xfsprogs can be removed once we get rid of the grootfs initialization
-# see https://github.com/concourse/concourse/issues/2574#issuecomment-423273310
 RUN apt-get update && apt-get -y install \
       iproute2 \
       ca-certificates \
       file \
       btrfs-tools \
-      xfsprogs \
       jq
-
-# workaround for unconditional grootfs xfs setup
-RUN for i in $(seq 0 15); do \
-      mknod -m 0660 /dev/loop$i b 7 $i; \
-    done
 
 # fetch dependencies
 COPY dumb-init/dumb-init_*_amd64 /usr/local/bin/dumb-init
