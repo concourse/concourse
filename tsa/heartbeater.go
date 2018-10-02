@@ -183,7 +183,6 @@ const (
 )
 
 func (heartbeater *heartbeater) heartbeat(logger lager.Logger) HeartbeatStatus {
-	//TODO This can be handled in by a new status which would then not heartbeat at all and just block on os.Signal
 	if heartbeater.staleConnection {
 		return HeartbeatStatusStaleConnection
 	}
