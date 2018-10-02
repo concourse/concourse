@@ -5,8 +5,6 @@ set -e
 
 cd concourse
 
-go mod download
-
 go install ./fly
 
 cd web/wats
