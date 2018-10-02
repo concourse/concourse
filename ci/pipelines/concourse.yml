@@ -1,13 +1,19 @@
+resource_types:
+- name: registry-image-beta
+  type: registry-image
+  source: {repository: concourse/registry-image-resource}
+
 groups:
 - name: develop
   jobs:
   - unit
+  - dev-image
   - testflight
+  - watsjs
 
 - name: images
   jobs:
   - unit-image
-  - dev-image
 
 jobs:
 - name: unit
@@ -18,9 +24,9 @@ jobs:
     - get: concourse
       trigger: true
     - get: unit-image
-  - task: make
+  - task: yarn-test
     image: unit-image
-    file: concourse/ci/tasks/make.yml
+    file: concourse/ci/tasks/yarn-test.yml
   - aggregate:
     - task: unit
       image: unit-image
@@ -31,34 +37,6 @@ jobs:
     - task: fly-windows
       file: concourse/ci/tasks/fly-windows.yml
 
-- name: testflight
-  public: true
-  plan:
-  - aggregate:
-    - get: concourse
-      passed: [unit]
-      trigger: true
-    - get: unit-image
-      passed: [unit]
-    - get: dev-image
-      params: {format: oci}
-    - get: postgres-image
-      params: {format: oci}
-  - task: make
-    image: unit-image
-    file: concourse/ci/tasks/make.yml
-  - task: testflight
-    image: unit-image
-    privileged: true
-    file: concourse/ci/tasks/docker-compose-testflight.yml
-
-- name: unit-image
-  plan:
-  - get: concourse
-    trigger: true
-  - put: unit-image-build
-    params: {build: concourse/ci/dockerfiles/unit}
-
 - name: dev-image
   public: true
   serial: true
@@ -67,6 +45,8 @@ jobs:
     - get: concourse
       passed: [unit]
       trigger: true
+    - get: unit-image
+      passed: [unit]
     - get: gdn
       trigger: true
     - get: dumb-init
@@ -79,17 +59,98 @@ jobs:
       trigger: true
     - get: time-resource
       trigger: true
-    - get: golang-1.x
+    - get: builder
+  - task: yarn-build
+    image: unit-image
+    file: concourse/ci/tasks/yarn-build.yml
+  - task: build
+    image: builder
+    privileged: true
+    input_mapping: {concourse: built-concourse}
+    config:
+      platform: linux
+      params:
+        REPOSITORY: concourse/dev
+        DOCKERFILE: concourse/ci/dockerfiles/dev/Dockerfile
+      inputs:
+      - name: concourse
+      - name: dumb-init
+      - name: gdn
+      - name: mock-resource
+      - name: registry-image-resource
+      - name: time-resource
+      - name: git-resource
+      outputs: [{name: image}]
+      caches: [{path: cache}]
+      run: {path: build}
+  - put: dev-image
+    params: {image: image/image.tar}
+
+- name: testflight
+  public: true
+  max_in_flight: 2
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [dev-image]
       trigger: true
-      params: {save: true}
-    - get: dev-image-build
-      params: {save: true}
-  - put: dev-image-build
-    params:
-      load_base: golang-1.x
-      cache_from: [dev-image-build]
-      dockerfile: concourse/ci/dockerfiles/dev/Dockerfile
-      build: .
+    - get: unit-image
+      passed: [dev-image]
+    - get: dev-image
+      passed: [dev-image]
+      params: {format: oci}
+    - get: postgres-image
+      params: {format: oci}
+  - task: testflight
+    image: unit-image
+    privileged: true
+    timeout: 1h
+    file: concourse/ci/tasks/docker-compose-testflight.yml
+
+- name: watsjs
+  public: true
+  max_in_flight: 2
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [dev-image]
+      trigger: true
+    - get: unit-image
+      passed: [dev-image]
+    - get: dev-image
+      passed: [dev-image]
+      params: {format: oci}
+    - get: postgres-image
+      params: {format: oci}
+  - task: watsjs
+    image: unit-image
+    privileged: true
+    timeout: 1h
+    file: concourse/ci/tasks/docker-compose-watsjs.yml
+
+- name: unit-image
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      resource: unit-dockerfile
+      trigger: true
+    - get: builder
+  - task: build
+    image: builder
+    privileged: true
+    config:
+      platform: linux
+      params:
+        REPOSITORY: concourse/unit
+        CONTEXT: concourse/ci/dockerfiles/unit
+      inputs: [{name: concourse}]
+      outputs: [{name: image}]
+      caches: [{path: cache}]
+      run: {path: build}
+  - put: unit-image
+    params: {image: image/image.tar}
 
 resources:
 - name: concourse
@@ -98,29 +159,22 @@ resources:
     uri: https://github.com/concourse/concourse.git
     branch: master
 
-- name: golang-1.x
-  type: docker-image
+- name: unit-dockerfile
+  type: git
   source:
-    repository: golang
-    tag: 1
+    uri: https://github.com/concourse/concourse.git
+    branch: master
+    paths: [ci/dockerfiles/unit]
 
 - name: dev-image
-  type: registry-image
-  source: {repository: concourse/dev}
-
-- name: dev-image-build
-  type: docker-image
+  type: registry-image-beta
   source:
     repository: concourse/dev
     username: ((docker.username))
     password: ((docker.password))
 
 - name: unit-image
-  type: registry-image
-  source: {repository: concourse/unit}
-
-- name: unit-image-build
-  type: docker-image
+  type: registry-image-beta
   source:
     repository: concourse/unit
     username: ((docker.username))
@@ -171,3 +225,7 @@ resources:
     owner: concourse
     repository: time-resource
     access_token: ((concourse_github_dummy.access_token))
+
+- name: builder
+  type: registry-image
+  source: {repository: concourse/builder}

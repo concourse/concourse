@@ -16,29 +16,49 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+type isRunningStubFunc func(lager.Logger) (bool, error)
+
 var _ = Describe("Drainer", func() {
 	var drainer *Drainer
 	var logger *lagertest.TestLogger
 	var fakeWatchProcess *drainerfakes.FakeWatchProcess
 	var fakeClock *fakeclock.FakeClock
 	var waitInterval time.Duration
+	var checkProcessInterval time.Duration
+	var numProcessChecksPerCycle int
 	var fakeBeaconClient *beaconfakes.FakeBeaconClient
+	var isRunningStubCallCount int
+	var isRunningStub isRunningStubFunc
 
 	BeforeEach(func() {
-		waitInterval = 5 * time.Second
+		checkProcessInterval = time.Second
+		numProcessChecksPerCycle = 5
+		waitInterval = checkProcessInterval * time.Duration(numProcessChecksPerCycle)
 		logger = lagertest.NewTestLogger("drainer")
 		fakeWatchProcess = new(drainerfakes.FakeWatchProcess)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
 		fakeBeaconClient = new(beaconfakes.FakeBeaconClient)
+		isRunningStubCallCount = 0
+		isRunningStub = func(lager.Logger) (bool, error) {
+			isRunningStubCallCount++
+			if isRunningStubCallCount > numProcessChecksPerCycle*5 {
+				return false, nil
+			}
+
+			go fakeClock.WaitForWatcherAndIncrement(checkProcessInterval)
+			return true, nil
+		}
 	})
 
 	Context("when shutting down", func() {
 		BeforeEach(func() {
 			drainer = &Drainer{
-				BeaconClient: fakeBeaconClient,
-				IsShutdown:   true,
-				WatchProcess: fakeWatchProcess,
-				Clock:        fakeClock,
+				BeaconClient:             fakeBeaconClient,
+				IsShutdown:               true,
+				WatchProcess:             fakeWatchProcess,
+				CheckProcessInterval:     checkProcessInterval,
+				NumProcessChecksPerCycle: numProcessChecksPerCycle,
+				Clock: fakeClock,
 			}
 		})
 
@@ -71,16 +91,7 @@ var _ = Describe("Drainer", func() {
 
 		Context("if watched process is still running", func() {
 			BeforeEach(func() {
-				callCount := 0
-				fakeWatchProcess.IsRunningStub = func(lager.Logger) (bool, error) {
-					callCount++
-					if callCount > 5 {
-						return false, nil
-					}
-
-					fakeClock.Increment(waitInterval)
-					return true, nil
-				}
+				fakeWatchProcess.IsRunningStub = isRunningStub
 			})
 
 			It("runs retire-worker until it exits with wait interval", func() {
@@ -123,7 +134,9 @@ var _ = Describe("Drainer", func() {
 
 			Context("when drain timeout is specified", func() {
 				BeforeEach(func() {
-					timeoutInterval := 3 * waitInterval
+					// The magic -3 value is due to fakeClock not using Watchers for fakeClock.Now, which returns a time value immediately resulting in a race with incrementing the clock
+					// This -3 ensures that timeOut has definitely ellapsed when d.Clock.Now().After(tryUntil) is invoked.
+					timeoutInterval := 3*(waitInterval) - 3
 					drainer.Timeout = &timeoutInterval
 				})
 
@@ -167,10 +180,12 @@ var _ = Describe("Drainer", func() {
 	Context("when not shutting down", func() {
 		BeforeEach(func() {
 			drainer = &Drainer{
-				BeaconClient: fakeBeaconClient,
-				IsShutdown:   false,
-				WatchProcess: fakeWatchProcess,
-				Clock:        fakeClock,
+				BeaconClient:             fakeBeaconClient,
+				IsShutdown:               false,
+				WatchProcess:             fakeWatchProcess,
+				CheckProcessInterval:     checkProcessInterval,
+				NumProcessChecksPerCycle: numProcessChecksPerCycle,
+				Clock: fakeClock,
 			}
 		})
 
@@ -203,16 +218,7 @@ var _ = Describe("Drainer", func() {
 
 		Context("if watched process is still running", func() {
 			BeforeEach(func() {
-				callCount := 0
-				fakeWatchProcess.IsRunningStub = func(lager.Logger) (bool, error) {
-					callCount++
-					if callCount > 5 {
-						return false, nil
-					}
-
-					fakeClock.Increment(waitInterval)
-					return true, nil
-				}
+				fakeWatchProcess.IsRunningStub = isRunningStub
 			})
 
 			It("runs land-worker until it exits with wait interval", func() {
@@ -255,7 +261,10 @@ var _ = Describe("Drainer", func() {
 
 			Context("when drain timeout is specified", func() {
 				BeforeEach(func() {
-					timeoutInterval := 3 * waitInterval
+					// The magic -3 value is due to fakeClock not using Watchers for fakeClock.Now, which returns a time value immediately resulting in a race with incrementing the clock
+					// This -3 ensures that timeOut has definitely ellapsed when d.Clock.Now().After(tryUntil) is invoked.
+					timeoutInterval := 3*(waitInterval) - 3
+					// timeoutInterval := 3 * waitInterval
 					drainer.Timeout = &timeoutInterval
 				})
 

@@ -2,6 +2,7 @@ package beacon
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -74,6 +76,8 @@ type Beacon struct {
 	GardenAddr       string
 	GardenClient     garden.Client
 	BaggageclaimAddr string
+
+	RebalanceTime time.Duration
 }
 
 type RegistrationMode string
@@ -84,34 +88,115 @@ const (
 )
 
 func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) error {
-	beacon.Logger.Debug("registering")
-	if beacon.RegistrationMode == Direct {
-		return beacon.registerDirect(signals, ready)
+	rebalanceDuration := beacon.RebalanceTime
+	bwg := &waitGroupWithCount{
+		WaitGroup: new(sync.WaitGroup),
+		countMutex: new(sync.Mutex),
+	}
+	ctx := context.Background()
+	cancellableCtx, cancelFunc := context.WithCancel(ctx)
+
+	var rebalanceTicker *time.Ticker
+
+	// When mode is Direct or time is 0, additional connections should not be created.
+	if  beacon.RegistrationMode == Direct || beacon.RebalanceTime == 0 {
+		rebalanceTicker = time.NewTicker(time.Hour)
+		rebalanceTicker.Stop()
+	} else {
+		rebalanceTicker = time.NewTicker(rebalanceDuration)
+	}
+	defer rebalanceTicker.Stop()
+
+	registerWorker := func(errChan chan error) {
+		defer bwg.Decrement()
+		timeOutCtx := context.TODO()
+		if beacon.RegistrationMode == Forward && beacon.RebalanceTime != 0 {
+			timeOutCtx, _ = context.WithTimeout(cancellableCtx, beacon.RebalanceTime )
+		}
+
+		if beacon.RegistrationMode == Direct {
+			errChan <- beacon.registerDirect(cancellableCtx, timeOutCtx)
+		} else {
+			errChan <- beacon.registerForwarded(cancellableCtx, timeOutCtx)
+		}
 	}
 
-	return beacon.registerForwarded(signals, ready)
+	beacon.Logger.Debug("adding-connection-to-pool")
+
+	latestErrChan := make(chan error, 1)
+
+	bwg.Increment()
+	go registerWorker(latestErrChan)
+
+	for {
+		select {
+		case <-rebalanceTicker.C:
+			if beacon.RegistrationMode == Forward && bwg.Count() < 5 {
+				bwg.Increment()
+				beacon.Logger.Debug("adding-connection-to-pool")
+				latestErrChan = make(chan error, 1)
+				go registerWorker(latestErrChan)
+			}
+		case err := <-latestErrChan:
+			beacon.Logger.Debug("latest-connection-errored")
+			cancelFunc()
+			bwg.Wait()
+			return err
+		case <-signals:
+			cancelFunc()
+			bwg.Wait()
+			return nil
+		}
+	}
+
+
 }
 
-func (beacon *Beacon) registerForwarded(signals <-chan os.Signal, ready chan<- struct{}) error {
+func (beacon *Beacon) registerForwarded(ctx context.Context, disableKeepAliveCtx context.Context) error {
 	beacon.Logger.Debug("forward-worker")
 	return beacon.run(
 		"forward-worker "+
 			"--garden "+gardenForwardAddr+" "+
 			"--baggageclaim "+baggageclaimForwardAddr+" ",
-		signals,
-		ready,
+		ctx,
+		disableKeepAliveCtx,
 	)
 }
 
-func (beacon *Beacon) registerDirect(signals <-chan os.Signal, ready chan<- struct{}) error {
+func (beacon *Beacon) registerDirect(ctx context.Context, disableKeepAliveCtx context.Context) error {
 	beacon.Logger.Debug("register-worker")
-	return beacon.run("register-worker", signals, ready)
+	return beacon.run("register-worker", ctx, disableKeepAliveCtx)
 }
 
 // RetireWorker sends a message via the TSA to retire the worker
 func (beacon *Beacon) RetireWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
 	beacon.Logger.Debug("retire-worker")
-	return beacon.run("retire-worker", signals, ready)
+
+	bwg := &waitGroupWithCount{
+		WaitGroup: new(sync.WaitGroup),
+		countMutex: new(sync.Mutex),
+	}
+
+	ctx := context.Background()
+	cancellableCtx, cancelFunc := context.WithCancel(ctx)
+
+	errChan := make(chan error, 1)
+
+	go func(){
+		bwg.Increment()
+		defer bwg.Decrement()
+		errChan <- beacon.run("retire-worker", cancellableCtx, context.TODO())
+	}()
+
+	select {
+	case err := <-errChan:
+		return err
+	case <-signals:
+		cancelFunc()
+		bwg.Wait()
+		return nil
+	}
+
 }
 
 func (beacon *Beacon) SweepContainers(gardenClient garden.Client) error {
@@ -280,19 +365,69 @@ func (beacon *Beacon) ReportVolumes() error {
 
 func (beacon *Beacon) LandWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
 	beacon.Logger.Debug("land-worker")
-	return beacon.run("land-worker", signals, ready)
+
+	bwg := &waitGroupWithCount{
+		WaitGroup: new(sync.WaitGroup),
+		countMutex: new(sync.Mutex),
+	}
+
+	ctx := context.Background()
+	cancellableCtx, cancelFunc := context.WithCancel(ctx)
+
+	errChan := make(chan error, 1)
+
+	go func(){
+		bwg.Increment()
+		defer bwg.Decrement()
+		errChan <- beacon.run("land-worker", cancellableCtx, context.TODO())
+	}()
+
+	select {
+	case err := <-errChan:
+		return err
+	case <-signals:
+		cancelFunc()
+		bwg.Wait()
+		return nil
+	}
 }
 
 func (beacon *Beacon) DeleteWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
 	beacon.Logger.Debug("delete-worker.start")
-	return beacon.run("delete-worker", signals, ready)
+
+	bwg := &waitGroupWithCount{
+		WaitGroup: new(sync.WaitGroup),
+		countMutex: new(sync.Mutex),
+	}
+
+	ctx := context.Background()
+	cancellableCtx, cancelFunc := context.WithCancel(ctx)
+
+	errChan := make(chan error, 1)
+
+	go func(){
+		bwg.Increment()
+		defer bwg.Decrement()
+		errChan <- beacon.run("delete-worker", cancellableCtx, context.TODO())
+	}()
+	select {
+	case err := <-errChan:
+		return err
+	case <-signals:
+		cancelFunc()
+		bwg.Wait()
+		return nil
+	}
+
 }
 
 func (beacon *Beacon) DisableKeepAlive() {
 	beacon.KeepAlive = false
 }
 
-func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<- struct{}) error {
+// TODO CC: maybe we should pass `ctx` as the first argument (instead of
+// `command` to adhere to go patterns?
+func (beacon *Beacon) run(command string, ctx context.Context, disableKeepAliveCtx context.Context) error {
 	beacon.Logger.Debug("command-to-run", lager.Data{"cmd": command})
 
 	conn, err := beacon.Client.Dial()
@@ -352,24 +487,29 @@ func (beacon *Beacon) run(command string, signals <-chan os.Signal, ready chan<-
 	beacon.Client.Proxy(gardenForwardAddr, gardenForwardAddrRemote)
 	beacon.Client.Proxy(baggageclaimForwardAddr, bcForwardAddrRemote)
 
-	close(ready)
-
 	exited := make(chan error, 1)
 
 	go func() {
 		exited <- sess.Wait()
 	}()
 
+	if beacon.KeepAlive {
+		go func() {
+			select {
+			case <-ctx.Done():
+				close(cancelKeepalive)
+			case <-disableKeepAliveCtx.Done():
+				close(cancelKeepalive)
+			}
+		}()
+	}
+
 	select {
-	case <-signals:
-		if beacon.KeepAlive {
-			close(cancelKeepalive)
-		}
+	case <-ctx.Done():
 		sess.Close()
+		// TODO Is the blocking line below something than can be removed ? CC & SV
 		<-exited
-
 		// don't bother waiting for keepalive
-
 		return nil
 	case err := <-exited:
 		if err != nil {
@@ -412,3 +552,5 @@ func (beacon *Beacon) logFailure(command string, err error) error {
 	beacon.Logger.Error(fmt.Sprintf("failed-to-%s", command), err)
 	return err
 }
+
+

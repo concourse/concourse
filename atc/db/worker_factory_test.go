@@ -75,6 +75,38 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
+			Context("when worker is retiring or landing", func() {
+				It("doesn't change the worker from landing to running", func() {
+					atcWorker.State = "landing"
+					worker, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+					Expect(err).NotTo(HaveOccurred())
+
+					atcWorker.State = ""
+					worker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+					Expect(err).NotTo(HaveOccurred())
+
+					worker, found, err := workerFactory.GetWorker(atcWorker.Name)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(worker.State()).To(Equal(db.WorkerStateLanding))
+				})
+
+				It("doesn't change the worker from retiring to running", func() {
+					atcWorker.State = "retiring"
+					worker, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+					Expect(err).NotTo(HaveOccurred())
+
+					atcWorker.State = ""
+					worker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+					Expect(err).NotTo(HaveOccurred())
+
+					worker, found, err := workerFactory.GetWorker(atcWorker.Name)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(worker.State()).To(Equal(db.WorkerStateRetiring))
+				})
+			})
+
 			It("saves resource types", func() {
 				worker, found, err := workerFactory.GetWorker(atcWorker.Name)
 				Expect(found).To(BeTrue())
@@ -162,6 +194,7 @@ var _ = Describe("WorkerFactory", func() {
 
 			Context("when the worker has a new version", func() {
 				BeforeEach(func() {
+
 					atcWorker.Version = "1.0.0"
 				})
 
@@ -251,14 +284,6 @@ var _ = Describe("WorkerFactory", func() {
 					stalled, err := workerLifecycle.StallUnresponsiveWorkers()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(stalled).To(ContainElement("some-name"))
-				})
-
-				It("sets its garden and baggageclaim address to nil", func() {
-					foundWorker, found, err := workerFactory.GetWorker("some-name")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(foundWorker.GardenAddr()).To(BeNil())
-					Expect(foundWorker.BaggageclaimURL()).To(BeNil())
 				})
 			})
 		})
@@ -495,14 +520,10 @@ var _ = Describe("WorkerFactory", func() {
 					Expect(found).To(BeTrue())
 
 					Expect(stalledWorker.State()).To(Equal(db.WorkerStateStalled))
-					Expect(stalledWorker.GardenAddr()).To(BeNil())
-					Expect(stalledWorker.BaggageclaimURL()).To(BeNil())
 
 					foundWorker, err := workerFactory.HeartbeatWorker(atcWorker, ttl)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(*foundWorker.GardenAddr()).To(Equal("some-garden-addr"))
-					Expect(*foundWorker.BaggageclaimURL()).To(Equal("some-bc-url"))
 					Expect(foundWorker.State()).To(Equal(db.WorkerStateRunning))
 				})
 			})

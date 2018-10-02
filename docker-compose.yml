@@ -10,7 +10,9 @@ services:
     - POSTGRES_PASSWORD=
 
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE}
     volumes:
     - .:/src
     command: web
@@ -28,7 +30,9 @@ services:
     - CONCOURSE_LOG_LEVEL=debug
 
   worker:
-    build: .
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE}
     command: worker
     privileged: true
     depends_on: [web]

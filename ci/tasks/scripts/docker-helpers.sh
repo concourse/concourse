@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e -u -x
+set -e -u
 
 function sanitize_cgroups() {
   mkdir -p /sys/fs/cgroup

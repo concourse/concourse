@@ -3,9 +3,13 @@
 
 set -e
 
-install fly-rc/fly_linux_amd64 /usr/local/bin/fly
+cd concourse
 
-cd concourse/src/github.com/concourse/web/wats/
+go install ./fly
 
-yarn install --no-progress
+cd web/wats
+
+# for better yarn output
+stty columns 80
+yarn install
 yarn test -v --color

@@ -126,7 +126,7 @@ var _ = Describe("Heartbeater", func() {
 
 				heartbeated <- registration{worker, ttl}
 
-				json.NewEncoder(w).Encode(atc.Worker{})
+				json.NewEncoder(w).Encode(worker)
 			},
 		)
 
@@ -372,6 +372,50 @@ var _ = Describe("Heartbeater", func() {
 				expectedWorker.ActiveContainers = 3
 				expectedWorker.ActiveVolumes = 0
 				Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
+			})
+		})
+		Context("When the Worker's connection is an old connection", func() {
+			BeforeEach(func() {
+				heartbeated := make(chan registration, 100)
+				heartbeats = heartbeated
+				verifyHeartbeatOldConn := ghttp.CombineHandlers(
+					ghttp.VerifyRequest("PUT", "/api/v1/workers/some-name/heartbeat"),
+					func(w http.ResponseWriter, r *http.Request) {
+						var worker atc.Worker
+						Expect(r.Header.Get("Authorization")).To(Equal("Bearer yo"))
+
+						err := json.NewDecoder(r.Body).Decode(&worker)
+						Expect(err).NotTo(HaveOccurred())
+
+						ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
+						Expect(err).NotTo(HaveOccurred())
+
+						heartbeated <- registration{worker, ttl}
+
+						json.NewEncoder(w).Encode(atc.Worker{})
+					},
+				)
+				fakeATC1.AppendHandlers(
+					verifyRegister,
+					verifyHeartbeat,
+				)
+				fakeATC2.AppendHandlers(verifyHeartbeatOldConn)
+			})
+
+			It("Stops heartbeating when it detects itself to be stale connection", func() {
+				Expect(registrations).To(Receive())
+
+				fakeClock.WaitForWatcherAndIncrement(interval)
+				Eventually(heartbeats).Should(Receive())
+
+				fakeClock.WaitForWatcherAndIncrement(interval)
+				Consistently(heartbeats).ShouldNot(Receive())
+
+				fakeClock.Increment(cprInterval)
+				Consistently(heartbeats).ShouldNot(Receive())
+
+				Expect(fakeBaggageclaimClient.ListVolumesCallCount()).To(Equal(2))
+				Expect(fakeGardenClient.ContainersCallCount()).To(Equal(2))
 			})
 		})
 	})

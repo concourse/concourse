@@ -7,10 +7,12 @@ import (
 	"time"
 
 	"github.com/concourse/flag"
-	"github.com/jessevdk/go-flags"
+	flags "github.com/jessevdk/go-flags"
 )
 
 var connectors []*Connector
+
+const DefaultAuthRole string = "owner"
 
 func RegisterConnector(connector *Connector) {
 	connectors = append(connectors, connector)
@@ -44,7 +46,6 @@ type AuthFlags struct {
 }
 
 type AuthTeamFlags struct {
-	TeamRole      string   `long:"role" description:"The role to assign to these users" choice:"owner" choice:"member" choice:"viewer" default:"owner"`
 	LocalUsers    []string `long:"local-user" description:"List of whitelisted local concourse users. These are the users you've added at atc startup with the --add-local-user flag." value-name:"USERNAME"`
 	AllowAllUsers bool     `long:"allow-all-users" description:"Setting this flag will whitelist all logged in users in the system. ALL OF THEM. If, for example, you've configured GitHub, any user with a GitHub account will have access to your team."`
 }

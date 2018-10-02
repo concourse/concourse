@@ -1,4 +1,4 @@
-port module DashboardHd exposing (Model, Msg, init, update, subscriptions, view)
+port module DashboardHd exposing (Model, Msg, init, update, subscriptions, view, groupView, tooltipHd)
 
 import Concourse
 import Concourse.Cli

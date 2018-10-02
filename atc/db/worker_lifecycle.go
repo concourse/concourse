@@ -47,10 +47,8 @@ func (lifecycle *workerLifecycle) DeleteUnresponsiveEphemeralWorkers() ([]string
 func (lifecycle *workerLifecycle) StallUnresponsiveWorkers() ([]string, error) {
 	query, args, err := psql.Update("workers").
 		SetMap(map[string]interface{}{
-			"state":            string(WorkerStateStalled),
-			"addr":             nil,
-			"baggageclaim_url": nil,
-			"expires":          nil,
+			"state":   string(WorkerStateStalled),
+			"expires": nil,
 		}).
 		Where(sq.Eq{"state": string(WorkerStateRunning)}).
 		Where(sq.Expr("expires < NOW()")).

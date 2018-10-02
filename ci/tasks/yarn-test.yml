@@ -9,11 +9,11 @@ inputs:
 - name: concourse
 
 caches:
-- path: concourse/web/node_modules
+- path: concourse/node_modules
 - path: concourse/web/elm/elm-stuff
 
 outputs:
 - name: built-concourse
 
 run:
-  path: concourse/ci/tasks/scripts/make
+  path: concourse/ci/tasks/scripts/yarn-test

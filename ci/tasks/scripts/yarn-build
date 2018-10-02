@@ -1,0 +1,14 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -u
+
+# for better yarn output
+stty columns 80
+
+pushd concourse
+  yarn install
+  yarn build
+popd
+
+cp -a ./concourse/. ./built-concourse

@@ -38,8 +38,9 @@ type heartbeater struct {
 	atcEndpointPicker EndpointPicker
 	tokenGenerator    TokenGenerator
 
-	registration atc.Worker
-	clientWriter io.Writer
+	registration    atc.Worker
+	clientWriter    io.Writer
+	staleConnection bool
 }
 
 func NewHeartbeater(
@@ -86,6 +87,7 @@ func (heartbeater *heartbeater) Run(signals <-chan os.Signal, ready chan<- struc
 	close(ready)
 
 	currentInterval := heartbeater.interval
+	logger := heartbeater.logger.Session("heartbeat")
 
 	for {
 		select {
@@ -93,8 +95,7 @@ func (heartbeater *heartbeater) Run(signals <-chan os.Signal, ready chan<- struc
 			return nil
 
 		case <-heartbeater.clock.NewTimer(currentInterval).C():
-			status := heartbeater.heartbeat(heartbeater.logger.Session("heartbeat"))
-
+			status := heartbeater.heartbeat(logger)
 			switch status {
 			case HeartbeatStatusGoneAway:
 				return nil
@@ -102,6 +103,9 @@ func (heartbeater *heartbeater) Run(signals <-chan os.Signal, ready chan<- struc
 				return nil
 			case HeartbeatStatusHealthy:
 				currentInterval = heartbeater.interval
+			case HeartbeatStatusStaleConnection:
+				<-signals
+				return nil
 			default:
 				currentInterval = heartbeater.cprInterval
 			}
@@ -176,11 +180,15 @@ const (
 	HeartbeatStatusLanded
 	HeartbeatStatusGoneAway
 	HeartbeatStatusHealthy
+	HeartbeatStatusStaleConnection
 )
 
 func (heartbeater *heartbeater) heartbeat(logger lager.Logger) HeartbeatStatus {
+	//TODO This can be handled in by a new status which would then not heartbeat at all and just block on os.Signal
+	if heartbeater.staleConnection {
+		return HeartbeatStatusStaleConnection
+	}
 	logger.RegisterSink(lager.NewWriterSink(heartbeater.clientWriter, heartbeater.logLevel))
-
 	heartbeatData := lager.Data{
 		"worker-platform": heartbeater.registration.Platform,
 		"worker-address":  heartbeater.registration.GardenAddr,
@@ -247,6 +255,10 @@ func (heartbeater *heartbeater) heartbeat(logger lager.Logger) HeartbeatStatus {
 	if err != nil {
 		logger.Error("failed-to-decode-response", err)
 		return HeartbeatStatusUnhealthy
+	}
+
+	if workerInfo.GardenAddr != heartbeater.registration.GardenAddr {
+		heartbeater.staleConnection = true
 	}
 
 	if workerInfo.State == "landed" {

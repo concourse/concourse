@@ -28,12 +28,15 @@ type sshClient struct {
 	client *ssh.Client
 	config Config
 	conn   ssh.Conn
+	tcpConn net.Conn
 }
 
 func (c *sshClient) Dial() (Closeable, error) {
 	tsaAddr := c.config.TSAConfig.Host[rand.Intn(len(c.config.TSAConfig.Host))]
+	var err error
+	c.tcpConn, err = keepaliveDialer("tcp", tsaAddr, 10*time.Second, c.config.Registration.RebalanceTime)
 
-	conn, err := keepaliveDialer("tcp", tsaAddr, 10*time.Second)
+
 	if err != nil {
 		c.logger.Error("failed-to-connect-to-tsa", err)
 		return nil, ErrFailedToReachAnyTSA
@@ -58,7 +61,8 @@ func (c *sshClient) Dial() (Closeable, error) {
 		Auth: []ssh.AuthMethod{ssh.PublicKeys(pk)},
 	}
 
-	clientConn, chans, reqs, err := ssh.NewClientConn(conn, tsaAddr, clientConfig)
+	clientConn, chans, reqs, err := ssh.NewClientConn(c.tcpConn, tsaAddr, clientConfig)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct client connection: %s", err)
 	}
@@ -93,7 +97,19 @@ func (c *sshClient) KeepAlive() (<-chan error, chan<- struct{}) {
 			select {
 			case <-kas.C:
 			case <-cancel:
-				errs <- nil
+				c.logger.Info("Cancel Keepalive called.")
+				//errs <- nil
+				conn, ok := c.tcpConn.(*net.TCPConn)
+				if !ok {
+					c.logger.Info("!OK!!")
+					return
+				}
+
+				if err := conn.SetKeepAlive(false); err != nil {
+					c.logger.Error("SeKeepAlive false error: ", err)
+					return
+				}
+				c.logger.Info("got that far!")
 				return
 			}
 		}

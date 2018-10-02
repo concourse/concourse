@@ -2,9 +2,6 @@
 
 set -e -u
 
-export GOPATH=$PWD/gopath
-export PATH=$GOPATH/bin:$PATH
-
 source concourse/ci/tasks/scripts/docker-helpers.sh
 
 # make loopback devices available for 'gdn' and the btrfs volume driver
@@ -17,14 +14,11 @@ function create_loopbacks() {
 
 function cleanup_loopbacks() {
   for loop in $(losetup -a | cut -d: -f1); do
-    losetup -d $loop
+    losetup -d $loop || echo 'ignoring loopback error...'
   done
 }
 
 concourse_dir=$PWD/concourse
-if [ -d built-concourse ]; then
-  concourse_dir=$PWD/built-concourse
-fi
 
 function cleanup() {
   docker-compose -f $concourse_dir/docker-compose.yml down
@@ -40,19 +34,10 @@ start_docker
 [ -d dev-image ] && docker load -i dev-image/image.tar
 [ -d postgres-image ] && docker load -i postgres-image/image.tar
 
-cd $concourse_dir
+pushd concourse
+  # do not collide with outer Concourse network
+  export CONCOURSE_GARDEN_NETWORK_POOL="10.224.0.0/16"
+  DOCKERFILE=ci/dockerfiles/dev-test/Dockerfile docker-compose up -d
+popd
 
-# for better yarn output
-stty columns 80
-yarn install
-yarn build
-
-# do not collide with outer Concourse network
-export CONCOURSE_GARDEN_NETWORK_POOL="10.224.0.0/16"
-docker-compose up -d
-
-go mod download
-
-go install github.com/onsi/ginkgo/ginkgo
-
-ginkgo -r -nodes=3 -race ./testflight "$@"
+"$@"

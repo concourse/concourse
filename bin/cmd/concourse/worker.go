@@ -84,9 +84,9 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 			worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP.IP, cmd.BindPort)
 			worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP.IP, cmd.Baggageclaim.BindPort)
 
-			beaconConfig.RegistrationMode = "direct"
+			beaconConfig.Registration.Mode = "direct"
 		} else {
-			beaconConfig.RegistrationMode = "forward"
+			beaconConfig.Registration.Mode = "forward"
 			beaconConfig.GardenForwardAddr = fmt.Sprintf("%s:%d", cmd.BindIP.IP, cmd.BindPort)
 			beaconConfig.BaggageclaimForwardAddr = fmt.Sprintf("%s:%d", cmd.Baggageclaim.BindIP.IP, cmd.Baggageclaim.BindPort)
 
