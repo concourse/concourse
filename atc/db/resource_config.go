@@ -399,7 +399,7 @@ func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lock
 				hash,
 			).
 			Suffix(`
-				ON CONFLICT (resource_cache_id, base_resource_type_id, source_hash) DO UPDATE SET
+				ON CONFLICT (`+parentColumnName+`, source_hash) DO UPDATE SET
 					`+parentColumnName+` = ?,
 					source_hash = ?
 				RETURNING id
