@@ -7,11 +7,9 @@ import (
 	"time"
 
 	"github.com/felixge/tcpkeepalive"
-	"fmt"
 )
 
 func keepaliveDialer(network string, address string, dialTimeout time.Duration, idleTimeout time.Duration) (net.Conn, error) {
-	fmt.Println("keepaliveDialer was called")
 	conn, err := net.DialTimeout(network, address, dialTimeout)
 	if err != nil {
 		return nil, err

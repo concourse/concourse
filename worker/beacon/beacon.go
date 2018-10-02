@@ -88,6 +88,7 @@ const (
 )
 
 func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) error {
+	beacon.Logger.Debug("registering")
 	rebalanceDuration := beacon.RebalanceTime
 	bwg := &waitGroupWithCount{
 		WaitGroup: new(sync.WaitGroup),

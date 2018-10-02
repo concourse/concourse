@@ -92,24 +92,19 @@ func (c *sshClient) KeepAlive() (<-chan error, chan<- struct{}) {
 				return
 			}
 
-			logger.Debug("ok")
-
 			select {
 			case <-kas.C:
 			case <-cancel:
-				c.logger.Info("Cancel Keepalive called.")
 				//errs <- nil
 				conn, ok := c.tcpConn.(*net.TCPConn)
 				if !ok {
-					c.logger.Info("!OK!!")
 					return
 				}
 
 				if err := conn.SetKeepAlive(false); err != nil {
-					c.logger.Error("SeKeepAlive false error: ", err)
+					logger.Error("cancel-failed", err)
 					return
 				}
-				c.logger.Info("got that far!")
 				return
 			}
 		}
