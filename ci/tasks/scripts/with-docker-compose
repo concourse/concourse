@@ -4,31 +4,14 @@ set -e -u
 
 source concourse/ci/tasks/scripts/docker-helpers.sh
 
-# make loopback devices available for 'gdn' and the btrfs volume driver
-# XXX: remove once 'gdn' doesn't need xfs and we're back to overlay as default
-function create_loopbacks() {
-  for i in $(seq 128 143); do
-    mknod -m 0660 /dev/loop$i b 7 $i
-  done
-}
-
-function cleanup_loopbacks() {
-  for loop in $(losetup -a | cut -d: -f1); do
-    losetup -d $loop || echo 'ignoring loopback error...'
-  done
-}
-
 concourse_dir=$PWD/concourse
-
 function cleanup() {
   docker-compose -f $concourse_dir/docker-compose.yml down
   stop_docker
-  cleanup_loopbacks
 }
 
 trap cleanup EXIT
 
-create_loopbacks
 start_docker
 
 [ -d dev-image ] && docker load -i dev-image/image.tar
