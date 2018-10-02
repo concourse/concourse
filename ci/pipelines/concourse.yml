@@ -15,6 +15,10 @@ groups:
   jobs:
   - unit-image
 
+- name: workers
+  jobs:
+  - install-windows-deps
+
 jobs:
 - name: unit
   public: true
@@ -131,6 +135,20 @@ jobs:
     file: concourse/ci/tasks/docker-compose-watsjs.yml
     params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
+- name: build-rc
+  public: true
+  plan:
+  - get: concourse
+    passed: [testflight, watsjs]
+    trigger: true
+  - aggregate:
+    - task: fly-linux
+      file: concourse/ci/fly-build-linux.yml
+    - task: fly-windows
+      file: concourse/ci/fly-build-windows.yml
+    - task: fly-darwin
+      file: concourse/ci/fly-build-darwin.yml
+
 - name: unit-image
   public: true
   serial: true
@@ -154,6 +172,19 @@ jobs:
       run: {path: build}
   - put: unit-image
     params: {image: image/image.tar}
+
+- name: install-windows-deps
+  plan:
+  - get: concourse
+  - task: install-git
+    file: concourse/ci/tasks/choco-install.yml
+    params: {PACKAGE: go}
+  - task: install-git
+    file: concourse/ci/tasks/choco-install.yml
+    params: {PACKAGE: git}
+  - task: install-mingw
+    file: concourse/ci/tasks/choco-install.yml
+    params: {PACKAGE: mingw}
 
 resources:
 - name: concourse

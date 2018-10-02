@@ -3,15 +3,18 @@ platform: linux
 
 image_resource:
   type: registry-image
-  source:
-    repository: concourse/static-golang
+  source: {repository: golang}
 
 inputs:
 - name: concourse
 - name: final-version
+  optional: true
+
+caches:
+- path: gopath
 
 outputs:
-- name: linux-binary
+- name: fly-linux
 
 run:
   path: concourse/ci/tasks/scripts/fly-build

@@ -2,11 +2,17 @@
 platform: windows
 
 inputs:
-  - name: concourse
-  - name: final-version
+- name: concourse
+- name: final-version
+  optional: true
 
 outputs:
-  - name: windows-binary
+- name: fly-windows
+
+# won't work until https://github.com/concourse/concourse/issues/2506 is fixed
+# caches:
+# - path: gopath
 
 run:
-  path: concourse/ci/tasks/scripts/fly-build.bat
+  path: powershell
+  args: [concourse/ci/tasks/scripts/fly-build.ps1]

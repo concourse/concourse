@@ -4,9 +4,10 @@ platform: darwin
 inputs:
 - name: concourse
 - name: final-version
+  optional: true
 
 outputs:
-- name: darwin-binary
+- name: fly-darwin
 
 run:
   path: concourse/ci/tasks/scripts/fly-build
