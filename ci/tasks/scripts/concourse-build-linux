@@ -1,0 +1,22 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -x
+
+pushd concourse-linux
+  cp $(which concourse) .
+  cp $(which gdn) .
+
+  cp -a /concourse-resource-types/ ./resource-types/
+
+  mkdir fly-assets
+  [ -d fly-linux ] && cp -a ../fly-linux/fly-*.tgz fly-assets
+  [ -d fly-windows ] && cp -a ../fly-windows/fly-*.zip fly-assets
+  [ -d fly-darwin ] && cp -a ../fly-darwin/fly-*.tgz fly-assets
+
+  tar -czf concourse-linux-amd64.tgz \
+    concourse \
+    gdn \
+    resource-types \
+    fly-assets
+popd

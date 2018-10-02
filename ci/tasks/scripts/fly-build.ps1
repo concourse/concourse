@@ -11,7 +11,7 @@ $env:Path += ";$pwd\gopath\bin"
 $ldflags = ""
 if ([System.IO.File]::Exists("final-version\version")) {
   [string]$FinalVersion = (Get-Content "final-version\version")
-  $ldflags = "-X github.com/concourse/fly/version.Version=$FinalVersion"
+  $ldflags = "-X github.com/concourse/concourse/fly/version.Version=$FinalVersion"
 }
 
 Push-Location concourse

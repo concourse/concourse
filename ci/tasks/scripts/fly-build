@@ -11,15 +11,15 @@ arch="$(go env GOARCH)"
 
 output="$PWD/fly-${platform}"
 
-buildflags=""
+ldflags=""
 if [ -e final-version/version ]; then
   final_version="$(cat final-version/version)"
-  buildflags="-ldflags \"-X github.com/concourse/fly/version.Version=${final_version}\""
+  ldflags="-X github.com/concourse/concourse/fly/version.Version=${final_version}"
 fi
 
 pushd concourse
-  CGO_ENABLED=0 go build $buildflags -o $output/fly ./fly
-  if which ldd && ldd $output/fly 2>/dev/null; then
+  CGO_ENABLED=0 go build -ldflags "$ldflags" -o $output/fly ./fly
+  if which ldd && ldd $output/fly; then
     echo "binary is not static; aborting"
     exit 1
   fi

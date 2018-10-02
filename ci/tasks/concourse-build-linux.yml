@@ -1,0 +1,26 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: concourse/dev}
+
+inputs:
+- name: concourse
+- name: final-version
+  optional: true
+- name: fly-linux
+  optional: true
+- name: fly-windows
+  optional: true
+- name: fly-darwin
+  optional: true
+
+caches:
+- path: gopath
+
+outputs:
+- name: concourse-linux
+
+run:
+  path: concourse/ci/tasks/scripts/concourse-build-linux

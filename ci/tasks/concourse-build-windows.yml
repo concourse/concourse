@@ -1,0 +1,19 @@
+---
+platform: windows
+
+inputs:
+- name: concourse
+- name: final-version
+  optional: true
+- name: fly-linux
+  optional: true
+- name: fly-windows
+  optional: true
+- name: fly-darwin
+  optional: true
+
+outputs:
+- name: concourse-windows
+
+run:
+  path: concourse/ci/tasks/scripts/concourse-build-windows.ps1

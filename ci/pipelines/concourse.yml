@@ -10,14 +10,11 @@ groups:
   - dev-image
   - testflight
   - watsjs
+  - build-rc
 
 - name: images
   jobs:
   - unit-image
-
-- name: workers
-  jobs:
-  - install-windows-deps
 
 jobs:
 - name: unit
@@ -138,9 +135,12 @@ jobs:
 - name: build-rc
   public: true
   plan:
-  - get: concourse
-    passed: [testflight, watsjs]
-    trigger: true
+  - aggregate:
+    - get: concourse
+      passed: [testflight, watsjs]
+      trigger: true
+    - get: dev-image
+      passed: [testflight, watsjs]
   - aggregate:
     - task: fly-linux
       file: concourse/ci/fly-build-linux.yml
@@ -148,6 +148,14 @@ jobs:
       file: concourse/ci/fly-build-windows.yml
     - task: fly-darwin
       file: concourse/ci/fly-build-darwin.yml
+  - aggregate:
+    - task: concourse-linux
+      image: dev-image
+      file: concourse/ci/concourse-build-linux.yml
+    - task: concourse-windows
+      file: concourse/ci/concourse-build-windows.yml
+    - task: concourse-darwin
+      file: concourse/ci/concourse-build-darwin.yml
 
 - name: unit-image
   public: true
@@ -172,19 +180,6 @@ jobs:
       run: {path: build}
   - put: unit-image
     params: {image: image/image.tar}
-
-- name: install-windows-deps
-  plan:
-  - get: concourse
-  - task: install-git
-    file: concourse/ci/tasks/choco-install.yml
-    params: {PACKAGE: go}
-  - task: install-git
-    file: concourse/ci/tasks/choco-install.yml
-    params: {PACKAGE: git}
-  - task: install-mingw
-    file: concourse/ci/tasks/choco-install.yml
-    params: {PACKAGE: mingw}
 
 resources:
 - name: concourse
