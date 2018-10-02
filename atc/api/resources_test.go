@@ -57,7 +57,6 @@ var _ = Describe("Resources API", func() {
 				resource1.IDReturns(1)
 				resource1.CheckErrorReturns(nil)
 				resource1.ResourceConfigCheckErrorReturns(nil)
-				resource1.PausedReturns(true)
 				resource1.PipelineNameReturns("a-pipeline")
 				resource1.TeamNameReturns("some-team")
 				resource1.NameReturns("resource-1")
@@ -68,7 +67,6 @@ var _ = Describe("Resources API", func() {
 				resource2.IDReturns(2)
 				resource2.ResourceConfigCheckErrorReturns(errors.New("sup"))
 				resource2.CheckErrorReturns(nil)
-				resource2.PausedReturns(false)
 				resource2.PipelineNameReturns("a-pipeline")
 				resource2.TeamNameReturns("other-team")
 				resource2.NameReturns("resource-2")
@@ -78,7 +76,6 @@ var _ = Describe("Resources API", func() {
 				resource3.IDReturns(3)
 				resource3.CheckErrorReturns(errors.New("sup"))
 				resource3.ResourceConfigCheckErrorReturns(nil)
-				resource3.PausedReturns(true)
 				resource3.PipelineNameReturns("a-pipeline")
 				resource3.TeamNameReturns("another-team")
 				resource3.NameReturns("resource-3")
@@ -107,7 +104,6 @@ var _ = Describe("Resources API", func() {
 							"pipeline_name": "a-pipeline",
 							"team_name": "some-team",
 							"type": "type-1",
-							"paused": true,
 							"last_checked": 1513364881
 						},
 						{
@@ -123,7 +119,6 @@ var _ = Describe("Resources API", func() {
 							"pipeline_name": "a-pipeline",
 							"team_name": "another-team",
 							"type": "type-3",
-							"paused": true,
 							"failing_to_check": true,
 							"check_setup_error": "sup"
 						}
@@ -176,7 +171,6 @@ var _ = Describe("Resources API", func() {
 				resource1.IDReturns(1)
 				resource1.CheckErrorReturns(nil)
 				resource1.ResourceConfigCheckErrorReturns(nil)
-				resource1.PausedReturns(true)
 				resource1.PipelineNameReturns("a-pipeline")
 				resource1.NameReturns("resource-1")
 				resource1.TypeReturns("type-1")
@@ -186,7 +180,6 @@ var _ = Describe("Resources API", func() {
 				resource2.IDReturns(2)
 				resource2.ResourceConfigCheckErrorReturns(errors.New("sup"))
 				resource2.CheckErrorReturns(nil)
-				resource2.PausedReturns(false)
 				resource2.PipelineNameReturns("a-pipeline")
 				resource2.NameReturns("resource-2")
 				resource2.TypeReturns("type-2")
@@ -195,7 +188,6 @@ var _ = Describe("Resources API", func() {
 				resource3.IDReturns(3)
 				resource3.ResourceConfigCheckErrorReturns(nil)
 				resource3.CheckErrorReturns(errors.New("sup"))
-				resource3.PausedReturns(true)
 				resource3.PipelineNameReturns("a-pipeline")
 				resource3.NameReturns("resource-3")
 				resource3.TypeReturns("type-3")
@@ -244,7 +236,6 @@ var _ = Describe("Resources API", func() {
 						"pipeline_name": "a-pipeline",
 						"team_name": "a-team",
 						"type": "type-1",
-						"paused": true,
 						"last_checked": 1513364881
 					},
 					{
@@ -259,7 +250,6 @@ var _ = Describe("Resources API", func() {
 						"pipeline_name": "a-pipeline",
 						"team_name": "a-team",
 						"type": "type-3",
-						"paused": true,
 						"failing_to_check": true
 					}
 				]`))
@@ -291,7 +281,6 @@ var _ = Describe("Resources API", func() {
 							"pipeline_name": "a-pipeline",
 							"team_name": "a-team",
 							"type": "type-1",
-							"paused": true,
 							"last_checked": 1513364881
 						},
 						{
@@ -307,7 +296,6 @@ var _ = Describe("Resources API", func() {
 							"pipeline_name": "a-pipeline",
 							"team_name": "a-team",
 							"type": "type-3",
-							"paused": true,
 							"check_setup_error": "sup",
 							"failing_to_check": true
 						}
@@ -776,7 +764,6 @@ var _ = Describe("Resources API", func() {
 					resource1 := new(dbfakes.FakeResource)
 					resource1.CheckErrorReturns(errors.New("sup"))
 					resource1.ResourceConfigCheckErrorReturns(errors.New("sup"))
-					resource1.PausedReturns(true)
 					resource1.PipelineNameReturns("a-pipeline")
 					resource1.NameReturns("resource-1")
 					resource1.TypeReturns("type-1")
@@ -805,7 +792,6 @@ var _ = Describe("Resources API", func() {
 								"team_name": "a-team",
 								"type": "type-1",
 								"last_checked": 1513364881,
-								"paused": true,
 								"failing_to_check": true,
 								"check_setup_error": "sup",
 								"check_error": "sup",
@@ -868,168 +854,6 @@ var _ = Describe("Resources API", func() {
 						"failing_to_check": true
 					}`))
 				})
-			})
-		})
-	})
-
-	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/pause", func() {
-		var (
-			response     *http.Response
-			fakeResource *dbfakes.FakeResource
-		)
-
-		BeforeEach(func() {
-			fakeResource = new(dbfakes.FakeResource)
-			fakeResource.NameReturns("resource-name")
-
-			fakePipeline.ResourceReturns(fakeResource, true, nil)
-		})
-
-		JustBeforeEach(func() {
-			var err error
-
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/pause", nil)
-			Expect(err).NotTo(HaveOccurred())
-
-			response, err = client.Do(request)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		Context("when authenticated", func() {
-			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-			})
-			Context("when authorized", func() {
-				BeforeEach(func() {
-					fakeaccess.IsAuthorizedReturns(true)
-				})
-
-				It("injects the proper pipelineDB", func() {
-					Expect(dbTeam.PipelineCallCount()).To(Equal(1))
-					pipelineName := dbTeam.PipelineArgsForCall(0)
-					Expect(pipelineName).To(Equal("a-pipeline"))
-				})
-
-				Context("when pausing the resource succeeds", func() {
-					BeforeEach(func() {
-						fakeResource.PauseReturns(nil)
-					})
-
-					It("returns 200", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-					})
-				})
-
-				Context("when resource can not be found", func() {
-					BeforeEach(func() {
-						fakePipeline.ResourceReturns(nil, false, nil)
-					})
-
-					It("returns 404", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					})
-				})
-
-				Context("when pausing the resource fails", func() {
-					BeforeEach(func() {
-						fakeResource.PauseReturns(errors.New("welp"))
-					})
-
-					It("returns 500", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					})
-				})
-			})
-		})
-
-		Context("when not authenticated", func() {
-			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
-			})
-
-			It("returns Unauthorized", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-			})
-		})
-	})
-
-	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/unpause", func() {
-		var (
-			response     *http.Response
-			fakeResource *dbfakes.FakeResource
-		)
-
-		BeforeEach(func() {
-			fakeResource = new(dbfakes.FakeResource)
-			fakeResource.NameReturns("resource-name")
-
-			fakePipeline.ResourceReturns(fakeResource, true, nil)
-		})
-
-		JustBeforeEach(func() {
-			var err error
-
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/unpause", nil)
-			Expect(err).NotTo(HaveOccurred())
-
-			response, err = client.Do(request)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		Context("when authenticated", func() {
-			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-			})
-			Context("when authorized", func() {
-				BeforeEach(func() {
-					fakeaccess.IsAuthorizedReturns(true)
-				})
-
-				It("injects the proper pipelineDB", func() {
-					Expect(dbTeam.PipelineCallCount()).To(Equal(1))
-					pipelineName := dbTeam.PipelineArgsForCall(0)
-					Expect(pipelineName).To(Equal("a-pipeline"))
-				})
-
-				Context("when unpausing the resource succeeds", func() {
-					BeforeEach(func() {
-						fakeResource.UnpauseReturns(nil)
-					})
-
-					It("returns 200", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-					})
-				})
-
-				Context("when resource can not be found", func() {
-					BeforeEach(func() {
-						fakePipeline.ResourceReturns(nil, false, nil)
-					})
-
-					It("returns 404", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					})
-				})
-
-				Context("when unpausing the resource fails", func() {
-					BeforeEach(func() {
-						fakeResource.UnpauseReturns(errors.New("welp"))
-					})
-
-					It("returns 500", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					})
-				})
-			})
-		})
-
-		Context("when not authenticated", func() {
-			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
-			})
-
-			It("returns Status Unauthorized", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})

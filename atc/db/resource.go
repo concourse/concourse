@@ -28,7 +28,6 @@ type Resource interface {
 	LastChecked() time.Time
 	Tags() atc.Tags
 	CheckError() error
-	Paused() bool
 	WebhookToken() string
 	ConfigPinnedVersion() atc.Version
 	APIPinnedVersion() atc.Version
@@ -47,13 +46,10 @@ type Resource interface {
 	SetResourceConfig(int) error
 	SetCheckError(error) error
 
-	Pause() error
-	Unpause() error
-
 	Reload() (bool, error)
 }
 
-var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, r.paused, c.last_checked, r.pipeline_id, r.nonce, r.resource_config_id, p.name, t.name, c.check_error, r.api_pinned_version").
+var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, c.last_checked, r.pipeline_id, r.nonce, r.resource_config_id, p.name, t.name, c.check_error, r.api_pinned_version").
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
@@ -73,7 +69,6 @@ type resource struct {
 	lastChecked              time.Time
 	tags                     atc.Tags
 	checkError               error
-	paused                   bool
 	webhookToken             string
 	configPinnedVersion      atc.Version
 	apiPinnedVersion         atc.Version
@@ -133,7 +128,6 @@ func (r *resource) CheckTimeout() string             { return r.checkTimeout }
 func (r *resource) LastChecked() time.Time           { return r.lastChecked }
 func (r *resource) Tags() atc.Tags                   { return r.tags }
 func (r *resource) CheckError() error                { return r.checkError }
-func (r *resource) Paused() bool                     { return r.paused }
 func (r *resource) WebhookToken() string             { return r.webhookToken }
 func (r *resource) ConfigPinnedVersion() atc.Version { return r.configPinnedVersion }
 func (r *resource) APIPinnedVersion() atc.Version    { return r.apiPinnedVersion }
@@ -154,30 +148,6 @@ func (r *resource) Reload() (bool, error) {
 	}
 
 	return true, nil
-}
-
-func (r *resource) Pause() error {
-	_, err := psql.Update("resources").
-		Set("paused", true).
-		Where(sq.Eq{
-			"id": r.id,
-		}).
-		RunWith(r.conn).
-		Exec()
-
-	return err
-}
-
-func (r *resource) Unpause() error {
-	_, err := psql.Update("resources").
-		Set("paused", false).
-		Where(sq.Eq{
-			"id": r.id,
-		}).
-		RunWith(r.conn).
-		Exec()
-
-	return err
 }
 
 func (r *resource) SetResourceConfig(resourceConfigID int) error {
@@ -502,7 +472,7 @@ func scanResource(r *resource, row scannable) error {
 		lastChecked                                         pq.NullTime
 	)
 
-	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &r.paused, &lastChecked, &r.pipelineID, &nonce, &rcID, &r.pipelineName, &r.teamName, &rcCheckErr, &apiPinnedVersion)
+	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &lastChecked, &r.pipelineID, &nonce, &rcID, &r.pipelineName, &r.teamName, &rcCheckErr, &apiPinnedVersion)
 	if err != nil {
 		return err
 	}

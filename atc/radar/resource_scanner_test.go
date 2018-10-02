@@ -106,7 +106,6 @@ var _ = Describe("ResourceScanner", func() {
 		fakeDBResource.IDReturns(39)
 		fakeDBResource.NameReturns("some-resource")
 		fakeDBResource.PipelineNameReturns("some-pipeline")
-		fakeDBResource.PausedReturns(false)
 		fakeDBResource.TypeReturns("git")
 		fakeDBResource.SourceReturns(atc.Source{"uri": "((source-params))"})
 		fakeDBResource.TagsReturns(atc.Tags{"some-tag"})
@@ -417,29 +416,7 @@ var _ = Describe("ResourceScanner", func() {
 				})
 			})
 
-			Context("when the resource is paused", func() {
-				var anotherFakeResource *dbfakes.FakeResource
-				BeforeEach(func() {
-					anotherFakeResource = new(dbfakes.FakeResource)
-					anotherFakeResource.NameReturns("some-resource")
-					anotherFakeResource.PausedReturns(true)
-					fakeDBPipeline.ResourceReturns(anotherFakeResource, true, nil)
-				})
-
-				It("does not check", func() {
-					Expect(fakeResource.CheckCallCount()).To(BeZero())
-				})
-
-				It("returns the default interval", func() {
-					Expect(actualInterval).To(Equal(interval))
-				})
-
-				It("does not return an error", func() {
-					Expect(runErr).NotTo(HaveOccurred())
-				})
-			})
-
-			Context("when checking if the resource is paused fails", func() {
+			Context("when checking if the pipeline is paused fails", func() {
 				disaster := errors.New("disaster")
 
 				BeforeEach(func() {
@@ -452,7 +429,7 @@ var _ = Describe("ResourceScanner", func() {
 				})
 			})
 
-			Context("when checking if the resource is paused fails", func() {
+			Context("when finding the resource fails", func() {
 				disaster := errors.New("disaster")
 
 				BeforeEach(func() {

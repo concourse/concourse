@@ -112,26 +112,6 @@ type FakeResource struct {
 	nameReturnsOnCall map[int]struct {
 		result1 string
 	}
-	PauseStub        func() error
-	pauseMutex       sync.RWMutex
-	pauseArgsForCall []struct {
-	}
-	pauseReturns struct {
-		result1 error
-	}
-	pauseReturnsOnCall map[int]struct {
-		result1 error
-	}
-	PausedStub        func() bool
-	pausedMutex       sync.RWMutex
-	pausedArgsForCall []struct {
-	}
-	pausedReturns struct {
-		result1 bool
-	}
-	pausedReturnsOnCall map[int]struct {
-		result1 bool
-	}
 	PinVersionStub        func(int) error
 	pinVersionMutex       sync.RWMutex
 	pinVersionArgsForCall []struct {
@@ -271,16 +251,6 @@ type FakeResource struct {
 	}
 	typeReturnsOnCall map[int]struct {
 		result1 string
-	}
-	UnpauseStub        func() error
-	unpauseMutex       sync.RWMutex
-	unpauseArgsForCall []struct {
-	}
-	unpauseReturns struct {
-		result1 error
-	}
-	unpauseReturnsOnCall map[int]struct {
-		result1 error
 	}
 	UnpinVersionStub        func(int) error
 	unpinVersionMutex       sync.RWMutex
@@ -757,90 +727,6 @@ func (fake *FakeResource) NameReturnsOnCall(i int, result1 string) {
 	}
 	fake.nameReturnsOnCall[i] = struct {
 		result1 string
-	}{result1}
-}
-
-func (fake *FakeResource) Pause() error {
-	fake.pauseMutex.Lock()
-	ret, specificReturn := fake.pauseReturnsOnCall[len(fake.pauseArgsForCall)]
-	fake.pauseArgsForCall = append(fake.pauseArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Pause", []interface{}{})
-	fake.pauseMutex.Unlock()
-	if fake.PauseStub != nil {
-		return fake.PauseStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.pauseReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeResource) PauseCallCount() int {
-	fake.pauseMutex.RLock()
-	defer fake.pauseMutex.RUnlock()
-	return len(fake.pauseArgsForCall)
-}
-
-func (fake *FakeResource) PauseReturns(result1 error) {
-	fake.PauseStub = nil
-	fake.pauseReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeResource) PauseReturnsOnCall(i int, result1 error) {
-	fake.PauseStub = nil
-	if fake.pauseReturnsOnCall == nil {
-		fake.pauseReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.pauseReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeResource) Paused() bool {
-	fake.pausedMutex.Lock()
-	ret, specificReturn := fake.pausedReturnsOnCall[len(fake.pausedArgsForCall)]
-	fake.pausedArgsForCall = append(fake.pausedArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Paused", []interface{}{})
-	fake.pausedMutex.Unlock()
-	if fake.PausedStub != nil {
-		return fake.PausedStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.pausedReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeResource) PausedCallCount() int {
-	fake.pausedMutex.RLock()
-	defer fake.pausedMutex.RUnlock()
-	return len(fake.pausedArgsForCall)
-}
-
-func (fake *FakeResource) PausedReturns(result1 bool) {
-	fake.PausedStub = nil
-	fake.pausedReturns = struct {
-		result1 bool
-	}{result1}
-}
-
-func (fake *FakeResource) PausedReturnsOnCall(i int, result1 bool) {
-	fake.PausedStub = nil
-	if fake.pausedReturnsOnCall == nil {
-		fake.pausedReturnsOnCall = make(map[int]struct {
-			result1 bool
-		})
-	}
-	fake.pausedReturnsOnCall[i] = struct {
-		result1 bool
 	}{result1}
 }
 
@@ -1431,48 +1317,6 @@ func (fake *FakeResource) TypeReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResource) Unpause() error {
-	fake.unpauseMutex.Lock()
-	ret, specificReturn := fake.unpauseReturnsOnCall[len(fake.unpauseArgsForCall)]
-	fake.unpauseArgsForCall = append(fake.unpauseArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Unpause", []interface{}{})
-	fake.unpauseMutex.Unlock()
-	if fake.UnpauseStub != nil {
-		return fake.UnpauseStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.unpauseReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeResource) UnpauseCallCount() int {
-	fake.unpauseMutex.RLock()
-	defer fake.unpauseMutex.RUnlock()
-	return len(fake.unpauseArgsForCall)
-}
-
-func (fake *FakeResource) UnpauseReturns(result1 error) {
-	fake.UnpauseStub = nil
-	fake.unpauseReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeResource) UnpauseReturnsOnCall(i int, result1 error) {
-	fake.UnpauseStub = nil
-	if fake.unpauseReturnsOnCall == nil {
-		fake.unpauseReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.unpauseReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeResource) UnpinVersion(arg1 int) error {
 	fake.unpinVersionMutex.Lock()
 	ret, specificReturn := fake.unpinVersionReturnsOnCall[len(fake.unpinVersionArgsForCall)]
@@ -1647,10 +1491,6 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.lastCheckedMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
-	fake.pauseMutex.RLock()
-	defer fake.pauseMutex.RUnlock()
-	fake.pausedMutex.RLock()
-	defer fake.pausedMutex.RUnlock()
 	fake.pinVersionMutex.RLock()
 	defer fake.pinVersionMutex.RUnlock()
 	fake.pipelineIDMutex.RLock()
@@ -1677,8 +1517,6 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.teamNameMutex.RUnlock()
 	fake.typeMutex.RLock()
 	defer fake.typeMutex.RUnlock()
-	fake.unpauseMutex.RLock()
-	defer fake.unpauseMutex.RUnlock()
 	fake.unpinVersionMutex.RLock()
 	defer fake.unpinVersionMutex.RUnlock()
 	fake.versionsMutex.RLock()

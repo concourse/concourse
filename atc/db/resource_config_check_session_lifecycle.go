@@ -28,7 +28,7 @@ func (lifecycle resourceConfigCheckSessionLifecycle) CleanInactiveResourceConfig
 		Join("resource_configs rc ON rccs.resource_config_id = rc.id").
 		Join("resources r ON r.resource_config_id = rc.id").
 		Join("pipelines p ON p.id = r.pipeline_id").
-		Where(sq.Expr("r.active AND NOT r.paused AND NOT p.paused")).
+		Where(sq.Expr("r.active AND NOT p.paused")).
 		ToSql()
 	if err != nil {
 		return err

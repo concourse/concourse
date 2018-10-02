@@ -145,8 +145,6 @@ func NewHandler(
 		atc.ListResources:        pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
 		atc.ListResourceTypes:    pipelineHandlerFactory.HandlerFor(resourceServer.ListVersionedResourceTypes),
 		atc.GetResource:          pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
-		atc.PauseResource:        pipelineHandlerFactory.HandlerFor(resourceServer.PauseResource),
-		atc.UnpauseResource:      pipelineHandlerFactory.HandlerFor(resourceServer.UnpauseResource),
 		atc.CheckResource:        pipelineHandlerFactory.HandlerFor(resourceServer.CheckResource),
 		atc.CheckResourceWebHook: pipelineHandlerFactory.HandlerFor(resourceServer.CheckResourceWebHook),
 		atc.CheckResourceType:    pipelineHandlerFactory.HandlerFor(resourceServer.CheckResourceType),

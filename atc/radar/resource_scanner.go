@@ -244,11 +244,6 @@ func (scanner *resourceScanner) check(
 		return nil
 	}
 
-	if savedResource.Paused() {
-		logger.Debug("resource-paused")
-		return nil
-	}
-
 	found, err := scanner.dbPipeline.Reload()
 	if err != nil {
 		logger.Error("failed-to-reload-scannerdb", err)

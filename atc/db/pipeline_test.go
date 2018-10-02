@@ -423,7 +423,6 @@ var _ = Describe("Pipeline", func() {
 
 		It("returns correct resource", func() {
 			Expect(resource.Name()).To(Equal("some-resource"))
-			Expect(resource.Paused()).To(Equal(false))
 			Expect(resource.PipelineName()).To(Equal("pipeline-name"))
 			Expect(resource.CheckError()).To(BeNil())
 			Expect(resource.Type()).To(Equal("some-type"))

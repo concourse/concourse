@@ -26,8 +26,6 @@ func Resource(resource db.Resource, showCheckError bool, teamName string) atc.Re
 		TeamName:     teamName,
 		Type:         resource.Type(),
 
-		Paused: resource.Paused(),
-
 		FailingToCheck:  failingToCheck,
 		CheckSetupError: checkErrString,
 		CheckError:      rcCheckErrString,

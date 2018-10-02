@@ -93,7 +93,7 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 			})
 		})
 
-		Context("when the resource is active and unpaused", func() {
+		Context("when the resource is active", func() {
 			It("keeps the resource config check session", func() {
 				Expect(resourceConfigCheckSessionExists(resourceConfigCheckSession)).To(BeTrue())
 			})
@@ -114,18 +114,6 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 
 				defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atcConfig, db.ConfigVersion(1), db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("removes the resource config check session", func() {
-				Expect(resourceConfigCheckSessionExists(resourceConfigCheckSession)).To(BeFalse())
-			})
-		})
-
-		Context("when the resource is paused", func() {
-			BeforeEach(func() {
-				var err error
-				err = resource.Pause()
-				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("removes the resource config check session", func() {
