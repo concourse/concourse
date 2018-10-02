@@ -170,6 +170,26 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		return 0, err
 	}
 
+	currentVersion := savedResource.CurrentPinnedVersion()
+	if currentVersion != nil {
+		_, found, err := resourceConfig.FindVersion(currentVersion)
+
+		if err != nil {
+			logger.Error("failed-to-find-pinned-version-on-resource", err, lager.Data{"pinned-version": currentVersion})
+			chkErr := resourceConfig.SetCheckError(err)
+			if chkErr != nil {
+				logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
+			}
+			return 0, err
+		}
+		if found {
+			logger.Info("skipping-check-because-pinned-version-found", lager.Data{"pinned-version": currentVersion})
+			return 0, nil
+		}
+
+		fromVersion = currentVersion
+	}
+
 	for breaker := true; breaker == true; breaker = mustComplete {
 		lock, acquired, err := resourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheck(
 			logger,

@@ -34,6 +34,8 @@ type Resource interface {
 	ResourceConfigCheckError() error
 	ResourceConfigID() int
 
+	CurrentPinnedVersion() atc.Version
+
 	ResourceConfigVersionID(atc.Version) (int, bool, error)
 	Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error)
 
@@ -208,6 +210,15 @@ func (r *resource) ResourceConfigVersionID(version atc.Version) (int, bool, erro
 	}
 
 	return id, true, nil
+}
+
+func (r *resource) CurrentPinnedVersion() atc.Version {
+	if r.configPinnedVersion != nil {
+		return r.configPinnedVersion
+	} else if r.apiPinnedVersion != nil {
+		return r.apiPinnedVersion
+	}
+	return nil
 }
 
 func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error) {

@@ -666,6 +666,54 @@ var _ = Describe("ResourceScanner", func() {
 				})
 			})
 
+			Context("when the resource has a pinned version", func() {
+				BeforeEach(func() {
+					fakeDBResource.CurrentPinnedVersionReturns(atc.Version{"version": "1"})
+				})
+
+				It("tries to find the version in the database", func() {
+					Expect(fakeResourceConfig.FindVersionCallCount()).To(Equal(1))
+					Expect(fakeResourceConfig.FindVersionArgsForCall(0)).To(Equal(atc.Version{"version": "1"}))
+				})
+
+				Context("when finding the version succeeds", func() {
+					BeforeEach(func() {
+						fakeResourceConfigVersion := new(dbfakes.FakeResourceConfigVersion)
+						fakeResourceConfigVersion.IDReturns(1)
+						fakeResourceConfigVersion.VersionReturns(db.Version{"version": "1"})
+						fakeResourceConfig.FindVersionReturns(fakeResourceConfigVersion, true, nil)
+					})
+
+					It("does not check", func() {
+						Expect(fakeResource.CheckCallCount()).To(Equal(0))
+					})
+				})
+
+				Context("when the version is not found", func() {
+					BeforeEach(func() {
+						fakeResourceConfig.FindVersionReturns(nil, false, nil)
+					})
+
+					It("checks from the pinned version", func() {
+						_, _, version := fakeResource.CheckArgsForCall(0)
+						Expect(version).To(Equal(atc.Version{"version": "1"}))
+					})
+				})
+
+				Context("when finding the version fails", func() {
+					BeforeEach(func() {
+						fakeResourceConfig.FindVersionReturns(nil, false, errors.New("ah"))
+					})
+
+					It("sets the check error on the resource config", func() {
+						Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+
+						err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+						Expect(err).To(Equal(errors.New("ah")))
+					})
+				})
+			})
+
 			Context("when the lock is not immediately available", func() {
 				BeforeEach(func() {
 					results := make(chan bool, 4)

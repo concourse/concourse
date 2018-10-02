@@ -78,6 +78,7 @@ var _ = Describe("Resource", func() {
 					Expect(r.Type()).To(Equal("registry-image"))
 					Expect(r.Source()).To(Equal(atc.Source{"some": "repository"}))
 					Expect(r.ConfigPinnedVersion()).To(Equal(atc.Version{"ref": "abcdef"}))
+					Expect(r.CurrentPinnedVersion()).To(Equal(r.ConfigPinnedVersion()))
 				case "some-other-resource":
 					Expect(r.Type()).To(Equal("git"))
 					Expect(r.Source()).To(Equal(atc.Source{"some": "other-repository"}))
@@ -717,6 +718,7 @@ var _ = Describe("Resource", func() {
 
 			It("sets the api pinned version", func() {
 				Expect(resource.APIPinnedVersion()).To(Equal(atc.Version{"version": "v1"}))
+				Expect(resource.CurrentPinnedVersion()).To(Equal(resource.APIPinnedVersion()))
 			})
 
 			Context("when we unpin a resource to a version", func() {
@@ -731,7 +733,56 @@ var _ = Describe("Resource", func() {
 
 				It("sets the api pinned version to nil", func() {
 					Expect(resource.APIPinnedVersion()).To(BeNil())
+					Expect(resource.CurrentPinnedVersion()).To(BeNil())
 				})
+			})
+		})
+
+		Context("when we pin a resource that is already pinned to a version (through the config)", func() {
+			BeforeEach(func() {
+				var found bool
+				var err error
+				resource, found, err = pipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				setupTx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+
+				brt := db.BaseResourceType{
+					Name: "registry-image",
+				}
+				_, err = brt.FindOrCreate(setupTx)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(setupTx.Commit()).To(Succeed())
+
+				resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "registry-image", atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+				Expect(err).ToNot(HaveOccurred())
+
+				err = resource.SetResourceConfig(resourceConfig.ID())
+				Expect(err).ToNot(HaveOccurred())
+
+				err = resourceConfig.SaveVersions([]atc.Version{
+					atc.Version{"version": "v1"},
+					atc.Version{"version": "v2"},
+					atc.Version{"version": "v3"},
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				resConf, found, err := resourceConfig.FindVersion(atc.Version{"version": "v1"})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = resource.PinVersion(resConf.ID())
+				Expect(err).ToNot(HaveOccurred())
+
+				found, err = resource.Reload()
+				Expect(found).To(BeTrue())
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should return the config pinned version", func() {
+				Expect(resource.CurrentPinnedVersion()).To(Equal(atc.Version{"ref": "abcdef"}))
 			})
 		})
 	})

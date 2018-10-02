@@ -395,7 +395,7 @@ var _ = Describe("Inputmapper", func() {
 
 				fakeResource = new(dbfakes.FakeResource)
 				fakeResource.NameReturns("a")
-				fakeResource.APIPinnedVersionReturns(atc.Version{"version": "v1"})
+				fakeResource.CurrentPinnedVersionReturns(atc.Version{"version": "v1"})
 
 				resources = db.Resources{fakeResource}
 			})
@@ -427,7 +427,7 @@ var _ = Describe("Inputmapper", func() {
 
 				fakeResource = new(dbfakes.FakeResource)
 				fakeResource.NameReturns("a")
-				fakeResource.ConfigPinnedVersionReturns(map[string]string{"ref": "abc"})
+				fakeResource.CurrentPinnedVersionReturns(map[string]string{"ref": "abc"})
 
 				resources = db.Resources{fakeResource}
 			})
@@ -454,24 +454,6 @@ var _ = Describe("Inputmapper", func() {
 				})
 
 				It("returns an input config with the resource pinned version because it should take precedence over the version pinned on get step", func() {
-					Expect(fakeTransformer.TransformInputConfigsCallCount()).To(Equal(1))
-					_, _, actualJobInputs := fakeTransformer.TransformInputConfigsArgsForCall(0)
-					Expect(actualJobInputs).To(ConsistOf(
-						atc.JobInput{
-							Name:     "a",
-							Resource: "a",
-							Version:  &atc.VersionConfig{Pinned: atc.Version{"ref": "abc"}},
-						},
-					))
-				})
-			})
-
-			Context("when a resource has a pinned version from the API", func() {
-				BeforeEach(func() {
-					fakeResource.APIPinnedVersionReturns(atc.Version{"version": "v1"})
-				})
-
-				It("returns an input config with the resource pinned version because it should take precedence over the version pinned in the API", func() {
 					Expect(fakeTransformer.TransformInputConfigsCallCount()).To(Equal(1))
 					_, _, actualJobInputs := fakeTransformer.TransformInputConfigsArgsForCall(0)
 					Expect(actualJobInputs).To(ConsistOf(
