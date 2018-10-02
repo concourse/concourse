@@ -1,0 +1,112 @@
+---
+resource_types:
+- name: registry-image
+  type: registry-image
+  source:
+    repository: concourse/registry-image-resource
+
+- name: bosh-deployment
+  type: registry-image
+  source:
+    repository: cloudfoundry/bosh-deployment-resource
+
+- name: pull-request
+  type: registry-image
+  source:
+    repository: teliaoss/github-pr-resource
+
+
+resources:
+- name: concourse-pr
+  type: pull-request
+  source:
+    repository: concourse/concourse
+    access_token: ((pull_requests_access_token))
+
+- name: dev-image
+  type: registry-image
+  source: {repository: concourse/dev}
+
+- name: postgres-image
+  type: registry-image
+  source: {repository: postgres}
+
+
+jobs:
+- name: unit
+  public: true
+  on_failure:
+    put: concourse-pr
+    params: {path: concourse-pr, status: failure, context: unit}
+  on_success:
+    put: concourse-pr
+    params: {path: concourse-pr, status: success, context: unit}
+  plan:
+  - get: concourse-pr
+    trigger: true
+    version: every
+  - put: concourse-pr
+    params: {path: concourse-pr, status: pending, context: unit}
+  - task: yarn-test
+    file: concourse-pr/ci/tasks/yarn-test.yml
+    input_mapping: {concourse: concourse-pr}
+  - task: unit
+    file: concourse-pr/ci/tasks/unit.yml
+    input_mapping: {concourse: built-concourse}
+    tags: [pr]
+
+- name: testflight
+  public: true
+  on_failure:
+    put: concourse-pr
+    params: {path: concourse-pr, status: failure, context: testflight}
+  on_success:
+    put: concourse-pr
+    params: {path: concourse-pr, status: success, context: testflight}
+  plan:
+  - aggregate:
+    - get: concourse-pr
+      trigger: true
+      version: every
+    - get: dev-image
+      params: {format: oci}
+    - get: postgres-image
+      params: {format: oci}
+  - put: concourse-pr
+    params: {path: concourse-pr, status: pending, context: testflight}
+  - task: yarn-build
+    file: concourse-pr/ci/tasks/yarn-build.yml
+    input_mapping: {concourse: concourse-pr}
+  - task: testflight
+    privileged: true
+    file: concourse-pr/ci/tasks/docker-compose-testflight.yml
+    input_mapping: {concourse: built-concourse}
+    tags: [pr]
+
+- name: watsjs
+  public: true
+  on_failure:
+    put: concourse-pr
+    params: {path: concourse-pr, status: failure, context: watsjs}
+  on_success:
+    put: concourse-pr
+    params: {path: concourse-pr, status: success, context: watsjs}
+  plan:
+  - aggregate:
+    - get: concourse-pr
+      trigger: true
+      version: every
+    - get: dev-image
+      params: {format: oci}
+    - get: postgres-image
+      params: {format: oci}
+  - put: concourse-pr
+    params: {path: concourse-pr, status: pending, context: wasjs}
+  - task: yarn-build
+    file: concourse-pr/ci/tasks/yarn-build.yml
+    input_mapping: {concourse: concourse-pr}
+  - task: watsjs
+    privileged: true
+    file: concourse-pr/ci/tasks/docker-compose-watsjs.yml
+    input_mapping: {concourse: built-concourse}
+    tags: [pr]
