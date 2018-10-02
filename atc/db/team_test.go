@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -1265,6 +1266,113 @@ var _ = Describe("Team", func() {
 			Expect(resource.Source()).To(Equal(atc.Source{
 				"source-other-config": "some-other-value",
 			}))
+		})
+
+		It("clears out api pinned version when resaving a pinned version on the pipeline config", func() {
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).ToNot(HaveOccurred())
+
+			resource, found, err := pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			brt := db.BaseResourceType{
+				Name: "some-type",
+			}
+			_, err = brt.FindOrCreate(setupTx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			rc, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			err = rc.SaveVersions([]atc.Version{
+				atc.Version{"version": "v1"},
+				atc.Version{"version": "v2"},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			err = resource.SetResourceConfig(rc.ID())
+			Expect(err).ToNot(HaveOccurred())
+
+			rcv, found, err := rc.FindVersion(atc.Version{"version": "v1"})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			err = resource.PinVersion(rcv.ID())
+			Expect(err).ToNot(HaveOccurred())
+
+			reloaded, err := resource.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(reloaded).To(BeTrue())
+			Expect(resource.APIPinnedVersion()).To(Equal(atc.Version{"version": "v1"}))
+
+			config.Resources[0].Version = atc.Version{
+				"version": "v2",
+			}
+
+			savedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+			Expect(err).ToNot(HaveOccurred())
+
+			resource, found, err = savedPipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(resource.ConfigPinnedVersion()).To(Equal(atc.Version{"version": "v2"}))
+			Expect(resource.APIPinnedVersion()).To(BeNil())
+		})
+
+		It("does not clear the api pinned version when resaving pipeline config", func() {
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).ToNot(HaveOccurred())
+
+			resource, found, err := pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			brt := db.BaseResourceType{
+				Name: "some-type",
+			}
+			_, err = brt.FindOrCreate(setupTx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			rc, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			err = rc.SaveVersions([]atc.Version{
+				atc.Version{"version": "v1"},
+				atc.Version{"version": "v2"},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			err = resource.SetResourceConfig(rc.ID())
+			Expect(err).ToNot(HaveOccurred())
+
+			rcv, found, err := rc.FindVersion(atc.Version{"version": "v1"})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			err = resource.PinVersion(rcv.ID())
+			Expect(err).ToNot(HaveOccurred())
+
+			reloaded, err := resource.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(reloaded).To(BeTrue())
+			Expect(resource.APIPinnedVersion()).To(Equal(atc.Version{"version": "v1"}))
+
+			savedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+			Expect(err).ToNot(HaveOccurred())
+
+			resource, found, err = savedPipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(resource.APIPinnedVersion()).To(Equal(atc.Version{"version": "v1"}))
 		})
 
 		It("marks resource as inactive if it is no longer in config", func() {

@@ -781,6 +781,7 @@ var _ = Describe("Resources API", func() {
 					resource1.NameReturns("resource-1")
 					resource1.TypeReturns("type-1")
 					resource1.LastCheckedReturns(time.Unix(1513364881, 0))
+					resource1.ConfigPinnedVersionReturns(atc.Version{"version": "v1"})
 
 					fakePipeline.ResourceReturns(resource1, true, nil)
 				})
@@ -807,7 +808,8 @@ var _ = Describe("Resources API", func() {
 								"paused": true,
 								"failing_to_check": true,
 								"check_setup_error": "sup",
-								"check_error": "sup"
+								"check_error": "sup",
+								"config_pinned_version": {"version": "v1"}
 							}`))
 				})
 			})

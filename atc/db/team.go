@@ -648,11 +648,16 @@ func (t *team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) 
 		return err
 	}
 
-	updated, err := checkIfRowsUpdated(tx, `
+	clearVerQ := ""
+	if resource.Version != nil {
+		clearVerQ = ", api_pinned_version = NULL"
+	}
+
+	updated, err := checkIfRowsUpdated(tx, fmt.Sprintf(`
 		UPDATE resources
-		SET config = $3, active = true, nonce = $4
+		SET config = $3, active = true, nonce = $4 %s
 		WHERE name = $1 AND pipeline_id = $2
-	`, resource.Name, pipelineID, encryptedPayload, nonce)
+	`, clearVerQ), resource.Name, pipelineID, encryptedPayload, nonce)
 	if err != nil {
 		return err
 	}

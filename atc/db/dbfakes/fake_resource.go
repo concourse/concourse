@@ -10,6 +10,16 @@ import (
 )
 
 type FakeResource struct {
+	APIPinnedVersionStub        func() atc.Version
+	aPIPinnedVersionMutex       sync.RWMutex
+	aPIPinnedVersionArgsForCall []struct {
+	}
+	aPIPinnedVersionReturns struct {
+		result1 atc.Version
+	}
+	aPIPinnedVersionReturnsOnCall map[int]struct {
+		result1 atc.Version
+	}
 	CheckErrorStub        func() error
 	checkErrorMutex       sync.RWMutex
 	checkErrorArgsForCall []struct {
@@ -40,6 +50,16 @@ type FakeResource struct {
 	checkTimeoutReturnsOnCall map[int]struct {
 		result1 string
 	}
+	ConfigPinnedVersionStub        func() atc.Version
+	configPinnedVersionMutex       sync.RWMutex
+	configPinnedVersionArgsForCall []struct {
+	}
+	configPinnedVersionReturns struct {
+		result1 atc.Version
+	}
+	configPinnedVersionReturnsOnCall map[int]struct {
+		result1 atc.Version
+	}
 	DisableVersionStub        func(int) error
 	disableVersionMutex       sync.RWMutex
 	disableVersionArgsForCall []struct {
@@ -61,16 +81,6 @@ type FakeResource struct {
 	}
 	enableVersionReturnsOnCall map[int]struct {
 		result1 error
-	}
-	FailingToCheckStub        func() bool
-	failingToCheckMutex       sync.RWMutex
-	failingToCheckArgsForCall []struct {
-	}
-	failingToCheckReturns struct {
-		result1 bool
-	}
-	failingToCheckReturnsOnCall map[int]struct {
-		result1 bool
 	}
 	IDStub        func() int
 	iDMutex       sync.RWMutex
@@ -122,15 +132,16 @@ type FakeResource struct {
 	pausedReturnsOnCall map[int]struct {
 		result1 bool
 	}
-	PinnedVersionStub        func() atc.Version
-	pinnedVersionMutex       sync.RWMutex
-	pinnedVersionArgsForCall []struct {
+	PinVersionStub        func(int) error
+	pinVersionMutex       sync.RWMutex
+	pinVersionArgsForCall []struct {
+		arg1 int
 	}
-	pinnedVersionReturns struct {
-		result1 atc.Version
+	pinVersionReturns struct {
+		result1 error
 	}
-	pinnedVersionReturnsOnCall map[int]struct {
-		result1 atc.Version
+	pinVersionReturnsOnCall map[int]struct {
+		result1 error
 	}
 	PipelineIDStub        func() int
 	pipelineIDMutex       sync.RWMutex
@@ -271,6 +282,17 @@ type FakeResource struct {
 	unpauseReturnsOnCall map[int]struct {
 		result1 error
 	}
+	UnpinVersionStub        func(int) error
+	unpinVersionMutex       sync.RWMutex
+	unpinVersionArgsForCall []struct {
+		arg1 int
+	}
+	unpinVersionReturns struct {
+		result1 error
+	}
+	unpinVersionReturnsOnCall map[int]struct {
+		result1 error
+	}
 	VersionsStub        func(db.Page) ([]atc.ResourceVersion, db.Pagination, bool, error)
 	versionsMutex       sync.RWMutex
 	versionsArgsForCall []struct {
@@ -300,6 +322,48 @@ type FakeResource struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeResource) APIPinnedVersion() atc.Version {
+	fake.aPIPinnedVersionMutex.Lock()
+	ret, specificReturn := fake.aPIPinnedVersionReturnsOnCall[len(fake.aPIPinnedVersionArgsForCall)]
+	fake.aPIPinnedVersionArgsForCall = append(fake.aPIPinnedVersionArgsForCall, struct {
+	}{})
+	fake.recordInvocation("APIPinnedVersion", []interface{}{})
+	fake.aPIPinnedVersionMutex.Unlock()
+	if fake.APIPinnedVersionStub != nil {
+		return fake.APIPinnedVersionStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.aPIPinnedVersionReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) APIPinnedVersionCallCount() int {
+	fake.aPIPinnedVersionMutex.RLock()
+	defer fake.aPIPinnedVersionMutex.RUnlock()
+	return len(fake.aPIPinnedVersionArgsForCall)
+}
+
+func (fake *FakeResource) APIPinnedVersionReturns(result1 atc.Version) {
+	fake.APIPinnedVersionStub = nil
+	fake.aPIPinnedVersionReturns = struct {
+		result1 atc.Version
+	}{result1}
+}
+
+func (fake *FakeResource) APIPinnedVersionReturnsOnCall(i int, result1 atc.Version) {
+	fake.APIPinnedVersionStub = nil
+	if fake.aPIPinnedVersionReturnsOnCall == nil {
+		fake.aPIPinnedVersionReturnsOnCall = make(map[int]struct {
+			result1 atc.Version
+		})
+	}
+	fake.aPIPinnedVersionReturnsOnCall[i] = struct {
+		result1 atc.Version
+	}{result1}
 }
 
 func (fake *FakeResource) CheckError() error {
@@ -428,6 +492,48 @@ func (fake *FakeResource) CheckTimeoutReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeResource) ConfigPinnedVersion() atc.Version {
+	fake.configPinnedVersionMutex.Lock()
+	ret, specificReturn := fake.configPinnedVersionReturnsOnCall[len(fake.configPinnedVersionArgsForCall)]
+	fake.configPinnedVersionArgsForCall = append(fake.configPinnedVersionArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ConfigPinnedVersion", []interface{}{})
+	fake.configPinnedVersionMutex.Unlock()
+	if fake.ConfigPinnedVersionStub != nil {
+		return fake.ConfigPinnedVersionStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.configPinnedVersionReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) ConfigPinnedVersionCallCount() int {
+	fake.configPinnedVersionMutex.RLock()
+	defer fake.configPinnedVersionMutex.RUnlock()
+	return len(fake.configPinnedVersionArgsForCall)
+}
+
+func (fake *FakeResource) ConfigPinnedVersionReturns(result1 atc.Version) {
+	fake.ConfigPinnedVersionStub = nil
+	fake.configPinnedVersionReturns = struct {
+		result1 atc.Version
+	}{result1}
+}
+
+func (fake *FakeResource) ConfigPinnedVersionReturnsOnCall(i int, result1 atc.Version) {
+	fake.ConfigPinnedVersionStub = nil
+	if fake.configPinnedVersionReturnsOnCall == nil {
+		fake.configPinnedVersionReturnsOnCall = make(map[int]struct {
+			result1 atc.Version
+		})
+	}
+	fake.configPinnedVersionReturnsOnCall[i] = struct {
+		result1 atc.Version
+	}{result1}
+}
+
 func (fake *FakeResource) DisableVersion(arg1 int) error {
 	fake.disableVersionMutex.Lock()
 	ret, specificReturn := fake.disableVersionReturnsOnCall[len(fake.disableVersionArgsForCall)]
@@ -525,48 +631,6 @@ func (fake *FakeResource) EnableVersionReturnsOnCall(i int, result1 error) {
 	}
 	fake.enableVersionReturnsOnCall[i] = struct {
 		result1 error
-	}{result1}
-}
-
-func (fake *FakeResource) FailingToCheck() bool {
-	fake.failingToCheckMutex.Lock()
-	ret, specificReturn := fake.failingToCheckReturnsOnCall[len(fake.failingToCheckArgsForCall)]
-	fake.failingToCheckArgsForCall = append(fake.failingToCheckArgsForCall, struct {
-	}{})
-	fake.recordInvocation("FailingToCheck", []interface{}{})
-	fake.failingToCheckMutex.Unlock()
-	if fake.FailingToCheckStub != nil {
-		return fake.FailingToCheckStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.failingToCheckReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeResource) FailingToCheckCallCount() int {
-	fake.failingToCheckMutex.RLock()
-	defer fake.failingToCheckMutex.RUnlock()
-	return len(fake.failingToCheckArgsForCall)
-}
-
-func (fake *FakeResource) FailingToCheckReturns(result1 bool) {
-	fake.FailingToCheckStub = nil
-	fake.failingToCheckReturns = struct {
-		result1 bool
-	}{result1}
-}
-
-func (fake *FakeResource) FailingToCheckReturnsOnCall(i int, result1 bool) {
-	fake.FailingToCheckStub = nil
-	if fake.failingToCheckReturnsOnCall == nil {
-		fake.failingToCheckReturnsOnCall = make(map[int]struct {
-			result1 bool
-		})
-	}
-	fake.failingToCheckReturnsOnCall[i] = struct {
-		result1 bool
 	}{result1}
 }
 
@@ -780,45 +844,53 @@ func (fake *FakeResource) PausedReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
-func (fake *FakeResource) PinnedVersion() atc.Version {
-	fake.pinnedVersionMutex.Lock()
-	ret, specificReturn := fake.pinnedVersionReturnsOnCall[len(fake.pinnedVersionArgsForCall)]
-	fake.pinnedVersionArgsForCall = append(fake.pinnedVersionArgsForCall, struct {
-	}{})
-	fake.recordInvocation("PinnedVersion", []interface{}{})
-	fake.pinnedVersionMutex.Unlock()
-	if fake.PinnedVersionStub != nil {
-		return fake.PinnedVersionStub()
+func (fake *FakeResource) PinVersion(arg1 int) error {
+	fake.pinVersionMutex.Lock()
+	ret, specificReturn := fake.pinVersionReturnsOnCall[len(fake.pinVersionArgsForCall)]
+	fake.pinVersionArgsForCall = append(fake.pinVersionArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	fake.recordInvocation("PinVersion", []interface{}{arg1})
+	fake.pinVersionMutex.Unlock()
+	if fake.PinVersionStub != nil {
+		return fake.PinVersionStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.pinnedVersionReturns
+	fakeReturns := fake.pinVersionReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeResource) PinnedVersionCallCount() int {
-	fake.pinnedVersionMutex.RLock()
-	defer fake.pinnedVersionMutex.RUnlock()
-	return len(fake.pinnedVersionArgsForCall)
+func (fake *FakeResource) PinVersionCallCount() int {
+	fake.pinVersionMutex.RLock()
+	defer fake.pinVersionMutex.RUnlock()
+	return len(fake.pinVersionArgsForCall)
 }
 
-func (fake *FakeResource) PinnedVersionReturns(result1 atc.Version) {
-	fake.PinnedVersionStub = nil
-	fake.pinnedVersionReturns = struct {
-		result1 atc.Version
+func (fake *FakeResource) PinVersionArgsForCall(i int) int {
+	fake.pinVersionMutex.RLock()
+	defer fake.pinVersionMutex.RUnlock()
+	argsForCall := fake.pinVersionArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeResource) PinVersionReturns(result1 error) {
+	fake.PinVersionStub = nil
+	fake.pinVersionReturns = struct {
+		result1 error
 	}{result1}
 }
 
-func (fake *FakeResource) PinnedVersionReturnsOnCall(i int, result1 atc.Version) {
-	fake.PinnedVersionStub = nil
-	if fake.pinnedVersionReturnsOnCall == nil {
-		fake.pinnedVersionReturnsOnCall = make(map[int]struct {
-			result1 atc.Version
+func (fake *FakeResource) PinVersionReturnsOnCall(i int, result1 error) {
+	fake.PinVersionStub = nil
+	if fake.pinVersionReturnsOnCall == nil {
+		fake.pinVersionReturnsOnCall = make(map[int]struct {
+			result1 error
 		})
 	}
-	fake.pinnedVersionReturnsOnCall[i] = struct {
-		result1 atc.Version
+	fake.pinVersionReturnsOnCall[i] = struct {
+		result1 error
 	}{result1}
 }
 
@@ -1401,6 +1473,56 @@ func (fake *FakeResource) UnpauseReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeResource) UnpinVersion(arg1 int) error {
+	fake.unpinVersionMutex.Lock()
+	ret, specificReturn := fake.unpinVersionReturnsOnCall[len(fake.unpinVersionArgsForCall)]
+	fake.unpinVersionArgsForCall = append(fake.unpinVersionArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	fake.recordInvocation("UnpinVersion", []interface{}{arg1})
+	fake.unpinVersionMutex.Unlock()
+	if fake.UnpinVersionStub != nil {
+		return fake.UnpinVersionStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.unpinVersionReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) UnpinVersionCallCount() int {
+	fake.unpinVersionMutex.RLock()
+	defer fake.unpinVersionMutex.RUnlock()
+	return len(fake.unpinVersionArgsForCall)
+}
+
+func (fake *FakeResource) UnpinVersionArgsForCall(i int) int {
+	fake.unpinVersionMutex.RLock()
+	defer fake.unpinVersionMutex.RUnlock()
+	argsForCall := fake.unpinVersionArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeResource) UnpinVersionReturns(result1 error) {
+	fake.UnpinVersionStub = nil
+	fake.unpinVersionReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResource) UnpinVersionReturnsOnCall(i int, result1 error) {
+	fake.UnpinVersionStub = nil
+	if fake.unpinVersionReturnsOnCall == nil {
+		fake.unpinVersionReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.unpinVersionReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResource) Versions(arg1 db.Page) ([]atc.ResourceVersion, db.Pagination, bool, error) {
 	fake.versionsMutex.Lock()
 	ret, specificReturn := fake.versionsReturnsOnCall[len(fake.versionsArgsForCall)]
@@ -1505,18 +1627,20 @@ func (fake *FakeResource) WebhookTokenReturnsOnCall(i int, result1 string) {
 func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.aPIPinnedVersionMutex.RLock()
+	defer fake.aPIPinnedVersionMutex.RUnlock()
 	fake.checkErrorMutex.RLock()
 	defer fake.checkErrorMutex.RUnlock()
 	fake.checkEveryMutex.RLock()
 	defer fake.checkEveryMutex.RUnlock()
 	fake.checkTimeoutMutex.RLock()
 	defer fake.checkTimeoutMutex.RUnlock()
+	fake.configPinnedVersionMutex.RLock()
+	defer fake.configPinnedVersionMutex.RUnlock()
 	fake.disableVersionMutex.RLock()
 	defer fake.disableVersionMutex.RUnlock()
 	fake.enableVersionMutex.RLock()
 	defer fake.enableVersionMutex.RUnlock()
-	fake.failingToCheckMutex.RLock()
-	defer fake.failingToCheckMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
 	fake.lastCheckedMutex.RLock()
@@ -1527,8 +1651,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.pauseMutex.RUnlock()
 	fake.pausedMutex.RLock()
 	defer fake.pausedMutex.RUnlock()
-	fake.pinnedVersionMutex.RLock()
-	defer fake.pinnedVersionMutex.RUnlock()
+	fake.pinVersionMutex.RLock()
+	defer fake.pinVersionMutex.RUnlock()
 	fake.pipelineIDMutex.RLock()
 	defer fake.pipelineIDMutex.RUnlock()
 	fake.pipelineNameMutex.RLock()
@@ -1555,6 +1679,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.typeMutex.RUnlock()
 	fake.unpauseMutex.RLock()
 	defer fake.unpauseMutex.RUnlock()
+	fake.unpinVersionMutex.RLock()
+	defer fake.unpinVersionMutex.RUnlock()
 	fake.versionsMutex.RLock()
 	defer fake.versionsMutex.RUnlock()
 	fake.webhookTokenMutex.RLock()

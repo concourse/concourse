@@ -12,4 +12,6 @@ type Resource struct {
 	FailingToCheck  bool   `json:"failing_to_check,omitempty"`
 	CheckSetupError string `json:"check_setup_error,omitempty"`
 	CheckError      string `json:"check_error,omitempty"`
+
+	ConfigPinnedVersion Version `json:"config_pinned_version,omitempty"`
 }
