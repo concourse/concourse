@@ -184,7 +184,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		}
 		if found {
 			logger.Info("skipping-check-because-pinned-version-found", lager.Data{"pinned-version": currentVersion})
-			return 0, nil
+			return interval, nil
 		}
 
 		fromVersion = currentVersion
