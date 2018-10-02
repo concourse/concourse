@@ -15,6 +15,9 @@ inputs:
 caches:
 - path: gopath
 
+params:
+  DOCKERFILE: Dockerfile
+
 run:
   path: concourse/ci/tasks/scripts/with-docker-compose
   args: [concourse/ci/tasks/scripts/testflight]

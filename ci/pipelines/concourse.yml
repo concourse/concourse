@@ -106,6 +106,7 @@ jobs:
     privileged: true
     timeout: 1h
     file: concourse/ci/tasks/docker-compose-testflight.yml
+    params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
 - name: watsjs
   public: true
@@ -127,6 +128,7 @@ jobs:
     privileged: true
     timeout: 1h
     file: concourse/ci/tasks/docker-compose-watsjs.yml
+    params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
 - name: unit-image
   public: true

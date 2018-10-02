@@ -37,7 +37,7 @@ start_docker
 pushd concourse
   # do not collide with outer Concourse network
   export CONCOURSE_GARDEN_NETWORK_POOL="10.224.0.0/16"
-  DOCKERFILE=ci/dockerfiles/dev-test/Dockerfile docker-compose up -d
+  docker-compose up -d
 popd
 
 "$@"
