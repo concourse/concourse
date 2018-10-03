@@ -183,8 +183,9 @@ func (beacon *Beacon) RetireWorker(signals <-chan os.Signal, ready chan<- struct
 
 	errChan := make(chan error, 1)
 
+	bwg.Increment()
+
 	go func(){
-		bwg.Increment()
 		defer bwg.Decrement()
 		errChan <- beacon.run("retire-worker", cancellableCtx, context.TODO())
 	}()
@@ -377,8 +378,9 @@ func (beacon *Beacon) LandWorker(signals <-chan os.Signal, ready chan<- struct{}
 
 	errChan := make(chan error, 1)
 
+	bwg.Increment()
+
 	go func(){
-		bwg.Increment()
 		defer bwg.Decrement()
 		errChan <- beacon.run("land-worker", cancellableCtx, context.TODO())
 	}()
@@ -406,8 +408,9 @@ func (beacon *Beacon) DeleteWorker(signals <-chan os.Signal, ready chan<- struct
 
 	errChan := make(chan error, 1)
 
+	bwg.Increment()
+
 	go func(){
-		bwg.Increment()
 		defer bwg.Decrement()
 		errChan <- beacon.run("delete-worker", cancellableCtx, context.TODO())
 	}()
