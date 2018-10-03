@@ -428,7 +428,7 @@ noResultsView query =
             [ Html.div [ class "dashboard-content " ]
                 [ Html.div
                     [ class "dashboard-team-group" ]
-                    [ Html.div [ class "dashboard-team-name no-results" ]
+                    [ Html.div [ class "no-results" ]
                         [ Html.text "No results for "
                         , boldedQuery
                         , Html.text " matched your search."
