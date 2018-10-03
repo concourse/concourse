@@ -18,12 +18,14 @@ popd
 
 mv concourse/concourse concourse-darwin/concourse
 
-pushd concourse-darwin
-  mkdir fly-assets
-  [ -d fly-linux ] && cp -a ../fly-linux/fly-*.tgz fly-assets
-  [ -d fly-windows ] && cp -a ../fly-windows/fly-*.zip fly-assets
-  [ -d fly-darwin ] && cp -a ../fly-darwin/fly-*.tgz fly-assets
+mkdir concourse-darwin/fly-assets
+for platform in linux windows darwin; do
+  if [ -d fly-linux ]; then
+    cp -a fly-linux/fly-*.tgz concourse-linux/fly-assets
+  fi
+done
 
+pushd concourse-darwin
   archive=concourse-darwin-amd64.tgz
   tar -czf $archive concourse fly-assets
   shasum "$archive" > "${archive}.sha1"

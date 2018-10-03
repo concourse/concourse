@@ -16,4 +16,5 @@ outputs:
 - name: concourse-windows
 
 run:
-  path: concourse/ci/tasks/scripts/concourse-build-windows.ps1
+  path: powershell.exe
+  args: [concourse/ci/tasks/scripts/concourse-build-windows.ps1]
