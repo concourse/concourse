@@ -1,12 +1,10 @@
-package flying_test
+package testflight_test
 
 import (
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 
-	"github.com/concourse/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -14,19 +12,13 @@ import (
 
 var _ = Describe("Flying with an image_resource", func() {
 	var (
-		tmpdir  string
 		fixture string
 	)
 
 	BeforeEach(func() {
-		var err error
+		fixture = filepath.Join(tmp, "fixture")
 
-		tmpdir, err = ioutil.TempDir("", "fly-test")
-		Expect(err).NotTo(HaveOccurred())
-
-		fixture = filepath.Join(tmpdir, "fixture")
-
-		err = os.MkdirAll(fixture, 0755)
+		err := os.MkdirAll(fixture, 0755)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = ioutil.WriteFile(
@@ -37,11 +29,6 @@ ls /bin
 			0755,
 		)
 		Expect(err).NotTo(HaveOccurred())
-
-	})
-
-	AfterEach(func() {
-		os.RemoveAll(tmpdir)
 	})
 
 	It("propagates the rootfs and metadata to the task", func() {
@@ -70,14 +57,11 @@ run:
 			0644,
 		)
 		Expect(err).NotTo(HaveOccurred())
-		fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml")
-		fly.Dir = fixture
 
-		session := helpers.StartFly(fly)
-		<-session.Exited
-		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session).To(gbytes.Say("/opt/resource/check"))
-		Expect(session).To(gbytes.Say("VERSION=hello-version"))
+		exec := spawnFlyIn(fixture, "execute", "-c", "task.yml")
+		wait(exec)
+		Expect(exec).To(gbytes.Say("/opt/resource/check"))
+		Expect(exec).To(gbytes.Say("VERSION=hello-version"))
 	})
 
 	It("allows a version to be specified", func() {
@@ -101,11 +85,8 @@ run:
 		)
 		Expect(err).NotTo(HaveOccurred())
 
-		fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml")
-		fly.Dir = fixture
-		session := helpers.StartFly(fly)
-		<-session.Exited
-		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session).To(gbytes.Say("VERSION=hi-im-a-version"))
+		exec := spawnFlyIn(fixture, "execute", "-c", "task.yml")
+		wait(exec)
+		Expect(exec).To(gbytes.Say("VERSION=hi-im-a-version"))
 	})
 })

@@ -1,15 +1,12 @@
-package flying_test
+package testflight_test
 
 import (
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"syscall"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -17,18 +14,14 @@ import (
 )
 
 var _ = Describe("Flying", func() {
-	var tmpdir string
 	var fixture, input1, input2 string
 
 	BeforeEach(func() {
 		var err error
 
-		tmpdir, err = ioutil.TempDir("", "fly-test")
-		Expect(err).NotTo(HaveOccurred())
-
-		fixture = filepath.Join(tmpdir, "fixture")
-		input1 = filepath.Join(tmpdir, "input-1")
-		input2 = filepath.Join(tmpdir, "input-2")
+		fixture = filepath.Join(tmp, "fixture")
+		input1 = filepath.Join(tmp, "input-1")
+		input2 = filepath.Join(tmp, "input-2")
 
 		err = os.MkdirAll(fixture, 0755)
 		Expect(err).NotTo(HaveOccurred())
@@ -52,7 +45,7 @@ exit 0
 		Expect(err).NotTo(HaveOccurred())
 
 		err = ioutil.WriteFile(
-			filepath.Join(tmpdir, "task.yml"),
+			filepath.Join(tmp, "task.yml"),
 			[]byte(`---
 platform: linux
 
@@ -81,21 +74,11 @@ run:
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	AfterEach(func() {
-		os.RemoveAll(tmpdir)
-	})
-
 	It("works", func() {
-		fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1", "-i", "input-2=./input-2", "--", "SOME", "ARGS")
-		fly.Dir = tmpdir
-
-		session := helpers.StartFly(fly)
-
-		Eventually(session).Should(gexec.Exit(0))
-
-		Expect(session).To(gbytes.Say("some output"))
-		Expect(session).To(gbytes.Say("FOO is 1"))
-		Expect(session).To(gbytes.Say("ARGS are SOME ARGS"))
+		execS := flyIn(tmp, "execute", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1", "-i", "input-2=./input-2", "--", "SOME", "ARGS")
+		Expect(execS).To(gbytes.Say("some output"))
+		Expect(execS).To(gbytes.Say("FOO is 1"))
+		Expect(execS).To(gbytes.Say("ARGS are SOME ARGS"))
 	})
 
 	Describe("hijacking", func() {
@@ -111,30 +94,22 @@ cat < /tmp/fifo
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1", "-i", "input-2=./input-2")
-			fly.Dir = tmpdir
+			execS := spawnFlyIn(tmp, "execute", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1", "-i", "input-2=./input-2")
 
-			flyS := helpers.StartFly(fly)
-
-			Eventually(flyS).Should(gbytes.Say("executing build"))
-
+			Eventually(execS).Should(gbytes.Say("executing build"))
 			buildRegex := regexp.MustCompile(`executing build (\d+)`)
-			matches := buildRegex.FindSubmatch(flyS.Out.Contents())
+			matches := buildRegex.FindSubmatch(execS.Out.Contents())
 			buildID := string(matches[1])
 
-			Eventually(flyS).Should(gbytes.Say("waiting-for-hijack"))
+			Eventually(execS).Should(gbytes.Say("waiting-for-hijack"))
 
-			env := exec.Command(flyBin, "-t", targetedConcourse, "hijack", "-b", buildID, "-s", "one-off", "--", "env")
-			envS := helpers.StartFly(env)
-			<-envS.Exited
-			Expect(envS.ExitCode()).To(Equal(0))
+			envS := fly("intercept", "-b", buildID, "-s", "one-off", "--", "env")
 			Expect(envS.Out).To(gbytes.Say("FOO=1"))
 
-			hijack := exec.Command(flyBin, "-t", targetedConcourse, "hijack", "-b", buildID, "-s", "one-off", "--", "sh", "-c", "echo marco > /tmp/fifo")
-			hijackS := helpers.StartFly(hijack)
-			Eventually(flyS).Should(gbytes.Say("marco"))
-			Eventually(hijackS).Should(gexec.Exit())
-			Eventually(flyS).Should(gexec.Exit(0))
+			fly("intercept", "-b", buildID, "-s", "one-off", "--", "sh", "-c", "echo marco > /tmp/fifo")
+
+			Eventually(execS).Should(gbytes.Say("marco"))
+			Eventually(execS).Should(gexec.Exit(0))
 		})
 	})
 
@@ -186,17 +161,12 @@ cp -a input-2/. output-2/
 		})
 
 		It("uploads git repo input and non git repo input, IGNORING things in the .gitignore for git repo inputs", func() {
-			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1", "-i", "input-2=./input-2", "-o", "output-1=./output-1", "-o", "output-2=./output-2")
-			fly.Dir = tmpdir
+			flyIn(tmp, "execute", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1", "-i", "input-2=./input-2", "-o", "output-1=./output-1", "-o", "output-2=./output-2")
 
-			session := helpers.StartFly(fly)
-			<-session.Exited
-			Expect(session.ExitCode()).To(Equal(0))
-
-			fileToBeIgnoredPath := filepath.Join(tmpdir, "output-1", "expect-not-to.exist")
-			fileToBeIncludedPath := filepath.Join(tmpdir, "output-2", "expect-to.exist")
-			file1 := filepath.Join(tmpdir, "output-1", "file-1")
-			file2 := filepath.Join(tmpdir, "output-2", "file-2")
+			fileToBeIgnoredPath := filepath.Join(tmp, "output-1", "expect-not-to.exist")
+			fileToBeIncludedPath := filepath.Join(tmp, "output-2", "expect-to.exist")
+			file1 := filepath.Join(tmp, "output-1", "file-1")
+			file2 := filepath.Join(tmp, "output-2", "file-2")
 
 			_, err := ioutil.ReadFile(fileToBeIgnoredPath)
 			Expect(err).To(HaveOccurred())
@@ -207,18 +177,12 @@ cp -a input-2/. output-2/
 		})
 
 		It("uploads git repo input and non git repo input, INCLUDING things in the .gitignore for git repo inputs", func() {
-			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "--include-ignored", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1", "-i", "input-2=./input-2", "-o", "output-1=./output-1", "-o", "output-2=./output-2")
-			fly.Dir = tmpdir
+			flyIn(tmp, "execute", "--include-ignored", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1", "-i", "input-2=./input-2", "-o", "output-1=./output-1", "-o", "output-2=./output-2")
 
-			session := helpers.StartFly(fly)
-			<-session.Exited
-
-			Expect(session.ExitCode()).To(Equal(0))
-
-			fileToBeIgnoredPath := filepath.Join(tmpdir, "output-1", "expect-not-to.exist")
-			fileToBeIncludedPath := filepath.Join(tmpdir, "output-2", "expect-to.exist")
-			file1 := filepath.Join(tmpdir, "output-1", "file-1")
-			file2 := filepath.Join(tmpdir, "output-2", "file-2")
+			fileToBeIgnoredPath := filepath.Join(tmp, "output-1", "expect-not-to.exist")
+			fileToBeIncludedPath := filepath.Join(tmp, "output-2", "expect-to.exist")
+			file1 := filepath.Join(tmp, "output-1", "file-1")
+			file2 := filepath.Join(tmp, "output-2", "file-2")
 
 			Expect(ioutil.ReadFile(fileToBeIgnoredPath)).To(Equal([]byte("ignored file content")))
 			Expect(ioutil.ReadFile(fileToBeIncludedPath)).To(Equal([]byte("included file content")))
@@ -239,16 +203,10 @@ echo world > output-2/file-2
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1", "-i", "input-2=./input-2", "-o", "output-1=./output-1", "-o", "output-2=./output-2")
-			fly.Dir = tmpdir
+			flyIn(tmp, "execute", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1", "-i", "input-2=./input-2", "-o", "output-1=./output-1", "-o", "output-2=./output-2")
 
-			session := helpers.StartFly(fly)
-			<-session.Exited
-
-			Expect(session.ExitCode()).To(Equal(0))
-
-			file1 := filepath.Join(tmpdir, "output-1", "file-1")
-			file2 := filepath.Join(tmpdir, "output-2", "file-2")
+			file1 := filepath.Join(tmp, "output-1", "file-1")
+			file2 := filepath.Join(tmp, "output-2", "file-2")
 
 			Expect(ioutil.ReadFile(file1)).To(Equal([]byte("hello\n")))
 			Expect(ioutil.ReadFile(file2)).To(Equal([]byte("world\n")))
@@ -269,20 +227,17 @@ wait
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1", "-i", "input-2=./input-2")
-			fly.Dir = tmpdir
+			execS := spawnFlyIn(tmp, "execute", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1", "-i", "input-2=./input-2")
 
-			flyS := helpers.StartFly(fly)
+			Eventually(execS).Should(gbytes.Say("waiting-for-abort"))
 
-			Eventually(flyS).Should(gbytes.Say("waiting-for-abort"))
+			execS.Signal(syscall.SIGTERM)
 
-			flyS.Signal(syscall.SIGTERM)
-
-			Eventually(flyS).Should(gbytes.Say("task got sigterm"))
-			Eventually(flyS).Should(gbytes.Say("interrupted"))
+			Eventually(execS).Should(gbytes.Say("task got sigterm"))
+			Eventually(execS).Should(gbytes.Say("interrupted"))
 
 			// build should have been aborted
-			Eventually(flyS).Should(gexec.Exit(3))
+			Eventually(execS).Should(gexec.Exit(3))
 		})
 	})
 
@@ -296,13 +251,9 @@ ls`),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1")
-			fly.Dir = tmpdir
+			execS := flyIn(tmp, "execute", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1")
 
-			session := helpers.StartFly(fly)
-			Eventually(session).Should(gexec.Exit(0))
-
-			fileList := string(session.Out.Contents())
+			fileList := string(execS.Out.Contents())
 			Expect(fileList).To(ContainSubstring("fixture"))
 			Expect(fileList).To(ContainSubstring("input-1"))
 			Expect(fileList).NotTo(ContainSubstring("input-2"))
@@ -311,10 +262,8 @@ ls`),
 
 	Context("when excute with -j inputs-from", func() {
 		BeforeEach(func() {
-			flyHelper.ConfigurePipeline(
-				pipelineName,
-				"-c", "fixtures/config-test.yml",
-			)
+			fly("set-pipeline", "-n", "-p", pipelineName, "-c", "fixtures/config-test.yml")
+			fly("unpause-pipeline", "-p", pipelineName)
 
 			taskFileContents := `---
 platform: linux
@@ -332,7 +281,7 @@ run:
 `
 
 			err := ioutil.WriteFile(
-				filepath.Join(tmpdir, "task.yml"),
+				filepath.Join(tmp, "task.yml"),
 				[]byte(taskFileContents),
 				0644,
 			)
@@ -340,51 +289,29 @@ run:
 		})
 
 		It("runs the task without error", func() {
-			cTeam := concourseClient.Team(teamName)
-
 			By("having an initial version")
-			found, err := cTeam.CheckResource(pipelineName, "some-resource", atc.Version{"version": "first-version"})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
+			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:first-version")
 
 			By("satsifying the job's passed constraint for the first version")
-			session := flyHelper.TriggerJob(pipelineName, "upstream-job")
-			<-session.Exited
-			Expect(session.ExitCode()).To(Equal(0))
+			fly("trigger-job", "-w", "-j", pipelineName+"/upstream-job")
 
 			By("executing using the first version via -j")
-			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job")
-			fly.Dir = tmpdir
-			session = helpers.StartFly(fly)
-			<-session.Exited
-			Expect(session.ExitCode()).To(Equal(0))
-			Expect(session).To(gbytes.Say("first-version"))
+			execS := flyIn(tmp, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job")
+			Expect(execS).To(gbytes.Say("first-version"))
 
 			By("finding another version that doesn't yet satisfy the passed constraint")
-			found, err = cTeam.CheckResource(pipelineName, "some-resource", atc.Version{"version": "second-version"})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
+			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:second-version")
 
 			By("still executing using the first version via -j")
-			fly = exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job")
-			fly.Dir = tmpdir
-			session = helpers.StartFly(fly)
-			<-session.Exited
-			Expect(session.ExitCode()).To(Equal(0))
-			Expect(session).To(gbytes.Say("first-version"))
+			execS = flyIn(tmp, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job")
+			Expect(execS).To(gbytes.Say("first-version"))
 
 			By("satsifying the job's passed constraint for the second version")
-			session = flyHelper.TriggerJob(pipelineName, "upstream-job")
-			<-session.Exited
-			Expect(session.ExitCode()).To(Equal(0))
+			fly("trigger-job", "-w", "-j", pipelineName+"/upstream-job")
 
 			By("now executing using the second version via -j")
-			fly = exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job")
-			fly.Dir = tmpdir
-			session = helpers.StartFly(fly)
-			<-session.Exited
-			Expect(session.ExitCode()).To(Equal(0))
-			Expect(session).To(gbytes.Say("second-version"))
+			execS = flyIn(tmp, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job")
+			Expect(execS).To(gbytes.Say("second-version"))
 		})
 	})
 
@@ -405,31 +332,22 @@ run:
   args: [some-resource/version]
 `
 			err := ioutil.WriteFile(
-				filepath.Join(tmpdir, "task.yml"),
+				filepath.Join(tmp, "task.yml"),
 				[]byte(taskFileContents),
 				0644,
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			flyHelper.ConfigurePipeline(
-				pipelineName,
-				"-c", "fixtures/custom-resource-type.yml",
-			)
+			fly("set-pipeline", "-n", "-p", pipelineName, "-c", "fixtures/custom-resource-type.yml")
+			fly("unpause-pipeline", "-p", pipelineName)
 
-			cTeam := concourseClient.Team(teamName)
-			found, err := cTeam.CheckResource(pipelineName, "some-resource", nil)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
+			fly("check-resource", "-r", pipelineName+"/some-resource")
 		})
 
 		Context("when -j is specified", func() {
 			It("runs the task without error by infer the pipeline resource types from -j", func() {
-				fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-j", pipelineName+"/input-test")
-				fly.Dir = tmpdir
-				session := helpers.StartFly(fly)
-				<-session.Exited
-				Expect(session.ExitCode()).To(Equal(0))
-				Expect(session).To(gbytes.Say("custom-type-version"))
+				execS := flyIn(tmp, "execute", "-c", "task.yml", "-j", pipelineName+"/input-test")
+				Expect(execS).To(gbytes.Say("custom-type-version"))
 			})
 		})
 
@@ -446,13 +364,8 @@ echo hello from fixture
 			})
 
 			It("runs the task without error", func() {
-				fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-i", "some-resource=./fixture")
-				fly.Dir = tmpdir
-
-				session := helpers.StartFly(fly)
-				<-session.Exited
-				Expect(session.ExitCode()).To(Equal(0))
-				Expect(session).To(gbytes.Say("hello from fixture"))
+				execS := flyIn(tmp, "execute", "-c", "task.yml", "-i", "some-resource=./fixture")
+				Expect(execS).To(gbytes.Say("hello from fixture"))
 			})
 		})
 	})
