@@ -51,14 +51,9 @@ func TestTestflight(t *testing.T) {
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	flyBin, err := gexec.Build("github.com/concourse/concourse/fly")
+	var err error
+	config.flyBin, err = gexec.Build("github.com/concourse/concourse/fly")
 	Expect(err).ToNot(HaveOccurred())
-
-	Eventually(func() *gexec.Session {
-		return flyLogin().Wait()
-	}, 2*time.Minute, time.Second).Should(gexec.Exit(0))
-
-	config.flyBin = flyBin
 
 	atcURL := os.Getenv("ATC_URL")
 	if atcURL != "" {
@@ -77,6 +72,10 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	payload, err := json.Marshal(config)
 	Expect(err).ToNot(HaveOccurred())
+
+	Eventually(func() *gexec.Session {
+		return flyLogin().Wait()
+	}, 2*time.Minute, time.Second).Should(gexec.Exit(0))
 
 	return payload
 }, func(data []byte) {
