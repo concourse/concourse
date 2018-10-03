@@ -20,8 +20,8 @@ mv concourse/concourse concourse-darwin/concourse
 
 mkdir concourse-darwin/fly-assets
 for platform in linux windows darwin; do
-  if [ -d fly-linux ]; then
-    cp -a fly-linux/fly-*.tgz concourse-linux/fly-assets
+  if [ -e fly-$platform/fly-*.tgz ]; then
+    cp -a fly-$platform/fly-*.tgz concourse-darwin/fly-assets
   fi
 done
 
