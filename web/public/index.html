@@ -12,7 +12,6 @@
     <script src="{{asset "graph.js"}}"></script>
     <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
     <script src="{{asset "elm.min.js"}}"></script>
-    <script src="{{asset "jquery.pin.min.js"}}"></script>
   </head>
   <body>
     <div id="elm-app-embed"></div>
@@ -25,17 +24,49 @@
         notFoundImgSrc: {{asset "images/parachute_error_404.svg"}},
         csrfToken: {{ .CSRFToken }}
       });
+      var resizeTimer;
 
-      if (window.location.pathname == '/') {
-        app.ports.pinTeamNames.subscribe(function() {
-          $(document).on('scroll', function() {
-            $(".dashboard-team-header").pin({
-              containerSelector: ".dashboard-team-group",
-              padding: { top: 54 }
-            });
-          });
-        });
-      }
+      app.ports.pinTeamNames.subscribe(function(config) {
+        sections = () => Array.from(document.querySelectorAll("." + config.sectionClass));
+        header = (section) => Array.from(section.childNodes).find(n => n.classList && n.classList.contains(config.sectionHeaderClass));
+        body = (section) => Array.from(section.childNodes).find(n => n.classList && n.classList.contains(config.sectionBodyClass));
+        lowestHeaderTop = (section) => body(section).offsetTop + body(section).scrollHeight - header(section).scrollHeight;
+
+        pageHeaderHeight = () => document.querySelector("." + config.pageHeaderClass).offsetHeight;
+        viewportTop = () => window.pageYOffset + pageHeaderHeight();
+
+        updateHeader = (section) => {
+          var scrolledFarEnough = section.offsetTop < viewportTop();
+          var scrolledTooFar = lowestHeaderTop(section) < viewportTop();
+          if (!scrolledFarEnough && !scrolledTooFar) {
+            header(section).removeAttribute('style');
+            body(section).removeAttribute('style');
+            return 'static';
+          } else if (scrolledFarEnough && !scrolledTooFar) {
+            header(section).style.position = 'fixed';
+            console.log("setting top to " + pageHeaderHeight());
+            header(section).style.top = pageHeaderHeight() + "px";
+            body(section).style.paddingTop = header(section).scrollHeight + "px";
+            return 'fixed';
+          } else if (scrolledFarEnough && scrolledTooFar) {
+            header(section).style.position = 'absolute';
+            console.log("setting top to " + lowestHeaderTop(section));
+            header(section).style.top = lowestHeaderTop(section) + "px";
+            return 'absolute';
+          } else if (!scrolledFarEnough && scrolledTooFar) {
+            return 'impossible';
+          }
+        }
+
+        updateSticky = () => {
+          document.querySelector("." + config.pageBodyClass).style.marginTop = pageHeaderHeight();
+          sections().forEach(updateHeader);
+        }
+
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(updateSticky, 250);
+        window.onscroll = updateSticky;
+      });
 
       app.ports.resetPipelineFocus.subscribe(resetPipelineFocus);
 
