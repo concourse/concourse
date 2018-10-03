@@ -3,6 +3,7 @@ package dbfakes
 
 import (
 	sync "sync"
+	time "time"
 
 	db "github.com/concourse/concourse/atc/db"
 )
@@ -62,6 +63,31 @@ type FakeContainerRepository struct {
 	removeDestroyingContainersReturnsOnCall map[int]struct {
 		result1 int
 		result2 error
+	}
+	RemoveMissingContainersStub        func(time.Duration) (int, error)
+	removeMissingContainersMutex       sync.RWMutex
+	removeMissingContainersArgsForCall []struct {
+		arg1 time.Duration
+	}
+	removeMissingContainersReturns struct {
+		result1 int
+		result2 error
+	}
+	removeMissingContainersReturnsOnCall map[int]struct {
+		result1 int
+		result2 error
+	}
+	UpdateContainersMissingSinceStub        func(string, []string) error
+	updateContainersMissingSinceMutex       sync.RWMutex
+	updateContainersMissingSinceArgsForCall []struct {
+		arg1 string
+		arg2 []string
+	}
+	updateContainersMissingSinceReturns struct {
+		result1 error
+	}
+	updateContainersMissingSinceReturnsOnCall map[int]struct {
+		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -275,6 +301,115 @@ func (fake *FakeContainerRepository) RemoveDestroyingContainersReturnsOnCall(i i
 	}{result1, result2}
 }
 
+func (fake *FakeContainerRepository) RemoveMissingContainers(arg1 time.Duration) (int, error) {
+	fake.removeMissingContainersMutex.Lock()
+	ret, specificReturn := fake.removeMissingContainersReturnsOnCall[len(fake.removeMissingContainersArgsForCall)]
+	fake.removeMissingContainersArgsForCall = append(fake.removeMissingContainersArgsForCall, struct {
+		arg1 time.Duration
+	}{arg1})
+	fake.recordInvocation("RemoveMissingContainers", []interface{}{arg1})
+	fake.removeMissingContainersMutex.Unlock()
+	if fake.RemoveMissingContainersStub != nil {
+		return fake.RemoveMissingContainersStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.removeMissingContainersReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeContainerRepository) RemoveMissingContainersCallCount() int {
+	fake.removeMissingContainersMutex.RLock()
+	defer fake.removeMissingContainersMutex.RUnlock()
+	return len(fake.removeMissingContainersArgsForCall)
+}
+
+func (fake *FakeContainerRepository) RemoveMissingContainersArgsForCall(i int) time.Duration {
+	fake.removeMissingContainersMutex.RLock()
+	defer fake.removeMissingContainersMutex.RUnlock()
+	argsForCall := fake.removeMissingContainersArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeContainerRepository) RemoveMissingContainersReturns(result1 int, result2 error) {
+	fake.RemoveMissingContainersStub = nil
+	fake.removeMissingContainersReturns = struct {
+		result1 int
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeContainerRepository) RemoveMissingContainersReturnsOnCall(i int, result1 int, result2 error) {
+	fake.RemoveMissingContainersStub = nil
+	if fake.removeMissingContainersReturnsOnCall == nil {
+		fake.removeMissingContainersReturnsOnCall = make(map[int]struct {
+			result1 int
+			result2 error
+		})
+	}
+	fake.removeMissingContainersReturnsOnCall[i] = struct {
+		result1 int
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeContainerRepository) UpdateContainersMissingSince(arg1 string, arg2 []string) error {
+	var arg2Copy []string
+	if arg2 != nil {
+		arg2Copy = make([]string, len(arg2))
+		copy(arg2Copy, arg2)
+	}
+	fake.updateContainersMissingSinceMutex.Lock()
+	ret, specificReturn := fake.updateContainersMissingSinceReturnsOnCall[len(fake.updateContainersMissingSinceArgsForCall)]
+	fake.updateContainersMissingSinceArgsForCall = append(fake.updateContainersMissingSinceArgsForCall, struct {
+		arg1 string
+		arg2 []string
+	}{arg1, arg2Copy})
+	fake.recordInvocation("UpdateContainersMissingSince", []interface{}{arg1, arg2Copy})
+	fake.updateContainersMissingSinceMutex.Unlock()
+	if fake.UpdateContainersMissingSinceStub != nil {
+		return fake.UpdateContainersMissingSinceStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.updateContainersMissingSinceReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeContainerRepository) UpdateContainersMissingSinceCallCount() int {
+	fake.updateContainersMissingSinceMutex.RLock()
+	defer fake.updateContainersMissingSinceMutex.RUnlock()
+	return len(fake.updateContainersMissingSinceArgsForCall)
+}
+
+func (fake *FakeContainerRepository) UpdateContainersMissingSinceArgsForCall(i int) (string, []string) {
+	fake.updateContainersMissingSinceMutex.RLock()
+	defer fake.updateContainersMissingSinceMutex.RUnlock()
+	argsForCall := fake.updateContainersMissingSinceArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeContainerRepository) UpdateContainersMissingSinceReturns(result1 error) {
+	fake.UpdateContainersMissingSinceStub = nil
+	fake.updateContainersMissingSinceReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeContainerRepository) UpdateContainersMissingSinceReturnsOnCall(i int, result1 error) {
+	fake.UpdateContainersMissingSinceStub = nil
+	if fake.updateContainersMissingSinceReturnsOnCall == nil {
+		fake.updateContainersMissingSinceReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.updateContainersMissingSinceReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeContainerRepository) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -286,6 +421,10 @@ func (fake *FakeContainerRepository) Invocations() map[string][][]interface{} {
 	defer fake.findOrphanedContainersMutex.RUnlock()
 	fake.removeDestroyingContainersMutex.RLock()
 	defer fake.removeDestroyingContainersMutex.RUnlock()
+	fake.removeMissingContainersMutex.RLock()
+	defer fake.removeMissingContainersMutex.RUnlock()
+	fake.updateContainersMissingSinceMutex.RLock()
+	defer fake.updateContainersMissingSinceMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

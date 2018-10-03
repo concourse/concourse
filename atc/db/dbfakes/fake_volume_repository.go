@@ -3,6 +3,7 @@ package dbfakes
 
 import (
 	sync "sync"
+	time "time"
 
 	db "github.com/concourse/concourse/atc/db"
 )
@@ -239,6 +240,31 @@ type FakeVolumeRepository struct {
 	removeDestroyingVolumesReturnsOnCall map[int]struct {
 		result1 int
 		result2 error
+	}
+	RemoveMissingVolumesStub        func(time.Duration) (int, error)
+	removeMissingVolumesMutex       sync.RWMutex
+	removeMissingVolumesArgsForCall []struct {
+		arg1 time.Duration
+	}
+	removeMissingVolumesReturns struct {
+		result1 int
+		result2 error
+	}
+	removeMissingVolumesReturnsOnCall map[int]struct {
+		result1 int
+		result2 error
+	}
+	UpdateVolumesMissingSinceStub        func(string, []string) error
+	updateVolumesMissingSinceMutex       sync.RWMutex
+	updateVolumesMissingSinceArgsForCall []struct {
+		arg1 string
+		arg2 []string
+	}
+	updateVolumesMissingSinceReturns struct {
+		result1 error
+	}
+	updateVolumesMissingSinceReturnsOnCall map[int]struct {
+		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -1113,6 +1139,115 @@ func (fake *FakeVolumeRepository) RemoveDestroyingVolumesReturnsOnCall(i int, re
 	}{result1, result2}
 }
 
+func (fake *FakeVolumeRepository) RemoveMissingVolumes(arg1 time.Duration) (int, error) {
+	fake.removeMissingVolumesMutex.Lock()
+	ret, specificReturn := fake.removeMissingVolumesReturnsOnCall[len(fake.removeMissingVolumesArgsForCall)]
+	fake.removeMissingVolumesArgsForCall = append(fake.removeMissingVolumesArgsForCall, struct {
+		arg1 time.Duration
+	}{arg1})
+	fake.recordInvocation("RemoveMissingVolumes", []interface{}{arg1})
+	fake.removeMissingVolumesMutex.Unlock()
+	if fake.RemoveMissingVolumesStub != nil {
+		return fake.RemoveMissingVolumesStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.removeMissingVolumesReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeVolumeRepository) RemoveMissingVolumesCallCount() int {
+	fake.removeMissingVolumesMutex.RLock()
+	defer fake.removeMissingVolumesMutex.RUnlock()
+	return len(fake.removeMissingVolumesArgsForCall)
+}
+
+func (fake *FakeVolumeRepository) RemoveMissingVolumesArgsForCall(i int) time.Duration {
+	fake.removeMissingVolumesMutex.RLock()
+	defer fake.removeMissingVolumesMutex.RUnlock()
+	argsForCall := fake.removeMissingVolumesArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeVolumeRepository) RemoveMissingVolumesReturns(result1 int, result2 error) {
+	fake.RemoveMissingVolumesStub = nil
+	fake.removeMissingVolumesReturns = struct {
+		result1 int
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeVolumeRepository) RemoveMissingVolumesReturnsOnCall(i int, result1 int, result2 error) {
+	fake.RemoveMissingVolumesStub = nil
+	if fake.removeMissingVolumesReturnsOnCall == nil {
+		fake.removeMissingVolumesReturnsOnCall = make(map[int]struct {
+			result1 int
+			result2 error
+		})
+	}
+	fake.removeMissingVolumesReturnsOnCall[i] = struct {
+		result1 int
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeVolumeRepository) UpdateVolumesMissingSince(arg1 string, arg2 []string) error {
+	var arg2Copy []string
+	if arg2 != nil {
+		arg2Copy = make([]string, len(arg2))
+		copy(arg2Copy, arg2)
+	}
+	fake.updateVolumesMissingSinceMutex.Lock()
+	ret, specificReturn := fake.updateVolumesMissingSinceReturnsOnCall[len(fake.updateVolumesMissingSinceArgsForCall)]
+	fake.updateVolumesMissingSinceArgsForCall = append(fake.updateVolumesMissingSinceArgsForCall, struct {
+		arg1 string
+		arg2 []string
+	}{arg1, arg2Copy})
+	fake.recordInvocation("UpdateVolumesMissingSince", []interface{}{arg1, arg2Copy})
+	fake.updateVolumesMissingSinceMutex.Unlock()
+	if fake.UpdateVolumesMissingSinceStub != nil {
+		return fake.UpdateVolumesMissingSinceStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.updateVolumesMissingSinceReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeVolumeRepository) UpdateVolumesMissingSinceCallCount() int {
+	fake.updateVolumesMissingSinceMutex.RLock()
+	defer fake.updateVolumesMissingSinceMutex.RUnlock()
+	return len(fake.updateVolumesMissingSinceArgsForCall)
+}
+
+func (fake *FakeVolumeRepository) UpdateVolumesMissingSinceArgsForCall(i int) (string, []string) {
+	fake.updateVolumesMissingSinceMutex.RLock()
+	defer fake.updateVolumesMissingSinceMutex.RUnlock()
+	argsForCall := fake.updateVolumesMissingSinceArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeVolumeRepository) UpdateVolumesMissingSinceReturns(result1 error) {
+	fake.UpdateVolumesMissingSinceStub = nil
+	fake.updateVolumesMissingSinceReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeVolumeRepository) UpdateVolumesMissingSinceReturnsOnCall(i int, result1 error) {
+	fake.UpdateVolumesMissingSinceStub = nil
+	if fake.updateVolumesMissingSinceReturnsOnCall == nil {
+		fake.updateVolumesMissingSinceReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.updateVolumesMissingSinceReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeVolumeRepository) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -1148,6 +1283,10 @@ func (fake *FakeVolumeRepository) Invocations() map[string][][]interface{} {
 	defer fake.getTeamVolumesMutex.RUnlock()
 	fake.removeDestroyingVolumesMutex.RLock()
 	defer fake.removeDestroyingVolumesMutex.RUnlock()
+	fake.removeMissingVolumesMutex.RLock()
+	defer fake.removeMissingVolumesMutex.RUnlock()
+	fake.updateVolumesMissingSinceMutex.RLock()
+	defer fake.updateVolumesMissingSinceMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -396,7 +396,7 @@ var _ = Describe("Volumes API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/volumes/report", func() {
+	Describe("PUT /api/v1/volumes/report", func() {
 		var response *http.Response
 		var req *http.Request
 		var body io.Reader
@@ -500,6 +500,16 @@ var _ = Describe("Volumes API", func() {
 					Expect(fakeDestroyer.DestroyVolumesCallCount()).To(Equal(1))
 
 					workerName, handles := fakeDestroyer.DestroyVolumesArgsForCall(0)
+					Expect(workerName).To(Equal("some-worker-name"))
+					Expect(handles).To(Equal([]string{"handle1", "handle2"}))
+				})
+
+				It("marks volumes as missing", func() {
+					_, err = client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(fakeVolumeRepository.UpdateVolumesMissingSinceCallCount()).To(Equal(1))
+
+					workerName, handles := fakeVolumeRepository.UpdateVolumesMissingSinceArgsForCall(0)
 					Expect(workerName).To(Equal("some-worker-name"))
 					Expect(handles).To(Equal([]string{"handle1", "handle2"}))
 				})

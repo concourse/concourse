@@ -3,6 +3,8 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/nu7hatch/gouuid"
@@ -37,6 +39,9 @@ type VolumeRepository interface {
 	FindCreatedVolume(handle string) (CreatedVolume, bool, error)
 
 	RemoveDestroyingVolumes(workerName string, handles []string) (int, error)
+
+	UpdateVolumesMissingSince(workerName string, handles []string) error
+	RemoveMissingVolumes(time.Duration) (int, error)
 }
 
 type volumeRepository struct {
@@ -47,6 +52,113 @@ func NewVolumeRepository(conn Conn) VolumeRepository {
 	return &volumeRepository{
 		conn: conn,
 	}
+}
+
+func (repository *volumeRepository) queryVolumeHandles(cond sq.Eq) ([]string, error) {
+	query, args, err := psql.Select("handle").From("volumes").Where(cond).ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := repository.conn.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer Close(rows)
+
+	handles := []string{}
+
+	for rows.Next() {
+		var handle = "handle"
+		columns := []interface{}{&handle}
+
+		err = rows.Scan(columns...)
+		if err != nil {
+			return nil, err
+		}
+		handles = append(handles, handle)
+	}
+
+	return handles, nil
+}
+
+func (repository *volumeRepository) UpdateVolumesMissingSince(workerName string, reportedHandles []string) error {
+	// clear out missing_since for reported volumes
+	query, args, err := psql.Update("volumes").
+		Set("missing_since", nil).
+		Where(
+			sq.And{
+				sq.NotEq{
+					"missing_since": nil,
+				},
+				sq.Eq{
+					"handle": reportedHandles,
+				},
+			},
+		).ToSql()
+	if err != nil {
+		return err
+	}
+
+	rows, err := repository.conn.Query(query, args...)
+	if err != nil {
+		return err
+	}
+
+	Close(rows)
+
+	dbHandles, err := repository.queryVolumeHandles(sq.Eq{
+		"worker_name":   workerName,
+		"missing_since": nil,
+	})
+	if err != nil {
+		return err
+	}
+
+	handles := diff(dbHandles, reportedHandles)
+
+	query, args, err = psql.Update("volumes").
+		Set("missing_since", sq.Expr("now()")).
+		Where(sq.Eq{"handle": handles}).ToSql()
+	if err != nil {
+		return err
+	}
+
+	rows, err = repository.conn.Query(query, args...)
+	if err != nil {
+		return err
+	}
+
+	defer Close(rows)
+
+	return nil
+}
+
+func (repository *volumeRepository) RemoveMissingVolumes(gracePeriod time.Duration) (int, error) {
+	result, err := psql.Delete("volumes").
+		Where(
+			sq.And{
+				sq.Eq{
+					"state": []VolumeState{VolumeStateCreated, VolumeStateFailed},
+				},
+				sq.Gt{
+					"NOW() - missing_since": fmt.Sprintf("%.0f seconds", gracePeriod.Seconds()),
+				},
+			},
+		).RunWith(repository.conn).
+		Exec()
+
+	if err != nil {
+		return 0, err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(affected), nil
 }
 
 func (repository *volumeRepository) RemoveDestroyingVolumes(workerName string, handles []string) (int, error) {
@@ -95,7 +207,7 @@ func (repository *volumeRepository) GetTeamVolumes(teamID int) ([]CreatedVolume,
 			},
 		}).
 		Where(sq.Eq{
-			"v.state": "created",
+			"v.state": VolumeStateCreated,
 		}).ToSql()
 	if err != nil {
 		return nil, err
@@ -390,39 +502,12 @@ func (repository *volumeRepository) DestroyFailedVolumes() (int, error) {
 }
 
 func (repository *volumeRepository) GetDestroyingVolumes(workerName string) ([]string, error) {
-	destroyingHandles := []string{}
-
-	query, args, err := psql.Select("handle").
-		From("volumes").
-		Where(sq.Eq{
+	return repository.queryVolumeHandles(
+		sq.Eq{
 			"state":       string(VolumeStateDestroying),
 			"worker_name": workerName,
-		}).
-		ToSql()
-
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := repository.conn.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer Close(rows)
-
-	for rows.Next() {
-		var handle = "handle"
-		columns := []interface{}{&handle}
-
-		err = rows.Scan(columns...)
-		if err != nil {
-			return nil, err
-		}
-
-		destroyingHandles = append(destroyingHandles, handle)
-	}
-
-	return destroyingHandles, nil
+		},
+	)
 }
 
 var ErrWorkerResourceTypeNotFound = errors.New("worker resource type no longer exists (stale?)")

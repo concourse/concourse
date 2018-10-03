@@ -995,7 +995,7 @@ var _ = Describe("Containers API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/containers/report", func() {
+	Describe("PUT /api/v1/containers/report", func() {
 		var response *http.Response
 		var body io.Reader
 		var err error
@@ -1008,8 +1008,8 @@ var _ = Describe("Containers API", func() {
 				]
 			`)
 		})
-		JustBeforeEach(func() {
 
+		JustBeforeEach(func() {
 			req, err = http.NewRequest("PUT", server.URL+"/api/v1/containers/report", body)
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set("Content-Type", "application/json")
@@ -1098,6 +1098,16 @@ var _ = Describe("Containers API", func() {
 					Expect(fakeDestroyer.DestroyContainersCallCount()).To(Equal(1))
 
 					workerName, handles := fakeDestroyer.DestroyContainersArgsForCall(0)
+					Expect(workerName).To(Equal("some-worker-name"))
+					Expect(handles).To(Equal([]string{"handle1", "handle2"}))
+				})
+
+				It("marks containers as missing", func() {
+					_, err = client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(fakeContainerRepository.UpdateContainersMissingSinceCallCount()).To(Equal(1))
+
+					workerName, handles := fakeContainerRepository.UpdateContainersMissingSinceArgsForCall(0)
 					Expect(workerName).To(Equal("some-worker-name"))
 					Expect(handles).To(Equal([]string{"handle1", "handle2"}))
 				})
