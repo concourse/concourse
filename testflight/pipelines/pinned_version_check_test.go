@@ -10,7 +10,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-var _ = FDescribe("A resource pinned with a version during initial set of the pipeline", func() {
+var _ = Describe("A resource pinned with a version during initial set of the pipeline", func() {
 	Context("when a resource is pinned in the pipeline config before the check is run", func() {
 		BeforeEach(func() {
 			hash, err := uuid.NewV4()
