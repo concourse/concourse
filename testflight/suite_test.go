@@ -27,18 +27,18 @@ import (
 const flyTarget = "tf"
 
 type suiteConfig struct {
-	flyBin      string
-	atcURL      string
-	atcUsername string
-	atcPassword string
+	FlyBin      string `json:"fly"`
+	ATCURL      string `json:"atc_url"`
+	ATCUsername string `json:"atc_username"`
+	ATCPassword string `json:"atc_password"`
 }
 
 var (
 	config = suiteConfig{
-		flyBin:      "fly",
-		atcURL:      "http://localhost:8080",
-		atcUsername: "test",
-		atcPassword: "test",
+		FlyBin:      "fly",
+		ATCURL:      "http://localhost:8080",
+		ATCUsername: "test",
+		ATCPassword: "test",
 	}
 
 	pipelineName string
@@ -52,22 +52,22 @@ func TestTestflight(t *testing.T) {
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	var err error
-	config.flyBin, err = gexec.Build("github.com/concourse/concourse/fly")
+	config.FlyBin, err = gexec.Build("github.com/concourse/concourse/fly")
 	Expect(err).ToNot(HaveOccurred())
 
 	atcURL := os.Getenv("ATC_URL")
 	if atcURL != "" {
-		config.atcURL = atcURL
+		config.ATCURL = atcURL
 	}
 
 	atcUsername := os.Getenv("ATC_USERNAME")
 	if atcUsername != "" {
-		config.atcUsername = atcUsername
+		config.ATCUsername = atcUsername
 	}
 
 	atcPassword := os.Getenv("ATC_PASSWORD")
 	if atcPassword != "" {
-		config.atcPassword = atcPassword
+		config.ATCPassword = atcPassword
 	}
 
 	payload, err := json.Marshal(config)
@@ -121,7 +121,7 @@ func flyIn(dir string, argv ...string) *gexec.Session {
 }
 
 func concourseClient() concourse.Client {
-	token, err := fetchToken(config.atcURL, config.atcUsername, config.atcPassword)
+	token, err := fetchToken(config.ATCURL, config.ATCUsername, config.ATCPassword)
 	Expect(err).NotTo(HaveOccurred())
 
 	httpClient := &http.Client{
@@ -133,7 +133,7 @@ func concourseClient() concourse.Client {
 		},
 	}
 
-	return concourse.NewClient(config.atcURL, httpClient, false)
+	return concourse.NewClient(config.ATCURL, httpClient, false)
 }
 
 func fetchToken(atcURL string, username, password string) (*oauth2.Token, error) {
@@ -148,19 +148,19 @@ func fetchToken(atcURL string, username, password string) (*oauth2.Token, error)
 }
 
 func flyLogin(args ...string) *gexec.Session {
-	return spawnFly(append([]string{"login", "-c", config.atcURL, "-u", config.atcUsername, "-p", config.atcPassword}, args...)...)
+	return spawnFly(append([]string{"login", "-c", config.ATCURL, "-u", config.ATCUsername, "-p", config.ATCPassword}, args...)...)
 }
 
 func spawnFly(argv ...string) *gexec.Session {
-	return spawn(config.flyBin, append([]string{"-t", flyTarget}, argv...)...)
+	return spawn(config.FlyBin, append([]string{"-t", flyTarget}, argv...)...)
 }
 
 func spawnFlyIn(dir string, argv ...string) *gexec.Session {
-	return spawnIn(dir, config.flyBin, append([]string{"-t", flyTarget}, argv...)...)
+	return spawnIn(dir, config.FlyBin, append([]string{"-t", flyTarget}, argv...)...)
 }
 
 func spawnFlyInteractive(stdin io.Reader, argv ...string) *gexec.Session {
-	return spawnInteractive(stdin, config.flyBin, append([]string{"-t", flyTarget}, argv...)...)
+	return spawnInteractive(stdin, config.FlyBin, append([]string{"-t", flyTarget}, argv...)...)
 }
 
 func run(argc string, argv ...string) {
