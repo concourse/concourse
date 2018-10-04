@@ -77,7 +77,7 @@ var _ = Describe("Resource version", func() {
 				guid3 := newMockVersion("some-resource", "guid3")
 				_ = newMockVersion("some-resource", "guid4")
 
-				setPipeline("fixtures/pinned-version.yml", "-v", "pinned_version="+guid3)
+				setPipeline("fixtures/pinned-version.yml", "-v", "hash="+hash, "-v", "pinned_version="+guid3)
 
 				watch = fly("trigger-job", "-j", inPipeline("some-passing-job"), "-w")
 				Expect(watch).To(gbytes.Say(guid3))
@@ -91,11 +91,11 @@ var _ = Describe("Resource version", func() {
 		var versionConfig string
 
 		BeforeEach(func() {
-			versionConfig = "nil"
+			versionConfig = "null"
 
 			setAndUnpausePipeline(
 				"fixtures/pinned-resource-simple-trigger.yml",
-				"-v", "pinned_resource_version=bogus",
+				"-y", "pinned_resource_version=null",
 				"-y", "version_config="+versionConfig,
 				"-v", "hash="+hash,
 			)
@@ -108,7 +108,7 @@ var _ = Describe("Resource version", func() {
 		JustBeforeEach(func() {
 			setPipeline(
 				"fixtures/pinned-resource-simple-trigger.yml",
-				"-v", "pinned_resource_version="+pinnedGUID,
+				"-y", `pinned_resource_version={"version":"`+pinnedGUID+`"}`,
 				"-y", "version_config="+versionConfig,
 				"-v", "hash="+hash,
 			)
