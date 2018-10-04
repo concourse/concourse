@@ -12,4 +12,4 @@ go mod download
 
 go install github.com/onsi/ginkgo/ginkgo
 
-ginkgo -r -p -race ./testflight "$@"
+ginkgo -r -p -race -slowSpecThreshold=15 ./testflight "$@"
