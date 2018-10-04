@@ -1,6 +1,7 @@
 package metric_test
 
 import (
+	"os"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -11,12 +12,14 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
+	"github.com/tedsuo/ifrit"
 )
 
 var _ = Describe("Periodic emission of metrics", func() {
 	var (
 		emitter *metricfakes.FakeEmitter
-		// emitterFactory *metricfakes.FakeEmitterFactory
+
+		process ifrit.Process
 	)
 
 	BeforeEach(func() {
@@ -33,7 +36,12 @@ var _ = Describe("Periodic emission of metrics", func() {
 		metric.Databases = []db.Conn{a, b}
 		metric.Initialize(nil, "test", map[string]string{})
 
-		go metric.PeriodicallyEmit(lager.NewLogger("dont care"), 250*time.Millisecond)
+		process = ifrit.Invoke(metric.PeriodicallyEmit(lager.NewLogger("dont care"), 250*time.Millisecond))
+	})
+
+	AfterEach(func() {
+		process.Signal(os.Interrupt)
+		<-process.Wait()
 	})
 
 	It("emits database queries", func() {
