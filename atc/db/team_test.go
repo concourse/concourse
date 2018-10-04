@@ -752,7 +752,7 @@ var _ = Describe("Team", func() {
 				Expect(value).To(BeNil())
 			})
 
-			FContext("when team auth is already set", func() {
+			Context("when team auth is already set", func() {
 				BeforeEach(func() {
 					team.UpdateProviderAuth(atc.TeamAuth{
 						"owner":  {"users": []string{"local:somebody"}},
