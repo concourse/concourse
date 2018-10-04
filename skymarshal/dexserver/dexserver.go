@@ -37,98 +37,55 @@ func NewDexServer(config *DexConfig) (*server.Server, error) {
 
 func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 
-	log := logger.New(config.Logger)
-	store := config.Storage
+	var clients []storage.Client
+	var connectors []storage.Connector
+	var passwords []storage.Password
 
-	localUsersToAdd := newLocalUsers(config)
-
-	storedPasses, err := store.ListPasswords()
-	if err != nil {
-		return server.Config{}, err
+	for username, password := range newLocalUsers(config) {
+		passwords = append(passwords, storage.Password{
+			UserID:   username,
+			Username: username,
+			Email:    username,
+			Hash:     password,
+		})
 	}
 
-	// First clear out users from dex store that are no longer in params
-	for _, pass := range storedPasses {
-		if _, exists := localUsersToAdd[pass.Email]; !exists {
-			removePasswordFromStore(store, pass.Email)
-		}
-	}
-
-	// Then add new local users to dex store
-	var localAuthConfigured = false
-	for username, password := range localUsersToAdd {
-		err = createPasswordInStore(store,
-			storage.Password{
-				UserID:   username,
-				Username: username,
-				Email:    username,
-				Hash:     password,
-			},
-			true)
-		if err != nil {
-			return server.Config{}, err
-		}
-
-		if !localAuthConfigured {
-			err = createConnectorInStore(store,
-				storage.Connector{
-					ID:   "local",
-					Type: "local",
-					Name: "Username/Password",
-				},
-				false)
-			if err != nil {
-				return server.Config{}, err
-			}
-			localAuthConfigured = true
-		}
+	if len(passwords) > 0 {
+		connectors = append(connectors, storage.Connector{
+			ID:   "local",
+			Type: "local",
+			Name: "Username/Password",
+		})
 	}
 
 	redirectURI := strings.TrimRight(config.IssuerURL, "/") + "/callback"
 
 	for _, connector := range skycmd.GetConnectors() {
 		if c, err := connector.Serialize(redirectURI); err == nil {
-			err = createConnectorInStore(store,
-				storage.Connector{
-					ID:     connector.ID(),
-					Type:   connector.ID(),
-					Name:   connector.Name(),
-					Config: c,
-				},
-				true)
-			if err != nil {
-				return server.Config{}, err
-			}
-		} else {
-			// connector has not been configured, or has not been configured properly
-			err = removeConnectorFromStore(store, connector.ID())
-			if err != nil {
-				return server.Config{}, err
-			}
+			connectors = append(connectors, storage.Connector{
+				ID:     connector.ID(),
+				Type:   connector.ID(),
+				Name:   connector.Name(),
+				Config: c,
+			})
 		}
 	}
 
-	client := storage.Client{
+	clients = append(clients, storage.Client{
 		ID:           config.ClientID,
 		Secret:       config.ClientSecret,
 		RedirectURIs: []string{config.RedirectURL},
+	})
+
+	if err := replacePasswords(config.Storage, passwords); err != nil {
+		return server.Config{}, err
 	}
 
-	_, err = store.GetClient(config.ClientID)
-	if err == storage.ErrNotFound {
-		err = store.CreateClient(client)
-		if err != nil {
-			return server.Config{}, err
-		}
-	} else if err == nil {
-		err = store.UpdateClient(
-			config.ClientID,
-			func(_ storage.Client) (storage.Client, error) { return client, nil },
-		)
-		if err != nil {
-			return server.Config{}, err
-		}
-	} else {
+	if err := replaceClients(config.Storage, clients); err != nil {
+		return server.Config{}, err
+	}
+
+	if err := replaceConnectors(config.Storage, connectors); err != nil {
 		return server.Config{}, err
 	}
 
@@ -145,91 +102,82 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 		SupportedResponseTypes: []string{"code", "token", "id_token"},
 		SkipApprovalScreen:     true,
 		Issuer:                 config.IssuerURL,
-		Storage:                store,
+		Storage:                config.Storage,
 		Web:                    webConfig,
-		Logger:                 log,
+		Logger:                 logger.New(config.Logger),
 	}, nil
 }
 
-// Creates a password for the given username in the dex store.  If username and password already exists
-// in the store and update is set to true, the dex store will be updated with the password.
-func createPasswordInStore(store storage.Storage, password storage.Password, update bool) error {
-	existingPass, err := store.GetPassword(password.Email)
-	if err == storage.ErrNotFound || existingPass.Email == "" {
-		err = store.CreatePassword(password)
+func replacePasswords(store s.Storage, passwords []storage.Password) error {
+	existing, err := store.ListPasswords()
+	if err != nil {
+		return err
+	}
+
+	for _, oldPass := range existing {
+		err = store.DeletePassword(oldPass.Email)
 		if err != nil {
 			return err
 		}
-	} else if err == nil {
-		if update {
-			err = store.UpdatePassword(
-				password.Email,
-				func(_ storage.Password) (storage.Password, error) { return password, nil },
-			)
-			if err != nil {
-				return err
-			}
+	}
+
+	for _, newPass := range passwords {
+		err = store.CreatePassword(newPass)
+		//if this already exists, some other ATC process has created it already
+		//we can assume that both ATCs have the same desired config.
+		if err != nil && err != storage.ErrAlreadyExists {
+			return err
 		}
-	} else {
-		return err
 	}
 
 	return nil
 }
 
-// Checks if password exists and removes it if it does
-func removePasswordFromStore(store storage.Storage, email string) error {
-	_, err := store.GetPassword(email)
-	if err == nil {
-		// password exists, so remove it
-		err = store.DeletePassword(email)
+func replaceClients(store s.Storage, clients []storage.Client) error {
+	existing, err := store.ListClients()
+	if err != nil {
+		return err
+	}
+
+	for _, oldClient := range existing {
+		err = store.DeleteClient(oldClient.ID)
 		if err != nil {
 			return err
 		}
-	} else if err != storage.ErrNotFound {
-		return err
+	}
+
+	for _, newClient := range clients {
+		err = store.CreateClient(newClient)
+		//if this already exists, some other ATC process has created it already
+		//we can assume that both ATCs have the same desired config.
+		if err != nil && err != storage.ErrAlreadyExists {
+			return err
+		}
 	}
 
 	return nil
 }
 
-// Creates a connector in the dex store.  If it already exists in the store and update is set to true,
-// the dex store will be updated with the connector.
-func createConnectorInStore(store storage.Storage, connector storage.Connector, update bool) error {
-	_, err := store.GetConnector(connector.ID)
-	if err == storage.ErrNotFound {
-		err = store.CreateConnector(connector)
-		if err != nil {
-			return err
-		}
-	} else if err == nil {
-		if update {
-			err = store.UpdateConnector(
-				connector.ID,
-				func(_ storage.Connector) (storage.Connector, error) { return connector, nil },
-			)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
+func replaceConnectors(store s.Storage, connectors []storage.Connector) error {
+	existing, err := store.ListConnectors()
+	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-// Checks if connector exists and removes it if it does
-func removeConnectorFromStore(store storage.Storage, connectorID string) error {
-	_, err := store.GetConnector(connectorID)
-	if err == nil {
-		// connector exists, so remove it
-		err = store.DeleteConnector(connectorID)
+	for _, oldConn := range existing {
+		err = store.DeleteConnector(oldConn.ID)
 		if err != nil {
 			return err
 		}
-	} else if err != storage.ErrNotFound {
-		return err
+	}
+
+	for _, newConn := range connectors {
+		err = store.CreateConnector(newConn)
+		//if this already exists, some other ATC process has created it already
+		//we can assume that both ATCs have the same desired config.
+		if err != nil && err != storage.ErrAlreadyExists {
+			return err
+		}
 	}
 
 	return nil
