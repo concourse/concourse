@@ -9,4 +9,5 @@ inputs:
 # - path: gopath
 
 run:
-  path: concourse/ci/tasks/scripts/fly.bat
+  path: powershell
+  args: [concourse/ci/tasks/scripts/fly.ps1]

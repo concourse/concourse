@@ -1,3 +1,5 @@
+Set-PSDebug -Trace 2 -Strict
+
 trap {
   write-error $_
   exit 1
