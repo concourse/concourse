@@ -39,8 +39,8 @@ func (a *access) IsAuthorized(team string) bool {
 			roleName = "owner"
 
 		} else if len(teamParts) > 1 {
-			teamName = teamParts[0]
-			roleName = teamParts[1]
+			teamName = strings.Join(teamParts[:len(teamParts)-1], ":")
+			roleName = teamParts[len(teamParts)-1]
 		}
 
 		if teamName == team {

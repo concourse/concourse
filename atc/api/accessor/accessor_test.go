@@ -206,12 +206,21 @@ var _ = Describe("Accessor", func() {
 			})
 		})
 
-		Context("when request has team name claim set to other team:owner", func() {
+		Context("when request has team name claim set to other-team:owner", func() {
 			BeforeEach(func() {
 				claims = &jwt.MapClaims{"teams": []string{"other-team:owner"}}
 			})
 			It("returns false", func() {
 				Expect(access.IsAuthorized("some-team")).To(BeFalse())
+			})
+		})
+
+		Context("when request has a team name with ':role' in its name", func() {
+			BeforeEach(func() {
+				claims = &jwt.MapClaims{"teams": []string{"other-team:owner:owner"}}
+			})
+			It("returns false", func() {
+				Expect(access.IsAuthorized("other-team")).To(BeFalse())
 			})
 		})
 
