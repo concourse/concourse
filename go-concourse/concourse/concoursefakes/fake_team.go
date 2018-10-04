@@ -538,7 +538,7 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
-	ResourceVersionsStub        func(string, string, concourse.Page) ([]atc.VersionedResource, concourse.Pagination, bool, error)
+	ResourceVersionsStub        func(string, string, concourse.Page) ([]atc.ResourceVersion, concourse.Pagination, bool, error)
 	resourceVersionsMutex       sync.RWMutex
 	resourceVersionsArgsForCall []struct {
 		arg1 string
@@ -546,13 +546,13 @@ type FakeTeam struct {
 		arg3 concourse.Page
 	}
 	resourceVersionsReturns struct {
-		result1 []atc.VersionedResource
+		result1 []atc.ResourceVersion
 		result2 concourse.Pagination
 		result3 bool
 		result4 error
 	}
 	resourceVersionsReturnsOnCall map[int]struct {
-		result1 []atc.VersionedResource
+		result1 []atc.ResourceVersion
 		result2 concourse.Pagination
 		result3 bool
 		result4 error
@@ -2591,7 +2591,7 @@ func (fake *FakeTeam) ResourceReturnsOnCall(i int, result1 atc.Resource, result2
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) ResourceVersions(arg1 string, arg2 string, arg3 concourse.Page) ([]atc.VersionedResource, concourse.Pagination, bool, error) {
+func (fake *FakeTeam) ResourceVersions(arg1 string, arg2 string, arg3 concourse.Page) ([]atc.ResourceVersion, concourse.Pagination, bool, error) {
 	fake.resourceVersionsMutex.Lock()
 	ret, specificReturn := fake.resourceVersionsReturnsOnCall[len(fake.resourceVersionsArgsForCall)]
 	fake.resourceVersionsArgsForCall = append(fake.resourceVersionsArgsForCall, struct {
@@ -2624,28 +2624,28 @@ func (fake *FakeTeam) ResourceVersionsArgsForCall(i int) (string, string, concou
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeTeam) ResourceVersionsReturns(result1 []atc.VersionedResource, result2 concourse.Pagination, result3 bool, result4 error) {
+func (fake *FakeTeam) ResourceVersionsReturns(result1 []atc.ResourceVersion, result2 concourse.Pagination, result3 bool, result4 error) {
 	fake.ResourceVersionsStub = nil
 	fake.resourceVersionsReturns = struct {
-		result1 []atc.VersionedResource
+		result1 []atc.ResourceVersion
 		result2 concourse.Pagination
 		result3 bool
 		result4 error
 	}{result1, result2, result3, result4}
 }
 
-func (fake *FakeTeam) ResourceVersionsReturnsOnCall(i int, result1 []atc.VersionedResource, result2 concourse.Pagination, result3 bool, result4 error) {
+func (fake *FakeTeam) ResourceVersionsReturnsOnCall(i int, result1 []atc.ResourceVersion, result2 concourse.Pagination, result3 bool, result4 error) {
 	fake.ResourceVersionsStub = nil
 	if fake.resourceVersionsReturnsOnCall == nil {
 		fake.resourceVersionsReturnsOnCall = make(map[int]struct {
-			result1 []atc.VersionedResource
+			result1 []atc.ResourceVersion
 			result2 concourse.Pagination
 			result3 bool
 			result4 error
 		})
 	}
 	fake.resourceVersionsReturnsOnCall[i] = struct {
-		result1 []atc.VersionedResource
+		result1 []atc.ResourceVersion
 		result2 concourse.Pagination
 		result3 bool
 		result4 error
