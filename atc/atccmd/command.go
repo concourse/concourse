@@ -367,10 +367,13 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	members = append(members, metric.PeriodicallyEmit(
-		logger.Session("periodic-metrics"),
-		10*time.Second,
-	))
+	members = append(members, grouper.Member{
+		Name: "periodic-metrics",
+		Runner: metric.PeriodicallyEmit(
+			logger.Session("periodic-metrics"),
+			10*time.Second,
+		),
+	})
 
 	onReady := func() {
 		logData := lager.Data{
