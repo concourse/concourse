@@ -340,7 +340,6 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	if err := cmd.configureMetrics(logger); err != nil {
 		return nil, err
 	}
-	go metric.PeriodicallyEmit(logger.Session("periodic-metrics"), 10*time.Second)
 
 	lockConn, err := cmd.constructLockConn(retryingDriverName)
 	if err != nil {
@@ -367,6 +366,11 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	if err != nil {
 		return nil, err
 	}
+
+	members = append(members, metric.PeriodicallyEmit(
+		logger.Session("periodic-metrics"),
+		10*time.Second,
+	))
 
 	onReady := func() {
 		logData := lager.Data{
