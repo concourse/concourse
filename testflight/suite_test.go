@@ -1,13 +1,10 @@
 package testflight_test
 
 import (
-	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
 	"regexp"
@@ -18,10 +15,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/nu7hatch/gouuid"
 	"github.com/onsi/gomega/gexec"
-	"golang.org/x/oauth2"
 )
 
 const flyTarget = "tf"
@@ -42,9 +37,6 @@ var (
 		ATCUsername: "test",
 		ATCPassword: "test",
 	}
-
-	client concourse.Client
-	team   concourse.Team
 
 	pipelineName string
 	tmp          string
@@ -98,9 +90,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 }, func(data []byte) {
 	err := json.Unmarshal(data, &config)
 	Expect(err).ToNot(HaveOccurred())
-
-	client = concourseClient()
-	team = client.Team(teamName)
 })
 
 var _ = SynchronizedAfterSuite(func() {
@@ -143,33 +132,6 @@ func flyIn(dir string, argv ...string) *gexec.Session {
 	sess := spawnFlyIn(dir, argv...)
 	wait(sess)
 	return sess
-}
-
-func concourseClient() concourse.Client {
-	token, err := fetchToken(config.ATCURL, config.ATCUsername, config.ATCPassword)
-	Expect(err).NotTo(HaveOccurred())
-
-	httpClient := &http.Client{
-		Transport: &oauth2.Transport{
-			Source: oauth2.StaticTokenSource(token),
-			Base: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			},
-		},
-	}
-
-	return concourse.NewClient(config.ATCURL, httpClient, false)
-}
-
-func fetchToken(atcURL string, username, password string) (*oauth2.Token, error) {
-	oauth2Config := oauth2.Config{
-		ClientID:     "fly",
-		ClientSecret: "Zmx5",
-		Endpoint:     oauth2.Endpoint{TokenURL: atcURL + "/sky/token"},
-		Scopes:       []string{"openid", "profile", "email", "federated:id"},
-	}
-
-	return oauth2Config.PasswordCredentialsToken(context.Background(), username, password)
 }
 
 func spawnFlyLogin(args ...string) *gexec.Session {

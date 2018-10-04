@@ -1,8 +1,6 @@
 package testflight_test
 
 import (
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/go-concourse/concourse"
 	uuid "github.com/nu7hatch/gouuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -38,13 +36,8 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			Expect(watch).To(gbytes.Say("privileged: true"))
 
 			By("running the resource 'check' with a privileged container")
-			versions, _, found, err := team.ResourceVersions(pipelineName, "my-resource", concourse.Page{})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(versions[0].Version).To(Equal(atc.Version{
-				"version":    "mock",
-				"privileged": "true",
-			}))
+			versions := fly("resource-versions", "-r", inPipeline("my-resource"))
+			Expect(versions).To(gbytes.Say("privileged:true,version:mock"))
 
 			By("running 'put' with a privileged container")
 			watch = fly("trigger-job", "-j", inPipeline("resource-putter"), "-w")
@@ -63,12 +56,8 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			Expect(watch).To(gbytes.Say("privileged: false"))
 
 			By("running the resource 'check' with an unprivileged container")
-			versions, _, found, err := team.ResourceVersions(pipelineName, "my-resource", concourse.Page{})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(versions[0].Version).To(Equal(atc.Version{
-				"version": "mock",
-			}))
+			versions := fly("resource-versions", "-r", inPipeline("my-resource"))
+			Expect(versions).ToNot(gbytes.Say("privileged:true"))
 
 			By("running 'put' with an unprivileged container")
 			watch = fly("trigger-job", "-j", inPipeline("resource-putter"), "-w")
