@@ -24,12 +24,6 @@ var _ = Describe("Resource version", func() {
 
 				watch = fly("trigger-job", "-j", inPipeline("some-passing-job"), "-w")
 				Expect(watch).To(gbytes.Say(guid4))
-
-				Consistently(func() bool {
-					_, found, err := team.JobBuild(pipelineName, "some-passing-job", "3")
-					Expect(err).NotTo(HaveOccurred())
-					return found
-				}).Should(BeFalse())
 			})
 		})
 
@@ -77,12 +71,6 @@ var _ = Describe("Resource version", func() {
 
 				watch = fly("trigger-job", "-j", inPipeline("some-passing-job"), "-w")
 				Expect(watch).To(gbytes.Say(guid3))
-
-				Consistently(func() bool {
-					_, found, err := team.JobBuild(pipelineName, "some-passing-job", "3")
-					Expect(err).NotTo(HaveOccurred())
-					return found
-				}).Should(BeFalse())
 			})
 		})
 	})

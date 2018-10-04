@@ -1,9 +1,9 @@
 package testflight_test
 
 import (
-	"fmt"
+	"os"
+	"time"
 
-	"github.com/concourse/concourse/atc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -12,20 +12,22 @@ import (
 
 var _ = Describe("serial groups", func() {
 	Context("when no inputs are available for one resource", func() {
+		var pendingS *gexec.Session
+
 		BeforeEach(func() {
 			setAndUnpausePipeline("fixtures/serial-groups.yml")
+
+			pendingS = spawnFly("trigger-job", "-j", inPipeline("some-pending-job"), "-w")
+		})
+
+		AfterEach(func() {
+			pendingS.Signal(os.Interrupt)
+			<-pendingS.Exited
 		})
 
 		It("runs even when another job in the serial group has a pending build", func() {
-			pendingBuild, err := team.CreateJobBuild(pipelineName, "some-pending-job")
-			Expect(err).NotTo(HaveOccurred())
-
 			fly("trigger-job", "-j", inPipeline("some-passing-job"), "-w")
-
-			updatedPendingBuild, found, err := client.Build(fmt.Sprint(pendingBuild.ID))
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(updatedPendingBuild.Status).To(Equal(string(atc.StatusPending)))
+			Consistently(pendingS, time.Second).ShouldNot(gexec.Exit())
 		})
 	})
 
