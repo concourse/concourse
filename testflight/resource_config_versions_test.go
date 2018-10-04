@@ -1,11 +1,9 @@
-package pipelines_test
+package testflight_test
 
 import (
 	uuid "github.com/nu7hatch/gouuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Resource config versions", func() {
@@ -13,45 +11,33 @@ var _ = Describe("Resource config versions", func() {
 		hash, err := uuid.NewV4()
 		Expect(err).ToNot(HaveOccurred())
 
-		flyHelper.ConfigurePipeline(
-			pipelineName,
-			"-c", "fixtures/resource-type-versions.yml",
+		setAndUnpausePipeline(
+			"fixtures/resource-type-versions.yml",
 			"-v", "hash="+hash.String(),
 		)
 	})
 
-	// This test is for a case where the build inputs and outputs will not be invalidated if the resource config id field on the resource
-	// gets updated due to a new version of the custom resource type that it is using.
+	// This test is for a case where the build inputs and outputs will not be
+	// invalidated if the resource config id field on the resource gets updated
+	// due to a new version of the custom resource type that it is using.
 	Describe("build inputs and outputs are not affected by a change in resource config id", func() {
 		It("will run both jobs only once even with a new custom resource type version", func() {
-			By("Waiting for a new build when the pipeline is created")
-			watch := flyHelper.Watch(pipelineName, "initial-job")
-			<-watch.Exited
-			Expect(watch).To(gbytes.Say("succeeded"))
-			Expect(watch).To(gexec.Exit(0))
+			By("waiting for a new build when the pipeline is created")
+			fly("trigger-job", "-j", inPipeline("initial-job"), "-w")
 
-			By("Checking the a new version of the custom resource type")
+			By("checking the a new version of the custom resource type")
 			u, err := uuid.NewV4()
 			Expect(err).ToNot(HaveOccurred())
 
 			newVersion := u.String()
 
-			session := flyHelper.CheckResourceType(
-				"-r", pipelineName+"/custom-resource-type",
-				"-f", "version:"+newVersion,
-			)
-			<-session.Exited
-			Expect(session.ExitCode()).To(Equal(0))
+			fly("check-resource-type", "-r", inPipeline("custom-resource-type"), "-f", "version:"+newVersion)
 
-			By("Triggering a job using the custom type")
-			watch = flyHelper.TriggerJob(pipelineName, "passed-job")
-			<-watch.Exited
-			Expect(watch).To(gbytes.Say("succeeded"))
-			Expect(watch).To(gexec.Exit(0))
+			By("triggering a job using the custom type")
+			fly("trigger-job", "-j", inPipeline("passed-job"), "-w")
 
-			By("Using the version  of 'some-resource' consumed upstream")
-			builds := flyHelper.Builds(pipelineName, "initial-job")
-			Expect(builds).To(HaveLen(1))
+			By("using the version  of 'some-resource' consumed upstream")
+			Expect(flyTable("builds", "-j", inPipeline("initial-job"))).To(HaveLen(1))
 		})
 	})
 })

@@ -16,7 +16,6 @@ jobs:
 - name: initial-job
   plan:
   - get: some-resource
-    trigger: true
   - task: print-fetched-stuff
     config:
       platform: linux

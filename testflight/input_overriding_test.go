@@ -36,7 +36,7 @@ var _ = Describe("A job with multiple inputs", func() {
 		firstVersionA = newMockVersion("some-resource-a", "first-a")
 		firstVersionB = newMockVersion("some-resource-b", "first-b")
 
-		err := ioutil.WriteFile(
+		err = ioutil.WriteFile(
 			filepath.Join(tmp, "task.yml"),
 			[]byte(`---
 platform: linux
