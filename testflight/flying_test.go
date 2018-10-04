@@ -262,8 +262,7 @@ ls`),
 
 	Context("when excute with -j inputs-from", func() {
 		BeforeEach(func() {
-			fly("set-pipeline", "-n", "-p", pipelineName, "-c", "fixtures/config-test.yml")
-			fly("unpause-pipeline", "-p", pipelineName)
+			setAndUnpausePipeline("fixtures/config-test.yml")
 
 			taskFileContents := `---
 platform: linux
@@ -338,8 +337,7 @@ run:
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			fly("set-pipeline", "-n", "-p", pipelineName, "-c", "fixtures/custom-resource-type.yml")
-			fly("unpause-pipeline", "-p", pipelineName)
+			setAndUnpausePipeline("fixtures/custom-resource-type.yml")
 
 			fly("check-resource", "-r", pipelineName+"/some-resource")
 		})
