@@ -3,12 +3,12 @@ package exec_test
 import (
 	"errors"
 
+	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-	"github.com/concourse/baggageclaim"
 	yaml "gopkg.in/yaml.v2"
 
 	. "github.com/onsi/ginkgo"

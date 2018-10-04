@@ -40,7 +40,16 @@ type alias Ports =
     }
 
 
-port pinTeamNames : () -> Cmd msg
+type alias PinTeamConfig =
+    { pageHeaderClass : String
+    , pageBodyClass : String
+    , sectionHeaderClass : String
+    , sectionClass : String
+    , sectionBodyClass : String
+    }
+
+
+port pinTeamNames : PinTeamConfig -> Cmd msg
 
 
 port tooltip : ( String, String ) -> Cmd msg
@@ -113,7 +122,13 @@ init ports flags =
         , Cmd.batch
             [ fetchData
             , Cmd.map TopBarMsg topBarMsg
-            , pinTeamNames ()
+            , pinTeamNames
+                { pageHeaderClass = "module-topbar"
+                , pageBodyClass = "dashboard"
+                , sectionClass = "dashboard-team-group"
+                , sectionHeaderClass = "dashboard-team-header"
+                , sectionBodyClass = "dashboard-team-pipelines"
+                }
             , ports.title <| "Dashboard" ++ " - "
             ]
         )
@@ -413,12 +428,10 @@ noResultsView query =
             [ Html.div [ class "dashboard-content " ]
                 [ Html.div
                     [ class "dashboard-team-group" ]
-                    [ Html.div [ class "pin-wrapper" ]
-                        [ Html.div [ class "no-results" ]
-                            [ Html.text "No results for "
-                            , boldedQuery
-                            , Html.text " matched your search."
-                            ]
+                    [ Html.div [ class "no-results" ]
+                        [ Html.text "No results for "
+                        , boldedQuery
+                        , Html.text " matched your search."
                         ]
                     ]
                 ]

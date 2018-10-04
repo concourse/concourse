@@ -1,6 +1,9 @@
 package db
 
 import (
+	"fmt"
+	"time"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 )
@@ -12,6 +15,8 @@ type ContainerRepository interface {
 	DestroyFailedContainers() (int, error)
 	FindDestroyingContainers(workerName string) ([]string, error)
 	RemoveDestroyingContainers(workerName string, currentHandles []string) (int, error)
+	UpdateContainersMissingSince(workerName string, handles []string) error
+	RemoveMissingContainers(time.Duration) (int, error)
 }
 
 type containerRepository struct {
@@ -24,27 +29,36 @@ func NewContainerRepository(conn Conn) ContainerRepository {
 	}
 }
 
-func (repository *containerRepository) FindDestroyingContainers(workerName string) ([]string, error) {
-	handles := []string{}
+func diff(a, b []string) (diff []string) {
+	m := make(map[string]bool)
 
-	query, args, err := psql.Select("handle").From("containers").
-		Where(
-			sq.And{
-				sq.Eq{
-					"state":       atc.ContainerStateDestroying,
-					"worker_name": workerName,
-				},
-				sq.NotEq{
-					"discontinued": true,
-				},
-			},
-		).ToSql()
+	for _, item := range b {
+		m[item] = true
+	}
+
+	for _, item := range a {
+		if _, ok := m[item]; !ok {
+			diff = append(diff, item)
+		}
+	}
+
+	return
+}
+
+func (repository *containerRepository) queryContainerHandles(cond sq.Eq) ([]string, error) {
+	query, args, err := psql.Select("handle").From("containers").Where(cond).ToSql()
+	if err != nil {
+		return nil, err
+	}
 
 	rows, err := repository.conn.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
+
 	defer Close(rows)
+
+	handles := []string{}
 
 	for rows.Next() {
 		var handle = "handle"
@@ -60,7 +74,95 @@ func (repository *containerRepository) FindDestroyingContainers(workerName strin
 	return handles, nil
 }
 
-func (repository *containerRepository) RemoveDestroyingContainers(workerName string, handles []string) (int, error) {
+func (repository *containerRepository) UpdateContainersMissingSince(workerName string, reportedHandles []string) error {
+	// clear out missing_since for reported containers
+	query, args, err := psql.Update("containers").
+		Set("missing_since", nil).
+		Where(
+			sq.And{
+				sq.NotEq{
+					"missing_since": nil,
+				},
+				sq.Eq{
+					"handle": reportedHandles,
+				},
+			},
+		).ToSql()
+	if err != nil {
+		return err
+	}
+
+	rows, err := repository.conn.Query(query, args...)
+	if err != nil {
+		return err
+	}
+
+	Close(rows)
+
+	dbHandles, err := repository.queryContainerHandles(sq.Eq{
+		"worker_name":   workerName,
+		"missing_since": nil,
+	})
+	if err != nil {
+		return err
+	}
+
+	handles := diff(dbHandles, reportedHandles)
+
+	query, args, err = psql.Update("containers").
+		Set("missing_since", sq.Expr("now()")).
+		Where(sq.Eq{"handle": handles}).ToSql()
+	if err != nil {
+		return err
+	}
+
+	rows, err = repository.conn.Query(query, args...)
+	if err != nil {
+		return err
+	}
+
+	defer Close(rows)
+
+	return nil
+}
+
+func (repository *containerRepository) FindDestroyingContainers(workerName string) ([]string, error) {
+	return repository.queryContainerHandles(
+		sq.Eq{
+			"state":        atc.ContainerStateDestroying,
+			"worker_name":  workerName,
+			"discontinued": false,
+		},
+	)
+}
+
+func (repository *containerRepository) RemoveMissingContainers(gracePeriod time.Duration) (int, error) {
+	result, err := psql.Delete("containers").
+		Where(
+			sq.And{
+				sq.Eq{
+					"state": []string{atc.ContainerStateCreated, atc.ContainerStateFailed},
+				},
+				sq.Gt{
+					"NOW() - missing_since": fmt.Sprintf("%.0f seconds", gracePeriod.Seconds()),
+				},
+			},
+		).RunWith(repository.conn).
+		Exec()
+
+	if err != nil {
+		return 0, err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(affected), nil
+}
+
+func (repository *containerRepository) RemoveDestroyingContainers(workerName string, handlesToIgnore []string) (int, error) {
 	rows, err := psql.Delete("containers").
 		Where(
 			sq.And{
@@ -68,7 +170,7 @@ func (repository *containerRepository) RemoveDestroyingContainers(workerName str
 					"worker_name": workerName,
 				},
 				sq.NotEq{
-					"handle": handles,
+					"handle": handlesToIgnore,
 				},
 				sq.Eq{
 					"state": atc.ContainerStateDestroying,

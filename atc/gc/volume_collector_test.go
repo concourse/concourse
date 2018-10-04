@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/gc"
 
 	. "github.com/onsi/ginkgo"
@@ -14,7 +15,8 @@ import (
 
 var _ = Describe("VolumeCollector", func() {
 	var (
-		volumeCollector gc.Collector
+		volumeCollector          gc.Collector
+		missingVolumeGracePeriod time.Duration
 
 		volumeRepository   db.VolumeRepository
 		workerFactory      db.WorkerFactory
@@ -31,8 +33,11 @@ var _ = Describe("VolumeCollector", func() {
 		volumeRepository = db.NewVolumeRepository(dbConn)
 		workerFactory = db.NewWorkerFactory(dbConn)
 
+		missingVolumeGracePeriod = 1 * time.Minute
+
 		volumeCollector = gc.NewVolumeCollector(
 			volumeRepository,
+			missingVolumeGracePeriod,
 		)
 	})
 
@@ -57,6 +62,27 @@ var _ = Describe("VolumeCollector", func() {
 				StepName: "some-task",
 			})
 			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when there are expired volumes", func() {
+			var fakeVolumeRepository *dbfakes.FakeVolumeRepository
+
+			BeforeEach(func() {
+				fakeVolumeRepository = new(dbfakes.FakeVolumeRepository)
+
+				volumeCollector = gc.NewVolumeCollector(
+					fakeVolumeRepository,
+					missingVolumeGracePeriod,
+				)
+
+				err = volumeCollector.Run(context.TODO())
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("deletes them from the database", func() {
+				Expect(fakeVolumeRepository.RemoveMissingVolumesCallCount()).To(Equal(1))
+				Expect(fakeVolumeRepository.RemoveMissingVolumesArgsForCall(0)).To(Equal(missingVolumeGracePeriod))
+			})
 		})
 
 		Context("when there are failed volumes", func() {
@@ -129,7 +155,6 @@ var _ = Describe("VolumeCollector", func() {
 
 				Expect(destroyingVolumes).To(Equal(expectedOrphanedVolumeHandles))
 			})
-
 		})
 	})
 })

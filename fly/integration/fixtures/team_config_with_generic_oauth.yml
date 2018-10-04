@@ -1,0 +1,12 @@
+roles:
+  - name: member
+    oauth:
+      users: ["some-user"]
+  - name: viewer
+    oauth:
+      groups: ["some-group"]
+  - name: owner
+    oauth:
+      users: ["some-admin"]
+      groups: ["some-other-group"]
+

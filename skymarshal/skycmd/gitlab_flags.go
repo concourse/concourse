@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/concourse/dex/connector/gitlab"
-	"github.com/hashicorp/go-multierror"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 func init() {

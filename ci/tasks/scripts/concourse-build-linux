@@ -3,20 +3,20 @@
 
 set -e -x
 
+cp $(which concourse) concourse-linux/concourse
+cp $(which gdn) concourse-linux/gdn
+
+cp -a /concourse-resource-types/ concourse-linux/resource-types/
+
+mkdir concourse-linux/fly-assets
+for platform in linux windows darwin; do
+  if [ -e fly-$platform/fly-*.tgz ]; then
+    cp -a fly-$platform/fly-*.tgz concourse-linux/fly-assets
+  fi
+done
+
 pushd concourse-linux
-  cp $(which concourse) .
-  cp $(which gdn) .
-
-  cp -a /concourse-resource-types/ ./resource-types/
-
-  mkdir fly-assets
-  [ -d fly-linux ] && cp -a ../fly-linux/fly-*.tgz fly-assets
-  [ -d fly-windows ] && cp -a ../fly-windows/fly-*.zip fly-assets
-  [ -d fly-darwin ] && cp -a ../fly-darwin/fly-*.tgz fly-assets
-
-  tar -czf concourse-linux-amd64.tgz \
-    concourse \
-    gdn \
-    resource-types \
-    fly-assets
+  archive=concourse-darwin-amd64.tgz
+  tar -czf $archive concourse fly-assets gdn resource-types
+  shasum "$archive" > "${archive}.sha1"
 popd

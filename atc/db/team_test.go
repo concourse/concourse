@@ -545,17 +545,6 @@ var _ = Describe("Team", func() {
 				Expect(team.Auth()).To(Equal(authProvider))
 			})
 
-			It("saves the auth for a given role without overwriting another role", func() {
-				viewer := atc.TeamRole{"users": []string{"local:existing-username"}}
-
-				team.UpdateProviderAuth(atc.TeamAuth{"viewer": viewer})
-				err := team.UpdateProviderAuth(authProvider)
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(team.Auth()["viewer"]).To(Equal(viewer))
-				Expect(team.Auth()["owner"]).To(Equal(authProvider["owner"]))
-			})
-
 			It("resets legacy_auth to NULL", func() {
 				oldLegacyAuth := `{"basicauth": {"username": "u", "password": "p"}}`
 				_, err := dbConn.Exec("UPDATE teams SET legacy_auth = $1 WHERE id = $2", oldLegacyAuth, team.ID())
@@ -568,6 +557,22 @@ var _ = Describe("Team", func() {
 				value, err := newLegacyAuth.Value()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(value).To(BeNil())
+			})
+
+			FContext("when team auth is already set", func() {
+				BeforeEach(func() {
+					team.UpdateProviderAuth(atc.TeamAuth{
+						"owner":  {"users": []string{"local:somebody"}},
+						"viewer": {"users": []string{"local:someone"}},
+					})
+				})
+
+				It("overrides the existing auth with the new config", func() {
+					err := team.UpdateProviderAuth(authProvider)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(team.Auth()).To(Equal(authProvider))
+				})
 			})
 		})
 	})

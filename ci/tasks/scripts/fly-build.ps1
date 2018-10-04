@@ -1,3 +1,5 @@
+Set-PSDebug -Trace 2 -Strict
+
 trap {
   write-error $_
   exit 1
@@ -8,7 +10,9 @@ $env:Path += ";C:\Go\bin;C:\Program Files\Git\cmd"
 $env:GOPATH = "$pwd\gopath"
 $env:Path += ";$pwd\gopath\bin"
 
-$ldflags = ""
+# can't figure out how to pass an empty string arg in PowerShell, so just
+# configure a noop for the fallback
+$ldflags = "-X noop.Noop=noop"
 if ([System.IO.File]::Exists("final-version\version")) {
   [string]$FinalVersion = (Get-Content "final-version\version")
   $ldflags = "-X github.com/concourse/concourse/fly/version.Version=$FinalVersion"

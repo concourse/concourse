@@ -340,7 +340,6 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	if err := cmd.configureMetrics(logger); err != nil {
 		return nil, err
 	}
-	go metric.PeriodicallyEmit(logger.Session("periodic-metrics"), 10*time.Second)
 
 	lockConn, err := cmd.constructLockConn(retryingDriverName)
 	if err != nil {
@@ -367,6 +366,14 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	if err != nil {
 		return nil, err
 	}
+
+	members = append(members, grouper.Member{
+		Name: "periodic-metrics",
+		Runner: metric.PeriodicallyEmit(
+			logger.Session("periodic-metrics"),
+			10*time.Second,
+		),
+	})
 
 	onReady := func() {
 		logData := lager.Data{
@@ -774,6 +781,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
 				gc.NewVolumeCollector(
 					dbVolumeRepository,
+					cmd.GC.Interval*3, // volume missing-since grace period (must be larger than gc.interval so it doesn't race)
 				),
 				gc.NewContainerCollector(
 					dbContainerRepository,
@@ -782,6 +790,7 @@ func (cmd *RunCommand) constructBackendMembers(
 						workerProvider,
 						time.Minute,
 					),
+					cmd.GC.Interval*3, // container missing-since grace period (must be larger than gc.interval so it doesn't race)
 				),
 				gc.NewResourceConfigCheckSessionCollector(
 					resourceConfigCheckSessionLifecycle,
@@ -1168,11 +1177,7 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 		return fmt.Errorf("default team auth not configured: %v", err)
 	}
 
-	teamAuth := atc.TeamAuth{
-		skycmd.DefaultAuthRole: auth,
-	}
-
-	err = team.UpdateProviderAuth(teamAuth)
+	err = team.UpdateProviderAuth(atc.TeamAuth(auth))
 	if err != nil {
 		return err
 	}

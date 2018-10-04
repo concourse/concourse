@@ -7,6 +7,8 @@
 .dashboard {
   .dashboard-content {
     padding: @top-bar-height 0 30px;
+    position: relative;
+    overflow: hidden;
   }
 
   .pending   { background: @grey-primary; &:hover { background: @grey-secondary; } }
@@ -131,8 +133,9 @@
     z-index: 2;
     opacity: 0.9;
     padding-top: (35px * @scale);
-    padding-bottom: (5px * @scale);
+    padding-bottom: (35px * @scale);
     padding-left: ((50px + @name-padding) * @scale);
+    width: 100%;
   }
 
   .no-results {
@@ -478,7 +481,7 @@
 
 @media (max-width: 812px) {
   .dashboard .dashboard-content {
-    padding-top: 0;
+    padding-top: (84px * @scale * 2) + (60px * @scale);
   }
 
   .dashboard-footer {

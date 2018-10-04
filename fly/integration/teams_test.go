@@ -33,7 +33,7 @@ var _ = Describe("Fly CLI", func() {
 								ID:   1,
 								Name: "main",
 								Auth: atc.TeamAuth{
-									"owner": atc.TeamRole{
+									"owner": map[string][]string{
 										"groups": []string{},
 										"users":  []string{},
 									},
@@ -43,7 +43,7 @@ var _ = Describe("Fly CLI", func() {
 								ID:   2,
 								Name: "a-team",
 								Auth: atc.TeamAuth{
-									"owner": atc.TeamRole{
+									"owner": map[string][]string{
 										"groups": []string{"github:github-org"},
 										"users":  []string{},
 									},
@@ -53,7 +53,7 @@ var _ = Describe("Fly CLI", func() {
 								ID:   3,
 								Name: "b-team",
 								Auth: atc.TeamAuth{
-									"member": atc.TeamRole{
+									"member": map[string][]string{
 										"groups": []string{},
 										"users":  []string{"github:github-user"},
 									},
@@ -63,15 +63,15 @@ var _ = Describe("Fly CLI", func() {
 								ID:   4,
 								Name: "c-team",
 								Auth: atc.TeamAuth{
-									"owner": atc.TeamRole{
+									"owner": map[string][]string{
 										"users":  []string{"github:github-user"},
 										"groups": []string{"github:github-org"},
 									},
-									"member": atc.TeamRole{
+									"member": map[string][]string{
 										"users":  []string{"github:github-user"},
 										"groups": []string{"github:github-org"},
 									},
-									"viewer": atc.TeamRole{
+									"viewer": map[string][]string{
 										"users":  []string{"github:github-user"},
 										"groups": []string{"github:github-org"},
 									},

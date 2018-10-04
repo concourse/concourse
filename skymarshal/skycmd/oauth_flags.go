@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/concourse/flag"
 	"github.com/concourse/dex/connector/oauth"
-	"github.com/hashicorp/go-multierror"
+	"github.com/concourse/flag"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 func init() {
@@ -23,7 +23,7 @@ type OAuthFlags struct {
 	ClientSecret       string      `long:"client-secret" description:"(Required) Client secret"`
 	AuthURL            string      `long:"auth-url" description:"(Required) Authorization URL"`
 	TokenURL           string      `long:"token-url" description:"(Required) Token URL"`
-	UserInfoURL        string      `long:"userinfo-url" description:"UserInfo URL"`
+	UserInfoURL        string      `long:"userinfo-url" description:"(Required) UserInfo URL"`
 	Scopes             []string    `long:"scope" description:"Any additional scopes that need to be requested during authorization"`
 	GroupsKey          string      `long:"groups-key" description:"The groups key indicates which claim to use to map external groups to Concourse teams."`
 	CACerts            []flag.File `long:"ca-cert" description:"CA Certificate"`
@@ -47,6 +47,10 @@ func (self *OAuthFlags) Validate() error {
 
 	if self.TokenURL == "" {
 		errs = multierror.Append(errs, errors.New("Missing token-url"))
+	}
+
+	if self.UserInfoURL == "" {
+		errs = multierror.Append(errs, errors.New("Missing userinfo-url"))
 	}
 
 	if self.ClientID == "" {

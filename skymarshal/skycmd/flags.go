@@ -3,16 +3,21 @@ package skycmd
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"reflect"
 	"strings"
 	"time"
 
 	"github.com/concourse/flag"
 	flags "github.com/jessevdk/go-flags"
+	"github.com/mitchellh/mapstructure"
+	yaml "gopkg.in/yaml.v2"
 )
 
-var connectors []*Connector
+var ErrRequireAllowAllUsersFlag = errors.New("ErrRequireAllowAllUsersFlag")
+var ErrRequireAllowAllUsersConfig = errors.New("ErrRequireAllowAllUsersConfig")
 
-const DefaultAuthRole string = "owner"
+var connectors []*Connector
 
 func RegisterConnector(connector *Connector) {
 	connectors = append(connectors, connector)
@@ -46,41 +51,19 @@ type AuthFlags struct {
 }
 
 type AuthTeamFlags struct {
-	LocalUsers    []string `long:"local-user" description:"List of whitelisted local concourse users. These are the users you've added at atc startup with the --add-local-user flag." value-name:"USERNAME"`
-	AllowAllUsers bool     `long:"allow-all-users" description:"Setting this flag will whitelist all logged in users in the system. ALL OF THEM. If, for example, you've configured GitHub, any user with a GitHub account will have access to your team."`
+	LocalUsers    []string  `long:"local-user" description:"List of whitelisted local concourse users. These are the users you've added at atc startup with the --add-local-user flag." value-name:"USERNAME"`
+	AllowAllUsers bool      `long:"allow-all-users" description:"Setting this flag will whitelist all logged in users in the system. ALL OF THEM. If, for example, you've configured GitHub, any user with a GitHub account will have access to your team."`
+	Config        flag.File `short:"c" long:"config" description:"Configuration file for specifying team params"`
 }
 
-func (self *AuthTeamFlags) Format() (map[string][]string, error) {
-	users := []string{}
-	groups := []string{}
+func (self *AuthTeamFlags) Format() (AuthConfig, error) {
 
-	for _, connector := range connectors {
+	if path := self.Config.Path(); path != "" {
+		return self.formatFromConfig()
 
-		if !connector.HasTeamConfig() {
-			continue
-		}
-
-		for _, user := range connector.GetTeamUsers() {
-			users = append(users, connector.ID()+":"+strings.ToLower(user))
-		}
-
-		for _, group := range connector.GetTeamGroups() {
-			groups = append(groups, connector.ID()+":"+strings.ToLower(group))
-		}
+	} else {
+		return self.formatFromFlags()
 	}
-
-	for _, user := range self.LocalUsers {
-		users = append(users, "local:"+strings.ToLower(user))
-	}
-
-	if len(users) == 0 && len(groups) == 0 && !self.AllowAllUsers {
-		return nil, errors.New("No auth methods have been configured.")
-	}
-
-	return map[string][]string{
-		"users":  users,
-		"groups": groups,
-	}, nil
 }
 
 type Config interface {
@@ -123,3 +106,124 @@ func (self *Connector) GetTeamUsers() []string {
 func (self *Connector) GetTeamGroups() []string {
 	return self.teamConfig.GetGroups()
 }
+
+// We use some reflect magic to zero out our teamConfig
+// before we parse each new role.
+func (self *Connector) Parse(config interface{}) error {
+
+	typeof := reflect.TypeOf(self.teamConfig)
+	if typeof.Kind() == reflect.Ptr {
+		typeof = typeof.Elem()
+	}
+
+	valueof := reflect.ValueOf(self.teamConfig)
+	if valueof.Kind() == reflect.Ptr {
+		valueof = valueof.Elem()
+	}
+
+	instance := reflect.New(typeof).Elem()
+	if valueof.CanSet() {
+		valueof.Set(instance)
+	}
+
+	return mapstructure.Decode(config, &self.teamConfig)
+}
+
+func (self *AuthTeamFlags) formatFromConfig() (AuthConfig, error) {
+
+	content, err := ioutil.ReadFile(self.Config.Path())
+	if err != nil {
+		return nil, err
+	}
+
+	var data struct {
+		Roles []map[string]interface{} `yaml:"roles"`
+	}
+	if err = yaml.Unmarshal(content, &data); err != nil {
+		return nil, err
+	}
+
+	auth := AuthConfig{}
+
+	for _, role := range data.Roles {
+		roleName := role["name"].(string)
+
+		self.AllowAllUsers, _ = role["allow_all_users"].(bool)
+
+		users := []string{}
+		groups := []string{}
+
+		for _, connector := range connectors {
+			config, ok := role[connector.ID()]
+			if ok {
+				connector.Parse(config)
+			}
+
+			if !connector.HasTeamConfig() {
+				continue
+			}
+
+			for _, user := range connector.GetTeamUsers() {
+				users = append(users, connector.ID()+":"+strings.ToLower(user))
+			}
+
+			for _, group := range connector.GetTeamGroups() {
+				groups = append(groups, connector.ID()+":"+strings.ToLower(group))
+			}
+		}
+
+		if conf, ok := role["local"].(map[interface{}]interface{}); ok {
+			for _, user := range conf["users"].([]interface{}) {
+				users = append(users, "local:"+strings.ToLower(user.(string)))
+			}
+		}
+		if len(users) == 0 && len(groups) == 0 && !self.AllowAllUsers {
+			return nil, ErrRequireAllowAllUsersConfig
+		}
+
+		auth[roleName] = map[string][]string{
+			"users":  users,
+			"groups": groups,
+		}
+	}
+
+	return auth, nil
+}
+
+func (self *AuthTeamFlags) formatFromFlags() (AuthConfig, error) {
+
+	users := []string{}
+	groups := []string{}
+
+	for _, connector := range connectors {
+
+		if !connector.HasTeamConfig() {
+			continue
+		}
+
+		for _, user := range connector.GetTeamUsers() {
+			users = append(users, connector.ID()+":"+strings.ToLower(user))
+		}
+
+		for _, group := range connector.GetTeamGroups() {
+			groups = append(groups, connector.ID()+":"+strings.ToLower(group))
+		}
+	}
+
+	for _, user := range self.LocalUsers {
+		users = append(users, "local:"+strings.ToLower(user))
+	}
+
+	if len(users) == 0 && len(groups) == 0 && !self.AllowAllUsers {
+		return nil, ErrRequireAllowAllUsersFlag
+	}
+
+	return AuthConfig{
+		"owner": map[string][]string{
+			"users":  users,
+			"groups": groups,
+		},
+	}, nil
+}
+
+type AuthConfig map[string]map[string][]string

@@ -62,11 +62,11 @@ jobs:
 			Context("when the role is viewer", func() {
 				BeforeEach(func() {
 					team.Auth = atc.TeamAuth{
-						"viewer": atc.TeamRole{
+						"viewer": map[string][]string{
 							"users":  []string{"local:v-user"},
 							"groups": []string{},
 						},
-						"owner": atc.TeamRole{
+						"owner": map[string][]string{
 							"users":  []string{"local:test"},
 							"groups": []string{},
 						},
@@ -93,11 +93,11 @@ jobs:
 			Context("when the role is member", func() {
 				BeforeEach(func() {
 					team.Auth = atc.TeamAuth{
-						"member": atc.TeamRole{
+						"member": map[string][]string{
 							"users":  []string{"local:m-user"},
 							"groups": []string{},
 						},
-						"owner": atc.TeamRole{
+						"owner": map[string][]string{
 							"users":  []string{"local:test"},
 							"groups": []string{},
 						},
@@ -123,7 +123,7 @@ jobs:
 			Context("when the role is owner", func() {
 				BeforeEach(func() {
 					team.Auth = atc.TeamAuth{
-						"owner": atc.TeamRole{
+						"owner": map[string][]string{
 							"users":  []string{"local:o-user", "local:test"},
 							"groups": []string{},
 						},
@@ -147,11 +147,11 @@ jobs:
 
 				It("can update the auth for a team", func() {
 					team.Auth = atc.TeamAuth{
-						"viewer": atc.TeamRole{
+						"viewer": map[string][]string{
 							"users":  []string{"local:v-user"},
 							"groups": []string{},
 						},
-						"owner": atc.TeamRole{
+						"owner": map[string][]string{
 							"users":  []string{"local:o-user", "local:test"},
 							"groups": []string{},
 						},

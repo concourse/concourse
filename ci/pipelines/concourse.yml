@@ -143,19 +143,19 @@ jobs:
       passed: [testflight, watsjs]
   - aggregate:
     - task: fly-linux
-      file: concourse/ci/fly-build-linux.yml
+      file: concourse/ci/tasks/fly-build-linux.yml
     - task: fly-windows
-      file: concourse/ci/fly-build-windows.yml
+      file: concourse/ci/tasks/fly-build-windows.yml
     - task: fly-darwin
-      file: concourse/ci/fly-build-darwin.yml
+      file: concourse/ci/tasks/fly-build-darwin.yml
   - aggregate:
     - task: concourse-linux
       image: dev-image
-      file: concourse/ci/concourse-build-linux.yml
+      file: concourse/ci/tasks/concourse-build-linux.yml
     - task: concourse-windows
-      file: concourse/ci/concourse-build-windows.yml
+      file: concourse/ci/tasks/concourse-build-windows.yml
     - task: concourse-darwin
-      file: concourse/ci/concourse-build-darwin.yml
+      file: concourse/ci/tasks/concourse-build-darwin.yml
 
 - name: unit-image
   public: true
