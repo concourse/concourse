@@ -4,9 +4,10 @@ set -e -u
 
 source concourse/ci/tasks/scripts/docker-helpers.sh
 
-concourse_dir=$PWD/concourse
+compose=$PWD/concourse/docker-compose.yml
 function cleanup() {
-  docker-compose -f $concourse_dir/docker-compose.yml down
+  docker-compose -f $compose logs > /tmp/docker-compose.log || true
+  docker-compose -f $compose down
   stop_docker
 }
 
