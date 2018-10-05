@@ -101,7 +101,7 @@ jobs:
     - get: postgres-image
       params: {format: oci}
   - put: concourse-pr
-    params: {path: concourse-pr, status: pending, context: wasjs}
+    params: {path: concourse-pr, status: pending, context: watsjs}
   - task: yarn-build
     file: concourse-pr/ci/tasks/yarn-build.yml
     input_mapping: {concourse: concourse-pr}
