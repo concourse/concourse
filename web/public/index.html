@@ -44,13 +44,11 @@
             return 'static';
           } else if (scrolledFarEnough && !scrolledTooFar) {
             header(section).style.position = 'fixed';
-            console.log("setting top to " + pageHeaderHeight());
             header(section).style.top = pageHeaderHeight() + "px";
             body(section).style.paddingTop = header(section).scrollHeight + "px";
             return 'fixed';
           } else if (scrolledFarEnough && scrolledTooFar) {
             header(section).style.position = 'absolute';
-            console.log("setting top to " + lowestHeaderTop(section));
             header(section).style.top = lowestHeaderTop(section) + "px";
             return 'absolute';
           } else if (!scrolledFarEnough && scrolledTooFar) {
