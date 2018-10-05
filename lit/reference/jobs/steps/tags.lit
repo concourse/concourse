@@ -15,7 +15,7 @@ adding the \code{tags} attribute to it.
 \examples{
   \example{Running in a Private Network}{
     You may have a private cluster only reachable by special workers running
-    on-premises. To run a against those workers, just provide a matching tag:
+    on-premises. To run a step against those workers, just provide a matching tag:
 
     \codeblock{yaml}{{
     plan:
