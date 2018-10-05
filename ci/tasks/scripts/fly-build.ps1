@@ -1,4 +1,4 @@
-Set-PSDebug -Trace 2 -Strict
+Set-PSDebug -Trace 1 -Strict
 
 trap {
   write-error $_
