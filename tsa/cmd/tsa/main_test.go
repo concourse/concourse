@@ -1,7 +1,11 @@
 package main_test
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -26,7 +30,7 @@ import (
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/crypto/ssh"
@@ -60,21 +64,29 @@ func generateSSHKeypair() (string, string) {
 	path, err := ioutil.TempDir("", "tsa-key")
 	Expect(err).NotTo(HaveOccurred())
 
-	privateKey := filepath.Join(path, "id_rsa")
+	privateKeyPath := filepath.Join(path, "id_rsa")
+	publicKeyPath := privateKeyPath + ".pub"
 
-	keygen := exec.Command(
-		"ssh-keygen",
-		"-t", "rsa",
-		"-N", "",
-		"-f", privateKey,
-	)
-
-	keygenS, err := gexec.Start(keygen, GinkgoWriter, GinkgoWriter)
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	Expect(err).NotTo(HaveOccurred())
 
-	keygenS.Wait(5 * time.Second)
+	privateKeyBytes := pem.EncodeToMemory(&pem.Block{
+		Type:    "RSA PRIVATE KEY",
+		Headers: nil,
+		Bytes:   x509.MarshalPKCS1PrivateKey(privateKey),
+	})
 
-	return privateKey, privateKey + ".pub"
+	publicKeyRsa, err := ssh.NewPublicKey(&privateKey.PublicKey)
+	Expect(err).NotTo(HaveOccurred())
+	publicKeyBytes := ssh.MarshalAuthorizedKey(publicKeyRsa)
+
+	err = ioutil.WriteFile(privateKeyPath, privateKeyBytes, 0600)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = ioutil.WriteFile(publicKeyPath, publicKeyBytes, 0600)
+	Expect(err).NotTo(HaveOccurred())
+
+	return privateKeyPath, publicKeyPath
 }
 
 var _ = Describe("TSA SSH Registrar", func() {
