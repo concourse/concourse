@@ -10,8 +10,8 @@ cp -a /concourse-resource-types/ concourse-linux/resource-types/
 
 mkdir concourse-linux/fly-assets
 for platform in linux windows darwin; do
-  if [ -e fly-$platform/fly-*.tgz ]; then
-    cp -a fly-$platform/fly-*.tgz concourse-linux/fly-assets
+  if [ -e fly-$platform/fly-* ]; then
+    cp -a fly-$platform/fly-* concourse-linux/fly-assets
   fi
 done
 
