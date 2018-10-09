@@ -214,6 +214,8 @@ before using it!
   \table-row{\link{Knative Service Resource}{https://github.com/jchesterpivotal/knative-service-resource}}{by \ghuser{jchesterpivotal}}
 }{
   \table-row{\link{Sentry Releases Resource}{https://github.com/rubenv/concourse-sentry-releases-resource}}{by \ghuser{rubenv}}
+}{
+  \table-row{\link{Gate Resource}{https://github.com/Meshcloud/gate-resource}}{by \ghuser{Meshcloud}}
 }
 
 \section{
