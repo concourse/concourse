@@ -8,12 +8,11 @@ cp $(which gdn) concourse-linux/gdn
 
 cp -a /concourse-resource-types/ concourse-linux/resource-types/
 
-mkdir concourse-linux/fly-assets
-for platform in linux windows darwin; do
-  if [ -e fly-$platform/fly-* ]; then
-    cp -a fly-$platform/fly-* concourse-linux/fly-assets
-  fi
-done
+fly_assets=concourse-linux/fly-assets
+mkdir -p $fly_assets
+[ -d fly-linux ] && cp -a fly-linux/fly-*.tgz $fly_assets
+[ -d fly-windows ] && cp -a fly-windows/fly-*.zip $fly_assets
+[ -d fly-darwin ] && cp -a fly-darwin/fly-*.tgz $fly_assets
 
 pushd concourse-linux
   archive=concourse-darwin-amd64.tgz
