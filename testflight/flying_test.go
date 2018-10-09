@@ -314,6 +314,65 @@ run:
 		})
 	})
 
+	Context("when excute with -j inputs-from and task has input mapping", func() {
+		BeforeEach(func() {
+
+			taskFileContents := `---
+platform: linux
+
+image_resource:
+  type: mock
+  source: {mirror_self: true}
+
+inputs:
+- name: mapped-resource
+
+run:
+  path: cat
+  args: [mapped-resource/version]
+`
+
+			err := ioutil.WriteFile(
+				filepath.Join(tmp, "task.yml"),
+				[]byte(taskFileContents),
+				0644,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			fly("set-pipeline", "-n", "-p", pipelineName, "-c", "fixtures/input-mapping-test.yml", "-v", "task_content="+taskFileContents+"")
+
+			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:first-version")
+
+			fly("unpause-pipeline", "-p", pipelineName)
+		})
+
+		It("runs the task without error", func() {
+			By("having an initial version")
+			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:first-version")
+
+			By("satsifying the job's passed constraint for the first version")
+			fly("trigger-job", "-w", "-j", pipelineName+"/upstream-job")
+
+			By("executing using the first version via -j")
+			execS := flyIn(tmp, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job", "-m", "mapped-resource=some-resource")
+			Expect(execS).To(gbytes.Say("first-version"))
+
+			By("finding another version that doesn't yet satisfy the passed constraint")
+			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:second-version")
+
+			By("still executing using the first version via -j")
+			execS = flyIn(tmp, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job", "-m", "mapped-resource=some-resource")
+			Expect(execS).To(gbytes.Say("first-version"))
+
+			By("satsifying the job's passed constraint for the second version")
+			fly("trigger-job", "-w", "-j", pipelineName+"/upstream-job")
+
+			By("now executing using the second version via -j")
+			execS = flyIn(tmp, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job", "-m", "mapped-resource=some-resource")
+			Expect(execS).To(gbytes.Say("second-version"))
+		})
+	})
+
 	Context("when the input is custom resource", func() {
 		BeforeEach(func() {
 			taskFileContents := `---

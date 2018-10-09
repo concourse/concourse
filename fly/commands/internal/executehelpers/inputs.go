@@ -22,32 +22,33 @@ func DetermineInputs(
 	fact atc.PlanFactory,
 	team concourse.Team,
 	taskInputs []atc.TaskInputConfig,
-	inputMappings []flaghelpers.InputPairFlag,
+	localInputMappings []flaghelpers.InputPairFlag,
+	jobInputMappings map[string]string,
 	inputsFrom flaghelpers.JobFlag,
 ) ([]Input, error) {
-	err := CheckForUnknownInputMappings(inputMappings, taskInputs)
+	err := CheckForUnknownInputMappings(localInputMappings, taskInputs)
 	if err != nil {
 		return nil, err
 	}
 
-	err = CheckForInputType(inputMappings)
+	err = CheckForInputType(localInputMappings)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(inputMappings) == 0 && inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
+	if len(localInputMappings) == 0 && inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
 		wd, err := os.Getwd()
 		if err != nil {
 			return nil, err
 		}
 
-		inputMappings = append(inputMappings, flaghelpers.InputPairFlag{
+		localInputMappings = append(localInputMappings, flaghelpers.InputPairFlag{
 			Name: filepath.Base(wd),
 			Path: wd,
 		})
 	}
 
-	inputsFromLocal, err := GenerateLocalInputs(fact, inputMappings)
+	inputsFromLocal, err := GenerateLocalInputs(fact, localInputMappings)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +62,13 @@ func DetermineInputs(
 	for _, taskInput := range taskInputs {
 		input, found := inputsFromLocal[taskInput.Name]
 		if !found {
-			input, found = inputsFromJob[taskInput.Name]
+
+			jobInputName := taskInput.Name
+			if name, ok := jobInputMappings[taskInput.Name]; ok {
+				jobInputName = name
+			}
+
+			input, found = inputsFromJob[jobInputName]
 			if !found {
 				if taskInput.Optional {
 					continue
@@ -75,6 +82,14 @@ func DetermineInputs(
 	}
 
 	return inputs, nil
+}
+
+func DetermineInputMappings(variables []flaghelpers.VariablePairFlag) map[string]string {
+	inputMappings := map[string]string{}
+	for _, flag := range variables {
+		inputMappings[flag.Name] = flag.Value
+	}
+	return inputMappings
 }
 
 func CheckForInputType(inputMaps []flaghelpers.InputPairFlag) error {
@@ -161,12 +176,12 @@ func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom fl
 			Name: buildInput.Name,
 
 			Plan: fact.NewPlan(atc.GetPlan{
-				Name:                   buildInput.Name,
-				Type:                   buildInput.Type,
-				Source:                 buildInput.Source,
-				Version:                &version,
-				Params:                 buildInput.Params,
-				Tags:                   buildInput.Tags,
+				Name:    buildInput.Name,
+				Type:    buildInput.Type,
+				Source:  buildInput.Source,
+				Version: &version,
+				Params:  buildInput.Params,
+				Tags:    buildInput.Tags,
 				VersionedResourceTypes: versionedResourceTypes,
 			}),
 		}
