@@ -53,6 +53,7 @@ require (
 	github.com/elazarl/go-bindata-assetfs v1.0.0 // indirect
 	github.com/emicklei/go-restful v2.8.0+incompatible // indirect
 	github.com/fatih/color v1.7.0
+	github.com/fatih/structs v1.0.0 // indirect
 	github.com/felixge/tcpkeepalive v0.0.0-20160804073959-5bb0b2dea91e
 	github.com/go-ldap/ldap v2.5.1+incompatible // indirect
 	github.com/go-openapi/jsonpointer v0.0.0-20180825180259-52eb3d4b47c6 // indirect
@@ -60,7 +61,7 @@ require (
 	github.com/go-openapi/spec v0.0.0-20180825180323-f1468acb3b29 // indirect
 	github.com/go-openapi/swag v0.0.0-20180908172849-dd0dad036e67 // indirect
 	github.com/go-test/deep v1.0.1 // indirect
-	github.com/gobuffalo/packr v1.13.5
+	github.com/gobuffalo/packr v1.13.7
 	github.com/gocql/gocql v0.0.0-20180920092337-799fb0373110 // indirect
 	github.com/gogo/protobuf v1.1.1 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
@@ -104,6 +105,7 @@ require (
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/juju/ratelimit v1.0.1 // indirect
 	github.com/keybase/go-crypto v0.0.0-20180920171116-0b2a91ace448 // indirect
+	github.com/kr/pretty v0.1.0 // indirect
 	github.com/kr/pty v1.1.2
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
@@ -138,13 +140,12 @@ require (
 	github.com/prometheus/client_golang v0.9.0-pre1
 	github.com/ryanuber/go-glob v0.0.0-20170128012129-256dc444b735 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
-	github.com/sclevine/agouti v3.0.0+incompatible
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/sirupsen/logrus v1.0.6
 	github.com/skratchdot/open-golang v0.0.0-20160302144031-75fb7ed4208c
 	github.com/smartystreets/assertions v0.0.0-20180820201707-7c9eb446e3cf // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
-	github.com/spf13/pflag v1.0.2 // indirect
+	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/tedsuo/ifrit v0.0.0-20180802180643-bea94bb476cc
 	github.com/tedsuo/rata v1.0.1-0.20170830210128-07d200713958
 	github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926 // indirect
@@ -153,11 +154,14 @@ require (
 	github.com/vito/houdini v0.0.0-20170630141751-8dda540e3245
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	golang.org/x/crypto v0.0.0-20180927165925-5295e8364332
-	golang.org/x/net v0.0.0-20180926154720-4dfa2610cdf3 // indirect
+	golang.org/x/net v0.0.0-20181005035420-146acd28ed58 // indirect
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
 	golang.org/x/sys v0.0.0-20180928133829-e4b3c5e90611 // indirect
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
+	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
+	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.25
+	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
 	gopkg.in/square/go-jose.v2 v2.1.8
 	gopkg.in/vmihailenco/msgpack.v2 v2.9.1 // indirect
