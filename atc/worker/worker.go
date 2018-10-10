@@ -39,7 +39,7 @@ type Worker interface {
 	Uptime() time.Duration
 	IsOwnedByTeam() bool
 	Ephemeral() bool
-	IsVersionCompatible(lager.Logger, *version.Version) bool
+	IsVersionCompatible(lager.Logger, version.Version) bool
 
 	FindVolumeForResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache) (Volume, bool, error)
 	FindVolumeForTaskCache(lager.Logger, int, int, string, string) (Volume, bool, error)
@@ -100,11 +100,7 @@ func (worker *gardenWorker) GardenClient() garden.Client {
 	return worker.gardenClient
 }
 
-func (worker *gardenWorker) IsVersionCompatible(logger lager.Logger, comparedVersion *version.Version) bool {
-	if comparedVersion == nil {
-		return true
-	}
-
+func (worker *gardenWorker) IsVersionCompatible(logger lager.Logger, comparedVersion version.Version) bool {
 	logger = logger.Session("check-version", lager.Data{
 		"want-worker-version": comparedVersion.String(),
 		"have-worker-version": worker.version,

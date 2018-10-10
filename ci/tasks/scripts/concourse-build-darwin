@@ -9,7 +9,7 @@ export PATH=$PWD/gopath/bin:$PATH
 ldflags=""
 if [ -e final-version/version ]; then
   final_version="$(cat final-version/version)"
-  ldflags="-X main.Version=$final_version -X github.com/concourse/concourse/atc/atccmd.Version=$final_version"
+  ldflags="-X github.com/concourse/concourse.Version=$final_version"
 fi
 
 pushd concourse

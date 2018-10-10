@@ -16,6 +16,7 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api"
 	"github.com/concourse/concourse/atc/api/accessor"
@@ -417,7 +418,7 @@ func (cmd *RunCommand) constructMembers(
 	}
 
 	if cmd.TelemetryOptIn {
-		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", Version)
+		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", concourse.Version)
 		go func() {
 			_, err := http.Get(url)
 			if err != nil {
@@ -844,17 +845,8 @@ func (cmd *RunCommand) constructBackendMembers(
 	return members, nil
 }
 
-func workerVersion() (*version.Version, error) {
-	var workerVersion *version.Version
-	if len(WorkerVersion) != 0 {
-		version, err := version.NewVersionFromString(WorkerVersion)
-		if err != nil {
-			return nil, err
-		}
-
-		workerVersion = &version
-	}
-	return workerVersion, nil
+func workerVersion() (version.Version, error) {
+	return version.NewVersionFromString(concourse.WorkerVersion)
 }
 
 func (cmd *RunCommand) variablesFactory(logger lager.Logger) (creds.VariablesFactory, error) {
@@ -1278,7 +1270,7 @@ func (cmd *RunCommand) constructAPIHandler(
 			checkBuildWriteAccessHandlerFactory,
 			checkWorkerTeamAccessHandlerFactory,
 		),
-		wrappa.NewConcourseVersionWrappa(Version),
+		wrappa.NewConcourseVersionWrappa(concourse.Version),
 		wrappa.NewAccessorWrappa(accessFactory),
 	}
 
@@ -1312,8 +1304,8 @@ func (cmd *RunCommand) constructAPIHandler(
 		cmd.isTLSEnabled(),
 
 		cmd.CLIArtifactsDir.Path(),
-		Version,
-		WorkerVersion,
+		concourse.Version,
+		concourse.WorkerVersion,
 		variablesFactory,
 		credsManagers,
 		containerserver.NewInterceptTimeoutFactory(cmd.InterceptIdleTimeout),

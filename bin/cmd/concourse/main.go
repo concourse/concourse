@@ -4,19 +4,17 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc/atccmd"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/vito/twentythousandtonnesofcrudeoil"
 )
 
-// overridden via linker flags
-var Version = "0.0.0-dev"
-
 func main() {
 	var cmd ConcourseCommand
 
 	cmd.Version = func() {
-		fmt.Println(Version)
+		fmt.Println(concourse.Version)
 		os.Exit(0)
 	}
 
