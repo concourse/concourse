@@ -147,6 +147,8 @@ jobs:
       trigger: true
     - get: dev-image
       passed: [testflight, watsjs]
+    - get: unit-image
+      passed: [testflight, watsjs]
   - put: version
     params: {pre: rc}
 
@@ -157,6 +159,8 @@ jobs:
     - get: concourse
       passed: [rc]
       trigger: true
+    - get: unit-image
+      passed: [rc]
     - get: dev-image
       passed: [rc]
     - get: version
@@ -177,11 +181,32 @@ jobs:
     file: concourse/ci/tasks/hoist-linux-dependencies.yml
   - aggregate:
     - task: concourse-linux
+      image: unit-image
       file: concourse/ci/tasks/concourse-build-linux.yml
     - task: concourse-windows
       file: concourse/ci/tasks/concourse-build-windows.yml
     - task: concourse-darwin
       file: concourse/ci/tasks/concourse-build-darwin.yml
+  - task: zero-out-huge-stuff
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      outputs:
+      - name: dev-image
+      - name: unit-image
+      - name: fly-linux
+      - name: fly-windows
+      - name: fly-darwin
+      - name: gdn
+      - name: resource-types
+
+      run:
+        path: echo
+        args: ["Having https://github.com/concourse/concourse/issues/1202 would be nice!"]
   - aggregate:
     - put: linux-rc
       params: {file: concourse-linux/concourse-*.tgz}

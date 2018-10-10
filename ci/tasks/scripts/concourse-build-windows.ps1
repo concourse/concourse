@@ -47,4 +47,6 @@ Push-Location concourse-windows
 
   Get-FileHash -Algorithm SHA1 -LiteralPath .\concourse-windows-amd64.zip | `
     Out-File -Encoding utf8 .\concourse-windows-amd64.zip.sha1
+
+  Remove-Item .\concourse.exe, .\fly-assets -Recurse
 Pop-Location

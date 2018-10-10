@@ -31,6 +31,9 @@ mkdir -p $fly_assets
 
 pushd concourse-darwin
   archive=concourse-${version}-darwin-amd64.tgz
-  tar -czf $archive concourse fly-assets
+  assets="concourse fly-assets"
+
+  tar -czf $archive $assets
   shasum "$archive" > "${archive}.sha1"
+  rm -rf $assets
 popd

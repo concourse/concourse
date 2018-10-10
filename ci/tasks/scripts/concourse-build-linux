@@ -34,6 +34,9 @@ mkdir -p $fly_assets
 
 pushd concourse-linux
   archive=concourse-${version}-linux-amd64.tgz
-  tar -czf $archive concourse fly-assets gdn resource-types
+  assets="concourse fly-assets gdn resource-types"
+
+  tar -czf $archive $assets
   shasum "$archive" > "${archive}.sha1"
+  rm -rf $assets
 popd
