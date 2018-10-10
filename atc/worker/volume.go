@@ -44,6 +44,20 @@ type volume struct {
 	volumeClient VolumeClient
 }
 
+type byMountPath []VolumeMount
+
+func (p byMountPath) Len() int {
+	return len(p)
+}
+func (p byMountPath) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+func (p byMountPath) Less(i, j int) bool {
+	path1 := p[i].MountPath
+	path2 := p[j].MountPath
+	return path1 < path2
+}
+
 func NewVolume(
 	bcVolume baggageclaim.Volume,
 	dbVolume db.CreatedVolume,
