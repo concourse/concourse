@@ -4,7 +4,7 @@
 set -e -x
 
 cp gdn/gdn concourse-linux/gdn
-cp -a resource-types/ concourse-linux/resource-types/
+cp -a resource-types/ concourse-linux/resource-types
 
 export GOPATH=$PWD/gopath
 export PATH=$PWD/gopath/bin:$PATH

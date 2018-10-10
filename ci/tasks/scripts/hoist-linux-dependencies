@@ -4,4 +4,4 @@
 set -e -x
 
 cp $(which gdn) gdn/gdn
-cp -a /concourse-resource-types/ resource-types/
+cp -a /concourse-resource-types/* resource-types/
