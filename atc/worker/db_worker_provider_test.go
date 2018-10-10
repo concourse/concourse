@@ -170,7 +170,7 @@ var _ = Describe("DBProvider", func() {
 			fakeDBVolumeRepository,
 			fakeDBTeamFactory,
 			fakeDBWorkerFactory,
-			&wantWorkerVersion,
+			wantWorkerVersion,
 			baggageclaimResponseHeaderTimeout,
 		)
 		baggageclaimURL = baggageclaimServer.URL()
