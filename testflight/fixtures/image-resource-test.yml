@@ -1,0 +1,26 @@
+---
+resources:
+- name: some-resource
+  type: mock
+  source:
+    create_files: {"task.yml":((task_content))}
+
+- name: some-image
+  type: registry-image
+  source: {repository: busybox}
+
+jobs:
+- name: upstream-job
+  plan:
+  - get: some-resource
+  - get: some-image
+
+- name: downstream-job
+  plan:
+  - get: some-resource
+    passed: [upstream-job]
+  - get: some-image
+    passed: [upstream-job]
+  - task: run
+    image: some-image
+    file: some-resource/task.yml

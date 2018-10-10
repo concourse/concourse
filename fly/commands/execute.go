@@ -27,6 +27,7 @@ type ExecuteCommand struct {
 	InputMappings  []flaghelpers.VariablePairFlag `short:"m" long:"input-mapping"       value-name:"[NAME=STRING]"    description:"Map a resource to a different name as task input"`
 	InputsFrom     flaghelpers.JobFlag            `short:"j" long:"inputs-from" value-name:"PIPELINE/JOB" description:"A job to base the inputs on"`
 	Outputs        []flaghelpers.OutputPairFlag   `short:"o" long:"output"      value-name:"NAME=PATH"    description:"An output to fetch from the task (can be specified multiple times)"`
+	Image          string                         `long:"image" description:"Image resource for the one-off build"`
 	Tags           []string                       `          long:"tag"         value-name:"TAG"          description:"A tag for a specific environment (can be specified multiple times)"`
 }
 
@@ -54,16 +55,21 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	fact := atc.NewPlanFactory(time.Now().Unix())
 
 	inputMappings := executehelpers.DetermineInputMappings(command.InputMappings)
-	inputs, err := executehelpers.DetermineInputs(
+	inputs, imageResource, err := executehelpers.DetermineInputs(
 		fact,
 		target.Team(),
 		taskConfig.Inputs,
 		command.Inputs,
 		inputMappings,
+		command.Image,
 		command.InputsFrom,
 	)
 	if err != nil {
 		return err
+	}
+
+	if imageResource != nil {
+		taskConfig.ImageResource = imageResource
 	}
 
 	outputs, err := executehelpers.DetermineOutputs(
