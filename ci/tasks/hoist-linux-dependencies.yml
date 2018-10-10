@@ -1,0 +1,16 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: concourse/dev}
+
+inputs:
+- name: concourse
+
+outputs:
+- name: gdn
+- name: resource-types
+
+run:
+  path: concourse/ci/tasks/scripts/hoist-linux-dependencies

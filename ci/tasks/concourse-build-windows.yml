@@ -3,6 +3,8 @@ platform: windows
 
 inputs:
 - name: concourse
+- name: version
+  optional: true
 - name: final-version
   optional: true
 - name: fly-linux

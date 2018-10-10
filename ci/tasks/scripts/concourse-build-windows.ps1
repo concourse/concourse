@@ -8,6 +8,11 @@ $env:Path += ";C:\Go\bin;C:\Program Files\Git\cmd;C:\tools\mingw64\bin"
 $env:GOPATH = "$pwd\gopath"
 $env:Path += ";$pwd\gopath\bin"
 
+$version = "0.0.0"
+if ([System.IO.File]::Exists("version\version")) {
+  $version = (Get-Content "version\version")
+}
+
 # can't figure out how to pass an empty string arg in PowerShell, so just
 # configure a noop for the fallback
 $ldflags = "-X noop.Noop=noop"
@@ -38,7 +43,7 @@ Push-Location concourse-windows
 
   Compress-Archive `
     -LiteralPath .\concourse.exe, .\fly-assets `
-    -DestinationPath .\concourse-windows-amd64.zip
+    -DestinationPath ".\concourse-${version}-windows-amd64.zip"
 
   Get-FileHash -Algorithm SHA1 -LiteralPath .\concourse-windows-amd64.zip | `
     Out-File -Encoding utf8 .\concourse-windows-amd64.zip.sha1

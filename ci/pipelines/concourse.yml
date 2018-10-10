@@ -3,6 +3,10 @@ resource_types:
   type: registry-image
   source: {repository: concourse/registry-image-resource}
 
+- name: gcs
+  type: registry-image
+  source: {repository: frodenas/gcs-resource}
+
 groups:
 - name: develop
   jobs:
@@ -10,6 +14,7 @@ groups:
   - dev-image
   - testflight
   - watsjs
+  - rc
   - build-rc
 
 - name: images
@@ -132,8 +137,9 @@ jobs:
     file: concourse/ci/tasks/docker-compose-watsjs.yml
     params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
-- name: build-rc
+- name: rc
   public: true
+  serial_groups: [version]
   plan:
   - aggregate:
     - get: concourse
@@ -141,6 +147,24 @@ jobs:
       trigger: true
     - get: dev-image
       passed: [testflight, watsjs]
+  - put: version
+    params: {pre: rc}
+
+- name: build-rc
+  public: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [rc]
+      trigger: true
+    - get: dev-image
+      passed: [rc]
+    - get: version
+      passed: [rc]
+    - get: final-version
+      resource: version
+      passed: [rc]
+      params: {bump: final}
   - aggregate:
     - task: fly-linux
       file: concourse/ci/tasks/fly-build-linux.yml
@@ -148,14 +172,23 @@ jobs:
       file: concourse/ci/tasks/fly-build-windows.yml
     - task: fly-darwin
       file: concourse/ci/tasks/fly-build-darwin.yml
+  - task: hoist-linux-dependencies
+    image: dev-image
+    file: concourse/ci/tasks/hoist-linux-dependencies.yml
   - aggregate:
     - task: concourse-linux
-      image: dev-image
       file: concourse/ci/tasks/concourse-build-linux.yml
     - task: concourse-windows
       file: concourse/ci/tasks/concourse-build-windows.yml
     - task: concourse-darwin
       file: concourse/ci/tasks/concourse-build-darwin.yml
+  - aggregate:
+    - put: linux-rc
+      params: {file: concourse-linux/concourse-*.tgz}
+    - put: windows-rc
+      params: {file: concourse-windows/concourse-*.zip}
+    - put: darwin-rc
+      params: {file: concourse-darwin/concourse-*.tgz}
 
 - name: unit-image
   public: true
@@ -258,3 +291,32 @@ resources:
 - name: builder
   type: registry-image
   source: {repository: concourse/builder}
+
+- name: version
+  type: semver
+  source:
+    driver: gcs
+    bucket: concourse-artifacts
+    json_key: ((concourse_artifacts_json_key))
+    key: version
+
+- name: linux-rc
+  type: gcs
+  source:
+    bucket: concourse-artifacts
+    json_key: ((concourse_artifacts_json_key))
+    regexp: rcs/concourse-(.*)-linux-amd64.tgz
+
+- name: windows-rc
+  type: gcs
+  source:
+    bucket: concourse-artifacts
+    json_key: ((concourse_artifacts_json_key))
+    regexp: rcs/concourse-(.*)-windows-amd64.zip
+
+- name: darwin-rc
+  type: gcs
+  source:
+    bucket: concourse-artifacts
+    json_key: ((concourse_artifacts_json_key))
+    regexp: rcs/concourse-(.*)-darwin-amd64.tgz

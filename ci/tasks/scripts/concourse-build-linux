@@ -3,10 +3,28 @@
 
 set -e -x
 
-cp $(which concourse) concourse-linux/concourse
-cp $(which gdn) concourse-linux/gdn
+cp gdn/gdn concourse-linux/gdn
+cp -a resource-types/ concourse-linux/resource-types/
 
-cp -a /concourse-resource-types/ concourse-linux/resource-types/
+export GOPATH=$PWD/gopath
+export PATH=$PWD/gopath/bin:$PATH
+
+version=0.0.0
+if [ -e version/version ]; then
+  version=$(cat version/version)
+fi
+
+ldflags=""
+if [ -e final-version/version ]; then
+  final_version="$(cat final-version/version)"
+  ldflags="-X github.com/concourse/concourse.Version=$final_version"
+fi
+
+pushd concourse
+  go build -ldflags "$ldflags" -o concourse ./bin/cmd/concourse
+popd
+
+mv concourse/concourse concourse-linux/concourse
 
 fly_assets=concourse-linux/fly-assets
 mkdir -p $fly_assets
@@ -15,7 +33,7 @@ mkdir -p $fly_assets
 [ -d fly-darwin ] && cp -a fly-darwin/fly-*.tgz $fly_assets
 
 pushd concourse-linux
-  archive=concourse-darwin-amd64.tgz
+  archive=concourse-${version}-linux-amd64.tgz
   tar -czf $archive concourse fly-assets gdn resource-types
   shasum "$archive" > "${archive}.sha1"
 popd
