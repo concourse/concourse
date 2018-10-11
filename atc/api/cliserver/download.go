@@ -3,8 +3,11 @@ package cliserver
 import (
 	"net/http"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
+
+var whitelist = regexp.MustCompile(`^[a-z0-9]+$`)
 
 func (s *Server) Download(w http.ResponseWriter, r *http.Request) {
 	if s.cliDownloadsDir == "" {
@@ -14,6 +17,12 @@ func (s *Server) Download(w http.ResponseWriter, r *http.Request) {
 
 	platform := strings.ToLower(r.URL.Query().Get("platform"))
 	arch := r.URL.Query().Get("arch")
+
+	if !whitelist.MatchString(platform) || !whitelist.MatchString(arch) {
+		// prevent attempts at accessing arbitrary paths
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	var extension string
 	if platform == "windows" {
