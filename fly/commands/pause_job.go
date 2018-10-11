@@ -22,9 +22,13 @@ func (command *PauseJobCommand) Execute(args []string) error {
 		return err
 	}
 
-	_, err = target.Team().PauseJob(command.Job.PipelineName, command.Job.JobName)
+	found, err := target.Team().PauseJob(command.Job.PipelineName, command.Job.JobName)
 	if err != nil {
 		return err
+	}
+
+	if !found {
+		return fmt.Errorf("%s/%s not found\n", command.Job.PipelineName, command.Job.JobName)
 	}
 
 	fmt.Printf("paused '%s'\n", command.Job.JobName)
