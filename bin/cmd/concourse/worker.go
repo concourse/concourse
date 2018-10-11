@@ -51,6 +51,10 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 }
 
 func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
+	if cmd.ResourceTypes == "" {
+		cmd.ResourceTypes = flag.Dir(discoverAsset("resource-types"))
+	}
+
 	logger, _ := cmd.Logger.Logger("worker")
 
 	worker, gardenRunner, err := cmd.gardenRunner(logger.Session("garden"))

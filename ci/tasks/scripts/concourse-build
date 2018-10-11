@@ -6,6 +6,13 @@ set -e -x
 export GOPATH=$PWD/gopath
 export PATH=$PWD/gopath/bin:$PATH
 
+if [ "$#" -lt 1 ]; then
+  echo "usage: $0 <platform>" >&2
+  exit 1
+fi
+
+platform="$1"
+
 version=0.0.0
 if [ -e version/version ]; then
   version=$(cat version/version)
@@ -21,19 +28,29 @@ pushd concourse
   go build -ldflags "$ldflags" -o concourse ./bin/cmd/concourse
 popd
 
-mv concourse/concourse concourse-darwin/concourse
+output=concourse-${platform}
 
-fly_assets=concourse-darwin/fly-assets
-mkdir -p $fly_assets
+mkdir $output/concourse
+
+bin=$output/concourse/bin
+mkdir $bin
+mv concourse/concourse $bin
+[ -d gdn ] && cp gdn/gdn $bin
+
+resource_types=$output/concourse/resource-types
+mkdir $resource_types
+[ -d resource-types ] && cp -a resource-types/* $resource_types
+
+fly_assets=$output/concourse/fly-assets
+mkdir $fly_assets
 [ -d fly-linux ] && cp -a fly-linux/fly-*.tgz $fly_assets
 [ -d fly-windows ] && cp -a fly-windows/fly-*.zip $fly_assets
 [ -d fly-darwin ] && cp -a fly-darwin/fly-*.tgz $fly_assets
 
-pushd concourse-darwin
-  archive=concourse-${version}-darwin-amd64.tgz
-  assets="concourse fly-assets"
+pushd $output
+  archive=concourse-${version}-${platform}-amd64.tgz
 
-  tar -czf $archive $assets
+  tar -czf $archive concourse
   shasum "$archive" > "${archive}.sha1"
-  rm -rf $assets
+  rm -r concourse
 popd

@@ -43,6 +43,10 @@ func (cmd *WebCommand) Execute(args []string) error {
 }
 
 func (cmd *WebCommand) Runner(args []string) (ifrit.Runner, error) {
+	if cmd.RunCommand.CLIArtifactsDir == "" {
+		cmd.RunCommand.CLIArtifactsDir = flag.Dir(discoverAsset("fly-assets"))
+	}
+
 	cmd.populateTSAFlagsFromATCFlags()
 
 	atcRunner, err := cmd.RunCommand.Runner(args)

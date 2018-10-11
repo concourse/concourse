@@ -27,4 +27,5 @@ outputs:
 - name: concourse-linux
 
 run:
-  path: concourse/ci/tasks/scripts/concourse-build-linux
+  path: concourse/ci/tasks/scripts/concourse-build
+  args: [linux]
