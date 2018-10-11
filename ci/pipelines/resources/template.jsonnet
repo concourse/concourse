@@ -115,7 +115,8 @@ local create_release = {
         echo $version | cut -d. -f1,2,3 >> docker/tags
 
         cd resource-image-dev
-        tar -czf ../release/%(resource)s-resource-${version}.tgz rootfs resource_metadata.json
+        tar -czf rootfs.tgz -C rootfs .
+        tar -czf ../release/%(resource)s-resource-${version}.tgz rootfs.tgz resource_metadata.json
       ||| % {
         resource: resource,
         privileged: resource == "docker-image"

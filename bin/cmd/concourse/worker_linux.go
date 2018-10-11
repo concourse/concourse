@@ -193,7 +193,7 @@ func (cmd *WorkerCommand) loadResources(logger lager.Logger) ([]atc.WorkerResour
 				return nil, err
 			}
 
-			t.Image = filepath.Join(basePath, e.Name(), "rootfs")
+			t.Image = filepath.Join(basePath, e.Name(), "rootfs.tgz")
 
 			types = append(types, t)
 		}
