@@ -80,9 +80,11 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 					teamSet[teamRole] = true
 					isAdmin = isAdmin || team.Admin()
 				}
-				if strings.EqualFold(user, connectorId+":"+userName) {
-					teamSet[teamRole] = true
-					isAdmin = isAdmin || team.Admin()
+				if userName != "" {
+					if strings.EqualFold(user, connectorId+":"+userName) {
+						teamSet[teamRole] = true
+						isAdmin = isAdmin || team.Admin()
+					}
 				}
 			}
 

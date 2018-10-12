@@ -73,7 +73,7 @@ var _ = Describe("Token Issuer", func() {
 
 		Context("when the verified token doesn't contain a user id", func() {
 			BeforeEach(func() {
-				verifiedClaims = &token.VerifiedClaims{ConnectorID: "connector-id"}
+				verifiedClaims.UserID = ""
 			})
 
 			It("errors", func() {
@@ -84,7 +84,7 @@ var _ = Describe("Token Issuer", func() {
 
 		Context("when the verified token doesn't contain a connector id", func() {
 			BeforeEach(func() {
-				verifiedClaims = &token.VerifiedClaims{UserID: "user-id"}
+				verifiedClaims.ConnectorID = ""
 			})
 
 			It("errors", func() {
@@ -299,7 +299,7 @@ var _ = Describe("Token Issuer", func() {
 						})
 					})
 
-					It("calls generate with expect team claims", func() {
+					It("calls generate with expected team claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
 						Expect(claims["teams"]).To(ContainElement("fake-team-1:owner"))
 						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2:owner"))
@@ -316,7 +316,7 @@ var _ = Describe("Token Issuer", func() {
 						})
 					})
 
-					It("calls generate with expect team claims", func() {
+					It("calls generate with expected team claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
 						Expect(claims["teams"]).NotTo(ContainElement("fake-team-1:owner"))
 						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2:owner"))
@@ -338,7 +338,7 @@ var _ = Describe("Token Issuer", func() {
 						})
 					})
 
-					It("calls generate with expect team claims", func() {
+					It("calls generate with expected team claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
 						Expect(claims["teams"]).To(ContainElement("fake-team-1:owner"))
 						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2:owner"))
@@ -355,7 +355,7 @@ var _ = Describe("Token Issuer", func() {
 						})
 					})
 
-					It("calls generate with expect team claims", func() {
+					It("calls generate with expected team claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
 						Expect(claims["teams"]).To(ContainElement("fake-team-1:owner"))
 						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2:owner"))
@@ -363,6 +363,28 @@ var _ = Describe("Token Issuer", func() {
 
 					AssertTokenClaims()
 					AssertTokenAdminClaims()
+				})
+			})
+
+			Context("when the verified claims has no username", func() {
+				BeforeEach(func() {
+					verifiedClaims.UserName = ""
+				})
+
+				Context("when the team auth is configured with only the connector", func() {
+					BeforeEach(func() {
+						fakeTeam1.AuthReturns(atc.TeamAuth{
+							"owner": {"users": []string{"connector-id:"}},
+						})
+						fakeTeam2.AuthReturns(atc.TeamAuth{
+							"owner": {"users": []string{"connector-id:"}},
+						})
+					})
+
+					FIt("calls generate with expected team claims", func() {
+						claims := fakeGenerator.GenerateArgsForCall(0)
+						Expect(claims["teams"]).To(HaveLen(0))
+					})
 				})
 			})
 		})
