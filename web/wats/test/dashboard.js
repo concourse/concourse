@@ -209,7 +209,7 @@ test('auto-refreshes to reflect state changes', showsPipelineState, async t => {
   t.deepEqual(color(newBackground), palette.red);
 });
 
-test('links to specific builds', async t => {
+test.skip('links to specific builds', async t => {
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
   await t.context.fly.run("trigger-job -w -j some-pipeline/passing");

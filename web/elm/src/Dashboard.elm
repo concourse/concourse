@@ -1,4 +1,4 @@
-port module Dashboard exposing (Model, Msg, init, subscriptions, update, view)
+port module Dashboard exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Char
 import Concourse
