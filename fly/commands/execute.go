@@ -192,7 +192,7 @@ func abortOnSignal(
 	err := client.AbortBuild(strconv.Itoa(build.ID))
 	if err != nil {
 		fmt.Fprintln(ui.Stderr, "failed to abort:", err)
-		return
+		os.Exit(2)
 	}
 
 	// if told to terminate again, exit immediately
