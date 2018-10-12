@@ -1,6 +1,7 @@
 package migration_test
 
 import (
+	"code.cloudfoundry.org/lager"
 	"database/sql"
 	"io/ioutil"
 	"math/rand"
@@ -30,6 +31,7 @@ var _ = Describe("Migration", func() {
 		lockFactory lock.LockFactory
 		strategy    encryption.Strategy
 		bindata     *migrationfakes.FakeBindata
+		fakeLogFunc = func(logger lager.Logger, id lock.LockID){}
 	)
 
 	BeforeEach(func() {
@@ -39,7 +41,7 @@ var _ = Describe("Migration", func() {
 		lockDB, err = sql.Open("postgres", postgresRunner.DataSourceName())
 		Expect(err).NotTo(HaveOccurred())
 
-		lockFactory = lock.NewLockFactory(lockDB)
+		lockFactory = lock.NewLockFactory(lockDB, fakeLogFunc, fakeLogFunc)
 
 		strategy = encryption.NewNoEncryption()
 		bindata = new(migrationfakes.FakeBindata)

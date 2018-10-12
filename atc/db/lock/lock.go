@@ -62,14 +62,25 @@ type lockFactory struct {
 	db           LockDB
 	locks        lockRepo
 	acquireMutex *sync.Mutex
+
+	acquireFunc LogFunc
+	releaseFunc LogFunc
 }
 
-func NewLockFactory(conn *sql.DB) LockFactory {
+type LogFunc func(logger lager.Logger, id LockID)
+
+func NewLockFactory(
+	conn *sql.DB,
+	acquire LogFunc,
+	release LogFunc,
+) LockFactory {
 	return &lockFactory{
 		db: &lockDB{
 			conn:  conn,
 			mutex: &sync.Mutex{},
 		},
+		acquireFunc: acquire,
+		releaseFunc: release,
 		locks: lockRepo{
 			locks: map[string]bool{},
 			mutex: &sync.Mutex{},
@@ -86,6 +97,8 @@ func NewTestLockFactory(db LockDB) LockFactory {
 			mutex: &sync.Mutex{},
 		},
 		acquireMutex: &sync.Mutex{},
+		acquireFunc: func(logger lager.Logger, id LockID){},
+		releaseFunc: func(logger lager.Logger, id LockID){},
 	}
 }
 
@@ -96,6 +109,8 @@ func (f *lockFactory) Acquire(logger lager.Logger, id LockID) (Lock, bool, error
 		id:           id,
 		locks:        f.locks,
 		acquireMutex: f.acquireMutex,
+		acquired:     f.acquireFunc,
+		released:     f.releaseFunc,
 	}
 
 	acquired, err := l.Acquire()
@@ -130,6 +145,9 @@ type lock struct {
 	db           LockDB
 	locks        lockRepo
 	acquireMutex *sync.Mutex
+
+	acquired LogFunc
+	released LogFunc
 }
 
 func (l *lock) Acquire() (bool, error) {
@@ -156,7 +174,7 @@ func (l *lock) Acquire() (bool, error) {
 
 	l.locks.Register(l.id)
 
-	logger.Debug("acquired")
+	l.acquired(logger, l.id)
 
 	return true, nil
 }
@@ -176,7 +194,7 @@ func (l *lock) Release() error {
 		return ErrLostLock
 	}
 
-	logger.Debug("released")
+	l.released(logger, l.id)
 
 	return nil
 }

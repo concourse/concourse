@@ -1,6 +1,7 @@
 package lock_test
 
 import (
+	"code.cloudfoundry.org/lager"
 	"sync"
 	"time"
 
@@ -29,7 +30,9 @@ var _ = Describe("Locks", func() {
 		teamFactory db.TeamFactory
 
 		logger *lagertest.TestLogger
+		fakeLogFunc = func(logger lager.Logger, id lock.LockID){}
 	)
+
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -39,7 +42,7 @@ var _ = Describe("Locks", func() {
 
 		logger = lagertest.NewTestLogger("test")
 
-		lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
+		lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc,fakeLogFunc)
 
 		dbConn = postgresRunner.OpenConn()
 		teamFactory = db.NewTeamFactory(dbConn, lockFactory)
@@ -145,7 +148,7 @@ var _ = Describe("Locks", func() {
 			var lockFactory2 lock.LockFactory
 
 			BeforeEach(func() {
-				lockFactory2 = lock.NewLockFactory(postgresRunner.OpenSingleton())
+				lockFactory2 = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
 			})
 
 			It("does not acquire the lock", func() {

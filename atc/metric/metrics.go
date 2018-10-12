@@ -1,6 +1,7 @@
 package metric
 
 import (
+	"github.com/concourse/concourse/atc/db/lock"
 	"strconv"
 	"time"
 
@@ -414,4 +415,80 @@ func (event ResourceCheck) Emit(logger lager.Logger) {
 			},
 		},
 	)
+}
+
+var lockTypeNames = map[int]string{
+	lock.LockTypeResourceConfigChecking: "ResourceConfigChecking",
+	lock.LockTypeBuildTracking:          "BuildTracking",
+	lock.LockTypePipelineScheduling:     "PipelineScheduling",
+	lock.LockTypeBatch:                  "Batch",
+	lock.LockTypeVolumeCreating:         "VolumeCreating",
+	lock.LockTypeContainerCreating:      "ContainerCreating",
+	lock.LockTypeDatabaseMigration:      "DatabaseMigration",
+}
+
+type LockAcquired struct {
+	LockType string
+	ObjectID int
+}
+
+func (event LockAcquired) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("lock-acquired"),
+		Event{
+			Name:  "lock held",
+			Value: 1,
+			State: EventStateOK,
+			Attributes: map[string]string{
+				"type":      event.LockType,
+				"object_id": strconv.Itoa(event.ObjectID),
+			},
+		},
+	)
+}
+
+type LockReleased struct {
+	LockType string
+	ObjectID int
+}
+
+func (event LockReleased) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("lock-released"),
+		Event{
+			Name:  "lock held",
+			Value: 0,
+			State: EventStateOK,
+			Attributes: map[string]string{
+				"type":      event.LockType,
+				"object_id": strconv.Itoa(event.ObjectID),
+			},
+		},
+	)
+}
+
+func LogLockAcquired(logger lager.Logger, lockID lock.LockID) {
+	logger.Debug("released")
+
+	if len(lockID) > 0 {
+		if lockType, ok := lockTypeNames[lockID[0]]; ok {
+			LockAcquired{
+				LockType: lockType,
+				ObjectID: lockID[1],
+			}.Emit(logger)
+		}
+	}
+}
+
+func LogLockReleased(logger lager.Logger, lockID lock.LockID) {
+	logger.Debug("released")
+
+	if len(lockID) > 0 {
+		if lockType, ok := lockTypeNames[lockID[0]]; ok {
+			LockReleased{
+				LockType: lockType,
+				ObjectID: lockID[1],
+			}.Emit(logger)
+		}
+	}
 }

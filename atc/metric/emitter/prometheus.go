@@ -16,6 +16,8 @@ import (
 )
 
 type PrometheusEmitter struct {
+	locksHeld *prometheus.GaugeVec
+
 	buildsStarted     prometheus.Counter
 	buildsFinished    prometheus.Counter
 	buildsSucceeded   prometheus.Counter
@@ -61,6 +63,15 @@ func (config *PrometheusConfig) bind() string {
 }
 
 func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
+
+	// lock metrics
+	locksHeld := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "concourse",
+		Subsystem: "locks",
+		Name:      "state",
+		Help:      "Database locks held",
+	}, []string{"lockType", "objectId"})
+
 	// build metrics
 	buildsStarted := prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "concourse",
@@ -239,6 +250,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	go http.Serve(listener, promhttp.Handler())
 
 	emitter := &PrometheusEmitter{
+		locksHeld:         locksHeld,
 		buildsStarted:     buildsStarted,
 		buildsFinished:    buildsFinished,
 		buildsFinishedVec: buildsFinishedVec,
@@ -279,6 +291,8 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	emitter.updateLastSeen(event)
 
 	switch event.Name {
+	case "lock held":
+		emitter.lock(logger, event)
 	case "build started":
 		emitter.buildsStarted.Inc()
 	case "build finished":
@@ -303,6 +317,26 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.resourceMetric(logger, event)
 	default:
 		// unless we have a specific metric, we do nothing
+	}
+}
+
+func (emitter *PrometheusEmitter) lock(logger lager.Logger, event metric.Event) {
+	lockType, exists := event.Attributes["type"]
+	if !exists {
+		logger.Error("failed-to-find-type-in-event", fmt.Errorf("expected type to exist in event.Attributes"))
+		return
+	}
+
+	objectID, exists := event.Attributes["object_id"]
+	if !exists {
+		logger.Error("failed-to-find-object-id-in-event", fmt.Errorf("expected object_id to exist in event.Attributes"))
+		return
+	}
+
+	if event.Value == 1 {
+		emitter.locksHeld.WithLabelValues(lockType, objectID).Inc()
+	} else {
+		emitter.locksHeld.WithLabelValues(lockType, objectID).Dec()
 	}
 }
 
