@@ -1,6 +1,7 @@
 package gc_test
 
 import (
+	"code.cloudfoundry.org/lager"
 	"os"
 	"time"
 
@@ -47,6 +48,7 @@ var (
 
 	usedResource db.Resource
 	logger       *lagertest.TestLogger
+	fakeLogFunc = func(logger lager.Logger, id lock.LockID){}
 )
 
 var _ = BeforeSuite(func() {
@@ -64,7 +66,7 @@ var _ = BeforeEach(func() {
 
 	dbConn = postgresRunner.OpenConn()
 
-	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
+	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
 
 	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
 	buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0)
