@@ -290,7 +290,11 @@ func waitForTokenInput(tokenChannel chan string, errorChannel chan error) {
 			return
 		}
 
-		fi, _ := os.Stdin.Stat()
+		fi, err := os.Stdin.Stat()
+		if err != nil {
+			errorChannel <- err
+			return
+		}
 		if fi.Size() <= 0 {
 			continue
 		}
