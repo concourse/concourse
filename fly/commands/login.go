@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/concourse/concourse/atc"
@@ -163,7 +164,6 @@ func (command *LoginCommand) passwordGrant(client concourse.Client, username, pa
 }
 
 func (command *LoginCommand) authCodeGrant(targetUrl string) (string, string, error) {
-
 	var tokenStr string
 
 	stdinChannel := make(chan string)
@@ -286,6 +286,15 @@ type tcpKeepAliveListener struct {
 
 func waitForTokenInput(tokenChannel chan string, errorChannel chan error) {
 	for {
+		if len(tokenChannel) > 0 {
+			return
+		}
+
+		fi, _ := os.Stdin.Stat()
+		if fi.Size() <= 0 {
+			continue
+		}
+
 		var tokenType string
 		var tokenValue string
 		count, err := fmt.Scanf("%s %s", &tokenType, &tokenValue)
