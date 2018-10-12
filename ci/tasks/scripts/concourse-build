@@ -37,9 +37,7 @@ mkdir $bin
 mv concourse/concourse $bin
 [ -d gdn ] && cp gdn/gdn $bin
 
-resource_types=$output/concourse/resource-types
-mkdir $resource_types
-[ -d resource-types ] && cp -a resource-types/* $resource_types
+[ -d resource-types ] && cp -a resource-types $output/concourse
 
 fly_assets=$output/concourse/fly-assets
 mkdir $fly_assets
@@ -49,8 +47,8 @@ mkdir $fly_assets
 
 pushd $output
   archive=concourse-${version}-${platform}-amd64.tgz
-
   tar -czf $archive concourse
   shasum "$archive" > "${archive}.sha1"
+
   rm -r concourse
 popd
