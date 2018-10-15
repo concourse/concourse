@@ -210,8 +210,8 @@ var _ = Describe("Token Issuer", func() {
 
 				It("calls generate with expected team claims", func() {
 					claims := fakeGenerator.GenerateArgsForCall(0)
-					Expect(claims["teams"]).To(ContainElement("fake-team-1:owner"))
-					Expect(claims["teams"]).To(ContainElement("fake-team-2:owner"))
+					Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-1", ContainElement("owner")))
+					Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-2", ContainElement("owner")))
 				})
 
 				AssertTokenClaims()
@@ -241,8 +241,8 @@ var _ = Describe("Token Issuer", func() {
 
 					It("calls generate with expected team claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
-						Expect(claims["teams"]).To(ContainElement("fake-team-1:owner"))
-						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2:owner"))
+						Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-1", ContainElement("owner")))
+						Expect(claims["teams"]).NotTo(HaveKey("fake-team-2"))
 					})
 
 					AssertTokenClaims()
@@ -258,8 +258,8 @@ var _ = Describe("Token Issuer", func() {
 
 					It("calls generate with expected team claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
-						Expect(claims["teams"]).To(ContainElement("fake-team-1:owner"))
-						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2:owner"))
+						Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-1", ContainElement("owner")))
+						Expect(claims["teams"]).NotTo(HaveKey("fake-team-2"))
 					})
 
 					AssertTokenClaims()
@@ -278,9 +278,7 @@ var _ = Describe("Token Issuer", func() {
 
 				It("calls generate with expected team claims", func() {
 					claims := fakeGenerator.GenerateArgsForCall(0)
-					Expect(claims["teams"]).To(ContainElement("fake-team-1:owner"))
-					Expect(claims["teams"]).To(ContainElement("fake-team-1:member"))
-					Expect(claims["teams"]).To(ContainElement("fake-team-1:viewer"))
+					Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-1", ConsistOf("owner", "member", "viewer")))
 				})
 
 				AssertTokenClaims()
@@ -301,8 +299,8 @@ var _ = Describe("Token Issuer", func() {
 
 					It("calls generate with expected team claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
-						Expect(claims["teams"]).To(ContainElement("fake-team-1:owner"))
-						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2:owner"))
+						Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-1", ContainElement("owner")))
+						Expect(claims["teams"]).NotTo(HaveKey("fake-team-2"))
 					})
 
 					AssertTokenClaims()
@@ -318,8 +316,7 @@ var _ = Describe("Token Issuer", func() {
 
 					It("calls generate with expected team claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
-						Expect(claims["teams"]).NotTo(ContainElement("fake-team-1:owner"))
-						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2:owner"))
+						Expect(claims["teams"]).To(HaveLen(0))
 					})
 
 					AssertTokenClaims()
@@ -340,8 +337,8 @@ var _ = Describe("Token Issuer", func() {
 
 					It("calls generate with expected team claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
-						Expect(claims["teams"]).To(ContainElement("fake-team-1:owner"))
-						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2:owner"))
+						Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-1", ContainElement("owner")))
+						Expect(claims["teams"]).NotTo(HaveKey("fake-team-2"))
 					})
 
 					AssertTokenClaims()
@@ -357,8 +354,8 @@ var _ = Describe("Token Issuer", func() {
 
 					It("calls generate with expected team claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
-						Expect(claims["teams"]).To(ContainElement("fake-team-1:owner"))
-						Expect(claims["teams"]).NotTo(ContainElement("fake-team-2:owner"))
+						Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-1", ContainElement("owner")))
+						Expect(claims["teams"]).NotTo(HaveKey("fake-team-2"))
 					})
 
 					AssertTokenClaims()
@@ -381,7 +378,7 @@ var _ = Describe("Token Issuer", func() {
 						})
 					})
 
-					FIt("calls generate with expected team claims", func() {
+					It("calls generate with expected team claims", func() {
 						claims := fakeGenerator.GenerateArgsForCall(0)
 						Expect(claims["teams"]).To(HaveLen(0))
 					})

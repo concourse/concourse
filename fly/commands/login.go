@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	semisemanticversion "github.com/cppforlife/go-semi-semantic/version"
+	"github.com/mitchellh/mapstructure"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/vito/go-interact/interact"
 	"golang.org/x/oauth2"
@@ -217,7 +218,7 @@ func (command *LoginCommand) authCodeGrant(targetUrl string) (string, string, er
 	return segments[0], segments[1], nil
 }
 
-func checkTokenTeams(tokenValue string, loggingTeam string) error {
+func checkTokenTeams(tokenValue string, loginTeam string) error {
 
 	tokenContents := strings.Split(tokenValue, ".")
 	if len(tokenContents) < 2 {
@@ -234,17 +235,20 @@ func checkTokenTeams(tokenValue string, loggingTeam string) error {
 		return err
 	}
 
-	teams := payload["teams"].([]interface{})
-	userName := payload["user_name"].(string)
-	for _, team := range teams {
-		tokenTeam := strings.Split(team.(string), ":")[0]
+	teamRoles := map[string][]string{}
+	if err := mapstructure.Decode(payload["teams"], &teamRoles); err != nil {
+		return err
+	}
 
-		if loggingTeam == tokenTeam {
+	for team, _ := range teamRoles {
+		if team == loginTeam {
 			return nil
 		}
 	}
 
-	return fmt.Errorf("user [%s] is not in team [%s]", userName, loggingTeam)
+	userName, _ := payload["user_name"].(string)
+
+	return fmt.Errorf("user [%s] is not in team [%s]", userName, loginTeam)
 }
 
 func listenForTokenCallback(tokenChannel chan string, errorChannel chan error, portChannel chan string, targetUrl string) {

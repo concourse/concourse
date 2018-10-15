@@ -1,6 +1,7 @@
-module Dashboard.Group.Tag exposing (..)
+module Dashboard.Group.Tag exposing (Tag(..), ordering, splitFirst, tag, text)
 
 import Concourse
+import Dict
 import List.Extra
 import Ordering exposing (Ordering)
 
@@ -34,7 +35,8 @@ splitFirst delim =
 
 tag : Concourse.User -> String -> Tag
 tag user teamName =
-    if List.any (splitFirst ':' >> (==) teamName) user.teams then
+    if Dict.member teamName user.teams then
         Member
+
     else
         Exposed

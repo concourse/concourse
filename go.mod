@@ -154,7 +154,7 @@ require (
 	github.com/vito/houdini v0.0.0-20170630141751-8dda540e3245
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	golang.org/x/crypto v0.0.0-20181009213950-7c1a557ab941
-	golang.org/x/net v0.0.0-20181005035420-146acd28ed58 // indirect
+	golang.org/x/net v0.0.0-20181011144130-49bb7cea24b1 // indirect
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
 	golang.org/x/sys v0.0.0-20181005133103-4497e2df6f9e // indirect
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect

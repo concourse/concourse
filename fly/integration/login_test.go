@@ -179,14 +179,14 @@ var _ = Describe("login Command", func() {
 							"token_type": "Bearer",
 							/**
 							{
-								"teams": [
-									"some-other-team:owner"
-								],
+								"teams": {
+									"some-other-team": ["owner"]
+								},
 								"user_id": "test",
 								"user_name": "test"
 							}
 							*/
-							"access_token": "ewog.ewogICJ0ZWFtcyI6IFsKICAgICJzb21lLW90aGVyLXRlYW06b3duZXIiCiAgXSwKICAidXNlcl9pZCI6ICJ0ZXN0IiwKICAidXNlcl9uYW1lIjogInRlc3QiCn0",
+							"access_token": "ewog.ewogICJ0ZWFtcyI6IHsKICAgICJzb21lLW90aGVyLXRlYW0iOiBbIm93bmVyIl0KICB9LAogICJ1c2VyX2lkIjogInRlc3QiLAogICJ1c2VyX25hbWUiOiAidGVzdCIKfQo",
 						},
 					),
 				),

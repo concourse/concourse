@@ -2,7 +2,6 @@ package token
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -61,28 +60,28 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 	claimGroups := verifiedClaims.Groups
 
 	isAdmin := false
-	teamSet := map[string]bool{}
+	teamSet := map[string]map[string]bool{}
 
 	for _, team := range dbTeams {
+		teamSet[team.Name()] = map[string]bool{}
+
 		for role, auth := range team.Auth() {
 			userAuth := auth["users"]
 			groupAuth := auth["groups"]
 
-			teamRole := fmt.Sprintf("%s:%s", team.Name(), role)
-
 			if len(userAuth) == 0 && len(groupAuth) == 0 {
-				teamSet[teamRole] = true
+				teamSet[team.Name()][role] = true
 				isAdmin = isAdmin || team.Admin()
 			}
 
 			for _, user := range userAuth {
 				if strings.EqualFold(user, connectorId+":"+userId) {
-					teamSet[teamRole] = true
+					teamSet[team.Name()][role] = true
 					isAdmin = isAdmin || team.Admin()
 				}
 				if userName != "" {
 					if strings.EqualFold(user, connectorId+":"+userName) {
-						teamSet[teamRole] = true
+						teamSet[team.Name()][role] = true
 						isAdmin = isAdmin || team.Admin()
 					}
 				}
@@ -96,13 +95,13 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 					if len(parts) > 0 {
 						// match the provider plus the org e.g. github:org-name
 						if strings.EqualFold(group, connectorId+":"+parts[0]) {
-							teamSet[teamRole] = true
+							teamSet[team.Name()][role] = true
 							isAdmin = isAdmin || team.Admin()
 						}
 
 						// match the provider plus the entire claim group e.g. github:org-name:team-name
 						if strings.EqualFold(group, connectorId+":"+claimGroup) {
-							teamSet[teamRole] = true
+							teamSet[team.Name()][role] = true
 							isAdmin = isAdmin || team.Admin()
 						}
 					}
@@ -111,9 +110,11 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 		}
 	}
 
-	teams := []string{}
-	for team, _ := range teamSet {
-		teams = append(teams, team)
+	teams := map[string][]string{}
+	for team, roles := range teamSet {
+		for role, _ := range roles {
+			teams[team] = append(teams[team], role)
+		}
 	}
 
 	return self.Generator.Generate(map[string]interface{}{

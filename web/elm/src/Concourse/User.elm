@@ -1,9 +1,9 @@
 module Concourse.User exposing (fetchUser, logOut)
 
+import Concourse
 import Http
 import HttpBuilder
 import Task exposing (Task)
-import Concourse
 
 
 fetchUser : Task Http.Error Concourse.User
