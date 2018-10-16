@@ -18,4 +18,4 @@ outputs:
 - name: outputs
 
 run:
-  dir: concourse/ci/tasks/scripts/terraform-smoke
+  path: concourse/ci/tasks/scripts/terraform-smoke
