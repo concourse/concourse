@@ -15,7 +15,8 @@ chmod 0600 keys/id_rsa
 ssh-keygen -y -f keys/id_rsa > keys/id_rsa.pub
 
 terraform init
-terraform apply --var project=$GCP_PROJECT
+
+terraform apply --auto-approve --var project=$GCP_PROJECT
 
 terraform output | while read name _ value; do
   echo "$value" > $outputs/$name
