@@ -1,13 +1,10 @@
 #!/bin/bash
 
-set -e -u -x
+set -e -u
 
 outputs=$PWD/outputs
 
-ls -al linux-rc
-ls -al concourse/ci/deployments
-
-cp linux-rc/concourse-*.tgz concourse/ci/deploments/smoke/concourse.tgz
+cp linux-rc/concourse-*.tgz concourse/ci/deployments/smoke/concourse.tgz
 
 cd concourse/ci/deployments/smoke
 
