@@ -22,7 +22,8 @@ if (Test-Path "final-version\version") {
 }
 
 Push-Location concourse
-  go build -ldflags "$ldflags" -o concourse.exe ./bin/cmd/concourse
+  go install github.com/gobuffalo/packr/packr
+  packr build -o concourse.exe -ldflags "$ldflags" ./bin/cmd/concourse
   mv concourse.exe ..\concourse-windows
 Pop-Location
 
