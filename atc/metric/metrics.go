@@ -468,7 +468,7 @@ func (event LockReleased) Emit(logger lager.Logger) {
 }
 
 func LogLockAcquired(logger lager.Logger, lockID lock.LockID) {
-	logger.Debug("released")
+	logger.Debug("acquired")
 
 	if len(lockID) > 0 {
 		if lockType, ok := lockTypeNames[lockID[0]]; ok {
