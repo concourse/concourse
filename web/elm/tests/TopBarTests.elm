@@ -1,6 +1,7 @@
-module TopBarTests exposing (..)
+module TopBarTests exposing (all, userWithEmail, userWithId, userWithName, userWithUserName)
 
 import Concourse
+import Dict
 import Expect exposing (..)
 import Test exposing (..)
 import TopBar exposing (userDisplayName)
@@ -8,22 +9,22 @@ import TopBar exposing (userDisplayName)
 
 userWithId : Concourse.User
 userWithId =
-    { id = "some-id", email = "", name = "", userName = "", teams = {} }
+    { id = "some-id", email = "", name = "", userName = "", teams = Dict.empty }
 
 
 userWithEmail : Concourse.User
 userWithEmail =
-    { id = "some-id", email = "some-email", name = "", userName = "", teams = {} }
+    { id = "some-id", email = "some-email", name = "", userName = "", teams = Dict.empty }
 
 
 userWithName : Concourse.User
 userWithName =
-    { id = "some-id", email = "some-email", name = "some-name", userName = "", teams = {} }
+    { id = "some-id", email = "some-email", name = "some-name", userName = "", teams = Dict.empty }
 
 
 userWithUserName : Concourse.User
 userWithUserName =
-    { id = "some-id", email = "some-email", name = "some-name", userName = "some-user-name", teams = {} }
+    { id = "some-id", email = "some-email", name = "some-name", userName = "some-user-name", teams = Dict.empty }
 
 
 all : Test
