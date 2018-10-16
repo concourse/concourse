@@ -21,10 +21,13 @@ test('running pipelines', async t => {
   await t.context.fly.run('trigger-job -j some-pipeline/say-hello -w');
 
   await t.context.web.page.goto(t.context.web.route(`/`));
-  await t.context.web.clickAndWait('some-pipeline', '.node.job');
-  await t.context.web.clickAndWait('say-hello', '.build-header.succeeded');
+  await t.context.web.clickAndWait('[data-pipeline-name="some-pipeline"] .dashboard-pipeline-name', '.node.job');
+  await t.context.web.clickAndWait('.node.job', '.build-header.succeeded');
+
+  t.true(true);
 });
 
 test('running one-off builds', async t => {
   await t.context.fly.run('execute -c fixtures/smoke-task.yml');
+  t.true(true);
 });
