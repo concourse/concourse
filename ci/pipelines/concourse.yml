@@ -88,7 +88,6 @@ jobs:
       - name: time-resource
       - name: git-resource
       outputs: [{name: image}]
-      caches: [{path: cache}]
       run: {path: build}
   - put: dev-image
     params: {image: image/image.tar}
@@ -219,7 +218,7 @@ jobs:
 - name: bin-smoke
   plan:
   - get: concourse
-    # passed: [build-rc]
+    passed: [build-rc]
   - get: linux-rc
     passed: [build-rc]
   - task: terraform-smoke
