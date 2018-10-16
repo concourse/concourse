@@ -1,0 +1,21 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: hashicorp/terraform}
+
+params:
+  GCP_PROJECT:
+  GCP_KEY:
+  SSH_KEY:
+
+inputs:
+- name: concourse
+- name: linux-rc
+
+outputs:
+- name: outputs
+
+run:
+  dir: concourse/ci/tasks/scripts/terraform-smoke

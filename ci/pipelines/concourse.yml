@@ -16,6 +16,7 @@ groups:
   - watsjs
   - rc
   - build-rc
+  - bin-smoke
 
 - name: images
   jobs:
@@ -214,6 +215,19 @@ jobs:
       params: {file: concourse-windows/concourse-*.zip}
     - put: darwin-rc
       params: {file: concourse-darwin/concourse-*.tgz}
+
+- name: bin-smoke
+  plan:
+  - get: concourse
+    # passed: [build-rc]
+  - get: linux-rc
+    # passed: [build-rc]
+  - task: terraform-smoke
+    file: concourse/ci/tasks/terraform-smoke.yml
+    params:
+      GCP_PROJECT: cf-concourse-production
+      GCP_KEY: ((concourse_smoke_gcp_key))
+      SSH_KEY: ((concourse_smoke_ssh_key))
 
 - name: unit-image
   public: true
