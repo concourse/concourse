@@ -15,7 +15,7 @@ test.afterEach.always(async t => {
 });
 
 test('running pipelines', async t => {
-  await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/hello.yml');
+  await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/smoke-pipeline.yml');
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
 
   await t.context.fly.run('trigger-job -j some-pipeline/say-hello -w');
@@ -26,5 +26,5 @@ test('running pipelines', async t => {
 });
 
 test('running one-off builds', async t => {
-  await t.context.fly.run('execute -c fixtures/hello-task.yml');
+  await t.context.fly.run('execute -c fixtures/smoke-task.yml');
 });
