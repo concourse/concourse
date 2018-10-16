@@ -221,13 +221,16 @@ jobs:
   - get: concourse
     # passed: [build-rc]
   - get: linux-rc
-    # passed: [build-rc]
+    passed: [build-rc]
   - task: terraform-smoke
     file: concourse/ci/tasks/terraform-smoke.yml
     params:
       GCP_PROJECT: cf-concourse-production
       GCP_KEY: ((concourse_smoke_gcp_key))
       SSH_KEY: ((concourse_smoke_ssh_key))
+  - task: smoke
+    file: concourse/ci/tasks/smoke.yml
+    input_mapping: {terraform-outputs: outputs}
 
 - name: unit-image
   public: true

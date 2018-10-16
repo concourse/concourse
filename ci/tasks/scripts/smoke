@@ -1,0 +1,11 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -u
+
+instance_ip="$(cat terraform-outputs/instance_ip)"
+test -n "$instance_ip"
+
+export ATC_URL="http://${instance_ip}:8080"
+
+$(dirname $0)/watsjs test/smoke.js

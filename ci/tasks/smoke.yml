@@ -7,18 +7,12 @@ image_resource:
 
 inputs:
 - name: concourse
-- name: dev-image
-  optional: true
-- name: postgres-image
+- name: terraform-outputs
   optional: true
 
 caches:
 - path: gopath
 - path: concourse/web/wats/node_modules
 
-params:
-  DOCKERFILE: Dockerfile
-
 run:
-  path: concourse/ci/tasks/scripts/with-docker-compose
-  args: [concourse/ci/tasks/scripts/watsjs]
+  path: concourse/ci/tasks/scripts/smoke
