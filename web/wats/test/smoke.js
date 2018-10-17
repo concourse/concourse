@@ -21,8 +21,15 @@ test('running pipelines', async t => {
   await t.context.fly.run('trigger-job -j some-pipeline/say-hello -w');
 
   await t.context.web.page.goto(t.context.web.route(`/`));
-  await t.context.web.clickAndWait('[data-pipeline-name="some-pipeline"] .dashboard-pipeline-name', '.node.job');
-  await t.context.web.clickAndWait('.node.job', '.build-header.succeeded');
+  await t.context.web.waitForText('some-pipeline');
+
+  await t.context.web.page.goto(t.context.web.route('/teams/'+t.context.teamName+'/pipelines/some-pipeline`));
+  await t.context.web.waitForText('say-hello');
+
+  await t.context.web.page.goto(t.context.web.route('/teams/'+t.context.teamName+'/pipelines/some-pipeline/builds/1`));
+  await t.context.web.page.waitFor('.build-header.succeeded');
+  await t.context.web.clickAndWait('[data-step-name="hello"] .header', '[data-step-name="hello"] .step-body:not(.step-collapsed)');
+  await t.context.web.waitForText('Hello, world!');
 
   t.true(true);
 });
