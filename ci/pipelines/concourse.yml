@@ -179,14 +179,20 @@ jobs:
   - task: hoist-linux-dependencies
     image: dev-image
     file: concourse/ci/tasks/hoist-linux-dependencies.yml
+  - task: yarn-build
+    image: unit-image
+    file: concourse/ci/tasks/yarn-build.yml
   - aggregate:
     - task: concourse-linux
       image: unit-image
       file: concourse/ci/tasks/concourse-build-linux.yml
+      input_mapping: {concourse: built-concourse}
     - task: concourse-windows
       file: concourse/ci/tasks/concourse-build-windows.yml
+      input_mapping: {concourse: built-concourse}
     - task: concourse-darwin
       file: concourse/ci/tasks/concourse-build-darwin.yml
+      input_mapping: {concourse: built-concourse}
   - task: zero-out-huge-stuff
     config:
       platform: linux
