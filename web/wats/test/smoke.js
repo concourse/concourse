@@ -18,7 +18,9 @@ test('running pipelines', async t => {
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/smoke-pipeline.yml');
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
 
-  await t.context.fly.run('trigger-job -j some-pipeline/say-hello -w');
+  var result = await t.context.fly.run('trigger-job -j some-pipeline/say-hello -w');
+  t.regex(result.stdout, /Hello, world!/);
+  t.regex(result.stdout, /pushing version: put-version/);
 
   await t.context.web.page.goto(t.context.web.route(`/`));
   await t.context.web.waitForText('some-pipeline');
@@ -35,6 +37,6 @@ test('running pipelines', async t => {
 });
 
 test('running one-off builds', async t => {
-  await t.context.fly.run('execute -c fixtures/smoke-task.yml');
-  t.true(true);
+  var result = await t.context.fly.run('execute -c fixtures/smoke-task.yml -i some-input=fixtures/some-input');
+  t.regex(result.stdout, /Hello, world!/);
 });
