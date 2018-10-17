@@ -26,7 +26,7 @@ test('running pipelines', async t => {
   await t.context.web.page.goto(t.context.web.route(`/teams/${t.context.teamName}/pipelines/some-pipeline`));
   await t.context.web.waitForText('say-hello');
 
-  await t.context.web.page.goto(t.context.web.route(`/teams/${t.context.teamName}/pipelines/some-pipeline/builds/1`));
+  await t.context.web.page.goto(t.context.web.route(`/teams/${t.context.teamName}/pipelines/some-pipeline/jobs/say-hello/builds/1`));
   await t.context.web.page.waitFor('.build-header.succeeded');
   await t.context.web.clickAndWait('[data-step-name="hello"] .header', '[data-step-name="hello"] .step-body:not(.step-collapsed)');
   await t.context.web.waitForText('Hello, world!');
