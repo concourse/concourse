@@ -114,6 +114,16 @@ resource "null_resource" "rerun" {
     source = "systemd/concourse-worker.service"
   }
 
+  provisioner "file" {
+    destination = "/etc/systemd/system/concourse-web.service.d/smoke.conf"
+    source = "systemd/smoke-web.conf"
+  }
+
+  provisioner "file" {
+    destination = "/etc/systemd/system/concourse-worker.service.d/smoke.conf"
+    source = "systemd/smoke-worker.conf"
+  }
+
   provisioner "remote-exec" {
     inline = [
       "set -e -x",
