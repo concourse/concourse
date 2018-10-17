@@ -217,10 +217,13 @@ jobs:
 
 - name: bin-smoke
   plan:
-  - get: concourse
-    passed: [build-rc]
-  - get: linux-rc
-    passed: [build-rc]
+  - aggregate:
+    - get: concourse
+      passed: [build-rc]
+    - get: unit-image
+      passed: [build-rc]
+    - get: linux-rc
+      passed: [build-rc]
   - task: terraform-smoke
     file: concourse/ci/tasks/terraform-smoke.yml
     params:
@@ -228,6 +231,7 @@ jobs:
       GCP_KEY: ((concourse_smoke_gcp_key))
       SSH_KEY: ((concourse_smoke_ssh_key))
   - task: smoke
+    image: unit-image
     file: concourse/ci/tasks/smoke.yml
     input_mapping: {terraform-outputs: outputs}
 
