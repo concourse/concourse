@@ -89,11 +89,32 @@ resource "google_compute_instance" "smoke" {
   }
 }
 
+resource "random_string" "admin_password" {
+  keepers {
+    regen = "${uuid()}"
+  }
+
+  length = 16
+  special = false
+}
+
+resource "random_string" "guest_password" {
+  keepers {
+    regen = "${uuid()}"
+  }
+
+  length = 16
+  special = false
+}
+
 data "template_file" "web_conf" {
   template = "${file("systemd/smoke-web.conf.tpl")}"
 
   vars {
     instance_ip = "${google_compute_address.smoke.address}"
+
+    admin_password = "${random_string.admin_password.result}"
+    guest_password = "${random_string.guest_password.result}"
   }
 }
 
@@ -162,4 +183,12 @@ resource "null_resource" "rerun" {
 
 output "instance_ip" {
   value = "${google_compute_address.smoke.address}"
+}
+
+output "admin_password" {
+  value = "${random_string.admin_password.result}"
+}
+
+output "guest_password" {
+  value = "${random_string.guest_password.result}"
 }

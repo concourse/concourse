@@ -6,5 +6,5 @@ Environment=CONCOURSE_TSA_AUTHORIZED_KEYS=/etc/concourse/authorized_worker_keys
 Environment=CONCOURSE_POSTGRES_USER=concourse
 Environment=CONCOURSE_POSTGRES_DATABASE=concourse
 Environment=CONCOURSE_POSTGRES_SOCKET=/var/run/postgresql
-Environment=CONCOURSE_ADD_LOCAL_USER=test:test,guest:guest
-Environment=CONCOURSE_MAIN_TEAM_LOCAL_USER=test
+Environment=CONCOURSE_ADD_LOCAL_USER=admin:${admin_password},guest:${guest_password}
+Environment=CONCOURSE_MAIN_TEAM_LOCAL_USER=admin

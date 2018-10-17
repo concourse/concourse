@@ -7,6 +7,10 @@ instance_ip="$(cat terraform-outputs/instance_ip)"
 test -n "$instance_ip"
 
 export ATC_URL="http://${instance_ip}:8080"
+export ATC_ADMIN_USERNAME=admin
+export ATC_ADMIN_PASSWORD="$(cat terraform-outputs/admin_password)"
+export ATC_GUEST_USERNAME=guest
+export ATC_GUEST_PASSWORD="$(cat terraform-outputs/guest_password)"
 
 curl "$ATC_URL/api/v1/cli?arch=amd64&platform=linux" | tar -zxf - -C /usr/local/bin
 
