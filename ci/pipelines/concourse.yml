@@ -226,9 +226,11 @@ jobs:
   - aggregate:
     - get: concourse
       passed: [build-rc]
-    - get: unit-image
-      passed: [build-rc]
+      trigger: true
     - get: linux-rc
+      passed: [build-rc]
+      trigger: true
+    - get: unit-image
       passed: [build-rc]
   - task: terraform-smoke
     file: concourse/ci/tasks/terraform-smoke.yml
