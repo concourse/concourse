@@ -39,10 +39,13 @@ jobs:
       image: unit-image
       file: concourse/ci/tasks/unit.yml
       input_mapping: {concourse: built-concourse}
+      timeout: 1h
     - task: fly-darwin
       file: concourse/ci/tasks/fly-darwin.yml
+      timeout: 1h
     - task: fly-windows
       file: concourse/ci/tasks/fly-windows.yml
+      timeout: 1h
 
 - name: dev-image
   public: true
