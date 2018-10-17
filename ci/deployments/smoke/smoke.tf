@@ -89,6 +89,14 @@ resource "google_compute_instance" "smoke" {
   }
 }
 
+data "template_file" "web_conf" {
+  template = "${file("systemd/smoke-web.conf.tpl")}"
+
+  vars {
+    instance_ip = "${google_compute_address.smoke.address}"
+  }
+}
+
 resource "null_resource" "rerun" {
   depends_on = ["google_compute_instance.smoke"]
 
@@ -131,7 +139,7 @@ resource "null_resource" "rerun" {
 
   provisioner "file" {
     destination = "/etc/systemd/system/concourse-web.service.d/smoke.conf"
-    source = "systemd/smoke-web.conf"
+    content = "${data.template_file.web_conf.rendered}"
   }
 
   provisioner "file" {
