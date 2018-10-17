@@ -82,6 +82,8 @@ github.com/concourse/baggageclaim v1.2.0 h1:f6xithGCrPlWsaFTvlp+O5B1fmjub9Rt30Td
 github.com/concourse/baggageclaim v1.2.0/go.mod h1:8tZxZHd3i7B3hrqxPc52gBCWDtWmJkMN5+gBVZ9E+y4=
 github.com/concourse/dex v0.0.0-20181004212830-f247fc8fa001 h1:PEE+wm4imtIN9y2fi3PB82DVnZj3lTUxRPvdiWifO8Q=
 github.com/concourse/dex v0.0.0-20181004212830-f247fc8fa001/go.mod h1:ju6DjJBZWrfjDhOtUSOiHpVI3Bhu0FUgw/Qr8gkzGYE=
+github.com/concourse/dex v0.0.0-20181017143659-4a3bb9452ad1 h1:M0js96H9c4BKZiLKWCmHZF0l3RtDwZoIivnNQHPXUi8=
+github.com/concourse/dex v0.0.0-20181017143659-4a3bb9452ad1/go.mod h1:ju6DjJBZWrfjDhOtUSOiHpVI3Bhu0FUgw/Qr8gkzGYE=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c h1:SwMKBc36jGTSS5/3AqVtbRjbGTvDfR3pJ5MkzfiYSas=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
 github.com/concourse/go-archive v0.0.0-20180803203406-784931698f4f h1:Z7s60kZd9kuWiosivO9QPGH1vmfC/lzLDiuWIy0MT+o=
