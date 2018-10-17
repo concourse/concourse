@@ -8,4 +8,8 @@ test -n "$instance_ip"
 
 export ATC_URL="http://${instance_ip}:8080"
 
+curl '$ATC_URL/api/v1/cli?arch=amd64&platform=linux' | tar -zxf - -C /usr/local/bin
+
+fly --version
+
 $(dirname $0)/watsjs test/smoke.js

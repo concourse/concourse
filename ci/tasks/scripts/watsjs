@@ -5,7 +5,10 @@ set -e
 
 cd concourse
 
-go install ./fly
+# check if smoke tests already downloaded fly
+if ! [ -e /usr/local/bin/fly ]; then
+  go install ./fly
+fi
 
 cd web/wats
 
