@@ -24,10 +24,23 @@ resource "google_compute_address" "smoke" {
   name = "smoke"
 }
 
+resource "google_compute_firewall" "bosh-director" {
+  name    = "allow-smoke-http"
+  network = "default"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["8080"]
+  }
+
+  target_tags = ["smoke"]
+}
+
 resource "google_compute_instance" "smoke" {
   name = "smoke"
   machine_type = "custom-8-8192"
   zone = "${data.google_compute_zones.available.names[0]}"
+  tags = ["smoke"]
 
   boot_disk {
     initialize_params {
