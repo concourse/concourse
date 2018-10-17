@@ -187,8 +187,10 @@ output "instance_ip" {
 
 output "admin_password" {
   value = "${random_string.admin_password.result}"
+  sensitive = true
 }
 
 output "guest_password" {
   value = "${random_string.guest_password.result}"
+  sensitive = true
 }
