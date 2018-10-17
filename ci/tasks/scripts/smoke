@@ -12,6 +12,23 @@ export ATC_ADMIN_PASSWORD="$(cat terraform-outputs/admin_password)"
 export ATC_GUEST_USERNAME=guest
 export ATC_GUEST_PASSWORD="$(cat terraform-outputs/guest_password)"
 
+ticks=0
+echo -n 'waiting for ATC to be running...'
+until curl -sf "$ATC_URL/api/v1/info"; do
+  echo -n .
+
+  ((ticks++))
+
+  if [ "$ticks" -ge 60 ]; then
+    echo "giving up. :("
+    exit 1
+  fi
+
+  sleep 1
+done
+
+echo 'ok!'
+
 curl "$ATC_URL/api/v1/cli?arch=amd64&platform=linux" | tar -zxf - -C /usr/local/bin
 
 fly --version
