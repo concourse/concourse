@@ -26,6 +26,21 @@ var _ = Describe("Token Issuer", func() {
 			fakeToken       *oauth2.Token
 		)
 
+		AssertNoTeamsTokenIssueError := func() {
+			It("fails to issue a token", func() {
+				skyToken, err := tokenIssuer.Issue(verifiedClaims)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("user doesn't belong to any team"))
+				Expect(skyToken).To(BeNil())
+			})
+		}
+
+		AssertIssueToken := func() {
+			skyToken, err := tokenIssuer.Issue(verifiedClaims)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(skyToken).To(Equal(fakeToken))
+		}
+
 		BeforeEach(func() {
 			duration = time.Minute
 			fakeToken = &oauth2.Token{}
@@ -109,16 +124,7 @@ var _ = Describe("Token Issuer", func() {
 				fakeTeamFactory.GetTeamsReturns([]db.Team{}, nil)
 			})
 
-			JustBeforeEach(func() {
-				skyToken, err := tokenIssuer.Issue(verifiedClaims)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(skyToken).To(Equal(fakeToken))
-			})
-
-			It("calls generate with an empty teams claim", func() {
-				claims := fakeGenerator.GenerateArgsForCall(0)
-				Expect(claims["teams"]).To(HaveLen(0))
-			})
+			AssertNoTeamsTokenIssueError()
 		})
 
 		Context("when the team factory returns teams", func() {
@@ -128,6 +134,7 @@ var _ = Describe("Token Issuer", func() {
 
 			AssertTokenClaims := func() {
 				It("includes expected claims", func() {
+					AssertIssueToken()
 					claims := fakeGenerator.GenerateArgsForCall(0)
 					Expect(claims["sub"]).To(Equal("some-sub"))
 					Expect(claims["email"]).To(Equal("mail@example.com"))
@@ -147,6 +154,7 @@ var _ = Describe("Token Issuer", func() {
 						fakeTeam1.AuthReturns(atc.TeamAuth{"owner": {}})
 					})
 					It("includes expected claims", func() {
+						AssertIssueToken()
 						claims := fakeGenerator.GenerateArgsForCall(0)
 						Expect(claims["is_admin"]).To(BeTrue())
 					})
@@ -158,6 +166,7 @@ var _ = Describe("Token Issuer", func() {
 						fakeTeam1.AuthReturns(atc.TeamAuth{"owner": {}})
 					})
 					It("includes expected claims", func() {
+						AssertIssueToken()
 						claims := fakeGenerator.GenerateArgsForCall(0)
 						Expect(claims["is_admin"]).To(BeFalse())
 					})
@@ -182,21 +191,14 @@ var _ = Describe("Token Issuer", func() {
 			})
 
 			Context("when the verified claims don't match any db teams", func() {
-				FIt("errors and does not return a sky token", func() {
+				BeforeEach(func() {
 					verifiedClaims.ConnectorID = "some-connector"
-					skyToken, err := tokenIssuer.Issue(verifiedClaims)
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("user doesn't belong to any team"))
-					Expect(skyToken).To(BeNil())
 				})
+
+				AssertNoTeamsTokenIssueError()
 			})
 
 			Context("when the verified claims match one or more db teams", func() {
-				JustBeforeEach(func() {
-					skyToken, err := tokenIssuer.Issue(verifiedClaims)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(skyToken).To(Equal(fakeToken))
-				})
 
 				Context("when teams don't have roles configured", func() {
 					BeforeEach(func() {
@@ -204,13 +206,7 @@ var _ = Describe("Token Issuer", func() {
 						fakeTeam2.AuthReturns(atc.TeamAuth{})
 					})
 
-					It("calls generate with expected team claims", func() {
-						claims := fakeGenerator.GenerateArgsForCall(0)
-						Expect(claims["teams"]).To(HaveLen(0))
-					})
-
-					AssertTokenClaims()
-					AssertTokenAdminClaims()
+					AssertNoTeamsTokenIssueError()
 				})
 
 				Context("when teams don't have auth configured", func() {
@@ -220,6 +216,7 @@ var _ = Describe("Token Issuer", func() {
 					})
 
 					It("calls generate with expected team claims", func() {
+						AssertIssueToken()
 						claims := fakeGenerator.GenerateArgsForCall(0)
 						Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-1", ContainElement("owner")))
 						Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-2", ContainElement("owner")))
@@ -242,6 +239,7 @@ var _ = Describe("Token Issuer", func() {
 						})
 
 						It("calls generate with expected team claims", func() {
+							AssertIssueToken()
 							claims := fakeGenerator.GenerateArgsForCall(0)
 							Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-1", ContainElement("owner")))
 							Expect(claims["teams"]).NotTo(HaveKey("fake-team-2"))
@@ -259,6 +257,7 @@ var _ = Describe("Token Issuer", func() {
 						})
 
 						It("calls generate with expected team claims", func() {
+							AssertIssueToken()
 							claims := fakeGenerator.GenerateArgsForCall(0)
 							Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-1", ContainElement("owner")))
 							Expect(claims["teams"]).NotTo(HaveKey("fake-team-2"))
@@ -279,6 +278,7 @@ var _ = Describe("Token Issuer", func() {
 					})
 
 					It("calls generate with expected team claims", func() {
+						AssertIssueToken()
 						claims := fakeGenerator.GenerateArgsForCall(0)
 						Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-1", ConsistOf("owner", "member", "viewer")))
 					})
@@ -300,6 +300,7 @@ var _ = Describe("Token Issuer", func() {
 						})
 
 						It("calls generate with expected team claims", func() {
+							AssertIssueToken()
 							claims := fakeGenerator.GenerateArgsForCall(0)
 							Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-1", ContainElement("owner")))
 							Expect(claims["teams"]).NotTo(HaveKey("fake-team-2"))
@@ -316,12 +317,7 @@ var _ = Describe("Token Issuer", func() {
 							})
 						})
 
-						It("calls generate with expected team claims", func() {
-							claims := fakeGenerator.GenerateArgsForCall(0)
-							Expect(claims["teams"]).To(HaveLen(0))
-						})
-
-						AssertTokenClaims()
+						AssertNoTeamsTokenIssueError()
 					})
 				})
 
@@ -338,6 +334,7 @@ var _ = Describe("Token Issuer", func() {
 						})
 
 						It("calls generate with expected team claims", func() {
+							AssertIssueToken()
 							claims := fakeGenerator.GenerateArgsForCall(0)
 							Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-1", ContainElement("owner")))
 							Expect(claims["teams"]).NotTo(HaveKey("fake-team-2"))
@@ -355,6 +352,7 @@ var _ = Describe("Token Issuer", func() {
 						})
 
 						It("calls generate with expected team claims", func() {
+							AssertIssueToken()
 							claims := fakeGenerator.GenerateArgsForCall(0)
 							Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-1", ContainElement("owner")))
 							Expect(claims["teams"]).NotTo(HaveKey("fake-team-2"))
@@ -380,10 +378,7 @@ var _ = Describe("Token Issuer", func() {
 							})
 						})
 
-						It("calls generate with expected team claims", func() {
-							claims := fakeGenerator.GenerateArgsForCall(0)
-							Expect(claims["teams"]).To(HaveLen(0))
-						})
+						AssertNoTeamsTokenIssueError()
 					})
 				})
 			})
