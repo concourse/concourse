@@ -29,6 +29,7 @@
         "elm-lang/navigation": "2.1.0 <= v < 3.0.0",
         "elm-lang/svg": "2.0.0 <= v < 3.0.0",
         "elm-lang/websocket": "1.0.2 <= v < 2.0.0",
+        "elm-lang/window": "1.0.1 <= v < 2.0.0",
         "fapian/elm-html-aria": "1.2.2 <= v < 2.0.0",
         "krisajenkins/remotedata": "4.3.0 <= v < 5.0.0",
         "lukewestby/elm-http-builder": "5.0.0 <= v < 6.0.0",

@@ -26,6 +26,7 @@ import Monocle.Optional
 import Monocle.Lens
 import MonocleHelpers exposing (..)
 import NewTopBar
+import NewTopBar.Styles as NTBS
 import NoPipeline exposing (Msg, view)
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
@@ -33,6 +34,7 @@ import Routes
 import Simple.Fuzzy exposing (filter, match, root)
 import Task
 import Time exposing (Time)
+import Window
 
 
 type alias Ports =
@@ -41,7 +43,7 @@ type alias Ports =
 
 
 type alias PinTeamConfig =
-    { pageHeaderClass : String
+    { pageHeaderHeight : Float
     , pageBodyClass : String
     , sectionHeaderClass : String
     , sectionClass : String
@@ -123,7 +125,7 @@ init ports flags =
             [ fetchData
             , Cmd.map TopBarMsg topBarMsg
             , pinTeamNames
-                { pageHeaderClass = "module-topbar"
+                { pageHeaderHeight = NTBS.pageHeaderHeight
                 , pageBodyClass = "dashboard"
                 , sectionClass = "dashboard-team-group"
                 , sectionHeaderClass = "dashboard-team-header"
@@ -384,13 +386,14 @@ subscriptions model =
         , Mouse.clicks (\_ -> ShowFooter)
         , Keyboard.presses KeyPressed
         , Keyboard.downs KeyDowns
+        , Window.resizes (TopBarMsg << NewTopBar.ScreenResized)
         ]
 
 
 view : Model -> Html Msg
 view model =
     Html.div [ class "page" ]
-        [ (Html.map TopBarMsg << Html.fromUnstyled) (NewTopBar.view model.topBar)
+        [ (Html.map TopBarMsg) (NewTopBar.view model.topBar)
         , dashboardView model
         ]
 
@@ -410,7 +413,7 @@ dashboardView model =
                     [ Html.div [ class "dashboard-no-content", css [ Css.height (Css.pct 100) ] ] [ (Html.map (always Noop) << Html.fromUnstyled) NoPipeline.view ] ]
 
                 Ok substate ->
-                    [ Html.div [ class "dashboard-content" ] (pipelinesView substate model.topBar.query ++ [ footerView substate ]) ]
+                    [ Html.div [ class "dashboard-content" ] (pipelinesView substate (NewTopBar.query model.topBar) ++ [ footerView substate ]) ]
     in
         Html.div
             [ classList [ ( "dashboard", True ), ( "dashboard-hd", model.highDensity ) ] ]
