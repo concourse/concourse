@@ -78,6 +78,8 @@ test('shows team name with member tag when user is a member of the team', async 
 
 test('does not show team name when user is logged in another non-main team and has no exposed pipelines', async t => {
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
+  await t.context.fly.run('login -n ' + t.context.guestTeamName + ' -u '+ t.context.guestUsername +' -p ' + t.context.guestPassword);
+  await t.context.fly.run('set-pipeline -n -p non-main-pipeline -c fixtures/states-pipeline.yml');
 
   let web = await Web.build(t.context.url, t.context.guestUsername, t.context.guestPassword);
   await web.login(t);
@@ -107,6 +109,7 @@ test('shows team name with exposed tag when team has an exposed pipeline and use
   let web = await Web.build(t.context.url, t.context.guestUsername, t.context.guestPassword);
   await web.login(t);
   await web.page.goto(web.route('/'));
+  await web.page.waitFor('.dashboard-content', {timeout: 90000});
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"] .dashboard-team-tag`;
   const element = await web.page.waitFor(group);

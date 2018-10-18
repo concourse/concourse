@@ -30,6 +30,7 @@ type issuer struct {
 
 func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error) {
 
+	// TODO are these two checks necessary?
 	if self.TeamFactory == nil {
 		return nil, errors.New("Missing team factory")
 	}
@@ -115,6 +116,10 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 		for role, _ := range roles {
 			teams[team] = append(teams[team], role)
 		}
+	}
+
+	if len(teams) == 0 {
+		return nil, errors.New("user doesn't belong to any team")
 	}
 
 	return self.Generator.Generate(map[string]interface{}{

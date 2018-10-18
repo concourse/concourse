@@ -14,6 +14,7 @@ class Suite {
     this.guestPassword = process.env.ATC_GUEST_PASSWORD || 'guest';
 
     this.teamName = `watsjs-team-${uuidv4()}`;
+    this.guestTeamName = `watsjs-non-main-team-${uuidv4()}`;
     this.teams = [];
 
     this.fly = new Fly(this.url, this.adminUsername, this.adminPassword, this.teamName);
@@ -28,6 +29,7 @@ class Suite {
 
   async init(t) {
     await this.newTeam(this.adminUsername, this.teamName);
+    await this.newTeam(this.guestUsername, this.guestTeamName);
     await this.fly.init();
     await this.web.init();
     await this.web.login(t);
