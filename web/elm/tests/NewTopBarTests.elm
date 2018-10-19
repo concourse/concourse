@@ -5,9 +5,6 @@ import Dict
 import Expect
 import Html.Attributes as Attributes
 import Html.Styled as HS
-import Http
-import Navigation
-import NewTopBar
 import RemoteData
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -58,36 +55,47 @@ userName =
 
 loggedIn : Dashboard.Model -> Dashboard.Model
 loggedIn =
-    updateModel
-        << Dashboard.UserFetched
-        << RemoteData.Success
-    <|
-        { id = userName
-        , userName = userName
-        , name = userName
-        , email = userName
-        , teams = Dict.empty
-        }
+    updateModel <|
+        (Dashboard.APIDataFetched <|
+            RemoteData.Success
+                ( 0
+                , ( { teams = []
+                    , pipelines = []
+                    , jobs = []
+                    , resources = []
+                    , version = ""
+                    }
+                  , Just
+                        { id = userName
+                        , userName = userName
+                        , name = userName
+                        , email = userName
+                        , teams = Dict.empty
+                        }
+                  )
+                )
+        )
 
 
 loggedOut : Dashboard.Model -> Dashboard.Model
 loggedOut =
-    updateModel
-        << Dashboard.UserFetched
-        << RemoteData.Failure
-        << Http.BadStatus
-    <|
-        { url = ""
-        , status =
-            { code = 401
-            , message = "Unauthorized"
-            }
-        , headers = Dict.empty
-        , body = ""
-        }
+    updateModel <|
+        (Dashboard.APIDataFetched <|
+            RemoteData.Success
+                ( 0
+                , ( { teams = []
+                    , pipelines = []
+                    , jobs = []
+                    , resources = []
+                    , version = ""
+                    }
+                  , Nothing
+                  )
+                )
+        )
 
 
-queryView : NewTopBar.Model r -> Query.Single Dashboard.Msg
+queryView : Dashboard.Model -> Query.Single Dashboard.Msg
 queryView =
     Dashboard.viewTopBar
         >> HS.toUnstyled
@@ -156,7 +164,7 @@ all =
                         |> updateModel Dashboard.FocusMsg
                         |> updateModel (Dashboard.FilterMsg "status:")
                         |> updateModel (Dashboard.SelectMsg 1)
-                        |> updateModel (Dashboard.KeyDown 13)
+                        |> updateModel (Dashboard.KeyPressed 13)
                         |> queryView
                         |> Query.find [ tag "input" ]
                         |> Query.has [ attribute (Attributes.value "status: pending") ]
@@ -164,12 +172,22 @@ all =
                 \_ ->
                     init { highDensity = False, query = "" }
                         |> updateModel
-                            (Dashboard.TeamsFetched
+                            (Dashboard.APIDataFetched
                                 (RemoteData.Success
-                                    [ { id = 0
-                                      , name = "some-team"
-                                      }
-                                    ]
+                                    ( 0
+                                    , ( { teams =
+                                            [ { id = 0
+                                              , name = "some-team"
+                                              }
+                                            ]
+                                        , pipelines = []
+                                        , jobs = []
+                                        , resources = []
+                                        , version = ""
+                                        }
+                                      , Nothing
+                                      )
+                                    )
                                 )
                             )
                         |> updateModel Dashboard.FocusMsg

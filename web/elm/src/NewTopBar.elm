@@ -31,7 +31,6 @@ type alias Model r =
         | userState : UserState
         , userMenuVisible : Bool
         , searchBar : SearchBar
-        , teams : RemoteData.WebData (List Concourse.Team)
     }
 
 
@@ -64,7 +63,7 @@ viewConcourseLogo =
     ]
 
 
-autocompleteOptions : { a | query : String, teams : RemoteData.WebData (List Concourse.Team) } -> List String
+autocompleteOptions : { a | query : String, teams : List Concourse.Team } -> List String
 autocompleteOptions { query, teams } =
     case String.trim query of
         "" ->
@@ -74,12 +73,7 @@ autocompleteOptions { query, teams } =
             [ "status: paused", "status: pending", "status: failed", "status: errored", "status: aborted", "status: running", "status: succeeded" ]
 
         "team:" ->
-            case teams of
-                RemoteData.Success ts ->
-                    List.map (\team -> "team: " ++ team.name) <| List.take 10 ts
-
-                _ ->
-                    []
+            List.map (\team -> "team: " ++ team.name) <| List.take 10 teams
 
         _ ->
             []

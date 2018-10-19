@@ -7,7 +7,6 @@ import Concourse.Cli
 import Concourse.Pipeline
 import Concourse.PipelineStatus
 import Concourse.User
-import Concourse.Team
 import Css
 import Dashboard.Details as Details
 import Dashboard.Group as Group
@@ -68,11 +67,6 @@ port tooltip : ( String, String ) -> Cmd msg
 port tooltipHd : ( String, String ) -> Cmd msg
 
 
-
--- TODO all the crsfToken stuff in this file only gets actually used for ordering and toggling pipelines.
--- honestly it seems like it could live in a completely different module.
-
-
 type alias Flags =
     { csrfToken : String
     , turbulencePath : String
@@ -90,12 +84,11 @@ type DashboardError
 type alias Model =
     { csrfToken : String
     , state : Result DashboardError SubState.SubState
-    , turbulencePath : String -- this doesn't vary, it's more a prop (in the sense of react) than state. should be a way to use a thunk for the Turbulence case of DashboardState
+    , turbulencePath : String
     , highDensity : Bool
     , userState : UserState
     , userMenuVisible : Bool
     , searchBar : SearchBar
-    , teams : RemoteData.WebData (List Concourse.Team)
     }
 
 
@@ -119,8 +112,6 @@ type Msg
     | PipelinePauseToggled Concourse.Pipeline (Result Http.Error ())
     | PipelineMsg Pipeline.Msg
     | GroupMsg Group.Msg
-    | UserFetched (RemoteData.WebData Concourse.User)
-    | TeamsFetched (RemoteData.WebData (List Concourse.Team))
     | LogIn
     | LogOut
     | LoggedOut (Result Http.Error ())
@@ -128,7 +119,6 @@ type Msg
     | FocusMsg
     | BlurMsg
     | SelectMsg Int
-    | KeyDown Keyboard.KeyCode
     | ToggleUserMenu
     | ShowSearchInput
     | ScreenResized Window.Size
@@ -156,12 +146,9 @@ init ports flags =
           , userState = UserStateUnknown
           , userMenuVisible = False
           , searchBar = searchBar
-          , teams = RemoteData.Loading
           }
         , Cmd.batch
             [ fetchData
-            , Concourse.User.fetchUser |> RemoteData.asCmd |> Cmd.map UserFetched
-            , Concourse.Team.fetchTeams |> RemoteData.asCmd |> Cmd.map TeamsFetched
             , pinTeamNames
                 { pageHeaderHeight = Styles.pageHeaderHeight
                 , pageBodyClass = "dashboard"
@@ -244,15 +231,24 @@ update msg model =
                         model |> stateLens.set (Err (Turbulence model.turbulencePath))
 
                     RemoteData.Success ( now, ( apiData, user ) ) ->
-                        model
-                            |> Monocle.Lens.modify stateLens
-                                (Result.map
-                                    (.set SubState.teamDataLens (SubState.teamData apiData user)
-                                        >> .set (SubState.detailsOptional =|> Details.nowLens) now
-                                        >> Ok
+                        let
+                            userState =
+                                case user of
+                                    Just u ->
+                                        UserStateLoggedIn u
+
+                                    Nothing ->
+                                        UserStateLoggedOut
+                        in
+                            { model | userState = userState }
+                                |> Monocle.Lens.modify stateLens
+                                    (Result.map
+                                        (.set SubState.teamDataLens (SubState.teamData apiData user)
+                                            >> .set (SubState.detailsOptional =|> Details.nowLens) now
+                                            >> Ok
+                                        )
+                                        >> Result.withDefault (substate model.csrfToken model.highDensity ( now, ( apiData, user ) ))
                                     )
-                                    >> Result.withDefault (substate model.csrfToken model.highDensity ( now, ( apiData, user ) ))
-                                )
                 )
                     |> noop
 
@@ -389,16 +385,6 @@ update msg model =
                         ]
                     )
 
-            UserFetched user ->
-                case user of
-                    RemoteData.Success user ->
-                        ( { model | userState = UserStateLoggedIn user }, Cmd.none )
-
-                    _ ->
-                        ( { model | userState = UserStateLoggedOut }
-                        , Cmd.none
-                        )
-
             LogIn ->
                 ( model
                 , LoginRedirect.requestLoginRedirect ""
@@ -420,7 +406,6 @@ update msg model =
                     ( { model
                         | userState = UserStateLoggedOut
                         , userMenuVisible = False
-                        , teams = RemoteData.Loading
                       }
                     , Cmd.batch
                         [ Navigation.newUrl redirectUrl
@@ -434,9 +419,6 @@ update msg model =
 
             ToggleUserMenu ->
                 ( { model | userMenuVisible = not model.userMenuVisible }, Cmd.none )
-
-            TeamsFetched response ->
-                ( { model | teams = response }, Cmd.none )
 
             FocusMsg ->
                 let
@@ -481,55 +463,6 @@ update msg model =
                                 model
                 in
                     ( newModel, Cmd.none )
-
-            KeyDown keycode ->
-                case model.searchBar of
-                    Expanded r ->
-                        if not r.showAutocomplete then
-                            ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0 } }, Cmd.none )
-                        else
-                            case keycode of
-                                -- enter key
-                                13 ->
-                                    if not r.selectionMade then
-                                        ( model, Cmd.none )
-                                    else
-                                        let
-                                            options =
-                                                Array.fromList (NewTopBar.autocompleteOptions { query = r.query, teams = model.teams })
-
-                                            index =
-                                                (r.selection - 1) % Array.length options
-
-                                            selectedItem =
-                                                case Array.get index options of
-                                                    Nothing ->
-                                                        r.query
-
-                                                    Just item ->
-                                                        item
-                                        in
-                                            ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0, query = selectedItem } }
-                                            , Cmd.none
-                                            )
-
-                                -- up arrow
-                                38 ->
-                                    ( { model | searchBar = Expanded { r | selectionMade = True, selection = r.selection - 1 } }, Cmd.none )
-
-                                -- down arrow
-                                40 ->
-                                    ( { model | searchBar = Expanded { r | selectionMade = True, selection = r.selection + 1 } }, Cmd.none )
-
-                                -- escape key
-                                27 ->
-                                    ( model, Task.attempt (always Noop) (Dom.blur "search-input-field") )
-
-                                _ ->
-                                    ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0 } }, Cmd.none )
-
-                    _ ->
-                        ( model, Cmd.none )
 
             ShowSearchInput ->
                 showSearchInput model
@@ -600,7 +533,6 @@ subscriptions model =
         , Mouse.moves (\_ -> ShowFooter)
         , Mouse.clicks (\_ -> ShowFooter)
         , Keyboard.presses KeyPressed
-        , Keyboard.downs KeyDown
         , Window.resizes ScreenResized
         ]
 
@@ -883,12 +815,13 @@ viewUserState { userState, userMenuVisible } =
                    )
 
 
-viewTopBar : NewTopBar.Model r -> Html Msg
+viewTopBar : Model -> Html Msg
 viewTopBar model =
-    Html.div [ css Styles.topBar ] <|
-        NewTopBar.viewConcourseLogo
-            ++ viewMiddleSection model
-            ++ viewUserInfo model
+    flip always (Debug.log "model" model) <|
+        Html.div [ css Styles.topBar ] <|
+            NewTopBar.viewConcourseLogo
+                ++ viewMiddleSection model
+                ++ viewUserInfo model
 
 
 searchInput : { a | query : String, screenSize : ScreenSize } -> List (Html Msg)
@@ -915,7 +848,7 @@ searchInput { query, screenSize } =
     ]
 
 
-viewMiddleSection : NewTopBar.Model r -> List (Html Msg)
+viewMiddleSection : Model -> List (Html Msg)
 viewMiddleSection model =
     case model.searchBar of
         Invisible ->
@@ -940,7 +873,7 @@ viewMiddleSection model =
                                 [ css <| Styles.searchOptionsList r.screenSize ]
                                 (viewAutocomplete
                                     { query = r.query
-                                    , teams = model.teams
+                                    , teams = teams model
                                     , selectionMade = r.selectionMade
                                     , selection = r.selection
                                     , screenSize = r.screenSize
@@ -957,7 +890,7 @@ viewMiddleSection model =
 viewAutocomplete :
     { a
         | query : String
-        , teams : RemoteData.WebData (List Concourse.Team)
+        , teams : List Concourse.Team
         , selectionMade : Bool
         , selection : Int
         , screenSize : ScreenSize
@@ -984,19 +917,81 @@ viewAutocomplete r =
                 )
 
 
+teams : Model -> List Concourse.Team
+teams model =
+    model
+        |> .getOption
+            (substateOptional
+                =|> SubState.teamDataLens
+                =|> SubState.apiDataLens
+            )
+        |> Maybe.map .teams
+        |> Maybe.withDefault []
+
+
 handleKeyPressed : Char -> Model -> ( Model, Cmd Msg )
 handleKeyPressed key model =
-    case key of
-        '/' ->
-            ( model, Task.attempt (always Noop) (Dom.focus "search-input-field") )
+    let
+        ( newModel, newCmd ) =
+            case key of
+                '/' ->
+                    ( model, Task.attempt (always Noop) (Dom.focus "search-input-field") )
 
-        '?' ->
-            model
-                |> Monocle.Optional.modify (substateOptional => SubState.detailsOptional) Details.toggleHelp
-                |> noop
+                '?' ->
+                    model
+                        |> Monocle.Optional.modify (substateOptional => SubState.detailsOptional) Details.toggleHelp
+                        |> noop
 
-        _ ->
-            update ShowFooter model
+                _ ->
+                    update ShowFooter model
+    in
+        case newModel.searchBar of
+            Expanded r ->
+                if not r.showAutocomplete then
+                    ( { newModel | searchBar = Expanded { r | selectionMade = False, selection = 0 } }, Cmd.none )
+                else
+                    case Char.toCode key of
+                        -- enter key
+                        13 ->
+                            if not r.selectionMade then
+                                ( newModel, newCmd )
+                            else
+                                let
+                                    options =
+                                        Array.fromList (NewTopBar.autocompleteOptions { query = r.query, teams = teams newModel })
+
+                                    index =
+                                        (r.selection - 1) % Array.length options
+
+                                    selectedItem =
+                                        case Array.get index options of
+                                            Nothing ->
+                                                r.query
+
+                                            Just item ->
+                                                item
+                                in
+                                    ( { newModel | searchBar = Expanded { r | selectionMade = False, selection = 0, query = selectedItem } }
+                                    , newCmd
+                                    )
+
+                        -- up arrow
+                        38 ->
+                            ( { newModel | searchBar = Expanded { r | selectionMade = True, selection = r.selection - 1 } }, newCmd )
+
+                        -- down arrow
+                        40 ->
+                            ( { newModel | searchBar = Expanded { r | selectionMade = True, selection = r.selection + 1 } }, newCmd )
+
+                        -- escape key
+                        27 ->
+                            ( newModel, Cmd.batch [ Task.attempt (always Noop) (Dom.blur "search-input-field"), newCmd ] )
+
+                        _ ->
+                            ( { newModel | searchBar = Expanded { r | selectionMade = False, selection = 0 } }, newCmd )
+
+            _ ->
+                ( newModel, newCmd )
 
 
 fetchData : Cmd Msg
