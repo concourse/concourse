@@ -19,20 +19,23 @@ import Http
 import Keyboard
 import List.Extra
 import Maybe.Extra
-import Mouse
 import Monocle.Common exposing ((=>), (<|>))
-import Monocle.Optional
 import Monocle.Lens
+import Monocle.Optional
 import MonocleHelpers exposing (..)
+import Mouse
 import NewTopBar
 import NewTopBar.Styles as NTBS
 import NoPipeline exposing (Msg, view)
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
 import Routes
+import ScreenSize exposing (ScreenSize(..))
+import SearchBar exposing (SearchBar(..))
 import Simple.Fuzzy exposing (filter, match, root)
 import Task
 import Time exposing (Time)
+import UserState exposing (UserState(..))
 import Window
 
 
@@ -81,9 +84,12 @@ type DashboardError
 type alias Model =
     { csrfToken : String
     , state : Result DashboardError SubState.SubState
-    , topBar : NewTopBar.Model
     , turbulencePath : String -- this doesn't vary, it's more a prop (in the sense of react) than state. should be a way to use a thunk for the Turbulence case of DashboardState
     , highDensity : Bool
+    , userState : UserState
+    , userMenuVisible : Bool
+    , searchBar : SearchBar
+    , teams : RemoteData.WebData (List Concourse.Team)
     }
 
 
@@ -114,18 +120,29 @@ type Msg
 init : Ports -> Flags -> ( Model, Cmd Msg )
 init ports flags =
     let
-        ( topBar, topBarMsg ) =
-            NewTopBar.init (not flags.highDensity) flags.search
+        searchBar =
+            if flags.highDensity then
+                Invisible
+            else
+                Expanded
+                    { query = flags.search
+                    , selectionMade = False
+                    , showAutocomplete = False
+                    , selection = 0
+                    , screenSize = Desktop
+                    }
     in
         ( { state = Err NotAsked
-          , topBar = topBar
           , csrfToken = flags.csrfToken
           , turbulencePath = flags.turbulencePath
           , highDensity = flags.highDensity
+          , userState = UserStateUnknown
+          , userMenuVisible = False
+          , searchBar = searchBar
+          , teams = RemoteData.Loading
           }
         , Cmd.batch
             [ fetchData
-            , Cmd.map TopBarMsg topBarMsg
             , pinTeamNames
                 { pageHeaderHeight = NTBS.pageHeaderHeight
                 , pageBodyClass = "dashboard"
@@ -134,6 +151,7 @@ init ports flags =
                 , sectionBodyClass = "dashboard-team-pipelines"
                 }
             , ports.title <| "Dashboard" ++ " - "
+            , Task.perform (TopBarMsg << NewTopBar.ScreenResized) Window.size
             ]
         )
 
@@ -245,8 +263,8 @@ update msg model =
             -- nonsense going on. however, this feels like a big change and not a big burning fire
             TopBarMsg msg ->
                 let
-                    ( newTopBar, newTopBarMsg ) =
-                        NewTopBar.update msg model.topBar
+                    ( newModel, newTopBarMsg ) =
+                        NewTopBar.update msg model
 
                     newMsg =
                         case msg of
@@ -256,7 +274,7 @@ update msg model =
                             _ ->
                                 Cmd.map TopBarMsg newTopBarMsg
                 in
-                    ( { model | topBar = newTopBar }, newMsg )
+                    ( newModel, newMsg )
 
             PipelineMsg (Pipeline.TogglePipelinePaused pipeline) ->
                 ( model, togglePipelinePaused pipeline model.csrfToken )
@@ -395,7 +413,7 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
     Html.div [ class "page" ]
-        [ (Html.map TopBarMsg) (NewTopBar.view model.topBar)
+        [ (Html.map TopBarMsg) (NewTopBar.view model)
         , dashboardView model
         ]
 
@@ -415,7 +433,7 @@ dashboardView model =
                     [ Html.div [ class "dashboard-no-content", css [ Css.height (Css.pct 100) ] ] [ (Html.map (always Noop) << Html.fromUnstyled) NoPipeline.view ] ]
 
                 Ok substate ->
-                    [ Html.div [ class "dashboard-content" ] (pipelinesView substate (NewTopBar.query model.topBar) ++ [ footerView substate ]) ]
+                    [ Html.div [ class "dashboard-content" ] (pipelinesView substate (NewTopBar.query model) ++ [ footerView substate ]) ]
     in
         Html.div
             [ classList [ ( "dashboard", True ), ( "dashboard-hd", model.highDensity ) ] ]
