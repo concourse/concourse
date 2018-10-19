@@ -12,7 +12,6 @@ import Dashboard.Group as Group
 import Dashboard.GroupWithTag as GroupWithTag
 import Dashboard.Pipeline as Pipeline
 import Dashboard.SubState as SubState
-import DashboardHd
 import Dom
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes exposing (attribute, css, class, classList, draggable, href, id, src)
@@ -55,6 +54,9 @@ port pinTeamNames : PinTeamConfig -> Cmd msg
 
 
 port tooltip : ( String, String ) -> Cmd msg
+
+
+port tooltipHd : ( String, String ) -> Cmd msg
 
 
 
@@ -294,7 +296,7 @@ update msg model =
                 flip update model <| PipelineMsg msg
 
             PipelineMsg (Pipeline.TooltipHd pipelineName teamName) ->
-                ( model, DashboardHd.tooltipHd ( pipelineName, teamName ) )
+                ( model, tooltipHd ( pipelineName, teamName ) )
 
             PipelineMsg (Pipeline.Tooltip pipelineName teamName) ->
                 ( model, tooltip ( pipelineName, teamName ) )

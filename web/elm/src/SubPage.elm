@@ -18,7 +18,6 @@ import Routes
 import String
 import UpdateMsg exposing (UpdateMsg)
 import Dashboard
-import DashboardHd
 
 
 -- TODO: move ports somewhere else
@@ -38,7 +37,6 @@ type Model
     | PipelineModel Pipeline.Model
     | NotFoundModel NotFound.Model
     | DashboardModel Dashboard.Model
-    | DashboardHdModel DashboardHd.Model
 
 
 type Msg
@@ -49,7 +47,6 @@ type Msg
     | NewCSRFToken String
     | DashboardPipelinesFetched (Result Http.Error (List Concourse.Pipeline))
     | DashboardMsg Dashboard.Msg
-    | DashboardHdMsg DashboardHd.Msg
 
 
 type alias Flags =
@@ -215,9 +212,6 @@ update turbulence notFound csrfToken msg mdl =
         ( NewCSRFToken _, _ ) ->
             ( mdl, Cmd.none )
 
-        ( DashboardHdMsg message, DashboardHdModel model ) ->
-            superDupleWrap ( DashboardHdModel, DashboardHdMsg ) <| DashboardHd.update message model
-
         unknown ->
             flip always (Debug.log ("impossible combination") unknown) <|
                 ( mdl, Cmd.none )
@@ -297,9 +291,6 @@ view mdl =
         DashboardModel model ->
             (Html.map DashboardMsg << HS.toUnstyled) <| Dashboard.view model
 
-        DashboardHdModel model ->
-            Html.map DashboardHdMsg <| DashboardHd.view model
-
         WaitingModel _ ->
             Html.div [] []
 
@@ -324,9 +315,6 @@ subscriptions mdl =
 
         DashboardModel model ->
             Sub.map DashboardMsg <| Dashboard.subscriptions model
-
-        DashboardHdModel model ->
-            Sub.map DashboardHdMsg <| DashboardHd.subscriptions model
 
         WaitingModel _ ->
             Sub.none
