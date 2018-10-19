@@ -1,11 +1,13 @@
-port module Dashboard exposing (Model, Msg(..), init, subscriptions, update, view)
+port module Dashboard exposing (Model, Msg(..), init, subscriptions, update, view, viewTopBar)
 
+import Array
 import Char
 import Concourse
 import Concourse.Cli
 import Concourse.Pipeline
 import Concourse.PipelineStatus
 import Concourse.User
+import Concourse.Team
 import Css
 import Dashboard.Details as Details
 import Dashboard.Group as Group
@@ -14,18 +16,21 @@ import Dashboard.Pipeline as Pipeline
 import Dashboard.SubState as SubState
 import Dom
 import Html.Styled as Html exposing (Html)
-import Html.Styled.Attributes exposing (attribute, css, class, classList, draggable, href, id, src)
+import Html.Styled.Attributes exposing (attribute, css, class, classList, draggable, href, id, placeholder, src, type_, value)
+import Html.Styled.Events exposing (onBlur, onClick, onFocus, onInput, onMouseOver, onMouseDown)
 import Http
 import Keyboard
 import List.Extra
+import LoginRedirect
 import Maybe.Extra
 import Monocle.Common exposing ((=>), (<|>))
 import Monocle.Lens
 import Monocle.Optional
 import MonocleHelpers exposing (..)
 import Mouse
+import Navigation
 import NewTopBar
-import NewTopBar.Styles as NTBS
+import NewTopBar.Styles as Styles
 import NoPipeline exposing (Msg, view)
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
@@ -35,6 +40,7 @@ import SearchBar exposing (SearchBar(..))
 import Simple.Fuzzy exposing (filter, match, root)
 import Task
 import Time exposing (Time)
+import TopBar exposing (userDisplayName)
 import UserState exposing (UserState(..))
 import Window
 
@@ -110,11 +116,22 @@ type Msg
     | AutoRefresh Time
     | ShowFooter
     | KeyPressed Keyboard.KeyCode
-    | KeyDowns Keyboard.KeyCode
-    | TopBarMsg NewTopBar.Msg
     | PipelinePauseToggled Concourse.Pipeline (Result Http.Error ())
     | PipelineMsg Pipeline.Msg
     | GroupMsg Group.Msg
+    | UserFetched (RemoteData.WebData Concourse.User)
+    | TeamsFetched (RemoteData.WebData (List Concourse.Team))
+    | LogIn
+    | LogOut
+    | LoggedOut (Result Http.Error ())
+    | FilterMsg String
+    | FocusMsg
+    | BlurMsg
+    | SelectMsg Int
+    | KeyDown Keyboard.KeyCode
+    | ToggleUserMenu
+    | ShowSearchInput
+    | ScreenResized Window.Size
 
 
 init : Ports -> Flags -> ( Model, Cmd Msg )
@@ -143,15 +160,17 @@ init ports flags =
           }
         , Cmd.batch
             [ fetchData
+            , Concourse.User.fetchUser |> RemoteData.asCmd |> Cmd.map UserFetched
+            , Concourse.Team.fetchTeams |> RemoteData.asCmd |> Cmd.map TeamsFetched
             , pinTeamNames
-                { pageHeaderHeight = NTBS.pageHeaderHeight
+                { pageHeaderHeight = Styles.pageHeaderHeight
                 , pageBodyClass = "dashboard"
                 , sectionClass = "dashboard-team-group"
                 , sectionHeaderClass = "dashboard-team-header"
                 , sectionBodyClass = "dashboard-team-pipelines"
                 }
             , ports.title <| "Dashboard" ++ " - "
-            , Task.perform (TopBarMsg << NewTopBar.ScreenResized) Window.size
+            , Task.perform ScreenResized Window.size
             ]
         )
 
@@ -208,7 +227,6 @@ update msg model =
         reload =
             Cmd.batch <|
                 handle [] [ fetchData ] model.state
-                    ++ [ Cmd.map TopBarMsg NewTopBar.fetchUser ]
     in
         case msg of
             Noop ->
@@ -251,30 +269,10 @@ update msg model =
             KeyPressed keycode ->
                 handleKeyPressed (Char.fromCode keycode) model
 
-            KeyDowns keycode ->
-                update (TopBarMsg (NewTopBar.KeyDown keycode)) model
-
             ShowFooter ->
                 model
                     |> Monocle.Optional.modify substateOptional SubState.showFooter
                     |> noop
-
-            -- TODO pull the topbar logic right in here. right now there are wasted API calls and this crufty
-            -- nonsense going on. however, this feels like a big change and not a big burning fire
-            TopBarMsg msg ->
-                let
-                    ( newModel, newTopBarMsg ) =
-                        NewTopBar.update msg model
-
-                    newMsg =
-                        case msg of
-                            NewTopBar.LoggedOut (Ok _) ->
-                                reload
-
-                            _ ->
-                                Cmd.map TopBarMsg newTopBarMsg
-                in
-                    ( newModel, newMsg )
 
             PipelineMsg (Pipeline.TogglePipelinePaused pipeline) ->
                 ( model, togglePipelinePaused pipeline model.csrfToken )
@@ -374,6 +372,203 @@ update msg model =
                             )
                         |> Tuple.mapFirst (dragDropOptional.set ( Group.NotDragging, Group.NotDropping ))
 
+            FilterMsg query ->
+                let
+                    newModel =
+                        case model.searchBar of
+                            Expanded r ->
+                                { model | searchBar = Expanded { r | query = query } }
+
+                            _ ->
+                                model
+                in
+                    ( newModel
+                    , Cmd.batch
+                        [ Task.attempt (always Noop) (Dom.focus "search-input-field")
+                        , Navigation.modifyUrl (NewTopBar.queryStringFromSearch query)
+                        ]
+                    )
+
+            UserFetched user ->
+                case user of
+                    RemoteData.Success user ->
+                        ( { model | userState = UserStateLoggedIn user }, Cmd.none )
+
+                    _ ->
+                        ( { model | userState = UserStateLoggedOut }
+                        , Cmd.none
+                        )
+
+            LogIn ->
+                ( model
+                , LoginRedirect.requestLoginRedirect ""
+                )
+
+            LogOut ->
+                ( model, logOut )
+
+            LoggedOut (Ok ()) ->
+                let
+                    redirectUrl =
+                        case model.searchBar of
+                            Invisible ->
+                                Routes.dashboardHdRoute
+
+                            _ ->
+                                Routes.dashboardRoute
+                in
+                    ( { model
+                        | userState = UserStateLoggedOut
+                        , userMenuVisible = False
+                        , teams = RemoteData.Loading
+                      }
+                    , Cmd.batch
+                        [ Navigation.newUrl redirectUrl
+                        , reload
+                        ]
+                    )
+
+            LoggedOut (Err err) ->
+                flip always (Debug.log "failed to log out" err) <|
+                    ( model, Cmd.none )
+
+            ToggleUserMenu ->
+                ( { model | userMenuVisible = not model.userMenuVisible }, Cmd.none )
+
+            TeamsFetched response ->
+                ( { model | teams = response }, Cmd.none )
+
+            FocusMsg ->
+                let
+                    newModel =
+                        case model.searchBar of
+                            Expanded r ->
+                                { model | searchBar = Expanded { r | showAutocomplete = True } }
+
+                            _ ->
+                                model
+                in
+                    ( newModel, Cmd.none )
+
+            BlurMsg ->
+                let
+                    newModel =
+                        case model.searchBar of
+                            Expanded r ->
+                                case r.screenSize of
+                                    Mobile ->
+                                        if String.isEmpty r.query then
+                                            { model | searchBar = Collapsed }
+                                        else
+                                            { model | searchBar = Expanded { r | showAutocomplete = False, selectionMade = False, selection = 0 } }
+
+                                    Desktop ->
+                                        { model | searchBar = Expanded { r | showAutocomplete = False, selectionMade = False, selection = 0 } }
+
+                            _ ->
+                                model
+                in
+                    ( newModel, Cmd.none )
+
+            SelectMsg index ->
+                let
+                    newModel =
+                        case model.searchBar of
+                            Expanded r ->
+                                { model | searchBar = Expanded { r | selectionMade = True, selection = index + 1 } }
+
+                            _ ->
+                                model
+                in
+                    ( newModel, Cmd.none )
+
+            KeyDown keycode ->
+                case model.searchBar of
+                    Expanded r ->
+                        if not r.showAutocomplete then
+                            ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0 } }, Cmd.none )
+                        else
+                            case keycode of
+                                -- enter key
+                                13 ->
+                                    if not r.selectionMade then
+                                        ( model, Cmd.none )
+                                    else
+                                        let
+                                            options =
+                                                Array.fromList (NewTopBar.autocompleteOptions { query = r.query, teams = model.teams })
+
+                                            index =
+                                                (r.selection - 1) % Array.length options
+
+                                            selectedItem =
+                                                case Array.get index options of
+                                                    Nothing ->
+                                                        r.query
+
+                                                    Just item ->
+                                                        item
+                                        in
+                                            ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0, query = selectedItem } }
+                                            , Cmd.none
+                                            )
+
+                                -- up arrow
+                                38 ->
+                                    ( { model | searchBar = Expanded { r | selectionMade = True, selection = r.selection - 1 } }, Cmd.none )
+
+                                -- down arrow
+                                40 ->
+                                    ( { model | searchBar = Expanded { r | selectionMade = True, selection = r.selection + 1 } }, Cmd.none )
+
+                                -- escape key
+                                27 ->
+                                    ( model, Task.attempt (always Noop) (Dom.blur "search-input-field") )
+
+                                _ ->
+                                    ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0 } }, Cmd.none )
+
+                    _ ->
+                        ( model, Cmd.none )
+
+            ShowSearchInput ->
+                showSearchInput model
+
+            ScreenResized size ->
+                let
+                    newSize =
+                        ScreenSize.getScreenSize size
+
+                    newModel =
+                        case ( model.searchBar, newSize ) of
+                            ( Expanded r, _ ) ->
+                                case ( r.screenSize, newSize ) of
+                                    ( Desktop, Mobile ) ->
+                                        if String.isEmpty r.query then
+                                            { model | searchBar = Collapsed }
+                                        else
+                                            { model | searchBar = Expanded { r | screenSize = newSize } }
+
+                                    _ ->
+                                        { model | searchBar = Expanded { r | screenSize = newSize } }
+
+                            ( Collapsed, Desktop ) ->
+                                { model
+                                    | searchBar =
+                                        Expanded
+                                            { query = ""
+                                            , selectionMade = False
+                                            , showAutocomplete = False
+                                            , selection = 0
+                                            , screenSize = Desktop
+                                            }
+                                }
+
+                            _ ->
+                                model
+                in
+                    ( newModel, Cmd.none )
+
 
 orderPipelines : String -> List Pipeline.PipelineWithJobs -> Concourse.CSRFToken -> Cmd Msg
 orderPipelines teamName pipelines csrfToken =
@@ -405,15 +600,15 @@ subscriptions model =
         , Mouse.moves (\_ -> ShowFooter)
         , Mouse.clicks (\_ -> ShowFooter)
         , Keyboard.presses KeyPressed
-        , Keyboard.downs KeyDowns
-        , Window.resizes (TopBarMsg << NewTopBar.ScreenResized)
+        , Keyboard.downs KeyDown
+        , Window.resizes ScreenResized
         ]
 
 
 view : Model -> Html Msg
 view model =
     Html.div [ class "page" ]
-        [ (Html.map TopBarMsg) (NewTopBar.view model)
+        [ viewTopBar model
         , dashboardView model
         ]
 
@@ -611,6 +806,184 @@ pipelinesView substate query =
             List.map (Html.map GroupMsg << Html.fromUnstyled) groupViews
 
 
+showSearchInput : NewTopBar.Model r -> ( NewTopBar.Model r, Cmd Msg )
+showSearchInput model =
+    let
+        newModel =
+            { model
+                | searchBar =
+                    Expanded
+                        { query = ""
+                        , selectionMade = False
+                        , showAutocomplete = False
+                        , selection = 0
+                        , screenSize = Mobile
+                        }
+            }
+    in
+        case model.searchBar of
+            Collapsed ->
+                ( newModel, Task.attempt (always Noop) (Dom.focus "search-input-field") )
+
+            _ ->
+                ( model, Cmd.none )
+
+
+viewUserInfo : NewTopBar.Model r -> List (Html Msg)
+viewUserInfo model =
+    case model.searchBar of
+        Expanded r ->
+            case r.screenSize of
+                Mobile ->
+                    []
+
+                Desktop ->
+                    [ Html.div [ css Styles.userInfo ] (viewUserState model) ]
+
+        _ ->
+            [ Html.div [ css Styles.userInfo ] (viewUserState model) ]
+
+
+viewUserState : { a | userState : UserState, userMenuVisible : Bool } -> List (Html Msg)
+viewUserState { userState, userMenuVisible } =
+    case userState of
+        UserStateUnknown ->
+            []
+
+        UserStateLoggedOut ->
+            [ Html.div
+                [ href "/sky/login"
+                , attribute "aria-label" "Log In"
+                , id "login-button"
+                , onClick LogIn
+                , css Styles.menuButton
+                ]
+                [ Html.div [] [ Html.text "login" ] ]
+            ]
+
+        UserStateLoggedIn user ->
+            [ Html.div
+                [ id "user-id"
+                , onClick ToggleUserMenu
+                , css Styles.menuButton
+                ]
+                [ Html.div [ css Styles.userName ] [ Html.text (userDisplayName user) ] ]
+            ]
+                ++ (if userMenuVisible then
+                        [ Html.div
+                            [ attribute "aria-label" "Log Out"
+                            , onClick LogOut
+                            , css Styles.logoutButton
+                            , id "logout-button"
+                            ]
+                            [ Html.div [] [ Html.text "logout" ] ]
+                        ]
+                    else
+                        []
+                   )
+
+
+viewTopBar : NewTopBar.Model r -> Html Msg
+viewTopBar model =
+    Html.div [ css Styles.topBar ] <|
+        NewTopBar.viewConcourseLogo
+            ++ viewMiddleSection model
+            ++ viewUserInfo model
+
+
+searchInput : { a | query : String, screenSize : ScreenSize } -> List (Html Msg)
+searchInput { query, screenSize } =
+    [ Html.div [ css Styles.searchForm ] <|
+        [ Html.input
+            [ id "search-input-field"
+            , type_ "text"
+            , placeholder "search"
+            , onInput FilterMsg
+            , onFocus FocusMsg
+            , onBlur BlurMsg
+            , value query
+            , css <| Styles.searchInput screenSize
+            ]
+            []
+        , Html.span
+            [ css <| Styles.searchClearButton (not <| String.isEmpty query)
+            , id "search-clear-button"
+            , onClick (FilterMsg "")
+            ]
+            []
+        ]
+    ]
+
+
+viewMiddleSection : NewTopBar.Model r -> List (Html Msg)
+viewMiddleSection model =
+    case model.searchBar of
+        Invisible ->
+            []
+
+        Collapsed ->
+            [ Html.div [ css <| Styles.middleSection model.searchBar ]
+                [ Html.a
+                    [ id "search-button"
+                    , onClick ShowSearchInput
+                    , css Styles.searchButton
+                    ]
+                    []
+                ]
+            ]
+
+        Expanded r ->
+            [ Html.div [ css <| Styles.middleSection model.searchBar ] <|
+                (searchInput r
+                    ++ (if r.showAutocomplete then
+                            [ Html.ul
+                                [ css <| Styles.searchOptionsList r.screenSize ]
+                                (viewAutocomplete
+                                    { query = r.query
+                                    , teams = model.teams
+                                    , selectionMade = r.selectionMade
+                                    , selection = r.selection
+                                    , screenSize = r.screenSize
+                                    }
+                                )
+                            ]
+                        else
+                            []
+                       )
+                )
+            ]
+
+
+viewAutocomplete :
+    { a
+        | query : String
+        , teams : RemoteData.WebData (List Concourse.Team)
+        , selectionMade : Bool
+        , selection : Int
+        , screenSize : ScreenSize
+    }
+    -> List (Html Msg)
+viewAutocomplete r =
+    let
+        options =
+            NewTopBar.autocompleteOptions r
+    in
+        options
+            |> List.indexedMap
+                (\index option ->
+                    let
+                        active =
+                            r.selectionMade && index == (r.selection - 1) % List.length options
+                    in
+                        Html.li
+                            [ onMouseDown (FilterMsg option)
+                            , onMouseOver (SelectMsg index)
+                            , css <| Styles.searchOption { screenSize = r.screenSize, active = active }
+                            ]
+                            [ Html.text option ]
+                )
+
+
 handleKeyPressed : Char -> Model -> ( Model, Cmd Msg )
 handleKeyPressed key model =
     case key of
@@ -712,3 +1085,8 @@ fuzzySearch map needle records =
             List.filter (not << Simple.Fuzzy.match needle << map) records
         else
             List.filter (Simple.Fuzzy.match needle << map) records
+
+
+logOut : Cmd Msg
+logOut =
+    Task.attempt LoggedOut Concourse.User.logOut
