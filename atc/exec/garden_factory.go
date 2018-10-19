@@ -91,6 +91,13 @@ func (factory *gardenFactory) Put(
 
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
+	var putInputs PutInputs
+	if plan.Put.Inputs != nil {
+		putInputs = NewSpecificInputs(plan.Put.Inputs)
+	} else {
+		putInputs = NewAllInputs()
+	}
+
 	putStep := NewPutStep(
 		build,
 
@@ -100,6 +107,7 @@ func (factory *gardenFactory) Put(
 		creds.NewSource(variables, plan.Put.Source),
 		creds.NewParams(variables, plan.Put.Params),
 		plan.Put.Tags,
+		putInputs,
 
 		delegate,
 		factory.resourceFactory,
