@@ -533,8 +533,8 @@ func (cmd *RunCommand) constructAPIMembers(
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		engine,
+		dbWorkerFactory,
 	)
-
 	radarScannerFactory := radar.NewScannerFactory(
 		resourceFactory,
 		dbResourceConfigCheckSessionFactory,
@@ -729,6 +729,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		engine,
+		dbWorkerFactory,
 	)
 	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
 	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(dbConn)

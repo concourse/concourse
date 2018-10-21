@@ -30,6 +30,7 @@ type radarSchedulerFactory struct {
 	resourceTypeCheckingInterval      time.Duration
 	resourceCheckingInterval          time.Duration
 	engine                            engine.Engine
+	workerFactory                     db.WorkerFactory
 }
 
 func NewRadarSchedulerFactory(
@@ -38,6 +39,7 @@ func NewRadarSchedulerFactory(
 	resourceTypeCheckingInterval time.Duration,
 	resourceCheckingInterval time.Duration,
 	engine engine.Engine,
+	workerFactory db.WorkerFactory,
 ) RadarSchedulerFactory {
 	return &radarSchedulerFactory{
 		resourceFactory:                   resourceFactory,
@@ -45,6 +47,7 @@ func NewRadarSchedulerFactory(
 		resourceTypeCheckingInterval:      resourceTypeCheckingInterval,
 		resourceCheckingInterval:          resourceCheckingInterval,
 		engine:                            engine,
+		workerFactory:					   workerFactory,
 	}
 }
 
@@ -79,12 +82,13 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalU
 		pipeline,
 		inputconfig.NewTransformer(pipeline),
 	)
+
 	return &scheduler.Scheduler{
 		Pipeline:    pipeline,
 		InputMapper: inputMapper,
 		BuildStarter: scheduler.NewBuildStarter(
 			pipeline,
-			maxinflight.NewUpdater(pipeline),
+			maxinflight.NewUpdater(pipeline, rsf.workerFactory),
 			factory.NewBuildFactory(
 				pipeline.ID(),
 				atc.NewPlanFactory(time.Now().Unix()),

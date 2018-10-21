@@ -15,16 +15,26 @@ import (
 
 var _ = Describe("Updater", func() {
 	var (
-		fakePipeline *dbfakes.FakePipeline
-		fakeJob      *dbfakes.FakeJob
-		updater      maxinflight.Updater
-		disaster     error
+		fakePipeline      *dbfakes.FakePipeline
+		fakeWorker1       *dbfakes.FakeWorker
+		fakeWorker2       *dbfakes.FakeWorker
+		fakeWorkerFactory *dbfakes.FakeWorkerFactory
+		fakeJob           *dbfakes.FakeJob
+		updater           maxinflight.Updater
+		disaster          error
 	)
 
 	BeforeEach(func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		fakeJob = new(dbfakes.FakeJob)
-		updater = maxinflight.NewUpdater(fakePipeline)
+
+		fakeWorker1 = new(dbfakes.FakeWorker)
+		fakeWorker2 = new(dbfakes.FakeWorker)
+
+		fakeWorkerFactory = new(dbfakes.FakeWorkerFactory)
+		fakeWorkerFactory.WorkersReturns([]db.Worker{fakeWorker1,fakeWorker2}, nil)
+
+		updater = maxinflight.NewUpdater(fakePipeline, fakeWorkerFactory)
 		disaster = errors.New("bad thing")
 	})
 
@@ -241,6 +251,30 @@ var _ = Describe("Updater", func() {
 				})
 
 				itReturnsFalseIfOurBuildIsNext()
+			})
+		})
+
+		Describe("checking global container limits", func() {
+			BeforeEach(func() {
+				rawMaxInFlight = 0
+				serialGroups = []string{}
+			})
+
+			It("checks to see how many workers there are", func () {
+				Expect(fakeWorkerFactory.WorkersCallCount()).To(Equal(1))
+			})
+
+			Context("container limit is not reached", func() {
+				itReturnsFalseAndNoError()
+			})
+
+			Context("container limit is reached", func() {
+				BeforeEach(func() {
+					fakeWorker1.ActiveContainersReturns(250)
+					fakeWorker2.ActiveContainersReturns(250)
+				})
+
+				itReturnsTrueAndNoError()
 			})
 		})
 	})
