@@ -98,6 +98,7 @@ jobs:
       passed: [unit]
       trigger: true
     - get: unit-image
+      trigger: true
       passed: [unit]
     - get: gdn
       trigger: true
@@ -148,6 +149,7 @@ jobs:
       trigger: true
     - get: unit-image
       passed: [dev-image]
+      trigger: true
     - get: dev-image
       passed: [dev-image]
       params: {format: oci}
@@ -170,6 +172,7 @@ jobs:
       trigger: true
     - get: unit-image
       passed: [dev-image]
+      trigger: true
     - get: dev-image
       passed: [dev-image]
       params: {format: oci}
@@ -191,9 +194,11 @@ jobs:
       passed: [testflight, watsjs]
       trigger: true
     - get: dev-image
+      trigger: true
       passed: [testflight, watsjs]
     - get: unit-image
       passed: [testflight, watsjs]
+      trigger: true
   - put: version
     params: {pre: rc}
 
@@ -206,10 +211,13 @@ jobs:
       trigger: true
     - get: unit-image
       passed: [rc]
+      trigger: true
     - get: dev-image
       passed: [rc]
+      trigger: true
     - get: version
       passed: [rc]
+      trigger: true
     - get: final-version
       resource: version
       passed: [rc]
@@ -281,6 +289,7 @@ jobs:
       trigger: true
     - get: unit-image
       passed: [build-rc]
+      trigger: true
   - task: terraform-smoke
     file: concourse/ci/tasks/terraform-smoke.yml
     params:
