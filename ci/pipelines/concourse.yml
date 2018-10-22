@@ -25,8 +25,6 @@ groups:
   - rc
   - build-rc
   - bin-smoke
-  - bosh-bump
-  - bosh-smoke
 
 - name: bosh
   jobs:
@@ -328,6 +326,10 @@ jobs:
       trigger: true
     - get: postgres-release
       trigger: true
+    - get: bpm-release
+      trigger: true
+    - get: gcp-xenial-stemcell
+      trigger: true
     - get: unit-image
       passed: [bin-smoke]
   - put: concourse-smoke-deployment
@@ -336,12 +338,13 @@ jobs:
       releases:
       - concourse-release/*.tgz
       - postgres-release/*.tgz
+      - bpm-release/*.tgz
       stemcells:
       - gcp-xenial-stemcell/*.tgz
   - task: discover-bosh-endpoint-info
     file: concourse/ci/tasks/discover-bosh-endpoint-info.yml
     params:
-      BOSH_ENVIRONMENT: bosh.concourse-ci.org
+      BOSH_ENVIRONMENT: ((bosh_target))
       BOSH_CLIENT: ((bosh_client.id))
       BOSH_CLIENT_SECRET: ((bosh_client.secret))
       BOSH_DEPLOYMENT: concourse-smoke
@@ -349,7 +352,6 @@ jobs:
   - task: smoke
     image: unit-image
     file: concourse/ci/tasks/smoke.yml
-    input_mapping: {endpoint-info: outputs}
 
 - name: push-docs
   serial: true
@@ -505,6 +507,11 @@ resources:
   source:
     repository: cloudfoundry/postgres-release
 
+- name: bpm-release
+  type: bosh-io-release
+  source:
+    repository: cloudfoundry-incubator/bpm-release
+
 - name: concourse-release-repo
   type: git
   source:
@@ -519,3 +526,8 @@ resources:
     client: ((bosh_client.id))
     client_secret: ((bosh_client.secret))
     deployment: concourse-smoke
+
+- name: gcp-xenial-stemcell
+  type: bosh-io-stemcell
+  source:
+    name: bosh-google-kvm-ubuntu-xenial-go_agent

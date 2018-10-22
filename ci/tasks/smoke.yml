@@ -8,7 +8,6 @@ image_resource:
 inputs:
 - name: concourse
 - name: endpoint-info
-  optional: true
 
 caches:
 - path: gopath
