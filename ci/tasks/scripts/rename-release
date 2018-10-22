@@ -1,5 +1,0 @@
-#!/bin/bash
-
-set -e
-
-mv garden-runc/release.tgz renamed-release/garden-runc-$(cat garden-runc/version).tgz
