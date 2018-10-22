@@ -367,7 +367,6 @@ jobs:
   - aggregate:
     - get: docs
     - get: version
-      trigger: true
   - task: build-docs
     file: docs/ci/build.yml
     params: {ANALYTICS_ID: ((analytics_id))}
