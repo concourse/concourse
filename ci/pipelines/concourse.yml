@@ -305,7 +305,7 @@ jobs:
     file: concourse/ci/tasks/bump-concourse-blobs.yml
     params: {GCP_JSON_KEY: ((concourse_artifacts_json_key))}
   - put: concourse-release-repo
-    params: {repository: bumped-release-repo}
+    params: {repository: bumped-concourse-release-repo}
 
 - name: bosh-build
   serial: true
@@ -471,4 +471,5 @@ resources:
   type: git
   source:
     uri: git@github.com:concourse/concourse-bosh-release
+    branch: master
     private_key: ((concourse_release_deploy_key))

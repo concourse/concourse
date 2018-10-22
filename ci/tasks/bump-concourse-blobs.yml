@@ -17,7 +17,7 @@ outputs:
 - name: bumped-concourse-release-repo
 
 params:
-  BOSH_PRIVATE_CONFIG:
+  GCP_JSON_KEY:
 
 run:
   path: concourse/ci/tasks/scripts/bump-concourse-blobs
