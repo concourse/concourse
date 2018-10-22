@@ -36,7 +36,11 @@ func Resource(resource db.Resource, showCheckError bool, teamName string) atc.Re
 	}
 
 	if resource.ConfigPinnedVersion() != nil {
-		atcResource.ConfigPinnedVersion = resource.ConfigPinnedVersion()
+		atcResource.PinnedVersion = resource.ConfigPinnedVersion()
+		atcResource.PinnedInConfig = true
+	} else if resource.APIPinnedVersion() != nil {
+		atcResource.PinnedVersion = resource.APIPinnedVersion()
+		atcResource.PinnedInConfig = false
 	}
 
 	return atcResource

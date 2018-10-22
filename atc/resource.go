@@ -13,5 +13,6 @@ type Resource struct {
 	CheckSetupError string `json:"check_setup_error,omitempty"`
 	CheckError      string `json:"check_error,omitempty"`
 
-	ConfigPinnedVersion Version `json:"config_pinned_version,omitempty"`
+	PinnedVersion  Version `json:"pinned_version,omitempty"`
+	PinnedInConfig bool    `json:"pinned_in_config,omitempty"`
 }

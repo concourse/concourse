@@ -760,32 +760,33 @@ var _ = Describe("Resources API", func() {
 			})
 
 			Context("when the call to get a resource succeeds", func() {
-				BeforeEach(func() {
-					resource1 := new(dbfakes.FakeResource)
-					resource1.CheckErrorReturns(errors.New("sup"))
-					resource1.ResourceConfigCheckErrorReturns(errors.New("sup"))
-					resource1.PipelineNameReturns("a-pipeline")
-					resource1.NameReturns("resource-1")
-					resource1.TypeReturns("type-1")
-					resource1.LastCheckedReturns(time.Unix(1513364881, 0))
-					resource1.ConfigPinnedVersionReturns(atc.Version{"version": "v1"})
+				Context("when the resource version is pinned via pipeline config", func() {
+					BeforeEach(func() {
+						resource1 := new(dbfakes.FakeResource)
+						resource1.CheckErrorReturns(errors.New("sup"))
+						resource1.ResourceConfigCheckErrorReturns(errors.New("sup"))
+						resource1.PipelineNameReturns("a-pipeline")
+						resource1.NameReturns("resource-1")
+						resource1.TypeReturns("type-1")
+						resource1.LastCheckedReturns(time.Unix(1513364881, 0))
+						resource1.ConfigPinnedVersionReturns(atc.Version{"version": "v1"})
 
-					fakePipeline.ResourceReturns(resource1, true, nil)
-				})
+						fakePipeline.ResourceReturns(resource1, true, nil)
+					})
 
-				It("returns 200 ok", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
+					It("returns 200 ok", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
 
-				It("returns Content-Type 'application/json'", func() {
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-				})
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					})
 
-				It("returns the resource json with the check error", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
+					It("returns the resource json with the check error", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
 
-					Expect(body).To(MatchJSON(`
+						Expect(body).To(MatchJSON(`
 							{
 								"name": "resource-1",
 								"pipeline_name": "a-pipeline",
@@ -795,8 +796,45 @@ var _ = Describe("Resources API", func() {
 								"failing_to_check": true,
 								"check_setup_error": "sup",
 								"check_error": "sup",
-								"config_pinned_version": {"version": "v1"}
+								"pinned_version": {"version": "v1"},
+								"pinned_in_config": true
 							}`))
+					})
+				})
+				Context("when the resource version is pinned via the API", func() {
+					BeforeEach(func() {
+						resource1 := new(dbfakes.FakeResource)
+						resource1.PipelineNameReturns("a-pipeline")
+						resource1.NameReturns("resource-1")
+						resource1.TypeReturns("type-1")
+						resource1.LastCheckedReturns(time.Unix(1513364881, 0))
+						resource1.APIPinnedVersionReturns(atc.Version{"version": "v1"})
+
+						fakePipeline.ResourceReturns(resource1, true, nil)
+					})
+
+					It("returns 200 ok", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					})
+
+					It("returns the resource json describing the pinned version", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`
+							{
+								"name": "resource-1",
+								"pipeline_name": "a-pipeline",
+								"team_name": "a-team",
+								"type": "type-1",
+								"last_checked": 1513364881,
+								"pinned_version": {"version": "v1"}
+							}`))
+					})
 				})
 			})
 		})
