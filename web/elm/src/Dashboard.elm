@@ -1,4 +1,4 @@
-port module Dashboard exposing (Model, Msg, init, subscriptions, update, view)
+port module Dashboard exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Char
 import Concourse
@@ -6,6 +6,7 @@ import Concourse.Cli
 import Concourse.Pipeline
 import Concourse.PipelineStatus
 import Concourse.User
+import Css
 import Dashboard.Details as Details
 import Dashboard.Group as Group
 import Dashboard.GroupWithTag as GroupWithTag
@@ -13,9 +14,8 @@ import Dashboard.Pipeline as Pipeline
 import Dashboard.SubState as SubState
 import DashboardHd
 import Dom
-import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, classList, draggable, href, id, src)
-import Html.Attributes.Aria exposing (ariaLabel)
+import Html.Styled as Html exposing (Html)
+import Html.Styled.Attributes exposing (attribute, css, class, classList, draggable, href, id, src)
 import Http
 import Keyboard
 import List.Extra
@@ -26,6 +26,7 @@ import Monocle.Optional
 import Monocle.Lens
 import MonocleHelpers exposing (..)
 import NewTopBar
+import NewTopBar.Styles as NTBS
 import NoPipeline exposing (Msg, view)
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
@@ -33,6 +34,7 @@ import Routes
 import Simple.Fuzzy exposing (filter, match, root)
 import Task
 import Time exposing (Time)
+import Window
 
 
 type alias Ports =
@@ -41,7 +43,7 @@ type alias Ports =
 
 
 type alias PinTeamConfig =
-    { pageHeaderClass : String
+    { pageHeaderHeight : Float
     , pageBodyClass : String
     , sectionHeaderClass : String
     , sectionClass : String
@@ -123,7 +125,7 @@ init ports flags =
             [ fetchData
             , Cmd.map TopBarMsg topBarMsg
             , pinTeamNames
-                { pageHeaderClass = "module-topbar"
+                { pageHeaderHeight = NTBS.pageHeaderHeight
                 , pageBodyClass = "dashboard"
                 , sectionClass = "dashboard-team-group"
                 , sectionHeaderClass = "dashboard-team-header"
@@ -384,13 +386,14 @@ subscriptions model =
         , Mouse.clicks (\_ -> ShowFooter)
         , Keyboard.presses KeyPressed
         , Keyboard.downs KeyDowns
+        , Window.resizes (TopBarMsg << NewTopBar.ScreenResized)
         ]
 
 
 view : Model -> Html Msg
 view model =
     Html.div [ class "page" ]
-        [ Html.map TopBarMsg (NewTopBar.view model.topBar)
+        [ (Html.map TopBarMsg) (NewTopBar.view model.topBar)
         , dashboardView model
         ]
 
@@ -407,14 +410,14 @@ dashboardView model =
                     [ turbulenceView path ]
 
                 Err NoPipelines ->
-                    [ Html.map (always Noop) NoPipeline.view ]
+                    [ Html.div [ class "dashboard-no-content", css [ Css.height (Css.pct 100) ] ] [ (Html.map (always Noop) << Html.fromUnstyled) NoPipeline.view ] ]
 
                 Ok substate ->
-                    pipelinesView substate model.topBar.query ++ [ footerView substate ]
+                    [ Html.div [ class "dashboard-content" ] (pipelinesView substate (NewTopBar.query model.topBar) ++ [ footerView substate ]) ]
     in
         Html.div
             [ classList [ ( "dashboard", True ), ( "dashboard-hd", model.highDensity ) ] ]
-            [ Html.div [ class "dashboard-content" ] mainContent ]
+            mainContent
 
 
 noResultsView : String -> Html Msg
@@ -467,7 +470,7 @@ toggleView highDensity =
             else
                 Routes.dashboardHdRoute
     in
-        Html.a [ class "toggle-high-density", href route, ariaLabel "Toggle high-density view" ]
+        Html.a [ class "toggle-high-density", href route, attribute "aria-label" "Toggle high-density view" ]
             [ Html.div [ class <| "dashboard-pipeline-icon " ++ hdClass ] [], Html.text "high-density" ]
 
 
@@ -507,11 +510,11 @@ footerView substate =
                         [ Html.text "version: v", substate.teamData |> SubState.apiData |> .version |> Html.text ]
                     , Html.div [ class "concourse-cli" ]
                         [ Html.text "cli: "
-                        , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "darwin"), ariaLabel "Download OS X CLI" ]
+                        , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "darwin"), attribute "aria-label" "Download OS X CLI" ]
                             [ Html.i [ class "fa fa-apple" ] [] ]
-                        , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "windows"), ariaLabel "Download Windows CLI" ]
+                        , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "windows"), attribute "aria-label" "Download Windows CLI" ]
                             [ Html.i [ class "fa fa-windows" ] [] ]
-                        , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "linux"), ariaLabel "Download Linux CLI" ]
+                        , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "linux"), attribute "aria-label" "Download Linux CLI" ]
                             [ Html.i [ class "fa fa-linux" ] [] ]
                         ]
                     ]
@@ -585,7 +588,7 @@ pipelinesView substate query =
         if List.isEmpty groupViews then
             [ noResultsView (toString query) ]
         else
-            List.map (Html.map GroupMsg) groupViews
+            List.map (Html.map GroupMsg << Html.fromUnstyled) groupViews
 
 
 handleKeyPressed : Char -> Model -> ( Model, Cmd Msg )

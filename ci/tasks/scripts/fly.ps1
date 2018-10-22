@@ -1,5 +1,3 @@
-Set-PSDebug -Trace 2 -Strict
-
 trap {
   write-error $_
   exit 1
@@ -17,3 +15,5 @@ go mod download
 go install github.com/onsi/ginkgo/ginkgo
 
 ginkgo -r -p
+
+Exit $LastExitCode

@@ -14,7 +14,7 @@ output="$PWD/fly-${platform}"
 ldflags=""
 if [ -e final-version/version ]; then
   final_version="$(cat final-version/version)"
-  ldflags="-X github.com/concourse/concourse/fly/version.Version=${final_version}"
+  ldflags="-X github.com/concourse/concourse.Version=${final_version}"
 fi
 
 pushd concourse

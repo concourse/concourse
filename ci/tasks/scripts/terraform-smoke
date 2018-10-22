@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -e -u
+
+outputs=$PWD/outputs
+
+cp linux-rc/concourse-*.tgz concourse/ci/deployments/smoke/concourse.tgz
+
+cd concourse/ci/deployments/smoke
+
+echo "$GCP_KEY" > keys/gcp.json
+
+echo "$SSH_KEY" > keys/id_rsa
+chmod 0600 keys/id_rsa
+ssh-keygen -y -f keys/id_rsa > keys/id_rsa.pub
+
+terraform init
+
+terraform apply --auto-approve --var project=$GCP_PROJECT
+
+terraform output | while read name _ value; do
+  echo "$value" > $outputs/$name
+done

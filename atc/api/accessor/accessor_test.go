@@ -160,7 +160,7 @@ var _ = Describe("Accessor", func() {
 		})
 	})
 
-	Describe("Is Authorized", func() {
+	Describe("Is Authorized owner action", func() {
 		JustBeforeEach(func() {
 			token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 			tokenString, err := token.SignedString(key)
@@ -170,9 +170,9 @@ var _ = Describe("Accessor", func() {
 			access = accessorFactory.Create(req, atc.SetTeam)
 		})
 
-		Context("when request has team name claim set to some-team:owner", func() {
+		Context("when request has team name claim set for some-team as owner", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"teams": []string{"some-team:owner"}}
+				claims = &jwt.MapClaims{"teams": map[string][]string{"some-team": {"owner"}}}
 			})
 			It("returns true", func() {
 				Expect(access.IsAuthorized("some-team")).To(BeTrue())
@@ -206,9 +206,9 @@ var _ = Describe("Accessor", func() {
 			})
 		})
 
-		Context("when request has team name claim set to other team:owner", func() {
+		Context("when request has team name claim set to other-team:owner", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"teams": []string{"other-team:owner"}}
+				claims = &jwt.MapClaims{"teams": map[string][]string{"other-team": {"owner"}}}
 			})
 			It("returns false", func() {
 				Expect(access.IsAuthorized("some-team")).To(BeFalse())
@@ -279,22 +279,6 @@ var _ = Describe("Accessor", func() {
 			access = accessorFactory.Create(req, "some-action")
 		})
 
-		Context("when request has teams claim set", func() {
-			BeforeEach(func() {
-				claims = &jwt.MapClaims{"teams": []string{"fake-team-name"}}
-			})
-			It("returns list of teams", func() {
-				Expect(access.TeamNames()).To(Equal([]string{"fake-team-name"}))
-			})
-		})
-		Context("when request has teams claim set to empty", func() {
-			BeforeEach(func() {
-				claims = &jwt.MapClaims{"teams": []string{""}}
-			})
-			It("returns empty list", func() {
-				Expect(access.TeamNames()).To(Equal([]string{""}))
-			})
-		})
 		Context("when request has teams claim set to nil", func() {
 			BeforeEach(func() {
 				claims = &jwt.MapClaims{"teams": nil}
@@ -311,9 +295,28 @@ var _ = Describe("Accessor", func() {
 				Expect(len(access.TeamNames())).To(BeZero())
 			})
 		})
+		Context("when request has teams claims set in the old array format", func() {
+			BeforeEach(func() {
+				claims = &jwt.MapClaims{"teams": []string{"fake-team-name"}}
+			})
+			It("returns list of teams", func() {
+				Expect(access.TeamNames()).To(Equal([]string{"fake-team-name"}))
+			})
+		})
+		Context("when request has teams claims set to empty in the old array format", func() {
+			BeforeEach(func() {
+				claims = &jwt.MapClaims{"teams": []string{""}}
+			})
+			It("returns empty list", func() {
+				Expect(access.TeamNames()).To(Equal([]string{""}))
+			})
+		})
 		Context("when request has teams with multiple roles", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"teams": []string{"team-1:owner", "team-1:member", "team-2:viewer"}}
+				claims = &jwt.MapClaims{"teams": map[string][]string{
+					"team-1": {"owner", "member"},
+					"team-2": {"viewer"},
+				}}
 			})
 			It("returns empty list", func() {
 				Expect(access.TeamNames()).To(ConsistOf("team-1", "team-2"))
@@ -323,7 +326,7 @@ var _ = Describe("Accessor", func() {
 
 	DescribeTable("role actions",
 		func(action, role string, authorized bool) {
-			claims := &jwt.MapClaims{"teams": []string{"some-team:" + role}}
+			claims := &jwt.MapClaims{"teams": map[string][]string{"some-team": {role}}}
 			token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 			tokenString, err := token.SignedString(key)
 			Expect(err).NotTo(HaveOccurred())

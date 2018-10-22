@@ -3,10 +3,14 @@ platform: linux
 
 image_resource:
   type: registry-image
-  source: {repository: concourse/dev}
+  source: {repository: concourse/unit}
 
 inputs:
 - name: concourse
+- name: gdn
+- name: resource-types
+- name: version
+  optional: true
 - name: final-version
   optional: true
 - name: fly-linux
@@ -23,4 +27,5 @@ outputs:
 - name: concourse-linux
 
 run:
-  path: concourse/ci/tasks/scripts/concourse-build-linux
+  path: concourse/ci/tasks/scripts/concourse-build
+  args: [linux]

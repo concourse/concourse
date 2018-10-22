@@ -214,7 +214,7 @@ func (self *skyServer) Callback(w http.ResponseWriter, r *http.Request) {
 
 	if skyToken, err = self.config.TokenIssuer.Issue(verifiedClaims); err != nil {
 		logger.Error("failed-to-issue-concourse-token", err)
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 

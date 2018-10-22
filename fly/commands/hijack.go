@@ -133,7 +133,7 @@ func (command *HijackCommand) Execute([]string) error {
 	reqGenerator := rata.NewRequestGenerator(target.URL(), atc.Routes)
 
 	var ttySpec *atc.HijackTTYSpec
-	rows, cols, err := pty.Getsize(os.Stdin)
+	rows, cols, err := pty.Getsize(os.Stdout)
 	if err == nil {
 		ttySpec = &atc.HijackTTYSpec{
 			WindowSize: atc.HijackWindowSize{

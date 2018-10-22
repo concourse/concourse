@@ -396,7 +396,7 @@ func (action *TaskStep) registerOutputs(logger lager.Logger, repository *worker.
 		outputPath := artifactsPath(output, action.artifactsRoot)
 
 		for _, mount := range volumeMounts {
-			if mount.MountPath == outputPath {
+			if filepath.Clean(mount.MountPath) == filepath.Clean(outputPath) {
 				source := newTaskArtifactSource(logger, mount.Volume)
 				repository.RegisterSource(worker.ArtifactName(outputName), source)
 			}

@@ -394,6 +394,7 @@
 .dashboard-footer {
   position: fixed;
   bottom: 0;
+  left: 0;
   width: 100%;
   background: @base00;
   text-align: right;
@@ -481,11 +482,9 @@
 
 @media (max-width: 812px) {
   .dashboard .dashboard-content {
-    padding-top: (84px * @scale * 2) + (60px * @scale);
   }
 
   .dashboard-footer {
-    position: inherit;
     display: block;
 
     .dashboard-legend {

@@ -11,9 +11,6 @@ import (
 	flags "github.com/jessevdk/go-flags"
 )
 
-// overridden via linker flags
-var Version = "0.0.0-dev"
-
 type WorkerCommand struct {
 	Drain  drainer.Config             `command:"drain" description:"Drain worker Configuration"`
 	Start  start.StartCommand         `command:"start" description:"Worker start Configuration"`

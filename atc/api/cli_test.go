@@ -16,10 +16,10 @@ var _ = Describe("CLI Downloads API", func() {
 	)
 
 	BeforeEach(func() {
-		err := ioutil.WriteFile(filepath.Join(cliDownloadsDir, "fly_darwin_amd64"), []byte("soi soi soi"), 0644)
+		err := ioutil.WriteFile(filepath.Join(cliDownloadsDir, "fly-darwin-amd64.tgz"), []byte("soi soi soi"), 0644)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = ioutil.WriteFile(filepath.Join(cliDownloadsDir, "fly_windows_amd64.exe"), []byte("soi soi soi.notavirus.bat"), 0644)
+		err = ioutil.WriteFile(filepath.Join(cliDownloadsDir, "fly-windows-amd64.zip"), []byte("soi soi soi.notavirus.bat"), 0644)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -40,10 +40,6 @@ var _ = Describe("CLI Downloads API", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 		})
 
-		It("sets the filename as 'fly'", func() {
-			Expect(response.Header.Get("Content-Disposition")).To(Equal("attachment; filename=fly"))
-		})
-
 		It("returns the file binary", func() {
 			Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("soi soi soi")))
 		})
@@ -60,10 +56,6 @@ var _ = Describe("CLI Downloads API", func() {
 
 		It("returns 200", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
-		})
-
-		It("sets the filename as 'fly.exe'", func() {
-			Expect(response.Header.Get("Content-Disposition")).To(Equal("attachment; filename=fly.exe"))
 		})
 
 		It("returns the file binary", func() {
@@ -84,10 +76,6 @@ var _ = Describe("CLI Downloads API", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 		})
 
-		It("sets the filename as 'fly'", func() {
-			Expect(response.Header.Get("Content-Disposition")).To(Equal("attachment; filename=fly"))
-		})
-
 		It("returns the file binary", func() {
 			Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("soi soi soi")))
 		})
@@ -104,10 +92,6 @@ var _ = Describe("CLI Downloads API", func() {
 
 		It("returns 200", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
-		})
-
-		It("sets the filename as 'fly.exe'", func() {
-			Expect(response.Header.Get("Content-Disposition")).To(Equal("attachment; filename=fly.exe"))
 		})
 
 		It("returns the file binary", func() {

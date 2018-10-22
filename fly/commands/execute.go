@@ -20,13 +20,15 @@ import (
 )
 
 type ExecuteCommand struct {
-	TaskConfig     atc.PathFlag                 `short:"c" long:"config" required:"true"                description:"The task config to execute"`
-	Privileged     bool                         `short:"p" long:"privileged"                            description:"Run the task with full privileges"`
-	IncludeIgnored bool                         `          long:"include-ignored"                       description:"Including .gitignored paths. Disregards .gitignore entries and uploads everything"`
-	Inputs         []flaghelpers.InputPairFlag  `short:"i" long:"input"       value-name:"NAME=PATH"    description:"An input to provide to the task (can be specified multiple times)"`
-	InputsFrom     flaghelpers.JobFlag          `short:"j" long:"inputs-from" value-name:"PIPELINE/JOB" description:"A job to base the inputs on"`
-	Outputs        []flaghelpers.OutputPairFlag `short:"o" long:"output"      value-name:"NAME=PATH"    description:"An output to fetch from the task (can be specified multiple times)"`
-	Tags           []string                     `          long:"tag"         value-name:"TAG"          description:"A tag for a specific environment (can be specified multiple times)"`
+	TaskConfig     atc.PathFlag                   `short:"c" long:"config" required:"true"                description:"The task config to execute"`
+	Privileged     bool                           `short:"p" long:"privileged"                            description:"Run the task with full privileges"`
+	IncludeIgnored bool                           `          long:"include-ignored"                       description:"Including .gitignored paths. Disregards .gitignore entries and uploads everything"`
+	Inputs         []flaghelpers.InputPairFlag    `short:"i" long:"input"       value-name:"NAME=PATH"    description:"An input to provide to the task (can be specified multiple times)"`
+	InputMappings  []flaghelpers.VariablePairFlag `short:"m" long:"input-mapping"       value-name:"[NAME=STRING]"    description:"Map a resource to a different name as task input"`
+	InputsFrom     flaghelpers.JobFlag            `short:"j" long:"inputs-from" value-name:"PIPELINE/JOB" description:"A job to base the inputs on"`
+	Outputs        []flaghelpers.OutputPairFlag   `short:"o" long:"output"      value-name:"NAME=PATH"    description:"An output to fetch from the task (can be specified multiple times)"`
+	Image          string                         `long:"image" description:"Image resource for the one-off build"`
+	Tags           []string                       `          long:"tag"         value-name:"TAG"          description:"A tag for a specific environment (can be specified multiple times)"`
 }
 
 func (command *ExecuteCommand) Execute(args []string) error {
@@ -52,15 +54,22 @@ func (command *ExecuteCommand) Execute(args []string) error {
 
 	fact := atc.NewPlanFactory(time.Now().Unix())
 
-	inputs, err := executehelpers.DetermineInputs(
+	inputMappings := executehelpers.DetermineInputMappings(command.InputMappings)
+	inputs, imageResource, err := executehelpers.DetermineInputs(
 		fact,
 		target.Team(),
 		taskConfig.Inputs,
 		command.Inputs,
+		inputMappings,
+		command.Image,
 		command.InputsFrom,
 	)
 	if err != nil {
 		return err
+	}
+
+	if imageResource != nil {
+		taskConfig.ImageResource = imageResource
 	}
 
 	outputs, err := executehelpers.DetermineOutputs(
@@ -77,6 +86,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		target,
 		command.Privileged,
 		inputs,
+		inputMappings,
 		outputs,
 		taskConfig,
 		command.Tags,
@@ -182,7 +192,7 @@ func abortOnSignal(
 	err := client.AbortBuild(strconv.Itoa(build.ID))
 	if err != nil {
 		fmt.Fprintln(ui.Stderr, "failed to abort:", err)
-		return
+		os.Exit(2)
 	}
 
 	// if told to terminate again, exit immediately

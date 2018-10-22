@@ -6,9 +6,6 @@ import (
 	semver "github.com/cppforlife/go-semi-semantic/version"
 )
 
-// overridden via linker flags
-var Version = "0.0.0-dev"
-
 func GetSemver(versionStr string) (major int, minor int, patch int, err error) {
 	version, err := semver.NewVersionFromString(versionStr)
 	if err != nil {

@@ -358,7 +358,7 @@ var _ = Describe("Sky Server API", func() {
 					})
 
 					It("errors", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
 				})
 

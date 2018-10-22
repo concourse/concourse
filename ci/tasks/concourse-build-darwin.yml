@@ -3,6 +3,8 @@ platform: darwin
 
 inputs:
 - name: concourse
+- name: version
+  optional: true
 - name: final-version
   optional: true
 - name: fly-linux
@@ -19,4 +21,5 @@ caches:
 - path: gopath
 
 run:
-  path: concourse/ci/tasks/scripts/concourse-build-darwin
+  path: concourse/ci/tasks/scripts/concourse-build
+  args: [darwin]

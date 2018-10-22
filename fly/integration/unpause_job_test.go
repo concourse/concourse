@@ -52,6 +52,29 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 
+			Context("when a job is unpaused using the API and either pipeline or job doesn't exist", func() {
+				BeforeEach(func() {
+					apiPath := fmt.Sprintf("/api/v1/teams/main/pipelines/%s/jobs/%s/unpause", pipelineName, jobName)
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("PUT", apiPath),
+							ghttp.RespondWith(http.StatusNotFound, nil),
+						),
+					)
+				})
+				It("exists 1 and outputs the corresponding error", func() {
+					Expect(func() {
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+						Eventually(sess.Err).Should(gbytes.Say(`not found`))
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(1))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(2))
+				})
+			})
+
 			Context("when a job is unpaused using the API", func() {
 				BeforeEach(func() {
 					apiPath := fmt.Sprintf("/api/v1/teams/main/pipelines/%s/jobs/%s/unpause", pipelineName, jobName)

@@ -1,0 +1,15 @@
+[Unit]
+Description=Concourse Worker
+
+[Service]
+ExecStart=/usr/local/concourse/bin/concourse worker
+User=root
+Group=root
+Type=simple
+LimitNPROC=infinity
+LimitNOFILE=infinity
+TasksMax=infinity
+MemoryLimit=infinity
+
+[Install]
+WantedBy=multi-user.target

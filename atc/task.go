@@ -159,8 +159,6 @@ func (config TaskConfig) validateInputsAndOutputs() []string {
 
 	messages = append(messages, config.validateInputContainsNames()...)
 	messages = append(messages, config.validateOutputContainsNames()...)
-	messages = append(messages, config.validateDotPath()...)
-	messages = append(messages, config.validateOverlappingPaths()...)
 
 	return messages
 }
@@ -253,75 +251,6 @@ func pathContains(child string, parent string) bool {
 	}
 
 	return true
-}
-
-func (counter pathCounter) getErrorMessages() []string {
-	messages := []string{}
-
-	for path, numOccurrences := range counter.inputCount {
-		if numOccurrences > 1 {
-			messages = append(messages, fmt.Sprintf(duplicateErrorMessage, "input", path))
-		}
-
-		if counter.foundInBoth(path) {
-			messages = append(messages, fmt.Sprintf("  cannot have an input and output using the same path '%s'", path))
-		}
-
-		for candidateParentPath := range counter.inputCount {
-			if pathContains(path, candidateParentPath) {
-				messages = append(messages, fmt.Sprintf("  cannot nest inputs: '%s' is nested under input directory '%s'", path, candidateParentPath))
-			}
-		}
-
-		for candidateParentPath := range counter.outputCount {
-			if pathContains(path, candidateParentPath) {
-				messages = append(messages, fmt.Sprintf("  cannot nest inputs within outputs: '%s' is nested under output directory '%s'", path, candidateParentPath))
-			}
-		}
-	}
-
-	for path, numOccurrences := range counter.outputCount {
-		if numOccurrences > 1 {
-			messages = append(messages, fmt.Sprintf(duplicateErrorMessage, "output", path))
-		}
-
-		for candidateParentPath := range counter.outputCount {
-			if pathContains(path, candidateParentPath) {
-				messages = append(messages, fmt.Sprintf("  cannot nest outputs: '%s' is nested under output directory '%s'", path, candidateParentPath))
-			}
-		}
-
-		for candidateParentPath := range counter.inputCount {
-			if pathContains(path, candidateParentPath) {
-				messages = append(messages, fmt.Sprintf("  cannot nest outputs within inputs: '%s' is nested under input directory '%s'", path, candidateParentPath))
-			}
-		}
-
-	}
-
-	return messages
-}
-
-func (config TaskConfig) countInputOutputPaths() pathCounter {
-	counter := &pathCounter{
-		inputCount:  make(map[string]int),
-		outputCount: make(map[string]int),
-	}
-
-	for _, input := range config.Inputs {
-		counter.registerInput(input)
-	}
-
-	for _, output := range config.Outputs {
-		counter.registerOutput(output)
-	}
-
-	return *counter
-}
-
-func (config TaskConfig) validateOverlappingPaths() []string {
-	counter := config.countInputOutputPaths()
-	return counter.getErrorMessages()
 }
 
 func (config TaskConfig) validateOutputContainsNames() []string {

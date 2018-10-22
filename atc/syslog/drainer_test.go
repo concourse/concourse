@@ -116,6 +116,10 @@ var _ = Describe("Drainer", func() {
 
 	})
 
+	AfterEach(func() {
+		s.Close <- true
+	})
+
 	Context("when there are builds that have not been drained", func() {
 
 		Context("when tls is enabled", func() {
@@ -125,12 +129,12 @@ var _ = Describe("Drainer", func() {
 			})
 
 			It("connects to remote server given correct cert", func() {
+
 				testDrainer := syslog.NewDrainer("tls", s.Addr, "test", []string{"testdata/cert.pem"}, fakeBuildFactory)
 
 				err := testDrainer.Run(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
-				s.Close <- true
 			})
 
 			It("fails connects to remote server given incorrect cert", func() {
@@ -140,7 +144,6 @@ var _ = Describe("Drainer", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("x509: certificate signed by unknown authority"))
 
-				s.Close <- true
 			})
 		})
 
@@ -156,8 +159,6 @@ var _ = Describe("Drainer", func() {
 				testDrainer := syslog.NewDrainer("tcp", s.Addr, "test", []string{}, fakeBuildFactory)
 				err := testDrainer.Run(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
-
-				s.Close <- true
 
 				got := <-s.Messages
 				Expect(got).To(ContainSubstring("build 123 log"))

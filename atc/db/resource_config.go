@@ -108,6 +108,11 @@ func (r *resourceConfig) AcquireResourceConfigCheckingLockWithIntervalCheck(
 	}
 
 	if !intervalUpdated {
+		logger.Debug("failed-to-update-interval", lager.Data{
+			"interval":  interval,
+			"immediate": immediate,
+		})
+
 		lockErr := lock.Release()
 		if lockErr != nil {
 			logger.Fatal("failed-to-release-lock", lockErr)

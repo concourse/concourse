@@ -3,8 +3,11 @@ package cliserver
 import (
 	"net/http"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
+
+var whitelist = regexp.MustCompile(`^[a-z0-9]+$`)
 
 func (s *Server) Download(w http.ResponseWriter, r *http.Request) {
 	if s.cliDownloadsDir == "" {
@@ -15,29 +18,18 @@ func (s *Server) Download(w http.ResponseWriter, r *http.Request) {
 	platform := strings.ToLower(r.URL.Query().Get("platform"))
 	arch := r.URL.Query().Get("arch")
 
+	if !whitelist.MatchString(platform) || !whitelist.MatchString(arch) {
+		// prevent attempts at accessing arbitrary paths
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	var extension string
-
-	switch platform {
-	case "windows":
-		extension = ".exe"
-	case "darwin", "linux":
-		extension = ""
-	default:
-		http.Error(w, "invalid platform", http.StatusBadRequest)
-		return
+	if platform == "windows" {
+		extension = "zip"
+	} else {
+		extension = "tgz"
 	}
 
-	switch arch {
-	case "amd64":
-	case "i386":
-		http.Error(w, "too few bits", http.StatusPaymentRequired)
-		return
-	default:
-		http.Error(w, "invalid architecture", http.StatusBadRequest)
-		return
-	}
-
-	w.Header().Set("Content-Disposition", "attachment; filename=fly"+extension)
-
-	http.ServeFile(w, r, filepath.Join(s.cliDownloadsDir, "fly_"+platform+"_"+arch+extension))
+	http.ServeFile(w, r, filepath.Join(s.cliDownloadsDir, "fly-"+platform+"-"+arch+"."+extension))
 }

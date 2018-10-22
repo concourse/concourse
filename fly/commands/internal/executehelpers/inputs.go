@@ -22,51 +22,59 @@ func DetermineInputs(
 	fact atc.PlanFactory,
 	team concourse.Team,
 	taskInputs []atc.TaskInputConfig,
-	inputMappings []flaghelpers.InputPairFlag,
+	localInputMappings []flaghelpers.InputPairFlag,
+	jobInputMappings map[string]string,
+	jobInputImage string,
 	inputsFrom flaghelpers.JobFlag,
-) ([]Input, error) {
-	err := CheckForUnknownInputMappings(inputMappings, taskInputs)
+) ([]Input, *atc.ImageResource, error) {
+	err := CheckForUnknownInputMappings(localInputMappings, taskInputs)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	err = CheckForInputType(inputMappings)
+	err = CheckForInputType(localInputMappings)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if len(inputMappings) == 0 && inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
+	if len(localInputMappings) == 0 && inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
 		wd, err := os.Getwd()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		inputMappings = append(inputMappings, flaghelpers.InputPairFlag{
+		localInputMappings = append(localInputMappings, flaghelpers.InputPairFlag{
 			Name: filepath.Base(wd),
 			Path: wd,
 		})
 	}
 
-	inputsFromLocal, err := GenerateLocalInputs(fact, inputMappings)
+	inputsFromLocal, err := GenerateLocalInputs(fact, localInputMappings)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	inputsFromJob, err := FetchInputsFromJob(fact, team, inputsFrom)
+	inputsFromJob, imageResourceFromJob, err := FetchInputsFromJob(fact, team, inputsFrom, jobInputImage)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	inputs := []Input{}
 	for _, taskInput := range taskInputs {
 		input, found := inputsFromLocal[taskInput.Name]
 		if !found {
-			input, found = inputsFromJob[taskInput.Name]
+
+			jobInputName := taskInput.Name
+			if name, ok := jobInputMappings[taskInput.Name]; ok {
+				jobInputName = name
+			}
+
+			input, found = inputsFromJob[jobInputName]
 			if !found {
 				if taskInput.Optional {
 					continue
 				} else {
-					return nil, fmt.Errorf("missing required input `%s`", taskInput.Name)
+					return nil, nil, fmt.Errorf("missing required input `%s`", taskInput.Name)
 				}
 			}
 		}
@@ -74,7 +82,15 @@ func DetermineInputs(
 		inputs = append(inputs, input)
 	}
 
-	return inputs, nil
+	return inputs, imageResourceFromJob, nil
+}
+
+func DetermineInputMappings(variables []flaghelpers.VariablePairFlag) map[string]string {
+	inputMappings := map[string]string{}
+	for _, flag := range variables {
+		inputMappings[flag.Name] = flag.Value
+	}
+	return inputMappings
 }
 
 func CheckForInputType(inputMaps []flaghelpers.InputPairFlag) error {
@@ -130,28 +146,41 @@ func GenerateLocalInputs(fact atc.PlanFactory, inputMappings []flaghelpers.Input
 	return kvMap, nil
 }
 
-func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom flaghelpers.JobFlag) (map[string]Input, error) {
+func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom flaghelpers.JobFlag, imageName string) (map[string]Input, *atc.ImageResource, error) {
 	kvMap := map[string]Input{}
+
 	if inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
-		return kvMap, nil
+		return kvMap, nil, nil
 	}
 
 	buildInputs, found, err := team.BuildInputsForJob(inputsFrom.PipelineName, inputsFrom.JobName)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if !found {
-		return nil, errors.New("build inputs not found")
+		return nil, nil, fmt.Errorf("build inputs for %s/%s not found", inputsFrom.PipelineName, inputsFrom.JobName)
 	}
 
 	versionedResourceTypes, found, err := team.VersionedResourceTypes(inputsFrom.PipelineName)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if !found {
-		return nil, errors.New("versioned resource types not found")
+		return nil, nil, fmt.Errorf("versioned resource types of %s not found", inputsFrom.PipelineName)
+	}
+
+	var imageResource *atc.ImageResource
+	if imageName != "" {
+		imageResource, found, err = FetchImageResourceFromJobInputs(buildInputs, imageName)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if !found {
+			return nil, nil, fmt.Errorf("image resource %s not found", imageName)
+		}
 	}
 
 	for _, buildInput := range buildInputs {
@@ -161,16 +190,34 @@ func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom fl
 			Name: buildInput.Name,
 
 			Plan: fact.NewPlan(atc.GetPlan{
-				Name:                   buildInput.Name,
-				Type:                   buildInput.Type,
-				Source:                 buildInput.Source,
-				Version:                &version,
-				Params:                 buildInput.Params,
-				Tags:                   buildInput.Tags,
+				Name:    buildInput.Name,
+				Type:    buildInput.Type,
+				Source:  buildInput.Source,
+				Version: &version,
+				Params:  buildInput.Params,
+				Tags:    buildInput.Tags,
 				VersionedResourceTypes: versionedResourceTypes,
 			}),
 		}
 	}
 
-	return kvMap, nil
+	return kvMap, imageResource, nil
+}
+
+func FetchImageResourceFromJobInputs(inputs []atc.BuildInput, imageName string) (*atc.ImageResource, bool, error) {
+
+	for _, input := range inputs {
+		if input.Name == imageName {
+			version := input.Version
+			imageResource := atc.ImageResource{
+				Type:    input.Type,
+				Source:  input.Source,
+				Version: &version,
+				Params:  &input.Params,
+			}
+			return &imageResource, true, nil
+		}
+	}
+
+	return nil, false, nil
 }

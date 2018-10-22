@@ -8,16 +8,17 @@ process.setMaxListeners(Infinity);
 class Suite {
   constructor() {
     this.url = process.env.ATC_URL || 'http://localhost:8080';
-    this.admin_username = process.env.ATC_ADMIN_USERNAME || 'test';
-    this.admin_password = process.env.ATC_ADMIN_PASSWORD || 'test';
-    this.guest_username = process.env.ATC_GUEST_USERNAME || 'guest';
-    this.guest_password = process.env.ATC_GUEST_PASSWORD || 'guest';
+    this.adminUsername = process.env.ATC_ADMIN_USERNAME || 'test';
+    this.adminPassword = process.env.ATC_ADMIN_PASSWORD || 'test';
+    this.guestUsername = process.env.ATC_GUEST_USERNAME || 'guest';
+    this.guestPassword = process.env.ATC_GUEST_PASSWORD || 'guest';
 
     this.teamName = `watsjs-team-${uuidv4()}`;
+    this.guestTeamName = `watsjs-non-main-team-${uuidv4()}`;
     this.teams = [];
 
-    this.fly = new Fly(this.url, this.admin_username, this.admin_password, this.teamName);
-    this.web = new Web(this.url, this.admin_username, this.admin_password);
+    this.fly = new Fly(this.url, this.adminUsername, this.adminPassword, this.teamName);
+    this.web = new Web(this.url, this.adminUsername, this.adminPassword);
   }
 
   static async build(t) {
@@ -27,7 +28,8 @@ class Suite {
   }
 
   async init(t) {
-    await this.newTeam(this.admin_username, this.teamName);
+    await this.newTeam(this.adminUsername, this.teamName);
+    await this.newTeam(this.guestUsername, this.guestTeamName);
     await this.fly.init();
     await this.web.init();
     await this.web.login(t);
@@ -35,11 +37,11 @@ class Suite {
     this.succeeded = false;
   }
 
-  async newTeam(username = this.admin_username, teamName) {
+  async newTeam(username = this.adminUsername, teamName) {
     if (!teamName) {
       teamName = `watsjs-team-${uuidv4()}`;
     }
-    let fly = await Fly.build(this.url, this.admin_username, this.admin_password, 'main');
+    let fly = await Fly.build(this.url, this.adminUsername, this.adminPassword, 'main');
 
     await fly.newTeam(teamName, username);
     this.teams.push(teamName);
@@ -48,7 +50,7 @@ class Suite {
   }
 
   async destroyTeams() {
-    let fly = await Fly.build(this.url, this.admin_username, this.admin_password, 'main');
+    let fly = await Fly.build(this.url, this.adminUsername, this.adminPassword, 'main');
 
     var team;
     while (team = this.teams.pop()) {

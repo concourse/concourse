@@ -8,8 +8,8 @@ import (
 	"os/exec"
 
 	"github.com/concourse/concourse/fly/ui"
-	"github.com/concourse/go-archive/tgzfs"
 	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/go-archive/tgzfs"
 )
 
 func Upload(client concourse.Client, buildID int, input Input, includeIgnored bool) {
@@ -53,12 +53,19 @@ func getGitFiles(dir string) ([]string, error) {
 		return nil, err
 	}
 
+	deleted, err := gitLS(dir, "--deleted")
+	if err != nil {
+		return nil, err
+	}
+
+	existingFiles := difference(tracked, deleted)
+
 	untracked, err := gitLS(dir, "--others", "--exclude-standard")
 	if err != nil {
 		return nil, err
 	}
 
-	return append(tracked, untracked...), nil
+	return append(existingFiles, untracked...), nil
 }
 
 func gitLS(dir string, flags ...string) ([]string, error) {
@@ -110,4 +117,18 @@ func scanNull(data []byte, atEOF bool) (int, []byte, error) {
 
 	// request more data
 	return 0, nil, nil
+}
+
+func difference(a, b []string) []string {
+	mb := map[string]bool{}
+	for _, x := range b {
+		mb[x] = true
+	}
+	ab := []string{}
+	for _, x := range a {
+		if _, ok := mb[x]; !ok {
+			ab = append(ab, x)
+		}
+	}
+	return ab
 }

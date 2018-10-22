@@ -111,8 +111,9 @@ var _ = BeforeEach(func() {
 })
 
 var _ = AfterEach(func() {
-	fly("destroy-pipeline", "-n", "-p", pipelineName)
 	Expect(os.RemoveAll(tmp)).To(Succeed())
+
+	fly("destroy-pipeline", "-n", "-p", pipelineName)
 })
 
 func randomPipelineName() string {

@@ -27,7 +27,7 @@ type dbWorkerProvider struct {
 	dbVolumeRepository                db.VolumeRepository
 	dbTeamFactory                     db.TeamFactory
 	dbWorkerFactory                   db.WorkerFactory
-	workerVersion                     *version.Version
+	workerVersion                     version.Version
 	baggageclaimResponseHeaderTimeout time.Duration
 }
 
@@ -42,7 +42,7 @@ func NewDBWorkerProvider(
 	dbVolumeRepository db.VolumeRepository,
 	dbTeamFactory db.TeamFactory,
 	workerFactory db.WorkerFactory,
-	workerVersion *version.Version,
+	workerVersion version.Version,
 	baggageclaimResponseHeaderTimeout time.Duration,
 ) WorkerProvider {
 	return &dbWorkerProvider{

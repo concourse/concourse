@@ -4,6 +4,7 @@ import Autoscroll
 import Build
 import Concourse
 import Html exposing (Html)
+import Html.Styled as HS
 import Http
 import Job
 import Json.Encode
@@ -294,7 +295,7 @@ view mdl =
             Html.map ResourceMsg <| Resource.view model
 
         DashboardModel model ->
-            Html.map DashboardMsg <| Dashboard.view model
+            (Html.map DashboardMsg << HS.toUnstyled) <| Dashboard.view model
 
         DashboardHdModel model ->
             Html.map DashboardHdMsg <| DashboardHd.view model

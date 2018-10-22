@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"time"
 
+	conc "github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/concourse/concourse/fly/version"
@@ -328,7 +329,7 @@ func (t *target) validate(allowVersionMismatch bool) error {
 		return err
 	}
 
-	if info.Version == version.Version || version.IsDev(version.Version) {
+	if info.Version == conc.Version || version.IsDev(conc.Version) {
 		return nil
 	}
 
@@ -337,18 +338,18 @@ func (t *target) validate(allowVersionMismatch bool) error {
 		return err
 	}
 
-	flyMajor, flyMinor, flyPatch, err := version.GetSemver(version.Version)
+	flyMajor, flyMinor, flyPatch, err := version.GetSemver(conc.Version)
 	if err != nil {
 		return err
 	}
 
 	if !allowVersionMismatch && (atcMajor != flyMajor || atcMinor != flyMinor) {
-		return NewErrVersionMismatch(version.Version, info.Version, t.name)
+		return NewErrVersionMismatch(conc.Version, info.Version, t.name)
 	}
 
 	if atcMajor != flyMajor || atcMinor != flyMinor || atcPatch != flyPatch {
 		fmt.Fprintln(ui.Stderr, ui.WarningColor("WARNING:\n"))
-		fmt.Fprintln(ui.Stderr, ui.WarningColor(NewErrVersionMismatch(version.Version, info.Version, t.name).Error()))
+		fmt.Fprintln(ui.Stderr, ui.WarningColor(NewErrVersionMismatch(conc.Version, info.Version, t.name).Error()))
 	}
 
 	return nil

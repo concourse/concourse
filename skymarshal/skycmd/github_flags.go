@@ -48,11 +48,12 @@ func (self *GithubFlags) Serialize(redirectURI string) ([]byte, error) {
 	}
 
 	return json.Marshal(github.Config{
-		ClientID:     self.ClientID,
-		ClientSecret: self.ClientSecret,
-		RedirectURI:  redirectURI,
-		HostName:     self.Host,
-		RootCA:       self.CACert.Path(),
+		ClientID:      self.ClientID,
+		ClientSecret:  self.ClientSecret,
+		RedirectURI:   redirectURI,
+		HostName:      self.Host,
+		RootCA:        self.CACert.Path(),
+		TeamNameField: "both",
 	})
 }
 

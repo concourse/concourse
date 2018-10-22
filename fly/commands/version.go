@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/concourse/concourse/fly/version"
+	"github.com/concourse/concourse"
 )
 
 func init() {
 	Fly.Version = func() {
-		fmt.Println(version.Version)
+		fmt.Println(concourse.Version)
 		os.Exit(0)
 	}
 }

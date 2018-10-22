@@ -1,0 +1,56 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -x
+
+export GOPATH=$PWD/gopath
+export PATH=$PWD/gopath/bin:$PATH
+
+if [ "$#" -lt 1 ]; then
+  echo "usage: $0 <platform>" >&2
+  exit 1
+fi
+
+platform="$1"
+
+version=0.0.0
+if [ -e version/version ]; then
+  version=$(cat version/version)
+fi
+
+ldflags=""
+if [ -e final-version/version ]; then
+  final_version="$(cat final-version/version)"
+  ldflags="-X github.com/concourse/concourse.Version=$final_version"
+fi
+
+pushd concourse
+  go install github.com/gobuffalo/packr/packr
+  packr build -o concourse -ldflags "$ldflags" ./bin/cmd/concourse
+  test "$(./concourse --version)" = "$final_version"
+popd
+
+output=concourse-${platform}
+
+mkdir $output/concourse
+
+bin=$output/concourse/bin
+mkdir $bin
+mv concourse/concourse $bin
+[ -d gdn ] && cp gdn/gdn $bin
+
+[ -d resource-types ] && cp -a resource-types $output/concourse
+
+fly_assets=$output/concourse/fly-assets
+mkdir $fly_assets
+[ -d fly-linux ] && cp -a fly-linux/fly-*.tgz $fly_assets
+[ -d fly-windows ] && cp -a fly-windows/fly-*.zip $fly_assets
+[ -d fly-darwin ] && cp -a fly-darwin/fly-*.tgz $fly_assets
+
+pushd $output
+  archive=concourse-${version}-${platform}-amd64.tgz
+  tar -czf $archive concourse
+  shasum "$archive" > "${archive}.sha1"
+
+  rm -r concourse
+popd

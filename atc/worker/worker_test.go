@@ -95,28 +95,28 @@ var _ = Describe("Worker", func() {
 		It("is compatible when versions are the same", func() {
 			requiredVersion := version.MustNewVersionFromString("1.2.3")
 			Expect(
-				gardenWorker.IsVersionCompatible(logger, &requiredVersion),
+				gardenWorker.IsVersionCompatible(logger, requiredVersion),
 			).To(BeTrue())
 		})
 
 		It("is not compatible when versions are different in major version", func() {
 			requiredVersion := version.MustNewVersionFromString("2.2.3")
 			Expect(
-				gardenWorker.IsVersionCompatible(logger, &requiredVersion),
+				gardenWorker.IsVersionCompatible(logger, requiredVersion),
 			).To(BeFalse())
 		})
 
 		It("is compatible when worker minor version is newer", func() {
 			requiredVersion := version.MustNewVersionFromString("1.1.3")
 			Expect(
-				gardenWorker.IsVersionCompatible(logger, &requiredVersion),
+				gardenWorker.IsVersionCompatible(logger, requiredVersion),
 			).To(BeTrue())
 		})
 
 		It("is not compatible when worker minor version is older", func() {
 			requiredVersion := version.MustNewVersionFromString("1.3.3")
 			Expect(
-				gardenWorker.IsVersionCompatible(logger, &requiredVersion),
+				gardenWorker.IsVersionCompatible(logger, requiredVersion),
 			).To(BeFalse())
 		})
 
@@ -128,7 +128,7 @@ var _ = Describe("Worker", func() {
 			It("is not compatible", func() {
 				requiredVersion := version.MustNewVersionFromString("1.2.3")
 				Expect(
-					gardenWorker.IsVersionCompatible(logger, &requiredVersion),
+					gardenWorker.IsVersionCompatible(logger, requiredVersion),
 				).To(BeFalse())
 			})
 		})
@@ -141,30 +141,22 @@ var _ = Describe("Worker", func() {
 			It("is compatible when it is the same", func() {
 				requiredVersion := version.MustNewVersionFromString("1")
 				Expect(
-					gardenWorker.IsVersionCompatible(logger, &requiredVersion),
+					gardenWorker.IsVersionCompatible(logger, requiredVersion),
 				).To(BeTrue())
 			})
 
 			It("is not compatible when it is different", func() {
 				requiredVersion := version.MustNewVersionFromString("2")
 				Expect(
-					gardenWorker.IsVersionCompatible(logger, &requiredVersion),
+					gardenWorker.IsVersionCompatible(logger, requiredVersion),
 				).To(BeFalse())
 			})
 
 			It("is not compatible when compared version has minor vesion", func() {
 				requiredVersion := version.MustNewVersionFromString("1.2")
 				Expect(
-					gardenWorker.IsVersionCompatible(logger, &requiredVersion),
+					gardenWorker.IsVersionCompatible(logger, requiredVersion),
 				).To(BeFalse())
-			})
-		})
-
-		Context("when required version is nil", func() {
-			It("is compatible", func() {
-				Expect(
-					gardenWorker.IsVersionCompatible(logger, nil),
-				).To(BeTrue())
 			})
 		})
 	})

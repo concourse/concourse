@@ -1,0 +1,10 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e
+
+# print once just to see useful output in CI
+bosh instances
+
+bosh instances | grep "${BOSH_INSTANCE_GROUP}/" | awk '{print $4}' \
+  > endpoint-info/instance_ip

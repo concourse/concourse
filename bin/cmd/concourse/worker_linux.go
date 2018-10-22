@@ -42,6 +42,14 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 		return atc.Worker{}, nil, err
 	}
 
+	if binDir := discoverAsset("bin"); binDir != "" {
+		// ensure packaged 'gdn' executable is available in $PATH
+		err := os.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
+		if err != nil {
+			return atc.Worker{}, nil, err
+		}
+	}
+
 	depotDir := filepath.Join(cmd.WorkDir.Path(), "depot")
 
 	// must be readable by other users so unprivileged containers can run their
@@ -193,7 +201,7 @@ func (cmd *WorkerCommand) loadResources(logger lager.Logger) ([]atc.WorkerResour
 				return nil, err
 			}
 
-			t.Image = filepath.Join(basePath, e.Name(), "rootfs")
+			t.Image = filepath.Join(basePath, e.Name(), "rootfs.tgz")
 
 			types = append(types, t)
 		}
