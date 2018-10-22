@@ -7,8 +7,9 @@ version=$(cat version/version)
 
 git clone concourse-release-repo bumped-concourse-release-repo
 
-cat > bumped-concourse-release-repo/config/private.yml <<EOF
-$BOSH_PRIVATE_CONFIG
+export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp.key.json
+cat > $GOOGLE_APPLICATION_CREDENTIALS <<EOF
+$GCP_JSON_KEY
 EOF
 
 cd bumped-concourse-release-repo/
@@ -24,7 +25,7 @@ for blob in $(bosh blobs --column="path"  | grep concourse/); do
   bosh -n remove-blob $blob
 done
 
-for blob in linux-rc/concourse-*.tgz windows-rc/concourse-*.zip; do
+for blob in ../linux-rc/concourse-*.tgz ../windows-rc/concourse-*.zip; do
   bosh -n add-blob $blob concourse/$(basename $blob)
 done
 

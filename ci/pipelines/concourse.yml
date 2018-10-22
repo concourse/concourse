@@ -303,13 +303,7 @@ jobs:
     - get: concourse-release-repo
   - task: bump-concourse-blobs
     file: concourse/ci/tasks/bump-concourse-blobs.yml
-    params:
-      BOSH_PRIVATE_CONFIG: |
-        blobstore:
-          provider: gcs
-          options:
-            credentials_source: static
-            json_key: ((concourse_artifacts_json_key))
+    params: {GCP_JSON_KEY: ((concourse_artifacts_json_key))}
   - put: concourse-release-repo
     params: {repository: bumped-release-repo}
 
