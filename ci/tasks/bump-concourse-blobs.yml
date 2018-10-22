@@ -9,12 +9,12 @@ image_resource:
 inputs:
 - name: concourse
 - name: version
-- name: concourse-bosh-release
+- name: concourse-release-repo
 - name: linux-rc
 - name: windows-rc
 
 outputs:
-- name: bumped-concourse-bosh-release
+- name: bumped-concourse-release-repo
 
 params:
   BOSH_PRIVATE_CONFIG:

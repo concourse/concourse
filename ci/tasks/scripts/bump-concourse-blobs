@@ -5,13 +5,13 @@ set -e -x
 
 version=$(cat version/version)
 
-git clone concourse-bosh-release bumped-concourse-bosh-release
+git clone concourse-release-repo bumped-concourse-release-repo
 
 cat > bumped-concourse/config/private.yml <<EOF
 $BOSH_PRIVATE_CONFIG
 EOF
 
-cd bumped-concourse-bosh-release/
+cd bumped-concourse-release-repo/
 
 # work-around Go BOSH CLI trying to rename blobs downloaded into ~/.root/tmp
 # into release dir, which is invalid cross-device link

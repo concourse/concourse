@@ -302,7 +302,7 @@ jobs:
       trigger: true
     - get: concourse-release-repo
   - task: bump-concourse-blobs
-    file: concourse-release-repo/ci/tasks/bump-concourse-blobs.yml
+    file: concourse/ci/tasks/bump-concourse-blobs.yml
     params:
       BOSH_PRIVATE_CONFIG: |
         blobstore:
@@ -474,7 +474,7 @@ resources:
           json_key: ((concourse_artifacts_json_key))
 
 - name: concourse-release-repo
-  type: bosh-release
+  type: git
   source:
     uri: git@github.com:concourse/concourse-bosh-release
     private_key: ((concourse_release_deploy_key))
