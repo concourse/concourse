@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="11px" height="11px" viewBox="0 0 11 11" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch Beta 51.2 (57516) - http://www.bohemiancoding.com/sketch -->
+    <title>x_ic</title>
+    <desc>Created with Sketch Beta.</desc>
+    <defs></defs>
+    <g id="Resource_pinning_flow" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="2_00_resource_pinned_pipeline_via_cli" transform="translate(-19.000000, -387.000000)">
+            <g id="x_ic" transform="translate(15.000000, 383.000000)">
+                <polygon id="Shape" fill="#636363" fill-rule="nonzero" points="15.0416667 5.07458333 13.9254167 3.95833333 9.5 8.38375 5.07458333 3.95833333 3.95833333 5.07458333 8.38375 9.5 3.95833333 13.9254167 5.07458333 15.0416667 9.5 10.61625 13.9254167 15.0416667 15.0416667 13.9254167 10.61625 9.5"></polygon>
+                <polygon id="Shape" points="0 0 19 0 19 19 0 19"></polygon>
+            </g>
+        </g>
+    </g>
+</svg>

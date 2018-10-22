@@ -4,16 +4,16 @@ import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination exposing (Pagination, Paginated, Page, equal)
 import Concourse.Resource
+import Css
 import Dict
 import DictView
 import Date exposing (Date)
 import Date.Format
 import Duration exposing (Duration)
 import Erl
-import Html exposing (Html)
-import Html.Attributes exposing (class, href, title)
-import Html.Attributes.Aria exposing (ariaLabel)
-import Html.Events exposing (onClick)
+import Html.Styled as Html exposing (Html)
+import Html.Styled.Attributes exposing (class, css, href, title)
+import Html.Styled.Events exposing (onClick)
 import Http
 import Navigation
 import StrictEvents
@@ -579,7 +579,7 @@ view model =
                                     [ Html.div [ class "header" ]
                                         [ Html.button
                                             [ class <| "btn-pause fl " ++ paused
-                                            , ariaLabel aria
+                                            , Html.Styled.Attributes.attribute "aria-label" aria
                                             , title aria
                                             , onClick onClickEvent
                                             ]
@@ -657,8 +657,24 @@ viewVersionedResource states versionedResource =
     in
         Html.li [ class <| "list-collapsable-item clearfix " ++ liEnabled ]
             [ Html.a
-                [ class "fl btn-power-toggle fa fa-power-off mrm"
-                , ariaLabel "Toggle Resource Version"
+                [ Html.Styled.Attributes.attribute "aria-label" "Toggle Resource Version"
+                , css
+                    ((if versionedResource.enabled then
+                        [ Css.backgroundImage (Css.url "/public/images/checkmark_ic.svg")
+                        , Css.backgroundColor (Css.hex "2ecc71")
+                        ]
+                      else
+                        [ Css.backgroundImage (Css.url "/public/images/x_ic.svg")
+                        ]
+                     )
+                        ++ [ Css.backgroundRepeat Css.noRepeat
+                           , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
+                           , Css.marginRight (Css.px 10)
+                           , Css.width (Css.px 25)
+                           , Css.height (Css.px 25)
+                           , Css.float Css.left
+                           ]
+                    )
                 , onClick <| ToggleVersionedResource versionedResource.id
                 ]
                 []
@@ -708,8 +724,8 @@ setState versionID newState states =
 
 viewVersion : Concourse.Version -> Html Msg
 viewVersion version =
-    DictView.view
-        << Dict.map (\_ s -> Html.text s)
+    (Html.fromUnstyled << DictView.view)
+        << Dict.map (\_ s -> Html.toUnstyled (Html.text s))
     <|
         version
 
@@ -796,7 +812,7 @@ viewBuildsByJob buildDict jobName =
                 in
                     Html.li [ class <| Concourse.BuildStatus.show build.status ]
                         [ Html.a
-                            [ StrictEvents.onLeftClick <| NavTo link
+                            [ Html.Styled.Attributes.fromUnstyled <| StrictEvents.onLeftClick <| NavTo link
                             , href link
                             ]
                             [ Html.text <| "#" ++ build.name ]
