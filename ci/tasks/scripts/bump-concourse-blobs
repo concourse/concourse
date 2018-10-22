@@ -20,7 +20,9 @@ export HOME=$PWD
 git config --global user.email "concourseteam+concourse-github-bot@gmail.com"
 git config --global user.name "Concourse Bot"
 
-bosh blobs --column="path"  | grep concourse/ | xargs bosh remove-blob
+for blob in $(bosh blobs --column="path"  | grep concourse/); do
+  bosh -n remove-blob $blob
+done
 
 for blob in linux-rc/concourse-*.tgz windows-rc/concourse-*.zip; do
   bosh -n add-blob $blob concourse/$(basename $blob)
