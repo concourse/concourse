@@ -19,7 +19,7 @@ before using it!
 }{
   \table-row{\link{Slack notifications}{https://github.com/cloudfoundry-community/slack-notification-resource}}{by \ghuser{cloudfoundry-community}}
 }{
-  \table-row{\link{Github Pull Requests}{https://github.com/jtarchie/github-pullrequest-resource}}{by \ghuser{jtarchie}}
+  \table-row{\link{Github Pull Requests}{https://github.com/telia-oss/github-pr-resource}}{by \ghuser{itsdalmo}}
 }{
   \table-row{\link{GitLab Merge Requests}{https://github.com/swisscom/gitlab-merge-request-resource}}{by \ghuser{swisscom}}
 }{
