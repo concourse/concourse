@@ -1,0 +1,7 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -x
+
+bosh instances | grep "${BOSH_INSTANCE_GROUP}/" | awk '{print $4}' \
+  > endpoint-info/instance_ip

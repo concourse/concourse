@@ -11,6 +11,10 @@ resource_types:
   type: registry-image
   source: {repository: dpb587/bosh-release-resource}
 
+- name: bosh-deployment
+  type: registry-image
+  source: {repository: cloudfoundry/bosh-deployment-resource}
+
 groups:
 - name: develop
   jobs:
@@ -22,7 +26,12 @@ groups:
   - build-rc
   - bin-smoke
   - bosh-bump
-  - bosh-build
+  - bosh-smoke
+
+- name: bosh
+  jobs:
+  - bosh-bump
+  - bosh-smoke
 
 - name: images
   jobs:
@@ -258,7 +267,7 @@ jobs:
   - task: smoke
     image: unit-image
     file: concourse/ci/tasks/smoke.yml
-    input_mapping: {terraform-outputs: outputs}
+    input_mapping: {endpoint-info: outputs}
 
 - name: unit-image
   public: true
@@ -307,16 +316,40 @@ jobs:
   - put: concourse-release-repo
     params: {repository: bumped-concourse-release-repo}
 
-- name: bosh-build
+- name: bosh-smoke
   serial: true
   plan:
   - aggregate:
-    - get: concourse-release
-      trigger: true
     - get: concourse
       passed: [bosh-bump]
     - get: version
       passed: [bosh-bump]
+    - get: concourse-release
+      trigger: true
+    - get: postgres-release
+      trigger: true
+    - get: unit-image
+      passed: [bin-smoke]
+  - put: concourse-smoke-deployment
+    params:
+      manifest: concourse/ci/deployments/bosh-smoke.yml
+      releases:
+      - concourse-release/*.tgz
+      - postgres-release/*.tgz
+      stemcells:
+      - gcp-xenial-stemcell/*.tgz
+  - task: discover-bosh-endpoint-info
+    file: concourse/ci/tasks/discover-bosh-endpoint-info.yml
+    params:
+      BOSH_ENVIRONMENT: bosh.concourse-ci.org
+      BOSH_CLIENT: ((bosh_client.id))
+      BOSH_CLIENT_SECRET: ((bosh_client.secret))
+      BOSH_DEPLOYMENT: concourse-smoke
+      BOSH_INSTANCE_GROUP: concourse
+  - task: smoke
+    image: unit-image
+    file: concourse/ci/tasks/smoke.yml
+    input_mapping: {endpoint-info: outputs}
 
 - name: push-docs
   serial: true
@@ -467,9 +500,22 @@ resources:
           credentials_source: static
           json_key: ((concourse_artifacts_json_key))
 
+- name: postgres-release
+  type: bosh-io-release
+  source:
+    repository: cloudfoundry/postgres-release
+
 - name: concourse-release-repo
   type: git
   source:
     uri: git@github.com:concourse/concourse-bosh-release
     branch: master
     private_key: ((concourse_release_deploy_key))
+
+- name: concourse-smoke-deployment
+  type: bosh-deployment
+  source:
+    target: ((bosh_target))
+    client: ((bosh_client.id))
+    client_secret: ((bosh_client.secret))
+    deployment: concourse-smoke
