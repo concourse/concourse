@@ -72,6 +72,7 @@ jobs:
     - get: concourse
       trigger: true
     - get: unit-image
+      trigger: true
   - task: yarn-test
     image: unit-image
     file: concourse/ci/tasks/yarn-test.yml
