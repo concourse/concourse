@@ -40,6 +40,30 @@ groups:
   - push-docs
 
 jobs:
+- name: unit-image
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      resource: unit-dockerfile
+      trigger: true
+    - get: builder
+  - task: build
+    image: builder
+    privileged: true
+    config:
+      platform: linux
+      params:
+        REPOSITORY: concourse/unit
+        CONTEXT: concourse/ci/dockerfiles/unit
+      inputs: [{name: concourse}]
+      outputs: [{name: image}]
+      caches: [{path: cache}]
+      run: {path: build}
+  - put: unit-image
+    params: {image: image/image.tar}
+
 - name: unit
   public: true
   serial: true
@@ -267,35 +291,14 @@ jobs:
     file: concourse/ci/tasks/smoke.yml
     input_mapping: {endpoint-info: outputs}
 
-- name: unit-image
-  public: true
-  serial: true
-  plan:
-  - aggregate:
-    - get: concourse
-      resource: unit-dockerfile
-      trigger: true
-    - get: builder
-  - task: build
-    image: builder
-    privileged: true
-    config:
-      platform: linux
-      params:
-        REPOSITORY: concourse/unit
-        CONTEXT: concourse/ci/dockerfiles/unit
-      inputs: [{name: concourse}]
-      outputs: [{name: image}]
-      caches: [{path: cache}]
-      run: {path: build}
-  - put: unit-image
-    params: {image: image/image.tar}
-
 - name: bosh-bump
   serial: true
   plan:
   - aggregate:
     - get: concourse
+      passed: [bin-smoke]
+      trigger: true
+    - get: unit-image
       passed: [bin-smoke]
       trigger: true
     - get: version
@@ -310,6 +313,7 @@ jobs:
     - get: concourse-release-repo
   - task: bump-concourse-blobs
     file: concourse/ci/tasks/bump-concourse-blobs.yml
+    image: unit-image
     params: {GCP_JSON_KEY: ((concourse_artifacts_json_key))}
   - put: concourse-release-repo
     params: {repository: bumped-concourse-release-repo}
@@ -320,8 +324,13 @@ jobs:
   - aggregate:
     - get: concourse
       passed: [bosh-bump]
+      trigger: true
+    - get: unit-image
+      passed: [bosh-bump]
+      trigger: true
     - get: version
       passed: [bosh-bump]
+      trigger: true
     - get: concourse-release
       trigger: true
     - get: postgres-release
@@ -330,8 +339,6 @@ jobs:
       trigger: true
     - get: gcp-xenial-stemcell
       trigger: true
-    - get: unit-image
-      passed: [bin-smoke]
   - put: concourse-smoke-deployment
     params:
       manifest: concourse/ci/deployments/bosh-smoke.yml
@@ -343,6 +350,7 @@ jobs:
       - gcp-xenial-stemcell/*.tgz
   - task: discover-bosh-endpoint-info
     file: concourse/ci/tasks/discover-bosh-endpoint-info.yml
+    image: unit-image
     params:
       BOSH_ENVIRONMENT: ((bosh_target))
       BOSH_CLIENT: ((bosh_client.id))

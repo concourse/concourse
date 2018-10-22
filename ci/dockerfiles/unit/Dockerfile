@@ -35,3 +35,8 @@ RUN curl -L "https://github.com/docker/compose/releases/download/1.22.0/docker-c
 RUN curl -fsSL https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
 RUN add-apt-repository "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main"
 RUN apt-get update && apt-get -y install google-chrome-unstable --no-install-recommends
+
+# install BOSH CLI
+RUN curl -L "https://github.com/cloudfoundry/bosh-cli/releases/download/v5.3.1/bosh-cli-5.3.1-linux-amd64" \
+      -o /usr/local/bin/bosh && \
+      chmod +x /usr/local/bin/bosh
