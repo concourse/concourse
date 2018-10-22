@@ -4,7 +4,7 @@
 set -e
 
 # print once just to see useful output in CI
-bosh instances
+bosh instances --dns
 
-bosh instances | grep "${BOSH_INSTANCE_GROUP}/" | awk '{print $4}' \
+bosh instances --dns | grep "${BOSH_INSTANCE_GROUP}/" | awk '{print $5}' | head -n1 \
   > endpoint-info/instance_ip
