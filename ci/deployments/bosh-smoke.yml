@@ -15,7 +15,7 @@ instance_groups:
   azs: [z1]
   networks: [{name: test}]
   persistent_disk: 10240
-  vm_type: smoke
+  vm_type: test
   stemcell: xenial
   jobs:
   - release: bpm
