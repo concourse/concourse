@@ -20,4 +20,4 @@ params:
   BOSH_PRIVATE_CONFIG:
 
 run:
-  path: concourse/ci/tasks/scripts/bump-concourse-blob
+  path: concourse/ci/tasks/scripts/bump-concourse-blobs
