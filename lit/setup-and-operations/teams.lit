@@ -193,6 +193,33 @@ against the teams that have granted them access.
     }}}
   }
 
+    \section{
+    \title{GitLab Auth}{gitlab-auth}
+
+    You can configure which groups and individual users
+    should have access to your team.
+
+    This is done by passing the following flags:
+
+    \definitions{
+      \definition{\code{--gitlab-user=USERNAME}}{
+        Authorize an individual user.
+      }
+    }{
+      \definition{\code{--gitlab-group=GROUP_NAME}}{
+        Authorize an entire groups's members.
+      }
+    }
+
+    For example:
+
+    \codeblock{bash}{{{
+    $ fly set-team -n my-team \
+        --gitlab-user my-gitlab-user \
+        --gitlab-team my-team
+    }}}
+  }
+
   \section{
     \title{CF Auth}{uaa-cf-auth}
 

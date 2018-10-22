@@ -192,6 +192,71 @@ page.
   }
 
   \section{
+    \title{GitLab Auth}{gitlab-auth-config}
+
+    A Concourse server can authenticate against GitLab to take advantage of
+    their permission model.
+
+    \section{
+      \title{Creating a GitLab application}
+
+      First you need to \link{create an OAuth application on
+      GitLab}{https://gitlab.com/profile/applications}.
+
+      The redirect URI will be the external URL of your Concourse server with
+      \code{/sky/issuer/callback} appended. For example, Concourse's own CI
+      server's callback URL would be
+      \code{https://ci.concourse-ci.org/sky/issuer/callback}.
+    }
+
+    \section{
+      \title{Configuring the client}
+
+      You will be given a Client ID and a Client Secret for your new
+      application. These will then be passed as the following flags to
+      \code{concourse web}:
+
+      \list{
+        \code{--gitlab-client-id=CLIENT_ID}
+      }{
+        \code{--gitlab-client-secret=CLIENT_SECRET}
+      }
+
+      Here's a full example:
+
+      \codeblock{bash}{{{
+      concourse web \
+        --gitlab-client-id CLIENT_ID \
+        --gitlab-client-secret CLIENT_SECRET
+      }}}
+
+      If you're configuring a self hosted GitLab instance, you'll also need
+      to set the following flag:
+
+      \list{
+        \code{--gitlab-host=https://gitlab.example.com}
+      }
+
+      The GitLab host must contain a scheme and not a trailing slash.
+    }
+
+    \section{
+      \title{Adding GitLab Users to the \code{main} Team}
+
+      Once you have added the GitLab auth connector, you can specify a GitLab
+      Group and/or GitLab User to the
+      \reference{main-team}.
+
+      \codeblock{bash}{{{
+        concourse web \
+          ... \
+          --main-team-gitlab-group=GROUP_NAME \
+          --main-team-gitlab-user=USERNAME
+      }}}
+    }
+  }
+
+  \section{
     \title{CF Auth}{cf-auth-config}
 
     Cloud Foundry (CF) Auth can be used for operators who wish to authenticate
