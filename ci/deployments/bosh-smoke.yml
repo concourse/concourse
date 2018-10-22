@@ -35,10 +35,11 @@ instance_groups:
       main_team:
         auth:
           local:
-            users: [test]
+            users: [admin]
 
       add_local_users:
-      - test:test
+      - admin:admin
+      - guest:guest
 
       token_signing_key: ((token_signing_key))
 
