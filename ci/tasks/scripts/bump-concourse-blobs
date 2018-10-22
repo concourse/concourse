@@ -7,7 +7,7 @@ version=$(cat version/version)
 
 git clone concourse-release-repo bumped-concourse-release-repo
 
-cat > bumped-concourse/config/private.yml <<EOF
+cat > bumped-concourse-release-repo/config/private.yml <<EOF
 $BOSH_PRIVATE_CONFIG
 EOF
 
