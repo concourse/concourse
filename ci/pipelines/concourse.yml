@@ -7,6 +7,10 @@ resource_types:
   type: registry-image
   source: {repository: frodenas/gcs-resource}
 
+- name: bosh-release
+  type: registry-image
+  source: {repository: dpb587/bosh-release-resource}
+
 groups:
 - name: develop
   jobs:
@@ -17,10 +21,16 @@ groups:
   - rc
   - build-rc
   - bin-smoke
+  - bosh-bump
+  - bosh-build
 
 - name: images
   jobs:
   - unit-image
+
+- name: publish
+  jobs:
+  - push-docs
 
 jobs:
 - name: unit
@@ -225,9 +235,13 @@ jobs:
       params: {file: concourse-darwin/concourse-*.tgz}
 
 - name: bin-smoke
+  serial: true
   plan:
   - aggregate:
     - get: concourse
+      passed: [build-rc]
+      trigger: true
+    - get: version
       passed: [build-rc]
       trigger: true
     - get: linux-rc
@@ -269,6 +283,61 @@ jobs:
       run: {path: build}
   - put: unit-image
     params: {image: image/image.tar}
+
+- name: bosh-bump
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [bin-smoke]
+      trigger: true
+    - get: version
+      passed: [bin-smoke]
+      trigger: true
+    - get: linux-rc
+      passed: [build-rc, bin-smoke]
+      trigger: true
+    - get: windows-rc
+      passed: [build-rc]
+      trigger: true
+    - get: concourse-release-repo
+  - task: bump-concourse-blobs
+    file: concourse-release-repo/ci/tasks/bump-concourse-blobs.yml
+    params:
+      BOSH_PRIVATE_CONFIG: |
+        blobstore:
+          provider: gcs
+          options:
+            credentials_source: static
+            json_key: ((concourse_artifacts_json_key))
+  - put: concourse-release-repo
+    params: {repository: bumped-release-repo}
+
+- name: bosh-build
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse-release
+      trigger: true
+    - get: concourse
+      passed: [bosh-bump]
+    - get: version
+      passed: [bosh-bump]
+
+- name: push-docs
+  serial: true
+  plan:
+  - aggregate:
+    - get: docs
+    - get: version
+      trigger: true
+  - task: build-docs
+    file: docs/ci/build.yml
+    params: {ANALYTICS_ID: ((analytics_id))}
+  - put: concourse-docs
+    params:
+      current_app_name: docs
+      manifest: built-docs/manifest.yml
 
 resources:
 - name: concourse
@@ -376,3 +445,36 @@ resources:
     bucket: concourse-artifacts
     json_key: ((concourse_artifacts_json_key))
     regexp: rcs/concourse-(.*)-darwin-amd64.tgz
+
+- name: docs
+  type: git
+  source:
+    uri: https://github.com/concourse/docs
+    branch: master
+
+- name: concourse-docs
+  type: cf
+  source:
+    api: ((docs_cf.target))
+    username: ((docs_cf.username))
+    password: ((docs_cf.password))
+    organization: ((docs_cf.organization))
+    space: ((docs_cf.space))
+
+- name: concourse-release
+  type: bosh-release
+  source:
+    uri: https://github.com/concourse/concourse-bosh-release
+    dev_releases: true
+    private_config:
+      blobstore:
+        provider: gcs
+        options:
+          credentials_source: static
+          json_key: ((concourse_artifacts_json_key))
+
+- name: concourse-release-repo
+  type: bosh-release
+  source:
+    uri: git@github.com:concourse/concourse-bosh-release
+    private_key: ((concourse_release_deploy_key))

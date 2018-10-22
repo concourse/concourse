@@ -1,0 +1,32 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -x
+
+version=$(cat version/version)
+
+git clone concourse-bosh-release bumped-concourse-bosh-release
+
+cat > bumped-concourse/config/private.yml <<EOF
+$BOSH_PRIVATE_CONFIG
+EOF
+
+cd bumped-concourse-bosh-release/
+
+# work-around Go BOSH CLI trying to rename blobs downloaded into ~/.root/tmp
+# into release dir, which is invalid cross-device link
+export HOME=$PWD
+
+git config --global user.email "concourseteam+concourse-github-bot@gmail.com"
+git config --global user.name "Concourse Bot"
+
+bosh blobs --column="path"  | grep concourse/ | xargs bosh remove-blob
+
+for blob in linux-rc/concourse-*.tgz windows-rc/concourse-*.zip; do
+  bosh -n add-blob $blob concourse/$(basename $blob)
+done
+
+bosh -n upload-blobs
+
+git add -A
+git commit -m "bump concourse to $version"

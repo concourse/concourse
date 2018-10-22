@@ -8,17 +8,16 @@ image_resource:
 
 inputs:
 - name: concourse
-- name: blob-dir
+- name: version
+- name: concourse-bosh-release
+- name: linux-rc
+- name: windows-rc
 
 outputs:
-- name: bumped-concourse
+- name: bumped-concourse-bosh-release
 
 params:
-  BLOB_NAME:
-  BLOB_VERSION:
-  BLOB_VERSION_FILE:
-  BLOB_DESTINATION:
   BOSH_PRIVATE_CONFIG:
 
 run:
-  path: concourse/ci/tasks/scripts/bump-blob
+  path: concourse/ci/tasks/scripts/bump-concourse-blob
