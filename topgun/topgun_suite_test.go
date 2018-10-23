@@ -25,7 +25,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"golang.org/x/oauth2"
@@ -67,7 +67,7 @@ func TestTOPGUN(t *testing.T) {
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	flyBinPath, err := gexec.Build("github.com/concourse/fly")
+	flyBinPath, err := gexec.Build("github.com/concourse/concourse/fly")
 	Expect(err).ToNot(HaveOccurred())
 
 	return []byte(flyBinPath)

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/concourse/atc"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
