@@ -81,8 +81,9 @@ var _ = Describe("DrainRunner", func() {
 			})
 		})
 
-		Context("when syscall.SIGTERM is received", func() {
-			BeforeEach(func() {
+		Context("when syscall.SIGTERM is received after landing", func() {
+			JustBeforeEach(func() {
+				Eventually(fakeBeaconClient.LandWorkerCallCount).Should(Equal(1))
 				process.Signal(syscall.SIGTERM)
 			})
 
@@ -92,8 +93,9 @@ var _ = Describe("DrainRunner", func() {
 			})
 		})
 
-		Context("when syscall.SIGINT is received", func() {
-			BeforeEach(func() {
+		Context("when syscall.SIGINT is received after landing", func() {
+			JustBeforeEach(func() {
+				Eventually(fakeBeaconClient.LandWorkerCallCount).Should(Equal(1))
 				process.Signal(syscall.SIGINT)
 			})
 
@@ -129,8 +131,9 @@ var _ = Describe("DrainRunner", func() {
 			})
 		})
 
-		Context("when syscall.SIGTERM is received", func() {
+		Context("when syscall.SIGTERM is received after retiring", func() {
 			JustBeforeEach(func() {
+				Eventually(fakeBeaconClient.RetireWorkerCallCount).Should(Equal(1))
 				process.Signal(syscall.SIGTERM)
 			})
 
@@ -159,8 +162,9 @@ var _ = Describe("DrainRunner", func() {
 			})
 		})
 
-		Context("when syscall.SIGINT is received", func() {
+		Context("when syscall.SIGINT is received after retiring", func() {
 			JustBeforeEach(func() {
+				Eventually(fakeBeaconClient.RetireWorkerCallCount).Should(Equal(1))
 				process.Signal(syscall.SIGINT)
 			})
 
