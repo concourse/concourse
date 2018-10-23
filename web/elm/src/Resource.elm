@@ -552,6 +552,17 @@ view model =
 
                         ( _, _ ) ->
                             Html.text ""
+
+                pinBar =
+                    Html.div
+                        [ css
+                            [ Css.float Css.right
+                            ]
+                        ]
+                        [ resource.pinnedVersion
+                            |> Maybe.map viewVersion
+                            |> Maybe.withDefault (Html.text "")
+                        ]
             in
                 Html.div [ class "with-fixed-header" ]
                     [ Html.div [ class "fixed-header" ]
@@ -570,6 +581,7 @@ view model =
                                 ]
                             , Html.h1 [] [ Html.text resource.name ]
                             , lastCheckedView
+                            , pinBar
                             ]
                         ]
                     , Html.div [ class "scrollable-body" ]
