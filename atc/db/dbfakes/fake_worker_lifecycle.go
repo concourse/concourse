@@ -32,6 +32,18 @@ type FakeWorkerLifecycle struct {
 		result1 []string
 		result2 error
 	}
+	GetWorkerStateByNameStub        func() (map[string]db.WorkerState, error)
+	getWorkerStateByNameMutex       sync.RWMutex
+	getWorkerStateByNameArgsForCall []struct {
+	}
+	getWorkerStateByNameReturns struct {
+		result1 map[string]db.WorkerState
+		result2 error
+	}
+	getWorkerStateByNameReturnsOnCall map[int]struct {
+		result1 map[string]db.WorkerState
+		result2 error
+	}
 	LandFinishedLandingWorkersStub        func() ([]string, error)
 	landFinishedLandingWorkersMutex       sync.RWMutex
 	landFinishedLandingWorkersArgsForCall []struct {
@@ -83,7 +95,15 @@ func (fake *FakeWorkerLifecycle) DeleteFinishedRetiringWorkersCallCount() int {
 	return len(fake.deleteFinishedRetiringWorkersArgsForCall)
 }
 
+func (fake *FakeWorkerLifecycle) DeleteFinishedRetiringWorkersCalls(stub func() ([]string, error)) {
+	fake.deleteFinishedRetiringWorkersMutex.Lock()
+	defer fake.deleteFinishedRetiringWorkersMutex.Unlock()
+	fake.DeleteFinishedRetiringWorkersStub = stub
+}
+
 func (fake *FakeWorkerLifecycle) DeleteFinishedRetiringWorkersReturns(result1 []string, result2 error) {
+	fake.deleteFinishedRetiringWorkersMutex.Lock()
+	defer fake.deleteFinishedRetiringWorkersMutex.Unlock()
 	fake.DeleteFinishedRetiringWorkersStub = nil
 	fake.deleteFinishedRetiringWorkersReturns = struct {
 		result1 []string
@@ -92,6 +112,8 @@ func (fake *FakeWorkerLifecycle) DeleteFinishedRetiringWorkersReturns(result1 []
 }
 
 func (fake *FakeWorkerLifecycle) DeleteFinishedRetiringWorkersReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.deleteFinishedRetiringWorkersMutex.Lock()
+	defer fake.deleteFinishedRetiringWorkersMutex.Unlock()
 	fake.DeleteFinishedRetiringWorkersStub = nil
 	if fake.deleteFinishedRetiringWorkersReturnsOnCall == nil {
 		fake.deleteFinishedRetiringWorkersReturnsOnCall = make(map[int]struct {
@@ -128,7 +150,15 @@ func (fake *FakeWorkerLifecycle) DeleteUnresponsiveEphemeralWorkersCallCount() i
 	return len(fake.deleteUnresponsiveEphemeralWorkersArgsForCall)
 }
 
+func (fake *FakeWorkerLifecycle) DeleteUnresponsiveEphemeralWorkersCalls(stub func() ([]string, error)) {
+	fake.deleteUnresponsiveEphemeralWorkersMutex.Lock()
+	defer fake.deleteUnresponsiveEphemeralWorkersMutex.Unlock()
+	fake.DeleteUnresponsiveEphemeralWorkersStub = stub
+}
+
 func (fake *FakeWorkerLifecycle) DeleteUnresponsiveEphemeralWorkersReturns(result1 []string, result2 error) {
+	fake.deleteUnresponsiveEphemeralWorkersMutex.Lock()
+	defer fake.deleteUnresponsiveEphemeralWorkersMutex.Unlock()
 	fake.DeleteUnresponsiveEphemeralWorkersStub = nil
 	fake.deleteUnresponsiveEphemeralWorkersReturns = struct {
 		result1 []string
@@ -137,6 +167,8 @@ func (fake *FakeWorkerLifecycle) DeleteUnresponsiveEphemeralWorkersReturns(resul
 }
 
 func (fake *FakeWorkerLifecycle) DeleteUnresponsiveEphemeralWorkersReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.deleteUnresponsiveEphemeralWorkersMutex.Lock()
+	defer fake.deleteUnresponsiveEphemeralWorkersMutex.Unlock()
 	fake.DeleteUnresponsiveEphemeralWorkersStub = nil
 	if fake.deleteUnresponsiveEphemeralWorkersReturnsOnCall == nil {
 		fake.deleteUnresponsiveEphemeralWorkersReturnsOnCall = make(map[int]struct {
@@ -146,6 +178,61 @@ func (fake *FakeWorkerLifecycle) DeleteUnresponsiveEphemeralWorkersReturnsOnCall
 	}
 	fake.deleteUnresponsiveEphemeralWorkersReturnsOnCall[i] = struct {
 		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeWorkerLifecycle) GetWorkerStateByName() (map[string]db.WorkerState, error) {
+	fake.getWorkerStateByNameMutex.Lock()
+	ret, specificReturn := fake.getWorkerStateByNameReturnsOnCall[len(fake.getWorkerStateByNameArgsForCall)]
+	fake.getWorkerStateByNameArgsForCall = append(fake.getWorkerStateByNameArgsForCall, struct {
+	}{})
+	fake.recordInvocation("GetWorkerStateByName", []interface{}{})
+	fake.getWorkerStateByNameMutex.Unlock()
+	if fake.GetWorkerStateByNameStub != nil {
+		return fake.GetWorkerStateByNameStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getWorkerStateByNameReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeWorkerLifecycle) GetWorkerStateByNameCallCount() int {
+	fake.getWorkerStateByNameMutex.RLock()
+	defer fake.getWorkerStateByNameMutex.RUnlock()
+	return len(fake.getWorkerStateByNameArgsForCall)
+}
+
+func (fake *FakeWorkerLifecycle) GetWorkerStateByNameCalls(stub func() (map[string]db.WorkerState, error)) {
+	fake.getWorkerStateByNameMutex.Lock()
+	defer fake.getWorkerStateByNameMutex.Unlock()
+	fake.GetWorkerStateByNameStub = stub
+}
+
+func (fake *FakeWorkerLifecycle) GetWorkerStateByNameReturns(result1 map[string]db.WorkerState, result2 error) {
+	fake.getWorkerStateByNameMutex.Lock()
+	defer fake.getWorkerStateByNameMutex.Unlock()
+	fake.GetWorkerStateByNameStub = nil
+	fake.getWorkerStateByNameReturns = struct {
+		result1 map[string]db.WorkerState
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeWorkerLifecycle) GetWorkerStateByNameReturnsOnCall(i int, result1 map[string]db.WorkerState, result2 error) {
+	fake.getWorkerStateByNameMutex.Lock()
+	defer fake.getWorkerStateByNameMutex.Unlock()
+	fake.GetWorkerStateByNameStub = nil
+	if fake.getWorkerStateByNameReturnsOnCall == nil {
+		fake.getWorkerStateByNameReturnsOnCall = make(map[int]struct {
+			result1 map[string]db.WorkerState
+			result2 error
+		})
+	}
+	fake.getWorkerStateByNameReturnsOnCall[i] = struct {
+		result1 map[string]db.WorkerState
 		result2 error
 	}{result1, result2}
 }
@@ -173,7 +260,15 @@ func (fake *FakeWorkerLifecycle) LandFinishedLandingWorkersCallCount() int {
 	return len(fake.landFinishedLandingWorkersArgsForCall)
 }
 
+func (fake *FakeWorkerLifecycle) LandFinishedLandingWorkersCalls(stub func() ([]string, error)) {
+	fake.landFinishedLandingWorkersMutex.Lock()
+	defer fake.landFinishedLandingWorkersMutex.Unlock()
+	fake.LandFinishedLandingWorkersStub = stub
+}
+
 func (fake *FakeWorkerLifecycle) LandFinishedLandingWorkersReturns(result1 []string, result2 error) {
+	fake.landFinishedLandingWorkersMutex.Lock()
+	defer fake.landFinishedLandingWorkersMutex.Unlock()
 	fake.LandFinishedLandingWorkersStub = nil
 	fake.landFinishedLandingWorkersReturns = struct {
 		result1 []string
@@ -182,6 +277,8 @@ func (fake *FakeWorkerLifecycle) LandFinishedLandingWorkersReturns(result1 []str
 }
 
 func (fake *FakeWorkerLifecycle) LandFinishedLandingWorkersReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.landFinishedLandingWorkersMutex.Lock()
+	defer fake.landFinishedLandingWorkersMutex.Unlock()
 	fake.LandFinishedLandingWorkersStub = nil
 	if fake.landFinishedLandingWorkersReturnsOnCall == nil {
 		fake.landFinishedLandingWorkersReturnsOnCall = make(map[int]struct {
@@ -218,7 +315,15 @@ func (fake *FakeWorkerLifecycle) StallUnresponsiveWorkersCallCount() int {
 	return len(fake.stallUnresponsiveWorkersArgsForCall)
 }
 
+func (fake *FakeWorkerLifecycle) StallUnresponsiveWorkersCalls(stub func() ([]string, error)) {
+	fake.stallUnresponsiveWorkersMutex.Lock()
+	defer fake.stallUnresponsiveWorkersMutex.Unlock()
+	fake.StallUnresponsiveWorkersStub = stub
+}
+
 func (fake *FakeWorkerLifecycle) StallUnresponsiveWorkersReturns(result1 []string, result2 error) {
+	fake.stallUnresponsiveWorkersMutex.Lock()
+	defer fake.stallUnresponsiveWorkersMutex.Unlock()
 	fake.StallUnresponsiveWorkersStub = nil
 	fake.stallUnresponsiveWorkersReturns = struct {
 		result1 []string
@@ -227,6 +332,8 @@ func (fake *FakeWorkerLifecycle) StallUnresponsiveWorkersReturns(result1 []strin
 }
 
 func (fake *FakeWorkerLifecycle) StallUnresponsiveWorkersReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.stallUnresponsiveWorkersMutex.Lock()
+	defer fake.stallUnresponsiveWorkersMutex.Unlock()
 	fake.StallUnresponsiveWorkersStub = nil
 	if fake.stallUnresponsiveWorkersReturnsOnCall == nil {
 		fake.stallUnresponsiveWorkersReturnsOnCall = make(map[int]struct {
@@ -247,6 +354,8 @@ func (fake *FakeWorkerLifecycle) Invocations() map[string][][]interface{} {
 	defer fake.deleteFinishedRetiringWorkersMutex.RUnlock()
 	fake.deleteUnresponsiveEphemeralWorkersMutex.RLock()
 	defer fake.deleteUnresponsiveEphemeralWorkersMutex.RUnlock()
+	fake.getWorkerStateByNameMutex.RLock()
+	defer fake.getWorkerStateByNameMutex.RUnlock()
 	fake.landFinishedLandingWorkersMutex.RLock()
 	defer fake.landFinishedLandingWorkersMutex.RUnlock()
 	fake.stallUnresponsiveWorkersMutex.RLock()

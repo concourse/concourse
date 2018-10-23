@@ -81,5 +81,6 @@ var _ = Describe("WorkerCollector", func() {
 			err := workerCollector.Run(context.TODO())
 			Expect(err).To(MatchError(returnedErr))
 		})
+
 	})
 })
