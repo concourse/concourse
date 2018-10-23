@@ -629,6 +629,7 @@ type alias Resource =
     , checkSetupError : String
     , lastChecked : Maybe Date
     , pinnedVersion : Maybe Version
+    , pinnedInConfig : Bool
     }
 
 
@@ -667,6 +668,7 @@ decodeResource =
         |: (defaultTo "" <| Json.Decode.field "check_setup_error" Json.Decode.string)
         |: Json.Decode.maybe (Json.Decode.field "last_checked" (Json.Decode.map dateFromSeconds Json.Decode.float))
         |: Json.Decode.maybe (Json.Decode.field "pinned_version" decodeVersion)
+        |: (defaultTo False <| Json.Decode.field "pinned_in_config" Json.Decode.bool)
 
 
 decodeVersionedResource : Json.Decode.Decoder VersionedResource

@@ -12,8 +12,8 @@ import Date.Format
 import Duration exposing (Duration)
 import Erl
 import Html.Styled as Html exposing (Html)
-import Html.Styled.Attributes exposing (class, css, href, title)
-import Html.Styled.Events exposing (onClick)
+import Html.Styled.Attributes exposing (class, css, href, id, title)
+import Html.Styled.Events exposing (onClick, onMouseOver, onMouseOut)
 import Http
 import Maybe.Extra as ME
 import Navigation
@@ -41,6 +41,7 @@ type alias Model =
     , currentPage : Maybe Page
     , versionedUIStates : Dict.Dict Int VersionUIState
     , csrfToken : String
+    , showPinBarTooltip : Bool
     }
 
 
@@ -73,6 +74,7 @@ type Msg
     | InputToFetched Int (Result Http.Error (List Concourse.Build))
     | OutputOfFetched Int (Result Http.Error (List Concourse.Build))
     | NavTo String
+    | TogglePinBarTooltip
 
 
 type alias Flags =
@@ -108,6 +110,7 @@ init ports flags =
                 , ports = ports
                 , now = Nothing
                 , csrfToken = flags.csrfToken
+                , showPinBarTooltip = False
                 }
     in
         ( model
@@ -435,6 +438,21 @@ update action model =
         NavTo url ->
             ( model, Navigation.newUrl url )
 
+        TogglePinBarTooltip ->
+            ( { model
+                | showPinBarTooltip =
+                    if
+                        model.resource
+                            |> RemoteData.map .pinnedInConfig
+                            |> RemoteData.withDefault False
+                    then
+                        not model.showPinBarTooltip
+                    else
+                        False
+              }
+            , Cmd.none
+            )
+
 
 permalink : List Concourse.VersionedResource -> Page
 permalink versionedResources =
@@ -557,7 +575,7 @@ view model =
 
                 pinBar =
                     Html.div
-                        [ css
+                        ([ css
                             [ Css.flexGrow (Css.num 1)
                             , Css.border3 (Css.px 1)
                                 Css.solid
@@ -570,9 +588,19 @@ view model =
                             , Css.paddingLeft (Css.px 7)
                             , Css.displayFlex
                             , Css.alignItems Css.center
+                            , Css.position Css.relative
                             ]
-                        ]
-                        [ Html.div
+                         , id "pin-bar"
+                         ]
+                            ++ (if model.showPinBarTooltip then
+                                    [ onMouseOut TogglePinBarTooltip ]
+                                else if resource.pinnedInConfig then
+                                    [ onMouseOver TogglePinBarTooltip ]
+                                else
+                                    []
+                               )
+                        )
+                        ([ Html.div
                             [ css
                                 [ Css.backgroundImage
                                     (if ME.isJust resource.pinnedVersion then
@@ -588,10 +616,27 @@ view model =
                                 ]
                             ]
                             []
-                        , resource.pinnedVersion
+                         , resource.pinnedVersion
                             |> Maybe.map viewVersion
                             |> Maybe.withDefault (Html.text "")
-                        ]
+                         ]
+                            ++ (if model.showPinBarTooltip then
+                                    [ Html.div
+                                        [ css
+                                            [ Css.position Css.absolute
+                                            , Css.top <| Css.px -10
+                                            , Css.left <| Css.px 30
+                                            , Css.backgroundColor <| Css.hex "9b9b9b"
+                                            , Css.zIndex <| Css.int 2
+                                            , Css.padding <| Css.px 5
+                                            ]
+                                        ]
+                                        [ Html.text "pinned in pipeline config" ]
+                                    ]
+                                else
+                                    []
+                               )
+                        )
 
                 headerHeight =
                     60
