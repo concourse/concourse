@@ -1,0 +1,133 @@
+---
+name: ((deployment_name))
+
+releases:
+- name: concourse
+  version: ((concourse_release_version))
+- name: garden-runc
+  version: ((garden_runc_release_version))
+- name: postgres
+  version: ((postgres_release_version))
+
+instance_groups:
+- name: concourse
+  instances: 1
+  networks: [{name: topgun}]
+  azs: [z1]
+  persistent_disk: 10240
+  vm_type: topgun
+  stemcell: xenial
+  jobs:
+  - release: concourse
+    name: atc
+    properties:
+      token_signing_key: ((token_signing_key))
+      add_local_users:
+      - some-user:$2a$10$ElspuoVbekkuIlqvk25HN.9DRwGpkS0mUluTjrhsOMKhcGKNUHHvC
+      - some-other-user:$2a$10$ElspuoVbekkuIlqvk25HN.9DRwGpkS0mUluTjrhsOMKhcGKNUHHvC
+      main_team:
+        auth:
+          allow_all_users: true
+      log_level: debug
+      postgresql:
+        database: &db-name atc
+        role: &db-role
+          name: atc
+          password: dummy-password
+
+  - release: concourse
+    name: tsa
+    properties:
+      host_key: ((tsa_host_key))
+      token_signing_key: ((token_signing_key))
+      authorized_keys: [((worker_key.public_key))]
+
+  - release: postgres
+    name: postgres
+    properties:
+      databases:
+        port: 5432
+        databases:
+        - name: *db-name
+        roles:
+        - *db-role
+
+- name: worker
+  instances: 1
+  networks: [{name: topgun}]
+  azs: [z1]
+  vm_type: topgun
+  stemcell: xenial
+  jobs:
+  - release: concourse
+    name: worker
+    consumes: {baggageclaim: {from: bc}}
+    properties:
+      tsa: {worker_key: ((worker_key))}
+
+      # prevent tests from hanging forever
+      drain_timeout: 10m
+
+  - release: concourse
+    name: baggageclaim
+    provides: {baggageclaim: {as: bc}}
+    properties: {}
+
+  - release: garden-runc
+    name: garden
+    properties:
+      garden:
+        listen_network: tcp
+        listen_address: 0.0.0.0:7777
+        allow_host_access: true
+        network_mtu: 1460
+
+- name: other_worker
+  instances: 1
+  networks: [{name: topgun}]
+  azs: [z1]
+  vm_type: topgun
+  stemcell: xenial
+  jobs:
+  - release: concourse
+    name: worker
+    consumes: {baggageclaim: {from: other_bc}}
+    properties:
+      tsa: {worker_key: ((worker_key))}
+
+      # prevent tests from hanging forever
+      drain_timeout: 10m
+
+  - release: concourse
+    name: baggageclaim
+    properties: {}
+    provides: {baggageclaim: {as: other_bc}}
+
+  - release: garden-runc
+    name: garden
+    properties:
+      garden:
+        listen_network: tcp
+        listen_address: 0.0.0.0:7777
+        allow_host_access: true
+        network_mtu: 1460
+
+variables:
+- name: token_signing_key
+  type: rsa
+- name: tsa_host_key
+  type: ssh
+- name: worker_key
+  type: ssh
+
+stemcells:
+- alias: xenial
+  os: ubuntu-xenial
+  version: ((stemcell_version))
+
+update:
+  canaries: 1
+  max_in_flight: 3
+  serial: false
+  canary_watch_time: 1000-300000
+  update_watch_time: 1000-300000

@@ -1,0 +1,25 @@
+resources:
+- name: tick-tock
+  type: time
+  source:
+    interval: 1s
+
+jobs:
+- name: simple-job
+  plan:
+  - get: tick-tock
+  - task: simple-task
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      inputs:
+      - name: tick-tock
+
+      run:
+        path: cat
+        args:
+        - tick-tock/input

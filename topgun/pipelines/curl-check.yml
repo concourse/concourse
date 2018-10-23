@@ -1,0 +1,10 @@
+resources:
+- name: simple-resource
+  type: archive
+  source:
+    uri: does-not-matter
+
+jobs:
+- name: simple-get-job
+  plan:
+  - get: simple-resource
