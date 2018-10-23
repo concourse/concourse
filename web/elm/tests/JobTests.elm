@@ -7,7 +7,6 @@ import Concourse exposing (BuildStatus(..), BuildId, Build, Job)
 import Concourse.Pagination exposing (Direction(..))
 import Job exposing (update, Msg(..))
 import Date
-import Array
 import Http
 import Dict
 
@@ -115,15 +114,12 @@ all =
                                 let
                                     buildInput =
                                         { name = "some-input"
-                                        , resource = "some-resource"
-                                        , type_ = "git"
                                         , version = Dict.fromList [ ( "version", "v1" ) ]
-                                        , metadata = [ { name = "some", value = "metadata" } ]
                                         , firstOccurrence = True
                                         }
 
                                     buildOutput =
-                                        { resource = "some-resource"
+                                        { name = "some-resource"
                                         , version = Dict.fromList [ ( "version", "v2" ) ]
                                         }
                                 in
