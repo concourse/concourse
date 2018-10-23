@@ -1,11 +1,11 @@
 package gc
 
 import (
-	"context"
-
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"context"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
 )
 
 type workerCollector struct {
@@ -58,6 +58,16 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 
 	if len(affected) > 0 {
 		logger.Debug("landed", lager.Data{"count": len(affected), "workers": affected})
+	}
+
+	workerStateByName, err := wc.workerLifecycle.GetWorkerStateByName()
+
+	if err != nil {
+		logger.Error("failed-to-get-workers-states-for-metrics", err)
+	} else {
+		metric.WorkersState{
+			WorkerStateByName: workerStateByName,
+		}.Emit(logger)
 	}
 
 	return nil
