@@ -3,8 +3,7 @@ platform: linux
 
 image_resource:
   type: registry-image
-  source:
-    repository: concourse/topgun-ci
+  source: {repository: concourse/unit}
 
 params:
   BOSH_ENVIRONMENT:
@@ -22,13 +21,14 @@ params:
 inputs:
 - name: concourse
 - name: concourse-release
-- name: garden-runc-release
 - name: postgres-release
 - name: git-server-release
 - name: vault-release
 - name: credhub-release
 - name: stemcell
-- name: bosh-cli
+
+caches:
+- path: gopath
 
 run:
   path: concourse/ci/tasks/scripts/topgun
