@@ -15,7 +15,9 @@ import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes exposing (class, css, href, title)
 import Html.Styled.Events exposing (onClick)
 import Http
+import Maybe.Extra as ME
 import Navigation
+import NewTopBar.Styles as Styles
 import StrictEvents
 import Task exposing (Task)
 import Time exposing (Time)
@@ -556,35 +558,101 @@ view model =
                 pinBar =
                     Html.div
                         [ css
-                            [ Css.float Css.right
+                            [ Css.flexGrow (Css.num 1)
+                            , Css.border3 (Css.px 1)
+                                Css.solid
+                                (if ME.isJust resource.pinnedVersion then
+                                    Css.hex "03dac4"
+                                 else
+                                    Css.hex "3d3c3c"
+                                )
+                            , Css.margin (Css.px 10)
+                            , Css.paddingLeft (Css.px 7)
+                            , Css.displayFlex
+                            , Css.alignItems Css.center
                             ]
                         ]
-                        [ resource.pinnedVersion
+                        [ Html.div
+                            [ css
+                                [ Css.backgroundImage
+                                    (if ME.isJust resource.pinnedVersion then
+                                        Css.url "/public/images/pin_ic_teal.svg"
+                                     else
+                                        Css.url "/public/images/pin_ic_grey.svg"
+                                    )
+                                , Css.backgroundRepeat Css.noRepeat
+                                , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
+                                , Css.height (Css.px 15)
+                                , Css.width (Css.px 15)
+                                , Css.marginRight (Css.px 10)
+                                ]
+                            ]
+                            []
+                        , resource.pinnedVersion
                             |> Maybe.map viewVersion
                             |> Maybe.withDefault (Html.text "")
                         ]
+
+                headerHeight =
+                    60
             in
-                Html.div [ class "with-fixed-header" ]
-                    [ Html.div [ class "fixed-header" ]
-                        [ Html.div [ class "pagination-header" ]
-                            [ Html.div [ class "pagination fr" ]
-                                [ Html.div [ class previousButtonClass, onClick previousButtonEvent ]
-                                    [ Html.a [ class "arrow" ]
-                                        [ Html.i [ class "fa fa-arrow-left" ] []
-                                        ]
-                                    ]
-                                , Html.div [ class nextButtonClass, onClick nextButtonEvent ]
-                                    [ Html.a [ class "arrow" ]
-                                        [ Html.i [ class "fa fa-arrow-right" ] []
-                                        ]
-                                    ]
-                                ]
-                            , Html.h1 [] [ Html.text resource.name ]
-                            , lastCheckedView
-                            , pinBar
+                Html.div []
+                    [ Html.div
+                        [ css
+                            [ Css.height <| Css.px headerHeight
+                            , Css.position Css.fixed
+                            , Css.top <| Css.px Styles.pageHeaderHeight
+                            , Css.displayFlex
+                            , Css.alignItems Css.stretch
+                            , Css.width <| Css.pct 100
+                            , Css.zIndex <| Css.int 1
+                            , Css.backgroundColor <| Css.hex "2a2929"
                             ]
                         ]
-                    , Html.div [ class "scrollable-body" ]
+                        [ Html.h1
+                            [ css
+                                [ Css.fontWeight <| Css.int 700
+                                , Css.marginLeft <| Css.px 18
+                                , Css.displayFlex
+                                , Css.alignItems Css.center
+                                , Css.justifyContent Css.center
+                                ]
+                            ]
+                            [ Html.text resource.name ]
+                        , Html.div
+                            [ css
+                                [ Css.displayFlex
+                                , Css.alignItems Css.center
+                                , Css.justifyContent Css.center
+                                , Css.marginLeft (Css.px 24)
+                                ]
+                            ]
+                            [ lastCheckedView ]
+                        , pinBar
+                        , Html.div
+                            [ class previousButtonClass
+                            , onClick previousButtonEvent
+                            , css [ Css.displayFlex, Css.alignItems Css.center ]
+                            ]
+                            [ Html.a [ class "arrow" ]
+                                [ Html.i [ class "fa fa-arrow-left" ] []
+                                ]
+                            ]
+                        , Html.div
+                            [ class nextButtonClass
+                            , onClick nextButtonEvent
+                            , css [ Css.displayFlex, Css.alignItems Css.center ]
+                            ]
+                            [ Html.a [ class "arrow" ]
+                                [ Html.i [ class "fa fa-arrow-right" ] []
+                                ]
+                            ]
+                        ]
+                    , Html.div
+                        [ css
+                            [ Css.padding3 (Css.px <| headerHeight + 10) (Css.px 10) (Css.px 10)
+                            ]
+                        ]
                         [ Html.div [ class "resource-check-status" ]
                             [ Html.div [ class "build-step" ]
                                 (List.append
@@ -798,11 +866,11 @@ viewLastChecked now date =
         ago =
             Duration.between (Date.toTime date) now
     in
-        Html.table [ class "last-checked" ]
+        Html.table []
             [ Html.tr
                 []
-                [ Html.td [ class "dict-key" ] [ Html.text "checked" ]
-                , Html.td [ title (Date.Format.format "%b %d %Y %I:%M:%S %p" date), class "dict-value" ]
+                [ Html.td [] [ Html.text "checked" ]
+                , Html.td [ title (Date.Format.format "%b %d %Y %I:%M:%S %p" date) ]
                     [ Html.span [] [ Html.text (Duration.format ago ++ " ago") ] ]
                 ]
             ]
