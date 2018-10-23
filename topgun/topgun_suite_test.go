@@ -88,15 +88,6 @@ var _ = BeforeEach(func() {
 
 	logger = lagertest.NewTestLogger("test")
 
-	n, found := os.LookupEnv("TOPGUN_NETWORK_OFFSET")
-	var networkOffset int
-	var err error
-
-	if found {
-		networkOffset, err = strconv.Atoi(n)
-	}
-	Expect(err).NotTo(HaveOccurred())
-
 	concourseReleaseVersion = os.Getenv("CONCOURSE_RELEASE_VERSION")
 	if concourseReleaseVersion == "" {
 		concourseReleaseVersion = "latest"
@@ -132,12 +123,12 @@ var _ = BeforeEach(func() {
 		stemcellVersion = "latest"
 	}
 
-	deploymentNumber := GinkgoParallelNode() + (networkOffset * 4)
+	deploymentNumber := GinkgoParallelNode()
 
 	deploymentName = fmt.Sprintf("concourse-topgun-%d", deploymentNumber)
 	flyTarget = deploymentName
 
-	tmp, err = ioutil.TempDir("", "topgun-tmp")
+	tmp, err := ioutil.TempDir("", "topgun-tmp")
 	Expect(err).ToNot(HaveOccurred())
 
 	bosh("delete-deployment")
