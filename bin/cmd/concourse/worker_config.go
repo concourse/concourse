@@ -1,4 +1,4 @@
-package start
+package main
 
 import (
 	"time"
@@ -6,7 +6,7 @@ import (
 	"github.com/concourse/concourse/atc"
 )
 
-type Config struct {
+type WorkerConfig struct {
 	Name     string   `long:"name"  description:"The name to set for the worker during registration. If not specified, the hostname will be used."`
 	Tags     []string `long:"tag"   description:"A tag to set during registration. Can be specified multiple times."`
 	TeamName string   `long:"team"  description:"The name of the team that this worker will be assigned to."`
@@ -22,7 +22,7 @@ type Config struct {
 	Version string `long:"version" hidden:"true" description:"Version of the worker. This is normally baked in to the binary, so this flag is hidden."`
 }
 
-func (c Config) Worker() atc.Worker {
+func (c WorkerConfig) Worker() atc.Worker {
 	return atc.Worker{
 		Tags:          c.Tags,
 		Team:          c.TeamName,

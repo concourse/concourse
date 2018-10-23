@@ -8,9 +8,9 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	"github.com/concourse/concourse"
+	"github.com/concourse/concourse/bin/drain"
 	concourseWorker "github.com/concourse/concourse/worker"
 	"github.com/concourse/concourse/worker/beacon"
-	workerConfig "github.com/concourse/concourse/worker/start"
 	"github.com/concourse/concourse/worker/sweeper"
 	"github.com/concourse/concourse/worker/tsa"
 	"github.com/concourse/flag"
@@ -20,7 +20,7 @@ import (
 )
 
 type WorkerCommand struct {
-	Worker workerConfig.Config
+	Worker WorkerConfig
 
 	TSA tsa.Config `group:"TSA Configuration" namespace:"tsa"`
 
@@ -47,7 +47,7 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 		return err
 	}
 
-	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
+	return <-ifrit.Invoke(sigmon.New(runner, drain.Signals...)).Wait()
 }
 
 func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
@@ -57,17 +57,19 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	logger, _ := cmd.Logger.Logger("worker")
 
-	worker, gardenRunner, err := cmd.gardenRunner(logger.Session("garden"))
+	atcWorker, gardenRunner, err := cmd.gardenRunner(logger.Session("garden"))
 	if err != nil {
 		return nil, err
 	}
 
-	worker.Version = concourse.WorkerVersion
+	atcWorker.Version = concourse.WorkerVersion
 
 	baggageclaimRunner, err := cmd.baggageclaimRunner(logger.Session("baggageclaim"))
 	if err != nil {
 		return nil, err
 	}
+
+	var runner ifrit.Runner
 
 	members := grouper.Members{
 		{
@@ -86,8 +88,8 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		}
 
 		if cmd.PeerIP.IP != nil {
-			worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP.IP, cmd.BindPort)
-			worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP.IP, cmd.Baggageclaim.BindPort)
+			atcWorker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP.IP, cmd.BindPort)
+			atcWorker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP.IP, cmd.Baggageclaim.BindPort)
 
 			beaconConfig.Registration.Mode = "direct"
 		} else {
@@ -95,16 +97,21 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 			beaconConfig.GardenForwardAddr = fmt.Sprintf("%s:%d", cmd.BindIP.IP, cmd.BindPort)
 			beaconConfig.BaggageclaimForwardAddr = fmt.Sprintf("%s:%d", cmd.Baggageclaim.BindIP.IP, cmd.Baggageclaim.BindPort)
 
-			worker.GardenAddr = beaconConfig.GardenForwardAddr
-			worker.BaggageclaimURL = fmt.Sprintf("http://%s", beaconConfig.BaggageclaimForwardAddr)
+			atcWorker.GardenAddr = beaconConfig.GardenForwardAddr
+			atcWorker.BaggageclaimURL = fmt.Sprintf("http://%s", beaconConfig.BaggageclaimForwardAddr)
 		}
+
+		beacon := concourseWorker.NewBeacon(
+			logger.Session("beacon"),
+			atcWorker,
+			beaconConfig,
+		)
 
 		members = append(members, grouper.Member{
 			Name: "beacon",
 			Runner: concourseWorker.BeaconRunner(
-				logger.Session("beacon"),
-				worker,
-				beaconConfig,
+				logger.Session("beacon-runner"),
+				beacon,
 			),
 		})
 
@@ -112,13 +119,21 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 			Name: "sweeper",
 			Runner: sweeper.NewSweeperRunner(
 				logger,
-				worker,
+				atcWorker,
 				beaconConfig,
 			),
 		})
+
+		runner = drain.Runner{
+			Logger: logger.Session("drain"),
+			Beacon: beacon,
+			Runner: grouper.NewParallel(os.Interrupt, members),
+		}
+	} else {
+		runner = grouper.NewParallel(os.Interrupt, members)
 	}
 
-	return grouper.NewParallel(os.Interrupt, members), nil
+	return runner, nil
 }
 
 func (cmd *WorkerCommand) workerName() (string, error) {

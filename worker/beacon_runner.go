@@ -24,13 +24,11 @@ func NewBeacon(logger lager.Logger, worker atc.Worker, config beacon.Config) bea
 		BaggageclaimAddr: config.BaggageclaimForwardAddr,
 		RegistrationMode: config.Registration.Mode,
 		KeepAlive:        true,
-		RebalanceTime: config.Registration.RebalanceTime,
+		RebalanceTime:    config.Registration.RebalanceTime,
 	}
 }
 
-func BeaconRunner(logger lager.Logger, worker atc.Worker, config beacon.Config) ifrit.Runner {
-	beacon := NewBeacon(logger, worker, config)
-
+func BeaconRunner(logger lager.Logger, beacon beacon.BeaconClient) ifrit.Runner {
 	return restart.Restarter{
 		Runner: ifrit.RunFunc(beacon.Register),
 		Load: func(prevRunner ifrit.Runner, prevErr error) ifrit.Runner {
