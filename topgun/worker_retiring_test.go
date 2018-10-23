@@ -17,7 +17,7 @@ var _ = Describe("Worker retiring", func() {
 		_ = waitForRunningWorker()
 	})
 
-	It("[#129726063 #129726083] deletes all containers and volumes when worker is gone", func() {
+	It("deletes all containers and volumes when worker is gone", func() {
 		By("setting pipeline that creates resource cache")
 		fly("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "worker-retiring-test")
 

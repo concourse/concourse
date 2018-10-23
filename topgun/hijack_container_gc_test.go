@@ -20,7 +20,7 @@ var _ = Describe("Hijacked containers", func() {
 	BeforeEach(func() {
 		Deploy("deployments/concourse.yml")
 
-		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", JobInstance("garden").IP)))
+		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", JobInstance("worker").IP)))
 	})
 
 	getContainer := func(condition, value string) func() hijackedContainerResult {

@@ -23,8 +23,10 @@ var _ = Describe(":life volume gc", func() {
 	BeforeEach(func() {
 		Deploy("deployments/concourse.yml")
 
-		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", JobInstance("garden").IP)))
-		bcClient = bgclient.New(fmt.Sprintf("http://%s:7788", JobInstance("baggageclaim").IP), http.DefaultTransport)
+		workerIP := JobInstance("worker").IP
+
+		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", workerIP)))
+		bcClient = bgclient.New(fmt.Sprintf("http://%s:7788", workerIP), http.DefaultTransport)
 	})
 
 	Describe("A volume that belonged to a container that is now gone", func() {

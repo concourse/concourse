@@ -19,7 +19,10 @@ var _ = Describe("Ephemeral Workers", func() {
 		Context("when the worker goes away", func() {
 			BeforeEach(func() {
 				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop worker")
-				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop garden")
+			})
+
+			BeforeEach(func() {
+				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
 			})
 
 			It("disappears without stalling", func() {

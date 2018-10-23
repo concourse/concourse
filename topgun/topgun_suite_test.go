@@ -39,14 +39,14 @@ var (
 	dbInstance *boshInstance
 	dbConn     *sql.DB
 
-	atcInstance    *boshInstance
+	webInstance    *boshInstance
 	atcExternalURL string
 	atcUsername    string
 	atcPassword    string
 
-	concourseReleaseVersion, gardenRuncReleaseVersion, postgresReleaseVersion string
-	gitServerReleaseVersion, vaultReleaseVersion, credhubReleaseVersion       string
-	stemcellVersion                                                           string
+	concourseReleaseVersion, bpmReleaseVersion, postgresReleaseVersion  string
+	gitServerReleaseVersion, vaultReleaseVersion, credhubReleaseVersion string
+	stemcellVersion                                                     string
 
 	pipelineName string
 
@@ -102,9 +102,9 @@ var _ = BeforeEach(func() {
 		concourseReleaseVersion = "latest"
 	}
 
-	gardenRuncReleaseVersion = os.Getenv("GARDEN_RUNC_RELEASE_VERSION")
-	if gardenRuncReleaseVersion == "" {
-		gardenRuncReleaseVersion = "latest"
+	bpmReleaseVersion = os.Getenv("BPM_RELEASE_VERSION")
+	if bpmReleaseVersion == "" {
+		bpmReleaseVersion = "latest"
 	}
 
 	postgresReleaseVersion = os.Getenv("POSTGRES_RELEASE_VERSION")
@@ -147,7 +147,7 @@ var _ = BeforeEach(func() {
 
 	dbInstance = nil
 	dbConn = nil
-	atcInstance = nil
+	webInstance = nil
 	atcExternalURL = ""
 	atcUsername = "some-user"
 	atcPassword = "password"
@@ -167,12 +167,12 @@ var _ = AfterEach(func() {
 	Expect(os.RemoveAll(tmp)).To(Succeed())
 })
 
-func requestCredsInfo(atcUrl string) ([]byte, error) {
-	request, err := http.NewRequest("GET", atcUrl+"/api/v1/info/creds", nil)
+func requestCredsInfo(webUrl string) ([]byte, error) {
+	request, err := http.NewRequest("GET", webUrl+"/api/v1/info/creds", nil)
 	Expect(err).ToNot(HaveOccurred())
 
 	reqHeader := http.Header{}
-	token, err := fetchToken(atcUrl, "some-user", "password")
+	token, err := fetchToken(webUrl, "some-user", "password")
 	Expect(err).ToNot(HaveOccurred())
 
 	reqHeader.Set("Authorization", "Bearer "+token.AccessToken)
@@ -196,7 +196,7 @@ func StartDeploy(manifest string, args ...string) *gexec.Session {
 			"--vars-store", filepath.Join(tmp, deploymentName+"-vars.yml"),
 			"-v", "deployment_name='" + deploymentName + "'",
 			"-v", "concourse_release_version='" + concourseReleaseVersion + "'",
-			"-v", "garden_runc_release_version='" + gardenRuncReleaseVersion + "'",
+			"-v", "bpm_release_version='" + bpmReleaseVersion + "'",
 			"-v", "postgres_release_version='" + postgresReleaseVersion + "'",
 			"-v", "vault_release_version='" + vaultReleaseVersion + "'",
 			"-v", "credhub_release_version='" + credhubReleaseVersion + "'",
@@ -230,10 +230,10 @@ func Deploy(manifest string, args ...string) {
 		}
 	}
 
-	atcInstance = JobInstance("atc")
-	if atcInstance != nil {
-		// give some time for atc to bootstrap (Run migrations, etc)
-		atcExternalURL = fmt.Sprintf("http://%s:8080", atcInstance.IP)
+	webInstance = JobInstance("web")
+	if webInstance != nil {
+		// give some time for web to bootstrap (Run migrations, etc)
+		atcExternalURL = fmt.Sprintf("http://%s:8080", webInstance.IP)
 		Eventually(func() *gexec.Session {
 			return flyLogin("-c", atcExternalURL).Wait()
 		}, 2*time.Minute).Should(gexec.Exit(0))
@@ -350,11 +350,11 @@ func concourseClient() concourse.Client {
 	return concourse.NewClient(atcExternalURL, httpClient, false)
 }
 
-func fetchToken(atcURL string, username, password string) (*oauth2.Token, error) {
+func fetchToken(webURL string, username, password string) (*oauth2.Token, error) {
 	oauth2Config := oauth2.Config{
 		ClientID:     "fly",
 		ClientSecret: "Zmx5",
-		Endpoint:     oauth2.Endpoint{TokenURL: atcURL + "/sky/token"},
+		Endpoint:     oauth2.Endpoint{TokenURL: webURL + "/sky/token"},
 		Scopes:       []string{"openid", "profile", "email", "federated:id"},
 	}
 

@@ -20,7 +20,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 	BeforeEach(func() {
 		Deploy("deployments/concourse.yml")
 
-		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", JobInstance("garden").IP)))
+		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", JobInstance("worker").IP)))
 	})
 
 	getContainers := func(condition, value string) []string {

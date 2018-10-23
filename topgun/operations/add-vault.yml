@@ -25,7 +25,7 @@
   value: ((instances))
 
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=atc/properties/vault?
+  path: /instance_groups/name=concourse/jobs/name=web/properties/vault?
   value:
     url: ((vault_url))
     auth:

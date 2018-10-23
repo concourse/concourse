@@ -22,7 +22,7 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 			Deploy("deployments/concourse-two-atcs-slow-tracking.yml")
 			waitForRunningWorker()
 
-			atcs = JobInstances("atc")
+			atcs = JobInstances("web")
 			atc0URL = "http://" + atcs[0].IP + ":8080"
 			atc1URL = "http://" + atcs[1].IP + ":8080"
 
@@ -55,7 +55,7 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 					startSession := spawnBosh("start", atcs[1].Name)
 					Eventually(startSession).Should(gexec.Exit(0))
 
-					atcs = JobInstances("atc")
+					atcs = JobInstances("web")
 					atc0URL = "http://" + atcs[0].IP + ":8080"
 					atc1URL = "http://" + atcs[1].IP + ":8080"
 

@@ -4,8 +4,8 @@ name: ((deployment_name))
 releases:
 - name: concourse
   version: ((concourse_release_version))
-- name: garden-runc
-  version: ((garden_runc_release_version))
+- name: bpm
+  version: ((bpm_release_version))
 - name: postgres
   version: ((postgres_release_version))
 
@@ -18,17 +18,25 @@ instance_groups:
   vm_type: topgun
   stemcell: xenial
   jobs:
+  - release: bpm
+    name: bpm
+
   - release: concourse
-    name: atc
+    name: web
     properties:
       token_signing_key: ((token_signing_key))
+
       add_local_users:
       - some-user:$2a$10$ElspuoVbekkuIlqvk25HN.9DRwGpkS0mUluTjrhsOMKhcGKNUHHvC
       - some-other-user:$2a$10$ElspuoVbekkuIlqvk25HN.9DRwGpkS0mUluTjrhsOMKhcGKNUHHvC
+
       main_team:
         auth:
-          allow_all_users: true
+          local:
+            users: [some-user]
+
       log_level: debug
+
       postgresql:
         database: &db-name atc
         role: &db-role
@@ -37,13 +45,11 @@ instance_groups:
 
       build_tracker_interval: 5m
 
-  - release: concourse
-    name: tsa
-    properties:
-      log_level: debug
-      host_key: ((tsa_host_key))
-      token_signing_key: ((token_signing_key))
-      authorized_keys: [((worker_key.public_key))]
+      worker_gateway:
+        log_level: debug
+        host_key: ((tsa_host_key))
+        token_signing_key: ((token_signing_key))
+        authorized_keys: [((worker_key.public_key))]
 
 - name: db
   instances: 1
@@ -74,24 +80,14 @@ instance_groups:
     name: worker
     properties:
       log_level: debug
-      tsa:
+
+      worker_gateway:
         worker_key: ((worker_key))
         registration_mode: forward
         rebalance_time: 5s
+
       # prevent tests from hanging forever
       drain_timeout: 10m
-  - release: concourse
-    name: baggageclaim
-    properties: {}
-
-  - release: garden-runc
-    name: garden
-    properties:
-      garden:
-        listen_network: tcp
-        listen_address: 0.0.0.0:7777
-        allow_host_access: true
-        network_mtu: 1460
 
 variables:
 - name: token_signing_key

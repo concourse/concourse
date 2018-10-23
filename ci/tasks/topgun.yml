@@ -21,6 +21,7 @@ params:
 inputs:
 - name: concourse
 - name: concourse-release
+- name: bpm-release
 - name: postgres-release
 - name: git-server-release
 - name: vault-release

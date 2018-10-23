@@ -25,7 +25,7 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 			Deploy(manifestFile)
 			waitForRunningWorker()
 
-			atcs = JobInstances("atc")
+			atcs = JobInstances("web")
 			atc0URL = "http://" + atcs[0].IP + ":8080"
 			atc1URL = "http://" + atcs[1].IP + ":8080"
 		})

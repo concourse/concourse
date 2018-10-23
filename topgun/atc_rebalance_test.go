@@ -20,7 +20,7 @@ var _ = Describe("ATC Rebalance", func() {
 			Deploy("deployments/concourse-two-atcs-slow-tracking.yml")
 			waitForRunningWorker()
 
-			atcs = JobInstances("atc")
+			atcs = JobInstances("web")
 			atc0IP = atcs[0].IP
 			atc1IP = atcs[1].IP
 

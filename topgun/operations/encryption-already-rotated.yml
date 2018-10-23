@@ -1,7 +1,7 @@
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=atc/properties/encryption_key?
+  path: /instance_groups/name=concourse/jobs/name=web/properties/encryption_key?
   value: AES256Key-32Characters1234567890
 
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=atc/properties/old_encryption_key?
+  path: /instance_groups/name=concourse/jobs/name=web/properties/old_encryption_key?
   value: 0987654321sretcarahC23-yeK652SEA
