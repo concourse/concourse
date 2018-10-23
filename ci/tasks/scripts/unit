@@ -23,4 +23,4 @@ go mod download
 
 go install github.com/onsi/ginkgo/ginkgo
 
-ginkgo -r -p -race -skipPackage testflight "$@"
+ginkgo -r -p -race -skipPackage testflight,topgun "$@"
