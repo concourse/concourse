@@ -13,7 +13,7 @@ import Duration exposing (Duration)
 import Erl
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes exposing (class, css, href, id, title)
-import Html.Styled.Events exposing (onClick, onMouseOver, onMouseOut)
+import Html.Styled.Events exposing (onClick, onMouseOver, onMouseLeave)
 import Http
 import Maybe.Extra as ME
 import Navigation
@@ -593,7 +593,7 @@ view model =
                          , id "pin-bar"
                          ]
                             ++ (if model.showPinBarTooltip then
-                                    [ onMouseOut TogglePinBarTooltip ]
+                                    [ onMouseLeave TogglePinBarTooltip ]
                                 else if resource.pinnedInConfig then
                                     [ onMouseOver TogglePinBarTooltip ]
                                 else

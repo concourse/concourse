@@ -153,7 +153,7 @@ all =
                         |> togglePinBarTooltip
                         |> queryView
                         |> Query.find [ id "pin-bar" ]
-                        |> Event.simulate Event.mouseOut
+                        |> Event.simulate Event.mouseLeave
                         |> Event.expect Resource.TogglePinBarTooltip
             , test "when mousing off pin bar, tooltip disappears" <|
                 \_ ->
