@@ -1,4 +1,19 @@
-module Resource exposing (Flags, Msg(..), Model, init, changeToResource, update, updateWithMessage, view, subscriptions, PauseChangingOrErrored(..))
+module Resource
+    exposing
+        ( Flags
+        , Msg(..)
+        , Model
+        , init
+        , changeToResource
+        , update
+        , updateWithMessage
+        , view
+        , viewCheckbox
+        , viewPin
+        , viewVersionHeader
+        , subscriptions
+        , PauseChangingOrErrored(..)
+        )
 
 import Concourse
 import Concourse.BuildStatus
@@ -13,7 +28,7 @@ import Duration exposing (Duration)
 import Erl
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes exposing (class, css, href, id, title)
-import Html.Styled.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Html.Styled.Events exposing (onClick, onMouseEnter, onMouseLeave, onMouseOver, onMouseOut)
 import Http
 import Maybe.Extra as ME
 import Navigation
@@ -735,7 +750,11 @@ view model =
                                     stepBody
                                 )
                             ]
-                        , viewVersionedResources model
+                        , viewVersionedResources
+                            { versionedResources = model.versionedResources
+                            , versionedUIStates = model.versionedUIStates
+                            , isVersionPinnedInConfig = resource.pinnedInConfig
+                            }
                         ]
                     ]
 
@@ -771,14 +790,16 @@ viewVersionedResources :
     { a
         | versionedResources : Paginated Concourse.VersionedResource
         , versionedUIStates : Dict.Dict Int VersionUIState
+        , isVersionPinnedInConfig : Bool
     }
     -> Html Msg
-viewVersionedResources { versionedResources, versionedUIStates } =
+viewVersionedResources { versionedResources, isVersionPinnedInConfig, versionedUIStates } =
     versionedResources.content
         |> List.map
             (\vr ->
                 viewVersionedResource
                     { versionedResource = vr
+                    , pinEnabled = not isVersionPinnedInConfig
                     , state = getState vr.id versionedUIStates
                     }
             )
@@ -788,9 +809,10 @@ viewVersionedResources { versionedResources, versionedUIStates } =
 viewVersionedResource :
     { versionedResource : Concourse.VersionedResource
     , state : VersionUIState
+    , pinEnabled : Bool
     }
     -> Html Msg
-viewVersionedResource { versionedResource, state } =
+viewVersionedResource { versionedResource, pinEnabled, state } =
     let
         expanded =
             if state.expanded then
@@ -811,81 +833,141 @@ viewVersionedResource { versionedResource, state } =
                    )
                 ++ expanded
     in
-        Html.li [ class <| "list-collapsable-item clearfix " ++ liEnabled ]
-            [ Html.a
-                [ Html.Styled.Attributes.attribute "aria-label" "Toggle Resource Version"
-                , css
-                    ((if versionedResource.enabled then
-                        [ Css.backgroundImage (Css.url "/public/images/checkmark_ic.svg")
-                        , Css.backgroundColor (Css.hex "2ecc71")
-                        ]
-                      else
-                        [ Css.backgroundImage (Css.url "/public/images/x_ic.svg")
-                        ]
-                     )
-                        ++ [ Css.backgroundRepeat Css.noRepeat
-                           , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
-                           , Css.marginRight (Css.px 10)
-                           , Css.width (Css.px 25)
-                           , Css.height (Css.px 25)
-                           , Css.float Css.left
-                           ]
-                    )
-                , onClick <| ToggleVersionedResource versionedResource.id
-                ]
-                []
-            , Html.div
-                [ Html.Styled.Attributes.attribute "aria-label" "Pin Resource Version"
-                , css
-                    [ Css.position Css.relative
-                    , Css.backgroundImage
-                        (Css.url "/public/images/pin_ic_grey.svg")
-                    , Css.backgroundRepeat Css.noRepeat
-                    , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
-                    , Css.marginRight (Css.px 10)
-                    , Css.width (Css.px 25)
-                    , Css.height (Css.px 25)
-                    , Css.float Css.left
-                    , Css.cursor Css.default
+        Html.li []
+            ([ Html.div
+                [ css
+                    [ Css.displayFlex
+                    , Css.margin2 (Css.px 5) Css.zero
                     ]
-                , onMouseLeave <| ToggleVersionTooltip versionedResource.id
-                , onMouseEnter <| ToggleVersionTooltip versionedResource.id
                 ]
-                (if state.showTooltip then
-                    [ Html.div
-                        [ css
-                            [ Css.position Css.absolute
-                            , Css.bottom <| Css.px 25
-                            , Css.backgroundColor <| Css.hex "9b9b9b"
-                            , Css.zIndex <| Css.int 2
-                            , Css.padding <| Css.px 5
-                            , Css.width <| Css.px 170
+                [ viewCheckbox versionedResource
+                , viewPin
+                    { id = versionedResource.id
+                    , enabled = pinEnabled
+                    , showTooltip = state.showTooltip
+                    }
+                , viewVersionHeader versionedResource
+                ]
+             ]
+                ++ (if state.expanded then
+                        [ Html.div
+                            [ css
+                                [ Css.displayFlex
+                                , Css.padding2 (Css.px 5) (Css.px 10)
+                                ]
+                            ]
+                            [ Html.div [ class "vri" ] <|
+                                List.concat
+                                    [ [ Html.div [ css [ Css.lineHeight <| Css.px 25 ] ] [ Html.text "inputs to" ] ]
+                                    , viewBuilds <| listToMap state.inputTo
+                                    ]
+                            , Html.div [ class "vri" ] <|
+                                List.concat
+                                    [ [ Html.div [ css [ Css.lineHeight <| Css.px 25 ] ] [ Html.text "outputs of" ] ]
+                                    , viewBuilds <| listToMap state.outputOf
+                                    ]
+                            , Html.div [ class "vri metadata-container" ]
+                                [ Html.div [ class "list-collapsable-title" ] [ Html.text "metadata" ]
+                                , viewMetadata versionedResource.metadata
+                                ]
                             ]
                         ]
-                        [ Html.text "enable via pipeline config" ]
-                    ]
+                    else
+                        []
+                   )
+            )
+
+
+viewCheckbox : { a | enabled : Bool, id : Int } -> Html Msg
+viewCheckbox { enabled, id } =
+    Html.a
+        [ Html.Styled.Attributes.attribute "aria-label" "Toggle Resource Version"
+        , css
+            ((if enabled then
+                [ Css.backgroundImage (Css.url "/public/images/checkmark_ic.svg")
+                , Css.backgroundColor (Css.hex "2ecc71")
+                ]
+              else
+                [ Css.backgroundImage (Css.url "/public/images/x_ic.svg")
+                , Css.backgroundColor (Css.hex "1e1d1d")
+                ]
+             )
+                ++ [ Css.backgroundRepeat Css.noRepeat
+                   , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
+                   , Css.marginRight (Css.px 5)
+                   , Css.width (Css.px 25)
+                   , Css.height (Css.px 25)
+                   , Css.float Css.left
+                   ]
+            )
+        , onClick <| ToggleVersionedResource id
+        ]
+        []
+
+
+viewPin : { id : Int, enabled : Bool, showTooltip : Bool } -> Html Msg
+viewPin { id, enabled, showTooltip } =
+    Html.div
+        [ Html.Styled.Attributes.attribute "aria-label" "Pin Resource Version"
+        , css
+            [ Css.position Css.relative
+            , Css.backgroundImage
+                (Css.url "/public/images/pin_ic_grey.svg")
+            , Css.backgroundRepeat Css.noRepeat
+            , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
+            , Css.marginRight (Css.px 5)
+            , Css.width (Css.px 25)
+            , Css.height (Css.px 25)
+            , Css.float Css.left
+            , Css.cursor Css.default
+            , Css.backgroundColor
+                (if enabled then
+                    Css.hex "1e1d1d"
                  else
-                    []
+                    Css.hex "1e1d1d80"
                 )
-            , Html.div [ class "list-collapsable-title", onClick <| ExpandVersionedResource versionedResource.id ]
-                [ viewVersion versionedResource.version ]
-            , Html.div [ class "list-collapsable-content clearfix" ]
-                [ Html.div [ class "vri" ] <|
-                    List.concat
-                        [ [ Html.div [ class "list-collapsable-title" ] [ Html.text "inputs to" ] ]
-                        , viewBuilds <| listToMap state.inputTo
-                        ]
-                , Html.div [ class "vri" ] <|
-                    List.concat
-                        [ [ Html.div [ class "list-collapsable-title" ] [ Html.text "outputs of" ] ]
-                        , viewBuilds <| listToMap state.outputOf
-                        ]
-                , Html.div [ class "vri metadata-container" ]
-                    [ Html.div [ class "list-collapsable-title" ] [ Html.text "metadata" ]
-                    , viewMetadata versionedResource.metadata
+            ]
+        , onMouseOut <| ToggleVersionTooltip id
+        , onMouseOver <| ToggleVersionTooltip id
+        ]
+        (if showTooltip then
+            [ Html.div
+                [ css
+                    [ Css.position Css.absolute
+                    , Css.bottom <| Css.px 25
+                    , Css.backgroundColor <| Css.hex "9b9b9b"
+                    , Css.zIndex <| Css.int 2
+                    , Css.padding <| Css.px 5
+                    , Css.width <| Css.px 170
                     ]
                 ]
+                [ Html.text "enable via pipeline config" ]
             ]
+         else
+            []
+        )
+
+
+viewVersionHeader : { a | id : Int, enabled : Bool, version : Concourse.Version } -> Html Msg
+viewVersionHeader { id, enabled, version } =
+    Html.div
+        [ css
+            [ Css.flexGrow <| Css.num 1
+            , Css.backgroundColor <| Css.hex "1e1d1d"
+            , Css.cursor Css.pointer
+            , Css.displayFlex
+            , Css.alignItems Css.center
+            , Css.paddingLeft <| Css.px 10
+            , Css.color <|
+                Css.hex <|
+                    if enabled then
+                        "e6e7e8"
+                    else
+                        "e6e7e880"
+            ]
+        , onClick <| ExpandVersionedResource id
+        ]
+        [ viewVersion version ]
 
 
 getState : Int -> Dict.Dict Int VersionUIState -> VersionUIState

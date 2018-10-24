@@ -39,7 +39,61 @@ version =
 all : Test
 all =
     describe "resource page"
-        [ describe "given resource is pinned via pipeline config"
+        [ test "viewPin has dark background when enabled" <|
+            \_ ->
+                Resource.viewPin
+                    { id = versionID
+                    , showTooltip = False
+                    , enabled = True
+                    }
+                    |> HS.toUnstyled
+                    |> Query.fromHtml
+                    |> Query.has [ text "background-color:#1e1d1d" ]
+        , test "viewPin has faded background when disabled" <|
+            \_ ->
+                Resource.viewPin
+                    { id = versionID
+                    , showTooltip = False
+                    , enabled = False
+                    }
+                    |> HS.toUnstyled
+                    |> Query.fromHtml
+                    |> Query.has [ text "background-color:#1e1d1d80" ]
+        , test "viewCheckbox has dark background when disabled" <|
+            \_ ->
+                Resource.viewCheckbox
+                    { id = versionID
+                    , enabled = False
+                    }
+                    |> HS.toUnstyled
+                    |> Query.fromHtml
+                    |> Query.has
+                        [ text "background-color:#1e1d1d"
+                        , text "background-image:url(/public/images/x_ic.svg)"
+                        ]
+        , test "viewVersionHeader has dark text when disabled" <|
+            \_ ->
+                Resource.viewVersionHeader
+                    { id = versionID
+                    , enabled = False
+                    , version = Dict.fromList [ ( "version", version ) ]
+                    }
+                    |> HS.toUnstyled
+                    |> Query.fromHtml
+                    |> Query.has
+                        [ text "color:#e6e7e880" ]
+        , test "viewVersionHeader has light text when enabled" <|
+            \_ ->
+                Resource.viewVersionHeader
+                    { id = versionID
+                    , enabled = True
+                    , version = Dict.fromList [ ( "version", version ) ]
+                    }
+                    |> HS.toUnstyled
+                    |> Query.fromHtml
+                    |> Query.has
+                        [ text "color:#e6e7e8" ]
+        , describe "given resource is pinned via pipeline config"
             [ test "then pinned version is visible in pin bar" <|
                 \_ ->
                     init
@@ -60,7 +114,7 @@ all =
                         |> Query.find [ id "pin-bar" ]
                         |> Event.simulate Event.mouseEnter
                         |> Event.expect Resource.TogglePinBarTooltip
-            , test "TogglePinBarTooltip cases tooltip to appear" <|
+            , test "TogglePinBarTooltip causes tooltip to appear" <|
                 \_ ->
                     init
                         |> givenResourcePinnedViaConfig
@@ -121,7 +175,7 @@ all =
                         |> queryView
                         |> Query.find [ tag "li", containing [ text version ] ]
                         |> Query.find [ attribute (Attr.attribute "aria-label" "Pin Resource Version") ]
-                        |> Event.simulate Event.mouseEnter
+                        |> Event.simulate Event.mouseOver
                         |> Event.expect (Resource.ToggleVersionTooltip versionID)
             , test "shows tooltip on the pin icon on ToggleVersionTooltip" <|
                 \_ ->
@@ -143,7 +197,7 @@ all =
                         |> queryView
                         |> Query.find [ tag "li", containing [ text version ] ]
                         |> Query.find [ attribute (Attr.attribute "aria-label" "Pin Resource Version") ]
-                        |> Event.simulate Event.mouseLeave
+                        |> Event.simulate Event.mouseOut
                         |> Event.expect (Resource.ToggleVersionTooltip versionID)
             , test "hides tooltip on the pin icon on ToggleVersionTooltip" <|
                 \_ ->
