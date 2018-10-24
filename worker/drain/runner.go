@@ -2,6 +2,7 @@ package drain
 
 import (
 	"os"
+	"sync/atomic"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/worker/beacon"
@@ -14,7 +15,7 @@ type Runner struct {
 	Runner       ifrit.Runner
 	DrainSignals <-chan os.Signal
 
-	drained bool
+	drained int32
 }
 
 func (d *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -27,7 +28,7 @@ func (d *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	for {
 		select {
 		case sig := <-d.DrainSignals:
-			d.drained = true
+			atomic.StoreInt32(&d.drained, 1)
 
 			d.Logger.Debug("received-drain-signal", lager.Data{
 				"signal": sig.String(),
@@ -78,5 +79,5 @@ func (d *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 }
 
 func (d *Runner) Drained() bool {
-	return d.drained
+	return atomic.LoadInt32(&d.drained) == 1
 }
