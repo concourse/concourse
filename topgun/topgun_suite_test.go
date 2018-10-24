@@ -127,7 +127,8 @@ var _ = BeforeEach(func() {
 	deploymentName = fmt.Sprintf("concourse-topgun-%d", deploymentNumber)
 	flyTarget = deploymentName
 
-	tmp, err := ioutil.TempDir("", "topgun-tmp")
+	var err error
+	tmp, err = ioutil.TempDir("", "topgun-tmp")
 	Expect(err).ToNot(HaveOccurred())
 
 	bosh("delete-deployment")
