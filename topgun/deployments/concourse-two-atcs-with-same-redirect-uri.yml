@@ -12,11 +12,7 @@ releases:
 instance_groups:
 - name: web
   instances: 2
-  networks:
-  - name: testflight
-    static_ips:
-    - 10.244.23.2
-    - 10.244.24.2
+  networks: [{name: topgun}]
   azs: [z1]
   persistent_disk: 1240
   vm_type: topgun
@@ -48,8 +44,6 @@ instance_groups:
           password: dummy-password
 
       build_tracker_interval: 5m
-
-      external_url: http://10.244.23.2:8080
 
       worker_gateway:
         log_level: debug
