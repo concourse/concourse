@@ -284,7 +284,7 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 					bytes.NewBufferString("y\n"),
 					"set-team",
 					"--team-name", teamName,
-					"--allow-all-users",
+					"--local-user", atcUsername,
 				)
 				<-setTeamSession.Exited
 				Expect(setTeamSession.ExitCode()).To(Equal(0))

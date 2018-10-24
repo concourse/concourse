@@ -1,7 +1,6 @@
 package topgun_test
 
 import (
-	"bytes"
 	"os"
 	"regexp"
 	"time"
@@ -193,9 +192,7 @@ var _ = Describe("[#129726011] Worker landing", func() {
 		BeforeEach(func() {
 			Deploy("deployments/concourse-separate-forwarded-worker.yml", "-o", "operations/separate-worker-team.yml")
 
-			setTeam := spawnFlyInteractive(bytes.NewBufferString("y\n"), "set-team", "-n", "team-a", "--allow-all-users")
-			<-setTeam.Exited
-			Expect(setTeam.ExitCode()).To(Equal(0))
+			fly("set-team", "--non-interactive", "-n", "team-a", "--local-user", atcUsername)
 
 			fly("login", "-c", atcExternalURL, "-n", "team-a", "-u", atcUsername, "-p", atcPassword)
 
