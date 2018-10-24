@@ -13,7 +13,7 @@ import Duration exposing (Duration)
 import Erl
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes exposing (class, css, href, id, title)
-import Html.Styled.Events exposing (onClick, onMouseOver, onMouseLeave)
+import Html.Styled.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Http
 import Maybe.Extra as ME
 import Navigation
@@ -50,6 +50,7 @@ type alias VersionUIState =
     , expanded : Bool
     , inputTo : List Concourse.Build
     , outputOf : List Concourse.Build
+    , showTooltip : Bool
     }
 
 
@@ -75,6 +76,7 @@ type Msg
     | OutputOfFetched Int (Result Http.Error (List Concourse.Build))
     | NavTo String
     | TogglePinBarTooltip
+    | ToggleVersionTooltip Int
 
 
 type alias Flags =
@@ -453,6 +455,22 @@ update action model =
             , Cmd.none
             )
 
+        ToggleVersionTooltip versionID ->
+            let
+                oldState =
+                    getState versionID model.versionedUIStates
+
+                newState =
+                    { oldState
+                        | showTooltip = not oldState.showTooltip
+                    }
+            in
+                ( { model
+                    | versionedUIStates = setState versionID newState model.versionedUIStates
+                  }
+                , Cmd.none
+                )
+
 
 permalink : List Concourse.VersionedResource -> Page
 permalink versionedResources =
@@ -592,10 +610,10 @@ view model =
                             ]
                          , id "pin-bar"
                          ]
-                            ++ (if model.showPinBarTooltip then
-                                    [ onMouseLeave TogglePinBarTooltip ]
-                                else if resource.pinnedInConfig then
-                                    [ onMouseOver TogglePinBarTooltip ]
+                            ++ (if resource.pinnedInConfig then
+                                    [ onMouseEnter TogglePinBarTooltip
+                                    , onMouseLeave TogglePinBarTooltip
+                                    ]
                                 else
                                     []
                                )
@@ -717,7 +735,7 @@ view model =
                                     stepBody
                                 )
                             ]
-                        , (viewVersionedResources model.versionedResources.content model.versionedUIStates)
+                        , viewVersionedResources model
                         ]
                     ]
 
@@ -749,26 +767,39 @@ switchEnabled versionID versionedResource =
             versionedResource
 
 
-viewVersionedResources : List Concourse.VersionedResource -> Dict.Dict Int VersionUIState -> Html Msg
-viewVersionedResources versionedResources states =
-    Html.ul [ class "list list-collapsable list-enableDisable resource-versions" ]
-        (List.map (viewVersionedResource states) versionedResources)
+viewVersionedResources :
+    { a
+        | versionedResources : Paginated Concourse.VersionedResource
+        , versionedUIStates : Dict.Dict Int VersionUIState
+    }
+    -> Html Msg
+viewVersionedResources { versionedResources, versionedUIStates } =
+    versionedResources.content
+        |> List.map
+            (\vr ->
+                viewVersionedResource
+                    { versionedResource = vr
+                    , state = getState vr.id versionedUIStates
+                    }
+            )
+        |> Html.ul [ class "list list-collapsable list-enableDisable resource-versions" ]
 
 
-viewVersionedResource : Dict.Dict Int VersionUIState -> Concourse.VersionedResource -> Html Msg
-viewVersionedResource states versionedResource =
+viewVersionedResource :
+    { versionedResource : Concourse.VersionedResource
+    , state : VersionUIState
+    }
+    -> Html Msg
+viewVersionedResource { versionedResource, state } =
     let
-        resourceState =
-            getState versionedResource.id states
-
         expanded =
-            if resourceState.expanded then
+            if state.expanded then
                 " expanded"
             else
                 ""
 
         liEnabled =
-            (if resourceState.changingErrored then
+            (if state.changingErrored then
                 "errored "
              else
                 ""
@@ -803,18 +834,51 @@ viewVersionedResource states versionedResource =
                 , onClick <| ToggleVersionedResource versionedResource.id
                 ]
                 []
+            , Html.div
+                [ Html.Styled.Attributes.attribute "aria-label" "Pin Resource Version"
+                , css
+                    [ Css.position Css.relative
+                    , Css.backgroundImage
+                        (Css.url "/public/images/pin_ic_grey.svg")
+                    , Css.backgroundRepeat Css.noRepeat
+                    , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
+                    , Css.marginRight (Css.px 10)
+                    , Css.width (Css.px 25)
+                    , Css.height (Css.px 25)
+                    , Css.float Css.left
+                    , Css.cursor Css.default
+                    ]
+                , onMouseLeave <| ToggleVersionTooltip versionedResource.id
+                , onMouseEnter <| ToggleVersionTooltip versionedResource.id
+                ]
+                (if state.showTooltip then
+                    [ Html.div
+                        [ css
+                            [ Css.position Css.absolute
+                            , Css.bottom <| Css.px 25
+                            , Css.backgroundColor <| Css.hex "9b9b9b"
+                            , Css.zIndex <| Css.int 2
+                            , Css.padding <| Css.px 5
+                            , Css.width <| Css.px 170
+                            ]
+                        ]
+                        [ Html.text "enable via pipeline config" ]
+                    ]
+                 else
+                    []
+                )
             , Html.div [ class "list-collapsable-title", onClick <| ExpandVersionedResource versionedResource.id ]
                 [ viewVersion versionedResource.version ]
             , Html.div [ class "list-collapsable-content clearfix" ]
                 [ Html.div [ class "vri" ] <|
                     List.concat
                         [ [ Html.div [ class "list-collapsable-title" ] [ Html.text "inputs to" ] ]
-                        , viewBuilds <| listToMap resourceState.inputTo
+                        , viewBuilds <| listToMap state.inputTo
                         ]
                 , Html.div [ class "vri" ] <|
                     List.concat
                         [ [ Html.div [ class "list-collapsable-title" ] [ Html.text "outputs of" ] ]
-                        , viewBuilds <| listToMap resourceState.outputOf
+                        , viewBuilds <| listToMap state.outputOf
                         ]
                 , Html.div [ class "vri metadata-container" ]
                     [ Html.div [ class "list-collapsable-title" ] [ Html.text "metadata" ]
@@ -836,6 +900,7 @@ getState versionID states =
                 , expanded = False
                 , inputTo = []
                 , outputOf = []
+                , showTooltip = False
                 }
 
             Just rs ->

@@ -1,12 +1,14 @@
 module ResourceTests exposing (..)
 
 import Dict
+import Expect exposing (..)
 import Html.Styled as HS
+import Html.Attributes as Attr
 import Resource
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (id, text)
+import Test.Html.Selector exposing (attribute, containing, id, tag, text)
 
 
 teamName : String
@@ -24,9 +26,139 @@ resourceName =
     "some-resource"
 
 
+versionID : Int
+versionID =
+    1
+
+
 version : String
 version =
     "v1"
+
+
+all : Test
+all =
+    describe "resource page"
+        [ describe "given resource is pinned via pipeline config"
+            [ test "then pinned version is visible in pin bar" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedViaConfig
+                        |> queryView
+                        |> Query.has [ text version ]
+            , test "then pin bar has teal border" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedViaConfig
+                        |> queryView
+                        |> Query.has [ text "border:1px solid #03dac4" ]
+            , test "mousing over pin bar sends TogglePinBarTooltip message" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedViaConfig
+                        |> queryView
+                        |> Query.find [ id "pin-bar" ]
+                        |> Event.simulate Event.mouseEnter
+                        |> Event.expect Resource.TogglePinBarTooltip
+            , test "TogglePinBarTooltip cases tooltip to appear" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedViaConfig
+                        |> togglePinBarTooltip
+                        |> queryView
+                        |> Query.has [ text "pinned in pipeline config" ]
+            , test "mousing out of pin bar sends TogglePinBarTooltip message" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedViaConfig
+                        |> togglePinBarTooltip
+                        |> queryView
+                        |> Query.find [ id "pin-bar" ]
+                        |> Event.simulate Event.mouseLeave
+                        |> Event.expect Resource.TogglePinBarTooltip
+            , test "when mousing off pin bar, tooltip disappears" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedViaConfig
+                        |> togglePinBarTooltip
+                        |> togglePinBarTooltip
+                        |> queryView
+                        |> Query.hasNot [ text "pinned in pipeline config" ]
+            ]
+        , describe "given resource is pinned not via pipeline config"
+            [ test "when mousing over pin bar, tooltip does not appear" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedNotViaConfig
+                        |> Resource.update Resource.TogglePinBarTooltip
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.hasNot [ text "pinned in pipeline config" ]
+            ]
+        , describe "given resource is not pinned"
+            [ test "then nothing has teal border" <|
+                \_ ->
+                    init
+                        |> givenResourceUnpinned
+                        |> queryView
+                        |> Query.hasNot [ text "border:1px solid #03dac4" ]
+            ]
+        , describe "given versioned resource fetched"
+            [ test "there is a pin icon for each version" <|
+                \_ ->
+                    init
+                        |> givenResourceUnpinned
+                        |> givenVersionedResourceFetched
+                        |> queryView
+                        |> Query.find [ tag "li", containing [ text version ] ]
+                        |> Query.findAll [ attribute (Attr.attribute "aria-label" "Pin Resource Version") ]
+                        |> Query.count (Expect.equal 1)
+            , test "mousing over a pin icon sends ToggleVersionTooltip" <|
+                \_ ->
+                    init
+                        |> givenResourceUnpinned
+                        |> givenVersionedResourceFetched
+                        |> queryView
+                        |> Query.find [ tag "li", containing [ text version ] ]
+                        |> Query.find [ attribute (Attr.attribute "aria-label" "Pin Resource Version") ]
+                        |> Event.simulate Event.mouseEnter
+                        |> Event.expect (Resource.ToggleVersionTooltip versionID)
+            , test "shows tooltip on the pin icon on ToggleVersionTooltip" <|
+                \_ ->
+                    init
+                        |> givenResourceUnpinned
+                        |> givenVersionedResourceFetched
+                        |> Resource.update (Resource.ToggleVersionTooltip versionID)
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find [ tag "li", containing [ text version ] ]
+                        |> Query.has [ text "enable via pipeline config" ]
+            , test "mousing off a pin icon sends ToggleVersionTooltip" <|
+                \_ ->
+                    init
+                        |> givenResourceUnpinned
+                        |> givenVersionedResourceFetched
+                        |> Resource.update (Resource.ToggleVersionTooltip versionID)
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find [ tag "li", containing [ text version ] ]
+                        |> Query.find [ attribute (Attr.attribute "aria-label" "Pin Resource Version") ]
+                        |> Event.simulate Event.mouseLeave
+                        |> Event.expect (Resource.ToggleVersionTooltip versionID)
+            , test "hides tooltip on the pin icon on ToggleVersionTooltip" <|
+                \_ ->
+                    init
+                        |> givenResourceUnpinned
+                        |> givenVersionedResourceFetched
+                        |> Resource.update (Resource.ToggleVersionTooltip versionID)
+                        |> Tuple.first
+                        |> Resource.update (Resource.ToggleVersionTooltip versionID)
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find [ tag "li", containing [ text version ] ]
+                        |> Query.hasNot [ text "enable via pipeline config" ]
+            ]
+        ]
 
 
 init : Resource.Model
@@ -115,71 +247,22 @@ togglePinBarTooltip =
         >> Tuple.first
 
 
-all : Test
-all =
-    describe "resource page"
-        [ describe "given resource is pinned via pipeline config"
-            [ test "then pinned version is visible in pin bar" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedViaConfig
-                        |> queryView
-                        |> Query.has [ text version ]
-            , test "then pin bar has teal border" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedViaConfig
-                        |> queryView
-                        |> Query.has [ text "border:1px solid #03dac4" ]
-            , test "mousing over pin bar sends TogglePinBarTooltip message" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedViaConfig
-                        |> queryView
-                        |> Query.find [ id "pin-bar" ]
-                        |> Event.simulate Event.mouseOver
-                        |> Event.expect Resource.TogglePinBarTooltip
-            , test "TogglePinBarTooltip cases tooltip to appear" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedViaConfig
-                        |> togglePinBarTooltip
-                        |> queryView
-                        |> Query.has [ text "pinned in pipeline config" ]
-            , test "mousing out of pin bar sends TogglePinBarTooltip message" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedViaConfig
-                        |> togglePinBarTooltip
-                        |> queryView
-                        |> Query.find [ id "pin-bar" ]
-                        |> Event.simulate Event.mouseLeave
-                        |> Event.expect Resource.TogglePinBarTooltip
-            , test "when mousing off pin bar, tooltip disappears" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedViaConfig
-                        |> togglePinBarTooltip
-                        |> togglePinBarTooltip
-                        |> queryView
-                        |> Query.hasNot [ text "pinned in pipeline config" ]
-            ]
-        , describe "given resource is pinned not via pipeline config"
-            [ test "when mousing over pin bar, tooltip does not appear" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedNotViaConfig
-                        |> Resource.update Resource.TogglePinBarTooltip
-                        |> Tuple.first
-                        |> queryView
-                        |> Query.hasNot [ text "pinned in pipeline config" ]
-            ]
-        , describe "given resource is not pinned"
-            [ test "then nothing has teal border" <|
-                \_ ->
-                    init
-                        |> givenResourceUnpinned
-                        |> queryView
-                        |> Query.hasNot [ text "border:1px solid #03dac4" ]
-            ]
-        ]
+givenVersionedResourceFetched : Resource.Model -> Resource.Model
+givenVersionedResourceFetched =
+    Resource.update
+        (Resource.VersionedResourcesFetched Nothing <|
+            Ok
+                { content =
+                    [ { id = versionID
+                      , version = Dict.fromList [ ( "version", version ) ]
+                      , enabled = False
+                      , metadata = []
+                      }
+                    ]
+                , pagination =
+                    { previousPage = Nothing
+                    , nextPage = Nothing
+                    }
+                }
+        )
+        >> Tuple.first
