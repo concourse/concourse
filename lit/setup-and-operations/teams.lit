@@ -90,10 +90,8 @@ against the teams that have granted them access.
     }}
 
     This can be useful if you've forgotten your team name.
-  }
-
-  \section{
-    \title{\code{fly teams -d}\aux{: With Details}}{fly teams -d}
+ 
+    \bold{\code{fly teams -d}\aux{: With Details}}{fly teams -d}
 
     To list all the teams with authentication details and members, run:
 
