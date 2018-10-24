@@ -38,6 +38,7 @@ services:
     depends_on: [web]
     ports: ["7777:7777", "7788:7788"]
     environment:
+    - CONCOURSE_LOG_LEVEL=debug
     - CONCOURSE_TSA_HOST=web:2222
     - CONCOURSE_EPHEMERAL=true
 
