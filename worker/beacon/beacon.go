@@ -67,8 +67,6 @@ type BeaconClient interface {
 	LandWorker() error
 	RetireWorker() error
 	DeleteWorker() error
-
-	DisableKeepAlive()
 }
 
 type Beacon struct {
@@ -93,6 +91,8 @@ const (
 )
 
 func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) error {
+	close(ready)
+
 	beacon.Logger.Debug("registering")
 	rebalanceDuration := beacon.RebalanceTime
 	bwg := &waitGroupWithCount{
@@ -350,10 +350,6 @@ func (beacon *Beacon) RetireWorker() error {
 func (beacon *Beacon) DeleteWorker() error {
 	beacon.Logger.Debug("delete-worker")
 	return beacon.run("delete-worker", context.TODO(), context.TODO())
-}
-
-func (beacon *Beacon) DisableKeepAlive() {
-	beacon.KeepAlive = false
 }
 
 // TODO CC: maybe we should pass `ctx` as the first argument (instead of

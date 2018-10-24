@@ -74,7 +74,11 @@ var _ = Describe("DrainRunner", func() {
 				fakeBeaconClient.LandWorkerReturns(errors.New("nope"))
 			})
 
-			It("still waits for the sub-process to exit", func() {
+			It("interrupts the sub-process", func() {
+				Expect(<-subSignals).To(Equal(os.Interrupt))
+			})
+
+			It("waits for the sub-process to exit", func() {
 				exit := errors.New("exiting")
 				subExit <- exit
 				Expect(<-process.Wait()).To(Equal(exit))
@@ -124,7 +128,11 @@ var _ = Describe("DrainRunner", func() {
 				fakeBeaconClient.RetireWorkerReturns(errors.New("nope"))
 			})
 
-			It("still waits for the sub-process to exit", func() {
+			It("interrupts the sub-process", func() {
+				Expect(<-subSignals).To(Equal(os.Interrupt))
+			})
+
+			It("waits for the sub-process to exit", func() {
 				exit := errors.New("exiting")
 				subExit <- exit
 				Expect(<-process.Wait()).To(Equal(exit))

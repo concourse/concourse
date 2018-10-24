@@ -15,7 +15,7 @@ type Runner struct {
 }
 
 func (d Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	proc := ifrit.Invoke(d.Runner)
+	proc := ifrit.Background(d.Runner)
 
 	close(ready)
 
@@ -24,7 +24,7 @@ func (d Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	for {
 		select {
 		case sig := <-signals:
-			d.Logger.Debug("received-signal", lager.Data{"signal": sig})
+			d.Logger.Debug("received-signal", lager.Data{"signal": sig.String()})
 
 			if IsLand(sig) {
 				d.Logger.Info("landing-worker")
@@ -32,6 +32,7 @@ func (d Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 				err := d.Beacon.LandWorker()
 				if err != nil {
 					d.Logger.Error("failed-to-land-worker", err)
+					proc.Signal(os.Interrupt)
 				}
 			} else if IsRetire(sig) {
 				retiring = true
@@ -41,10 +42,9 @@ func (d Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 				err := d.Beacon.RetireWorker()
 				if err != nil {
 					d.Logger.Error("failed-to-retire-worker", err)
+					proc.Signal(os.Interrupt)
 				}
-			} else if IsStop(sig) {
-				d.Logger.Info("stopping")
-
+			} else {
 				if retiring {
 					d.Logger.Info("deleting-worker")
 
@@ -54,8 +54,8 @@ func (d Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 					}
 				}
 
-				proc.Signal(sig)
-			} else {
+				d.Logger.Info("forwarding-signal")
+
 				proc.Signal(sig)
 			}
 

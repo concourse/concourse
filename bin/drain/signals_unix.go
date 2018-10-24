@@ -19,7 +19,3 @@ func IsLand(sig os.Signal) bool {
 func IsRetire(sig os.Signal) bool {
 	return sig == syscall.SIGUSR2
 }
-
-func IsStop(sig os.Signal) bool {
-	return sig == syscall.SIGTERM || sig == syscall.SIGINT
-}
