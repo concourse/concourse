@@ -10,6 +10,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/localip"
@@ -122,6 +123,9 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 	gdnCmd := exec.Command(cmd.Garden.GDN, gdnArgs...)
 	gdnCmd.Stdout = os.Stdout
 	gdnCmd.Stderr = os.Stderr
+	gdnCmd.SysProcAttr = &syscall.SysProcAttr{
+		Pdeathsig: syscall.SIGKILL,
+	}
 
 	members = append(members, grouper.Member{
 		Name:   "gdn",
