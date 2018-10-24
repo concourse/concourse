@@ -8,7 +8,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	"github.com/concourse/concourse"
-	"github.com/concourse/concourse/bin/drain"
 	concourseWorker "github.com/concourse/concourse/worker"
 	"github.com/concourse/concourse/worker/beacon"
 	"github.com/concourse/concourse/worker/sweeper"
@@ -47,7 +46,7 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 		return err
 	}
 
-	return <-ifrit.Invoke(sigmon.New(runner, drain.Signals...)).Wait()
+	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
 }
 
 func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
@@ -68,8 +67,6 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	var runner ifrit.Runner
 
 	members := grouper.Members{
 		{
@@ -123,17 +120,9 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 				beaconConfig,
 			),
 		})
-
-		runner = drain.Runner{
-			Logger: logger.Session("drain"),
-			Beacon: beacon,
-			Runner: grouper.NewParallel(os.Interrupt, members),
-		}
-	} else {
-		runner = grouper.NewParallel(os.Interrupt, members)
 	}
 
-	return runner, nil
+	return grouper.NewParallel(os.Interrupt, members), nil
 }
 
 func (cmd *WorkerCommand) workerName() (string, error) {

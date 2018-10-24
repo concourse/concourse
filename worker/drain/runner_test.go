@@ -6,8 +6,8 @@ import (
 	"syscall"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/bin/drain"
 	"github.com/concourse/concourse/worker/beacon/beaconfakes"
+	"github.com/concourse/concourse/worker/drain"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
@@ -16,6 +16,7 @@ import (
 var _ = Describe("DrainRunner", func() {
 	var fakeBeaconClient *beaconfakes.FakeBeaconClient
 	var subRunner ifrit.Runner
+	var drainSignals chan<- os.Signal
 	var subSignals <-chan os.Signal
 	var subRunning <-chan struct{}
 	var subExit chan<- error
@@ -38,10 +39,14 @@ var _ = Describe("DrainRunner", func() {
 		subRunning = running
 		subExit = exit
 
+		ds := make(chan os.Signal)
+		drainSignals = ds
+
 		process = ifrit.Invoke(drain.Runner{
-			Logger: lagertest.NewTestLogger("test"),
-			Beacon: fakeBeaconClient,
-			Runner: subRunner,
+			Logger:       lagertest.NewTestLogger("test"),
+			Beacon:       fakeBeaconClient,
+			Runner:       subRunner,
+			DrainSignals: ds,
 		})
 
 		<-subRunning
@@ -58,7 +63,7 @@ var _ = Describe("DrainRunner", func() {
 
 	Context("when syscall.SIGUSR1 is received", func() {
 		JustBeforeEach(func() {
-			process.Signal(syscall.SIGUSR1)
+			drainSignals <- syscall.SIGUSR1
 		})
 
 		It("lands the worker", func() {
@@ -112,7 +117,7 @@ var _ = Describe("DrainRunner", func() {
 
 	Context("when syscall.SIGUSR2 is received", func() {
 		JustBeforeEach(func() {
-			process.Signal(syscall.SIGUSR2)
+			drainSignals <- syscall.SIGUSR2
 		})
 
 		It("retires the worker", func() {
