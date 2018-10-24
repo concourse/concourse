@@ -179,7 +179,7 @@ var _ = Describe("Database secrets encryption", func() {
 					})
 
 					It("fails to deploy with a useful message", func() {
-						Expect(deploy).To(gbytes.Say("Review logs for failed jobs: atc"))
+						Expect(deploy).To(gbytes.Say("Review logs for failed jobs: web"))
 						Expect(boshLogs).To(gbytes.Say("row encrypted with neither old nor new key"))
 					})
 				})

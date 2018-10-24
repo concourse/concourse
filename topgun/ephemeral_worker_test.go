@@ -21,7 +21,7 @@ var _ = Describe("Ephemeral Workers", func() {
 				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop worker")
 			})
 
-			BeforeEach(func() {
+			AfterEach(func() {
 				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
 			})
 
