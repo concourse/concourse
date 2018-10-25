@@ -438,13 +438,17 @@ page.
   }
 
   \section{
-    \title{Future providers}
+    \title{Dex Connectors & Future Providers}
 
     Concourse uses a fork of \link{coreos/dex}{https://github.com/coreos/dex}
-    for its authentication. Adding a new OAuth provider is as simple as
-    submiting a pull request to our fork at
-    \link{concourse/dex}{https://github.com/concourse/dex} and then adding a
-    bit of configuration to
+    for its authentication. You can find additional documentation on the
+    supported auth providers in the dex
+    \link{connectors documentation}{https://github.com/dexidp/dex/tree/master/Documentation/connectors}
+
+
+    Adding a new auth provider to Concourse is as simple as submitting a pull
+    request to our fork at \link{concourse/dex}{https://github.com/concourse/dex}
+    and then adding a bit of configuration to
     \link{concourse/skymarshal}{https://github.com/concourse/skymarshal}.
   }
 }
