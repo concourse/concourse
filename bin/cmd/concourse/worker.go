@@ -71,11 +71,11 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 	members := grouper.Members{
 		{
 			Name:   "garden",
-			Runner: gardenRunner,
+			Runner: NewLoggingRunner(logger.Session("garden-runner"), gardenRunner),
 		},
 		{
 			Name:   "baggageclaim",
-			Runner: baggageclaimRunner,
+			Runner: NewLoggingRunner(logger.Session("baggageclaim-runner"), baggageclaimRunner),
 		},
 	}
 
@@ -106,18 +106,22 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 
 		members = append(members, grouper.Member{
 			Name: "beacon",
-			Runner: concourseWorker.BeaconRunner(
-				logger.Session("beacon-runner"),
-				beacon,
+			Runner: NewLoggingRunner(logger.Session("beacon-runner"),
+				concourseWorker.BeaconRunner(
+					logger.Session("beacon"),
+					beacon,
+				),
 			),
 		})
 
 		members = append(members, grouper.Member{
 			Name: "sweeper",
-			Runner: sweeper.NewSweeperRunner(
-				logger,
-				atcWorker,
-				beaconConfig,
+			Runner: NewLoggingRunner(logger.Session("sweeper-runner"),
+				sweeper.NewSweeperRunner(
+					logger,
+					atcWorker,
+					beaconConfig,
+				),
 			),
 		})
 	}

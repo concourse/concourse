@@ -112,8 +112,11 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 		}
 
 		members = append(members, grouper.Member{
-			Name:   "dns-proxy",
-			Runner: dnsProxyRunner,
+			Name: "dns-proxy",
+			Runner: NewLoggingRunner(
+				logger.Session("dns-proxy-runner"),
+				dnsProxyRunner,
+			),
 		})
 
 		gdnServerFlags = append(gdnServerFlags, "--dns-server", lip)
@@ -128,8 +131,11 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 	}
 
 	members = append(members, grouper.Member{
-		Name:   "gdn",
-		Runner: cmdRunner{gdnCmd},
+		Name: "gdn",
+		Runner: NewLoggingRunner(
+			logger.Session("gdn-runner"),
+			cmdRunner{gdnCmd},
+		),
 	})
 
 	return worker, grouper.NewParallel(os.Interrupt, members), nil
