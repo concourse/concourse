@@ -90,8 +90,8 @@ against the teams that have granted them access.
     }}
 
     This can be useful if you've forgotten your team name.
- 
-    \bold{\code{fly teams -d}\aux{: With Details}}{fly teams -d}
+
+    \bold{\code{fly teams -d}\aux{: With Details}}
 
     To list all the teams with authentication details and members, run:
 
@@ -324,18 +324,18 @@ against the teams that have granted them access.
   \section{
     \title{Debugging Team Auth Configuration}{team-auth-debugging}
 
-    You can list users and groups for all teams pertaining how the team is 
+    You can list users and groups for all teams pertaining how the team is
     created based on group or individual user. Helpful for troubleshooting.
 
     For example:
 
     \codeblock{bash}{{{
-    $ fly -t target teams -d 
+    $ fly -t target teams -d
     }}}
 
     When authentication errors occur look at concourse TSA logs.
 
-    Also, make sure workers and web UI are restarted when fundamental changes 
+    Also, make sure workers and web UI are restarted when fundamental changes
     occur to the auth configurations (i.e. changing the callback URL.)
   }
 }
