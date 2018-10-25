@@ -11,8 +11,10 @@ module Resource
         , viewCheckbox
         , viewPin
         , viewVersionHeader
+        , viewVersionBody
         , subscriptions
         , PauseChangingOrErrored(..)
+        , PinState(..)
         )
 
 import Concourse
@@ -73,6 +75,12 @@ type PauseChangingOrErrored
     = Stable
     | Changing
     | Errored
+
+
+type PinState
+    = Unpinned
+    | Pinned
+    | Disabled
 
 
 type Msg
@@ -753,7 +761,8 @@ view model =
                         , viewVersionedResources
                             { versionedResources = model.versionedResources
                             , versionedUIStates = model.versionedUIStates
-                            , isVersionPinnedInConfig = resource.pinnedInConfig
+                            , isResourcePinnedInConfig = resource.pinnedInConfig
+                            , pinnedVersion = resource.pinnedVersion
                             }
                         ]
                     ]
@@ -790,16 +799,26 @@ viewVersionedResources :
     { a
         | versionedResources : Paginated Concourse.VersionedResource
         , versionedUIStates : Dict.Dict Int VersionUIState
-        , isVersionPinnedInConfig : Bool
+        , isResourcePinnedInConfig : Bool
+        , pinnedVersion : Maybe Concourse.Version
     }
     -> Html Msg
-viewVersionedResources { versionedResources, isVersionPinnedInConfig, versionedUIStates } =
+viewVersionedResources { versionedResources, isResourcePinnedInConfig, versionedUIStates, pinnedVersion } =
     versionedResources.content
         |> List.map
             (\vr ->
                 viewVersionedResource
                     { versionedResource = vr
-                    , pinEnabled = not isVersionPinnedInConfig
+                    , pinState =
+                        (if isResourcePinnedInConfig then
+                            Disabled
+                         else if pinnedVersion == Just vr.version then
+                            Pinned
+                         else if pinnedVersion == Nothing then
+                            Unpinned
+                         else
+                            Disabled
+                        )
                     , state = getState vr.id versionedUIStates
                     }
             )
@@ -809,73 +828,76 @@ viewVersionedResources { versionedResources, isVersionPinnedInConfig, versionedU
 viewVersionedResource :
     { versionedResource : Concourse.VersionedResource
     , state : VersionUIState
-    , pinEnabled : Bool
+    , pinState : PinState
     }
     -> Html Msg
-viewVersionedResource { versionedResource, pinEnabled, state } =
-    let
-        expanded =
-            if state.expanded then
-                " expanded"
-            else
-                ""
-
-        liEnabled =
-            (if state.changingErrored then
-                "errored "
-             else
-                ""
-            )
-                ++ (if versionedResource.enabled then
-                        "enabled"
-                    else
-                        "disabled"
-                   )
-                ++ expanded
-    in
-        Html.li []
-            ([ Html.div
-                [ css
-                    [ Css.displayFlex
-                    , Css.margin2 (Css.px 5) Css.zero
+viewVersionedResource { versionedResource, pinState, state } =
+    Html.li []
+        ([ Html.div
+            [ css
+                [ Css.displayFlex
+                , Css.margin2 (Css.px 5) Css.zero
+                ]
+            ]
+            [ viewCheckbox versionedResource
+            , viewPin
+                { id = versionedResource.id
+                , pinState = pinState
+                , showTooltip = state.showTooltip
+                }
+            , viewVersionHeader versionedResource
+            ]
+         ]
+            ++ (if state.expanded then
+                    [ viewVersionBody
+                        { inputTo = state.inputTo
+                        , outputOf = state.outputOf
+                        , metadata = versionedResource.metadata
+                        , enabled = versionedResource.enabled
+                        }
                     ]
-                ]
-                [ viewCheckbox versionedResource
-                , viewPin
-                    { id = versionedResource.id
-                    , enabled = pinEnabled
-                    , showTooltip = state.showTooltip
-                    }
-                , viewVersionHeader versionedResource
-                ]
+                else
+                    []
+               )
+        )
+
+
+viewVersionBody :
+    { a
+        | inputTo : List Concourse.Build
+        , outputOf : List Concourse.Build
+        , metadata : Concourse.Metadata
+        , enabled : Bool
+    }
+    -> Html Msg
+viewVersionBody { inputTo, outputOf, metadata, enabled } =
+    Html.div
+        [ css
+            ([ Css.displayFlex
+             , Css.padding2 (Css.px 5) (Css.px 10)
              ]
-                ++ (if state.expanded then
-                        [ Html.div
-                            [ css
-                                [ Css.displayFlex
-                                , Css.padding2 (Css.px 5) (Css.px 10)
-                                ]
-                            ]
-                            [ Html.div [ class "vri" ] <|
-                                List.concat
-                                    [ [ Html.div [ css [ Css.lineHeight <| Css.px 25 ] ] [ Html.text "inputs to" ] ]
-                                    , viewBuilds <| listToMap state.inputTo
-                                    ]
-                            , Html.div [ class "vri" ] <|
-                                List.concat
-                                    [ [ Html.div [ css [ Css.lineHeight <| Css.px 25 ] ] [ Html.text "outputs of" ] ]
-                                    , viewBuilds <| listToMap state.outputOf
-                                    ]
-                            , Html.div [ class "vri metadata-container" ]
-                                [ Html.div [ class "list-collapsable-title" ] [ Html.text "metadata" ]
-                                , viewMetadata versionedResource.metadata
-                                ]
-                            ]
-                        ]
-                    else
+                ++ (if enabled then
                         []
+                    else
+                        [ Css.opacity (Css.num 0.5) ]
                    )
             )
+        ]
+        [ Html.div [ class "vri" ] <|
+            List.concat
+                [ [ Html.div [ css [ Css.lineHeight <| Css.px 25 ] ] [ Html.text "inputs to" ] ]
+                , viewBuilds <| listToMap inputTo
+                ]
+        , Html.div [ class "vri" ] <|
+            List.concat
+                [ [ Html.div [ css [ Css.lineHeight <| Css.px 25 ] ] [ Html.text "outputs of" ] ]
+                , viewBuilds <| listToMap outputOf
+                ]
+        , Html.div [ class "vri metadata-container" ]
+            [ Html.div [ class "list-collapsable-title" ] [ Html.text "metadata" ]
+            , viewMetadata metadata
+            ]
+        ]
 
 
 viewCheckbox : { a | enabled : Bool, id : Int } -> Html Msg
@@ -905,8 +927,8 @@ viewCheckbox { enabled, id } =
         []
 
 
-viewPin : { id : Int, enabled : Bool, showTooltip : Bool } -> Html Msg
-viewPin { id, enabled, showTooltip } =
+viewPin : { id : Int, pinState : PinState, showTooltip : Bool } -> Html Msg
+viewPin { id, pinState, showTooltip } =
     Html.div
         [ Html.Styled.Attributes.attribute "aria-label" "Pin Resource Version"
         , css
@@ -921,10 +943,15 @@ viewPin { id, enabled, showTooltip } =
             , Css.float Css.left
             , Css.cursor Css.default
             , Css.backgroundColor
-                (if enabled then
-                    Css.hex "1e1d1d"
-                 else
-                    Css.hex "1e1d1d80"
+                (case pinState of
+                    Pinned ->
+                        Css.hex "#03dac4"
+
+                    Disabled ->
+                        Css.hex "1e1d1d80"
+
+                    Unpinned ->
+                        Css.hex "1e1d1d"
                 )
             ]
         , onMouseOut <| ToggleVersionTooltip id
