@@ -1,4 +1,4 @@
-# Concourse Go Styleguide
+# Concourse Go Style Guide
 
 This document serves to collect some guiding principles and resources to
 consider when writing Go code for Concourse.
