@@ -3,7 +3,6 @@ package tsacmd
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"sync"
@@ -13,9 +12,8 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"github.com/concourse/flag"
 	"github.com/concourse/concourse/tsa"
-	"github.com/concourse/concourse/tsa/tsaflags"
+	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -30,9 +28,9 @@ type TSACommand struct {
 	DebugBindPort uint16  `long:"bind-debug-port" default:"8089"    description:"Port on which to listen for TSA pprof server."`
 	PeerIP        string  `long:"peer-ip" required:"true" description:"IP address of this TSA, reachable by the ATCs. Used for forwarded worker addresses."`
 
-	HostKey            *flag.PrivateKey         `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
-	AuthorizedKeys     flag.AuthorizedKeys      `long:"authorized-keys" required:"true" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
-	TeamAuthorizedKeys []tsaflags.InputPairFlag `long:"team-authorized-keys" value-name:"NAME=PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
+	HostKey            *flag.PrivateKey               `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
+	AuthorizedKeys     flag.AuthorizedKeys            `long:"authorized-keys" required:"true" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
+	TeamAuthorizedKeys map[string]flag.AuthorizedKeys `long:"team-authorized-keys" value-name:"NAME:PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
 
 	ATCURLs []flag.URL `long:"atc-url" required:"true" description:"ATC API endpoints to which workers will be registered."`
 
@@ -132,27 +130,11 @@ func (cmd *TSACommand) constructLogger() (lager.Logger, *lager.ReconfigurableSin
 func (cmd *TSACommand) loadTeamAuthorizedKeys() ([]TeamAuthKeys, error) {
 	var teamKeys []TeamAuthKeys
 
-	for i := range cmd.TeamAuthorizedKeys {
-		var teamAuthorizedKeys []ssh.PublicKey
-
-		teamAuthKeysBytes, err := ioutil.ReadFile(string(cmd.TeamAuthorizedKeys[i].Path))
-
-		if err != nil {
-			return nil, err
-		}
-
-		for {
-			key, _, _, rest, err := ssh.ParseAuthorizedKey(teamAuthKeysBytes)
-			if err != nil {
-				break
-			}
-
-			teamAuthorizedKeys = append(teamAuthorizedKeys, key)
-
-			teamAuthKeysBytes = rest
-		}
-
-		teamKeys = append(teamKeys, TeamAuthKeys{Team: cmd.TeamAuthorizedKeys[i].Name, AuthKeys: teamAuthorizedKeys})
+	for teamName, keys := range cmd.TeamAuthorizedKeys {
+		teamKeys = append(teamKeys, TeamAuthKeys{
+			Team:     teamName,
+			AuthKeys: keys.Keys,
+		})
 	}
 
 	return teamKeys, nil

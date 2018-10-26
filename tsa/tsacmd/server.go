@@ -16,8 +16,8 @@ import (
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	bclient "github.com/concourse/baggageclaim/client"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tsa"
 	"github.com/tedsuo/ifrit"
 	"golang.org/x/crypto/ssh"
@@ -195,15 +195,24 @@ func (server *registrarSSHServer) handleChannel(
 
 			req.Reply(true, nil)
 
+			req := exitStatusRequest{0}
+
 			logger.RegisterSink(lager.NewWriterSink(channel, server.logLevel))
+
 			err := server.landWorker(logger, channel, sessionID)
 			if err != nil {
 				logger.Error("failed-to-land-worker", err)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{1}))
-				channel.Close()
-			} else {
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
-				channel.Close()
+				req.ExitStatus = 1
+			}
+
+			_, err = channel.SendRequest("exit-status", false, ssh.Marshal(req))
+			if err != nil {
+				logger.Error("failed-to-send-exit-status", err)
+			}
+
+			err = channel.Close()
+			if err != nil {
+				logger.Error("failed-to-close-channel", err)
 			}
 
 		case retireWorkerRequest:
@@ -211,15 +220,23 @@ func (server *registrarSSHServer) handleChannel(
 
 			req.Reply(true, nil)
 
+			req := exitStatusRequest{0}
+
 			logger.RegisterSink(lager.NewWriterSink(channel, server.logLevel))
 			err := server.retireWorker(logger, channel, sessionID)
 			if err != nil {
 				logger.Error("failed-to-retire-worker", err)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{1}))
-				channel.Close()
-			} else {
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
-				channel.Close()
+				req.ExitStatus = 1
+			}
+
+			_, err = channel.SendRequest("exit-status", false, ssh.Marshal(req))
+			if err != nil {
+				logger.Error("failed-to-send-exit-status", err)
+			}
+
+			err = channel.Close()
+			if err != nil {
+				logger.Error("failed-to-close-channel", err)
 			}
 
 		case deleteWorkerRequest:
@@ -227,15 +244,24 @@ func (server *registrarSSHServer) handleChannel(
 
 			req.Reply(true, nil)
 
+			req := exitStatusRequest{0}
+
 			logger.RegisterSink(lager.NewWriterSink(channel, server.logLevel))
+
 			err := server.deleteWorker(logger, channel, sessionID)
 			if err != nil {
 				logger.Error("failed-to-delete-worker", err)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{1}))
-				channel.Close()
-			} else {
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
-				channel.Close()
+				req.ExitStatus = 1
+			}
+
+			_, err = channel.SendRequest("exit-status", false, ssh.Marshal(req))
+			if err != nil {
+				logger.Error("failed-to-send-exit-status", err)
+			}
+
+			err = channel.Close()
+			if err != nil {
+				logger.Error("failed-to-close-channel", err)
 			}
 
 		case reportVolumeRequest:
@@ -243,72 +269,102 @@ func (server *registrarSSHServer) handleChannel(
 
 			req.Reply(true, nil)
 
-			err := server.reportVolumes(logger, channel, sessionID, r.handles())
+			req := exitStatusRequest{0}
 
+			err := server.reportVolumes(logger, channel, sessionID, r.handles())
 			if err != nil {
 				logger.Error("failed-to-report-volumes", err)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{1}))
-			} else {
-				logger.Info("finished-reporting-volumes")
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
+				req.ExitStatus = 1
 			}
 
-			channel.Close()
+			_, err = channel.SendRequest("exit-status", false, ssh.Marshal(req))
+			if err != nil {
+				logger.Error("failed-to-send-exit-status", err)
+			}
+
+			err = channel.Close()
+			if err != nil {
+				logger.Error("failed-to-close-channel", err)
+			}
 
 		case reportContainerRequest:
 			logger = logger.Session("report-containers-worker", lager.Data{"num-handles": len(r.handles())})
 
 			req.Reply(true, nil)
 
-			err := server.reportContainers(logger, channel, sessionID, r.handles())
+			req := exitStatusRequest{0}
 
+			err := server.reportContainers(logger, channel, sessionID, r.handles())
 			if err != nil {
 				logger.Error("failed-to-report-containers", err)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{1}))
-			} else {
-				logger.Info("finished-reporting-containers")
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
+				req.ExitStatus = 1
 			}
 
-			channel.Close()
+			_, err = channel.SendRequest("exit-status", false, ssh.Marshal(req))
+			if err != nil {
+				logger.Error("failed-to-send-exit-status", err)
+			}
+
+			err = channel.Close()
+			if err != nil {
+				logger.Error("failed-to-close-channel", err)
+			}
 
 		case sweepContainerRequest:
 			logger = logger.Session("sweep-containers-worker")
 
 			req.Reply(true, nil)
 
-			handles, err := server.sweepContainers(logger, channel, sessionID)
+			req := exitStatusRequest{0}
 
+			handles, err := server.sweepContainers(logger, channel, sessionID)
 			if err != nil {
 				logger.Error("failed-to-get-sweep-containers", err)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{1}))
+				req.ExitStatus = 1
 			} else {
-				logger.Info("finished-getting-sweep-containers", lager.Data{"handles": string(handles)})
-				bytesNum, err := channel.Write(handles)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
-				logger.Info("finished-writing-sweeper-containers", lager.Data{"bytes-written": bytesNum, "err": err})
+				_, err := channel.Write(handles)
+				if err != nil {
+					logger.Error("failed-to-write-handles", err)
+				}
 			}
 
-			channel.Close()
+			_, err = channel.SendRequest("exit-status", false, ssh.Marshal(req))
+			if err != nil {
+				logger.Error("failed-to-send-exit-status", err)
+			}
+
+			err = channel.Close()
+			if err != nil {
+				logger.Error("failed-to-close-channel", err)
+			}
 
 		case sweepVolumeRequest:
 			logger = logger.Session("sweep-volume-worker")
 
 			req.Reply(true, nil)
 
-			handles, err := server.sweepVolumes(logger, channel, sessionID)
+			req := exitStatusRequest{0}
 
+			handles, err := server.sweepVolumes(logger, channel, sessionID)
 			if err != nil {
 				logger.Error("failed-to-get-sweep-volumes", err)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{1}))
+				req.ExitStatus = 1
 			} else {
-				logger.Info("finished-getting-sweep-volumes", lager.Data{"handles": string(handles)})
-				bytesNum, err := channel.Write(handles)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
-				logger.Info("finished-writing-sweeper-volumes", lager.Data{"bytes-written": bytesNum, "err": err})
+				_, err := channel.Write(handles)
+				if err != nil {
+					logger.Error("failed-to-write-handles", err)
+				}
 			}
 
-			channel.Close()
+			_, err = channel.SendRequest("exit-status", false, ssh.Marshal(req))
+			if err != nil {
+				logger.Error("failed-to-send-exit-status", err)
+			}
+
+			err = channel.Close()
+			if err != nil {
+				logger.Error("failed-to-close-channel", err)
+			}
 
 		case registerWorkerRequest:
 			logger = logger.Session("register-worker")
