@@ -72,7 +72,7 @@ all =
                         init
                             |> givenResourcePinnedStatically
                             |> queryView
-                            |> hasTealOutline
+                            |> Query.has tealOutlineSelector
                 , test "pin button on pinned version has a teal outline" <|
                     \_ ->
                         init
@@ -81,7 +81,7 @@ all =
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> Query.find pinButtonSelector
-                            |> hasTealOutline
+                            |> Query.has tealOutlineSelector
                 , test "version header on pinned version has a teal outline" <|
                     \_ ->
                         init
@@ -90,7 +90,7 @@ all =
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> findLast [ tag "div", containing [ text version ] ]
-                            |> hasTealOutline
+                            |> Query.has tealOutlineSelector
                 , test "mousing over pin bar sends TogglePinBarTooltip message" <|
                     \_ ->
                         init
@@ -105,7 +105,7 @@ all =
                             |> givenResourcePinnedStatically
                             |> togglePinBarTooltip
                             |> queryView
-                            |> Query.has [ text "pinned in pipeline config" ]
+                            |> Query.has pinBarTooltipSelector
                 , test "mousing out of pin bar sends TogglePinBarTooltip message" <|
                     \_ ->
                         init
@@ -122,7 +122,7 @@ all =
                             |> togglePinBarTooltip
                             |> togglePinBarTooltip
                             |> queryView
-                            |> Query.hasNot [ text "pinned in pipeline config" ]
+                            |> Query.hasNot pinBarTooltipSelector
                 ]
             , describe "per-version pin icons"
                 [ test "unpinned versions are lower opacity" <|
@@ -151,7 +151,7 @@ all =
                             |> toggleVersionTooltip
                             |> queryView
                             |> Query.find (versionSelector version)
-                            |> Query.has [ text "enable via pipeline config" ]
+                            |> Query.has versionTooltipSelector
                 , test "mousing off a per-version pin icon sends ToggleVersionTooltip" <|
                     \_ ->
                         init
@@ -172,7 +172,7 @@ all =
                             |> toggleVersionTooltip
                             |> queryView
                             |> Query.find (versionSelector version)
-                            |> Query.hasNot [ text "enable via pipeline config" ]
+                            |> Query.hasNot versionTooltipSelector
                 , test "all pin buttons have dark background" <|
                     \_ ->
                         init
@@ -194,7 +194,7 @@ all =
                         |> Resource.update Resource.TogglePinBarTooltip
                         |> Tuple.first
                         |> queryView
-                        |> Query.hasNot [ text "pinned in pipeline config" ]
+                        |> Query.hasNot pinBarTooltipSelector
             , test "pin button on pinned version has a teal outline" <|
                 \_ ->
                     init
@@ -203,7 +203,7 @@ all =
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
-                        |> hasTealOutline
+                        |> Query.has tealOutlineSelector
             , test "version header on pinned version has a teal outline" <|
                 \_ ->
                     init
@@ -212,7 +212,7 @@ all =
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> findLast [ tag "div", containing [ text version ] ]
-                        |> hasTealOutline
+                        |> Query.has tealOutlineSelector
             , test "pin button on pinned version has a white icon" <|
                 \_ ->
                     init
@@ -230,8 +230,8 @@ all =
                         |> Resource.update Resource.ToggleVersionTooltip
                         |> Tuple.first
                         |> queryView
-                        |> Query.find [ tag "li", containing [ text version ] ]
-                        |> Query.hasNot [ text "enable via pipeline config" ]
+                        |> Query.find (versionSelector version)
+                        |> Query.hasNot versionTooltipSelector
             , test "unpinned versions are lower opacity" <|
                 \_ ->
                     init
@@ -266,7 +266,7 @@ all =
                     init
                         |> givenResourceUnpinned
                         |> queryView
-                        |> Query.hasNot [ text <| "border:1px solid" ++ tealHex ]
+                        |> Query.hasNot tealOutlineSelector
             , test "does not show tooltip on the pin icon on ToggleVersionTooltip" <|
                 \_ ->
                     init
@@ -275,8 +275,8 @@ all =
                         |> Resource.update Resource.ToggleVersionTooltip
                         |> Tuple.first
                         |> queryView
-                        |> Query.find [ tag "li", containing [ text version ] ]
-                        |> Query.hasNot [ text "enable via pipeline config" ]
+                        |> Query.find (versionSelector version)
+                        |> Query.hasNot versionTooltipSelector
             , test "all pin buttons have dark background" <|
                 \_ ->
                     init
@@ -296,8 +296,8 @@ all =
                         |> givenResourceUnpinned
                         |> givenVersions
                         |> queryView
-                        |> Query.find [ tag "li", containing [ text version ] ]
-                        |> Query.findAll [ attribute (Attr.attribute "aria-label" "Pin Resource Version") ]
+                        |> Query.find (versionSelector version)
+                        |> Query.findAll pinButtonSelector
                         |> Query.count (Expect.equal 1)
             ]
         ]
@@ -434,11 +434,21 @@ pinButtonSelector =
     [ attribute (Attr.attribute "aria-label" "Pin Resource Version") ]
 
 
-hasTealOutline : Query.Single msg -> Expectation
-hasTealOutline =
-    Query.has [ style [ ( "border", "1px solid " ++ tealHex ) ] ]
+tealOutlineSelector : List Selector
+tealOutlineSelector =
+    [ style [ ( "border", "1px solid " ++ tealHex ) ] ]
 
 
 findLast : List Selector -> Query.Single msg -> Query.Single msg
 findLast selectors =
     Query.findAll selectors >> Query.index -1
+
+
+pinBarTooltipSelector : List Selector
+pinBarTooltipSelector =
+    [ text "pinned in pipeline config" ]
+
+
+versionTooltipSelector : List Selector
+versionTooltipSelector =
+    [ text "enable via pipeline config" ]

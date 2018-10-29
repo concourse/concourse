@@ -8,9 +8,6 @@ module Resource
         , update
         , updateWithMessage
         , view
-        , viewPinButton
-        , viewVersionHeader
-        , viewVersionBody
         , subscriptions
         , PauseChangingOrErrored(..)
         , PinState(..)
