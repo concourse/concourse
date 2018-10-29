@@ -25,7 +25,7 @@ var _ = Describe("ATC Rebalance", func() {
 			atc1IP = atcs[1].IP
 
 			atc0URL := "http://" + atcs[0].IP + ":8080"
-			fly("login", "-c", atc0URL, "-u", atcUsername, "-p", atcPassword)
+			FlyLogin(atc0URL)
 		})
 
 		Describe("when a rebalance time is configured", func() {

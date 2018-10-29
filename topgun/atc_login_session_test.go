@@ -3,7 +3,6 @@ package topgun_test
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/concourse/concourse/atc"
 	_ "github.com/lib/pq"
@@ -93,24 +92,14 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 			})
 
 			It("should be able to login to both ATCs", func() {
-				Eventually(func() *gexec.Session {
-					return flyLogin("-c", atc0URL).Wait()
-				}, 2*time.Minute).Should(gexec.Exit(0))
-
-				Eventually(func() *gexec.Session {
-					return flyLogin("-c", atc1URL).Wait()
-				}, 2*time.Minute).Should(gexec.Exit(0))
+				FlyLogin(atc0URL)
+				FlyLogin(atc1URL)
 
 				By("Deploying a second time (with a different token signing key")
 				Deploy(manifestFile)
 
-				Eventually(func() *gexec.Session {
-					return flyLogin("-c", atc0URL).Wait()
-				}, 2*time.Minute).Should(gexec.Exit(0))
-
-				Eventually(func() *gexec.Session {
-					return flyLogin("-c", atc1URL).Wait()
-				}, 2*time.Minute).Should(gexec.Exit(0))
+				FlyLogin(atc0URL)
+				FlyLogin(atc1URL)
 			})
 		})
 	})

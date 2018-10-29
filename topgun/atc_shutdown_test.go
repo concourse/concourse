@@ -26,7 +26,7 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 			atc0URL = "http://" + atcs[0].IP + ":8080"
 			atc1URL = "http://" + atcs[1].IP + ":8080"
 
-			fly("login", "-c", atc0URL, "-u", atcUsername, "-p", atcPassword)
+			FlyLogin(atc0URL)
 		})
 
 		Context("when one of the ATCS is stopped", func() {
@@ -59,7 +59,7 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 					atc0URL = "http://" + atcs[0].IP + ":8080"
 					atc1URL = "http://" + atcs[1].IP + ":8080"
 
-					fly("login", "-c", atc1URL, "-u", atcUsername, "-p", atcPassword)
+					FlyLogin(atc1URL)
 
 					waitForRunningWorker()
 				})
@@ -84,7 +84,7 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 					<-startSession.Exited
 					Eventually(startSession).Should(gexec.Exit(0))
 
-					fly("login", "-c", atc1URL, "-u", atcUsername, "-p", atcPassword)
+					FlyLogin(atc1URL)
 				})
 
 				AfterEach(func() {

@@ -227,11 +227,8 @@ func Deploy(manifest string, args ...string) {
 
 	webInstance = JobInstance("web")
 	if webInstance != nil {
-		// give some time for web to bootstrap (Run migrations, etc)
 		atcExternalURL = fmt.Sprintf("http://%s:8080", webInstance.IP)
-		Eventually(func() *gexec.Session {
-			return flyLogin("-c", atcExternalURL).Wait()
-		}, 2*time.Minute).Should(gexec.Exit(0))
+		FlyLogin(atcExternalURL)
 	}
 
 	dbInstance = JobInstance("postgres")
@@ -408,8 +405,15 @@ func flyHijackTask(argv ...string) *gexec.Session {
 	return hijackS
 }
 
-func flyLogin(args ...string) *gexec.Session {
-	return spawnFly(append([]string{"login", "-u", atcUsername, "-p", atcPassword}, args...)...)
+func FlyLogin(endpoint string) {
+	Eventually(func() *gexec.Session {
+		return spawnFly(
+			"login",
+			"-c", endpoint,
+			"-u", atcUsername,
+			"-p", atcPassword,
+		).Wait()
+	}, 2*time.Minute).Should(gexec.Exit(0), "fly should have been able to log in")
 }
 
 func spawnFly(argv ...string) *gexec.Session {
