@@ -45,14 +45,14 @@ var _ = Describe(":life [#136140165] Container scope", func() {
 				bytes.NewBufferString("y\n"),
 				"set-team",
 				"--team-name", "no-access",
-				"--local-user", "some-other-user",
+				"--local-user", "guest",
 			)
 
 			<-setTeamSession.Exited
 			Expect(setTeamSession.ExitCode()).To(Equal(0))
 
 			By("logging into other team")
-			fly("login", "-n", "no-access", "-u", "some-other-user", "-p", "password")
+			fly("login", "-n", "no-access", "-u", "guest", "-p", "guest")
 
 			By("not allowing hijacking into any containers")
 			failedFly := spawnFly("hijack", "-b", "1")

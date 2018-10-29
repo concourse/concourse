@@ -25,13 +25,13 @@ instance_groups:
     name: web
     properties:
       add_local_users:
-      - some-user:$2a$10$ElspuoVbekkuIlqvk25HN.9DRwGpkS0mUluTjrhsOMKhcGKNUHHvC
-      - some-other-user:$2a$10$ElspuoVbekkuIlqvk25HN.9DRwGpkS0mUluTjrhsOMKhcGKNUHHvC
+        test: test
+        guest: guest
 
       main_team:
         auth:
           local:
-            users: [some-user]
+            users: [test]
 
       token_signing_key: ((token_signing_key))
 

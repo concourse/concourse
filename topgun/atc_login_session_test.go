@@ -63,7 +63,7 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 				)
 
 				client = &http.Client{}
-				token, err := fetchToken(atc0URL, "some-user", "password")
+				token, err := fetchToken(atc0URL, atcUsername, atcPassword)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("stopping the first atc")

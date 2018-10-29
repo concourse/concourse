@@ -140,8 +140,8 @@ var _ = BeforeEach(func() {
 	dbConn = nil
 	webInstance = nil
 	atcExternalURL = ""
-	atcUsername = "some-user"
-	atcPassword = "password"
+	atcUsername = "test"
+	atcPassword = "test"
 })
 
 var _ = AfterEach(func() {
@@ -163,7 +163,7 @@ func requestCredsInfo(webUrl string) ([]byte, error) {
 	Expect(err).ToNot(HaveOccurred())
 
 	reqHeader := http.Header{}
-	token, err := fetchToken(webUrl, "some-user", "password")
+	token, err := fetchToken(webUrl, atcUsername, atcPassword)
 	Expect(err).ToNot(HaveOccurred())
 
 	reqHeader.Set("Authorization", "Bearer "+token.AccessToken)
