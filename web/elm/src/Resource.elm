@@ -8,7 +8,7 @@ module Resource
         , update
         , updateWithMessage
         , view
-        , viewPin
+        , viewPinButton
         , viewVersionHeader
         , viewVersionBody
         , subscriptions
@@ -78,7 +78,7 @@ type PauseChangingOrErrored
 
 
 type PinState
-    = Unpinned
+    = Enabled
     | Pinned
     | Disabled
 
@@ -562,18 +562,21 @@ view model =
                     Html.div
                         ([ css
                             [ Css.flexGrow (Css.num 1)
-                            , Css.border3 (Css.px 1)
-                                Css.solid
-                                (if ME.isJust resource.pinnedVersion then
-                                    Css.hex "03dac4"
-                                 else
-                                    Css.hex "3d3c3c"
-                                )
                             , Css.margin (Css.px 10)
                             , Css.paddingLeft (Css.px 7)
                             , Css.displayFlex
                             , Css.alignItems Css.center
                             , Css.position Css.relative
+                            ]
+                         , style
+                            [ ( "border"
+                              , "1px solid "
+                                    ++ (if ME.isJust resource.pinnedVersion then
+                                            "#03dac4"
+                                        else
+                                            "#3d3c3c"
+                                       )
+                              )
                             ]
                          , id "pin-bar"
                          ]
@@ -587,18 +590,13 @@ view model =
                         )
                         ([ Html.div
                             [ css
-                                [ Css.backgroundImage
-                                    (if ME.isJust resource.pinnedVersion then
-                                        Css.url "/public/images/pin_ic_teal.svg"
-                                     else
-                                        Css.url "/public/images/pin_ic_grey.svg"
-                                    )
-                                , Css.backgroundRepeat Css.noRepeat
+                                [ Css.backgroundRepeat Css.noRepeat
                                 , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
                                 , Css.height (Css.px 15)
                                 , Css.width (Css.px 15)
                                 , Css.marginRight (Css.px 10)
                                 ]
+                            , style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ]
                             ]
                             []
                          , resource.pinnedVersion
@@ -735,12 +733,10 @@ viewVersionedResources { versionedResources, isResourcePinnedInConfig, versioned
                 viewVersionedResource
                     { versionedResource = vr
                     , pinState =
-                        (if isResourcePinnedInConfig then
-                            Disabled
-                         else if pinnedVersion == Just vr.version then
+                        (if pinnedVersion == Just vr.version then
                             Pinned
                          else if pinnedVersion == Nothing then
-                            Unpinned
+                            Enabled
                          else
                             Disabled
                         )
@@ -768,19 +764,30 @@ viewVersionedResource :
     }
     -> Html Msg
 viewVersionedResource { versionedResource, pinState, state } =
-    Html.li []
+    Html.li
+        (case pinState of
+            Disabled ->
+                [ style [ ( "opacity", "0.5" ) ] ]
+
+            _ ->
+                []
+        )
         ([ Html.div
             [ css
                 [ Css.displayFlex
                 , Css.margin2 (Css.px 5) Css.zero
                 ]
             ]
-            [ viewPin
+            [ viewPinButton
                 { id = versionedResource.id
                 , pinState = pinState
                 , showTooltip = state.showTooltip
                 }
-            , viewVersionHeader versionedResource
+            , viewVersionHeader
+                { id = versionedResource.id
+                , version = versionedResource.version
+                , pinnedState = pinState
+                }
             ]
          ]
             ++ (if state.expanded then
@@ -827,14 +834,12 @@ viewVersionBody { inputTo, outputOf, metadata } =
         ]
 
 
-viewPin : { id : Int, pinState : PinState, showTooltip : Bool } -> Html Msg
-viewPin { id, pinState, showTooltip } =
+viewPinButton : { id : Int, pinState : PinState, showTooltip : Bool } -> Html Msg
+viewPinButton { id, pinState, showTooltip } =
     Html.div
         [ Html.Styled.Attributes.attribute "aria-label" "Pin Resource Version"
         , css
             [ Css.position Css.relative
-            , Css.backgroundImage
-                (Css.url "/public/images/pin_ic_grey.svg")
             , Css.backgroundRepeat Css.noRepeat
             , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
             , Css.marginRight (Css.px 5)
@@ -844,18 +849,15 @@ viewPin { id, pinState, showTooltip } =
             , Css.cursor Css.default
             ]
         , style
-            [ ( "background-color"
-              , case pinState of
-                    Pinned ->
-                        "#03dac4"
+            ([ ( "background-image", "url(/public/images/pin_ic_white.svg)" ), ( "background-color", "#1e1d1d" ) ]
+                ++ (case pinState of
+                        Pinned ->
+                            [ ( "border", "1px solid #03dac4" ) ]
 
-                    Disabled ->
-                        "#1e1d1d80"
-
-                    Unpinned ->
-                        "#1e1d1d"
-              )
-            ]
+                        _ ->
+                            []
+                   )
+            )
         , onMouseOut <| ToggleVersionTooltip
         , onMouseOver <| ToggleVersionTooltip
         ]
@@ -877,10 +879,10 @@ viewPin { id, pinState, showTooltip } =
         )
 
 
-viewVersionHeader : { a | id : Int, version : Concourse.Version } -> Html Msg
-viewVersionHeader { id, version } =
+viewVersionHeader : { a | id : Int, version : Concourse.Version, pinnedState : PinState } -> Html Msg
+viewVersionHeader { id, version, pinnedState } =
     Html.div
-        [ css
+        ([ css
             [ Css.flexGrow <| Css.num 1
             , Css.backgroundColor <| Css.hex "1e1d1d"
             , Css.cursor Css.pointer
@@ -889,8 +891,16 @@ viewVersionHeader { id, version } =
             , Css.paddingLeft <| Css.px 10
             , Css.color <| Css.hex <| "e6e7e8"
             ]
-        , onClick <| ExpandVersionedResource id
-        ]
+         , onClick <| ExpandVersionedResource id
+         ]
+            ++ (case pinnedState of
+                    Pinned ->
+                        [ style [ ( "border", "1px solid #03dac4" ) ] ]
+
+                    _ ->
+                        []
+               )
+        )
         [ viewVersion version ]
 
 
