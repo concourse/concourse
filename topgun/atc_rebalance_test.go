@@ -16,6 +16,8 @@ var _ = Describe("ATC Rebalance", func() {
 		var atc1IP string
 
 		BeforeEach(func() {
+			Skip("until TSA client is re-implemented")
+
 			By("Configuring two ATCs")
 			Deploy("deployments/concourse-two-atcs-slow-tracking.yml")
 			waitForRunningWorker()

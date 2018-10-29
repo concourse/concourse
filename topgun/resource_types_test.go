@@ -12,19 +12,20 @@ var _ = Describe("A pipeline-provided resource type", func() {
 	})
 
 	AfterEach(func() {
+		// XXX: bring the following back once draining is re-introduced
 		// restore deployment to drainable state
-		deploy := StartDeploy("deployments/concourse.yml")
+		// deploy := StartDeploy("deployments/concourse.yml")
 
-		var workers []string
-		Eventually(func() []string {
-			workers = workersBy("state", "landing")
-			return workers
-		}).Should(HaveLen(1))
+		// var workers []string
+		// Eventually(func() []string {
+		// 	workers = workersBy("state", "landing")
+		// 	return workers
+		// }).Should(HaveLen(1))
 
-		fly("prune-worker", "-w", workers[0])
+		// fly("prune-worker", "-w", workers[0])
 
-		<-deploy.Exited
-		Expect(deploy.ExitCode()).To(Equal(0))
+		// <-deploy.Exited
+		// Expect(deploy.ExitCode()).To(Equal(0))
 	})
 
 	It("does not result in redundant containers when running resource actions", func() {

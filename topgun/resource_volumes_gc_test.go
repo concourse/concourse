@@ -185,6 +185,8 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 				Skip("git-server release not uploaded")
 			}
 
+			Skip("container gets GCed because the worker report interval is 30s, which is > the missing_since grace period (3 * atc GC interval, so 3s)")
+
 			Deploy("deployments/concourse.yml", "-o", "operations/fast-gc.yml", "-o", "operations/add-git-server.yml")
 
 			gitRepoURI = fmt.Sprintf("git://%s/some-repo", JobInstance("git_server").IP)

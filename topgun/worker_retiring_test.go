@@ -12,6 +12,8 @@ var _ = Describe("Worker retiring", func() {
 	)
 
 	BeforeEach(func() {
+		Skip("until draining has been re-introduced")
+
 		deployment = "deployments/concourse-separate-forwarded-worker.yml"
 		Deploy(deployment)
 		_ = waitForRunningWorker()

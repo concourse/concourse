@@ -13,6 +13,10 @@ import (
 )
 
 var _ = Describe("[#129726011] Worker landing", func() {
+	BeforeEach(func() {
+		Skip("until draining has been re-introduced")
+	})
+
 	Context("with two workers available", func() {
 		BeforeEach(func() {
 			Skip("unreliable; if worker restarts too fast, test will fail. we should use 'bosh stop' but it turns out that retires, not lands.")

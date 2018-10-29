@@ -15,6 +15,8 @@ var _ = Describe("Worker failing", func() {
 
 	Context("when baggageclaim becomes unresponsive", func() {
 		BeforeEach(func() {
+			Skip("now that baggageclaim runs in the same process as everything else, it's hard to make only it become unresponsive")
+
 			By("setting a pipeline that uses the doomed worker")
 			fly("set-pipeline", "-n", "-c", "pipelines/controlled-timer-doomed-worker.yml", "-p", "worker-failing-test")
 			fly("unpause-pipeline", "-p", "worker-failing-test")
