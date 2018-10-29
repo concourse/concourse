@@ -113,7 +113,7 @@ var _ = Describe("Credhub", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		Context("/api/v1/info/creds", func() {
+		Describe("/api/v1/info/creds", func() {
 			type responseSkeleton struct {
 				CredHub struct {
 					Url     string   `json:"url"`
@@ -136,7 +136,7 @@ var _ = Describe("Credhub", func() {
 			)
 
 			BeforeEach(func() {
-				atcUrl = "http://" + jobInstances["atc"][0].IP + ":8080"
+				atcUrl = "http://" + JobInstance("web").IP + ":8080"
 			})
 
 			JustBeforeEach(func() {
@@ -153,7 +153,6 @@ var _ = Describe("Credhub", func() {
 				Expect(parsedResponse.CredHub.Health.Response.Status).To(Equal("UP"))
 				Expect(parsedResponse.CredHub.Health.Error).To(BeEmpty())
 			})
-
 		})
 
 		Context("with a pipeline build", func() {
