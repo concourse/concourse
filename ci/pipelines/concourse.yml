@@ -15,6 +15,10 @@ resource_types:
   type: registry-image
   source: {repository: cloudfoundry/bosh-deployment-resource}
 
+- name: mock
+  type: registry-image
+  source: {repository: concourse/mock-resource}
+
 groups:
 - name: develop
   jobs:
@@ -507,10 +511,11 @@ jobs:
   plan:
   - aggregate:
     - get: docs
-    - get: version
+    - get: mock-version
   - task: build-docs
     file: docs/ci/build.yml
     params: {ANALYTICS_ID: ((analytics_id))}
+    input_mapping: {version: mock-version}
   - put: concourse-docs
     params:
       current_app_name: docs
@@ -527,6 +532,10 @@ jobs:
       merge: true
 
 resources:
+- name: mock-version
+  type: mock
+  source: {force_version: 4.2.1}
+
 - name: concourse
   type: git
   source:
