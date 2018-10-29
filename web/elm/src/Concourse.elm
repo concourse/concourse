@@ -643,7 +643,6 @@ type alias ResourceIdentifier =
 type alias VersionedResource =
     { id : Int
     , version : Version
-    , enabled : Bool
     , metadata : Metadata
     }
 
@@ -676,7 +675,6 @@ decodeVersionedResource =
     Json.Decode.succeed VersionedResource
         |: Json.Decode.field "id" Json.Decode.int
         |: Json.Decode.field "version" decodeVersion
-        |: Json.Decode.field "enabled" Json.Decode.bool
         |: defaultTo [] (Json.Decode.field "metadata" decodeMetadata)
 
 

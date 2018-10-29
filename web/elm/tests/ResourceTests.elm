@@ -79,62 +79,6 @@ all =
                     |> HS.toUnstyled
                     |> Query.fromHtml
                     |> Query.has [ style [ ( "background-color", fadedBlackHex ) ] ]
-        , test "viewCheckbox has dark background when disabled" <|
-            \_ ->
-                Resource.viewCheckbox
-                    { id = versionID
-                    , enabled = False
-                    }
-                    |> HS.toUnstyled
-                    |> Query.fromHtml
-                    |> Query.has
-                        [ text "background-color:#1e1d1d"
-                        , text "background-image:url(/public/images/x_ic.svg)"
-                        ]
-        , test "viewVersionHeader has dark text when disabled" <|
-            \_ ->
-                Resource.viewVersionHeader
-                    { id = versionID
-                    , enabled = False
-                    , version = Dict.fromList [ ( "version", version ) ]
-                    }
-                    |> HS.toUnstyled
-                    |> Query.fromHtml
-                    |> Query.has
-                        [ text "color:#e6e7e880" ]
-        , test "viewVersionHeader has light text when enabled" <|
-            \_ ->
-                Resource.viewVersionHeader
-                    { id = versionID
-                    , enabled = True
-                    , version = Dict.fromList [ ( "version", version ) ]
-                    }
-                    |> HS.toUnstyled
-                    |> Query.fromHtml
-                    |> Query.has
-                        [ text "color:#e6e7e8" ]
-        , test "version body is transparent when disabled" <|
-            \_ ->
-                Resource.viewVersionBody
-                    { inputTo = []
-                    , outputOf = []
-                    , metadata = []
-                    , enabled = False
-                    }
-                    |> HS.toUnstyled
-                    |> Query.fromHtml
-                    |> Query.has [ text "opacity:0.5" ]
-        , test "version body is opaque when enabled" <|
-            \_ ->
-                Resource.viewVersionBody
-                    { inputTo = []
-                    , outputOf = []
-                    , metadata = []
-                    , enabled = True
-                    }
-                    |> HS.toUnstyled
-                    |> Query.fromHtml
-                    |> Query.hasNot [ text "opacity:0.5" ]
         , describe "given resource is pinned via pipeline config"
             [ describe "pin bar"
                 [ test "then pinned version is visible in pin bar" <|
@@ -415,12 +359,10 @@ givenVersions =
                 { content =
                     [ { id = versionID
                       , version = Dict.fromList [ ( "version", version ) ]
-                      , enabled = False
                       , metadata = []
                       }
                     , { id = otherVersionID
                       , version = Dict.fromList [ ( "version", otherVersion ) ]
-                      , enabled = False
                       , metadata = []
                       }
                     ]

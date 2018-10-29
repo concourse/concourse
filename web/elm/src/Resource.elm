@@ -8,7 +8,6 @@ module Resource
         , update
         , updateWithMessage
         , view
-        , viewCheckbox
         , viewPin
         , viewVersionHeader
         , viewVersionBody
@@ -93,8 +92,6 @@ type Msg
     | VersionedResourcesFetched (Maybe Page) (Result Http.Error (Paginated Concourse.VersionedResource))
     | LoadPage Page
     | ClockTick Time.Time
-    | ToggleVersionedResource Int
-    | VersionedResourceToggled Int (Result Http.Error ())
     | ExpandVersionedResource Int
     | InputToFetched Int (Result Http.Error (List Concourse.Build))
     | OutputOfFetched Int (Result Http.Error (List Concourse.Build))
@@ -298,82 +295,6 @@ update action model =
                 , Navigation.newUrl <| paginationRoute model.resourceIdentifier page
                 ]
             )
-
-        ToggleVersionedResource versionID ->
-            let
-                versionedResourceIdentifier =
-                    { teamName = model.resourceIdentifier.teamName
-                    , pipelineName = model.resourceIdentifier.pipelineName
-                    , resourceName = model.resourceIdentifier.resourceName
-                    , versionID = versionID
-                    }
-
-                versionedResource =
-                    List.head <|
-                        List.filter (checkForVersionID versionID) model.versionedResources.content
-            in
-                ( model
-                , case versionedResource of
-                    Just vr ->
-                        if vr.enabled then
-                            disableVersionedResource versionedResourceIdentifier model.csrfToken
-                        else
-                            enableVersionedResource versionedResourceIdentifier model.csrfToken
-
-                    Nothing ->
-                        Cmd.none
-                )
-
-        VersionedResourceToggled versionID (Ok ()) ->
-            let
-                oldState =
-                    getState versionID model.versionedUIStates
-
-                newState =
-                    { oldState
-                        | changingErrored = False
-                    }
-
-                oldVRs =
-                    model.versionedResources
-
-                oldContent =
-                    model.versionedResources.content
-            in
-                ( { model
-                    | versionedResources =
-                        { oldVRs
-                            | content = updateMatchingMember versionID oldContent
-                        }
-                    , versionedUIStates = setState versionID newState model.versionedUIStates
-                  }
-                , Cmd.none
-                )
-
-        VersionedResourceToggled versionID (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
-                    else
-                        ( model, Cmd.none )
-
-                _ ->
-                    let
-                        oldState =
-                            getState versionID model.versionedUIStates
-
-                        newState =
-                            { oldState
-                                | expanded = not oldState.expanded
-                                , changingErrored = True
-                            }
-                    in
-                        ( { model
-                            | versionedUIStates = setState versionID newState model.versionedUIStates
-                          }
-                        , Cmd.none
-                        )
 
         ExpandVersionedResource versionID ->
             let
@@ -799,25 +720,6 @@ checkForVersionID versionID versionedResource =
     versionID == versionedResource.id
 
 
-updateMatchingMember : Int -> List Concourse.VersionedResource -> List Concourse.VersionedResource
-updateMatchingMember versionID versionedResources =
-    List.map (switchEnabled versionID) versionedResources
-
-
-switchEnabled : Int -> Concourse.VersionedResource -> Concourse.VersionedResource
-switchEnabled versionID versionedResource =
-    let
-        wasEnabled =
-            versionedResource.enabled
-    in
-        if versionID == versionedResource.id then
-            { versionedResource
-                | enabled = not wasEnabled
-            }
-        else
-            versionedResource
-
-
 viewVersionedResources :
     { a
         | versionedResources : Paginated Concourse.VersionedResource
@@ -873,8 +775,7 @@ viewVersionedResource { versionedResource, pinState, state } =
                 , Css.margin2 (Css.px 5) Css.zero
                 ]
             ]
-            [ viewCheckbox versionedResource
-            , viewPin
+            [ viewPin
                 { id = versionedResource.id
                 , pinState = pinState
                 , showTooltip = state.showTooltip
@@ -887,7 +788,6 @@ viewVersionedResource { versionedResource, pinState, state } =
                         { inputTo = state.inputTo
                         , outputOf = state.outputOf
                         , metadata = versionedResource.metadata
-                        , enabled = versionedResource.enabled
                         }
                     ]
                 else
@@ -901,21 +801,14 @@ viewVersionBody :
         | inputTo : List Concourse.Build
         , outputOf : List Concourse.Build
         , metadata : Concourse.Metadata
-        , enabled : Bool
     }
     -> Html Msg
-viewVersionBody { inputTo, outputOf, metadata, enabled } =
+viewVersionBody { inputTo, outputOf, metadata } =
     Html.div
         [ css
-            ([ Css.displayFlex
-             , Css.padding2 (Css.px 5) (Css.px 10)
-             ]
-                ++ (if enabled then
-                        []
-                    else
-                        [ Css.opacity (Css.num 0.5) ]
-                   )
-            )
+            [ Css.displayFlex
+            , Css.padding2 (Css.px 5) (Css.px 10)
+            ]
         ]
         [ Html.div [ class "vri" ] <|
             List.concat
@@ -932,33 +825,6 @@ viewVersionBody { inputTo, outputOf, metadata, enabled } =
             , viewMetadata metadata
             ]
         ]
-
-
-viewCheckbox : { a | enabled : Bool, id : Int } -> Html Msg
-viewCheckbox { enabled, id } =
-    Html.a
-        [ Html.Styled.Attributes.attribute "aria-label" "Toggle Resource Version"
-        , css
-            ((if enabled then
-                [ Css.backgroundImage (Css.url "/public/images/checkmark_ic.svg")
-                , Css.backgroundColor (Css.hex "2ecc71")
-                ]
-              else
-                [ Css.backgroundImage (Css.url "/public/images/x_ic.svg")
-                , Css.backgroundColor (Css.hex "1e1d1d")
-                ]
-             )
-                ++ [ Css.backgroundRepeat Css.noRepeat
-                   , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
-                   , Css.marginRight (Css.px 5)
-                   , Css.width (Css.px 25)
-                   , Css.height (Css.px 25)
-                   , Css.float Css.left
-                   ]
-            )
-        , onClick <| ToggleVersionedResource id
-        ]
-        []
 
 
 viewPin : { id : Int, pinState : PinState, showTooltip : Bool } -> Html Msg
@@ -1011,8 +877,8 @@ viewPin { id, pinState, showTooltip } =
         )
 
 
-viewVersionHeader : { a | id : Int, enabled : Bool, version : Concourse.Version } -> Html Msg
-viewVersionHeader { id, enabled, version } =
+viewVersionHeader : { a | id : Int, version : Concourse.Version } -> Html Msg
+viewVersionHeader { id, version } =
     Html.div
         [ css
             [ Css.flexGrow <| Css.num 1
@@ -1021,12 +887,7 @@ viewVersionHeader { id, enabled, version } =
             , Css.displayFlex
             , Css.alignItems Css.center
             , Css.paddingLeft <| Css.px 10
-            , Css.color <|
-                Css.hex <|
-                    if enabled then
-                        "e6e7e8"
-                    else
-                        "e6e7e880"
+            , Css.color <| Css.hex <| "e6e7e8"
             ]
         , onClick <| ExpandVersionedResource id
         ]
@@ -1230,18 +1091,6 @@ fetchVersionedResources : Concourse.ResourceIdentifier -> Maybe Page -> Cmd Msg
 fetchVersionedResources resourceIdentifier page =
     Task.attempt (VersionedResourcesFetched page) <|
         Concourse.Resource.fetchVersionedResources resourceIdentifier page
-
-
-enableVersionedResource : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Cmd Msg
-enableVersionedResource versionedResourceIdentifier csrfToken =
-    Task.attempt (VersionedResourceToggled versionedResourceIdentifier.versionID) <|
-        Concourse.Resource.enableVersionedResource versionedResourceIdentifier csrfToken
-
-
-disableVersionedResource : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Cmd Msg
-disableVersionedResource versionedResourceIdentifier csrfToken =
-    Task.attempt (VersionedResourceToggled versionedResourceIdentifier.versionID) <|
-        Concourse.Resource.disableVersionedResource versionedResourceIdentifier csrfToken
 
 
 fetchInputTo : Concourse.VersionedResourceIdentifier -> Cmd Msg
