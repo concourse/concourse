@@ -8,7 +8,7 @@ import Resource
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (attribute, containing, id, tag, text)
+import Test.Html.Selector exposing (Selector, attribute, containing, id, tag, style, text)
 
 
 teamName : String
@@ -31,14 +31,29 @@ versionID =
     1
 
 
+otherVersionID : Int
+otherVersionID =
+    2
+
+
 version : String
 version =
     "v1"
 
 
+otherVersion : String
+otherVersion =
+    "v2"
+
+
 tealHex : String
 tealHex =
     "#03dac4"
+
+
+fadedBlackHex : String
+fadedBlackHex =
+    "#1e1d1d80"
 
 
 all : Test
@@ -53,7 +68,7 @@ all =
                     }
                     |> HS.toUnstyled
                     |> Query.fromHtml
-                    |> Query.has [ text "background-color:#1e1d1d" ]
+                    |> Query.has [ style [ ( "background-color", "#1e1d1d" ) ] ]
         , test "viewPin has faded background when disabled" <|
             \_ ->
                 Resource.viewPin
@@ -63,7 +78,7 @@ all =
                     }
                     |> HS.toUnstyled
                     |> Query.fromHtml
-                    |> Query.has [ text "background-color:#1e1d1d80" ]
+                    |> Query.has [ style [ ( "background-color", fadedBlackHex ) ] ]
         , test "viewCheckbox has dark background when disabled" <|
             \_ ->
                 Resource.viewCheckbox
@@ -121,50 +136,113 @@ all =
                     |> Query.fromHtml
                     |> Query.hasNot [ text "opacity:0.5" ]
         , describe "given resource is pinned via pipeline config"
-            [ test "then pinned version is visible in pin bar" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedViaConfig
-                        |> queryView
-                        |> Query.has [ text version ]
-            , test "then pin bar has teal border" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedViaConfig
-                        |> queryView
-                        |> Query.has [ text <| "border:1px solid " ++ tealHex ]
-            , test "mousing over pin bar sends TogglePinBarTooltip message" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedViaConfig
-                        |> queryView
-                        |> Query.find [ id "pin-bar" ]
-                        |> Event.simulate Event.mouseEnter
-                        |> Event.expect Resource.TogglePinBarTooltip
-            , test "TogglePinBarTooltip causes tooltip to appear" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedViaConfig
-                        |> togglePinBarTooltip
-                        |> queryView
-                        |> Query.has [ text "pinned in pipeline config" ]
-            , test "mousing out of pin bar sends TogglePinBarTooltip message" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedViaConfig
-                        |> togglePinBarTooltip
-                        |> queryView
-                        |> Query.find [ id "pin-bar" ]
-                        |> Event.simulate Event.mouseLeave
-                        |> Event.expect Resource.TogglePinBarTooltip
-            , test "when mousing off pin bar, tooltip disappears" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedViaConfig
-                        |> togglePinBarTooltip
-                        |> togglePinBarTooltip
-                        |> queryView
-                        |> Query.hasNot [ text "pinned in pipeline config" ]
+            [ describe "pin bar"
+                [ test "then pinned version is visible in pin bar" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedViaConfig
+                            |> queryView
+                            |> Query.has [ text version ]
+                , test "then pin bar has teal border" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedViaConfig
+                            |> queryView
+                            |> Query.has [ text <| "border:1px solid " ++ tealHex ]
+                , test "mousing over pin bar sends TogglePinBarTooltip message" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedViaConfig
+                            |> queryView
+                            |> Query.find [ id "pin-bar" ]
+                            |> Event.simulate Event.mouseEnter
+                            |> Event.expect Resource.TogglePinBarTooltip
+                , test "TogglePinBarTooltip causes tooltip to appear" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedViaConfig
+                            |> togglePinBarTooltip
+                            |> queryView
+                            |> Query.has [ text "pinned in pipeline config" ]
+                , test "mousing out of pin bar sends TogglePinBarTooltip message" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedViaConfig
+                            |> togglePinBarTooltip
+                            |> queryView
+                            |> Query.find [ id "pin-bar" ]
+                            |> Event.simulate Event.mouseLeave
+                            |> Event.expect Resource.TogglePinBarTooltip
+                , test "when mousing off pin bar, tooltip disappears" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedViaConfig
+                            |> togglePinBarTooltip
+                            |> togglePinBarTooltip
+                            |> queryView
+                            |> Query.hasNot [ text "pinned in pipeline config" ]
+                ]
+            , describe "per-version pin icons"
+                [ test "unpinned version has faded background" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedViaConfig
+                            |> givenVersions
+                            |> queryView
+                            |> Query.find (versionSelector otherVersion)
+                            |> Query.find pinIconSelector
+                            |> Query.has [ style [ ( "background-color", fadedBlackHex ) ] ]
+
+                -- , test "pinned version has teal background" <|
+                --     \_ ->
+                --         init
+                --             |> givenResourcePinnedViaConfig
+                --             |> givenVersions
+                --             |> queryView
+                --             |> versionSelector version
+                --             |> pinIconSelector
+                --             |> Query.has [ style [ ( "background-color", tealHex ) ] ]
+                , test "mousing over a per-version pin icon sends ToggleVersionTooltip" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedViaConfig
+                            |> givenVersions
+                            |> queryView
+                            |> Query.find (versionSelector version)
+                            |> Query.find pinIconSelector
+                            |> Event.simulate Event.mouseOver
+                            |> Event.expect Resource.ToggleVersionTooltip
+                , test "shows tooltip on the per-version pin icon on ToggleVersionTooltip" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedViaConfig
+                            |> givenVersions
+                            |> toggleVersionTooltip
+                            |> queryView
+                            |> Query.find (versionSelector version)
+                            |> Query.has [ text "enable via pipeline config" ]
+                , test "mousing off a per-version pin icon sends ToggleVersionTooltip" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedViaConfig
+                            |> givenVersions
+                            |> toggleVersionTooltip
+                            |> queryView
+                            |> Query.find (versionSelector version)
+                            |> Query.find pinIconSelector
+                            |> Event.simulate Event.mouseOut
+                            |> Event.expect Resource.ToggleVersionTooltip
+                , test "hides tooltip on the per-version pin icon on ToggleVersionTooltip" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedViaConfig
+                            |> givenVersions
+                            |> toggleVersionTooltip
+                            |> toggleVersionTooltip
+                            |> queryView
+                            |> Query.find (versionSelector version)
+                            |> Query.hasNot [ text "enable via pipeline config" ]
+                ]
             ]
         , describe "given resource is pinned not via pipeline config"
             [ test "when mousing over pin bar, tooltip does not appear" <|
@@ -175,13 +253,25 @@ all =
                         |> Tuple.first
                         |> queryView
                         |> Query.hasNot [ text "pinned in pipeline config" ]
-            , test "something has a teal background" <|
+            , test "pin icon on pinned version has a teal background" <|
                 \_ ->
                     init
                         |> givenResourcePinnedNotViaConfig
                         |> givenVersions
                         |> queryView
-                        |> Query.has [ text <| "background-color:" ++ tealHex ]
+                        |> Query.find [ tag "li", containing [ text version ] ]
+                        |> Query.find [ attribute (Attr.attribute "aria-label" "Pin Resource Version") ]
+                        |> Query.has [ style [ ( "background-color", tealHex ) ] ]
+            , test "does not show tooltip on the pin icon on ToggleVersionTooltip" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedNotViaConfig
+                        |> givenVersions
+                        |> Resource.update Resource.ToggleVersionTooltip
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find [ tag "li", containing [ text version ] ]
+                        |> Query.hasNot [ text "enable via pipeline config" ]
             ]
         , describe "given resource is not pinned"
             [ test "then nothing has teal border" <|
@@ -190,6 +280,26 @@ all =
                         |> givenResourceUnpinned
                         |> queryView
                         |> Query.hasNot [ text <| "border:1px solid" ++ tealHex ]
+            , test "does not show tooltip on the pin icon on ToggleVersionTooltip" <|
+                \_ ->
+                    init
+                        |> givenResourceUnpinned
+                        |> givenVersions
+                        |> Resource.update Resource.ToggleVersionTooltip
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find [ tag "li", containing [ text version ] ]
+                        |> Query.hasNot [ text "enable via pipeline config" ]
+            , test "all pin icons have dark background" <|
+                \_ ->
+                    init
+                        |> givenResourceUnpinned
+                        |> givenVersions
+                        |> Resource.update Resource.ToggleVersionTooltip
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find [ tag "li", containing [ text version ] ]
+                        |> Query.hasNot [ text "enable via pipeline config" ]
             ]
         , describe "given versioned resource fetched"
             [ test "there is a pin icon for each version" <|
@@ -201,50 +311,6 @@ all =
                         |> Query.find [ tag "li", containing [ text version ] ]
                         |> Query.findAll [ attribute (Attr.attribute "aria-label" "Pin Resource Version") ]
                         |> Query.count (Expect.equal 1)
-            , test "mousing over a pin icon sends ToggleVersionTooltip" <|
-                \_ ->
-                    init
-                        |> givenResourceUnpinned
-                        |> givenVersions
-                        |> queryView
-                        |> Query.find [ tag "li", containing [ text version ] ]
-                        |> Query.find [ attribute (Attr.attribute "aria-label" "Pin Resource Version") ]
-                        |> Event.simulate Event.mouseOver
-                        |> Event.expect (Resource.ToggleVersionTooltip versionID)
-            , test "shows tooltip on the pin icon on ToggleVersionTooltip" <|
-                \_ ->
-                    init
-                        |> givenResourceUnpinned
-                        |> givenVersions
-                        |> Resource.update (Resource.ToggleVersionTooltip versionID)
-                        |> Tuple.first
-                        |> queryView
-                        |> Query.find [ tag "li", containing [ text version ] ]
-                        |> Query.has [ text "enable via pipeline config" ]
-            , test "mousing off a pin icon sends ToggleVersionTooltip" <|
-                \_ ->
-                    init
-                        |> givenResourceUnpinned
-                        |> givenVersions
-                        |> Resource.update (Resource.ToggleVersionTooltip versionID)
-                        |> Tuple.first
-                        |> queryView
-                        |> Query.find [ tag "li", containing [ text version ] ]
-                        |> Query.find [ attribute (Attr.attribute "aria-label" "Pin Resource Version") ]
-                        |> Event.simulate Event.mouseOut
-                        |> Event.expect (Resource.ToggleVersionTooltip versionID)
-            , test "hides tooltip on the pin icon on ToggleVersionTooltip" <|
-                \_ ->
-                    init
-                        |> givenResourceUnpinned
-                        |> givenVersions
-                        |> Resource.update (Resource.ToggleVersionTooltip versionID)
-                        |> Tuple.first
-                        |> Resource.update (Resource.ToggleVersionTooltip versionID)
-                        |> Tuple.first
-                        |> queryView
-                        |> Query.find [ tag "li", containing [ text version ] ]
-                        |> Query.hasNot [ text "enable via pipeline config" ]
             ]
         ]
 
@@ -335,6 +401,12 @@ togglePinBarTooltip =
         >> Tuple.first
 
 
+toggleVersionTooltip : Resource.Model -> Resource.Model
+toggleVersionTooltip =
+    Resource.update Resource.ToggleVersionTooltip
+        >> Tuple.first
+
+
 givenVersions : Resource.Model -> Resource.Model
 givenVersions =
     Resource.update
@@ -346,6 +418,11 @@ givenVersions =
                       , enabled = False
                       , metadata = []
                       }
+                    , { id = otherVersionID
+                      , version = Dict.fromList [ ( "version", otherVersion ) ]
+                      , enabled = False
+                      , metadata = []
+                      }
                     ]
                 , pagination =
                     { previousPage = Nothing
@@ -354,3 +431,13 @@ givenVersions =
                 }
         )
         >> Tuple.first
+
+
+versionSelector : String -> List Selector
+versionSelector version =
+    [ tag "li", containing [ text version ] ]
+
+
+pinIconSelector : List Selector
+pinIconSelector =
+    [ attribute (Attr.attribute "aria-label" "Pin Resource Version") ]

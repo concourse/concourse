@@ -29,9 +29,10 @@ import Date.Format
 import Duration exposing (Duration)
 import Erl
 import Html.Styled as Html exposing (Html)
-import Html.Styled.Attributes exposing (class, css, href, id, title)
+import Html.Styled.Attributes exposing (class, css, href, id, style, title)
 import Html.Styled.Events exposing (onClick, onMouseEnter, onMouseLeave, onMouseOver, onMouseOut)
 import Http
+import List.Extra as LE
 import Maybe.Extra as ME
 import Navigation
 import NewTopBar.Styles as Styles
@@ -99,7 +100,7 @@ type Msg
     | OutputOfFetched Int (Result Http.Error (List Concourse.Build))
     | NavTo String
     | TogglePinBarTooltip
-    | ToggleVersionTooltip Int
+    | ToggleVersionTooltip
 
 
 type alias Flags =
@@ -478,21 +479,43 @@ update action model =
             , Cmd.none
             )
 
-        ToggleVersionTooltip versionID ->
+        ToggleVersionTooltip ->
             let
-                oldState =
-                    getState versionID model.versionedUIStates
+                pinnedInConfig =
+                    model.resource
+                        |> RemoteData.map .pinnedInConfig
+                        |> RemoteData.withDefault False
 
-                newState =
-                    { oldState
-                        | showTooltip = not oldState.showTooltip
-                    }
+                newModel =
+                    if pinnedInConfig then
+                        model.resource
+                            |> RemoteData.map
+                                (\r ->
+                                    model.versionedResources.content
+                                        |> LE.find (\vr -> r.pinnedVersion == Just vr.version)
+                                        |> Maybe.map .id
+                                )
+                            |> RemoteData.withDefault Nothing
+                            |> Maybe.map
+                                (\id ->
+                                    let
+                                        oldState =
+                                            getState id model.versionedUIStates
+
+                                        newState =
+                                            { oldState
+                                                | showTooltip = not oldState.showTooltip
+                                            }
+                                    in
+                                        { model
+                                            | versionedUIStates = setState id newState model.versionedUIStates
+                                        }
+                                )
+                            |> Maybe.withDefault model
+                    else
+                        model
             in
-                ( { model
-                    | versionedUIStates = setState versionID newState model.versionedUIStates
-                  }
-                , Cmd.none
-                )
+                ( newModel, Cmd.none )
 
 
 permalink : List Concourse.VersionedResource -> Page
@@ -819,7 +842,18 @@ viewVersionedResources { versionedResources, isResourcePinnedInConfig, versioned
                          else
                             Disabled
                         )
-                    , state = getState vr.id versionedUIStates
+                    , state =
+                        let
+                            state =
+                                getState vr.id versionedUIStates
+
+                            showTooltip =
+                                if pinnedVersion == Nothing || not isResourcePinnedInConfig then
+                                    False
+                                else
+                                    state.showTooltip
+                        in
+                            { state | showTooltip = showTooltip }
                     }
             )
         |> Html.ul [ class "list list-collapsable list-enableDisable resource-versions" ]
@@ -942,20 +976,22 @@ viewPin { id, pinState, showTooltip } =
             , Css.height (Css.px 25)
             , Css.float Css.left
             , Css.cursor Css.default
-            , Css.backgroundColor
-                (case pinState of
+            ]
+        , style
+            [ ( "background-color"
+              , case pinState of
                     Pinned ->
-                        Css.hex "#03dac4"
+                        "#03dac4"
 
                     Disabled ->
-                        Css.hex "1e1d1d80"
+                        "#1e1d1d80"
 
                     Unpinned ->
-                        Css.hex "1e1d1d"
-                )
+                        "#1e1d1d"
+              )
             ]
-        , onMouseOut <| ToggleVersionTooltip id
-        , onMouseOver <| ToggleVersionTooltip id
+        , onMouseOut <| ToggleVersionTooltip
+        , onMouseOver <| ToggleVersionTooltip
         ]
         (if showTooltip then
             [ Html.div
