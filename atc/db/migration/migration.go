@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -101,14 +102,18 @@ func (self *OpenHelper) MigrateToVersion(version int) error {
 
 func (self *OpenHelper) migrateFromMigrationVersion(db *sql.DB) error {
 
-	if !checkTableExist(db, "migration_version") {
+	legacySchemaExists, err := checkTableExist(db, "migration_version")
+	if err != nil {
+		return err
+	}
+
+	if !legacySchemaExists {
 		return nil
 	}
 
 	oldMigrationLastVersion := 189
 	newMigrationStartVersion := 1510262030
 
-	var err error
 	var dbVersion int
 
 	if err = db.QueryRow("SELECT version FROM migration_version").Scan(&dbVersion); err != nil {
@@ -385,20 +390,53 @@ func (self *migrator) acquireLock() (lock.Lock, error) {
 	return newLock, err
 }
 
-func checkTableExist(db *sql.DB, tableName string) bool {
+func checkTableExist(db *sql.DB, tableName string) (bool, error) {
 	var exists bool
 	err := db.QueryRow("SELECT EXISTS ( SELECT 1 FROM information_schema.tables WHERE table_name=$1)", tableName).Scan(&exists)
-	return err != nil || exists
+	if err != nil {
+		return false, err
+	}
+
+	if exists {
+		return true, nil
+	}
+
+	// SELECT EXISTS doesn't fail if the user doesn't have permission to look
+	// at the information_schema, so fall back to checking the table directly
+	rows, err := db.Query("SELECT * from " + tableName)
+	if rows != nil {
+		defer rows.Close()
+	}
+
+	if err == nil {
+		return true, nil
+	}
+
+	if strings.Contains(err.Error(), "does not exist") {
+		return false, nil
+	} else {
+		return false, err
+	}
 }
 
 func (self *migrator) migrateFromSchemaMigrations() (int, error) {
-	if !checkTableExist(self.db, "schema_migrations") || checkTableExist(self.db, "migrations_history") {
+	oldSchemaExists, err := checkTableExist(self.db, "schema_migrations")
+	if err != nil {
+		return 0, err
+	}
+
+	newSchemaExists, err := checkTableExist(self.db, "migrations_history")
+	if err != nil {
+		return 0, err
+	}
+
+	if !oldSchemaExists || newSchemaExists {
 		return 0, nil
 	}
 
 	var isDirty = false
 	var existingVersion int
-	err := self.db.QueryRow("SELECT dirty, version FROM schema_migrations LIMIT 1").Scan(&isDirty, &existingVersion)
+	err = self.db.QueryRow("SELECT dirty, version FROM schema_migrations LIMIT 1").Scan(&isDirty, &existingVersion)
 	if err != nil {
 		return 0, err
 	}
@@ -425,7 +463,12 @@ func (self *migrator) migrateToSchemaMigrations(toVersion int) error {
 		return nil
 	}
 
-	if !checkTableExist(self.db, "schema_migrations") {
+	oldSchemaExists, err := checkTableExist(self.db, "schema_migrations")
+	if err != nil {
+		return err
+	}
+
+	if !oldSchemaExists {
 		_, err := self.db.Exec("CREATE TABLE schema_migrations (version bigint, dirty boolean)")
 		if err != nil {
 			return err
