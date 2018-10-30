@@ -12,6 +12,8 @@ module Concourse.Resource
         , fetchInputTo
         , fetchOutputOf
         , fetchCausality
+        , pinVersion
+        , unpinVersion
         )
 
 import Concourse
@@ -176,3 +178,31 @@ fetchCausality vrid =
                 ++ "/versions/"
                 ++ toString vrid.versionID
                 ++ "/causality"
+
+
+pinVersion : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
+pinVersion vrid csrfToken =
+    Http.toTask <|
+        Http.request
+            { method = "PUT"
+            , url = "/api/v1/teams/" ++ vrid.teamName ++ "/pipelines/" ++ vrid.pipelineName ++ "/resources/" ++ vrid.resourceName ++ "/versions/" ++ (toString vrid.versionID) ++ "/pin"
+            , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
+            , body = Http.emptyBody
+            , expect = Http.expectStringResponse (\_ -> Ok ())
+            , timeout = Nothing
+            , withCredentials = False
+            }
+
+
+unpinVersion : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
+unpinVersion vrid csrfToken =
+    Http.toTask <|
+        Http.request
+            { method = "PUT"
+            , url = "/api/v1/teams/" ++ vrid.teamName ++ "/pipelines/" ++ vrid.pipelineName ++ "/resources/" ++ vrid.resourceName ++ "/versions/" ++ (toString vrid.versionID) ++ "/unpin"
+            , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
+            , body = Http.emptyBody
+            , expect = Http.expectStringResponse (\_ -> Ok ())
+            , timeout = Nothing
+            , withCredentials = False
+            }

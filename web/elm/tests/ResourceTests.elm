@@ -4,6 +4,7 @@ import Dict
 import Expect exposing (..)
 import Html.Styled as HS
 import Html.Attributes as Attr
+import Http
 import Resource
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -56,6 +57,11 @@ fadedBlackHex =
     "#1e1d1d80"
 
 
+lightGreyHex : String
+lightGreyHex =
+    "#3d3c3c"
+
+
 all : Test
 all =
     describe "resource page"
@@ -85,7 +91,7 @@ all =
                 , test "version header on pinned version has a teal outline" <|
                     \_ ->
                         init
-                            |> givenResourcePinnedDynamically
+                            |> givenResourcePinnedStatically
                             |> givenVersions
                             |> queryView
                             |> Query.find (versionSelector version)
@@ -133,7 +139,7 @@ all =
                             |> queryView
                             |> Query.find (versionSelector otherVersion)
                             |> Query.has [ style [ ( "opacity", "0.5" ) ] ]
-                , test "mousing over a per-version pin icon sends ToggleVersionTooltip" <|
+                , test "mousing over the pinned version's pin button sends ToggleVersionTooltip" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
@@ -143,7 +149,18 @@ all =
                             |> Query.find pinButtonSelector
                             |> Event.simulate Event.mouseOver
                             |> Event.expect Resource.ToggleVersionTooltip
-                , test "shows tooltip on the per-version pin icon on ToggleVersionTooltip" <|
+                , test "mousing over an unpinned version's pin button doesn't send any msg" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedStatically
+                            |> givenVersions
+                            |> queryView
+                            |> Query.find (versionSelector otherVersion)
+                            |> Query.find pinButtonSelector
+                            |> Event.simulate Event.mouseOver
+                            |> Event.toResult
+                            |> Expect.err
+                , test "shows tooltip on the pinned version's pin button on ToggleVersionTooltip" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
@@ -152,7 +169,7 @@ all =
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> Query.has versionTooltipSelector
-                , test "mousing off a per-version pin icon sends ToggleVersionTooltip" <|
+                , test "mousing off the pinned version's pin button sends ToggleVersionTooltip" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
@@ -163,7 +180,19 @@ all =
                             |> Query.find pinButtonSelector
                             |> Event.simulate Event.mouseOut
                             |> Event.expect Resource.ToggleVersionTooltip
-                , test "hides tooltip on the per-version pin icon on ToggleVersionTooltip" <|
+                , test "mousing off an unpinned version's pin button doesn't send any msg" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedStatically
+                            |> givenVersions
+                            |> toggleVersionTooltip
+                            |> queryView
+                            |> Query.find (versionSelector otherVersion)
+                            |> Query.find pinButtonSelector
+                            |> Event.simulate Event.mouseOut
+                            |> Event.toResult
+                            |> Expect.err
+                , test "hides tooltip on the pinned version's pin button on ToggleVersionTooltip" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
@@ -198,12 +227,95 @@ all =
             , test "pin button on pinned version has a teal outline" <|
                 \_ ->
                     init
-                        |> givenResourcePinnedStatically
+                        |> givenResourcePinnedDynamically
                         |> givenVersions
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
                         |> Query.has tealOutlineSelector
+            , test "clicking on pin button on pinned version will trigger UnpinVersion msg" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> givenVersions
+                        |> queryView
+                        |> Query.find (versionSelector version)
+                        |> Query.find pinButtonSelector
+                        |> Event.simulate Event.click
+                        |> Event.expect Resource.UnpinVersion
+            , test "pin button on pinned version shows transition state when (UnpinVersion) is received" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> givenVersions
+                        |> Resource.update (Resource.UnpinVersion)
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find (versionSelector version)
+                        |> Query.find pinButtonSelector
+                        |> pinButtonHasTransitionState
+            , test "pin bar shows unpinned state when upon successful VersionUnpinned msg" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> givenVersions
+                        |> Resource.update (Resource.UnpinVersion)
+                        |> Tuple.first
+                        |> Resource.update (Resource.VersionUnpinned (Ok ()))
+                        |> Tuple.first
+                        |> queryView
+                        |> pinBarHasUnpinnedState
+            , test "pin bar shows unpinned state upon receiving failing (VersionUnpinned) msg" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> givenVersions
+                        |> Resource.update (Resource.UnpinVersion)
+                        |> Tuple.first
+                        |> Resource.update
+                            (Resource.VersionUnpinned
+                                (Err <|
+                                    Http.BadStatus
+                                        { url = ""
+                                        , status =
+                                            { code = 500
+                                            , message = "server error"
+                                            }
+                                        , headers = Dict.empty
+                                        , body = ""
+                                        }
+                                )
+                            )
+                        |> Tuple.first
+                        |> queryView
+                        |> pinBarHasPinnedState version
+
+            -- , test "pin button on 'v1' shows unpinned state upon receiving failing (VersionPinned v1) msg" <|
+            --     \_ ->
+            --         init
+            --             |> givenResourceUnpinned
+            --             |> givenVersions
+            --             |> Resource.update (Resource.PinVersion versionID)
+            --             |> Tuple.first
+            --             |> Resource.update
+            --                 (Resource.VersionPinned
+            --                     (Err <|
+            --                         Http.BadStatus
+            --                             { url = ""
+            --                             , status =
+            --                                 { code = 500
+            --                                 , message = "server error"
+            --                                 }
+            --                             , headers = Dict.empty
+            --                             , body = ""
+            --                             }
+            --                     )
+            --                 )
+            --             |> Tuple.first
+            --             |> queryView
+            --             |> Query.find (versionSelector version)
+            --             |> Query.find pinButtonSelector
+            --             |> pinButtonHasUnpinnedState
             , test "version header on pinned version has a teal outline" <|
                 \_ ->
                     init
@@ -288,6 +400,110 @@ all =
                             (Query.find pinButtonSelector
                                 >> Query.has [ style [ ( "background-color", "#1e1d1d" ) ] ]
                             )
+            , test "sends PinVersion msg when pin button clicked" <|
+                \_ ->
+                    init
+                        |> givenResourceUnpinned
+                        |> givenVersions
+                        |> queryView
+                        |> Query.find (versionSelector version)
+                        |> Query.find pinButtonSelector
+                        |> Event.simulate Event.click
+                        |> Event.expect (Resource.PinVersion versionID)
+            , test "pin button on 'v1' shows transition state when (PinVersion v1) is received" <|
+                \_ ->
+                    init
+                        |> givenResourceUnpinned
+                        |> givenVersions
+                        |> Resource.update (Resource.PinVersion versionID)
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find (versionSelector version)
+                        |> Query.find pinButtonSelector
+                        |> pinButtonHasTransitionState
+            , test "other pin buttons disabled when (PinVersion v1) is received" <|
+                \_ ->
+                    init
+                        |> givenResourceUnpinned
+                        |> givenVersions
+                        |> Resource.update (Resource.PinVersion versionID)
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find (versionSelector otherVersion)
+                        |> Query.find pinButtonSelector
+                        |> Event.simulate Event.click
+                        |> Event.toResult
+                        |> Expect.err
+            , test "pin bar shows unpinned state when (PinVersion v1) is received" <|
+                \_ ->
+                    init
+                        |> givenResourceUnpinned
+                        |> givenVersions
+                        |> Resource.update (Resource.PinVersion versionID)
+                        |> Tuple.first
+                        |> queryView
+                        |> pinBarHasUnpinnedState
+            , test "pin bar reflects 'v2' when upon successful (VersionPinned v1) msg" <|
+                \_ ->
+                    init
+                        |> givenResourceUnpinned
+                        |> givenVersions
+                        |> Resource.update (Resource.PinVersion versionID)
+                        |> Tuple.first
+                        |> Resource.update (Resource.VersionPinned (Ok ()))
+                        |> Tuple.first
+                        |> queryView
+                        |> pinBarHasPinnedState version
+            , test "pin bar shows unpinned state upon receiving failing (VersionPinned v1) msg" <|
+                \_ ->
+                    init
+                        |> givenResourceUnpinned
+                        |> givenVersions
+                        |> Resource.update (Resource.PinVersion versionID)
+                        |> Tuple.first
+                        |> Resource.update
+                            (Resource.VersionPinned
+                                (Err <|
+                                    Http.BadStatus
+                                        { url = ""
+                                        , status =
+                                            { code = 500
+                                            , message = "server error"
+                                            }
+                                        , headers = Dict.empty
+                                        , body = ""
+                                        }
+                                )
+                            )
+                        |> Tuple.first
+                        |> queryView
+                        |> pinBarHasUnpinnedState
+            , test "pin button on 'v1' shows unpinned state upon receiving failing (VersionPinned v1) msg" <|
+                \_ ->
+                    init
+                        |> givenResourceUnpinned
+                        |> givenVersions
+                        |> Resource.update (Resource.PinVersion versionID)
+                        |> Tuple.first
+                        |> Resource.update
+                            (Resource.VersionPinned
+                                (Err <|
+                                    Http.BadStatus
+                                        { url = ""
+                                        , status =
+                                            { code = 500
+                                            , message = "server error"
+                                            }
+                                        , headers = Dict.empty
+                                        , body = ""
+                                        }
+                                )
+                            )
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find (versionSelector version)
+                        |> Query.find pinButtonSelector
+                        |> pinButtonHasUnpinnedState
             ]
         , describe "given versioned resource fetched"
             [ test "there is a pin icon for each version" <|
@@ -452,3 +668,41 @@ pinBarTooltipSelector =
 versionTooltipSelector : List Selector
 versionTooltipSelector =
     [ text "enable via pipeline config" ]
+
+
+pinButtonHasTransitionState : Query.Single msg -> Expectation
+pinButtonHasTransitionState =
+    Expect.all
+        [ Query.has [ text "..." ]
+        , Query.hasNot [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
+        ]
+
+
+pinButtonHasUnpinnedState : Query.Single msg -> Expectation
+pinButtonHasUnpinnedState =
+    Expect.all
+        [ Query.has [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
+        , Query.hasNot tealOutlineSelector
+        ]
+
+
+pinBarHasUnpinnedState : Query.Single msg -> Expectation
+pinBarHasUnpinnedState =
+    Query.find [ id "pin-bar" ]
+        >> Expect.all
+            [ Query.has [ style [ ( "border", "1px solid " ++ lightGreyHex ) ] ]
+            , Query.findAll [ style [ ( "background-image", "url(/public/images/pin_ic_grey.svg)" ) ] ]
+                >> Query.count (Expect.equal 1)
+            , Query.hasNot [ tag "table" ]
+            ]
+
+
+pinBarHasPinnedState : String -> Query.Single msg -> Expectation
+pinBarHasPinnedState version =
+    Query.find [ id "pin-bar" ]
+        >> Expect.all
+            [ Query.has [ style [ ( "border", "1px solid " ++ tealHex ) ] ]
+            , Query.has [ text version ]
+            , Query.findAll [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
+                >> Query.count (Expect.equal 1)
+            ]

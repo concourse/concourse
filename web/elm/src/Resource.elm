@@ -8,6 +8,9 @@ module Resource
         , update
         , updateWithMessage
         , view
+        , viewPinButton
+        , viewVersionHeader
+        , viewVersionBody
         , subscriptions
         , PauseChangingOrErrored(..)
         , PinState(..)
@@ -56,7 +59,14 @@ type alias Model =
     , versionedUIStates : Dict.Dict Int VersionUIState
     , csrfToken : String
     , showPinBarTooltip : Bool
+    , pinTransition : TransitionStatus
     }
+
+
+type TransitionStatus
+    = NotChanging
+    | Pinning { toVersionID : Int }
+    | Unpinning { fromVersionID : Int }
 
 
 type alias VersionUIState =
@@ -78,6 +88,7 @@ type PinState
     = Enabled
     | Pinned
     | Disabled
+    | Pending
 
 
 type Msg
@@ -95,6 +106,10 @@ type Msg
     | NavTo String
     | TogglePinBarTooltip
     | ToggleVersionTooltip
+    | PinVersion Int
+    | UnpinVersion
+    | VersionPinned (Result Http.Error ())
+    | VersionUnpinned (Result Http.Error ())
 
 
 type alias Flags =
@@ -131,6 +146,7 @@ init ports flags =
                 , now = Nothing
                 , csrfToken = flags.csrfToken
                 , showPinBarTooltip = False
+                , pinTransition = NotChanging
                 }
     in
         ( model
@@ -435,6 +451,115 @@ update action model =
             in
                 ( newModel, Cmd.none )
 
+        PinVersion versionID ->
+            let
+                versionedResource : Maybe Concourse.VersionedResource
+                versionedResource =
+                    model.versionedResources.content
+                        |> LE.find (\vr -> vr.id == versionID)
+
+                versionToPin : Maybe Concourse.Version
+                versionToPin =
+                    Maybe.map .version versionedResource
+
+                newResource : WebData Concourse.Resource
+                newResource =
+                    model.resource
+                        |> RemoteData.map (\resource -> { resource | pinnedVersion = versionToPin })
+
+                cmd : Cmd Msg
+                cmd =
+                    case versionedResource of
+                        Just vr ->
+                            Task.attempt VersionPinned <|
+                                Concourse.Resource.pinVersion
+                                    { teamName = model.resourceIdentifier.teamName
+                                    , pipelineName = model.resourceIdentifier.pipelineName
+                                    , resourceName = model.resourceIdentifier.resourceName
+                                    , versionID = vr.id
+                                    }
+                                    model.csrfToken
+
+                        Nothing ->
+                            Cmd.none
+
+                newModel =
+                    { model | resource = newResource, pinTransition = Pinning { toVersionID = versionID } }
+            in
+                ( newModel
+                , cmd
+                )
+
+        UnpinVersion ->
+            let
+                pinnedVersion : Maybe Concourse.Version
+                pinnedVersion =
+                    case model.resource of
+                        RemoteData.Success r ->
+                            r.pinnedVersion
+
+                        _ ->
+                            Nothing
+
+                pinnedVersionedResource : Maybe Concourse.VersionedResource
+                pinnedVersionedResource =
+                    model.versionedResources.content
+                        |> LE.find (\vr -> Just vr.version == pinnedVersion)
+
+                newPinTransition : TransitionStatus
+                newPinTransition =
+                    case pinnedVersionedResource of
+                        Just versionedResource ->
+                            Unpinning { fromVersionID = versionedResource.id }
+
+                        Nothing ->
+                            NotChanging
+
+                cmd : Cmd Msg
+                cmd =
+                    case pinnedVersionedResource of
+                        Just vr ->
+                            Task.attempt VersionPinned <|
+                                Concourse.Resource.unpinVersion
+                                    { teamName = model.resourceIdentifier.teamName
+                                    , pipelineName = model.resourceIdentifier.pipelineName
+                                    , resourceName = model.resourceIdentifier.resourceName
+                                    , versionID = vr.id
+                                    }
+                                    model.csrfToken
+
+                        Nothing ->
+                            Cmd.none
+            in
+                ( { model | pinTransition = newPinTransition }, cmd )
+
+        VersionPinned (Ok ()) ->
+            ( { model | pinTransition = NotChanging }, fetchResource model.resourceIdentifier )
+
+        VersionPinned (Err _) ->
+            ( { model
+                | resource =
+                    model.resource
+                        |> RemoteData.map (\r -> { r | pinnedVersion = Nothing })
+              }
+            , Cmd.none
+            )
+
+        VersionUnpinned (Ok ()) ->
+            ( { model
+                | resource =
+                    model.resource
+                        |> RemoteData.map (\r -> { r | pinnedVersion = Nothing })
+                , pinTransition = NotChanging
+              }
+            , fetchResource model.resourceIdentifier
+            )
+
+        VersionUnpinned (Err _) ->
+            ( { model | pinTransition = NotChanging }
+            , Cmd.none
+            )
+
 
 permalink : List Concourse.VersionedResource -> Page
 permalink versionedResources =
@@ -568,7 +693,7 @@ view model =
                          , style
                             [ ( "border"
                               , "1px solid "
-                                    ++ (if ME.isJust resource.pinnedVersion then
+                                    ++ (if ME.isJust resource.pinnedVersion && model.pinTransition == NotChanging then
                                             "#03dac4"
                                         else
                                             "#3d3c3c"
@@ -593,13 +718,25 @@ view model =
                                 , Css.width (Css.px 15)
                                 , Css.marginRight (Css.px 10)
                                 ]
-                            , style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ]
+                            , style
+                                [ ( "background-image"
+                                  , if ME.isJust resource.pinnedVersion && model.pinTransition == NotChanging then
+                                        "url(/public/images/pin_ic_white.svg)"
+                                    else
+                                        "url(/public/images/pin_ic_grey.svg)"
+                                  )
+                                ]
                             ]
                             []
-                         , resource.pinnedVersion
-                            |> Maybe.map viewVersion
-                            |> Maybe.withDefault (Html.text "")
                          ]
+                            ++ (if model.pinTransition == NotChanging then
+                                    [ resource.pinnedVersion
+                                        |> Maybe.map viewVersion
+                                        |> Maybe.withDefault (Html.text "")
+                                    ]
+                                else
+                                    []
+                               )
                             ++ (if model.showPinBarTooltip then
                                     [ Html.div
                                         [ css
@@ -702,6 +839,7 @@ view model =
                             , versionedUIStates = model.versionedUIStates
                             , isResourcePinnedInConfig = resource.pinnedInConfig
                             , pinnedVersion = resource.pinnedVersion
+                            , pinTransition = model.pinTransition
                             }
                         ]
                     ]
@@ -721,9 +859,10 @@ viewVersionedResources :
         , versionedUIStates : Dict.Dict Int VersionUIState
         , isResourcePinnedInConfig : Bool
         , pinnedVersion : Maybe Concourse.Version
+        , pinTransition : TransitionStatus
     }
     -> Html Msg
-viewVersionedResources { versionedResources, isResourcePinnedInConfig, versionedUIStates, pinnedVersion } =
+viewVersionedResources { versionedResources, isResourcePinnedInConfig, versionedUIStates, pinnedVersion, pinTransition } =
     versionedResources.content
         |> List.map
             (\vr ->
@@ -731,7 +870,10 @@ viewVersionedResources { versionedResources, isResourcePinnedInConfig, versioned
                     { versionedResource = vr
                     , pinState =
                         (if pinnedVersion == Just vr.version then
-                            Pinned
+                            if pinTransition == NotChanging then
+                                Pinned
+                            else
+                                Pending
                          else if pinnedVersion == Nothing then
                             Enabled
                          else
@@ -776,7 +918,7 @@ viewVersionedResource { versionedResource, pinState, state } =
                 ]
             ]
             [ viewPinButton
-                { id = versionedResource.id
+                { versionID = versionedResource.id
                 , pinState = pinState
                 , showTooltip = state.showTooltip
                 }
@@ -831,11 +973,11 @@ viewVersionBody { inputTo, outputOf, metadata } =
         ]
 
 
-viewPinButton : { id : Int, pinState : PinState, showTooltip : Bool } -> Html Msg
-viewPinButton { id, pinState, showTooltip } =
+viewPinButton : { versionID : Int, pinState : PinState, showTooltip : Bool } -> Html Msg
+viewPinButton { versionID, pinState, showTooltip } =
     Html.div
-        [ Html.Styled.Attributes.attribute "aria-label" "Pin Resource Version"
-        , css
+        ([ Html.Styled.Attributes.attribute "aria-label" "Pin Resource Version"
+         , css
             [ Css.position Css.relative
             , Css.backgroundRepeat Css.noRepeat
             , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
@@ -845,20 +987,42 @@ viewPinButton { id, pinState, showTooltip } =
             , Css.float Css.left
             , Css.cursor Css.default
             ]
-        , style
-            ([ ( "background-image", "url(/public/images/pin_ic_white.svg)" ), ( "background-color", "#1e1d1d" ) ]
-                ++ (case pinState of
-                        Pinned ->
-                            [ ( "border", "1px solid #03dac4" ) ]
-
-                        _ ->
-                            []
+         , style
+            ([ ( "background-color", "#1e1d1d" ) ]
+                ++ (if pinState /= Pending then
+                        [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ]
+                    else
+                        []
+                   )
+                ++ (if pinState == Pinned then
+                        [ ( "border", "1px solid #03dac4" ) ]
+                    else
+                        []
                    )
             )
-        , onMouseOut <| ToggleVersionTooltip
-        , onMouseOver <| ToggleVersionTooltip
-        ]
-        (if showTooltip then
+         ]
+            ++ (case pinState of
+                    Disabled ->
+                        []
+
+                    Pending ->
+                        []
+
+                    Enabled ->
+                        [ onClick <| PinVersion versionID ]
+
+                    Pinned ->
+                        [ onClick <| UnpinVersion ]
+               )
+            ++ (if pinState == Pinned then
+                    [ onMouseOut ToggleVersionTooltip
+                    , onMouseOver ToggleVersionTooltip
+                    ]
+                else
+                    []
+               )
+        )
+        ((if showTooltip then
             [ Html.div
                 [ css
                     [ Css.position Css.absolute
@@ -871,8 +1035,14 @@ viewPinButton { id, pinState, showTooltip } =
                 ]
                 [ Html.text "enable via pipeline config" ]
             ]
-         else
+          else
             []
+         )
+            ++ (if pinState == Pending then
+                    [ Html.text "..." ]
+                else
+                    []
+               )
         )
 
 
