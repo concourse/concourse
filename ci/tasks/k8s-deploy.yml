@@ -1,0 +1,23 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: concourse/k8s-testflight}
+
+params:
+  RELEASE_NAME:
+  CONCOURSE_IMAGE:
+  CONCOURSE_TAG:
+  CONCOURSE_DIGEST_FILE:
+  KUBE_CONFIG:
+  ATC_USERNAME:
+  ATC_PASSWORD:
+
+inputs:
+- name: dev-image
+- name: charts
+- name: concourse
+
+run:
+  path: concourse/ci/tasks/scripts/k8s-deploy

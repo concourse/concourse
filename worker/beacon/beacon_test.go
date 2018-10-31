@@ -67,7 +67,7 @@ var _ = Describe("Beacon", func() {
 				firstWait            chan error
 				latestWait           chan error
 				firstCancelKeepAlive chan struct{}
-				latestFakeSession     = new(beaconfakes.FakeSession)
+				latestFakeSession    = new(beaconfakes.FakeSession)
 			)
 
 			BeforeEach(func() {
@@ -120,7 +120,7 @@ var _ = Describe("Beacon", func() {
 
 				Eventually(registerErr).Should(Receive(&expectedErr)) // should stop blocking
 			})
-			
+
 			It("closes the session and waits for it to shut down", func() {
 				Consistently(registerErr).ShouldNot(BeClosed()) // should be blocking on exit channel
 
@@ -148,7 +148,7 @@ var _ = Describe("Beacon", func() {
 
 			})
 
-			It("cancels the keepalive on stale connections", func(){
+			It("cancels the keepalive on stale connections", func() {
 				Expect(firstCancelKeepAlive).To(BeClosed())
 				latestWait <- nil
 				firstWait <- nil
@@ -170,13 +170,6 @@ var _ = Describe("Beacon", func() {
 					registerErr     chan error
 				)
 
-				JustBeforeEach(func() {
-					go func() {
-						registerErr <- beacon.Register(signals, make(chan struct{}, 1))
-						close(registerErr)
-					}()
-				})
-
 				BeforeEach(func() {
 					registerErr = make(chan error, 1)
 					keepAliveErr = make(chan error, 1)
@@ -189,6 +182,13 @@ var _ = Describe("Beacon", func() {
 					}
 
 					fakeClient.KeepAliveReturns(keepAliveErr, cancelKeepAlive)
+				})
+
+				JustBeforeEach(func() {
+					go func() {
+						registerErr <- beacon.Register(signals, make(chan struct{}, 1))
+						close(registerErr)
+					}()
 				})
 
 				AfterEach(func() {
@@ -305,23 +305,21 @@ var _ = Describe("Beacon", func() {
 
 	})
 
-	var _ = Describe("Retire", func() {
+	Describe("RetireWorker", func() {
 		var (
-			signals   chan os.Signal
 			retireErr chan error
 
 			wait chan bool
 		)
 
 		BeforeEach(func() {
-			signals = make(chan os.Signal)
 			retireErr = make(chan error, 1)
 			wait = make(chan bool, 1)
 		})
 
 		JustBeforeEach(func() {
 			go func() {
-				retireErr <- beacon.RetireWorker(signals, make(chan struct{}, 1))
+				retireErr <- beacon.RetireWorker()
 				close(retireErr)
 			}()
 		})
@@ -351,13 +349,12 @@ var _ = Describe("Beacon", func() {
 
 			It("closes the session and waits for it to shut down", func() {
 				Consistently(retireErr).ShouldNot(Receive()) // should be blocking on exit channel
-				signals <- syscall.SIGKILL
-				Consistently(retireErr).ShouldNot(Receive()) // should be blocking on exit channel
 				wait <- false
 				Eventually(retireErr).Should(Receive()) // should stop blocking
-				Eventually(fakeSession.CloseCallCount).Should(Equal(2))
+				Eventually(fakeSession.CloseCallCount).Should(Equal(1))
 			})
 		})
+
 		Context("when exiting immediately", func() {
 
 			Context("when waiting on the session errors", func() {
@@ -367,33 +364,6 @@ var _ = Describe("Beacon", func() {
 				})
 				It("returns the error", func() {
 					Eventually(retireErr).Should(Receive(&err))
-				})
-			})
-
-			Context("when the runner recieves a signal", func() {
-				var (
-					keepAliveErr    chan error
-					cancelKeepAlive chan struct{}
-				)
-				BeforeEach(func() {
-					keepAliveErr = make(chan error, 1)
-					cancelKeepAlive = make(chan struct{}, 1)
-
-					fakeSession.WaitStub = func() error {
-						<-wait
-						return nil
-					}
-
-					fakeClient.KeepAliveReturns(keepAliveErr, cancelKeepAlive)
-
-				})
-
-				It("stops the keepalive", func() {
-					go func() {
-						signals <- syscall.SIGKILL
-						wait <- false
-					}()
-					Eventually(cancelKeepAlive).Should(BeClosed())
 				})
 			})
 
@@ -438,14 +408,6 @@ var _ = Describe("Beacon", func() {
 	})
 
 	var _ = Describe("Land", func() {
-		var (
-			signals chan os.Signal
-		)
-
-		BeforeEach(func() {
-			signals = make(chan os.Signal)
-		})
-
 		AfterEach(func() {
 			Eventually(fakeCloseable.CloseCallCount).Should(Equal(1))
 		})
@@ -460,7 +422,7 @@ var _ = Describe("Beacon", func() {
 
 			JustBeforeEach(func() {
 				go func() {
-					landErr <- beacon.LandWorker(signals, make(chan struct{}, 1))
+					landErr <- beacon.LandWorker()
 					close(landErr)
 				}()
 			})
@@ -492,17 +454,6 @@ var _ = Describe("Beacon", func() {
 				Expect(fakeSession.CloseCallCount()).To(Equal(1))
 			})
 
-			Context("when the runner recieves a signal", func() {
-				It("stops the keepalive", func() {
-					Consistently(landErr).ShouldNot(Receive()) // should be blocking on exit channel
-					signals <- syscall.SIGKILL
-					Eventually(cancelKeepAlive).Should(BeClosed())
-					wait <- false
-
-					Eventually(landErr).Should(Receive())
-				})
-			})
-
 			Context("when keeping the connection alive errors", func() {
 				var (
 					err = errors.New("keepalive fail")
@@ -525,7 +476,7 @@ var _ = Describe("Beacon", func() {
 		Context("when exiting immediately", func() {
 			var landErr error
 			JustBeforeEach(func() {
-				landErr = beacon.LandWorker(signals, make(chan struct{}, 1))
+				landErr = beacon.LandWorker()
 			})
 
 			Context("when waiting on the session errors", func() {

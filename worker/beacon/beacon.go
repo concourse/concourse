@@ -28,11 +28,13 @@ const (
 )
 
 //go:generate counterfeiter . Closeable
+
 type Closeable interface {
 	Close() error
 }
 
 //go:generate counterfeiter . Client
+
 type Client interface {
 	KeepAlive() (<-chan error, chan<- struct{})
 	NewSession(stdin io.Reader, stdout io.Writer, stderr io.Writer) (Session, error)
@@ -42,6 +44,7 @@ type Client interface {
 }
 
 //go:generate counterfeiter . Session
+
 type Session interface {
 	Wait() error
 	// Read out of session
@@ -51,9 +54,9 @@ type Session interface {
 }
 
 //go:generate counterfeiter . BeaconClient
+
 type BeaconClient interface {
 	Register(signals <-chan os.Signal, ready chan<- struct{}) error
-	RetireWorker(signals <-chan os.Signal, ready chan<- struct{}) error
 
 	SweepContainers(garden.Client) error
 	ReportContainers(garden.Client) error
@@ -61,9 +64,9 @@ type BeaconClient interface {
 	SweepVolumes() error
 	ReportVolumes() error
 
-	LandWorker(signals <-chan os.Signal, ready chan<- struct{}) error
-	DeleteWorker(signals <-chan os.Signal, ready chan<- struct{}) error
-	DisableKeepAlive()
+	LandWorker() error
+	RetireWorker() error
+	DeleteWorker() error
 }
 
 type Beacon struct {
@@ -88,10 +91,12 @@ const (
 )
 
 func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) error {
+	close(ready)
+
 	beacon.Logger.Debug("registering")
 	rebalanceDuration := beacon.RebalanceTime
 	bwg := &waitGroupWithCount{
-		WaitGroup: new(sync.WaitGroup),
+		WaitGroup:  new(sync.WaitGroup),
 		countMutex: new(sync.Mutex),
 	}
 	ctx := context.Background()
@@ -100,7 +105,7 @@ func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) 
 	var rebalanceTicker *time.Ticker
 
 	// When mode is Direct or time is 0, additional connections should not be created.
-	if  beacon.RegistrationMode == Direct || beacon.RebalanceTime == 0 {
+	if beacon.RegistrationMode == Direct || beacon.RebalanceTime == 0 {
 		rebalanceTicker = time.NewTicker(time.Hour)
 		rebalanceTicker.Stop()
 	} else {
@@ -112,7 +117,7 @@ func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) 
 		defer bwg.Decrement()
 		timeOutCtx := context.TODO()
 		if beacon.RegistrationMode == Forward && beacon.RebalanceTime != 0 {
-			timeOutCtx, _ = context.WithTimeout(cancellableCtx, beacon.RebalanceTime )
+			timeOutCtx, _ = context.WithTimeout(cancellableCtx, beacon.RebalanceTime)
 		}
 
 		if beacon.RegistrationMode == Direct {
@@ -150,7 +155,6 @@ func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) 
 		}
 	}
 
-
 }
 
 func (beacon *Beacon) registerForwarded(ctx context.Context, disableKeepAliveCtx context.Context) error {
@@ -167,38 +171,6 @@ func (beacon *Beacon) registerForwarded(ctx context.Context, disableKeepAliveCtx
 func (beacon *Beacon) registerDirect(ctx context.Context, disableKeepAliveCtx context.Context) error {
 	beacon.Logger.Debug("register-worker")
 	return beacon.run("register-worker", ctx, disableKeepAliveCtx)
-}
-
-// RetireWorker sends a message via the TSA to retire the worker
-func (beacon *Beacon) RetireWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
-	beacon.Logger.Debug("retire-worker")
-
-	bwg := &waitGroupWithCount{
-		WaitGroup: new(sync.WaitGroup),
-		countMutex: new(sync.Mutex),
-	}
-
-	ctx := context.Background()
-	cancellableCtx, cancelFunc := context.WithCancel(ctx)
-
-	errChan := make(chan error, 1)
-
-	bwg.Increment()
-
-	go func(){
-		defer bwg.Decrement()
-		errChan <- beacon.run("retire-worker", cancellableCtx, context.TODO())
-	}()
-
-	select {
-	case err := <-errChan:
-		return err
-	case <-signals:
-		cancelFunc()
-		bwg.Wait()
-		return nil
-	}
-
 }
 
 func (beacon *Beacon) SweepContainers(gardenClient garden.Client) error {
@@ -365,68 +337,19 @@ func (beacon *Beacon) ReportVolumes() error {
 	return nil
 }
 
-func (beacon *Beacon) LandWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
+func (beacon *Beacon) LandWorker() error {
 	beacon.Logger.Debug("land-worker")
-
-	bwg := &waitGroupWithCount{
-		WaitGroup: new(sync.WaitGroup),
-		countMutex: new(sync.Mutex),
-	}
-
-	ctx := context.Background()
-	cancellableCtx, cancelFunc := context.WithCancel(ctx)
-
-	errChan := make(chan error, 1)
-
-	bwg.Increment()
-
-	go func(){
-		defer bwg.Decrement()
-		errChan <- beacon.run("land-worker", cancellableCtx, context.TODO())
-	}()
-
-	select {
-	case err := <-errChan:
-		return err
-	case <-signals:
-		cancelFunc()
-		bwg.Wait()
-		return nil
-	}
+	return beacon.run("land-worker", context.TODO(), context.TODO())
 }
 
-func (beacon *Beacon) DeleteWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
-	beacon.Logger.Debug("delete-worker.start")
-
-	bwg := &waitGroupWithCount{
-		WaitGroup: new(sync.WaitGroup),
-		countMutex: new(sync.Mutex),
-	}
-
-	ctx := context.Background()
-	cancellableCtx, cancelFunc := context.WithCancel(ctx)
-
-	errChan := make(chan error, 1)
-
-	bwg.Increment()
-
-	go func(){
-		defer bwg.Decrement()
-		errChan <- beacon.run("delete-worker", cancellableCtx, context.TODO())
-	}()
-	select {
-	case err := <-errChan:
-		return err
-	case <-signals:
-		cancelFunc()
-		bwg.Wait()
-		return nil
-	}
-
+func (beacon *Beacon) RetireWorker() error {
+	beacon.Logger.Debug("retire-worker")
+	return beacon.run("retire-worker", context.TODO(), context.TODO())
 }
 
-func (beacon *Beacon) DisableKeepAlive() {
-	beacon.KeepAlive = false
+func (beacon *Beacon) DeleteWorker() error {
+	beacon.Logger.Debug("delete-worker")
+	return beacon.run("delete-worker", context.TODO(), context.TODO())
 }
 
 // TODO CC: maybe we should pass `ctx` as the first argument (instead of
@@ -488,6 +411,7 @@ func (beacon *Beacon) run(command string, ctx context.Context, disableKeepAliveC
 		"gardenForwardAddrRemote": gardenForwardAddrRemote,
 		"bcForwardAddrRemote":     bcForwardAddrRemote,
 	})
+
 	beacon.Client.Proxy(gardenForwardAddr, gardenForwardAddrRemote)
 	beacon.Client.Proxy(baggageclaimForwardAddr, bcForwardAddrRemote)
 
@@ -556,5 +480,3 @@ func (beacon *Beacon) logFailure(command string, err error) error {
 	beacon.Logger.Error(fmt.Sprintf("failed-to-%s", command), err)
 	return err
 }
-
-

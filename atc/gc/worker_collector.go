@@ -1,11 +1,11 @@
 package gc
 
 import (
-	"context"
-
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"context"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
 )
 
 type workerCollector struct {
@@ -30,6 +30,10 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 		return err
 	}
 
+	if len(affected) > 0 {
+		logger.Info("ephemeral-workers-removed", lager.Data{"count": len(affected), "workers": affected})
+	}
+
 	affected, err = wc.workerLifecycle.StallUnresponsiveWorkers()
 	if err != nil {
 		logger.Error("failed-to-mark-workers-as-stalled", err)
@@ -37,7 +41,7 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 	}
 
 	if len(affected) > 0 {
-		logger.Debug("stalled", lager.Data{"count": len(affected), "workers": affected})
+		logger.Info("marked-workers-as-stalled", lager.Data{"count": len(affected), "workers": affected})
 	}
 
 	affected, err = wc.workerLifecycle.DeleteFinishedRetiringWorkers()
@@ -47,7 +51,7 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 	}
 
 	if len(affected) > 0 {
-		logger.Debug("retired", lager.Data{"count": len(affected), "workers": affected})
+		logger.Info("marked-workers-as-retired", lager.Data{"count": len(affected), "workers": affected})
 	}
 
 	affected, err = wc.workerLifecycle.LandFinishedLandingWorkers()
@@ -57,7 +61,17 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 	}
 
 	if len(affected) > 0 {
-		logger.Debug("landed", lager.Data{"count": len(affected), "workers": affected})
+		logger.Info("marked-workers-as-landed", lager.Data{"count": len(affected), "workers": affected})
+	}
+
+	workerStateByName, err := wc.workerLifecycle.GetWorkerStateByName()
+
+	if err != nil {
+		logger.Error("failed-to-get-workers-states-for-metrics", err)
+	} else {
+		metric.WorkersState{
+			WorkerStateByName: workerStateByName,
+		}.Emit(logger)
 	}
 
 	return nil

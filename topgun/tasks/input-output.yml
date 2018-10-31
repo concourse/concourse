@@ -1,0 +1,20 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: busybox}
+
+inputs:
+- name: some-input
+
+outputs:
+- name: some-output
+
+run:
+  path: sh
+  args:
+  - -c
+  - |
+    find some-input/
+    echo hello > some-output/some-output-file

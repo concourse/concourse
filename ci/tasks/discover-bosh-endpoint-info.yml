@@ -4,7 +4,7 @@ platform: linux
 image_resource:
   type: registry-image
   source:
-    repository: concourse/bosh-cli
+    repository: concourse/unit
 
 inputs:
 - name: concourse

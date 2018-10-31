@@ -8,7 +8,6 @@ import (
 	"github.com/concourse/concourse/worker"
 	"github.com/concourse/concourse/worker/beacon"
 	"github.com/concourse/concourse/worker/tsa"
-	"github.com/tedsuo/ifrit"
 )
 
 type LandWorkerCommand struct {
@@ -21,12 +20,6 @@ func (cmd *LandWorkerCommand) Execute(args []string) error {
 	logger := lager.NewLogger("land-worker")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 
-	landWorkerRunner := cmd.landWorkerRunner(logger)
-
-	return <-ifrit.Invoke(landWorkerRunner).Wait()
-}
-
-func (cmd *LandWorkerCommand) landWorkerRunner(logger lager.Logger) ifrit.Runner {
 	beacon := worker.NewBeacon(
 		logger,
 		atc.Worker{
@@ -37,5 +30,5 @@ func (cmd *LandWorkerCommand) landWorkerRunner(logger lager.Logger) ifrit.Runner
 		},
 	)
 
-	return ifrit.RunFunc(beacon.LandWorker)
+	return beacon.LandWorker()
 }

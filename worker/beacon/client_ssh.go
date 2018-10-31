@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
 	"net"
 	"sync"
 	"time"
@@ -14,7 +13,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-var ErrFailedToReachAnyTSA = errors.New("failed to connect to TSA")
+var ErrAllGatewaysUnreachable = errors.New("all worker SSH gateways unreachable")
 
 func NewSSHClient(logger lager.Logger, config Config) Client {
 	return &sshClient{
@@ -24,23 +23,22 @@ func NewSSHClient(logger lager.Logger, config Config) Client {
 }
 
 type sshClient struct {
-	logger lager.Logger
-	client *ssh.Client
-	config Config
-	conn   ssh.Conn
+	logger  lager.Logger
+	client  *ssh.Client
+	config  Config
+	conn    ssh.Conn
 	tcpConn net.Conn
 }
 
 func (c *sshClient) Dial() (Closeable, error) {
-	tsaAddr := c.config.TSAConfig.Host[rand.Intn(len(c.config.TSAConfig.Host))]
 	var err error
-	c.tcpConn, err = keepaliveDialer("tcp", tsaAddr, 10*time.Second, c.config.Registration.RebalanceTime)
-
-
+	tsaAddr, conn, err := c.tryDialAll()
 	if err != nil {
-		c.logger.Error("failed-to-connect-to-tsa", err)
-		return nil, ErrFailedToReachAnyTSA
+		c.logger.Error("failed-to-connect-to-any-tsa", err)
+		return nil, err
 	}
+
+	c.tcpConn = conn
 
 	var pk ssh.Signer
 
@@ -62,7 +60,6 @@ func (c *sshClient) Dial() (Closeable, error) {
 	}
 
 	clientConn, chans, reqs, err := ssh.NewClientConn(c.tcpConn, tsaAddr, clientConfig)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct client connection: %s", err)
 	}
@@ -105,6 +102,7 @@ func (c *sshClient) KeepAlive() (<-chan error, chan<- struct{}) {
 					logger.Error("cancel-failed", err)
 					return
 				}
+
 				return
 			}
 		}
@@ -141,6 +139,25 @@ func (c *sshClient) Proxy(from, to string) error {
 	}
 	go c.proxyListenerTo(remoteListener, to)
 	return nil
+}
+
+func (c *sshClient) tryDialAll() (string, net.Conn, error) {
+	hosts := map[string]struct{}{}
+	for _, host := range c.config.TSAConfig.Host {
+		hosts[host] = struct{}{}
+	}
+
+	for host, _ := range hosts {
+		conn, err := keepaliveDialer("tcp", host, 10*time.Second, c.config.Registration.RebalanceTime)
+		if err != nil {
+			c.logger.Error("failed-to-connect-to-tsa", err)
+			continue
+		}
+
+		return host, conn, nil
+	}
+
+	return "", nil, ErrAllGatewaysUnreachable
 }
 
 func (c *sshClient) proxyListenerTo(listener net.Listener, addr string) {

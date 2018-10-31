@@ -1,6 +1,8 @@
 package pipelines_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -8,6 +10,7 @@ import (
 )
 
 func TestPipelines(t *testing.T) {
+	SetDefaultEventuallyTimeout(10 * time.Second)
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Pipelines Suite")
 }

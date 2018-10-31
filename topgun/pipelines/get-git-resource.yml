@@ -1,0 +1,10 @@
+resources:
+- name: some-repo
+  type: git
+  source:
+    uri: {{some-repo-uri}}
+
+jobs:
+- name: simple-job
+  plan:
+  - get: some-repo

@@ -8,7 +8,6 @@ import (
 	"github.com/concourse/concourse/worker"
 	"github.com/concourse/concourse/worker/beacon"
 	"github.com/concourse/concourse/worker/tsa"
-	"github.com/tedsuo/ifrit"
 )
 
 type RetireWorkerCommand struct {
@@ -21,12 +20,6 @@ func (cmd *RetireWorkerCommand) Execute(args []string) error {
 	logger := lager.NewLogger("retire-worker")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 
-	retireWorkerRunner := cmd.retireWorkerRunner(logger)
-
-	return <-ifrit.Invoke(retireWorkerRunner).Wait()
-}
-
-func (cmd *RetireWorkerCommand) retireWorkerRunner(logger lager.Logger) ifrit.Runner {
 	beacon := worker.NewBeacon(
 		logger,
 		atc.Worker{
@@ -37,5 +30,5 @@ func (cmd *RetireWorkerCommand) retireWorkerRunner(logger lager.Logger) ifrit.Ru
 		},
 	)
 
-	return ifrit.RunFunc(beacon.RetireWorker)
+	return beacon.RetireWorker()
 }

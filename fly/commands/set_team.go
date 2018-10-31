@@ -76,9 +76,6 @@ func (command *SetTeamCommand) Execute([]string) error {
 			fmt.Println("- none")
 		}
 
-		if len(authUsers) == 0 && len(authGroups) == 0 {
-			command.WarnAllowAllUsers(role)
-		}
 	}
 
 	confirm := true
@@ -112,20 +109,10 @@ func (command *SetTeamCommand) Execute([]string) error {
 
 func (command *SetTeamCommand) ErrorAuthNotConfigured(err error) {
 	switch err {
-	case skycmd.ErrRequireAllowAllUsersConfig:
+	case skycmd.ErrAuthNotConfiguredFromConfig:
 		fmt.Fprintln(ui.Stderr, "You have not provided a list of users and groups for one of the roles in your config yaml.")
 
-	case skycmd.ErrRequireAllowAllUsersFlag:
-		fmt.Fprintln(ui.Stderr, "You have not provided a whitelist of users or groups. To continue, run:")
-		fmt.Fprintln(ui.Stderr, "")
-		fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("fly -t %s set-team -n %s --allow-all-users", Fly.Target, command.TeamName))
-		fmt.Fprintln(ui.Stderr, "")
-		fmt.Fprintln(ui.Stderr, "This will allow team access to all logged in users in the system.")
+	case skycmd.ErrAuthNotConfiguredFromFlags:
+		fmt.Fprintln(ui.Stderr, "You have not provided a list of users and groups for the specified team.")
 	}
-}
-
-func (command *SetTeamCommand) WarnAllowAllUsers(role string) {
-	fmt.Fprintln(ui.Stderr, "")
-	displayhelpers.PrintWarningHeader()
-	fmt.Fprintf(ui.Stderr, ui.WarningColor("Granting role '%s' to ALL users. You asked for it!\n", role))
 }

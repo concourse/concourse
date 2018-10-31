@@ -27,8 +27,6 @@ func NewSweeperRunner(logger lager.Logger,
 	atcWorker atc.Worker,
 	config beacon.Config,
 ) ifrit.Runner {
-	logger.Info("sweep-starting")
-
 	client := beacon.NewSSHClient(logger.Session("beacon-client"), config)
 
 	beaconC := &beacon.Beacon{
@@ -58,6 +56,7 @@ func (cmd *Command) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	for {
 		select {
 		case <-timer.C:
+			cmd.Logger.Info("sweep-starting")
 
 			err := cmd.BeaconClient.ReportContainers(cmd.GardenClient)
 			if err != nil {
@@ -79,8 +78,9 @@ func (cmd *Command) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 				cmd.Logger.Error("failed-to-sweep-volumes", err)
 			}
 
-		case <-signals:
-			cmd.Logger.Info("exiting-from-mark-and-sweep")
+			cmd.Logger.Info("sweep-complete")
+		case sig := <-signals:
+			cmd.Logger.Info("sweep-cancelled-by-signal", lager.Data{"signal": sig})
 			return nil
 		}
 	}
