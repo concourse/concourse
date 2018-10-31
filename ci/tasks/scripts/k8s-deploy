@@ -21,7 +21,7 @@ if [ -z $CONCOURSE_TAG ]; then
 fi
 
 if [ -n "${CONCOURSE_DIGEST_FILE}" ]; then
-  if [ -f $CONCOURSE_DIGEST_FILE ]; then
+  if [ -f $CONCOURSE_DIGEST_FILE ]; then
     CONCOURSE_DIGEST="$(cat $CONCOURSE_DIGEST_FILE)"
   fi
 fi
