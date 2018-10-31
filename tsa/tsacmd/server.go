@@ -172,7 +172,7 @@ func (server *server) handleChannel(
 				return
 			}
 
-			logger.Info("channel-request", lager.Data{
+			logger.Debug("channel-request", lager.Data{
 				"type": req.Type,
 			})
 
@@ -188,7 +188,7 @@ func (server *server) handleChannel(
 					continue
 				}
 
-				logger.Info("received-signal", lager.Data{
+				logger.Debug("received-signal", lager.Data{
 					"signal": sig,
 				})
 
@@ -297,7 +297,7 @@ func (server *server) handleForwardRequests(
 
 			bindAddr := net.JoinHostPort(req.BindIP, fmt.Sprintf("%d", req.BindPort))
 
-			reqLog.Info("forwarding-tcpip", lager.Data{
+			reqLog.Debug("forwarding-tcpip", lager.Data{
 				"requested-bind-addr": bindAddr,
 			})
 
@@ -339,7 +339,7 @@ func (server *server) handleForwardRequests(
 			// OpenSSH sends keepalive@openssh.com, but there may be other clients;
 			// just check for 'keepalive'
 			if strings.Contains(r.Type, "keepalive") {
-				reqLog.Info("keepalive")
+				reqLog.Debug("keepalive")
 				r.Reply(true, nil)
 			} else {
 				reqLog.Info("ignoring")
@@ -367,11 +367,11 @@ func (server *server) forwardTCPIP(
 	go func() {
 		select {
 		case <-drain:
-			logger.Info("draining")
+			logger.Debug("draining")
 			interrupted = true
 			listener.Close()
 		case <-done:
-			logger.Info("done")
+			logger.Debug("done")
 		}
 	}()
 
@@ -463,7 +463,7 @@ dance:
 
 			logger.Debug("tcpip-io-complete")
 		case <-ctx.Done():
-			logger.Info("tcpip-io-interrupted")
+			logger.Debug("tcpip-io-interrupted")
 			break dance
 		}
 	}

@@ -411,7 +411,7 @@ func (client *Client) keepAlive(ctx context.Context, sshClient *ssh.Client, tcpC
 			logger.Debug("tick")
 
 		case <-ctx.Done():
-			logger.Info("stopping")
+			logger.Debug("stopping")
 
 			if err := tcpConn.SetKeepAlive(false); err != nil {
 				logger.Error("failed-to-disable-keepalive", err)
