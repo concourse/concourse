@@ -207,10 +207,16 @@ jobs:
   - task: deploy
     file: concourse/ci/tasks/k8s-deploy.yml
     params:
-     KUBE_CONFIG: ((kube-config))
+     KUBE_CONFIG: ((kube_config))
      RELEASE_NAME: concourse-testflight
      CONCOURSE_IMAGE: concourse/dev
      CONCOURSE_DIGEST_FILE: dev-image/digest
+  - task: testflight
+    privileged: true
+    file: concourse/ci/tasks/k8s-testflight.yml
+    params:
+     KUBE_CONFIG: ((kube_config))
+     RELEASE_NAME: concourse-testflight
 
 - name: rc
   public: true
@@ -764,6 +770,6 @@ resources:
 - name: charts
   type: git
   source:
-     uri: git@github.com:concourse/charts.git
+     uri: https://github.com/concourse/charts.git
      branch: concourse-chart-image-digest
 
