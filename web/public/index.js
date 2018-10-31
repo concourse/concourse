@@ -299,13 +299,11 @@ function createGraph(svg, jobs, resources) {
 
   var resourceURLs = {};
   var resourceFailing = {};
-  var resourcePaused = {};
 
   for (var i in resources) {
     var resource = resources[i];
     resourceURLs[resource.name] = "/teams/"+resource.team_name+"/pipelines/"+resource.pipeline_name+"/resources/"+encodeURIComponent(resource.name);
     resourceFailing[resource.name] = resource.failing_to_check;
-    resourcePaused[resource.name] = resource.paused;
   }
 
   for (var i in jobs) {
@@ -353,10 +351,6 @@ function createGraph(svg, jobs, resources) {
     var status = "";
     if (resourceFailing[resource]) {
       status += " failing";
-    }
-
-    if (resourcePaused[resource]) {
-      status += " paused";
     }
 
     return status;

@@ -3,8 +3,6 @@ module Concourse.Resource
         ( fetchAllResources
         , fetchResource
         , fetchResourcesRaw
-        , pause
-        , unpause
         , fetchVersionedResources
         , fetchVersionedResource
         , enableVersionedResource
@@ -50,37 +48,6 @@ fetchResourcesRaw pi =
         flip Http.get
             Json.Decode.value
             ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/resources")
-
-
-pause : Concourse.ResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-pause =
-    pauseUnpause True
-
-
-unpause : Concourse.ResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-unpause =
-    pauseUnpause False
-
-
-pauseUnpause : Bool -> Concourse.ResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-pauseUnpause pause rid csrfToken =
-    let
-        action =
-            if pause then
-                "pause"
-            else
-                "unpause"
-    in
-        Http.toTask <|
-            Http.request
-                { method = "PUT"
-                , url = "/api/v1/teams/" ++ rid.teamName ++ "/pipelines/" ++ rid.pipelineName ++ "/resources/" ++ rid.resourceName ++ "/" ++ action
-                , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
-                , body = Http.emptyBody
-                , expect = Http.expectStringResponse (\_ -> Ok ())
-                , timeout = Nothing
-                , withCredentials = False
-                }
 
 
 fetchVersionedResource : Concourse.VersionedResourceIdentifier -> Task Http.Error Concourse.VersionedResource

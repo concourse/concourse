@@ -13,7 +13,6 @@ module Resource
         , viewVersionBody
         , subscriptions
         , PauseChangingOrErrored(..)
-        , PinState(..)
         )
 
 import Concourse
@@ -35,11 +34,11 @@ import List.Extra as LE
 import Maybe.Extra as ME
 import Navigation
 import NewTopBar.Styles as Styles
+import Pinned exposing (Pinned(..), PinState(..))
 import StrictEvents
 import Task exposing (Task)
 import Time exposing (Time)
 import LoginRedirect
-import RemoteData exposing (WebData)
 import UpdateMsg exposing (UpdateMsg)
 
 
@@ -48,25 +47,34 @@ type alias Ports =
     }
 
 
+type PageError
+    = Empty
+    | NotFound
+
+
+type alias VersionID =
+    Int
+
+
 type alias Model =
     { ports : Ports
+    , pageStatus : Result PageError ()
+    , teamName : String
+    , pipelineName : String
+    , name : String
+    , failingToCheck : Bool
+    , checkError : String
+    , checkSetupError : String
+    , lastChecked : Maybe Date
+    , pinnedVersion : Pinned Concourse.Version Int
     , now : Maybe Time.Time
     , resourceIdentifier : Concourse.ResourceIdentifier
-    , resource : WebData Concourse.Resource
-    , pausedChanging : PauseChangingOrErrored
     , versionedResources : Paginated Concourse.VersionedResource
     , currentPage : Maybe Page
     , versionedUIStates : Dict.Dict Int VersionUIState
     , csrfToken : String
     , showPinBarTooltip : Bool
-    , pinTransition : TransitionStatus
     }
-
-
-type TransitionStatus
-    = NotChanging
-    | Pinning { toVersionID : Int }
-    | Unpinning { fromVersionID : Int }
 
 
 type alias VersionUIState =
@@ -84,19 +92,10 @@ type PauseChangingOrErrored
     | Errored
 
 
-type PinState
-    = Enabled
-    | Pinned
-    | Disabled
-    | Pending
-
-
 type Msg
     = Noop
     | AutoupdateTimerTicked Time
     | ResourceFetched (Result Http.Error Concourse.Resource)
-    | TogglePaused
-    | PausedToggled (Result Http.Error ())
     | VersionedResourcesFetched (Maybe Page) (Result Http.Error (Paginated Concourse.VersionedResource))
     | LoadPage Page
     | ClockTick Time.Time
@@ -131,8 +130,15 @@ init ports flags =
                     , pipelineName = flags.pipelineName
                     , resourceName = flags.resourceName
                     }
-                , resource = RemoteData.NotAsked
-                , pausedChanging = Stable
+                , pageStatus = Err Empty
+                , teamName = flags.teamName
+                , pipelineName = flags.pipelineName
+                , name = flags.resourceName
+                , failingToCheck = False
+                , checkError = ""
+                , checkSetupError = ""
+                , lastChecked = Nothing
+                , pinnedVersion = Off
                 , currentPage = Nothing
                 , versionedResources =
                     { content = []
@@ -146,7 +152,6 @@ init ports flags =
                 , now = Nothing
                 , csrfToken = flags.csrfToken
                 , showPinBarTooltip = False
-                , pinTransition = NotChanging
                 }
     in
         ( model
@@ -179,12 +184,49 @@ updateWithMessage message model =
         ( mdl, msg ) =
             update message model
     in
-        case mdl.resource of
-            RemoteData.Failure _ ->
-                ( mdl, msg, Just UpdateMsg.NotFound )
+        if mdl.pageStatus == Err NotFound then
+            ( mdl, msg, Just UpdateMsg.NotFound )
+        else
+            ( mdl, msg, Nothing )
 
-            _ ->
-                ( mdl, msg, Nothing )
+
+updatePinnedVersion : Concourse.Resource -> Model -> Model
+updatePinnedVersion resource model =
+    case ( resource.pinnedVersion, resource.pinnedInConfig ) of
+        ( Nothing, _ ) ->
+            case model.pinnedVersion of
+                TurningOn d ->
+                    model
+
+                _ ->
+                    { model | pinnedVersion = Off }
+
+        ( Just v, True ) ->
+            { model | pinnedVersion = Static v }
+
+        ( Just newVersion, False ) ->
+            case model.pinnedVersion of
+                TurningOff _ ->
+                    { model | pinnedVersion = TurningOff newVersion }
+
+                _ ->
+                    { model | pinnedVersion = On newVersion }
+
+
+hasPinnedVersion : Model -> Concourse.Version -> Bool
+hasPinnedVersion model v =
+    case model.pinnedVersion of
+        Static pv ->
+            v == pv
+
+        On pv ->
+            v == pv
+
+        TurningOff pv ->
+            v == pv
+
+        _ ->
+            False
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -205,7 +247,17 @@ update action model =
             )
 
         ResourceFetched (Ok resource) ->
-            ( { model | resource = RemoteData.Success resource }
+            ( { model
+                | pageStatus = Ok ()
+                , teamName = resource.teamName
+                , pipelineName = resource.pipelineName
+                , name = resource.name
+                , failingToCheck = resource.failingToCheck
+                , checkError = resource.checkError
+                , checkSetupError = resource.checkSetupError
+                , lastChecked = resource.lastChecked
+              }
+                |> updatePinnedVersion resource
             , model.ports.title <| resource.name ++ " - "
             )
 
@@ -215,52 +267,12 @@ update action model =
                     if status.code == 401 then
                         ( model, LoginRedirect.requestLoginRedirect "" )
                     else if status.code == 404 then
-                        ( { model | resource = RemoteData.Failure err }, Cmd.none )
+                        ( { model | pageStatus = Err NotFound }, Cmd.none )
                     else
                         ( model, Cmd.none )
 
                 _ ->
                     ( model, Cmd.none )
-
-        TogglePaused ->
-            case model.resource |> RemoteData.toMaybe of
-                Nothing ->
-                    ( model, Cmd.none )
-
-                Just r ->
-                    ( { model
-                        | pausedChanging = Changing
-                        , resource = RemoteData.Success { r | paused = not r.paused }
-                      }
-                    , if r.paused then
-                        unpauseResource model.resourceIdentifier model.csrfToken
-                      else
-                        pauseResource model.resourceIdentifier model.csrfToken
-                    )
-
-        PausedToggled (Ok ()) ->
-            ( { model | pausedChanging = Stable }, Cmd.none )
-
-        PausedToggled (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
-                    else
-                        ( model, Cmd.none )
-
-                _ ->
-                    case model.resource |> RemoteData.toMaybe of
-                        Nothing ->
-                            ( model, Cmd.none )
-
-                        Just r ->
-                            ( { model
-                                | pausedChanging = Errored
-                                , resource = RemoteData.Success { r | paused = not r.paused }
-                              }
-                            , Cmd.none
-                            )
 
         VersionedResourcesFetched requestedPage (Ok paginated) ->
             let
@@ -401,53 +413,42 @@ update action model =
         TogglePinBarTooltip ->
             ( { model
                 | showPinBarTooltip =
-                    if
-                        model.resource
-                            |> RemoteData.map .pinnedInConfig
-                            |> RemoteData.withDefault False
-                    then
-                        not model.showPinBarTooltip
-                    else
-                        False
+                    case model.pinnedVersion of
+                        Static _ ->
+                            not model.showPinBarTooltip
+
+                        _ ->
+                            False
               }
             , Cmd.none
             )
 
         ToggleVersionTooltip ->
             let
-                pinnedInConfig =
-                    model.resource
-                        |> RemoteData.map .pinnedInConfig
-                        |> RemoteData.withDefault False
+                pinnedVersionID : Maybe Int
+                pinnedVersionID =
+                    model.versionedResources.content
+                        |> LE.find (.version >> hasPinnedVersion model)
+                        |> Maybe.map .id
 
                 newModel =
-                    if pinnedInConfig then
-                        model.resource
-                            |> RemoteData.map
-                                (\r ->
-                                    model.versionedResources.content
-                                        |> LE.find (\vr -> r.pinnedVersion == Just vr.version)
-                                        |> Maybe.map .id
-                                )
-                            |> RemoteData.withDefault Nothing
-                            |> Maybe.map
-                                (\id ->
-                                    let
-                                        oldState =
-                                            getState id model.versionedUIStates
+                    case ( model.pinnedVersion, pinnedVersionID ) of
+                        ( Static _, Just id ) ->
+                            let
+                                oldState =
+                                    getState id model.versionedUIStates
 
-                                        newState =
-                                            { oldState
-                                                | showTooltip = not oldState.showTooltip
-                                            }
-                                    in
-                                        { model
-                                            | versionedUIStates = setState id newState model.versionedUIStates
-                                        }
-                                )
-                            |> Maybe.withDefault model
-                    else
-                        model
+                                newState =
+                                    { oldState
+                                        | showTooltip = not oldState.showTooltip
+                                    }
+                            in
+                                { model
+                                    | versionedUIStates = setState id newState model.versionedUIStates
+                                }
+
+                        _ ->
+                            model
             in
                 ( newModel, Cmd.none )
 
@@ -457,15 +458,6 @@ update action model =
                 versionedResource =
                     model.versionedResources.content
                         |> LE.find (\vr -> vr.id == versionID)
-
-                versionToPin : Maybe Concourse.Version
-                versionToPin =
-                    Maybe.map .version versionedResource
-
-                newResource : WebData Concourse.Resource
-                newResource =
-                    model.resource
-                        |> RemoteData.map (\resource -> { resource | pinnedVersion = versionToPin })
 
                 cmd : Cmd Msg
                 cmd =
@@ -484,7 +476,7 @@ update action model =
                             Cmd.none
 
                 newModel =
-                    { model | resource = newResource, pinTransition = Pinning { toVersionID = versionID } }
+                    { model | pinnedVersion = Pinned.startPinningTo versionID model.pinnedVersion }
             in
                 ( newModel
                 , cmd
@@ -492,34 +484,16 @@ update action model =
 
         UnpinVersion ->
             let
-                pinnedVersion : Maybe Concourse.Version
-                pinnedVersion =
-                    case model.resource of
-                        RemoteData.Success r ->
-                            r.pinnedVersion
-
-                        _ ->
-                            Nothing
-
                 pinnedVersionedResource : Maybe Concourse.VersionedResource
                 pinnedVersionedResource =
                     model.versionedResources.content
-                        |> LE.find (\vr -> Just vr.version == pinnedVersion)
-
-                newPinTransition : TransitionStatus
-                newPinTransition =
-                    case pinnedVersionedResource of
-                        Just versionedResource ->
-                            Unpinning { fromVersionID = versionedResource.id }
-
-                        Nothing ->
-                            NotChanging
+                        |> LE.find (.version >> hasPinnedVersion model)
 
                 cmd : Cmd Msg
                 cmd =
                     case pinnedVersionedResource of
                         Just vr ->
-                            Task.attempt VersionPinned <|
+                            Task.attempt VersionUnpinned <|
                                 Concourse.Resource.unpinVersion
                                     { teamName = model.resourceIdentifier.teamName
                                     , pipelineName = model.resourceIdentifier.pipelineName
@@ -531,32 +505,39 @@ update action model =
                         Nothing ->
                             Cmd.none
             in
-                ( { model | pinTransition = newPinTransition }, cmd )
+                ( { model | pinnedVersion = Pinned.startUnpinning model.pinnedVersion }, cmd )
 
         VersionPinned (Ok ()) ->
-            ( { model | pinTransition = NotChanging }, fetchResource model.resourceIdentifier )
+            let
+                newPinnedVersion =
+                    Pinned.finishPinning
+                        (\pinningTo ->
+                            model.versionedResources.content
+                                |> LE.find (\vr -> vr.id == pinningTo)
+                                |> Maybe.map .version
+                        )
+                        model.pinnedVersion
+            in
+                ( { model | pinnedVersion = newPinnedVersion }, Cmd.none )
 
         VersionPinned (Err _) ->
             ( { model
-                | resource =
-                    model.resource
-                        |> RemoteData.map (\r -> { r | pinnedVersion = Nothing })
+                | pinnedVersion = Off
               }
             , Cmd.none
             )
 
         VersionUnpinned (Ok ()) ->
             ( { model
-                | resource =
-                    model.resource
-                        |> RemoteData.map (\r -> { r | pinnedVersion = Nothing })
-                , pinTransition = NotChanging
+                | pinnedVersion = Off
               }
-            , fetchResource model.resourceIdentifier
+            , Cmd.none
             )
 
         VersionUnpinned (Err _) ->
-            ( { model | pinTransition = NotChanging }
+            ( { model
+                | pinnedVersion = Pinned.quitUnpinning model.pinnedVersion
+              }
             , Cmd.none
             )
 
@@ -609,243 +590,214 @@ paginationRoute rid page =
 
 view : Model -> Html Msg
 view model =
-    case model.resource |> RemoteData.toMaybe of
-        Just resource ->
-            let
-                ( checkStatus, checkMessage, stepBody ) =
-                    if resource.failingToCheck then
-                        if not (String.isEmpty resource.checkSetupError) then
-                            ( "fr errored fa fa-fw fa-exclamation-triangle"
-                            , "checking failed"
-                            , [ Html.div [ class "step-body" ]
-                                    [ Html.pre [] [ Html.text resource.checkSetupError ]
-                                    ]
-                              ]
-                            )
-                        else
-                            ( "fr errored fa fa-fw fa-exclamation-triangle"
-                            , "checking failed"
-                            , [ Html.div [ class "step-body" ]
-                                    [ Html.pre [] [ Html.text resource.checkError ]
-                                    ]
-                              ]
-                            )
+    if model.pageStatus == Err Empty then
+        Html.div [] []
+    else
+        let
+            ( checkStatus, checkMessage, stepBody ) =
+                if model.failingToCheck then
+                    if not (String.isEmpty model.checkSetupError) then
+                        ( "fr errored fa fa-fw fa-exclamation-triangle"
+                        , "checking failed"
+                        , [ Html.div [ class "step-body" ]
+                                [ Html.pre [] [ Html.text model.checkSetupError ]
+                                ]
+                          ]
+                        )
                     else
-                        ( "fr succeeded fa fa-fw fa-check", "checking successfully", [] )
+                        ( "fr errored fa fa-fw fa-exclamation-triangle"
+                        , "checking failed"
+                        , [ Html.div [ class "step-body" ]
+                                [ Html.pre [] [ Html.text model.checkError ]
+                                ]
+                          ]
+                        )
+                else
+                    ( "fr succeeded fa fa-fw fa-check", "checking successfully", [] )
 
-                ( paused, pausedIcon, aria, onClickEvent ) =
-                    case ( resource.paused, model.pausedChanging ) of
-                        ( _, Changing ) ->
-                            ( "loading", "fa-spin fa-circle-o-notch", "", Noop )
+            ( previousButtonClass, previousButtonEvent ) =
+                case model.versionedResources.pagination.previousPage of
+                    Nothing ->
+                        ( "btn-page-link prev disabled", Noop )
 
-                        ( True, Errored ) ->
-                            ( "errored", "fa-play", "Resume Resource Checking", TogglePaused )
+                    Just pp ->
+                        ( "btn-page-link prev", LoadPage pp )
 
-                        ( False, Errored ) ->
-                            ( "errored", "fa-pause", "Pause Resource Checking", TogglePaused )
+            ( nextButtonClass, nextButtonEvent ) =
+                case model.versionedResources.pagination.nextPage of
+                    Nothing ->
+                        ( "btn-page-link next disabled", Noop )
 
-                        ( True, Stable ) ->
-                            ( "enabled", "fa-play", "Resume Resource Checking", TogglePaused )
+                    Just np ->
+                        let
+                            updatedPage =
+                                { np
+                                    | limit = 100
+                                }
+                        in
+                            ( "btn-page-link next", LoadPage updatedPage )
 
-                        ( False, Stable ) ->
-                            ( "disabled", "fa-pause", "Pause Resource Checking", TogglePaused )
+            lastCheckedView =
+                case ( model.now, model.lastChecked ) of
+                    ( Just now, Just date ) ->
+                        viewLastChecked now date
 
-                ( previousButtonClass, previousButtonEvent ) =
-                    case model.versionedResources.pagination.previousPage of
-                        Nothing ->
-                            ( "btn-page-link prev disabled", Noop )
+                    ( _, _ ) ->
+                        Html.text ""
 
-                        Just pp ->
-                            ( "btn-page-link prev", LoadPage pp )
+            pinBarVersion =
+                Pinned.stable model.pinnedVersion
 
-                ( nextButtonClass, nextButtonEvent ) =
-                    case model.versionedResources.pagination.nextPage of
-                        Nothing ->
-                            ( "btn-page-link next disabled", Noop )
-
-                        Just np ->
-                            let
-                                updatedPage =
-                                    { np
-                                        | limit = 100
-                                    }
-                            in
-                                ( "btn-page-link next", LoadPage updatedPage )
-
-                lastCheckedView =
-                    case ( model.now, resource.lastChecked ) of
-                        ( Just now, Just date ) ->
-                            viewLastChecked now date
-
-                        ( _, _ ) ->
-                            Html.text ""
-
-                pinBar =
-                    Html.div
-                        ([ css
-                            [ Css.flexGrow (Css.num 1)
-                            , Css.margin (Css.px 10)
-                            , Css.paddingLeft (Css.px 7)
-                            , Css.displayFlex
-                            , Css.alignItems Css.center
-                            , Css.position Css.relative
-                            ]
-                         , style
-                            [ ( "border"
-                              , "1px solid "
-                                    ++ (if ME.isJust resource.pinnedVersion && model.pinTransition == NotChanging then
-                                            "#03dac4"
-                                        else
-                                            "#3d3c3c"
-                                       )
-                              )
-                            ]
-                         , id "pin-bar"
-                         ]
-                            ++ (if resource.pinnedInConfig then
+            pinBar =
+                Html.div
+                    ([ css
+                        [ Css.flexGrow (Css.num 1)
+                        , Css.margin (Css.px 10)
+                        , Css.paddingLeft (Css.px 7)
+                        , Css.displayFlex
+                        , Css.alignItems Css.center
+                        , Css.position Css.relative
+                        ]
+                     , style
+                        [ ( "border"
+                          , "1px solid "
+                                ++ (if ME.isJust pinBarVersion then
+                                        "#03dac4"
+                                    else
+                                        "#3d3c3c"
+                                   )
+                          )
+                        ]
+                     , id "pin-bar"
+                     ]
+                        ++ (case model.pinnedVersion of
+                                Static _ ->
                                     [ onMouseEnter TogglePinBarTooltip
                                     , onMouseLeave TogglePinBarTooltip
                                     ]
-                                else
-                                    []
-                               )
-                        )
-                        ([ Html.div
-                            [ css
-                                [ Css.backgroundRepeat Css.noRepeat
-                                , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
-                                , Css.height (Css.px 15)
-                                , Css.width (Css.px 15)
-                                , Css.marginRight (Css.px 10)
-                                ]
-                            , style
-                                [ ( "background-image"
-                                  , if ME.isJust resource.pinnedVersion && model.pinTransition == NotChanging then
-                                        "url(/public/images/pin_ic_white.svg)"
-                                    else
-                                        "url(/public/images/pin_ic_grey.svg)"
-                                  )
-                                ]
-                            ]
-                            []
-                         ]
-                            ++ (if model.pinTransition == NotChanging then
-                                    [ resource.pinnedVersion
-                                        |> Maybe.map viewVersion
-                                        |> Maybe.withDefault (Html.text "")
-                                    ]
-                                else
-                                    []
-                               )
-                            ++ (if model.showPinBarTooltip then
-                                    [ Html.div
-                                        [ css
-                                            [ Css.position Css.absolute
-                                            , Css.top <| Css.px -10
-                                            , Css.left <| Css.px 30
-                                            , Css.backgroundColor <| Css.hex "9b9b9b"
-                                            , Css.zIndex <| Css.int 2
-                                            , Css.padding <| Css.px 5
-                                            ]
-                                        ]
-                                        [ Html.text "pinned in pipeline config" ]
-                                    ]
-                                else
-                                    []
-                               )
-                        )
 
-                headerHeight =
-                    60
-            in
-                Html.div []
-                    [ Html.div
+                                _ ->
+                                    []
+                           )
+                    )
+                    ([ Html.div
                         [ css
-                            [ Css.height <| Css.px headerHeight
-                            , Css.position Css.fixed
-                            , Css.top <| Css.px Styles.pageHeaderHeight
-                            , Css.displayFlex
-                            , Css.alignItems Css.stretch
-                            , Css.width <| Css.pct 100
-                            , Css.zIndex <| Css.int 1
-                            , Css.backgroundColor <| Css.hex "2a2929"
+                            [ Css.backgroundRepeat Css.noRepeat
+                            , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
+                            , Css.height (Css.px 15)
+                            , Css.width (Css.px 15)
+                            , Css.marginRight (Css.px 10)
+                            ]
+                        , style
+                            [ ( "background-image"
+                              , if ME.isJust pinBarVersion then
+                                    "url(/public/images/pin_ic_white.svg)"
+                                else
+                                    "url(/public/images/pin_ic_grey.svg)"
+                              )
                             ]
                         ]
-                        [ Html.h1
-                            [ css
-                                [ Css.fontWeight <| Css.int 700
-                                , Css.marginLeft <| Css.px 18
-                                , Css.displayFlex
-                                , Css.alignItems Css.center
-                                , Css.justifyContent Css.center
+                        []
+                     ]
+                        ++ (case pinBarVersion of
+                                Just v ->
+                                    [ viewVersion v ]
+
+                                _ ->
+                                    []
+                           )
+                        ++ (if model.showPinBarTooltip then
+                                [ Html.div
+                                    [ css
+                                        [ Css.position Css.absolute
+                                        , Css.top <| Css.px -10
+                                        , Css.left <| Css.px 30
+                                        , Css.backgroundColor <| Css.hex "9b9b9b"
+                                        , Css.zIndex <| Css.int 2
+                                        , Css.padding <| Css.px 5
+                                        ]
+                                    ]
+                                    [ Html.text "pinned in pipeline config" ]
                                 ]
+                            else
+                                []
+                           )
+                    )
+
+            headerHeight =
+                60
+        in
+            Html.div []
+                [ Html.div
+                    [ css
+                        [ Css.height <| Css.px headerHeight
+                        , Css.position Css.fixed
+                        , Css.top <| Css.px Styles.pageHeaderHeight
+                        , Css.displayFlex
+                        , Css.alignItems Css.stretch
+                        , Css.width <| Css.pct 100
+                        , Css.zIndex <| Css.int 1
+                        , Css.backgroundColor <| Css.hex "2a2929"
+                        ]
+                    ]
+                    [ Html.h1
+                        [ css
+                            [ Css.fontWeight <| Css.int 700
+                            , Css.marginLeft <| Css.px 18
+                            , Css.displayFlex
+                            , Css.alignItems Css.center
+                            , Css.justifyContent Css.center
                             ]
-                            [ Html.text resource.name ]
-                        , Html.div
-                            [ css
-                                [ Css.displayFlex
-                                , Css.alignItems Css.center
-                                , Css.justifyContent Css.center
-                                , Css.marginLeft (Css.px 24)
-                                ]
+                        ]
+                        [ Html.text model.name ]
+                    , Html.div
+                        [ css
+                            [ Css.displayFlex
+                            , Css.alignItems Css.center
+                            , Css.justifyContent Css.center
+                            , Css.marginLeft (Css.px 24)
                             ]
-                            [ lastCheckedView ]
-                        , pinBar
-                        , Html.div
-                            [ class previousButtonClass
-                            , onClick previousButtonEvent
-                            , css [ Css.displayFlex, Css.alignItems Css.center ]
-                            ]
-                            [ Html.a [ class "arrow" ]
-                                [ Html.i [ class "fa fa-arrow-left" ] []
-                                ]
-                            ]
-                        , Html.div
-                            [ class nextButtonClass
-                            , onClick nextButtonEvent
-                            , css [ Css.displayFlex, Css.alignItems Css.center ]
-                            ]
-                            [ Html.a [ class "arrow" ]
-                                [ Html.i [ class "fa fa-arrow-right" ] []
-                                ]
+                        ]
+                        [ lastCheckedView ]
+                    , pinBar
+                    , Html.div
+                        [ class previousButtonClass
+                        , onClick previousButtonEvent
+                        , css [ Css.displayFlex, Css.alignItems Css.center ]
+                        ]
+                        [ Html.a [ class "arrow" ]
+                            [ Html.i [ class "fa fa-arrow-left" ] []
                             ]
                         ]
                     , Html.div
-                        [ css
-                            [ Css.padding3 (Css.px <| headerHeight + 10) (Css.px 10) (Css.px 10)
-                            ]
+                        [ class nextButtonClass
+                        , onClick nextButtonEvent
+                        , css [ Css.displayFlex, Css.alignItems Css.center ]
                         ]
-                        [ Html.div [ class "resource-check-status" ]
-                            [ Html.div [ class "build-step" ]
-                                (List.append
-                                    [ Html.div [ class "header" ]
-                                        [ Html.button
-                                            [ class <| "btn-pause fl " ++ paused
-                                            , Html.Styled.Attributes.attribute "aria-label" aria
-                                            , title aria
-                                            , onClick onClickEvent
-                                            ]
-                                            [ Html.i [ class <| "fa fa-fw " ++ pausedIcon ] []
-                                            ]
-                                        , Html.h3 [] [ Html.text checkMessage ]
-                                        , Html.i [ class <| checkStatus ] []
-                                        ]
-                                    ]
-                                    stepBody
-                                )
+                        [ Html.a [ class "arrow" ]
+                            [ Html.i [ class "fa fa-arrow-right" ] []
                             ]
-                        , viewVersionedResources
-                            { versionedResources = model.versionedResources
-                            , versionedUIStates = model.versionedUIStates
-                            , isResourcePinnedInConfig = resource.pinnedInConfig
-                            , pinnedVersion = resource.pinnedVersion
-                            , pinTransition = model.pinTransition
-                            }
                         ]
                     ]
-
-        Nothing ->
-            Html.div [] []
+                , Html.div
+                    [ css
+                        [ Css.padding3 (Css.px <| headerHeight + 10) (Css.px 10) (Css.px 10)
+                        ]
+                    ]
+                    [ Html.div [ class "resource-check-status" ]
+                        [ Html.div [ class "build-step" ]
+                            (List.append
+                                [ Html.div [ class "header" ]
+                                    [ Html.h3 [] [ Html.text checkMessage ]
+                                    , Html.i [ class <| checkStatus ] []
+                                    ]
+                                ]
+                                stepBody
+                            )
+                        ]
+                    , viewVersionedResources model
+                    ]
+                ]
 
 
 checkForVersionID : Int -> Concourse.VersionedResource -> Bool
@@ -857,40 +809,37 @@ viewVersionedResources :
     { a
         | versionedResources : Paginated Concourse.VersionedResource
         , versionedUIStates : Dict.Dict Int VersionUIState
-        , isResourcePinnedInConfig : Bool
-        , pinnedVersion : Maybe Concourse.Version
-        , pinTransition : TransitionStatus
+        , pinnedVersion : Pinned Concourse.Version Int
     }
     -> Html Msg
-viewVersionedResources { versionedResources, isResourcePinnedInConfig, versionedUIStates, pinnedVersion, pinTransition } =
+viewVersionedResources { versionedResources, versionedUIStates, pinnedVersion } =
     versionedResources.content
         |> List.map
             (\vr ->
                 viewVersionedResource
                     { versionedResource = vr
-                    , pinState =
-                        (if pinnedVersion == Just vr.version then
-                            if pinTransition == NotChanging then
-                                Pinned
-                            else
-                                Pending
-                         else if pinnedVersion == Nothing then
-                            Enabled
-                         else
-                            Disabled
-                        )
+                    , pinState = Pinned.pinState vr.version vr.id pinnedVersion
                     , state =
                         let
                             state =
                                 getState vr.id versionedUIStates
 
                             showTooltip =
-                                if pinnedVersion == Nothing || not isResourcePinnedInConfig then
-                                    False
-                                else
-                                    state.showTooltip
+                                case pinnedVersion of
+                                    Static _ ->
+                                        state.showTooltip
+
+                                    _ ->
+                                        False
                         in
                             { state | showTooltip = showTooltip }
+                    , isDynamic =
+                        case pinnedVersion of
+                            Static _ ->
+                                False
+
+                            _ ->
+                                True
                     }
             )
         |> Html.ul [ class "list list-collapsable list-enableDisable resource-versions" ]
@@ -900,9 +849,10 @@ viewVersionedResource :
     { versionedResource : Concourse.VersionedResource
     , state : VersionUIState
     , pinState : PinState
+    , isDynamic : Bool
     }
     -> Html Msg
-viewVersionedResource { versionedResource, pinState, state } =
+viewVersionedResource { versionedResource, pinState, state, isDynamic } =
     Html.li
         (case pinState of
             Disabled ->
@@ -921,6 +871,7 @@ viewVersionedResource { versionedResource, pinState, state } =
                 { versionID = versionedResource.id
                 , pinState = pinState
                 , showTooltip = state.showTooltip
+                , isDynamic = isDynamic
                 }
             , viewVersionHeader
                 { id = versionedResource.id
@@ -973,8 +924,8 @@ viewVersionBody { inputTo, outputOf, metadata } =
         ]
 
 
-viewPinButton : { versionID : Int, pinState : PinState, showTooltip : Bool } -> Html Msg
-viewPinButton { versionID, pinState, showTooltip } =
+viewPinButton : { versionID : Int, pinState : PinState, showTooltip : Bool, isDynamic : Bool } -> Html Msg
+viewPinButton { versionID, pinState, showTooltip, isDynamic } =
     Html.div
         ([ Html.Styled.Attributes.attribute "aria-label" "Pin Resource Version"
          , css
@@ -1001,18 +952,15 @@ viewPinButton { versionID, pinState, showTooltip } =
                    )
             )
          ]
-            ++ (case pinState of
-                    Disabled ->
-                        []
-
-                    Pending ->
-                        []
-
-                    Enabled ->
+            ++ (case ( pinState, isDynamic ) of
+                    ( Enabled, True ) ->
                         [ onClick <| PinVersion versionID ]
 
-                    Pinned ->
+                    ( Pinned, True ) ->
                         [ onClick <| UnpinVersion ]
+
+                    _ ->
+                        []
                )
             ++ (if pinState == Pinned then
                     [ onMouseOut ToggleVersionTooltip
@@ -1250,18 +1198,6 @@ fetchResource : Concourse.ResourceIdentifier -> Cmd Msg
 fetchResource resourceIdentifier =
     Task.attempt ResourceFetched <|
         Concourse.Resource.fetchResource resourceIdentifier
-
-
-pauseResource : Concourse.ResourceIdentifier -> Concourse.CSRFToken -> Cmd Msg
-pauseResource resourceIdentifier csrfToken =
-    Task.attempt PausedToggled <|
-        Concourse.Resource.pause resourceIdentifier csrfToken
-
-
-unpauseResource : Concourse.ResourceIdentifier -> Concourse.CSRFToken -> Cmd Msg
-unpauseResource resourceIdentifier csrfToken =
-    Task.attempt PausedToggled <|
-        Concourse.Resource.unpause resourceIdentifier csrfToken
 
 
 fetchVersionedResources : Concourse.ResourceIdentifier -> Maybe Page -> Cmd Msg
