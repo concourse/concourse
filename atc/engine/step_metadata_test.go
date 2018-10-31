@@ -24,6 +24,8 @@ var _ = Describe("StepMetadata", func() {
 				"BUILD_NAME=42",
 				"ATC_EXTERNAL_URL=http://www.example.com",
 				"BUILD_TEAM_NAME=some-team",
+				"BUILD_URL=http://www.example.com/teams/some-team/pipelines/some-pipeline-name/jobs/some-job-name/builds/42",
+				"BUILD_URL_SHORT=http://www.example.com/builds/1",
 			}))
 		})
 
