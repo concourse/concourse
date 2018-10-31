@@ -1,4 +1,4 @@
-package resource
+package v1
 
 import (
 	"context"
@@ -13,24 +13,25 @@ type getRequest struct {
 	Version atc.Version `json:"version,omitempty"`
 }
 
-func (resource *resource) Get(
+func (r *Resource) Get(
 	ctx context.Context,
 	volume worker.Volume,
-	ioConfig IOConfig,
-	source atc.Source,
+	ioConfig atc.IOConfig,
+	src atc.Source,
 	params atc.Params,
 	version atc.Version,
 ) (VersionedSource, error) {
-	var vr versionResult
+	var vr VersionResult
 
-	err := resource.runScript(
+	err := RunScript(
 		ctx,
 		"/opt/resource/in",
-		[]string{ResourcesDir("get")},
-		getRequest{source, params, version},
+		[]string{atc.ResourcesDir("get")},
+		getRequest{src, params, version},
 		&vr,
 		ioConfig.Stderr,
 		true,
+		r.Container,
 	)
 	if err != nil {
 		return nil, err

@@ -54,9 +54,6 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		fakeContainer.AttachReturns(nil, errors.New("process not found"))
 
 		fakeContainer.RunStub = func(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
-			_, err := io.Stdout.Write([]byte("{}"))
-			Expect(err).NotTo(HaveOccurred())
-
 			return inProcess, nil
 		}
 
@@ -64,7 +61,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
 			{
 				Volume:    fakeVolume,
-				MountPath: resource.ResourcesDir("get"),
+				MountPath: atc.ResourcesDir("get"),
 			},
 		})
 
@@ -121,20 +118,15 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 
 	Describe("Find", func() {
 		Context("when there is volume", func() {
-			var expectedInitializedVersionedSource resource.VersionedSource
 			BeforeEach(func() {
-				expectedMetadata := []atc.MetadataField{
-					{Name: "some", Value: "metadata"},
-				}
-				expectedInitializedVersionedSource = resource.NewGetVersionedSource(fakeVolume, fakeResourceInstance.Version(), expectedMetadata)
 				fakeResourceInstance.FindOnReturns(fakeVolume, true, nil)
 			})
 
-			It("finds initialized volume and sets versioned source", func() {
-				versionedSource, found, err := fetchSource.Find()
+			It("finds initialized volume and returns it", func() {
+				volume, found, err := fetchSource.Find()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(versionedSource).To(Equal(expectedInitializedVersionedSource))
+				Expect(volume).To(Equal(fakeVolume))
 			})
 		})
 
@@ -144,19 +136,18 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 			})
 
 			It("does not find volume", func() {
-				versionedSource, found, err := fetchSource.Find()
+				volume, found, err := fetchSource.Find()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
-				Expect(versionedSource).To(BeNil())
+				Expect(volume).To(BeNil())
 			})
 		})
 	})
 
 	Describe("Create", func() {
 		var (
-			initErr                 error
-			versionedSource         resource.VersionedSource
-			expectedVersionedSource resource.VersionedSource
+			initErr error
+			volume  worker.Volume
 		)
 
 		BeforeEach(func() {
@@ -164,16 +155,12 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		})
 
 		JustBeforeEach(func() {
-			versionedSource, initErr = fetchSource.Create(ctx)
+			volume, initErr = fetchSource.Create(ctx)
 		})
 
 		Context("when there is initialized volume", func() {
 			BeforeEach(func() {
 				fakeResourceInstance.FindOnReturns(fakeVolume, true, nil)
-				expectedMetadata := []atc.MetadataField{
-					{Name: "some", Value: "metadata"},
-				}
-				expectedVersionedSource = resource.NewGetVersionedSource(fakeVolume, fakeResourceInstance.Version(), expectedMetadata)
 			})
 
 			It("does not fetch resource", func() {
@@ -181,9 +168,9 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 				Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(0))
 			})
 
-			It("finds initialized volume and sets versioned source", func() {
+			It("finds initialized volume and returns it", func() {
 				Expect(initErr).NotTo(HaveOccurred())
-				Expect(versionedSource).To(Equal(expectedVersionedSource))
+				Expect(volume).To(Equal(fakeVolume))
 			})
 		})
 
@@ -207,13 +194,13 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 					},
 					BindMounts: []worker.BindMountSource{&worker.CertsVolumeMount{Logger: logger}},
 					Outputs: map[string]string{
-						"resource": resource.ResourcesDir("get"),
+						"resource": atc.ResourcesDir("get"),
 					},
 				}))
 				Expect(types).To(Equal(resourceTypes))
 			})
 
-			It("fetches versioned source", func() {
+			It("fetches volume", func() {
 				Expect(initErr).NotTo(HaveOccurred())
 				Expect(fakeContainer.RunCallCount()).To(Equal(1))
 			})
@@ -223,12 +210,6 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 				Expect(fakeVolume.InitializeResourceCacheCallCount()).To(Equal(1))
 				rc := fakeVolume.InitializeResourceCacheArgsForCall(0)
 				Expect(rc).To(Equal(fakeUsedResourceCache))
-			})
-
-			It("updates resource cache metadata", func() {
-				Expect(fakeResourceCacheFactory.UpdateResourceCacheMetadataCallCount()).To(Equal(1))
-				passedResourceCache, _ := fakeResourceCacheFactory.UpdateResourceCacheMetadataArgsForCall(0)
-				Expect(passedResourceCache).To(Equal(fakeUsedResourceCache))
 			})
 
 			Context("when getting resource fails with other error", func() {

@@ -1,9 +1,9 @@
-package resource_test
+package v1_test
 
 import (
 	"testing"
 
-	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/resource/v1"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -14,7 +14,7 @@ var (
 	workerClient  *workerfakes.FakeClient
 	fakeContainer *workerfakes.FakeContainer
 
-	unversionedResource resource.UnversionedResource
+	resourceForContainer v1.Resource
 )
 
 var _ = BeforeEach(func() {
@@ -22,10 +22,12 @@ var _ = BeforeEach(func() {
 
 	fakeContainer = new(workerfakes.FakeContainer)
 
-	unversionedResource = resource.NewUnversionedResource(fakeContainer)
+	resourceForContainer = v1.Resource{
+		Container: fakeContainer,
+	}
 })
 
 func TestResource(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Resource Suite")
+	RunSpecs(t, "Resource V1 Suite")
 }

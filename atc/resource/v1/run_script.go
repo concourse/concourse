@@ -1,4 +1,4 @@
-package resource
+package v1
 
 import (
 	"bytes"
@@ -8,6 +8,7 @@ import (
 	"io"
 
 	"code.cloudfoundry.org/garden"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 const resourceResultPropertyName = "concourse:resource-result"
@@ -37,7 +38,7 @@ func (err ErrResourceScriptFailed) Error() string {
 	return msg
 }
 
-func (resource *resource) runScript(
+func RunScript(
 	ctx context.Context,
 	path string,
 	args []string,
@@ -45,6 +46,7 @@ func (resource *resource) runScript(
 	output interface{},
 	logDest io.Writer,
 	recoverable bool,
+	container worker.Container,
 ) error {
 	request, err := json.Marshal(input)
 	if err != nil {
@@ -52,7 +54,7 @@ func (resource *resource) runScript(
 	}
 
 	if recoverable {
-		result, err := resource.container.Property(resourceResultPropertyName)
+		result, err := container.Property(resourceResultPropertyName)
 		if err == nil {
 			return json.Unmarshal([]byte(result), &output)
 		}
@@ -75,9 +77,9 @@ func (resource *resource) runScript(
 	var process garden.Process
 
 	if recoverable {
-		process, err = resource.container.Attach(TaskProcessID, processIO)
+		process, err = container.Attach(TaskProcessID, processIO)
 		if err != nil {
-			process, err = resource.container.Run(garden.ProcessSpec{
+			process, err = container.Run(garden.ProcessSpec{
 				ID:   TaskProcessID,
 				Path: path,
 				Args: args,
@@ -87,7 +89,7 @@ func (resource *resource) runScript(
 			}
 		}
 	} else {
-		process, err = resource.container.Run(garden.ProcessSpec{
+		process, err = container.Run(garden.ProcessSpec{
 			Path: path,
 			Args: args,
 		}, processIO)
@@ -123,7 +125,7 @@ func (resource *resource) runScript(
 		}
 
 		if recoverable {
-			err := resource.container.SetProperty(resourceResultPropertyName, stdout.String())
+			err := container.SetProperty(resourceResultPropertyName, stdout.String())
 			if err != nil {
 				return err
 			}
@@ -132,7 +134,7 @@ func (resource *resource) runScript(
 		return json.Unmarshal(stdout.Bytes(), output)
 
 	case <-ctx.Done():
-		resource.container.Stop(false)
+		container.Stop(false)
 		<-processExited
 		return ctx.Err()
 	}

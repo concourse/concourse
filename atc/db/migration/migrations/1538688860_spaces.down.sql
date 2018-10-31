@@ -1,4 +1,5 @@
 BEGIN;
+  ALTER TABLE resource_caches ADD COLUMN metadata text;
 
   ALTER TABLE worker_task_caches RENAME job_combination_id TO job_id;
   ALTER TABLE worker_task_caches DROP CONSTRAINT worker_task_caches_job_combination_id_fkey;
@@ -51,11 +52,10 @@ BEGIN;
 
   DROP INDEX job_combinations_job_id_combination_key;
 
-  ALTER TABLE resource_config_versions
-    DROP CONSTRAINT space_id_and_version_md5_unique,
-    ADD CONSTRAINT resource_config_id_and_version_md5_unique UNIQUE (resource_config_id, version_md5);
-    DROP COLUMN space_id,
-    ADD COLUMN resource_config_id integer NOT NULL REFERENCES resource_configs (id) ON DELETE CASCADE,
+  ALTER TABLE resource_configs
+    DROP COLUMN "default_space";
+
+  DROP TABLE resource_versions;
 
   DROP TABLE spaces;
 

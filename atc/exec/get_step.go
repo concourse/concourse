@@ -174,7 +174,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		db.NewBuildStepContainerOwner(step.buildID, step.planID, step.teamID),
 	)
 
-	versionedSource, err := step.resourceFetcher.Fetch(
+	volume, err := step.resourceFetcher.Fetch(
 		ctx,
 		logger,
 		resource.Session{
@@ -201,19 +201,8 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	state.Artifacts().RegisterSource(worker.ArtifactName(step.name), &getArtifactSource{
 		logger:           logger,
 		resourceInstance: resourceInstance,
-		versionedSource:  versionedSource,
+		volume:           volume,
 	})
-
-	if step.resource != "" {
-		// Find or Save* the version used in the get step, and update the Metadata
-		// *saving will occur when the resource's config has changed, but it hasn't
-		// checked yet, so the resource config versions don't exist
-		_, err := resourceCache.ResourceConfig().SaveUncheckedVersion(versionedSource.Version(), db.NewResourceConfigMetadataFields(versionedSource.Metadata()))
-		if err != nil {
-			logger.Error("failed-to-save-resource-config-version", err, lager.Data{"name": step.name, "resource": step.resource, "version": versionedSource.Version()})
-			return err
-		}
-	}
 
 	step.succeeded = true
 
@@ -233,7 +222,7 @@ func (step *GetStep) Succeeded() bool {
 type getArtifactSource struct {
 	logger           lager.Logger
 	resourceInstance resource.ResourceInstance
-	versionedSource  resource.VersionedSource
+	volume           worker.Volume
 }
 
 // VolumeOn locates the cache for the GetStep's resource and version on the
@@ -244,7 +233,7 @@ func (s *getArtifactSource) VolumeOn(worker worker.Worker) (worker.Volume, bool,
 
 // StreamTo streams the resource's data to the destination.
 func (s *getArtifactSource) StreamTo(destination worker.ArtifactDestination) error {
-	out, err := s.versionedSource.StreamOut(".")
+	out, err := s.volume.StreamOut(".")
 	if err != nil {
 		return err
 	}
@@ -256,7 +245,7 @@ func (s *getArtifactSource) StreamTo(destination worker.ArtifactDestination) err
 
 // StreamFile streams a single file out of the resource.
 func (s *getArtifactSource) StreamFile(path string) (io.ReadCloser, error) {
-	out, err := s.versionedSource.StreamOut(path)
+	out, err := s.volume.StreamOut(path)
 	if err != nil {
 		return nil, err
 	}

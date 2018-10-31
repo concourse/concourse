@@ -53,7 +53,7 @@ func (s *resourceInstanceFetchSource) LockName() (string, error) {
 	return s.resourceInstance.LockName(s.worker.Name())
 }
 
-func (s *resourceInstanceFetchSource) Find() (VersionedSource, bool, error) {
+func (s *resourceInstanceFetchSource) Find() (worker.Volume, bool, error) {
 	sLog := s.logger.Session("find")
 
 	volume, found, err := s.resourceInstance.FindOn(s.logger, s.worker)
@@ -66,36 +66,26 @@ func (s *resourceInstanceFetchSource) Find() (VersionedSource, bool, error) {
 		return nil, false, nil
 	}
 
-	metadata, err := s.dbResourceCacheFactory.ResourceCacheMetadata(s.resourceInstance.ResourceCache())
-	if err != nil {
-		sLog.Error("failed-to-get-resource-cache-metadata", err)
-		return nil, false, err
-	}
+	s.logger.Debug("found-initialized-versioned-source", lager.Data{"version": s.resourceInstance.Version()})
 
-	s.logger.Debug("found-initialized-versioned-source", lager.Data{"version": s.resourceInstance.Version(), "metadata": metadata.ToATCMetadata()})
-
-	return NewGetVersionedSource(
-		volume,
-		s.resourceInstance.Version(),
-		metadata.ToATCMetadata(),
-	), true, nil
+	return volume, true, nil
 }
 
 // Create runs under the lock but we need to make sure volume does not exist
 // yet before creating it under the lock
-func (s *resourceInstanceFetchSource) Create(ctx context.Context) (VersionedSource, error) {
+func (s *resourceInstanceFetchSource) Create(ctx context.Context) (worker.Volume, error) {
 	sLog := s.logger.Session("create")
 
-	versionedSource, found, err := s.Find()
+	foundVolume, found, err := s.Find()
 	if err != nil {
 		return nil, err
 	}
 
 	if found {
-		return versionedSource, nil
+		return foundVolume, nil
 	}
 
-	mountPath := ResourcesDir("get")
+	mountPath := atc.ResourcesDir("get")
 
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
@@ -119,6 +109,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (VersionedSour
 		containerSpec,
 		s.resourceTypes,
 		s.imageFetchingDelegate,
+		s.resourceInstance.ResourceCache().ResourceConfig(),
 	)
 	if err != nil {
 		sLog.Error("failed-to-construct-resource", err)
@@ -133,15 +124,16 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (VersionedSour
 		}
 	}
 
-	versionedSource, err = resource.Get(
+	err = resource.Get(
 		ctx,
 		volume,
-		IOConfig{
+		atc.IOConfig{
 			Stdout: s.imageFetchingDelegate.Stdout(),
 			Stderr: s.imageFetchingDelegate.Stderr(),
 		},
 		s.resourceInstance.Source(),
 		s.resourceInstance.Params(),
+		"",
 		s.resourceInstance.Version(),
 	)
 	if err != nil {
@@ -161,11 +153,5 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (VersionedSour
 		return nil, err
 	}
 
-	err = s.dbResourceCacheFactory.UpdateResourceCacheMetadata(s.resourceInstance.ResourceCache(), versionedSource.Metadata())
-	if err != nil {
-		s.logger.Error("failed-to-update-resource-cache-metadata", err, lager.Data{"resource-cache": s.resourceInstance.ResourceCache()})
-		return nil, err
-	}
-
-	return versionedSource, nil
+	return volume, nil
 }

@@ -32,7 +32,7 @@ type Fetcher interface {
 		resourceInstance ResourceInstance,
 		metadata Metadata,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
-	) (VersionedSource, error)
+	) (worker.Volume, error)
 }
 
 func NewFetcher(
@@ -63,7 +63,7 @@ func (f *fetcher) Fetch(
 	resourceInstance ResourceInstance,
 	metadata Metadata,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
-) (VersionedSource, error) {
+) (worker.Volume, error) {
 	sourceProvider := f.fetchSourceProviderFactory.NewFetchSourceProvider(
 		logger,
 		session,
@@ -83,15 +83,15 @@ func (f *fetcher) Fetch(
 	ticker := f.clock.NewTicker(GetResourceLockInterval)
 	defer ticker.Stop()
 
-	versionedSource, err := f.fetchWithLock(ctx, logger, source, imageFetchingDelegate.Stdout())
+	volume, err := f.fetchWithLock(ctx, logger, source, imageFetchingDelegate.Stdout())
 	if err != ErrFailedToGetLock {
-		return versionedSource, err
+		return volume, err
 	}
 
 	for {
 		select {
 		case <-ticker.C():
-			versionedSource, err := f.fetchWithLock(ctx, logger, source, imageFetchingDelegate.Stdout())
+			volume, err := f.fetchWithLock(ctx, logger, source, imageFetchingDelegate.Stdout())
 			if err != nil {
 				if err == ErrFailedToGetLock {
 					break
@@ -99,7 +99,7 @@ func (f *fetcher) Fetch(
 				return nil, err
 			}
 
-			return versionedSource, nil
+			return volume, nil
 
 		case <-ctx.Done():
 			return nil, ctx.Err()
@@ -112,14 +112,14 @@ func (f *fetcher) fetchWithLock(
 	logger lager.Logger,
 	source FetchSource,
 	stdout io.Writer,
-) (VersionedSource, error) {
-	versionedSource, found, err := source.Find()
+) (worker.Volume, error) {
+	volume, found, err := source.Find()
 	if err != nil {
 		return nil, err
 	}
 
 	if found {
-		return versionedSource, nil
+		return volume, nil
 	}
 
 	lockName, err := source.LockName()

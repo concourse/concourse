@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
+	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -28,12 +29,12 @@ var _ = Describe("Fetcher", func() {
 		fetcher                 resource.Fetcher
 		ctx                     context.Context
 		cancel                  func()
-		fakeVersionedSource     *resourcefakes.FakeVersionedSource
+		fakeVolume              *workerfakes.FakeVolume
 		fakeBuildStepDelegate   *workerfakes.FakeImageFetchingDelegate
+		volume                  worker.Volume
 
-		versionedSource resource.VersionedSource
-		fetchErr        error
-		teamID          = 123
+		fetchErr error
+		teamID   = 123
 	)
 
 	BeforeEach(func() {
@@ -51,13 +52,13 @@ var _ = Describe("Fetcher", func() {
 		)
 
 		ctx, cancel = context.WithCancel(context.Background())
-		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
+		fakeVolume = new(workerfakes.FakeVolume)
 
 		fakeBuildStepDelegate = new(workerfakes.FakeImageFetchingDelegate)
 	})
 
 	JustBeforeEach(func() {
-		versionedSource, fetchErr = fetcher.Fetch(
+		volume, fetchErr = fetcher.Fetch(
 			ctx,
 			lagertest.NewTestLogger("test"),
 			resource.Session{},
@@ -80,11 +81,11 @@ var _ = Describe("Fetcher", func() {
 
 		Context("when found", func() {
 			BeforeEach(func() {
-				fakeFetchSource.FindReturns(fakeVersionedSource, true, nil)
+				fakeFetchSource.FindReturns(fakeVolume, true, nil)
 			})
 
-			It("returns the source", func() {
-				Expect(versionedSource).To(Equal(fakeVersionedSource))
+			It("returns the volume", func() {
+				Expect(volume).To(Equal(fakeVolume))
 			})
 		})
 
@@ -148,7 +149,7 @@ var _ = Describe("Fetcher", func() {
 				BeforeEach(func() {
 					fakeLock = new(lockfakes.FakeLock)
 					fakeLockFactory.AcquireReturns(fakeLock, true, nil)
-					fakeFetchSource.CreateReturns(fakeVersionedSource, nil)
+					fakeFetchSource.CreateReturns(fakeVolume, nil)
 				})
 
 				It("acquires a lock with source lock name", func() {
@@ -165,8 +166,8 @@ var _ = Describe("Fetcher", func() {
 					Expect(fakeFetchSource.CreateCallCount()).To(Equal(1))
 				})
 
-				It("returns the source", func() {
-					Expect(versionedSource).To(Equal(fakeVersionedSource))
+				It("returns the volume", func() {
+					Expect(volume).To(Equal(fakeVolume))
 				})
 			})
 		})

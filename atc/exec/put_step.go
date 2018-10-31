@@ -99,7 +99,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		Tags:   step.tags,
 		TeamID: step.build.TeamID(),
 
-		Dir: resource.ResourcesDir("put"),
+		Dir: atc.ResourcesDir("put"),
 
 		Env: step.stepMetadata.Env(),
 	}
@@ -111,6 +111,12 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		})
 	}
 
+	resourceConfig, err := step.resourceConfigFactory.FindOrCreateResourceConfig(logger, step.resourceType, source, step.resourceTypes)
+	if err != nil {
+		logger.Error("failed-to-find-or-create-resource-config", err)
+		return err
+	}
+
 	putResource, err := step.resourceFactory.NewResource(
 		ctx,
 		logger,
@@ -119,6 +125,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		containerSpec,
 		step.resourceTypes,
 		step.delegate,
+		resourceConfig,
 	)
 	if err != nil {
 		return err
@@ -134,7 +141,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	versionedSource, err := putResource.Put(
+	putResponse, err := putResource.Put(
 		ctx,
 		resource.IOConfig{
 			Stdout: step.delegate.Stdout(),
@@ -162,17 +169,11 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 
 	if step.resource != "" {
 		logger = logger.WithData(lager.Data{"step": step.name, "resource": step.resource, "resource-type": step.resourceType, "version": step.versionInfo.Version})
-		resourceConfig, err := step.resourceConfigFactory.FindOrCreateResourceConfig(logger, step.resourceType, source, step.resourceTypes)
-		if err != nil {
-			logger.Error("failed-to-find-or-create-resource-config", err)
-			return err
-		}
-
-		created, err := resourceConfig.SaveUncheckedVersion(step.versionInfo.Version, db.NewResourceConfigMetadataFields(step.versionInfo.Metadata))
-		if err != nil {
-			logger.Error("failed-to-save-version", err)
-			return err
-		}
+		// created, err := resourceConfig.SaveUncheckedVersion(step.versionInfo.Version, db.NewResourceConfigMetadataFields(step.versionInfo.Metadata))
+		// if err != nil {
+		// 	logger.Error("failed-to-save-version", err)
+		// 	return err
+		// }
 
 		err = step.build.SaveOutput(resourceConfig, step.versionInfo.Version, step.name, step.resource, created)
 		if err != nil {
@@ -180,6 +181,12 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 			return err
 		}
 	}
+	// Call resourceConfig.LatestVersion() returns back all current versions for all spaces
+	//    spaceVersions := resourceConfig.LatestVersion()
+	// Grab the current version for the space returned by the put
+	//    currentVersion := spaceVersions[putSpace]
+	// Use that current version as the from for the check
+	//    Check(.., ..., currentVersion)
 
 	state.StoreResult(step.planID, step.versionInfo)
 
@@ -216,5 +223,5 @@ type putInputSource struct {
 func (s *putInputSource) Source() worker.ArtifactSource { return s.source }
 
 func (s *putInputSource) DestinationPath() string {
-	return resource.ResourcesDir("put/" + string(s.name))
+	return atc.ResourcesDir("put/" + string(s.name))
 }

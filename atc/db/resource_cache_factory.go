@@ -23,13 +23,6 @@ type ResourceCacheFactory interface {
 		params atc.Params,
 		resourceTypes creds.VersionedResourceTypes,
 	) (UsedResourceCache, error)
-
-	// changing resource cache to interface to allow updates on object is not feasible.
-	// Since we need to pass it recursively in ResourceConfig.
-	// Also, metadata will be available to us before we create resource cache so this
-	// method can be removed at that point. See  https://github.com/concourse/concourse/issues/534
-	UpdateResourceCacheMetadata(UsedResourceCache, []atc.MetadataField) error
-	ResourceCacheMetadata(UsedResourceCache) (ResourceConfigMetadataFields, error)
 }
 
 type resourceCacheFactory struct {
@@ -87,42 +80,6 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 	}
 
 	return usedResourceCache, nil
-}
-
-func (f *resourceCacheFactory) UpdateResourceCacheMetadata(resourceCache UsedResourceCache, metadata []atc.MetadataField) error {
-	metadataJSON, err := json.Marshal(metadata)
-	if err != nil {
-		return err
-	}
-	_, err = psql.Update("resource_caches").
-		Set("metadata", metadataJSON).
-		Where(sq.Eq{"id": resourceCache.ID()}).
-		RunWith(f.conn).
-		Exec()
-	return err
-}
-
-func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache UsedResourceCache) (ResourceConfigMetadataFields, error) {
-	var metadataJSON sql.NullString
-	err := psql.Select("metadata").
-		From("resource_caches").
-		Where(sq.Eq{"id": resourceCache.ID()}).
-		RunWith(f.conn).
-		QueryRow().
-		Scan(&metadataJSON)
-	if err != nil {
-		return nil, err
-	}
-
-	var metadata []ResourceConfigMetadataField
-	if metadataJSON.Valid {
-		err = json.Unmarshal([]byte(metadataJSON.String), &metadata)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return metadata, nil
 }
 
 func findResourceCacheByID(tx Tx, resourceCacheID int, lock lock.LockFactory, conn Conn) (UsedResourceCache, bool, error) {

@@ -72,7 +72,7 @@ var resourceConfigVersionQuery = psql.Select(`
 	v.metadata,
 	v.check_order
 `).
-	From("resource_config_versions v").
+	From("resource_versions v").
 	Where(sq.NotEq{
 		"v.check_order": 0,
 	})

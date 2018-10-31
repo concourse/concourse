@@ -1,4 +1,4 @@
-package resource_test
+package v1_test
 
 import (
 	"bytes"
@@ -15,13 +15,13 @@ import (
 	"github.com/onsi/gomega/gbytes"
 
 	"github.com/concourse/concourse/atc"
-	. "github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/resource/v1"
 )
 
 var _ = Describe("Resource Put", func() {
 	var (
-		source atc.Source
-		params atc.Params
+		atcSource atc.Source
+		params    atc.Params
 
 		outScriptStdout     string
 		outScriptStderr     string
@@ -32,9 +32,9 @@ var _ = Describe("Resource Put", func() {
 
 		outScriptProcess *gfakes.FakeProcess
 
-		versionedSource VersionedSource
+		versionedSource v1.VersionedSource
 
-		ioConfig  IOConfig
+		ioConfig  atc.IOConfig
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
 
@@ -45,7 +45,7 @@ var _ = Describe("Resource Put", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
-		source = atc.Source{"some": "source"}
+		atcSource = atc.Source{"some": "source"}
 		params = atc.Params{"some": "params"}
 
 		outScriptStdout = "{}"
@@ -55,7 +55,7 @@ var _ = Describe("Resource Put", func() {
 		attachOutError = nil
 
 		outScriptProcess = new(gfakes.FakeProcess)
-		outScriptProcess.IDReturns(TaskProcessID)
+		outScriptProcess.IDReturns(v1.TaskProcessID)
 		outScriptProcess.WaitStub = func() (int, error) {
 			return outScriptExitStatus, nil
 		}
@@ -63,7 +63,7 @@ var _ = Describe("Resource Put", func() {
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
 
-		ioConfig = IOConfig{
+		ioConfig = atc.IOConfig{
 			Stdout: stdoutBuf,
 			Stderr: stderrBuf,
 		}
@@ -100,7 +100,7 @@ var _ = Describe("Resource Put", func() {
 				return outScriptProcess, nil
 			}
 
-			versionedSource, putErr = resourceForContainer.Put(ctx, ioConfig, source, params)
+			versionedSource, putErr = resourceForContainer.Put(ctx, ioConfig, atcSource, params)
 		})
 
 		itCanStreamOut := func() {
@@ -191,7 +191,7 @@ var _ = Describe("Resource Put", func() {
 				Expect(fakeContainer.AttachCallCount()).To(Equal(1))
 
 				pid, io := fakeContainer.AttachArgsForCall(0)
-				Expect(pid).To(Equal(TaskProcessID))
+				Expect(pid).To(Equal(v1.TaskProcessID))
 
 				// send request on stdin in case process hasn't read it yet
 				request, err := ioutil.ReadAll(io.Stdin)
@@ -289,7 +289,7 @@ var _ = Describe("Resource Put", func() {
 				Expect(fakeContainer.RunCallCount()).To(Equal(1))
 
 				spec, _ := fakeContainer.RunArgsForCall(0)
-				Expect(spec.ID).To(Equal(TaskProcessID))
+				Expect(spec.ID).To(Equal(v1.TaskProcessID))
 			})
 
 			It("uses the same working directory for all actions", func() {
@@ -457,7 +457,7 @@ var _ = Describe("Resource Put", func() {
 			}
 
 			go func() {
-				versionedSource, putErr = resourceForContainer.Put(ctx, ioConfig, source, params)
+				versionedSource, putErr = resourceForContainer.Put(ctx, ioConfig, atcSource, params)
 				close(done)
 			}()
 		})

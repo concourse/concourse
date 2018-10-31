@@ -1,4 +1,4 @@
-package resource
+package v1
 
 import (
 	"context"
@@ -11,17 +11,18 @@ type checkRequest struct {
 	Version atc.Version `json:"version"`
 }
 
-func (resource *resource) Check(ctx context.Context, source atc.Source, fromVersion atc.Version) ([]atc.Version, error) {
+func (r *Resource) Check(ctx context.Context, src atc.Source, fromVersion atc.Version) ([]atc.Version, error) {
 	var versions []atc.Version
 
-	err := resource.runScript(
+	err := RunScript(
 		ctx,
 		"/opt/resource/check",
 		nil,
-		checkRequest{source, fromVersion},
+		checkRequest{src, fromVersion},
 		&versions,
 		nil,
 		false,
+		r.Container,
 	)
 	if err != nil {
 		return nil, err

@@ -1,4 +1,4 @@
-package resource_test
+package v1_test
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/resource/v1"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -32,9 +32,9 @@ var _ = Describe("Resource Get", func() {
 
 		inScriptProcess *gardenfakes.FakeProcess
 
-		versionedSource resource.VersionedSource
+		versionedSource v1.VersionedSource
 
-		ioConfig  resource.IOConfig
+		ioConfig  atc.IOConfig
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
 
@@ -61,7 +61,7 @@ var _ = Describe("Resource Get", func() {
 		getErr = nil
 
 		inScriptProcess = new(gardenfakes.FakeProcess)
-		inScriptProcess.IDReturns(resource.TaskProcessID)
+		inScriptProcess.IDReturns(v1.TaskProcessID)
 		inScriptProcess.WaitStub = func() (int, error) {
 			return inScriptExitStatus, nil
 		}
@@ -69,7 +69,7 @@ var _ = Describe("Resource Get", func() {
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
 
-		ioConfig = resource.IOConfig{
+		ioConfig = atc.IOConfig{
 			Stdout: stdoutBuf,
 			Stderr: stderrBuf,
 		}
@@ -197,7 +197,7 @@ var _ = Describe("Resource Get", func() {
 				Expect(fakeContainer.AttachCallCount()).To(Equal(1))
 
 				pid, io := fakeContainer.AttachArgsForCall(0)
-				Expect(pid).To(Equal(resource.TaskProcessID))
+				Expect(pid).To(Equal(v1.TaskProcessID))
 
 				// send request on stdin in case process hasn't read it yet
 				request, err := ioutil.ReadAll(io.Stdin)
@@ -308,7 +308,7 @@ var _ = Describe("Resource Get", func() {
 				Expect(fakeContainer.RunCallCount()).To(Equal(1))
 
 				spec, _ := fakeContainer.RunArgsForCall(0)
-				Expect(spec.ID).To(Equal(resource.TaskProcessID))
+				Expect(spec.ID).To(Equal(v1.TaskProcessID))
 			})
 
 			It("uses the same working directory for all actions", func() {

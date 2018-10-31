@@ -1,4 +1,4 @@
-package resource_test
+package v1_test
 
 import (
 	"context"
@@ -91,7 +91,6 @@ var _ = Describe("Resource Check", func() {
 				atc.Version{"ver": "def"},
 				atc.Version{"ver": "ghi"},
 			}))
-
 		})
 	})
 

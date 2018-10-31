@@ -289,6 +289,8 @@ func (scanner *resourceScanner) check(
 		Env:    metadata.Env(),
 	}
 
+	resourceConfig := resourceConfigCheckSession.ResourceConfig()
+
 	res, err := scanner.resourceFactory.NewResource(
 		context.Background(),
 		logger,
@@ -299,11 +301,12 @@ func (scanner *resourceScanner) check(
 		containerSpec,
 		resourceTypes,
 		worker.NoopImageFetchingDelegate{},
+		resourceConfig,
 	)
 
 	if err != nil {
 		logger.Error("failed-to-initialize-new-container", err)
-		chkErr := resourceConfigCheckSession.ResourceConfig().SetCheckError(err)
+		chkErr := resourceConfig.SetCheckError(err)
 		if chkErr != nil {
 			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
 		}
@@ -322,7 +325,7 @@ func (scanner *resourceScanner) check(
 		err = fmt.Errorf("Timed out after %v while checking for new versions - perhaps increase your resource check timeout?", timeout)
 	}
 
-	resourceConfigCheckSession.ResourceConfig().SetCheckError(err)
+	resourceConfig.SetCheckError(err)
 	metric.ResourceCheck{
 		PipelineName: scanner.dbPipeline.Name(),
 		ResourceName: savedResource.Name(),
@@ -350,7 +353,7 @@ func (scanner *resourceScanner) check(
 		"total":    len(newVersions),
 	})
 
-	err = resourceConfigCheckSession.ResourceConfig().SaveVersions(newVersions)
+	err = resourceConfig.SaveVersions(newVersions)
 	if err != nil {
 		logger.Error("failed-to-save-resource-config-versions", err, lager.Data{
 			"versions": newVersions,

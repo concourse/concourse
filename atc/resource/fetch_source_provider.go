@@ -35,8 +35,8 @@ type FetchSourceProvider interface {
 
 type FetchSource interface {
 	LockName() (string, error)
-	Find() (VersionedSource, bool, error)
-	Create(context.Context) (VersionedSource, error)
+	Find() (worker.Volume, bool, error)
+	Create(context.Context) (worker.Volume, error)
 }
 
 type fetchSourceProviderFactory struct {

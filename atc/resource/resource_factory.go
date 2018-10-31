@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/resource/v2"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -26,6 +27,7 @@ type ResourceFactory interface {
 		containerSpec worker.ContainerSpec,
 		resourceTypes creds.VersionedResourceTypes,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
+		resourceConfig db.ResourceConfig,
 	) (Resource, error)
 }
 
@@ -41,6 +43,7 @@ func (f *resourceFactory) NewResource(
 	containerSpec worker.ContainerSpec,
 	resourceTypes creds.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
+	resourceConfig db.ResourceConfig,
 ) (Resource, error) {
 
 	containerSpec.BindMounts = []worker.BindMountSource{
@@ -60,5 +63,19 @@ func (f *resourceFactory) NewResource(
 		return nil, err
 	}
 
-	return NewResourceForContainer(container), nil
+	// Run info script using the container
+	// _, _ = NewUnversionedResource(container).Info(ctx)
+
+	// If info script run correctly, set the resource to v2, if not check if error is script not found and if yes then set to v1
+	// if err != nil {
+
+	// 	return err
+	// }
+	// if err == ErrNotScript {
+	// 	resource = v2.NewResourceV1(container)
+	// } else if err != nil {
+	// 	resource = v2.NewResourceV2(container)
+	// }
+
+	return v2.NewResource(container, v2.ResourceInfo{}, resourceConfig), nil
 }

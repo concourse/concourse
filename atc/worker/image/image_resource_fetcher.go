@@ -172,7 +172,7 @@ func (i *imageResourceFetcher) Fetch(
 		},
 	}
 
-	versionedSource, err := i.resourceFetcher.Fetch(
+	volume, err := i.resourceFetcher.Fetch(
 		ctx,
 		logger.Session("init-image"),
 		getSess,
@@ -188,12 +188,11 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, err
 	}
 
-	volume := versionedSource.Volume()
 	if volume == nil {
 		return nil, nil, nil, ErrImageGetDidNotProduceVolume
 	}
 
-	reader, err := versionedSource.StreamOut(ImageMetadataFile)
+	reader, err := volume.StreamOut(ImageMetadataFile)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -224,6 +223,15 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 	container db.CreatingContainer,
 	resourceType creds.VersionedResourceType,
 ) error {
+	source, err := resourceType.Source.Evaluate()
+	if err != nil {
+		return err
+	}
+
+	resourceConfig, err := dbResourceConfigFactory.FindOrCreateResourceConfig(logger, resourceType, source, i.customTypes)
+	if err != nil {
+		return err
+	}
 
 	checkResourceType, err := i.resourceFactory.NewResource(
 		ctx,
@@ -240,12 +248,8 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 			TeamID: i.teamID,
 		}, i.customTypes,
 		worker.NoopImageFetchingDelegate{},
+		resourceConfig,
 	)
-	if err != nil {
-		return err
-	}
-
-	source, err := resourceType.Source.Evaluate()
 	if err != nil {
 		return err
 	}
@@ -271,7 +275,6 @@ func (i *imageResourceFetcher) getLatestVersion(
 	logger lager.Logger,
 	container db.CreatingContainer,
 ) (atc.Version, error) {
-
 	resourceType, found := i.customTypes.Lookup(i.imageResource.Type)
 	if found && resourceType.Version == nil {
 		err := i.ensureVersionOfType(ctx, logger, container, resourceType)
@@ -293,6 +296,11 @@ func (i *imageResourceFetcher) getLatestVersion(
 		return nil, err
 	}
 
+	resourceConfig, err := dbResourceConfigFactory.FindOrCreateResourceConfig(logger, i.imageResource.Type, source, i.customTypes)
+	if err != nil {
+		return err
+	}
+
 	checkingResource, err := i.resourceFactory.NewResource(
 		ctx,
 		logger,
@@ -303,6 +311,7 @@ func (i *imageResourceFetcher) getLatestVersion(
 		resourceSpec,
 		i.customTypes,
 		i.imageFetchingDelegate,
+		resourceConfig,
 	)
 	if err != nil {
 		return nil, err

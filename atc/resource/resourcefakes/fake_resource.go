@@ -11,20 +11,18 @@ import (
 )
 
 type FakeResource struct {
-	CheckStub        func(context.Context, atc.Source, atc.Version) ([]atc.Version, error)
+	CheckStub        func(context.Context, atc.Source, map[atc.Space]atc.Version) error
 	checkMutex       sync.RWMutex
 	checkArgsForCall []struct {
 		arg1 context.Context
 		arg2 atc.Source
-		arg3 atc.Version
+		arg3 map[atc.Space]atc.Version
 	}
 	checkReturns struct {
-		result1 []atc.Version
-		result2 error
+		result1 error
 	}
 	checkReturnsOnCall map[int]struct {
-		result1 []atc.Version
-		result2 error
+		result1 error
 	}
 	ContainerStub        func() worker.Container
 	containerMutex       sync.RWMutex
@@ -36,51 +34,50 @@ type FakeResource struct {
 	containerReturnsOnCall map[int]struct {
 		result1 worker.Container
 	}
-	GetStub        func(context.Context, worker.Volume, resource.IOConfig, atc.Source, atc.Params, atc.Version) (resource.VersionedSource, error)
+	GetStub        func(context.Context, worker.Volume, atc.IOConfig, atc.Source, atc.Params, atc.Space, atc.Version) error
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1 context.Context
 		arg2 worker.Volume
-		arg3 resource.IOConfig
+		arg3 atc.IOConfig
 		arg4 atc.Source
 		arg5 atc.Params
-		arg6 atc.Version
+		arg6 atc.Space
+		arg7 atc.Version
 	}
 	getReturns struct {
-		result1 resource.VersionedSource
-		result2 error
+		result1 error
 	}
 	getReturnsOnCall map[int]struct {
-		result1 resource.VersionedSource
-		result2 error
+		result1 error
 	}
-	PutStub        func(context.Context, resource.IOConfig, atc.Source, atc.Params) (resource.VersionedSource, error)
+	PutStub        func(context.Context, atc.IOConfig, atc.Source, atc.Params) (atc.PutResponse, error)
 	putMutex       sync.RWMutex
 	putArgsForCall []struct {
 		arg1 context.Context
-		arg2 resource.IOConfig
+		arg2 atc.IOConfig
 		arg3 atc.Source
 		arg4 atc.Params
 	}
 	putReturns struct {
-		result1 resource.VersionedSource
+		result1 atc.PutResponse
 		result2 error
 	}
 	putReturnsOnCall map[int]struct {
-		result1 resource.VersionedSource
+		result1 atc.PutResponse
 		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResource) Check(arg1 context.Context, arg2 atc.Source, arg3 atc.Version) ([]atc.Version, error) {
+func (fake *FakeResource) Check(arg1 context.Context, arg2 atc.Source, arg3 map[atc.Space]atc.Version) error {
 	fake.checkMutex.Lock()
 	ret, specificReturn := fake.checkReturnsOnCall[len(fake.checkArgsForCall)]
 	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
 		arg1 context.Context
 		arg2 atc.Source
-		arg3 atc.Version
+		arg3 map[atc.Space]atc.Version
 	}{arg1, arg2, arg3})
 	fake.recordInvocation("Check", []interface{}{arg1, arg2, arg3})
 	fake.checkMutex.Unlock()
@@ -88,10 +85,10 @@ func (fake *FakeResource) Check(arg1 context.Context, arg2 atc.Source, arg3 atc.
 		return fake.CheckStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
 	fakeReturns := fake.checkReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fakeReturns.result1
 }
 
 func (fake *FakeResource) CheckCallCount() int {
@@ -100,33 +97,30 @@ func (fake *FakeResource) CheckCallCount() int {
 	return len(fake.checkArgsForCall)
 }
 
-func (fake *FakeResource) CheckArgsForCall(i int) (context.Context, atc.Source, atc.Version) {
+func (fake *FakeResource) CheckArgsForCall(i int) (context.Context, atc.Source, map[atc.Space]atc.Version) {
 	fake.checkMutex.RLock()
 	defer fake.checkMutex.RUnlock()
 	argsForCall := fake.checkArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeResource) CheckReturns(result1 []atc.Version, result2 error) {
+func (fake *FakeResource) CheckReturns(result1 error) {
 	fake.CheckStub = nil
 	fake.checkReturns = struct {
-		result1 []atc.Version
-		result2 error
-	}{result1, result2}
+		result1 error
+	}{result1}
 }
 
-func (fake *FakeResource) CheckReturnsOnCall(i int, result1 []atc.Version, result2 error) {
+func (fake *FakeResource) CheckReturnsOnCall(i int, result1 error) {
 	fake.CheckStub = nil
 	if fake.checkReturnsOnCall == nil {
 		fake.checkReturnsOnCall = make(map[int]struct {
-			result1 []atc.Version
-			result2 error
+			result1 error
 		})
 	}
 	fake.checkReturnsOnCall[i] = struct {
-		result1 []atc.Version
-		result2 error
-	}{result1, result2}
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeResource) Container() worker.Container {
@@ -171,27 +165,28 @@ func (fake *FakeResource) ContainerReturnsOnCall(i int, result1 worker.Container
 	}{result1}
 }
 
-func (fake *FakeResource) Get(arg1 context.Context, arg2 worker.Volume, arg3 resource.IOConfig, arg4 atc.Source, arg5 atc.Params, arg6 atc.Version) (resource.VersionedSource, error) {
+func (fake *FakeResource) Get(arg1 context.Context, arg2 worker.Volume, arg3 atc.IOConfig, arg4 atc.Source, arg5 atc.Params, arg6 atc.Space, arg7 atc.Version) error {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
 		arg1 context.Context
 		arg2 worker.Volume
-		arg3 resource.IOConfig
+		arg3 atc.IOConfig
 		arg4 atc.Source
 		arg5 atc.Params
-		arg6 atc.Version
-	}{arg1, arg2, arg3, arg4, arg5, arg6})
-	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
+		arg6 atc.Space
+		arg7 atc.Version
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.getMutex.Unlock()
 	if fake.GetStub != nil {
-		return fake.GetStub(arg1, arg2, arg3, arg4, arg5, arg6)
+		return fake.GetStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
 	fakeReturns := fake.getReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fakeReturns.result1
 }
 
 func (fake *FakeResource) GetCallCount() int {
@@ -200,41 +195,38 @@ func (fake *FakeResource) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeResource) GetArgsForCall(i int) (context.Context, worker.Volume, resource.IOConfig, atc.Source, atc.Params, atc.Version) {
+func (fake *FakeResource) GetArgsForCall(i int) (context.Context, worker.Volume, atc.IOConfig, atc.Source, atc.Params, atc.Space, atc.Version) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	argsForCall := fake.getArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
 }
 
-func (fake *FakeResource) GetReturns(result1 resource.VersionedSource, result2 error) {
+func (fake *FakeResource) GetReturns(result1 error) {
 	fake.GetStub = nil
 	fake.getReturns = struct {
-		result1 resource.VersionedSource
-		result2 error
-	}{result1, result2}
+		result1 error
+	}{result1}
 }
 
-func (fake *FakeResource) GetReturnsOnCall(i int, result1 resource.VersionedSource, result2 error) {
+func (fake *FakeResource) GetReturnsOnCall(i int, result1 error) {
 	fake.GetStub = nil
 	if fake.getReturnsOnCall == nil {
 		fake.getReturnsOnCall = make(map[int]struct {
-			result1 resource.VersionedSource
-			result2 error
+			result1 error
 		})
 	}
 	fake.getReturnsOnCall[i] = struct {
-		result1 resource.VersionedSource
-		result2 error
-	}{result1, result2}
+		result1 error
+	}{result1}
 }
 
-func (fake *FakeResource) Put(arg1 context.Context, arg2 resource.IOConfig, arg3 atc.Source, arg4 atc.Params) (resource.VersionedSource, error) {
+func (fake *FakeResource) Put(arg1 context.Context, arg2 atc.IOConfig, arg3 atc.Source, arg4 atc.Params) (atc.PutResponse, error) {
 	fake.putMutex.Lock()
 	ret, specificReturn := fake.putReturnsOnCall[len(fake.putArgsForCall)]
 	fake.putArgsForCall = append(fake.putArgsForCall, struct {
 		arg1 context.Context
-		arg2 resource.IOConfig
+		arg2 atc.IOConfig
 		arg3 atc.Source
 		arg4 atc.Params
 	}{arg1, arg2, arg3, arg4})
@@ -256,31 +248,31 @@ func (fake *FakeResource) PutCallCount() int {
 	return len(fake.putArgsForCall)
 }
 
-func (fake *FakeResource) PutArgsForCall(i int) (context.Context, resource.IOConfig, atc.Source, atc.Params) {
+func (fake *FakeResource) PutArgsForCall(i int) (context.Context, atc.IOConfig, atc.Source, atc.Params) {
 	fake.putMutex.RLock()
 	defer fake.putMutex.RUnlock()
 	argsForCall := fake.putArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeResource) PutReturns(result1 resource.VersionedSource, result2 error) {
+func (fake *FakeResource) PutReturns(result1 atc.PutResponse, result2 error) {
 	fake.PutStub = nil
 	fake.putReturns = struct {
-		result1 resource.VersionedSource
+		result1 atc.PutResponse
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeResource) PutReturnsOnCall(i int, result1 resource.VersionedSource, result2 error) {
+func (fake *FakeResource) PutReturnsOnCall(i int, result1 atc.PutResponse, result2 error) {
 	fake.PutStub = nil
 	if fake.putReturnsOnCall == nil {
 		fake.putReturnsOnCall = make(map[int]struct {
-			result1 resource.VersionedSource
+			result1 atc.PutResponse
 			result2 error
 		})
 	}
 	fake.putReturnsOnCall[i] = struct {
-		result1 resource.VersionedSource
+		result1 atc.PutResponse
 		result2 error
 	}{result1, result2}
 }

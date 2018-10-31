@@ -1,4 +1,4 @@
-package resource
+package v1
 
 import (
 	"io"
@@ -21,18 +21,26 @@ type VersionedSource interface {
 	Volume() worker.Volume
 }
 
-type versionResult struct {
+type VersionResult struct {
 	Version atc.Version `json:"version"`
 
 	Metadata []atc.MetadataField `json:"metadata,omitempty"`
 }
 
 type putVersionedSource struct {
-	versionResult versionResult
+	versionResult VersionResult
 
 	container garden.Container
 
 	resourceDir string
+}
+
+func NewPutVersionedSource(versionResult VersionResult, container garden.Container, resourceDir string) VersionedSource {
+	return &putVersionedSource{
+		versionResult: versionResult,
+		container:     container,
+		resourceDir:   resourceDir,
+	}
 }
 
 func (vs *putVersionedSource) Version() atc.Version {
@@ -64,9 +72,9 @@ func (vs *putVersionedSource) StreamIn(dst string, src io.Reader) error {
 func NewGetVersionedSource(volume worker.Volume, version atc.Version, metadata []atc.MetadataField) VersionedSource {
 	return &getVersionedSource{
 		volume:      volume,
-		resourceDir: ResourcesDir("get"),
+		resourceDir: atc.ResourcesDir("get"),
 
-		versionResult: versionResult{
+		versionResult: VersionResult{
 			Version:  version,
 			Metadata: metadata,
 		},
@@ -74,7 +82,7 @@ func NewGetVersionedSource(volume worker.Volume, version atc.Version, metadata [
 }
 
 type getVersionedSource struct {
-	versionResult versionResult
+	versionResult VersionResult
 
 	volume      worker.Volume
 	resourceDir string

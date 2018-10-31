@@ -6,33 +6,34 @@ import (
 	sync "sync"
 
 	resource "github.com/concourse/concourse/atc/resource"
+	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakeFetchSource struct {
-	CreateStub        func(context.Context) (resource.VersionedSource, error)
+	CreateStub        func(context.Context) (worker.Volume, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		arg1 context.Context
 	}
 	createReturns struct {
-		result1 resource.VersionedSource
+		result1 worker.Volume
 		result2 error
 	}
 	createReturnsOnCall map[int]struct {
-		result1 resource.VersionedSource
+		result1 worker.Volume
 		result2 error
 	}
-	FindStub        func() (resource.VersionedSource, bool, error)
+	FindStub        func() (worker.Volume, bool, error)
 	findMutex       sync.RWMutex
 	findArgsForCall []struct {
 	}
 	findReturns struct {
-		result1 resource.VersionedSource
+		result1 worker.Volume
 		result2 bool
 		result3 error
 	}
 	findReturnsOnCall map[int]struct {
-		result1 resource.VersionedSource
+		result1 worker.Volume
 		result2 bool
 		result3 error
 	}
@@ -52,7 +53,7 @@ type FakeFetchSource struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFetchSource) Create(arg1 context.Context) (resource.VersionedSource, error) {
+func (fake *FakeFetchSource) Create(arg1 context.Context) (worker.Volume, error) {
 	fake.createMutex.Lock()
 	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
@@ -83,29 +84,29 @@ func (fake *FakeFetchSource) CreateArgsForCall(i int) context.Context {
 	return argsForCall.arg1
 }
 
-func (fake *FakeFetchSource) CreateReturns(result1 resource.VersionedSource, result2 error) {
+func (fake *FakeFetchSource) CreateReturns(result1 worker.Volume, result2 error) {
 	fake.CreateStub = nil
 	fake.createReturns = struct {
-		result1 resource.VersionedSource
+		result1 worker.Volume
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeFetchSource) CreateReturnsOnCall(i int, result1 resource.VersionedSource, result2 error) {
+func (fake *FakeFetchSource) CreateReturnsOnCall(i int, result1 worker.Volume, result2 error) {
 	fake.CreateStub = nil
 	if fake.createReturnsOnCall == nil {
 		fake.createReturnsOnCall = make(map[int]struct {
-			result1 resource.VersionedSource
+			result1 worker.Volume
 			result2 error
 		})
 	}
 	fake.createReturnsOnCall[i] = struct {
-		result1 resource.VersionedSource
+		result1 worker.Volume
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeFetchSource) Find() (resource.VersionedSource, bool, error) {
+func (fake *FakeFetchSource) Find() (worker.Volume, bool, error) {
 	fake.findMutex.Lock()
 	ret, specificReturn := fake.findReturnsOnCall[len(fake.findArgsForCall)]
 	fake.findArgsForCall = append(fake.findArgsForCall, struct {
@@ -128,26 +129,26 @@ func (fake *FakeFetchSource) FindCallCount() int {
 	return len(fake.findArgsForCall)
 }
 
-func (fake *FakeFetchSource) FindReturns(result1 resource.VersionedSource, result2 bool, result3 error) {
+func (fake *FakeFetchSource) FindReturns(result1 worker.Volume, result2 bool, result3 error) {
 	fake.FindStub = nil
 	fake.findReturns = struct {
-		result1 resource.VersionedSource
+		result1 worker.Volume
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeFetchSource) FindReturnsOnCall(i int, result1 resource.VersionedSource, result2 bool, result3 error) {
+func (fake *FakeFetchSource) FindReturnsOnCall(i int, result1 worker.Volume, result2 bool, result3 error) {
 	fake.FindStub = nil
 	if fake.findReturnsOnCall == nil {
 		fake.findReturnsOnCall = make(map[int]struct {
-			result1 resource.VersionedSource
+			result1 worker.Volume
 			result2 bool
 			result3 error
 		})
 	}
 	fake.findReturnsOnCall[i] = struct {
-		result1 resource.VersionedSource
+		result1 worker.Volume
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

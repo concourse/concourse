@@ -226,6 +226,8 @@ func (scanner *resourceTypeScanner) check(
 		TeamID: scanner.dbPipeline.TeamID(),
 	}
 
+	resourceConfig := resourceConfigCheckSession.ResourceConfig()
+
 	res, err := scanner.resourceFactory.NewResource(
 		context.Background(),
 		logger,
@@ -236,9 +238,10 @@ func (scanner *resourceTypeScanner) check(
 		resourceSpec,
 		versionedResourceTypes.Without(savedResourceType.Name()),
 		worker.NoopImageFetchingDelegate{},
+		resourceConfig,
 	)
 	if err != nil {
-		chkErr := resourceConfigCheckSession.ResourceConfig().SetCheckError(err)
+		chkErr := resourceConfig.SetCheckError(err)
 		if chkErr != nil {
 			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
 		}
@@ -247,7 +250,7 @@ func (scanner *resourceTypeScanner) check(
 	}
 
 	newVersions, err := res.Check(context.TODO(), source, fromVersion)
-	resourceConfigCheckSession.ResourceConfig().SetCheckError(err)
+	resourceConfig.SetCheckError(err)
 	if err != nil {
 		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {
 			logger.Info("check-failed", lager.Data{"exit-status": rErr.ExitStatus})
@@ -268,7 +271,7 @@ func (scanner *resourceTypeScanner) check(
 		"total":    len(newVersions),
 	})
 
-	err = resourceConfigCheckSession.ResourceConfig().SaveVersions(newVersions)
+	err = resourceConfig.SaveVersions(newVersions)
 	if err != nil {
 		logger.Error("failed-to-save-resource-config-versions", err, lager.Data{
 			"versions": newVersions,

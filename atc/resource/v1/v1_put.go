@@ -1,4 +1,4 @@
-package resource
+package v1
 
 import (
 	"context"
@@ -11,34 +11,31 @@ type putRequest struct {
 	Params atc.Params `json:"params,omitempty"`
 }
 
-func (resource *resource) Put(
+func (r *Resource) Put(
 	ctx context.Context,
-	ioConfig IOConfig,
-	source atc.Source,
+	ioConfig atc.IOConfig,
+	src atc.Source,
 	params atc.Params,
 ) (VersionedSource, error) {
-	resourceDir := ResourcesDir("put")
+	resourceDir := atc.ResourcesDir("put")
 
-	vs := &putVersionedSource{
-		container:   resource.container,
-		resourceDir: resourceDir,
-	}
-
-	err := resource.runScript(
+	var versionResult VersionResult
+	err := RunScript(
 		ctx,
 		"/opt/resource/out",
 		[]string{resourceDir},
 		putRequest{
 			Params: params,
-			Source: source,
+			Source: src,
 		},
-		&vs.versionResult,
+		&versionResult,
 		ioConfig.Stderr,
 		true,
+		r.Container,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return vs, nil
+	return NewPutVersionedSource(versionResult, r.Container, resourceDir), nil
 }

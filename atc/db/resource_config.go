@@ -40,6 +40,7 @@ type ResourceConfigDescriptor struct {
 type ResourceConfig interface {
 	ID() int
 	CheckError() error
+	DefaultSpace() atc.Space
 	CreatedByResourceCache() UsedResourceCache
 	CreatedByBaseResourceType() *UsedBaseResourceType
 	OriginBaseResourceType() *UsedBaseResourceType
@@ -55,12 +56,17 @@ type ResourceConfig interface {
 	FindVersion(atc.Version) (ResourceConfigVersion, bool, error)
 	LatestVersion() (ResourceConfigVersion, bool, error)
 
+	SaveDefaultSpace(atc.Space) error
+	SaveVersion(atc.SpaceVersion) error
+	SaveSpace(atc.Space) error
+
 	SetCheckError(error) error
 }
 
 type resourceConfig struct {
 	id                        int
 	checkError                error
+	defaultSpace              atc.Space
 	createdByResourceCache    UsedResourceCache
 	createdByBaseResourceType *UsedBaseResourceType
 	lockFactory               lock.LockFactory
@@ -69,6 +75,7 @@ type resourceConfig struct {
 
 func (r *resourceConfig) ID() int                                   { return r.id }
 func (r *resourceConfig) CheckError() error                         { return r.checkError }
+func (r *resourceConfig) DefaultSpace() atc.Space                   { return r.defaultSpace }
 func (r *resourceConfig) CreatedByResourceCache() UsedResourceCache { return r.createdByResourceCache }
 func (r *resourceConfig) CreatedByBaseResourceType() *UsedBaseResourceType {
 	return r.createdByBaseResourceType
@@ -262,6 +269,49 @@ func (r *resourceConfig) SetCheckError(cause error) error {
 	return err
 }
 
+func (r *resourceConfig) SaveVersion(version atc.SpaceVersion) error {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	_, err = saveResourceVersion(tx, r, version)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (r *resourceConfig) SaveDefaultSpace(defaultSpace atc.Space) error {
+	_, err := psql.Update("resource_configs").
+		Set("default_space", defaultSpace).
+		Where(sq.Eq{"id": r.id}).
+		RunWith(r.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *resourceConfig) SaveSpace(space atc.Space) error {
+	_, err := psql.Insert("spaces").
+		Columns("resource_config_id", "name").
+		Values(r.id, space).
+		Suffix("ON CONFLICT DO NOTHING").
+		RunWith(r.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // increment the check order if the version's check order is less than the
 // current max. This will fix the case of a check from an old version causing
 // the desired order to change; existing versions will be re-ordered since
@@ -348,6 +398,32 @@ func saveResourceConfigVersion(tx Tx, r ResourceConfig, version atc.Version, met
 	return checkOrder == 0, nil
 }
 
+func saveResourceVersion(tx Tx, r ResourceConfig, version atc.SpaceVersion) (bool, error) {
+	versionJSON, err := json.Marshal(version.Version)
+	if err != nil {
+		return false, err
+	}
+
+	metadataJSON, err := json.Marshal(version.Metadata)
+	if err != nil {
+		return false, err
+	}
+
+	var checkOrder int
+	err = tx.QueryRow(`
+		INSERT INTO resource_versions (space_id, version, version_md5, metadata)
+		SELECT s.id, $2, md5($3), $4
+		FROM spaces s WHERE s.resource_config_id = $1 AND s.name = $5
+		ON CONFLICT (space_id, version_md5) DO UPDATE SET metadata = $4
+		RETURNING check_order
+		`, r.ID(), string(versionJSON), string(versionJSON), string(metadataJSON), string(version.Space)).Scan(&checkOrder)
+	if err != nil {
+		return false, err
+	}
+
+	return checkOrder == 0, nil
+}
+
 func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, conn Conn) (ResourceConfig, error) {
 	rc := &resourceConfig{
 		lockFactory: lockFactory,
@@ -386,7 +462,7 @@ func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lock
 		parentID = rc.CreatedByBaseResourceType().ID
 	}
 
-	id, checkError, found, err := r.findWithParentID(tx, parentColumnName, parentID)
+	id, checkError, defaultSpace, found, err := r.findWithParentID(tx, parentColumnName, parentID)
 	if err != nil {
 		return nil, err
 	}
@@ -419,6 +495,7 @@ func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lock
 
 	rc.id = id
 	rc.checkError = checkError
+	rc.defaultSpace = defaultSpace
 
 	return rc, nil
 }
@@ -465,7 +542,7 @@ func (r *ResourceConfigDescriptor) find(tx Tx, lockFactory lock.LockFactory, con
 		parentID = rc.createdByBaseResourceType.ID
 	}
 
-	id, checkError, found, err := r.findWithParentID(tx, parentColumnName, parentID)
+	id, checkError, defaultSpace, found, err := r.findWithParentID(tx, parentColumnName, parentID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -476,15 +553,19 @@ func (r *ResourceConfigDescriptor) find(tx Tx, lockFactory lock.LockFactory, con
 
 	rc.id = id
 	rc.checkError = checkError
+	rc.defaultSpace = defaultSpace
 
 	return rc, true, nil
 }
 
-func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName string, parentID int) (int, error, bool, error) {
-	var id int
-	var checkError sql.NullString
+func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName string, parentID int) (int, error, atc.Space, bool, error) {
+	var (
+		id         int
+		checkError sql.NullString
+		defSpace   sql.NullString
+	)
 
-	err := psql.Select("id, check_error").
+	err := psql.Select("id, check_error, default_space").
 		From("resource_configs").
 		Where(sq.Eq{
 			parentColumnName: parentID,
@@ -493,13 +574,13 @@ func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName stri
 		Suffix("FOR SHARE").
 		RunWith(tx).
 		QueryRow().
-		Scan(&id, &checkError)
+		Scan(&id, &checkError, &defSpace)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, nil, false, nil
+			return 0, nil, "", false, nil
 		}
 
-		return 0, nil, false, err
+		return 0, nil, "", false, err
 	}
 
 	var chkErr error
@@ -507,7 +588,12 @@ func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName stri
 		chkErr = errors.New(checkError.String)
 	}
 
-	return id, chkErr, true, nil
+	var defaultSpace atc.Space
+	if defSpace.Valid {
+		defaultSpace = atc.Space(defSpace.String)
+	}
+
+	return id, chkErr, defaultSpace, true, nil
 }
 
 func bumpCacheIndexForPipelinesUsingResourceConfig(tx Tx, rcID int) error {
