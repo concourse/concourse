@@ -44,6 +44,10 @@ services:
       # avoid using loopbacks
     - CONCOURSE_BAGGAGECLAIM_DRIVER=overlay
 
+      # so we can reach Garden/Baggageclaim for debugging
+    - CONCOURSE_BIND_IP=0.0.0.0
+    - CONCOURSE_BAGGAGECLAIM_BIND_IP=0.0.0.0
+
       # so that CI can configure a different network range that doesn't overlap
       # with the outer Garden
     - CONCOURSE_GARDEN_NETWORK_POOL
