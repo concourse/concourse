@@ -34,8 +34,6 @@ var _ = Describe("Heartbeater", func() {
 		ctx    context.Context
 		cancel func()
 
-		logLevel lager.LogLevel
-
 		addrToRegister string
 		fakeClock      *fakeclock.FakeClock
 		interval       time.Duration
@@ -63,8 +61,6 @@ var _ = Describe("Heartbeater", func() {
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(lagerctx.NewContext(context.Background(), lagertest.NewTestLogger("test")))
-
-		logLevel = lager.DEBUG
 
 		addrToRegister = "1.2.3.4:7777"
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
@@ -158,7 +154,6 @@ var _ = Describe("Heartbeater", func() {
 
 	JustBeforeEach(func() {
 		heartbeater := NewHeartbeater(
-			logLevel,
 			fakeClock,
 			interval,
 			cprInterval,
@@ -274,26 +269,6 @@ var _ = Describe("Heartbeater", func() {
 					Eventually(clientWriter).Should(gbytes.Say(`{"event":"heartbeated"}`))
 				})
 			})
-
-			Context("When the ERROR log level is set", func() {
-				BeforeEach(func() {
-					fakeATC1.AppendHandlers(verifyRegister)
-					fakeATC2.AppendHandlers(verifyHeartbeat)
-					logLevel = lager.ERROR
-				})
-
-				It("does not log messages", func() {
-					Expect(clientWriter).ShouldNot(gbytes.Say("test.register.start"))
-					Expect(clientWriter).ShouldNot(gbytes.Say("test.register.reached-worker"))
-					Expect(clientWriter).ShouldNot(gbytes.Say("test.register.done"))
-
-					fakeClock.WaitForWatcherAndIncrement(interval)
-					Eventually(clientWriter).ShouldNot(gbytes.Say("test.heartbeat.start"))
-					Eventually(clientWriter).ShouldNot(gbytes.Say("test.heartbeat.reached-worker"))
-					Eventually(clientWriter).ShouldNot(gbytes.Say("test.heartbeat.done"))
-				})
-			})
-
 		})
 
 		Context("when heartbeat returns worker is landed", func() {
