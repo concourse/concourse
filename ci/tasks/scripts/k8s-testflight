@@ -22,7 +22,9 @@ if [ -z $ATC_PASSWORD ]; then
   ATC_PASSWORD="test"
 fi
 
-pod_name=$(kubectl get po -l app="$app" -o jsonpath='{.items[0].metadata.name}')
+app="${RELEASE_NAME}-web"
+
+pod_name=$(kubectl get pods -l app="$app" -o jsonpath='{.items[0].metadata.name}')
 
 kubectl port-forward "$pod_name" "8080:8080" >/dev/null 2>&1 &
 echo $! >> /tmp/pids
