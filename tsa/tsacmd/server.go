@@ -22,7 +22,6 @@ const maxForwards = 2
 
 type server struct {
 	logger            lager.Logger
-	logLevel          lager.LogLevel
 	atcEndpointPicker tsa.EndpointPicker
 	tokenGenerator    tsa.TokenGenerator
 	heartbeatInterval time.Duration

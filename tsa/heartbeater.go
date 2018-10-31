@@ -24,8 +24,6 @@ type EndpointPicker interface {
 }
 
 type Heartbeater struct {
-	logLevel lager.LogLevel
-
 	clock       clock.Clock
 	interval    time.Duration
 	cprInterval time.Duration
@@ -41,7 +39,6 @@ type Heartbeater struct {
 }
 
 func NewHeartbeater(
-	logLevel lager.LogLevel,
 	clock clock.Clock,
 	interval time.Duration,
 	cprInterval time.Duration,
@@ -53,8 +50,6 @@ func NewHeartbeater(
 	eventWriter EventWriter,
 ) *Heartbeater {
 	return &Heartbeater{
-		logLevel: logLevel,
-
 		clock:       clock,
 		interval:    interval,
 		cprInterval: cprInterval,

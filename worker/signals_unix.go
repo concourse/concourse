@@ -1,21 +1,21 @@
 // +build !windows
 
-package drain
+package worker
 
 import (
 	"os"
 	"syscall"
 )
 
-var Signals = []os.Signal{
+var drainSignals = []os.Signal{
 	syscall.SIGUSR1,
 	syscall.SIGUSR2,
 }
 
-func IsLand(sig os.Signal) bool {
+func isLand(sig os.Signal) bool {
 	return sig == syscall.SIGUSR1
 }
 
-func IsRetire(sig os.Signal) bool {
+func isRetire(sig os.Signal) bool {
 	return sig == syscall.SIGUSR2
 }

@@ -72,7 +72,6 @@ func (req forwardWorkerRequest) Handle(ctx context.Context, state ConnState, cha
 	worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", req.server.forwardHost, baggageclaimForward.BoundPort)
 
 	heartbeater := tsa.NewHeartbeater(
-		req.server.logLevel,
 		clock.NewClock(),
 		req.server.heartbeatInterval,
 		req.server.cprInterval,
@@ -148,7 +147,6 @@ func (req registerWorkerRequest) Handle(ctx context.Context, state ConnState, ch
 	}
 
 	heartbeater := tsa.NewHeartbeater(
-		req.server.logLevel,
 		clock.NewClock(),
 		req.server.heartbeatInterval,
 		req.server.cprInterval,

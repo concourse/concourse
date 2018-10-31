@@ -1,4 +1,4 @@
-package drain_test
+package worker_test
 
 import (
 	"errors"
@@ -6,26 +6,26 @@ import (
 	"syscall"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/worker/beacon/beaconfakes"
-	"github.com/concourse/concourse/worker/drain"
+	"github.com/concourse/concourse/worker"
+	"github.com/concourse/concourse/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
 )
 
 var _ = Describe("DrainRunner", func() {
-	var fakeBeaconClient *beaconfakes.FakeBeaconClient
+	var fakeClient *workerfakes.FakeTSAClient
 	var subRunner ifrit.Runner
 	var drainSignals chan<- os.Signal
 	var subSignals <-chan os.Signal
 	var subRunning <-chan struct{}
 	var subExit chan<- error
 
-	var runner *drain.Runner
+	var runner *worker.DrainRunner
 	var process ifrit.Process
 
 	BeforeEach(func() {
-		fakeBeaconClient = new(beaconfakes.FakeBeaconClient)
+		fakeClient = new(workerfakes.FakeTSAClient)
 
 		exit := make(chan error)
 		running := make(chan struct{}, 1)
@@ -44,11 +44,12 @@ var _ = Describe("DrainRunner", func() {
 		ds := make(chan os.Signal)
 		drainSignals = ds
 
-		runner = &drain.Runner{
+		runner = &worker.DrainRunner{
 			Logger:       lagertest.NewTestLogger("test"),
-			Beacon:       fakeBeaconClient,
-			Runner:       subRunner,
+			Client:       fakeClient,
 			DrainSignals: ds,
+
+			Runner: subRunner,
 		}
 
 		process = ifrit.Invoke(runner)
@@ -77,7 +78,7 @@ var _ = Describe("DrainRunner", func() {
 		})
 
 		It("lands the worker", func() {
-			Eventually(fakeBeaconClient.LandWorkerCallCount).Should(Equal(1))
+			Eventually(fakeClient.LandCallCount).Should(Equal(1))
 		})
 
 		It("does not forward the signal", func() {
@@ -92,7 +93,7 @@ var _ = Describe("DrainRunner", func() {
 
 		Context("when landing the worker fails", func() {
 			BeforeEach(func() {
-				fakeBeaconClient.LandWorkerReturns(errors.New("nope"))
+				fakeClient.LandReturns(errors.New("nope"))
 			})
 
 			It("interrupts the sub-process", func() {
@@ -108,17 +109,17 @@ var _ = Describe("DrainRunner", func() {
 
 		Context("when syscall.SIGTERM is received after landing", func() {
 			JustBeforeEach(func() {
-				Eventually(fakeBeaconClient.LandWorkerCallCount).Should(Equal(1))
+				Eventually(fakeClient.LandCallCount).Should(Equal(1))
 				process.Signal(syscall.SIGTERM)
 			})
 
 			It("does not delete the worker", func() {
-				Consistently(fakeBeaconClient.DeleteWorkerCallCount).Should(Equal(0))
+				Consistently(fakeClient.DeleteCallCount).Should(Equal(0))
 			})
 
 			It("forwards the signal without deleting the worker", func() {
 				Expect(<-subSignals).To(Equal(syscall.SIGTERM))
-				Expect(fakeBeaconClient.DeleteWorkerCallCount()).Should(Equal(0))
+				Expect(fakeClient.DeleteCallCount()).Should(Equal(0))
 			})
 
 			Describe("Drained", func() {
@@ -130,17 +131,17 @@ var _ = Describe("DrainRunner", func() {
 
 		Context("when syscall.SIGINT is received after landing", func() {
 			JustBeforeEach(func() {
-				Eventually(fakeBeaconClient.LandWorkerCallCount).Should(Equal(1))
+				Eventually(fakeClient.LandCallCount).Should(Equal(1))
 				process.Signal(syscall.SIGINT)
 			})
 
 			It("does not delete the worker", func() {
-				Consistently(fakeBeaconClient.DeleteWorkerCallCount).Should(Equal(0))
+				Consistently(fakeClient.DeleteCallCount).Should(Equal(0))
 			})
 
 			It("forwards the signal without deleting the worker", func() {
 				Expect(<-subSignals).To(Equal(syscall.SIGINT))
-				Expect(fakeBeaconClient.DeleteWorkerCallCount()).Should(Equal(0))
+				Expect(fakeClient.DeleteCallCount()).Should(Equal(0))
 			})
 
 			Describe("Drained", func() {
@@ -157,7 +158,7 @@ var _ = Describe("DrainRunner", func() {
 		})
 
 		It("retires the worker", func() {
-			Eventually(fakeBeaconClient.RetireWorkerCallCount).Should(Equal(1))
+			Eventually(fakeClient.RetireCallCount).Should(Equal(1))
 		})
 
 		It("does not forward the signal", func() {
@@ -172,7 +173,7 @@ var _ = Describe("DrainRunner", func() {
 
 		Context("when retiring the worker fails", func() {
 			BeforeEach(func() {
-				fakeBeaconClient.RetireWorkerReturns(errors.New("nope"))
+				fakeClient.RetireReturns(errors.New("nope"))
 			})
 
 			It("interrupts the sub-process", func() {
@@ -188,12 +189,12 @@ var _ = Describe("DrainRunner", func() {
 
 		Context("when syscall.SIGTERM is received after retiring", func() {
 			JustBeforeEach(func() {
-				Eventually(fakeBeaconClient.RetireWorkerCallCount).Should(Equal(1))
+				Eventually(fakeClient.RetireCallCount).Should(Equal(1))
 				process.Signal(syscall.SIGTERM)
 			})
 
 			It("deletes the worker", func() {
-				Eventually(fakeBeaconClient.DeleteWorkerCallCount).Should(Equal(1))
+				Eventually(fakeClient.DeleteCallCount).Should(Equal(1))
 			})
 
 			It("forwards the signal", func() {
@@ -208,7 +209,7 @@ var _ = Describe("DrainRunner", func() {
 
 			Context("when deleting the worker fails", func() {
 				BeforeEach(func() {
-					fakeBeaconClient.DeleteWorkerReturns(errors.New("nope"))
+					fakeClient.DeleteReturns(errors.New("nope"))
 				})
 
 				It("still forwards the signal", func() {
@@ -225,12 +226,12 @@ var _ = Describe("DrainRunner", func() {
 
 		Context("when syscall.SIGINT is received after retiring", func() {
 			JustBeforeEach(func() {
-				Eventually(fakeBeaconClient.RetireWorkerCallCount).Should(Equal(1))
+				Eventually(fakeClient.RetireCallCount).Should(Equal(1))
 				process.Signal(syscall.SIGINT)
 			})
 
 			It("deletes the worker", func() {
-				Eventually(fakeBeaconClient.DeleteWorkerCallCount).Should(Equal(1))
+				Eventually(fakeClient.DeleteCallCount).Should(Equal(1))
 			})
 
 			It("forwards the signal", func() {
@@ -245,7 +246,7 @@ var _ = Describe("DrainRunner", func() {
 
 			Context("when deleting the worker fails", func() {
 				BeforeEach(func() {
-					fakeBeaconClient.DeleteWorkerReturns(errors.New("nope"))
+					fakeClient.DeleteReturns(errors.New("nope"))
 				})
 
 				It("still forwards the signal", func() {
@@ -268,9 +269,9 @@ var _ = Describe("DrainRunner", func() {
 
 		It("forwards the signal without landing, retiring, or deleting the worker", func() {
 			Expect(<-subSignals).To(Equal(syscall.SIGTERM))
-			Expect(fakeBeaconClient.LandWorkerCallCount()).Should(Equal(0))
-			Expect(fakeBeaconClient.RetireWorkerCallCount()).Should(Equal(0))
-			Expect(fakeBeaconClient.DeleteWorkerCallCount()).Should(Equal(0))
+			Expect(fakeClient.LandCallCount()).Should(Equal(0))
+			Expect(fakeClient.RetireCallCount()).Should(Equal(0))
+			Expect(fakeClient.DeleteCallCount()).Should(Equal(0))
 		})
 
 		Describe("Drained", func() {
@@ -287,9 +288,9 @@ var _ = Describe("DrainRunner", func() {
 
 		It("forwards the signal without landing, retiring, or deleting the worker", func() {
 			Expect(<-subSignals).To(Equal(syscall.SIGINT))
-			Expect(fakeBeaconClient.LandWorkerCallCount()).Should(Equal(0))
-			Expect(fakeBeaconClient.RetireWorkerCallCount()).Should(Equal(0))
-			Expect(fakeBeaconClient.DeleteWorkerCallCount()).Should(Equal(0))
+			Expect(fakeClient.LandCallCount()).Should(Equal(0))
+			Expect(fakeClient.RetireCallCount()).Should(Equal(0))
+			Expect(fakeClient.DeleteCallCount()).Should(Equal(0))
 		})
 
 		Describe("Drained", func() {

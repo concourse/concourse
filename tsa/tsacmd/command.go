@@ -97,28 +97,25 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 
 	listenAddr := fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
 
-	if cmd.SessionSigningKey != nil {
-		tokenGenerator := tsa.NewTokenGenerator(cmd.SessionSigningKey.PrivateKey)
-
-		logLevel, err := lager.LogLevelFromString(cmd.Logger.LogLevel)
-		if err != nil {
-			panic(err)
-		}
-		server := &server{
-			logger:            logger,
-			logLevel:          logLevel,
-			heartbeatInterval: cmd.HeartbeatInterval,
-			cprInterval:       1 * time.Second,
-			atcEndpointPicker: atcEndpointPicker,
-			tokenGenerator:    tokenGenerator,
-			forwardHost:       cmd.PeerIP,
-			config:            config,
-			httpClient:        http.DefaultClient,
-			sessionTeam:       sessionAuthTeam,
-		}
-		return serverRunner{logger, server, listenAddr}, nil
+	if cmd.SessionSigningKey == nil {
+		return nil, fmt.Errorf("missing session signing key")
 	}
-	return nil, fmt.Errorf("missing session signing key")
+
+	tokenGenerator := tsa.NewTokenGenerator(cmd.SessionSigningKey.PrivateKey)
+
+	server := &server{
+		logger:            logger,
+		heartbeatInterval: cmd.HeartbeatInterval,
+		cprInterval:       1 * time.Second,
+		atcEndpointPicker: atcEndpointPicker,
+		tokenGenerator:    tokenGenerator,
+		forwardHost:       cmd.PeerIP,
+		config:            config,
+		httpClient:        http.DefaultClient,
+		sessionTeam:       sessionAuthTeam,
+	}
+
+	return serverRunner{logger, server, listenAddr}, nil
 }
 
 func (cmd *TSACommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {

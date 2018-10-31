@@ -6,50 +6,32 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/worker/beacon"
-	"github.com/concourse/concourse/worker/drain"
+	"github.com/concourse/concourse/tsa"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/restart"
 	"golang.org/x/crypto/ssh"
 )
 
-func NewBeacon(logger lager.Logger, worker atc.Worker, config beacon.Config) beacon.BeaconClient {
-	logger = logger.Session("beacon")
-	logger.Debug("setting-up-beacon-runner")
-	client := beacon.NewSSHClient(logger.Session("beacon-client"), config)
-
-	return &beacon.Beacon{
-		Logger:           logger,
-		Worker:           worker,
-		Client:           client,
-		GardenAddr:       config.GardenForwardAddr,
-		BaggageclaimAddr: config.BaggageclaimForwardAddr,
-		RegistrationMode: config.Registration.Mode,
-		KeepAlive:        true,
-		RebalanceTime:    config.Registration.RebalanceTime,
-	}
-}
-
-func BeaconRunner(logger lager.Logger, beaconClient beacon.BeaconClient) ifrit.Runner {
+func NewBeaconRunner(logger lager.Logger, beacon *Beacon, tsaClient *tsa.Client) ifrit.Runner {
 	signals := make(chan os.Signal, 2)
-	signal.Notify(signals, drain.Signals...)
+	signal.Notify(signals, drainSignals...)
 
-	runner := &drain.Runner{
+	drainRunner := &DrainRunner{
 		Logger:       logger.Session("drain"),
-		Beacon:       beaconClient,
-		Runner:       ifrit.RunFunc(beaconClient.Register),
+		Client:       tsaClient,
 		DrainSignals: signals,
+
+		Runner: beacon,
 	}
 
 	return restart.Restarter{
-		Runner: runner,
+		Runner: drainRunner,
 		Load: func(prevRunner ifrit.Runner, prevErr error) ifrit.Runner {
 			if prevErr == nil {
 				return nil
 			}
 
-			if prevErr == beacon.ErrAllGatewaysUnreachable && prevRunner.(*drain.Runner).Drained() {
+			if prevErr == tsa.ErrAllGatewaysUnreachable && prevRunner.(*DrainRunner).Drained() {
 				// this could happen if the whole deployment is being deleted. in this
 				// case, we should just exit and stop retrying, because draining can't
 				// complete anyway.
@@ -75,7 +57,7 @@ func BeaconRunner(logger lager.Logger, beaconClient beacon.BeaconClient) ifrit.R
 
 			logger.Info("restarting")
 
-			return runner
+			return drainRunner
 		},
 	}
 }

@@ -1,29 +1,31 @@
-package drain
+package worker
 
 import (
+	"context"
 	"os"
 	"sync/atomic"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/worker/beacon"
 	"github.com/tedsuo/ifrit"
 )
 
-type Runner struct {
+type DrainRunner struct {
 	Logger       lager.Logger
-	Beacon       beacon.BeaconClient
+	Client       TSAClient
 	Runner       ifrit.Runner
 	DrainSignals <-chan os.Signal
 
 	drained int32
 }
 
-func (d *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+func (d *DrainRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	proc := ifrit.Background(d.Runner)
 
 	close(ready)
 
 	retiring := false
+
+	ctx := context.Background()
 
 	for {
 		select {
@@ -34,20 +36,20 @@ func (d *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 				"signal": sig.String(),
 			})
 
-			if IsLand(sig) {
+			if isLand(sig) {
 				d.Logger.Info("landing-worker")
 
-				err := d.Beacon.LandWorker()
+				err := d.Client.Land(ctx)
 				if err != nil {
 					d.Logger.Error("failed-to-land-worker", err)
 					proc.Signal(os.Interrupt)
 				}
-			} else if IsRetire(sig) {
+			} else if isRetire(sig) {
 				retiring = true
 
 				d.Logger.Info("retiring-worker")
 
-				err := d.Beacon.RetireWorker()
+				err := d.Client.Retire(ctx)
 				if err != nil {
 					d.Logger.Error("failed-to-retire-worker", err)
 					proc.Signal(os.Interrupt)
@@ -62,7 +64,7 @@ func (d *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 			if retiring {
 				d.Logger.Info("deleting-worker")
 
-				err := d.Beacon.DeleteWorker()
+				err := d.Client.Delete(ctx)
 				if err != nil {
 					d.Logger.Error("failed-to-delete-worker", err)
 				}
@@ -78,6 +80,6 @@ func (d *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	}
 }
 
-func (d *Runner) Drained() bool {
+func (d *DrainRunner) Drained() bool {
 	return atomic.LoadInt32(&d.drained) == 1
 }

@@ -474,7 +474,7 @@ func (client *Client) run(ctx context.Context, sshClient *ssh.Client, command st
 		if err != nil {
 			logger.Error("command-exited-after-signal", err)
 		} else {
-			logger.Info("command-exited-after-signal")
+			logger.Debug("command-exited-after-signal")
 		}
 
 		return err
@@ -484,7 +484,7 @@ func (client *Client) run(ctx context.Context, sshClient *ssh.Client, command st
 			return err
 		}
 
-		logger.Info("command-exited")
+		logger.Debug("command-exited")
 		return nil
 	}
 }

@@ -2,16 +2,18 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
+	gclient "code.cloudfoundry.org/garden/client"
+	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim/baggageclaimcmd"
+	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/concourse"
-	concourseWorker "github.com/concourse/concourse/worker"
-	"github.com/concourse/concourse/worker/beacon"
-	"github.com/concourse/concourse/worker/sweeper"
-	"github.com/concourse/concourse/worker/tsa"
+	"github.com/concourse/concourse/worker"
 	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -21,7 +23,7 @@ import (
 type WorkerCommand struct {
 	Worker WorkerConfig
 
-	TSA tsa.Config `group:"TSA Configuration" namespace:"tsa"`
+	TSA worker.TSAConfig `group:"TSA Configuration" namespace:"tsa"`
 
 	Certs Certs
 
@@ -29,7 +31,10 @@ type WorkerCommand struct {
 
 	BindIP   flag.IP `long:"bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the Garden server."`
 	BindPort uint16  `long:"bind-port" default:"7777"      description:"Port on which to listen for the Garden server."`
-	PeerIP   flag.IP `long:"peer-ip" description:"IP used to reach this worker from the ATC nodes."`
+
+	SweepInterval time.Duration `long:"sweep-interval" default:"30s" description:"Interval on which containers and volumes will be garbage collected from the worker."`
+
+	RebalanceInterval time.Duration `long:"rebalance-interval" description:"Duration after which the registration should be swapped to another random SSH gateway."`
 
 	Garden GardenBackend `group:"Garden Configuration" namespace:"garden"`
 
@@ -80,53 +85,62 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 	}
 
 	if cmd.TSA.WorkerPrivateKey != nil {
-		beaconConfig := beacon.Config{
-			TSAConfig: cmd.TSA,
+		tsaClient := cmd.TSA.Client(atcWorker)
+		gardenClient := gclient.New(gconn.NewWithLogger("tcp", cmd.gardenAddr(), logger.Session("garden-connection")))
+		baggageclaimClient := bclient.New(cmd.baggageclaimURL(), http.DefaultTransport)
+
+		beacon := &worker.Beacon{
+			Logger:            logger.Session("beacon"),
+			Client:            tsaClient,
+			RebalanceInterval: cmd.RebalanceInterval,
+
+			LocalGardenNetwork: "tcp",
+			LocalGardenAddr:    cmd.gardenAddr(),
+
+			LocalBaggageclaimNetwork: "tcp",
+			LocalBaggageclaimAddr:    cmd.baggageclaimAddr(),
 		}
-
-		if cmd.PeerIP.IP != nil {
-			atcWorker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP.IP, cmd.BindPort)
-			atcWorker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP.IP, cmd.Baggageclaim.BindPort)
-
-			beaconConfig.Registration.Mode = "direct"
-		} else {
-			beaconConfig.Registration.Mode = "forward"
-			beaconConfig.GardenForwardAddr = fmt.Sprintf("%s:%d", cmd.BindIP.IP, cmd.BindPort)
-			beaconConfig.BaggageclaimForwardAddr = fmt.Sprintf("%s:%d", cmd.Baggageclaim.BindIP.IP, cmd.Baggageclaim.BindPort)
-
-			atcWorker.GardenAddr = beaconConfig.GardenForwardAddr
-			atcWorker.BaggageclaimURL = fmt.Sprintf("http://%s", beaconConfig.BaggageclaimForwardAddr)
-		}
-
-		beacon := concourseWorker.NewBeacon(
-			logger.Session("beacon"),
-			atcWorker,
-			beaconConfig,
-		)
 
 		members = append(members, grouper.Member{
 			Name: "beacon",
-			Runner: NewLoggingRunner(logger.Session("beacon-runner"),
-				concourseWorker.BeaconRunner(
-					logger.Session("beacon"),
+			Runner: NewLoggingRunner(
+				logger.Session("beacon-runner"),
+				worker.NewBeaconRunner(
+					logger.Session("beacon-runner"),
 					beacon,
+					tsaClient,
 				),
 			),
 		})
 
 		members = append(members, grouper.Member{
 			Name: "sweeper",
-			Runner: NewLoggingRunner(logger.Session("sweeper-runner"),
-				sweeper.NewSweeperRunner(
-					logger,
-					atcWorker,
-					beaconConfig,
-				),
+			Runner: NewLoggingRunner(
+				logger.Session("sweeper"),
+				&worker.SweepRunner{
+					Logger:             logger.Session("sweeper-runner"),
+					Interval:           cmd.SweepInterval,
+					TSAClient:          tsaClient,
+					GardenClient:       gardenClient,
+					BaggageclaimClient: baggageclaimClient,
+				},
 			),
 		})
 	}
 
 	return grouper.NewParallel(os.Interrupt, members), nil
+}
+
+func (cmd *WorkerCommand) gardenAddr() string {
+	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
+}
+
+func (cmd *WorkerCommand) baggageclaimAddr() string {
+	return fmt.Sprintf("%s:%d", cmd.Baggageclaim.BindIP, cmd.Baggageclaim.BindPort)
+}
+
+func (cmd *WorkerCommand) baggageclaimURL() string {
+	return fmt.Sprintf("http://%s", cmd.baggageclaimAddr())
 }
 
 func (cmd *WorkerCommand) workerName() (string, error) {

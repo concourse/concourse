@@ -1,4 +1,4 @@
-package beacon_test
+package worker_test
 
 import (
 	"time"
@@ -9,9 +9,9 @@ import (
 	"testing"
 )
 
-func TestBeacon(t *testing.T) {
+func TestWorker(t *testing.T) {
 	SetDefaultEventuallyTimeout(time.Minute)
 
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Beacon Suite")
+	RunSpecs(t, "Worker Suite")
 }
