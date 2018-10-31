@@ -21,7 +21,7 @@ if [ -z $CONCOURSE_TAG ]; then
 fi
 
 if [ -n "${CONCOURSE_DIGEST_FILE}" ]; then
-  if [ -f $CONCOURSE_DIGEST_FILE ]; then
+  if [ -f $CONCOURSE_DIGEST_FILE ]; then
     CONCOURSE_DIGEST="$(cat $CONCOURSE_DIGEST_FILE)"
   fi
 fi
@@ -41,5 +41,6 @@ pushd charts/stable/concourse/
     --set concourse.worker.baggageclaim.driver="detect" \
     --set worker.resources.requests.cpu="1000m" \
     --set worker.replicas="2" \
+    $RELEASE_NAME \
     .
 popd
