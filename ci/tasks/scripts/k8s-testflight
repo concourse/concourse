@@ -54,4 +54,4 @@ for port in $ports; do
   echo $! >> /tmp/pids
 done
 
-ATC_URL="http://$external_ip:8080" concourse/ci/scripts/testflight
+ATC_URL="http://$external_ip:8080" concourse/ci/tasks/scripts/testflight
