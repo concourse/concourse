@@ -1,29 +1,26 @@
 #!/bin/bash
+
 set -eo pipefail
 
 trap "cat /tmp/pids | xargs kill" EXIT
+
 mkdir -p ~/.kube
-echo "$KUBE_CONFIG" > ~/.kube/config
-version=$(cat version/version)
-app="${RELEASE_NAME}-web"
 
-pushd charts/stable/concourse/
+if [ ! -f ~/.kube/config ]; then
+  echo "$KUBE_CONFIG" > ~/.kube/config
+fi
 
-helm init --client-only
-helm dependency update
-helm upgrade -f values.yaml \
-  --install \
-  --force \
-  --set image="concourse/concourse-rc" \
-  --set imageTag="$version" \
-  --set concourse.worker.garden.allowHostAccess="true" \
-  --set concourse.worker.baggageclaim.driver="detect" \
-  --set worker.resources.requests.cpu="1000m" \
-  --set worker.replicas="1" \
-  "$RELEASE_NAME" \
-  . \
-  --wait \
-  --timeout 300
+if [ -z $RELEASE_NAME ]; then
+  RELEASE_NAME="concourse"
+fi
+
+if [ -z $ATC_USERNAME ]; then
+  ATC_USERNAME="test"
+fi
+
+if [ -z $ATC_PASSWORD ]; then
+  ATC_PASSWORD="test"
+fi
 
 pod_name=$(kubectl get po -l app="$app" -o jsonpath='{.items[0].metadata.name}')
 
@@ -54,7 +51,5 @@ for port in $ports; do
   kubectl port-forward "$pod_name" "$port:$port" >/dev/null &
   echo $! >> /tmp/pids
 done
-
-popd
 
 ATC_URL="http://$external_ip:8080" concourse/ci/scripts/testflight
