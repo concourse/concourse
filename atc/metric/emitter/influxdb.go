@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/pkg/errors"
 
 	influxclient "github.com/influxdata/influxdb/client/v2"
 )
@@ -85,7 +86,8 @@ func (emitter *InfluxDBEmitter) Emit(logger lager.Logger, event metric.Event) {
 
 	err = emitter.client.Write(bp)
 	if err != nil {
-		logger.Error("failed-to-send-points", err)
+		logger.Error("failed-to-send-points",
+			errors.Wrap(metric.ErrFailedToEmit, err.Error()))
 		return
 	}
 }

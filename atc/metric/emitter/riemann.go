@@ -7,6 +7,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/The-Cloud-Source/goryman"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/pkg/errors"
 )
 
 type RiemannEmitter struct {
@@ -66,7 +67,8 @@ func (emitter *RiemannEmitter) Emit(logger lager.Logger, event metric.Event) {
 		Tags: emitter.tags,
 	})
 	if err != nil {
-		logger.Error("failed-to-emit", err)
+		logger.Error("failed-to-send-metric",
+			errors.Wrap(metric.ErrFailedToEmit, err.Error()))
 
 		if err := emitter.client.Close(); err != nil {
 			logger.Error("failed-to-close", err)
