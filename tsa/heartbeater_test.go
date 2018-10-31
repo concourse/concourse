@@ -47,7 +47,7 @@ var _ = Describe("Heartbeater", func() {
 		fakeATC1               *ghttp.Server
 		fakeATC2               *ghttp.Server
 		atcEndpointPicker      *tsafakes.FakeEndpointPicker
-		heartbeatErr           chan error
+		heartbeatErr           <-chan error
 
 		verifyRegister  http.HandlerFunc
 		verifyHeartbeat http.HandlerFunc
@@ -149,7 +149,6 @@ var _ = Describe("Heartbeater", func() {
 			return rata.NewRequestGenerator(fakeATC1.URL(), atc.Routes)
 		}
 
-		heartbeatErr = make(chan error, 1)
 	})
 
 	JustBeforeEach(func() {
@@ -165,9 +164,11 @@ var _ = Describe("Heartbeater", func() {
 			NewEventWriter(clientWriter),
 		)
 
+		errs := make(chan error, 1)
+		heartbeatErr = errs
 		go func() {
-			heartbeatErr <- heartbeater.Heartbeat(ctx)
-			close(heartbeatErr)
+			errs <- heartbeater.Heartbeat(ctx)
+			close(errs)
 		}()
 	})
 
