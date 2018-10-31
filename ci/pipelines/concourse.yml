@@ -15,10 +15,6 @@ resource_types:
   type: registry-image
   source: {repository: cloudfoundry/bosh-deployment-resource}
 
-- name: mock
-  type: registry-image
-  source: {repository: concourse/mock-resource}
-
 groups:
 - name: develop
   jobs:
@@ -29,6 +25,10 @@ groups:
   - rc
   - build-rc
   - bin-smoke
+
+- name: k8s
+  jobs:
+  - k8s-testflight
 
 - name: bosh
   jobs:
@@ -191,6 +191,26 @@ jobs:
     timeout: 1h
     file: concourse/ci/tasks/docker-compose-watsjs.yml
     params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
+
+- name: k8s-testflight
+  public: true
+  max_in_flight: 1
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [dev-image]
+      trigger: true
+    - get: dev-image
+      passed: [dev-image]
+      params: {format: oci}
+    - get: charts
+  - task: deploy
+    file: concourse/ci/tasks/k8s-deploy.yml
+    params:
+     KUBE_CONFIG: ((kube-config))
+     RELEASE_NAME: concourse-testflight
+     CONCOURSE_IMAGE: concourse/dev
+     CONCOURSE_DIGEST_FILE: dev-image/digest
 
 - name: rc
   public: true
@@ -511,11 +531,10 @@ jobs:
   plan:
   - aggregate:
     - get: docs
-    - get: mock-version
+    - get: version
   - task: build-docs
     file: docs/ci/build.yml
     params: {ANALYTICS_ID: ((analytics_id))}
-    input_mapping: {version: mock-version}
   - put: concourse-docs
     params:
       current_app_name: docs
@@ -532,10 +551,6 @@ jobs:
       merge: true
 
 resources:
-- name: mock-version
-  type: mock
-  source: {force_version: 4.2.1}
-
 - name: concourse
   type: git
   source:
@@ -745,3 +760,10 @@ resources:
     uri: git@github.com:concourse/concourse-bosh-deployment.git
     branch: master
     private_key: ((concourse_deployment_repo_private_key))
+
+- name: charts
+  type: git
+  source:
+     uri: git@github.com:concourse/charts.git
+     branch: concourse-chart-image-digest
+

@@ -1,0 +1,45 @@
+#!/bin/bash
+
+set -eo pipefail
+
+mkdir -p ~/.kube
+
+if [ ! -f ~/.kube/config ]; then
+  echo "$KUBE_CONFIG" > ~/.kube/config
+fi
+
+if [ -z $RELEASE_NAME ]; then
+  RELEASE_NAME="concourse"
+fi
+
+if [ -z $CONCOURSE_IMAGE ]; then
+  CONCOURSE_IMAGE='concourse/concourse-rc'
+fi
+
+if [ -z $CONCOURSE_TAG ]; then
+  CONCOURSE_TAG='latest'
+fi
+
+if [ -n "${CONCOURSE_DIGEST_FILE}" ]; then
+  if [ -f $CONCOURSE_DIGEST_FILE ]; then
+    CONCOURSE_DIGEST="$(cat $CONCOURSE_DIGEST_FILE)"
+  fi
+fi
+
+external_ip='127.0.0.1'
+app="${RELEASE_NAME}-web"
+
+pushd charts/stable/concourse/
+  helm init --wait
+  helm dependency update
+  helm upgrade -f values.yaml \
+    --install \
+    --force \
+    --set image=$CONCOURSE_IMAGE \
+    --set imageDigest="$CONCOURSE_DIGEST" \
+    --set concourse.worker.garden.allowHostAccess="true" \
+    --set concourse.worker.baggageclaim.driver="detect" \
+    --set worker.resources.requests.cpu="1000m" \
+    --set worker.replicas="2" \
+    .
+popd
