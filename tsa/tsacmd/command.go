@@ -104,7 +104,7 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 		if err != nil {
 			panic(err)
 		}
-		server := &registrarSSHServer{
+		server := &server{
 			logger:            logger,
 			logLevel:          logLevel,
 			heartbeatInterval: cmd.HeartbeatInterval,

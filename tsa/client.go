@@ -27,11 +27,20 @@ var ErrAllGatewaysUnreachable = errors.New("all worker SSH gateways unreachable"
 // on the specified worker.
 var ErrUnauthorized = errors.New("key is not authorized to act on the specified worker")
 
+// ErrDrainTimeout is returned when the connection underlying a registration
+// has been idle for the configured DrainTimeout.
+var ErrDrainTimeout = errors.New("timeout draining connections")
+
+// These addresses are used to specify which forwarded connection corresponds
+// to which component. Note that these aren't actually respected, they just
+// have to match between the 'forward-worker' command flags and the SSH reverse
+// tunnel configuration.
 const (
 	gardenForwardAddr       = "0.0.0.0:7777"
 	baggageclaimForwardAddr = "0.0.0.0:7788"
 )
 
+// Client is used to communicate with a pool of remote SSH gateways.
 type Client struct {
 	Hosts    []string
 	HostKeys []ssh.PublicKey
@@ -41,24 +50,45 @@ type Client struct {
 	Worker atc.Worker
 }
 
+// RegisterOptions contains required configuration for the registration.
 type RegisterOptions struct {
+	// The local Garden network and address to forward through the SSH gateway.
 	LocalGardenNetwork string
 	LocalGardenAddr    string
 
+	// The local Baggageclaim network and address to forward through the SSH
+	// gateway.
 	LocalBaggageclaimNetwork string
 	LocalBaggageclaimAddr    string
 
+	// Under normal circumstances, the connection is kept alive by continuously
+	// sending a keepalive request to the SSH gateway. When the context is
+	// canceled, the keepalive loop is stopped, and the connection will break
+	// after it has been idle for this duration, if configured.
 	DrainTimeout time.Duration
+
+	// RegisteredFunc is called when the initial registration has completed.
+	//
+	// The function must be careful not to take too long or become deadlocked, or
+	// else the SSH connection can starve.
+	RegisteredFunc func()
+
+	// HeartbeatedFunc is called on each heartbeat after registration.
+	//
+	// The function must be careful not to take too long or become deadlocked, or
+	// else the SSH connection can starve.
+	HeartbeatedFunc func()
 }
 
-// Register registers a worker with the gateway, continuously keeping the
-// connection alive.
+// Register invokes the 'forward-worker' command, proxying traffic through the
+// tunnel and to the configured Garden/Baggageclaim addresses. It will also
+// continuously keep the connection alive. The SSH gateway will continuously
+// heartbeat the worker.
 //
-// If the context times out, the keepalive is stopped, and registration will
-// exit after the connection has no activity for the DrainTimeout duration.
-//
-// If the context is canceled, registration is immediately stopped and the
-// connection to the SSH gateway is closed.
+// If the context is canceled, heartbeating is immediately stopped and the
+// remote SSH gateway will wait for connections to drain. If a DrainTimeout is
+// configured, the connection will be terminated after no data has gone to/from
+// the SSH gateway for the configured duration.
 func (client *Client) Register(ctx context.Context, opts RegisterOptions) error {
 	logger := lagerctx.FromContext(ctx)
 
@@ -88,14 +118,58 @@ func (client *Client) Register(ctx context.Context, opts RegisterOptions) error 
 
 	go proxyListenerTo(ctx, baggageclaimListener, opts.LocalBaggageclaimNetwork, opts.LocalBaggageclaimAddr)
 
-	return client.run(
+	eventsR, eventsW := io.Pipe()
+	defer eventsW.Close()
+
+	events := NewEventReader(eventsR)
+	go func() {
+		for {
+			ev, err := events.Next()
+			if err != nil {
+				if err != io.EOF {
+					logger.Error("failed-to-read-event", err)
+				}
+
+				return
+			}
+
+			switch ev.Type {
+			case EventTypeRegistered:
+				if opts.RegisteredFunc != nil {
+					opts.RegisteredFunc()
+				}
+
+			case EventTypeHeartbeated:
+				if opts.HeartbeatedFunc != nil {
+					opts.HeartbeatedFunc()
+				}
+			}
+		}
+	}()
+
+	err = client.run(
 		ctx,
 		sshClient,
 		"forward-worker --garden "+gardenForwardAddr+" --baggageclaim "+baggageclaimForwardAddr,
-		os.Stdout,
+		eventsW,
 	)
+	if err != nil {
+		if ctx.Err() != nil && opts.DrainTimeout != 0 {
+			if _, ok := err.(*ssh.ExitMissingError); ok {
+				return ErrDrainTimeout
+			}
+		}
+
+		return err
+	}
+
+	return nil
 }
 
+// Land invokes the 'land-worker' command, which will initiate the landing
+// process for the worker. The worker will transition to 'landing' and finally
+// to 'landed' when it is fully drained, causing any existing registrations to
+// exit.
 func (client *Client) Land(ctx context.Context) error {
 	logger := lagerctx.FromContext(ctx)
 
@@ -110,6 +184,10 @@ func (client *Client) Land(ctx context.Context) error {
 	return client.run(ctx, sshClient, "land-worker", os.Stdout)
 }
 
+// Retire invokes the 'retire-worker' command, which will initiate the retiring
+// process for the worker. The worker will transition to 'retiring' and
+// disappear when it is fully drained, causing any existing registrations to
+// exit.
 func (client *Client) Retire(ctx context.Context) error {
 	logger := lagerctx.FromContext(ctx)
 
@@ -124,6 +202,9 @@ func (client *Client) Retire(ctx context.Context) error {
 	return client.run(ctx, sshClient, "retire-worker", os.Stdout)
 }
 
+// Delete invokes the 'delete-worker' command, which will immediately
+// unregister the worker without draining, causing any existing registrations
+// to exit.
 func (client *Client) Delete(ctx context.Context) error {
 	logger := lagerctx.FromContext(ctx)
 
@@ -138,6 +219,8 @@ func (client *Client) Delete(ctx context.Context) error {
 	return client.run(ctx, sshClient, "delete-worker", os.Stdout)
 }
 
+// ContainersToDestroy invokes the 'sweep-containers' command, returning a list
+// of handles to be destroyed.
 func (client *Client) ContainersToDestroy(ctx context.Context) ([]string, error) {
 	logger := lagerctx.FromContext(ctx)
 
@@ -165,6 +248,8 @@ func (client *Client) ContainersToDestroy(ctx context.Context) ([]string, error)
 	return handles, nil
 }
 
+// ReportContainers invokes the 'report-containers' command, sending a list of
+// the worker's container handles to Concourse.
 func (client *Client) ReportContainers(ctx context.Context, handles []string) error {
 	logger := lagerctx.FromContext(ctx)
 
@@ -181,6 +266,8 @@ func (client *Client) ReportContainers(ctx context.Context, handles []string) er
 	return client.run(ctx, sshClient, strings.Join(command, " "), os.Stdout)
 }
 
+// VolumesToDestroy invokes the 'sweep-volumes' command, returning a list of
+// handles to be destroyed.
 func (client *Client) VolumesToDestroy(ctx context.Context) ([]string, error) {
 	logger := lagerctx.FromContext(ctx)
 
@@ -208,6 +295,8 @@ func (client *Client) VolumesToDestroy(ctx context.Context) ([]string, error) {
 	return handles, nil
 }
 
+// ReportVolumes invokes the 'report-volumes' command, sending a list of the
+// worker's container handles to Concourse.
 func (client *Client) ReportVolumes(ctx context.Context, handles []string) error {
 	logger := lagerctx.FromContext(ctx)
 
@@ -228,7 +317,7 @@ func (client *Client) dial(ctx context.Context, idleTimeout time.Duration) (*ssh
 	logger := lagerctx.WithSession(ctx, "dial")
 
 	var err error
-	tsaConn, tsaAddr, err := client.tryDialAll(ctx, idleTimeout)
+	tcpConn, tsaAddr, err := client.tryDialAll(ctx)
 	if err != nil {
 		logger.Error("failed-to-connect-to-any-tsa", err)
 		return nil, nil, err
@@ -252,15 +341,23 @@ func (client *Client) dial(ctx context.Context, idleTimeout time.Duration) (*ssh
 		Auth: []ssh.AuthMethod{ssh.PublicKeys(pk)},
 	}
 
+	tsaConn := tcpConn
+	if idleTimeout != 0 {
+		tsaConn = &timeoutConn{
+			Conn:        tcpConn,
+			IdleTimeout: idleTimeout,
+		}
+	}
+
 	clientConn, chans, reqs, err := ssh.NewClientConn(tsaConn, tsaAddr, clientConfig)
 	if err != nil {
 		return nil, nil, ErrUnauthorized
 	}
 
-	return ssh.NewClient(clientConn, chans, reqs), tsaConn.(*net.TCPConn), nil
+	return ssh.NewClient(clientConn, chans, reqs), tcpConn.(*net.TCPConn), nil
 }
 
-func (client *Client) tryDialAll(ctx context.Context, idleTimeout time.Duration) (net.Conn, string, error) {
+func (client *Client) tryDialAll(ctx context.Context) (net.Conn, string, error) {
 	logger := lagerctx.FromContext(ctx)
 
 	hosts := map[string]struct{}{}
@@ -269,7 +366,7 @@ func (client *Client) tryDialAll(ctx context.Context, idleTimeout time.Duration)
 	}
 
 	for host, _ := range hosts {
-		conn, err := keepaliveDialer("tcp", host, 10*time.Second, idleTimeout)
+		conn, err := keepaliveDialer("tcp", host, 10*time.Second)
 		if err != nil {
 			logger.Error("failed-to-connect-to-tsa", err)
 			continue
@@ -282,8 +379,8 @@ func (client *Client) tryDialAll(ctx context.Context, idleTimeout time.Duration)
 }
 
 func (client *Client) checkHostKey(hostname string, remote net.Addr, remoteKey ssh.PublicKey) error {
-	// note: hostname/addr are not verified; they may be behind a load balancer
-	// so the definition gets a bit fuzzy
+	// note: hostname/addr are not verified; the TSA may be behind a load
+	// balancer so validating it gets a bit more complicated
 
 	for _, key := range client.HostKeys {
 		if key.Type() == remoteKey.Type() && bytes.Equal(key.Marshal(), remoteKey.Marshal()) {
@@ -311,7 +408,11 @@ func (client *Client) keepAlive(ctx context.Context, sshClient *ssh.Client, tcpC
 
 		select {
 		case <-kas.C:
+			logger.Debug("tick")
+
 		case <-ctx.Done():
+			logger.Info("stopping")
+
 			if err := tcpConn.SetKeepAlive(false); err != nil {
 				logger.Error("failed-to-disable-keepalive", err)
 				return
@@ -357,12 +458,34 @@ func (client *Client) run(ctx context.Context, sshClient *ssh.Client, command st
 
 	select {
 	case <-ctx.Done():
-		logger.Info("context-done")
-		// XXX: if .Err() is deadline, drain; otherwise, exit
-		return nil
-	case err := <-errs:
-		logger.Error("command-failed", err)
+		logger.Info("context-done", lager.Data{
+			"context-error": ctx.Err(),
+		})
+
+		err := sess.Signal(ssh.SIGINT)
+		if err != nil {
+			logger.Error("failed-to-send-signal", err)
+			return err
+		}
+
+		logger.Info("signal-sent")
+
+		err = <-errs
+		if err != nil {
+			logger.Error("command-exited-after-signal", err)
+		} else {
+			logger.Info("command-exited-after-signal")
+		}
+
 		return err
+	case err := <-errs:
+		if err != nil {
+			logger.Error("command-failed", err)
+			return err
+		}
+
+		logger.Info("command-exited")
+		return nil
 	}
 }
 

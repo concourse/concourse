@@ -2,7 +2,9 @@ package main_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -12,26 +14,40 @@ import (
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
 	gfakes "code.cloudfoundry.org/garden/gardenfakes"
+	"code.cloudfoundry.org/lager/lagerctx"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/tsa"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/ghttp"
 )
 
 var _ = Describe("Register", func() {
 	var opts tsa.RegisterOptions
+	var registerDone chan struct{}
+	var heartbeatEvent chan struct{}
 	var registerCtx context.Context
 	var cancel context.CancelFunc
 	var registerErr chan error
 
 	BeforeEach(func() {
+		registerDone = make(chan struct{})
+		heartbeatEvent = make(chan struct{}, 100)
+
 		opts = tsa.RegisterOptions{
 			LocalGardenNetwork: "tcp",
 			LocalGardenAddr:    gardenAddr,
 
 			LocalBaggageclaimNetwork: "tcp",
 			LocalBaggageclaimAddr:    baggageclaimServer.Addr(),
+
+			RegisteredFunc: func() {
+				close(registerDone)
+			},
+
+			HeartbeatedFunc: func() {
+				heartbeatEvent <- struct{}{}
+			},
 		}
 
 		registerCtx, cancel = context.WithCancel(context.Background())
@@ -42,7 +58,7 @@ var _ = Describe("Register", func() {
 
 	JustBeforeEach(func() {
 		go func() {
-			registerErr <- tsaClient.Register(registerCtx, opts)
+			registerErr <- tsaClient.Register(lagerctx.NewContext(registerCtx, lagertest.NewTestLogger("test")), opts)
 			close(registerErr)
 		}()
 	})
@@ -72,7 +88,7 @@ var _ = Describe("Register", func() {
 			}
 
 			gardenStubs <- func() ([]garden.Container, error) {
-				return nil, errors.New("garden was weeded")
+				return nil, errors.New("forced to fail by tests")
 			}
 
 			gardenStubs <- func() ([]garden.Container, error) {
@@ -81,37 +97,69 @@ var _ = Describe("Register", func() {
 				}, nil
 			}
 
+			close(gardenStubs)
+
 			fakeBackend.ContainersStub = func(garden.Properties) ([]garden.Container, error) {
-				return (<-gardenStubs)()
+				stub, ok := <-gardenStubs
+				if ok {
+					return stub()
+				}
+
+				return nil, errors.New("not stubbed enough")
 			}
 
-			baggageclaimServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/volumes"),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{
-						{Handle: "handle-a"},
-						{Handle: "handle-b"},
-					}),
-				),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/volumes"),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{
-						{Handle: "handle-a"},
-					}),
-				),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/volumes"),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{
-						{Handle: "handle-a"},
-						{Handle: "handle-b"},
-						{Handle: "handle-c"},
-					}),
-				),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/volumes"),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{}),
-				),
-			)
+			baggageclaimStubs := make(chan func() ([]baggageclaim.VolumeResponse, error), 4)
+
+			baggageclaimStubs <- func() ([]baggageclaim.VolumeResponse, error) {
+				return []baggageclaim.VolumeResponse{
+					{Handle: "handle-a"},
+					{Handle: "handle-b"},
+				}, nil
+			}
+
+			baggageclaimStubs <- func() ([]baggageclaim.VolumeResponse, error) {
+				return []baggageclaim.VolumeResponse{
+					{Handle: "handle-a"},
+				}, nil
+			}
+
+			baggageclaimStubs <- func() ([]baggageclaim.VolumeResponse, error) {
+				return []baggageclaim.VolumeResponse{
+					{Handle: "handle-a"},
+					{Handle: "handle-b"},
+					{Handle: "handle-c"},
+				}, nil
+			}
+
+			baggageclaimStubs <- func() ([]baggageclaim.VolumeResponse, error) {
+				return []baggageclaim.VolumeResponse{}, nil
+			}
+
+			close(baggageclaimStubs)
+
+			baggageclaimServer.RouteToHandler("GET", "/volumes", func(w http.ResponseWriter, r *http.Request) {
+				stub, ok := <-baggageclaimStubs
+				if !ok {
+					w.WriteHeader(http.StatusTeapot)
+					json.NewEncoder(w).Encode(struct {
+						Error string `json:"error"`
+					}{
+						Error: "baggageclaim not stubbed enough",
+					})
+					return
+				}
+
+				vols, err := stub()
+				if err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					fmt.Fprintf(w, "stubbed error: %s", err)
+					return
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				json.NewEncoder(w).Encode(vols)
+			})
 		})
 
 		It("forwards garden and baggageclaim API calls through the tunnel", func() {
@@ -126,6 +174,12 @@ var _ = Describe("Register", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakeBackend.CreateCallCount()).To(Equal(1))
+		})
+
+		It("fires the registered and heartbeated callbacks", func() {
+			<-registerDone
+			<-heartbeatEvent
+			<-heartbeatEvent
 		})
 
 		It("continuously registers it with the ATC as long as it works", func() {
@@ -197,6 +251,73 @@ var _ = Describe("Register", func() {
 
 			By("having heartbeated after another interval passed")
 			Expect(c.Sub(b)).To(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
+		})
+
+		Describe("canceling the context", func() {
+			It("waits for the connections to complete before exiting", func() {
+				By("waiting for an initial registration")
+				registration := <-registered
+
+				baggageclaimServer.RouteToHandler("GET", "/slow", func(w http.ResponseWriter, r *http.Request) {
+					By("canceling during the request")
+					cancel()
+
+					By("sleeping during the request")
+					time.Sleep(5 * time.Second)
+
+					w.WriteHeader(http.StatusTeapot)
+				})
+
+				By("hitting a slow endpoint on " + registration.worker.BaggageclaimURL)
+				client := &http.Client{
+					Transport: &http.Transport{
+						// disable keepalives so the connection doesn't hang around
+						DisableKeepAlives: true,
+					},
+				}
+
+				res, err := client.Get(registration.worker.BaggageclaimURL + "/slow")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(res.StatusCode).To(Equal(http.StatusTeapot))
+
+				By("exiting successfully")
+				Eventually(registerErr).Should(Receive(BeNil()))
+			})
+
+			Context("with a drain timeout", func() {
+				BeforeEach(func() {
+					opts.DrainTimeout = 5 * time.Second
+				})
+
+				It("breaks connections after the configured drain timeout", func() {
+					By("waiting for an initial registration")
+					registration := <-registered
+
+					baggageclaimServer.RouteToHandler("GET", "/noop", func(w http.ResponseWriter, r *http.Request) {
+						By("canceling during the request")
+						cancel()
+
+						w.WriteHeader(http.StatusTeapot)
+					})
+
+					By("opening a connection")
+					client := &http.Client{
+						Transport: &http.Transport{
+							// explicitly enable keepalives, just so the test is more obvious
+							// in keeping a connection open
+							DisableKeepAlives: false,
+						},
+					}
+					res, err := client.Get(registration.worker.BaggageclaimURL + "/noop")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(res.StatusCode).To(Equal(http.StatusTeapot))
+
+					By("waiting for connections to be idle before exiting")
+					before := time.Now()
+					Expect(<-registerErr).To(Equal(tsa.ErrDrainTimeout))
+					Expect(time.Now().Sub(before)).To(BeNumerically("~", opts.DrainTimeout, time.Second))
+				})
+			})
 		})
 
 		Context("when the ATC returns a 404 for the heartbeat", func() {
@@ -290,7 +411,6 @@ var _ = Describe("Register", func() {
 			})
 
 			It("returns an error", func() {
-				// XXX: cleaner error
 				Expect(<-registerErr).To(HaveOccurred())
 			})
 		})
