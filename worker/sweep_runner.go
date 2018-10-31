@@ -89,7 +89,7 @@ func (cmd *SweepRunner) sweep(logger lager.Logger) {
 	volumeHandles, err := cmd.TSAClient.VolumesToDestroy(ctx)
 	if err != nil {
 		logger.Error("failed-to-sweep-volumes", err)
-	} else {
+	} else if len(volumeHandles) > 0 {
 		err := cmd.BaggageclaimClient.DestroyVolumes(logger.Session("destroy-volumes"), volumeHandles)
 		if err != nil {
 			logger.Error("failed-to-destroy-volumes", err)
