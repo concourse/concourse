@@ -424,8 +424,14 @@ func (client *Client) keepAlive(ctx context.Context, sshClient *ssh.Client, tcpC
 }
 
 func (client *Client) run(ctx context.Context, sshClient *ssh.Client, command string, stdout io.Writer) error {
+	argv := strings.Split(command, " ")
+	commandName := ""
+	if len(argv) > 0 {
+		commandName = argv[0]
+	}
+
 	logger := lagerctx.WithSession(ctx, "run", lager.Data{
-		"command": command,
+		"command": commandName,
 	})
 
 	sess, err := sshClient.NewSession()
