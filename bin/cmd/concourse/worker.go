@@ -36,6 +36,8 @@ type WorkerCommand struct {
 
 	RebalanceInterval time.Duration `long:"rebalance-interval" description:"Duration after which the registration should be swapped to another random SSH gateway."`
 
+	DrainTimeout time.Duration `long:"drain-timeout" default:"1h" description:"Duration after which a worker should give up draining forwarded connections on shutdown."`
+
 	Garden GardenBackend `group:"Garden Configuration" namespace:"garden"`
 
 	Baggageclaim baggageclaimcmd.BaggageclaimCommand `group:"Baggageclaim Configuration" namespace:"baggageclaim"`
@@ -90,9 +92,12 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		baggageclaimClient := bclient.New(cmd.baggageclaimURL(), http.DefaultTransport)
 
 		beacon := &worker.Beacon{
-			Logger:            logger.Session("beacon"),
-			Client:            tsaClient,
+			Logger: logger.Session("beacon"),
+
+			Client: tsaClient,
+
 			RebalanceInterval: cmd.RebalanceInterval,
+			DrainTimeout:      cmd.DrainTimeout,
 
 			LocalGardenNetwork: "tcp",
 			LocalGardenAddr:    cmd.gardenAddr(),

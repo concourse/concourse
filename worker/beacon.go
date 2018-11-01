@@ -16,6 +16,7 @@ type Beacon struct {
 	Client TSAClient
 
 	RebalanceInterval time.Duration
+	DrainTimeout      time.Duration
 
 	LocalGardenNetwork string
 	LocalGardenAddr    string
@@ -58,7 +59,7 @@ func (beacon *Beacon) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			LocalBaggageclaimNetwork: beacon.LocalBaggageclaimNetwork,
 			LocalBaggageclaimAddr:    beacon.LocalBaggageclaimAddr,
 
-			DrainTimeout: beacon.RebalanceInterval,
+			DrainTimeout: beacon.DrainTimeout,
 
 			RegisteredFunc: func() {
 				logger.Info("registered")
