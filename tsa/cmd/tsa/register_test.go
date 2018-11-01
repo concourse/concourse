@@ -51,15 +51,15 @@ var _ = Describe("Register", func() {
 		}
 
 		registerCtx, cancel = context.WithCancel(context.Background())
-
-		errs := make(chan error, 1)
-		registerErr = errs
 	})
 
 	JustBeforeEach(func() {
+		errs := make(chan error, 1)
+		registerErr = errs
+		
 		go func() {
-			registerErr <- tsaClient.Register(lagerctx.NewContext(registerCtx, lagertest.NewTestLogger("test")), opts)
-			close(registerErr)
+			errs <- tsaClient.Register(lagerctx.NewContext(registerCtx, lagertest.NewTestLogger("test")), opts)
+			close(errs)
 		}()
 	})
 
