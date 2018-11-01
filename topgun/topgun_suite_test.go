@@ -417,7 +417,7 @@ func FlyLogin(endpoint string) {
 }
 
 func spawnFly(argv ...string) *gexec.Session {
-	return spawn(flyBin, append([]string{"--verbose", "-t", flyTarget}, argv...)...)
+	return spawn(flyBin, append([]string{"-t", flyTarget}, argv...)...)
 }
 
 func spawnFlyInteractive(stdin io.Reader, argv ...string) *gexec.Session {
