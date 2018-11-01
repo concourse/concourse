@@ -9,10 +9,11 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/metric/metricfakes"
+	"github.com/tedsuo/ifrit"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-	"github.com/tedsuo/ifrit"
 )
 
 var _ = Describe("Periodic emission of metrics", func() {
@@ -42,6 +43,7 @@ var _ = Describe("Periodic emission of metrics", func() {
 	AfterEach(func() {
 		process.Signal(os.Interrupt)
 		<-process.Wait()
+		metric.Deinitialize(nil)
 	})
 
 	It("emits database queries", func() {

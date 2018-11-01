@@ -7,6 +7,16 @@ import (
 	"code.cloudfoundry.org/lager"
 )
 
+type statusCodeResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (s *statusCodeResponseWriter) WriteHeader(code int) {
+	s.statusCode = code
+	s.ResponseWriter.WriteHeader(code)
+}
+
 type MetricsHandler struct {
 	Logger lager.Logger
 
@@ -24,12 +34,15 @@ func WrapHandler(logger lager.Logger, route string, handler http.Handler) http.H
 
 func (handler MetricsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
-	handler.Handler.ServeHTTP(w, r)
+
+	statusResponseWriter := &statusCodeResponseWriter{w, http.StatusOK}
+	handler.Handler.ServeHTTP(statusResponseWriter, r)
 
 	HTTPResponseTime{
-		Route:    handler.Route,
-		Path:     r.URL.Path,
-		Method:   r.Method,
-		Duration: time.Since(start),
+		Route:      handler.Route,
+		Path:       r.URL.Path,
+		Method:     r.Method,
+		StatusCode: statusResponseWriter.statusCode,
+		Duration:   time.Since(start),
 	}.Emit(handler.Logger)
 }

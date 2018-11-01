@@ -357,10 +357,11 @@ func ms(duration time.Duration) float64 {
 }
 
 type HTTPResponseTime struct {
-	Route    string
-	Path     string
-	Method   string
-	Duration time.Duration
+	Route      string
+	Path       string
+	Method     string
+	StatusCode int
+	Duration   time.Duration
 }
 
 func (event HTTPResponseTime) Emit(logger lager.Logger) {
@@ -384,6 +385,7 @@ func (event HTTPResponseTime) Emit(logger lager.Logger) {
 				"route":  event.Route,
 				"path":   event.Path,
 				"method": event.Method,
+				"status": strconv.Itoa(event.StatusCode),
 			},
 		},
 	)
