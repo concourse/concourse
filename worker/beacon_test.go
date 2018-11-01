@@ -85,6 +85,18 @@ var _ = Describe("Beacon", func() {
 		})
 	})
 
+	Context("when a drain timeout is configured", func() {
+		BeforeEach(func() {
+			beacon.DrainTimeout = time.Hour
+		})
+
+		It("configures it in the register options", func() {
+			Eventually(fakeClient.RegisterCallCount).Should(Equal(1))
+			_, opts := fakeClient.RegisterArgsForCall(0)
+			Expect(opts.DrainTimeout).To(Equal(time.Hour))
+		})
+	})
+
 	Context("when rebalancing is configured", func() {
 		BeforeEach(func() {
 			beacon.RebalanceInterval = 500 * time.Millisecond
@@ -93,12 +105,6 @@ var _ = Describe("Beacon", func() {
 				<-ctx.Done()
 				return nil
 			}
-		})
-
-		It("configures the interval as the drain timeout", func() {
-			Eventually(fakeClient.RegisterCallCount).Should(Equal(1))
-			_, opts := fakeClient.RegisterArgsForCall(0)
-			Expect(opts.DrainTimeout).To(Equal(beacon.RebalanceInterval))
 		})
 
 		It("continuously registers on the configured interval", func() {
