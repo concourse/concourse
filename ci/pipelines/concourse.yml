@@ -192,7 +192,7 @@ jobs:
     file: concourse/ci/tasks/docker-compose-watsjs.yml
     params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
-- name: k8s-testflight
+- name: k8s-smoke
   public: true
   max_in_flight: 1
   plan:
@@ -204,6 +204,13 @@ jobs:
       passed: [dev-image]
       params: {format: oci}
     - get: charts
+  - task: terraform-k8s-smoke
+    file: concourse/ci/tasks/terraform-smoke.yml
+    params:
+      GCP_PROJECT: cf-concourse-production
+      GCP_KEY: ((concourse_smoke_gcp_key))
+      SSH_KEY: ((concourse_smoke_ssh_key))
+      DEPLOYMENT: k8s-smoke
   - task: deploy
     file: concourse/ci/tasks/k8s-deploy.yml
     params:
@@ -211,12 +218,11 @@ jobs:
      RELEASE_NAME: concourse-testflight
      CONCOURSE_IMAGE: concourse/dev
      CONCOURSE_DIGEST_FILE: dev-image/digest
-  - task: testflight
-    privileged: true
-    file: concourse/ci/tasks/k8s-testflight.yml
-    params:
-     KUBE_CONFIG: ((kube_config))
-     RELEASE_NAME: concourse-testflight
+    input_mapping: {endpoint-info: outputs}
+  - task: smoke
+    image: unit-image
+    file: concourse/ci/tasks/smoke.yml
+    input_mapping: {endpoint-info: outputs}
 
 - name: rc
   public: true
@@ -329,6 +335,7 @@ jobs:
       GCP_PROJECT: cf-concourse-production
       GCP_KEY: ((concourse_smoke_gcp_key))
       SSH_KEY: ((concourse_smoke_ssh_key))
+      DEPLOYMENT: smoke
   - task: smoke
     image: unit-image
     file: concourse/ci/tasks/smoke.yml
