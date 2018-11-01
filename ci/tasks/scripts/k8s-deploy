@@ -60,7 +60,7 @@ pushd charts/stable/concourse/
     --set secrets.localUsers="admin:$ATC_ADMIN_PASSWORD\,guest:$ATC_GUEST_PASSWORD" \
     --set web.service.type="LoadBalancer" \
     --set web.service.loadBalancerIP="$LOADBALANCER_IP" \
-    --set concourse.web.bindPort="80" \
+    --set concourse.web.externalUrl="http://$LOADBALANCER_IP:8080" \
     --set worker.resources.requests.cpu="1000m" \
     --set worker.replicas="1" \
     $RELEASE_NAME \
