@@ -491,7 +491,7 @@ func waitForWorkerInState(desiredStates ...string) string {
 		}
 
 		return workerName
-	}).ShouldNot(BeEmpty())
+	}).ShouldNot(BeEmpty(), "should have seen a worker in states: "+strings.Join(desiredStates, ", "))
 
 	return workerName
 }
