@@ -33,7 +33,7 @@ import List.Extra as LE
 import Maybe.Extra as ME
 import Navigation
 import NewTopBar.Styles as Styles
-import Pinned exposing (Pinned(..), PinState(..))
+import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import StrictEvents
 import Task exposing (Task)
 import Time exposing (Time)
@@ -61,7 +61,7 @@ type alias Model =
     , checkError : String
     , checkSetupError : String
     , lastChecked : Maybe Date
-    , pinnedVersion : Pinned Concourse.Version Int
+    , pinnedVersion : ResourcePinState Concourse.Version Int
     , now : Maybe Time.Time
     , resourceIdentifier : Concourse.ResourceIdentifier
     , versionedResources : Paginated Concourse.VersionedResource
@@ -126,7 +126,7 @@ init ports flags =
                 , checkError = ""
                 , checkSetupError = ""
                 , lastChecked = Nothing
-                , pinnedVersion = Off
+                , pinnedVersion = NotPinned
                 , currentPage = Nothing
                 , versionedResources =
                     { content = []
@@ -183,34 +183,34 @@ updatePinnedVersion resource model =
     case ( resource.pinnedVersion, resource.pinnedInConfig ) of
         ( Nothing, _ ) ->
             case model.pinnedVersion of
-                TurningOn d ->
+                PinningTo _ ->
                     model
 
                 _ ->
-                    { model | pinnedVersion = Off }
+                    { model | pinnedVersion = NotPinned }
 
         ( Just v, True ) ->
-            { model | pinnedVersion = Static v }
+            { model | pinnedVersion = PinnedStaticallyTo v }
 
         ( Just newVersion, False ) ->
             case model.pinnedVersion of
-                TurningOff _ ->
-                    { model | pinnedVersion = TurningOff newVersion }
+                UnpinningFrom _ ->
+                    { model | pinnedVersion = UnpinningFrom newVersion }
 
                 _ ->
-                    { model | pinnedVersion = On newVersion }
+                    { model | pinnedVersion = PinnedDynamicallyTo newVersion }
 
 
 hasPinnedVersion : Model -> Concourse.Version -> Bool
 hasPinnedVersion model v =
     case model.pinnedVersion of
-        Static pv ->
+        PinnedStaticallyTo pv ->
             v == pv
 
-        On pv ->
+        PinnedDynamicallyTo pv ->
             v == pv
 
-        TurningOff pv ->
+        UnpinningFrom pv ->
             v == pv
 
         _ ->
@@ -402,7 +402,7 @@ update action model =
             ( { model
                 | showPinBarTooltip =
                     case model.pinnedVersion of
-                        Static _ ->
+                        PinnedStaticallyTo _ ->
                             not model.showPinBarTooltip
 
                         _ ->
@@ -421,7 +421,7 @@ update action model =
 
                 newModel =
                     case ( model.pinnedVersion, pinnedVersionID ) of
-                        ( Static _, Just id ) ->
+                        ( PinnedStaticallyTo _, Just id ) ->
                             let
                                 oldState =
                                     getState id model.versionedUIStates
@@ -510,14 +510,14 @@ update action model =
 
         VersionPinned (Err _) ->
             ( { model
-                | pinnedVersion = Off
+                | pinnedVersion = NotPinned
               }
             , Cmd.none
             )
 
         VersionUnpinned (Ok ()) ->
             ( { model
-                | pinnedVersion = Off
+                | pinnedVersion = NotPinned
               }
             , Cmd.none
             )
@@ -659,7 +659,7 @@ view model =
                      , id "pin-bar"
                      ]
                         ++ (case model.pinnedVersion of
-                                Static _ ->
+                                PinnedStaticallyTo _ ->
                                     [ onMouseEnter TogglePinBarTooltip
                                     , onMouseLeave TogglePinBarTooltip
                                     ]
@@ -797,7 +797,7 @@ viewVersionedResources :
     { a
         | versionedResources : Paginated Concourse.VersionedResource
         , versionedUIStates : Dict.Dict Int VersionUIState
-        , pinnedVersion : Pinned Concourse.Version Int
+        , pinnedVersion : ResourcePinState Concourse.Version Int
     }
     -> Html Msg
 viewVersionedResources { versionedResources, versionedUIStates, pinnedVersion } =
@@ -806,7 +806,6 @@ viewVersionedResources { versionedResources, versionedUIStates, pinnedVersion } 
             (\vr ->
                 viewVersionedResource
                     { versionedResource = vr
-                    , pinState = Pinned.pinState vr.version vr.id pinnedVersion
                     , state =
                         let
                             state =
@@ -814,20 +813,14 @@ viewVersionedResources { versionedResources, versionedUIStates, pinnedVersion } 
 
                             showTooltip =
                                 case pinnedVersion of
-                                    Static _ ->
+                                    PinnedStaticallyTo _ ->
                                         state.showTooltip
 
                                     _ ->
                                         False
                         in
                             { state | showTooltip = showTooltip }
-                    , isDynamic =
-                        case pinnedVersion of
-                            Static _ ->
-                                False
-
-                            _ ->
-                                True
+                    , pinnedVersion = pinnedVersion
                     }
             )
         |> Html.ul [ class "list list-collapsable list-enableDisable resource-versions" ]
@@ -836,49 +829,56 @@ viewVersionedResources { versionedResources, versionedUIStates, pinnedVersion } 
 viewVersionedResource :
     { versionedResource : Concourse.VersionedResource
     , state : VersionUIState
-    , pinState : PinState
-    , isDynamic : Bool
+    , pinnedVersion : ResourcePinState Concourse.Version Int
     }
     -> Html Msg
-viewVersionedResource { versionedResource, pinState, state, isDynamic } =
-    Html.li
-        (case pinState of
-            Disabled ->
-                [ style [ ( "opacity", "0.5" ) ] ]
+viewVersionedResource { versionedResource, state, pinnedVersion } =
+    let
+        pinState =
+            case Pinned.pinState versionedResource.version versionedResource.id pinnedVersion of
+                PinnedStatically _ ->
+                    PinnedStatically { showTooltip = state.showTooltip }
 
-            _ ->
-                []
-        )
-        ([ Html.div
-            [ css
-                [ Css.displayFlex
-                , Css.margin2 (Css.px 5) Css.zero
-                ]
-            ]
-            [ viewPinButton
-                { versionID = versionedResource.id
-                , pinState = pinState
-                , showTooltip = state.showTooltip
-                , isDynamic = isDynamic
-                }
-            , viewVersionHeader
-                { id = versionedResource.id
-                , version = versionedResource.version
-                , pinnedState = pinState
-                }
-            ]
-         ]
-            ++ (if state.expanded then
-                    [ viewVersionBody
-                        { inputTo = state.inputTo
-                        , outputOf = state.outputOf
-                        , metadata = versionedResource.metadata
-                        }
-                    ]
-                else
+                x ->
+                    x
+    in
+        Html.li
+            (case pinState of
+                Disabled ->
+                    [ style [ ( "opacity", "0.5" ) ] ]
+
+                _ ->
                     []
-               )
-        )
+            )
+            ([ Html.div
+                [ css
+                    [ Css.displayFlex
+                    , Css.margin2 (Css.px 5) Css.zero
+                    ]
+                ]
+                [ viewPinButton
+                    { versionID = versionedResource.id
+                    , pinState = pinState
+                    , showTooltip = state.showTooltip
+                    }
+                , viewVersionHeader
+                    { id = versionedResource.id
+                    , version = versionedResource.version
+                    , pinnedState = pinState
+                    }
+                ]
+             ]
+                ++ (if state.expanded then
+                        [ viewVersionBody
+                            { inputTo = state.inputTo
+                            , outputOf = state.outputOf
+                            , metadata = versionedResource.metadata
+                            }
+                        ]
+                    else
+                        []
+                   )
+            )
 
 
 viewVersionBody :
@@ -912,77 +912,110 @@ viewVersionBody { inputTo, outputOf, metadata } =
         ]
 
 
-viewPinButton : { versionID : Int, pinState : PinState, showTooltip : Bool, isDynamic : Bool } -> Html Msg
-viewPinButton { versionID, pinState, showTooltip, isDynamic } =
-    Html.div
-        ([ Html.Styled.Attributes.attribute "aria-label" "Pin Resource Version"
-         , css
-            [ Css.position Css.relative
-            , Css.backgroundRepeat Css.noRepeat
-            , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
-            , Css.marginRight (Css.px 5)
-            , Css.width (Css.px 25)
-            , Css.height (Css.px 25)
-            , Css.float Css.left
-            , Css.cursor Css.default
-            ]
-         , style
-            ([ ( "background-color", "#1e1d1d" ) ]
-                ++ (if pinState /= Pending then
-                        [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ]
-                    else
-                        []
-                   )
-                ++ (if pinState == Pinned then
-                        [ ( "border", "1px solid #03dac4" ) ]
-                    else
-                        []
-                   )
-            )
-         ]
-            ++ (case ( pinState, isDynamic ) of
-                    ( Enabled, True ) ->
-                        [ onClick <| PinVersion versionID ]
-
-                    ( Pinned, True ) ->
-                        [ onClick <| UnpinVersion ]
-
-                    _ ->
-                        []
-               )
-            ++ (if pinState == Pinned then
-                    [ onMouseOut ToggleVersionTooltip
-                    , onMouseOver ToggleVersionTooltip
-                    ]
-                else
-                    []
-               )
-        )
-        ((if showTooltip then
-            [ Html.div
-                [ css
-                    [ Css.position Css.absolute
-                    , Css.bottom <| Css.px 25
-                    , Css.backgroundColor <| Css.hex "9b9b9b"
-                    , Css.zIndex <| Css.int 2
-                    , Css.padding <| Css.px 5
-                    , Css.width <| Css.px 170
-                    ]
+viewPinButton :
+    { versionID : Int
+    , pinState : VersionPinState
+    , showTooltip : Bool
+    }
+    -> Html Msg
+viewPinButton { versionID, pinState } =
+    let
+        baseAttrs =
+            [ Html.Styled.Attributes.attribute "aria-label" "Pin Resource Version"
+            , css
+                [ Css.position Css.relative
+                , Css.backgroundRepeat Css.noRepeat
+                , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
+                , Css.marginRight (Css.px 5)
+                , Css.width (Css.px 25)
+                , Css.height (Css.px 25)
+                , Css.float Css.left
                 ]
-                [ Html.text "enable via pipeline config" ]
             ]
-          else
-            []
-         )
-            ++ (if pinState == Pending then
-                    [ Html.text "..." ]
-                else
+    in
+        case pinState of
+            Enabled ->
+                Html.div
+                    (baseAttrs
+                        ++ [ style
+                                [ ( "background-color", "#1e1d1d" )
+                                , ( "cursor", "pointer" )
+                                , ( "background-image", "url(/public/images/pin_ic_white.svg)" )
+                                ]
+                           , onClick <| PinVersion versionID
+                           ]
+                    )
                     []
-               )
-        )
+
+            PinnedDynamically ->
+                Html.div
+                    (baseAttrs
+                        ++ [ style
+                                [ ( "background-color", "#1e1d1d" )
+                                , ( "cursor", "pointer" )
+                                , ( "background-image", "url(/public/images/pin_ic_white.svg)" )
+                                , ( "border", "1px solid #03dac4" )
+                                ]
+                           , onClick UnpinVersion
+                           ]
+                    )
+                    []
+
+            PinnedStatically { showTooltip } ->
+                Html.div
+                    (baseAttrs
+                        ++ [ style
+                                [ ( "background-color", "#1e1d1d" )
+                                , ( "cursor", "default" )
+                                , ( "background-image", "url(/public/images/pin_ic_white.svg)" )
+                                , ( "border", "1px solid #03dac4" )
+                                ]
+                           , onMouseOut ToggleVersionTooltip
+                           , onMouseOver ToggleVersionTooltip
+                           ]
+                    )
+                    (if showTooltip then
+                        [ Html.div
+                            [ css
+                                [ Css.position Css.absolute
+                                , Css.bottom <| Css.px 25
+                                , Css.backgroundColor <| Css.hex "9b9b9b"
+                                , Css.zIndex <| Css.int 2
+                                , Css.padding <| Css.px 5
+                                , Css.width <| Css.px 170
+                                ]
+                            ]
+                            [ Html.text "enable via pipeline config" ]
+                        ]
+                     else
+                        []
+                    )
+
+            Disabled ->
+                Html.div
+                    (baseAttrs
+                        ++ [ style
+                                [ ( "background-color", "#1e1d1d" )
+                                , ( "cursor", "default" )
+                                , ( "background-image", "url(/public/images/pin_ic_white.svg)" )
+                                ]
+                           ]
+                    )
+                    []
+
+            InTransition ->
+                Html.div
+                    (baseAttrs
+                        ++ [ style
+                                [ ( "background-color", "#1e1d1d" )
+                                , ( "cursor", "default" )
+                                ]
+                           ]
+                    )
+                    [ Html.text "..." ]
 
 
-viewVersionHeader : { a | id : Int, version : Concourse.Version, pinnedState : PinState } -> Html Msg
+viewVersionHeader : { a | id : Int, version : Concourse.Version, pinnedState : VersionPinState } -> Html Msg
 viewVersionHeader { id, version, pinnedState } =
     Html.div
         ([ css
@@ -997,7 +1030,10 @@ viewVersionHeader { id, version, pinnedState } =
          , onClick <| ExpandVersionedResource id
          ]
             ++ (case pinnedState of
-                    Pinned ->
+                    PinnedStatically _ ->
+                        [ style [ ( "border", "1px solid #03dac4" ) ] ]
+
+                    PinnedDynamically ->
                         [ style [ ( "border", "1px solid #03dac4" ) ] ]
 
                     _ ->

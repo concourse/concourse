@@ -102,6 +102,17 @@ all =
                             |> Query.find (versionSelector version)
                             |> Query.find pinButtonSelector
                             |> Query.has tealOutlineSelector
+                , test "all pin buttons have default cursor" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedStatically
+                            |> givenVersions
+                            |> queryView
+                            |> Query.findAll anyVersionSelector
+                            |> Query.each
+                                (Query.find pinButtonSelector
+                                    >> Query.has defaultCursor
+                                )
                 , test "version header on pinned version has a teal outline" <|
                     \_ ->
                         init
@@ -259,6 +270,24 @@ all =
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
                         |> Query.has tealOutlineSelector
+            , test "pin button on pinned version has a pointer cursor" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> givenVersions
+                        |> queryView
+                        |> Query.find (versionSelector version)
+                        |> Query.find pinButtonSelector
+                        |> Query.has pointerCursor
+            , test "pin button on an unpinned version has a default cursor" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> givenVersions
+                        |> queryView
+                        |> Query.find (versionSelector otherVersion)
+                        |> Query.find pinButtonSelector
+                        |> Query.has defaultCursor
             , test "clicking on pin button on pinned version will trigger UnpinVersion msg" <|
                 \_ ->
                     init
@@ -381,6 +410,17 @@ all =
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.hasNot versionTooltipSelector
+            , test "all pin buttons have pointer cursor" <|
+                \_ ->
+                    init
+                        |> givenResourceUnpinned
+                        |> givenVersions
+                        |> queryView
+                        |> Query.findAll anyVersionSelector
+                        |> Query.each
+                            (Query.find pinButtonSelector
+                                >> Query.has pointerCursor
+                            )
             , test "all pin buttons have dark background" <|
                 \_ ->
                     init
@@ -628,6 +668,16 @@ anyVersionSelector =
 pinButtonSelector : List Selector
 pinButtonSelector =
     [ attribute (Attr.attribute "aria-label" "Pin Resource Version") ]
+
+
+pointerCursor : List Selector
+pointerCursor =
+    [ style [ ( "cursor", "pointer" ) ] ]
+
+
+defaultCursor : List Selector
+defaultCursor =
+    [ style [ ( "cursor", "default" ) ] ]
 
 
 tealOutlineSelector : List Selector

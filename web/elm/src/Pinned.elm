@@ -1,100 +1,101 @@
 module Pinned exposing (..)
 
 
-type Pinned a b
-    = Off
-    | TurningOn b
-    | On a
-    | TurningOff a
-    | Static a
+type ResourcePinState version id
+    = NotPinned
+    | PinningTo id
+    | PinnedDynamicallyTo version
+    | UnpinningFrom version
+    | PinnedStaticallyTo version
 
 
-type PinState
+type VersionPinState
     = Enabled
-    | Pinned
+    | PinnedDynamically
+    | PinnedStatically { showTooltip : Bool }
     | Disabled
-    | Pending
+    | InTransition
 
 
-startPinningTo : b -> Pinned a b -> Pinned a b
-startPinningTo destination pinned =
-    case pinned of
-        Off ->
-            TurningOn destination
-
-        x ->
-            x
-
-
-finishPinning : (b -> Maybe a) -> Pinned a b -> Pinned a b
-finishPinning lookup pinned =
-    case pinned of
-        TurningOn b ->
-            lookup b |> Maybe.map On |> Maybe.withDefault Off
+startPinningTo : id -> ResourcePinState version id -> ResourcePinState version id
+startPinningTo destination resourcePinState =
+    case resourcePinState of
+        NotPinned ->
+            PinningTo destination
 
         x ->
             x
 
 
-startUnpinning : Pinned a b -> Pinned a b
-startUnpinning pinned =
-    case pinned of
-        On p ->
-            TurningOff p
+finishPinning : (id -> Maybe version) -> ResourcePinState version id -> ResourcePinState version id
+finishPinning lookup resourcePinState =
+    case resourcePinState of
+        PinningTo b ->
+            lookup b |> Maybe.map PinnedDynamicallyTo |> Maybe.withDefault NotPinned
 
         x ->
             x
 
 
-quitUnpinning : Pinned a b -> Pinned a b
-quitUnpinning pinned =
-    case pinned of
-        TurningOff p ->
-            On p
+startUnpinning : ResourcePinState version id -> ResourcePinState version id
+startUnpinning resourcePinState =
+    case resourcePinState of
+        PinnedDynamicallyTo v ->
+            UnpinningFrom v
 
         x ->
             x
 
 
-stable : Pinned a b -> Maybe a
-stable pinnable =
-    case pinnable of
-        Static p ->
-            Just p
+quitUnpinning : ResourcePinState version id -> ResourcePinState version id
+quitUnpinning resourcePinState =
+    case resourcePinState of
+        UnpinningFrom v ->
+            PinnedDynamicallyTo v
 
-        On p ->
-            Just p
+        x ->
+            x
+
+
+stable : ResourcePinState version id -> Maybe version
+stable version =
+    case version of
+        PinnedStaticallyTo v ->
+            Just v
+
+        PinnedDynamicallyTo v ->
+            Just v
 
         _ ->
             Nothing
 
 
-pinState : a -> b -> Pinned a b -> PinState
-pinState pinnable index pinned =
-    case pinned of
-        Static p ->
-            if p == pinnable then
-                Pinned
+pinState : version -> id -> ResourcePinState version id -> VersionPinState
+pinState version id resourcePinState =
+    case resourcePinState of
+        PinnedStaticallyTo v ->
+            if v == version then
+                PinnedStatically { showTooltip = False }
             else
                 Disabled
 
-        Off ->
+        NotPinned ->
             Enabled
 
-        TurningOn destination ->
-            if destination == index then
-                Pending
+        PinningTo destination ->
+            if destination == id then
+                InTransition
             else
                 Disabled
 
-        On p ->
-            if p == pinnable then
-                Pinned
+        PinnedDynamicallyTo v ->
+            if v == version then
+                PinnedDynamically
             else
                 Disabled
 
-        TurningOff p ->
-            if p == pinnable then
-                Pending
+        UnpinningFrom v ->
+            if v == version then
+                InTransition
             else
                 Disabled
