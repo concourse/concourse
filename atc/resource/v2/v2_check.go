@@ -74,7 +74,7 @@ func (r *resource) Check(
 		}
 
 		if processStatus != 0 {
-			return ErrResourceScriptFailed{
+			return atc.ErrResourceScriptFailed{
 				Path:       path,
 				ExitStatus: processStatus,
 

@@ -52,7 +52,7 @@ func (factory *gardenFactory) Get(
 	workerMetadata db.ContainerMetadata,
 	delegate GetDelegate,
 ) Step {
-	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
+	workerMetadata.WorkingDirectory = atc.ResourcesDir("get")
 
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
@@ -90,7 +90,7 @@ func (factory *gardenFactory) Put(
 	workerMetadata db.ContainerMetadata,
 	delegate PutDelegate,
 ) Step {
-	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
+	workerMetadata.WorkingDirectory = atc.ResourcesDir("put")
 
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 

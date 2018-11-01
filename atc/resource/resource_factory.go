@@ -2,13 +2,23 @@ package resource
 
 import (
 	"context"
+	"fmt"
 
+	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource/v2"
 	"github.com/concourse/concourse/atc/worker"
 )
+
+type ErrUnknownResourceVersion struct {
+	version string
+}
+
+func (e ErrUnknownResourceVersion) Error() string {
+	return fmt.Sprintf("unknown resource version: %s", e.version)
+}
 
 func NewResourceFactory(workerClient worker.Client) ResourceFactory {
 	return &resourceFactory{
@@ -63,19 +73,24 @@ func (f *resourceFactory) NewResource(
 		return nil, err
 	}
 
-	// Run info script using the container
-	// _, _ = NewUnversionedResource(container).Info(ctx)
+	resourceInfo, err := NewUnversionedResource(container).Info(ctx)
 
-	// If info script run correctly, set the resource to v2, if not check if error is script not found and if yes then set to v1
-	// if err != nil {
+	var resource Resource
+	if err == nil {
+		if resourceInfo.Artifacts.APIVersion == "2.0" {
+			resource = v2.NewResource(container, resourceInfo, resourceConfig)
+		} else {
+			return nil, ErrUnknownResourceVersion{resourceInfo.Artifacts.APIVersion}
+		}
+	} else if typeErr, ok := err.(garden.ExecutableNotFoundError); ok {
+		if err != nil {
+			return nil, typeErr
+		}
 
-	// 	return err
-	// }
-	// if err == ErrNotScript {
-	// 	resource = v2.NewResourceV1(container)
-	// } else if err != nil {
-	// 	resource = v2.NewResourceV2(container)
-	// }
+		resource = v2.NewV1Adapter(container, resourceConfig)
+	} else if err != nil {
+		return nil, err
+	}
 
-	return v2.NewResource(container, v2.ResourceInfo{}, resourceConfig), nil
+	return resource, nil
 }

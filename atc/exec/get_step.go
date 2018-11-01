@@ -190,11 +190,23 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	if err != nil {
 		logger.Error("failed-to-fetch-resource", err)
 
-		if err, ok := err.(resource.ErrResourceScriptFailed); ok {
+		if err, ok := err.(atc.ErrResourceScriptFailed); ok {
 			step.delegate.Finished(logger, ExitStatus(err.ExitStatus), VersionInfo{})
 			return nil
 		}
 
+		return err
+	}
+
+	// XXX: Need to find version that might have a check order of 0
+	resourceVersion, found, err := resourceCache.ResourceConfig().FindVersion(version)
+	if !found {
+		logger.Error("resource-version-not-found", err, lager.Data{"version": version})
+		return nil
+	}
+
+	if err != nil {
+		logger.Error("failed-to-find-resource-version", err, lager.Data{"version": version})
 		return err
 	}
 
@@ -207,8 +219,8 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	step.succeeded = true
 
 	step.delegate.Finished(logger, 0, VersionInfo{
-		Version:  versionedSource.Version(),
-		Metadata: versionedSource.Metadata(),
+		Version:  version,
+		Metadata: resourceVersion.Metadata().ToATCMetadata(),
 	})
 
 	return nil

@@ -76,7 +76,7 @@ func (r *resource) Get(
 		}
 
 		if processStatus != 0 {
-			return ErrResourceScriptFailed{
+			return atc.ErrResourceScriptFailed{
 				Path:       r.info.Artifacts.Get,
 				Args:       []string{atc.ResourcesDir("get")},
 				ExitStatus: processStatus,

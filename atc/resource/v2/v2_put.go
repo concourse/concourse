@@ -97,7 +97,7 @@ func (r *resource) Put(
 		}
 
 		if processStatus != 0 {
-			return atc.PutResponse{}, ErrResourceScriptFailed{
+			return atc.PutResponse{}, atc.ErrResourceScriptFailed{
 				Path:       r.info.Artifacts.Put,
 				Args:       []string{atc.ResourcesDir("put")},
 				ExitStatus: processStatus,
@@ -132,16 +132,6 @@ func (r *resource) Put(
 			}
 
 			response.CreatedVersions = append(response.CreatedVersions, versionResponse.Version)
-		}
-
-		jsonResponse, err := json.Marshal(response)
-		if err != nil {
-			return atc.PutResponse{}, err
-		}
-
-		err = r.container.SetProperty(resourceResultPropertyName, string(jsonResponse))
-		if err != nil {
-			return atc.PutResponse{}, err
 		}
 
 		return response, nil

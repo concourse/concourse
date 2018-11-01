@@ -6,6 +6,8 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 )
 
+const TaskProcessID = "resource"
+
 type resource struct {
 	container      worker.Container
 	info           ResourceInfo
