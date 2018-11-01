@@ -28,7 +28,7 @@ groups:
 
 - name: k8s
   jobs:
-  - k8s-testflight
+  - k8s-smoke
 
 - name: bosh
   jobs:
@@ -203,6 +203,9 @@ jobs:
     - get: dev-image
       passed: [dev-image]
       params: {format: oci}
+    - get: unit-image
+      passed: [dev-image]
+      trigger: true
     - get: charts
   - task: terraform-k8s-smoke
     file: concourse/ci/tasks/terraform-smoke.yml

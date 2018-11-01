@@ -39,7 +39,14 @@ done
 
 echo 'ok!'
 
+set +e 
 curl "$ATC_URL/api/v1/cli?arch=amd64&platform=linux" | tar -zxf - -C /usr/local/bin
+if [ $? -ne 0 ]; then
+  pushd concourse/fly
+    go build -o /usr/local/bin/fly
+  popd
+fi
+set -e
 
 fly --version
 
