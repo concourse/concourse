@@ -24,15 +24,15 @@ import (
 
 var _ = Describe("Register", func() {
 	var opts tsa.RegisterOptions
-	var registerDone chan struct{}
-	var heartbeatEvent chan struct{}
+	var registerDone <-chan struct{}
+	var heartbeatEvent <-chan struct{}
 	var registerCtx context.Context
 	var cancel context.CancelFunc
 	var registerErr chan error
 
 	BeforeEach(func() {
-		registerDone = make(chan struct{})
-		heartbeatEvent = make(chan struct{}, 100)
+		reg := make(chan struct{})
+		beat := make(chan struct{}, 100)
 
 		opts = tsa.RegisterOptions{
 			LocalGardenNetwork: "tcp",
@@ -42,13 +42,16 @@ var _ = Describe("Register", func() {
 			LocalBaggageclaimAddr:    baggageclaimServer.Addr(),
 
 			RegisteredFunc: func() {
-				close(registerDone)
+				close(reg)
 			},
 
 			HeartbeatedFunc: func() {
-				heartbeatEvent <- struct{}{}
+				beat <- struct{}{}
 			},
 		}
+
+		registerDone = reg
+		heartbeatEvent = beat
 
 		registerCtx, cancel = context.WithCancel(context.Background())
 	})
@@ -56,7 +59,7 @@ var _ = Describe("Register", func() {
 	JustBeforeEach(func() {
 		errs := make(chan error, 1)
 		registerErr = errs
-		
+
 		go func() {
 			errs <- tsaClient.Register(lagerctx.NewContext(registerCtx, lagertest.NewTestLogger("test")), opts)
 			close(errs)

@@ -47,61 +47,36 @@ func (beacon *Beacon) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	rootCtx, cancelAll := context.WithCancel(lagerctx.NewContext(context.Background(), beacon.Logger))
 	defer cancelAll()
 
-	registerWorker := func(ctx context.Context, registeredCb func(), errs chan<- error) {
-		defer bwg.Decrement()
-
-		logger := lagerctx.FromContext(ctx)
-
-		errs <- beacon.Client.Register(ctx, tsa.RegisterOptions{
-			LocalGardenNetwork: beacon.LocalGardenNetwork,
-			LocalGardenAddr:    beacon.LocalGardenAddr,
-
-			LocalBaggageclaimNetwork: beacon.LocalBaggageclaimNetwork,
-			LocalBaggageclaimAddr:    beacon.LocalBaggageclaimAddr,
-
-			DrainTimeout: beacon.DrainTimeout,
-
-			RegisteredFunc: func() {
-				logger.Info("registered")
-				registeredCb()
-			},
-
-			HeartbeatedFunc: func() {
-				logger.Info("heartbeated")
-			},
-		})
-	}
-
 	latestErrChan := make(chan error, 1)
-	cancellableCtx, cancelCurrent := context.WithCancel(rootCtx)
+	ctx, cancel := context.WithCancel(rootCtx)
 
 	bwg.Increment()
-	go registerWorker(cancellableCtx, func() { close(ready) }, latestErrChan)
+	go beacon.registerWorker(ctx, bwg, func() { close(ready) }, latestErrChan)
 
 	for {
 		select {
 		case <-rebalanceCh:
+			logger := beacon.Logger.Session("rebalance")
+
 			if bwg.Count() >= maxActiveRegistrations {
-				beacon.Logger.Debug("max-active-registrations-reached", lager.Data{
+				logger.Info("max-active-registrations-reached", lager.Data{
 					"limit": maxActiveRegistrations,
 				})
 
 				continue
+			} else {
+				logger.Debug("rebalancing")
 			}
 
-			rebalanceLogger := beacon.Logger.Session("rebalance")
+			cancelPrev := cancel
+			ctx, cancel = context.WithCancel(lagerctx.NewContext(rootCtx, logger))
 
-			rebalanceLogger.Debug("rebalancing")
+			// make a new channel so prior registrations can write to their own
+			// buffered channel and exit
+			latestErrChan = make(chan error, 1)
 
 			bwg.Increment()
-
-			rebalanceCtx := lagerctx.NewContext(rootCtx, rebalanceLogger)
-
-			cancelPrev := cancelCurrent
-			cancellableCtx, cancelCurrent = context.WithCancel(rebalanceCtx)
-
-			latestErrChan = make(chan error, 1)
-			go registerWorker(cancellableCtx, cancelPrev, latestErrChan)
+			go beacon.registerWorker(ctx, bwg, cancelPrev, latestErrChan)
 
 		case err := <-latestErrChan:
 			if err != nil {
@@ -112,7 +87,7 @@ func (beacon *Beacon) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 			// not actually necessary since we defer cancel the root ctx, but makes
 			// the linter happy
-			cancelCurrent()
+			cancel()
 
 			return err
 
@@ -121,9 +96,39 @@ func (beacon *Beacon) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 			// not actually necessary since we defer cancel the root ctx, but makes
 			// the linter happy
-			cancelCurrent()
+			cancel()
 
 			return nil
 		}
 	}
+}
+
+func (beacon *Beacon) registerWorker(
+	ctx context.Context,
+	bwg *waitGroupWithCount,
+	registeredCb func(),
+	errs chan<- error,
+) {
+	defer bwg.Decrement()
+
+	logger := lagerctx.FromContext(ctx)
+
+	errs <- beacon.Client.Register(ctx, tsa.RegisterOptions{
+		LocalGardenNetwork: beacon.LocalGardenNetwork,
+		LocalGardenAddr:    beacon.LocalGardenAddr,
+
+		LocalBaggageclaimNetwork: beacon.LocalBaggageclaimNetwork,
+		LocalBaggageclaimAddr:    beacon.LocalBaggageclaimAddr,
+
+		DrainTimeout: beacon.DrainTimeout,
+
+		RegisteredFunc: func() {
+			logger.Info("registered")
+			registeredCb()
+		},
+
+		HeartbeatedFunc: func() {
+			logger.Info("heartbeated")
+		},
+	})
 }
