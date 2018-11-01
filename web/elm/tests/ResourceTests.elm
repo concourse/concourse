@@ -37,6 +37,11 @@ otherVersionID =
     2
 
 
+disabledVersionID : Int
+disabledVersionID =
+    3
+
+
 version : String
 version =
     "v1"
@@ -45,6 +50,11 @@ version =
 otherVersion : String
 otherVersion =
     "v2"
+
+
+disabledVersion : String
+disabledVersion =
+    "v3"
 
 
 tealHex : String
@@ -79,7 +89,59 @@ badResponse =
 all : Test
 all =
     describe "resource page"
-        [ describe "given resource is pinned statically"
+        [ describe "checkboxes"
+            [ test "there is a checkbox for every version" <|
+                \_ ->
+                    init
+                        |> givenVersions
+                        |> queryView
+                        |> Query.findAll (anyVersionSelector)
+                        |> Query.each hasCheckbox
+            , test "enabled versions have checkmarks" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedStatically
+                        |> givenVersions
+                        |> queryView
+                        |> Expect.all
+                            [ Query.find (versionSelector version)
+                                >> Query.find checkboxSelector
+                                >> Query.has [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+                            , Query.find (versionSelector otherVersion)
+                                >> Query.find checkboxSelector
+                                >> Query.has [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+                            ]
+            , test "disabled versions do not have checkmarks" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedStatically
+                        |> givenVersions
+                        |> queryView
+                        |> Query.find (versionSelector disabledVersion)
+                        |> Query.find checkboxSelector
+                        |> Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+            , test "clicking the checkbox on an enabled version triggers a DisableVersion msg" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedStatically
+                        |> givenVersions
+                        |> queryView
+                        |> Query.find (versionSelector version)
+                        |> Query.find checkboxSelector
+                        |> Event.simulate Event.click
+                        |> Event.expect (Resource.DisableVersion versionID)
+            , test "receiving a DisableVersion msg causes the relevant checkbox to go into a transition state" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedStatically
+                        |> givenVersions
+                        |> clickToDisable versionID
+                        |> queryView
+                        |> Query.find (versionSelector version)
+                        |> Query.find checkboxSelector
+                        |> checkboxHasTransitionState
+            ]
+        , describe "given resource is pinned statically"
             [ describe "pin bar"
                 [ test "then pinned version is visible in pin bar" <|
                     \_ ->
@@ -631,6 +693,12 @@ clickToUnpin =
         >> Tuple.first
 
 
+clickToDisable : Int -> Resource.Model -> Resource.Model
+clickToDisable versionID =
+    Resource.update (Resource.DisableVersion versionID)
+        >> Tuple.first
+
+
 givenVersions : Resource.Model -> Resource.Model
 givenVersions =
     Resource.update
@@ -640,10 +708,17 @@ givenVersions =
                     [ { id = versionID
                       , version = Dict.fromList [ ( "version", version ) ]
                       , metadata = []
+                      , enabled = True
                       }
                     , { id = otherVersionID
                       , version = Dict.fromList [ ( "version", otherVersion ) ]
                       , metadata = []
+                      , enabled = True
+                      }
+                    , { id = disabledVersionID
+                      , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                      , metadata = []
+                      , enabled = False
                       }
                     ]
                 , pagination =
@@ -678,6 +753,17 @@ pointerCursor =
 defaultCursor : List Selector
 defaultCursor =
     [ style [ ( "cursor", "default" ) ] ]
+
+
+checkboxSelector : List Selector
+checkboxSelector =
+    [ attribute (Attr.attribute "aria-label" "Toggle Resource Version Enabled") ]
+
+
+hasCheckbox : Query.Single msg -> Expectation
+hasCheckbox =
+    Query.findAll checkboxSelector
+        >> Query.count (Expect.equal 1)
 
 
 tealOutlineSelector : List Selector
@@ -736,3 +822,11 @@ pinBarHasPinnedState version =
             , Query.findAll [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
                 >> Query.count (Expect.equal 1)
             ]
+
+
+checkboxHasTransitionState : Query.Single msg -> Expectation
+checkboxHasTransitionState =
+    Expect.all
+        [ Query.has [ text "..." ]
+        , Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+        ]

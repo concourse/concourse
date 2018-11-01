@@ -72,6 +72,14 @@ type alias Model =
     }
 
 
+type alias Version =
+    { id : Int
+    , version : Concourse.Version
+    , metadata : Concourse.Metadata
+    , enabled : Bool
+    }
+
+
 type alias VersionUIState =
     { expanded : Bool
     , inputTo : List Concourse.Build
@@ -97,6 +105,7 @@ type Msg
     | UnpinVersion
     | VersionPinned (Result Http.Error ())
     | VersionUnpinned (Result Http.Error ())
+    | DisableVersion Int
 
 
 type alias Flags =
@@ -529,6 +538,9 @@ update action model =
             , Cmd.none
             )
 
+        DisableVersion _ ->
+            ( model, Cmd.none )
+
 
 permalink : List Concourse.VersionedResource -> Page
 permalink versionedResources =
@@ -856,7 +868,8 @@ viewVersionedResource { versionedResource, state, pinnedVersion } =
                     , Css.margin2 (Css.px 5) Css.zero
                     ]
                 ]
-                [ viewPinButton
+                [ viewEnabledCheckbox versionedResource
+                , viewPinButton
                     { versionID = versionedResource.id
                     , pinState = pinState
                     , showTooltip = state.showTooltip
@@ -910,6 +923,35 @@ viewVersionBody { inputTo, outputOf, metadata } =
             , viewMetadata metadata
             ]
         ]
+
+
+viewEnabledCheckbox : { a | enabled : Bool, id : Int } -> Html Msg
+viewEnabledCheckbox { enabled, id } =
+    let
+        baseAttrs =
+            [ Html.Styled.Attributes.attribute "aria-label" "Toggle Resource Version Enabled"
+            , css
+                [ Css.marginRight <| Css.px 5
+                , Css.width <| Css.px 25
+                , Css.height <| Css.px 25
+                , Css.float Css.left
+                , Css.backgroundColor <| Css.hex "#1e1d1d"
+                , Css.backgroundRepeat Css.noRepeat
+                , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
+                ]
+            ]
+    in
+        if enabled then
+            Html.div
+                (baseAttrs
+                    ++ [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ]
+                       , onClick <| DisableVersion id
+                       ]
+                )
+                []
+        else
+            Html.div (baseAttrs)
+                []
 
 
 viewPinButton :
