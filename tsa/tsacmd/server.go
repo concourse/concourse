@@ -67,6 +67,8 @@ type ConnState struct {
 }
 
 type ForwardedTCPIP struct {
+	Logger lager.Logger
+
 	BindAddr  string
 	BoundPort uint32
 
@@ -76,7 +78,9 @@ type ForwardedTCPIP struct {
 }
 
 func (forward ForwardedTCPIP) Wait() {
+	forward.Logger.Debug("draining")
 	forward.wg.Wait()
+	forward.Logger.Debug("drained")
 }
 
 func (server *server) Serve(listener net.Listener) {
@@ -286,6 +290,8 @@ func (server *server) handleForwardRequests(
 				continue
 			}
 
+			bindAddr := net.JoinHostPort(req.BindIP, fmt.Sprintf("%d", req.BindPort))
+
 			listener, err := net.Listen("tcp", "0.0.0.0:0")
 			if err != nil {
 				reqLog.Error("failed-to-listen", err)
@@ -294,12 +300,6 @@ func (server *server) handleForwardRequests(
 			}
 
 			defer listener.Close()
-
-			bindAddr := net.JoinHostPort(req.BindIP, fmt.Sprintf("%d", req.BindPort))
-
-			reqLog.Debug("forwarding-tcpip", lager.Data{
-				"requested-bind-addr": bindAddr,
-			})
 
 			_, port, err := net.SplitHostPort(listener.Addr().String())
 			if err != nil {
@@ -314,6 +314,13 @@ func (server *server) handleForwardRequests(
 				continue
 			}
 
+			reqLog = reqLog.WithData(lager.Data{
+				"addr":           listener.Addr().String(),
+				"requested-addr": bindAddr,
+			})
+
+			reqLog.Debug("listening")
+
 			forPort := req.BindPort
 			if forPort == 0 {
 				forPort = res.BoundPort
@@ -322,10 +329,13 @@ func (server *server) handleForwardRequests(
 			drain := make(chan struct{})
 			wait := new(sync.WaitGroup)
 
-			go server.forwardTCPIP(ctx, drain, wait, conn, listener, req.BindIP, forPort)
+			wait.Add(1)
+			go server.forwardTCPIP(lagerctx.NewContext(ctx, reqLog), drain, wait, conn, listener, req.BindIP, forPort)
 
 			forwardedTCPIPs <- ForwardedTCPIP{
-				BindAddr:  fmt.Sprintf("%s:%d", req.BindIP, req.BindPort),
+				Logger: reqLog,
+
+				BindAddr:  bindAddr,
 				BoundPort: res.BoundPort,
 
 				Drain: drain,
@@ -358,6 +368,8 @@ func (server *server) forwardTCPIP(
 	forwardIP string,
 	forwardPort uint32,
 ) {
+	defer connsWg.Done()
+
 	logger := lagerctx.FromContext(ctx)
 
 	done := make(chan struct{})
@@ -386,8 +398,10 @@ func (server *server) forwardTCPIP(
 		}
 
 		connsWg.Add(1)
+
 		go func() {
 			defer connsWg.Done()
+
 			forwardLocalConn(
 				lagerctx.NewContext(ctx, logger.Session("forward-conn")),
 				localConn,
