@@ -71,6 +71,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 		"--bind-port", fmt.Sprintf("%d", cmd.BindPort),
 
 		"--depot", depotDir,
+		"--properties-path", filepath.Join(cmd.WorkDir.Path(), "garden-properties.json"),
 
 		// disable graph and grootfs setup; all images passed to Concourse
 		// containers are raw://
