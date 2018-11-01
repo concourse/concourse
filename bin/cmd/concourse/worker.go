@@ -88,8 +88,6 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	if cmd.TSA.WorkerPrivateKey != nil {
 		tsaClient := cmd.TSA.Client(atcWorker)
-		gardenClient := gclient.New(gconn.NewWithLogger("tcp", cmd.gardenAddr(), logger.Session("garden-connection")))
-		baggageclaimClient := bclient.New(cmd.baggageclaimURL(), http.DefaultTransport)
 
 		beacon := &worker.Beacon{
 			Logger: logger.Session("beacon"),
@@ -117,6 +115,30 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 				),
 			),
 		})
+
+		gardenClient := gclient.New(
+			gconn.NewWithLogger(
+				"tcp",
+				cmd.gardenAddr(),
+				logger.Session("garden-connection"),
+			),
+		)
+
+		baggageclaimClient := bclient.NewWithHTTPClient(
+			cmd.baggageclaimURL(),
+
+			// ensure we don't use baggageclaim's default retryhttp client; all
+			// traffic should be local, so any failures are unlikely to be transient.
+			// we don't want a retry loop to block up sweeping and prevent the worker
+			// from existing.
+			&http.Client{
+				Transport: &http.Transport{
+					// don't let a slow (possibly stuck) baggageclaim server slow down
+					// sweeping too much
+					ResponseHeaderTimeout: 1 * time.Minute,
+				},
+			},
+		)
 
 		members = append(members, grouper.Member{
 			Name: "sweeper",
