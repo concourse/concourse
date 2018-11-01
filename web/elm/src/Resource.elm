@@ -12,7 +12,6 @@ module Resource
         , viewVersionHeader
         , viewVersionBody
         , subscriptions
-        , PauseChangingOrErrored(..)
         )
 
 import Concourse
@@ -52,10 +51,6 @@ type PageError
     | NotFound
 
 
-type alias VersionID =
-    Int
-
-
 type alias Model =
     { ports : Ports
     , pageStatus : Result PageError ()
@@ -78,18 +73,11 @@ type alias Model =
 
 
 type alias VersionUIState =
-    { changingErrored : Bool
-    , expanded : Bool
+    { expanded : Bool
     , inputTo : List Concourse.Build
     , outputOf : List Concourse.Build
     , showTooltip : Bool
     }
-
-
-type PauseChangingOrErrored
-    = Stable
-    | Changing
-    | Errored
 
 
 type Msg
@@ -1027,8 +1015,7 @@ getState versionID states =
     in
         case resourceState of
             Nothing ->
-                { changingErrored = False
-                , expanded = False
+                { expanded = False
                 , inputTo = []
                 , outputOf = []
                 , showTooltip = False
