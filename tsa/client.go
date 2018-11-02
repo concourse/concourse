@@ -497,27 +497,27 @@ func (client *Client) run(ctx context.Context, sshClient *ssh.Client, command st
 
 func proxyListenerTo(ctx context.Context, listener net.Listener, network string, addr string) {
 	for {
-		rConn, err := listener.Accept()
+		remoteConn, err := listener.Accept()
 		if err != nil {
 			break
 		}
 
-		go handleForwardedConn(ctx, rConn, network, addr)
+		go handleForwardedConn(ctx, remoteConn, network, addr)
 	}
 }
 
-func handleForwardedConn(ctx context.Context, rConn net.Conn, network string, addr string) {
+func handleForwardedConn(ctx context.Context, remoteConn net.Conn, network string, addr string) {
 	logger := lagerctx.WithSession(ctx, "forward-conn", lager.Data{
 		"network": network,
 		"addr":    addr,
 	})
 
-	defer rConn.Close()
+	defer remoteConn.Close()
 
-	var lConn net.Conn
+	var localConn net.Conn
 	for {
 		var err error
-		lConn, err = net.Dial("tcp", addr)
+		localConn, err = net.Dial("tcp", addr)
 		if err != nil {
 			logger.Error("failed-to-dial", err)
 			time.Sleep(time.Second)
@@ -542,10 +542,10 @@ func handleForwardedConn(ctx context.Context, rConn net.Conn, network string, ad
 	}
 
 	wg.Add(1)
-	go pipe(lConn, rConn)
+	go pipe(localConn, remoteConn)
 
 	wg.Add(1)
-	go pipe(rConn, lConn)
+	go pipe(remoteConn, localConn)
 
 	wg.Wait()
 }

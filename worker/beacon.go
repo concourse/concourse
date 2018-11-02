@@ -41,8 +41,8 @@ func (beacon *Beacon) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		rebalanceCh = ticker.C
 	}
 
-	bwg := &waitGroupWithCount{}
-	defer bwg.Wait()
+	cwg := &countingWaitGroup{}
+	defer cwg.Wait()
 
 	rootCtx, cancelAll := context.WithCancel(lagerctx.NewContext(context.Background(), beacon.Logger))
 	defer cancelAll()
@@ -50,15 +50,15 @@ func (beacon *Beacon) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	latestErrChan := make(chan error, 1)
 	ctx, cancel := context.WithCancel(rootCtx)
 
-	bwg.Increment()
-	go beacon.registerWorker(ctx, bwg, func() { close(ready) }, latestErrChan)
+	cwg.Add(1)
+	go beacon.registerWorker(ctx, cwg, func() { close(ready) }, latestErrChan)
 
 	for {
 		select {
 		case <-rebalanceCh:
 			logger := beacon.Logger.Session("rebalance")
 
-			if bwg.Count() >= maxActiveRegistrations {
+			if cwg.Count() >= maxActiveRegistrations {
 				logger.Info("max-active-registrations-reached", lager.Data{
 					"limit": maxActiveRegistrations,
 				})
@@ -75,8 +75,8 @@ func (beacon *Beacon) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			// buffered channel and exit
 			latestErrChan = make(chan error, 1)
 
-			bwg.Increment()
-			go beacon.registerWorker(ctx, bwg, cancelPrev, latestErrChan)
+			cwg.Add(1)
+			go beacon.registerWorker(ctx, cwg, cancelPrev, latestErrChan)
 
 		case err := <-latestErrChan:
 			if err != nil {
@@ -105,11 +105,11 @@ func (beacon *Beacon) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 func (beacon *Beacon) registerWorker(
 	ctx context.Context,
-	bwg *waitGroupWithCount,
+	cwg *countingWaitGroup,
 	registeredCb func(),
 	errs chan<- error,
 ) {
-	defer bwg.Decrement()
+	defer cwg.Done()
 
 	logger := lagerctx.FromContext(ctx)
 
