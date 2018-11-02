@@ -28,7 +28,8 @@ directory to setup your environment.
 3. You can now build the fly binary with go build:
 
   ```bash
-  cd src/github.com/concourse/fly
+  cd fly
+  go get ./...
   go build
   ```
 
