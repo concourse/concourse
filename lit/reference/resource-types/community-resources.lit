@@ -216,6 +216,8 @@ before using it!
   \table-row{\link{Sentry Releases Resource}{https://github.com/rubenv/concourse-sentry-releases-resource}}{by \ghuser{rubenv}}
 }{
   \table-row{\link{Gate Resource}{https://github.com/Meshcloud/gate-resource}}{by \ghuser{Meshcloud}}
+}{
+  \table-row{\link{Packer}{https://github.com/Snapkitchen/concourse-packer-resource}}{by \ghuser{Snapkitchen}}
 }
 
 \section{
