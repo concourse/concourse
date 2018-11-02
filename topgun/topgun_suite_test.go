@@ -634,7 +634,7 @@ dance:
 
 		for _, lock := range parseTable(string(locks.Out.Contents())) {
 			if lock[0] == "deployment" && lock[1] == deploymentName {
-				fmt.Fprintf(GinkgoWriter, "waiting for deployment lock (task id %s)...", lock[2])
+				fmt.Fprintf(GinkgoWriter, "waiting for deployment lock (task id %s)...\n", lock[2])
 				time.Sleep(5 * time.Second)
 				continue dance
 			}
