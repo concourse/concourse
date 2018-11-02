@@ -54,8 +54,6 @@ var (
 	logger *lagertest.TestLogger
 
 	tmp string
-
-	boshLogs *gexec.Session
 )
 
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
@@ -146,10 +144,9 @@ var _ = BeforeEach(func() {
 })
 
 var _ = AfterEach(func() {
-	if boshLogs != nil {
-		boshLogs.Signal(os.Interrupt)
-		<-boshLogs.Exited
-		boshLogs = nil
+	if CurrentGinkgoTestDescription().Failed {
+		TimestampedBy("collecting logs due to test failure")
+		bosh("logs")
 	}
 
 	deleteAllContainers()
@@ -202,12 +199,6 @@ func StartDeploy(manifest string, args ...string) *gexec.Session {
 }
 
 func Deploy(manifest string, args ...string) {
-	if boshLogs != nil {
-		boshLogs.Signal(os.Interrupt)
-		<-boshLogs.Exited
-		boshLogs = nil
-	}
-
 	if dbConn != nil {
 		Expect(dbConn.Close()).To(Succeed())
 	}
@@ -215,15 +206,6 @@ func Deploy(manifest string, args ...string) {
 	wait(StartDeploy(manifest, args...))
 
 	instances, jobInstances = loadJobInstances()
-
-	boshLogs = spawnBosh("logs", "-f")
-
-	for _, is := range instances {
-		for _, i := range is {
-			By("waiting for logs from " + i.Name)
-			Eventually(boshLogs.Out.Contents).Should(ContainSubstring(i.Name))
-		}
-	}
 
 	webInstance = JobInstance("web")
 	if webInstance != nil {
@@ -428,8 +410,12 @@ func run(argc string, argv ...string) {
 	wait(spawn(argc, argv...))
 }
 
+func TimestampedBy(msg string) {
+	By(fmt.Sprintf("[%.9f] %s", time.Now().UnixNano(), msg))
+}
+
 func spawn(argc string, argv ...string) *gexec.Session {
-	By("running: " + argc + " " + strings.Join(argv, " "))
+	TimestampedBy("running: " + argc + " " + strings.Join(argv, " "))
 	cmd := exec.Command(argc, argv...)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).ToNot(HaveOccurred())
@@ -437,7 +423,7 @@ func spawn(argc string, argv ...string) *gexec.Session {
 }
 
 func spawnInteractive(stdin io.Reader, argc string, argv ...string) *gexec.Session {
-	By("interactively running: " + argc + " " + strings.Join(argv, " "))
+	TimestampedBy("interactively running: " + argc + " " + strings.Join(argv, " "))
 	cmd := exec.Command(argc, argv...)
 	cmd.Stdin = stdin
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
