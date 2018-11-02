@@ -68,6 +68,8 @@ instance_groups:
   - release: concourse
     name: worker
     properties:
+      log_level: debug
+
       worker_gateway:
         worker_key: ((worker_key))
         registration_mode: forward

@@ -62,9 +62,9 @@ instance_groups:
   - release: concourse
     name: worker
     properties:
-      worker_gateway: {worker_key: ((worker_key))}
-
       log_level: debug
+
+      worker_gateway: {worker_key: ((worker_key))}
 
       # prevent tests from hanging forever
       drain_timeout: 10m
