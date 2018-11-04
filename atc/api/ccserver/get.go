@@ -13,10 +13,11 @@ import (
 )
 
 type Project struct {
-	Name			string `xml:"name,attr"`
+	Activity        string `xml:"activity,attr"`
 	LastBuildLabel  string `xml:"lastBuildLabel,attr"`
 	LastBuildStatus	string `xml:"lastBuildStatus,attr"`
 	LastBuildTime   string `xml:"lastBuildTime,attr"`
+	Name			string `xml:"name,attr"`
 }
 
 type ProjectsContainer struct {
@@ -61,7 +62,7 @@ func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
 		}
 
 		for _, job := range jobs {
-			build, _, err := job.FinishedAndNextBuild()
+			build, nextBuild, err := job.FinishedAndNextBuild()
 
 			if err != nil {
 				logger.Error("failed-to-get-finished-build", err)
@@ -70,7 +71,7 @@ func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if build != nil {
-				projects = append(projects, buildProject(build, pipeline, job))
+				projects = append(projects, buildProject(build, nextBuild, pipeline, job))
 			}
 		}
 	}
@@ -85,7 +86,7 @@ func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func buildProject(build db.Build, pipeline db.Pipeline, job db.Job) Project {
+func buildProject(build db.Build, nextBuild db.Build, pipeline db.Pipeline, job db.Job) Project {
 	var lastBuildStatus string
 	switch {
 	case build.Status() == db.BuildStatusSucceeded:
@@ -98,8 +99,16 @@ func buildProject(build db.Build, pipeline db.Pipeline, job db.Job) Project {
 		lastBuildStatus = "Unknown"
 	}
 
-	projectName := fmt.Sprintf("%s :: %s", pipeline.Name(), job.Config().Name)
+	var activity string
+	if nextBuild != nil {
+		activity = "Building"
+	} else {
+		activity = "Sleeping"
+	}
+
+	projectName := fmt.Sprintf("%s :: %s", pipeline.Name(), job.Name())
 	return Project{
+		Activity:		 activity,
 		LastBuildLabel:  fmt.Sprint(build.ID()),
 		LastBuildStatus: lastBuildStatus,
 		LastBuildTime:   build.EndTime().Format(time.RFC3339),
