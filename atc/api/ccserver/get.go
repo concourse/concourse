@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/http"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 
@@ -13,7 +14,9 @@ import (
 
 type Project struct {
 	Name			string `xml:"name,attr"`
+	LastBuildLabel  string `xml:"lastBuildLabel,attr"`
 	LastBuildStatus	string `xml:"lastBuildStatus,attr"`
+	LastBuildTime   string `xml:"lastBuildTime,attr"`
 }
 
 type ProjectsContainer struct {
@@ -97,7 +100,9 @@ func buildProject(build db.Build, pipeline db.Pipeline, job db.Job) Project {
 
 	projectName := fmt.Sprintf("%s :: %s", pipeline.Name(), job.Config().Name)
 	return Project{
-		Name:            projectName,
+		LastBuildLabel:  fmt.Sprint(build.ID()),
 		LastBuildStatus: lastBuildStatus,
+		LastBuildTime:   build.EndTime().Format(time.RFC3339),
+		Name:            projectName,
 	}
 }

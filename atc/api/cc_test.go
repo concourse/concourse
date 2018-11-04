@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
@@ -77,6 +78,7 @@ var _ = Describe("cc.xml", func() {
 
 					Context("when a job is found", func() {
 						var fakeJob *dbfakes.FakeJob
+						var endTime time.Time
 						BeforeEach(func() {
 							fakeJob = new(dbfakes.FakeJob)
 							fakeJob.ConfigReturns(atc.JobConfig{
@@ -84,12 +86,16 @@ var _ = Describe("cc.xml", func() {
 							})
 
 							fakePipeline.JobsReturns(db.Jobs{fakeJob}, nil)
+
+							endTime, _ = time.Parse(time.RFC3339, "2018-11-04T21:26:38Z")
 						})
 
 						Context("when the last build is successful", func() {
 							BeforeEach(func() {
 								succeededBuild := new(dbfakes.FakeBuild)
 								succeededBuild.StatusReturns(db.BuildStatusSucceeded)
+								succeededBuild.IDReturns(42)
+								succeededBuild.EndTimeReturns(endTime)
 								fakeJob.FinishedAndNextBuildReturns(succeededBuild, nil, nil)
 							})
 
@@ -107,7 +113,7 @@ var _ = Describe("cc.xml", func() {
 
 								Expect(body).To(MatchXML(`
 <Projects>
-  <Project lastBuildStatus="Success" name="something-else :: some-job"/>
+  <Project lastBuildLabel="42" lastBuildStatus="Success" lastBuildTime="2018-11-04T21:26:38Z" name="something-else :: some-job"/>
 </Projects>
 `))
 							})
@@ -117,6 +123,8 @@ var _ = Describe("cc.xml", func() {
 							BeforeEach(func() {
 								abortedBuild := new(dbfakes.FakeBuild)
 								abortedBuild.StatusReturns(db.BuildStatusAborted)
+								abortedBuild.IDReturns(42)
+								abortedBuild.EndTimeReturns(endTime)
 								fakeJob.FinishedAndNextBuildReturns(abortedBuild, nil, nil)
 							})
 
@@ -126,7 +134,7 @@ var _ = Describe("cc.xml", func() {
 
 								Expect(body).To(MatchXML(`
 <Projects>
-  <Project lastBuildStatus="Unknown" name="something-else :: some-job"/>
+  <Project lastBuildLabel="42" lastBuildStatus="Unknown" lastBuildTime="2018-11-04T21:26:38Z" name="something-else :: some-job"/>
 </Projects>
 `))
 							})
@@ -136,6 +144,8 @@ var _ = Describe("cc.xml", func() {
 							BeforeEach(func() {
 								erroredBuild := new(dbfakes.FakeBuild)
 								erroredBuild.StatusReturns(db.BuildStatusErrored)
+								erroredBuild.IDReturns(42)
+								erroredBuild.EndTimeReturns(endTime)
 								fakeJob.FinishedAndNextBuildReturns(erroredBuild, nil, nil)
 							})
 
@@ -145,7 +155,7 @@ var _ = Describe("cc.xml", func() {
 
 								Expect(body).To(MatchXML(`
 <Projects>
-  <Project lastBuildStatus="Exception" name="something-else :: some-job"/>
+  <Project lastBuildLabel="42" lastBuildStatus="Exception" lastBuildTime="2018-11-04T21:26:38Z" name="something-else :: some-job"/>
 </Projects>
 `))
 							})
@@ -155,6 +165,8 @@ var _ = Describe("cc.xml", func() {
 							BeforeEach(func() {
 								failedBuild := new(dbfakes.FakeBuild)
 								failedBuild.StatusReturns(db.BuildStatusFailed)
+								failedBuild.IDReturns(42)
+								failedBuild.EndTimeReturns(endTime)
 								fakeJob.FinishedAndNextBuildReturns(failedBuild, nil, nil)
 							})
 
@@ -164,7 +176,7 @@ var _ = Describe("cc.xml", func() {
 
 								Expect(body).To(MatchXML(`
 <Projects>
-  <Project lastBuildStatus="Failure" name="something-else :: some-job"/>
+  <Project lastBuildLabel="42" lastBuildStatus="Failure" lastBuildTime="2018-11-04T21:26:38Z" name="something-else :: some-job"/>
 </Projects>
 `))
 							})
