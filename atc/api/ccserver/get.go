@@ -7,11 +7,13 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
+	"github.com/concourse/concourse/atc/db"
 	"github.com/tedsuo/rata"
 )
 
 type Project struct {
-	Name	string `xml:"name,attr"`
+	Name			string `xml:"name,attr"`
+	LastBuildStatus	string `xml:"lastBuildStatus,attr"`
 }
 
 type ProjectsContainer struct {
@@ -56,8 +58,17 @@ func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
 		}
 
 		for _, job := range jobs {
-			projectName := fmt.Sprintf("%s :: %s", pipeline.Name(), job.Config().Name)
-			projects = append(projects, Project{Name: projectName})
+			build, _, err := job.FinishedAndNextBuild()
+
+			if err != nil {
+				logger.Error("failed-to-get-finished-build", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			if build != nil {
+				projects = append(projects, buildProject(build, pipeline, job))
+			}
 		}
 	}
 
@@ -68,5 +79,25 @@ func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
 		logger.Error("failed-to-serialize-projects", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
+	}
+}
+
+func buildProject(build db.Build, pipeline db.Pipeline, job db.Job) Project {
+	var lastBuildStatus string
+	switch {
+	case build.Status() == db.BuildStatusSucceeded:
+		lastBuildStatus = "Success"
+	case build.Status() == db.BuildStatusFailed:
+		lastBuildStatus = "Failure"
+	case build.Status() == db.BuildStatusErrored:
+		lastBuildStatus = "Exception"
+	default:
+		lastBuildStatus = "Unknown"
+	}
+
+	projectName := fmt.Sprintf("%s :: %s", pipeline.Name(), job.Config().Name)
+	return Project{
+		Name:            projectName,
+		LastBuildStatus: lastBuildStatus,
 	}
 }

@@ -86,23 +86,111 @@ var _ = Describe("cc.xml", func() {
 							fakePipeline.JobsReturns(db.Jobs{fakeJob}, nil)
 						})
 
-						It("returns 200", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
-						})
+						Context("when the last build is successful", func() {
+							BeforeEach(func() {
+								succeededBuild := new(dbfakes.FakeBuild)
+								succeededBuild.StatusReturns(db.BuildStatusSucceeded)
+								fakeJob.FinishedAndNextBuildReturns(succeededBuild, nil, nil)
+							})
 
-						It("returns Content-Type 'application/xml'", func() {
-							Expect(response.Header.Get("Content-Type")).To(Equal("application/xml"))
-						})
+							It("returns 200", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							})
 
-						It("returns the CC.xml", func() {
-							body, err := ioutil.ReadAll(response.Body)
-							Expect(err).NotTo(HaveOccurred())
+							It("returns Content-Type 'application/xml'", func() {
+								Expect(response.Header.Get("Content-Type")).To(Equal("application/xml"))
+							})
 
-							Expect(body).To(MatchXML(`
+							It("returns the CC.xml", func() {
+								body, err := ioutil.ReadAll(response.Body)
+								Expect(err).NotTo(HaveOccurred())
+
+								Expect(body).To(MatchXML(`
 <Projects>
-  <Project name="something-else :: some-job"/>
+  <Project lastBuildStatus="Success" name="something-else :: some-job"/>
 </Projects>
 `))
+							})
+						})
+
+						Context("when the last build is aborted", func() {
+							BeforeEach(func() {
+								abortedBuild := new(dbfakes.FakeBuild)
+								abortedBuild.StatusReturns(db.BuildStatusAborted)
+								fakeJob.FinishedAndNextBuildReturns(abortedBuild, nil, nil)
+							})
+
+							It("returns the CC.xml", func() {
+								body, err := ioutil.ReadAll(response.Body)
+								Expect(err).NotTo(HaveOccurred())
+
+								Expect(body).To(MatchXML(`
+<Projects>
+  <Project lastBuildStatus="Unknown" name="something-else :: some-job"/>
+</Projects>
+`))
+							})
+						})
+
+						Context("when the last build is errored", func() {
+							BeforeEach(func() {
+								erroredBuild := new(dbfakes.FakeBuild)
+								erroredBuild.StatusReturns(db.BuildStatusErrored)
+								fakeJob.FinishedAndNextBuildReturns(erroredBuild, nil, nil)
+							})
+
+							It("returns the CC.xml", func() {
+								body, err := ioutil.ReadAll(response.Body)
+								Expect(err).NotTo(HaveOccurred())
+
+								Expect(body).To(MatchXML(`
+<Projects>
+  <Project lastBuildStatus="Exception" name="something-else :: some-job"/>
+</Projects>
+`))
+							})
+						})
+
+						Context("when the last build is failed", func() {
+							BeforeEach(func() {
+								failedBuild := new(dbfakes.FakeBuild)
+								failedBuild.StatusReturns(db.BuildStatusFailed)
+								fakeJob.FinishedAndNextBuildReturns(failedBuild, nil, nil)
+							})
+
+							It("returns the CC.xml", func() {
+								body, err := ioutil.ReadAll(response.Body)
+								Expect(err).NotTo(HaveOccurred())
+
+								Expect(body).To(MatchXML(`
+<Projects>
+  <Project lastBuildStatus="Failure" name="something-else :: some-job"/>
+</Projects>
+`))
+							})
+						})
+
+						Context("when no last build exists", func() {
+							BeforeEach(func() {
+								fakeJob.FinishedAndNextBuildReturns(nil, nil, nil)
+							})
+
+							It("returns the CC.xml without the job", func() {
+								body, err := ioutil.ReadAll(response.Body)
+								Expect(err).NotTo(HaveOccurred())
+
+								Expect(body).To(MatchXML("<Projects></Projects>"))
+							})
+						})
+
+						Context("when finding the last build fails", func() {
+							BeforeEach(func() {
+								fakeJob.FinishedAndNextBuildReturns(nil, nil, errors.New("failed"))
+							})
+
+							It("returns 500", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							})
 						})
 					})
 
