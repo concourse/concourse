@@ -4,6 +4,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -18,6 +20,7 @@ type Project struct {
 	LastBuildStatus	string `xml:"lastBuildStatus,attr"`
 	LastBuildTime   string `xml:"lastBuildTime,attr"`
 	Name			string `xml:"name,attr"`
+	WebUrl			string `xml:"webUrl,attr"`
 }
 
 type ProjectsContainer struct {
@@ -71,7 +74,7 @@ func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if build != nil {
-				projects = append(projects, buildProject(build, nextBuild, pipeline, job))
+				projects = append(projects, s.buildProject(build, nextBuild, pipeline, job))
 			}
 		}
 	}
@@ -86,7 +89,7 @@ func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func buildProject(build db.Build, nextBuild db.Build, pipeline db.Pipeline, job db.Job) Project {
+func (s *Server) buildProject(build db.Build, nextBuild db.Build, pipeline db.Pipeline, job db.Job) Project {
 	var lastBuildStatus string
 	switch {
 	case build.Status() == db.BuildStatusSucceeded:
@@ -106,6 +109,15 @@ func buildProject(build db.Build, nextBuild db.Build, pipeline db.Pipeline, job 
 		activity = "Sleeping"
 	}
 
+	webUrl := s.createWebUrl([]string{
+		"teams",
+		pipeline.TeamName(),
+		"pipelines",
+		pipeline.Name(),
+		"jobs",
+		job.Name(),
+	})
+
 	projectName := fmt.Sprintf("%s :: %s", pipeline.Name(), job.Name())
 	return Project{
 		Activity:		 activity,
@@ -113,5 +125,14 @@ func buildProject(build db.Build, nextBuild db.Build, pipeline db.Pipeline, job 
 		LastBuildStatus: lastBuildStatus,
 		LastBuildTime:   build.EndTime().Format(time.RFC3339),
 		Name:            projectName,
+		WebUrl:			 webUrl,
 	}
+}
+
+func (s *Server) createWebUrl(pathComponents []string) string {
+	for i, c := range pathComponents {
+		pathComponents[i] = url.PathEscape(c)
+	}
+
+	return s.externalURL + "/" + strings.Join(pathComponents, "/")
 }
