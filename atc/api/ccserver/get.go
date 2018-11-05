@@ -96,10 +96,8 @@ func (s *Server) buildProject(build db.Build, nextBuild db.Build, pipeline db.Pi
 		lastBuildStatus = "Success"
 	case build.Status() == db.BuildStatusFailed:
 		lastBuildStatus = "Failure"
-	case build.Status() == db.BuildStatusErrored:
-		lastBuildStatus = "Exception"
 	default:
-		lastBuildStatus = "Unknown"
+		lastBuildStatus = "Exception"
 	}
 
 	var activity string
