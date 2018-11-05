@@ -119,7 +119,7 @@ func (s *Server) buildProject(build db.Build, nextBuild db.Build, pipeline db.Pi
 	projectName := fmt.Sprintf("%s :: %s", pipeline.Name(), job.Name())
 	return Project{
 		Activity:		 activity,
-		LastBuildLabel:  fmt.Sprint(build.ID()),
+		LastBuildLabel:  fmt.Sprint(build.Name()),
 		LastBuildStatus: lastBuildStatus,
 		LastBuildTime:   build.EndTime().Format(time.RFC3339),
 		Name:            projectName,

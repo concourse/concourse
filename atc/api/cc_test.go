@@ -86,7 +86,7 @@ var _ = Describe("cc.xml", func() {
 							BeforeEach(func() {
 								succeededBuild := new(dbfakes.FakeBuild)
 								succeededBuild.StatusReturns(db.BuildStatusSucceeded)
-								succeededBuild.IDReturns(42)
+								succeededBuild.NameReturns("42")
 								succeededBuild.EndTimeReturns(endTime)
 								fakeJob.FinishedAndNextBuildReturns(succeededBuild, nil, nil)
 							})
@@ -115,7 +115,7 @@ var _ = Describe("cc.xml", func() {
 							BeforeEach(func() {
 								abortedBuild := new(dbfakes.FakeBuild)
 								abortedBuild.StatusReturns(db.BuildStatusAborted)
-								abortedBuild.IDReturns(42)
+								abortedBuild.NameReturns("42")
 								abortedBuild.EndTimeReturns(endTime)
 								fakeJob.FinishedAndNextBuildReturns(abortedBuild, nil, nil)
 							})
@@ -136,7 +136,7 @@ var _ = Describe("cc.xml", func() {
 							BeforeEach(func() {
 								erroredBuild := new(dbfakes.FakeBuild)
 								erroredBuild.StatusReturns(db.BuildStatusErrored)
-								erroredBuild.IDReturns(42)
+								erroredBuild.NameReturns("42")
 								erroredBuild.EndTimeReturns(endTime)
 								fakeJob.FinishedAndNextBuildReturns(erroredBuild, nil, nil)
 							})
@@ -157,7 +157,7 @@ var _ = Describe("cc.xml", func() {
 							BeforeEach(func() {
 								failedBuild := new(dbfakes.FakeBuild)
 								failedBuild.StatusReturns(db.BuildStatusFailed)
-								failedBuild.IDReturns(42)
+								failedBuild.NameReturns("42")
 								failedBuild.EndTimeReturns(endTime)
 								fakeJob.FinishedAndNextBuildReturns(failedBuild, nil, nil)
 							})
@@ -178,7 +178,7 @@ var _ = Describe("cc.xml", func() {
 							BeforeEach(func() {
 								finishedBuild := new(dbfakes.FakeBuild)
 								finishedBuild.StatusReturns(db.BuildStatusSucceeded)
-								finishedBuild.IDReturns(42)
+								finishedBuild.NameReturns("42")
 								finishedBuild.EndTimeReturns(endTime)
 
 								nextBuild := new(dbfakes.FakeBuild)
