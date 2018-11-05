@@ -32,6 +32,7 @@ type Job interface {
 
 	CreateBuild() (Build, error)
 	Builds(page Page) ([]Build, Pagination, error)
+	BuildsWithTime(page Page) ([]Build, Pagination, error)
 	Build(name string) (Build, bool, error)
 	FinishedAndNextBuild() (Build, Build, error)
 	UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error
@@ -183,83 +184,27 @@ func (j *job) UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error {
 	return nil
 }
 
-func (j *job) Builds(page Page) ([]Build, Pagination, error) {
-	query := buildsQuery.Where(sq.Eq{"j.id": j.id})
-
-	limit := uint64(page.Limit)
-
-	var reverse bool
-	if page.Since == 0 && page.Until == 0 {
-		query = query.OrderBy("b.id DESC").Limit(limit)
-	} else if page.Until != 0 {
-		query = query.Where(sq.Gt{"b.id": page.Until}).OrderBy("b.id ASC").Limit(limit)
-		reverse = true
-	} else {
-		query = query.Where(sq.Lt{"b.id": page.Since}).OrderBy("b.id DESC").Limit(limit)
-	}
-
-	rows, err := query.RunWith(j.conn).Query()
-	if err != nil {
-		return nil, Pagination{}, err
-	}
-
-	defer Close(rows)
-
-	builds := []Build{}
-
-	for rows.Next() {
-		build := &build{conn: j.conn, lockFactory: j.lockFactory}
-		err = scanBuild(build, rows, j.conn.EncryptionStrategy())
-		if err != nil {
-			return nil, Pagination{}, err
-		}
-
-		if reverse {
-			builds = append([]Build{build}, builds...)
-		} else {
-			builds = append(builds, build)
-		}
-	}
-
-	if len(builds) == 0 {
-		return []Build{}, Pagination{}, nil
-	}
-
-	var maxID, minID int
-	err = psql.Select("COALESCE(MAX(b.id), 0) as maxID", "COALESCE(MIN(b.id), 0) as minID").
-		From("builds b").
+func (j *job) BuildsWithTime(page Page) ([]Build, Pagination, error) {
+	newBuildsQuery := buildsQuery.Where(sq.Eq{"j.id": j.id})
+	newMinMaxIdQuery := minMaxIdQuery.
 		Join("jobs j ON b.job_id = j.id").
 		Where(sq.Eq{
 			"j.name":        j.name,
 			"j.pipeline_id": j.pipelineID,
-		}).
-		RunWith(j.conn).
-		QueryRow().
-		Scan(&maxID, &minID)
-	if err != nil {
-		return nil, Pagination{}, err
-	}
+		})
+	return getBuildsWithDates(newBuildsQuery, newMinMaxIdQuery, page, j.conn, j.lockFactory)
+}
 
-	firstBuild := builds[0]
-	lastBuild := builds[len(builds)-1]
+func (j *job) Builds(page Page) ([]Build, Pagination, error) {
+	newBuildsQuery := buildsQuery.Where(sq.Eq{"j.id": j.id})
+	newMinMaxIdQuery := minMaxIdQuery.
+		Join("jobs j ON b.job_id = j.id").
+		Where(sq.Eq{
+			"j.name":        j.name,
+			"j.pipeline_id": j.pipelineID,
+		})
 
-	var pagination Pagination
-
-	if firstBuild.ID() < maxID {
-		pagination.Previous = &Page{
-			Until: firstBuild.ID(),
-			Limit: page.Limit,
-		}
-	}
-
-	if lastBuild.ID() > minID {
-		pagination.Next = &Page{
-			Since: lastBuild.ID(),
-			Limit: page.Limit,
-		}
-	}
-
-	return builds, pagination, nil
+	return getBuildsWithPagination(newBuildsQuery, newMinMaxIdQuery, page, j.conn, j.lockFactory)
 }
 
 func (j *job) Build(name string) (Build, bool, error) {
