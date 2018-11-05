@@ -34,7 +34,7 @@ func (f *imageFactory) GetImage(
 	resourceTypes creds.VersionedResourceTypes,
 ) (worker.Image, error) {
 	if imageSpec.ImageArtifactSource != nil {
-		artifactVolume, existsOnWorker, err := imageSpec.ImageArtifactSource.VolumeOn(workerClient)
+		artifactVolume, existsOnWorker, err := imageSpec.ImageArtifactSource.VolumeOn(logger, workerClient)
 		if err != nil {
 			logger.Error("failed-to-check-if-volume-exists-on-worker", err)
 			return nil, err

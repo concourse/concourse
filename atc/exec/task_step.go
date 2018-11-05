@@ -156,7 +156,7 @@ func (action *TaskStep) Run(ctx context.Context, state RunState) error {
 
 	repository := state.Artifacts()
 
-	config, err := action.configSource.FetchConfig(repository)
+	config, err := action.configSource.FetchConfig(logger, repository)
 
 	for _, warning := range action.configSource.Warnings() {
 		fmt.Fprintln(action.delegate.Stderr(), "[WARNING]", warning)
@@ -397,7 +397,7 @@ func (action *TaskStep) registerOutputs(logger lager.Logger, repository *worker.
 
 		for _, mount := range volumeMounts {
 			if filepath.Clean(mount.MountPath) == filepath.Clean(outputPath) {
-				source := newTaskArtifactSource(logger, mount.Volume)
+				source := newTaskArtifactSource(mount.Volume)
 				repository.RegisterSource(worker.ArtifactName(outputName), source)
 			}
 		}
@@ -437,22 +437,33 @@ func (TaskStep) envForParams(params map[string]string) []string {
 }
 
 type taskArtifactSource struct {
-	logger lager.Logger
-	volume worker.Volume
+	worker.Volume
 }
 
 func newTaskArtifactSource(
-	logger lager.Logger,
 	volume worker.Volume,
 ) *taskArtifactSource {
 	return &taskArtifactSource{
-		logger: logger,
-		volume: volume,
+		volume,
 	}
 }
 
-func (src *taskArtifactSource) StreamTo(destination worker.ArtifactDestination) error {
-	out, err := src.volume.StreamOut(".")
+func (src *taskArtifactSource) StreamTo(logger lager.Logger, destination worker.ArtifactDestination) (err error) {
+	srcData := lager.Data{
+		"src-volume": src.Handle(),
+		"src-worker": src.WorkerName(),
+	}
+	logger.Debug("task-artifact-start-streaming", srcData)
+
+	defer func() {
+		if err != nil {
+			logger.Error("error occurred in StreamTo", err, srcData)
+		} else {
+			logger.Debug("task-artifact-end-streaming", srcData)
+		}
+	}()
+
+	out, err := src.StreamOut(".")
 	if err != nil {
 		return err
 	}
@@ -462,8 +473,9 @@ func (src *taskArtifactSource) StreamTo(destination worker.ArtifactDestination) 
 	return destination.StreamIn(".", out)
 }
 
-func (src *taskArtifactSource) StreamFile(filename string) (io.ReadCloser, error) {
-	out, err := src.volume.StreamOut(filename)
+func (src *taskArtifactSource) StreamFile(logger lager.Logger, filename string) (io.ReadCloser, error) {
+	logger.Debug("streaming-file-from-volume")
+	out, err := src.StreamOut(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -486,8 +498,8 @@ func (src *taskArtifactSource) StreamFile(filename string) (io.ReadCloser, error
 	}, nil
 }
 
-func (src *taskArtifactSource) VolumeOn(w worker.Worker) (worker.Volume, bool, error) {
-	return w.LookupVolume(src.logger, src.volume.Handle())
+func (src *taskArtifactSource) VolumeOn(logger lager.Logger, w worker.Worker) (worker.Volume, bool, error) {
+	return w.LookupVolume(logger, src.Handle())
 }
 
 type taskInputSource struct {
@@ -552,15 +564,15 @@ func newTaskCacheSource(
 	}
 }
 
-func (src *taskCacheSource) StreamTo(destination worker.ArtifactDestination) error {
+func (src *taskCacheSource) StreamTo(logger lager.Logger, destination worker.ArtifactDestination) error {
 	// cache will be initialized every time on a new worker
 	return nil
 }
 
-func (src *taskCacheSource) StreamFile(filename string) (io.ReadCloser, error) {
+func (src *taskCacheSource) StreamFile(logger lager.Logger, filename string) (io.ReadCloser, error) {
 	return nil, errors.New("taskCacheSource.StreamFile not implemented")
 }
 
-func (src *taskCacheSource) VolumeOn(w worker.Worker) (worker.Volume, bool, error) {
+func (src *taskCacheSource) VolumeOn(logger lager.Logger, w worker.Worker) (worker.Volume, bool, error) {
 	return w.FindVolumeForTaskCache(src.logger, src.teamID, src.jobID, src.stepName, src.path)
 }

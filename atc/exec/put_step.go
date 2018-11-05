@@ -195,8 +195,8 @@ type PutResourceSource struct {
 	worker.ArtifactSource
 }
 
-func (source PutResourceSource) StreamTo(dest worker.ArtifactDestination) error {
-	return source.ArtifactSource.StreamTo(worker.ArtifactDestination(dest))
+func (source PutResourceSource) StreamTo(logger lager.Logger, dest worker.ArtifactDestination) error {
+	return source.ArtifactSource.StreamTo(logger, worker.ArtifactDestination(dest))
 }
 
 type putInputSource struct {

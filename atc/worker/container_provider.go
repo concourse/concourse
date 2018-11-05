@@ -385,7 +385,7 @@ func (p *containerProvider) createGardenContainer(
 	for _, inputSource := range spec.Inputs {
 		var inputVolume Volume
 
-		localVolume, found, err := inputSource.Source().VolumeOn(worker)
+		localVolume, found, err := inputSource.Source().VolumeOn(logger, worker)
 		if err != nil {
 			return nil, err
 		}
@@ -422,7 +422,11 @@ func (p *containerProvider) createGardenContainer(
 				return nil, err
 			}
 
-			err = inputSource.Source().StreamTo(inputVolume)
+			destData := lager.Data{
+				"dest-volume": inputVolume.Handle(),
+				"dest-worker": inputVolume.WorkerName(),
+			}
+			err = inputSource.Source().StreamTo(logger.Session("stream-to", destData), inputVolume)
 			if err != nil {
 				return nil, err
 			}

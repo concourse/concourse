@@ -844,7 +844,7 @@ var _ = Describe("ContainerProvider", func() {
 
 			It("streams remote inputs into newly created container volumes", func() {
 				Expect(fakeRemoteInputAS.StreamToCallCount()).To(Equal(1))
-				ad := fakeRemoteInputAS.StreamToArgsForCall(0)
+				_, ad := fakeRemoteInputAS.StreamToArgsForCall(0)
 
 				err := ad.StreamIn(".", bytes.NewBufferString("some-stream"))
 				Expect(err).ToNot(HaveOccurred())

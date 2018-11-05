@@ -149,7 +149,7 @@ func (pool *pool) FindOrCreateContainer(
 			return nil, err
 		}
 
-		worker, err = pool.strategy.Choose(compatibleWorkers, spec)
+		worker, err = pool.strategy.Choose(logger, compatibleWorkers, spec)
 		if err != nil {
 			return nil, err
 		}
