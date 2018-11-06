@@ -111,6 +111,16 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		})
 	}
 
+	source, err := step.source.Evaluate()
+	if err != nil {
+		return err
+	}
+
+	params, err := step.params.Evaluate()
+	if err != nil {
+		return err
+	}
+
 	resourceConfig, err := step.resourceConfigFactory.FindOrCreateResourceConfig(logger, step.resourceType, source, step.resourceTypes)
 	if err != nil {
 		logger.Error("failed-to-find-or-create-resource-config", err)
@@ -131,19 +141,10 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	source, err := step.source.Evaluate()
-	if err != nil {
-		return err
-	}
-
-	params, err := step.params.Evaluate()
-	if err != nil {
-		return err
-	}
-
-	putResponse, err := putResource.Put(
+	_, err = putResource.Put(
 		ctx,
-		resource.IOConfig{
+		NewPutEventHandler(),
+		atc.IOConfig{
 			Stdout: step.delegate.Stdout(),
 			Stderr: step.delegate.Stderr(),
 		},
@@ -154,7 +155,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	if err != nil {
 		logger.Error("failed-to-put-resource", err)
 
-		if err, ok := err.(resource.ErrResourceScriptFailed); ok {
+		if err, ok := err.(atc.ErrResourceScriptFailed); ok {
 			step.delegate.Finished(logger, ExitStatus(err.ExitStatus), VersionInfo{})
 			return nil
 		}
@@ -162,10 +163,10 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	step.versionInfo = VersionInfo{
-		Version:  versionedSource.Version(),
-		Metadata: versionedSource.Metadata(),
-	}
+	// step.versionInfo = VersionInfo{
+	// 	Version:  versionedSource.Version(),
+	// 	Metadata: versionedSource.Metadata(),
+	// }
 
 	if step.resource != "" {
 		logger = logger.WithData(lager.Data{"step": step.name, "resource": step.resource, "resource-type": step.resourceType, "version": step.versionInfo.Version})
@@ -175,11 +176,11 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		// 	return err
 		// }
 
-		err = step.build.SaveOutput(resourceConfig, step.versionInfo.Version, step.name, step.resource, created)
-		if err != nil {
-			logger.Error("failed-to-save-output", err)
-			return err
-		}
+		// err = step.build.SaveOutput(resourceConfig, step.versionInfo.Version, step.name, step.resource, created)
+		// if err != nil {
+		// 	logger.Error("failed-to-save-output", err)
+		// 	return err
+		// }
 	}
 	// Call resourceConfig.LatestVersion() returns back all current versions for all spaces
 	//    spaceVersions := resourceConfig.LatestVersion()

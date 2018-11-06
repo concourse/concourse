@@ -3,7 +3,6 @@ package v2_test
 import (
 	"testing"
 
-	"github.com/concourse/concourse/atc/db/dbfakes"
 	res "github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/v2"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
@@ -16,15 +15,13 @@ var (
 	workerClient  *workerfakes.FakeClient
 	fakeContainer *workerfakes.FakeContainer
 
-	resourceInfo       v2.ResourceInfo
-	resource           res.Resource
-	fakeResourceConfig *dbfakes.FakeResourceConfig
+	resourceInfo v2.ResourceInfo
+	resource     res.Resource
 )
 
 var _ = BeforeEach(func() {
 	workerClient = new(workerfakes.FakeClient)
 	fakeContainer = new(workerfakes.FakeContainer)
-	fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 
 	resourceInfo = v2.ResourceInfo{
 		Artifacts: v2.Artifacts{
@@ -35,7 +32,7 @@ var _ = BeforeEach(func() {
 		},
 	}
 
-	resource = v2.NewResource(fakeContainer, resourceInfo, fakeResourceConfig)
+	resource = v2.NewResource(fakeContainer, resourceInfo)
 })
 
 func TestResource(t *testing.T) {

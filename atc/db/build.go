@@ -801,7 +801,8 @@ func (b *build) SaveOutput(
 	versionJSON = string(versionBytes)
 
 	if newVersion {
-		err = incrementCheckOrder(tx, rc, versionJSON)
+		// XXX: FIX
+		err = incrementCheckOrder(tx, rc, atc.Space("space"), versionJSON)
 		if err != nil {
 			return err
 		}

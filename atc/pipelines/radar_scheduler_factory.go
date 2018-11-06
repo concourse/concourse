@@ -30,9 +30,12 @@ type radarSchedulerFactory struct {
 	resourceTypeCheckingInterval      time.Duration
 	resourceCheckingInterval          time.Duration
 	engine                            engine.Engine
+
+	conn db.Conn
 }
 
 func NewRadarSchedulerFactory(
+	conn db.Conn,
 	resourceFactory resource.ResourceFactory,
 	resourceConfigCheckSessionFactory db.ResourceConfigCheckSessionFactory,
 	resourceTypeCheckingInterval time.Duration,
@@ -40,6 +43,7 @@ func NewRadarSchedulerFactory(
 	engine engine.Engine,
 ) RadarSchedulerFactory {
 	return &radarSchedulerFactory{
+		conn:                              conn,
 		resourceFactory:                   resourceFactory,
 		resourceConfigCheckSessionFactory: resourceConfigCheckSessionFactory,
 		resourceTypeCheckingInterval:      resourceTypeCheckingInterval,
@@ -49,12 +53,13 @@ func NewRadarSchedulerFactory(
 }
 
 func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string, variables creds.Variables) radar.ScanRunnerFactory {
-	return radar.NewScanRunnerFactory(rsf.resourceFactory, rsf.resourceConfigCheckSessionFactory, rsf.resourceTypeCheckingInterval, rsf.resourceCheckingInterval, dbPipeline, clock.NewClock(), externalURL, variables)
+	return radar.NewScanRunnerFactory(rsf.conn, rsf.resourceFactory, rsf.resourceConfigCheckSessionFactory, rsf.resourceTypeCheckingInterval, rsf.resourceCheckingInterval, dbPipeline, clock.NewClock(), externalURL, variables)
 }
 
 func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalURL string, variables creds.Variables) scheduler.BuildScheduler {
 
 	resourceTypeScanner := radar.NewResourceTypeScanner(
+		rsf.conn,
 		clock.NewClock(),
 		rsf.resourceFactory,
 		rsf.resourceConfigCheckSessionFactory,
@@ -65,6 +70,7 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalU
 	)
 
 	scanner := radar.NewResourceScanner(
+		rsf.conn,
 		clock.NewClock(),
 		rsf.resourceFactory,
 		rsf.resourceConfigCheckSessionFactory,

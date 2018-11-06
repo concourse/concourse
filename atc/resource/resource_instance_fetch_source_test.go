@@ -30,6 +30,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		fakeResourceInstance     *resourcefakes.FakeResourceInstance
 		fakeWorker               *workerfakes.FakeWorker
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
+		fakeResourceConfig       *dbfakes.FakeResourceConfig
 		fakeUsedResourceCache    *dbfakes.FakeUsedResourceCache
 		fakeDelegate             *workerfakes.FakeImageFetchingDelegate
 		resourceTypes            creds.VersionedResourceTypes
@@ -54,7 +55,14 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		fakeContainer.AttachReturns(nil, errors.New("process not found"))
 
 		fakeContainer.RunStub = func(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
-			return inProcess, nil
+			_, err := io.Stdout.Write([]byte("{}"))
+			Expect(err).NotTo(HaveOccurred())
+
+			if spec.Path == "/info" {
+				return inProcess, garden.ExecutableNotFoundError{Message: "file or directory not found"}
+			} else {
+				return inProcess, nil
+			}
 		}
 
 		fakeVolume = new(workerfakes.FakeVolume)
@@ -70,16 +78,15 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
+		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
+		fakeResourceConfig.SaveUncheckedVersionReturns(true, nil)
 		fakeUsedResourceCache.IDReturns(42)
+		fakeUsedResourceCache.ResourceConfigReturns(fakeResourceConfig)
 		fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeUsedResourceCache, nil)
 
 		fakeResourceInstance = new(resourcefakes.FakeResourceInstance)
 		fakeResourceInstance.ResourceCacheReturns(fakeUsedResourceCache)
 		fakeResourceInstance.ContainerOwnerReturns(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"), 42))
-		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
-		fakeResourceCacheFactory.ResourceCacheMetadataReturns([]db.ResourceConfigMetadataField{
-			{Name: "some", Value: "metadata"},
-		}, nil)
 
 		fakeDelegate = new(workerfakes.FakeImageFetchingDelegate)
 
@@ -202,7 +209,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 
 			It("fetches volume", func() {
 				Expect(initErr).NotTo(HaveOccurred())
-				Expect(fakeContainer.RunCallCount()).To(Equal(1))
+				Expect(fakeContainer.RunCallCount()).To(Equal(2))
 			})
 
 			It("initializes cache", func() {

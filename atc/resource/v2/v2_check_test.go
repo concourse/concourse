@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/resource/v2"
+	"github.com/concourse/concourse/atc/resource/v2/v2fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,7 +25,8 @@ var _ = Describe("Resource Check", func() {
 		checkScriptExitStatus int
 		runCheckError         error
 
-		checkScriptProcess *gardenfakes.FakeProcess
+		checkScriptProcess    *gardenfakes.FakeProcess
+		fakeCheckEventHandler *v2fakes.FakeCheckEventHandler
 
 		checkErr error
 		response []byte
@@ -32,6 +34,7 @@ var _ = Describe("Resource Check", func() {
 
 	BeforeEach(func() {
 		source = atc.Source{"some": "source"}
+		fakeCheckEventHandler = new(v2fakes.FakeCheckEventHandler)
 		spaceVersion = map[atc.Space]atc.Version{"space": atc.Version{"some": "version"}}
 
 		checkScriptStderr = ""
@@ -46,10 +49,10 @@ var _ = Describe("Resource Check", func() {
 		checkErr = nil
 
 		response = []byte(`
-			{"default_space": "space"}
-			{"space": "space", "version": {"ref": "v2"}, "metadata": [{"name": "some", "value": "metadata"}]}
-			{"space": "space", "version": {"ref": "v1"}, "metadata": [{"name": "some", "value": "metadata"}]}
-			{"space": "space2", "version": {"ref": "v1"}, "metadata": [{"name": "some", "value": "metadata"}]}`)
+		{"action": "default_space", "space": "space"}
+		{"action": "discovered", "space": "space", "version": {"ref": "v1"}, "metadata": [{"name": "some", "value": "metadata"}]}
+		{"action": "discovered", "space": "space", "version": {"ref": "v2"}, "metadata": [{"name": "some", "value": "metadata"}]}
+		{"action": "discovered", "space": "space2", "version": {"ref": "v1"}, "metadata": [{"name": "some", "value": "metadata"}]}`)
 	})
 
 	JustBeforeEach(func() {
@@ -78,73 +81,52 @@ var _ = Describe("Resource Check", func() {
 			return checkScriptProcess, nil
 		}
 
-		checkErr = resource.Check(context.TODO(), source, spaceVersion)
+		checkErr = resource.Check(context.TODO(), fakeCheckEventHandler, source, spaceVersion)
 	})
 
 	It("runs check artifact with the request on stdin", func() {
-		Expect(checkErr).NotTo(HaveOccurred())
+		Expect(checkErr).ToNot(HaveOccurred())
 
 		spec, _ := fakeContainer.RunArgsForCall(0)
 		Expect(spec.Path).To(Equal(resourceInfo.Artifacts.Check))
 	})
 
-	Context("when the default space is not null", func() {
-		It("saves the default space", func() {
-			Expect(fakeResourceConfig.SaveDefaultSpaceCallCount()).To(Equal(1))
-			Expect(fakeResourceConfig.SaveDefaultSpaceArgsForCall(0)).To(Equal(atc.Space("space")))
-		})
-	})
+	It("saves the default space, versions, all spaces and latest versions for each space", func() {
+		Expect(fakeCheckEventHandler.DefaultSpaceCallCount()).To(Equal(1))
+		Expect(fakeCheckEventHandler.DefaultSpaceArgsForCall(0)).To(Equal(atc.Space("space")))
 
-	Context("when the default space is null", func() {
-		BeforeEach(func() {
-			response = []byte(`
-			{"default_space": null}
-			{"space": "space", "version": {"ref": "v2"}, "metadata": [{"name": "some", "value": "metadata"}]}
-			{"space": "space", "version": {"ref": "v1"}, "metadata": [{"name": "some", "value": "metadata"}]}
-			{"space": "space2", "version": {"ref": "v1"}, "metadata": [{"name": "some", "value": "metadata"}]}`)
-		})
-
-		It("does not save the default space", func() {
-			Expect(fakeResourceConfig.SaveDefaultSpaceCallCount()).To(Equal(0))
-		})
-	})
-
-	It("saves the versions and all spaces", func() {
-		Expect(fakeResourceConfig.SaveVersionCallCount()).To(Equal(3))
-		Expect(fakeResourceConfig.SaveVersionArgsForCall(0)).To(Equal(atc.SpaceVersion{
-			Space:   atc.Space("space"),
-			Version: atc.Version{"ref": "v2"},
-			Metadata: atc.Metadata{
-				atc.MetadataField{
-					Name:  "some",
-					Value: "metadata",
-				},
-			},
-		}))
-		Expect(fakeResourceConfig.SaveVersionArgsForCall(1)).To(Equal(atc.SpaceVersion{
-			Space:   atc.Space("space"),
-			Version: atc.Version{"ref": "v1"},
-			Metadata: atc.Metadata{
-				atc.MetadataField{
-					Name:  "some",
-					Value: "metadata",
-				},
-			},
-		}))
-		Expect(fakeResourceConfig.SaveVersionArgsForCall(2)).To(Equal(atc.SpaceVersion{
-			Space:   atc.Space("space2"),
-			Version: atc.Version{"ref": "v1"},
-			Metadata: atc.Metadata{
-				atc.MetadataField{
-					Name:  "some",
-					Value: "metadata",
-				},
+		Expect(fakeCheckEventHandler.DiscoveredCallCount()).To(Equal(3))
+		space, version, metadata := fakeCheckEventHandler.DiscoveredArgsForCall(0)
+		Expect(space).To(Equal(atc.Space("space")))
+		Expect(version).To(Equal(atc.Version{"ref": "v1"}))
+		Expect(metadata).To(Equal(atc.Metadata{
+			atc.MetadataField{
+				Name:  "some",
+				Value: "metadata",
 			},
 		}))
 
-		Expect(fakeResourceConfig.SaveSpaceCallCount()).To(Equal(2))
-		Expect(fakeResourceConfig.SaveSpaceArgsForCall(0)).To(Equal(atc.Space("space")))
-		Expect(fakeResourceConfig.SaveSpaceArgsForCall(1)).To(Equal(atc.Space("space2")))
+		space, version, metadata = fakeCheckEventHandler.DiscoveredArgsForCall(1)
+		Expect(space).To(Equal(atc.Space("space")))
+		Expect(version).To(Equal(atc.Version{"ref": "v2"}))
+		Expect(metadata).To(Equal(atc.Metadata{
+			atc.MetadataField{
+				Name:  "some",
+				Value: "metadata",
+			},
+		}))
+
+		space, version, metadata = fakeCheckEventHandler.DiscoveredArgsForCall(2)
+		Expect(space).To(Equal(atc.Space("space2")))
+		Expect(version).To(Equal(atc.Version{"ref": "v1"}))
+		Expect(metadata).To(Equal(atc.Metadata{
+			atc.MetadataField{
+				Name:  "some",
+				Value: "metadata",
+			},
+		}))
+
+		Expect(fakeCheckEventHandler.LatestVersionsCallCount()).To(Equal(1))
 	})
 
 	Context("when running artifact check fails", func() {
@@ -180,6 +162,18 @@ var _ = Describe("Resource Check", func() {
 
 		It("returns an error", func() {
 			Expect(checkErr).To(HaveOccurred())
+		})
+	})
+
+	Context("when the response has an unknown action", func() {
+		BeforeEach(func() {
+			response = []byte(`
+			{"action": "unknown-action", "space": "some-space", "version": {"ref": "v1"}}`)
+		})
+
+		It("returns action not found error", func() {
+			Expect(checkErr).To(HaveOccurred())
+			Expect(checkErr).To(Equal(v2.ActionNotFoundError{Action: "unknown-action"}))
 		})
 	})
 })

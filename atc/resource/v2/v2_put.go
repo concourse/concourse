@@ -4,11 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"os"
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc"
 )
+
+//go:generate counterfeiter . PutEventHandler
+
+type PutEventHandler interface {
+	CreatedResponse(atc.Space, atc.Version, *atc.PutResponse) error
+}
 
 const responsePath = "response"
 
@@ -17,17 +24,9 @@ type PutRequest struct {
 	ResponsePath string                 `json:"response_path"`
 }
 
-type SpaceResponse struct {
-	Space atc.Space `json:"space"`
-}
-
-type VersionResponse struct {
-	Type    string      `json:"type"`
-	Version atc.Version `json:"version"`
-}
-
 func (r *resource) Put(
 	ctx context.Context,
+	eventHandler PutEventHandler,
 	ioConfig atc.IOConfig,
 	source atc.Source,
 	params atc.Params,
@@ -113,28 +112,29 @@ func (r *resource) Put(
 
 		decoder := json.NewDecoder(fileReader)
 
-		var response atc.PutResponse
-		if decoder.More() {
-			var spaceResponse SpaceResponse
-			err := decoder.Decode(&spaceResponse)
+		putResponse := atc.PutResponse{}
+		for {
+			var event Event
+			err := decoder.Decode(&event)
 			if err != nil {
+				if err == io.EOF {
+					break
+				}
+
 				return atc.PutResponse{}, err
 			}
 
-			response.Space = spaceResponse.Space
-		}
-
-		for decoder.More() {
-			var versionResponse VersionResponse
-			err := decoder.Decode(&versionResponse)
-			if err != nil {
-				return atc.PutResponse{}, err
+			if event.Action == "created" {
+				err := eventHandler.CreatedResponse(event.Space, event.Version, &putResponse)
+				if err != nil {
+					return atc.PutResponse{}, nil
+				}
+			} else {
+				return atc.PutResponse{}, ActionNotFoundError{event.Action}
 			}
-
-			response.CreatedVersions = append(response.CreatedVersions, versionResponse.Version)
 		}
 
-		return response, nil
+		return putResponse, nil
 
 	case <-ctx.Done():
 		r.container.Stop(false)

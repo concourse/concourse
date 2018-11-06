@@ -228,7 +228,7 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 		return err
 	}
 
-	resourceConfig, err := dbResourceConfigFactory.FindOrCreateResourceConfig(logger, resourceType, source, i.customTypes)
+	resourceConfig, err := i.dbResourceConfigFactory.FindOrCreateResourceConfig(logger, resourceType.Name, source, i.customTypes)
 	if err != nil {
 		return err
 	}
@@ -296,9 +296,9 @@ func (i *imageResourceFetcher) getLatestVersion(
 		return nil, err
 	}
 
-	resourceConfig, err := dbResourceConfigFactory.FindOrCreateResourceConfig(logger, i.imageResource.Type, source, i.customTypes)
+	resourceConfig, err := i.dbResourceConfigFactory.FindOrCreateResourceConfig(logger, i.imageResource.Type, source, i.customTypes)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	checkingResource, err := i.resourceFactory.NewResource(

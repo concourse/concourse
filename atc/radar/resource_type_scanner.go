@@ -22,9 +22,12 @@ type resourceTypeScanner struct {
 	dbPipeline                        db.Pipeline
 	externalURL                       string
 	variables                         creds.Variables
+
+	conn db.Conn
 }
 
 func NewResourceTypeScanner(
+	conn db.Conn,
 	clock clock.Clock,
 	resourceFactory resource.ResourceFactory,
 	resourceConfigCheckSessionFactory db.ResourceConfigCheckSessionFactory,
@@ -34,6 +37,7 @@ func NewResourceTypeScanner(
 	variables creds.Variables,
 ) Scanner {
 	return &resourceTypeScanner{
+		conn:                              conn,
 		clock:                             clock,
 		resourceFactory:                   resourceFactory,
 		resourceConfigCheckSessionFactory: resourceConfigCheckSessionFactory,

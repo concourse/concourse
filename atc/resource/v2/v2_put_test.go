@@ -15,6 +15,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/resource/v2"
+	"github.com/concourse/concourse/atc/resource/v2/v2fakes"
 )
 
 var _ = Describe("Resource Put", func() {
@@ -33,7 +34,8 @@ var _ = Describe("Resource Put", func() {
 
 		outScriptProcess *gfakes.FakeProcess
 
-		putResponse atc.PutResponse
+		putResponse         atc.PutResponse
+		fakePutEventHandler *v2fakes.FakePutEventHandler
 
 		ioConfig  atc.IOConfig
 		stdoutBuf *gbytes.Buffer
@@ -45,6 +47,8 @@ var _ = Describe("Resource Put", func() {
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
+
+		fakePutEventHandler = new(v2fakes.FakePutEventHandler)
 
 		source = atc.Source{"some": "source"}
 		params = atc.Params{"other": "params"}
@@ -78,9 +82,8 @@ var _ = Describe("Resource Put", func() {
 		putErr = nil
 
 		response = []byte(`
-			{"space": "some-space"}
-			{"type": "created", "version": {"ref": "v2"}}
-			{"type": "created", "version": {"ref": "v1"}}`)
+			{"action": "created", "space": "some-space", "version": {"ref": "v1"}}
+			{"action": "created", "space": "some-space", "version": {"ref": "v2"}}`)
 	})
 
 	Describe("running", func() {
@@ -133,7 +136,13 @@ var _ = Describe("Resource Put", func() {
 				return outScriptProcess, nil
 			}
 
-			putResponse, putErr = resource.Put(ctx, ioConfig, source, params)
+			fakePutEventHandler.CreatedResponseStub = func(space atc.Space, version atc.Version, putResponse *atc.PutResponse) error {
+				putResponse.Space = space
+				putResponse.CreatedVersions = append(putResponse.CreatedVersions, version)
+				return nil
+			}
+
+			putResponse, putErr = resource.Put(ctx, fakePutEventHandler, ioConfig, source, params)
 		})
 
 		Context("when out artifact has already been spawned", func() {
@@ -258,6 +267,18 @@ var _ = Describe("Resource Put", func() {
 					Expect(putErr.Error()).To(ContainSubstring("exit status 9"))
 				})
 			})
+
+			Context("when the response has an unknown action", func() {
+				BeforeEach(func() {
+					response = []byte(`
+			{"action": "unknown-action", "space": "some-space", "version": {"ref": "v1"}}`)
+				})
+
+				It("returns action not found error", func() {
+					Expect(putErr).To(HaveOccurred())
+					Expect(putErr).To(Equal(v2.ActionNotFoundError{Action: "unknown-action"}))
+				})
+			})
 		})
 	})
 
@@ -285,7 +306,7 @@ var _ = Describe("Resource Put", func() {
 			}
 
 			go func() {
-				putResponse, putErr = resource.Put(ctx, ioConfig, source, params)
+				putResponse, putErr = resource.Put(ctx, fakePutEventHandler, ioConfig, source, params)
 				close(done)
 			}()
 		})

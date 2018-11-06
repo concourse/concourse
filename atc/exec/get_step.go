@@ -198,8 +198,8 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	// XXX: Need to find version that might have a check order of 0
-	resourceVersion, found, err := resourceCache.ResourceConfig().FindVersion(version)
+	// XXX: Need to find version that might have a check order of 0 AND get space from exec
+	resourceVersion, found, err := resourceCache.ResourceConfig().FindVersion(version, atc.Space(""))
 	if !found {
 		logger.Error("resource-version-not-found", err, lager.Data{"version": version})
 		return nil

@@ -1,4 +1,2 @@
 
-			{"space": "some-space"}
-			{"type": "created", "version": {"ref": "v2"}}
-			{"type": "created", "version": {"ref": "v1"}}
+			{"action": "unknown-action", "space": "some-space", "version": {"ref": "v1"}}ction": "created", "space": "some-space", "version": {"ref": "v2"}}

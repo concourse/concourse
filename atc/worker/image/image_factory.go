@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -14,13 +15,16 @@ var ErrUnsupportedResourceType = errors.New("unsupported resource type")
 
 type imageFactory struct {
 	imageResourceFetcherFactory ImageResourceFetcherFactory
+	conn                        db.Conn
 }
 
 func NewImageFactory(
 	imageResourceFetcherFactory ImageResourceFetcherFactory,
+	conn db.Conn,
 ) worker.ImageFactory {
 	return &imageFactory{
 		imageResourceFetcherFactory: imageResourceFetcherFactory,
+		conn:                        conn,
 	}
 }
 
@@ -61,7 +65,7 @@ func (f *imageFactory) GetImage(
 	if found {
 		imageResourceFetcher := f.imageResourceFetcherFactory.NewImageResourceFetcher(
 			workerClient,
-			resource.NewResourceFactory(workerClient),
+			resource.NewResourceFactory(workerClient, f.conn),
 			worker.ImageResource{
 				Type:   resourceType.Type,
 				Source: resourceType.Source,

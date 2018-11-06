@@ -60,6 +60,7 @@ type resourceConfigVersion struct {
 	version    Version
 	metadata   ResourceConfigMetadataFields
 	checkOrder int
+	space      atc.Space
 
 	resourceConfig ResourceConfig
 
@@ -70,9 +71,11 @@ var resourceConfigVersionQuery = psql.Select(`
 	v.id,
 	v.version,
 	v.metadata,
-	v.check_order
+	v.check_order,
+	s.name
 `).
 	From("resource_versions v").
+	LeftJoin("spaces s ON v.space_id = s.id").
 	Where(sq.NotEq{
 		"v.check_order": 0,
 	})
@@ -102,7 +105,7 @@ func (r *resourceConfigVersion) Reload() (bool, error) {
 func scanResourceConfigVersion(r *resourceConfigVersion, scan scannable) error {
 	var version, metadata sql.NullString
 
-	err := scan.Scan(&r.id, &version, &metadata, &r.checkOrder)
+	err := scan.Scan(&r.id, &version, &metadata, &r.checkOrder, &r.space)
 	if err != nil {
 		return err
 	}

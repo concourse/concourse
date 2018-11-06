@@ -4,12 +4,21 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"os"
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc"
 )
+
+//go:generate counterfeiter . CheckEventHandler
+
+type CheckEventHandler interface {
+	DefaultSpace(atc.Space) error
+	Discovered(atc.Space, atc.Version, atc.Metadata) error
+	LatestVersions() error
+}
 
 type ResourceVersion struct {
 	Space    string       `json:"space"`
@@ -25,6 +34,7 @@ type CheckRequest struct {
 
 func (r *resource) Check(
 	ctx context.Context,
+	checkHandler CheckEventHandler,
 	src atc.Source,
 	from map[atc.Space]atc.Version,
 ) error {
@@ -89,42 +99,26 @@ func (r *resource) Check(
 
 		decoder := json.NewDecoder(fileReader)
 
-		if decoder.More() {
-			var defaultSpace atc.DefaultSpaceResponse
-			err := decoder.Decode(&defaultSpace)
+		for {
+			var event Event
+			err := decoder.Decode(&event)
 			if err != nil {
+				if err == io.EOF {
+					break
+				}
+
 				return err
 			}
 
-			if defaultSpace.DefaultSpace != "" {
-				err = r.resourceConfig.SaveDefaultSpace(defaultSpace.DefaultSpace)
-				if err != nil {
-					return err
-				}
+			err = r.handleCheckEvent(event, checkHandler)
+			if err != nil {
+				return err
 			}
 		}
 
-		spaces := make(map[atc.Space]bool)
-		for decoder.More() {
-			var version atc.SpaceVersion
-			err := decoder.Decode(&version)
-			if err != nil {
-				return err
-			}
-
-			if _, ok := spaces[version.Space]; !ok {
-				err = r.resourceConfig.SaveSpace(version.Space)
-				if err != nil {
-					return err
-				}
-			}
-
-			spaces[version.Space] = true
-
-			err = r.resourceConfig.SaveVersion(version)
-			if err != nil {
-				return err
-			}
+		err = checkHandler.LatestVersions()
+		if err != nil {
+			return err
 		}
 
 		return nil
@@ -134,4 +128,18 @@ func (r *resource) Check(
 		<-processExited
 		return ctx.Err()
 	}
+}
+
+func (r *resource) handleCheckEvent(event Event, checkHandler CheckEventHandler) error {
+	switch action := event.Action; action {
+	case "default_space":
+		err := checkHandler.DefaultSpace(event.Space)
+		return err
+
+	case "discovered":
+		err := checkHandler.Discovered(event.Space, event.Version, event.Metadata)
+		return err
+	}
+
+	return ActionNotFoundError{event.Action}
 }

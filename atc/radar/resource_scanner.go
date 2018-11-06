@@ -28,9 +28,12 @@ type resourceScanner struct {
 	externalURL                       string
 	variables                         creds.Variables
 	typeScanner                       Scanner
+
+	conn db.Conn
 }
 
 func NewResourceScanner(
+	conn db.Conn,
 	clock clock.Clock,
 	resourceFactory resource.ResourceFactory,
 	resourceConfigCheckSessionFactory db.ResourceConfigCheckSessionFactory,
@@ -41,6 +44,7 @@ func NewResourceScanner(
 	typeScanner Scanner,
 ) Scanner {
 	return &resourceScanner{
+		conn:                              conn,
 		clock:                             clock,
 		resourceFactory:                   resourceFactory,
 		resourceConfigCheckSessionFactory: resourceConfigCheckSessionFactory,
@@ -172,7 +176,8 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 
 	currentVersion := savedResource.CurrentPinnedVersion()
 	if currentVersion != nil {
-		_, found, err := resourceConfig.FindVersion(currentVersion)
+		// XXX: Need to grab space from the pinned version?
+		_, found, err := resourceConfig.FindVersion(currentVersion, atc.Space(""))
 
 		if err != nil {
 			logger.Error("failed-to-find-pinned-version-on-resource", err, lager.Data{"pinned-version": currentVersion})
@@ -220,7 +225,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 	}
 
 	if fromVersion == nil {
-		rcv, found, err := resourceConfig.LatestVersion()
+		rcv, found, err := resourceConfig.LatestVersions()
 		if err != nil {
 			logger.Error("failed-to-get-current-version", err)
 			return interval, err
@@ -320,9 +325,23 @@ func (scanner *resourceScanner) check(
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	newVersions, err := res.Check(ctx, source, fromVersion)
+	tx, err := scanner.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	spaces := make(map[atc.Space]atc.Version)
+	checkHandler := NewCheckEventHandler(logger, tx, resourceConfig, spaces)
+	err = res.Check(NewContext(ctx, logger), checkHandler, source, fromVersion)
 	if err == context.DeadlineExceeded {
 		err = fmt.Errorf("Timed out after %v while checking for new versions - perhaps increase your resource check timeout?", timeout)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
 	}
 
 	resourceConfig.SetCheckError(err)

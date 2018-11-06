@@ -78,15 +78,11 @@ func (f *resourceFactory) NewResource(
 	var resource Resource
 	if err == nil {
 		if resourceInfo.Artifacts.APIVersion == "2.0" {
-			resource = v2.NewResource(container, resourceInfo, resourceConfig)
+			resource = v2.NewResource(container, resourceInfo)
 		} else {
 			return nil, ErrUnknownResourceVersion{resourceInfo.Artifacts.APIVersion}
 		}
-	} else if typeErr, ok := err.(garden.ExecutableNotFoundError); ok {
-		if err != nil {
-			return nil, typeErr
-		}
-
+	} else if _, ok := err.(garden.ExecutableNotFoundError); ok {
 		resource = v2.NewV1Adapter(container, resourceConfig)
 	} else if err != nil {
 		return nil, err

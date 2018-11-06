@@ -34,6 +34,7 @@ type scanRunnerFactory struct {
 }
 
 func NewScanRunnerFactory(
+	conn db.Conn,
 	resourceFactory resource.ResourceFactory,
 	resourceConfigCheckSessionFactory db.ResourceConfigCheckSessionFactory,
 	resourceTypeCheckingInterval time.Duration,
@@ -44,6 +45,7 @@ func NewScanRunnerFactory(
 	variables creds.Variables,
 ) ScanRunnerFactory {
 	resourceTypeScanner := NewResourceTypeScanner(
+		conn,
 		clock,
 		resourceFactory,
 		resourceConfigCheckSessionFactory,
@@ -54,6 +56,7 @@ func NewScanRunnerFactory(
 	)
 
 	resourceScanner := NewResourceScanner(
+		conn,
 		clock,
 		resourceFactory,
 		resourceConfigCheckSessionFactory,

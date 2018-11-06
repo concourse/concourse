@@ -2,7 +2,7 @@ BEGIN;
 
   CREATE TABLE spaces (
     id serial PRIMARY KEY,
-    resource_config_id int REFERENCES resource_configs (id) ON DELETE CASCADE,
+    resource_config_id integer REFERENCES resource_configs (id) ON DELETE CASCADE,
     name text NOT NULL,
     UNIQUE (resource_config_id, name)
   );
@@ -15,6 +15,9 @@ BEGIN;
       "metadata" jsonb NOT NULL DEFAULT 'null',
       "check_order" integer NOT NULL DEFAULT 0
   );
+
+  ALTER TABLE spaces
+    ADD COLUMN latest_resource_version_id integer REFERENCES resource_versions (id) ON DELETE CASCADE;
 
   ALTER TABLE resource_versions
     ADD CONSTRAINT space_id_and_version_md5_unique UNIQUE (space_id, version_md5);
@@ -43,12 +46,12 @@ BEGIN;
   UPDATE job_combinations c SET next_build_id = j.next_build_id FROM jobs j WHERE c.job_id = j.id;
   UPDATE job_combinations c SET transition_build_id = j.transition_build_id FROM jobs j WHERE c.job_id = j.id;
 
-  ALTER TABLE jobs
-    DROP COLUMN build_number_seq,
-    DROP COLUMN inputs_determined,
-    DROP COLUMN latest_completed_build_id,
-    DROP COLUMN next_build_id,
-    DROP COLUMN transition_build_id;
+  -- ALTER TABLE jobs
+  --   DROP COLUMN build_number_seq,
+  --   DROP COLUMN inputs_determined,
+  --   DROP COLUMN latest_completed_build_id,
+  --   DROP COLUMN next_build_id,
+  --   DROP COLUMN transition_build_id;
 
   -- ALTER TABLE independent_build_inputs RENAME job_id TO job_combination_id;
   -- ALTER TABLE independent_build_inputs DROP CONSTRAINT independent_build_inputs_unique_job_id_input_name;

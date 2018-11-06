@@ -1,17 +1,17 @@
 package v2
 
 import (
+	"fmt"
+
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
 )
 
 const TaskProcessID = "resource"
 
 type resource struct {
-	container      worker.Container
-	info           ResourceInfo
-	resourceConfig db.ResourceConfig
+	container worker.Container
+	info      ResourceInfo
 }
 
 type ResourceInfo struct {
@@ -25,11 +25,25 @@ type Artifacts struct {
 	Put        string `json:"put"`
 }
 
-func NewResource(container worker.Container, info ResourceInfo, resourceConfig db.ResourceConfig) *resource {
+type Event struct {
+	Action   string       `json:"action"`
+	Version  atc.Version  `json:"version"`
+	Space    atc.Space    `json:"space"`
+	Metadata atc.Metadata `json:"metadata"`
+}
+
+type ActionNotFoundError struct {
+	Action string
+}
+
+func (e ActionNotFoundError) Error() string {
+	return fmt.Sprintf("unrecognized action: %s", e.Action)
+}
+
+func NewResource(container worker.Container, info ResourceInfo) *resource {
 	return &resource{
-		container:      container,
-		info:           info,
-		resourceConfig: resourceConfig,
+		container: container,
+		info:      info,
 	}
 }
 

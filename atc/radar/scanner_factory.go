@@ -25,6 +25,8 @@ type scannerFactory struct {
 	resourceCheckingInterval          time.Duration
 	externalURL                       string
 	variablesFactory                  creds.VariablesFactory
+
+	conn db.Conn
 }
 
 var ContainerExpiries = db.ContainerOwnerExpiries{
@@ -34,6 +36,7 @@ var ContainerExpiries = db.ContainerOwnerExpiries{
 }
 
 func NewScannerFactory(
+	conn db.Conn,
 	resourceFactory resource.ResourceFactory,
 	resourceConfigCheckSessionFactory db.ResourceConfigCheckSessionFactory,
 	resourceTypeCheckingInterval time.Duration,
@@ -42,6 +45,7 @@ func NewScannerFactory(
 	variablesFactory creds.VariablesFactory,
 ) ScannerFactory {
 	return &scannerFactory{
+		conn:                              conn,
 		resourceFactory:                   resourceFactory,
 		resourceConfigCheckSessionFactory: resourceConfigCheckSessionFactory,
 		resourceCheckingInterval:          resourceCheckingInterval,
@@ -55,6 +59,7 @@ func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
 	variables := f.variablesFactory.NewVariables(dbPipeline.TeamName(), dbPipeline.Name())
 
 	resourceTypeScanner := NewResourceTypeScanner(
+		f.conn,
 		clock.NewClock(),
 		f.resourceFactory,
 		f.resourceConfigCheckSessionFactory,
@@ -65,6 +70,7 @@ func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
 	)
 
 	return NewResourceScanner(
+		f.conn,
 		clock.NewClock(),
 		f.resourceFactory,
 		f.resourceConfigCheckSessionFactory,
@@ -80,6 +86,7 @@ func (f *scannerFactory) NewResourceTypeScanner(dbPipeline db.Pipeline) Scanner 
 	variables := f.variablesFactory.NewVariables(dbPipeline.TeamName(), dbPipeline.Name())
 
 	return NewResourceTypeScanner(
+		f.conn,
 		clock.NewClock(),
 		f.resourceFactory,
 		f.resourceConfigCheckSessionFactory,

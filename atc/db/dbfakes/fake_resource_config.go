@@ -69,10 +69,11 @@ type FakeResourceConfig struct {
 	defaultSpaceReturnsOnCall map[int]struct {
 		result1 atc.Space
 	}
-	FindVersionStub        func(atc.Version) (db.ResourceConfigVersion, bool, error)
+	FindVersionStub        func(atc.Version, atc.Space) (db.ResourceConfigVersion, bool, error)
 	findVersionMutex       sync.RWMutex
 	findVersionArgsForCall []struct {
 		arg1 atc.Version
+		arg2 atc.Space
 	}
 	findVersionReturns struct {
 		result1 db.ResourceConfigVersion
@@ -94,17 +95,17 @@ type FakeResourceConfig struct {
 	iDReturnsOnCall map[int]struct {
 		result1 int
 	}
-	LatestVersionStub        func() (db.ResourceConfigVersion, bool, error)
-	latestVersionMutex       sync.RWMutex
-	latestVersionArgsForCall []struct {
+	LatestVersionsStub        func() ([]db.ResourceConfigVersion, bool, error)
+	latestVersionsMutex       sync.RWMutex
+	latestVersionsArgsForCall []struct {
 	}
-	latestVersionReturns struct {
-		result1 db.ResourceConfigVersion
+	latestVersionsReturns struct {
+		result1 []db.ResourceConfigVersion
 		result2 bool
 		result3 error
 	}
-	latestVersionReturnsOnCall map[int]struct {
-		result1 db.ResourceConfigVersion
+	latestVersionsReturnsOnCall map[int]struct {
+		result1 []db.ResourceConfigVersion
 		result2 bool
 		result3 error
 	}
@@ -118,10 +119,11 @@ type FakeResourceConfig struct {
 	originBaseResourceTypeReturnsOnCall map[int]struct {
 		result1 *db.UsedBaseResourceType
 	}
-	SaveDefaultSpaceStub        func(atc.Space) error
+	SaveDefaultSpaceStub        func(db.Tx, atc.Space) error
 	saveDefaultSpaceMutex       sync.RWMutex
 	saveDefaultSpaceArgsForCall []struct {
-		arg1 atc.Space
+		arg1 db.Tx
+		arg2 atc.Space
 	}
 	saveDefaultSpaceReturns struct {
 		result1 error
@@ -129,15 +131,29 @@ type FakeResourceConfig struct {
 	saveDefaultSpaceReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SaveSpaceStub        func(atc.Space) error
+	SaveSpaceStub        func(db.Tx, atc.Space) error
 	saveSpaceMutex       sync.RWMutex
 	saveSpaceArgsForCall []struct {
-		arg1 atc.Space
+		arg1 db.Tx
+		arg2 atc.Space
 	}
 	saveSpaceReturns struct {
 		result1 error
 	}
 	saveSpaceReturnsOnCall map[int]struct {
+		result1 error
+	}
+	SaveSpaceLatestVersionStub        func(db.Tx, atc.Space, atc.Version) error
+	saveSpaceLatestVersionMutex       sync.RWMutex
+	saveSpaceLatestVersionArgsForCall []struct {
+		arg1 db.Tx
+		arg2 atc.Space
+		arg3 atc.Version
+	}
+	saveSpaceLatestVersionReturns struct {
+		result1 error
+	}
+	saveSpaceLatestVersionReturnsOnCall map[int]struct {
 		result1 error
 	}
 	SaveUncheckedVersionStub        func(atc.Version, db.ResourceConfigMetadataFields) (bool, error)
@@ -154,10 +170,11 @@ type FakeResourceConfig struct {
 		result1 bool
 		result2 error
 	}
-	SaveVersionStub        func(atc.SpaceVersion) error
+	SaveVersionStub        func(db.Tx, atc.SpaceVersion) error
 	saveVersionMutex       sync.RWMutex
 	saveVersionArgsForCall []struct {
-		arg1 atc.SpaceVersion
+		arg1 db.Tx
+		arg2 atc.SpaceVersion
 	}
 	saveVersionReturns struct {
 		result1 error
@@ -417,16 +434,17 @@ func (fake *FakeResourceConfig) DefaultSpaceReturnsOnCall(i int, result1 atc.Spa
 	}{result1}
 }
 
-func (fake *FakeResourceConfig) FindVersion(arg1 atc.Version) (db.ResourceConfigVersion, bool, error) {
+func (fake *FakeResourceConfig) FindVersion(arg1 atc.Version, arg2 atc.Space) (db.ResourceConfigVersion, bool, error) {
 	fake.findVersionMutex.Lock()
 	ret, specificReturn := fake.findVersionReturnsOnCall[len(fake.findVersionArgsForCall)]
 	fake.findVersionArgsForCall = append(fake.findVersionArgsForCall, struct {
 		arg1 atc.Version
-	}{arg1})
-	fake.recordInvocation("FindVersion", []interface{}{arg1})
+		arg2 atc.Space
+	}{arg1, arg2})
+	fake.recordInvocation("FindVersion", []interface{}{arg1, arg2})
 	fake.findVersionMutex.Unlock()
 	if fake.FindVersionStub != nil {
-		return fake.FindVersionStub(arg1)
+		return fake.FindVersionStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -441,11 +459,11 @@ func (fake *FakeResourceConfig) FindVersionCallCount() int {
 	return len(fake.findVersionArgsForCall)
 }
 
-func (fake *FakeResourceConfig) FindVersionArgsForCall(i int) atc.Version {
+func (fake *FakeResourceConfig) FindVersionArgsForCall(i int) (atc.Version, atc.Space) {
 	fake.findVersionMutex.RLock()
 	defer fake.findVersionMutex.RUnlock()
 	argsForCall := fake.findVersionArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeResourceConfig) FindVersionReturns(result1 db.ResourceConfigVersion, result2 bool, result3 error) {
@@ -515,49 +533,49 @@ func (fake *FakeResourceConfig) IDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakeResourceConfig) LatestVersion() (db.ResourceConfigVersion, bool, error) {
-	fake.latestVersionMutex.Lock()
-	ret, specificReturn := fake.latestVersionReturnsOnCall[len(fake.latestVersionArgsForCall)]
-	fake.latestVersionArgsForCall = append(fake.latestVersionArgsForCall, struct {
+func (fake *FakeResourceConfig) LatestVersions() ([]db.ResourceConfigVersion, bool, error) {
+	fake.latestVersionsMutex.Lock()
+	ret, specificReturn := fake.latestVersionsReturnsOnCall[len(fake.latestVersionsArgsForCall)]
+	fake.latestVersionsArgsForCall = append(fake.latestVersionsArgsForCall, struct {
 	}{})
-	fake.recordInvocation("LatestVersion", []interface{}{})
-	fake.latestVersionMutex.Unlock()
-	if fake.LatestVersionStub != nil {
-		return fake.LatestVersionStub()
+	fake.recordInvocation("LatestVersions", []interface{}{})
+	fake.latestVersionsMutex.Unlock()
+	if fake.LatestVersionsStub != nil {
+		return fake.LatestVersionsStub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.latestVersionReturns
+	fakeReturns := fake.latestVersionsReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
-func (fake *FakeResourceConfig) LatestVersionCallCount() int {
-	fake.latestVersionMutex.RLock()
-	defer fake.latestVersionMutex.RUnlock()
-	return len(fake.latestVersionArgsForCall)
+func (fake *FakeResourceConfig) LatestVersionsCallCount() int {
+	fake.latestVersionsMutex.RLock()
+	defer fake.latestVersionsMutex.RUnlock()
+	return len(fake.latestVersionsArgsForCall)
 }
 
-func (fake *FakeResourceConfig) LatestVersionReturns(result1 db.ResourceConfigVersion, result2 bool, result3 error) {
-	fake.LatestVersionStub = nil
-	fake.latestVersionReturns = struct {
-		result1 db.ResourceConfigVersion
+func (fake *FakeResourceConfig) LatestVersionsReturns(result1 []db.ResourceConfigVersion, result2 bool, result3 error) {
+	fake.LatestVersionsStub = nil
+	fake.latestVersionsReturns = struct {
+		result1 []db.ResourceConfigVersion
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeResourceConfig) LatestVersionReturnsOnCall(i int, result1 db.ResourceConfigVersion, result2 bool, result3 error) {
-	fake.LatestVersionStub = nil
-	if fake.latestVersionReturnsOnCall == nil {
-		fake.latestVersionReturnsOnCall = make(map[int]struct {
-			result1 db.ResourceConfigVersion
+func (fake *FakeResourceConfig) LatestVersionsReturnsOnCall(i int, result1 []db.ResourceConfigVersion, result2 bool, result3 error) {
+	fake.LatestVersionsStub = nil
+	if fake.latestVersionsReturnsOnCall == nil {
+		fake.latestVersionsReturnsOnCall = make(map[int]struct {
+			result1 []db.ResourceConfigVersion
 			result2 bool
 			result3 error
 		})
 	}
-	fake.latestVersionReturnsOnCall[i] = struct {
-		result1 db.ResourceConfigVersion
+	fake.latestVersionsReturnsOnCall[i] = struct {
+		result1 []db.ResourceConfigVersion
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
@@ -605,16 +623,17 @@ func (fake *FakeResourceConfig) OriginBaseResourceTypeReturnsOnCall(i int, resul
 	}{result1}
 }
 
-func (fake *FakeResourceConfig) SaveDefaultSpace(arg1 atc.Space) error {
+func (fake *FakeResourceConfig) SaveDefaultSpace(arg1 db.Tx, arg2 atc.Space) error {
 	fake.saveDefaultSpaceMutex.Lock()
 	ret, specificReturn := fake.saveDefaultSpaceReturnsOnCall[len(fake.saveDefaultSpaceArgsForCall)]
 	fake.saveDefaultSpaceArgsForCall = append(fake.saveDefaultSpaceArgsForCall, struct {
-		arg1 atc.Space
-	}{arg1})
-	fake.recordInvocation("SaveDefaultSpace", []interface{}{arg1})
+		arg1 db.Tx
+		arg2 atc.Space
+	}{arg1, arg2})
+	fake.recordInvocation("SaveDefaultSpace", []interface{}{arg1, arg2})
 	fake.saveDefaultSpaceMutex.Unlock()
 	if fake.SaveDefaultSpaceStub != nil {
-		return fake.SaveDefaultSpaceStub(arg1)
+		return fake.SaveDefaultSpaceStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -629,11 +648,11 @@ func (fake *FakeResourceConfig) SaveDefaultSpaceCallCount() int {
 	return len(fake.saveDefaultSpaceArgsForCall)
 }
 
-func (fake *FakeResourceConfig) SaveDefaultSpaceArgsForCall(i int) atc.Space {
+func (fake *FakeResourceConfig) SaveDefaultSpaceArgsForCall(i int) (db.Tx, atc.Space) {
 	fake.saveDefaultSpaceMutex.RLock()
 	defer fake.saveDefaultSpaceMutex.RUnlock()
 	argsForCall := fake.saveDefaultSpaceArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeResourceConfig) SaveDefaultSpaceReturns(result1 error) {
@@ -655,16 +674,17 @@ func (fake *FakeResourceConfig) SaveDefaultSpaceReturnsOnCall(i int, result1 err
 	}{result1}
 }
 
-func (fake *FakeResourceConfig) SaveSpace(arg1 atc.Space) error {
+func (fake *FakeResourceConfig) SaveSpace(arg1 db.Tx, arg2 atc.Space) error {
 	fake.saveSpaceMutex.Lock()
 	ret, specificReturn := fake.saveSpaceReturnsOnCall[len(fake.saveSpaceArgsForCall)]
 	fake.saveSpaceArgsForCall = append(fake.saveSpaceArgsForCall, struct {
-		arg1 atc.Space
-	}{arg1})
-	fake.recordInvocation("SaveSpace", []interface{}{arg1})
+		arg1 db.Tx
+		arg2 atc.Space
+	}{arg1, arg2})
+	fake.recordInvocation("SaveSpace", []interface{}{arg1, arg2})
 	fake.saveSpaceMutex.Unlock()
 	if fake.SaveSpaceStub != nil {
-		return fake.SaveSpaceStub(arg1)
+		return fake.SaveSpaceStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -679,11 +699,11 @@ func (fake *FakeResourceConfig) SaveSpaceCallCount() int {
 	return len(fake.saveSpaceArgsForCall)
 }
 
-func (fake *FakeResourceConfig) SaveSpaceArgsForCall(i int) atc.Space {
+func (fake *FakeResourceConfig) SaveSpaceArgsForCall(i int) (db.Tx, atc.Space) {
 	fake.saveSpaceMutex.RLock()
 	defer fake.saveSpaceMutex.RUnlock()
 	argsForCall := fake.saveSpaceArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeResourceConfig) SaveSpaceReturns(result1 error) {
@@ -701,6 +721,58 @@ func (fake *FakeResourceConfig) SaveSpaceReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.saveSpaceReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceConfig) SaveSpaceLatestVersion(arg1 db.Tx, arg2 atc.Space, arg3 atc.Version) error {
+	fake.saveSpaceLatestVersionMutex.Lock()
+	ret, specificReturn := fake.saveSpaceLatestVersionReturnsOnCall[len(fake.saveSpaceLatestVersionArgsForCall)]
+	fake.saveSpaceLatestVersionArgsForCall = append(fake.saveSpaceLatestVersionArgsForCall, struct {
+		arg1 db.Tx
+		arg2 atc.Space
+		arg3 atc.Version
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("SaveSpaceLatestVersion", []interface{}{arg1, arg2, arg3})
+	fake.saveSpaceLatestVersionMutex.Unlock()
+	if fake.SaveSpaceLatestVersionStub != nil {
+		return fake.SaveSpaceLatestVersionStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.saveSpaceLatestVersionReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceConfig) SaveSpaceLatestVersionCallCount() int {
+	fake.saveSpaceLatestVersionMutex.RLock()
+	defer fake.saveSpaceLatestVersionMutex.RUnlock()
+	return len(fake.saveSpaceLatestVersionArgsForCall)
+}
+
+func (fake *FakeResourceConfig) SaveSpaceLatestVersionArgsForCall(i int) (db.Tx, atc.Space, atc.Version) {
+	fake.saveSpaceLatestVersionMutex.RLock()
+	defer fake.saveSpaceLatestVersionMutex.RUnlock()
+	argsForCall := fake.saveSpaceLatestVersionArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeResourceConfig) SaveSpaceLatestVersionReturns(result1 error) {
+	fake.SaveSpaceLatestVersionStub = nil
+	fake.saveSpaceLatestVersionReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceConfig) SaveSpaceLatestVersionReturnsOnCall(i int, result1 error) {
+	fake.SaveSpaceLatestVersionStub = nil
+	if fake.saveSpaceLatestVersionReturnsOnCall == nil {
+		fake.saveSpaceLatestVersionReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.saveSpaceLatestVersionReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -759,16 +831,17 @@ func (fake *FakeResourceConfig) SaveUncheckedVersionReturnsOnCall(i int, result1
 	}{result1, result2}
 }
 
-func (fake *FakeResourceConfig) SaveVersion(arg1 atc.SpaceVersion) error {
+func (fake *FakeResourceConfig) SaveVersion(arg1 db.Tx, arg2 atc.SpaceVersion) error {
 	fake.saveVersionMutex.Lock()
 	ret, specificReturn := fake.saveVersionReturnsOnCall[len(fake.saveVersionArgsForCall)]
 	fake.saveVersionArgsForCall = append(fake.saveVersionArgsForCall, struct {
-		arg1 atc.SpaceVersion
-	}{arg1})
-	fake.recordInvocation("SaveVersion", []interface{}{arg1})
+		arg1 db.Tx
+		arg2 atc.SpaceVersion
+	}{arg1, arg2})
+	fake.recordInvocation("SaveVersion", []interface{}{arg1, arg2})
 	fake.saveVersionMutex.Unlock()
 	if fake.SaveVersionStub != nil {
-		return fake.SaveVersionStub(arg1)
+		return fake.SaveVersionStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -783,11 +856,11 @@ func (fake *FakeResourceConfig) SaveVersionCallCount() int {
 	return len(fake.saveVersionArgsForCall)
 }
 
-func (fake *FakeResourceConfig) SaveVersionArgsForCall(i int) atc.SpaceVersion {
+func (fake *FakeResourceConfig) SaveVersionArgsForCall(i int) (db.Tx, atc.SpaceVersion) {
 	fake.saveVersionMutex.RLock()
 	defer fake.saveVersionMutex.RUnlock()
 	argsForCall := fake.saveVersionArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeResourceConfig) SaveVersionReturns(result1 error) {
@@ -931,14 +1004,16 @@ func (fake *FakeResourceConfig) Invocations() map[string][][]interface{} {
 	defer fake.findVersionMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
-	fake.latestVersionMutex.RLock()
-	defer fake.latestVersionMutex.RUnlock()
+	fake.latestVersionsMutex.RLock()
+	defer fake.latestVersionsMutex.RUnlock()
 	fake.originBaseResourceTypeMutex.RLock()
 	defer fake.originBaseResourceTypeMutex.RUnlock()
 	fake.saveDefaultSpaceMutex.RLock()
 	defer fake.saveDefaultSpaceMutex.RUnlock()
 	fake.saveSpaceMutex.RLock()
 	defer fake.saveSpaceMutex.RUnlock()
+	fake.saveSpaceLatestVersionMutex.RLock()
+	defer fake.saveSpaceLatestVersionMutex.RUnlock()
 	fake.saveUncheckedVersionMutex.RLock()
 	defer fake.saveUncheckedVersionMutex.RUnlock()
 	fake.saveVersionMutex.RLock()

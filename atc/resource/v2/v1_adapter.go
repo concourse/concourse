@@ -2,13 +2,21 @@ package v2
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource/v1"
 	"github.com/concourse/concourse/atc/worker"
 )
+
+type UnknownSpaceError struct {
+	Space atc.Space
+}
+
+func (e UnknownSpaceError) Error() string {
+	return fmt.Sprintf(`unknown space "%s" for v1 resource`, e.Space)
+}
 
 type V1Adapter struct {
 	resource       v1.Resource
@@ -46,6 +54,7 @@ func (a *V1Adapter) Get(
 
 func (a *V1Adapter) Put(
 	context context.Context,
+	eventHandler PutEventHandler,
 	ioConfig atc.IOConfig,
 	source atc.Source,
 	params atc.Params,
@@ -63,16 +72,19 @@ func (a *V1Adapter) Put(
 
 func (a *V1Adapter) Check(
 	context context.Context,
+	checkHandler CheckEventHandler,
 	src atc.Source,
 	from map[atc.Space]atc.Version,
 ) error {
 	var version atc.Version
 
-	if from != nil {
+	if len(from) != 0 {
 		var found bool
 		version, found = from["v1space"]
 		if !found {
-			return errors.New("from version not found")
+			for space, _ := range from {
+				return UnknownSpaceError{space}
+			}
 		}
 	}
 
@@ -81,17 +93,16 @@ func (a *V1Adapter) Check(
 		return err
 	}
 
-	err = a.resourceConfig.SaveSpace(atc.Space("v1space"))
-	err = a.resourceConfig.SaveDefaultSpace(atc.Space("v1space"))
+	err = checkHandler.DefaultSpace(atc.Space("v1space"))
 
 	for _, v := range versions {
-		spaceVersion := atc.SpaceVersion{
-			Space:   "v1space",
-			Version: v,
+		err = checkHandler.Discovered(atc.Space("v1space"), v, nil)
+		if err != nil {
+			return err
 		}
-
-		err = a.resourceConfig.SaveVersion(spaceVersion)
 	}
 
-	return nil
+	err = checkHandler.LatestVersions()
+
+	return err
 }

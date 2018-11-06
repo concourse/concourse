@@ -5,6 +5,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/resource/v2"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -12,8 +13,8 @@ import (
 
 type Resource interface {
 	Get(context.Context, worker.Volume, atc.IOConfig, atc.Source, atc.Params, atc.Space, atc.Version) error
-	Put(context.Context, atc.IOConfig, atc.Source, atc.Params) (atc.PutResponse, error)
-	Check(context.Context, atc.Source, map[atc.Space]atc.Version) error
+	Put(context.Context, v2.PutEventHandler, atc.IOConfig, atc.Source, atc.Params) (atc.PutResponse, error)
+	Check(context.Context, v2.CheckEventHandler, atc.Source, map[atc.Space]atc.Version) error
 	Container() worker.Container
 }
 
