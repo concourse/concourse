@@ -457,7 +457,7 @@ func (src *taskArtifactSource) StreamTo(logger lager.Logger, destination worker.
 
 	defer func() {
 		if err != nil {
-			logger.Error("error occurred in StreamTo", err, srcData)
+			logger.Error("task-artifact-streaming", err, srcData)
 		} else {
 			logger.Debug("task-artifact-end-streaming", srcData)
 		}
