@@ -5,7 +5,7 @@ import Concourse.Pipeline
 import Concourse.User
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, disabled, href, id, style)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onMouseOver, onMouseOut)
 import Http
 import LoginRedirect
 import Navigation exposing (Location)
@@ -21,6 +21,8 @@ type alias Model =
     , pipeline : Maybe Concourse.Pipeline
     , userState : UserState
     , userMenuVisible : Bool
+    , pinnedResources : List String
+    , showPinIconDropDown : Bool
     }
 
 
@@ -41,6 +43,7 @@ type Msg
     | ResetToPipeline String
     | LoggedOut (Result Http.Error ())
     | ToggleUserMenu
+    | TogglePinIconDropdown
 
 
 init : Routes.ConcourseRoute -> ( Model, Cmd Msg )
@@ -53,6 +56,8 @@ init route =
           , pipeline = Nothing
           , userState = UserStateUnknown
           , userMenuVisible = False
+          , pinnedResources = []
+          , showPinIconDropDown = False
           }
         , case pid of
             Nothing ->
@@ -131,6 +136,9 @@ update msg model =
         ToggleUserMenu ->
             ( { model | userMenuVisible = not model.userMenuVisible }, Cmd.none )
 
+        TogglePinIconDropdown ->
+            ( { model | showPinIconDropDown = not model.showPinIconDropDown }, Cmd.none )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -205,23 +213,116 @@ urlUpdate route model =
 
 view : Model -> Html Msg
 view model =
-    Html.nav
-        [ classList
-            [ ( "module-topbar", True )
-            , ( "top-bar", True )
-            , ( "test", True )
-            , ( "paused", isPaused model.pipeline )
+    Html.div
+        [ style
+            [ ( "background-color", "#1e1d1d" )
+            , ( "height", "54px" )
+            , ( "display", "flex" )
+            , ( "align-items", "center" )
+            , ( "justify-content", "space-between" )
             ]
+        , id "top-bar-app"
         ]
-        [ Html.div
-            [ classList [ ( "topbar-logo", True ) ] ]
-            [ Html.a [ class "logo-image-link", href "/" ] [] ]
-        , Html.ul [ class "groups" ] <| viewBreadcrumbs model
-        , Html.div [ class "topbar-login" ]
-            [ Html.div [ class "topbar-user-info" ]
-                [ viewUserState model.userState model.userMenuVisible
+        [ Html.nav
+            [ style [ ( "display", "flex" ) ] ]
+            [ Html.a
+                [ style
+                    [ ( "background-image", "url(/public/images/concourse_logo_white.svg)" )
+                    , ( "background-position", "50% 50%" )
+                    , ( "background-repeat", "no-repeat" )
+                    , ( "background-size", "42px 42px" )
+                    , ( "width", "54px" )
+                    , ( "height", "54px" )
+                    ]
+                , href "/"
                 ]
+                []
+            , Html.ul [ class "groups" ] <| viewBreadcrumbs model
             ]
+        , Html.nav
+            [ style [ ( "display", "flex" ) ] ]
+            ((case model.route.logical of
+                Routes.Pipeline _ _ ->
+                    [ Html.div
+                        ([ id "pin-icon"
+                         , style
+                            [ ( "background-image"
+                              , if List.length model.pinnedResources > 0 then
+                                    "url(/public/images/pin_ic_white.svg)"
+                                else
+                                    "url(/public/images/pin_ic_grey.svg)"
+                              )
+                            , ( "width", "25px" )
+                            , ( "height", "25px" )
+                            , ( "background-repeat", "no-repeat" )
+                            , ( "background-position", "50% 50%" )
+                            , ( "background-size", "contain" )
+                            , ( "position", "relative" )
+                            , ( "margin-right", "15px" )
+                            ]
+                         ]
+                            ++ (if List.length model.pinnedResources > 0 then
+                                    [ onMouseOver TogglePinIconDropdown
+                                    , onMouseOut TogglePinIconDropdown
+                                    ]
+                                else
+                                    []
+                               )
+                        )
+                        (if List.length model.pinnedResources > 0 then
+                            [ Html.div
+                                [ style
+                                    [ ( "background-color", "#03dac4" )
+                                    , ( "border-radius", "50%" )
+                                    , ( "width", "15px" )
+                                    , ( "height", "15px" )
+                                    , ( "position", "absolute" )
+                                    , ( "top", "-5px" )
+                                    , ( "right", "-5px" )
+                                    , ( "display", "flex" )
+                                    , ( "align-items", "center" )
+                                    , ( "justify-content", "center" )
+                                    ]
+                                ]
+                                ([ Html.div [] [ Html.text <| toString <| List.length model.pinnedResources ]
+                                 ]
+                                    ++ (if model.showPinIconDropDown then
+                                            [ Html.ul
+                                                [ style
+                                                    [ ( "background-color", "#fff" )
+                                                    , ( "color", "#1e1d1d" )
+                                                    , ( "position", "absolute" )
+                                                    , ( "top", "15px" )
+                                                    , ( "right", "0" )
+                                                    , ( "white-space", "nowrap" )
+                                                    , ( "list-style-type", "none" )
+                                                    , ( "padding", "10px" )
+                                                    ]
+                                                ]
+                                                (model.pinnedResources
+                                                    |> List.map (\n -> Html.li [ style [ ( "font-weight", "700" ) ] ] [ Html.text n ])
+                                                )
+                                            ]
+                                        else
+                                            []
+                                       )
+                                )
+                            ]
+                         else
+                            []
+                        )
+                    ]
+
+                _ ->
+                    []
+             )
+                ++ [ Html.div [ class "topbar-login" ]
+                        [ Html.div [ class "topbar-user-info" ]
+                            [ viewUserState model.userState model.userMenuVisible
+                            ]
+                        ]
+                   ]
+            )
         ]
 
 
