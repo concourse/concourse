@@ -5,8 +5,7 @@ module Concourse.Resource
         , fetchResourcesRaw
         , fetchVersionedResources
         , fetchVersionedResource
-        , enableVersionedResource
-        , disableVersionedResource
+        , enableDisableVersionedResource
         , fetchInputTo
         , fetchOutputOf
         , fetchCausality
@@ -72,16 +71,6 @@ fetchVersionedResources rid page =
             "/api/v1/teams/" ++ rid.teamName ++ "/pipelines/" ++ rid.pipelineName ++ "/resources/" ++ rid.resourceName ++ "/versions"
     in
         Concourse.Pagination.fetch Concourse.decodeVersionedResource url page
-
-
-enableVersionedResource : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-enableVersionedResource =
-    enableDisableVersionedResource True
-
-
-disableVersionedResource : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-disableVersionedResource =
-    enableDisableVersionedResource False
 
 
 enableDisableVersionedResource : Bool -> Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()

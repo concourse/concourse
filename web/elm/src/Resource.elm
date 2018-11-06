@@ -3,6 +3,7 @@ module Resource
         ( Flags
         , Msg(..)
         , Model
+        , VersionToggleAction(..)
         , init
         , changeToResource
         , update
@@ -14,6 +15,7 @@ module Resource
         , subscriptions
         )
 
+import BoolTransitionable
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination exposing (Pagination, Paginated, Page, equal)
@@ -29,7 +31,7 @@ import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes exposing (class, css, href, id, style, title)
 import Html.Styled.Events exposing (onClick, onMouseEnter, onMouseLeave, onMouseOver, onMouseOut)
 import Http
-import List.Extra as LE
+import List.Extra
 import Maybe.Extra as ME
 import Navigation
 import NewTopBar.Styles as Styles
@@ -51,6 +53,11 @@ type PageError
     | NotFound
 
 
+type VersionToggleAction
+    = Enable
+    | Disable
+
+
 type alias Model =
     { ports : Ports
     , pageStatus : Result PageError ()
@@ -64,9 +71,8 @@ type alias Model =
     , pinnedVersion : ResourcePinState Concourse.Version Int
     , now : Maybe Time.Time
     , resourceIdentifier : Concourse.ResourceIdentifier
-    , versionedResources : Paginated Concourse.VersionedResource
     , currentPage : Maybe Page
-    , versionedUIStates : Dict.Dict Int VersionUIState
+    , versions : Paginated Version
     , csrfToken : String
     , showPinBarTooltip : Bool
     }
@@ -76,12 +82,8 @@ type alias Version =
     { id : Int
     , version : Concourse.Version
     , metadata : Concourse.Metadata
-    , enabled : Bool
-    }
-
-
-type alias VersionUIState =
-    { expanded : Bool
+    , enabled : BoolTransitionable.BoolTransitionable
+    , expanded : Bool
     , inputTo : List Concourse.Build
     , outputOf : List Concourse.Build
     , showTooltip : Bool
@@ -105,7 +107,8 @@ type Msg
     | UnpinVersion
     | VersionPinned (Result Http.Error ())
     | VersionUnpinned (Result Http.Error ())
-    | DisableVersion Int
+    | ToggleVersion VersionToggleAction Int
+    | VersionToggled VersionToggleAction Int (Result Http.Error ())
 
 
 type alias Flags =
@@ -137,14 +140,13 @@ init ports flags =
                 , lastChecked = Nothing
                 , pinnedVersion = NotPinned
                 , currentPage = Nothing
-                , versionedResources =
+                , versions =
                     { content = []
                     , pagination =
                         { previousPage = Nothing
                         , nextPage = Nothing
                         }
                     }
-                , versionedUIStates = Dict.empty
                 , ports = ports
                 , now = Nothing
                 , csrfToken = flags.csrfToken
@@ -163,7 +165,7 @@ changeToResource : Flags -> Model -> ( Model, Cmd Msg )
 changeToResource flags model =
     ( { model
         | currentPage = flags.paging
-        , versionedResources =
+        , versions =
             { content = []
             , pagination =
                 { previousPage = Nothing
@@ -276,10 +278,52 @@ update action model =
                 fetchedPage =
                     permalink paginated.content
 
+                versions =
+                    { pagination = paginated.pagination
+                    , content =
+                        paginated.content
+                            |> List.map
+                                (\vr ->
+                                    let
+                                        existingVersion : Maybe Version
+                                        existingVersion =
+                                            model.versions.content
+                                                |> List.Extra.find (\v -> v.id == vr.id)
+
+                                        enabledStateAccordingToServer : BoolTransitionable.BoolTransitionable
+                                        enabledStateAccordingToServer =
+                                            if vr.enabled then
+                                                BoolTransitionable.True
+                                            else
+                                                BoolTransitionable.False
+                                    in
+                                        case existingVersion of
+                                            Just ev ->
+                                                { ev
+                                                    | enabled =
+                                                        if ev.enabled == BoolTransitionable.Changing then
+                                                            BoolTransitionable.Changing
+                                                        else
+                                                            enabledStateAccordingToServer
+                                                }
+
+                                            Nothing ->
+                                                { id = vr.id
+                                                , version = vr.version
+                                                , metadata = vr.metadata
+                                                , enabled = enabledStateAccordingToServer
+                                                , expanded = False
+                                                , inputTo = []
+                                                , outputOf = []
+                                                , showTooltip = False
+                                                }
+                                )
+                    }
+
                 newModel =
                     \newPage ->
                         { model
-                            | versionedResources = paginated
+                            | versions = versions
                             , currentPage = newPage
                         }
 
@@ -327,18 +371,22 @@ update action model =
                     , versionID = versionID
                     }
 
-                oldState =
-                    getState versionID model.versionedUIStates
+                version : Maybe Version
+                version =
+                    model.versions.content
+                        |> List.Extra.find (.id >> (==) versionID)
 
-                newState =
-                    { oldState
-                        | expanded = not oldState.expanded
-                    }
+                newExpandedState : Bool
+                newExpandedState =
+                    case version of
+                        Just v ->
+                            not v.expanded
+
+                        Nothing ->
+                            False
             in
-                ( { model
-                    | versionedUIStates = setState versionID newState model.versionedUIStates
-                  }
-                , if newState.expanded then
+                ( updateVersion versionID (\v -> { v | expanded = newExpandedState }) model
+                , if newExpandedState then
                     Cmd.batch
                         [ fetchInputTo versionedResourceIdentifier
                         , fetchOutputOf versionedResourceIdentifier
@@ -359,20 +407,9 @@ update action model =
                     ( model, Cmd.none )
 
         InputToFetched versionID (Ok builds) ->
-            let
-                oldState =
-                    getState versionID model.versionedUIStates
-
-                newState =
-                    { oldState
-                        | inputTo = builds
-                    }
-            in
-                ( { model
-                    | versionedUIStates = setState versionID newState model.versionedUIStates
-                  }
-                , Cmd.none
-                )
+            ( updateVersion versionID (\v -> { v | inputTo = builds }) model
+            , Cmd.none
+            )
 
         OutputOfFetched _ (Err err) ->
             case err of
@@ -389,20 +426,9 @@ update action model =
             ( { model | now = Just now }, Cmd.none )
 
         OutputOfFetched versionID (Ok builds) ->
-            let
-                oldState =
-                    getState versionID model.versionedUIStates
-
-                newState =
-                    { oldState
-                        | outputOf = builds
-                    }
-            in
-                ( { model
-                    | versionedUIStates = setState versionID newState model.versionedUIStates
-                  }
-                , Cmd.none
-                )
+            ( updateVersion versionID (\v -> { v | outputOf = builds }) model
+            , Cmd.none
+            )
 
         NavTo url ->
             ( model, Navigation.newUrl url )
@@ -424,25 +450,14 @@ update action model =
             let
                 pinnedVersionID : Maybe Int
                 pinnedVersionID =
-                    model.versionedResources.content
-                        |> LE.find (.version >> hasPinnedVersion model)
+                    model.versions.content
+                        |> List.Extra.find (.version >> hasPinnedVersion model)
                         |> Maybe.map .id
 
                 newModel =
                     case ( model.pinnedVersion, pinnedVersionID ) of
                         ( PinnedStaticallyTo _, Just id ) ->
-                            let
-                                oldState =
-                                    getState id model.versionedUIStates
-
-                                newState =
-                                    { oldState
-                                        | showTooltip = not oldState.showTooltip
-                                    }
-                            in
-                                { model
-                                    | versionedUIStates = setState id newState model.versionedUIStates
-                                }
+                            updateVersion id (\v -> { v | showTooltip = not v.showTooltip }) model
 
                         _ ->
                             model
@@ -451,21 +466,21 @@ update action model =
 
         PinVersion versionID ->
             let
-                versionedResource : Maybe Concourse.VersionedResource
-                versionedResource =
-                    model.versionedResources.content
-                        |> LE.find (\vr -> vr.id == versionID)
+                version : Maybe Version
+                version =
+                    model.versions.content
+                        |> List.Extra.find (\v -> v.id == versionID)
 
                 cmd : Cmd Msg
                 cmd =
-                    case versionedResource of
-                        Just vr ->
+                    case version of
+                        Just v ->
                             Task.attempt VersionPinned <|
                                 Concourse.Resource.pinVersion
                                     { teamName = model.resourceIdentifier.teamName
                                     , pipelineName = model.resourceIdentifier.pipelineName
                                     , resourceName = model.resourceIdentifier.resourceName
-                                    , versionID = vr.id
+                                    , versionID = v.id
                                     }
                                     model.csrfToken
 
@@ -481,10 +496,10 @@ update action model =
 
         UnpinVersion ->
             let
-                pinnedVersionedResource : Maybe Concourse.VersionedResource
+                pinnedVersionedResource : Maybe Version
                 pinnedVersionedResource =
-                    model.versionedResources.content
-                        |> LE.find (.version >> hasPinnedVersion model)
+                    model.versions.content
+                        |> List.Extra.find (.version >> hasPinnedVersion model)
 
                 cmd : Cmd Msg
                 cmd =
@@ -509,8 +524,8 @@ update action model =
                 newPinnedVersion =
                     Pinned.finishPinning
                         (\pinningTo ->
-                            model.versionedResources.content
-                                |> LE.find (\vr -> vr.id == pinningTo)
+                            model.versions.content
+                                |> List.Extra.find (\v -> v.id == pinningTo)
                                 |> Maybe.map .version
                         )
                         model.pinnedVersion
@@ -538,8 +553,54 @@ update action model =
             , Cmd.none
             )
 
-        DisableVersion _ ->
-            ( model, Cmd.none )
+        ToggleVersion action versionID ->
+            ( updateVersion versionID (\v -> { v | enabled = BoolTransitionable.Changing }) model
+            , Task.attempt (VersionToggled action versionID) <|
+                Concourse.Resource.enableDisableVersionedResource
+                    (action == Enable)
+                    { teamName = model.resourceIdentifier.teamName
+                    , pipelineName = model.resourceIdentifier.pipelineName
+                    , resourceName = model.resourceIdentifier.resourceName
+                    , versionID = versionID
+                    }
+                    model.csrfToken
+            )
+
+        VersionToggled action versionID result ->
+            let
+                newEnabledState : BoolTransitionable.BoolTransitionable
+                newEnabledState =
+                    case ( result, action ) of
+                        ( Ok (), Enable ) ->
+                            BoolTransitionable.True
+
+                        ( Ok (), Disable ) ->
+                            BoolTransitionable.False
+
+                        ( Err _, Enable ) ->
+                            BoolTransitionable.False
+
+                        ( Err _, Disable ) ->
+                            BoolTransitionable.True
+            in
+                ( updateVersion versionID (\v -> { v | enabled = newEnabledState }) model
+                , Cmd.none
+                )
+
+
+updateVersion : Int -> (Version -> Version) -> Model -> Model
+updateVersion versionID updateFunc model =
+    let
+        newVersionsContent : List Version
+        newVersionsContent =
+            model.versions.content
+                |> List.Extra.updateIf (.id >> (==) versionID) updateFunc
+
+        versions : Paginated Version
+        versions =
+            model.versions
+    in
+        { model | versions = { versions | content = newVersionsContent } }
 
 
 permalink : List Concourse.VersionedResource -> Page
@@ -616,7 +677,7 @@ view model =
                     ( "fr succeeded fa fa-fw fa-check", "checking successfully", [] )
 
             ( previousButtonClass, previousButtonEvent ) =
-                case model.versionedResources.pagination.previousPage of
+                case model.versions.pagination.previousPage of
                     Nothing ->
                         ( "btn-page-link prev disabled", Noop )
 
@@ -624,7 +685,7 @@ view model =
                         ( "btn-page-link prev", LoadPage pp )
 
             ( nextButtonClass, nextButtonEvent ) =
-                case model.versionedResources.pagination.nextPage of
+                case model.versions.pagination.nextPage of
                     Nothing ->
                         ( "btn-page-link next disabled", Noop )
 
@@ -807,31 +868,16 @@ checkForVersionID versionID versionedResource =
 
 viewVersionedResources :
     { a
-        | versionedResources : Paginated Concourse.VersionedResource
-        , versionedUIStates : Dict.Dict Int VersionUIState
+        | versions : Paginated Version
         , pinnedVersion : ResourcePinState Concourse.Version Int
     }
     -> Html Msg
-viewVersionedResources { versionedResources, versionedUIStates, pinnedVersion } =
-    versionedResources.content
+viewVersionedResources { versions, pinnedVersion } =
+    versions.content
         |> List.map
-            (\vr ->
+            (\v ->
                 viewVersionedResource
-                    { versionedResource = vr
-                    , state =
-                        let
-                            state =
-                                getState vr.id versionedUIStates
-
-                            showTooltip =
-                                case pinnedVersion of
-                                    PinnedStaticallyTo _ ->
-                                        state.showTooltip
-
-                                    _ ->
-                                        False
-                        in
-                            { state | showTooltip = showTooltip }
+                    { version = v
                     , pinnedVersion = pinnedVersion
                     }
             )
@@ -839,24 +885,26 @@ viewVersionedResources { versionedResources, versionedUIStates, pinnedVersion } 
 
 
 viewVersionedResource :
-    { versionedResource : Concourse.VersionedResource
-    , state : VersionUIState
+    { version : Version
     , pinnedVersion : ResourcePinState Concourse.Version Int
     }
     -> Html Msg
-viewVersionedResource { versionedResource, state, pinnedVersion } =
+viewVersionedResource { version, pinnedVersion } =
     let
         pinState =
-            case Pinned.pinState versionedResource.version versionedResource.id pinnedVersion of
+            case Pinned.pinState version.version version.id pinnedVersion of
                 PinnedStatically _ ->
-                    PinnedStatically { showTooltip = state.showTooltip }
+                    PinnedStatically { showTooltip = version.showTooltip }
 
                 x ->
                     x
     in
         Html.li
-            (case pinState of
-                Disabled ->
+            (case ( pinState, version.enabled ) of
+                ( Disabled, _ ) ->
+                    [ style [ ( "opacity", "0.5" ) ] ]
+
+                ( _, BoolTransitionable.False ) ->
                     [ style [ ( "opacity", "0.5" ) ] ]
 
                 _ ->
@@ -868,24 +916,28 @@ viewVersionedResource { versionedResource, state, pinnedVersion } =
                     , Css.margin2 (Css.px 5) Css.zero
                     ]
                 ]
-                [ viewEnabledCheckbox versionedResource
-                , viewPinButton
-                    { versionID = versionedResource.id
+                [ viewEnabledCheckbox
+                    { enabled = version.enabled
+                    , id = version.id
                     , pinState = pinState
-                    , showTooltip = state.showTooltip
+                    }
+                , viewPinButton
+                    { versionID = version.id
+                    , pinState = pinState
+                    , showTooltip = version.showTooltip
                     }
                 , viewVersionHeader
-                    { id = versionedResource.id
-                    , version = versionedResource.version
+                    { id = version.id
+                    , version = version.version
                     , pinnedState = pinState
                     }
                 ]
              ]
-                ++ (if state.expanded then
+                ++ (if version.expanded then
                         [ viewVersionBody
-                            { inputTo = state.inputTo
-                            , outputOf = state.outputOf
-                            , metadata = versionedResource.metadata
+                            { inputTo = version.inputTo
+                            , outputOf = version.outputOf
+                            , metadata = version.metadata
                             }
                         ]
                     else
@@ -925,12 +977,18 @@ viewVersionBody { inputTo, outputOf, metadata } =
         ]
 
 
-viewEnabledCheckbox : { a | enabled : Bool, id : Int } -> Html Msg
-viewEnabledCheckbox { enabled, id } =
+viewEnabledCheckbox :
+    { a
+        | enabled : BoolTransitionable.BoolTransitionable
+        , id : Int
+        , pinState : VersionPinState
+    }
+    -> Html Msg
+viewEnabledCheckbox { enabled, id, pinState } =
     let
         baseAttrs =
-            [ Html.Styled.Attributes.attribute "aria-label" "Toggle Resource Version Enabled"
-            , css
+            ([ Html.Styled.Attributes.attribute "aria-label" "Toggle Resource Version Enabled"
+             , css
                 [ Css.marginRight <| Css.px 5
                 , Css.width <| Css.px 25
                 , Css.height <| Css.px 25
@@ -939,19 +997,39 @@ viewEnabledCheckbox { enabled, id } =
                 , Css.backgroundRepeat Css.noRepeat
                 , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
                 ]
-            ]
+             , style [ ( "cursor", "pointer" ) ]
+             ]
+                ++ (case pinState of
+                        PinnedStatically _ ->
+                            [ style [ ( "border", "1px solid #03dac4" ) ] ]
+
+                        PinnedDynamically ->
+                            [ style [ ( "border", "1px solid #03dac4" ) ] ]
+
+                        _ ->
+                            []
+                   )
+            )
     in
-        if enabled then
-            Html.div
-                (baseAttrs
-                    ++ [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ]
-                       , onClick <| DisableVersion id
-                       ]
-                )
-                []
-        else
-            Html.div (baseAttrs)
-                []
+        case enabled of
+            BoolTransitionable.True ->
+                Html.div
+                    (baseAttrs
+                        ++ [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ]
+                           , onClick <| ToggleVersion Disable id
+                           ]
+                    )
+                    []
+
+            BoolTransitionable.Changing ->
+                Html.div
+                    (baseAttrs ++ [ style [ ( "display", "flex" ), ( "align-items", "center" ), ( "justify-content", "center" ) ] ])
+                    [ Html.i [ class "fa fa-fw fa-spin fa-circle-o-notch" ] [] ]
+
+            BoolTransitionable.False ->
+                Html.div
+                    (baseAttrs ++ [ onClick <| ToggleVersion Enable id ])
+                    []
 
 
 viewPinButton :
@@ -1051,10 +1129,13 @@ viewPinButton { versionID, pinState } =
                         ++ [ style
                                 [ ( "background-color", "#1e1d1d" )
                                 , ( "cursor", "default" )
+                                , ( "display", "flex" )
+                                , ( "align-items", "center" )
+                                , ( "justify-content", "center" )
                                 ]
                            ]
                     )
-                    [ Html.text "..." ]
+                    [ Html.i [ class "fa fa-fw fa-spin fa-circle-o-notch" ] [] ]
 
 
 viewVersionHeader : { a | id : Int, version : Concourse.Version, pinnedState : VersionPinState } -> Html Msg
@@ -1083,29 +1164,6 @@ viewVersionHeader { id, version, pinnedState } =
                )
         )
         [ viewVersion version ]
-
-
-getState : Int -> Dict.Dict Int VersionUIState -> VersionUIState
-getState versionID states =
-    let
-        resourceState =
-            Dict.get versionID states
-    in
-        case resourceState of
-            Nothing ->
-                { expanded = False
-                , inputTo = []
-                , outputOf = []
-                , showTooltip = False
-                }
-
-            Just rs ->
-                rs
-
-
-setState : Int -> VersionUIState -> Dict.Dict Int VersionUIState -> Dict.Dict Int VersionUIState
-setState versionID newState states =
-    Dict.insert versionID newState states
 
 
 viewVersion : Concourse.Version -> Html Msg
@@ -1222,36 +1280,30 @@ updateExpandedProperties model =
     let
         filteredList =
             List.filter
-                (isExpanded model.versionedUIStates)
-                model.versionedResources.content
+                (isExpanded model.versions.content)
+                model.versions.content
     in
         List.concatMap
             (fetchInputAndOutputs model)
             filteredList
 
 
-isExpanded : Dict.Dict Int VersionUIState -> Concourse.VersionedResource -> Bool
-isExpanded states versionedResource =
-    let
-        state =
-            Dict.get versionedResource.id states
-    in
-        case state of
-            Nothing ->
-                False
-
-            Just someState ->
-                someState.expanded
+isExpanded : List Version -> Version -> Bool
+isExpanded versions version =
+    versions
+        |> List.Extra.find (.id >> (==) version.id)
+        |> Maybe.map .expanded
+        |> Maybe.withDefault False
 
 
-fetchInputAndOutputs : Model -> Concourse.VersionedResource -> List (Cmd Msg)
-fetchInputAndOutputs model versionedResource =
+fetchInputAndOutputs : Model -> Version -> List (Cmd Msg)
+fetchInputAndOutputs model version =
     let
         identifier =
             { teamName = model.resourceIdentifier.teamName
             , pipelineName = model.resourceIdentifier.pipelineName
             , resourceName = model.resourceIdentifier.resourceName
-            , versionID = versionedResource.id
+            , versionID = version.id
             }
     in
         [ fetchInputTo identifier

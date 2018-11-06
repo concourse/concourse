@@ -1,5 +1,6 @@
 module ResourceTests exposing (..)
 
+import Concourse
 import Dict
 import Expect exposing (..)
 import Html.Styled as HS
@@ -9,7 +10,7 @@ import Resource
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (Selector, attribute, containing, id, tag, style, text)
+import Test.Html.Selector exposing (Selector, attribute, containing, class, id, tag, style, text)
 
 
 teamName : String
@@ -89,14 +90,87 @@ badResponse =
 all : Test
 all =
     describe "resource page"
-        [ describe "checkboxes"
+        [ test "autorefresh respects expanded state" <|
+            \_ ->
+                init
+                    |> givenResourceUnpinned
+                    |> givenVersions
+                    |> Resource.update
+                        (Resource.ExpandVersionedResource versionID)
+                    |> Tuple.first
+                    |> givenVersions
+                    |> queryView
+                    |> Query.find (versionSelector version)
+                    |> Query.has [ text "metadata" ]
+        , test "autorefresh respects 'Inputs To'" <|
+            \_ ->
+                init
+                    |> givenResourceUnpinned
+                    |> givenVersions
+                    |> Resource.update
+                        (Resource.ExpandVersionedResource versionID)
+                    |> Tuple.first
+                    |> Resource.update
+                        (Resource.InputToFetched versionID
+                            (Ok
+                                [ { id = 0
+                                  , name = "some-build"
+                                  , job = Just { teamName = teamName, pipelineName = pipelineName, jobName = "some-job" }
+                                  , status = Concourse.BuildStatusSucceeded
+                                  , duration = { startedAt = Nothing, finishedAt = Nothing }
+                                  , reapTime = Nothing
+                                  }
+                                ]
+                            )
+                        )
+                    |> Tuple.first
+                    |> givenVersions
+                    |> queryView
+                    |> Query.find (versionSelector version)
+                    |> Query.has [ text "some-build" ]
+        , test "autorefresh respects 'Outputs Of'" <|
+            \_ ->
+                init
+                    |> givenResourceUnpinned
+                    |> givenVersions
+                    |> Resource.update
+                        (Resource.ExpandVersionedResource versionID)
+                    |> Tuple.first
+                    |> Resource.update
+                        (Resource.OutputOfFetched versionID
+                            (Ok
+                                [ { id = 0
+                                  , name = "some-build"
+                                  , job = Just { teamName = teamName, pipelineName = pipelineName, jobName = "some-job" }
+                                  , status = Concourse.BuildStatusSucceeded
+                                  , duration = { startedAt = Nothing, finishedAt = Nothing }
+                                  , reapTime = Nothing
+                                  }
+                                ]
+                            )
+                        )
+                    |> Tuple.first
+                    |> givenVersions
+                    |> queryView
+                    |> Query.find (versionSelector version)
+                    |> Query.has [ text "some-build" ]
+        , describe "checkboxes"
             [ test "there is a checkbox for every version" <|
                 \_ ->
                     init
+                        |> givenResourceUnpinned
                         |> givenVersions
                         |> queryView
                         |> Query.findAll (anyVersionSelector)
                         |> Query.each hasCheckbox
+            , test "there is a pointer cursor for every checkbox" <|
+                \_ ->
+                    init
+                        |> givenResourceUnpinned
+                        |> givenVersions
+                        |> queryView
+                        |> Query.findAll (anyVersionSelector)
+                        |> Query.each (Query.find checkboxSelector >> Query.has pointerCursor)
             , test "enabled versions have checkmarks" <|
                 \_ ->
                     init
@@ -120,7 +194,7 @@ all =
                         |> Query.find (versionSelector disabledVersion)
                         |> Query.find checkboxSelector
                         |> Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
-            , test "clicking the checkbox on an enabled version triggers a DisableVersion msg" <|
+            , test "clicking the checkbox on an enabled version triggers a ToggleVersion msg" <|
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
@@ -129,8 +203,8 @@ all =
                         |> Query.find (versionSelector version)
                         |> Query.find checkboxSelector
                         |> Event.simulate Event.click
-                        |> Event.expect (Resource.DisableVersion versionID)
-            , test "receiving a DisableVersion msg causes the relevant checkbox to go into a transition state" <|
+                        |> Event.expect (Resource.ToggleVersion Resource.Disable versionID)
+            , test "receiving a (ToggleVersion Disable) msg causes the relevant checkbox to go into a transition state" <|
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
@@ -140,6 +214,90 @@ all =
                         |> Query.find (versionSelector version)
                         |> Query.find checkboxSelector
                         |> checkboxHasTransitionState
+            , test "autorefreshing after receiving a ToggleVersion msg causes the relevant checkbox to stay in a transition state" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedStatically
+                        |> givenVersions
+                        |> clickToDisable versionID
+                        |> givenVersions
+                        |> queryView
+                        |> Query.find (versionSelector version)
+                        |> Query.find checkboxSelector
+                        |> checkboxHasTransitionState
+            , test "receiving a successful VersionToggled msg causes the relevant checkbox to appear unchecked" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedStatically
+                        |> givenVersions
+                        |> clickToDisable versionID
+                        |> Resource.update (Resource.VersionToggled Resource.Disable versionID (Ok ()))
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find (versionSelector version)
+                        |> versionHasDisabledState
+            , test "receiving an error on VersionToggled msg causes the checkbox to go back to its checked state" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedStatically
+                        |> givenVersions
+                        |> clickToDisable versionID
+                        |> Resource.update (Resource.VersionToggled Resource.Disable versionID (badResponse))
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find (versionSelector version)
+                        |> Query.find checkboxSelector
+                        |> checkboxHasEnabledState
+            , test "clicking the checkbox on a disabled version triggers a ToggleVersion msg" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedStatically
+                        |> givenVersions
+                        |> queryView
+                        |> Query.find (versionSelector disabledVersion)
+                        |> Query.find checkboxSelector
+                        |> Event.simulate Event.click
+                        |> Event.expect (Resource.ToggleVersion Resource.Enable disabledVersionID)
+            , test "receiving a (ToggleVersion Enable) msg causes the relevant checkbox to go into a transition state" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedStatically
+                        |> givenVersions
+                        |> Resource.update
+                            (Resource.ToggleVersion Resource.Enable disabledVersionID)
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find (versionSelector disabledVersion)
+                        |> Query.find checkboxSelector
+                        |> checkboxHasTransitionState
+            , test "receiving a successful VersionToggled msg causes the relevant checkbox to appear checked" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedStatically
+                        |> givenVersions
+                        |> Resource.update
+                            (Resource.ToggleVersion Resource.Enable disabledVersionID)
+                        |> Tuple.first
+                        |> Resource.update (Resource.VersionToggled Resource.Enable disabledVersionID (Ok ()))
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find (versionSelector disabledVersion)
+                        |> Query.find checkboxSelector
+                        |> checkboxHasEnabledState
+            , test "receiving a failing VersionToggled msg causes the relevant checkbox to return to its unchecked state" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedStatically
+                        |> givenVersions
+                        |> Resource.update
+                            (Resource.ToggleVersion Resource.Enable disabledVersionID)
+                        |> Tuple.first
+                        |> Resource.update (Resource.VersionToggled Resource.Enable disabledVersionID badResponse)
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find (versionSelector disabledVersion)
+                        |> Query.find checkboxSelector
+                        |> checkboxHasDisabledState
             ]
         , describe "given resource is pinned statically"
             [ describe "pin bar"
@@ -163,6 +321,15 @@ all =
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> Query.find pinButtonSelector
+                            |> Query.has tealOutlineSelector
+                , test "checkbox on pinned version has a teal outline" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedStatically
+                            |> givenVersions
+                            |> queryView
+                            |> Query.find (versionSelector version)
+                            |> Query.find checkboxSelector
                             |> Query.has tealOutlineSelector
                 , test "all pin buttons have default cursor" <|
                     \_ ->
@@ -256,6 +423,16 @@ all =
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> Query.has versionTooltipSelector
+                , test "keeps tooltip on the pinned version's pin button on autorefresh" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedStatically
+                            |> givenVersions
+                            |> toggleVersionTooltip
+                            |> givenVersions
+                            |> queryView
+                            |> Query.find (versionSelector version)
+                            |> Query.has versionTooltipSelector
                 , test "mousing off the pinned version's pin button sends ToggleVersionTooltip" <|
                     \_ ->
                         init
@@ -331,6 +508,15 @@ all =
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
+                        |> Query.has tealOutlineSelector
+            , test "checkbox on pinned version has a teal outline" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> givenVersions
+                        |> queryView
+                        |> Query.find (versionSelector version)
+                        |> Query.find checkboxSelector
                         |> Query.has tealOutlineSelector
             , test "pin button on pinned version has a pointer cursor" <|
                 \_ ->
@@ -695,7 +881,7 @@ clickToUnpin =
 
 clickToDisable : Int -> Resource.Model -> Resource.Model
 clickToDisable versionID =
-    Resource.update (Resource.DisableVersion versionID)
+    Resource.update (Resource.ToggleVersion Resource.Disable versionID)
         >> Tuple.first
 
 
@@ -789,7 +975,7 @@ versionTooltipSelector =
 pinButtonHasTransitionState : Query.Single msg -> Expectation
 pinButtonHasTransitionState =
     Expect.all
-        [ Query.has [ text "..." ]
+        [ Query.has loadingSpinnerSelector
         , Query.hasNot [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
         ]
 
@@ -824,9 +1010,39 @@ pinBarHasPinnedState version =
             ]
 
 
+loadingSpinnerSelector : List Selector
+loadingSpinnerSelector =
+    [ class "fa-circle-o-notch" ]
+
+
 checkboxHasTransitionState : Query.Single msg -> Expectation
 checkboxHasTransitionState =
     Expect.all
-        [ Query.has [ text "..." ]
+        [ Query.has loadingSpinnerSelector
         , Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+        ]
+
+
+checkboxHasDisabledState : Query.Single msg -> Expectation
+checkboxHasDisabledState =
+    Expect.all
+        [ Query.hasNot loadingSpinnerSelector
+        , Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+        ]
+
+
+checkboxHasEnabledState : Query.Single msg -> Expectation
+checkboxHasEnabledState =
+    Expect.all
+        [ Query.hasNot loadingSpinnerSelector
+        , Query.has [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+        ]
+
+
+versionHasDisabledState : Query.Single msg -> Expectation
+versionHasDisabledState =
+    Expect.all
+        [ Query.has [ style [ ( "opacity", "0.5" ) ] ]
+        , Query.find checkboxSelector
+            >> checkboxHasDisabledState
         ]
