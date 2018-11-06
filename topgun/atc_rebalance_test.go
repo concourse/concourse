@@ -9,17 +9,20 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("ATC Rebalance", func() {
-	Context("with two atcs available", func() {
+var _ = Describe("Rebalancing workers", func() {
+	Context("with two TSAs available", func() {
 		var atcs []boshInstance
 		var atc0IP string
 		var atc1IP string
 
 		BeforeEach(func() {
-			Skip("until TSA client is re-implemented")
+			Deploy(
+				"deployments/concourse.yml",
+				"-o", "operations/web-instances.yml",
+				"-v", "web_instances=2",
+				"-o", "operations/worker-rebalancing.yml",
+			)
 
-			By("Configuring two ATCs")
-			Deploy("deployments/concourse-two-atcs-slow-tracking.yml")
 			waitForRunningWorker()
 
 			atcs = JobInstances("web")
@@ -35,11 +38,12 @@ var _ = Describe("ATC Rebalance", func() {
 				Eventually(func() string {
 					workers := flyTable("workers", "-d")
 					return strings.Split(workers[0]["garden address"], ":")[0]
-				}, time.Second*60, time.Second*5).Should(Equal(atc0IP))
+				}, time.Minute, 5*time.Second).Should(Equal(atc0IP))
+
 				Eventually(func() string {
 					workers := flyTable("workers", "-d")
 					return strings.Split(workers[0]["garden address"], ":")[0]
-				}, time.Minute*5, time.Second*5).Should(Equal(atc1IP))
+				}, time.Minute, 5*time.Second).Should(Equal(atc1IP))
 			})
 		})
 	})

@@ -104,14 +104,20 @@ func (req forwardWorkerRequest) Handle(ctx context.Context, state ConnState, cha
 		close(forward.Drain)
 	}
 
-	for _, forward := range forwards {
-		// wait for connections to drain
-		forward.Wait()
+	// only drain if heartbeating was interrupted; otherwise the worker landed or
+	// retired, so it's time to go away
+	if ctx.Err() != nil {
+		logger.Info("draining-forwarded-connections")
 
-		logger.Info("forward-process-exited", lager.Data{
-			"bind-addr":  forward.BindAddr,
-			"bound-port": forward.BoundPort,
-		})
+		for _, forward := range forwards {
+			// wait for connections to drain
+			forward.Wait()
+
+			logger.Info("forward-process-exited", lager.Data{
+				"bind-addr":  forward.BindAddr,
+				"bound-port": forward.BoundPort,
+			})
+		}
 	}
 
 	return nil

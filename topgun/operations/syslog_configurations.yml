@@ -1,17 +1,17 @@
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=web/properties/syslog?/address?
+  path: /instance_groups/name=web/jobs/name=web/properties/syslog?/address?
   value: ((syslog.address))
 
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=web/properties/syslog?/hostname?
+  path: /instance_groups/name=web/jobs/name=web/properties/syslog?/hostname?
   value: ((syslog.hostname))
 
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=web/properties/syslog?/transport?
+  path: /instance_groups/name=web/jobs/name=web/properties/syslog?/transport?
   value: ((syslog.transport))
 
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=web/properties/syslog?/drain_interval?
+  path: /instance_groups/name=web/jobs/name=web/properties/syslog?/drain_interval?
   value: ((syslog.drain_interval))
 
 - type: replace
@@ -23,7 +23,7 @@
     sha1: "64cf40d44746b50edffa78cb0e0dd6f072fee695"
 
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=syslog_storer?
+  path: /instance_groups/name=web/jobs/name=syslog_storer?
   value:
     name: syslog_storer
     release: syslog

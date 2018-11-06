@@ -4,11 +4,9 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -51,11 +49,6 @@ var _ = AfterSuite(func() {
 	gexec.CleanupBuildArtifacts()
 })
 
-type registration struct {
-	worker atc.Worker
-	ttl    time.Duration
-}
-
 var (
 	forwardHost string
 
@@ -89,9 +82,6 @@ var (
 
 	tsaRunner *ginkgomon.Runner
 	tsaClient *tsa.Client
-
-	registered  chan registration
-	heartbeated chan registration
 )
 
 var _ = BeforeEach(func() {
@@ -195,36 +185,6 @@ var _ = BeforeEach(func() {
 	}
 
 	tsaProcess = ginkgomon.Invoke(tsaRunner)
-
-	registered = make(chan registration, 100)
-	heartbeated = make(chan registration, 100)
-
-	atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
-		var worker atc.Worker
-		Expect(accessFactory.Create(r, "some-action").IsAuthenticated()).To(BeTrue())
-
-		err := json.NewDecoder(r.Body).Decode(&worker)
-		Expect(err).NotTo(HaveOccurred())
-
-		ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
-		Expect(err).NotTo(HaveOccurred())
-
-		registered <- registration{worker, ttl}
-	})
-
-	atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
-		var worker atc.Worker
-		Expect(accessFactory.Create(r, "some-action").IsAuthenticated()).To(BeTrue())
-
-		err := json.NewDecoder(r.Body).Decode(&worker)
-		Expect(err).NotTo(HaveOccurred())
-
-		ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
-		Expect(err).NotTo(HaveOccurred())
-
-		heartbeated <- registration{worker, ttl}
-	})
-
 })
 
 var _ = AfterEach(func() {

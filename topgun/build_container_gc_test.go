@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"code.cloudfoundry.org/garden"
-	gclient "code.cloudfoundry.org/garden/client"
-	gconn "code.cloudfoundry.org/garden/client/connection"
 	sq "github.com/Masterminds/squirrel"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
@@ -14,13 +11,9 @@ import (
 	"github.com/onsi/gomega/gbytes"
 )
 
-var _ = Describe(":life Garbage collecting build containers", func() {
-	var gClient garden.Client
-
+var _ = Describe("Garbage collecting build containers", func() {
 	BeforeEach(func() {
 		Deploy("deployments/concourse.yml")
-
-		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", JobInstance("worker").IP)))
 	})
 
 	getContainers := func(condition, value string) []string {
@@ -55,7 +48,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				}, 10*time.Minute, time.Second).Should(BeZero())
 
 				By("having removed the containers from the worker")
-				containers, err := gClient.Containers(nil)
+				containers, err := workerGardenClient.Containers(nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				existingHandles := []string{}
@@ -93,7 +86,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				}, 10*time.Minute, time.Second).Should(BeZero())
 
 				By("having removed the containers from the worker")
-				containers, err := gClient.Containers(nil)
+				containers, err := workerGardenClient.Containers(nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				existingHandles := []string{}
@@ -133,7 +126,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				}, 2*time.Minute, time.Second).Should(Equal(len(buildContainerHandles)))
 
 				By("not removing the containers from the worker")
-				containers, err := gClient.Containers(nil)
+				containers, err := workerGardenClient.Containers(nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				existingHandles := []string{}
@@ -192,7 +185,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				}, 10*time.Minute, time.Second).Should(BeZero())
 
 				By("having removed the first build containers from the worker")
-				containers, err := gClient.Containers(nil)
+				containers, err := workerGardenClient.Containers(nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				existingHandles := []string{}
@@ -267,7 +260,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				}, 2*time.Minute, time.Second).Should(Equal(len(firstBuildContainerHandles)))
 
 				By("not removing the first build containers from the worker")
-				containers, err := gClient.Containers(nil)
+				containers, err := workerGardenClient.Containers(nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				existingHandles := []string{}

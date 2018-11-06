@@ -1,6 +1,7 @@
 package topgun_test
 
 import (
+	"io/ioutil"
 	"os"
 	"regexp"
 	"time"
@@ -15,7 +16,11 @@ import (
 var _ = Describe("Worker stalling", func() {
 	Context("with two workers available", func() {
 		BeforeEach(func() {
-			Deploy("deployments/concourse-separate-forwarded-worker.yml", "-o", "operations/separate-worker-two.yml")
+			Deploy(
+				"deployments/concourse.yml",
+				"-o", "operations/worker-instances.yml",
+				"-v", "worker_instances=2",
+			)
 		})
 
 		It("initially runs tasks across all workers", func() {
@@ -40,7 +45,7 @@ var _ = Describe("Worker stalling", func() {
 
 			AfterEach(func() {
 				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
-				waitForWorkersToBeRunning()
+				waitForWorkersToBeRunning(2)
 			})
 
 			It("enters 'stalled' state and is no longer used for new containers", func() {
@@ -54,14 +59,14 @@ var _ = Describe("Worker stalling", func() {
 
 			It("can be pruned while in stalled state", func() {
 				fly("prune-worker", "-w", stalledWorkerName)
-				waitForWorkersToBeRunning()
+				waitForWorkersToBeRunning(1)
 			})
 		})
 	})
 
 	Context("with no other worker available", func() {
 		BeforeEach(func() {
-			Deploy("deployments/concourse.yml", "-o", "operations/forward-worker.yml")
+			Deploy("deployments/concourse.yml")
 		})
 
 		Context("when the worker stalls while a build is running", func() {
@@ -79,40 +84,40 @@ var _ = Describe("Worker stalling", func() {
 				Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 				By("stopping the worker without draining")
-				bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit stop worker")
+				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop worker")
 
 				By("waiting for it to stall")
 				_ = waitForStalledWorker()
 			})
 
 			AfterEach(func() {
+				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
+				waitForWorkersToBeRunning(1)
+
 				buildSession.Signal(os.Interrupt)
 				<-buildSession.Exited
 			})
 
 			Context("when the worker does not come back", func() {
-				AfterEach(func() {
-					bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
-					waitForWorkersToBeRunning()
-				})
-
 				It("does not fail the build", func() {
 					Consistently(buildSession).ShouldNot(gexec.Exit())
 				})
 			})
 
 			Context("when the worker comes back", func() {
+				BeforeEach(func() {
+					bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
+					waitForWorkersToBeRunning(1)
+				})
+
 				It("resumes the build", func() {
-					Skip("guardian returns 'does not exist' - perhaps containers are being reaped on start?")
+					By("reattaching to the build")
+					// consume all output so far
+					_, err := ioutil.ReadAll(buildSession.Out)
+					Expect(err).ToNot(HaveOccurred())
 
-					bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
-					waitForWorkersToBeRunning()
-
-					// Garden doesn't seem to stream output after restarting it. Guardian bug?
-					// By("reattaching to the build")
-					// _, err := ioutil.ReadAll(buildSession.Out)
-					// Expect(err).ToNot(HaveOccurred())
-					// Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
+					// wait for new output
+					Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 					By("hijacking the build to tell it to finish")
 					Eventually(func() int {
@@ -128,8 +133,7 @@ var _ = Describe("Worker stalling", func() {
 					}).Should(Equal(0))
 
 					By("waiting for the build to exit")
-					// Garden doesn't seem to stream output after restarting it. Guardian bug?
-					// Eventually(buildSession).Should(gbytes.Say("done"))
+					Eventually(buildSession).Should(gbytes.Say("done"))
 					<-buildSession.Exited
 					Expect(buildSession.ExitCode()).To(Equal(0))
 				})

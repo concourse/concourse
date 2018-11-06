@@ -2,31 +2,17 @@ package topgun_test
 
 import (
 	"fmt"
-	"net/http"
 	"time"
 
-	"code.cloudfoundry.org/garden"
-	gclient "code.cloudfoundry.org/garden/client"
-	gconn "code.cloudfoundry.org/garden/client/connection"
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/baggageclaim"
-	bgclient "github.com/concourse/baggageclaim/client"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe(":life volume gc", func() {
-	var gClient garden.Client
-	var bcClient baggageclaim.Client
-
+var _ = Describe("Garbage-collecting volumes", func() {
 	BeforeEach(func() {
 		Deploy("deployments/concourse.yml")
-
-		workerIP := JobInstance("worker").IP
-
-		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", workerIP)))
-		bcClient = bgclient.New(fmt.Sprintf("http://%s:7788", workerIP), http.DefaultTransport)
 	})
 
 	Describe("A volume that belonged to a container that is now gone", func() {
@@ -85,7 +71,7 @@ var _ = Describe(":life volume gc", func() {
 			}, 10*time.Minute, time.Second).Should(BeZero())
 
 			By("having removed the containers from the worker")
-			containers, err := gClient.Containers(nil)
+			containers, err := workerGardenClient.Containers(nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			existingHandles := []string{}
@@ -106,7 +92,7 @@ var _ = Describe(":life volume gc", func() {
 			}, 10*time.Minute, time.Second).Should(BeZero())
 
 			By("having removed the volumes from the worker")
-			volumes, err := bcClient.ListVolumes(logger, nil)
+			volumes, err := workerBaggageclaimClient.ListVolumes(logger, nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			existingHandles = []string{}
@@ -184,7 +170,7 @@ var _ = Describe(":life volume gc", func() {
 			}, 10*time.Minute, time.Second).Should(BeZero())
 
 			By("having removed the volumes from the worker")
-			volumes, err := bcClient.ListVolumes(logger, nil)
+			volumes, err := workerBaggageclaimClient.ListVolumes(logger, nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			existingHandles := []string{}

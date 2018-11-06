@@ -11,7 +11,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 )
 
-var _ = Describe(":life Garbage collecting resource cache volumes", func() {
+var _ = Describe("Garbage collecting resource cache volumes", func() {
 	Describe("A resource that was removed from pipeline", func() {
 		BeforeEach(func() {
 			Deploy("deployments/concourse.yml")
@@ -185,8 +185,6 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 				Skip("git-server release not uploaded")
 			}
 
-			Skip("container gets GCed because the worker report interval is 30s, which is > the missing_since grace period (3 * atc GC interval, so 3s)")
-
 			Deploy("deployments/concourse.yml", "-o", "operations/fast-gc.yml", "-o", "operations/add-git-server.yml")
 
 			gitRepoURI = fmt.Sprintf("git://%s/some-repo", JobInstance("git_server").IP)
@@ -240,14 +238,12 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 			}).Should(ContainElement(originalResourceVolumeHandles[0]))
 
 			By("hijacking the build to tell it to finish")
-			hijackSession := spawnFly(
+			fly(
 				"hijack",
 				"-j", "volume-gc-test/simple-job",
 				"-s", "wait",
 				"touch", "/tmp/stop-waiting",
 			)
-			<-hijackSession.Exited
-			Expect(hijackSession.ExitCode()).To(Equal(0))
 
 			By("waiting for the build to exit")
 			Eventually(watchSession, 1*time.Minute).Should(gbytes.Say("done"))

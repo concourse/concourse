@@ -17,10 +17,22 @@ import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tsa"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+type registration struct {
+	worker atc.Worker
+	ttl    time.Duration
+}
+
+type workerState struct {
+	retired bool
+	landed  bool
+	stalled bool
+}
 
 var _ = Describe("Register", func() {
 	var opts tsa.RegisterOptions
@@ -30,7 +42,54 @@ var _ = Describe("Register", func() {
 	var cancel context.CancelFunc
 	var registerErr chan error
 
+	var registered chan registration
+	var heartbeated chan registration
+	var heartbeatResults chan workerState
+
 	BeforeEach(func() {
+		registered = make(chan registration, 100)
+		heartbeated = make(chan registration, 100)
+		heartbeatResults = make(chan workerState, 100)
+
+		atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
+			var worker atc.Worker
+			Expect(accessFactory.Create(r, "some-action").IsAuthenticated()).To(BeTrue())
+
+			err := json.NewDecoder(r.Body).Decode(&worker)
+			Expect(err).NotTo(HaveOccurred())
+
+			ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
+			Expect(err).NotTo(HaveOccurred())
+
+			registered <- registration{worker, ttl}
+		})
+
+		atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
+			var worker atc.Worker
+			Expect(accessFactory.Create(r, "some-action").IsAuthenticated()).To(BeTrue())
+
+			err := json.NewDecoder(r.Body).Decode(&worker)
+			Expect(err).NotTo(HaveOccurred())
+
+			ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
+			Expect(err).NotTo(HaveOccurred())
+
+			heartbeated <- registration{worker, ttl}
+
+			select {
+			case res := <-heartbeatResults:
+				if res.retired {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				} else if res.landed {
+					worker.State = "landed"
+				}
+			default:
+			}
+
+			json.NewEncoder(w).Encode(worker)
+		})
+
 		reg := make(chan struct{})
 		beat := make(chan struct{}, 100)
 
@@ -254,6 +313,98 @@ var _ = Describe("Register", func() {
 
 			By("having heartbeated after another interval passed")
 			Expect(c.Sub(b)).To(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
+		})
+
+		Context("when the worker has landed", func() {
+			It("does not wait for connections to complete before exiting", func() {
+				By("waiting for an initial registration")
+				registration := <-registered
+
+				baggageclaimServer.RouteToHandler("GET", "/slow", func(w http.ResponseWriter, r *http.Request) {
+					By("sleeping during the request")
+					time.Sleep(5 * time.Second)
+
+					w.WriteHeader(http.StatusTeapot)
+				})
+
+				By("hitting a slow endpoint on " + registration.worker.BaggageclaimURL)
+				stubbed := false
+				client := &http.Client{
+					Transport: &http.Transport{
+						// disable keepalives so the connection doesn't hang around
+						DisableKeepAlives: true,
+
+						// ensure we stub out the landing after the connection is established
+						Dial: func(netw, addr string) (net.Conn, error) {
+							conn, err := net.Dial(netw, addr)
+							if err != nil {
+								return nil, err
+							}
+
+							stubbed = true
+							heartbeatResults <- workerState{
+								landed: true,
+							}
+
+							return conn, nil
+						},
+					},
+				}
+
+				_, err := client.Get(registration.worker.BaggageclaimURL + "/slow")
+				Expect(err).To(HaveOccurred())
+
+				Expect(stubbed).To(BeTrue())
+
+				By("exiting successfully")
+				Eventually(registerErr).Should(Receive(BeNil()))
+			})
+		})
+
+		Context("when the worker has retired", func() {
+			It("does not wait for connections to complete before exiting", func() {
+				By("waiting for an initial registration")
+				registration := <-registered
+
+				baggageclaimServer.RouteToHandler("GET", "/slow", func(w http.ResponseWriter, r *http.Request) {
+					By("sleeping during the request")
+					time.Sleep(5 * time.Second)
+
+					w.WriteHeader(http.StatusTeapot)
+				})
+
+				By("hitting a slow endpoint on " + registration.worker.BaggageclaimURL)
+				stubbed := false
+				client := &http.Client{
+					Transport: &http.Transport{
+						// disable keepalives so the connection doesn't hang around
+						DisableKeepAlives: true,
+
+						// ensure we stub out the retiring after the connection is established
+						Dial: func(netw, addr string) (net.Conn, error) {
+							conn, err := net.Dial(netw, addr)
+							if err != nil {
+								return nil, err
+							}
+
+							stubbed = true
+							heartbeatResults <- workerState{
+								retired: true,
+							}
+
+							return conn, nil
+						},
+					},
+				}
+
+				_, err := client.Get(registration.worker.BaggageclaimURL + "/slow")
+				Expect(err).To(HaveOccurred())
+
+				Expect(stubbed).To(BeTrue())
+
+				By("exiting successfully")
+				Eventually(registerErr).Should(Receive(BeNil()))
+			})
 		})
 
 		Describe("canceling the context", func() {

@@ -8,7 +8,7 @@ import (
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
+	"golang.org/x/oauth2"
 )
 
 var _ = Describe("Multiple ATCs Login Session Test", func() {
@@ -16,30 +16,20 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 		var atcs []boshInstance
 		var atc0URL string
 		var atc1URL string
-		var client *http.Client
-		var manifestFile string
 
-		JustBeforeEach(func() {
-			By("Configuring two ATCs")
-			Deploy(manifestFile)
-			waitForRunningWorker()
+		BeforeEach(func() {
+			Deploy(
+				"deployments/concourse.yml",
+				"-o", "operations/web-instances.yml",
+				"-v", "web_instances=2",
+			)
 
 			atcs = JobInstances("web")
 			atc0URL = "http://" + atcs[0].IP + ":8080"
 			atc1URL = "http://" + atcs[1].IP + ":8080"
 		})
 
-		AfterEach(func() {
-			restartSession := spawnBosh("start", atcs[0].Name)
-			<-restartSession.Exited
-			Eventually(restartSession).Should(gexec.Exit(0))
-		})
-
-		Context("Using database storage for dex", func() {
-			BeforeEach(func() {
-				manifestFile = "deployments/concourse-two-atcs-slow-tracking.yml"
-			})
-
+		Describe("using database storage for dex", func() {
 			It("uses the same client for multiple ATCs", func() {
 				var numClient int
 				err := psql.Select("COUNT(*)").From("client").RunWith(dbConn).QueryRow().Scan(&numClient)
@@ -49,35 +39,32 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 		})
 
 		Context("make api request to a different atc by a token from a stopped atc", func() {
+			var token *oauth2.Token
+
 			BeforeEach(func() {
-				manifestFile = "deployments/concourse-two-atcs-slow-tracking.yml"
-			})
-
-			It("request successfully", func() {
-				var (
-					err       error
-					request   *http.Request
-					response  *http.Response
-					reqHeader http.Header
-				)
-
-				client = &http.Client{}
-				token, err := fetchToken(atc0URL, atcUsername, atcPassword)
+				var err error
+				token, err = fetchToken(atc0URL, atcUsername, atcPassword)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("stopping the first atc")
-				stopSession := spawnBosh("stop", atcs[0].Name)
-				Eventually(stopSession).Should(gexec.Exit(0))
+				bosh("stop", atcs[0].Name)
+			})
 
-				reqHeader = http.Header{}
+			AfterEach(func() {
+				bosh("start", atcs[0].Name)
+			})
+
+			It("request successfully", func() {
+				client := &http.Client{}
+				reqHeader := http.Header{}
 				reqHeader.Set("Authorization", "Bearer "+token.AccessToken)
 
 				By("make request with the token to second atc")
-				request, err = http.NewRequest("GET", atc1URL+"/api/v1/workers", nil)
+				request, err := http.NewRequest("GET", atc1URL+"/api/v1/workers", nil)
 				request.Header = reqHeader
 				Expect(err).NotTo(HaveOccurred())
 
-				response, err = client.Do(request)
+				response, err := client.Do(request)
 				Expect(err).NotTo(HaveOccurred())
 
 				var workers []atc.Worker
@@ -87,16 +74,24 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 		})
 
 		Context("when two atcs have the same external url (dex redirect uri is the same)", func() {
-			BeforeEach(func() {
-				manifestFile = "deployments/concourse-two-atcs-with-same-redirect-uri.yml"
-			})
+			deploy := func() {
+				Deploy(
+					"deployments/concourse.yml",
+					"-o", "operations/web-instances.yml",
+					"-v", "web_instances=2",
+					"-o", "operations/external-url.yml",
+					"-v", "external_url="+atc0URL,
+				)
+			}
+
+			BeforeEach(deploy)
 
 			It("should be able to login to both ATCs", func() {
 				FlyLogin(atc0URL)
 				FlyLogin(atc1URL)
 
-				By("Deploying a second time (with a different token signing key")
-				Deploy(manifestFile)
+				By("deploying a second time (with a different token signing key)")
+				deploy()
 
 				FlyLogin(atc0URL)
 				FlyLogin(atc1URL)

@@ -9,10 +9,11 @@ import (
 
 var _ = Describe("Resource Certs", func() {
 	BeforeEach(func() {
-		Deploy("deployments/concourse-different-workers.yml",
+		Deploy(
+			"deployments/concourse.yml",
+			"-o", "operations/add-other-worker.yml",
 			"-o", "operations/other-worker-no-certs.yml",
 		)
-		waitForWorkersToBeRunning()
 	})
 
 	Context("with a certs path configured on the resource", func() {

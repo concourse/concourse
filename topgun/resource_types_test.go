@@ -11,23 +11,6 @@ var _ = Describe("A pipeline-provided resource type", func() {
 		Deploy("deployments/concourse.yml", "-o", "operations/no-gc.yml")
 	})
 
-	AfterEach(func() {
-		// XXX: bring the following back once draining is re-introduced
-		// restore deployment to drainable state
-		// deploy := StartDeploy("deployments/concourse.yml")
-
-		// var workers []string
-		// Eventually(func() []string {
-		// 	workers = workersBy("state", "landing")
-		// 	return workers
-		// }).Should(HaveLen(1))
-
-		// fly("prune-worker", "-w", workers[0])
-
-		// <-deploy.Exited
-		// Expect(deploy.ExitCode()).To(Equal(0))
-	})
-
 	It("does not result in redundant containers when running resource actions", func() {
 		By("setting a pipeline")
 		fly("set-pipeline", "-n", "-c", "pipelines/custom-types.yml", "-p", "pipe")
@@ -58,10 +41,9 @@ var _ = Describe("A pipeline-provided resource type", func() {
 	})
 })
 
-var _ = Describe("tagged resource types", func() {
+var _ = Describe("Tagged resource types", func() {
 	BeforeEach(func() {
 		Deploy("deployments/concourse.yml", "-o", "operations/tagged-worker.yml")
-		_ = waitForRunningWorker()
 
 		By("setting a pipeline with tagged custom types")
 		fly("set-pipeline", "-n", "-c", "pipelines/tagged-custom-types.yml", "-p", "pipe")

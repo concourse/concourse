@@ -18,8 +18,13 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 		var atc1URL string
 
 		BeforeEach(func() {
-			By("Configuring two ATCs")
-			Deploy("deployments/concourse-two-atcs-slow-tracking.yml")
+			Deploy(
+				"deployments/concourse.yml",
+				"-o", "operations/web-instances.yml",
+				"-v", "web_instances=2",
+				"-o", "operations/slow-tracking.yml",
+			)
+
 			waitForRunningWorker()
 
 			atcs = JobInstances("web")

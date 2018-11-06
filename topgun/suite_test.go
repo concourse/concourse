@@ -24,8 +24,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	sq "github.com/Masterminds/squirrel"
+	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"golang.org/x/oauth2"
 )
@@ -43,13 +43,17 @@ var (
 	atcUsername    string
 	atcPassword    string
 
+	workerGardenClient       gclient.Client
+	workerBaggageclaimClient bclient.Client
+
 	concourseReleaseVersion, bpmReleaseVersion, postgresReleaseVersion  string
 	gitServerReleaseVersion, vaultReleaseVersion, credhubReleaseVersion string
 	stemcellVersion                                                     string
 
 	pipelineName string
 
-	flyBin string
+	flyBin  string
+	flyHome string
 
 	logger *lagertest.TestLogger
 
@@ -78,7 +82,7 @@ var _ = SynchronizedAfterSuite(func() {
 })
 
 var _ = BeforeEach(func() {
-	SetDefaultEventuallyTimeout(5 * time.Minute)
+	SetDefaultEventuallyTimeout(2 * time.Minute)
 	SetDefaultEventuallyPollingInterval(time.Second)
 	SetDefaultConsistentlyDuration(time.Minute)
 	SetDefaultConsistentlyPollingInterval(time.Second)
@@ -129,8 +133,12 @@ var _ = BeforeEach(func() {
 	tmp, err = ioutil.TempDir("", "topgun-tmp")
 	Expect(err).ToNot(HaveOccurred())
 
+	flyHome = filepath.Join(tmp, "fly-home")
+	err = os.Mkdir(flyHome, 0755)
+	Expect(err).ToNot(HaveOccurred())
+
 	waitForDeploymentLock()
-	bosh("delete-deployment")
+	bosh("delete-deployment", "--force")
 
 	instances = map[string][]boshInstance{}
 	jobInstances = map[string][]boshInstance{}
@@ -144,9 +152,15 @@ var _ = BeforeEach(func() {
 })
 
 var _ = AfterEach(func() {
-	if CurrentGinkgoTestDescription().Failed {
-		TimestampedBy("collecting logs due to test failure")
-		bosh("logs")
+	test := CurrentGinkgoTestDescription()
+	if test.Failed {
+		dir := filepath.Join("logs", fmt.Sprintf("%s.%d", filepath.Base(test.FileName), test.LineNumber))
+
+		err := os.MkdirAll(dir, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		TimestampedBy("saving logs to " + dir + " due to test failure")
+		bosh("logs", "--dir", dir)
 	}
 
 	deleteAllContainers()
@@ -211,6 +225,18 @@ func Deploy(manifest string, args ...string) {
 	if webInstance != nil {
 		atcExternalURL = fmt.Sprintf("http://%s:8080", webInstance.IP)
 		FlyLogin(atcExternalURL)
+
+		waitForWorkersToBeRunning(len(JobInstances("worker")) + len(JobInstances("other_worker")))
+
+		workers := flyTable("workers", "-d")
+		if len(workers) > 0 {
+			worker := workers[0]
+			workerGardenClient = gclient.New(gconn.New("tcp", worker["garden address"]))
+			workerBaggageclaimClient = bclient.NewWithHTTPClient(worker["baggageclaim url"], http.DefaultClient)
+		} else {
+			workerGardenClient = nil
+			workerBaggageclaimClient = nil
+		}
 	}
 
 	dbInstance = JobInstance("postgres")
@@ -249,8 +275,10 @@ func JobInstances(job string) []boshInstance {
 }
 
 type boshInstance struct {
-	Name string
-	IP   string
+	Name  string
+	Group string
+	ID    string
+	IP    string
 }
 
 var instanceRow = regexp.MustCompile(`^([^/]+)/([^\s]+)\s+-\s+(\w+)\s+z1\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s*$`)
@@ -275,8 +303,10 @@ func loadJobInstances() (map[string][]boshInstance, map[string][]boshInstance) {
 			id := instanceMatch[2]
 
 			instance = boshInstance{
-				Name: group + "/" + id,
-				IP:   instanceMatch[4],
+				Name:  group + "/" + id,
+				Group: group,
+				ID:    id,
+				IP:    instanceMatch[4],
 			}
 
 			instances[group] = append(instances[group], instance)
@@ -301,11 +331,13 @@ func bosh(argv ...string) *gexec.Session {
 }
 
 func spawnBosh(argv ...string) *gexec.Session {
-	return spawn("bosh", append([]string{"-n", "-d", deploymentName}, argv...)...)
+	return spawn("bosh", nil, append([]string{"-n", "-d", deploymentName}, argv...)...)
 }
 
-func fly(argv ...string) {
-	wait(spawnFly(argv...))
+func fly(argv ...string) *gexec.Session {
+	session := spawnFly(argv...)
+	wait(session)
+	return session
 }
 
 func concourseClient() concourse.Client {
@@ -345,6 +377,10 @@ func deleteAllContainers() {
 	Expect(err).NotTo(HaveOccurred())
 
 	for _, worker := range workers {
+		if worker.GardenAddr == "" {
+			continue
+		}
+
 		connection := gconn.New("tcp", worker.GardenAddr)
 		gardenClient := gclient.New(connection)
 		for _, container := range containers {
@@ -356,35 +392,6 @@ func deleteAllContainers() {
 			}
 		}
 	}
-}
-
-func flyHijackTask(argv ...string) *gexec.Session {
-	cmd := exec.Command(flyBin, append([]string{"-t", flyTarget, "hijack"}, argv...)...)
-	hijackIn, err := cmd.StdinPipe()
-	Expect(err).NotTo(HaveOccurred())
-
-	hijackS, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).ToNot(HaveOccurred())
-
-	Eventually(func() bool {
-		taskMatcher := gbytes.Say("type: task")
-		matched, err := taskMatcher.Match(hijackS)
-		Expect(err).ToNot(HaveOccurred())
-
-		if matched {
-			re, err := regexp.Compile("([0-9]): .+ type: task")
-			Expect(err).NotTo(HaveOccurred())
-
-			taskNumber := re.FindStringSubmatch(string(hijackS.Out.Contents()))[1]
-			fmt.Fprintln(hijackIn, taskNumber)
-
-			return true
-		}
-
-		return hijackS.ExitCode() == 0
-	}).Should(BeTrue())
-
-	return hijackS
 }
 
 func FlyLogin(endpoint string) {
@@ -399,33 +406,33 @@ func FlyLogin(endpoint string) {
 }
 
 func spawnFly(argv ...string) *gexec.Session {
-	return spawn(flyBin, append([]string{"-t", flyTarget}, argv...)...)
+	return spawn(flyBin, []string{"HOME=" + flyHome}, append([]string{"-t", flyTarget}, argv...)...)
 }
 
 func spawnFlyInteractive(stdin io.Reader, argv ...string) *gexec.Session {
-	return spawnInteractive(stdin, flyBin, append([]string{"-t", flyTarget}, argv...)...)
-}
-
-func run(argc string, argv ...string) {
-	wait(spawn(argc, argv...))
+	return spawnInteractive(stdin, []string{"HOME=" + flyHome}, flyBin, append([]string{"-t", flyTarget}, argv...)...)
 }
 
 func TimestampedBy(msg string) {
-	By(fmt.Sprintf("[%.9f] %s", time.Now().UnixNano(), msg))
+	By(fmt.Sprintf("[%.9f] %s", float64(time.Now().UnixNano())/1e9, msg))
 }
 
-func spawn(argc string, argv ...string) *gexec.Session {
-	TimestampedBy("running: " + argc + " " + strings.Join(argv, " "))
+func spawn(argc string, env []string, argv ...string) *gexec.Session {
 	cmd := exec.Command(argc, argv...)
+	cmd.Env = env
+
+	TimestampedBy("running: " + argc + " " + strings.Join(argv, " "))
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).ToNot(HaveOccurred())
 	return session
 }
 
-func spawnInteractive(stdin io.Reader, argc string, argv ...string) *gexec.Session {
-	TimestampedBy("interactively running: " + argc + " " + strings.Join(argv, " "))
+func spawnInteractive(stdin io.Reader, env []string, argc string, argv ...string) *gexec.Session {
 	cmd := exec.Command(argc, argv...)
 	cmd.Stdin = stdin
+	cmd.Env = env
+
+	TimestampedBy("interactively running: " + argc + " " + strings.Join(argv, " "))
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).ToNot(HaveOccurred())
 	return session
@@ -436,8 +443,8 @@ func wait(session *gexec.Session) {
 	Expect(session.ExitCode()).To(Equal(0))
 }
 
-func waitForLandingOrLandedWorker() string {
-	return waitForWorkerInState("landing", "landed")
+func waitForLandedWorker() string {
+	return waitForWorkerInState("landed")
 }
 
 func waitForRunningWorker() string {
@@ -446,6 +453,18 @@ func waitForRunningWorker() string {
 
 func waitForStalledWorker() string {
 	return waitForWorkerInState("stalled")
+}
+
+func workerState(name string) string {
+	workers := flyTable("workers")
+
+	for _, w := range workers {
+		if w["name"] == name {
+			return w["state"]
+		}
+	}
+
+	return ""
 }
 
 func waitForWorkerInState(desiredStates ...string) string {
@@ -477,7 +496,7 @@ func waitForWorkerInState(desiredStates ...string) string {
 		}
 
 		return workerName
-	}).ShouldNot(BeEmpty(), "should have seen a worker in states: "+strings.Join(desiredStates, ", "))
+	}, 2*time.Minute, 5*time.Second).ShouldNot(BeEmpty(), "should have seen a worker in states: "+strings.Join(desiredStates, ", "))
 
 	return workerName
 }
@@ -537,21 +556,19 @@ func splitTableColumns(row string) []string {
 	return regexp.MustCompile(`(\s{2,}|\t)`).Split(strings.TrimSpace(row), -1)
 }
 
-func waitForWorkersToBeRunning() {
-	Eventually(func() bool {
+func waitForWorkersToBeRunning(expected int) {
+	Eventually(func() interface{} {
 		workers := flyTable("workers")
-		anyNotRunning := false
+
+		runningWorkers := []map[string]string{}
 		for _, worker := range workers {
-
-			state := worker["state"]
-
-			if state != "running" {
-				anyNotRunning = true
+			if worker["state"] == "running" {
+				runningWorkers = append(runningWorkers, worker)
 			}
 		}
 
-		return anyNotRunning
-	}).Should(BeFalse())
+		return runningWorkers
+	}).Should(HaveLen(expected), "expected all workers to be running")
 }
 
 func workersWithContainers() []string {
