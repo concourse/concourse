@@ -9,8 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("an ATC with syslog draining set.", func() {
-
+var _ = Describe("An ATC with syslog draining set", func() {
 	BeforeEach(func() {
 		Deploy("deployments/concourse.yml",
 			"-o", "operations/syslog_configurations.yml",
@@ -21,7 +20,7 @@ var _ = Describe("an ATC with syslog draining set.", func() {
 		)
 	})
 
-	It("sends the build logs to the syslog server.", func() {
+	It("sends the build logs to the syslog server", func() {
 		fly("set-pipeline", "-n", "-c", "pipelines/secrets.yml", "-p", "syslog-pipeline")
 
 		fly("unpause-pipeline", "-p", "syslog-pipeline")
@@ -30,7 +29,7 @@ var _ = Describe("an ATC with syslog draining set.", func() {
 		<-buildSession.Exited
 		Expect(buildSession.ExitCode()).To(Equal(0))
 
-		bosh("scp", "concourse/0:/var/vcap/store/syslog_storer/syslog.log", "/tmp/syslog.log")
+		bosh("scp", "web/0:/var/vcap/store/syslog_storer/syslog.log", "/tmp/syslog.log")
 		found, err := checkContent("/tmp/syslog.log", "shhhh")
 
 		Expect(err).NotTo(HaveOccurred())

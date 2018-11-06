@@ -7,16 +7,8 @@ import (
 )
 
 var _ = Describe("Worker retiring", func() {
-	var (
-		deployment string
-	)
-
 	BeforeEach(func() {
-		Skip("until draining has been re-introduced")
-
-		deployment = "deployments/concourse-separate-forwarded-worker.yml"
-		Deploy(deployment)
-		_ = waitForRunningWorker()
+		Deploy("deployments/concourse.yml")
 	})
 
 	It("deletes all containers and volumes when worker is gone", func() {
@@ -38,7 +30,7 @@ var _ = Describe("Worker retiring", func() {
 		Expect(volumesBefore).ToNot(BeEmpty())
 
 		By("retiring the worker")
-		Deploy(deployment, "-o", "operations/retire-worker.yml")
+		Deploy("deployments/concourse.yml", "-o", "operations/retire-worker.yml")
 
 		By("getting the worker containers")
 		containersAfter := flyTable("containers")

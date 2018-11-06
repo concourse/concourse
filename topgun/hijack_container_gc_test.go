@@ -1,11 +1,8 @@
 package topgun_test
 
 import (
-	"fmt"
 	"time"
 
-	gclient "code.cloudfoundry.org/garden/client"
-	gconn "code.cloudfoundry.org/garden/client/connection"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,14 +10,8 @@ import (
 )
 
 var _ = Describe("Hijacked containers", func() {
-	var (
-		gClient gclient.Client
-	)
-
 	BeforeEach(func() {
 		Deploy("deployments/concourse.yml")
-
-		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", JobInstance("worker").IP)))
 	})
 
 	getContainer := func(condition, value string) func() hijackedContainerResult {
@@ -37,7 +28,7 @@ var _ = Describe("Hijacked containers", func() {
 				}
 			}
 
-			_, err := gClient.Lookup(containerHandle)
+			_, err := workerGardenClient.Lookup(containerHandle)
 			if err == nil {
 				h.gardenContainerExists = true
 			}

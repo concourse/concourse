@@ -1,7 +1,6 @@
 package topgun_test
 
 import (
-	"bytes"
 	"fmt"
 	"time"
 
@@ -10,13 +9,17 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe(":life Garbage collecting resource containers", func() {
+var _ = Describe("Garbage collecting resource containers", func() {
 	Describe("A container that is used by resource checking on freshly deployed worker", func() {
 		BeforeEach(func() {
-			Deploy("deployments/concourse-separate-forwarded-worker.yml", "-o", "operations/separate-worker-two.yml")
+			Deploy(
+				"deployments/concourse.yml",
+				"-o", "operations/worker-instances.yml",
+				"-v", "worker_instances=2",
+			)
 		})
 
-		It("is recreated in database and worker [#129726933]", func() {
+		It("is recreated in database and worker", func() {
 			By("setting pipeline that creates resource cache")
 			fly("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
 
@@ -280,14 +283,7 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 				fly("check-resource", "-r", "resource-gc-test/tick-tock")
 
 				By("creating another team")
-				setTeamSession := spawnFlyInteractive(
-					bytes.NewBufferString("y\n"),
-					"set-team",
-					"--team-name", teamName,
-					"--local-user", atcUsername,
-				)
-				<-setTeamSession.Exited
-				Expect(setTeamSession.ExitCode()).To(Equal(0))
+				fly("set-team", "--non-interactive", "--team-name", teamName, "--local-user", atcUsername)
 
 				fly("login", "-c", atcExternalURL, "-n", teamName, "-u", atcUsername, "-p", atcPassword)
 

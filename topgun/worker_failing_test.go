@@ -10,7 +10,12 @@ import (
 
 var _ = Describe("Worker failing", func() {
 	BeforeEach(func() {
-		Deploy("deployments/concourse-different-workers.yml", "-o", "operations/other-worker-doomed.yml", "-o", "operations/fast-gc.yml")
+		Deploy(
+			"deployments/concourse.yml",
+			"-o", "operations/add-other-worker.yml",
+			"-o", "operations/other-worker-doomed.yml",
+			"-o", "operations/fast-gc.yml",
+		)
 	})
 
 	Context("when baggageclaim becomes unresponsive", func() {
@@ -35,7 +40,7 @@ var _ = Describe("Worker failing", func() {
 
 		AfterEach(func() {
 			bosh("ssh", "other_worker/0", "-c", "sudo pkill -F /var/vcap/sys/run/baggageclaim/baggageclaim.pid -CONT")
-			waitForWorkersToBeRunning()
+			waitForWorkersToBeRunning(2)
 		})
 
 		It("puts the worker in stalled state and does not lock up garbage collection", func() {

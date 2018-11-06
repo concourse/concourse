@@ -21,11 +21,11 @@
       properties: {}
 
 - type: replace
-  path: /instance_groups/name=concourse/instances
-  value: ((instances))
+  path: /instance_groups/name=web/instances
+  value: ((web_instances))
 
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=web/properties/vault?
+  path: /instance_groups/name=web/jobs/name=web/properties/vault?
   value:
     url: ((vault_url))
     auth:

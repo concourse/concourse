@@ -6,21 +6,21 @@
     version: ((credhub_release_version))
 
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=web/properties?/postgresql?/ca_cert?
+  path: /instance_groups/name=web/jobs/name=web/properties?/postgresql?/ca_cert?
   value: ((postgres_tls.ca))
 
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=postgres/properties?/databases?/tls?
+  path: /instance_groups/name=db/jobs/name=postgres/properties?/databases?/tls?
   value: ((postgres_tls))
 
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=postgres/properties?/databases?/roles?/-
+  path: /instance_groups/name=db/jobs/name=postgres/properties?/databases?/roles?/-
   value:
     name: credhub
     password: dummy-password
 
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=postgres/properties?/databases?/databases?/-
+  path: /instance_groups/name=db/jobs/name=postgres/properties?/databases?/databases?/-
   value:
     name: credhub
 
@@ -63,7 +63,7 @@
               enabled: false
 
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=web/properties?/credhub?
+  path: /instance_groups/name=web/jobs/name=web/properties?/credhub?
   value:
     url: https://((credhub_ip)):8844
     tls:

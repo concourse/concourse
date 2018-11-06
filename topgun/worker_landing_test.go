@@ -3,6 +3,7 @@ package topgun_test
 import (
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -12,63 +13,89 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-var _ = Describe("[#129726011] Worker landing", func() {
-	BeforeEach(func() {
-		Skip("until draining has been re-introduced")
-	})
+var _ = Describe("Worker landing", func() {
+	landWorker := func() (string, boshInstance) {
+		workerToLand := flyTable("workers")[0]["name"]
+
+		// the bosh release ensures the first guid segment matches the first guid
+		// segment of the instance ID, so that they can be correlated
+		guidSegments := strings.Split(workerToLand, "-")
+		prefix := guidSegments[0]
+
+		var instance boshInstance
+		for _, i := range JobInstances("worker") {
+			if strings.HasPrefix(i.ID, prefix) {
+				instance = i
+				break
+			}
+		}
+
+		Expect(instance.ID).ToNot(BeEmpty(), "should have found a corresponding bosh instance")
+
+		// unmonitor worker, otherwise monit will just restart it once it's landed
+		bosh("ssh", instance.Name, "-c", "sudo /var/vcap/bosh/bin/monit unmonitor worker")
+
+		// land worker via fly; this will cause the worker process to exit
+		fly("land-worker", "-w", workerToLand)
+
+		return workerToLand, instance
+	}
+
+	startLandedWorker := func(instance boshInstance) {
+		bosh("ssh", instance.Name, "-c", "sudo /var/vcap/bosh/bin/monit monitor worker")
+		bosh("ssh", instance.Name, "-c", "sudo /var/vcap/bosh/bin/monit start worker")
+	}
 
 	Context("with two workers available", func() {
 		BeforeEach(func() {
-			Skip("unreliable; if worker restarts too fast, test will fail. we should use 'bosh stop' but it turns out that retires, not lands.")
-
-			Deploy("deployments/concourse-separate-forwarded-worker.yml", "-o", "operations/separate-worker-two.yml")
+			Deploy(
+				"deployments/concourse.yml",
+				"-o", "operations/worker-instances.yml",
+				"-v", "worker_instances=2",
+			)
 		})
 
-		Describe("restarting the worker", func() {
-			var restartingWorkerName string
-			var restartSession *gexec.Session
+		Describe("landing the worker", func() {
+			var landingWorkerName string
+			var landingWorkerInstance boshInstance
 
 			JustBeforeEach(func() {
-				restartSession = spawnBosh("restart", "worker/0")
-				restartingWorkerName = waitForLandingOrLandedWorker()
+				landingWorkerName, landingWorkerInstance = landWorker()
 			})
 
 			AfterEach(func() {
-				<-restartSession.Exited
+				startLandedWorker(landingWorkerInstance)
 			})
 
 			Context("while in landing or landed state", func() {
-				// technically this is timing-dependent but it doesn't seem worth the
-				// time cost of explicit tests for both
-
 				It("is not used for new workloads", func() {
 					for i := 0; i < 10; i++ {
 						fly("execute", "-c", "tasks/tiny.yml")
 						usedWorkers := workersWithContainers()
 						Expect(usedWorkers).To(HaveLen(1))
-						Expect(usedWorkers).ToNot(ContainElement(restartingWorkerName))
+						Expect(usedWorkers).ToNot(ContainElement(landingWorkerName))
 					}
 				})
 
 				It("can be pruned", func() {
-					fly("prune-worker", "-w", restartingWorkerName)
-					waitForWorkersToBeRunning()
+					fly("prune-worker", "-w", landingWorkerName)
+					waitForWorkersToBeRunning(1)
 				})
 			})
 		})
 	})
 
-	describeRestartingTheWorker := func() {
-		Describe("restarting the worker", func() {
-			var restartSession *gexec.Session
+	describeLandingTheWorker := func() {
+		Describe("landing the worker", func() {
+			var landingWorkerName string
+			var landingWorkerInstance boshInstance
 
 			JustBeforeEach(func() {
-				restartSession = spawnBosh("restart", "worker/0")
-				_ = waitForLandingOrLandedWorker()
+				landingWorkerName, landingWorkerInstance = landWorker()
 			})
 
 			AfterEach(func() {
-				<-restartSession.Exited
+				startLandedWorker(landingWorkerInstance)
 			})
 
 			Context("with volumes and containers present", func() {
@@ -96,9 +123,10 @@ var _ = Describe("[#129726011] Worker landing", func() {
 				})
 
 				It("keeps volumes and containers after restart", func() {
-					By("completing the restart")
-					<-restartSession.Exited
-					Expect(restartSession.ExitCode()).To(Equal(0))
+					By("starting the worker back up")
+					waitForLandedWorker()
+					startLandedWorker(landingWorkerInstance)
+					waitForWorkersToBeRunning(1)
 
 					By("retaining cached image resource in second job build")
 					buildSession := spawnFly("trigger-job", "-w", "-j", "topgun/simple-job")
@@ -132,8 +160,8 @@ var _ = Describe("[#129726011] Worker landing", func() {
 				})
 
 				It("does not wait for the build", func() {
-					By("completing the restart without the drain timeout kicking in")
-					Eventually(restartSession, 5*time.Minute).Should(gexec.Exit(0))
+					By("landing without the drain timeout kicking in")
+					waitForLandedWorker()
 				})
 			})
 
@@ -158,26 +186,22 @@ var _ = Describe("[#129726011] Worker landing", func() {
 				})
 
 				It("waits for the build", func() {
-					Eventually(restartSession).Should(gbytes.Say(`Updating (instance|job)`))
-					Consistently(restartSession, 5*time.Minute).ShouldNot(gexec.Exit())
+					Consistently(func() string {
+						return workerState(landingWorkerName)
+					}, 5*time.Minute).Should(Equal("landing"))
 				})
 
-				It("finishes restarting once the build is done", func() {
+				It("finishes landing once the build is done", func() {
 					By("hijacking the build to tell it to finish")
-					<-flyHijackTask(
-						"-b", buildID,
-						"-s", "one-off",
-						"touch", "/tmp/stop-waiting",
-					).Exited
+					fly("hijack", "-b", buildID, "-s", "one-off", "--", "touch", "/tmp/stop-waiting")
 
 					By("waiting for the build to exit")
 					Eventually(buildSession).Should(gbytes.Say("done"))
 					<-buildSession.Exited
 					Expect(buildSession.ExitCode()).To(Equal(0))
 
-					By("successfully restarting")
-					<-restartSession.Exited
-					Expect(restartSession.ExitCode()).To(Equal(0))
+					By("successfully landing")
+					waitForLandedWorker()
 				})
 			})
 		})
@@ -185,18 +209,27 @@ var _ = Describe("[#129726011] Worker landing", func() {
 
 	Context("with one worker", func() {
 		BeforeEach(func() {
-			Deploy("deployments/concourse-separate-forwarded-worker.yml")
+			Deploy("deployments/concourse.yml")
 			waitForRunningWorker()
 		})
 
-		describeRestartingTheWorker()
+		describeLandingTheWorker()
 	})
 
 	Context("with a single team worker", func() {
 		BeforeEach(func() {
-			Deploy("deployments/concourse-separate-forwarded-worker.yml", "-o", "operations/separate-worker-team.yml")
+			Deploy(
+				"deployments/concourse.yml",
+				"-o", "operations/worker-instances.yml",
+				"-v", "worker_instances=0",
+			)
 
 			fly("set-team", "--non-interactive", "-n", "team-a", "--local-user", atcUsername)
+
+			Deploy(
+				"deployments/concourse.yml",
+				"-o", "operations/worker-team.yml",
+			)
 
 			fly("login", "-c", atcExternalURL, "-n", "team-a", "-u", atcUsername, "-p", atcPassword)
 
@@ -204,6 +237,6 @@ var _ = Describe("[#129726011] Worker landing", func() {
 			waitForRunningWorker()
 		})
 
-		describeRestartingTheWorker()
+		describeLandingTheWorker()
 	})
 })

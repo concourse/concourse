@@ -1,6 +1,6 @@
 ---
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=web/properties/aws_ssm?
+  path: /instance_groups/name=web/jobs/name=web/properties/aws_ssm?
   value:
     region: ((aws_region))
     access_key: ((aws_access_key))

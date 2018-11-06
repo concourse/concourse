@@ -11,7 +11,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 )
 
-var _ = Describe(":life [#136140165] Container scope", func() {
+var _ = Describe("Container scope", func() {
 	Context("when the container is scoped to a team", func() {
 		BeforeEach(func() {
 			Deploy("deployments/concourse.yml")

@@ -167,11 +167,19 @@ var _ = Describe("Database secrets encryption", func() {
 
 				Context("when an old key and new key are both given that do not match the key in use", func() {
 					var deploy *gexec.Session
+					var boshLogs *gexec.Session
 
 					BeforeEach(func() {
+						boshLogs = spawnBosh("logs", "-f")
+
 						deploy = StartDeploy("deployments/concourse.yml", "-o", "operations/encryption-bogus.yml")
 						<-deploy.Exited
 						Expect(deploy.ExitCode()).To(Equal(1))
+					})
+
+					AfterEach(func() {
+						boshLogs.Signal(os.Interrupt)
+						<-boshLogs.Exited
 					})
 
 					AfterEach(func() {

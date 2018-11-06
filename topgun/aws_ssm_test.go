@@ -129,7 +129,7 @@ var _ = Describe("AWS SSM", func() {
 			)
 
 			BeforeEach(func() {
-				atcUrl = "http://" + jobInstances["atc"][0].IP + ":8080"
+				atcUrl = "http://" + JobInstance("web").IP + ":8080"
 			})
 
 			JustBeforeEach(func() {

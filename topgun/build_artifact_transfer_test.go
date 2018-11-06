@@ -11,7 +11,11 @@ var _ = Describe("Passing artifacts between build steps", func() {
 	BeforeEach(func() {
 		Skip("additional_resource_types is no longer supported")
 
-		Deploy("deployments/concourse-different-workers.yml", "-o", "operations/other-worker-different-resource-type.yml")
+		Deploy(
+			"deployments/concourse.yml",
+			"-o", "operations/add-other-worker.yml",
+			"-o", "operations/other-worker-different-resource-type.yml",
+		)
 	})
 
 	It("transfers bits between workers when the resource type is not supported", func() {
