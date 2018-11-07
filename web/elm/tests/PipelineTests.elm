@@ -12,7 +12,7 @@ import SubPage
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (attribute, containing, id, style, tag, text)
+import Test.Html.Selector as Selector exposing (attribute, containing, id, style, tag, text)
 import Time exposing (Time)
 import TopBar
 
@@ -165,7 +165,9 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "top-bar-app" ]
                             |> Query.find [ id "pin-icon" ]
-                            |> Event.simulate Event.mouseOver
+                            |> Query.children []
+                            |> Query.first
+                            |> Event.simulate Event.mouseEnter
                             |> Event.toResult
                             |> Expect.err
                 , test "there is some space between the pin icon and the user menu" <|
@@ -184,6 +186,18 @@ all =
                             |> Query.find [ id "top-bar-app" ]
                             |> Query.find [ id "pin-icon" ]
                             |> Query.has [ style [ ( "position", "relative" ) ] ]
+                , test "pin icon does not have circular background" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.findAll
+                                [ id "pin-icon"
+                                , style
+                                    [ ( "border-radius", "50%" )
+                                    ]
+                                ]
+                            |> Query.count (Expect.equal 0)
                 , test "pin icon has white color when pipeline has pinned resources" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
@@ -218,7 +232,7 @@ all =
                                     , ( "height", "15px" )
                                     ]
                                 ]
-                , test "teal badge is offset to the top right of the pin icon" <|
+                , test "teal badge is near the top right of the pin icon" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
                             |> givenPinnedResource
@@ -230,8 +244,8 @@ all =
                             |> Query.has
                                 [ style
                                     [ ( "position", "absolute" )
-                                    , ( "top", "-5px" )
-                                    , ( "right", "-5px" )
+                                    , ( "top", "3px" )
+                                    , ( "right", "3px" )
                                     ]
                                 ]
                 , test "content inside teal badge is centered horizontally and vertically" <|
@@ -261,6 +275,17 @@ all =
                             |> Query.find [ style [ ( "background-color", "#03dac4" ) ] ]
                             |> Query.findAll [ tag "div", containing [ text "1" ] ]
                             |> Query.count (Expect.equal 1)
+                , test "teal badge has no other children" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> givenPinnedResource
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.find [ style [ ( "background-color", "#03dac4" ) ] ]
+                            |> Query.children []
+                            |> Query.count (Expect.equal 1)
                 , test "pin counter works with multiple pinned resources" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
@@ -289,9 +314,39 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "top-bar-app" ]
                             |> Query.find [ id "pin-icon" ]
-                            |> Event.simulate Event.mouseOver
+                            |> Query.children []
+                            |> Query.first
+                            |> Event.simulate Event.mouseEnter
                             |> Event.expect (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                , test "TogglePinIconDropdown msg causes pin icon to have light grey circular background" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> givenPinnedResource
+                            |> Layout.update
+                                (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            |> Tuple.first
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.has
+                                [ style
+                                    [ ( "background-color", "#3d3c3c" )
+                                    , ( "border-radius", "50%" )
+                                    ]
+                                ]
                 , test "TogglePinIconDropdown msg causes dropdown list of pinned resources to appear" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> givenPinnedResource
+                            |> Layout.update
+                                (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            |> Tuple.first
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.children [ tag "ul" ]
+                            |> Query.count (Expect.equal 1)
+                , test "on TogglePinIconDropdown, teal badge has no other children" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
                             |> givenPinnedResource
@@ -302,7 +357,9 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "top-bar-app" ]
                             |> Query.find [ id "pin-icon" ]
-                            |> Query.has [ tag "ul" ]
+                            |> Query.find [ style [ ( "background-color", "#03dac4" ) ] ]
+                            |> Query.children []
+                            |> Query.count (Expect.equal 1)
                 , test "dropdown list of pinned resources contains resource name" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
@@ -329,7 +386,22 @@ all =
                             |> Query.find [ id "pin-icon" ]
                             |> Query.find [ tag "ul" ]
                             |> Query.find [ tag "li", containing [ text "resource" ] ]
-                            |> Query.has [ style [ ( "font-weight", "700" ) ] ]
+                            |> Query.findAll [ tag "div", containing [ text "resource" ], style [ ( "font-weight", "700" ) ] ]
+                            |> Query.count (Expect.equal 1)
+                , test "dropdown list of pinned resources shows pinned version of each resource" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> givenPinnedResource
+                            |> Layout.update
+                                (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            |> Tuple.first
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.find [ tag "ul" ]
+                            |> Query.find [ tag "li", containing [ text "resource" ] ]
+                            |> Query.has [ tag "table", containing [ text "v1" ] ]
                 , test "dropdown list of pinned resources has white background" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
@@ -343,6 +415,19 @@ all =
                             |> Query.find [ id "pin-icon" ]
                             |> Query.find [ tag "ul" ]
                             |> Query.has [ style [ ( "background-color", "#fff" ) ] ]
+                , test "dropdown list of pinned resources is drawn over other elements on the page" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> givenPinnedResource
+                            |> Layout.update
+                                (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            |> Tuple.first
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.find [ tag "ul" ]
+                            |> Query.has [ style [ ( "z-index", "1" ) ] ]
                 , test "dropdown list of pinned resources has dark grey text" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
@@ -356,7 +441,26 @@ all =
                             |> Query.find [ id "pin-icon" ]
                             |> Query.find [ tag "ul" ]
                             |> Query.has [ style [ ( "color", "#1e1d1d" ) ] ]
-                , test "dropdown list of pinned resources is offset below and left of pin" <|
+                , test "dropdown list has upward-pointing arrow" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> givenPinnedResource
+                            |> Layout.update
+                                (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            |> Tuple.first
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.children
+                                [ style
+                                    [ ( "border-width", "5px" )
+                                    , ( "border-style", "solid" )
+                                    , ( "border-color", "transparent transparent #fff transparent" )
+                                    ]
+                                ]
+                            |> Query.count (Expect.equal 1)
+                , test "dropdown list of pinned resources is offset below and left of the pin icon" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
                             |> givenPinnedResource
@@ -371,8 +475,9 @@ all =
                             |> Query.has
                                 [ style
                                     [ ( "position", "absolute" )
-                                    , ( "top", "15px" )
+                                    , ( "top", "100%" )
                                     , ( "right", "0" )
+                                    , ( "margin-top", "0" )
                                     ]
                                 ]
                 , test "dropdown list of pinned resources stretches horizontally to fit content" <|
@@ -423,6 +528,34 @@ all =
                                 [ style
                                     [ ( "padding", "10px" ) ]
                                 ]
+                , test "dropdown list arrow is centered below the pin icon above the list" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> givenPinnedResource
+                            |> Layout.update
+                                (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            |> Tuple.first
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.children
+                                [ style
+                                    [ ( "border-width", "5px" )
+                                    , ( "border-style", "solid" )
+                                    , ( "border-color", "transparent transparent #fff transparent" )
+                                    ]
+                                ]
+                            |> Query.first
+                            |> Query.has
+                                [ style
+                                    [ ( "top", "100%" )
+                                    , ( "right", "50%" )
+                                    , ( "margin-right", "-5px" )
+                                    , ( "margin-top", "-10px" )
+                                    , ( "position", "absolute" )
+                                    ]
+                                ]
                 , test "mousing off the pin icon sends TogglePinIconDropdown msg" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
@@ -431,8 +564,23 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "top-bar-app" ]
                             |> Query.find [ id "pin-icon" ]
-                            |> Event.simulate Event.mouseOut
+                            |> Query.children []
+                            |> Query.first
+                            |> Event.simulate Event.mouseLeave
                             |> Event.expect (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                , test "clicking a pinned resource sends a Navigation Msg" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> givenPinnedResource
+                            |> Layout.update
+                                (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            |> Tuple.first
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.find [ tag "li" ]
+                            |> Event.simulate Event.click
+                            |> Event.expect (Layout.TopMsg 1 (TopBar.GoToPinnedResource "resource"))
                 , test "TogglePinIconDropdown msg causes dropdown list of pinned resources to disappear" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
@@ -448,6 +596,23 @@ all =
                             |> Query.find [ id "top-bar-app" ]
                             |> Query.find [ id "pin-icon" ]
                             |> Query.hasNot [ tag "ul" ]
+                , test "pinned resources in the dropdown should have a pointer cursor" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> givenPinnedResource
+                            |> Layout.update
+                                (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            |> Tuple.first
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.find [ tag "ul" ]
+                            |> Expect.all
+                                [ Query.findAll [ tag "li" ]
+                                    >> Query.each (Query.has [ style [ ( "cursor", "pointer" ) ] ])
+                                , Query.findAll [ style [ ( "cursor", "pointer" ) ] ]
+                                    >> Query.each (Query.has [ tag "li" ])
+                                ]
                 , test "shows no pin icon on top bar when viewing build page" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline/jobs/job/builds/1"

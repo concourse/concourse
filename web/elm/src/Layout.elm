@@ -5,7 +5,6 @@ import Favicon
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id)
 import Json.Decode
-import Maybe.Extra as ME
 import Navigation
 import Pipeline
 import Routes
@@ -178,12 +177,20 @@ update msg model =
                 resources =
                     Json.Decode.decodeValue (Json.Decode.list Concourse.decodeResource) fetchedResources
 
-                pinnedResources : List String
+                pinnedResources : List ( String, Concourse.Version )
                 pinnedResources =
                     case resources of
                         Ok rs ->
-                            List.filter (.pinnedVersion >> ME.isJust) rs
-                                |> List.map .name
+                            rs
+                                |> List.filterMap
+                                    (\resource ->
+                                        case resource.pinnedVersion of
+                                            Just v ->
+                                                Just ( resource.name, v )
+
+                                            Nothing ->
+                                                Nothing
+                                    )
 
                         Err _ ->
                             []

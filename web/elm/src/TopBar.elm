@@ -3,9 +3,10 @@ port module TopBar exposing (Model, Msg(..), fetchUser, init, subscriptions, upd
 import Concourse
 import Concourse.Pipeline
 import Concourse.User
+import Dict
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, disabled, href, id, style)
-import Html.Events exposing (onClick, onMouseOver, onMouseOut)
+import Html.Events exposing (onClick, onMouseOver, onMouseOut, onMouseEnter, onMouseLeave)
 import Http
 import LoginRedirect
 import Navigation exposing (Location)
@@ -21,7 +22,7 @@ type alias Model =
     , pipeline : Maybe Concourse.Pipeline
     , userState : UserState
     , userMenuVisible : Bool
-    , pinnedResources : List String
+    , pinnedResources : List ( String, Concourse.Version )
     , showPinIconDropDown : Bool
     }
 
@@ -44,6 +45,7 @@ type Msg
     | LoggedOut (Result Http.Error ())
     | ToggleUserMenu
     | TogglePinIconDropdown
+    | GoToPinnedResource String
 
 
 init : Routes.ConcourseRoute -> ( Model, Cmd Msg )
@@ -138,6 +140,13 @@ update msg model =
 
         TogglePinIconDropdown ->
             ( { model | showPinIconDropDown = not model.showPinIconDropDown }, Cmd.none )
+
+        GoToPinnedResource resourceName ->
+            let
+                url =
+                    Routes.toString model.route.logical
+            in
+                ( model, Navigation.newUrl (url ++ "/resources/" ++ resourceName) )
 
 
 subscriptions : Model -> Sub Msg
@@ -244,47 +253,60 @@ view model =
             ((case model.route.logical of
                 Routes.Pipeline _ _ ->
                     [ Html.div
-                        ([ id "pin-icon"
-                         , style
-                            [ ( "background-image"
-                              , if List.length model.pinnedResources > 0 then
-                                    "url(/public/images/pin_ic_white.svg)"
-                                else
-                                    "url(/public/images/pin_ic_grey.svg)"
-                              )
-                            , ( "width", "25px" )
-                            , ( "height", "25px" )
-                            , ( "background-repeat", "no-repeat" )
-                            , ( "background-position", "50% 50%" )
-                            , ( "background-size", "contain" )
-                            , ( "position", "relative" )
-                            , ( "margin-right", "15px" )
-                            ]
+                        ([ style [ ( "margin-right", "15px" ) ]
+                         , id "pin-icon"
                          ]
-                            ++ (if List.length model.pinnedResources > 0 then
-                                    [ onMouseOver TogglePinIconDropdown
-                                    , onMouseOut TogglePinIconDropdown
+                            ++ (if model.showPinIconDropDown then
+                                    [ style
+                                        [ ( "background-color", "#3d3c3c" )
+                                        , ( "border-radius", "50%" )
+                                        ]
                                     ]
                                 else
                                     []
                                )
                         )
-                        (if List.length model.pinnedResources > 0 then
-                            [ Html.div
-                                [ style
-                                    [ ( "background-color", "#03dac4" )
-                                    , ( "border-radius", "50%" )
-                                    , ( "width", "15px" )
-                                    , ( "height", "15px" )
-                                    , ( "position", "absolute" )
-                                    , ( "top", "-5px" )
-                                    , ( "right", "-5px" )
-                                    , ( "display", "flex" )
-                                    , ( "align-items", "center" )
-                                    , ( "justify-content", "center" )
+                        [ Html.div
+                            ([ style
+                                ([ ( "background-image"
+                                   , if List.length model.pinnedResources > 0 then
+                                        "url(/public/images/pin_ic_white.svg)"
+                                     else
+                                        "url(/public/images/pin_ic_grey.svg)"
+                                   )
+                                 , ( "width", "40px" )
+                                 , ( "height", "40px" )
+                                 , ( "background-repeat", "no-repeat" )
+                                 , ( "background-position", "50% 50%" )
+                                 , ( "position", "relative" )
+                                 ]
+                                )
+                             ]
+                                ++ (if List.length model.pinnedResources > 0 then
+                                        [ onMouseEnter TogglePinIconDropdown
+                                        , onMouseLeave TogglePinIconDropdown
+                                        ]
+                                    else
+                                        []
+                                   )
+                            )
+                            (if List.length model.pinnedResources > 0 then
+                                ([ Html.div
+                                    [ style
+                                        [ ( "background-color", "#03dac4" )
+                                        , ( "border-radius", "50%" )
+                                        , ( "width", "15px" )
+                                        , ( "height", "15px" )
+                                        , ( "position", "absolute" )
+                                        , ( "top", "3px" )
+                                        , ( "right", "3px" )
+                                        , ( "display", "flex" )
+                                        , ( "align-items", "center" )
+                                        , ( "justify-content", "center" )
+                                        ]
                                     ]
-                                ]
-                                ([ Html.div [] [ Html.text <| toString <| List.length model.pinnedResources ]
+                                    [ Html.div [] [ Html.text <| toString <| List.length model.pinnedResources ]
+                                    ]
                                  ]
                                     ++ (if model.showPinIconDropDown then
                                             [ Html.ul
@@ -292,25 +314,63 @@ view model =
                                                     [ ( "background-color", "#fff" )
                                                     , ( "color", "#1e1d1d" )
                                                     , ( "position", "absolute" )
-                                                    , ( "top", "15px" )
+                                                    , ( "top", "100%" )
                                                     , ( "right", "0" )
                                                     , ( "white-space", "nowrap" )
                                                     , ( "list-style-type", "none" )
                                                     , ( "padding", "10px" )
+                                                    , ( "margin-top", "0" )
+                                                    , ( "z-index", "1" )
                                                     ]
                                                 ]
                                                 (model.pinnedResources
-                                                    |> List.map (\n -> Html.li [ style [ ( "font-weight", "700" ) ] ] [ Html.text n ])
+                                                    |> List.map
+                                                        (\( resourceName, pinnedVersion ) ->
+                                                            Html.li
+                                                                [ onClick (GoToPinnedResource resourceName)
+                                                                , style
+                                                                    [ ( "cursor", "pointer" )
+                                                                    ]
+                                                                ]
+                                                                [ Html.div
+                                                                    [ style [ ( "font-weight", "700" ) ] ]
+                                                                    [ Html.text resourceName ]
+                                                                , Html.table []
+                                                                    (pinnedVersion
+                                                                        |> Dict.toList
+                                                                        |> List.map
+                                                                            (\( k, v ) ->
+                                                                                Html.tr []
+                                                                                    [ Html.td [] [ Html.text k ]
+                                                                                    , Html.td [] [ Html.text v ]
+                                                                                    ]
+                                                                            )
+                                                                    )
+                                                                ]
+                                                        )
                                                 )
+                                            , Html.div
+                                                [ style
+                                                    [ ( "border-width", "5px" )
+                                                    , ( "border-style", "solid" )
+                                                    , ( "border-color", "transparent transparent #fff transparent" )
+                                                    , ( "position", "absolute" )
+                                                    , ( "top", "100%" )
+                                                    , ( "right", "50%" )
+                                                    , ( "margin-right", "-5px" )
+                                                    , ( "margin-top", "-10px" )
+                                                    ]
+                                                ]
+                                                []
                                             ]
                                         else
                                             []
                                        )
                                 )
-                            ]
-                         else
-                            []
-                        )
+                             else
+                                []
+                            )
+                        ]
                     ]
 
                 _ ->
