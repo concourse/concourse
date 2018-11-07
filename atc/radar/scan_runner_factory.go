@@ -17,7 +17,7 @@ import (
 type Scanner interface {
 	Run(lager.Logger, string) (time.Duration, error)
 	Scan(lager.Logger, string) error
-	ScanFromVersion(lager.Logger, string, atc.Version) error
+	ScanFromVersion(lager.Logger, string, map[atc.Space]atc.Version) error
 }
 
 //go:generate counterfeiter . ScanRunnerFactory

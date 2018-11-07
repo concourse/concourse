@@ -37,12 +37,12 @@ type FakeScanner struct {
 	scanReturnsOnCall map[int]struct {
 		result1 error
 	}
-	ScanFromVersionStub        func(lager.Logger, string, atc.Version) error
+	ScanFromVersionStub        func(lager.Logger, string, map[atc.Space]atc.Version) error
 	scanFromVersionMutex       sync.RWMutex
 	scanFromVersionArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 string
-		arg3 atc.Version
+		arg3 map[atc.Space]atc.Version
 	}
 	scanFromVersionReturns struct {
 		result1 error
@@ -159,13 +159,13 @@ func (fake *FakeScanner) ScanReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeScanner) ScanFromVersion(arg1 lager.Logger, arg2 string, arg3 atc.Version) error {
+func (fake *FakeScanner) ScanFromVersion(arg1 lager.Logger, arg2 string, arg3 map[atc.Space]atc.Version) error {
 	fake.scanFromVersionMutex.Lock()
 	ret, specificReturn := fake.scanFromVersionReturnsOnCall[len(fake.scanFromVersionArgsForCall)]
 	fake.scanFromVersionArgsForCall = append(fake.scanFromVersionArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 string
-		arg3 atc.Version
+		arg3 map[atc.Space]atc.Version
 	}{arg1, arg2, arg3})
 	fake.recordInvocation("ScanFromVersion", []interface{}{arg1, arg2, arg3})
 	fake.scanFromVersionMutex.Unlock()
@@ -185,7 +185,7 @@ func (fake *FakeScanner) ScanFromVersionCallCount() int {
 	return len(fake.scanFromVersionArgsForCall)
 }
 
-func (fake *FakeScanner) ScanFromVersionArgsForCall(i int) (lager.Logger, string, atc.Version) {
+func (fake *FakeScanner) ScanFromVersionArgsForCall(i int) (lager.Logger, string, map[atc.Space]atc.Version) {
 	fake.scanFromVersionMutex.RLock()
 	defer fake.scanFromVersionMutex.RUnlock()
 	argsForCall := fake.scanFromVersionArgsForCall[i]

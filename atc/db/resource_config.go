@@ -54,7 +54,7 @@ type ResourceConfig interface {
 	SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error)
 	SaveVersions(versions []atc.Version) error
 	FindVersion(atc.Version, atc.Space) (ResourceConfigVersion, bool, error)
-	LatestVersions() ([]ResourceConfigVersion, bool, error)
+	LatestVersions() ([]ResourceConfigVersion, error)
 
 	SaveDefaultSpace(Tx, atc.Space) error
 	SaveVersion(Tx, atc.SpaceVersion) error
@@ -131,7 +131,7 @@ func (r *resourceConfig) AcquireResourceConfigCheckingLockWithIntervalCheck(
 	return lock, true, nil
 }
 
-func (r *resourceConfig) LatestVersions() ([]ResourceConfigVersion, bool, error) {
+func (r *resourceConfig) LatestVersions() ([]ResourceConfigVersion, error) {
 	rows, err := resourceConfigVersionQuery.
 		Where(sq.Eq{
 			"s.resource_config_id": r.id,
@@ -141,9 +141,9 @@ func (r *resourceConfig) LatestVersions() ([]ResourceConfigVersion, bool, error)
 		Query()
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, false, nil
+			return nil, nil
 		}
-		return nil, false, err
+		return nil, err
 	}
 
 	versions := []ResourceConfigVersion{}
@@ -155,13 +155,13 @@ func (r *resourceConfig) LatestVersions() ([]ResourceConfigVersion, bool, error)
 
 		err := scanResourceConfigVersion(rcv, rows)
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 
 		versions = append(versions, rcv)
 	}
 
-	return versions, true, nil
+	return versions, nil
 }
 
 // SaveUncheckedVersion is used by the "get" and "put" step to find or create of a

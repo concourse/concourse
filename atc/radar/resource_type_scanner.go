@@ -2,11 +2,11 @@ package radar
 
 import (
 	"context"
-	"reflect"
 	"time"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -52,7 +52,7 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 	return scanner.scan(logger.Session("tick"), resourceTypeName, nil, false, false)
 }
 
-func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourceTypeName string, fromVersion atc.Version) error {
+func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourceTypeName string, fromVersion map[atc.Space]atc.Version) error {
 	_, err := scanner.scan(logger, resourceTypeName, fromVersion, true, true)
 	return err
 }
@@ -62,7 +62,7 @@ func (scanner *resourceTypeScanner) Scan(logger lager.Logger, resourceTypeName s
 	return err
 }
 
-func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName string, fromVersion atc.Version, mustComplete bool, saveGiven bool) (time.Duration, error) {
+func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName string, fromVersion map[atc.Space]atc.Version, mustComplete bool, saveGiven bool) (time.Duration, error) {
 	lockLogger := logger.Session("lock", lager.Data{
 		"resource-type": resourceTypeName,
 	})
@@ -179,23 +179,26 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 		break
 	}
 
-	if fromVersion == nil {
-		rcv, found, err := resourceConfig.LatestVersion()
-		if err != nil {
-			logger.Error("failed-to-get-current-version", err)
-			return interval, err
-		}
+	latestVersions, err := resourceConfig.LatestVersions()
+	if err != nil {
+		logger.Error("failed-to-get-current-version", err)
+		return interval, err
+	}
 
-		if found {
-			fromVersion = atc.Version(rcv.Version())
-		}
+	latestFromVersions := make(map[atc.Space]atc.Version)
+	for _, resourceConfigVersion := range latestVersions {
+		latestFromVersions[resourceConfigVersion.Space()] = atc.Version(resourceConfigVersion.Version())
+	}
+
+	for space, version := range fromVersion {
+		latestFromVersions[space] = version
 	}
 
 	return interval, scanner.check(
 		logger,
 		savedResourceType,
 		resourceConfigCheckSession,
-		fromVersion,
+		latestFromVersions,
 		versionedResourceTypes,
 		source,
 		saveGiven,
@@ -206,7 +209,7 @@ func (scanner *resourceTypeScanner) check(
 	logger lager.Logger,
 	savedResourceType db.ResourceType,
 	resourceConfigCheckSession db.ResourceConfigCheckSession,
-	fromVersion atc.Version,
+	fromVersion map[atc.Space]atc.Version,
 	versionedResourceTypes creds.VersionedResourceTypes,
 	source atc.Source,
 	saveGiven bool,
@@ -253,10 +256,19 @@ func (scanner *resourceTypeScanner) check(
 		return err
 	}
 
-	newVersions, err := res.Check(context.TODO(), source, fromVersion)
+	tx, err := scanner.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	spaces := make(map[atc.Space]atc.Version)
+	checkHandler := NewCheckEventHandler(logger, tx, resourceConfig, spaces)
+	err = res.Check(lagerctx.NewContext(context.TODO(), logger), checkHandler, source, fromVersion)
 	resourceConfig.SetCheckError(err)
 	if err != nil {
-		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {
+		if rErr, ok := err.(atc.ErrResourceScriptFailed); ok {
 			logger.Info("check-failed", lager.Data{"exit-status": rErr.ExitStatus})
 			return rErr
 		}
@@ -265,21 +277,8 @@ func (scanner *resourceTypeScanner) check(
 		return err
 	}
 
-	if len(newVersions) == 0 || (!saveGiven && reflect.DeepEqual(newVersions, []atc.Version{fromVersion})) {
-		logger.Debug("no-new-versions")
-		return nil
-	}
-
-	logger.Info("versions-found", lager.Data{
-		"versions": newVersions,
-		"total":    len(newVersions),
-	})
-
-	err = resourceConfig.SaveVersions(newVersions)
+	err = tx.Commit()
 	if err != nil {
-		logger.Error("failed-to-save-resource-config-versions", err, lager.Data{
-			"versions": newVersions,
-		})
 		return err
 	}
 

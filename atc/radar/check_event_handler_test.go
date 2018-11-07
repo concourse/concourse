@@ -1,44 +1,61 @@
 package radar_test
 
 import (
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/radar"
+	"github.com/concourse/concourse/atc/resource/v2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Check Event Handler", func() {
 	var (
+		logger             lager.Logger
 		handler            v2.CheckEventHandler
 		spaces             map[atc.Space]atc.Version
+		fakeTx             *dbfakes.FakeTx
 		fakeResourceConfig *dbfakes.FakeResourceConfig
 	)
 
 	BeforeEach(func() {
-		logger := lagertest.NewTestLogger("test")
-		fakeTx := new(dbfakes.FakeTx)
-		fakeResourceConfig := new(dbfakes.FakeResourceConfig)
+		fakeTx = new(dbfakes.FakeTx)
+		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
+		logger = lagertest.NewTestLogger("test")
 		spaces = make(map[atc.Space]atc.Version)
+	})
 
-		handler = NewCheckEventHandler(logger, fakeTx, fakeResourceConfig, spaces)
+	JustBeforeEach(func() {
+		handler = radar.NewCheckEventHandler(logger, fakeTx, fakeResourceConfig, spaces)
 	})
 
 	Describe("DefaultSpace", func() {
-		BeforeEach(func() {
-			err := handler.DefaultSpace(atc.Space("space"))
+		var space atc.Space
+
+		JustBeforeEach(func() {
+			err := handler.DefaultSpace(space)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("when the space is not empty", func() {
+			BeforeEach(func() {
+				space = atc.Space("space")
+			})
+
 			It("saves the default space", func() {
 				Expect(fakeResourceConfig.SaveDefaultSpaceCallCount()).To(Equal(1))
-				_, space := fakeResourceConfig.DefaultSpaceArgsForCall(0)
-				Expect(space).To(eq(atc.Space("space")))
+				_, space := fakeResourceConfig.SaveDefaultSpaceArgsForCall(0)
+				Expect(space).To(Equal(atc.Space("space")))
 			})
 		})
 
 		Context("when the space is empty", func() {
+			BeforeEach(func() {
+				space = atc.Space("")
+			})
+
 			It("does not save the space", func() {
 				Expect(fakeResourceConfig.SaveDefaultSpaceCallCount()).To(Equal(0))
 			})
@@ -108,7 +125,7 @@ var _ = Describe("Check Event Handler", func() {
 
 		Context("when the handler spaces is empty", func() {
 			It("does not save the latest versions", func() {
-				Expect(resourceConfig.SaveSpaceLatestVersionCallCount()).To(Equal(0))
+				Expect(fakeResourceConfig.SaveSpaceLatestVersionCallCount()).To(Equal(0))
 			})
 		})
 
@@ -121,13 +138,13 @@ var _ = Describe("Check Event Handler", func() {
 			})
 
 			It("saves the latest versions", func() {
-				Expect(resourceConfig.SaveSpaceLatestVersionCallCount()).To(Equal(2))
+				Expect(fakeResourceConfig.SaveSpaceLatestVersionCallCount()).To(Equal(2))
 
-				_, space, version := resourceConfig.SaveSpaceLatestVersionArgsForCall(0)
+				_, space, version := fakeResourceConfig.SaveSpaceLatestVersionArgsForCall(0)
 				Expect(space).To(Equal(atc.Space("space")))
 				Expect(version).To(Equal(atc.Version{"ref": "v1"}))
 
-				_, space, version = resourceConfig.SaveSpaceLatestVersionArgsForCall(1)
+				_, space, version = fakeResourceConfig.SaveSpaceLatestVersionArgsForCall(1)
 				Expect(space).To(Equal(atc.Space("other-space")))
 				Expect(version).To(Equal(atc.Version{"ref": "v2"}))
 			})

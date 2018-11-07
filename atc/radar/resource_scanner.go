@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 	"time"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -66,7 +66,7 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 	return interval, err
 }
 
-func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceName string, fromVersion atc.Version) error {
+func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceName string, fromVersion map[atc.Space]atc.Version) error {
 	_, err := scanner.scan(logger, resourceName, fromVersion, true, true)
 
 	return err
@@ -80,7 +80,7 @@ func (scanner *resourceScanner) Scan(logger lager.Logger, resourceName string) e
 	return err
 }
 
-func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, fromVersion atc.Version, mustComplete bool, saveGiven bool) (time.Duration, error) {
+func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, fromVersion map[atc.Space]atc.Version, mustComplete bool, saveGiven bool) (time.Duration, error) {
 	lockLogger := logger.Session("lock", lager.Data{
 		"resource": resourceName,
 	})
@@ -174,26 +174,27 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		return 0, err
 	}
 
-	currentVersion := savedResource.CurrentPinnedVersion()
-	if currentVersion != nil {
-		// XXX: Need to grab space from the pinned version?
-		_, found, err := resourceConfig.FindVersion(currentVersion, atc.Space(""))
+	// XXX figure out how to pin versions
+	// currentVersion := savedResource.CurrentPinnedVersion()
+	// if currentVersion != nil {
+	// 	// XXX: Need to grab space from the pinned version?
+	// 	_, found, err := resourceConfig.FindVersion(currentVersion, atc.Space(""))
 
-		if err != nil {
-			logger.Error("failed-to-find-pinned-version-on-resource", err, lager.Data{"pinned-version": currentVersion})
-			chkErr := resourceConfig.SetCheckError(err)
-			if chkErr != nil {
-				logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
-			}
-			return 0, err
-		}
-		if found {
-			logger.Info("skipping-check-because-pinned-version-found", lager.Data{"pinned-version": currentVersion})
-			return interval, nil
-		}
+	// 	if err != nil {
+	// 		logger.Error("failed-to-find-pinned-version-on-resource", err, lager.Data{"pinned-version": currentVersion})
+	// 		chkErr := resourceConfig.SetCheckError(err)
+	// 		if chkErr != nil {
+	// 			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
+	// 		}
+	// 		return 0, err
+	// 	}
+	// 	if found {
+	// 		logger.Info("skipping-check-because-pinned-version-found", lager.Data{"pinned-version": currentVersion})
+	// 		return interval, nil
+	// 	}
 
-		fromVersion = currentVersion
-	}
+	// 	fromVersion = currentVersion
+	// }
 
 	for breaker := true; breaker == true; breaker = mustComplete {
 		lock, acquired, err := resourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheck(
@@ -224,23 +225,26 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		break
 	}
 
-	if fromVersion == nil {
-		rcv, found, err := resourceConfig.LatestVersions()
-		if err != nil {
-			logger.Error("failed-to-get-current-version", err)
-			return interval, err
-		}
+	latestVersions, err := resourceConfig.LatestVersions()
+	if err != nil {
+		logger.Error("failed-to-get-current-version", err)
+		return interval, err
+	}
 
-		if found {
-			fromVersion = atc.Version(rcv.Version())
-		}
+	latestFromVersions := make(map[atc.Space]atc.Version)
+	for _, resourceConfigVersion := range latestVersions {
+		latestFromVersions[resourceConfigVersion.Space()] = atc.Version(resourceConfigVersion.Version())
+	}
+
+	for space, version := range fromVersion {
+		latestFromVersions[space] = version
 	}
 
 	return interval, scanner.check(
 		logger,
 		savedResource,
 		resourceConfigCheckSession,
-		fromVersion,
+		latestFromVersions,
 		versionedResourceTypes,
 		source,
 		saveGiven,
@@ -252,7 +256,7 @@ func (scanner *resourceScanner) check(
 	logger lager.Logger,
 	savedResource db.Resource,
 	resourceConfigCheckSession db.ResourceConfigCheckSession,
-	fromVersion atc.Version,
+	fromVersion map[atc.Space]atc.Version,
 	resourceTypes creds.VersionedResourceTypes,
 	source atc.Source,
 	saveGiven bool,
@@ -334,14 +338,9 @@ func (scanner *resourceScanner) check(
 
 	spaces := make(map[atc.Space]atc.Version)
 	checkHandler := NewCheckEventHandler(logger, tx, resourceConfig, spaces)
-	err = res.Check(NewContext(ctx, logger), checkHandler, source, fromVersion)
+	err = res.Check(lagerctx.NewContext(ctx, logger), checkHandler, source, fromVersion)
 	if err == context.DeadlineExceeded {
 		err = fmt.Errorf("Timed out after %v while checking for new versions - perhaps increase your resource check timeout?", timeout)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return err
 	}
 
 	resourceConfig.SetCheckError(err)
@@ -353,7 +352,7 @@ func (scanner *resourceScanner) check(
 	}.Emit(logger)
 
 	if err != nil {
-		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {
+		if rErr, ok := err.(atc.ErrResourceScriptFailed); ok {
 			logger.Info("check-failed", lager.Data{"exit-status": rErr.ExitStatus})
 			return rErr
 		}
@@ -362,28 +361,16 @@ func (scanner *resourceScanner) check(
 		return err
 	}
 
-	if len(newVersions) == 0 || (!saveGiven && reflect.DeepEqual(newVersions, []atc.Version{fromVersion})) {
-		logger.Debug("no-new-versions")
-		return nil
-	}
-
-	logger.Info("versions-found", lager.Data{
-		"versions": newVersions,
-		"total":    len(newVersions),
-	})
-
-	err = resourceConfig.SaveVersions(newVersions)
+	err = tx.Commit()
 	if err != nil {
-		logger.Error("failed-to-save-resource-config-versions", err, lager.Data{
-			"versions": newVersions,
-		})
+		return err
 	}
 
 	return nil
 }
 
 func swallowErrResourceScriptFailed(err error) error {
-	if _, ok := err.(resource.ErrResourceScriptFailed); ok {
+	if _, ok := err.(atc.ErrResourceScriptFailed); ok {
 		return nil
 	}
 	return err

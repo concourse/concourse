@@ -95,19 +95,17 @@ type FakeResourceConfig struct {
 	iDReturnsOnCall map[int]struct {
 		result1 int
 	}
-	LatestVersionsStub        func() ([]db.ResourceConfigVersion, bool, error)
+	LatestVersionsStub        func() ([]db.ResourceConfigVersion, error)
 	latestVersionsMutex       sync.RWMutex
 	latestVersionsArgsForCall []struct {
 	}
 	latestVersionsReturns struct {
 		result1 []db.ResourceConfigVersion
-		result2 bool
-		result3 error
+		result2 error
 	}
 	latestVersionsReturnsOnCall map[int]struct {
 		result1 []db.ResourceConfigVersion
-		result2 bool
-		result3 error
+		result2 error
 	}
 	OriginBaseResourceTypeStub        func() *db.UsedBaseResourceType
 	originBaseResourceTypeMutex       sync.RWMutex
@@ -533,7 +531,7 @@ func (fake *FakeResourceConfig) IDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakeResourceConfig) LatestVersions() ([]db.ResourceConfigVersion, bool, error) {
+func (fake *FakeResourceConfig) LatestVersions() ([]db.ResourceConfigVersion, error) {
 	fake.latestVersionsMutex.Lock()
 	ret, specificReturn := fake.latestVersionsReturnsOnCall[len(fake.latestVersionsArgsForCall)]
 	fake.latestVersionsArgsForCall = append(fake.latestVersionsArgsForCall, struct {
@@ -544,10 +542,10 @@ func (fake *FakeResourceConfig) LatestVersions() ([]db.ResourceConfigVersion, bo
 		return fake.LatestVersionsStub()
 	}
 	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
+		return ret.result1, ret.result2
 	}
 	fakeReturns := fake.latestVersionsReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeResourceConfig) LatestVersionsCallCount() int {
@@ -556,29 +554,26 @@ func (fake *FakeResourceConfig) LatestVersionsCallCount() int {
 	return len(fake.latestVersionsArgsForCall)
 }
 
-func (fake *FakeResourceConfig) LatestVersionsReturns(result1 []db.ResourceConfigVersion, result2 bool, result3 error) {
+func (fake *FakeResourceConfig) LatestVersionsReturns(result1 []db.ResourceConfigVersion, result2 error) {
 	fake.LatestVersionsStub = nil
 	fake.latestVersionsReturns = struct {
 		result1 []db.ResourceConfigVersion
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeResourceConfig) LatestVersionsReturnsOnCall(i int, result1 []db.ResourceConfigVersion, result2 bool, result3 error) {
+func (fake *FakeResourceConfig) LatestVersionsReturnsOnCall(i int, result1 []db.ResourceConfigVersion, result2 error) {
 	fake.LatestVersionsStub = nil
 	if fake.latestVersionsReturnsOnCall == nil {
 		fake.latestVersionsReturnsOnCall = make(map[int]struct {
 			result1 []db.ResourceConfigVersion
-			result2 bool
-			result3 error
+			result2 error
 		})
 	}
 	fake.latestVersionsReturnsOnCall[i] = struct {
 		result1 []db.ResourceConfigVersion
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeResourceConfig) OriginBaseResourceType() *db.UsedBaseResourceType {

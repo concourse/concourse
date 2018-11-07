@@ -4,6 +4,7 @@ package dbfakes
 import (
 	sync "sync"
 
+	atc "github.com/concourse/concourse/atc"
 	db "github.com/concourse/concourse/atc/db"
 )
 
@@ -59,6 +60,16 @@ type FakeResourceConfigVersion struct {
 	}
 	resourceConfigReturnsOnCall map[int]struct {
 		result1 db.ResourceConfig
+	}
+	SpaceStub        func() atc.Space
+	spaceMutex       sync.RWMutex
+	spaceArgsForCall []struct {
+	}
+	spaceReturns struct {
+		result1 atc.Space
+	}
+	spaceReturnsOnCall map[int]struct {
+		result1 atc.Space
 	}
 	VersionStub        func() db.Version
 	versionMutex       sync.RWMutex
@@ -287,6 +298,48 @@ func (fake *FakeResourceConfigVersion) ResourceConfigReturnsOnCall(i int, result
 	}{result1}
 }
 
+func (fake *FakeResourceConfigVersion) Space() atc.Space {
+	fake.spaceMutex.Lock()
+	ret, specificReturn := fake.spaceReturnsOnCall[len(fake.spaceArgsForCall)]
+	fake.spaceArgsForCall = append(fake.spaceArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Space", []interface{}{})
+	fake.spaceMutex.Unlock()
+	if fake.SpaceStub != nil {
+		return fake.SpaceStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.spaceReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceConfigVersion) SpaceCallCount() int {
+	fake.spaceMutex.RLock()
+	defer fake.spaceMutex.RUnlock()
+	return len(fake.spaceArgsForCall)
+}
+
+func (fake *FakeResourceConfigVersion) SpaceReturns(result1 atc.Space) {
+	fake.SpaceStub = nil
+	fake.spaceReturns = struct {
+		result1 atc.Space
+	}{result1}
+}
+
+func (fake *FakeResourceConfigVersion) SpaceReturnsOnCall(i int, result1 atc.Space) {
+	fake.SpaceStub = nil
+	if fake.spaceReturnsOnCall == nil {
+		fake.spaceReturnsOnCall = make(map[int]struct {
+			result1 atc.Space
+		})
+	}
+	fake.spaceReturnsOnCall[i] = struct {
+		result1 atc.Space
+	}{result1}
+}
+
 func (fake *FakeResourceConfigVersion) Version() db.Version {
 	fake.versionMutex.Lock()
 	ret, specificReturn := fake.versionReturnsOnCall[len(fake.versionArgsForCall)]
@@ -342,6 +395,8 @@ func (fake *FakeResourceConfigVersion) Invocations() map[string][][]interface{} 
 	defer fake.reloadMutex.RUnlock()
 	fake.resourceConfigMutex.RLock()
 	defer fake.resourceConfigMutex.RUnlock()
+	fake.spaceMutex.RLock()
+	defer fake.spaceMutex.RUnlock()
 	fake.versionMutex.RLock()
 	defer fake.versionMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

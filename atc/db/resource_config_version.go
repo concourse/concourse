@@ -12,6 +12,7 @@ import (
 
 type ResourceConfigVersion interface {
 	ID() int
+	Space() atc.Space
 	Version() Version
 	Metadata() ResourceConfigMetadataFields
 	CheckOrder() int
@@ -81,6 +82,7 @@ var resourceConfigVersionQuery = psql.Select(`
 	})
 
 func (r *resourceConfigVersion) ID() int                                { return r.id }
+func (r *resourceConfigVersion) Space() atc.Space                       { return r.space }
 func (r *resourceConfigVersion) Version() Version                       { return r.version }
 func (r *resourceConfigVersion) Metadata() ResourceConfigMetadataFields { return r.metadata }
 func (r *resourceConfigVersion) CheckOrder() int                        { return r.checkOrder }
