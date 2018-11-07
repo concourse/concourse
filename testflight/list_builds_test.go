@@ -12,56 +12,51 @@ import (
 
 var _ = Describe("fly builds command", func() {
 	var (
-		testflightHiddenPipeline  = "pipeline1"
-		testflightExposedPipeline = "pipeline2"
-		mainExposedPipeline       = "pipeline3"
-		mainHiddenPipeline        = "pipeline4"
+		testflightHiddenPipeline  string
+		testflightExposedPipeline string
+		mainExposedPipeline       string
+		mainHiddenPipeline        string
 	)
 
 	BeforeEach(func() {
-		<-(spawnFlyLogin("-n", "testflight").Exited)
+		testflightHiddenPipeline = randomPipelineName()
+		testflightExposedPipeline = randomPipelineName()
+		mainExposedPipeline = randomPipelineName()
+		mainHiddenPipeline = randomPipelineName()
 
 		// hidden pipeline in own team
-		pipelineName = testflightHiddenPipeline
-		setAndUnpausePipeline("fixtures/hooks.yml")
-		fly("trigger-job", "-j", inPipeline("some-passing-job"), "-w")
+		fly("set-pipeline", "-p", testflightHiddenPipeline, "-c", "fixtures/hooks.yml")
+		fly("unpause-pipeline", "-p", testflightHiddenPipeline)
+		fly("trigger-job", "-j", testflightHiddenPipeline+"/some-passing-job", "-w")
 
 		// exposed pipeline in own team
-		pipelineName = testflightExposedPipeline
-		By("Setting pipeline" + pipelineName)
-		setAndUnpausePipeline("fixtures/hooks.yml")
-		fly("expose-pipeline", "-p", pipelineName)
-		fly("trigger-job", "-j", inPipeline("some-passing-job"), "-w")
-	})
+		fly("set-pipeline", "-p", testflightExposedPipeline, "-c", "fixtures/hooks.yml")
+		fly("unpause-pipeline", "-p", testflightExposedPipeline)
+		fly("expose-pipeline", "-p", testflightExposedPipeline)
+		fly("trigger-job", "-j", testflightExposedPipeline+"/some-passing-job", "-w")
 
-	BeforeEach(func() {
-		wait(spawnFlyLogin("-n", "main"))
+		withFlyTarget(adminFlyTarget, func() {
+			// hidden pipeline in other team
+			fly("set-pipeline", "-p", mainHiddenPipeline, "-c", "fixtures/hooks.yml")
+			fly("unpause-pipeline", "-p", mainHiddenPipeline)
+			fly("trigger-job", "-j", mainHiddenPipeline+"/some-passing-job", "-w")
 
-		// hidden pipeline in other team
-		pipelineName = mainHiddenPipeline
-		setAndUnpausePipeline("fixtures/hooks.yml")
-		fly("trigger-job", "-j", inPipeline("some-passing-job"), "-w")
-
-		// exposed pipeline in other team
-		pipelineName = mainExposedPipeline
-		setAndUnpausePipeline("fixtures/hooks.yml")
-		fly("trigger-job", "-j", inPipeline("some-passing-job"), "-w")
-		fly("expose-pipeline", "-p", pipelineName)
+			// exposed pipeline in other team
+			fly("set-pipeline", "-p", mainExposedPipeline, "-c", "fixtures/hooks.yml")
+			fly("unpause-pipeline", "-p", mainExposedPipeline)
+			fly("trigger-job", "-j", mainExposedPipeline+"/some-passing-job", "-w")
+			fly("expose-pipeline", "-p", mainExposedPipeline)
+		})
 	})
 
 	AfterEach(func() {
-		var pipelinesToDestroy = []string{
-			testflightHiddenPipeline,
-			testflightExposedPipeline,
-			mainExposedPipeline,
-			mainHiddenPipeline,
-		}
+		fly("destroy-pipeline", "-n", "-p", testflightExposedPipeline)
+		fly("destroy-pipeline", "-n", "-p", testflightHiddenPipeline)
 
-		wait(spawnFlyLogin("-t", "main"))
-
-		for _, pipeline := range pipelinesToDestroy {
-			fly("destroy-pipeline", "-n", "-p", pipeline)
-		}
+		withFlyTarget(adminFlyTarget, func() {
+			fly("destroy-pipeline", "-n", "-p", mainExposedPipeline)
+			fly("destroy-pipeline", "-n", "-p", mainHiddenPipeline)
+		})
 	})
 
 	Context("when no flags passed", func() {
@@ -91,53 +86,51 @@ var _ = Describe("fly builds command", func() {
 		const timeLayout = "2006-01-02 15:04:05"
 
 		BeforeEach(func() {
-			wait(spawnFlyLogin("-n", "main"))
+			withFlyTarget(adminFlyTarget, func() {
+				fly("trigger-job", "-j", mainExposedPipeline+"/some-passing-job", "-w")
+				fly("trigger-job", "-j", mainExposedPipeline+"/some-passing-job", "-w")
+				fly("trigger-job", "-j", mainExposedPipeline+"/some-passing-job", "-w")
+				fly("trigger-job", "-j", mainExposedPipeline+"/some-passing-job", "-w")
 
-			pipelineName = mainExposedPipeline
+				sess := spawnFly("builds", "-j", mainExposedPipeline+"/some-passing-job", "--json")
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
 
-			fly("trigger-job", "-j", inPipeline("some-passing-job"), "-w")
-			fly("trigger-job", "-j", inPipeline("some-passing-job"), "-w")
-			fly("trigger-job", "-j", inPipeline("some-passing-job"), "-w")
-			fly("trigger-job", "-j", inPipeline("some-passing-job"), "-w")
-
-			sess := spawnFly("builds", "-j", inPipeline("some-passing-job"), "--json")
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
-
-			err := json.Unmarshal(sess.Out.Contents(), &allDecodedBuilds)
-			Expect(err).ToNot(HaveOccurred())
+				err := json.Unmarshal(sess.Out.Contents(), &allDecodedBuilds)
+				Expect(err).ToNot(HaveOccurred())
+			})
 		})
 
 		It("displays only builds that happened within that range of time", func() {
-			sess := spawnFly("builds",
-				"--until="+time.Unix(allDecodedBuilds[1].StartTime+1, 0).Local().Format(timeLayout),
-				"--since="+time.Unix(allDecodedBuilds[3].StartTime-1, 0).Local().Format(timeLayout),
-				"-j", inPipeline("some-passing-job"),
-				"--json")
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
-
 			var decodedBuilds []decodedBuild
-			err := json.Unmarshal(sess.Out.Contents(), &decodedBuilds)
-			Expect(err).ToNot(HaveOccurred())
+			withFlyTarget(adminFlyTarget, func() {
+				sess := spawnFly("builds",
+					"--until="+time.Unix(allDecodedBuilds[1].StartTime+1, 0).Local().Format(timeLayout),
+					"--since="+time.Unix(allDecodedBuilds[3].StartTime-1, 0).Local().Format(timeLayout),
+					"-j", mainExposedPipeline+"/some-passing-job",
+					"--json")
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
+
+				err := json.Unmarshal(sess.Out.Contents(), &decodedBuilds)
+				Expect(err).ToNot(HaveOccurred())
+			})
 
 			Expect(decodedBuilds).To(ConsistOf(allDecodedBuilds[1], allDecodedBuilds[2], allDecodedBuilds[3]))
 		})
 	})
 
 	Context("when specifying values for team flag", func() {
-		BeforeEach(func() {
-			wait(spawnFlyLogin("-n", "main"))
-		})
-
 		It("retrieves only builds for the teams specified", func() {
-			sess := spawnFly("builds", "--team=testflight")
-			<-sess.Exited
+			withFlyTarget(adminFlyTarget, func() {
+				sess := spawnFly("builds", "--team=testflight")
+				<-sess.Exited
 
-			Expect(sess.ExitCode()).To(Equal(0))
-			Expect(sess).To(gbytes.Say(testflightExposedPipeline))
-			Expect(sess).To(gbytes.Say("testflight"), "shows the team name")
-			Expect(sess).NotTo(gbytes.Say(mainExposedPipeline))
+				Expect(sess.ExitCode()).To(Equal(0))
+				Expect(sess).To(gbytes.Say(testflightExposedPipeline))
+				Expect(sess).To(gbytes.Say("testflight"), "shows the team name")
+				Expect(sess).NotTo(gbytes.Say(mainExposedPipeline))
+			})
 		})
 	})
 })
