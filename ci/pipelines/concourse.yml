@@ -46,6 +46,10 @@ groups:
   jobs:
   - push-docs
 
+- name: workers
+  jobs:
+  - install-windows-deps
+
 jobs:
 - name: unit-image
   public: true
@@ -566,6 +570,21 @@ jobs:
       repository: cbd-master
       merge: true
 
+- name: install-windows-deps
+  plan:
+  - aggregate:
+    - get: concourse
+      params: {submodules: none}
+    - get: golang-windows
+  - task: install-go
+    file: concourse/ci/tasks/install-go-windows.yml
+  - task: install-git
+    file: concourse/ci/tasks/choco-install.yml
+    params: {PACKAGE: git}
+  - task: install-mingw
+    file: concourse/ci/tasks/choco-install.yml
+    params: {PACKAGE: mingw}
+
 resources:
 - name: concourse
   type: git
@@ -783,3 +802,9 @@ resources:
      uri: https://github.com/concourse/charts.git
      branch: concourse-chart-image-digest
 
+- name: golang-windows
+  type: s3
+  source:
+    endpoint: storage.googleapis.com
+    bucket: golang
+    regexp: 'go(\d+\.\d+(\.\d+)?)\.windows-amd64\.msi'
