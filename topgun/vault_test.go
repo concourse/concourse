@@ -128,7 +128,7 @@ var _ = Describe("Vault", func() {
 					for {
 						select {
 						case <-renewTicker.C:
-							v.Run("token", "renew", token)
+							v.Run("token-renew", token)
 						case <-stopRenewing:
 							return
 						}
