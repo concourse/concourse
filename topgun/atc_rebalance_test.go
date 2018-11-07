@@ -11,9 +11,7 @@ import (
 
 var _ = Describe("Rebalancing workers", func() {
 	Context("with two TSAs available", func() {
-		var atcs []boshInstance
-		var atc0IP string
-		var atc1IP string
+		var webInstances []boshInstance
 
 		BeforeEach(func() {
 			Deploy(
@@ -25,12 +23,7 @@ var _ = Describe("Rebalancing workers", func() {
 
 			waitForRunningWorker()
 
-			atcs = JobInstances("web")
-			atc0IP = atcs[0].IP
-			atc1IP = atcs[1].IP
-
-			atc0URL := "http://" + atcs[0].IP + ":8080"
-			FlyLogin(atc0URL)
+			webInstances = JobInstances("web")
 		})
 
 		Describe("when a rebalance time is configured", func() {
@@ -38,12 +31,18 @@ var _ = Describe("Rebalancing workers", func() {
 				Eventually(func() string {
 					workers := flyTable("workers", "-d")
 					return strings.Split(workers[0]["garden address"], ":")[0]
-				}, time.Minute, 5*time.Second).Should(Equal(atc0IP))
+				}, time.Minute, 5*time.Second).Should(SatisfyAny(
+					Equal(webInstances[0].IP),
+					Equal(webInstances[0].DNS),
+				))
 
 				Eventually(func() string {
 					workers := flyTable("workers", "-d")
 					return strings.Split(workers[0]["garden address"], ":")[0]
-				}, time.Minute, 5*time.Second).Should(Equal(atc1IP))
+				}, time.Minute, 5*time.Second).Should(SatisfyAny(
+					Equal(webInstances[1].IP),
+					Equal(webInstances[1].DNS),
+				))
 			})
 		})
 	})
