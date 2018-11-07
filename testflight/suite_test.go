@@ -91,7 +91,14 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	fly("-t", adminFlyTarget, "set-team", "--non-interactive", "-n", teamName, "--local-user", config.ATCUsername)
 	wait(spawnFlyLogin(testflightFlyTarget, "-n", teamName))
 
-	for _, ps := range flyTable("pipelines") {
+	for _, ps := range flyTable("-t", adminFlyTarget, "pipelines") {
+		name := ps["name"]
+		if strings.HasPrefix(name, pipelinePrefix) {
+			fly("-t", adminFlyTarget, "destroy-pipeline", "-n", "-p", name)
+		}
+	}
+
+	for _, ps := range flyTable("-t", testflightFlyTarget, "pipelines") {
 		name := ps["name"]
 		if strings.HasPrefix(name, pipelinePrefix) {
 			fly("-t", testflightFlyTarget, "destroy-pipeline", "-n", "-p", name)
