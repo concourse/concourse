@@ -25,24 +25,24 @@ var _ = Describe("fly builds command", func() {
 		mainHiddenPipeline = randomPipelineName()
 
 		// hidden pipeline in own team
-		fly("set-pipeline", "-p", testflightHiddenPipeline, "-c", "fixtures/hooks.yml")
+		fly("set-pipeline", "-n", "-p", testflightHiddenPipeline, "-c", "fixtures/hooks.yml")
 		fly("unpause-pipeline", "-p", testflightHiddenPipeline)
 		fly("trigger-job", "-j", testflightHiddenPipeline+"/some-passing-job", "-w")
 
 		// exposed pipeline in own team
-		fly("set-pipeline", "-p", testflightExposedPipeline, "-c", "fixtures/hooks.yml")
+		fly("set-pipeline", "-n", "-p", testflightExposedPipeline, "-c", "fixtures/hooks.yml")
 		fly("unpause-pipeline", "-p", testflightExposedPipeline)
 		fly("expose-pipeline", "-p", testflightExposedPipeline)
 		fly("trigger-job", "-j", testflightExposedPipeline+"/some-passing-job", "-w")
 
 		withFlyTarget(adminFlyTarget, func() {
 			// hidden pipeline in other team
-			fly("set-pipeline", "-p", mainHiddenPipeline, "-c", "fixtures/hooks.yml")
+			fly("set-pipeline", "-n", "-p", mainHiddenPipeline, "-c", "fixtures/hooks.yml")
 			fly("unpause-pipeline", "-p", mainHiddenPipeline)
 			fly("trigger-job", "-j", mainHiddenPipeline+"/some-passing-job", "-w")
 
 			// exposed pipeline in other team
-			fly("set-pipeline", "-p", mainExposedPipeline, "-c", "fixtures/hooks.yml")
+			fly("set-pipeline", "-n", "-p", mainExposedPipeline, "-c", "fixtures/hooks.yml")
 			fly("unpause-pipeline", "-p", mainExposedPipeline)
 			fly("trigger-job", "-j", mainExposedPipeline+"/some-passing-job", "-w")
 			fly("expose-pipeline", "-p", mainExposedPipeline)
