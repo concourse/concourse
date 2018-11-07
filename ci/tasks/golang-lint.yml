@@ -1,0 +1,28 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: golangci/golangci-lint}
+
+inputs:
+- name: concourse
+
+caches:
+- path: gopath
+
+run:
+  path: golangci-lint
+  args:
+    - run
+    - "-E"
+    - "gosec"
+    - "-E"
+    - "gocritic"
+    - "-E"
+    - "gofmt"
+    - "-E"
+    - "gocyclo"
+    - "--deadline"
+    - "10m"
+  dir: concourse

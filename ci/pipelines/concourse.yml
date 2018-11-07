@@ -19,6 +19,7 @@ groups:
 - name: develop
   jobs:
   - unit
+  - lint
   - dev-image
   - testflight
   - watsjs
@@ -99,6 +100,16 @@ jobs:
     - task: fly-windows
       file: concourse/ci/tasks/fly-windows.yml
       timeout: 1h
+
+- name: lint
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      trigger: true
+  - task: yarn-test
+    file: concourse/ci/tasks/golang-lint.yml
 
 - name: dev-image
   public: true
