@@ -108,7 +108,7 @@ jobs:
   - aggregate:
     - get: concourse
       trigger: true
-  - task: yarn-test
+  - task: golang-lint
     file: concourse/ci/tasks/golang-lint.yml
 
 - name: dev-image
