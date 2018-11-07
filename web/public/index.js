@@ -299,11 +299,13 @@ function createGraph(svg, jobs, resources) {
 
   var resourceURLs = {};
   var resourceFailing = {};
+  var resourcePinned = {};
 
   for (var i in resources) {
     var resource = resources[i];
     resourceURLs[resource.name] = "/teams/"+resource.team_name+"/pipelines/"+resource.pipeline_name+"/resources/"+encodeURIComponent(resource.name);
     resourceFailing[resource.name] = resource.failing_to_check;
+    resourcePinned[resource.name] = resource.pinned_version;
   }
 
   for (var i in jobs) {
@@ -351,6 +353,9 @@ function createGraph(svg, jobs, resources) {
     var status = "";
     if (resourceFailing[resource]) {
       status += " failing";
+    }
+    if (resourcePinned[resource]) {
+      status += " pinned";
     }
 
     return status;
@@ -411,7 +416,7 @@ function createGraph(svg, jobs, resources) {
                 id: sourceInputNode,
                 name: input.resource,
                 key: input.resource,
-                class: "constrained-input",
+                class: "constrained-input" + (resourcePinned[input.resource] ? " pinned" : ""),
                 repeatable: true,
                 url: resourceURLs[input.resource],
                 svg: svg
