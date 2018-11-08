@@ -9,7 +9,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc/creds"
 	vaultapi "github.com/hashicorp/vault/api"
 )
@@ -44,7 +43,7 @@ type AuthConfig struct {
 	RetryMax      time.Duration `long:"retry-max"     default:"5m" description:"The maximum time between retries when logging in or re-authing a secret."`
 	RetryInitial  time.Duration `long:"retry-initial" default:"1s" description:"The initial time between retries when logging in or re-authing a secret."`
 
-	Params []template.VarKV `long:"auth-param"  description:"Paramter to pass when logging in via the backend. Can be specified multiple times." value-name:"NAME=VALUE"`
+	Params map[string]string `long:"auth-param"  description:"Paramter to pass when logging in via the backend. Can be specified multiple times." value-name:"NAME:VALUE"`
 }
 
 func (manager *VaultManager) Init(log lager.Logger) error {

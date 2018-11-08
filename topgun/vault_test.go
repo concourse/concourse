@@ -295,8 +295,6 @@ var _ = Describe("Vault", func() {
 
 		Context("with approle auth", func() {
 			BeforeEach(func() {
-				Skip("configuring the auth params appears to be broken - go-flags bug?")
-
 				v.Run("auth-enable", "approle")
 
 				v.Run(
