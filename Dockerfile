@@ -22,7 +22,7 @@ ENV CONCOURSE_TSA_WORKER_PRIVATE_KEY /concourse-keys/worker_key
 # build Concourse
 COPY . /src
 WORKDIR /src
-RUN go build -o /usr/local/bin/concourse github.com/concourse/concourse/bin/cmd/concourse
+RUN go build -gcflags=all="-N -l" -o /usr/local/bin/concourse github.com/concourse/concourse/bin/cmd/concourse
 
 # override /src with a volume so we get live-updated packr stuff
 VOLUME /src

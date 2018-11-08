@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -o errexit
+
+readonly DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+container_name=""
+
+case $1 in
+web)
+  container_name="concourse_web_1"
+  ;;
+
+worker)
+  container_name="concourse_web_1"
+  ;;
+
+*)
+  echo "Usage: trace (web|worker)"
+  exit 1
+  ;;
+esac
+
+tracee_pid=$(docker exec $container_name pidof concourse)
+
+docker build --tag dlv ./dlv
+
+docker run \
+  --interactive \
+  --pid=container:$container_name \
+  --privileged \
+  --rm \
+  --tty \
+  --volume $DIR/..:/src \
+  dlv \
+  dlv attach $tracee_pid

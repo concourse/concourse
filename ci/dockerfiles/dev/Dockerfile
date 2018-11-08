@@ -43,7 +43,7 @@ COPY concourse /src
 RUN cd /src && \
       go mod download && \
       go install github.com/gobuffalo/packr/packr && \
-      packr build -o /usr/local/bin/concourse github.com/concourse/concourse/bin/cmd/concourse && \
+      packr build -gcflags=all="-N -l" -o /usr/local/bin/concourse github.com/concourse/concourse/bin/cmd/concourse && \
       rm -rf /src
 
 ENTRYPOINT ["/usr/local/bin/dumb-init", "/usr/local/bin/concourse"]
