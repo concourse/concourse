@@ -1,49 +1,63 @@
 package worker
 
 import (
+	"os"
+	"os/signal"
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/worker/beacon"
+	"github.com/concourse/concourse/tsa"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/restart"
 	"golang.org/x/crypto/ssh"
 )
 
-func NewBeacon(logger lager.Logger, worker atc.Worker, config beacon.Config) beacon.BeaconClient {
-	logger = logger.Session("beacon")
-	logger.Debug("setting-up-beacon-runner")
-	client := beacon.NewSSHClient(logger.Session("beacon-client"), config)
+func NewBeaconRunner(logger lager.Logger, beacon *Beacon, tsaClient *tsa.Client) ifrit.Runner {
+	signals := make(chan os.Signal, 2)
+	signal.Notify(signals, drainSignals...)
 
-	return &beacon.Beacon{
-		Logger:           logger,
-		Worker:           worker,
-		Client:           client,
-		GardenAddr:       config.GardenForwardAddr,
-		BaggageclaimAddr: config.BaggageclaimForwardAddr,
-		RegistrationMode: config.Registration.Mode,
-		KeepAlive:        true,
-		RebalanceTime: config.Registration.RebalanceTime,
+	drainRunner := &DrainRunner{
+		Logger:       logger.Session("drain"),
+		Client:       tsaClient,
+		DrainSignals: signals,
+
+		Runner: beacon,
 	}
-}
-
-func BeaconRunner(logger lager.Logger, worker atc.Worker, config beacon.Config) ifrit.Runner {
-	beacon := NewBeacon(logger, worker, config)
 
 	return restart.Restarter{
-		Runner: ifrit.RunFunc(beacon.Register),
+		Runner: drainRunner,
 		Load: func(prevRunner ifrit.Runner, prevErr error) ifrit.Runner {
 			if prevErr == nil {
 				return nil
 			}
 
-			if _, ok := prevErr.(*ssh.ExitError); !ok {
-				logger.Error("restarting", prevErr)
-				time.Sleep(5 * time.Second)
-				return ifrit.RunFunc(beacon.Register)
+			if prevErr == tsa.ErrAllGatewaysUnreachable && prevRunner.(*DrainRunner).Drained() {
+				// this could happen if the whole deployment is being deleted. in this
+				// case, we should just exit and stop retrying, because draining can't
+				// complete anyway.
+				logger.Info("exiting", lager.Data{
+					"reason": "all SSH gateways disappeared while draining",
+				})
+				return nil
 			}
-			return nil
+
+			if _, ok := prevErr.(*ssh.ExitError); ok {
+				// the gateway caused the process to exit, either because the worker
+				// has landed, retired, or is ephemeral and stalled (resulting in its
+				// deletion)
+				logger.Info("exiting", lager.Data{
+					"reason": "registration process exited via SSH gateway",
+				})
+				return nil
+			}
+
+			logger.Error("failed", prevErr)
+
+			time.Sleep(5 * time.Second)
+
+			logger.Info("restarting")
+
+			return drainRunner
 		},
 	}
 }

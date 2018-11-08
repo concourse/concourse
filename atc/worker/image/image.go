@@ -43,7 +43,7 @@ func (i *imageProvidedByPreviousStepOnSameWorker) FetchForContainer(
 		return worker.FetchedImage{}, err
 	}
 
-	imageMetadataReader, err := i.imageSpec.ImageArtifactSource.StreamFile(ImageMetadataFile)
+	imageMetadataReader, err := i.imageSpec.ImageArtifactSource.StreamFile(logger, ImageMetadataFile)
 	if err != nil {
 		logger.Error("failed-to-stream-metadata-file", err)
 		return worker.FetchedImage{}, err
@@ -96,13 +96,13 @@ func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 		destination: imageVolume,
 	}
 
-	err = i.imageSpec.ImageArtifactSource.StreamTo(&dest)
+	err = i.imageSpec.ImageArtifactSource.StreamTo(logger, &dest)
 	if err != nil {
 		logger.Error("failed-to-stream-image-artifact-source", err)
 		return worker.FetchedImage{}, nil
 	}
 
-	imageMetadataReader, err := i.imageSpec.ImageArtifactSource.StreamFile(ImageMetadataFile)
+	imageMetadataReader, err := i.imageSpec.ImageArtifactSource.StreamFile(logger, ImageMetadataFile)
 	if err != nil {
 		logger.Error("failed-to-stream-metadata-file", err)
 		return worker.FetchedImage{}, err

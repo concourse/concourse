@@ -1,0 +1,36 @@
+---
+resources:
+- name: no-certs
+  type: time
+  tags: ["no-certs"]
+  source:
+    interval: 29s
+- name: certs
+  type: time
+  tags: ["certs"]
+  source:
+    interval: 30s
+
+jobs:
+- name: use-em
+  plan:
+  - get: no-certs
+    tags: ["no-certs"]
+  - get: certs
+    tags: ["certs"]
+  - put: put-certs
+    resource: certs
+    tags: ["certs"]
+  - task: failing-task-so-the-resource-containers-stay
+    tags: ["certs"]
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      run:
+        path: sh
+        args: ["-c", "exit 1"]
+

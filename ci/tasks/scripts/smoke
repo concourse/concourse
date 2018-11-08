@@ -22,6 +22,7 @@ else
   export ATC_GUEST_PASSWORD=guest
 fi
 
+set +e
 ticks=0
 echo -n 'waiting for ATC to be running...'
 until curl -sf "$ATC_URL/api/v1/info"; do
@@ -40,6 +41,12 @@ done
 echo 'ok!'
 
 curl "$ATC_URL/api/v1/cli?arch=amd64&platform=linux" | tar -zxf - -C /usr/local/bin
+if [ $? -ne 0 ]; then
+  pushd concourse/fly
+    go build -o /usr/local/bin/fly
+  popd
+fi
+set -e
 
 fly --version
 

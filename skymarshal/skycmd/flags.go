@@ -14,8 +14,8 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-var ErrRequireAllowAllUsersFlag = errors.New("ErrRequireAllowAllUsersFlag")
-var ErrRequireAllowAllUsersConfig = errors.New("ErrRequireAllowAllUsersConfig")
+var ErrAuthNotConfiguredFromFlags = errors.New("ErrAuthNotConfiguredFromFlags")
+var ErrAuthNotConfiguredFromConfig = errors.New("ErrAuthNotConfiguredFromConfig")
 
 var connectors []*Connector
 
@@ -51,9 +51,8 @@ type AuthFlags struct {
 }
 
 type AuthTeamFlags struct {
-	LocalUsers    []string  `long:"local-user" description:"List of whitelisted local concourse users. These are the users you've added at atc startup with the --add-local-user flag." value-name:"USERNAME"`
-	AllowAllUsers bool      `long:"allow-all-users" description:"Setting this flag will whitelist all logged in users in the system. ALL OF THEM. If, for example, you've configured GitHub, any user with a GitHub account will have access to your team."`
-	Config        flag.File `short:"c" long:"config" description:"Configuration file for specifying team params"`
+	LocalUsers []string  `long:"local-user" description:"List of whitelisted local concourse users. These are the users you've added at atc startup with the --add-local-user flag." value-name:"USERNAME"`
+	Config     flag.File `short:"c" long:"config" description:"Configuration file for specifying team params"`
 }
 
 func (self *AuthTeamFlags) Format() (AuthConfig, error) {
@@ -148,8 +147,6 @@ func (self *AuthTeamFlags) formatFromConfig() (AuthConfig, error) {
 	for _, role := range data.Roles {
 		roleName := role["name"].(string)
 
-		self.AllowAllUsers, _ = role["allow_all_users"].(bool)
-
 		users := []string{}
 		groups := []string{}
 
@@ -177,8 +174,8 @@ func (self *AuthTeamFlags) formatFromConfig() (AuthConfig, error) {
 				users = append(users, "local:"+strings.ToLower(user.(string)))
 			}
 		}
-		if len(users) == 0 && len(groups) == 0 && !self.AllowAllUsers {
-			return nil, ErrRequireAllowAllUsersConfig
+		if len(users) == 0 && len(groups) == 0 {
+			return nil, ErrAuthNotConfiguredFromConfig
 		}
 
 		auth[roleName] = map[string][]string{
@@ -214,8 +211,8 @@ func (self *AuthTeamFlags) formatFromFlags() (AuthConfig, error) {
 		users = append(users, "local:"+strings.ToLower(user))
 	}
 
-	if len(users) == 0 && len(groups) == 0 && !self.AllowAllUsers {
-		return nil, ErrRequireAllowAllUsersFlag
+	if len(users) == 0 && len(groups) == 0 {
+		return nil, ErrAuthNotConfiguredFromFlags
 	}
 
 	return AuthConfig{

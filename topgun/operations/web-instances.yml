@@ -1,0 +1,3 @@
+- type: replace
+  path: /instance_groups/name=web/instances
+  value: ((web_instances))

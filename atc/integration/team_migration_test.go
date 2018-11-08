@@ -13,8 +13,8 @@ import (
 
 var _ = XDescribe("ATC 3.13 Team Migration Test", func() {
 	var (
-		atcProcess         ifrit.Process
-		atcURL              string
+		atcProcess ifrit.Process
+		atcURL     string
 
 		oldMigrationVersion = 1524079655
 
@@ -24,7 +24,7 @@ var _ = XDescribe("ATC 3.13 Team Migration Test", func() {
 		password string
 	)
 
-	BeforeSuite(func(){
+	BeforeSuite(func() {
 		rand.Seed(time.Now().UnixNano())
 	})
 
@@ -36,7 +36,7 @@ var _ = XDescribe("ATC 3.13 Team Migration Test", func() {
 
 		cmd.Auth.MainTeamFlags.LocalUsers = []string{username}
 		cmd.Auth.AuthFlags.LocalUsers = map[string]string{
-			username:   password,
+			username: password,
 		}
 
 		var err error
@@ -87,7 +87,8 @@ var _ = XDescribe("ATC 3.13 Team Migration Test", func() {
 })
 
 var characterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%=")
-func randomString () string {
+
+func randomString() string {
 	b := make([]rune, 50)
 	for i := range b {
 		b[i] = characterRunes[rand.Intn(len(characterRunes))]

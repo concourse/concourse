@@ -445,7 +445,7 @@ var _ = Describe("Volume", func() {
 			usedWorkerBaseResourceType, found, err := workerBaseResourceTypeFactory.Find("some-base-resource-type", defaultWorker)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
-			creatingVolume, err := volumeRepository.CreateBaseResourceTypeVolume(defaultTeam.ID(), usedWorkerBaseResourceType)
+			creatingVolume, err := volumeRepository.CreateBaseResourceTypeVolume(usedWorkerBaseResourceType)
 			Expect(err).ToNot(HaveOccurred())
 			createdVolume, err := creatingVolume.Created()
 			Expect(err).ToNot(HaveOccurred())
@@ -456,7 +456,7 @@ var _ = Describe("Volume", func() {
 			Expect(volumeBaseResourceType.Name).To(Equal("some-base-resource-type"))
 			Expect(volumeBaseResourceType.Version).To(Equal("some-brt-version"))
 
-			_, createdVolume, err = volumeRepository.FindBaseResourceTypeVolume(defaultTeam.ID(), usedWorkerBaseResourceType)
+			_, createdVolume, err = volumeRepository.FindBaseResourceTypeVolume(usedWorkerBaseResourceType)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(createdVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeResourceType)))
 			volumeBaseResourceType, err = createdVolume.BaseResourceType()

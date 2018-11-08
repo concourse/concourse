@@ -1,6 +1,7 @@
 package tsa
 
 import (
+	"context"
 	"net/http"
 
 	"net/http/httputil"
@@ -8,6 +9,7 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/tedsuo/rata"
 )
@@ -17,7 +19,9 @@ type Deleter struct {
 	TokenGenerator TokenGenerator
 }
 
-func (l *Deleter) Delete(logger lager.Logger, worker atc.Worker) error {
+func (l *Deleter) Delete(ctx context.Context, worker atc.Worker) error {
+	logger := lagerctx.FromContext(ctx)
+
 	logger.Info("start")
 	defer logger.Info("end")
 
@@ -29,9 +33,14 @@ func (l *Deleter) Delete(logger lager.Logger, worker atc.Worker) error {
 		return err
 	}
 
-	jwtToken, err := l.TokenGenerator.GenerateSystemToken()
+	var jwtToken string
+	if worker.Team != "" {
+		jwtToken, err = l.TokenGenerator.GenerateTeamToken(worker.Team)
+	} else {
+		jwtToken, err = l.TokenGenerator.GenerateSystemToken()
+	}
 	if err != nil {
-		logger.Error("failed-to-construct-request", err)
+		logger.Error("failed-to-generate-token", err)
 		return err
 	}
 

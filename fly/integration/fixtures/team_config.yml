@@ -2,8 +2,6 @@ roles:
   - name: member
     local:
       users: ["some-user"]
-  - name: viewer
-    allow_all_users: true
   - name: owner
     local:
       users: ["some-admin"]

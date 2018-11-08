@@ -136,11 +136,11 @@ func (c *containerCollector) cleanupOrphanedContainers(logger lager.Logger) erro
 			// create new array
 			workerCreatedContainers[createdContainer.WorkerName()] = []db.CreatedContainer{createdContainer}
 		}
-		logger.Debug("found-created-containers-for-deletion", lager.Data{
-			"handle": createdContainer.Handle(),
-			"worker": createdContainer.WorkerName(),
-		})
 	}
+
+	logger.Debug("found-created-containers-for-deletion", lager.Data{
+		"num-containers": len(createdContainers),
+	})
 
 	for worker, createdContainers := range workerCreatedContainers {
 		go destroyNonHijackedCreatedContainers(logger, createdContainers)

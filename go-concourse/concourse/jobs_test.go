@@ -237,10 +237,10 @@ var _ = Describe("ATC Handler Jobs", func() {
 		Context("when since and until are both specified", func() {
 			BeforeEach(func() {
 				expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds")
-				expectedQuery = fmt.Sprint("until=26")
+				expectedQuery = fmt.Sprint("until=26&since=24")
 			})
 
-			It("only sends the until", func() {
+			It("sends both the since and the until", func() {
 				builds, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{Since: 24, Until: 26})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())

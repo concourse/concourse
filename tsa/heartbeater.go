@@ -2,20 +2,19 @@ package tsa
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/baggageclaim"
-	"github.com/tedsuo/ifrit"
+	"github.com/concourse/concourse/atc"
 	"github.com/tedsuo/rata"
 )
 
@@ -24,10 +23,7 @@ type EndpointPicker interface {
 	Pick() *rata.RequestGenerator
 }
 
-type heartbeater struct {
-	logger   lager.Logger
-	logLevel lager.LogLevel
-
+type Heartbeater struct {
 	clock       clock.Clock
 	interval    time.Duration
 	cprInterval time.Duration
@@ -38,14 +34,11 @@ type heartbeater struct {
 	atcEndpointPicker EndpointPicker
 	tokenGenerator    TokenGenerator
 
-	registration    atc.Worker
-	clientWriter    io.Writer
-	staleConnection bool
+	registration atc.Worker
+	eventWriter  EventWriter
 }
 
 func NewHeartbeater(
-	logger lager.Logger,
-	logLevel lager.LogLevel,
 	clock clock.Clock,
 	interval time.Duration,
 	cprInterval time.Duration,
@@ -54,12 +47,9 @@ func NewHeartbeater(
 	atcEndpointPicker EndpointPicker,
 	tokenGenerator TokenGenerator,
 	worker atc.Worker,
-	clientWriter io.Writer,
-) ifrit.Runner {
-	return &heartbeater{
-		logger:   logger,
-		logLevel: logLevel,
-
+	eventWriter EventWriter,
+) *Heartbeater {
+	return &Heartbeater{
 		clock:       clock,
 		interval:    interval,
 		cprInterval: cprInterval,
@@ -71,30 +61,33 @@ func NewHeartbeater(
 		tokenGenerator:    tokenGenerator,
 
 		registration: worker,
-		clientWriter: clientWriter,
+		eventWriter:  eventWriter,
 	}
 }
 
-func (heartbeater *heartbeater) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	for !heartbeater.register(heartbeater.logger.Session("register")) {
+func (heartbeater *Heartbeater) Heartbeat(ctx context.Context) error {
+	logger := lagerctx.FromContext(ctx)
+
+	logger.Info("start")
+	defer logger.Info("done")
+
+	for !heartbeater.register(logger.Session("register")) {
 		select {
 		case <-heartbeater.clock.NewTimer(time.Second).C():
-		case <-signals:
+		case <-ctx.Done():
 			return nil
 		}
 	}
-
-	close(ready)
 
 	currentInterval := heartbeater.interval
 
 	for {
 		select {
-		case <-signals:
+		case <-ctx.Done():
 			return nil
 
 		case <-heartbeater.clock.NewTimer(currentInterval).C():
-			status := heartbeater.heartbeat(heartbeater.logger.Session("heartbeat"))
+			status := heartbeater.heartbeat(logger.Session("heartbeat"))
 			switch status {
 			case HeartbeatStatusGoneAway:
 				return nil
@@ -102,19 +95,15 @@ func (heartbeater *heartbeater) Run(signals <-chan os.Signal, ready chan<- struc
 				return nil
 			case HeartbeatStatusHealthy:
 				currentInterval = heartbeater.interval
-			case HeartbeatStatusStaleConnection:
-				<-signals
-				return nil
 			default:
 				currentInterval = heartbeater.cprInterval
 			}
 		}
 	}
+
 }
 
-func (heartbeater *heartbeater) register(logger lager.Logger) bool {
-	logger.RegisterSink(lager.NewWriterSink(heartbeater.clientWriter, heartbeater.logLevel))
-
+func (heartbeater *Heartbeater) register(logger lager.Logger) bool {
 	heartbeatData := lager.Data{
 		"worker-platform": heartbeater.registration.Platform,
 		"worker-address":  heartbeater.registration.GardenAddr,
@@ -169,6 +158,12 @@ func (heartbeater *heartbeater) register(logger lager.Logger) bool {
 		return false
 	}
 
+	err = heartbeater.eventWriter.Registered()
+	if err != nil {
+		logger.Error("failed-to-emit-registered-event", err)
+		return true
+	}
+
 	return true
 }
 
@@ -179,14 +174,9 @@ const (
 	HeartbeatStatusLanded
 	HeartbeatStatusGoneAway
 	HeartbeatStatusHealthy
-	HeartbeatStatusStaleConnection
 )
 
-func (heartbeater *heartbeater) heartbeat(logger lager.Logger) HeartbeatStatus {
-	if heartbeater.staleConnection {
-		return HeartbeatStatusStaleConnection
-	}
-	logger.RegisterSink(lager.NewWriterSink(heartbeater.clientWriter, heartbeater.logLevel))
+func (heartbeater *Heartbeater) heartbeat(logger lager.Logger) HeartbeatStatus {
 	heartbeatData := lager.Data{
 		"worker-platform": heartbeater.registration.Platform,
 		"worker-address":  heartbeater.registration.GardenAddr,
@@ -248,15 +238,16 @@ func (heartbeater *heartbeater) heartbeat(logger lager.Logger) HeartbeatStatus {
 		return HeartbeatStatusUnhealthy
 	}
 
+	err = heartbeater.eventWriter.Heartbeated()
+	if err != nil {
+		logger.Error("failed-to-emit-heartbeated-event", err)
+	}
+
 	var workerInfo atc.Worker
 	err = json.NewDecoder(response.Body).Decode(&workerInfo)
 	if err != nil {
 		logger.Error("failed-to-decode-response", err)
 		return HeartbeatStatusUnhealthy
-	}
-
-	if workerInfo.GardenAddr != heartbeater.registration.GardenAddr {
-		heartbeater.staleConnection = true
 	}
 
 	if workerInfo.State == "landed" {
@@ -267,7 +258,7 @@ func (heartbeater *heartbeater) heartbeat(logger lager.Logger) HeartbeatStatus {
 	return HeartbeatStatusHealthy
 }
 
-func (heartbeater *heartbeater) pingWorker(logger lager.Logger) (atc.Worker, bool) {
+func (heartbeater *Heartbeater) pingWorker(logger lager.Logger) (atc.Worker, bool) {
 	registration := heartbeater.registration
 
 	beforeGarden := time.Now()
@@ -310,6 +301,6 @@ func (heartbeater *heartbeater) pingWorker(logger lager.Logger) (atc.Worker, boo
 	return registration, true
 }
 
-func (heartbeater *heartbeater) ttl() time.Duration {
+func (heartbeater *Heartbeater) ttl() time.Duration {
 	return heartbeater.interval * 2
 }

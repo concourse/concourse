@@ -53,6 +53,8 @@ type Pipeline interface {
 	Builds(page Page) ([]Build, Pagination, error)
 	CreateOneOffBuild() (Build, error)
 	GetAllPendingBuilds() (map[string][]Build, error)
+	BuildsWithTime(page Page) ([]Build, Pagination, error)
+
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
 	AcquireSchedulingLock(lager.Logger, time.Duration) (lock.Lock, bool, error)
@@ -442,7 +444,13 @@ func (p *pipeline) Resource(name string) (Resource, bool, error) {
 }
 
 func (p *pipeline) Builds(page Page) ([]Build, Pagination, error) {
-	return getBuildsWithPagination(buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), page, p.conn, p.lockFactory)
+	return getBuildsWithPagination(
+		buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), minMaxIdQuery, page, p.conn, p.lockFactory)
+}
+
+func (p *pipeline) BuildsWithTime(page Page) ([]Build, Pagination, error) {
+	return getBuildsWithDates(
+		buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), minMaxIdQuery, page, p.conn, p.lockFactory)
 }
 
 func (p *pipeline) Resources() (Resources, error) {

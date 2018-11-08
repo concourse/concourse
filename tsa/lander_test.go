@@ -1,8 +1,11 @@
 package tsa_test
 
 import (
+	"context"
+
 	"github.com/concourse/concourse/tsa"
 
+	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tsa/tsafakes"
@@ -16,14 +19,14 @@ var _ = Describe("Lander", func() {
 	var (
 		lander *tsa.Lander
 
-		logger             *lagertest.TestLogger
+		ctx                context.Context
 		worker             atc.Worker
 		fakeTokenGenerator *tsafakes.FakeTokenGenerator
 		fakeATC            *ghttp.Server
 	)
 
 	BeforeEach(func() {
-		logger = lagertest.NewTestLogger("test")
+		ctx = lagerctx.NewContext(context.Background(), lagertest.NewTestLogger("test"))
 		worker = atc.Worker{
 			Name: "some-worker",
 		}
@@ -57,7 +60,7 @@ var _ = Describe("Lander", func() {
 				ghttp.RespondWith(200, nil, nil),
 			))
 
-			err := lander.Land(logger, worker)
+			err := lander.Land(ctx, worker)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
@@ -71,7 +74,7 @@ var _ = Describe("Lander", func() {
 			ghttp.RespondWith(200, nil, nil),
 		))
 
-		err := lander.Land(logger, worker)
+		err := lander.Land(ctx, worker)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
@@ -86,7 +89,7 @@ var _ = Describe("Lander", func() {
 		})
 
 		It("errors", func() {
-			err := lander.Land(logger, worker)
+			err := lander.Land(ctx, worker)
 			Expect(err).To(HaveOccurred())
 
 			Expect(err).To(MatchError(ContainSubstring("403")))
@@ -103,7 +106,7 @@ var _ = Describe("Lander", func() {
 		})
 
 		It("errors", func() {
-			err := lander.Land(logger, worker)
+			err := lander.Land(ctx, worker)
 			Expect(err).To(HaveOccurred())
 
 			Expect(err).To(MatchError(ContainSubstring("404")))
@@ -120,7 +123,7 @@ var _ = Describe("Lander", func() {
 		})
 
 		It("errors", func() {
-			err := lander.Land(logger, worker)
+			err := lander.Land(ctx, worker)
 			Expect(err).To(HaveOccurred())
 
 			Expect(err).To(MatchError(ContainSubstring("500")))

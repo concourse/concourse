@@ -142,13 +142,13 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL, "until=26"),
+						ghttp.VerifyRequest("GET", expectedURL, "until=26&since=24"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
 					),
 				)
 			})
 
-			It("only sends the until", func() {
+			It("sends both since and the until", func() {
 				Expect(clientErr).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(versions).To(Equal(expectedVersions))

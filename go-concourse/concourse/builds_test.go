@@ -328,13 +328,13 @@ var _ = Describe("ATC Handler Builds", func() {
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL, "until=26"),
+						ghttp.VerifyRequest("GET", expectedURL, "until=26&since=24"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds),
 					),
 				)
 			})
 
-			It("only sends the until", func() {
+			It("sends both the since and the until", func() {
 				Expect(clientErr).NotTo(HaveOccurred())
 				Expect(builds).To(Equal(expectedBuilds))
 			})
@@ -555,13 +555,13 @@ var _ = Describe("ATC Handler Builds", func() {
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL, "until=26"),
+						ghttp.VerifyRequest("GET", expectedURL, "until=26&since=24"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds),
 					),
 				)
 			})
 
-			It("only sends the until", func() {
+			It("sends both the since and the until", func() {
 				Expect(teamErr).NotTo(HaveOccurred())
 				Expect(builds).To(Equal(expectedBuilds))
 			})

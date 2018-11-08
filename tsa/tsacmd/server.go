@@ -1,33 +1,27 @@
 package tsacmd
 
 import (
-	"encoding/json"
-	"errors"
+	"context"
+	"flag"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/clock"
-	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
-	bclient "github.com/concourse/baggageclaim/client"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/tsa"
-	"github.com/tedsuo/ifrit"
 	"golang.org/x/crypto/ssh"
 )
 
 const maxForwards = 2
 
-type registrarSSHServer struct {
+type server struct {
 	logger            lager.Logger
-	logLevel          lager.LogLevel
 	atcEndpointPicker tsa.EndpointPicker
 	tokenGenerator    tsa.TokenGenerator
 	heartbeatInterval time.Duration
@@ -66,13 +60,30 @@ func (s *sessionTeam) AuthorizedTeamFor(sessionID string) string {
 	return s.sessionTeams[sessionID]
 }
 
-type forwardedTCPIP struct {
-	bindAddr  string
-	process   ifrit.Process
-	boundPort uint32
+type ConnState struct {
+	Team string
+
+	ForwardedTCPIPs <-chan ForwardedTCPIP
 }
 
-func (server *registrarSSHServer) Serve(listener net.Listener) {
+type ForwardedTCPIP struct {
+	Logger lager.Logger
+
+	BindAddr  string
+	BoundPort uint32
+
+	Drain chan<- struct{}
+
+	wg *sync.WaitGroup
+}
+
+func (forward ForwardedTCPIP) Wait() {
+	forward.Logger.Debug("draining")
+	forward.wg.Wait()
+	forward.Logger.Debug("drained")
+}
+
+func (server *server) Serve(listener net.Listener) {
 	for {
 		c, err := listener.Accept()
 		if err != nil {
@@ -91,7 +102,7 @@ func (server *registrarSSHServer) Serve(listener net.Listener) {
 	}
 }
 
-func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Conn) {
+func (server *server) handshake(logger lager.Logger, netConn net.Conn) {
 	conn, chans, reqs, err := ssh.NewServerConn(netConn, server.config)
 	if err != nil {
 		logger.Info("handshake-failed", lager.Data{"error": err.Error()})
@@ -100,10 +111,19 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 
 	defer conn.Close()
 
-	forwardedTCPIPs := make(chan forwardedTCPIP, maxForwards)
-	go server.handleForwardRequests(logger, conn, reqs, forwardedTCPIPs)
+	ctx, cancel := context.WithCancel(lagerctx.NewContext(context.Background(), logger))
+	defer cancel()
 
 	sessionID := string(conn.SessionID())
+
+	forwardedTCPIPs := make(chan ForwardedTCPIP, maxForwards)
+	go server.handleForwardRequests(ctx, conn, reqs, forwardedTCPIPs)
+
+	state := ConnState{
+		Team: server.sessionTeam.AuthorizedTeamFor(sessionID),
+
+		ForwardedTCPIPs: forwardedTCPIPs,
+	}
 
 	chansGroup := new(sync.WaitGroup)
 
@@ -124,555 +144,140 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 		}
 
 		chansGroup.Add(1)
-		go server.handleChannel(logger.Session("channel"), sessionID, forwardedTCPIPs, chansGroup, channel, requests)
+		go server.handleChannel(logger.Session("channel"), chansGroup, channel, requests, state)
 	}
 
 	chansGroup.Wait()
 }
 
-func (server *registrarSSHServer) handleChannel(
+type signalMsg struct {
+	Signal string
+}
+
+func (server *server) handleChannel(
 	logger lager.Logger,
-	sessionID string,
-	forwardedTCPIPs <-chan forwardedTCPIP,
 	chansGroup *sync.WaitGroup,
 	channel ssh.Channel,
 	requests <-chan *ssh.Request,
+	state ConnState,
 ) {
-	var processes []ifrit.Process
-
-	// ensure processes get cleaned up
-	defer func() {
-		cleanupLog := logger.Session("cleanup")
-
-		for _, p := range processes {
-			cleanupLog.Debug("interrupting")
-
-			p.Signal(os.Interrupt)
-		}
-
-		for _, p := range processes {
-			err := <-p.Wait()
-			if err != nil {
-				cleanupLog.Error("process-exited-with-failure", err)
-			} else {
-				cleanupLog.Debug("process-exited-successfully")
-			}
-		}
-	}()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	defer chansGroup.Done()
 	defer channel.Close()
 
-	for req := range requests {
-		logger.Info("channel-request", lager.Data{
-			"type": req.Type,
-		})
+	execExited := make(chan error, 1)
 
-		if req.Type != "exec" {
-			logger.Info("rejecting")
-			req.Reply(false, nil)
-			continue
-		}
-
-		var request execRequest
-		err := ssh.Unmarshal(req.Payload, &request)
-		if err != nil {
-			logger.Error("malformed-exec-request", err)
-			req.Reply(false, nil)
-			return
-		}
-
-		workerRequest, err := parseRequest(request.Command)
-		if err != nil {
-			fmt.Fprintf(channel, "invalid command: %s", err)
-			req.Reply(false, nil)
-			continue
-		}
-
-		switch r := workerRequest.(type) {
-		case landWorkerRequest:
-			logger = logger.Session("land-worker")
-
-			req.Reply(true, nil)
-
-			logger.RegisterSink(lager.NewWriterSink(channel, server.logLevel))
-			err := server.landWorker(logger, channel, sessionID)
-			if err != nil {
-				logger.Error("failed-to-land-worker", err)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{1}))
-				channel.Close()
-			} else {
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
-				channel.Close()
-			}
-
-		case retireWorkerRequest:
-			logger = logger.Session("retire-worker")
-
-			req.Reply(true, nil)
-
-			logger.RegisterSink(lager.NewWriterSink(channel, server.logLevel))
-			err := server.retireWorker(logger, channel, sessionID)
-			if err != nil {
-				logger.Error("failed-to-retire-worker", err)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{1}))
-				channel.Close()
-			} else {
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
-				channel.Close()
-			}
-
-		case deleteWorkerRequest:
-			logger = logger.Session("delete-worker")
-
-			req.Reply(true, nil)
-
-			logger.RegisterSink(lager.NewWriterSink(channel, server.logLevel))
-			err := server.deleteWorker(logger, channel, sessionID)
-			if err != nil {
-				logger.Error("failed-to-delete-worker", err)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{1}))
-				channel.Close()
-			} else {
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
-				channel.Close()
-			}
-
-		case reportVolumeRequest:
-			logger = logger.Session("report-volumes-worker", lager.Data{"num-handles": len(r.handles())})
-
-			req.Reply(true, nil)
-
-			err := server.reportVolumes(logger, channel, sessionID, r.handles())
-
-			if err != nil {
-				logger.Error("failed-to-report-volumes", err)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{1}))
-			} else {
-				logger.Info("finished-reporting-volumes")
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
-			}
-
-			channel.Close()
-
-		case reportContainerRequest:
-			logger = logger.Session("report-containers-worker", lager.Data{"num-handles": len(r.handles())})
-
-			req.Reply(true, nil)
-
-			err := server.reportContainers(logger, channel, sessionID, r.handles())
-
-			if err != nil {
-				logger.Error("failed-to-report-containers", err)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{1}))
-			} else {
-				logger.Info("finished-reporting-containers")
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
-			}
-
-			channel.Close()
-
-		case sweepContainerRequest:
-			logger = logger.Session("sweep-containers-worker")
-
-			req.Reply(true, nil)
-
-			handles, err := server.sweepContainers(logger, channel, sessionID)
-
-			if err != nil {
-				logger.Error("failed-to-get-sweep-containers", err)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{1}))
-			} else {
-				logger.Info("finished-getting-sweep-containers", lager.Data{"handles": string(handles)})
-				bytesNum, err := channel.Write(handles)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
-				logger.Info("finished-writing-sweeper-containers", lager.Data{"bytes-written": bytesNum, "err": err})
-			}
-
-			channel.Close()
-
-		case sweepVolumeRequest:
-			logger = logger.Session("sweep-volume-worker")
-
-			req.Reply(true, nil)
-
-			handles, err := server.sweepVolumes(logger, channel, sessionID)
-
-			if err != nil {
-				logger.Error("failed-to-get-sweep-volumes", err)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{1}))
-			} else {
-				logger.Info("finished-getting-sweep-volumes", lager.Data{"handles": string(handles)})
-				bytesNum, err := channel.Write(handles)
-				channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
-				logger.Info("finished-writing-sweeper-volumes", lager.Data{"bytes-written": bytesNum, "err": err})
-			}
-
-			channel.Close()
-
-		case registerWorkerRequest:
-			logger = logger.Session("register-worker")
-
-			req.Reply(true, nil)
-
-			process, err := server.continuouslyRegisterWorkerDirectly(logger, channel, sessionID)
-			if err != nil {
-				logger.Error("failed-to-register", err)
+	for {
+		select {
+		case req, ok := <-requests:
+			if !ok {
 				return
 			}
-			watchForProcessToExit(logger, process, channel)
-			processes = append(processes, process)
 
-		case forwardWorkerRequest:
-			logger = logger.Session("forward-worker")
-
-			req.Reply(true, nil)
-
-			forwards := map[string]forwardedTCPIP{}
-
-			for i := 0; i < r.expectedForwards(); i++ {
-				select {
-				case forwarded := <-forwardedTCPIPs:
-					logger.Info("forwarded-tcpip", lager.Data{
-						"bound-port": forwarded.boundPort,
-						"bindAddr":   forwarded.bindAddr,
-					})
-
-					processes = append(processes, forwarded.process)
-
-					forwards[forwarded.bindAddr] = forwarded
-
-				case <-time.After(10 * time.Second): // todo better?
-					logger.Info("never-forwarded-tcpip")
-				}
-			}
-
-			logger.Debug("register-forward", lager.Data{"forwardMap": forwards})
-			switch len(forwards) {
-			case 0:
-				fmt.Fprintf(channel, "requested forwarding but no forwards given\n")
-				return
-
-			case 1:
-				for _, gardenForward := range forwards {
-					process, err := server.continuouslyRegisterForwardedWorker(
-						logger,
-						channel,
-						gardenForward.boundPort,
-						0,
-						sessionID,
-					)
-					if err != nil {
-						logger.Error("failed-to-register", err)
-						return
-					}
-					watchForProcessToExit(logger, process, channel)
-					processes = append(processes, process)
-
-					break
-				}
-
-			case 2:
-				gardenForward, found := forwards[r.gardenAddr]
-				if !found {
-					fmt.Fprintf(channel, "garden address %s not found in forwards\n", r.gardenAddr)
-					return
-				}
-
-				baggageclaimForward, found := forwards[r.baggageclaimAddr]
-				if !found {
-					fmt.Fprintf(channel, "baggageclaim address %s not found in forwards\n", r.gardenAddr)
-					return
-				}
-
-				process, err := server.continuouslyRegisterForwardedWorker(
-					logger,
-					channel,
-					gardenForward.boundPort,
-					baggageclaimForward.boundPort,
-					sessionID,
-				)
-				if err != nil {
-					logger.Error("failed-to-register", err)
-					return
-				}
-				watchForProcessToExit(logger, process, channel)
-				processes = append(processes, process)
-			}
-		default:
-			logger.Info("invalid-command", lager.Data{
-				"command": request.Command,
+			logger.Debug("channel-request", lager.Data{
+				"type": req.Type,
 			})
 
-			req.Reply(false, nil)
+			switch req.Type {
+			case "signal":
+				req.Reply(true, nil)
+
+				var sig signalMsg
+				err := ssh.Unmarshal(req.Payload, &sig)
+				if err != nil {
+					logger.Error("malformed-signal", err)
+					req.Reply(false, nil)
+					continue
+				}
+
+				logger.Debug("received-signal", lager.Data{
+					"signal": sig,
+				})
+
+				cancel()
+
+			case "exec":
+				var request execRequest
+				err := ssh.Unmarshal(req.Payload, &request)
+				if err != nil {
+					logger.Error("malformed-exec-request", err)
+					req.Reply(false, nil)
+					return
+				}
+
+				workerRequest, command, err := server.parseRequest(request.Command)
+				if err != nil {
+					fmt.Fprintf(channel, "invalid command: %s", err)
+					req.Reply(false, nil)
+					continue
+				}
+
+				req.Reply(true, nil)
+
+				cmdLogger := logger.Session("command", lager.Data{
+					"command": command,
+				})
+
+				go func() {
+					execExited <- workerRequest.Handle(lagerctx.NewContext(ctx, cmdLogger), state, channel)
+				}()
+
+			default:
+				logger.Info("rejecting")
+				req.Reply(false, nil)
+				continue
+			}
+
+		case err := <-execExited:
+			req := exitStatusRequest{0}
+
+			if err != nil {
+				logger.Error("exited-with-error", err)
+				req.ExitStatus = 1
+			} else {
+				logger.Debug("exited-successfully")
+			}
+
+			_, err = channel.SendRequest("exit-status", false, ssh.Marshal(req))
+			if err != nil {
+				logger.Error("failed-to-send-exit-status", err)
+			}
+
+			// RFC 4254: "The channel needs to be closed with SSH_MSG_CHANNEL_CLOSE after
+			// this message."
+			err = channel.Close()
+			if err != nil {
+				logger.Error("failed-to-close-channel", err)
+			} else {
+				logger.Debug("closed-channel")
+			}
 		}
 	}
 }
 
-func (server *registrarSSHServer) continuouslyRegisterWorkerDirectly(
-	logger lager.Logger,
-	channel ssh.Channel,
-	sessionID string,
-) (ifrit.Process, error) {
-	logger.Info("start")
-	defer logger.Info("done")
-
-	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
-	if err != nil {
-		return nil, err
-	}
-
-	err = server.validateWorkerTeam(logger, sessionID, worker)
-	if err != nil {
-		return nil, err
-	}
-
-	return server.heartbeatWorker(logger, worker, channel), nil
-}
-
-func (server *registrarSSHServer) landWorker(
-	logger lager.Logger,
-	channel ssh.Channel,
-	sessionID string,
-) error {
-	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
-	if err != nil {
-		return err
-	}
-
-	err = server.validateWorkerTeam(logger, sessionID, worker)
-	if err != nil {
-		return err
-	}
-
-	return (&tsa.Lander{
-		ATCEndpoint:    server.atcEndpointPicker.Pick(),
-		TokenGenerator: server.tokenGenerator,
-	}).Land(logger, worker)
-}
-
-func (server *registrarSSHServer) retireWorker(
-	logger lager.Logger,
-	channel ssh.Channel,
-	sessionID string,
-) error {
-	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
-	if err != nil {
-		return err
-	}
-
-	err = server.validateWorkerTeam(logger, sessionID, worker)
-	if err != nil {
-		return err
-	}
-
-	return (&tsa.Retirer{
-		ATCEndpoint:    server.atcEndpointPicker.Pick(),
-		TokenGenerator: server.tokenGenerator,
-	}).Retire(logger, worker)
-}
-
-func (server *registrarSSHServer) deleteWorker(
-	logger lager.Logger,
-	channel ssh.Channel,
-	sessionID string,
-) error {
-	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
-	if err != nil {
-		return err
-	}
-
-	err = server.validateWorkerTeam(logger, sessionID, worker)
-	if err != nil {
-		return err
-	}
-
-	return (&tsa.Deleter{
-		ATCEndpoint:    server.atcEndpointPicker.Pick(),
-		TokenGenerator: server.tokenGenerator,
-	}).Delete(logger, worker)
-}
-
-func (server *registrarSSHServer) reportContainers(
-	logger lager.Logger,
-	channel ssh.Channel,
-	sessionID string,
-	handles []string,
-) error {
-	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
-	if err != nil {
-		return err
-	}
-
-	err = server.validateWorkerTeam(logger, sessionID, worker)
-	if err != nil {
-		return err
-	}
-
-	return (&tsa.WorkerStatus{
-		ATCEndpoint:      server.atcEndpointPicker.Pick(),
-		TokenGenerator:   server.tokenGenerator,
-		ContainerHandles: handles,
-	}).WorkerStatus(logger, worker, tsa.ReportContainers)
-}
-
-func (server *registrarSSHServer) reportVolumes(
-	logger lager.Logger,
-	channel ssh.Channel,
-	sessionID string,
-	handles []string,
-) error {
-	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
-	if err != nil {
-		return err
-	}
-
-	err = server.validateWorkerTeam(logger, sessionID, worker)
-	if err != nil {
-		return err
-	}
-
-	return (&tsa.WorkerStatus{
-		ATCEndpoint:    server.atcEndpointPicker.Pick(),
-		TokenGenerator: server.tokenGenerator,
-		VolumeHandles:  handles,
-	}).WorkerStatus(logger, worker, tsa.ReportVolumes)
-}
-
-func (server *registrarSSHServer) sweepContainers(
-	logger lager.Logger,
-	channel ssh.Channel,
-	sessionID string,
-) ([]byte, error) {
-	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
-	if err != nil {
-		return nil, err
-	}
-
-	err = server.validateWorkerTeam(logger, sessionID, worker)
-	if err != nil {
-		return nil, err
-	}
-
-	return (&tsa.Sweeper{
-		ATCEndpoint:    server.atcEndpointPicker.Pick(),
-		TokenGenerator: server.tokenGenerator,
-	}).Sweep(logger, worker, tsa.SweepContainers)
-}
-
-func (server *registrarSSHServer) sweepVolumes(
-	logger lager.Logger,
-	channel ssh.Channel,
-	sessionID string,
-) ([]byte, error) {
-	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
-	if err != nil {
-		return nil, err
-	}
-
-	err = server.validateWorkerTeam(logger, sessionID, worker)
-	if err != nil {
-		return nil, err
-	}
-
-	return (&tsa.Sweeper{
-		ATCEndpoint:    server.atcEndpointPicker.Pick(),
-		TokenGenerator: server.tokenGenerator,
-	}).Sweep(logger, worker, tsa.SweepVolumes)
-}
-
-func (server *registrarSSHServer) validateWorkerTeam(
-	logger lager.Logger,
-	sessionID string,
-	worker atc.Worker,
-) error {
-	if server.sessionTeam.IsNotAuthorized(sessionID, worker.Team) {
-		logger.Info("worker-not-allowed", lager.Data{
-			"authorized-team": server.sessionTeam.AuthorizedTeamFor(sessionID),
-			"request-team":    worker.Team,
-		})
-		return errors.New("worker-not-allowed-to-team")
-	}
-
-	return nil
-}
-
-func (server *registrarSSHServer) continuouslyRegisterForwardedWorker(
-	logger lager.Logger,
-	channel ssh.Channel,
-	gardenPort uint32,
-	baggageclaimPort uint32,
-	sessionID string,
-) (ifrit.Process, error) {
-	logger.Info("start")
-	defer logger.Info("done")
-
-	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
-	if err != nil {
-		return nil, err
-	}
-
-	err = server.validateWorkerTeam(logger, sessionID, worker)
-	if err != nil {
-		return nil, err
-	}
-
-	worker.GardenAddr = fmt.Sprintf("%s:%d", server.forwardHost, gardenPort)
-
-	if baggageclaimPort != 0 {
-		worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", server.forwardHost, baggageclaimPort)
-	}
-
-	return server.heartbeatWorker(logger, worker, channel), nil
-}
-
-func (server *registrarSSHServer) heartbeatWorker(logger lager.Logger, worker atc.Worker, channel ssh.Channel) ifrit.Process {
-	return ifrit.Background(tsa.NewHeartbeater(
-		logger,
-		server.logLevel,
-		clock.NewClock(),
-		server.heartbeatInterval,
-		server.cprInterval,
-		gclient.New(gconn.NewWithDialerAndLogger(keepaliveDialerFactory("tcp", worker.GardenAddr), logger.Session("garden-connection"))),
-		bclient.NewWithHTTPClient(worker.BaggageclaimURL, &http.Client{
-			Transport: &http.Transport{
-				DisableKeepAlives:     true,
-				ResponseHeaderTimeout: 1 * time.Minute,
-			},
-		}),
-		server.atcEndpointPicker,
-		server.tokenGenerator,
-		worker,
-		channel,
-	))
-}
-
-func (server *registrarSSHServer) handleForwardRequests(
-	logger lager.Logger,
+func (server *server) handleForwardRequests(
+	ctx context.Context,
 	conn *ssh.ServerConn,
 	reqs <-chan *ssh.Request,
-	forwardedTCPIPs chan<- forwardedTCPIP,
+	forwardedTCPIPs chan<- ForwardedTCPIP,
 ) {
+	logger := lagerctx.FromContext(ctx)
+
 	var forwardedThings int
 
 	for r := range reqs {
+		reqLog := logger.Session("request", lager.Data{
+			"type": r.Type,
+		})
+
 		switch r.Type {
 		case "tcpip-forward":
-			logger := logger.Session("tcpip-forward")
-
 			forwardedThings++
 
 			if forwardedThings > maxForwards {
-				logger.Info("rejecting-extra-forward-request")
+				reqLog.Info("rejecting-extra-forward-request")
 				r.Reply(false, nil)
 				continue
 			}
@@ -680,25 +285,21 @@ func (server *registrarSSHServer) handleForwardRequests(
 			var req tcpipForwardRequest
 			err := ssh.Unmarshal(r.Payload, &req)
 			if err != nil {
-				logger.Error("malformed-tcpip-request", err)
+				reqLog.Error("malformed-tcpip-request", err)
 				r.Reply(false, nil)
 				continue
 			}
 
+			bindAddr := net.JoinHostPort(req.BindIP, fmt.Sprintf("%d", req.BindPort))
+
 			listener, err := net.Listen("tcp", "0.0.0.0:0")
 			if err != nil {
-				logger.Error("failed-to-listen", err)
+				reqLog.Error("failed-to-listen", err)
 				r.Reply(false, nil)
 				continue
 			}
 
 			defer listener.Close()
-
-			bindAddr := net.JoinHostPort(req.BindIP, fmt.Sprintf("%d", req.BindPort))
-
-			logger.Info("forwarding-tcpip", lager.Data{
-				"requested-bind-addr": bindAddr,
-			})
 
 			_, port, err := net.SplitHostPort(listener.Addr().String())
 			if err != nil {
@@ -713,17 +314,33 @@ func (server *registrarSSHServer) handleForwardRequests(
 				continue
 			}
 
+			reqLog = reqLog.WithData(lager.Data{
+				"addr":           listener.Addr().String(),
+				"requested-addr": bindAddr,
+			})
+
+			reqLog.Debug("listening")
+
 			forPort := req.BindPort
 			if forPort == 0 {
 				forPort = res.BoundPort
 			}
 
-			process := server.forwardTCPIP(logger, conn, listener, req.BindIP, forPort)
+			drain := make(chan struct{})
+			wait := new(sync.WaitGroup)
 
-			forwardedTCPIPs <- forwardedTCPIP{
-				bindAddr:  fmt.Sprintf("%s:%d", req.BindIP, req.BindPort),
-				boundPort: res.BoundPort,
-				process:   process,
+			wait.Add(1)
+			go server.forwardTCPIP(lagerctx.NewContext(ctx, reqLog), drain, wait, conn, listener, req.BindIP, forPort)
+
+			forwardedTCPIPs <- ForwardedTCPIP{
+				Logger: reqLog,
+
+				BindAddr:  bindAddr,
+				BoundPort: res.BoundPort,
+
+				Drain: drain,
+
+				wg: wait,
 			}
 
 			r.Reply(true, ssh.Marshal(res))
@@ -732,65 +349,73 @@ func (server *registrarSSHServer) handleForwardRequests(
 			// OpenSSH sends keepalive@openssh.com, but there may be other clients;
 			// just check for 'keepalive'
 			if strings.Contains(r.Type, "keepalive") {
-				logger.Info("keepalive", lager.Data{"type": r.Type})
+				reqLog.Debug("keepalive")
 				r.Reply(true, nil)
 			} else {
-				logger.Info("ignoring-request", lager.Data{"type": r.Type})
+				reqLog.Info("ignoring")
 				r.Reply(false, nil)
 			}
 		}
 	}
 }
 
-func (server *registrarSSHServer) forwardTCPIP(
-	logger lager.Logger,
+func (server *server) forwardTCPIP(
+	ctx context.Context,
+	drain <-chan struct{},
+	connsWg *sync.WaitGroup,
 	conn *ssh.ServerConn,
 	listener net.Listener,
 	forwardIP string,
 	forwardPort uint32,
-) ifrit.Process {
-	return ifrit.Background(ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-		cancel := make(chan struct{})
+) {
+	defer connsWg.Done()
 
-		interrupted := false
-		go func() {
-			<-signals
+	logger := lagerctx.FromContext(ctx)
 
+	done := make(chan struct{})
+	defer close(done)
+
+	interrupted := false
+	go func() {
+		select {
+		case <-drain:
+			logger.Debug("draining")
 			interrupted = true
-
 			listener.Close()
-		}()
+		case <-done:
+			logger.Debug("done")
+		}
+	}()
 
-		close(ready)
-
-		wg := &sync.WaitGroup{}
-
-		for {
-			localConn, err := listener.Accept()
-			if err != nil {
-				if interrupted {
-					logger.Info("interrupted")
-					close(cancel)
-				} else {
-					logger.Error("failed-to-accept", err)
-				}
-
-				break
+	for {
+		localConn, err := listener.Accept()
+		if err != nil {
+			if !interrupted {
+				logger.Error("failed-to-accept", err)
 			}
-			wg.Add(1)
 
-			go func() {
-				defer wg.Done()
-				forwardLocalConn(logger.Session("forward-conn"), cancel, localConn, conn, forwardIP, forwardPort)
-			}()
+			break
 		}
 
-		wg.Wait()
-		return nil
-	}))
+		connsWg.Add(1)
+
+		go func() {
+			defer connsWg.Done()
+
+			forwardLocalConn(
+				lagerctx.NewContext(ctx, logger.Session("forward-conn")),
+				localConn,
+				conn,
+				forwardIP,
+				forwardPort,
+			)
+		}()
+	}
 }
 
-func forwardLocalConn(logger lager.Logger, cancel <-chan struct{}, localConn net.Conn, conn *ssh.ServerConn, forwardIP string, forwardPort uint32) {
+func forwardLocalConn(ctx context.Context, localConn net.Conn, conn *ssh.ServerConn, forwardIP string, forwardPort uint32) {
+	logger := lagerctx.FromContext(ctx)
+
 	defer localConn.Close()
 
 	var req forwardTCPIPChannelRequest
@@ -804,6 +429,7 @@ func forwardLocalConn(logger lager.Logger, cancel <-chan struct{}, localConn net
 	}
 
 	req.OriginIP = host
+
 	_, err = fmt.Sscanf(port, "%d", &req.OriginPort)
 	if err != nil {
 		logger.Error("failed-to-parse-port", err)
@@ -816,19 +442,9 @@ func forwardLocalConn(logger lager.Logger, cancel <-chan struct{}, localConn net
 		return
 	}
 
-	defer func() {
-		channel.Close()
-	}()
+	defer channel.Close()
 
-	go func() {
-		for r := range reqs {
-			logger.Info("ignoring-request", lager.Data{
-				"type": r.Type,
-			})
-
-			r.Reply(false, nil)
-		}
-	}()
+	go ssh.DiscardRequests(reqs)
 
 	numPipes := 2
 	wait := make(chan struct{}, numPipes)
@@ -860,13 +476,11 @@ dance:
 			}
 
 			logger.Debug("tcpip-io-complete")
-		case <-cancel:
-			logger.Info("tcpip-io-interrupted")
+		case <-ctx.Done():
+			logger.Debug("tcpip-io-interrupted")
 			break dance
 		}
 	}
-
-	return
 }
 
 func keepaliveDialerFactory(network string, address string) gconn.DialerFunc {
@@ -875,23 +489,68 @@ func keepaliveDialerFactory(network string, address string) gconn.DialerFunc {
 	}
 }
 
-func watchForProcessToExit(logger lager.Logger, process ifrit.Process, channel ssh.Channel) {
-	logger = logger.Session("wait-for-process")
+func (server *server) parseRequest(cli string) (request, string, error) {
+	argv := strings.Split(cli, " ")
 
-	go func() {
-		err := <-process.Wait()
-		if err == nil {
-			logger.Debug("exited-successfully")
-			channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
-		} else {
-			logger.Error("exited-with-error", err)
+	command := argv[0]
+	args := argv[1:]
+
+	var req request
+	switch command {
+	case tsa.RegisterWorker:
+		req = registerWorkerRequest{
+			server: server,
 		}
+	case tsa.ForwardWorker:
+		var fs = flag.NewFlagSet(command, flag.ContinueOnError)
 
-		err = channel.Close()
+		var garden = fs.String("garden", "", "garden address to forward")
+		var baggageclaim = fs.String("baggageclaim", "", "baggageclaim address to forward")
+
+		err := fs.Parse(args)
 		if err != nil {
-			logger.Error("failed-to-close-channel", err)
-		} else {
-			logger.Debug("closed-channel")
+			return nil, "", err
 		}
-	}()
+
+		req = forwardWorkerRequest{
+			server: server,
+
+			gardenAddr:       *garden,
+			baggageclaimAddr: *baggageclaim,
+		}
+	case tsa.LandWorker:
+		req = landWorkerRequest{
+			server: server,
+		}
+	case tsa.RetireWorker:
+		req = retireWorkerRequest{
+			server: server,
+		}
+	case tsa.DeleteWorker:
+		req = deleteWorkerRequest{
+			server: server,
+		}
+	case tsa.SweepContainers:
+		req = sweepContainersRequest{
+			server: server,
+		}
+	case tsa.ReportContainers:
+		req = reportContainersRequest{
+			server:           server,
+			containerHandles: args,
+		}
+	case tsa.SweepVolumes:
+		req = sweepVolumesRequest{
+			server: server,
+		}
+	case tsa.ReportVolumes:
+		req = reportVolumesRequest{
+			server:        server,
+			volumeHandles: args,
+		}
+	default:
+		return nil, "", fmt.Errorf("unknown command: %s", command)
+	}
+
+	return req, command, nil
 }

@@ -166,10 +166,10 @@ func (c *volumeClient) FindOrCreateVolumeForBaseResourceType(
 		logger.Session("find-or-create-volume-for-base-resource-type"),
 		volumeSpec,
 		func() (db.CreatingVolume, db.CreatedVolume, error) {
-			return c.dbVolumeRepository.FindBaseResourceTypeVolume(teamID, workerBaseResourceType)
+			return c.dbVolumeRepository.FindBaseResourceTypeVolume(workerBaseResourceType)
 		},
 		func() (db.CreatingVolume, error) {
-			return c.dbVolumeRepository.CreateBaseResourceTypeVolume(teamID, workerBaseResourceType)
+			return c.dbVolumeRepository.CreateBaseResourceTypeVolume(workerBaseResourceType)
 		},
 	)
 }

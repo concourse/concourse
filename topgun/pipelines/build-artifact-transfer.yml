@@ -1,0 +1,27 @@
+---
+resources:
+- name: something
+  type: mock
+  source: {}
+  tags: [tag-a]
+
+jobs:
+- name: transfer-time
+  plan:
+  - get: something
+    tags: [tag-b]
+  - task: use-something
+    tags: [tag-a]
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      inputs:
+      - name: something
+
+      run:
+        path: find
+        args: [.]

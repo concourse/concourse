@@ -12,6 +12,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -28,6 +29,8 @@ import (
 var _ = Describe("TaskStep", func() {
 	var (
 		ctx    context.Context
+		logger *lagertest.TestLogger
+
 		cancel func()
 
 		fakeWorkerClient *workerfakes.FakeClient
@@ -62,6 +65,7 @@ var _ = Describe("TaskStep", func() {
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
+		logger = lagertest.NewTestLogger("task-action-test")
 
 		fakeWorkerClient = new(workerfakes.FakeClient)
 
@@ -838,7 +842,7 @@ var _ = Describe("TaskStep", func() {
 								})
 
 								It("streams the data from the volumes to the destination", func() {
-									err := artifactSource1.StreamTo(fakeDestination)
+									err := artifactSource1.StreamTo(logger, fakeDestination)
 									Expect(err).NotTo(HaveOccurred())
 
 									Expect(fakeVolume1.StreamOutCallCount()).To(Equal(1))
@@ -885,7 +889,7 @@ var _ = Describe("TaskStep", func() {
 										})
 
 										It("streams out the given path", func() {
-											reader, err := artifactSource1.StreamFile("some-path")
+											reader, err := artifactSource1.StreamFile(logger, "some-path")
 											Expect(err).NotTo(HaveOccurred())
 
 											Expect(ioutil.ReadAll(reader)).To(Equal([]byte(fileContent)))
@@ -896,7 +900,7 @@ var _ = Describe("TaskStep", func() {
 
 										Describe("closing the stream", func() {
 											It("closes the stream from the versioned source", func() {
-												reader, err := artifactSource1.StreamFile("some-path")
+												reader, err := artifactSource1.StreamFile(logger, "some-path")
 												Expect(err).NotTo(HaveOccurred())
 
 												Expect(tgzBuffer.Closed()).To(BeFalse())
@@ -911,7 +915,7 @@ var _ = Describe("TaskStep", func() {
 
 									Context("but the stream is empty", func() {
 										It("returns ErrFileNotFound", func() {
-											_, err := artifactSource1.StreamFile("some-path")
+											_, err := artifactSource1.StreamFile(logger, "some-path")
 											Expect(err).To(MatchError(exec.FileNotFoundError{Path: "some-path"}))
 										})
 									})
@@ -925,7 +929,7 @@ var _ = Describe("TaskStep", func() {
 									})
 
 									It("returns the error", func() {
-										_, err := artifactSource1.StreamFile("some-path")
+										_, err := artifactSource1.StreamFile(logger, "some-path")
 										Expect(err).To(Equal(disaster))
 									})
 								})

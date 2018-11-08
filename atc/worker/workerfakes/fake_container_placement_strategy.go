@@ -4,15 +4,17 @@ package workerfakes
 import (
 	sync "sync"
 
+	lager "code.cloudfoundry.org/lager"
 	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakeContainerPlacementStrategy struct {
-	ChooseStub        func([]worker.Worker, worker.ContainerSpec) (worker.Worker, error)
+	ChooseStub        func(lager.Logger, []worker.Worker, worker.ContainerSpec) (worker.Worker, error)
 	chooseMutex       sync.RWMutex
 	chooseArgsForCall []struct {
-		arg1 []worker.Worker
-		arg2 worker.ContainerSpec
+		arg1 lager.Logger
+		arg2 []worker.Worker
+		arg3 worker.ContainerSpec
 	}
 	chooseReturns struct {
 		result1 worker.Worker
@@ -26,22 +28,23 @@ type FakeContainerPlacementStrategy struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeContainerPlacementStrategy) Choose(arg1 []worker.Worker, arg2 worker.ContainerSpec) (worker.Worker, error) {
-	var arg1Copy []worker.Worker
-	if arg1 != nil {
-		arg1Copy = make([]worker.Worker, len(arg1))
-		copy(arg1Copy, arg1)
+func (fake *FakeContainerPlacementStrategy) Choose(arg1 lager.Logger, arg2 []worker.Worker, arg3 worker.ContainerSpec) (worker.Worker, error) {
+	var arg2Copy []worker.Worker
+	if arg2 != nil {
+		arg2Copy = make([]worker.Worker, len(arg2))
+		copy(arg2Copy, arg2)
 	}
 	fake.chooseMutex.Lock()
 	ret, specificReturn := fake.chooseReturnsOnCall[len(fake.chooseArgsForCall)]
 	fake.chooseArgsForCall = append(fake.chooseArgsForCall, struct {
-		arg1 []worker.Worker
-		arg2 worker.ContainerSpec
-	}{arg1Copy, arg2})
-	fake.recordInvocation("Choose", []interface{}{arg1Copy, arg2})
+		arg1 lager.Logger
+		arg2 []worker.Worker
+		arg3 worker.ContainerSpec
+	}{arg1, arg2Copy, arg3})
+	fake.recordInvocation("Choose", []interface{}{arg1, arg2Copy, arg3})
 	fake.chooseMutex.Unlock()
 	if fake.ChooseStub != nil {
-		return fake.ChooseStub(arg1, arg2)
+		return fake.ChooseStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -56,11 +59,11 @@ func (fake *FakeContainerPlacementStrategy) ChooseCallCount() int {
 	return len(fake.chooseArgsForCall)
 }
 
-func (fake *FakeContainerPlacementStrategy) ChooseArgsForCall(i int) ([]worker.Worker, worker.ContainerSpec) {
+func (fake *FakeContainerPlacementStrategy) ChooseArgsForCall(i int) (lager.Logger, []worker.Worker, worker.ContainerSpec) {
 	fake.chooseMutex.RLock()
 	defer fake.chooseMutex.RUnlock()
 	argsForCall := fake.chooseArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeContainerPlacementStrategy) ChooseReturns(result1 worker.Worker, result2 error) {

@@ -19,6 +19,7 @@ groups:
 - name: develop
   jobs:
   - unit
+  - lint
   - dev-image
   - testflight
   - watsjs
@@ -26,10 +27,17 @@ groups:
   - build-rc
   - bin-smoke
 
+- name: k8s
+  jobs:
+  - k8s-smoke
+
 - name: bosh
   jobs:
   - bosh-bump
   - bosh-smoke
+  - bosh-topgun
+  - bosh-prod-deploy
+  - merge-cbd
 
 - name: images
   jobs:
@@ -39,7 +47,35 @@ groups:
   jobs:
   - push-docs
 
+- name: workers
+  jobs:
+  - install-windows-deps
+
 jobs:
+- name: unit-image
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      resource: unit-dockerfile
+      trigger: true
+    - get: builder
+  - task: build
+    image: builder
+    privileged: true
+    config:
+      platform: linux
+      params:
+        REPOSITORY: concourse/unit
+        CONTEXT: concourse/ci/dockerfiles/unit
+      inputs: [{name: concourse}]
+      outputs: [{name: image}]
+      caches: [{path: cache}]
+      run: {path: build}
+  - put: unit-image
+    params: {image: image/image.tar}
+
 - name: unit
   public: true
   serial: true
@@ -48,6 +84,7 @@ jobs:
     - get: concourse
       trigger: true
     - get: unit-image
+      trigger: true
   - task: yarn-test
     image: unit-image
     file: concourse/ci/tasks/yarn-test.yml
@@ -64,6 +101,16 @@ jobs:
       file: concourse/ci/tasks/fly-windows.yml
       timeout: 1h
 
+- name: lint
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      trigger: true
+  - task: golang-lint
+    file: concourse/ci/tasks/golang-lint.yml
+
 - name: dev-image
   public: true
   serial: true
@@ -73,6 +120,7 @@ jobs:
       passed: [unit]
       trigger: true
     - get: unit-image
+      trigger: true
       passed: [unit]
     - get: gdn
       trigger: true
@@ -123,6 +171,7 @@ jobs:
       trigger: true
     - get: unit-image
       passed: [dev-image]
+      trigger: true
     - get: dev-image
       passed: [dev-image]
       params: {format: oci}
@@ -145,6 +194,7 @@ jobs:
       trigger: true
     - get: unit-image
       passed: [dev-image]
+      trigger: true
     - get: dev-image
       passed: [dev-image]
       params: {format: oci}
@@ -157,6 +207,41 @@ jobs:
     file: concourse/ci/tasks/docker-compose-watsjs.yml
     params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
+- name: k8s-smoke
+  public: true
+  max_in_flight: 1
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [dev-image]
+      trigger: true
+    - get: dev-image
+      passed: [dev-image]
+      params: {format: oci}
+    - get: unit-image
+      passed: [dev-image]
+      trigger: true
+    - get: charts
+  - task: terraform-k8s-smoke
+    file: concourse/ci/tasks/terraform-smoke.yml
+    params:
+      GCP_PROJECT: cf-concourse-production
+      GCP_KEY: ((concourse_smoke_gcp_key))
+      SSH_KEY: ((concourse_smoke_ssh_key))
+      DEPLOYMENT: k8s-smoke
+  - task: deploy
+    file: concourse/ci/tasks/k8s-deploy.yml
+    params:
+     KUBE_CONFIG: ((kube_config))
+     RELEASE_NAME: concourse-testflight
+     CONCOURSE_IMAGE: concourse/dev
+     CONCOURSE_DIGEST_FILE: dev-image/digest
+    input_mapping: {endpoint-info: outputs}
+  - task: smoke
+    image: unit-image
+    file: concourse/ci/tasks/smoke.yml
+    input_mapping: {endpoint-info: outputs}
+
 - name: rc
   public: true
   serial_groups: [version]
@@ -166,9 +251,11 @@ jobs:
       passed: [testflight, watsjs]
       trigger: true
     - get: dev-image
+      trigger: true
       passed: [testflight, watsjs]
     - get: unit-image
       passed: [testflight, watsjs]
+      trigger: true
   - put: version
     params: {pre: rc}
 
@@ -181,10 +268,13 @@ jobs:
       trigger: true
     - get: unit-image
       passed: [rc]
+      trigger: true
     - get: dev-image
       passed: [rc]
+      trigger: true
     - get: version
       passed: [rc]
+      trigger: true
     - get: final-version
       resource: version
       passed: [rc]
@@ -256,46 +346,27 @@ jobs:
       trigger: true
     - get: unit-image
       passed: [build-rc]
+      trigger: true
   - task: terraform-smoke
     file: concourse/ci/tasks/terraform-smoke.yml
     params:
       GCP_PROJECT: cf-concourse-production
       GCP_KEY: ((concourse_smoke_gcp_key))
       SSH_KEY: ((concourse_smoke_ssh_key))
+      DEPLOYMENT: smoke
   - task: smoke
     image: unit-image
     file: concourse/ci/tasks/smoke.yml
     input_mapping: {endpoint-info: outputs}
-
-- name: unit-image
-  public: true
-  serial: true
-  plan:
-  - aggregate:
-    - get: concourse
-      resource: unit-dockerfile
-      trigger: true
-    - get: builder
-  - task: build
-    image: builder
-    privileged: true
-    config:
-      platform: linux
-      params:
-        REPOSITORY: concourse/unit
-        CONTEXT: concourse/ci/dockerfiles/unit
-      inputs: [{name: concourse}]
-      outputs: [{name: image}]
-      caches: [{path: cache}]
-      run: {path: build}
-  - put: unit-image
-    params: {image: image/image.tar}
 
 - name: bosh-bump
   serial: true
   plan:
   - aggregate:
     - get: concourse
+      passed: [bin-smoke]
+      trigger: true
+    - get: unit-image
       passed: [bin-smoke]
       trigger: true
     - get: version
@@ -310,6 +381,7 @@ jobs:
     - get: concourse-release-repo
   - task: bump-concourse-blobs
     file: concourse/ci/tasks/bump-concourse-blobs.yml
+    image: unit-image
     params: {GCP_JSON_KEY: ((concourse_artifacts_json_key))}
   - put: concourse-release-repo
     params: {repository: bumped-concourse-release-repo}
@@ -320,8 +392,13 @@ jobs:
   - aggregate:
     - get: concourse
       passed: [bosh-bump]
+      trigger: true
+    - get: unit-image
+      passed: [bosh-bump]
+      trigger: true
     - get: version
       passed: [bosh-bump]
+      trigger: true
     - get: concourse-release
       trigger: true
     - get: postgres-release
@@ -330,9 +407,7 @@ jobs:
       trigger: true
     - get: gcp-xenial-stemcell
       trigger: true
-    - get: unit-image
-      passed: [bin-smoke]
-  - put: concourse-smoke-deployment
+  - put: smoke-deployment
     params:
       manifest: concourse/ci/deployments/bosh-smoke.yml
       releases:
@@ -343,6 +418,7 @@ jobs:
       - gcp-xenial-stemcell/*.tgz
   - task: discover-bosh-endpoint-info
     file: concourse/ci/tasks/discover-bosh-endpoint-info.yml
+    image: unit-image
     params:
       BOSH_ENVIRONMENT: ((bosh_target))
       BOSH_CLIENT: ((bosh_client.id))
@@ -353,13 +429,140 @@ jobs:
     image: unit-image
     file: concourse/ci/tasks/smoke.yml
 
+- name: bosh-topgun
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [bosh-bump]
+      trigger: true
+    - get: unit-image
+      passed: [bosh-bump]
+      trigger: true
+    - get: version
+      passed: [bosh-bump]
+      trigger: true
+    - get: concourse-release
+      trigger: true
+    - get: postgres-release
+      trigger: true
+    - get: bpm-release
+      trigger: true
+    - get: gcp-xenial-stemcell
+      trigger: true
+    - get: git-server-release
+      trigger: true
+    - get: vault-release
+      trigger: true
+    - get: credhub-release
+      trigger: true
+  - task: bosh-topgun
+    file: concourse/ci/tasks/topgun.yml
+    image: unit-image
+    input_mapping:
+      stemcell: gcp-xenial-stemcell
+    params:
+      BOSH_ENVIRONMENT: ((bosh_target))
+      BOSH_CLIENT: ((bosh_client.id))
+      BOSH_CLIENT_SECRET: ((bosh_client.secret))
+      BOSH_KEY: ((topgun_bosh_key))
+      AWS_REGION: ((topgun_aws_ssm.region))
+      AWS_ACCESS_KEY_ID: ((topgun_aws_ssm.access_key_id))
+      AWS_SECRET_ACCESS_KEY: ((topgun_aws_ssm.secret_access_key))
+
+- name: bosh-prod-deploy
+  serial: true
+  interruptible: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [bosh-smoke, bosh-topgun]
+      trigger: true
+    - get: version
+      passed: [bosh-smoke, bosh-topgun]
+      trigger: true
+    - get: concourse-release
+      passed: [bosh-smoke, bosh-topgun]
+      trigger: true
+    - get: postgres-release
+      passed: [bosh-smoke, bosh-topgun]
+      trigger: true
+    - get: bpm-release
+      passed: [bosh-smoke, bosh-topgun]
+      trigger: true
+    - get: gcp-xenial-stemcell
+      passed: [bosh-smoke, bosh-topgun]
+      trigger: true
+    - get: cbd
+      trigger: true
+    - get: gcp-windows-stemcell
+    - get: bbr-sdk-release
+  - put: prod-deployment
+    params:
+      manifest: cbd/cluster/concourse.yml
+      stemcells:
+      - gcp-xenial-stemcell/*.tgz
+      - gcp-windows-stemcell/*.tgz
+      releases:
+      - garden-runc-release/*.tgz
+      - postgres-release/*.tgz
+      - bosh-rc/concourse-*.tgz
+      - bbr-sdk-release/*.tgz
+      ops_files:
+      - cbd/cluster/operations/scale.yml
+      - cbd/cluster/operations/dev-versions.yml
+      - cbd/cluster/operations/privileged-http.yml
+      - cbd/cluster/operations/tls.yml
+      - cbd/cluster/operations/privileged-https.yml
+      - cbd/cluster/operations/basic-auth.yml
+      - cbd/cluster/operations/github-auth.yml
+      - cbd/cluster/operations/encryption.yml
+      - cbd/cluster/operations/vault-tls-cert-auth.yml
+      - cbd/cluster/operations/influxdb.yml
+      - cbd/cluster/operations/db-stats.yml
+      - cbd/cluster/operations/web-network-extension.yml
+      - cbd/cluster/operations/team-authorized-keys.yml
+      - cbd/cluster/operations/untrusted-worker.yml
+      - cbd/cluster/operations/windows-worker.yml
+      - cbd/cluster/operations/telegraf-postgres.yml
+      - cbd/cluster/operations/syslog_forwarder.yml
+      - cbd/cluster/operations/backup-atc.yml
+      - cbd/cluster/operations/worker-forward-registration-mode.yml
+      - cbd/cluster/operations/task-limits.yml
+      vars_files:
+      - cbd/versions.yml
+      vars:
+        deployment_name: concourse-prod
+        web_instances: 2
+        worker_instances: 5
+        external_url: "https://ci.concourse-ci.org"
+        web_vm_type: web
+        db_vm_type: database
+        worker_vm_type: worker
+        untrusted_worker_vm_type: worker
+        db_persistent_disk_type: large
+        network_name: private
+        web_network_name: web
+        untrusted_worker_network_name: private
+        web_network_vm_extension: concourse-web-target-pool
+        untrusted_worker_deny_networks: [10.0.0.0/16]
+        untrusted_worker_tags: [pr]
+        windows_worker_tsa_host: ci.concourse-ci.org:2222
+        windows_worker_os: windows2016
+        windows_worker_vm_type: worker
+        syslog_address: logs2.papertrailapp.com
+        syslog_port: 51403
+        syslog_permitted_peer: "*.papertrailapp.com"
+        default_task_memory_limit: 5GB
+        default_task_cpu_limit: 1024
+
 - name: push-docs
   serial: true
   plan:
   - aggregate:
     - get: docs
     - get: version
-      trigger: true
   - task: build-docs
     file: docs/ci/build.yml
     params: {ANALYTICS_ID: ((analytics_id))}
@@ -367,6 +570,31 @@ jobs:
     params:
       current_app_name: docs
       manifest: built-docs/manifest.yml
+
+- name: merge-cbd
+  serial: true
+  plan:
+  - get: cbd-master
+    trigger: true
+  - put: cbd
+    params:
+      repository: cbd-master
+      merge: true
+
+- name: install-windows-deps
+  plan:
+  - aggregate:
+    - get: concourse
+      params: {submodules: none}
+    - get: golang-windows
+  - task: install-go
+    file: concourse/ci/tasks/install-go-windows.yml
+  - task: install-git
+    file: concourse/ci/tasks/choco-install.yml
+    params: {PACKAGE: git}
+  - task: install-mingw
+    file: concourse/ci/tasks/choco-install.yml
+    params: {PACKAGE: mingw}
 
 resources:
 - name: concourse
@@ -512,6 +740,26 @@ resources:
   source:
     repository: cloudfoundry-incubator/bpm-release
 
+- name: bbr-sdk-release
+  type: bosh-io-release
+  source:
+    repository: cloudfoundry-incubator/backup-and-restore-sdk-release
+
+- name: git-server-release
+  type: bosh-io-release
+  source:
+    repository: cloudfoundry-community/git-server-release
+
+- name: vault-release
+  type: bosh-io-release
+  source:
+    repository: vito/vault-boshrelease
+
+- name: credhub-release
+  type: bosh-io-release
+  source:
+    repository: pivotal-cf/credhub-release
+
 - name: concourse-release-repo
   type: git
   source:
@@ -519,7 +767,7 @@ resources:
     branch: master
     private_key: ((concourse_release_deploy_key))
 
-- name: concourse-smoke-deployment
+- name: smoke-deployment
   type: bosh-deployment
   source:
     target: ((bosh_target))
@@ -527,7 +775,47 @@ resources:
     client_secret: ((bosh_client.secret))
     deployment: concourse-smoke
 
+- name: prod-deployment
+  type: bosh-deployment
+  source:
+    target: ((bosh_target))
+    client: ((bosh_client.id))
+    client_secret: ((bosh_client.secret))
+    deployment: concourse-prod
+
 - name: gcp-xenial-stemcell
   type: bosh-io-stemcell
   source:
     name: bosh-google-kvm-ubuntu-xenial-go_agent
+
+- name: gcp-windows-stemcell
+  type: bosh-io-stemcell
+  source:
+    name: bosh-google-kvm-windows2016-go_agent
+
+- name: cbd
+  type: git
+  source:
+    uri: git@github.com:concourse/concourse-bosh-deployment.git
+    branch: develop
+    private_key: ((concourse_deployment_repo_private_key))
+
+- name: cbd-master
+  type: git
+  source:
+    uri: git@github.com:concourse/concourse-bosh-deployment.git
+    branch: master
+    private_key: ((concourse_deployment_repo_private_key))
+
+- name: charts
+  type: git
+  source:
+     uri: https://github.com/concourse/charts.git
+     branch: concourse-chart-image-digest
+
+- name: golang-windows
+  type: s3
+  source:
+    endpoint: storage.googleapis.com
+    bucket: golang
+    regexp: 'go(\d+\.\d+(\.\d+)?)\.windows-amd64\.msi'

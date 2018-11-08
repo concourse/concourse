@@ -11,7 +11,7 @@ import (
 type serverRunner struct {
 	logger lager.Logger
 
-	server *registrarSSHServer
+	server *server
 
 	listenAddr string
 }

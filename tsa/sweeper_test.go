@@ -1,11 +1,13 @@
 package tsa_test
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 
 	"github.com/concourse/concourse/tsa"
 
+	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tsa/tsafakes"
@@ -19,7 +21,7 @@ var _ = Describe("Sweeper", func() {
 	var (
 		sweeper *tsa.Sweeper
 
-		logger             *lagertest.TestLogger
+		ctx                context.Context
 		worker             atc.Worker
 		fakeTokenGenerator *tsafakes.FakeTokenGenerator
 		fakeATC            *ghttp.Server
@@ -27,8 +29,8 @@ var _ = Describe("Sweeper", func() {
 	)
 
 	BeforeEach(func() {
-		var err error
-		logger = lagertest.NewTestLogger("test")
+		ctx = lagerctx.NewContext(context.Background(), lagertest.NewTestLogger("test"))
+
 		worker = atc.Worker{
 			Name: "some-worker",
 			Team: "some-team",
@@ -47,9 +49,10 @@ var _ = Describe("Sweeper", func() {
 		}
 
 		expectedBody := []string{"handle1", "handle2"}
+
+		var err error
 		data, err = json.Marshal(expectedBody)
 		Expect(err).ShouldNot(HaveOccurred())
-
 	})
 
 	AfterEach(func() {
@@ -58,7 +61,7 @@ var _ = Describe("Sweeper", func() {
 
 	Context("ResourceAction missing", func() {
 		It("Returns an error", func() {
-			handles, err := sweeper.Sweep(logger, worker, "")
+			handles, err := sweeper.Sweep(ctx, worker, "")
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal(tsa.ResourceActionMissing))
 			Expect(handles).To(BeNil())
@@ -76,7 +79,7 @@ var _ = Describe("Sweeper", func() {
 		})
 
 		It("tells the ATC to get destroying containers", func() {
-			handles, err := sweeper.Sweep(logger, worker, tsa.SweepContainers)
+			handles, err := sweeper.Sweep(ctx, worker, tsa.SweepContainers)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(handles).To(Equal(data))
@@ -93,7 +96,7 @@ var _ = Describe("Sweeper", func() {
 			})
 
 			It("errors", func() {
-				_, err := sweeper.Sweep(logger, worker, tsa.SweepContainers)
+				_, err := sweeper.Sweep(ctx, worker, tsa.SweepContainers)
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("403")))
@@ -107,7 +110,7 @@ var _ = Describe("Sweeper", func() {
 			})
 
 			It("errors", func() {
-				_, err := sweeper.Sweep(logger, worker, tsa.SweepContainers)
+				_, err := sweeper.Sweep(ctx, worker, tsa.SweepContainers)
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("empty-worker-name")))
@@ -121,7 +124,7 @@ var _ = Describe("Sweeper", func() {
 			})
 
 			It("errors", func() {
-				_, err := sweeper.Sweep(logger, worker, tsa.SweepContainers)
+				_, err := sweeper.Sweep(ctx, worker, tsa.SweepContainers)
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("bblah")))
@@ -135,7 +138,7 @@ var _ = Describe("Sweeper", func() {
 			})
 
 			It("errors", func() {
-				_, err := sweeper.Sweep(logger, worker, tsa.SweepContainers)
+				_, err := sweeper.Sweep(ctx, worker, tsa.SweepContainers)
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -150,7 +153,7 @@ var _ = Describe("Sweeper", func() {
 			})
 
 			It("errors", func() {
-				_, err := sweeper.Sweep(logger, worker, tsa.SweepContainers)
+				_, err := sweeper.Sweep(ctx, worker, tsa.SweepContainers)
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("bad-response (500)")))
@@ -170,7 +173,7 @@ var _ = Describe("Sweeper", func() {
 		})
 
 		It("tells the ATC to get destroying volumes", func() {
-			handles, err := sweeper.Sweep(logger, worker, tsa.SweepVolumes)
+			handles, err := sweeper.Sweep(ctx, worker, tsa.SweepVolumes)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(handles).To(Equal(data))
@@ -187,7 +190,7 @@ var _ = Describe("Sweeper", func() {
 			})
 
 			It("errors", func() {
-				_, err := sweeper.Sweep(logger, worker, tsa.SweepVolumes)
+				_, err := sweeper.Sweep(ctx, worker, tsa.SweepVolumes)
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("403")))
@@ -201,7 +204,7 @@ var _ = Describe("Sweeper", func() {
 			})
 
 			It("errors", func() {
-				_, err := sweeper.Sweep(logger, worker, tsa.SweepVolumes)
+				_, err := sweeper.Sweep(ctx, worker, tsa.SweepVolumes)
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("empty-worker-name")))
@@ -215,7 +218,7 @@ var _ = Describe("Sweeper", func() {
 			})
 
 			It("errors", func() {
-				_, err := sweeper.Sweep(logger, worker, tsa.SweepVolumes)
+				_, err := sweeper.Sweep(ctx, worker, tsa.SweepVolumes)
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("bblah")))
@@ -229,7 +232,7 @@ var _ = Describe("Sweeper", func() {
 			})
 
 			It("errors", func() {
-				_, err := sweeper.Sweep(logger, worker, tsa.SweepVolumes)
+				_, err := sweeper.Sweep(ctx, worker, tsa.SweepVolumes)
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -244,7 +247,7 @@ var _ = Describe("Sweeper", func() {
 			})
 
 			It("errors", func() {
-				_, err := sweeper.Sweep(logger, worker, tsa.SweepVolumes)
+				_, err := sweeper.Sweep(ctx, worker, tsa.SweepVolumes)
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("bad-response (500)")))

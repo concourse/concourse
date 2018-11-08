@@ -1,0 +1,14 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: busybox}
+
+container_limits:
+  cpu: 256
+  memory: 100mb
+
+run:
+  path: echo
+  args: [hello]

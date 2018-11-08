@@ -1,0 +1,7 @@
+- type: replace
+  path: /instance_groups/name=web/jobs/name=web/properties/encryption_key?
+  value: 0987654321sretcarahC23-yeK652SEA
+
+- type: replace
+  path: /instance_groups/name=web/jobs/name=web/properties/old_encryption_key?
+  value: AES256Key-32Characters1234567890

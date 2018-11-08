@@ -9,11 +9,10 @@ import (
 )
 
 type FakeVolumeRepository struct {
-	CreateBaseResourceTypeVolumeStub        func(int, *db.UsedWorkerBaseResourceType) (db.CreatingVolume, error)
+	CreateBaseResourceTypeVolumeStub        func(*db.UsedWorkerBaseResourceType) (db.CreatingVolume, error)
 	createBaseResourceTypeVolumeMutex       sync.RWMutex
 	createBaseResourceTypeVolumeArgsForCall []struct {
-		arg1 int
-		arg2 *db.UsedWorkerBaseResourceType
+		arg1 *db.UsedWorkerBaseResourceType
 	}
 	createBaseResourceTypeVolumeReturns struct {
 		result1 db.CreatingVolume
@@ -79,11 +78,10 @@ type FakeVolumeRepository struct {
 		result1 int
 		result2 error
 	}
-	FindBaseResourceTypeVolumeStub        func(int, *db.UsedWorkerBaseResourceType) (db.CreatingVolume, db.CreatedVolume, error)
+	FindBaseResourceTypeVolumeStub        func(*db.UsedWorkerBaseResourceType) (db.CreatingVolume, db.CreatedVolume, error)
 	findBaseResourceTypeVolumeMutex       sync.RWMutex
 	findBaseResourceTypeVolumeArgsForCall []struct {
-		arg1 int
-		arg2 *db.UsedWorkerBaseResourceType
+		arg1 *db.UsedWorkerBaseResourceType
 	}
 	findBaseResourceTypeVolumeReturns struct {
 		result1 db.CreatingVolume
@@ -270,17 +268,16 @@ type FakeVolumeRepository struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeVolumeRepository) CreateBaseResourceTypeVolume(arg1 int, arg2 *db.UsedWorkerBaseResourceType) (db.CreatingVolume, error) {
+func (fake *FakeVolumeRepository) CreateBaseResourceTypeVolume(arg1 *db.UsedWorkerBaseResourceType) (db.CreatingVolume, error) {
 	fake.createBaseResourceTypeVolumeMutex.Lock()
 	ret, specificReturn := fake.createBaseResourceTypeVolumeReturnsOnCall[len(fake.createBaseResourceTypeVolumeArgsForCall)]
 	fake.createBaseResourceTypeVolumeArgsForCall = append(fake.createBaseResourceTypeVolumeArgsForCall, struct {
-		arg1 int
-		arg2 *db.UsedWorkerBaseResourceType
-	}{arg1, arg2})
-	fake.recordInvocation("CreateBaseResourceTypeVolume", []interface{}{arg1, arg2})
+		arg1 *db.UsedWorkerBaseResourceType
+	}{arg1})
+	fake.recordInvocation("CreateBaseResourceTypeVolume", []interface{}{arg1})
 	fake.createBaseResourceTypeVolumeMutex.Unlock()
 	if fake.CreateBaseResourceTypeVolumeStub != nil {
-		return fake.CreateBaseResourceTypeVolumeStub(arg1, arg2)
+		return fake.CreateBaseResourceTypeVolumeStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -295,11 +292,11 @@ func (fake *FakeVolumeRepository) CreateBaseResourceTypeVolumeCallCount() int {
 	return len(fake.createBaseResourceTypeVolumeArgsForCall)
 }
 
-func (fake *FakeVolumeRepository) CreateBaseResourceTypeVolumeArgsForCall(i int) (int, *db.UsedWorkerBaseResourceType) {
+func (fake *FakeVolumeRepository) CreateBaseResourceTypeVolumeArgsForCall(i int) *db.UsedWorkerBaseResourceType {
 	fake.createBaseResourceTypeVolumeMutex.RLock()
 	defer fake.createBaseResourceTypeVolumeMutex.RUnlock()
 	argsForCall := fake.createBaseResourceTypeVolumeArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1
 }
 
 func (fake *FakeVolumeRepository) CreateBaseResourceTypeVolumeReturns(result1 db.CreatingVolume, result2 error) {
@@ -533,17 +530,16 @@ func (fake *FakeVolumeRepository) DestroyFailedVolumesReturnsOnCall(i int, resul
 	}{result1, result2}
 }
 
-func (fake *FakeVolumeRepository) FindBaseResourceTypeVolume(arg1 int, arg2 *db.UsedWorkerBaseResourceType) (db.CreatingVolume, db.CreatedVolume, error) {
+func (fake *FakeVolumeRepository) FindBaseResourceTypeVolume(arg1 *db.UsedWorkerBaseResourceType) (db.CreatingVolume, db.CreatedVolume, error) {
 	fake.findBaseResourceTypeVolumeMutex.Lock()
 	ret, specificReturn := fake.findBaseResourceTypeVolumeReturnsOnCall[len(fake.findBaseResourceTypeVolumeArgsForCall)]
 	fake.findBaseResourceTypeVolumeArgsForCall = append(fake.findBaseResourceTypeVolumeArgsForCall, struct {
-		arg1 int
-		arg2 *db.UsedWorkerBaseResourceType
-	}{arg1, arg2})
-	fake.recordInvocation("FindBaseResourceTypeVolume", []interface{}{arg1, arg2})
+		arg1 *db.UsedWorkerBaseResourceType
+	}{arg1})
+	fake.recordInvocation("FindBaseResourceTypeVolume", []interface{}{arg1})
 	fake.findBaseResourceTypeVolumeMutex.Unlock()
 	if fake.FindBaseResourceTypeVolumeStub != nil {
-		return fake.FindBaseResourceTypeVolumeStub(arg1, arg2)
+		return fake.FindBaseResourceTypeVolumeStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -558,11 +554,11 @@ func (fake *FakeVolumeRepository) FindBaseResourceTypeVolumeCallCount() int {
 	return len(fake.findBaseResourceTypeVolumeArgsForCall)
 }
 
-func (fake *FakeVolumeRepository) FindBaseResourceTypeVolumeArgsForCall(i int) (int, *db.UsedWorkerBaseResourceType) {
+func (fake *FakeVolumeRepository) FindBaseResourceTypeVolumeArgsForCall(i int) *db.UsedWorkerBaseResourceType {
 	fake.findBaseResourceTypeVolumeMutex.RLock()
 	defer fake.findBaseResourceTypeVolumeMutex.RUnlock()
 	argsForCall := fake.findBaseResourceTypeVolumeArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1
 }
 
 func (fake *FakeVolumeRepository) FindBaseResourceTypeVolumeReturns(result1 db.CreatingVolume, result2 db.CreatedVolume, result3 error) {
