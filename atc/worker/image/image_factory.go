@@ -65,13 +65,14 @@ func (f *imageFactory) GetImage(
 	if found {
 		imageResourceFetcher := f.imageResourceFetcherFactory.NewImageResourceFetcher(
 			workerClient,
-			resource.NewResourceFactory(workerClient, f.conn),
+			resource.NewResourceFactory(workerClient),
 			worker.ImageResource{
 				Type:   resourceType.Type,
 				Source: resourceType.Source,
 				Params: &resourceType.Params,
 			},
 			resourceType.Version,
+			resourceType.DefaultSpace,
 			teamID,
 			resourceTypes.Without(imageSpec.ResourceType),
 			delegate,
@@ -88,8 +89,14 @@ func (f *imageFactory) GetImage(
 
 	if imageSpec.ImageResource != nil {
 		var version atc.Version
+		var defaultSpace atc.Space
+
 		if imageSpec.ImageResource.Version != nil {
 			version = *imageSpec.ImageResource.Version
+		}
+
+		if imageSpec.ImageResource.DefaultSpace != "" {
+			defaultSpace = imageSpec.ImageResource.DefaultSpace
 		}
 
 		imageResourceFetcher := f.imageResourceFetcherFactory.NewImageResourceFetcher(
@@ -97,6 +104,7 @@ func (f *imageFactory) GetImage(
 			resource.NewResourceFactory(workerClient),
 			*imageSpec.ImageResource,
 			version,
+			defaultSpace,
 			teamID,
 			resourceTypes,
 			delegate,

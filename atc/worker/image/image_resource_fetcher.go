@@ -25,6 +25,8 @@ var ErrImageUnavailable = errors.New("no versions of image available")
 
 var ErrImageGetDidNotProduceVolume = errors.New("fetching the image did not produce a volume")
 
+var ErrNoSpaceSpecified = errors.New("no space specified and no default space available")
+
 //go:generate counterfeiter . ImageResourceFetcherFactory
 
 type ImageResourceFetcherFactory interface {
@@ -33,6 +35,7 @@ type ImageResourceFetcherFactory interface {
 		resource.ResourceFactory,
 		worker.ImageResource,
 		atc.Version,
+		atc.Space,
 		int,
 		creds.VersionedResourceTypes,
 		worker.ImageFetchingDelegate,
@@ -76,6 +79,7 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 	resourceFactory resource.ResourceFactory,
 	imageResource worker.ImageResource,
 	version atc.Version,
+	defaultSpace atc.Space,
 	teamID int,
 	customTypes creds.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
@@ -90,6 +94,7 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 		worker:                worker,
 		imageResource:         imageResource,
 		version:               version,
+		defaultSpace:          defaultSpace,
 		teamID:                teamID,
 		customTypes:           customTypes,
 		imageFetchingDelegate: imageFetchingDelegate,
@@ -106,6 +111,7 @@ type imageResourceFetcher struct {
 
 	imageResource         worker.ImageResource
 	version               atc.Version
+	defaultSpace          atc.Space
 	teamID                int
 	customTypes           creds.VersionedResourceTypes
 	imageFetchingDelegate worker.ImageFetchingDelegate
@@ -118,9 +124,10 @@ func (i *imageResourceFetcher) Fetch(
 	privileged bool,
 ) (worker.Volume, io.ReadCloser, atc.Version, error) {
 	version := i.version
-	if version == nil {
+	defaultSpace := i.defaultSpace
+	if version == nil || defaultSpace == "" {
 		var err error
-		version, err = i.getLatestVersion(ctx, logger, container)
+		defaultSpace, version, err = i.getLatestVersion(ctx, logger, container)
 		if err != nil {
 			logger.Error("failed-to-get-latest-image-version", err)
 			return nil, nil, nil, err
@@ -137,6 +144,7 @@ func (i *imageResourceFetcher) Fetch(
 		params = *i.imageResource.Params
 	}
 
+	// XXX: Fix find or create resource cache to use space
 	resourceCache, err := i.dbResourceCacheFactory.FindOrCreateResourceCache(
 		logger,
 		db.ForContainer(container.ID()),
@@ -254,17 +262,32 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 		return err
 	}
 
-	versions, err := checkResourceType.Check(context.TODO(), source, nil)
+	latestVersions := map[atc.Space]atc.Version{}
+	eventHandler := CheckEventHandler{SavedLatestVersions: latestVersions}
+	err = checkResourceType.Check(context.TODO(), &eventHandler, source, nil)
 	if err != nil {
 		return err
 	}
 
-	if len(versions) == 0 {
+	var defaultSpace atc.Space
+	var version atc.Version
+	var ok bool
+
+	if resourceType.DefaultSpace == "" {
+		if eventHandler.SavedDefaultSpace == "" {
+			return ErrNoSpaceSpecified
+		}
+		defaultSpace = eventHandler.SavedDefaultSpace
+	} else {
+		defaultSpace = resourceType.DefaultSpace
+	}
+
+	if version, ok = eventHandler.SavedLatestVersions[defaultSpace]; !ok {
 		return ErrImageUnavailable
 	}
 
-	resourceType.Version = versions[0]
-
+	resourceType.Version = version
+	resourceType.DefaultSpace = defaultSpace
 	i.customTypes = append(i.customTypes.Without(resourceType.Name), resourceType)
 
 	return nil
@@ -274,12 +297,12 @@ func (i *imageResourceFetcher) getLatestVersion(
 	ctx context.Context,
 	logger lager.Logger,
 	container db.CreatingContainer,
-) (atc.Version, error) {
+) (atc.Space, atc.Version, error) {
 	resourceType, found := i.customTypes.Lookup(i.imageResource.Type)
 	if found && resourceType.Version == nil {
 		err := i.ensureVersionOfType(ctx, logger, container, resourceType)
 		if err != nil {
-			return nil, err
+			return "", nil, err
 		}
 	}
 
@@ -293,12 +316,12 @@ func (i *imageResourceFetcher) getLatestVersion(
 
 	source, err := i.imageResource.Source.Evaluate()
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	resourceConfig, err := i.dbResourceConfigFactory.FindOrCreateResourceConfig(logger, i.imageResource.Type, source, i.customTypes)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	checkingResource, err := i.resourceFactory.NewResource(
@@ -314,19 +337,34 @@ func (i *imageResourceFetcher) getLatestVersion(
 		resourceConfig,
 	)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
-	versions, err := checkingResource.Check(context.TODO(), source, nil)
+	latestVersions := map[atc.Space]atc.Version{}
+	eventHandler := CheckEventHandler{SavedLatestVersions: latestVersions}
+	err = checkingResource.Check(context.TODO(), &eventHandler, source, nil)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
-	if len(versions) == 0 {
-		return nil, ErrImageUnavailable
+	var defaultSpace atc.Space
+	var version atc.Version
+	var ok bool
+
+	if i.defaultSpace == "" {
+		if eventHandler.SavedDefaultSpace == "" {
+			return "", nil, ErrNoSpaceSpecified
+		}
+		defaultSpace = eventHandler.SavedDefaultSpace
+	} else {
+		defaultSpace = i.defaultSpace
 	}
 
-	return versions[0], nil
+	if version, ok = eventHandler.SavedLatestVersions[defaultSpace]; !ok {
+		return "", nil, ErrImageUnavailable
+	}
+
+	return defaultSpace, version, nil
 }
 
 type readCloser struct {

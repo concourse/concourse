@@ -59,6 +59,7 @@ type ResourceConfig struct {
 	CheckTimeout string  `yaml:"check_timeout,omitempty" json:"check_timeout" mapstructure:"check_timeout"`
 	Tags         Tags    `yaml:"tags,omitempty" json:"tags" mapstructure:"tags"`
 	Version      Version `yaml:"version,omitempty" json:"version" mapstructure:"version"`
+	DefaultSpace Space   `yaml:"default_space,omitempty" json:"default_space" mapstructure:"default_space"`
 }
 
 type ResourceType struct {
@@ -71,6 +72,7 @@ type ResourceType struct {
 	Params          Params `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`
 	CheckSetupError string `yaml:"check_setup_error,omitempty" json:"check_setup_error,omitempty" mapstructure:"check_setup_error"`
 	CheckError      string `yaml:"check_error,omitempty" json:"check_error,omitempty" mapstructure:"check_error"`
+	DefaultSpace    Space  `yaml:"default_space,omitempty" json:"default_space" mapstructure:"default_space"`
 }
 
 type ResourceTypes []ResourceType

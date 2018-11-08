@@ -57,10 +57,11 @@ type ImageSpec struct {
 }
 
 type ImageResource struct {
-	Type    string
-	Source  creds.Source
-	Params  *atc.Params
-	Version *atc.Version
+	Type         string
+	Source       creds.Source
+	Params       *atc.Params
+	Version      *atc.Version
+	DefaultSpace atc.Space
 }
 
 type ContainerLimits struct {

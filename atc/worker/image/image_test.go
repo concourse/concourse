@@ -34,6 +34,7 @@ var _ = Describe("Image", func() {
 		fakeImageResourceFetcherFactory *imagefakes.FakeImageResourceFetcherFactory
 		fakeImageResourceFetcher        *imagefakes.FakeImageResourceFetcher
 		variables                       creds.Variables
+		fakeConn                        *dbfakes.FakeConn
 	)
 
 	BeforeEach(func() {
@@ -49,7 +50,7 @@ var _ = Describe("Image", func() {
 		fakeImageResourceFetcherFactory = new(imagefakes.FakeImageResourceFetcherFactory)
 		fakeImageResourceFetcher = new(imagefakes.FakeImageResourceFetcher)
 		fakeImageResourceFetcherFactory.NewImageResourceFetcherReturns(fakeImageResourceFetcher)
-		imageFactory = image.NewImageFactory(fakeImageResourceFetcherFactory)
+		imageFactory = image.NewImageFactory(fakeImageResourceFetcherFactory, fakeConn)
 
 		variables = template.StaticVariables{
 			"source-secret": "super-secret-sauce",
@@ -238,8 +239,9 @@ var _ = Describe("Image", func() {
 					fakeVolumeClient,
 					worker.ImageSpec{
 						ImageResource: &worker.ImageResource{
-							Type:   "some-image-resource-type",
-							Source: creds.NewSource(variables, atc.Source{"some": "source"}),
+							Type:         "some-image-resource-type",
+							Source:       creds.NewSource(variables, atc.Source{"some": "source"}),
+							DefaultSpace: atc.Space("space"),
 						},
 						Privileged: true,
 					},
@@ -251,11 +253,12 @@ var _ = Describe("Image", func() {
 			})
 
 			It("fetches image without custom resource type", func() {
-				worker, _, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
+				worker, _, imageResource, version, defaultSpace, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
 				Expect(worker).To(Equal(fakeWorker))
 				Expect(imageResource.Type).To(Equal("some-image-resource-type"))
 				Expect(imageResource.Source).To(Equal(creds.NewSource(variables, atc.Source{"some": "source"})))
 				Expect(version).To(BeNil())
+				Expect(defaultSpace).To(Equal(atc.Space("space")))
 				Expect(teamID).To(Equal(42))
 				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
 				Expect(delegate).To(Equal(fakeImageFetchingDelegate))
@@ -312,6 +315,7 @@ var _ = Describe("Image", func() {
 								Source: atc.Source{
 									"some": "custom-resource-type-source",
 								},
+								DefaultSpace: "space",
 							},
 							Version: atc.Version{"some": "custom-resource-type-version"},
 						},
@@ -332,13 +336,14 @@ var _ = Describe("Image", func() {
 			})
 
 			It("fetches unprivileged image without custom resource type", func() {
-				worker, _, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
+				worker, _, imageResource, version, defaultSpace, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
 				Expect(worker).To(Equal(fakeWorker))
 				Expect(imageResource.Type).To(Equal("some-base-resource-type"))
 				Expect(imageResource.Source).To(Equal(creds.NewSource(variables, atc.Source{
 					"some": "custom-resource-type-source",
 				})))
 				Expect(version).To(Equal(atc.Version{"some": "custom-resource-type-version"}))
+				Expect(defaultSpace).To(Equal(atc.Space("space")))
 				Expect(teamID).To(Equal(42))
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 					{
@@ -417,7 +422,8 @@ var _ = Describe("Image", func() {
 								Source: atc.Source{
 									"some": "custom-image-resource-type-source",
 								},
-								Privileged: true,
+								Privileged:   true,
+								DefaultSpace: atc.Space("space"),
 							},
 							Version: atc.Version{"some": "custom-image-resource-type-version"},
 						},
@@ -427,13 +433,14 @@ var _ = Describe("Image", func() {
 			})
 
 			It("fetches image without custom resource type", func() {
-				worker, _, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
+				worker, _, imageResource, version, defaultSpace, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
 				Expect(worker).To(Equal(fakeWorker))
 				Expect(imageResource.Type).To(Equal("some-base-image-resource-type"))
 				Expect(imageResource.Source).To(Equal(creds.NewSource(variables, atc.Source{
 					"some": "custom-image-resource-type-source",
 				})))
 				Expect(version).To(Equal(atc.Version{"some": "custom-image-resource-type-version"}))
+				Expect(defaultSpace).To(Equal(atc.Space("space")))
 				Expect(teamID).To(Equal(42))
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 					{

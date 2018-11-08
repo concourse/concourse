@@ -310,10 +310,11 @@ func (action *TaskStep) containerSpec(logger lager.Logger, repository *worker.Ar
 		imageSpec.ImageArtifactName = worker.ArtifactName(action.imageArtifactName)
 	} else if config.ImageResource != nil {
 		imageSpec.ImageResource = &worker.ImageResource{
-			Type:    config.ImageResource.Type,
-			Source:  creds.NewSource(action.variables, config.ImageResource.Source),
-			Params:  config.ImageResource.Params,
-			Version: config.ImageResource.Version,
+			Type:         config.ImageResource.Type,
+			Source:       creds.NewSource(action.variables, config.ImageResource.Source),
+			Params:       config.ImageResource.Params,
+			Version:      config.ImageResource.Version,
+			DefaultSpace: config.ImageResource.DefaultSpace,
 		}
 
 	} else if config.RootfsURI != "" {
