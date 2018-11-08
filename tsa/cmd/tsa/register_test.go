@@ -532,8 +532,8 @@ var _ = Describe("Register", func() {
 				tsaClient.PrivateKey = badKey
 			})
 
-			It("returns ErrUnauthorized", func() {
-				Expect(<-registerErr).To(Equal(tsa.ErrUnauthorized))
+			It("returns *HandshakeError", func() {
+				Expect(<-registerErr).To(BeAssignableToTypeOf(&tsa.HandshakeError{}))
 			})
 		})
 	})
@@ -575,8 +575,8 @@ var _ = Describe("Register", func() {
 				tsaClient.PrivateKey = badKey
 			})
 
-			It("returns ErrUnauthorized", func() {
-				Expect(<-registerErr).To(Equal(tsa.ErrUnauthorized))
+			It("returns *HandshakeError", func() {
+				Expect(<-registerErr).To(BeAssignableToTypeOf(&tsa.HandshakeError{}))
 			})
 		})
 	})

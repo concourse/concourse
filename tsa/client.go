@@ -23,13 +23,19 @@ import (
 // ErrAllGatewaysUnreachable is returned when all hosts reject the connection.
 var ErrAllGatewaysUnreachable = errors.New("all worker SSH gateways unreachable")
 
-// ErrUnauthorized is returned when the client's key is not authorized to act
-// on the specified worker.
-var ErrUnauthorized = errors.New("key is not authorized to act on the specified worker")
-
 // ErrDrainTimeout is returned when the connection underlying a registration
 // has been idle for the configured DrainTimeout.
 var ErrDrainTimeout = errors.New("timeout draining connections")
+
+// HandshakeError is returned when the client fails to establish an SSH
+// connection, possibly due to bad credentials.
+type HandshakeError struct {
+	Err error
+}
+
+func (err *HandshakeError) Error() string {
+	return fmt.Sprintf("failed to establish SSH connection with gateway: %s", err.Err)
+}
 
 // These addresses are used to specify which forwarded connection corresponds
 // to which component. Note that these aren't actually respected, they just
@@ -351,7 +357,7 @@ func (client *Client) dial(ctx context.Context, idleTimeout time.Duration) (*ssh
 
 	clientConn, chans, reqs, err := ssh.NewClientConn(tsaConn, tsaAddr, clientConfig)
 	if err != nil {
-		return nil, nil, ErrUnauthorized
+		return nil, nil, &HandshakeError{Err: err}
 	}
 
 	return ssh.NewClient(clientConn, chans, reqs), tcpConn.(*net.TCPConn), nil
