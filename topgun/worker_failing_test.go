@@ -18,10 +18,8 @@ var _ = Describe("Worker failing", func() {
 		)
 	})
 
-	Context("when baggageclaim becomes unresponsive", func() {
+	Context("when the worker becomes unresponsive", func() {
 		BeforeEach(func() {
-			Skip("now that baggageclaim runs in the same process as everything else, it's hard to make only it become unresponsive")
-
 			By("setting a pipeline that uses the doomed worker")
 			fly("set-pipeline", "-n", "-c", "pipelines/controlled-timer-doomed-worker.yml", "-p", "worker-failing-test")
 			fly("unpause-pipeline", "-p", "worker-failing-test")
@@ -30,16 +28,14 @@ var _ = Describe("Worker failing", func() {
 			fly("trigger-job", "-w", "-j", "worker-failing-test/use-doomed-worker")
 
 			By("making baggageclaim become unresponsive on the doomed worker")
-			bosh("ssh", "other_worker/0", "-c", "sudo pkill -F /var/vcap/sys/run/baggageclaim/baggageclaim.pid -STOP")
+			bosh("ssh", "other_worker/0", "-c", "sudo pkill -F /var/vcap/sys/run/worker/worker.pid -STOP")
 
 			By("running check-resource to force the existing volume to be no longer desired")
 			fly("check-resource", "-r", "worker-failing-test/controlled-timer")
-
-			// at this point, GC should try to remove the volume, and begin to hang
 		})
 
 		AfterEach(func() {
-			bosh("ssh", "other_worker/0", "-c", "sudo pkill -F /var/vcap/sys/run/baggageclaim/baggageclaim.pid -CONT")
+			bosh("ssh", "other_worker/0", "-c", "sudo pkill -F /var/vcap/sys/run/worker/worker.pid -CONT")
 			waitForWorkersToBeRunning(2)
 		})
 
