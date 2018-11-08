@@ -119,11 +119,17 @@ function redrawFunction(svg, jobs, resources, newUrl) {
     animationTarget.attr("class", "animation")
     animationTarget.style("height", function(node) { return node.height() + "px" })
 
+    nodeLink.filter(function(node) { return node.pinned() }).append("image")
+        .attr("xlink:href", "/public/images/pin_ic_teal.svg")
+        .attr("width", 6)
+        .attr("y", function(node) { return node.height() / 2 - node.imageHeight() / 2 })
+        .attr("x", function(node) { return node.padding() })
+
     nodeLink.append("text")
       .text(function(node) { return node.name })
       .attr("dominant-baseline", "middle")
-      .attr("text-anchor", "middle")
-      .attr("x", function(node) { return node.width() / 2 })
+      .attr("text-anchor", function(node) { return node.pinned() ? "end" : "middle" })
+      .attr("x", function(node) { return node.pinned() ? node.width() - node.padding() : node.width() / 2 })
       .attr("y", function(node) { return node.height() / 2 })
 
     jobStatusBackground.attr("width", function(node) { return node.width() })

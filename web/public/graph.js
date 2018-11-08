@@ -603,15 +603,41 @@ GraphNode.prototype.width = function() {
     })
 
     var textNode = svgNode.select("text").node();
+    var imageNode = svgNode.select("image").node();
 
-    if (textNode) {
+    if (textNode && imageNode) {
+      this._cachedWidth = textNode.getBBox().width + NODE_PADDING + imageNode.getBBox().width;
+    } else if (textNode) {
       this._cachedWidth = textNode.getBBox().width;
+    } else if (imageNode) {
+      this._cachedWidth = imageNode.getBBox().width;
     } else {
       return 0;
     }
   }
 
   return this._cachedWidth + (NODE_PADDING * 2);
+}
+
+GraphNode.prototype.padding = function() {
+  return NODE_PADDING;
+}
+
+GraphNode.prototype.imageHeight = function() {
+    var id = this.id;
+    var svgNode = this.svg.selectAll("g.node").filter(function(node) {
+      return node.id == id;
+    })
+    var imageNode = svgNode.select("image").node();
+    if (imageNode) {
+      return imageNode.getBBox().height;
+    } else {
+      return 0;
+    }
+}
+
+GraphNode.prototype.pinned = function() {
+  return this.class.includes("pinned");
 }
 
 GraphNode.prototype.height = function() {
