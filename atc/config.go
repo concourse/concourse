@@ -340,6 +340,8 @@ type PlanConfig struct {
 	Privileged bool `yaml:"privileged,omitempty" json:"privileged,omitempty" mapstructure:"privileged"`
 	// task config path, e.g. foo/build.yml
 	TaskConfigPath string `yaml:"file,omitempty" json:"file,omitempty" mapstructure:"file"`
+	// task variables, if task is specified as external file via TaskConfigPath
+	TaskVars Params `yaml:"vars,omitempty" json:"vars,omitempty" mapstructure:"vars"`
 	// inlined task config
 	TaskConfig *TaskConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
 

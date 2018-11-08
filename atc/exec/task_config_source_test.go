@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -32,9 +32,15 @@ var _ = Describe("TaskConfigSource", func() {
 			Platform:  "some-platform",
 			RootfsURI: "some-image",
 			ImageResource: &atc.ImageResource{
-				Type:    "docker",
-				Source:  atc.Source{"a": "b"},
-				Params:  &atc.Params{"some": "params"},
+				Type: "docker",
+				Source: atc.Source{
+					"a":               "b",
+					"evaluated-value": "((task-variable-name))",
+				},
+				Params: &atc.Params{
+					"some":            "params",
+					"evaluated-value": "((task-variable-name))",
+				},
 				Version: &atc.Version{"some": "version"},
 			},
 			Params: map[string]string{
@@ -167,7 +173,13 @@ var _ = Describe("TaskConfigSource", func() {
 		)
 
 		BeforeEach(func() {
-			configSource = FileConfigSource{Path: "some/build.yml"}
+			taskPlan = atc.TaskPlan{
+				ConfigPath: "some/build.yml",
+				Vars: atc.Params{
+					"task-variable-name": "task-variable-value",
+				},
+			}
+			configSource = FileConfigSource{Plan: taskPlan}
 		})
 
 		JustBeforeEach(func() {
@@ -176,7 +188,7 @@ var _ = Describe("TaskConfigSource", func() {
 
 		Context("when the path does not indicate an artifact source", func() {
 			BeforeEach(func() {
-				configSource.Path = "foo-bar.yml"
+				configSource.Plan.ConfigPath = "foo-bar.yml"
 			})
 
 			It("returns an error", func() {
@@ -212,8 +224,14 @@ var _ = Describe("TaskConfigSource", func() {
 					Expect(fetchErr).NotTo(HaveOccurred())
 				})
 
-				It("returns the unmarshalled config", func() {
-					Expect(fetchedConfig).To(Equal(taskConfig))
+				It("fetched config vars are correctly processed", func() {
+					Expect(fetchedConfig.Platform).To(Equal(taskConfig.Platform))
+					Expect(fetchedConfig.RootfsURI).To(Equal(taskConfig.RootfsURI))
+					Expect(fetchedConfig.Params).To(Equal(taskConfig.Params))
+					Expect(fetchedConfig.Run).To(Equal(taskConfig.Run))
+					Expect(fetchedConfig.Inputs).To(Equal(taskConfig.Inputs))
+					Expect(fetchedConfig.ImageResource.Source["evaluated-value"]).To(Equal("task-variable-value"))
+					Expect((*fetchedConfig.ImageResource.Params)["evaluated-value"]).To(Equal("task-variable-value"))
 				})
 
 				It("closes the stream", func() {

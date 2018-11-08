@@ -3,6 +3,8 @@ package exec
 import (
 	"encoding/json"
 	"fmt"
+	atctemplate "github.com/concourse/concourse/atc/template"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"math"
 	"strconv"
@@ -74,7 +76,7 @@ func (configSource StaticConfigSource) Warnings() []string {
 // FileConfigSource represents a dynamically configured TaskConfig, which will
 // be fetched from a specified file in the worker.ArtifactRepository.
 type FileConfigSource struct {
-	Path string
+	Plan atc.TaskPlan
 }
 
 // FetchConfig reads the specified file from the worker.ArtifactRepository and loads the
@@ -93,9 +95,9 @@ type FileConfigSource struct {
 // If the task config file is not found, or is invalid YAML, or is an invalid
 // task configuration, the respective errors will be bubbled up.
 func (configSource FileConfigSource) FetchConfig(logger lager.Logger, repo *worker.ArtifactRepository) (atc.TaskConfig, error) {
-	segs := strings.SplitN(configSource.Path, "/", 2)
+	segs := strings.SplitN(configSource.Plan.ConfigPath, "/", 2)
 	if len(segs) != 2 {
-		return atc.TaskConfig{}, UnspecifiedArtifactSourceError(configSource)
+		return atc.TaskConfig{}, UnspecifiedArtifactSourceError{configSource.Plan.ConfigPath}
 	}
 
 	sourceName := worker.ArtifactName(segs[0])
@@ -103,7 +105,7 @@ func (configSource FileConfigSource) FetchConfig(logger lager.Logger, repo *work
 
 	source, found := repo.SourceFor(sourceName)
 	if !found {
-		return atc.TaskConfig{}, UnknownArtifactSourceError{sourceName, configSource.Path}
+		return atc.TaskConfig{}, UnknownArtifactSourceError{sourceName, configSource.Plan.ConfigPath}
 	}
 
 	stream, err := source.StreamFile(logger, filePath)
@@ -121,9 +123,19 @@ func (configSource FileConfigSource) FetchConfig(logger lager.Logger, repo *work
 		return atc.TaskConfig{}, err
 	}
 
+	// process template of an external task, using vars provided from the pipeline
+	varsContents, err := yaml.Marshal(configSource.Plan.Vars)
+	if err != nil {
+		return atc.TaskConfig{}, fmt.Errorf("failed to load %s: %s", configSource.Plan.ConfigPath, err)
+	}
+	streamedFile, err = atctemplate.TemplateResolver{}.Resolve(streamedFile, [][]byte{varsContents}, nil, true)
+	if err != nil {
+		return atc.TaskConfig{}, fmt.Errorf("failed to load %s: %s", configSource.Plan.ConfigPath, err)
+	}
+
 	config, err := atc.NewTaskConfig(streamedFile)
 	if err != nil {
-		return atc.TaskConfig{}, fmt.Errorf("failed to load %s: %s", configSource.Path, err)
+		return atc.TaskConfig{}, fmt.Errorf("failed to load %s: %s", configSource.Plan.ConfigPath, err)
 	}
 
 	return config, nil

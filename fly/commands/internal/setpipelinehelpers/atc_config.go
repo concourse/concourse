@@ -2,17 +2,17 @@ package setpipelinehelpers
 
 import (
 	"fmt"
+	"github.com/cloudfoundry/bosh-cli/director/template"
+	atctemplate "github.com/concourse/concourse/atc/template"
 	"io/ioutil"
 	"net/url"
 	"os"
 
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	temp "github.com/concourse/concourse/fly/template"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/onsi/gomega/gexec"
@@ -49,7 +49,7 @@ func (atcConfig ATCConfig) Validate(
 	strict bool,
 	output bool,
 ) error {
-	newConfig, err := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables, yamlTemplateVariables, true, strict)
+	newConfig, err := atcConfig.NewConfig(configPath, templateVariablesFiles, templateVariables, yamlTemplateVariables, true, strict)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (atcConfig ATCConfig) Validate(
 }
 
 func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables []flaghelpers.VariablePairFlag, yamlTemplateVariables []flaghelpers.YAMLVariablePairFlag, templateVariablesFiles []atc.PathFlag) error {
-	newConfig, err := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables, yamlTemplateVariables, false, false)
+	newConfig, err := atcConfig.NewConfig(configPath, templateVariablesFiles, templateVariables, yamlTemplateVariables, false, false)
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables []flag
 	return nil
 }
 
-func (atcConfig ATCConfig) newConfig(
+func (atcConfig ATCConfig) NewConfig(
 	configPath atc.PathFlag,
 	templateVariablesFiles []atc.PathFlag,
 	templateVariables []flaghelpers.VariablePairFlag,
@@ -157,9 +157,9 @@ func (atcConfig ATCConfig) newConfig(
 	allowEmpty bool,
 	strict bool,
 ) ([]byte, error) {
-	evaluatedConfig, err := ioutil.ReadFile(string(configPath))
+	config, err := ioutil.ReadFile(string(configPath))
 	if err != nil {
-		return nil, fmt.Errorf("could not read config file: %s", err.Error())
+		return nil, fmt.Errorf("could not read file: %s", err.Error())
 	}
 
 	if strict {
@@ -168,7 +168,7 @@ func (atcConfig ATCConfig) newConfig(
 		// If we don't check Strict now, then the subsequent steps will mask any
 		// duplicate key errors.
 		// We should consider being strict throughout the entire stack by default.
-		err = yaml.UnmarshalStrict(evaluatedConfig, make(map[string]interface{}))
+		err = yaml.UnmarshalStrict(config, make(map[string]interface{}))
 		if err != nil {
 			return nil, fmt.Errorf("error parsing yaml before applying templates: %s", err.Error())
 		}
@@ -184,80 +184,20 @@ func (atcConfig ATCConfig) newConfig(
 		paramPayloads = append(paramPayloads, templateVars)
 	}
 
-	if temp.Present(evaluatedConfig) {
-		evaluatedConfig, err = atcConfig.resolveDeprecatedTemplateStyle(evaluatedConfig, paramPayloads, templateVariables, yamlTemplateVariables, allowEmpty)
-		if err != nil {
-			return nil, fmt.Errorf("could not resolve old-style template vars: %s", err.Error())
-		}
-	}
-
-	evaluatedConfig, err = atcConfig.resolveTemplates(evaluatedConfig, paramPayloads, templateVariables, yamlTemplateVariables)
-	if err != nil {
-		return nil, fmt.Errorf("could not resolve template vars: %s", err.Error())
-	}
-
-	return evaluatedConfig, nil
-}
-
-func (atcConfig ATCConfig) resolveTemplates(configPayload []byte, paramPayloads [][]byte, variables []flaghelpers.VariablePairFlag, yamlVariables []flaghelpers.YAMLVariablePairFlag) ([]byte, error) {
-	tpl := template.NewTemplate(configPayload)
-
 	flagVars := template.StaticVariables{}
-	for _, f := range variables {
+	for _, f := range templateVariables {
+		flagVars[f.Name] = f.Value
+	}
+	for _, f := range yamlTemplateVariables {
 		flagVars[f.Name] = f.Value
 	}
 
-	for _, f := range yamlVariables {
-		flagVars[f.Name] = f.Value
-	}
-
-	vars := []template.Variables{flagVars}
-	for i := len(paramPayloads) - 1; i >= 0; i-- {
-		payload := paramPayloads[i]
-
-		var staticVars template.StaticVariables
-		err := yaml.Unmarshal(payload, &staticVars)
-		if err != nil {
-			return nil, err
-		}
-
-		vars = append(vars, staticVars)
-	}
-
-	bytes, err := tpl.Evaluate(template.NewMultiVars(vars), nil, template.EvaluateOpts{})
+	evaluatedConfig, err := atctemplate.TemplateResolver{}.Resolve(config, paramPayloads, flagVars, allowEmpty)
 	if err != nil {
 		return nil, err
 	}
 
-	return bytes, nil
-}
-
-func (atcConfig ATCConfig) resolveDeprecatedTemplateStyle(
-	configPayload []byte,
-	paramPayloads [][]byte,
-	variables []flaghelpers.VariablePairFlag,
-	yamlVariables []flaghelpers.YAMLVariablePairFlag,
-	allowEmpty bool,
-) ([]byte, error) {
-	vars := temp.Variables{}
-	for _, payload := range paramPayloads {
-		var payloadVars temp.Variables
-		err := yaml.Unmarshal(payload, &payloadVars)
-		if err != nil {
-			return nil, err
-		}
-
-		vars = vars.Merge(payloadVars)
-	}
-
-	flagVars := temp.Variables{}
-	for _, flag := range variables {
-		flagVars[flag.Name] = flag.Value
-	}
-
-	vars = vars.Merge(flagVars)
-
-	return temp.Evaluate(configPayload, vars, allowEmpty)
+	return evaluatedConfig, nil
 }
 
 func (atcConfig ATCConfig) showPipelineConfigErrors(errorMessages []string) {
