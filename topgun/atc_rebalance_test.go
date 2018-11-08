@@ -2,7 +2,6 @@ package topgun_test
 
 import (
 	"strings"
-	"time"
 
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
@@ -31,7 +30,7 @@ var _ = Describe("Rebalancing workers", func() {
 				Eventually(func() string {
 					workers := flyTable("workers", "-d")
 					return strings.Split(workers[0]["garden address"], ":")[0]
-				}, time.Minute, 5*time.Second).Should(SatisfyAny(
+				}).Should(SatisfyAny(
 					Equal(webInstances[0].IP),
 					Equal(webInstances[0].DNS),
 				))
@@ -39,7 +38,7 @@ var _ = Describe("Rebalancing workers", func() {
 				Eventually(func() string {
 					workers := flyTable("workers", "-d")
 					return strings.Split(workers[0]["garden address"], ":")[0]
-				}, time.Minute, 5*time.Second).Should(SatisfyAny(
+				}).Should(SatisfyAny(
 					Equal(webInstances[1].IP),
 					Equal(webInstances[1].DNS),
 				))
