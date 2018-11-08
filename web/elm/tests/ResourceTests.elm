@@ -58,9 +58,9 @@ disabledVersion =
     "v3"
 
 
-tealHex : String
-tealHex =
-    "#03dac4"
+purpleHex : String
+purpleHex =
+    "#5C3BD1"
 
 
 fadedBlackHex : String
@@ -307,13 +307,13 @@ all =
                             |> givenResourcePinnedStatically
                             |> queryView
                             |> Query.has [ text version ]
-                , test "then pin bar has teal border" <|
+                , test "then pin bar has purple border" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
                             |> queryView
-                            |> Query.has tealOutlineSelector
-                , test "pin button on pinned version has a teal outline" <|
+                            |> Query.has purpleOutlineSelector
+                , test "pin button on pinned version has a purple outline" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
@@ -321,8 +321,8 @@ all =
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> Query.find pinButtonSelector
-                            |> Query.has tealOutlineSelector
-                , test "checkbox on pinned version has a teal outline" <|
+                            |> Query.has purpleOutlineSelector
+                , test "checkbox on pinned version has a purple outline" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
@@ -330,7 +330,7 @@ all =
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> Query.find checkboxSelector
-                            |> Query.has tealOutlineSelector
+                            |> Query.has purpleOutlineSelector
                 , test "all pin buttons have default cursor" <|
                     \_ ->
                         init
@@ -342,7 +342,7 @@ all =
                                 (Query.find pinButtonSelector
                                     >> Query.has defaultCursor
                                 )
-                , test "version header on pinned version has a teal outline" <|
+                , test "version header on pinned version has a purple outline" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
@@ -350,7 +350,7 @@ all =
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> findLast [ tag "div", containing [ text version ] ]
-                            |> Query.has tealOutlineSelector
+                            |> Query.has purpleOutlineSelector
                 , test "mousing over pin bar sends TogglePinBarTooltip message" <|
                     \_ ->
                         init
@@ -500,7 +500,7 @@ all =
                         |> Tuple.first
                         |> queryView
                         |> Query.hasNot pinBarTooltipSelector
-            , test "pin button on pinned version has a teal outline" <|
+            , test "pin button on pinned version has a purple outline" <|
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
@@ -508,8 +508,8 @@ all =
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
-                        |> Query.has tealOutlineSelector
-            , test "checkbox on pinned version has a teal outline" <|
+                        |> Query.has purpleOutlineSelector
+            , test "checkbox on pinned version has a purple outline" <|
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
@@ -517,7 +517,7 @@ all =
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.find checkboxSelector
-                        |> Query.has tealOutlineSelector
+                        |> Query.has purpleOutlineSelector
             , test "pin button on pinned version has a pointer cursor" <|
                 \_ ->
                     init
@@ -587,7 +587,7 @@ all =
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasPinnedState version
-            , test "version header on pinned version has a teal outline" <|
+            , test "version header on pinned version has a purple outline" <|
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
@@ -595,7 +595,7 @@ all =
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> findLast [ tag "div", containing [ text version ] ]
-                        |> Query.has tealOutlineSelector
+                        |> Query.has purpleOutlineSelector
             , test "pin button on pinned version has a white icon" <|
                 \_ ->
                     init
@@ -643,12 +643,12 @@ all =
                             )
             ]
         , describe "given resource is not pinned"
-            [ test "then nothing has teal border" <|
+            [ test "then nothing has purple border" <|
                 \_ ->
                     init
                         |> givenResourceUnpinned
                         |> queryView
-                        |> Query.hasNot tealOutlineSelector
+                        |> Query.hasNot purpleOutlineSelector
             , test "does not show tooltip on the pin icon on ToggleVersionTooltip" <|
                 \_ ->
                     init
@@ -952,9 +952,9 @@ hasCheckbox =
         >> Query.count (Expect.equal 1)
 
 
-tealOutlineSelector : List Selector
-tealOutlineSelector =
-    [ style [ ( "border", "1px solid " ++ tealHex ) ] ]
+purpleOutlineSelector : List Selector
+purpleOutlineSelector =
+    [ style [ ( "border", "1px solid " ++ purpleHex ) ] ]
 
 
 findLast : List Selector -> Query.Single msg -> Query.Single msg
@@ -984,7 +984,7 @@ pinButtonHasUnpinnedState : Query.Single msg -> Expectation
 pinButtonHasUnpinnedState =
     Expect.all
         [ Query.has [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
-        , Query.hasNot tealOutlineSelector
+        , Query.hasNot purpleOutlineSelector
         ]
 
 
@@ -1003,7 +1003,7 @@ pinBarHasPinnedState : String -> Query.Single msg -> Expectation
 pinBarHasPinnedState version =
     Query.find [ id "pin-bar" ]
         >> Expect.all
-            [ Query.has [ style [ ( "border", "1px solid " ++ tealHex ) ] ]
+            [ Query.has [ style [ ( "border", "1px solid " ++ purpleHex ) ] ]
             , Query.has [ text version ]
             , Query.findAll [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
                 >> Query.count (Expect.equal 1)

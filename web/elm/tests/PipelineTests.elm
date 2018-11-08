@@ -216,7 +216,7 @@ all =
                             |> Query.find [ id "top-bar-app" ]
                             |> Query.find [ id "pin-icon" ]
                             |> Query.has pinBadgeSelector
-                , test "pin badge is red" <|
+                , test "pin badge is purple" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
                             |> givenPinnedResource
@@ -226,7 +226,7 @@ all =
                             |> Query.find [ id "pin-icon" ]
                             |> Query.find pinBadgeSelector
                             |> Query.has
-                                [ style [ ( "background-color", "#ff3737" ) ] ]
+                                [ style [ ( "background-color", "#5C3BD1" ) ] ]
                 , test "pin badge is circular" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"

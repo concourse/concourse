@@ -20,6 +20,7 @@ import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination exposing (Pagination, Paginated, Page, equal)
 import Concourse.Resource
+import Colors
 import Css
 import Dict
 import DictView
@@ -723,7 +724,7 @@ view model =
                         [ ( "border"
                           , "1px solid "
                                 ++ (if ME.isJust pinBarVersion then
-                                        "#03dac4"
+                                        Colors.pinned
                                     else
                                         "#3d3c3c"
                                    )
@@ -1001,10 +1002,10 @@ viewEnabledCheckbox { enabled, id, pinState } =
              ]
                 ++ (case pinState of
                         PinnedStatically _ ->
-                            [ style [ ( "border", "1px solid #03dac4" ) ] ]
+                            [ style [ ( "border", "1px solid " ++ Colors.pinned ) ] ]
 
                         PinnedDynamically ->
-                            [ style [ ( "border", "1px solid #03dac4" ) ] ]
+                            [ style [ ( "border", "1px solid " ++ Colors.pinned ) ] ]
 
                         _ ->
                             []
@@ -1074,7 +1075,7 @@ viewPinButton { versionID, pinState } =
                                 [ ( "background-color", "#1e1d1d" )
                                 , ( "cursor", "pointer" )
                                 , ( "background-image", "url(/public/images/pin_ic_white.svg)" )
-                                , ( "border", "1px solid #03dac4" )
+                                , ( "border", "1px solid " ++ Colors.pinned )
                                 ]
                            , onClick UnpinVersion
                            ]
@@ -1088,7 +1089,7 @@ viewPinButton { versionID, pinState } =
                                 [ ( "background-color", "#1e1d1d" )
                                 , ( "cursor", "default" )
                                 , ( "background-image", "url(/public/images/pin_ic_white.svg)" )
-                                , ( "border", "1px solid #03dac4" )
+                                , ( "border", "1px solid " ++ Colors.pinned )
                                 ]
                            , onMouseOut ToggleVersionTooltip
                            , onMouseOver ToggleVersionTooltip
@@ -1154,10 +1155,10 @@ viewVersionHeader { id, version, pinnedState } =
          ]
             ++ (case pinnedState of
                     PinnedStatically _ ->
-                        [ style [ ( "border", "1px solid #03dac4" ) ] ]
+                        [ style [ ( "border", "1px solid " ++ Colors.pinned ) ] ]
 
                     PinnedDynamically ->
-                        [ style [ ( "border", "1px solid #03dac4" ) ] ]
+                        [ style [ ( "border", "1px solid " ++ Colors.pinned ) ] ]
 
                     _ ->
                         []

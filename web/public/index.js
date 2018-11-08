@@ -120,7 +120,7 @@ function redrawFunction(svg, jobs, resources, newUrl) {
     animationTarget.style("height", function(node) { return node.height() + "px" })
 
     nodeLink.filter(function(node) { return node.pinned() }).append("image")
-        .attr("xlink:href", "/public/images/pin_ic_teal.svg")
+        .attr("xlink:href", "/public/images/pin_ic_white.svg")
         .attr("width", 6)
         .attr("y", function(node) { return node.height() / 2 - node.imageHeight() / 2 })
         .attr("x", function(node) { return node.padding() })

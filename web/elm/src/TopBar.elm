@@ -3,6 +3,7 @@ port module TopBar exposing (Model, Msg(..), fetchUser, init, subscriptions, upd
 import Concourse
 import Concourse.Pipeline
 import Concourse.User
+import Colors
 import Dict
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, disabled, href, id, style)
@@ -293,7 +294,7 @@ view model =
                             (if List.length model.pinnedResources > 0 then
                                 ([ Html.div
                                     [ style
-                                        [ ( "background-color", "#ff3737" )
+                                        [ ( "background-color", Colors.pinned )
                                         , ( "border-radius", "50%" )
                                         , ( "width", "15px" )
                                         , ( "height", "15px" )
