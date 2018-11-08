@@ -1,16 +1,17 @@
 ---
 resources:
-- name: special-time
-  type: special-time
-  tags: [special]
-  source: {interval: 1h}
+- name: something
+  type: mock
+  source: {}
+  tags: [tag-a]
 
 jobs:
 - name: transfer-time
   plan:
-  - get: special-time
-    tags: [special]
-  - task: use-special-time
+  - get: something
+    tags: [tag-b]
+  - task: use-something
+    tags: [tag-a]
     config:
       platform: linux
 
@@ -19,7 +20,7 @@ jobs:
         source: {repository: busybox}
 
       inputs:
-      - name: special-time
+      - name: something
 
       run:
         path: find
