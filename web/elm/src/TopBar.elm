@@ -293,7 +293,7 @@ view model =
                             (if List.length model.pinnedResources > 0 then
                                 ([ Html.div
                                     [ style
-                                        [ ( "background-color", "#03dac4" )
+                                        [ ( "background-color", "#ff3737" )
                                         , ( "border-radius", "50%" )
                                         , ( "width", "15px" )
                                         , ( "height", "15px" )
@@ -304,6 +304,7 @@ view model =
                                         , ( "align-items", "center" )
                                         , ( "justify-content", "center" )
                                         ]
+                                    , id "pin-badge"
                                     ]
                                     [ Html.div [] [ Html.text <| toString <| List.length model.pinnedResources ]
                                     ]

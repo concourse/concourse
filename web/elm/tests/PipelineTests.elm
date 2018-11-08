@@ -207,7 +207,7 @@ all =
                             |> Query.find [ id "top-bar-app" ]
                             |> Query.find [ id "pin-icon" ]
                             |> Query.has [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
-                , test "pin icon has teal badge when pipeline has pinned resources" <|
+                , test "pin icon has pin badge when pipeline has pinned resources" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
                             |> givenPinnedResource
@@ -215,8 +215,8 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "top-bar-app" ]
                             |> Query.find [ id "pin-icon" ]
-                            |> Query.has [ style [ ( "background-color", "#03dac4" ) ] ]
-                , test "teal badge is circular" <|
+                            |> Query.has pinBadgeSelector
+                , test "pin badge is red" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
                             |> givenPinnedResource
@@ -224,7 +224,18 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "top-bar-app" ]
                             |> Query.find [ id "pin-icon" ]
-                            |> Query.find [ style [ ( "background-color", "#03dac4" ) ] ]
+                            |> Query.find pinBadgeSelector
+                            |> Query.has
+                                [ style [ ( "background-color", "#ff3737" ) ] ]
+                , test "pin badge is circular" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> givenPinnedResource
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.find pinBadgeSelector
                             |> Query.has
                                 [ style
                                     [ ( "border-radius", "50%" )
@@ -232,7 +243,7 @@ all =
                                     , ( "height", "15px" )
                                     ]
                                 ]
-                , test "teal badge is near the top right of the pin icon" <|
+                , test "pin badge is near the top right of the pin icon" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
                             |> givenPinnedResource
@@ -240,7 +251,7 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "top-bar-app" ]
                             |> Query.find [ id "pin-icon" ]
-                            |> Query.find [ style [ ( "background-color", "#03dac4" ) ] ]
+                            |> Query.find pinBadgeSelector
                             |> Query.has
                                 [ style
                                     [ ( "position", "absolute" )
@@ -248,7 +259,7 @@ all =
                                     , ( "right", "3px" )
                                     ]
                                 ]
-                , test "content inside teal badge is centered horizontally and vertically" <|
+                , test "content inside pin badge is centered horizontally and vertically" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
                             |> givenPinnedResource
@@ -256,7 +267,7 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "top-bar-app" ]
                             |> Query.find [ id "pin-icon" ]
-                            |> Query.find [ style [ ( "background-color", "#03dac4" ) ] ]
+                            |> Query.find pinBadgeSelector
                             |> Query.has
                                 [ style
                                     [ ( "display", "flex" )
@@ -264,7 +275,7 @@ all =
                                     , ( "justify-content", "center" )
                                     ]
                                 ]
-                , test "teal badge shows count of pinned resources, centered" <|
+                , test "pin badge shows count of pinned resources, centered" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
                             |> givenPinnedResource
@@ -272,10 +283,10 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "top-bar-app" ]
                             |> Query.find [ id "pin-icon" ]
-                            |> Query.find [ style [ ( "background-color", "#03dac4" ) ] ]
+                            |> Query.find pinBadgeSelector
                             |> Query.findAll [ tag "div", containing [ text "1" ] ]
                             |> Query.count (Expect.equal 1)
-                , test "teal badge has no other children" <|
+                , test "pin badge has no other children" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
                             |> givenPinnedResource
@@ -283,7 +294,7 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "top-bar-app" ]
                             |> Query.find [ id "pin-icon" ]
-                            |> Query.find [ style [ ( "background-color", "#03dac4" ) ] ]
+                            |> Query.find pinBadgeSelector
                             |> Query.children []
                             |> Query.count (Expect.equal 1)
                 , test "pin counter works with multiple pinned resources" <|
@@ -294,7 +305,7 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "top-bar-app" ]
                             |> Query.find [ id "pin-icon" ]
-                            |> Query.find [ style [ ( "background-color", "#03dac4" ) ] ]
+                            |> Query.find pinBadgeSelector
                             |> Query.findAll [ tag "div", containing [ text "2" ] ]
                             |> Query.count (Expect.equal 1)
                 , test "before TogglePinIconDropdown msg no list of pinned resources is visible" <|
@@ -346,7 +357,7 @@ all =
                             |> Query.find [ id "pin-icon" ]
                             |> Query.children [ tag "ul" ]
                             |> Query.count (Expect.equal 1)
-                , test "on TogglePinIconDropdown, teal badge has no other children" <|
+                , test "on TogglePinIconDropdown, pin badge has no other children" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
                             |> givenPinnedResource
@@ -357,7 +368,7 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "top-bar-app" ]
                             |> Query.find [ id "pin-icon" ]
-                            |> Query.find [ style [ ( "background-color", "#03dac4" ) ] ]
+                            |> Query.find pinBadgeSelector
                             |> Query.children []
                             |> Query.count (Expect.equal 1)
                 , test "dropdown list of pinned resources contains resource name" <|
@@ -622,6 +633,11 @@ all =
                             |> Query.hasNot [ id "pin-icon" ]
                 ]
         ]
+
+
+pinBadgeSelector : List Selector.Selector
+pinBadgeSelector =
+    [ id "pin-badge" ]
 
 
 init : String -> Layout.Model
