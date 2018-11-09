@@ -15,6 +15,26 @@ resource_types:
   type: registry-image
   source: {repository: cloudfoundry/bosh-deployment-resource}
 
+- name: github-release
+  type: registry-image
+  source: {repository: concourse/github-release-resource}
+
+- name: semver
+  type: registry-image
+  source: {repository: concourse/semver-resource}
+
+- name: s3
+  type: registry-image
+  source: {repository: concourse/s3-resource}
+
+- name: bosh-io-release
+  type: registry-image
+  source: {repository: concourse/bosh-io-release-resource}
+
+- name: bosh-io-stemcell
+  type: registry-image
+  source: {repository: concourse/bosh-io-stemcell-resource}
+
 groups:
 - name: develop
   jobs:
