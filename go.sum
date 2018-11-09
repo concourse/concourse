@@ -455,7 +455,7 @@ k8s.io/api v0.0.0-20171027084545-218912509d74 h1:CYism0UbF96TF8s8sYrKagsJn3oqR45
 k8s.io/api v0.0.0-20171027084545-218912509d74/go.mod h1:iuAfoD4hCxJ8Onx9kaTIt30j7jUFS00AXQi6QMi99vA=
 k8s.io/apimachinery v0.0.0-20171027084411-18a564baac72 h1:pPbfmsjOvePqojmf5AhR0o7bxZTCxE0nkDakanV50CM=
 k8s.io/apimachinery v0.0.0-20171027084411-18a564baac72/go.mod h1:ccL7Eh7zubPUSh9A3USN90/OzHNSVN6zxzde07TDCL0=
-k8s.io/client-go v2.0.0-alpha.0.0.20171101191150-72e1c2a1ef30+incompatible h1:j2qQW/QxbsLSEJg3dVbbF/AHM80+hc4Q7rfIXdLXU3w=
+k8s.io/client-go v2.0.0-alpha.0.0.20171101191150-72e1c2a1ef30+incompatible h1:mFaVD8Zk1a4jTvn0EYIk8ecGpmIZ1ymZ4WdL3vexMPU=
 k8s.io/client-go v2.0.0-alpha.0.0.20171101191150-72e1c2a1ef30+incompatible/go.mod h1:7vJpHMYJwNQCWgzmNV+VYUl1zCObLyodBc8nIyt8L5s=
 k8s.io/kube-openapi v0.0.0-20180731170545-e3762e86a74c h1:3KSCztE7gPitlZmWbNwue/2U0YruD65DqX3INopDAQM=
 k8s.io/kube-openapi v0.0.0-20180731170545-e3762e86a74c/go.mod h1:BXM9ceUBTj2QnfH2MK1odQs778ajze1RxcmP6S8RVVc=
