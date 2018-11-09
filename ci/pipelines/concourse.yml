@@ -35,6 +35,10 @@ resource_types:
   type: registry-image
   source: {repository: concourse/bosh-io-stemcell-resource}
 
+- name: cf
+  type: registry-image
+  source: {repository: concourse/cf-resource}
+
 groups:
 - name: develop
   jobs:
