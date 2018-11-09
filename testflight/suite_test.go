@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -50,6 +49,7 @@ var (
 	client concourse.Client
 	team   concourse.Team
 
+	pipelineName string
 	tmp          string
 )
 
@@ -209,15 +209,6 @@ func spawnIn(dir string, argc string, argv ...string) *gexec.Session {
 	By("running in " + dir + ": " + argc + " " + strings.Join(argv, " "))
 	cmd := exec.Command(argc, argv...)
 	cmd.Dir = dir
-	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).ToNot(HaveOccurred())
-	return session
-}
-
-func spawnInteractive(stdin io.Reader, argc string, argv ...string) *gexec.Session {
-	By("interactively running: " + argc + " " + strings.Join(argv, " "))
-	cmd := exec.Command(argc, argv...)
-	cmd.Stdin = stdin
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).ToNot(HaveOccurred())
 	return session

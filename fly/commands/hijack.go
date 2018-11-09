@@ -166,7 +166,7 @@ func (command *HijackCommand) Execute([]string) error {
 			}
 
 			defer func() {
-				_ := term.Restore()
+				_ = term.Restore()
 			}()
 
 			in = term
