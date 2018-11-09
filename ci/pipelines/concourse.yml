@@ -528,7 +528,6 @@ jobs:
       - cbd/cluster/operations/telegraf-postgres.yml
       - cbd/cluster/operations/syslog_forwarder.yml
       - cbd/cluster/operations/backup-atc.yml
-      - cbd/cluster/operations/worker-forward-registration-mode.yml
       - cbd/cluster/operations/task-limits.yml
       vars_files:
       - cbd/versions.yml
