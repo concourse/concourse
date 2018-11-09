@@ -326,6 +326,15 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		cmd.ExternalURL = cmd.defaultURL()
 	}
 
+	if len(positionalArguments) != 0 {
+		return nil, fmt.Errorf("unexpected positional arguments: %v", positionalArguments)
+	}
+
+	err := cmd.validate()
+	if err != nil {
+		return nil, err
+	}
+
 	radar.GlobalResourceCheckTimeout = cmd.GlobalResourceCheckTimeout
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
@@ -363,7 +372,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	members, err := cmd.constructMembers(positionalArguments, logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory)
+	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -399,7 +408,6 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 }
 
 func (cmd *RunCommand) constructMembers(
-	positionalArguments []string,
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 	apiConn db.Conn,
@@ -407,16 +415,6 @@ func (cmd *RunCommand) constructMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 ) ([]grouper.Member, error) {
-
-	if len(positionalArguments) != 0 {
-		return nil, fmt.Errorf("unexpected positional arguments: %v", positionalArguments)
-	}
-
-	err := cmd.validate()
-	if err != nil {
-		return nil, err
-	}
-
 	if cmd.TelemetryOptIn {
 		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", concourse.Version)
 		go func() {
