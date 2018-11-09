@@ -137,11 +137,9 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [unit]
       trigger: true
     - get: unit-image
       trigger: true
-      passed: [unit]
     - get: gdn
       trigger: true
     - get: dumb-init
@@ -187,10 +185,10 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [dev-image]
+      passed: [unit, dev-image]
       trigger: true
     - get: unit-image
-      passed: [dev-image]
+      passed: [unit, dev-image]
       trigger: true
     - get: dev-image
       passed: [dev-image]
@@ -210,10 +208,10 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [dev-image]
+      passed: [unit, dev-image]
       trigger: true
     - get: unit-image
-      passed: [dev-image]
+      passed: [unit, dev-image]
       trigger: true
     - get: dev-image
       passed: [dev-image]
@@ -233,14 +231,14 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [dev-image]
+      passed: [unit, dev-image]
+      trigger: true
+    - get: unit-image
+      passed: [unit, dev-image]
       trigger: true
     - get: dev-image
       passed: [dev-image]
       params: {format: oci}
-    - get: unit-image
-      passed: [dev-image]
-      trigger: true
     - get: charts
   - task: terraform-k8s-smoke
     file: concourse/ci/tasks/terraform-smoke.yml
