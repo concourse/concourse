@@ -1,0 +1,6 @@
+\title{Examples}{Examples}
+
+\include-section{./examples/basic.lit}
+
+\split-sections
+\table-of-contents

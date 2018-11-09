@@ -1,0 +1,27 @@
+\title{Hello World}{hello-world-job}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{}{pipeline}
+
+	A single job is the simplest form of execution that can be done.
+
+	\frame{https://wings.pivotal.io/teams/cf-tools/pipelines/basic}
+}
+
+\section{
+  \title{Pipeline Source}{source}
+	\codeblock{yaml}{{{
+		---
+		jobs:
+		- name: my-job
+		  plan:
+		    - task: simple-task
+		      config:
+		        platform: linux
+		        run:
+		          path: echo
+		          args: ["Hello, world!"]
+	}}}
+}
