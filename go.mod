@@ -37,7 +37,7 @@ require (
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
 	github.com/concourse/baggageclaim v1.2.0
-	github.com/concourse/dex v0.0.0-20181017143659-4a3bb9452ad1
+	github.com/concourse/dex v0.0.0-20181109175645-c786b294b45a
 	github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c
 	github.com/concourse/go-archive v0.0.0-20180803203406-784931698f4f
 	github.com/concourse/retryhttp v0.0.0-20170802173037-937335fd9545
