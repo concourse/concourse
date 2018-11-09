@@ -505,9 +505,9 @@ jobs:
       - gcp-xenial-stemcell/*.tgz
       - gcp-windows-stemcell/*.tgz
       releases:
-      - garden-runc-release/*.tgz
+      - concourse-release/*.tgz
       - postgres-release/*.tgz
-      - bosh-rc/concourse-*.tgz
+      - bpm-release/*.tgz
       - bbr-sdk-release/*.tgz
       ops_files:
       - cbd/cluster/operations/scale.yml
