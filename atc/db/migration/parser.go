@@ -7,9 +7,9 @@ import (
 	"strings"
 )
 
-var noTxPrefix = regexp.MustCompile("^\\s*--\\s+(NO_TRANSACTION)")
-var migrationDirection = regexp.MustCompile("\\.(up|down)\\.")
-var goMigrationFuncName = regexp.MustCompile("(Up|Down)_[0-9]*")
+var noTxPrefix = regexp.MustCompile(`^\s*--\s+(NO_TRANSACTION)`)
+var migrationDirection = regexp.MustCompile(`\.(up|down)\.`)
+var goMigrationFuncName = regexp.MustCompile(`(Up|Down)_[0-9]*`)
 
 var ErrCouldNotParseDirection = errors.New("could not parse direction for migration")
 
@@ -109,7 +109,7 @@ func splitStatements(migrationContents string) []string {
 		fileStatements = fileStatements[:len(fileStatements)-1]
 	}
 
-	var isSqlStatement bool = false
+	var isSqlStatement = false
 	var sqlStatement string
 	for _, statement := range fileStatements {
 		statement = strings.TrimSpace(statement)

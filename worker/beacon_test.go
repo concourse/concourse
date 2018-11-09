@@ -112,15 +112,15 @@ var _ = Describe("Beacon", func() {
 
 			before := time.Now()
 			Eventually(fakeClient.RegisterCallCount).Should(Equal(1))
-			Expect(time.Now().Sub(before)).To(BeNumerically("~", 0, fuzz))
+			Expect(time.Since(before)).To(BeNumerically("~", 0, fuzz))
 
 			before = time.Now()
 			Eventually(fakeClient.RegisterCallCount).Should(Equal(2))
-			Expect(time.Now().Sub(before)).To(BeNumerically("~", beacon.RebalanceInterval, fuzz))
+			Expect(time.Since(before)).To(BeNumerically("~", beacon.RebalanceInterval, fuzz))
 
 			before = time.Now()
 			Eventually(fakeClient.RegisterCallCount).Should(Equal(3))
-			Expect(time.Now().Sub(before)).To(BeNumerically("~", beacon.RebalanceInterval, fuzz))
+			Expect(time.Since(before)).To(BeNumerically("~", beacon.RebalanceInterval, fuzz))
 		})
 
 		It("cancels the prior registration when the rebalanced registration registers", func() {

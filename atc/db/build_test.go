@@ -55,11 +55,11 @@ var _ = Describe("Build", func() {
 			err = build.SetDrained(true)
 			Expect(err).NotTo(HaveOccurred())
 
-			var drained bool
-			drained = build.IsDrained()
+			drained := build.IsDrained()
 			Expect(drained).To(BeTrue())
 
-			build.Reload()
+			_, err = build.Reload()
+			Expect(err).NotTo(HaveOccurred())
 			drained = build.IsDrained()
 			Expect(drained).To(BeTrue())
 		})

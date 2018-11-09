@@ -42,15 +42,9 @@ var _ = Describe("Token Verifier", func() {
 			})
 		})
 
-		Context("without a context", func() {
-			BeforeEach(func() {
-				tokenVerifier = token.NewVerifier("client-id", "http://example.com")
-			})
-
-			It("errors", func() {
-				_, err := tokenVerifier.Verify(nil, &oauth2.Token{})
-				Expect(err).To(HaveOccurred())
-			})
+		// do not pass a nil Context, even if a function permits it;
+		// pass context.TODO if you are unsure about which Context to use
+		XContext("without a context", func() {
 		})
 
 		Context("without an id_token inside the oauth token", func() {

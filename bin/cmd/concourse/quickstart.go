@@ -104,10 +104,10 @@ func (cmd *QuickstartCommand) Runner(args []string) (ifrit.Runner, error) {
 	logger, _ := cmd.WebCommand.RunCommand.Logger.Logger("quickstart")
 	return grouper.NewParallel(os.Interrupt, grouper.Members{
 		{
-			Name: "web",
+			Name:   "web",
 			Runner: NewLoggingRunner(logger.Session("web-runner"), webRunner)},
 		{
-			Name: "worker",
+			Name:   "worker",
 			Runner: NewLoggingRunner(logger.Session("worker-runner"), workerRunner)},
 	}), nil
 }

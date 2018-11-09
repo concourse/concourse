@@ -2,12 +2,10 @@ package commands
 
 import (
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"os"
 	"sort"
 	"strings"
-	"time"
-
-	yaml "gopkg.in/yaml.v2"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
@@ -129,19 +127,4 @@ func (cs volumesByWorkerAndHandle) Less(i int, j int) bool {
 	}
 
 	return cs[i].WorkerName < cs[j].WorkerName
-}
-
-func formatTTL(ttlInSeconds int64) string {
-	if ttlInSeconds == 0 {
-		return "indefinite"
-	}
-
-	duration := time.Duration(ttlInSeconds) * time.Second
-
-	return fmt.Sprintf(
-		"%0.2d:%0.2d:%0.2d",
-		int64(duration.Hours()),
-		int64(duration.Minutes())%60,
-		ttlInSeconds%60,
-	)
 }

@@ -536,8 +536,7 @@ func (j *job) ClearTaskCache(stepName string, cachePath string) (int64, error) {
 
 	defer Rollback(tx)
 
-	var sqlBuilder sq.DeleteBuilder
-	sqlBuilder = psql.Delete("worker_task_caches").
+	var sqlBuilder sq.DeleteBuilder = psql.Delete("worker_task_caches").
 		Where(sq.Eq{
 			"job_id":    j.id,
 			"step_name": stepName,
@@ -842,7 +841,11 @@ func scanJob(j *job, row scannable) error {
 
 	j.config = config
 
-	json.Unmarshal(tagsBlob, &tags)
+	err = json.Unmarshal(tagsBlob, &tags)
+	if err != nil {
+		return err
+	}
+
 	j.tags = tags
 
 	return nil

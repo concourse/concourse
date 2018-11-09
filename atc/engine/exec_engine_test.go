@@ -161,6 +161,7 @@ var _ = Describe("ExecEngine", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(build).To(Equal(dbBuild))
 					Expect(plan).To(Equal(otherPutPlan))
+					Expect(stepMetadata).To(Equal(expectedMetadata))
 					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 						Type:         db.ContainerTypePut,
 						StepName:     "some-put-2",

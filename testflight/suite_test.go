@@ -50,7 +50,6 @@ var (
 	client concourse.Client
 	team   concourse.Team
 
-	pipelineName string
 	tmp          string
 )
 
@@ -196,14 +195,6 @@ func spawnFly(argv ...string) *gexec.Session {
 
 func spawnFlyIn(dir string, argv ...string) *gexec.Session {
 	return spawnIn(dir, config.FlyBin, append([]string{"-t", flyTarget}, argv...)...)
-}
-
-func spawnFlyInteractive(stdin io.Reader, argv ...string) *gexec.Session {
-	return spawnInteractive(stdin, config.FlyBin, append([]string{"-t", flyTarget}, argv...)...)
-}
-
-func run(argc string, argv ...string) {
-	wait(spawn(argc, argv...))
 }
 
 func spawn(argc string, argv ...string) *gexec.Session {

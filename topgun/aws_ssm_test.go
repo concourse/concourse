@@ -31,7 +31,6 @@ import (
 	aws ssm put-parameter --type SecureString --name "/concourse-topgun/main/image_resource_repository" --value "busybox"
 */
 var _ = Describe("AWS SSM", func() {
-	const team = "main"
 	const pipeline = "pipeline-ssm-test"
 
 	getPipeline := func() *gexec.Session {

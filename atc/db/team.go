@@ -675,7 +675,7 @@ func (t *team) OrderPipelines(pipelineNames []string) error {
 			return err
 		}
 		if updatedPipelines == 0 {
-			return errors.New(fmt.Sprintf("pipeline %s does not exist", name))
+			return fmt.Errorf("pipeline %s does not exist", name)
 		}
 	}
 

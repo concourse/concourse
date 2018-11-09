@@ -48,14 +48,15 @@ func (r *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	r.logger.Info("start")
 	defer r.logger.Info("done")
 
-	ticker := time.NewTicker(r.syncInterval)
-	scannerContext, cancel := context.WithCancel(context.Background())
 	close(ready)
 
 	if r.noop {
 		<-signals
 		return nil
 	}
+
+	ticker := time.NewTicker(r.syncInterval)
+	scannerContext, cancel := context.WithCancel(context.Background())
 
 	err := r.tick(scannerContext)
 	if err != nil {

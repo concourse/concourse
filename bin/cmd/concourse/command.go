@@ -10,9 +10,9 @@ import (
 type ConcourseCommand struct {
 	Version func() `short:"v" long:"version" description:"Print the version of Concourse and exit"`
 
-	Web     WebCommand       `command:"web"    description:"Run the web UI and build scheduler."`
-	Worker  WorkerCommand    `command:"worker" description:"Run and register a worker."`
-	Migrate atccmd.Migration `command:"migrate"	description:"Run database migrations."`
+	Web     WebCommand       `command:"web"     description:"Run the web UI and build scheduler."`
+	Worker  WorkerCommand    `command:"worker"  description:"Run and register a worker."`
+	Migrate atccmd.Migration `command:"migrate" description:"Run database migrations."`
 
 	Quickstart QuickstartCommand `command:"quickstart" description:"Run both 'web' and 'worker' together, auto-wired. Not recommended for production."`
 

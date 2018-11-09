@@ -316,19 +316,12 @@ var _ = Describe("VolumeFactory", func() {
 			It("does not return volumes", func() {
 				createdVolumes, err := volumeRepository.GetOrphanedVolumes()
 				Expect(err).NotTo(HaveOccurred())
-				createdHandles := []string{}
-
-				for _, vol := range createdVolumes {
-					createdHandles = append(createdHandles, vol.Handle())
-					Expect(vol.WorkerName()).To(Equal("other-worker"))
-				}
 				Expect(createdVolumes).To(HaveLen(1))
 			})
 		})
 	})
 
 	Describe("DestroyFailedVolumes", func() {
-
 		BeforeEach(func() {
 			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
 				Type:     "task",

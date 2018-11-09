@@ -95,7 +95,7 @@ type FileConfigSource struct {
 func (configSource FileConfigSource) FetchConfig(logger lager.Logger, repo *worker.ArtifactRepository) (atc.TaskConfig, error) {
 	segs := strings.SplitN(configSource.Path, "/", 2)
 	if len(segs) != 2 {
-		return atc.TaskConfig{}, UnspecifiedArtifactSourceError{configSource.Path}
+		return atc.TaskConfig{}, UnspecifiedArtifactSourceError(configSource)
 	}
 
 	sourceName := worker.ArtifactName(segs[0])

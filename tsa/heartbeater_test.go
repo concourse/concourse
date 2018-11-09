@@ -148,7 +148,6 @@ var _ = Describe("Heartbeater", func() {
 
 			return rata.NewRequestGenerator(fakeATC1.URL(), atc.Routes)
 		}
-
 	})
 
 	JustBeforeEach(func() {

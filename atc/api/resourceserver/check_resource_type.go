@@ -32,7 +32,7 @@ func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 			w.WriteHeader(http.StatusNotFound)
 		case error:
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+			_, _ = w.Write([]byte(err.Error()))
 		default:
 			w.WriteHeader(http.StatusOK)
 		}

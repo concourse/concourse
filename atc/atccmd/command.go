@@ -249,7 +249,7 @@ func (cmd *Migration) migrateDBToVersion() error {
 
 	err := helper.MigrateToVersion(version)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Could not migrate to version: %d Reason: %s", version, err.Error()))
+		return fmt.Errorf("Could not migrate to version: %d Reason: %s", version, err.Error())
 	}
 
 	fmt.Println("Successfully migrated to version:", version)
@@ -1344,8 +1344,8 @@ func (cmd *RunCommand) constructPipelineSyncer(
 			variables := variablesFactory.NewVariables(pipeline.TeamName(), pipeline.Name())
 			return grouper.NewParallel(os.Interrupt, grouper.Members{
 				{
-					pipeline.ScopedName("radar"),
-					radar.NewRunner(
+					Name: pipeline.ScopedName("radar"),
+					Runner: radar.NewRunner(
 						logger.Session(pipeline.ScopedName("radar")),
 						cmd.Developer.Noop,
 						radarSchedulerFactory.BuildScanRunnerFactory(pipeline, cmd.ExternalURL.String(), variables),
@@ -1354,8 +1354,8 @@ func (cmd *RunCommand) constructPipelineSyncer(
 					),
 				},
 				{
-					pipeline.ScopedName("scheduler"),
-					&scheduler.Runner{
+					Name: pipeline.ScopedName("scheduler"),
+					Runner: &scheduler.Runner{
 						Logger:    logger.Session(pipeline.ScopedName("scheduler")),
 						Pipeline:  pipeline,
 						Scheduler: radarSchedulerFactory.BuildScheduler(pipeline, cmd.ExternalURL.String(), variables),

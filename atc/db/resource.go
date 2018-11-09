@@ -104,7 +104,7 @@ func (resources Resources) Configs() atc.ResourceConfigs {
 }
 
 func (resources Resources) PinnedVersions() map[string]atc.Version {
-	var pinnedVersions map[string]atc.Version
+	pinnedVersions := map[string]atc.Version{}
 	for _, r := range resources {
 		pinnedVersions[r.Name()] = r.PinnedVersion()
 	}

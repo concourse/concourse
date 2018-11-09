@@ -47,7 +47,7 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 	config, rawConfig, _, _, err := target.Team().PipelineConfig(pipelineName)
 	if err != nil {
 		if _, ok := err.(concourse.PipelineConfigError); ok {
-			dumpRawConfig(rawConfig, asJSON)
+			_ := dumpRawConfig(rawConfig, asJSON)
 			command.showConfigWarning()
 			return err
 		} else {

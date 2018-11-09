@@ -34,6 +34,4 @@ func (runner SyncRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			return nil
 		}
 	}
-
-	panic("unreachable")
 }

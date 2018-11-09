@@ -1072,7 +1072,8 @@ var _ = Describe("Resources API", func() {
 				It("returns 500", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					buf := new(bytes.Buffer)
-					buf.ReadFrom(response.Body)
+					_, err := buf.ReadFrom(response.Body)
+					Expect(err).ToNot(HaveOccurred())
 					body := buf.String()
 					Expect(body).To(Equal("welp"))
 				})

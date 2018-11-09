@@ -36,17 +36,12 @@ type verifier struct {
 }
 
 func (v *verifier) Verify(ctx context.Context, token *oauth2.Token) (*VerifiedClaims, error) {
-
 	if v.ClientID == "" {
 		return nil, errors.New("Missing client id")
 	}
 
 	if v.IssuerURL == "" {
 		return nil, errors.New("Missing issuer")
-	}
-
-	if ctx == nil {
-		return nil, errors.New("Missing context")
 	}
 
 	idToken, ok := token.Extra("id_token").(string)

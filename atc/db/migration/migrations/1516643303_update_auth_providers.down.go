@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"github.com/hashicorp/go-multierror"
 )
 
 func (self *migrations) Down_1516643303() error {
@@ -38,8 +39,7 @@ func (self *migrations) Down_1516643303() error {
 
 	_, err = tx.Exec("ALTER TABLE teams ADD COLUMN basic_auth json")
 	if err != nil {
-		tx.Rollback()
-		return err
+		return rollback(tx, err)
 	}
 
 	for _, team := range teams {
@@ -51,15 +51,13 @@ func (self *migrations) Down_1516643303() error {
 
 		decryptedAuth, err := self.Strategy.Decrypt(string(team.auth), noncense)
 		if err != nil {
-			tx.Rollback()
-			return err
+			return rollback(tx, err)
 		}
 
 		var authConfig map[string]interface{}
 		err = json.Unmarshal(decryptedAuth, &authConfig)
 		if err != nil {
-			tx.Rollback()
-			return err
+			return rollback(tx, err)
 		}
 
 		var basicAuthConfig map[string]string
@@ -70,8 +68,7 @@ func (self *migrations) Down_1516643303() error {
 				basicAuthConfig["basic_auth_username"] = configMap["username"].(string)
 				basicAuthConfig["basic_auth_password"] = configMap["password"].(string)
 			} else {
-				tx.Rollback()
-				return errors.New("malformed basicauth provider")
+				rollback(tx,errors.New("malformed basicauth provider"))
 			}
 		}
 
@@ -80,30 +77,39 @@ func (self *migrations) Down_1516643303() error {
 
 		newAuth, err := json.Marshal(authConfig)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		newBasicAuth, err := json.Marshal(basicAuthConfig)
 		if err != nil {
-			tx.Rollback()
+			rollback(tx, err)
 			return err
 		}
 
 		encryptedAuth, noncense, err := self.Strategy.Encrypt(newAuth)
+		if err != nil {
+			rollback(tx, err)
+			return err
+		}
 
 		_, err = tx.Exec("UPDATE teams SET basic_auth = $1, auth = $2, nonce = $3 WHERE id = $4", newBasicAuth, encryptedAuth, noncense, team.id)
 		if err != nil {
-			tx.Rollback()
-			return err
+			return rollback(tx, err)
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		tx.Rollback()
-		return err
+		return rollback(tx, err)
 	}
 
 	return nil
+}
+
+func rollback(tx *sql.Tx, err error) error {
+	txErr := tx.Rollback()
+	if txErr != nil {
+		err = multierror.Append(err, txErr)
+	}
+	return err
 }

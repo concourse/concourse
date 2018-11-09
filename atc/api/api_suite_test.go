@@ -35,7 +35,6 @@ var (
 	sink *lager.ReconfigurableSink
 
 	externalURL  = "https://example.com"
-	oAuthBaseURL = "https://oauth.example.com"
 
 	fakeEngine              *enginefakes.FakeEngine
 	fakeWorkerClient        *workerfakes.FakeClient

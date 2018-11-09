@@ -136,7 +136,9 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 		return 0, err
 	}
 
-	for breaker := true; breaker == true; breaker = mustComplete {
+	reattempt := true
+	for reattempt {
+		reattempt = mustComplete
 		lock, acquired, err := scanner.dbPipeline.AcquireResourceTypeCheckingLockWithIntervalCheck(
 			logger,
 			savedResourceType.Name(),

@@ -22,7 +22,6 @@ import (
 )
 
 const taskProcessID = "task"
-const taskProcessPropertyName = "concourse:task-process"
 const taskExitStatusPropertyName = "concourse:exit-status"
 
 // MissingInputsError is returned when any of the task's required inputs are

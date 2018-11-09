@@ -2,7 +2,6 @@ package atc
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -226,31 +225,6 @@ func (counter *pathCounter) registerOutput(output TaskOutputConfig) {
 	} else {
 		counter.outputCount[path] = val + 1
 	}
-}
-
-const duplicateErrorMessage = "  cannot have more than one %s using the same path '%s'"
-
-func pathContains(child string, parent string) bool {
-	if child == parent {
-		return false
-	}
-
-	childParts := strings.Split(child, string(filepath.Separator))
-	parentParts := strings.Split(parent, string(filepath.Separator))
-
-	if len(childParts) < len(parentParts) {
-		return false
-	}
-
-	for i, part := range parentParts {
-		if childParts[i] == part {
-			continue
-		} else {
-			return false
-		}
-	}
-
-	return true
 }
 
 func (config TaskConfig) validateOutputContainsNames() []string {

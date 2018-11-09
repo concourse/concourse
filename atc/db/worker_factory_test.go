@@ -77,11 +77,11 @@ var _ = Describe("WorkerFactory", func() {
 			Context("when worker is retiring or landing", func() {
 				It("doesn't change the worker from landing to running", func() {
 					atcWorker.State = "landing"
-					worker, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+					_, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 					Expect(err).NotTo(HaveOccurred())
 
 					atcWorker.State = ""
-					worker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+					_, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 					Expect(err).NotTo(HaveOccurred())
 
 					worker, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -92,11 +92,11 @@ var _ = Describe("WorkerFactory", func() {
 
 				It("doesn't change the worker from retiring to running", func() {
 					atcWorker.State = "retiring"
-					worker, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+					_, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 					Expect(err).NotTo(HaveOccurred())
 
 					atcWorker.State = ""
-					worker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+					_, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 					Expect(err).NotTo(HaveOccurred())
 
 					worker, found, err := workerFactory.GetWorker(atcWorker.Name)
