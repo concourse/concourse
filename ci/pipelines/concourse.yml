@@ -231,7 +231,7 @@ jobs:
 
 - name: k8s-smoke
   public: true
-  max_in_flight: 1
+  serial: true
   plan:
   - aggregate:
     - get: concourse
@@ -283,6 +283,7 @@ jobs:
 
 - name: build-rc
   public: true
+  serial: true
   plan:
   - aggregate:
     - get: concourse
@@ -354,6 +355,7 @@ jobs:
       params: {file: concourse-darwin/concourse-*.tgz}
 
 - name: bin-smoke
+  public: true
   serial: true
   plan:
   - aggregate:
@@ -382,6 +384,7 @@ jobs:
     input_mapping: {endpoint-info: outputs}
 
 - name: bosh-bump
+  public: true
   serial: true
   plan:
   - aggregate:
@@ -409,6 +412,7 @@ jobs:
     params: {repository: bumped-concourse-release-repo}
 
 - name: bosh-smoke
+  public: true
   serial: true
   plan:
   - aggregate:
@@ -454,6 +458,7 @@ jobs:
 - name: bosh-topgun
   public: true
   serial: true
+  interruptible: true
   plan:
   - aggregate:
     - get: concourse
@@ -494,6 +499,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ((topgun_aws_ssm.secret_access_key))
 
 - name: bosh-prod-deploy
+  public: true
   serial: true
   interruptible: true
   plan:
@@ -579,6 +585,7 @@ jobs:
         default_task_cpu_limit: 1024
 
 - name: push-docs
+  public: true
   serial: true
   plan:
   - aggregate:
@@ -593,6 +600,7 @@ jobs:
       manifest: built-docs/manifest.yml
 
 - name: merge-cbd
+  public: true
   serial: true
   plan:
   - get: cbd-master
@@ -603,6 +611,8 @@ jobs:
       merge: true
 
 - name: install-windows-deps
+  public: true
+  serial: true
   plan:
   - aggregate:
     - get: concourse
