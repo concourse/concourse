@@ -544,7 +544,7 @@ jobs:
       - cbd/cluster/operations/tls.yml
       - cbd/cluster/operations/privileged-https.yml
       - cbd/cluster/operations/basic-auth.yml
-      # - cbd/cluster/operations/github-auth.yml
+      - cbd/cluster/operations/github-auth.yml
       - cbd/cluster/operations/encryption.yml
       - cbd/cluster/operations/vault-tls-cert-auth.yml
       - cbd/cluster/operations/influxdb.yml
@@ -821,6 +821,7 @@ resources:
 
 - name: gcp-windows-stemcell
   type: bosh-io-stemcell
+  version: {version: "1709.12"}
   source:
     name: bosh-google-kvm-windows2016-go_agent
 
