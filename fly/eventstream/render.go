@@ -89,6 +89,6 @@ func Render(dst io.Writer, src eventstream.EventStream) int {
 }
 
 func unixTimeAsString(timestamp int64) string {
-	const posixDateFormat string = "03:04:05"
-	return time.Unix(timestamp, 0).Format(posixDateFormat)
+	const posixTimeLayout string = "15:04:05"
+	return time.Unix(timestamp, 0).Format(posixTimeLayout)
 }
