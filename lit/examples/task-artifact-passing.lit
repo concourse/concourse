@@ -1,0 +1,52 @@
+\title{Tasks Passing Artifacts}{task-passing-artifacts}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{}{pipeline}
+
+	A task can pass an artifacts to another task in the same job.
+
+	\frame{https://wings.pivotal.io/teams/cf-tools/pipelines/artifact-passing/jobs/create/builds/11#L5be7461b:7}
+}
+
+\section{
+  \title{Pipeline Source}{source}
+	\codeblock{yaml}{{{
+---
+jobs:
+- name: create-and-consume
+  plan:
+    - task: make-a-file
+      config:
+        platform: linux
+        run:
+          path: sh
+          args:.
+            - -exc
+            - ls -la; echo "Created a file on $(date)" > ./files/created_file;
+        outputs:
+          - name: files
+    - task: consume-the-file
+      config:
+        platform: linux
+        inputs:
+          - name: files
+        run:
+          path: cat
+          args:.
+            - ./files/created_file
+  }}}
+}
+
+\section{
+	\title{References}{references}
+
+	\list{
+		\reference{jobs}
+	}{
+		\reference{steps}
+	}{
+		\reference{tasks}
+	}
+}

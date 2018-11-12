@@ -13,25 +13,25 @@
 \section{
   \title{Pipeline Source}{source}
 	\codeblock{yaml}{{{
-  ---
-  resources:
-  - name: every-30s
-    type: time
-    source:
-      interval: 30s
+---
+resources:
+- name: every-30s
+  type: time
+  source:
+    interval: 30s
 
-  jobs:
-  - name: my-job
-    plan:
-    - get: every-30s
-      trigger: true
-    - task: simple-task
-      config:
-        platform: linux
-        run:
-          path: echo
-          args: ["Hello, world!"]
-	}}}
+jobs:
+- name: my-job
+  plan:
+  - get: every-30s
+    trigger: true
+  - task: simple-task
+    config:
+      platform: linux
+      run:
+        path: echo
+        args: ["Hello, world!"]
+}}}
 }
 
 \section{

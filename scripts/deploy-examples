@@ -1,0 +1,18 @@
+#!/bin/bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+
+EXAMPLE_PATHS=$(ls ${DIR}/../lit/examples/*.lit)
+
+for path in $EXAMPLE_PATHS
+do
+  name=$(basename -s '.lit' $path)
+  tmp_path="/tmp/${name}"
+  awk '/{{{/{flag=1;next}/}}}/{flag=0}flag' ${path} > $tmp_path
+
+  cat $tmp_path
+  echo "====================="
+
+  fly -t prod sp -p ${name} -c ${tmp_path}
+  fly -t prod up -p ${name}
+done

@@ -1,6 +1,8 @@
 \title{Examples}{Examples}
 
-\include-section{./examples/basic.lit}
+\include-section{./examples/job.lit}
+\include-section{./examples/task-artifact-passing.lit}
+\include-section{./examples/time-triggered.lit}
 
 \split-sections
 \table-of-contents

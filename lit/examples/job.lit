@@ -13,16 +13,16 @@
 \section{
   \title{Pipeline Source}{source}
 	\codeblock{yaml}{{{
-		---
-		jobs:
-		- name: my-job
-		  plan:
-		    - task: simple-task
-		      config:
-		        platform: linux
-		        run:
-		          path: echo
-		          args: ["Hello, world!"]
+---
+jobs:
+- name: my-job
+  plan:
+    - task: simple-task
+      config:
+        platform: linux
+        run:
+          path: echo
+          args: ["Hello, world!"]
 	}}}
 }
 

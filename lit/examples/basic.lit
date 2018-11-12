@@ -1,7 +1,0 @@
-\title{Basics}{Examples}
-
-\include-section{./basics/job.lit}
-\include-section{./basics/time-triggered.lit}
-
-\split-sections
-\table-of-contents
