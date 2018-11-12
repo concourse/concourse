@@ -465,15 +465,15 @@ jobs:
   interruptible: true
   plan:
   - aggregate:
+    # these don't trigger, to ensure that the job gets triggered by
+    # concourse-release, which is unfortunately decoupled from the resource
+    # that we 'put' to.
     - get: concourse
       passed: [bosh-bump]
-      trigger: true
     - get: unit-image
       passed: [bosh-bump]
-      trigger: true
     - get: version
       passed: [bosh-bump]
-      trigger: true
     - get: concourse-release
       trigger: true
     - get: postgres-release
