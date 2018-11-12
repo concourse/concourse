@@ -1,7 +1,5 @@
-trap {
-  write-error $_
-  exit 1
-}
+$ErrorActionPreference = "Stop"
+trap { $host.SetShouldExit(1) }
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
