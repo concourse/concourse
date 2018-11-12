@@ -557,6 +557,7 @@ jobs:
       - cbd/cluster/operations/syslog_forwarder.yml
       - cbd/cluster/operations/backup-atc.yml
       - cbd/cluster/operations/task-limits.yml
+      - cbd/cluster/operations/windows-worker-network.yml
       vars_files:
       - cbd/versions.yml
       vars:
@@ -576,8 +577,9 @@ jobs:
         untrusted_worker_deny_networks: [10.0.0.0/16]
         untrusted_worker_tags: [pr]
         windows_worker_tsa_host: ci.concourse-ci.org:2222
-        windows_worker_os: windows2016
+        windows_worker_os: windows1803
         windows_worker_vm_type: worker
+        windows_worker_network_name: windows
         syslog_address: logs2.papertrailapp.com
         syslog_port: 51403
         syslog_permitted_peer: "*.papertrailapp.com"
@@ -821,9 +823,8 @@ resources:
 
 - name: gcp-windows-stemcell
   type: bosh-io-stemcell
-  version: {version: "1709.12"}
   source:
-    name: bosh-google-kvm-windows2016-go_agent
+    name: bosh-google-kvm-windows1803-go_agent
 
 - name: cbd
   type: git
