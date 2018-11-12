@@ -87,14 +87,14 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 			BeforeEach(deploy)
 
 			It("should be able to login to both ATCs", func() {
-				FlyLogin(atc0URL)
-				FlyLogin(atc1URL)
+				fly.Login(atcUsername, atcPassword, atc1URL)
+				fly.Login(atcUsername, atcPassword, atc0URL)
 
 				By("deploying a second time (with a different token signing key)")
 				deploy()
 
-				FlyLogin(atc0URL)
-				FlyLogin(atc1URL)
+				fly.Login(atcUsername, atcPassword, atc0URL)
+				fly.Login(atcUsername, atcPassword, atc1URL)
 			})
 		})
 	})

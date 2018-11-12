@@ -5,19 +5,14 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
 	"time"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
@@ -28,9 +23,14 @@ import (
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/onsi/gomega/gexec"
 	"golang.org/x/oauth2"
+
+	. "github.com/concourse/concourse/topgun"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var (
+	fly                       = Fly{}
 	deploymentName, flyTarget string
 	instances                 map[string][]boshInstance
 	jobInstances              map[string][]boshInstance
@@ -52,9 +52,6 @@ var (
 
 	pipelineName string
 
-	flyBin  string
-	flyHome string
-
 	logger *lagertest.TestLogger
 
 	tmp string
@@ -68,12 +65,9 @@ func TestTOPGUN(t *testing.T) {
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	flyBinPath, err := gexec.Build("github.com/concourse/concourse/fly")
-	Expect(err).ToNot(HaveOccurred())
-
-	return []byte(flyBinPath)
+	return []byte(BuildBinary())
 }, func(data []byte) {
-	flyBin = string(data)
+	fly.Bin = string(data)
 })
 
 var _ = SynchronizedAfterSuite(func() {
@@ -127,14 +121,16 @@ var _ = BeforeEach(func() {
 	deploymentNumber := GinkgoParallelNode()
 
 	deploymentName = fmt.Sprintf("concourse-topgun-%d", deploymentNumber)
-	flyTarget = deploymentName
+	fly.Target = deploymentName
+
 
 	var err error
 	tmp, err = ioutil.TempDir("", "topgun-tmp")
 	Expect(err).ToNot(HaveOccurred())
 
-	flyHome = filepath.Join(tmp, "fly-home")
-	err = os.Mkdir(flyHome, 0755)
+
+	fly.Home = filepath.Join(tmp, "fly-home")
+	err = os.Mkdir(fly.Home, 0755)
 	Expect(err).ToNot(HaveOccurred())
 
 	waitForDeploymentLock()
@@ -217,14 +213,14 @@ func Deploy(manifest string, args ...string) {
 		Expect(dbConn.Close()).To(Succeed())
 	}
 
-	wait(StartDeploy(manifest, args...))
+	Wait(StartDeploy(manifest, args...))
 
 	instances, jobInstances = loadJobInstances()
 
 	webInstance = JobInstance("web")
 	if webInstance != nil {
 		atcExternalURL = fmt.Sprintf("http://%s:8080", webInstance.IP)
-		FlyLogin(atcExternalURL)
+		fly.Login(atcUsername, atcPassword, atcExternalURL)
 
 		waitForWorkersToBeRunning(len(JobInstances("worker")) + len(JobInstances("other_worker")))
 
@@ -255,10 +251,6 @@ func Instance(name string) *boshInstance {
 	}
 
 	return &is[0]
-}
-
-func Instances(name string) []boshInstance {
-	return instances[name]
 }
 
 func JobInstance(job string) *boshInstance {
@@ -328,18 +320,12 @@ func loadJobInstances() (map[string][]boshInstance, map[string][]boshInstance) {
 
 func bosh(argv ...string) *gexec.Session {
 	session := spawnBosh(argv...)
-	wait(session)
+	Wait(session)
 	return session
 }
 
 func spawnBosh(argv ...string) *gexec.Session {
-	return spawn("bosh", nil, append([]string{"-n", "-d", deploymentName}, argv...)...)
-}
-
-func fly(argv ...string) *gexec.Session {
-	session := spawnFly(argv...)
-	wait(session)
-	return session
+	return Start("bosh", append([]string{"-n", "-d", deploymentName}, argv...)...)
 }
 
 func concourseClient() concourse.Client {
@@ -394,55 +380,6 @@ func deleteAllContainers() {
 			}
 		}
 	}
-}
-
-func FlyLogin(endpoint string) {
-	Eventually(func() *gexec.Session {
-		return spawnFly(
-			"login",
-			"-c", endpoint,
-			"-u", atcUsername,
-			"-p", atcPassword,
-		).Wait()
-	}, 2*time.Minute).Should(gexec.Exit(0), "fly should have been able to log in")
-}
-
-func spawnFly(argv ...string) *gexec.Session {
-	return spawn(flyBin, []string{"HOME=" + flyHome}, append([]string{"-t", flyTarget}, argv...)...)
-}
-
-func spawnFlyInteractive(stdin io.Reader, argv ...string) *gexec.Session {
-	return spawnInteractive(stdin, []string{"HOME=" + flyHome}, flyBin, append([]string{"-t", flyTarget}, argv...)...)
-}
-
-func TimestampedBy(msg string) {
-	By(fmt.Sprintf("[%.9f] %s", float64(time.Now().UnixNano())/1e9, msg))
-}
-
-func spawn(argc string, env []string, argv ...string) *gexec.Session {
-	cmd := exec.Command(argc, argv...)
-	cmd.Env = env
-
-	TimestampedBy("running: " + argc + " " + strings.Join(argv, " "))
-	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).ToNot(HaveOccurred())
-	return session
-}
-
-func spawnInteractive(stdin io.Reader, env []string, argc string, argv ...string) *gexec.Session {
-	cmd := exec.Command(argc, argv...)
-	cmd.Stdin = stdin
-	cmd.Env = env
-
-	TimestampedBy("interactively running: " + argc + " " + strings.Join(argv, " "))
-	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).ToNot(HaveOccurred())
-	return session
-}
-
-func wait(session *gexec.Session) {
-	<-session.Exited
-	Expect(session.ExitCode()).To(Equal(0))
 }
 
 func waitForLandedWorker() string {
@@ -504,7 +441,7 @@ func waitForWorkerInState(desiredStates ...string) string {
 }
 
 func flyTable(argv ...string) []map[string]string {
-	session := spawnFly(append([]string{"--print-table-headers"}, argv...)...)
+	session := fly.Start(append([]string{"--print-table-headers"}, argv...)...)
 	<-session.Exited
 	Expect(session.ExitCode()).To(Equal(0))
 
@@ -605,19 +542,6 @@ func containersBy(condition, value string) []string {
 	return handles
 }
 
-func workersBy(condition, value string) []string {
-	containers := flyTable("workers")
-
-	var handles []string
-	for _, c := range containers {
-		if c[condition] == value {
-			handles = append(handles, c["name"])
-		}
-	}
-
-	return handles
-}
-
 func volumesByResourceType(name string) []string {
 	volumes := flyTable("volumes", "-d")
 
@@ -629,21 +553,6 @@ func volumesByResourceType(name string) []string {
 	}
 
 	return handles
-}
-
-func deleteDeploymentWithForcedDrain() {
-	delete := spawnBosh("stop")
-
-	var workers []string
-	Eventually(func() []string {
-		workers = workersBy("state", "retiring")
-		return workers
-	}).Should(HaveLen(1))
-
-	fly("prune-worker", "-w", workers[0])
-
-	<-delete.Exited
-	Expect(delete.ExitCode()).To(Equal(0))
 }
 
 func waitForDeploymentLock() {

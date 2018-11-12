@@ -12,7 +12,7 @@ var _ = Describe("A worker with a proxy configured", func() {
 	})
 
 	It("uses the proxy server for executed tasks", func() {
-		session := spawnFly("execute", "-c", "tasks/http-proxy.yml")
+		session := fly.Start("execute", "-c", "tasks/http-proxy.yml")
 		<-session.Exited
 
 		// don't actually expect the proxy to work, just that it tried it
