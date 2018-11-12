@@ -395,6 +395,13 @@ svg.pipeline-graph {
     text {
       fill: @base04;
     }
+
+    &.pinned {
+      text {
+        fill: #fff;
+        opacity: 0.7;
+      }
+    }
   }
 
   .active path {
@@ -403,6 +410,10 @@ svg.pipeline-graph {
 
   .active.node rect {
     filter: url(#embiggen);
+  }
+
+  .active.node image {
+    transform: scale(1.09) translate(-5px, -1px);
   }
 
   .active.node text {

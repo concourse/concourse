@@ -139,6 +139,7 @@ var _ = Describe("DBProvider", func() {
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 		fakeDBTeamFactory = new(dbfakes.FakeTeamFactory)
 		fakeDBTeam = new(dbfakes.FakeTeam)
+		fakeDBTeam.IDReturns(1)
 		fakeDBTeamFactory.GetByIDReturns(fakeDBTeam)
 		fakeDBVolumeRepository = new(dbfakes.FakeVolumeRepository)
 
@@ -410,7 +411,7 @@ var _ = Describe("DBProvider", func() {
 
 					By("connecting to the worker")
 					fakeDBWorkerFactory.GetWorkerReturns(fakeWorker1, true, nil)
-					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id")), db.ContainerMetadata{}, spec, nil)
+					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, spec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = container.Destroy()
@@ -448,7 +449,7 @@ var _ = Describe("DBProvider", func() {
 					fakeCreatingContainer.HandleReturns("some-handle")
 					fakeCreatedContainer = new(dbfakes.FakeCreatedContainer)
 					fakeCreatingContainer.CreatedReturns(fakeCreatedContainer, nil)
-					fakeDBTeam.CreateContainerReturns(fakeCreatingContainer, nil)
+					fakeWorker1.CreateContainerReturns(fakeCreatingContainer, nil)
 
 					workerBaseResourceType := &db.UsedWorkerBaseResourceType{ID: 42}
 					fakeDBWorkerBaseResourceTypeFactory.FindReturns(workerBaseResourceType, true, nil)
@@ -467,7 +468,7 @@ var _ = Describe("DBProvider", func() {
 					fakeGardenBackend.CreateReturns(fakeContainer, nil)
 					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
-					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id")), db.ContainerMetadata{}, spec, nil)
+					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, spec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(container.Handle()).To(Equal("created-handle"))
@@ -619,7 +620,7 @@ var _ = Describe("DBProvider", func() {
 				workerVersion := "1.1.0"
 				fakeExistingWorker.VersionReturns(&workerVersion)
 
-				fakeDBTeam.FindWorkerForContainerByOwnerReturns(fakeExistingWorker, true, nil)
+				fakeDBWorkerFactory.FindWorkerForContainerByOwnerReturns(fakeExistingWorker, true, nil)
 			})
 
 			It("returns true", func() {
@@ -633,13 +634,8 @@ var _ = Describe("DBProvider", func() {
 			})
 
 			It("found the worker for the right owner", func() {
-				owner := fakeDBTeam.FindWorkerForContainerByOwnerArgsForCall(0)
+				owner := fakeDBWorkerFactory.FindWorkerForContainerByOwnerArgsForCall(0)
 				Expect(owner).To(Equal(fakeOwner))
-			})
-
-			It("found the right team", func() {
-				actualTeam := fakeDBTeamFactory.GetByIDArgsForCall(0)
-				Expect(actualTeam).To(Equal(345278))
 			})
 
 			Context("when the worker version is outdated", func() {
@@ -671,7 +667,7 @@ var _ = Describe("DBProvider", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeDBTeam.FindWorkerForContainerByOwnerReturns(nil, false, disaster)
+				fakeDBWorkerFactory.FindWorkerForContainerByOwnerReturns(nil, false, disaster)
 			})
 
 			It("returns the error", func() {

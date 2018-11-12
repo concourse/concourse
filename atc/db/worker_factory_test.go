@@ -6,6 +6,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -537,4 +538,114 @@ var _ = Describe("WorkerFactory", func() {
 			})
 		})
 	})
+
+	Describe("FindWorkerForContainerByOwner", func() {
+		var containerMetadata db.ContainerMetadata
+		var build db.Build
+		var fakeOwner *dbfakes.FakeContainerOwner
+		var otherFakeOwner *dbfakes.FakeContainerOwner
+
+		BeforeEach(func() {
+			var err error
+			containerMetadata = db.ContainerMetadata{
+				Type:     "task",
+				StepName: "some-task",
+			}
+			build, err = defaultTeam.CreateOneOffBuild()
+			Expect(err).ToNot(HaveOccurred())
+
+			fakeOwner = new(dbfakes.FakeContainerOwner)
+			fakeOwner.FindReturns(sq.Eq{
+				"build_id": build.ID(),
+				"plan_id":  "simple-plan",
+				"team_id":  1,
+			}, true, nil)
+			fakeOwner.CreateReturns(map[string]interface{}{
+				"build_id": build.ID(),
+				"plan_id":  "simple-plan",
+				"team_id":  1,
+			}, nil)
+
+			otherFakeOwner = new(dbfakes.FakeContainerOwner)
+			otherFakeOwner.FindReturns(sq.Eq{
+				"build_id": build.ID(),
+				"plan_id":  "simple-plan",
+				"team_id":  2,
+			}, true, nil)
+			otherFakeOwner.CreateReturns(map[string]interface{}{
+				"build_id": build.ID(),
+				"plan_id":  "simple-plan",
+				"team_id":  2,
+			}, nil)
+		})
+
+		Context("when there is a creating container", func() {
+			BeforeEach(func() {
+				_, err := defaultWorker.CreateContainer(fakeOwner, containerMetadata)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns it", func() {
+				worker, found, err := workerFactory.FindWorkerForContainerByOwner(fakeOwner)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(worker).ToNot(BeNil())
+				Expect(worker.Name()).To(Equal(defaultWorker.Name()))
+			})
+
+			It("does not find container for another team", func() {
+				worker, found, err := workerFactory.FindWorkerForContainerByOwner(otherFakeOwner)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+				Expect(worker).To(BeNil())
+			})
+		})
+
+		Context("when there is a created container", func() {
+			BeforeEach(func() {
+				creatingContainer, err := defaultWorker.CreateContainer(fakeOwner, containerMetadata)
+				Expect(err).ToNot(HaveOccurred())
+
+				_, err = creatingContainer.Created()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns it", func() {
+				worker, found, err := workerFactory.FindWorkerForContainerByOwner(fakeOwner)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(worker).ToNot(BeNil())
+				Expect(worker.Name()).To(Equal(defaultWorker.Name()))
+			})
+
+			It("does not find container for another team", func() {
+				worker, found, err := workerFactory.FindWorkerForContainerByOwner(otherFakeOwner)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+				Expect(worker).To(BeNil())
+			})
+		})
+
+		Context("when there is no container", func() {
+			It("returns nil", func() {
+				bogusOwner := new(dbfakes.FakeContainerOwner)
+				bogusOwner.FindReturns(sq.Eq{
+					"build_id": build.ID() + 1,
+					"plan_id":  "how-could-this-happen-to-me",
+					"team_id":  1,
+				}, true, nil)
+				bogusOwner.CreateReturns(map[string]interface{}{
+					"build_id": build.ID() + 1,
+					"plan_id":  "how-could-this-happen-to-me",
+					"team_id":  1,
+				}, nil)
+
+				worker, found, err := workerFactory.FindWorkerForContainerByOwner(bogusOwner)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+				Expect(worker).To(BeNil())
+			})
+		})
+	})
+
 })

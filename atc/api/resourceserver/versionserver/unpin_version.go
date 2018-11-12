@@ -1,34 +1,38 @@
-package resourceserver
+package versionserver
 
 import (
 	"net/http"
+	"strconv"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/tedsuo/rata"
 )
 
-func (s *Server) PauseResource(dbPipeline db.Pipeline) http.Handler {
-	logger := s.logger.Session("pause-resource")
+func (s *Server) UnpinResourceVersion(pipeline db.Pipeline) http.Handler {
+	logger := s.logger.Session("unpin-resource-version")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resourceName := rata.Param(r, "resource_name")
-
-		dbResource, found, err := dbPipeline.Resource(resourceName)
+		resourceName := r.FormValue(":resource_name")
+		resource, found, err := pipeline.Resource(resourceName)
 		if err != nil {
 			logger.Error("failed-to-get-resource", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
 		if !found {
 			logger.Debug("resource-not-found", lager.Data{"resource": resourceName})
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
-		err = dbResource.Pause()
+		resourceConfigVersionID, err := strconv.Atoi(r.FormValue(":resource_config_version_id"))
 		if err != nil {
-			logger.Error("failed-to-pause-resource", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		err = resource.UnpinVersion(resourceConfigVersionID)
+		if err != nil {
+			logger.Error("failed-to-unpin-resource-version", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

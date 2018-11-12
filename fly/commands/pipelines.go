@@ -57,7 +57,7 @@ func (command *PipelinesCommand) Execute([]string) error {
 		var pausedColumn ui.TableCell
 		if p.Paused {
 			pausedColumn.Contents = "yes"
-			pausedColumn.Color = color.New(color.FgCyan)
+			pausedColumn.Color = ui.OnColor
 		} else {
 			pausedColumn.Contents = "no"
 		}
@@ -65,7 +65,7 @@ func (command *PipelinesCommand) Execute([]string) error {
 		var publicColumn ui.TableCell
 		if p.Public {
 			publicColumn.Contents = "yes"
-			publicColumn.Color = color.New(color.FgCyan)
+			publicColumn.Color = ui.OnColor
 		} else {
 			publicColumn.Contents = "no"
 		}

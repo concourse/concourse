@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/scheduler/inputmapper/inputconfig"
@@ -123,29 +122,19 @@ var _ = Describe("Transformer", func() {
 					}
 				})
 
-				Context("when looking up the pinned version fails", func() {
-					var disaster error
-
+				Context("when looking up the resource fails", func() {
 					BeforeEach(func() {
-						disaster = errors.New("bad thing")
-						fakePipeline.GetVersionedResourceByVersionReturns(db.SavedVersionedResource{}, false, disaster)
+						fakePipeline.ResourceReturns(nil, false, errors.New("ah"))
 					})
 
 					It("returns the error", func() {
-						Expect(tranformErr).To(Equal(disaster))
-					})
-
-					It("looked up the version id with the right resource and version", func() {
-						Expect(fakePipeline.GetVersionedResourceByVersionCallCount()).To(Equal(1))
-						actualVersion, actualResource := fakePipeline.GetVersionedResourceByVersionArgsForCall(0)
-						Expect(actualVersion).To(Equal(atc.Version{"version": "v1"}))
-						Expect(actualResource).To(Equal("r1"))
+						Expect(tranformErr).To(Equal(errors.New("ah")))
 					})
 				})
 
-				Context("when the pinned version is not found", func() {
+				Context("when the resource is not found", func() {
 					BeforeEach(func() {
-						fakePipeline.GetVersionedResourceByVersionReturns(db.SavedVersionedResource{}, false, nil)
+						fakePipeline.ResourceReturns(nil, false, nil)
 					})
 
 					It("omits the entire input", func() {
@@ -160,30 +149,75 @@ var _ = Describe("Transformer", func() {
 					})
 				})
 
-				Context("when the pinned version is found", func() {
+				Context("when the resource is found", func() {
+					var fakeResource *dbfakes.FakeResource
+
 					BeforeEach(func() {
-						fakePipeline.GetVersionedResourceByVersionReturns(db.SavedVersionedResource{ID: 99}, true, nil)
+						fakeResource = new(dbfakes.FakeResource)
+						fakePipeline.ResourceReturns(fakeResource, true, nil)
 					})
 
-					It("sets the pinned version ID", func() {
-						Expect(algorithmInputs).To(ConsistOf(
-							algorithm.InputConfig{
-								Name:            "job-input-1",
-								UseEveryVersion: false,
-								PinnedVersionID: 99,
-								ResourceID:      11,
-								Passed:          algorithm.JobSet{},
-								JobID:           1,
-							},
-							algorithm.InputConfig{
+					Context("when looking up the pinned version fails", func() {
+						var disaster error
+
+						BeforeEach(func() {
+							disaster = errors.New("bad thing")
+							fakeResource.ResourceConfigVersionIDReturns(0, false, disaster)
+						})
+
+						It("returns the error", func() {
+							Expect(tranformErr).To(Equal(disaster))
+						})
+
+						It("looked up the version id with the right resource and version", func() {
+							Expect(fakeResource.ResourceConfigVersionIDCallCount()).To(Equal(1))
+							actualVersion := fakeResource.ResourceConfigVersionIDArgsForCall(0)
+							Expect(actualVersion).To(Equal(atc.Version{"version": "v1"}))
+						})
+					})
+
+					Context("when the pinned version is not found", func() {
+						BeforeEach(func() {
+							fakeResource.ResourceConfigVersionIDReturns(0, false, nil)
+						})
+
+						It("omits the entire input", func() {
+							Expect(algorithmInputs).To(ConsistOf(algorithm.InputConfig{
 								Name:            "job-input-2",
 								UseEveryVersion: false,
 								PinnedVersionID: 0,
 								ResourceID:      12,
 								Passed:          algorithm.JobSet{},
 								JobID:           1,
-							},
-						))
+							}))
+						})
+					})
+
+					Context("when the pinned version is found", func() {
+						BeforeEach(func() {
+							fakeResource.ResourceConfigVersionIDReturns(99, true, nil)
+						})
+
+						It("sets the pinned version ID", func() {
+							Expect(algorithmInputs).To(ConsistOf(
+								algorithm.InputConfig{
+									Name:            "job-input-1",
+									UseEveryVersion: false,
+									PinnedVersionID: 99,
+									ResourceID:      11,
+									Passed:          algorithm.JobSet{},
+									JobID:           1,
+								},
+								algorithm.InputConfig{
+									Name:            "job-input-2",
+									UseEveryVersion: false,
+									PinnedVersionID: 0,
+									ResourceID:      12,
+									Passed:          algorithm.JobSet{},
+									JobID:           1,
+								},
+							))
+						})
 					})
 				})
 			})

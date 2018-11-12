@@ -152,6 +152,8 @@ var requiredRoles = map[string]string{
 	atc.GetResourceVersion:            "viewer",
 	atc.EnableResourceVersion:         "member",
 	atc.DisableResourceVersion:        "member",
+	atc.PinResourceVersion:            "member",
+	atc.UnpinResourceVersion:          "member",
 	atc.ListBuildsWithVersionAsInput:  "viewer",
 	atc.ListBuildsWithVersionAsOutput: "viewer",
 	atc.GetResourceCausality:          "viewer",

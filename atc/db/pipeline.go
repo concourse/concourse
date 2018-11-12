@@ -27,8 +27,8 @@ func (e ErrResourceNotFound) Error() string {
 //go:generate counterfeiter . Pipeline
 
 type Cause struct {
-	VersionedResourceID int `json:"versioned_resource_id"`
-	BuildID             int `json:"build_id"`
+	ResourceVersionID int `json:"resource_version_id"`
+	BuildID           int `json:"build_id"`
 }
 
 type Pipeline interface {
@@ -46,43 +46,18 @@ type Pipeline interface {
 	Reload() (bool, error)
 
 	Causality(versionedResourceID int) ([]Cause, error)
+	ResourceVersion(resourceConfigVersionID int) (atc.ResourceVersion, bool, error)
 
-	SetResourceCheckError(Resource, error) error
-	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
-	GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error)
-
-	GetAllPendingBuilds() (map[string][]Build, error)
-
-	GetLatestVersionedResource(resourceName string) (SavedVersionedResource, bool, error)
-	GetVersionedResourceByVersion(atcVersion atc.Version, resourceName string) (SavedVersionedResource, bool, error)
-
-	VersionedResource(versionedResourceID int) (SavedVersionedResource, bool, error)
-	DisableVersionedResource(versionedResourceID int) error
-	EnableVersionedResource(versionedResourceID int) error
-	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
-	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
+	GetBuildsWithVersionAsInput(int, int) ([]Build, error)
+	GetBuildsWithVersionAsOutput(int, int) ([]Build, error)
 	Builds(page Page) ([]Build, Pagination, error)
+	CreateOneOffBuild() (Build, error)
+	GetAllPendingBuilds() (map[string][]Build, error)
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
 	AcquireSchedulingLock(lager.Logger, time.Duration) (lock.Lock, bool, error)
-
-	AcquireResourceCheckingLockWithIntervalCheck(
-		logger lager.Logger,
-		resourceName string,
-		resourceConfig ResourceConfig,
-		interval time.Duration,
-		immediate bool,
-	) (lock.Lock, bool, error)
-
-	AcquireResourceTypeCheckingLockWithIntervalCheck(
-		logger lager.Logger,
-		resourceTypeName string,
-		resourceConfig ResourceConfig,
-		interval time.Duration,
-		immediate bool,
-	) (lock.Lock, bool, error)
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
 
@@ -104,8 +79,6 @@ type Pipeline interface {
 
 	Destroy() error
 	Rename(string) error
-
-	CreateOneOffBuild() (Build, error)
 }
 
 type pipeline struct {
@@ -185,6 +158,7 @@ func (p *pipeline) ScopedName(n string) string {
 	return p.name + ":" + n
 }
 
+// IMPORTANT: This method is broken with the new resource config versions changes
 func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
 	rows, err := p.conn.Query(`
 		WITH RECURSIVE causality(versioned_resource_id, build_id) AS (
@@ -224,8 +198,8 @@ func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
 		}
 
 		causality = append(causality, Cause{
-			VersionedResourceID: vrID,
-			BuildID:             buildID,
+			ResourceVersionID: vrID,
+			BuildID:           buildID,
 		})
 	}
 
@@ -313,26 +287,6 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 	return build, nil
 }
 
-func (p *pipeline) SetResourceCheckError(resource Resource, cause error) error {
-	var err error
-
-	if cause == nil {
-		_, err = psql.Update("resources").
-			Set("check_error", nil).
-			Where(sq.Eq{"id": resource.ID()}).
-			RunWith(p.conn).
-			Exec()
-	} else {
-		_, err = psql.Update("resources").
-			Set("check_error", cause.Error()).
-			Where(sq.Eq{"id": resource.ID()}).
-			RunWith(p.conn).
-			Exec()
-	}
-
-	return err
-}
-
 func (p *pipeline) GetAllPendingBuilds() (map[string][]Build, error) {
 	builds := map[string][]Build{}
 
@@ -364,349 +318,62 @@ func (p *pipeline) GetAllPendingBuilds() (map[string][]Build, error) {
 	return builds, nil
 }
 
-func (p *pipeline) SaveResourceVersions(config atc.ResourceConfig, versions []atc.Version) error {
-	tx, err := p.conn.Begin()
-	if err != nil {
-		return err
-	}
+// ResourceVersion is given a resource config version id and returns the
+// resource version struct. This method is used by the API call
+// GetResourceVersion to get all the attributes for that version of the
+// resource.
+func (p *pipeline) ResourceVersion(resourceConfigVersionID int) (atc.ResourceVersion, bool, error) {
+	rv := atc.ResourceVersion{}
+	var (
+		versionBytes  string
+		metadataBytes string
+	)
 
-	defer Rollback(tx)
+	enabled := `
+		NOT EXISTS (
+			SELECT 1
+			FROM resource_disabled_versions d, resources r
+			WHERE v.version_md5 = d.version_md5
+			AND r.resource_config_id = v.resource_config_id
+			AND r.id = d.resource_id
+		)`
 
-	for _, version := range versions {
-		vr := VersionedResource{
-			Resource: config.Name,
-			Type:     config.Type,
-			Version:  ResourceVersion(version),
-		}
-
-		versionJSON, err := json.Marshal(vr.Version)
-		if err != nil {
-			return err
-		}
-
-		var resourceID int
-		err = psql.Select("id").
-			From("resources").
-			Where(sq.Eq{
-				"name":        vr.Resource,
-				"pipeline_id": p.id,
-			}).RunWith(tx).QueryRow().Scan(&resourceID)
-		if err != nil {
-			return err
-		}
-
-		_, _, err = p.saveVersionedResource(tx, resourceID, vr)
-		if err != nil {
-			return err
-		}
-
-		err = p.incrementCheckOrderWhenNewerVersion(tx, resourceID, vr.Type, string(versionJSON))
-		if err != nil {
-			return err
-		}
-	}
-
-	err = bumpCacheIndex(tx, p.id)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
-func (p *pipeline) GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error) {
-	var resourceID int
-	err := psql.Select("id").
-		From("resources").
+	err := psql.Select("v.id", "v.version", "v.metadata", enabled).
+		From("resource_config_versions v").
 		Where(sq.Eq{
-			"name":        resourceName,
-			"pipeline_id": p.id,
-			"active":      true,
-		}).RunWith(p.conn).QueryRow().Scan(&resourceID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return []SavedVersionedResource{}, Pagination{}, false, nil
-		}
-
-		return []SavedVersionedResource{}, Pagination{}, false, err
-	}
-
-	query := `
-		SELECT v.id, v.enabled, v.type, v.version, v.metadata, r.name, v.check_order
-		FROM versioned_resources v
-		INNER JOIN resources r ON v.resource_id = r.id
-		WHERE v.resource_id = $1
-	`
-
-	var rows *sql.Rows
-	if page.Until != 0 {
-		rows, err = p.conn.Query(fmt.Sprintf(`
-			SELECT sub.*
-				FROM (
-						%s
-					AND v.check_order > (SELECT check_order FROM versioned_resources WHERE id = $2)
-				ORDER BY v.check_order ASC
-				LIMIT $3
-			) sub
-			ORDER BY sub.check_order DESC
-		`, query), resourceID, page.Until, page.Limit)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-	} else if page.Since != 0 {
-		rows, err = p.conn.Query(fmt.Sprintf(`
-			%s
-				AND v.check_order < (SELECT check_order FROM versioned_resources WHERE id = $2)
-			ORDER BY v.check_order DESC
-			LIMIT $3
-		`, query), resourceID, page.Since, page.Limit)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-	} else if page.To != 0 {
-		rows, err = p.conn.Query(fmt.Sprintf(`
-			SELECT sub.*
-				FROM (
-						%s
-					AND v.check_order >= (SELECT check_order FROM versioned_resources WHERE id = $2)
-				ORDER BY v.check_order ASC
-				LIMIT $3
-			) sub
-			ORDER BY sub.check_order DESC
-		`, query), resourceID, page.To, page.Limit)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-	} else if page.From != 0 {
-		rows, err = p.conn.Query(fmt.Sprintf(`
-			%s
-				AND v.check_order <= (SELECT check_order FROM versioned_resources WHERE id = $2)
-			ORDER BY v.check_order DESC
-			LIMIT $3
-		`, query), resourceID, page.From, page.Limit)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-	} else {
-		rows, err = p.conn.Query(fmt.Sprintf(`
-			%s
-			ORDER BY v.check_order DESC
-			LIMIT $2
-		`, query), resourceID, page.Limit)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-	}
-
-	defer Close(rows)
-
-	savedVersionedResources := make([]SavedVersionedResource, 0)
-	for rows.Next() {
-		var savedVersionedResource SavedVersionedResource
-
-		var versionString, metadataString string
-
-		err = rows.Scan(
-			&savedVersionedResource.ID,
-			&savedVersionedResource.Enabled,
-			&savedVersionedResource.Type,
-			&versionString,
-			&metadataString,
-			&savedVersionedResource.Resource,
-			&savedVersionedResource.CheckOrder,
-		)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-
-		err = json.Unmarshal([]byte(versionString), &savedVersionedResource.Version)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-
-		err = json.Unmarshal([]byte(metadataString), &savedVersionedResource.Metadata)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-
-		savedVersionedResources = append(savedVersionedResources, savedVersionedResource)
-	}
-
-	if len(savedVersionedResources) == 0 {
-		return []SavedVersionedResource{}, Pagination{}, true, nil
-	}
-
-	var minCheckOrder int
-	var maxCheckOrder int
-
-	err = p.conn.QueryRow(`
-		SELECT COALESCE(MAX(v.check_order), 0) as maxCheckOrder,
-			COALESCE(MIN(v.check_order), 0) as minCheckOrder
-		FROM versioned_resources v
-		WHERE v.resource_id = $1
-	`, resourceID).Scan(&maxCheckOrder, &minCheckOrder)
-	if err != nil {
-		return nil, Pagination{}, false, err
-	}
-
-	firstSavedVersionedResource := savedVersionedResources[0]
-	lastSavedVersionedResource := savedVersionedResources[len(savedVersionedResources)-1]
-
-	var pagination Pagination
-
-	if firstSavedVersionedResource.CheckOrder < maxCheckOrder {
-		pagination.Previous = &Page{
-			Until: firstSavedVersionedResource.ID,
-			Limit: page.Limit,
-		}
-	}
-
-	if lastSavedVersionedResource.CheckOrder > minCheckOrder {
-		pagination.Next = &Page{
-			Since: lastSavedVersionedResource.ID,
-			Limit: page.Limit,
-		}
-	}
-
-	return savedVersionedResources, pagination, true, nil
-}
-
-func (p *pipeline) GetLatestVersionedResource(resourceName string) (SavedVersionedResource, bool, error) {
-	var versionBytes, metadataBytes string
-
-	svr := SavedVersionedResource{
-		VersionedResource: VersionedResource{
-			Resource: resourceName,
-		},
-	}
-
-	err := psql.Select("v.id, v.enabled, v.type, v.version, v.metadata, v.check_order").
-		From("versioned_resources v, resources r").
-		Where(sq.Eq{
-			"r.name":        resourceName,
-			"r.pipeline_id": p.id,
-		}).
-		Where(sq.Expr("v.resource_id = r.id")).
-		OrderBy("check_order DESC").
-		Limit(1).
-		RunWith(p.conn).
-		QueryRow().
-		Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionBytes, &metadataBytes, &svr.CheckOrder)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return SavedVersionedResource{}, false, nil
-		}
-
-		return SavedVersionedResource{}, false, err
-	}
-
-	err = json.Unmarshal([]byte(versionBytes), &svr.Version)
-	if err != nil {
-		return SavedVersionedResource{}, false, err
-	}
-
-	err = json.Unmarshal([]byte(metadataBytes), &svr.Metadata)
-	if err != nil {
-		return SavedVersionedResource{}, false, err
-	}
-
-	return svr, true, nil
-}
-
-func (p *pipeline) GetVersionedResourceByVersion(atcVersion atc.Version, resourceName string) (SavedVersionedResource, bool, error) {
-	var versionBytes, metadataBytes string
-
-	versionJSON, err := json.Marshal(atcVersion)
-	if err != nil {
-		return SavedVersionedResource{}, false, err
-	}
-
-	svr := SavedVersionedResource{
-		VersionedResource: VersionedResource{
-			Resource: resourceName,
-		},
-	}
-
-	err = psql.Select("v.id", "v.enabled", "v.type", "v.version", "v.metadata", "v.check_order").
-		From("versioned_resources v").
-		Join("resources r ON r.id = v.resource_id").
-		Where(sq.Eq{
-			"v.version":     string(versionJSON),
-			"r.name":        resourceName,
-			"r.pipeline_id": p.id,
-			"enabled":       true,
+			"v.id": resourceConfigVersionID,
 		}).
 		RunWith(p.conn).
 		QueryRow().
-		Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionBytes, &metadataBytes, &svr.CheckOrder)
+		Scan(&rv.ID, &versionBytes, &metadataBytes, &rv.Enabled)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return SavedVersionedResource{}, false, nil
+			return atc.ResourceVersion{}, false, nil
 		}
 
-		return SavedVersionedResource{}, false, err
+		return atc.ResourceVersion{}, false, err
 	}
 
-	err = json.Unmarshal([]byte(versionBytes), &svr.Version)
+	err = json.Unmarshal([]byte(versionBytes), &rv.Version)
 	if err != nil {
-		return SavedVersionedResource{}, false, err
+		return atc.ResourceVersion{}, false, err
 	}
 
-	err = json.Unmarshal([]byte(metadataBytes), &svr.Metadata)
+	err = json.Unmarshal([]byte(metadataBytes), &rv.Metadata)
 	if err != nil {
-		return SavedVersionedResource{}, false, err
+		return atc.ResourceVersion{}, false, err
 	}
 
-	return svr, true, nil
+	return rv, true, nil
 }
 
-func (p *pipeline) VersionedResource(versionedResourceID int) (SavedVersionedResource, bool, error) {
-	svr := SavedVersionedResource{
-		VersionedResource: VersionedResource{},
-	}
-
-	var versionBytes, metadataBytes string
-	err := psql.Select("v.id", "v.enabled", "v.type", "v.version", "v.metadata", "v.check_order", "r.name").
-		From("versioned_resources v").
-		Join("resources r ON r.id = v.resource_id").
-		Where(sq.Eq{"v.id": versionedResourceID}).
-		RunWith(p.conn).
-		QueryRow().
-		Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionBytes, &metadataBytes, &svr.CheckOrder, &svr.VersionedResource.Resource)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return SavedVersionedResource{}, false, nil
-		}
-
-		return SavedVersionedResource{}, false, err
-	}
-
-	err = json.Unmarshal([]byte(versionBytes), &svr.Version)
-	if err != nil {
-		return SavedVersionedResource{}, false, err
-	}
-
-	err = json.Unmarshal([]byte(metadataBytes), &svr.Metadata)
-	if err != nil {
-		return SavedVersionedResource{}, false, err
-	}
-
-	return svr, true, nil
-}
-
-func (p *pipeline) DisableVersionedResource(versionedResourceID int) error {
-	return p.toggleVersionedResource(versionedResourceID, false)
-}
-
-func (p *pipeline) EnableVersionedResource(versionedResourceID int) error {
-	return p.toggleVersionedResource(versionedResourceID, true)
-}
-
-func (p *pipeline) GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error) {
+func (p *pipeline) GetBuildsWithVersionAsInput(resourceID, resourceConfigVersionID int) ([]Build, error) {
 	rows, err := buildsQuery.
-		JoinClause("LEFT OUTER JOIN build_inputs bi ON bi.build_id = b.id").
+		Join("build_resource_config_version_inputs bi ON bi.build_id = b.id").
+		Join("resource_config_versions rcv ON rcv.version_md5 = bi.version_md5").
 		Where(sq.Eq{
-			"bi.versioned_resource_id": versionedResourceID,
+			"rcv.id":         resourceConfigVersionID,
+			"bi.resource_id": resourceID,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -728,11 +395,13 @@ func (p *pipeline) GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build
 	return builds, err
 }
 
-func (p *pipeline) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error) {
+func (p *pipeline) GetBuildsWithVersionAsOutput(resourceID, resourceConfigVersionID int) ([]Build, error) {
 	rows, err := buildsQuery.
-		JoinClause("LEFT OUTER JOIN build_outputs bo ON bo.build_id = b.id").
+		Join("build_resource_config_version_outputs bo ON bo.build_id = b.id").
+		Join("resource_config_versions rcv ON rcv.version_md5 = bo.version_md5").
 		Where(sq.Eq{
-			"bo.versioned_resource_id": versionedResourceID,
+			"rcv.id":         resourceConfigVersionID,
+			"bo.resource_id": resourceID,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -785,29 +454,11 @@ func (p *pipeline) BuildsWithTime(page Page) ([]Build, Pagination, error) {
 }
 
 func (p *pipeline) Resources() (Resources, error) {
-	rows, err := resourcesQuery.Where(sq.Eq{"r.pipeline_id": p.id}).RunWith(p.conn).Query()
-	if err != nil {
-		return nil, err
-	}
-	defer Close(rows)
-
-	var resources Resources
-
-	for rows.Next() {
-		newResource := &resource{conn: p.conn}
-		err := scanResource(newResource, rows)
-		if err != nil {
-			return nil, err
-		}
-
-		resources = append(resources, newResource)
-	}
-
-	return resources, nil
+	return resources(p.id, p.conn)
 }
 
 func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
-	rows, err := resourceTypesQuery.Where(sq.Eq{"pipeline_id": p.id}).RunWith(p.conn).Query()
+	rows, err := resourceTypesQuery.Where(sq.Eq{"r.pipeline_id": p.id}).RunWith(p.conn).Query()
 	if err != nil {
 		return nil, err
 	}
@@ -830,8 +481,8 @@ func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
 
 func (p *pipeline) ResourceType(name string) (ResourceType, bool, error) {
 	row := resourceTypesQuery.Where(sq.Eq{
-		"pipeline_id": p.id,
-		"name":        name,
+		"r.pipeline_id": p.id,
+		"r.name":        name,
 	}).RunWith(p.conn).QueryRow()
 
 	resourceType := &resourceType{conn: p.conn}
@@ -1030,14 +681,20 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	}
 
 	rows, err := psql.Select("v.id, v.check_order, r.id, o.build_id, b.job_id").
-		From("build_outputs o, builds b, versioned_resources v, resources r").
-		Where(sq.Expr("v.id = o.versioned_resource_id")).
-		Where(sq.Expr("b.id = o.build_id")).
-		Where(sq.Expr("r.id = v.resource_id")).
+		From("build_resource_config_version_outputs o").
+		Join("builds b ON b.id = o.build_id").
+		Join("resource_config_versions v ON v.version_md5 = o.version_md5").
+		Join("resources r ON r.id = o.resource_id").
+		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
+		Where(sq.Expr("r.resource_config_id = v.resource_config_id")).
+		Where(sq.NotEq{
+			"v.check_order": 0,
+		}).
 		Where(sq.Eq{
-			"v.enabled":     true,
 			"b.status":      BuildStatusSucceeded,
 			"r.pipeline_id": p.id,
+			"d.resource_id": nil,
+			"d.version_md5": nil,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -1060,13 +717,19 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	}
 
 	rows, err = psql.Select("v.id, v.check_order, r.id, i.build_id, i.name, b.job_id, b.status = 'succeeded'").
-		From("build_inputs i, builds b, versioned_resources v, resources r").
-		Where(sq.Expr("v.id = i.versioned_resource_id")).
-		Where(sq.Expr("b.id = i.build_id")).
-		Where(sq.Expr("r.id = v.resource_id")).
+		From("build_resource_config_version_inputs i").
+		Join("builds b ON b.id = i.build_id").
+		Join("resource_config_versions v ON v.version_md5 = i.version_md5").
+		Join("resources r ON r.id = i.resource_id").
+		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
+		Where(sq.Expr("r.resource_config_id = v.resource_config_id")).
+		Where(sq.NotEq{
+			"v.check_order": 0,
+		}).
 		Where(sq.Eq{
-			"v.enabled":     true,
 			"r.pipeline_id": p.id,
+			"d.resource_id": nil,
+			"d.version_md5": nil,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -1100,11 +763,16 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	}
 
 	rows, err = psql.Select("v.id, v.check_order, r.id").
-		From("versioned_resources v, resources r").
-		Where(sq.Expr("r.id = v.resource_id")).
+		From("resource_config_versions v").
+		Join("resources r ON r.resource_config_id = v.resource_config_id").
+		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
+		Where(sq.NotEq{
+			"v.check_order": 0,
+		}).
 		Where(sq.Eq{
-			"v.enabled":     true,
 			"r.pipeline_id": p.id,
+			"d.resource_id": nil,
+			"d.version_md5": nil,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -1266,63 +934,6 @@ func (p *pipeline) AcquireSchedulingLock(logger lager.Logger, interval time.Dura
 	return lock, true, nil
 }
 
-func (p *pipeline) saveOutput(buildID int, vr VersionedResource) error {
-	tx, err := p.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer Rollback(tx)
-
-	var resourceID int
-	err = psql.Select("id").
-		From("resources").
-		Where(sq.Eq{
-			"name":        vr.Resource,
-			"pipeline_id": p.id,
-		}).RunWith(tx).QueryRow().Scan(&resourceID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return ErrResourceNotFound{Name: vr.Resource}
-		}
-		return err
-	}
-
-	svr, created, err := p.saveVersionedResource(tx, resourceID, vr)
-	if err != nil {
-		return err
-	}
-
-	if created {
-		var versionJSON []byte
-		versionJSON, err = json.Marshal(vr.Version)
-		if err != nil {
-			return err
-		}
-
-		err = p.incrementCheckOrderWhenNewerVersion(tx, resourceID, vr.Type, string(versionJSON))
-		if err != nil {
-			return err
-		}
-	}
-
-	_, err = psql.Insert("build_outputs").
-		Columns("build_id", "versioned_resource_id").
-		Values(buildID, svr.ID).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	err = bumpCacheIndex(tx, p.id)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
 func (p *pipeline) CreateOneOffBuild() (Build, error) {
 	tx, err := p.conn.Begin()
 	if err != nil {
@@ -1350,124 +961,6 @@ func (p *pipeline) CreateOneOffBuild() (Build, error) {
 	return build, nil
 }
 
-func (p *pipeline) saveInputTx(tx Tx, buildID int, input BuildInput) error {
-	var resourceID int
-	err := psql.Select("id").
-		From("resources").
-		Where(sq.Eq{
-			"name":        input.VersionedResource.Resource,
-			"pipeline_id": p.id,
-		}).RunWith(tx).QueryRow().Scan(&resourceID)
-	if err != nil {
-		return err
-	}
-
-	svr, _, err := p.saveVersionedResource(tx, resourceID, input.VersionedResource)
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(`
-		INSERT INTO build_inputs (build_id, versioned_resource_id, name)
-		SELECT $1, $2, $3
-		WHERE NOT EXISTS (
-			SELECT 1
-			FROM build_inputs
-			WHERE build_id = $1
-			AND versioned_resource_id = $2
-			AND name = $3
-		)
-	`, buildID, svr.ID, input.Name)
-
-	return swallowUniqueViolation(err)
-}
-
-func (p *pipeline) saveVersionedResource(tx Tx, resourceID int, vr VersionedResource) (SavedVersionedResource, bool, error) {
-	versionJSON, err := json.Marshal(vr.Version)
-	if err != nil {
-		return SavedVersionedResource{}, false, err
-	}
-
-	metadataJSON, err := json.Marshal(vr.Metadata)
-	if err != nil {
-		return SavedVersionedResource{}, false, err
-	}
-
-	var id int
-	var enabled bool
-	var checkOrder int
-
-	result, err := tx.Exec(`
-		INSERT INTO versioned_resources (resource_id, type, version, metadata)
-		SELECT $1, $2, $3, $4
-		WHERE NOT EXISTS (
-			SELECT 1
-			FROM versioned_resources
-			WHERE resource_id = $1
-			AND type = $2
-			AND version = $3
-		)
-		`, resourceID, vr.Type, string(versionJSON), string(metadataJSON))
-
-	var rowsAffected int64
-	if err == nil {
-		rowsAffected, err = result.RowsAffected()
-		if err != nil {
-			return SavedVersionedResource{}, false, err
-		}
-	} else {
-		err = swallowUniqueViolation(err)
-		if err != nil {
-			return SavedVersionedResource{}, false, err
-		}
-	}
-
-	var savedMetadata string
-
-	// separate from above, as it conditionally inserts (can't use RETURNING)
-	if len(vr.Metadata) > 0 {
-		err = psql.Update("versioned_resources").
-			Set("metadata", string(metadataJSON)).
-			Where(sq.Eq{
-				"resource_id": resourceID,
-				"type":        vr.Type,
-				"version":     string(versionJSON),
-			}).
-			Suffix("RETURNING id, enabled, metadata, check_order").
-			RunWith(tx).
-			QueryRow().
-			Scan(&id, &enabled, &savedMetadata, &checkOrder)
-	} else {
-		err = psql.Select("id, enabled, metadata, check_order").
-			From("versioned_resources").
-			Where(sq.Eq{
-				"resource_id": resourceID,
-				"type":        vr.Type,
-				"version":     string(versionJSON),
-			}).
-			RunWith(tx).
-			QueryRow().
-			Scan(&id, &enabled, &savedMetadata, &checkOrder)
-	}
-	if err != nil {
-		return SavedVersionedResource{}, false, err
-	}
-
-	err = json.Unmarshal([]byte(savedMetadata), &vr.Metadata)
-	if err != nil {
-		return SavedVersionedResource{}, false, err
-	}
-
-	created := rowsAffected != 0
-	return SavedVersionedResource{
-		ID:      id,
-		Enabled: enabled,
-
-		VersionedResource: vr,
-		CheckOrder:        checkOrder,
-	}, created, nil
-}
-
 func (p *pipeline) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, resourceType string, version string) error {
 	_, err := tx.Exec(`
 		WITH max_checkorder AS (
@@ -1485,40 +978,6 @@ func (p *pipeline) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, re
 		AND version = $3
 		AND check_order <= mc.co;`, resourceID, resourceType, version)
 	return err
-}
-
-func (p *pipeline) toggleVersionedResource(versionedResourceID int, enable bool) error {
-	tx, err := p.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer Rollback(tx)
-
-	rows, err := psql.Update("versioned_resources").
-		Set("enabled", enable).
-		Where(sq.Eq{"id": versionedResourceID}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	rowsAffected, err := rows.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
-	}
-
-	err = bumpCacheIndex(tx, p.id)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
 }
 
 func (p *pipeline) getBuildsFrom(col string) (map[string]Build, error) {
@@ -1580,4 +1039,26 @@ func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, 
 		RETURNING build_number_seq, id
 	`, jobName, pipelineID).Scan(&buildName, &jobID)
 	return buildName, jobID, err
+}
+
+func resources(pipelineID int, conn Conn) (Resources, error) {
+	rows, err := resourcesQuery.Where(sq.Eq{"r.pipeline_id": pipelineID}).RunWith(conn).Query()
+	if err != nil {
+		return nil, err
+	}
+	defer Close(rows)
+
+	var resources Resources
+
+	for rows.Next() {
+		newResource := &resource{conn: conn}
+		err := scanResource(newResource, rows)
+		if err != nil {
+			return nil, err
+		}
+
+		resources = append(resources, newResource)
+	}
+
+	return resources, nil
 }

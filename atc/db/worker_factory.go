@@ -19,6 +19,8 @@ type WorkerFactory interface {
 	HeartbeatWorker(worker atc.Worker, ttl time.Duration) (Worker, error)
 	Workers() ([]Worker, error)
 	VisibleWorkers([]string) ([]Worker, error)
+
+	FindWorkerForContainerByOwner(ContainerOwner) (Worker, bool, error)
 }
 
 type workerFactory struct {
@@ -313,6 +315,26 @@ func (f *workerFactory) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Wor
 	}
 
 	return savedWorker, nil
+}
+
+func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner) (Worker, bool, error) {
+	ownerQuery, found, err := owner.Find(f.conn)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	ownerEq := sq.Eq{}
+	for k, v := range ownerQuery {
+		ownerEq["c."+k] = v
+	}
+
+	return getWorker(f.conn, workersQuery.Join("containers c ON c.worker_name = w.name").Where(sq.And{
+		ownerEq,
+	}))
 }
 
 func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, conn Conn) (Worker, error) {

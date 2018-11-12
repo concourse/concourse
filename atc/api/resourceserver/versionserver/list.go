@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -45,7 +45,20 @@ func (s *Server) ListResourceVersions(pipeline db.Pipeline) http.Handler {
 			limit = atc.PaginationAPIDefaultLimit
 		}
 
-		versions, pagination, found, err := pipeline.GetResourceVersions(resourceName, db.Page{
+		resource, found, err := pipeline.Resource(resourceName)
+		if err != nil {
+			logger.Error("failed-to-get-resource", err, lager.Data{"resource-name": resourceName})
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			logger.Info("resource-not-found", lager.Data{"resource-name": resourceName})
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		versions, pagination, found, err := resource.Versions(db.Page{
 			Until: until,
 			Since: since,
 			From:  from,
@@ -53,7 +66,7 @@ func (s *Server) ListResourceVersions(pipeline db.Pipeline) http.Handler {
 			Limit: limit,
 		})
 		if err != nil {
-			logger.Error("failed-to-get-resource-versions", err)
+			logger.Error("failed-to-get-resource-config-versions", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -75,12 +88,7 @@ func (s *Server) ListResourceVersions(pipeline db.Pipeline) http.Handler {
 
 		w.WriteHeader(http.StatusOK)
 
-		resourceVersions := make([]atc.VersionedResource, len(versions))
-		for i := 0; i < len(versions); i++ {
-			resourceVersions[i] = present.SavedVersionedResource(versions[i])
-		}
-
-		err = json.NewEncoder(w).Encode(resourceVersions)
+		err = json.NewEncoder(w).Encode(versions)
 		if err != nil {
 			logger.Error("failed-to-encode-resource-versions", err)
 			w.WriteHeader(http.StatusInternalServerError)

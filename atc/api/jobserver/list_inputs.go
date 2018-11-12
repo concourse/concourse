@@ -58,8 +58,6 @@ func (s *Server) ListJobInputs(pipeline db.Pipeline) http.Handler {
 		jobInputs := job.Config().Inputs()
 		presentedBuildInputs := make([]atc.BuildInput, len(buildInputs))
 		for i, input := range buildInputs {
-			resource, _ := resources.Lookup(input.Resource)
-
 			var config atc.JobInput
 			for _, jobInput := range jobInputs {
 				if jobInput.Name == input.Name {
@@ -67,8 +65,9 @@ func (s *Server) ListJobInputs(pipeline db.Pipeline) http.Handler {
 					break
 				}
 			}
+			resource, _ := resources.Lookup(config.Resource)
 
-			presentedBuildInputs[i] = present.BuildInput(input, config, resource.Source())
+			presentedBuildInputs[i] = present.BuildInput(input, config, resource)
 		}
 
 		w.Header().Set("Content-Type", "application/json")

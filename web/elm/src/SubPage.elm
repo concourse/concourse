@@ -292,7 +292,7 @@ view mdl =
             Html.map PipelineMsg <| Pipeline.view model
 
         ResourceModel model ->
-            Html.map ResourceMsg <| Resource.view model
+            Html.map ResourceMsg <| (HS.toUnstyled << Resource.view) model
 
         DashboardModel model ->
             (Html.map DashboardMsg << HS.toUnstyled) <| Dashboard.view model

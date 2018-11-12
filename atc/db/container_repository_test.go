@@ -38,7 +38,7 @@ var _ = Describe("ContainerRepository", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession, defaultTeam.ID()), fullMetadata)
+				creatingContainer, err = defaultWorker.CreateContainer(db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession), fullMetadata)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -198,9 +198,8 @@ var _ = Describe("ContainerRepository", func() {
 				build, err = defaultJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err = defaultTeam.CreateContainer(
-					defaultWorker.Name(),
-					db.NewBuildStepContainerOwner(build.ID(), "simple-plan"),
+				creatingContainer, err = defaultWorker.CreateContainer(
+					db.NewBuildStepContainerOwner(build.ID(), "simple-plan", defaultTeam.ID()),
 					fullMetadata,
 				)
 				Expect(err).NotTo(HaveOccurred())
@@ -307,14 +306,13 @@ var _ = Describe("ContainerRepository", func() {
 				build, err = defaultJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingTaskContainer, err = defaultTeam.CreateContainer(
-					defaultWorker.Name(),
-					db.NewBuildStepContainerOwner(build.ID(), "simple-plan"),
+				creatingTaskContainer, err = defaultWorker.CreateContainer(
+					db.NewBuildStepContainerOwner(build.ID(), "simple-plan", defaultTeam.ID()),
 					fullMetadata,
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewImageCheckContainerOwner(creatingTaskContainer), fullMetadata)
+				creatingContainer, err = defaultWorker.CreateContainer(db.NewImageCheckContainerOwner(creatingTaskContainer, defaultTeam.ID()), fullMetadata)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -376,14 +374,13 @@ var _ = Describe("ContainerRepository", func() {
 				build, err = defaultJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingTaskContainer, err = defaultTeam.CreateContainer(
-					defaultWorker.Name(),
-					db.NewBuildStepContainerOwner(build.ID(), "simple-plan"),
+				creatingTaskContainer, err = defaultWorker.CreateContainer(
+					db.NewBuildStepContainerOwner(build.ID(), "simple-plan", defaultTeam.ID()),
 					fullMetadata,
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewImageGetContainerOwner(creatingTaskContainer), fullMetadata)
+				creatingContainer, err = defaultWorker.CreateContainer(db.NewImageGetContainerOwner(creatingTaskContainer, defaultTeam.ID()), fullMetadata)
 				Expect(err).NotTo(HaveOccurred())
 			})
 

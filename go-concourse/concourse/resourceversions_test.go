@@ -17,11 +17,11 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 	Describe("ResourceVersions", func() {
 		expectedURL := fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/versions")
 
-		var expectedVersions []atc.VersionedResource
+		var expectedVersions []atc.ResourceVersion
 
 		var page concourse.Page
 
-		var versions []atc.VersionedResource
+		var versions []atc.ResourceVersion
 		var pagination concourse.Pagination
 		var found bool
 		var clientErr error
@@ -29,7 +29,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 		BeforeEach(func() {
 			page = concourse.Page{}
 
-			expectedVersions = []atc.VersionedResource{
+			expectedVersions = []atc.ResourceVersion{
 				{
 					Version: atc.Version{"version": "v1"},
 				},

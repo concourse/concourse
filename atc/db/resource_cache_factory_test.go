@@ -110,36 +110,6 @@ var _ = Describe("ResourceCacheFactory", func() {
 			Version: atc.Version{"some-image-type": "version"},
 		}
 
-		pipelineWithTypes, _, err := defaultTeam.SavePipeline(
-			"pipeline-with-types",
-			atc.Config{
-				ResourceTypes: atc.ResourceTypes{
-					resourceType1.ResourceType,
-					resourceType2.ResourceType,
-					resourceType3.ResourceType,
-					resourceTypeUsingBogusBaseType.ResourceType,
-					resourceTypeOverridingBaseType.ResourceType,
-				},
-			},
-			db.ConfigVersion(0),
-			db.PipelineUnpaused,
-		)
-		Expect(err).ToNot(HaveOccurred())
-
-		for _, rt := range []atc.VersionedResourceType{
-			resourceType1,
-			resourceType2,
-			resourceType3,
-			resourceTypeUsingBogusBaseType,
-			resourceTypeOverridingBaseType,
-		} {
-			dbType, found, err := pipelineWithTypes.ResourceType("some-type")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			err = dbType.SaveVersion(rt.Version)
-			Expect(err).NotTo(HaveOccurred())
-		}
-
 		build, err = defaultTeam.CreateOneOffBuild()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -210,18 +180,18 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 			Expect(resourceCaches).To(ConsistOf(
 				resourceCache{
-					Version:          `{"some-type-type":"version"}`,
+					Version:          `{"some-type-type": "version"}`,
 					ParamsHash:       toHash(`{}`),
 					BaseResourceName: "some-base-type",
 					SourceHash:       toHash(`{"some-type-type":"some-secret-sauce"}`),
 				},
 				resourceCache{
-					Version:    `{"some-type":"version"}`,
+					Version:    `{"some-type": "version"}`,
 					ParamsHash: toHash(`{}`),
 					SourceHash: toHash(`{"some-type":"source"}`),
 				},
 				resourceCache{
-					Version:    `{"some":"version"}`,
+					Version:    `{"some": "version"}`,
 					ParamsHash: toHash(`{"some":"params"}`),
 					SourceHash: toHash(`{"some":"source"}`),
 				},

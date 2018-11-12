@@ -1,14 +1,24 @@
 package testflight_test
 
 import (
+	uuid "github.com/nu7hatch/gouuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("A job with an input with trigger: true", func() {
+	var hash string
+
 	BeforeEach(func() {
-		setAndUnpausePipeline("fixtures/simple-trigger.yml")
+		u, err := uuid.NewV4()
+		Expect(err).ToNot(HaveOccurred())
+
+		hash = u.String()
+	})
+
+	BeforeEach(func() {
+		setAndUnpausePipeline("fixtures/simple-trigger.yml", "-v", "hash="+hash)
 	})
 
 	It("triggers when the resource changes", func() {

@@ -98,8 +98,7 @@ func (p *containerProvider) FindOrCreateContainer(
 	for {
 		var gardenContainer garden.Container
 
-		creatingContainer, createdContainer, err := p.dbTeamFactory.GetByID(spec.TeamID).FindContainerOnWorker(
-			p.worker.Name(),
+		creatingContainer, createdContainer, err := p.worker.FindContainerOnWorker(
 			owner,
 		)
 		if err != nil {
@@ -168,8 +167,7 @@ func (p *containerProvider) FindOrCreateContainer(
 			if creatingContainer == nil {
 				logger.Debug("creating-container-in-db")
 
-				creatingContainer, err = p.dbTeamFactory.GetByID(spec.TeamID).CreateContainer(
-					p.worker.Name(),
+				creatingContainer, err = p.worker.CreateContainer(
 					owner,
 					metadata,
 				)

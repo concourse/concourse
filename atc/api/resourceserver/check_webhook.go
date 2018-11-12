@@ -26,15 +26,15 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 		}
 
 		pipelineResource, found, err := dbPipeline.Resource(resourceName)
-		if !found {
-			logger.Info("resource-not-found", lager.Data{"error": fmt.Sprintf("Resource not found %s", resourceName)})
-			w.WriteHeader(http.StatusNotFound)
+		if err != nil {
+			logger.Error("database-error", err, lager.Data{"resource-name": resourceName})
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		if err != nil {
-			logger.Info("database-error", lager.Data{"error": err})
-			w.WriteHeader(http.StatusInternalServerError)
+		if !found {
+			logger.Info("resource-not-found", lager.Data{"error": fmt.Sprintf("Resource not found %s", resourceName)})
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
@@ -46,15 +46,24 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 		var fromVersion atc.Version
-		latestVersion, found, err := dbPipeline.GetLatestVersionedResource(resourceName)
+		resourceConfigId := pipelineResource.ResourceConfigID()
+		resourceConfig, found, err := s.resourceConfigFactory.FindResourceConfigByID(resourceConfigId)
 		if err != nil {
-			logger.Info("failed-to-get-latest-versioned-resource", lager.Data{"error": err.Error()})
+			logger.Error("failed-to-get-resource-config", err, lager.Data{"resource-config-id": resourceConfigId})
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		if found {
-			fromVersion = atc.Version(latestVersion.Version)
+			latestVersion, found, err := resourceConfig.LatestVersion()
+			if err != nil {
+				logger.Error("failed-to-get-latest-resource-version", err, lager.Data{"resource-config-id": resourceConfigId})
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			if found {
+				fromVersion = atc.Version(latestVersion.Version())
+			}
 		}
 
 		scanner := s.scannerFactory.NewResourceScanner(dbPipeline)

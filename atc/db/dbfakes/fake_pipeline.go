@@ -13,44 +13,6 @@ import (
 )
 
 type FakePipeline struct {
-	AcquireResourceCheckingLockWithIntervalCheckStub        func(lager.Logger, string, db.ResourceConfig, time.Duration, bool) (lock.Lock, bool, error)
-	acquireResourceCheckingLockWithIntervalCheckMutex       sync.RWMutex
-	acquireResourceCheckingLockWithIntervalCheckArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 string
-		arg3 db.ResourceConfig
-		arg4 time.Duration
-		arg5 bool
-	}
-	acquireResourceCheckingLockWithIntervalCheckReturns struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}
-	acquireResourceCheckingLockWithIntervalCheckReturnsOnCall map[int]struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}
-	AcquireResourceTypeCheckingLockWithIntervalCheckStub        func(lager.Logger, string, db.ResourceConfig, time.Duration, bool) (lock.Lock, bool, error)
-	acquireResourceTypeCheckingLockWithIntervalCheckMutex       sync.RWMutex
-	acquireResourceTypeCheckingLockWithIntervalCheckArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 string
-		arg3 db.ResourceConfig
-		arg4 time.Duration
-		arg5 bool
-	}
-	acquireResourceTypeCheckingLockWithIntervalCheckReturns struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}
-	acquireResourceTypeCheckingLockWithIntervalCheckReturnsOnCall map[int]struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}
 	AcquireSchedulingLockStub        func(lager.Logger, time.Duration) (lock.Lock, bool, error)
 	acquireSchedulingLockMutex       sync.RWMutex
 	acquireSchedulingLockArgsForCall []struct {
@@ -177,28 +139,6 @@ type FakePipeline struct {
 	destroyReturnsOnCall map[int]struct {
 		result1 error
 	}
-	DisableVersionedResourceStub        func(int) error
-	disableVersionedResourceMutex       sync.RWMutex
-	disableVersionedResourceArgsForCall []struct {
-		arg1 int
-	}
-	disableVersionedResourceReturns struct {
-		result1 error
-	}
-	disableVersionedResourceReturnsOnCall map[int]struct {
-		result1 error
-	}
-	EnableVersionedResourceStub        func(int) error
-	enableVersionedResourceMutex       sync.RWMutex
-	enableVersionedResourceArgsForCall []struct {
-		arg1 int
-	}
-	enableVersionedResourceReturns struct {
-		result1 error
-	}
-	enableVersionedResourceReturnsOnCall map[int]struct {
-		result1 error
-	}
 	ExposeStub        func() error
 	exposeMutex       sync.RWMutex
 	exposeArgsForCall []struct {
@@ -221,10 +161,11 @@ type FakePipeline struct {
 		result1 map[string][]db.Build
 		result2 error
 	}
-	GetBuildsWithVersionAsInputStub        func(int) ([]db.Build, error)
+	GetBuildsWithVersionAsInputStub        func(int, int) ([]db.Build, error)
 	getBuildsWithVersionAsInputMutex       sync.RWMutex
 	getBuildsWithVersionAsInputArgsForCall []struct {
 		arg1 int
+		arg2 int
 	}
 	getBuildsWithVersionAsInputReturns struct {
 		result1 []db.Build
@@ -234,10 +175,11 @@ type FakePipeline struct {
 		result1 []db.Build
 		result2 error
 	}
-	GetBuildsWithVersionAsOutputStub        func(int) ([]db.Build, error)
+	GetBuildsWithVersionAsOutputStub        func(int, int) ([]db.Build, error)
 	getBuildsWithVersionAsOutputMutex       sync.RWMutex
 	getBuildsWithVersionAsOutputArgsForCall []struct {
 		arg1 int
+		arg2 int
 	}
 	getBuildsWithVersionAsOutputReturns struct {
 		result1 []db.Build
@@ -246,55 +188,6 @@ type FakePipeline struct {
 	getBuildsWithVersionAsOutputReturnsOnCall map[int]struct {
 		result1 []db.Build
 		result2 error
-	}
-	GetLatestVersionedResourceStub        func(string) (db.SavedVersionedResource, bool, error)
-	getLatestVersionedResourceMutex       sync.RWMutex
-	getLatestVersionedResourceArgsForCall []struct {
-		arg1 string
-	}
-	getLatestVersionedResourceReturns struct {
-		result1 db.SavedVersionedResource
-		result2 bool
-		result3 error
-	}
-	getLatestVersionedResourceReturnsOnCall map[int]struct {
-		result1 db.SavedVersionedResource
-		result2 bool
-		result3 error
-	}
-	GetResourceVersionsStub        func(string, db.Page) ([]db.SavedVersionedResource, db.Pagination, bool, error)
-	getResourceVersionsMutex       sync.RWMutex
-	getResourceVersionsArgsForCall []struct {
-		arg1 string
-		arg2 db.Page
-	}
-	getResourceVersionsReturns struct {
-		result1 []db.SavedVersionedResource
-		result2 db.Pagination
-		result3 bool
-		result4 error
-	}
-	getResourceVersionsReturnsOnCall map[int]struct {
-		result1 []db.SavedVersionedResource
-		result2 db.Pagination
-		result3 bool
-		result4 error
-	}
-	GetVersionedResourceByVersionStub        func(atc.Version, string) (db.SavedVersionedResource, bool, error)
-	getVersionedResourceByVersionMutex       sync.RWMutex
-	getVersionedResourceByVersionArgsForCall []struct {
-		arg1 atc.Version
-		arg2 string
-	}
-	getVersionedResourceByVersionReturns struct {
-		result1 db.SavedVersionedResource
-		result2 bool
-		result3 error
-	}
-	getVersionedResourceByVersionReturnsOnCall map[int]struct {
-		result1 db.SavedVersionedResource
-		result2 bool
-		result3 error
 	}
 	GroupsStub        func() atc.GroupConfigs
 	groupsMutex       sync.RWMutex
@@ -470,6 +363,21 @@ type FakePipeline struct {
 		result1 db.ResourceTypes
 		result2 error
 	}
+	ResourceVersionStub        func(int) (atc.ResourceVersion, bool, error)
+	resourceVersionMutex       sync.RWMutex
+	resourceVersionArgsForCall []struct {
+		arg1 int
+	}
+	resourceVersionReturns struct {
+		result1 atc.ResourceVersion
+		result2 bool
+		result3 error
+	}
+	resourceVersionReturnsOnCall map[int]struct {
+		result1 atc.ResourceVersion
+		result2 bool
+		result3 error
+	}
 	ResourcesStub        func() (db.Resources, error)
 	resourcesMutex       sync.RWMutex
 	resourcesArgsForCall []struct {
@@ -482,18 +390,6 @@ type FakePipeline struct {
 		result1 db.Resources
 		result2 error
 	}
-	SaveResourceVersionsStub        func(atc.ResourceConfig, []atc.Version) error
-	saveResourceVersionsMutex       sync.RWMutex
-	saveResourceVersionsArgsForCall []struct {
-		arg1 atc.ResourceConfig
-		arg2 []atc.Version
-	}
-	saveResourceVersionsReturns struct {
-		result1 error
-	}
-	saveResourceVersionsReturnsOnCall map[int]struct {
-		result1 error
-	}
 	ScopedNameStub        func(string) string
 	scopedNameMutex       sync.RWMutex
 	scopedNameArgsForCall []struct {
@@ -504,18 +400,6 @@ type FakePipeline struct {
 	}
 	scopedNameReturnsOnCall map[int]struct {
 		result1 string
-	}
-	SetResourceCheckErrorStub        func(db.Resource, error) error
-	setResourceCheckErrorMutex       sync.RWMutex
-	setResourceCheckErrorArgsForCall []struct {
-		arg1 db.Resource
-		arg2 error
-	}
-	setResourceCheckErrorReturns struct {
-		result1 error
-	}
-	setResourceCheckErrorReturnsOnCall map[int]struct {
-		result1 error
 	}
 	TeamIDStub        func() int
 	teamIDMutex       sync.RWMutex
@@ -547,163 +431,8 @@ type FakePipeline struct {
 	unpauseReturnsOnCall map[int]struct {
 		result1 error
 	}
-	VersionedResourceStub        func(int) (db.SavedVersionedResource, bool, error)
-	versionedResourceMutex       sync.RWMutex
-	versionedResourceArgsForCall []struct {
-		arg1 int
-	}
-	versionedResourceReturns struct {
-		result1 db.SavedVersionedResource
-		result2 bool
-		result3 error
-	}
-	versionedResourceReturnsOnCall map[int]struct {
-		result1 db.SavedVersionedResource
-		result2 bool
-		result3 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheck(arg1 lager.Logger, arg2 string, arg3 db.ResourceConfig, arg4 time.Duration, arg5 bool) (lock.Lock, bool, error) {
-	fake.acquireResourceCheckingLockWithIntervalCheckMutex.Lock()
-	ret, specificReturn := fake.acquireResourceCheckingLockWithIntervalCheckReturnsOnCall[len(fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall)]
-	fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall = append(fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 string
-		arg3 db.ResourceConfig
-		arg4 time.Duration
-		arg5 bool
-	}{arg1, arg2, arg3, arg4, arg5})
-	fake.recordInvocation("AcquireResourceCheckingLockWithIntervalCheck", []interface{}{arg1, arg2, arg3, arg4, arg5})
-	fake.acquireResourceCheckingLockWithIntervalCheckMutex.Unlock()
-	if fake.AcquireResourceCheckingLockWithIntervalCheckStub != nil {
-		return fake.AcquireResourceCheckingLockWithIntervalCheckStub(arg1, arg2, arg3, arg4, arg5)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	fakeReturns := fake.acquireResourceCheckingLockWithIntervalCheckReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
-}
-
-func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheckCallCount() int {
-	fake.acquireResourceCheckingLockWithIntervalCheckMutex.RLock()
-	defer fake.acquireResourceCheckingLockWithIntervalCheckMutex.RUnlock()
-	return len(fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall)
-}
-
-func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheckCalls(stub func(lager.Logger, string, db.ResourceConfig, time.Duration, bool) (lock.Lock, bool, error)) {
-	fake.acquireResourceCheckingLockWithIntervalCheckMutex.Lock()
-	defer fake.acquireResourceCheckingLockWithIntervalCheckMutex.Unlock()
-	fake.AcquireResourceCheckingLockWithIntervalCheckStub = stub
-}
-
-func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheckArgsForCall(i int) (lager.Logger, string, db.ResourceConfig, time.Duration, bool) {
-	fake.acquireResourceCheckingLockWithIntervalCheckMutex.RLock()
-	defer fake.acquireResourceCheckingLockWithIntervalCheckMutex.RUnlock()
-	argsForCall := fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
-}
-
-func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheckReturns(result1 lock.Lock, result2 bool, result3 error) {
-	fake.acquireResourceCheckingLockWithIntervalCheckMutex.Lock()
-	defer fake.acquireResourceCheckingLockWithIntervalCheckMutex.Unlock()
-	fake.AcquireResourceCheckingLockWithIntervalCheckStub = nil
-	fake.acquireResourceCheckingLockWithIntervalCheckReturns = struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheckReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
-	fake.acquireResourceCheckingLockWithIntervalCheckMutex.Lock()
-	defer fake.acquireResourceCheckingLockWithIntervalCheckMutex.Unlock()
-	fake.AcquireResourceCheckingLockWithIntervalCheckStub = nil
-	if fake.acquireResourceCheckingLockWithIntervalCheckReturnsOnCall == nil {
-		fake.acquireResourceCheckingLockWithIntervalCheckReturnsOnCall = make(map[int]struct {
-			result1 lock.Lock
-			result2 bool
-			result3 error
-		})
-	}
-	fake.acquireResourceCheckingLockWithIntervalCheckReturnsOnCall[i] = struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakePipeline) AcquireResourceTypeCheckingLockWithIntervalCheck(arg1 lager.Logger, arg2 string, arg3 db.ResourceConfig, arg4 time.Duration, arg5 bool) (lock.Lock, bool, error) {
-	fake.acquireResourceTypeCheckingLockWithIntervalCheckMutex.Lock()
-	ret, specificReturn := fake.acquireResourceTypeCheckingLockWithIntervalCheckReturnsOnCall[len(fake.acquireResourceTypeCheckingLockWithIntervalCheckArgsForCall)]
-	fake.acquireResourceTypeCheckingLockWithIntervalCheckArgsForCall = append(fake.acquireResourceTypeCheckingLockWithIntervalCheckArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 string
-		arg3 db.ResourceConfig
-		arg4 time.Duration
-		arg5 bool
-	}{arg1, arg2, arg3, arg4, arg5})
-	fake.recordInvocation("AcquireResourceTypeCheckingLockWithIntervalCheck", []interface{}{arg1, arg2, arg3, arg4, arg5})
-	fake.acquireResourceTypeCheckingLockWithIntervalCheckMutex.Unlock()
-	if fake.AcquireResourceTypeCheckingLockWithIntervalCheckStub != nil {
-		return fake.AcquireResourceTypeCheckingLockWithIntervalCheckStub(arg1, arg2, arg3, arg4, arg5)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	fakeReturns := fake.acquireResourceTypeCheckingLockWithIntervalCheckReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
-}
-
-func (fake *FakePipeline) AcquireResourceTypeCheckingLockWithIntervalCheckCallCount() int {
-	fake.acquireResourceTypeCheckingLockWithIntervalCheckMutex.RLock()
-	defer fake.acquireResourceTypeCheckingLockWithIntervalCheckMutex.RUnlock()
-	return len(fake.acquireResourceTypeCheckingLockWithIntervalCheckArgsForCall)
-}
-
-func (fake *FakePipeline) AcquireResourceTypeCheckingLockWithIntervalCheckCalls(stub func(lager.Logger, string, db.ResourceConfig, time.Duration, bool) (lock.Lock, bool, error)) {
-	fake.acquireResourceTypeCheckingLockWithIntervalCheckMutex.Lock()
-	defer fake.acquireResourceTypeCheckingLockWithIntervalCheckMutex.Unlock()
-	fake.AcquireResourceTypeCheckingLockWithIntervalCheckStub = stub
-}
-
-func (fake *FakePipeline) AcquireResourceTypeCheckingLockWithIntervalCheckArgsForCall(i int) (lager.Logger, string, db.ResourceConfig, time.Duration, bool) {
-	fake.acquireResourceTypeCheckingLockWithIntervalCheckMutex.RLock()
-	defer fake.acquireResourceTypeCheckingLockWithIntervalCheckMutex.RUnlock()
-	argsForCall := fake.acquireResourceTypeCheckingLockWithIntervalCheckArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
-}
-
-func (fake *FakePipeline) AcquireResourceTypeCheckingLockWithIntervalCheckReturns(result1 lock.Lock, result2 bool, result3 error) {
-	fake.acquireResourceTypeCheckingLockWithIntervalCheckMutex.Lock()
-	defer fake.acquireResourceTypeCheckingLockWithIntervalCheckMutex.Unlock()
-	fake.AcquireResourceTypeCheckingLockWithIntervalCheckStub = nil
-	fake.acquireResourceTypeCheckingLockWithIntervalCheckReturns = struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakePipeline) AcquireResourceTypeCheckingLockWithIntervalCheckReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
-	fake.acquireResourceTypeCheckingLockWithIntervalCheckMutex.Lock()
-	defer fake.acquireResourceTypeCheckingLockWithIntervalCheckMutex.Unlock()
-	fake.AcquireResourceTypeCheckingLockWithIntervalCheckStub = nil
-	if fake.acquireResourceTypeCheckingLockWithIntervalCheckReturnsOnCall == nil {
-		fake.acquireResourceTypeCheckingLockWithIntervalCheckReturnsOnCall = make(map[int]struct {
-			result1 lock.Lock
-			result2 bool
-			result3 error
-		})
-	}
-	fake.acquireResourceTypeCheckingLockWithIntervalCheckReturnsOnCall[i] = struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
 }
 
 func (fake *FakePipeline) AcquireSchedulingLock(arg1 lager.Logger, arg2 time.Duration) (lock.Lock, bool, error) {
@@ -731,12 +460,6 @@ func (fake *FakePipeline) AcquireSchedulingLockCallCount() int {
 	return len(fake.acquireSchedulingLockArgsForCall)
 }
 
-func (fake *FakePipeline) AcquireSchedulingLockCalls(stub func(lager.Logger, time.Duration) (lock.Lock, bool, error)) {
-	fake.acquireSchedulingLockMutex.Lock()
-	defer fake.acquireSchedulingLockMutex.Unlock()
-	fake.AcquireSchedulingLockStub = stub
-}
-
 func (fake *FakePipeline) AcquireSchedulingLockArgsForCall(i int) (lager.Logger, time.Duration) {
 	fake.acquireSchedulingLockMutex.RLock()
 	defer fake.acquireSchedulingLockMutex.RUnlock()
@@ -745,8 +468,6 @@ func (fake *FakePipeline) AcquireSchedulingLockArgsForCall(i int) (lager.Logger,
 }
 
 func (fake *FakePipeline) AcquireSchedulingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
-	fake.acquireSchedulingLockMutex.Lock()
-	defer fake.acquireSchedulingLockMutex.Unlock()
 	fake.AcquireSchedulingLockStub = nil
 	fake.acquireSchedulingLockReturns = struct {
 		result1 lock.Lock
@@ -756,8 +477,6 @@ func (fake *FakePipeline) AcquireSchedulingLockReturns(result1 lock.Lock, result
 }
 
 func (fake *FakePipeline) AcquireSchedulingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
-	fake.acquireSchedulingLockMutex.Lock()
-	defer fake.acquireSchedulingLockMutex.Unlock()
 	fake.AcquireSchedulingLockStub = nil
 	if fake.acquireSchedulingLockReturnsOnCall == nil {
 		fake.acquireSchedulingLockReturnsOnCall = make(map[int]struct {
@@ -797,12 +516,6 @@ func (fake *FakePipeline) BuildsCallCount() int {
 	return len(fake.buildsArgsForCall)
 }
 
-func (fake *FakePipeline) BuildsCalls(stub func(db.Page) ([]db.Build, db.Pagination, error)) {
-	fake.buildsMutex.Lock()
-	defer fake.buildsMutex.Unlock()
-	fake.BuildsStub = stub
-}
-
 func (fake *FakePipeline) BuildsArgsForCall(i int) db.Page {
 	fake.buildsMutex.RLock()
 	defer fake.buildsMutex.RUnlock()
@@ -811,8 +524,6 @@ func (fake *FakePipeline) BuildsArgsForCall(i int) db.Page {
 }
 
 func (fake *FakePipeline) BuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
-	fake.buildsMutex.Lock()
-	defer fake.buildsMutex.Unlock()
 	fake.BuildsStub = nil
 	fake.buildsReturns = struct {
 		result1 []db.Build
@@ -822,8 +533,6 @@ func (fake *FakePipeline) BuildsReturns(result1 []db.Build, result2 db.Paginatio
 }
 
 func (fake *FakePipeline) BuildsReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
-	fake.buildsMutex.Lock()
-	defer fake.buildsMutex.Unlock()
 	fake.BuildsStub = nil
 	if fake.buildsReturnsOnCall == nil {
 		fake.buildsReturnsOnCall = make(map[int]struct {
@@ -863,12 +572,6 @@ func (fake *FakePipeline) BuildsWithTimeCallCount() int {
 	return len(fake.buildsWithTimeArgsForCall)
 }
 
-func (fake *FakePipeline) BuildsWithTimeCalls(stub func(db.Page) ([]db.Build, db.Pagination, error)) {
-	fake.buildsWithTimeMutex.Lock()
-	defer fake.buildsWithTimeMutex.Unlock()
-	fake.BuildsWithTimeStub = stub
-}
-
 func (fake *FakePipeline) BuildsWithTimeArgsForCall(i int) db.Page {
 	fake.buildsWithTimeMutex.RLock()
 	defer fake.buildsWithTimeMutex.RUnlock()
@@ -877,8 +580,6 @@ func (fake *FakePipeline) BuildsWithTimeArgsForCall(i int) db.Page {
 }
 
 func (fake *FakePipeline) BuildsWithTimeReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
-	fake.buildsWithTimeMutex.Lock()
-	defer fake.buildsWithTimeMutex.Unlock()
 	fake.BuildsWithTimeStub = nil
 	fake.buildsWithTimeReturns = struct {
 		result1 []db.Build
@@ -888,8 +589,6 @@ func (fake *FakePipeline) BuildsWithTimeReturns(result1 []db.Build, result2 db.P
 }
 
 func (fake *FakePipeline) BuildsWithTimeReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
-	fake.buildsWithTimeMutex.Lock()
-	defer fake.buildsWithTimeMutex.Unlock()
 	fake.BuildsWithTimeStub = nil
 	if fake.buildsWithTimeReturnsOnCall == nil {
 		fake.buildsWithTimeReturnsOnCall = make(map[int]struct {
@@ -929,12 +628,6 @@ func (fake *FakePipeline) CausalityCallCount() int {
 	return len(fake.causalityArgsForCall)
 }
 
-func (fake *FakePipeline) CausalityCalls(stub func(int) ([]db.Cause, error)) {
-	fake.causalityMutex.Lock()
-	defer fake.causalityMutex.Unlock()
-	fake.CausalityStub = stub
-}
-
 func (fake *FakePipeline) CausalityArgsForCall(i int) int {
 	fake.causalityMutex.RLock()
 	defer fake.causalityMutex.RUnlock()
@@ -943,8 +636,6 @@ func (fake *FakePipeline) CausalityArgsForCall(i int) int {
 }
 
 func (fake *FakePipeline) CausalityReturns(result1 []db.Cause, result2 error) {
-	fake.causalityMutex.Lock()
-	defer fake.causalityMutex.Unlock()
 	fake.CausalityStub = nil
 	fake.causalityReturns = struct {
 		result1 []db.Cause
@@ -953,8 +644,6 @@ func (fake *FakePipeline) CausalityReturns(result1 []db.Cause, result2 error) {
 }
 
 func (fake *FakePipeline) CausalityReturnsOnCall(i int, result1 []db.Cause, result2 error) {
-	fake.causalityMutex.Lock()
-	defer fake.causalityMutex.Unlock()
 	fake.CausalityStub = nil
 	if fake.causalityReturnsOnCall == nil {
 		fake.causalityReturnsOnCall = make(map[int]struct {
@@ -991,15 +680,7 @@ func (fake *FakePipeline) CheckPausedCallCount() int {
 	return len(fake.checkPausedArgsForCall)
 }
 
-func (fake *FakePipeline) CheckPausedCalls(stub func() (bool, error)) {
-	fake.checkPausedMutex.Lock()
-	defer fake.checkPausedMutex.Unlock()
-	fake.CheckPausedStub = stub
-}
-
 func (fake *FakePipeline) CheckPausedReturns(result1 bool, result2 error) {
-	fake.checkPausedMutex.Lock()
-	defer fake.checkPausedMutex.Unlock()
 	fake.CheckPausedStub = nil
 	fake.checkPausedReturns = struct {
 		result1 bool
@@ -1008,8 +689,6 @@ func (fake *FakePipeline) CheckPausedReturns(result1 bool, result2 error) {
 }
 
 func (fake *FakePipeline) CheckPausedReturnsOnCall(i int, result1 bool, result2 error) {
-	fake.checkPausedMutex.Lock()
-	defer fake.checkPausedMutex.Unlock()
 	fake.CheckPausedStub = nil
 	if fake.checkPausedReturnsOnCall == nil {
 		fake.checkPausedReturnsOnCall = make(map[int]struct {
@@ -1046,15 +725,7 @@ func (fake *FakePipeline) ConfigVersionCallCount() int {
 	return len(fake.configVersionArgsForCall)
 }
 
-func (fake *FakePipeline) ConfigVersionCalls(stub func() db.ConfigVersion) {
-	fake.configVersionMutex.Lock()
-	defer fake.configVersionMutex.Unlock()
-	fake.ConfigVersionStub = stub
-}
-
 func (fake *FakePipeline) ConfigVersionReturns(result1 db.ConfigVersion) {
-	fake.configVersionMutex.Lock()
-	defer fake.configVersionMutex.Unlock()
 	fake.ConfigVersionStub = nil
 	fake.configVersionReturns = struct {
 		result1 db.ConfigVersion
@@ -1062,8 +733,6 @@ func (fake *FakePipeline) ConfigVersionReturns(result1 db.ConfigVersion) {
 }
 
 func (fake *FakePipeline) ConfigVersionReturnsOnCall(i int, result1 db.ConfigVersion) {
-	fake.configVersionMutex.Lock()
-	defer fake.configVersionMutex.Unlock()
 	fake.ConfigVersionStub = nil
 	if fake.configVersionReturnsOnCall == nil {
 		fake.configVersionReturnsOnCall = make(map[int]struct {
@@ -1098,15 +767,7 @@ func (fake *FakePipeline) CreateOneOffBuildCallCount() int {
 	return len(fake.createOneOffBuildArgsForCall)
 }
 
-func (fake *FakePipeline) CreateOneOffBuildCalls(stub func() (db.Build, error)) {
-	fake.createOneOffBuildMutex.Lock()
-	defer fake.createOneOffBuildMutex.Unlock()
-	fake.CreateOneOffBuildStub = stub
-}
-
 func (fake *FakePipeline) CreateOneOffBuildReturns(result1 db.Build, result2 error) {
-	fake.createOneOffBuildMutex.Lock()
-	defer fake.createOneOffBuildMutex.Unlock()
 	fake.CreateOneOffBuildStub = nil
 	fake.createOneOffBuildReturns = struct {
 		result1 db.Build
@@ -1115,8 +776,6 @@ func (fake *FakePipeline) CreateOneOffBuildReturns(result1 db.Build, result2 err
 }
 
 func (fake *FakePipeline) CreateOneOffBuildReturnsOnCall(i int, result1 db.Build, result2 error) {
-	fake.createOneOffBuildMutex.Lock()
-	defer fake.createOneOffBuildMutex.Unlock()
 	fake.CreateOneOffBuildStub = nil
 	if fake.createOneOffBuildReturnsOnCall == nil {
 		fake.createOneOffBuildReturnsOnCall = make(map[int]struct {
@@ -1153,15 +812,7 @@ func (fake *FakePipeline) DashboardCallCount() int {
 	return len(fake.dashboardArgsForCall)
 }
 
-func (fake *FakePipeline) DashboardCalls(stub func() (db.Dashboard, error)) {
-	fake.dashboardMutex.Lock()
-	defer fake.dashboardMutex.Unlock()
-	fake.DashboardStub = stub
-}
-
 func (fake *FakePipeline) DashboardReturns(result1 db.Dashboard, result2 error) {
-	fake.dashboardMutex.Lock()
-	defer fake.dashboardMutex.Unlock()
 	fake.DashboardStub = nil
 	fake.dashboardReturns = struct {
 		result1 db.Dashboard
@@ -1170,8 +821,6 @@ func (fake *FakePipeline) DashboardReturns(result1 db.Dashboard, result2 error) 
 }
 
 func (fake *FakePipeline) DashboardReturnsOnCall(i int, result1 db.Dashboard, result2 error) {
-	fake.dashboardMutex.Lock()
-	defer fake.dashboardMutex.Unlock()
 	fake.DashboardStub = nil
 	if fake.dashboardReturnsOnCall == nil {
 		fake.dashboardReturnsOnCall = make(map[int]struct {
@@ -1214,12 +863,6 @@ func (fake *FakePipeline) DeleteBuildEventsByBuildIDsCallCount() int {
 	return len(fake.deleteBuildEventsByBuildIDsArgsForCall)
 }
 
-func (fake *FakePipeline) DeleteBuildEventsByBuildIDsCalls(stub func([]int) error) {
-	fake.deleteBuildEventsByBuildIDsMutex.Lock()
-	defer fake.deleteBuildEventsByBuildIDsMutex.Unlock()
-	fake.DeleteBuildEventsByBuildIDsStub = stub
-}
-
 func (fake *FakePipeline) DeleteBuildEventsByBuildIDsArgsForCall(i int) []int {
 	fake.deleteBuildEventsByBuildIDsMutex.RLock()
 	defer fake.deleteBuildEventsByBuildIDsMutex.RUnlock()
@@ -1228,8 +871,6 @@ func (fake *FakePipeline) DeleteBuildEventsByBuildIDsArgsForCall(i int) []int {
 }
 
 func (fake *FakePipeline) DeleteBuildEventsByBuildIDsReturns(result1 error) {
-	fake.deleteBuildEventsByBuildIDsMutex.Lock()
-	defer fake.deleteBuildEventsByBuildIDsMutex.Unlock()
 	fake.DeleteBuildEventsByBuildIDsStub = nil
 	fake.deleteBuildEventsByBuildIDsReturns = struct {
 		result1 error
@@ -1237,8 +878,6 @@ func (fake *FakePipeline) DeleteBuildEventsByBuildIDsReturns(result1 error) {
 }
 
 func (fake *FakePipeline) DeleteBuildEventsByBuildIDsReturnsOnCall(i int, result1 error) {
-	fake.deleteBuildEventsByBuildIDsMutex.Lock()
-	defer fake.deleteBuildEventsByBuildIDsMutex.Unlock()
 	fake.DeleteBuildEventsByBuildIDsStub = nil
 	if fake.deleteBuildEventsByBuildIDsReturnsOnCall == nil {
 		fake.deleteBuildEventsByBuildIDsReturnsOnCall = make(map[int]struct {
@@ -1273,15 +912,7 @@ func (fake *FakePipeline) DestroyCallCount() int {
 	return len(fake.destroyArgsForCall)
 }
 
-func (fake *FakePipeline) DestroyCalls(stub func() error) {
-	fake.destroyMutex.Lock()
-	defer fake.destroyMutex.Unlock()
-	fake.DestroyStub = stub
-}
-
 func (fake *FakePipeline) DestroyReturns(result1 error) {
-	fake.destroyMutex.Lock()
-	defer fake.destroyMutex.Unlock()
 	fake.DestroyStub = nil
 	fake.destroyReturns = struct {
 		result1 error
@@ -1289,8 +920,6 @@ func (fake *FakePipeline) DestroyReturns(result1 error) {
 }
 
 func (fake *FakePipeline) DestroyReturnsOnCall(i int, result1 error) {
-	fake.destroyMutex.Lock()
-	defer fake.destroyMutex.Unlock()
 	fake.DestroyStub = nil
 	if fake.destroyReturnsOnCall == nil {
 		fake.destroyReturnsOnCall = make(map[int]struct {
@@ -1298,126 +927,6 @@ func (fake *FakePipeline) DestroyReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.destroyReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakePipeline) DisableVersionedResource(arg1 int) error {
-	fake.disableVersionedResourceMutex.Lock()
-	ret, specificReturn := fake.disableVersionedResourceReturnsOnCall[len(fake.disableVersionedResourceArgsForCall)]
-	fake.disableVersionedResourceArgsForCall = append(fake.disableVersionedResourceArgsForCall, struct {
-		arg1 int
-	}{arg1})
-	fake.recordInvocation("DisableVersionedResource", []interface{}{arg1})
-	fake.disableVersionedResourceMutex.Unlock()
-	if fake.DisableVersionedResourceStub != nil {
-		return fake.DisableVersionedResourceStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.disableVersionedResourceReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakePipeline) DisableVersionedResourceCallCount() int {
-	fake.disableVersionedResourceMutex.RLock()
-	defer fake.disableVersionedResourceMutex.RUnlock()
-	return len(fake.disableVersionedResourceArgsForCall)
-}
-
-func (fake *FakePipeline) DisableVersionedResourceCalls(stub func(int) error) {
-	fake.disableVersionedResourceMutex.Lock()
-	defer fake.disableVersionedResourceMutex.Unlock()
-	fake.DisableVersionedResourceStub = stub
-}
-
-func (fake *FakePipeline) DisableVersionedResourceArgsForCall(i int) int {
-	fake.disableVersionedResourceMutex.RLock()
-	defer fake.disableVersionedResourceMutex.RUnlock()
-	argsForCall := fake.disableVersionedResourceArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakePipeline) DisableVersionedResourceReturns(result1 error) {
-	fake.disableVersionedResourceMutex.Lock()
-	defer fake.disableVersionedResourceMutex.Unlock()
-	fake.DisableVersionedResourceStub = nil
-	fake.disableVersionedResourceReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakePipeline) DisableVersionedResourceReturnsOnCall(i int, result1 error) {
-	fake.disableVersionedResourceMutex.Lock()
-	defer fake.disableVersionedResourceMutex.Unlock()
-	fake.DisableVersionedResourceStub = nil
-	if fake.disableVersionedResourceReturnsOnCall == nil {
-		fake.disableVersionedResourceReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.disableVersionedResourceReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakePipeline) EnableVersionedResource(arg1 int) error {
-	fake.enableVersionedResourceMutex.Lock()
-	ret, specificReturn := fake.enableVersionedResourceReturnsOnCall[len(fake.enableVersionedResourceArgsForCall)]
-	fake.enableVersionedResourceArgsForCall = append(fake.enableVersionedResourceArgsForCall, struct {
-		arg1 int
-	}{arg1})
-	fake.recordInvocation("EnableVersionedResource", []interface{}{arg1})
-	fake.enableVersionedResourceMutex.Unlock()
-	if fake.EnableVersionedResourceStub != nil {
-		return fake.EnableVersionedResourceStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.enableVersionedResourceReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakePipeline) EnableVersionedResourceCallCount() int {
-	fake.enableVersionedResourceMutex.RLock()
-	defer fake.enableVersionedResourceMutex.RUnlock()
-	return len(fake.enableVersionedResourceArgsForCall)
-}
-
-func (fake *FakePipeline) EnableVersionedResourceCalls(stub func(int) error) {
-	fake.enableVersionedResourceMutex.Lock()
-	defer fake.enableVersionedResourceMutex.Unlock()
-	fake.EnableVersionedResourceStub = stub
-}
-
-func (fake *FakePipeline) EnableVersionedResourceArgsForCall(i int) int {
-	fake.enableVersionedResourceMutex.RLock()
-	defer fake.enableVersionedResourceMutex.RUnlock()
-	argsForCall := fake.enableVersionedResourceArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakePipeline) EnableVersionedResourceReturns(result1 error) {
-	fake.enableVersionedResourceMutex.Lock()
-	defer fake.enableVersionedResourceMutex.Unlock()
-	fake.EnableVersionedResourceStub = nil
-	fake.enableVersionedResourceReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakePipeline) EnableVersionedResourceReturnsOnCall(i int, result1 error) {
-	fake.enableVersionedResourceMutex.Lock()
-	defer fake.enableVersionedResourceMutex.Unlock()
-	fake.EnableVersionedResourceStub = nil
-	if fake.enableVersionedResourceReturnsOnCall == nil {
-		fake.enableVersionedResourceReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.enableVersionedResourceReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -1445,15 +954,7 @@ func (fake *FakePipeline) ExposeCallCount() int {
 	return len(fake.exposeArgsForCall)
 }
 
-func (fake *FakePipeline) ExposeCalls(stub func() error) {
-	fake.exposeMutex.Lock()
-	defer fake.exposeMutex.Unlock()
-	fake.ExposeStub = stub
-}
-
 func (fake *FakePipeline) ExposeReturns(result1 error) {
-	fake.exposeMutex.Lock()
-	defer fake.exposeMutex.Unlock()
 	fake.ExposeStub = nil
 	fake.exposeReturns = struct {
 		result1 error
@@ -1461,8 +962,6 @@ func (fake *FakePipeline) ExposeReturns(result1 error) {
 }
 
 func (fake *FakePipeline) ExposeReturnsOnCall(i int, result1 error) {
-	fake.exposeMutex.Lock()
-	defer fake.exposeMutex.Unlock()
 	fake.ExposeStub = nil
 	if fake.exposeReturnsOnCall == nil {
 		fake.exposeReturnsOnCall = make(map[int]struct {
@@ -1497,15 +996,7 @@ func (fake *FakePipeline) GetAllPendingBuildsCallCount() int {
 	return len(fake.getAllPendingBuildsArgsForCall)
 }
 
-func (fake *FakePipeline) GetAllPendingBuildsCalls(stub func() (map[string][]db.Build, error)) {
-	fake.getAllPendingBuildsMutex.Lock()
-	defer fake.getAllPendingBuildsMutex.Unlock()
-	fake.GetAllPendingBuildsStub = stub
-}
-
 func (fake *FakePipeline) GetAllPendingBuildsReturns(result1 map[string][]db.Build, result2 error) {
-	fake.getAllPendingBuildsMutex.Lock()
-	defer fake.getAllPendingBuildsMutex.Unlock()
 	fake.GetAllPendingBuildsStub = nil
 	fake.getAllPendingBuildsReturns = struct {
 		result1 map[string][]db.Build
@@ -1514,8 +1005,6 @@ func (fake *FakePipeline) GetAllPendingBuildsReturns(result1 map[string][]db.Bui
 }
 
 func (fake *FakePipeline) GetAllPendingBuildsReturnsOnCall(i int, result1 map[string][]db.Build, result2 error) {
-	fake.getAllPendingBuildsMutex.Lock()
-	defer fake.getAllPendingBuildsMutex.Unlock()
 	fake.GetAllPendingBuildsStub = nil
 	if fake.getAllPendingBuildsReturnsOnCall == nil {
 		fake.getAllPendingBuildsReturnsOnCall = make(map[int]struct {
@@ -1529,16 +1018,17 @@ func (fake *FakePipeline) GetAllPendingBuildsReturnsOnCall(i int, result1 map[st
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) GetBuildsWithVersionAsInput(arg1 int) ([]db.Build, error) {
+func (fake *FakePipeline) GetBuildsWithVersionAsInput(arg1 int, arg2 int) ([]db.Build, error) {
 	fake.getBuildsWithVersionAsInputMutex.Lock()
 	ret, specificReturn := fake.getBuildsWithVersionAsInputReturnsOnCall[len(fake.getBuildsWithVersionAsInputArgsForCall)]
 	fake.getBuildsWithVersionAsInputArgsForCall = append(fake.getBuildsWithVersionAsInputArgsForCall, struct {
 		arg1 int
-	}{arg1})
-	fake.recordInvocation("GetBuildsWithVersionAsInput", []interface{}{arg1})
+		arg2 int
+	}{arg1, arg2})
+	fake.recordInvocation("GetBuildsWithVersionAsInput", []interface{}{arg1, arg2})
 	fake.getBuildsWithVersionAsInputMutex.Unlock()
 	if fake.GetBuildsWithVersionAsInputStub != nil {
-		return fake.GetBuildsWithVersionAsInputStub(arg1)
+		return fake.GetBuildsWithVersionAsInputStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -1553,22 +1043,14 @@ func (fake *FakePipeline) GetBuildsWithVersionAsInputCallCount() int {
 	return len(fake.getBuildsWithVersionAsInputArgsForCall)
 }
 
-func (fake *FakePipeline) GetBuildsWithVersionAsInputCalls(stub func(int) ([]db.Build, error)) {
-	fake.getBuildsWithVersionAsInputMutex.Lock()
-	defer fake.getBuildsWithVersionAsInputMutex.Unlock()
-	fake.GetBuildsWithVersionAsInputStub = stub
-}
-
-func (fake *FakePipeline) GetBuildsWithVersionAsInputArgsForCall(i int) int {
+func (fake *FakePipeline) GetBuildsWithVersionAsInputArgsForCall(i int) (int, int) {
 	fake.getBuildsWithVersionAsInputMutex.RLock()
 	defer fake.getBuildsWithVersionAsInputMutex.RUnlock()
 	argsForCall := fake.getBuildsWithVersionAsInputArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakePipeline) GetBuildsWithVersionAsInputReturns(result1 []db.Build, result2 error) {
-	fake.getBuildsWithVersionAsInputMutex.Lock()
-	defer fake.getBuildsWithVersionAsInputMutex.Unlock()
 	fake.GetBuildsWithVersionAsInputStub = nil
 	fake.getBuildsWithVersionAsInputReturns = struct {
 		result1 []db.Build
@@ -1577,8 +1059,6 @@ func (fake *FakePipeline) GetBuildsWithVersionAsInputReturns(result1 []db.Build,
 }
 
 func (fake *FakePipeline) GetBuildsWithVersionAsInputReturnsOnCall(i int, result1 []db.Build, result2 error) {
-	fake.getBuildsWithVersionAsInputMutex.Lock()
-	defer fake.getBuildsWithVersionAsInputMutex.Unlock()
 	fake.GetBuildsWithVersionAsInputStub = nil
 	if fake.getBuildsWithVersionAsInputReturnsOnCall == nil {
 		fake.getBuildsWithVersionAsInputReturnsOnCall = make(map[int]struct {
@@ -1592,16 +1072,17 @@ func (fake *FakePipeline) GetBuildsWithVersionAsInputReturnsOnCall(i int, result
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) GetBuildsWithVersionAsOutput(arg1 int) ([]db.Build, error) {
+func (fake *FakePipeline) GetBuildsWithVersionAsOutput(arg1 int, arg2 int) ([]db.Build, error) {
 	fake.getBuildsWithVersionAsOutputMutex.Lock()
 	ret, specificReturn := fake.getBuildsWithVersionAsOutputReturnsOnCall[len(fake.getBuildsWithVersionAsOutputArgsForCall)]
 	fake.getBuildsWithVersionAsOutputArgsForCall = append(fake.getBuildsWithVersionAsOutputArgsForCall, struct {
 		arg1 int
-	}{arg1})
-	fake.recordInvocation("GetBuildsWithVersionAsOutput", []interface{}{arg1})
+		arg2 int
+	}{arg1, arg2})
+	fake.recordInvocation("GetBuildsWithVersionAsOutput", []interface{}{arg1, arg2})
 	fake.getBuildsWithVersionAsOutputMutex.Unlock()
 	if fake.GetBuildsWithVersionAsOutputStub != nil {
-		return fake.GetBuildsWithVersionAsOutputStub(arg1)
+		return fake.GetBuildsWithVersionAsOutputStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -1616,22 +1097,14 @@ func (fake *FakePipeline) GetBuildsWithVersionAsOutputCallCount() int {
 	return len(fake.getBuildsWithVersionAsOutputArgsForCall)
 }
 
-func (fake *FakePipeline) GetBuildsWithVersionAsOutputCalls(stub func(int) ([]db.Build, error)) {
-	fake.getBuildsWithVersionAsOutputMutex.Lock()
-	defer fake.getBuildsWithVersionAsOutputMutex.Unlock()
-	fake.GetBuildsWithVersionAsOutputStub = stub
-}
-
-func (fake *FakePipeline) GetBuildsWithVersionAsOutputArgsForCall(i int) int {
+func (fake *FakePipeline) GetBuildsWithVersionAsOutputArgsForCall(i int) (int, int) {
 	fake.getBuildsWithVersionAsOutputMutex.RLock()
 	defer fake.getBuildsWithVersionAsOutputMutex.RUnlock()
 	argsForCall := fake.getBuildsWithVersionAsOutputArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakePipeline) GetBuildsWithVersionAsOutputReturns(result1 []db.Build, result2 error) {
-	fake.getBuildsWithVersionAsOutputMutex.Lock()
-	defer fake.getBuildsWithVersionAsOutputMutex.Unlock()
 	fake.GetBuildsWithVersionAsOutputStub = nil
 	fake.getBuildsWithVersionAsOutputReturns = struct {
 		result1 []db.Build
@@ -1640,8 +1113,6 @@ func (fake *FakePipeline) GetBuildsWithVersionAsOutputReturns(result1 []db.Build
 }
 
 func (fake *FakePipeline) GetBuildsWithVersionAsOutputReturnsOnCall(i int, result1 []db.Build, result2 error) {
-	fake.getBuildsWithVersionAsOutputMutex.Lock()
-	defer fake.getBuildsWithVersionAsOutputMutex.Unlock()
 	fake.GetBuildsWithVersionAsOutputStub = nil
 	if fake.getBuildsWithVersionAsOutputReturnsOnCall == nil {
 		fake.getBuildsWithVersionAsOutputReturnsOnCall = make(map[int]struct {
@@ -1653,209 +1124,6 @@ func (fake *FakePipeline) GetBuildsWithVersionAsOutputReturnsOnCall(i int, resul
 		result1 []db.Build
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakePipeline) GetLatestVersionedResource(arg1 string) (db.SavedVersionedResource, bool, error) {
-	fake.getLatestVersionedResourceMutex.Lock()
-	ret, specificReturn := fake.getLatestVersionedResourceReturnsOnCall[len(fake.getLatestVersionedResourceArgsForCall)]
-	fake.getLatestVersionedResourceArgsForCall = append(fake.getLatestVersionedResourceArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("GetLatestVersionedResource", []interface{}{arg1})
-	fake.getLatestVersionedResourceMutex.Unlock()
-	if fake.GetLatestVersionedResourceStub != nil {
-		return fake.GetLatestVersionedResourceStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	fakeReturns := fake.getLatestVersionedResourceReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
-}
-
-func (fake *FakePipeline) GetLatestVersionedResourceCallCount() int {
-	fake.getLatestVersionedResourceMutex.RLock()
-	defer fake.getLatestVersionedResourceMutex.RUnlock()
-	return len(fake.getLatestVersionedResourceArgsForCall)
-}
-
-func (fake *FakePipeline) GetLatestVersionedResourceCalls(stub func(string) (db.SavedVersionedResource, bool, error)) {
-	fake.getLatestVersionedResourceMutex.Lock()
-	defer fake.getLatestVersionedResourceMutex.Unlock()
-	fake.GetLatestVersionedResourceStub = stub
-}
-
-func (fake *FakePipeline) GetLatestVersionedResourceArgsForCall(i int) string {
-	fake.getLatestVersionedResourceMutex.RLock()
-	defer fake.getLatestVersionedResourceMutex.RUnlock()
-	argsForCall := fake.getLatestVersionedResourceArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakePipeline) GetLatestVersionedResourceReturns(result1 db.SavedVersionedResource, result2 bool, result3 error) {
-	fake.getLatestVersionedResourceMutex.Lock()
-	defer fake.getLatestVersionedResourceMutex.Unlock()
-	fake.GetLatestVersionedResourceStub = nil
-	fake.getLatestVersionedResourceReturns = struct {
-		result1 db.SavedVersionedResource
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakePipeline) GetLatestVersionedResourceReturnsOnCall(i int, result1 db.SavedVersionedResource, result2 bool, result3 error) {
-	fake.getLatestVersionedResourceMutex.Lock()
-	defer fake.getLatestVersionedResourceMutex.Unlock()
-	fake.GetLatestVersionedResourceStub = nil
-	if fake.getLatestVersionedResourceReturnsOnCall == nil {
-		fake.getLatestVersionedResourceReturnsOnCall = make(map[int]struct {
-			result1 db.SavedVersionedResource
-			result2 bool
-			result3 error
-		})
-	}
-	fake.getLatestVersionedResourceReturnsOnCall[i] = struct {
-		result1 db.SavedVersionedResource
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakePipeline) GetResourceVersions(arg1 string, arg2 db.Page) ([]db.SavedVersionedResource, db.Pagination, bool, error) {
-	fake.getResourceVersionsMutex.Lock()
-	ret, specificReturn := fake.getResourceVersionsReturnsOnCall[len(fake.getResourceVersionsArgsForCall)]
-	fake.getResourceVersionsArgsForCall = append(fake.getResourceVersionsArgsForCall, struct {
-		arg1 string
-		arg2 db.Page
-	}{arg1, arg2})
-	fake.recordInvocation("GetResourceVersions", []interface{}{arg1, arg2})
-	fake.getResourceVersionsMutex.Unlock()
-	if fake.GetResourceVersionsStub != nil {
-		return fake.GetResourceVersionsStub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3, ret.result4
-	}
-	fakeReturns := fake.getResourceVersionsReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3, fakeReturns.result4
-}
-
-func (fake *FakePipeline) GetResourceVersionsCallCount() int {
-	fake.getResourceVersionsMutex.RLock()
-	defer fake.getResourceVersionsMutex.RUnlock()
-	return len(fake.getResourceVersionsArgsForCall)
-}
-
-func (fake *FakePipeline) GetResourceVersionsCalls(stub func(string, db.Page) ([]db.SavedVersionedResource, db.Pagination, bool, error)) {
-	fake.getResourceVersionsMutex.Lock()
-	defer fake.getResourceVersionsMutex.Unlock()
-	fake.GetResourceVersionsStub = stub
-}
-
-func (fake *FakePipeline) GetResourceVersionsArgsForCall(i int) (string, db.Page) {
-	fake.getResourceVersionsMutex.RLock()
-	defer fake.getResourceVersionsMutex.RUnlock()
-	argsForCall := fake.getResourceVersionsArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
-}
-
-func (fake *FakePipeline) GetResourceVersionsReturns(result1 []db.SavedVersionedResource, result2 db.Pagination, result3 bool, result4 error) {
-	fake.getResourceVersionsMutex.Lock()
-	defer fake.getResourceVersionsMutex.Unlock()
-	fake.GetResourceVersionsStub = nil
-	fake.getResourceVersionsReturns = struct {
-		result1 []db.SavedVersionedResource
-		result2 db.Pagination
-		result3 bool
-		result4 error
-	}{result1, result2, result3, result4}
-}
-
-func (fake *FakePipeline) GetResourceVersionsReturnsOnCall(i int, result1 []db.SavedVersionedResource, result2 db.Pagination, result3 bool, result4 error) {
-	fake.getResourceVersionsMutex.Lock()
-	defer fake.getResourceVersionsMutex.Unlock()
-	fake.GetResourceVersionsStub = nil
-	if fake.getResourceVersionsReturnsOnCall == nil {
-		fake.getResourceVersionsReturnsOnCall = make(map[int]struct {
-			result1 []db.SavedVersionedResource
-			result2 db.Pagination
-			result3 bool
-			result4 error
-		})
-	}
-	fake.getResourceVersionsReturnsOnCall[i] = struct {
-		result1 []db.SavedVersionedResource
-		result2 db.Pagination
-		result3 bool
-		result4 error
-	}{result1, result2, result3, result4}
-}
-
-func (fake *FakePipeline) GetVersionedResourceByVersion(arg1 atc.Version, arg2 string) (db.SavedVersionedResource, bool, error) {
-	fake.getVersionedResourceByVersionMutex.Lock()
-	ret, specificReturn := fake.getVersionedResourceByVersionReturnsOnCall[len(fake.getVersionedResourceByVersionArgsForCall)]
-	fake.getVersionedResourceByVersionArgsForCall = append(fake.getVersionedResourceByVersionArgsForCall, struct {
-		arg1 atc.Version
-		arg2 string
-	}{arg1, arg2})
-	fake.recordInvocation("GetVersionedResourceByVersion", []interface{}{arg1, arg2})
-	fake.getVersionedResourceByVersionMutex.Unlock()
-	if fake.GetVersionedResourceByVersionStub != nil {
-		return fake.GetVersionedResourceByVersionStub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	fakeReturns := fake.getVersionedResourceByVersionReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
-}
-
-func (fake *FakePipeline) GetVersionedResourceByVersionCallCount() int {
-	fake.getVersionedResourceByVersionMutex.RLock()
-	defer fake.getVersionedResourceByVersionMutex.RUnlock()
-	return len(fake.getVersionedResourceByVersionArgsForCall)
-}
-
-func (fake *FakePipeline) GetVersionedResourceByVersionCalls(stub func(atc.Version, string) (db.SavedVersionedResource, bool, error)) {
-	fake.getVersionedResourceByVersionMutex.Lock()
-	defer fake.getVersionedResourceByVersionMutex.Unlock()
-	fake.GetVersionedResourceByVersionStub = stub
-}
-
-func (fake *FakePipeline) GetVersionedResourceByVersionArgsForCall(i int) (atc.Version, string) {
-	fake.getVersionedResourceByVersionMutex.RLock()
-	defer fake.getVersionedResourceByVersionMutex.RUnlock()
-	argsForCall := fake.getVersionedResourceByVersionArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
-}
-
-func (fake *FakePipeline) GetVersionedResourceByVersionReturns(result1 db.SavedVersionedResource, result2 bool, result3 error) {
-	fake.getVersionedResourceByVersionMutex.Lock()
-	defer fake.getVersionedResourceByVersionMutex.Unlock()
-	fake.GetVersionedResourceByVersionStub = nil
-	fake.getVersionedResourceByVersionReturns = struct {
-		result1 db.SavedVersionedResource
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakePipeline) GetVersionedResourceByVersionReturnsOnCall(i int, result1 db.SavedVersionedResource, result2 bool, result3 error) {
-	fake.getVersionedResourceByVersionMutex.Lock()
-	defer fake.getVersionedResourceByVersionMutex.Unlock()
-	fake.GetVersionedResourceByVersionStub = nil
-	if fake.getVersionedResourceByVersionReturnsOnCall == nil {
-		fake.getVersionedResourceByVersionReturnsOnCall = make(map[int]struct {
-			result1 db.SavedVersionedResource
-			result2 bool
-			result3 error
-		})
-	}
-	fake.getVersionedResourceByVersionReturnsOnCall[i] = struct {
-		result1 db.SavedVersionedResource
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
 }
 
 func (fake *FakePipeline) Groups() atc.GroupConfigs {
@@ -1881,15 +1149,7 @@ func (fake *FakePipeline) GroupsCallCount() int {
 	return len(fake.groupsArgsForCall)
 }
 
-func (fake *FakePipeline) GroupsCalls(stub func() atc.GroupConfigs) {
-	fake.groupsMutex.Lock()
-	defer fake.groupsMutex.Unlock()
-	fake.GroupsStub = stub
-}
-
 func (fake *FakePipeline) GroupsReturns(result1 atc.GroupConfigs) {
-	fake.groupsMutex.Lock()
-	defer fake.groupsMutex.Unlock()
 	fake.GroupsStub = nil
 	fake.groupsReturns = struct {
 		result1 atc.GroupConfigs
@@ -1897,8 +1157,6 @@ func (fake *FakePipeline) GroupsReturns(result1 atc.GroupConfigs) {
 }
 
 func (fake *FakePipeline) GroupsReturnsOnCall(i int, result1 atc.GroupConfigs) {
-	fake.groupsMutex.Lock()
-	defer fake.groupsMutex.Unlock()
 	fake.GroupsStub = nil
 	if fake.groupsReturnsOnCall == nil {
 		fake.groupsReturnsOnCall = make(map[int]struct {
@@ -1933,15 +1191,7 @@ func (fake *FakePipeline) HideCallCount() int {
 	return len(fake.hideArgsForCall)
 }
 
-func (fake *FakePipeline) HideCalls(stub func() error) {
-	fake.hideMutex.Lock()
-	defer fake.hideMutex.Unlock()
-	fake.HideStub = stub
-}
-
 func (fake *FakePipeline) HideReturns(result1 error) {
-	fake.hideMutex.Lock()
-	defer fake.hideMutex.Unlock()
 	fake.HideStub = nil
 	fake.hideReturns = struct {
 		result1 error
@@ -1949,8 +1199,6 @@ func (fake *FakePipeline) HideReturns(result1 error) {
 }
 
 func (fake *FakePipeline) HideReturnsOnCall(i int, result1 error) {
-	fake.hideMutex.Lock()
-	defer fake.hideMutex.Unlock()
 	fake.HideStub = nil
 	if fake.hideReturnsOnCall == nil {
 		fake.hideReturnsOnCall = make(map[int]struct {
@@ -1985,15 +1233,7 @@ func (fake *FakePipeline) IDCallCount() int {
 	return len(fake.iDArgsForCall)
 }
 
-func (fake *FakePipeline) IDCalls(stub func() int) {
-	fake.iDMutex.Lock()
-	defer fake.iDMutex.Unlock()
-	fake.IDStub = stub
-}
-
 func (fake *FakePipeline) IDReturns(result1 int) {
-	fake.iDMutex.Lock()
-	defer fake.iDMutex.Unlock()
 	fake.IDStub = nil
 	fake.iDReturns = struct {
 		result1 int
@@ -2001,8 +1241,6 @@ func (fake *FakePipeline) IDReturns(result1 int) {
 }
 
 func (fake *FakePipeline) IDReturnsOnCall(i int, result1 int) {
-	fake.iDMutex.Lock()
-	defer fake.iDMutex.Unlock()
 	fake.IDStub = nil
 	if fake.iDReturnsOnCall == nil {
 		fake.iDReturnsOnCall = make(map[int]struct {
@@ -2038,12 +1276,6 @@ func (fake *FakePipeline) JobCallCount() int {
 	return len(fake.jobArgsForCall)
 }
 
-func (fake *FakePipeline) JobCalls(stub func(string) (db.Job, bool, error)) {
-	fake.jobMutex.Lock()
-	defer fake.jobMutex.Unlock()
-	fake.JobStub = stub
-}
-
 func (fake *FakePipeline) JobArgsForCall(i int) string {
 	fake.jobMutex.RLock()
 	defer fake.jobMutex.RUnlock()
@@ -2052,8 +1284,6 @@ func (fake *FakePipeline) JobArgsForCall(i int) string {
 }
 
 func (fake *FakePipeline) JobReturns(result1 db.Job, result2 bool, result3 error) {
-	fake.jobMutex.Lock()
-	defer fake.jobMutex.Unlock()
 	fake.JobStub = nil
 	fake.jobReturns = struct {
 		result1 db.Job
@@ -2063,8 +1293,6 @@ func (fake *FakePipeline) JobReturns(result1 db.Job, result2 bool, result3 error
 }
 
 func (fake *FakePipeline) JobReturnsOnCall(i int, result1 db.Job, result2 bool, result3 error) {
-	fake.jobMutex.Lock()
-	defer fake.jobMutex.Unlock()
 	fake.JobStub = nil
 	if fake.jobReturnsOnCall == nil {
 		fake.jobReturnsOnCall = make(map[int]struct {
@@ -2103,15 +1331,7 @@ func (fake *FakePipeline) JobsCallCount() int {
 	return len(fake.jobsArgsForCall)
 }
 
-func (fake *FakePipeline) JobsCalls(stub func() (db.Jobs, error)) {
-	fake.jobsMutex.Lock()
-	defer fake.jobsMutex.Unlock()
-	fake.JobsStub = stub
-}
-
 func (fake *FakePipeline) JobsReturns(result1 db.Jobs, result2 error) {
-	fake.jobsMutex.Lock()
-	defer fake.jobsMutex.Unlock()
 	fake.JobsStub = nil
 	fake.jobsReturns = struct {
 		result1 db.Jobs
@@ -2120,8 +1340,6 @@ func (fake *FakePipeline) JobsReturns(result1 db.Jobs, result2 error) {
 }
 
 func (fake *FakePipeline) JobsReturnsOnCall(i int, result1 db.Jobs, result2 error) {
-	fake.jobsMutex.Lock()
-	defer fake.jobsMutex.Unlock()
 	fake.JobsStub = nil
 	if fake.jobsReturnsOnCall == nil {
 		fake.jobsReturnsOnCall = make(map[int]struct {
@@ -2158,15 +1376,7 @@ func (fake *FakePipeline) LoadVersionsDBCallCount() int {
 	return len(fake.loadVersionsDBArgsForCall)
 }
 
-func (fake *FakePipeline) LoadVersionsDBCalls(stub func() (*algorithm.VersionsDB, error)) {
-	fake.loadVersionsDBMutex.Lock()
-	defer fake.loadVersionsDBMutex.Unlock()
-	fake.LoadVersionsDBStub = stub
-}
-
 func (fake *FakePipeline) LoadVersionsDBReturns(result1 *algorithm.VersionsDB, result2 error) {
-	fake.loadVersionsDBMutex.Lock()
-	defer fake.loadVersionsDBMutex.Unlock()
 	fake.LoadVersionsDBStub = nil
 	fake.loadVersionsDBReturns = struct {
 		result1 *algorithm.VersionsDB
@@ -2175,8 +1385,6 @@ func (fake *FakePipeline) LoadVersionsDBReturns(result1 *algorithm.VersionsDB, r
 }
 
 func (fake *FakePipeline) LoadVersionsDBReturnsOnCall(i int, result1 *algorithm.VersionsDB, result2 error) {
-	fake.loadVersionsDBMutex.Lock()
-	defer fake.loadVersionsDBMutex.Unlock()
 	fake.LoadVersionsDBStub = nil
 	if fake.loadVersionsDBReturnsOnCall == nil {
 		fake.loadVersionsDBReturnsOnCall = make(map[int]struct {
@@ -2213,15 +1421,7 @@ func (fake *FakePipeline) NameCallCount() int {
 	return len(fake.nameArgsForCall)
 }
 
-func (fake *FakePipeline) NameCalls(stub func() string) {
-	fake.nameMutex.Lock()
-	defer fake.nameMutex.Unlock()
-	fake.NameStub = stub
-}
-
 func (fake *FakePipeline) NameReturns(result1 string) {
-	fake.nameMutex.Lock()
-	defer fake.nameMutex.Unlock()
 	fake.NameStub = nil
 	fake.nameReturns = struct {
 		result1 string
@@ -2229,8 +1429,6 @@ func (fake *FakePipeline) NameReturns(result1 string) {
 }
 
 func (fake *FakePipeline) NameReturnsOnCall(i int, result1 string) {
-	fake.nameMutex.Lock()
-	defer fake.nameMutex.Unlock()
 	fake.NameStub = nil
 	if fake.nameReturnsOnCall == nil {
 		fake.nameReturnsOnCall = make(map[int]struct {
@@ -2265,15 +1463,7 @@ func (fake *FakePipeline) PauseCallCount() int {
 	return len(fake.pauseArgsForCall)
 }
 
-func (fake *FakePipeline) PauseCalls(stub func() error) {
-	fake.pauseMutex.Lock()
-	defer fake.pauseMutex.Unlock()
-	fake.PauseStub = stub
-}
-
 func (fake *FakePipeline) PauseReturns(result1 error) {
-	fake.pauseMutex.Lock()
-	defer fake.pauseMutex.Unlock()
 	fake.PauseStub = nil
 	fake.pauseReturns = struct {
 		result1 error
@@ -2281,8 +1471,6 @@ func (fake *FakePipeline) PauseReturns(result1 error) {
 }
 
 func (fake *FakePipeline) PauseReturnsOnCall(i int, result1 error) {
-	fake.pauseMutex.Lock()
-	defer fake.pauseMutex.Unlock()
 	fake.PauseStub = nil
 	if fake.pauseReturnsOnCall == nil {
 		fake.pauseReturnsOnCall = make(map[int]struct {
@@ -2317,15 +1505,7 @@ func (fake *FakePipeline) PausedCallCount() int {
 	return len(fake.pausedArgsForCall)
 }
 
-func (fake *FakePipeline) PausedCalls(stub func() bool) {
-	fake.pausedMutex.Lock()
-	defer fake.pausedMutex.Unlock()
-	fake.PausedStub = stub
-}
-
 func (fake *FakePipeline) PausedReturns(result1 bool) {
-	fake.pausedMutex.Lock()
-	defer fake.pausedMutex.Unlock()
 	fake.PausedStub = nil
 	fake.pausedReturns = struct {
 		result1 bool
@@ -2333,8 +1513,6 @@ func (fake *FakePipeline) PausedReturns(result1 bool) {
 }
 
 func (fake *FakePipeline) PausedReturnsOnCall(i int, result1 bool) {
-	fake.pausedMutex.Lock()
-	defer fake.pausedMutex.Unlock()
 	fake.PausedStub = nil
 	if fake.pausedReturnsOnCall == nil {
 		fake.pausedReturnsOnCall = make(map[int]struct {
@@ -2369,15 +1547,7 @@ func (fake *FakePipeline) PublicCallCount() int {
 	return len(fake.publicArgsForCall)
 }
 
-func (fake *FakePipeline) PublicCalls(stub func() bool) {
-	fake.publicMutex.Lock()
-	defer fake.publicMutex.Unlock()
-	fake.PublicStub = stub
-}
-
 func (fake *FakePipeline) PublicReturns(result1 bool) {
-	fake.publicMutex.Lock()
-	defer fake.publicMutex.Unlock()
 	fake.PublicStub = nil
 	fake.publicReturns = struct {
 		result1 bool
@@ -2385,8 +1555,6 @@ func (fake *FakePipeline) PublicReturns(result1 bool) {
 }
 
 func (fake *FakePipeline) PublicReturnsOnCall(i int, result1 bool) {
-	fake.publicMutex.Lock()
-	defer fake.publicMutex.Unlock()
 	fake.PublicStub = nil
 	if fake.publicReturnsOnCall == nil {
 		fake.publicReturnsOnCall = make(map[int]struct {
@@ -2421,15 +1589,7 @@ func (fake *FakePipeline) ReloadCallCount() int {
 	return len(fake.reloadArgsForCall)
 }
 
-func (fake *FakePipeline) ReloadCalls(stub func() (bool, error)) {
-	fake.reloadMutex.Lock()
-	defer fake.reloadMutex.Unlock()
-	fake.ReloadStub = stub
-}
-
 func (fake *FakePipeline) ReloadReturns(result1 bool, result2 error) {
-	fake.reloadMutex.Lock()
-	defer fake.reloadMutex.Unlock()
 	fake.ReloadStub = nil
 	fake.reloadReturns = struct {
 		result1 bool
@@ -2438,8 +1598,6 @@ func (fake *FakePipeline) ReloadReturns(result1 bool, result2 error) {
 }
 
 func (fake *FakePipeline) ReloadReturnsOnCall(i int, result1 bool, result2 error) {
-	fake.reloadMutex.Lock()
-	defer fake.reloadMutex.Unlock()
 	fake.ReloadStub = nil
 	if fake.reloadReturnsOnCall == nil {
 		fake.reloadReturnsOnCall = make(map[int]struct {
@@ -2477,12 +1635,6 @@ func (fake *FakePipeline) RenameCallCount() int {
 	return len(fake.renameArgsForCall)
 }
 
-func (fake *FakePipeline) RenameCalls(stub func(string) error) {
-	fake.renameMutex.Lock()
-	defer fake.renameMutex.Unlock()
-	fake.RenameStub = stub
-}
-
 func (fake *FakePipeline) RenameArgsForCall(i int) string {
 	fake.renameMutex.RLock()
 	defer fake.renameMutex.RUnlock()
@@ -2491,8 +1643,6 @@ func (fake *FakePipeline) RenameArgsForCall(i int) string {
 }
 
 func (fake *FakePipeline) RenameReturns(result1 error) {
-	fake.renameMutex.Lock()
-	defer fake.renameMutex.Unlock()
 	fake.RenameStub = nil
 	fake.renameReturns = struct {
 		result1 error
@@ -2500,8 +1650,6 @@ func (fake *FakePipeline) RenameReturns(result1 error) {
 }
 
 func (fake *FakePipeline) RenameReturnsOnCall(i int, result1 error) {
-	fake.renameMutex.Lock()
-	defer fake.renameMutex.Unlock()
 	fake.RenameStub = nil
 	if fake.renameReturnsOnCall == nil {
 		fake.renameReturnsOnCall = make(map[int]struct {
@@ -2537,12 +1685,6 @@ func (fake *FakePipeline) ResourceCallCount() int {
 	return len(fake.resourceArgsForCall)
 }
 
-func (fake *FakePipeline) ResourceCalls(stub func(string) (db.Resource, bool, error)) {
-	fake.resourceMutex.Lock()
-	defer fake.resourceMutex.Unlock()
-	fake.ResourceStub = stub
-}
-
 func (fake *FakePipeline) ResourceArgsForCall(i int) string {
 	fake.resourceMutex.RLock()
 	defer fake.resourceMutex.RUnlock()
@@ -2551,8 +1693,6 @@ func (fake *FakePipeline) ResourceArgsForCall(i int) string {
 }
 
 func (fake *FakePipeline) ResourceReturns(result1 db.Resource, result2 bool, result3 error) {
-	fake.resourceMutex.Lock()
-	defer fake.resourceMutex.Unlock()
 	fake.ResourceStub = nil
 	fake.resourceReturns = struct {
 		result1 db.Resource
@@ -2562,8 +1702,6 @@ func (fake *FakePipeline) ResourceReturns(result1 db.Resource, result2 bool, res
 }
 
 func (fake *FakePipeline) ResourceReturnsOnCall(i int, result1 db.Resource, result2 bool, result3 error) {
-	fake.resourceMutex.Lock()
-	defer fake.resourceMutex.Unlock()
 	fake.ResourceStub = nil
 	if fake.resourceReturnsOnCall == nil {
 		fake.resourceReturnsOnCall = make(map[int]struct {
@@ -2603,12 +1741,6 @@ func (fake *FakePipeline) ResourceTypeCallCount() int {
 	return len(fake.resourceTypeArgsForCall)
 }
 
-func (fake *FakePipeline) ResourceTypeCalls(stub func(string) (db.ResourceType, bool, error)) {
-	fake.resourceTypeMutex.Lock()
-	defer fake.resourceTypeMutex.Unlock()
-	fake.ResourceTypeStub = stub
-}
-
 func (fake *FakePipeline) ResourceTypeArgsForCall(i int) string {
 	fake.resourceTypeMutex.RLock()
 	defer fake.resourceTypeMutex.RUnlock()
@@ -2617,8 +1749,6 @@ func (fake *FakePipeline) ResourceTypeArgsForCall(i int) string {
 }
 
 func (fake *FakePipeline) ResourceTypeReturns(result1 db.ResourceType, result2 bool, result3 error) {
-	fake.resourceTypeMutex.Lock()
-	defer fake.resourceTypeMutex.Unlock()
 	fake.ResourceTypeStub = nil
 	fake.resourceTypeReturns = struct {
 		result1 db.ResourceType
@@ -2628,8 +1758,6 @@ func (fake *FakePipeline) ResourceTypeReturns(result1 db.ResourceType, result2 b
 }
 
 func (fake *FakePipeline) ResourceTypeReturnsOnCall(i int, result1 db.ResourceType, result2 bool, result3 error) {
-	fake.resourceTypeMutex.Lock()
-	defer fake.resourceTypeMutex.Unlock()
 	fake.ResourceTypeStub = nil
 	if fake.resourceTypeReturnsOnCall == nil {
 		fake.resourceTypeReturnsOnCall = make(map[int]struct {
@@ -2668,15 +1796,7 @@ func (fake *FakePipeline) ResourceTypesCallCount() int {
 	return len(fake.resourceTypesArgsForCall)
 }
 
-func (fake *FakePipeline) ResourceTypesCalls(stub func() (db.ResourceTypes, error)) {
-	fake.resourceTypesMutex.Lock()
-	defer fake.resourceTypesMutex.Unlock()
-	fake.ResourceTypesStub = stub
-}
-
 func (fake *FakePipeline) ResourceTypesReturns(result1 db.ResourceTypes, result2 error) {
-	fake.resourceTypesMutex.Lock()
-	defer fake.resourceTypesMutex.Unlock()
 	fake.ResourceTypesStub = nil
 	fake.resourceTypesReturns = struct {
 		result1 db.ResourceTypes
@@ -2685,8 +1805,6 @@ func (fake *FakePipeline) ResourceTypesReturns(result1 db.ResourceTypes, result2
 }
 
 func (fake *FakePipeline) ResourceTypesReturnsOnCall(i int, result1 db.ResourceTypes, result2 error) {
-	fake.resourceTypesMutex.Lock()
-	defer fake.resourceTypesMutex.Unlock()
 	fake.ResourceTypesStub = nil
 	if fake.resourceTypesReturnsOnCall == nil {
 		fake.resourceTypesReturnsOnCall = make(map[int]struct {
@@ -2698,6 +1816,62 @@ func (fake *FakePipeline) ResourceTypesReturnsOnCall(i int, result1 db.ResourceT
 		result1 db.ResourceTypes
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakePipeline) ResourceVersion(arg1 int) (atc.ResourceVersion, bool, error) {
+	fake.resourceVersionMutex.Lock()
+	ret, specificReturn := fake.resourceVersionReturnsOnCall[len(fake.resourceVersionArgsForCall)]
+	fake.resourceVersionArgsForCall = append(fake.resourceVersionArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	fake.recordInvocation("ResourceVersion", []interface{}{arg1})
+	fake.resourceVersionMutex.Unlock()
+	if fake.ResourceVersionStub != nil {
+		return fake.ResourceVersionStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.resourceVersionReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakePipeline) ResourceVersionCallCount() int {
+	fake.resourceVersionMutex.RLock()
+	defer fake.resourceVersionMutex.RUnlock()
+	return len(fake.resourceVersionArgsForCall)
+}
+
+func (fake *FakePipeline) ResourceVersionArgsForCall(i int) int {
+	fake.resourceVersionMutex.RLock()
+	defer fake.resourceVersionMutex.RUnlock()
+	argsForCall := fake.resourceVersionArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakePipeline) ResourceVersionReturns(result1 atc.ResourceVersion, result2 bool, result3 error) {
+	fake.ResourceVersionStub = nil
+	fake.resourceVersionReturns = struct {
+		result1 atc.ResourceVersion
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePipeline) ResourceVersionReturnsOnCall(i int, result1 atc.ResourceVersion, result2 bool, result3 error) {
+	fake.ResourceVersionStub = nil
+	if fake.resourceVersionReturnsOnCall == nil {
+		fake.resourceVersionReturnsOnCall = make(map[int]struct {
+			result1 atc.ResourceVersion
+			result2 bool
+			result3 error
+		})
+	}
+	fake.resourceVersionReturnsOnCall[i] = struct {
+		result1 atc.ResourceVersion
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakePipeline) Resources() (db.Resources, error) {
@@ -2723,15 +1897,7 @@ func (fake *FakePipeline) ResourcesCallCount() int {
 	return len(fake.resourcesArgsForCall)
 }
 
-func (fake *FakePipeline) ResourcesCalls(stub func() (db.Resources, error)) {
-	fake.resourcesMutex.Lock()
-	defer fake.resourcesMutex.Unlock()
-	fake.ResourcesStub = stub
-}
-
 func (fake *FakePipeline) ResourcesReturns(result1 db.Resources, result2 error) {
-	fake.resourcesMutex.Lock()
-	defer fake.resourcesMutex.Unlock()
 	fake.ResourcesStub = nil
 	fake.resourcesReturns = struct {
 		result1 db.Resources
@@ -2740,8 +1906,6 @@ func (fake *FakePipeline) ResourcesReturns(result1 db.Resources, result2 error) 
 }
 
 func (fake *FakePipeline) ResourcesReturnsOnCall(i int, result1 db.Resources, result2 error) {
-	fake.resourcesMutex.Lock()
-	defer fake.resourcesMutex.Unlock()
 	fake.ResourcesStub = nil
 	if fake.resourcesReturnsOnCall == nil {
 		fake.resourcesReturnsOnCall = make(map[int]struct {
@@ -2753,72 +1917,6 @@ func (fake *FakePipeline) ResourcesReturnsOnCall(i int, result1 db.Resources, re
 		result1 db.Resources
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakePipeline) SaveResourceVersions(arg1 atc.ResourceConfig, arg2 []atc.Version) error {
-	var arg2Copy []atc.Version
-	if arg2 != nil {
-		arg2Copy = make([]atc.Version, len(arg2))
-		copy(arg2Copy, arg2)
-	}
-	fake.saveResourceVersionsMutex.Lock()
-	ret, specificReturn := fake.saveResourceVersionsReturnsOnCall[len(fake.saveResourceVersionsArgsForCall)]
-	fake.saveResourceVersionsArgsForCall = append(fake.saveResourceVersionsArgsForCall, struct {
-		arg1 atc.ResourceConfig
-		arg2 []atc.Version
-	}{arg1, arg2Copy})
-	fake.recordInvocation("SaveResourceVersions", []interface{}{arg1, arg2Copy})
-	fake.saveResourceVersionsMutex.Unlock()
-	if fake.SaveResourceVersionsStub != nil {
-		return fake.SaveResourceVersionsStub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.saveResourceVersionsReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakePipeline) SaveResourceVersionsCallCount() int {
-	fake.saveResourceVersionsMutex.RLock()
-	defer fake.saveResourceVersionsMutex.RUnlock()
-	return len(fake.saveResourceVersionsArgsForCall)
-}
-
-func (fake *FakePipeline) SaveResourceVersionsCalls(stub func(atc.ResourceConfig, []atc.Version) error) {
-	fake.saveResourceVersionsMutex.Lock()
-	defer fake.saveResourceVersionsMutex.Unlock()
-	fake.SaveResourceVersionsStub = stub
-}
-
-func (fake *FakePipeline) SaveResourceVersionsArgsForCall(i int) (atc.ResourceConfig, []atc.Version) {
-	fake.saveResourceVersionsMutex.RLock()
-	defer fake.saveResourceVersionsMutex.RUnlock()
-	argsForCall := fake.saveResourceVersionsArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
-}
-
-func (fake *FakePipeline) SaveResourceVersionsReturns(result1 error) {
-	fake.saveResourceVersionsMutex.Lock()
-	defer fake.saveResourceVersionsMutex.Unlock()
-	fake.SaveResourceVersionsStub = nil
-	fake.saveResourceVersionsReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakePipeline) SaveResourceVersionsReturnsOnCall(i int, result1 error) {
-	fake.saveResourceVersionsMutex.Lock()
-	defer fake.saveResourceVersionsMutex.Unlock()
-	fake.SaveResourceVersionsStub = nil
-	if fake.saveResourceVersionsReturnsOnCall == nil {
-		fake.saveResourceVersionsReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.saveResourceVersionsReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakePipeline) ScopedName(arg1 string) string {
@@ -2845,12 +1943,6 @@ func (fake *FakePipeline) ScopedNameCallCount() int {
 	return len(fake.scopedNameArgsForCall)
 }
 
-func (fake *FakePipeline) ScopedNameCalls(stub func(string) string) {
-	fake.scopedNameMutex.Lock()
-	defer fake.scopedNameMutex.Unlock()
-	fake.ScopedNameStub = stub
-}
-
 func (fake *FakePipeline) ScopedNameArgsForCall(i int) string {
 	fake.scopedNameMutex.RLock()
 	defer fake.scopedNameMutex.RUnlock()
@@ -2859,8 +1951,6 @@ func (fake *FakePipeline) ScopedNameArgsForCall(i int) string {
 }
 
 func (fake *FakePipeline) ScopedNameReturns(result1 string) {
-	fake.scopedNameMutex.Lock()
-	defer fake.scopedNameMutex.Unlock()
 	fake.ScopedNameStub = nil
 	fake.scopedNameReturns = struct {
 		result1 string
@@ -2868,8 +1958,6 @@ func (fake *FakePipeline) ScopedNameReturns(result1 string) {
 }
 
 func (fake *FakePipeline) ScopedNameReturnsOnCall(i int, result1 string) {
-	fake.scopedNameMutex.Lock()
-	defer fake.scopedNameMutex.Unlock()
 	fake.ScopedNameStub = nil
 	if fake.scopedNameReturnsOnCall == nil {
 		fake.scopedNameReturnsOnCall = make(map[int]struct {
@@ -2878,67 +1966,6 @@ func (fake *FakePipeline) ScopedNameReturnsOnCall(i int, result1 string) {
 	}
 	fake.scopedNameReturnsOnCall[i] = struct {
 		result1 string
-	}{result1}
-}
-
-func (fake *FakePipeline) SetResourceCheckError(arg1 db.Resource, arg2 error) error {
-	fake.setResourceCheckErrorMutex.Lock()
-	ret, specificReturn := fake.setResourceCheckErrorReturnsOnCall[len(fake.setResourceCheckErrorArgsForCall)]
-	fake.setResourceCheckErrorArgsForCall = append(fake.setResourceCheckErrorArgsForCall, struct {
-		arg1 db.Resource
-		arg2 error
-	}{arg1, arg2})
-	fake.recordInvocation("SetResourceCheckError", []interface{}{arg1, arg2})
-	fake.setResourceCheckErrorMutex.Unlock()
-	if fake.SetResourceCheckErrorStub != nil {
-		return fake.SetResourceCheckErrorStub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.setResourceCheckErrorReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakePipeline) SetResourceCheckErrorCallCount() int {
-	fake.setResourceCheckErrorMutex.RLock()
-	defer fake.setResourceCheckErrorMutex.RUnlock()
-	return len(fake.setResourceCheckErrorArgsForCall)
-}
-
-func (fake *FakePipeline) SetResourceCheckErrorCalls(stub func(db.Resource, error) error) {
-	fake.setResourceCheckErrorMutex.Lock()
-	defer fake.setResourceCheckErrorMutex.Unlock()
-	fake.SetResourceCheckErrorStub = stub
-}
-
-func (fake *FakePipeline) SetResourceCheckErrorArgsForCall(i int) (db.Resource, error) {
-	fake.setResourceCheckErrorMutex.RLock()
-	defer fake.setResourceCheckErrorMutex.RUnlock()
-	argsForCall := fake.setResourceCheckErrorArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
-}
-
-func (fake *FakePipeline) SetResourceCheckErrorReturns(result1 error) {
-	fake.setResourceCheckErrorMutex.Lock()
-	defer fake.setResourceCheckErrorMutex.Unlock()
-	fake.SetResourceCheckErrorStub = nil
-	fake.setResourceCheckErrorReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakePipeline) SetResourceCheckErrorReturnsOnCall(i int, result1 error) {
-	fake.setResourceCheckErrorMutex.Lock()
-	defer fake.setResourceCheckErrorMutex.Unlock()
-	fake.SetResourceCheckErrorStub = nil
-	if fake.setResourceCheckErrorReturnsOnCall == nil {
-		fake.setResourceCheckErrorReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.setResourceCheckErrorReturnsOnCall[i] = struct {
-		result1 error
 	}{result1}
 }
 
@@ -2965,15 +1992,7 @@ func (fake *FakePipeline) TeamIDCallCount() int {
 	return len(fake.teamIDArgsForCall)
 }
 
-func (fake *FakePipeline) TeamIDCalls(stub func() int) {
-	fake.teamIDMutex.Lock()
-	defer fake.teamIDMutex.Unlock()
-	fake.TeamIDStub = stub
-}
-
 func (fake *FakePipeline) TeamIDReturns(result1 int) {
-	fake.teamIDMutex.Lock()
-	defer fake.teamIDMutex.Unlock()
 	fake.TeamIDStub = nil
 	fake.teamIDReturns = struct {
 		result1 int
@@ -2981,8 +2000,6 @@ func (fake *FakePipeline) TeamIDReturns(result1 int) {
 }
 
 func (fake *FakePipeline) TeamIDReturnsOnCall(i int, result1 int) {
-	fake.teamIDMutex.Lock()
-	defer fake.teamIDMutex.Unlock()
 	fake.TeamIDStub = nil
 	if fake.teamIDReturnsOnCall == nil {
 		fake.teamIDReturnsOnCall = make(map[int]struct {
@@ -3017,15 +2034,7 @@ func (fake *FakePipeline) TeamNameCallCount() int {
 	return len(fake.teamNameArgsForCall)
 }
 
-func (fake *FakePipeline) TeamNameCalls(stub func() string) {
-	fake.teamNameMutex.Lock()
-	defer fake.teamNameMutex.Unlock()
-	fake.TeamNameStub = stub
-}
-
 func (fake *FakePipeline) TeamNameReturns(result1 string) {
-	fake.teamNameMutex.Lock()
-	defer fake.teamNameMutex.Unlock()
 	fake.TeamNameStub = nil
 	fake.teamNameReturns = struct {
 		result1 string
@@ -3033,8 +2042,6 @@ func (fake *FakePipeline) TeamNameReturns(result1 string) {
 }
 
 func (fake *FakePipeline) TeamNameReturnsOnCall(i int, result1 string) {
-	fake.teamNameMutex.Lock()
-	defer fake.teamNameMutex.Unlock()
 	fake.TeamNameStub = nil
 	if fake.teamNameReturnsOnCall == nil {
 		fake.teamNameReturnsOnCall = make(map[int]struct {
@@ -3069,15 +2076,7 @@ func (fake *FakePipeline) UnpauseCallCount() int {
 	return len(fake.unpauseArgsForCall)
 }
 
-func (fake *FakePipeline) UnpauseCalls(stub func() error) {
-	fake.unpauseMutex.Lock()
-	defer fake.unpauseMutex.Unlock()
-	fake.UnpauseStub = stub
-}
-
 func (fake *FakePipeline) UnpauseReturns(result1 error) {
-	fake.unpauseMutex.Lock()
-	defer fake.unpauseMutex.Unlock()
 	fake.UnpauseStub = nil
 	fake.unpauseReturns = struct {
 		result1 error
@@ -3085,8 +2084,6 @@ func (fake *FakePipeline) UnpauseReturns(result1 error) {
 }
 
 func (fake *FakePipeline) UnpauseReturnsOnCall(i int, result1 error) {
-	fake.unpauseMutex.Lock()
-	defer fake.unpauseMutex.Unlock()
 	fake.UnpauseStub = nil
 	if fake.unpauseReturnsOnCall == nil {
 		fake.unpauseReturnsOnCall = make(map[int]struct {
@@ -3098,79 +2095,9 @@ func (fake *FakePipeline) UnpauseReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakePipeline) VersionedResource(arg1 int) (db.SavedVersionedResource, bool, error) {
-	fake.versionedResourceMutex.Lock()
-	ret, specificReturn := fake.versionedResourceReturnsOnCall[len(fake.versionedResourceArgsForCall)]
-	fake.versionedResourceArgsForCall = append(fake.versionedResourceArgsForCall, struct {
-		arg1 int
-	}{arg1})
-	fake.recordInvocation("VersionedResource", []interface{}{arg1})
-	fake.versionedResourceMutex.Unlock()
-	if fake.VersionedResourceStub != nil {
-		return fake.VersionedResourceStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	fakeReturns := fake.versionedResourceReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
-}
-
-func (fake *FakePipeline) VersionedResourceCallCount() int {
-	fake.versionedResourceMutex.RLock()
-	defer fake.versionedResourceMutex.RUnlock()
-	return len(fake.versionedResourceArgsForCall)
-}
-
-func (fake *FakePipeline) VersionedResourceCalls(stub func(int) (db.SavedVersionedResource, bool, error)) {
-	fake.versionedResourceMutex.Lock()
-	defer fake.versionedResourceMutex.Unlock()
-	fake.VersionedResourceStub = stub
-}
-
-func (fake *FakePipeline) VersionedResourceArgsForCall(i int) int {
-	fake.versionedResourceMutex.RLock()
-	defer fake.versionedResourceMutex.RUnlock()
-	argsForCall := fake.versionedResourceArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakePipeline) VersionedResourceReturns(result1 db.SavedVersionedResource, result2 bool, result3 error) {
-	fake.versionedResourceMutex.Lock()
-	defer fake.versionedResourceMutex.Unlock()
-	fake.VersionedResourceStub = nil
-	fake.versionedResourceReturns = struct {
-		result1 db.SavedVersionedResource
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakePipeline) VersionedResourceReturnsOnCall(i int, result1 db.SavedVersionedResource, result2 bool, result3 error) {
-	fake.versionedResourceMutex.Lock()
-	defer fake.versionedResourceMutex.Unlock()
-	fake.VersionedResourceStub = nil
-	if fake.versionedResourceReturnsOnCall == nil {
-		fake.versionedResourceReturnsOnCall = make(map[int]struct {
-			result1 db.SavedVersionedResource
-			result2 bool
-			result3 error
-		})
-	}
-	fake.versionedResourceReturnsOnCall[i] = struct {
-		result1 db.SavedVersionedResource
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.acquireResourceCheckingLockWithIntervalCheckMutex.RLock()
-	defer fake.acquireResourceCheckingLockWithIntervalCheckMutex.RUnlock()
-	fake.acquireResourceTypeCheckingLockWithIntervalCheckMutex.RLock()
-	defer fake.acquireResourceTypeCheckingLockWithIntervalCheckMutex.RUnlock()
 	fake.acquireSchedulingLockMutex.RLock()
 	defer fake.acquireSchedulingLockMutex.RUnlock()
 	fake.buildsMutex.RLock()
@@ -3191,10 +2118,6 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.deleteBuildEventsByBuildIDsMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
-	fake.disableVersionedResourceMutex.RLock()
-	defer fake.disableVersionedResourceMutex.RUnlock()
-	fake.enableVersionedResourceMutex.RLock()
-	defer fake.enableVersionedResourceMutex.RUnlock()
 	fake.exposeMutex.RLock()
 	defer fake.exposeMutex.RUnlock()
 	fake.getAllPendingBuildsMutex.RLock()
@@ -3203,12 +2126,6 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.getBuildsWithVersionAsInputMutex.RUnlock()
 	fake.getBuildsWithVersionAsOutputMutex.RLock()
 	defer fake.getBuildsWithVersionAsOutputMutex.RUnlock()
-	fake.getLatestVersionedResourceMutex.RLock()
-	defer fake.getLatestVersionedResourceMutex.RUnlock()
-	fake.getResourceVersionsMutex.RLock()
-	defer fake.getResourceVersionsMutex.RUnlock()
-	fake.getVersionedResourceByVersionMutex.RLock()
-	defer fake.getVersionedResourceByVersionMutex.RUnlock()
 	fake.groupsMutex.RLock()
 	defer fake.groupsMutex.RUnlock()
 	fake.hideMutex.RLock()
@@ -3239,22 +2156,18 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.resourceTypeMutex.RUnlock()
 	fake.resourceTypesMutex.RLock()
 	defer fake.resourceTypesMutex.RUnlock()
+	fake.resourceVersionMutex.RLock()
+	defer fake.resourceVersionMutex.RUnlock()
 	fake.resourcesMutex.RLock()
 	defer fake.resourcesMutex.RUnlock()
-	fake.saveResourceVersionsMutex.RLock()
-	defer fake.saveResourceVersionsMutex.RUnlock()
 	fake.scopedNameMutex.RLock()
 	defer fake.scopedNameMutex.RUnlock()
-	fake.setResourceCheckErrorMutex.RLock()
-	defer fake.setResourceCheckErrorMutex.RUnlock()
 	fake.teamIDMutex.RLock()
 	defer fake.teamIDMutex.RUnlock()
 	fake.teamNameMutex.RLock()
 	defer fake.teamNameMutex.RUnlock()
 	fake.unpauseMutex.RLock()
 	defer fake.unpauseMutex.RUnlock()
-	fake.versionedResourceMutex.RLock()
-	defer fake.versionedResourceMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

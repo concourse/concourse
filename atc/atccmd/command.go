@@ -522,7 +522,8 @@ func (cmd *RunCommand) constructAPIMembers(
 	if err != nil {
 		return nil, err
 	}
-	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, variablesFactory, defaultLimits)
+
+	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits)
 
 	dbResourceConfigCheckSessionFactory := db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
@@ -564,6 +565,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		dbContainerRepository,
 		gcContainerDestroyer,
 		dbBuildFactory,
+		dbResourceConfigFactory,
 		engine,
 		workerClient,
 		workerProvider,
@@ -718,7 +720,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	if err != nil {
 		return nil, err
 	}
-	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, variablesFactory, defaultLimits)
+	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits)
 
 	dbResourceConfigCheckSessionFactory := db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
@@ -1177,7 +1179,8 @@ func (cmd *RunCommand) constructEngine(
 	workerClient worker.Client,
 	resourceFetcher resource.Fetcher,
 	resourceFactory resource.ResourceFactory,
-	dbResourceCacheFactory db.ResourceCacheFactory,
+	resourceCacheFactory db.ResourceCacheFactory,
+	resourceConfigFactory db.ResourceConfigFactory,
 	variablesFactory creds.VariablesFactory,
 	defaultLimits atc.ContainerLimits,
 ) engine.Engine {
@@ -1185,7 +1188,8 @@ func (cmd *RunCommand) constructEngine(
 		workerClient,
 		resourceFetcher,
 		resourceFactory,
-		dbResourceCacheFactory,
+		resourceCacheFactory,
+		resourceConfigFactory,
 		variablesFactory,
 		defaultLimits,
 	)
@@ -1244,6 +1248,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	dbContainerRepository db.ContainerRepository,
 	gcContainerDestroyer gc.Destroyer,
 	dbBuildFactory db.BuildFactory,
+	resourceConfigFactory db.ResourceConfigFactory,
 	engine engine.Engine,
 	workerClient worker.Client,
 	workerProvider worker.WorkerProvider,
@@ -1286,6 +1291,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		dbContainerRepository,
 		gcContainerDestroyer,
 		dbBuildFactory,
+		resourceConfigFactory,
 
 		cmd.PeerURLOrDefault().String(),
 		buildserver.NewEventHandler,

@@ -18,7 +18,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/nu7hatch/gouuid"
+	uuid "github.com/nu7hatch/gouuid"
 	"github.com/onsi/gomega/gexec"
 	"golang.org/x/oauth2"
 )
@@ -45,9 +45,6 @@ var (
 		ATCUsername: "test",
 		ATCPassword: "test",
 	}
-
-	client concourse.Client
-	team   concourse.Team
 
 	pipelineName string
 	tmp          string
@@ -108,9 +105,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 }, func(data []byte) {
 	err := json.Unmarshal(data, &config)
 	Expect(err).ToNot(HaveOccurred())
-
-	client = concourseClient()
-	team = client.Team(teamName)
 })
 
 var _ = SynchronizedAfterSuite(func() {

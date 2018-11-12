@@ -182,7 +182,7 @@ func (action *TaskStep) Run(ctx context.Context, state RunState) error {
 		ctx,
 		logger,
 		action.delegate,
-		db.NewBuildStepContainerOwner(action.buildID, action.planID),
+		db.NewBuildStepContainerOwner(action.buildID, action.planID, action.teamID),
 		action.containerMetadata,
 		containerSpec,
 		action.resourceTypes,

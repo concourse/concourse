@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
+	"fmt"
 	"io"
 
 	"code.cloudfoundry.org/lager"
@@ -14,6 +15,15 @@ import (
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
+
+type ErrResourceConfigVersionNotFound struct {
+	ResourceName string
+	Version      atc.Version
+}
+
+func (e ErrResourceConfigVersionNotFound) Error() string {
+	return fmt.Sprintf("resource '%s' version '%v' not found", e.ResourceName, e.Version)
+}
 
 //go:generate counterfeiter . GetDelegate
 
@@ -161,7 +171,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		params,
 		step.resourceTypes,
 		resourceCache,
-		db.NewBuildStepContainerOwner(step.buildID, step.planID),
+		db.NewBuildStepContainerOwner(step.buildID, step.planID, step.teamID),
 	)
 
 	versionedSource, err := step.resourceFetcher.Fetch(
@@ -194,18 +204,13 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	})
 
 	if step.resource != "" {
-		err := step.build.SaveInput(db.BuildInput{
-			Name: step.name,
-			VersionedResource: db.VersionedResource{
-				Resource: step.resource,
-				Type:     step.resourceType,
-				Version:  db.ResourceVersion(versionedSource.Version()),
-				Metadata: db.NewResourceMetadataFields(versionedSource.Metadata()),
-			},
-		})
+		// Find or Save* the version used in the get step, and update the Metadata
+		// *saving will occur when the resource's config has changed, but it hasn't
+		// checked yet, so the resource config versions don't exist
+		_, err := resourceCache.ResourceConfig().SaveUncheckedVersion(versionedSource.Version(), db.NewResourceConfigMetadataFields(versionedSource.Metadata()))
 		if err != nil {
-			logger.Error("failed-to-save-input", err)
-			return nil
+			logger.Error("failed-to-save-resource-config-version", err, lager.Data{"name": step.name, "resource": step.resource, "version": versionedSource.Version()})
+			return err
 		}
 	}
 

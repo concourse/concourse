@@ -38,7 +38,7 @@ var _ = Describe("ResourceInstance", func() {
 			atc.Params{"some": "params"},
 			creds.VersionedResourceTypes{},
 			fakeResourceCache,
-			db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id")),
+			db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1),
 		)
 	})
 

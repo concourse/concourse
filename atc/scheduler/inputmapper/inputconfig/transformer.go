@@ -30,7 +30,7 @@ func (i *transformer) TransformInputConfigs(db *algorithm.VersionsDB, jobName st
 
 		pinnedVersionID := 0
 		if input.Version.Pinned != nil {
-			savedVersion, found, err := i.pipeline.GetVersionedResourceByVersion(input.Version.Pinned, input.Resource)
+			resource, found, err := i.pipeline.Resource(input.Resource)
 			if err != nil {
 				return nil, err
 			}
@@ -39,7 +39,16 @@ func (i *transformer) TransformInputConfigs(db *algorithm.VersionsDB, jobName st
 				continue
 			}
 
-			pinnedVersionID = savedVersion.ID
+			id, found, err := resource.ResourceConfigVersionID(input.Version.Pinned)
+			if err != nil {
+				return nil, err
+			}
+
+			if !found {
+				continue
+			}
+
+			pinnedVersionID = id
 		}
 
 		jobs := algorithm.JobSet{}

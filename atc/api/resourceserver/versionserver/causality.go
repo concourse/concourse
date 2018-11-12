@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
+// IMPORTANT: This is not yet tested because it is not being used
 func (s *Server) GetCausality(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		versionID, err := strconv.Atoi(r.FormValue(":resource_version_id"))

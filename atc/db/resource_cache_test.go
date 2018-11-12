@@ -119,9 +119,8 @@ var _ = Describe("ResourceCache", func() {
 			build, err := defaultTeam.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			container, err = defaultTeam.CreateContainer(
-				worker.Name(),
-				db.NewBuildStepContainerOwner(build.ID(), "some-plan"),
+			container, err = worker.CreateContainer(
+				db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()),
 				db.ContainerMetadata{},
 			)
 			Expect(err).ToNot(HaveOccurred())

@@ -15,29 +15,32 @@ import (
 )
 
 type gardenFactory struct {
-	workerClient           worker.Client
-	resourceFetcher        resource.Fetcher
-	resourceFactory        resource.ResourceFactory
-	dbResourceCacheFactory db.ResourceCacheFactory
-	variablesFactory       creds.VariablesFactory
-	defaultLimits          atc.ContainerLimits
+	workerClient          worker.Client
+	resourceFetcher       resource.Fetcher
+	resourceFactory       resource.ResourceFactory
+	resourceCacheFactory  db.ResourceCacheFactory
+	resourceConfigFactory db.ResourceConfigFactory
+	variablesFactory      creds.VariablesFactory
+	defaultLimits         atc.ContainerLimits
 }
 
 func NewGardenFactory(
 	workerClient worker.Client,
 	resourceFetcher resource.Fetcher,
 	resourceFactory resource.ResourceFactory,
-	dbResourceCacheFactory db.ResourceCacheFactory,
+	resourceCacheFactory db.ResourceCacheFactory,
+	resourceConfigFactory db.ResourceConfigFactory,
 	variablesFactory creds.VariablesFactory,
 	defaultLimits atc.ContainerLimits,
 ) Factory {
 	return &gardenFactory{
-		workerClient:           workerClient,
-		resourceFetcher:        resourceFetcher,
-		resourceFactory:        resourceFactory,
-		dbResourceCacheFactory: dbResourceCacheFactory,
-		variablesFactory:       variablesFactory,
-		defaultLimits:          defaultLimits,
+		workerClient:          workerClient,
+		resourceFetcher:       resourceFetcher,
+		resourceFactory:       resourceFactory,
+		resourceCacheFactory:  resourceCacheFactory,
+		resourceConfigFactory: resourceConfigFactory,
+		variablesFactory:      variablesFactory,
+		defaultLimits:         defaultLimits,
 	}
 }
 
@@ -70,7 +73,7 @@ func (factory *gardenFactory) Get(
 		build.ID(),
 		plan.ID,
 		workerMetadata,
-		factory.dbResourceCacheFactory,
+		factory.resourceCacheFactory,
 		stepMetadata,
 
 		creds.NewVersionedResourceTypes(variables, plan.Get.VersionedResourceTypes),
@@ -103,6 +106,7 @@ func (factory *gardenFactory) Put(
 
 		delegate,
 		factory.resourceFactory,
+		factory.resourceConfigFactory,
 		plan.ID,
 		workerMetadata,
 		stepMetadata,
