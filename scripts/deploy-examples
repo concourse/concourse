@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 EXAMPLE_PATHS=$(ls ${DIR}/../lit/examples/*.lit)
@@ -10,9 +12,8 @@ do
   tmp_path="/tmp/${name}"
   awk '/{{{/{flag=1;next}/}}}/{flag=0}flag' ${path} > $tmp_path
 
-  cat $tmp_path
-  echo "====================="
+  echo "Setting ${name} example..."
 
-  fly -t prod sp -p ${name} -c ${tmp_path}
+  fly -t prod sp -n -p ${name} -c ${tmp_path}
   fly -t prod up -p ${name}
 done

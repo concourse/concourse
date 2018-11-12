@@ -22,9 +22,9 @@ jobs:
         platform: linux
         run:
           path: sh
-          args:.
+          args:
             - -exc
-            - ls -la; echo "Created a file on $(date)" > ./files/created_file;
+            - ls -la; echo "Created a file on $(date)" > ./files/created_file
         outputs:
           - name: files
     - task: consume-the-file
@@ -34,7 +34,7 @@ jobs:
           - name: files
         run:
           path: cat
-          args:.
+          args:
             - ./files/created_file
   }}}
 }
