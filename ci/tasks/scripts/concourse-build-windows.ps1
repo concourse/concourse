@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 trap { $host.SetShouldExit(1) }
 
-$env:Path += ";C:\Go\bin;C:\Program Files\Git\cmd;C:\tools\mingw64\bin"
+$env:Path += ";C:\Go\bin;C:\Program Files\Git\cmd;C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin"
 
 $env:GOPATH = "$pwd\gopath"
 $env:Path += ";$pwd\gopath\bin"
