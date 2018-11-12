@@ -50,8 +50,8 @@ Push-Location concourse-windows
     -LiteralPath .\concourse `
     -DestinationPath ".\concourse-${version}-windows-amd64.zip"
 
-  Get-FileHash -Algorithm SHA1 -LiteralPath .\concourse-windows-amd64.zip | `
-    Out-File -Encoding utf8 .\concourse-windows-amd64.zip.sha1
+  Get-FileHash -Algorithm SHA1 ".\concourse-${version}-windows-amd64.zip" | `
+    Out-File -Encoding utf8 ".\concourse-${version}-windows-amd64.zip.sha1"
 
   Remove-Item .\concourse -Recurse
 Pop-Location
