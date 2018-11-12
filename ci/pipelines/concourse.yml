@@ -581,7 +581,7 @@ jobs:
         untrusted_worker_deny_networks: [10.0.0.0/16]
         untrusted_worker_tags: [pr]
         windows_worker_tsa_host: ci.concourse-ci.org:2222
-        windows_worker_os: windows1803
+        windows_worker_os: windows2016
         windows_worker_vm_type: worker
         windows_worker_network_name: windows
         syslog_address: logs2.papertrailapp.com
@@ -828,7 +828,7 @@ resources:
 - name: gcp-windows-stemcell
   type: bosh-io-stemcell
   source:
-    name: bosh-google-kvm-windows1803-go_agent
+    name: bosh-google-kvm-windows2016-go_agent
 
 - name: cbd
   type: git
