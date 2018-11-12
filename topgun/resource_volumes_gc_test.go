@@ -19,19 +19,19 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 
 		It("has its resource cache, resource cache uses and resource cache volumes cleared out", func() {
 			By("setting pipeline that creates resource cache")
-			fly("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
+			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
 
 			By("unpausing the pipeline")
-			fly("unpause-pipeline", "-p", "volume-gc-test")
+			fly.Run("unpause-pipeline", "-p", "volume-gc-test")
 
 			By("triggering the job")
-			fly("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
+			fly.Run("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
 
 			By("getting the resource cache volumes")
 			Expect(volumesByResourceType("time")).To(HaveLen(1))
 
 			By("updating pipeline and removing resource")
-			fly("set-pipeline", "-n", "-c", "pipelines/task-waiting.yml", "-p", "volume-gc-test")
+			fly.Run("set-pipeline", "-n", "-c", "pipelines/task-waiting.yml", "-p", "volume-gc-test")
 
 			By("eventually expiring the resource cache volumes")
 			Eventually(func() int {
@@ -47,13 +47,13 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 
 		It("has its resource cache, resource cache uses and resource cache volumes cleared out", func() {
 			By("setting pipeline that creates resource cache")
-			fly("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "volume-gc-test")
+			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "volume-gc-test")
 
 			By("unpausing the pipeline")
-			fly("unpause-pipeline", "-p", "volume-gc-test")
+			fly.Run("unpause-pipeline", "-p", "volume-gc-test")
 
 			By("triggering the job")
-			fly("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
+			fly.Run("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
 
 			By("getting the resource cache volumes")
 			volumes := flyTable("volumes")
@@ -66,7 +66,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 			Expect(originalResourceVolumeHandles).To(HaveLen(1))
 
 			By("updating pipeline and removing resource")
-			fly("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
+			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
 
 			By("eventually expiring the resource cache volumes")
 			Eventually(func() []string {
@@ -82,13 +82,13 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 
 		It("has its resource cache, resource cache uses and resource cache volumes cleared out", func() {
 			By("setting pipeline that creates resource cache")
-			fly("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
+			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
 
 			By("unpausing the pipeline")
-			fly("unpause-pipeline", "-p", "volume-gc-test")
+			fly.Run("unpause-pipeline", "-p", "volume-gc-test")
 
 			By("triggering the job")
-			fly("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
+			fly.Run("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
 
 			By("getting the resource cache volumes")
 			volumes := flyTable("volumes")
@@ -101,7 +101,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 			Expect(resourceVolumeHandles).To(HaveLen(1))
 
 			By("pausing the pipeline")
-			fly("pause-pipeline", "-p", "volume-gc-test")
+			fly.Run("pause-pipeline", "-p", "volume-gc-test")
 
 			By("eventually expiring the resource cache volumes")
 			Eventually(func() int {
@@ -136,13 +136,13 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 			gitRepo.CommitAndPush()
 
 			By("setting pipeline that creates resource cache")
-			fly("set-pipeline", "-n", "-c", "pipelines/get-git-resource.yml", "-p", "volume-gc-test", "-v", "some-repo-uri="+gitRepoURI)
+			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-git-resource.yml", "-p", "volume-gc-test", "-v", "some-repo-uri="+gitRepoURI)
 
 			By("unpausing the pipeline")
-			fly("unpause-pipeline", "-p", "volume-gc-test")
+			fly.Run("unpause-pipeline", "-p", "volume-gc-test")
 
 			By("triggering the job")
-			fly("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
+			fly.Run("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
 
 			By("getting the resource cache volumes")
 			volumes := flyTable("volumes")
@@ -158,7 +158,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 			gitRepo.CommitAndPush()
 
 			By("triggering the job")
-			fly("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
+			fly.Run("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
 
 			By("eventually expiring the resource cache volume")
 			Eventually(func() []string {
@@ -200,13 +200,13 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 			gitRepo.CommitAndPush()
 
 			By("setting pipeline that creates resource cache")
-			fly("set-pipeline", "-n", "-c", "pipelines/get-git-resource-and-wait.yml", "-p", "volume-gc-test", "-v", "some-repo-uri="+gitRepoURI)
+			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-git-resource-and-Wait.yml", "-p", "volume-gc-test", "-v", "some-repo-uri="+gitRepoURI)
 
 			By("unpausing the pipeline")
-			fly("unpause-pipeline", "-p", "volume-gc-test")
+			fly.Run("unpause-pipeline", "-p", "volume-gc-test")
 
 			By("triggering the job")
-			watchSession := spawnFly("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
+			watchSession := fly.Start("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
 			Eventually(watchSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 			By("getting the resource cache volumes")
@@ -223,7 +223,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 			gitRepo.CommitAndPush()
 
 			By("detecting the new version")
-			fly("check-resource", "-r", "volume-gc-test/some-repo")
+			fly.Run("check-resource", "-r", "volume-gc-test/some-repo")
 
 			By("not expiring the resource cache volume for the ongoing build")
 			Consistently(func() []string {
@@ -238,7 +238,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 			}).Should(ContainElement(originalResourceVolumeHandles[0]))
 
 			By("hijacking the build to tell it to finish")
-			fly(
+			fly.Run(
 				"hijack",
 				"-j", "volume-gc-test/simple-job",
 				"-s", "wait",

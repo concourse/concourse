@@ -1,9 +1,7 @@
-trap {
-  write-error $_
-  exit 1
-}
+$ErrorActionPreference = "Stop"
+trap { $host.SetShouldExit(1) }
 
-$env:Path += ";C:\Go\bin;C:\Program Files\Git\cmd;C:\tools\mingw64\bin"
+$env:Path += ";C:\Go\bin;C:\Program Files\Git\cmd;C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin"
 
 $env:GOPATH = "$pwd\gopath"
 $env:Path += ";$pwd\gopath\bin"
@@ -52,8 +50,8 @@ Push-Location concourse-windows
     -LiteralPath .\concourse `
     -DestinationPath ".\concourse-${version}-windows-amd64.zip"
 
-  Get-FileHash -Algorithm SHA1 -LiteralPath .\concourse-windows-amd64.zip | `
-    Out-File -Encoding utf8 .\concourse-windows-amd64.zip.sha1
+  Get-FileHash -Algorithm SHA1 ".\concourse-${version}-windows-amd64.zip" | `
+    Out-File -Encoding utf8 ".\concourse-${version}-windows-amd64.zip.sha1"
 
   Remove-Item .\concourse -Recurse
 Pop-Location

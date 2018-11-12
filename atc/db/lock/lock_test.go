@@ -84,8 +84,7 @@ var _ = Describe("Locks", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		if dbLock != nil {
-			err = dbLock.Release()
-			Expect(err).NotTo(HaveOccurred())
+			_ = dbLock.Release()
 		}
 	})
 

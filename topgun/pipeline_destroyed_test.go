@@ -16,11 +16,11 @@ var _ = Describe("Garbage collecting containers for destroyed pipelines", func()
 
 	It("should be removed", func() {
 		By("setting a pipeline")
-		fly("set-pipeline", "-n", "-c", "pipelines/get-task-put.yml", "-p", "pipeline-destroyed-test")
+		fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-put.yml", "-p", "pipeline-destroyed-test")
 
 		By("kicking off a build")
-		fly("unpause-pipeline", "-p", "pipeline-destroyed-test")
-		buildSession := spawnFly("trigger-job", "-w", "-j", "pipeline-destroyed-test/simple-job")
+		fly.Run("unpause-pipeline", "-p", "pipeline-destroyed-test")
+		buildSession := fly.Start("trigger-job", "-w", "-j", "pipeline-destroyed-test/simple-job")
 
 		<-buildSession.Exited
 		Expect(buildSession.ExitCode()).To(Equal(0))
@@ -38,7 +38,7 @@ var _ = Describe("Garbage collecting containers for destroyed pipelines", func()
 		}
 
 		By("destroying the pipeline")
-		fly("destroy-pipeline", "-n", "-p", "pipeline-destroyed-test")
+		fly.Run("destroy-pipeline", "-n", "-p", "pipeline-destroyed-test")
 
 		By("verifying the containers don't exist")
 		Eventually(func() int {

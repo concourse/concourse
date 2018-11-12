@@ -17,7 +17,7 @@ var _ = Describe("A build using an image_resource", func() {
 	Describe("one-off builds", func() {
 		It("does not garbage-collect the image immediately", func() {
 			By("running a task with an image_resource")
-			fly("execute", "-c", "tasks/tiny.yml")
+			fly.Run("execute", "-c", "tasks/tiny.yml")
 
 			By("verifying that the image cache sticks around")
 			Consistently(func() []string {
@@ -38,13 +38,13 @@ var _ = Describe("A build using an image_resource", func() {
 	Describe("pipeline builds", func() {
 		It("keeps images for the latest build", func() {
 			By("setting a pipeline that uses image A")
-			fly("set-pipeline", "-n", "-c", "pipelines/build-image-gc-part-1.yml", "-p", "test")
+			fly.Run("set-pipeline", "-n", "-c", "pipelines/build-image-gc-part-1.yml", "-p", "test")
 
 			By("unpausing the pipeline")
-			fly("unpause-pipeline", "-p", "test")
+			fly.Run("unpause-pipeline", "-p", "test")
 
 			By("triggering a build that waits")
-			watchSession := spawnFly("trigger-job", "-w", "-j", "test/some-job")
+			watchSession := fly.Start("trigger-job", "-w", "-j", "test/some-job")
 			Eventually(watchSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 			By("getting the resource cache volumes")
@@ -58,10 +58,10 @@ var _ = Describe("A build using an image_resource", func() {
 			Expect(originalResourceVolumeHandles).To(HaveLen(1))
 
 			By("setting a pipeline that uses image B")
-			fly("set-pipeline", "-n", "-c", "pipelines/build-image-gc-part-2.yml", "-p", "test")
+			fly.Run("set-pipeline", "-n", "-c", "pipelines/build-image-gc-part-2.yml", "-p", "test")
 
 			By("triggering a build that succeeds")
-			fly("trigger-job", "-w", "-j", "test/some-job")
+			fly.Run("trigger-job", "-w", "-j", "test/some-job")
 
 			By("verifying that both image caches stick around")
 			Consistently(func() []string {
@@ -77,11 +77,11 @@ var _ = Describe("A build using an image_resource", func() {
 			}, time.Minute).Should(HaveLen(2))
 
 			By("hijacking the previous build to tell it to finish")
-			hijackSession := spawnFly(
+			hijackSession := fly.Start(
 				"hijack",
 				"-j", "test/some-job",
 				"-b", "1",
-				"-s", "wait",
+				"-s", "Wait",
 				"touch", "/tmp/stop-waiting",
 			)
 			<-hijackSession.Exited

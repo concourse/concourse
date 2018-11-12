@@ -15,15 +15,15 @@ var _ = Describe("Resource checking", func() {
 	Context("with tags on the resource", func() {
 		BeforeEach(func() {
 			By("setting a pipeline that has a tagged resource")
-			fly("set-pipeline", "-n", "-c", "pipelines/tagged-resource.yml", "-p", "tagged-resource")
+			fly.Run("set-pipeline", "-n", "-c", "pipelines/tagged-resource.yml", "-p", "tagged-resource")
 
 			By("unpausing the pipeline pipeline")
-			fly("unpause-pipeline", "-p", "tagged-resource")
+			fly.Run("unpause-pipeline", "-p", "tagged-resource")
 		})
 
 		It("places the checking container on the tagged worker", func() {
 			By("running the check")
-			fly("check-resource", "-r", "tagged-resource/some-resource")
+			fly.Run("check-resource", "-r", "tagged-resource/some-resource")
 
 			By("getting the worker name")
 			workersTable := flyTable("workers")

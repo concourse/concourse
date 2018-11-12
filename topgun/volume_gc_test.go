@@ -18,7 +18,7 @@ var _ = Describe("Garbage-collecting volumes", func() {
 	Describe("A volume that belonged to a container that is now gone", func() {
 		It("is removed from the database and worker [#129726011]", func() {
 			By("running a task with container having a rootfs, input, and output volume")
-			fly("execute", "-c", "tasks/input-output.yml", "-i", "some-input=./tasks")
+			fly.Run("execute", "-c", "tasks/input-output.yml", "-i", "some-input=./tasks")
 
 			By("collecting the build containers")
 			rows, err := psql.Select("id, handle").From("containers").Where(sq.Eq{"build_id": 1}).RunWith(dbConn).Query()
@@ -109,13 +109,13 @@ var _ = Describe("Garbage-collecting volumes", func() {
 	Describe("A volume that belonged to a resource cache that is no longer in use", func() {
 		It("is removed from the database and worker [#129726933]", func() {
 			By("setting pipeline that creates resource cache")
-			fly("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
+			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
 
 			By("unpausing the pipeline")
-			fly("unpause-pipeline", "-p", "volume-gc-test")
+			fly.Run("unpause-pipeline", "-p", "volume-gc-test")
 
 			By("triggering job")
-			fly("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
+			fly.Run("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
 
 			By("getting resource cache")
 			var resourceCacheID int
@@ -141,7 +141,7 @@ var _ = Describe("Garbage-collecting volumes", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("creating a new version of resource")
-			fly("check-resource", "-r", "volume-gc-test/tick-tock")
+			fly.Run("check-resource", "-r", "volume-gc-test/tick-tock")
 
 			By(fmt.Sprintf("eventually expiring the resource cache: %d", resourceCacheID))
 			Eventually(func() int {
