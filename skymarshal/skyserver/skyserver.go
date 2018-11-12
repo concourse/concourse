@@ -133,7 +133,7 @@ func (self *skyServer) NewLogin(w http.ResponseWriter, r *http.Request) {
 		Name:     stateCookieName,
 		Value:    stateToken,
 		Path:     "/",
-		Expires:  time.Now().Add(time.Minute),
+		Expires:  time.Now().Add(time.Hour),
 		Secure:   self.config.SecureCookies,
 		HttpOnly: true,
 	})
