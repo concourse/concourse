@@ -52,12 +52,13 @@ var _ = Describe("V1.0 Renderer", func() {
 	Context("when a Log event is received", func() {
 		BeforeEach(func() {
 			receivedEvents <- event.Log{
+				Time: time.Now().Unix(),
 				Payload: "hello",
 			}
 		})
 
-		It("prints its payload", func() {
-			Expect(out).To(gbytes.Say("hello"))
+		It("prints its payload with timestamp", func() {
+			Expect(out).To(gbytes.Say(`\d{2}\:\d{2}\:\d{2}\s{2}hello`))
 		})
 	})
 
@@ -78,7 +79,8 @@ var _ = Describe("V1.0 Renderer", func() {
 			receivedEvents <- event.InitializeTask{}
 		})
 
-		It("prints initializing", func() {
+		It("prints initializing with timestamp", func() {
+			Expect(out).To(gbytes.Say(`\d{2}\:\d{2}\:\d{2}\s{2}\w*`))
 			Expect(out.Contents()).To(ContainSubstring("\x1b[1minitializing\x1b[0m\n"))
 		})
 	})
@@ -97,7 +99,8 @@ var _ = Describe("V1.0 Renderer", func() {
 			}
 		})
 
-		It("prints the build's run script", func() {
+		It("prints the build's run script with timestamp", func() {
+			Expect(out).To(gbytes.Say(`\d{2}\:\d{2}\:\d{2}\s{2}\w*`))
 			Expect(out.Contents()).To(ContainSubstring("\x1b[1mrunning /some/script arg1 arg2\x1b[0m\n"))
 		})
 	})
@@ -142,6 +145,10 @@ var _ = Describe("V1.0 Renderer", func() {
 				Expect(out.Contents()).To(ContainSubstring(ui.SucceededColor.SprintFunc()("succeeded") + "\n"))
 			})
 
+			It("prints it with a timestamp", func() {
+				Expect(out).To(gbytes.Say(`\d{2}\:\d{2}\:\d{2}\s{2}\w*`))
+			})
+
 			It("exits 0", func() {
 				Expect(exitStatus).To(Equal(0))
 			})
@@ -156,6 +163,10 @@ var _ = Describe("V1.0 Renderer", func() {
 
 			It("prints it in red", func() {
 				Expect(out.Contents()).To(ContainSubstring(ui.FailedColor.SprintFunc()("failed") + "\n"))
+			})
+
+			It("prints it with a timestamp", func() {
+				Expect(out).To(gbytes.Say(`\d{2}\:\d{2}\:\d{2}\s{2}\w*`))
 			})
 
 			It("exits 1", func() {
@@ -174,6 +185,10 @@ var _ = Describe("V1.0 Renderer", func() {
 				Expect(out.Contents()).To(ContainSubstring(ui.ErroredColor.SprintFunc()("errored") + "\n"))
 			})
 
+			It("prints it with a timestamp", func() {
+				Expect(out).To(gbytes.Say(`\d{2}\:\d{2}\:\d{2}\s{2}\w*`))
+			})
+
 			It("exits 2", func() {
 				Expect(exitStatus).To(Equal(2))
 			})
@@ -188,6 +203,10 @@ var _ = Describe("V1.0 Renderer", func() {
 
 			It("prints it in yellow", func() {
 				Expect(out.Contents()).To(ContainSubstring(ui.AbortedColor.SprintFunc()("aborted") + "\n"))
+			})
+
+			It("prints it with a timestamp", func() {
+				Expect(out).To(gbytes.Say(`\d{2}\:\d{2}\:\d{2}\s{2}\w*`))
 			})
 
 			It("exits 3", func() {

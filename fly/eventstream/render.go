@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/fly/ui"
@@ -27,19 +28,19 @@ func Render(dst io.Writer, src eventstream.EventStream) int {
 
 		switch e := ev.(type) {
 		case event.Log:
-			fmt.Fprintf(dst, "%s", e.Payload)
+			fmt.Fprintf(dst, "%s  %s", unixTimeAsString(e.Time), e.Payload)
 
 		case event.LogV50:
 			fmt.Fprintf(dst, "%s", e.Payload)
 
 		case event.InitializeTask:
-			fmt.Fprintf(dst, "\x1b[1minitializing\x1b[0m\n")
+			fmt.Fprintf(dst, "%s  \x1b[1minitializing\x1b[0m\n", unixTimeAsString(e.Time))
 
 		case event.StartTask:
 			buildConfig := e.TaskConfig
 
 			argv := strings.Join(append([]string{buildConfig.Run.Path}, buildConfig.Run.Args...), " ")
-			fmt.Fprintf(dst, "\x1b[1mrunning %s\x1b[0m\n", argv)
+			fmt.Fprintf(dst, "%s  \x1b[1mrunning %s\x1b[0m\n", unixTimeAsString(e.Time), argv)
 
 		case event.FinishTask:
 			exitStatus = e.ExitStatus
@@ -75,14 +76,19 @@ func Render(dst io.Writer, src eventstream.EventStream) int {
 					exitStatus = 3
 				}
 			default:
-				fmt.Fprintf(dst, "unknown status: %s", e.Status)
+				fmt.Fprintf(dst, "%s  unknown status: %s", unixTimeAsString(e.Time), e.Status)
 				return 255
 			}
 
 			printColorFunc := printColor.SprintFunc()
-			fmt.Fprintf(dst, "%s\n", printColorFunc(e.Status))
+			fmt.Fprintf(dst, "%s  %s\n", unixTimeAsString(e.Time), printColorFunc(e.Status))
 
 			return exitStatus
 		}
 	}
+}
+
+func unixTimeAsString(timestamp int64) string {
+	const posixDateFormat string = "03:04:05"
+	return time.Unix(timestamp, 0).Format(posixDateFormat)
 }
