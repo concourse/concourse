@@ -35,10 +35,6 @@ resource_types:
   type: registry-image
   source: {repository: concourse/bosh-io-stemcell-resource}
 
-- name: cf
-  type: registry-image
-  source: {repository: concourse/cf-resource}
-
 groups:
 - name: develop
   jobs:
@@ -600,10 +596,8 @@ jobs:
   - task: build-docs
     file: docs/ci/build.yml
     params: {ANALYTICS_ID: ((analytics_id))}
-  - put: concourse-docs
-    params:
-      current_app_name: docs
-      manifest: built-docs/manifest.yml
+  - put: docs-gh-pages
+    params: {repository: built-docs}
 
 - name: merge-cbd
   public: true
@@ -746,14 +740,12 @@ resources:
     uri: https://github.com/concourse/docs
     branch: master
 
-- name: concourse-docs
-  type: cf
+- name: docs-gh-pages
+  type: git
   source:
-    api: ((docs_cf.target))
-    username: ((docs_cf.username))
-    password: ((docs_cf.password))
-    organization: ((docs_cf.organization))
-    space: ((docs_cf.space))
+    uri: git@github.com:concourse/docs
+    branch: gh-pages
+    private_key: ((docs_deploy_key))
 
 - name: concourse-release
   type: bosh-release
