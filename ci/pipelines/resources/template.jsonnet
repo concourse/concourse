@@ -183,6 +183,22 @@ local publish_job(bump) = {
       name: "pull-request",
       type: "registry-image",
       source: {repository: "jtarchie/pr"}
+    },
+    {
+      name: "semver",
+      type: "registry-image",
+      source: {repository: "concourse/semver-resource"}
+    },
+    {
+      name: "docker-image",
+      type: "registry-image",
+      source: {repository: "concourse/docker-image-resource"},
+      privileged: true
+    },
+    {
+      name: "github-release",
+      type: "registry-image",
+      source: {repository: "concourse/github-release-resource"}
     }
   ],
   resources: [
@@ -238,7 +254,7 @@ local publish_job(bump) = {
       type: "docker-image",
       source: {
         repository: "concourse/"+resource+"-resource",
-        tag: "dev",
+        tag: "latest",
         username: "((docker.username))",
         password: "((docker.password))"
       }
@@ -248,7 +264,7 @@ local publish_job(bump) = {
       type: "docker-image",
       source: {
         repository: "concourse/"+resource+"-resource",
-        tag: "latest",
+        tag: "dev",
         username: "((docker.username))",
         password: "((docker.password))"
       }
