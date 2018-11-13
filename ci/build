@@ -17,7 +17,7 @@ pushd docs
   ref=$(git rev-parse HEAD)
   git checkout gh-pages
   git pull
-  git merge $ref
+  git merge --no-edit $ref
 
   ./scripts/build
   git add -A
