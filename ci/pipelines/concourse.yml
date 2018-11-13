@@ -390,9 +390,6 @@ jobs:
     - get: unit-image
       passed: [bin-smoke]
       trigger: true
-    - get: unit-image
-      passed: [bin-smoke]
-      trigger: true
     - get: version
       passed: [bin-smoke]
       trigger: true
@@ -424,7 +421,6 @@ jobs:
       passed: [bosh-bump]
     - get: version
       passed: [bosh-bump]
-      trigger: true
     - get: concourse-release
       trigger: true
     - get: postgres-release
