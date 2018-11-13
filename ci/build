@@ -6,9 +6,22 @@ if [ -d version ]; then
   export CONCOURSE_VERSION=$(cat version/version)
 fi
 
-BUILT_DOCS=$PWD/built-docs
+git config --global user.email "concourseteam+concourse-github-bot@gmail.com"
+git config --global user.name "Concourse Bot"
 
-cp -a docs/* $BUILT_DOCS
+pushd docs
+  # undo single-branch clone and fetch gh-pages
+  git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+  git fetch origin gh-pages
 
-cd $BUILT_DOCS
-./scripts/build
+  ref=$(git rev-parse HEAD)
+  git checkout gh-pages
+  git pull
+  git merge $ref
+
+  ./scripts/build
+  git add -A
+  git commit --allow-empty -m "build"
+popd
+
+git clone ./docs ./built-docs
