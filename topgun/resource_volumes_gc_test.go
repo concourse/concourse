@@ -200,7 +200,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 			gitRepo.CommitAndPush()
 
 			By("setting pipeline that creates resource cache")
-			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-git-resource-and-Wait.yml", "-p", "volume-gc-test", "-v", "some-repo-uri="+gitRepoURI)
+			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-git-resource-and-wait.yml", "-p", "volume-gc-test", "-v", "some-repo-uri="+gitRepoURI)
 
 			By("unpausing the pipeline")
 			fly.Run("unpause-pipeline", "-p", "volume-gc-test")

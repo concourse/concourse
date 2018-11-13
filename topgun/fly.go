@@ -21,7 +21,7 @@ type Fly struct {
 }
 
 type Worker struct {
-	Name  string `json:"name""`
+	Name  string `json:"name"`
 	State string `json:"state"`
 }
 
@@ -33,7 +33,7 @@ func (f *Fly) Login(user, password, endpoint string) {
 			"-u", user,
 			"-p", password,
 		).Wait()
-	}, 2*time.Minute, 10 * time.Second).
+	}, 2*time.Minute, 10*time.Second).
 		Should(gexec.Exit(0), "Fly should have been able to log in")
 }
 
@@ -42,9 +42,8 @@ func (f *Fly) Run(argv ...string) {
 }
 
 func (f *Fly) Start(argv ...string) *gexec.Session {
-	return Start(f.Bin, append([]string{"--verbose", "-t", f.Target}, argv...)...)
+	return Start([]string{"HOME=" + f.Home}, f.Bin, append([]string{"--verbose", "-t", f.Target}, argv...)...)
 }
-
 
 func (f *Fly) SpawnInteractive(stdin io.Reader, argv ...string) *gexec.Session {
 	return SpawnInteractive(stdin, []string{"HOME=" + f.Home}, f.Bin, append([]string{"--verbose", "-t", f.Target}, argv...)...)
@@ -63,21 +62,6 @@ func (f *Fly) GetWorkers() []Worker {
 	return workers
 }
 
-func Wait(session *gexec.Session) {
-	<-session.Exited
-	Expect(session.ExitCode()).To(Equal(0))
-}
-
-func Start(command string, argv ...string) *gexec.Session {
-	TimestampedBy("running: " + strings.Join(argv, " "))
-
-	cmd := exec.Command(command, argv...)
-	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).ToNot(HaveOccurred())
-
-	return session
-}
-
 func BuildBinary() string {
 	flyBinPath, err := gexec.Build("github.com/concourse/concourse/fly")
 	Expect(err).ToNot(HaveOccurred())
@@ -85,17 +69,35 @@ func BuildBinary() string {
 	return flyBinPath
 }
 
-func TimestampedBy(msg string) {
-	By(fmt.Sprintf("[%.9f] %s", float64(time.Now().UnixNano())/1e9, msg))
+func Start(env []string, command string, argv ...string) *gexec.Session {
+	TimestampedBy("running: " + strings.Join(argv, " "))
+
+	cmd := exec.Command(command, argv...)
+	cmd.Env = env
+
+	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).ToNot(HaveOccurred())
+
+	return session
 }
 
 func SpawnInteractive(stdin io.Reader, env []string, command string, argv ...string) *gexec.Session {
+	TimestampedBy("interactively running: " + command + " " + strings.Join(argv, " "))
+
 	cmd := exec.Command(command, argv...)
 	cmd.Stdin = stdin
 	cmd.Env = env
 
-	TimestampedBy("interactively running: " + command + " " + strings.Join(argv, " "))
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).ToNot(HaveOccurred())
 	return session
+}
+
+func TimestampedBy(msg string) {
+	By(fmt.Sprintf("[%.9f] %s", float64(time.Now().UnixNano())/1e9, msg))
+}
+
+func Wait(session *gexec.Session) {
+	<-session.Exited
+	Expect(session.ExitCode()).To(Equal(0))
 }

@@ -123,11 +123,9 @@ var _ = BeforeEach(func() {
 	deploymentName = fmt.Sprintf("concourse-topgun-%d", deploymentNumber)
 	fly.Target = deploymentName
 
-
 	var err error
 	tmp, err = ioutil.TempDir("", "topgun-tmp")
 	Expect(err).ToNot(HaveOccurred())
-
 
 	fly.Home = filepath.Join(tmp, "fly-home")
 	err = os.Mkdir(fly.Home, 0755)
@@ -325,7 +323,7 @@ func bosh(argv ...string) *gexec.Session {
 }
 
 func spawnBosh(argv ...string) *gexec.Session {
-	return Start("bosh", append([]string{"-n", "-d", deploymentName}, argv...)...)
+	return Start(nil, "bosh", append([]string{"-n", "-d", deploymentName}, argv...)...)
 }
 
 func concourseClient() concourse.Client {
