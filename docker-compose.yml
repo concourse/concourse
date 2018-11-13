@@ -13,6 +13,7 @@ services:
     build:
       context: .
       dockerfile: ${DOCKERFILE}
+    image: concourse/concourse:local
     volumes:
     - .:/src
     command: web
@@ -32,6 +33,7 @@ services:
     build:
       context: .
       dockerfile: ${DOCKERFILE}
+    image: concourse/concourse:local
     command: worker
     privileged: true
     depends_on: [web]

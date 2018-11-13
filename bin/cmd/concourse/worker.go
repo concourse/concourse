@@ -17,6 +17,7 @@ import (
 	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
+	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
@@ -31,6 +32,10 @@ type WorkerCommand struct {
 
 	BindIP   flag.IP `long:"bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the Garden server."`
 	BindPort uint16  `long:"bind-port" default:"7777"      description:"Port on which to listen for the Garden server."`
+
+	HealthcheckIP      flag.IP       `long:"healthcheck-ip"      default:"127.0.0.1" description:"IP address on which to listen for health checking requests"`
+	HealthcheckPort    uint16        `long:"healthcheck-port"    default:"8888"      description:"Port on which to listen for health checking requests"`
+	HealthCheckTimeout time.Duration `long:"healthcheck-timeout" default:"5s"        description:"HTTP timeout for the full duration of health checking"`
 
 	SweepInterval time.Duration `long:"sweep-interval" default:"30s" description:"Interval on which containers and volumes will be garbage collected from the worker."`
 
@@ -75,6 +80,13 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
+	healthChecker := worker.NewHealthChecker(
+		logger.Session("healthchecker"),
+		cmd.baggageclaimURL(),
+		cmd.gardenURL(),
+		cmd.HealthCheckTimeout,
+	)
+
 	members := grouper.Members{
 		{
 			Name:   "garden",
@@ -83,6 +95,15 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		{
 			Name:   "baggageclaim",
 			Runner: NewLoggingRunner(logger.Session("baggageclaim-runner"), baggageclaimRunner),
+		},
+		{
+			Name: "healthcheck",
+			Runner: NewLoggingRunner(
+				logger.Session("healthcheck-runner"),
+				http_server.New(
+					fmt.Sprintf("%s:%d", cmd.HealthcheckIP.IP, cmd.HealthcheckPort),
+					http.HandlerFunc(healthChecker.CheckHealth)),
+			),
 		},
 	}
 
@@ -153,6 +174,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 				},
 			),
 		})
+
 	}
 
 	return grouper.NewParallel(os.Interrupt, members), nil
@@ -160,6 +182,10 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 
 func (cmd *WorkerCommand) gardenAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
+}
+
+func (cmd *WorkerCommand) gardenURL() string {
+	return fmt.Sprintf("http://%s", cmd.gardenAddr())
 }
 
 func (cmd *WorkerCommand) baggageclaimAddr() string {
