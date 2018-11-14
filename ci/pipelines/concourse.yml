@@ -588,10 +588,11 @@ jobs:
   plan:
   - aggregate:
     - get: docs
-    - get: version
+    - get: mock-version
   - task: build-docs
     file: docs/ci/build.yml
     params: {ANALYTICS_ID: ((analytics_id))}
+    input_mapping: {version: mock-version}
   - put: docs-gh-pages
     params: {repository: built-docs}
 
@@ -844,3 +845,7 @@ resources:
     endpoint: storage.googleapis.com
     bucket: golang
     regexp: 'go(\d+\.\d+(\.\d+)?)\.windows-amd64\.msi'
+
+- name: mock-version
+  type: mock
+  source: {force_version: 4.2.1}
