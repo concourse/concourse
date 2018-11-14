@@ -43,7 +43,7 @@ require (
 	github.com/concourse/baggageclaim v1.3.0
 	github.com/concourse/dex v0.0.0-20181109175645-c786b294b45a
 	github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c
-	github.com/concourse/go-archive v0.0.0-20180803203406-784931698f4f
+	github.com/concourse/go-archive v1.0.0
 	github.com/concourse/retryhttp v0.0.0-20170802173037-937335fd9545
 	github.com/containerd/continuity v0.0.0-20180919190352-508d86ade3c2 // indirect
 	github.com/coreos/go-oidc v0.0.0-20170307191026-be73733bb8cc
