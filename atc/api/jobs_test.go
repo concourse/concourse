@@ -232,6 +232,19 @@ var _ = Describe("Jobs API", func() {
 			})
 		})
 
+		Context("when there are no visible jobs", func() {
+			BeforeEach(func() {
+				dbJobFactory.VisibleJobsReturns(nil, nil)
+			})
+
+			It("returns empty array", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[]`))
+			})
+		})
+
 		Context("when not authenticated", func() {
 			It("populates job factory with no team names", func() {
 				Expect(dbJobFactory.VisibleJobsCallCount()).To(Equal(1))
