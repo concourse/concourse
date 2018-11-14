@@ -1,0 +1,43 @@
+\title{Serial Job}{serial-job}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{}{pipeline}
+
+	If triggered faster than the run duration of the task(s), a \reference{job} can start many builds at the same time. Setting the serial flag restricts a job to run one build at a time.
+
+	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/serial-job}
+}
+
+\section{
+  \title{Pipeline Source}{source}
+	\codeblock{yaml}{{{
+---
+jobs:
+- name: serial-job
+  serial: true
+  plan:
+    - task: simple-task
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: { repository: busybox }
+        run:
+          path: echo
+          args: ["Hello, world!"]
+	}}}
+}
+
+\section{
+	\title{References}{references}
+
+	\list{
+		\reference{jobs}
+	}{
+		\reference{steps}
+	}{
+		\reference{tasks}
+	}
+}
