@@ -134,6 +134,8 @@ var _ = BeforeEach(func() {
 	}
 
 	defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, 0)
+	Expect(err).NotTo(HaveOccurred())
+
 	otherWorker, err = workerFactory.SaveWorker(otherWorkerPayload, 0)
 	Expect(err).NotTo(HaveOccurred())
 

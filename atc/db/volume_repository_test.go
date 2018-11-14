@@ -208,28 +208,25 @@ var _ = Describe("VolumeFactory", func() {
 			resourceCacheVolumeCreated, err := resourceCacheVolume.Created()
 			Expect(err).NotTo(HaveOccurred())
 
-			usedWorkerBaseResourceType := db.UsedWorkerBaseResourceType{
-				ID:      1,
-				Name:    "test",
-				Version: "test-version",
-
-				WorkerName: defaultWorker.Name(),
-			}
-			baseResourceTypeVolume, err := volumeRepository.CreateBaseResourceTypeVolume(&usedWorkerBaseResourceType)
-			Expect(err).NotTo(HaveOccurred())
-			createdBaseResourceTypeVolume, err := baseResourceTypeVolume.Created()
-			Expect(err).NotTo(HaveOccurred())
-			expectedCreatedHandles = append(expectedCreatedHandles, createdBaseResourceTypeVolume.Handle())
-
-			result, err := psql.Update("volumes").
-				Set("team_id", nil).
-				Where(
-					sq.Eq{"handle": createdBaseResourceTypeVolume.Handle()},
-				).
-				RunWith(dbConn).Exec()
-
+			usedWorkerBaseResourceType, found, err := workerBaseResourceTypeFactory.Find(defaultWorkerResourceType.Type, defaultWorker)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(result.RowsAffected()).To(Equal(int64(1)))
+			Expect(found).To(BeTrue())
+
+			baseResourceTypeVolume, err := volumeRepository.CreateBaseResourceTypeVolume(usedWorkerBaseResourceType)
+			Expect(err).NotTo(HaveOccurred())
+
+			oldResourceTypeVolume, err := baseResourceTypeVolume.Created()
+			Expect(err).NotTo(HaveOccurred())
+			expectedCreatedHandles = append(expectedCreatedHandles, oldResourceTypeVolume.Handle())
+
+			newVersion := defaultWorkerResourceType
+			newVersion.Version = "some-new-brt-version"
+
+			newWorker := defaultWorkerPayload
+			newWorker.ResourceTypes = []atc.WorkerResourceType{newVersion}
+
+			defaultWorker, err = workerFactory.SaveWorker(newWorker, 0)
+			Expect(err).ToNot(HaveOccurred())
 
 			err = resourceCacheVolumeCreated.InitializeResourceCache(usedResourceCache)
 			Expect(err).NotTo(HaveOccurred())
@@ -294,13 +291,10 @@ var _ = Describe("VolumeFactory", func() {
 			It("does not return volumes from stalled worker", func() {
 				createdVolumes, err := volumeRepository.GetOrphanedVolumes()
 				Expect(err).NotTo(HaveOccurred())
-				createdHandles := []string{}
 
-				for _, vol := range createdVolumes {
-					createdHandles = append(createdHandles, vol.Handle())
-					Expect(vol.WorkerName()).To(Equal("other-worker"))
+				for _, v := range createdVolumes {
+					Expect(v.WorkerName()).ToNot(Equal(defaultWorker.Name()))
 				}
-				Expect(createdHandles).To(HaveLen(1))
 			})
 		})
 
@@ -313,10 +307,13 @@ var _ = Describe("VolumeFactory", func() {
 				Expect(landedWorkers).To(ContainElement(defaultWorker.Name()))
 			})
 
-			It("does not return volumes", func() {
+			It("does not return volumes for the worker", func() {
 				createdVolumes, err := volumeRepository.GetOrphanedVolumes()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(createdVolumes).To(HaveLen(1))
+
+				for _, v := range createdVolumes {
+					Expect(v.WorkerName()).ToNot(Equal(defaultWorker.Name()))
+				}
 			})
 		})
 	})

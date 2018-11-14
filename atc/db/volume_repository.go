@@ -416,26 +416,12 @@ func (repository *volumeRepository) GetOrphanedVolumes() ([]CreatedVolume, error
 		LeftJoin("volumes pv ON v.parent_id = pv.id").
 		LeftJoin("worker_resource_caches wrc ON wrc.id = v.worker_resource_cache_id").
 		Where(
-			sq.Or{
-				sq.Eq{
-					"v.worker_resource_cache_id":     nil,
-					"v.worker_base_resource_type_id": nil,
-					"v.container_id":                 nil,
-					"v.worker_task_cache_id":         nil,
-					"v.worker_resource_certs_id":     nil,
-				},
-				sq.And{
-					sq.NotEq{
-						"v.worker_base_resource_type_id": nil,
-					},
-					sq.Eq{
-						"v.worker_resource_cache_id": nil,
-						"v.team_id":                  nil,
-						"v.container_id":             nil,
-						"v.worker_task_cache_id":     nil,
-						"v.worker_resource_certs_id": nil,
-					},
-				},
+			sq.Eq{
+				"v.worker_resource_cache_id":     nil,
+				"v.worker_base_resource_type_id": nil,
+				"v.container_id":                 nil,
+				"v.worker_task_cache_id":         nil,
+				"v.worker_resource_certs_id":     nil,
 			},
 		).
 		Where(sq.Eq{"v.state": string(VolumeStateCreated)}).
