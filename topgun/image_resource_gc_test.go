@@ -81,7 +81,7 @@ var _ = Describe("A build using an image_resource", func() {
 				"hijack",
 				"-j", "test/some-job",
 				"-b", "1",
-				"-s", "Wait",
+				"-s", "wait",
 				"touch", "/tmp/stop-waiting",
 			)
 			<-hijackSession.Exited
