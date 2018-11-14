@@ -42,11 +42,11 @@ func (f *Fly) Run(argv ...string) {
 }
 
 func (f *Fly) Start(argv ...string) *gexec.Session {
-	return Start([]string{"HOME=" + f.Home}, f.Bin, append([]string{"--verbose", "-t", f.Target}, argv...)...)
+	return Start([]string{"HOME=" + f.Home}, f.Bin, append([]string{"-t", f.Target}, argv...)...)
 }
 
 func (f *Fly) SpawnInteractive(stdin io.Reader, argv ...string) *gexec.Session {
-	return SpawnInteractive(stdin, []string{"HOME=" + f.Home}, f.Bin, append([]string{"--verbose", "-t", f.Target}, argv...)...)
+	return SpawnInteractive(stdin, []string{"HOME=" + f.Home}, f.Bin, append([]string{"-t", f.Target}, argv...)...)
 }
 
 func (f *Fly) GetWorkers() []Worker {
