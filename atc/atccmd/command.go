@@ -133,8 +133,10 @@ type RunCommand struct {
 	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
 
 	GC struct {
-		Interval               time.Duration `long:"interval" default:"30s" description:"Interval on which to perform garbage collection."`
-		OneOffBuildGracePeriod time.Duration `long:"one-off-grace-period" default:"5m" description:"Grace period before reaping one-off task containers"`
+		Interval time.Duration `long:"interval" default:"30s" description:"Interval on which to perform garbage collection."`
+
+		OneOffBuildGracePeriod time.Duration `long:"one-off-grace-period" default:"5m" description:"Period after which one-off build containers will be garbage-collected."`
+		MissingGracePeriod     time.Duration `long:"missing-grace-period" default:"5m" description:"Period after which to reap containers and volumes that were created but went missing from the worker."`
 	} `group:"Garbage Collection" namespace:"gc"`
 
 	BuildTrackerInterval time.Duration `long:"build-tracker-interval" default:"10s" description:"Interval on which to run build tracking."`
@@ -780,7 +782,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
 				gc.NewVolumeCollector(
 					dbVolumeRepository,
-					cmd.GC.Interval*3, // volume missing-since grace period (must be larger than gc.interval so it doesn't race)
+					cmd.GC.MissingGracePeriod,
 				),
 				gc.NewContainerCollector(
 					dbContainerRepository,
@@ -789,7 +791,7 @@ func (cmd *RunCommand) constructBackendMembers(
 						workerProvider,
 						time.Minute,
 					),
-					cmd.GC.Interval*3, // container missing-since grace period (must be larger than gc.interval so it doesn't race)
+					cmd.GC.MissingGracePeriod,
 				),
 				gc.NewResourceConfigCheckSessionCollector(
 					resourceConfigCheckSessionLifecycle,
