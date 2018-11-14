@@ -120,7 +120,10 @@ func (repository *volumeRepository) UpdateVolumesMissingSince(workerName string,
 
 	query, args, err = psql.Update("volumes").
 		Set("missing_since", sq.Expr("now()")).
-		Where(sq.Eq{"handle": handles}).ToSql()
+		Where(sq.And{
+			sq.Eq{"handle": handles},
+			sq.NotEq{"state": VolumeStateCreating},
+		}).ToSql()
 	if err != nil {
 		return err
 	}

@@ -899,6 +899,27 @@ var _ = Describe("ContainerRepository", func() {
 				handles = []string{"some-handle1"}
 			})
 
+			Context("having the containers in the creating state in the db", func() {
+				BeforeEach(func() {
+					result, err := psql.Update("containers").
+						Where(sq.Eq{"handle": "some-handle3"}).
+						SetMap(map[string]interface{}{
+							"state":         atc.ContainerStateCreating,
+							"missing_since": nil,
+						}).RunWith(dbConn).Exec()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(result.RowsAffected()).To(Equal(int64(1)))
+				})
+
+				It("does not mark as missing", func() {
+					err = psql.Select("missing_since").From("containers").
+						Where(sq.Eq{"handle": "some-handle3"}).RunWith(dbConn).QueryRow().
+						Scan(&missingSince)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(missingSince.Valid).To(BeFalse())
+				})
+			})
+
 			It("should mark containers not in the subset and not already marked as missing", func() {
 				err = psql.Select("missing_since").From("containers").
 					Where(sq.Eq{"handle": "some-handle1"}).RunWith(dbConn).QueryRow().Scan(&missingSince)

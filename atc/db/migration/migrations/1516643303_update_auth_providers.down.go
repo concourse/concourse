@@ -68,7 +68,7 @@ func (self *migrations) Down_1516643303() error {
 				basicAuthConfig["basic_auth_username"] = configMap["username"].(string)
 				basicAuthConfig["basic_auth_password"] = configMap["password"].(string)
 			} else {
-				rollback(tx,errors.New("malformed basicauth provider"))
+				rollback(tx, errors.New("malformed basicauth provider"))
 			}
 		}
 
