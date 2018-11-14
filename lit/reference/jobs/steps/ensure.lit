@@ -17,7 +17,7 @@ execute regardless of the result of the parent step.
   \reference{on-failure-step-hook}s.
 }
 
-\examples{
+\right-side{Examples}{
   \example{Releasing a Lock}{
     For example, the following build plan acquires a lock, and then
     \code{ensure}s that the lock is released.

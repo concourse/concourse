@@ -10,7 +10,7 @@ step to execute only if the parent step aborts.
   succeeds, the entire step is still \code{aborted}.
 }
 
-\examples{
+\right-side{Examples}{
   \example{Cleanup on Abort}{
     The following will perform the \code{cleanup} task only if the build is
     aborted while the \code{unit} task was running:

@@ -15,7 +15,7 @@ Attempts will retry on a Concourse error as well as build failure.
   then the step will fail.
 }
 
-\examples{
+\right-side{Examples}{
   \example{Retrying a Task}{
     The following will run the task, and retry it 9 times (for a total of 10
     attempts) if it fails:

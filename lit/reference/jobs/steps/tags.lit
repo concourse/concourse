@@ -12,7 +12,7 @@ adding the \code{tags} attribute to it.
   \code{a} and \code{b} tags (or any others) will be used for running the step.
 }
 
-\examples{
+\right-side{Examples}{
   \example{Running in a Private Network}{
     You may have a private cluster only reachable by special workers running
     on-premises. To run a step against those workers, just provide a matching tag:

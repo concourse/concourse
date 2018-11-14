@@ -15,7 +15,7 @@ the number of seconds to limit it to.
   inforced).
 }
 
-\examples{
+\right-side{Examples}{
   \example{Giving Up}{
     The following will run the \code{unit} task and cancel it if it takes
     longer than 1 hour and 30 minutes:

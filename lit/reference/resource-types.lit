@@ -94,7 +94,7 @@ following attributes:
 \include-section{./resource-types/community-resources.lit}
 \include-section{./resource-types/implementing.lit}
 
-\examples{
+\right-side{Examples}{
   \example{Using Resource Types}{
     \reference{resource-types}{Resource Types} can be used to extend the
     functionality of your pipeline and provide deeper integrations. This

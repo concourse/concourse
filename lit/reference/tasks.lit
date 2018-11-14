@@ -500,7 +500,7 @@ A task's configuration specifies the following:
   the same way that this task had \code{some-input} as an input.
 }
 
-\examples{
+\right-side{Examples}{
   \example{Ruby App}{
     This configuration specifies that the task must run with the
     \code{ruby:2.1} Docker image with a \code{my-app} input, and when the task

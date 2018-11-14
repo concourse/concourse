@@ -7,7 +7,7 @@
   were at the top level step listing.
 }
 
-\examples{
+\right-side{Examples}{
   \example{Multiple Steps in a Hook}{
     This can be used to perform multiple steps serially in an \reference{on-failure-step-hook}:
 

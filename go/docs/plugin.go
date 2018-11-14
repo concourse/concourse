@@ -419,8 +419,16 @@ func (p Plugin) Note(commaSeparatedTags string, content booklit.Content) booklit
 	}
 }
 
-func (p Plugin) Examples(content booklit.Content) {
-	p.section.SetPartial("Examples", content)
+func (p Plugin) RightSide(title, content booklit.Content) {
+	wrappedContent := booklit.Styled{
+		Style:   "sidebar-right",
+		Content: content,
+		Partials: booklit.Partials{
+			"Title": title,
+		},
+	}
+
+	p.section.SetPartial("RightSide", wrappedContent)
 }
 
 func (p Plugin) Example(title, content booklit.Content) booklit.Content {

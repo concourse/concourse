@@ -12,7 +12,7 @@
   \italic{fail}, the aggregate step will fail.
 }
 
-\examples{
+\right-side{Examples}{
   \example{Build Matrix}{
     If any step in the \code{aggregate} fails, the build will fail, making it
     useful for build matrices:

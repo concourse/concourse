@@ -7,7 +7,7 @@
 
 	A single job is the simplest form of pipeline.
 
-	\frame{https://wings.pivotal.io/teams/cf-tools/pipelines/basic}
+	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/job}
 }
 
 \section{

@@ -9,7 +9,7 @@
   really want the whole build to fail if it doesn't work.
 }
 
-\examples{
+\right-side{Examples}{
   \example{Ignoring Non-Critical Behavior}{
     When emitting logs somewhere for analyzing later, if the destination flakes
     out it may not really be critical, so we may want to just swallow the

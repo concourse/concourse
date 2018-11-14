@@ -23,7 +23,7 @@
     <link href="https://fonts.googleapis.com/css?family=PT+Sans:400,400i,700|Roboto+Slab:300,400,700" rel="stylesheet" />
     <script src="js/search.js"></script>
   </head>
-  <body{{if .Partial "Examples"}} class="with-examples"{{end}}>
+  <body>
     <div id="top">
       <div class="header">
         <h1><a href="/" class="logo"></a><a href="/">Concourse</a></h1>
@@ -51,13 +51,9 @@
       <div class="page{{if .Partial "Wide"}} wide{{end}}">
         {{. | render}}
       </div>
-      {{if .Partial "Examples"}}
-      <div class="examples">
-        <div class="examples-page">
-          <h2>Examples</h2>
-
-          {{.Partial "Examples" | render}}
-        </div>
+      {{if .Partial "RightSide"}}
+      <div class="side-right">
+        {{.Partial "RightSide" | render}}
       </div>
       {{end}}
     </div>
