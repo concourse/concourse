@@ -4,6 +4,8 @@ set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
+fly -t prod login -n example
+
 EXAMPLE_PATHS=$(ls ${DIR}/../lit/examples/*.lit)
 
 for path in $EXAMPLE_PATHS
