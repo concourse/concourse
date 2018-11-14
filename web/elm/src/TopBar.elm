@@ -261,11 +261,20 @@ view model =
             , Html.ul [ class "groups" ] <| viewBreadcrumbs model
             ]
         , Html.nav
-            [ style [ ( "display", "flex" ) ] ]
+            [ style
+                [ ( "display", "flex" )
+                , ( "max-width", "20%" )
+                ]
+            ]
             ((case model.route.logical of
                 Routes.Pipeline _ _ ->
                     [ Html.div
-                        ([ style [ ( "margin-right", "15px" ) ]
+                        ([ style
+                            [ ( "margin-right", "15px" )
+                            , ( "top", "10px" )
+                            , ( "position", "relative" )
+                            , ( "height", "40px" )
+                            ]
                          , id "pin-icon"
                          ]
                             ++ (if model.showPinIconDropDown then
@@ -291,7 +300,6 @@ view model =
                                  , ( "background-repeat", "no-repeat" )
                                  , ( "background-position", "50% 50%" )
                                  , ( "position", "relative" )
-                                 , ( "top", "10px" )
                                  ]
                                 )
                              ]
@@ -390,8 +398,7 @@ view model =
                 _ ->
                     []
              )
-                ++ [ viewUserState model.userState model.userMenuVisible
-                   ]
+                ++ viewUserState model.userState model.userMenuVisible
             )
         ]
 
@@ -497,8 +504,6 @@ cssUserContainer : List ( String, String )
 cssUserContainer =
     [ ( "position", "relative" )
     , ( "display", "flex" )
-
-    -- , ( "max-width", "20%" )
     , ( "flex-direction", "column" )
     , ( "border-left", "1px solid #3d3c3c" )
     , ( "line-height", "56px" )
@@ -516,14 +521,14 @@ cssUserName =
     ]
 
 
-viewUserState : UserState -> Bool -> Html Msg
+viewUserState : UserState -> Bool -> List (Html Msg)
 viewUserState userState userMenuVisible =
     case userState of
         UserStateUnknown ->
-            Html.text ""
+            []
 
         UserStateLoggedOut ->
-            Html.div
+            [ Html.div
                 [ onClick LogIn
                 , style cssUserContainer
                 ]
@@ -535,9 +540,10 @@ viewUserState userState userMenuVisible =
                     [ Html.text "login"
                     ]
                 ]
+            ]
 
         UserStateLoggedIn user ->
-            Html.div
+            [ Html.div
                 [ style cssUserContainer ]
                 [ Html.div
                     [ style cssUserName
@@ -569,6 +575,7 @@ viewUserState userState userMenuVisible =
                       )
                     ]
                 ]
+            ]
 
 
 userDisplayName : Concourse.User -> String
