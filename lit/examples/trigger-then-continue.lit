@@ -1,0 +1,79 @@
+\title{Trigger Then Continue}{trigger-then-continue}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{}{pipeline}
+
+  A job can be triggered by a resource. After it's complete, the next job can run automatically or manually.
+
+	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/trigger-then-continue}
+}
+
+\section{
+  \title{Pipeline Source}{source}
+	\codeblock{yaml}{{{
+---
+resources:
+- name: every-30s
+  type: time
+  source:
+    interval: 30s
+
+jobs:
+- name: triggered-first
+  plan:
+  - get: every-30s
+    trigger: true
+  - task: simple-task
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: { repository: busybox }
+      run:
+        path: echo
+        args: ["Hello, world!"]
+- name: not-triggered
+  plan:
+    - get: every-30s
+      passed: [triggered-first]
+    - task: simple-task
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: { repository: busybox }
+        run:
+          path: echo
+          args: ["Hello, world!"]
+- name: triggered-second
+  plan:
+    - get: every-30s
+      passed: [triggered-first]
+      trigger: true
+    - task: simple-task
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: { repository: busybox }
+        run:
+          path: echo
+          args: ["Hello, world!"]
+}}}
+}
+
+\section{
+	\title{References}{references}
+
+	\list{
+		\reference{resources}
+	}{
+		\reference{jobs}
+	}{
+		\reference{steps}
+	}{
+		\reference{tasks}
+	}
+}

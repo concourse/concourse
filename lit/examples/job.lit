@@ -1,4 +1,4 @@
-\title{Bare Minimum}{bare-minimum}
+\title{Job}{job}
 
 \use-plugin{concourse-docs}
 
@@ -15,11 +15,14 @@
 	\codeblock{yaml}{{{
 ---
 jobs:
-- name: my-job
+- name: job
   plan:
     - task: simple-task
       config:
         platform: linux
+        image_resource:
+          type: registry-image
+          source: { repository: busybox }
         run:
           path: echo
           args: ["Hello, world!"]

@@ -7,7 +7,7 @@
 
   The \link{time resource}{https://github.com/concourse/time-resource} can be used to trigger a job.
 
-	\frame{https://wings.pivotal.io/teams/cf-tools/pipelines/time-triggered}
+	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/time-triggered}
 }
 
 \section{
@@ -21,13 +21,16 @@ resources:
     interval: 30s
 
 jobs:
-- name: my-job
+- name: job
   plan:
   - get: every-30s
     trigger: true
   - task: simple-task
     config:
       platform: linux
+      image_resource:
+        type: registry-image
+        source: { repository: busybox }
       run:
         path: echo
         args: ["Hello, world!"]

@@ -1,4 +1,4 @@
-\title{Tasks Passing Artifacts}{task-passing-artifacts}
+\title{Tasks Passing Artifact}{task-passing-artifact}
 
 \use-plugin{concourse-docs}
 
@@ -7,7 +7,7 @@
 
 	A task can pass an artifacts to another task in the same job.
 
-	\frame{https://wings.pivotal.io/teams/cf-tools/pipelines/artifact-passing/jobs/create/builds/11#L5be7461b:7}
+	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/task-passing-artifact/jobs/create-and-consume}
 }
 
 \section{
@@ -20,6 +20,9 @@ jobs:
     - task: make-a-file
       config:
         platform: linux
+        image_resource:
+          type: registry-image
+          source: { repository: busybox }
         run:
           path: sh
           args:
@@ -30,6 +33,9 @@ jobs:
     - task: consume-the-file
       config:
         platform: linux
+        image_resource:
+          type: registry-image
+          source: { repository: busybox }
         inputs:
           - name: files
         run:
