@@ -16,7 +16,7 @@ var _ = Describe("A put step with inputs", func() {
 			watch := spawnFly("trigger-job", "-j", inPipeline("job-using-specified-inputs"), "-w")
 			<-watch.Exited
 
-			interceptS := fly("intercept", "-j", inPipeline("job-using-specified-inputs"), "-s", "some-resource", "--", "ls")
+			interceptS := fly("intercept", "-j", inPipeline("job-using-specified-inputs"), "-s", "some-resource", "--step-type", "put", "--", "ls")
 			Expect(interceptS).To(gbytes.Say("specified-input"))
 			Expect(string(interceptS.Out.Contents())).ToNot(ContainSubstring("all-input"))
 		})
@@ -27,7 +27,7 @@ var _ = Describe("A put step with inputs", func() {
 			watch := spawnFly("trigger-job", "-j", inPipeline("job-using-all-inputs"), "-w")
 			<-watch.Exited
 
-			interceptS := fly("intercept", "-j", inPipeline("job-using-all-inputs"), "-s", "some-resource", "--", "ls")
+			interceptS := fly("intercept", "-j", inPipeline("job-using-all-inputs"), "-s", "some-resource", "--step-type", "put", "--", "ls")
 			Expect(string(interceptS.Out.Contents())).To(ContainSubstring("all-input"))
 			Expect(string(interceptS.Out.Contents())).To(ContainSubstring("specified-input"))
 		})
