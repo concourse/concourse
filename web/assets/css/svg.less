@@ -11,6 +11,17 @@ svg {
   .node.paused rect { fill: @blue-primary; }
   .node.job.no-builds rect { fill: @grey-primary; }
   .node.resource a { color: @base06; }
+  .node.pinned rect { fill: #5C3BD1; }
+  .node.constrained-input.pinned {
+    rect {
+      fill: #5C3BD1;
+      opacity: 0.8;
+    }
+
+    image {
+      opacity: 0.7;
+    }
+  }
 
   .edge { stroke: @grey-secondary; }
   .edge.pending { stroke: @base04; }

@@ -152,6 +152,16 @@ type FakeVolume struct {
 		result1 io.ReadCloser
 		result2 error
 	}
+	WorkerNameStub        func() string
+	workerNameMutex       sync.RWMutex
+	workerNameArgsForCall []struct {
+	}
+	workerNameReturns struct {
+		result1 string
+	}
+	workerNameReturnsOnCall map[int]struct {
+		result1 string
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -732,6 +742,48 @@ func (fake *FakeVolume) StreamOutReturnsOnCall(i int, result1 io.ReadCloser, res
 	}{result1, result2}
 }
 
+func (fake *FakeVolume) WorkerName() string {
+	fake.workerNameMutex.Lock()
+	ret, specificReturn := fake.workerNameReturnsOnCall[len(fake.workerNameArgsForCall)]
+	fake.workerNameArgsForCall = append(fake.workerNameArgsForCall, struct {
+	}{})
+	fake.recordInvocation("WorkerName", []interface{}{})
+	fake.workerNameMutex.Unlock()
+	if fake.WorkerNameStub != nil {
+		return fake.WorkerNameStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.workerNameReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeVolume) WorkerNameCallCount() int {
+	fake.workerNameMutex.RLock()
+	defer fake.workerNameMutex.RUnlock()
+	return len(fake.workerNameArgsForCall)
+}
+
+func (fake *FakeVolume) WorkerNameReturns(result1 string) {
+	fake.WorkerNameStub = nil
+	fake.workerNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeVolume) WorkerNameReturnsOnCall(i int, result1 string) {
+	fake.WorkerNameStub = nil
+	if fake.workerNameReturnsOnCall == nil {
+		fake.workerNameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.workerNameReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -759,6 +811,8 @@ func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	defer fake.streamInMutex.RUnlock()
 	fake.streamOutMutex.RLock()
 	defer fake.streamOutMutex.RUnlock()
+	fake.workerNameMutex.RLock()
+	defer fake.workerNameMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

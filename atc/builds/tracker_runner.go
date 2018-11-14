@@ -55,6 +55,4 @@ func (runner TrackerRunner) Run(signals <-chan os.Signal, ready chan<- struct{})
 			return nil
 		}
 	}
-
-	panic("unreachable")
 }

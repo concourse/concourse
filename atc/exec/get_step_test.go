@@ -30,17 +30,19 @@ import (
 
 var _ = Describe("GetStep", func() {
 	var (
-		ctx    context.Context
-		cancel func()
+		ctx        context.Context
+		cancel     func()
+		testLogger *lagertest.TestLogger
 
-		fakeWorkerClient           *workerfakes.FakeClient
-		fakeResourceFetcher        *resourcefakes.FakeFetcher
-		fakeDBResourceCacheFactory *dbfakes.FakeResourceCacheFactory
-		fakeVariablesFactory       *credsfakes.FakeVariablesFactory
-		variables                  creds.Variables
-		fakeBuild                  *dbfakes.FakeBuild
-		fakeDelegate               *execfakes.FakeGetDelegate
-		getPlan                    *atc.GetPlan
+		fakeWorkerClient          *workerfakes.FakeClient
+		fakeResourceFetcher       *resourcefakes.FakeFetcher
+		fakeResourceCacheFactory  *dbfakes.FakeResourceCacheFactory
+		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
+		fakeVariablesFactory      *credsfakes.FakeVariablesFactory
+		variables                 creds.Variables
+		fakeBuild                 *dbfakes.FakeBuild
+		fakeDelegate              *execfakes.FakeGetDelegate
+		getPlan                   *atc.GetPlan
 
 		fakeVersionedSource *resourcefakes.FakeVersionedSource
 		resourceTypes       atc.VersionedResourceTypes
@@ -70,7 +72,7 @@ var _ = Describe("GetStep", func() {
 
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
 		fakeWorkerClient = new(workerfakes.FakeClient)
-		fakeDBResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
+		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
 		fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
 		variables = template.StaticVariables{
@@ -112,7 +114,7 @@ var _ = Describe("GetStep", func() {
 			VersionedResourceTypes: resourceTypes,
 		}
 
-		factory = exec.NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeDBResourceCacheFactory, fakeVariablesFactory, atc.ContainerLimits{})
+		factory = exec.NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeResourceCacheFactory, fakeResourceConfigFactory, fakeVariablesFactory, atc.ContainerLimits{})
 
 		fakeDelegate = new(execfakes.FakeGetDelegate)
 	})
@@ -122,8 +124,9 @@ var _ = Describe("GetStep", func() {
 	})
 
 	JustBeforeEach(func() {
+		testLogger = lagertest.NewTestLogger("get-action-test")
 		getStep = factory.Get(
-			lagertest.NewTestLogger("get-action-test"),
+			testLogger,
 			atc.Plan{
 				ID:  atc.PlanID(planID),
 				Get: getPlan,
@@ -161,7 +164,7 @@ var _ = Describe("GetStep", func() {
 			atc.Params{"some-param": "some-value"},
 			creds.NewVersionedResourceTypes(variables, resourceTypes),
 			nil,
-			db.NewBuildStepContainerOwner(buildID, atc.PlanID(planID)),
+			db.NewBuildStepContainerOwner(buildID, atc.PlanID(planID), teamID),
 		)))
 		Expect(actualResourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, resourceTypes)))
 		Expect(delegate).To(Equal(fakeDelegate))
@@ -197,37 +200,54 @@ var _ = Describe("GetStep", func() {
 		})
 
 		Context("when getting a pipeline resource", func() {
+			var fakeResourceCache *dbfakes.FakeUsedResourceCache
+			var fakeResourceConfig *dbfakes.FakeResourceConfig
+
 			BeforeEach(func() {
 				getPlan.Resource = "some-pipeline-resource"
+
+				fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
+				fakeResourceConfig = new(dbfakes.FakeResourceConfig)
+				fakeResourceCache.ResourceConfigReturns(fakeResourceConfig)
+				fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeResourceCache, nil)
 			})
 
-			It("saves the build input so that the metadata is visible", func() {
-				// TODO: this can be removed once /check returns metadata
+			It("saves the resource config version", func() {
+				Expect(fakeResourceConfig.SaveUncheckedVersionCallCount()).To(Equal(1))
 
-				Expect(fakeBuild.SaveInputCallCount()).To(Equal(1))
+				version, metadata := fakeResourceConfig.SaveUncheckedVersionArgsForCall(0)
+				Expect(version).To(Equal(atc.Version{"some": "version"}))
+				Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields([]atc.MetadataField{{"some", "metadata"}})))
+			})
 
-				input := fakeBuild.SaveInputArgsForCall(0)
-				Expect(input).To(Equal(db.BuildInput{
-					Name: "some-name",
-					VersionedResource: db.VersionedResource{
-						Resource: "some-pipeline-resource",
-						Type:     "some-resource-type",
-						Version:  db.ResourceVersion{"some": "version"},
-						Metadata: db.NewResourceMetadataFields([]atc.MetadataField{{"some", "metadata"}}),
-					},
-				}))
+			Context("when it fails to save the version", func() {
+				disaster := errors.New("oops")
+
+				BeforeEach(func() {
+					fakeResourceConfig.SaveUncheckedVersionReturns(false, disaster)
+				})
+
+				It("returns an error", func() {
+					Expect(stepErr).To(Equal(disaster))
+				})
 			})
 		})
 
 		Context("when getting an anonymous resource", func() {
+			var fakeResourceCache *dbfakes.FakeUsedResourceCache
+			var fakeResourceConfig *dbfakes.FakeResourceConfig
 			BeforeEach(func() {
 				getPlan.Resource = ""
+
+				fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
+				fakeResourceConfig = new(dbfakes.FakeResourceConfig)
+				fakeResourceCache.ResourceConfigReturns(fakeResourceConfig)
+				fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeResourceCache, nil)
 			})
 
-			It("does not save the build input", func() {
+			It("does not save the resource config version", func() {
 				// TODO: this can be removed once /check returns metadata
-
-				Expect(fakeBuild.SaveInputCallCount()).To(Equal(0))
+				Expect(fakeResourceConfig.SaveUncheckedVersionCallCount()).To(Equal(0))
 			})
 		})
 
@@ -258,7 +278,7 @@ var _ = Describe("GetStep", func() {
 					})
 
 					It("streams the resource to the destination", func() {
-						err := artifactSource.StreamTo(fakeDestination)
+						err := artifactSource.StreamTo(testLogger, fakeDestination)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(fakeVersionedSource.StreamOutCallCount()).To(Equal(1))
@@ -278,7 +298,7 @@ var _ = Describe("GetStep", func() {
 						})
 
 						It("returns the error", func() {
-							Expect(artifactSource.StreamTo(fakeDestination)).To(Equal(disaster))
+							Expect(artifactSource.StreamTo(testLogger, fakeDestination)).To(Equal(disaster))
 						})
 					})
 
@@ -290,7 +310,7 @@ var _ = Describe("GetStep", func() {
 						})
 
 						It("returns the error", func() {
-							Expect(artifactSource.StreamTo(fakeDestination)).To(Equal(disaster))
+							Expect(artifactSource.StreamTo(testLogger, fakeDestination)).To(Equal(disaster))
 						})
 					})
 				})
@@ -303,7 +323,7 @@ var _ = Describe("GetStep", func() {
 					})
 
 					It("returns the error", func() {
-						Expect(artifactSource.StreamTo(fakeDestination)).To(Equal(disaster))
+						Expect(artifactSource.StreamTo(testLogger, fakeDestination)).To(Equal(disaster))
 					})
 				})
 			})
@@ -341,7 +361,7 @@ var _ = Describe("GetStep", func() {
 						})
 
 						It("streams out the given path", func() {
-							reader, err := artifactSource.StreamFile("some-path")
+							reader, err := artifactSource.StreamFile(testLogger, "some-path")
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(ioutil.ReadAll(reader)).To(Equal([]byte(fileContent)))
@@ -351,7 +371,7 @@ var _ = Describe("GetStep", func() {
 
 						Describe("closing the stream", func() {
 							It("closes the stream from the versioned source", func() {
-								reader, err := artifactSource.StreamFile("some-path")
+								reader, err := artifactSource.StreamFile(testLogger, "some-path")
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(tgzBuffer.Closed()).To(BeFalse())
@@ -366,7 +386,7 @@ var _ = Describe("GetStep", func() {
 
 					Context("but the stream is empty", func() {
 						It("returns ErrFileNotFound", func() {
-							_, err := artifactSource.StreamFile("some-path")
+							_, err := artifactSource.StreamFile(testLogger, "some-path")
 							Expect(err).To(MatchError(exec.FileNotFoundError{Path: "some-path"}))
 						})
 					})
@@ -380,7 +400,7 @@ var _ = Describe("GetStep", func() {
 					})
 
 					It("returns the error", func() {
-						_, err := artifactSource.StreamFile("some-path")
+						_, err := artifactSource.StreamFile(testLogger, "some-path")
 						Expect(err).To(Equal(disaster))
 					})
 				})

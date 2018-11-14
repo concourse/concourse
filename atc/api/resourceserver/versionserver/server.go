@@ -1,6 +1,8 @@
 package versionserver
 
-import "code.cloudfoundry.org/lager"
+import (
+	"code.cloudfoundry.org/lager"
+)
 
 type Server struct {
 	logger      lager.Logger

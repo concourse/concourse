@@ -130,11 +130,3 @@ func readTeamLegacyAuth(dbConn *sql.DB, team string) []byte {
 	Expect(err).NotTo(HaveOccurred())
 	return auth
 }
-
-func fetchTeamLegacyAuth(dbConn *sql.DB, team string) map[string]interface{} {
-	auth := readTeamLegacyAuth(dbConn, team)
-	var data map[string]interface{}
-	err := json.Unmarshal(auth, &data)
-	Expect(err).NotTo(HaveOccurred())
-	return data
-}

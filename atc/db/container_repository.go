@@ -111,7 +111,10 @@ func (repository *containerRepository) UpdateContainersMissingSince(workerName s
 
 	query, args, err = psql.Update("containers").
 		Set("missing_since", sq.Expr("now()")).
-		Where(sq.Eq{"handle": handles}).ToSql()
+		Where(sq.And{
+			sq.Eq{"handle": handles},
+			sq.NotEq{"state": atc.ContainerStateCreating},
+		}).ToSql()
 	if err != nil {
 		return err
 	}

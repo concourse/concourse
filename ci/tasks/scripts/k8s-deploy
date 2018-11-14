@@ -1,0 +1,68 @@
+#!/bin/bash
+
+set -eo pipefail
+
+mkdir -p ~/.kube
+
+if [ ! -f ~/.kube/config ]; then
+  echo "$KUBE_CONFIG" > ~/.kube/config
+fi
+
+if [ -f endpoint-info/instance_ip ]; then
+  LOADBALANCER_IP=$(cat endpoint-info/instance_ip)
+fi
+
+if [ -e endpoint-info/admin_password ]; then
+  export ATC_ADMIN_PASSWORD="$(cat endpoint-info/admin_password)"
+else
+  export ATC_ADMIN_PASSWORD=admin
+fi
+
+export ATC_GUEST_PASSWORD=guest
+if [ -e endpoint-info/guest_password ]; then
+  export ATC_GUEST_PASSWORD="$(cat endpoint-info/guest_password)"
+else
+  export ATC_GUEST_PASSWORD=guest
+fi
+
+if [ -z $RELEASE_NAME ]; then
+  RELEASE_NAME="concourse"
+fi
+
+if [ -z $CONCOURSE_IMAGE ]; then
+  CONCOURSE_IMAGE='concourse/concourse-rc'
+fi
+
+if [ -z $CONCOURSE_TAG ]; then
+  CONCOURSE_TAG='latest'
+fi
+
+if [ -n "${CONCOURSE_DIGEST_FILE}" ]; then
+  if [ -f $CONCOURSE_DIGEST_FILE ]; then
+    CONCOURSE_DIGEST="$(cat $CONCOURSE_DIGEST_FILE)"
+  fi
+fi
+
+external_ip='127.0.0.1'
+app="${RELEASE_NAME}-web"
+
+pushd charts/stable/concourse/
+  helm init --wait
+  helm dependency update
+  helm upgrade -f values.yaml \
+    --install \
+    --force \
+    --set image=$CONCOURSE_IMAGE \
+    --set imageDigest="$CONCOURSE_DIGEST" \
+    --set concourse.worker.garden.allowHostAccess="true" \
+    --set concourse.worker.baggageclaim.driver="detect" \
+    --set concourse.web.auth.mainTeam.localUser="admin" \
+    --set secrets.localUsers="admin:$ATC_ADMIN_PASSWORD\,guest:$ATC_GUEST_PASSWORD" \
+    --set web.service.type="LoadBalancer" \
+    --set web.service.loadBalancerIP="$LOADBALANCER_IP" \
+    --set concourse.web.externalUrl="http://$LOADBALANCER_IP:8080" \
+    --set worker.resources.requests.cpu="1000m" \
+    --set worker.replicas="1" \
+    $RELEASE_NAME \
+    .
+popd

@@ -19,7 +19,7 @@ you're working on.
 You'll need a few things installed in order to build and run Concourse during
 development:
 
-* [`go`](https://golang.org/dl/) v1.11+
+* [`go`](https://golang.org/dl/) v1.11.2+
 * [`git`](https://git-scm.com/) v2.11+
 * [`yarn`](https://yarnpkg.com/en/docs/install)
 * [`docker-compose`](https://docs.docker.com/compose/install/)
@@ -99,11 +99,19 @@ $ docker-compose up --build -d
 
 This can be run while the original `docker-compose up` command is still running.
 
+If there are any changes to the web UI, you will also need to re-build:
+
+```sh
+$ yarn build
+```
+
+This can be run before or after the `docker-compose up` - the compiled assets
+will automatically propagate to the running containers.
+
 ### Working on the web UI
 
-We already showed how to run `yarn build` during the initial setup, but if
-you're actually working on the web UI you'll probably want to use `watch`
-instead:
+If you're actually working on the web UI you'll probably want to use `watch`
+instead of `build`:
 
 ```sh
 $ yarn watch

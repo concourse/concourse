@@ -85,6 +85,4 @@ func Render(dst io.Writer, src eventstream.EventStream) int {
 			return exitStatus
 		}
 	}
-
-	return 255
 }

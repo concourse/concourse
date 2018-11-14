@@ -40,6 +40,21 @@ type FakeJob struct {
 		result2 db.Pagination
 		result3 error
 	}
+	BuildsWithTimeStub        func(db.Page) ([]db.Build, db.Pagination, error)
+	buildsWithTimeMutex       sync.RWMutex
+	buildsWithTimeArgsForCall []struct {
+		arg1 db.Page
+	}
+	buildsWithTimeReturns struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}
+	buildsWithTimeReturnsOnCall map[int]struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}
 	ClearTaskCacheStub        func(string, string) (int64, error)
 	clearTaskCacheMutex       sync.RWMutex
 	clearTaskCacheArgsForCall []struct {
@@ -452,6 +467,62 @@ func (fake *FakeJob) BuildsReturnsOnCall(i int, result1 []db.Build, result2 db.P
 		})
 	}
 	fake.buildsReturnsOnCall[i] = struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeJob) BuildsWithTime(arg1 db.Page) ([]db.Build, db.Pagination, error) {
+	fake.buildsWithTimeMutex.Lock()
+	ret, specificReturn := fake.buildsWithTimeReturnsOnCall[len(fake.buildsWithTimeArgsForCall)]
+	fake.buildsWithTimeArgsForCall = append(fake.buildsWithTimeArgsForCall, struct {
+		arg1 db.Page
+	}{arg1})
+	fake.recordInvocation("BuildsWithTime", []interface{}{arg1})
+	fake.buildsWithTimeMutex.Unlock()
+	if fake.BuildsWithTimeStub != nil {
+		return fake.BuildsWithTimeStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.buildsWithTimeReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeJob) BuildsWithTimeCallCount() int {
+	fake.buildsWithTimeMutex.RLock()
+	defer fake.buildsWithTimeMutex.RUnlock()
+	return len(fake.buildsWithTimeArgsForCall)
+}
+
+func (fake *FakeJob) BuildsWithTimeArgsForCall(i int) db.Page {
+	fake.buildsWithTimeMutex.RLock()
+	defer fake.buildsWithTimeMutex.RUnlock()
+	argsForCall := fake.buildsWithTimeArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeJob) BuildsWithTimeReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.BuildsWithTimeStub = nil
+	fake.buildsWithTimeReturns = struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeJob) BuildsWithTimeReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.BuildsWithTimeStub = nil
+	if fake.buildsWithTimeReturnsOnCall == nil {
+		fake.buildsWithTimeReturnsOnCall = make(map[int]struct {
+			result1 []db.Build
+			result2 db.Pagination
+			result3 error
+		})
+	}
+	fake.buildsWithTimeReturnsOnCall[i] = struct {
 		result1 []db.Build
 		result2 db.Pagination
 		result3 error
@@ -1702,6 +1773,8 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.buildMutex.RUnlock()
 	fake.buildsMutex.RLock()
 	defer fake.buildsMutex.RUnlock()
+	fake.buildsWithTimeMutex.RLock()
+	defer fake.buildsWithTimeMutex.RUnlock()
 	fake.clearTaskCacheMutex.RLock()
 	defer fake.clearTaskCacheMutex.RUnlock()
 	fake.configMutex.RLock()

@@ -5,21 +5,21 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
 
+// IMPORTANT: This is not yet tested because it is not yet used
 func (s *Server) GetResourceVersion(pipeline db.Pipeline) http.Handler {
 	logger := s.logger.Session("get-resource-version")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		versionID, err := strconv.Atoi(r.FormValue(":resource_version_id"))
+		versionID, err := strconv.Atoi(r.FormValue(":resource_config_version_id"))
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		version, found, err := pipeline.VersionedResource(versionID)
+		version, found, err := pipeline.ResourceVersion(versionID)
 		if err != nil {
 			logger.Error("failed-to-get-resource-version", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -35,7 +35,7 @@ func (s *Server) GetResourceVersion(pipeline db.Pipeline) http.Handler {
 
 		w.WriteHeader(http.StatusOK)
 
-		err = json.NewEncoder(w).Encode(present.SavedVersionedResource(version))
+		err = json.NewEncoder(w).Encode(version)
 		if err != nil {
 			logger.Error("failed-to-encode-resource-version", err)
 			w.WriteHeader(http.StatusInternalServerError)

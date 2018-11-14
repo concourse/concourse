@@ -1,69 +1,69 @@
-module Concourse exposing
-    ( AuthSession
-    , AuthToken
-    , Build
-    , BuildDuration
-    , BuildId
-    , BuildName
-    , BuildPlan
-    , BuildPrep
-    , BuildPrepStatus(..)
-    , BuildResources
-    , BuildResourcesInput
-    , BuildResourcesOutput
-    , BuildStatus(..)
-    , BuildStep(..)
-    , CSRFToken
-    , Cause
-    , HookedPlan
-    , Info
-    , Job
-    , JobBuildIdentifier
-    , JobIdentifier
-    , JobInput
-    , JobName
-    , JobOutput
-    , Metadata
-    , MetadataField
-    , Pipeline
-    , PipelineGroup
-    , PipelineIdentifier
-    , PipelineName
-    , PipelineStatus(..)
-    , Resource
-    , ResourceIdentifier
-    , Team
-    , TeamName
-    , User
-    , Version
-    , VersionedResource
-    , VersionedResourceIdentifier
-    , csrfTokenHeaderName
-    , decodeAuthToken
-    , decodeBuild
-    , decodeBuildPlan
-    , decodeBuildPrep
-    , decodeBuildResources
-    , decodeBuildStatus
-    , decodeCause
-    , decodeInfo
-    , decodeJob
-    , decodeMetadata
-    , decodePipeline
-    , decodeResource
-    , decodeTeam
-    , decodeUser
-    , decodeVersion
-    , decodeVersionedResource
-    , retrieveCSRFToken
-    )
+module Concourse
+    exposing
+        ( AuthSession
+        , AuthToken
+        , Build
+        , BuildDuration
+        , BuildId
+        , BuildName
+        , BuildPlan
+        , BuildPrep
+        , BuildPrepStatus(..)
+        , BuildResources
+        , BuildResourcesInput
+        , BuildResourcesOutput
+        , BuildStatus(..)
+        , BuildStep(..)
+        , CSRFToken
+        , Cause
+        , HookedPlan
+        , Info
+        , Job
+        , JobBuildIdentifier
+        , JobIdentifier
+        , JobInput
+        , JobName
+        , JobOutput
+        , Metadata
+        , MetadataField
+        , Pipeline
+        , PipelineGroup
+        , PipelineIdentifier
+        , PipelineName
+        , PipelineStatus(..)
+        , Resource
+        , ResourceIdentifier
+        , Team
+        , TeamName
+        , User
+        , Version
+        , VersionedResource
+        , VersionedResourceIdentifier
+        , csrfTokenHeaderName
+        , decodeAuthToken
+        , decodeBuild
+        , decodeBuildPlan
+        , decodeBuildPrep
+        , decodeBuildResources
+        , decodeBuildStatus
+        , decodeCause
+        , decodeInfo
+        , decodeJob
+        , decodeMetadata
+        , decodePipeline
+        , decodeResource
+        , decodeTeam
+        , decodeUser
+        , decodeVersion
+        , decodeVersionedResource
+        , retrieveCSRFToken
+        )
 
 import Array exposing (Array)
 import Date exposing (Date)
 import Dict exposing (Dict)
 import Json.Decode
 import Json.Decode.Extra exposing ((|:))
-
 
 
 -- AuthToken
@@ -279,16 +279,13 @@ type alias BuildResources =
 
 type alias BuildResourcesInput =
     { name : String
-    , resource : String
-    , type_ : String
     , version : Version
-    , metadata : Metadata
     , firstOccurrence : Bool
     }
 
 
 type alias BuildResourcesOutput =
-    { resource : String
+    { name : String
     , version : Version
     }
 
@@ -304,17 +301,14 @@ decodeResourcesInput : Json.Decode.Decoder BuildResourcesInput
 decodeResourcesInput =
     Json.Decode.succeed BuildResourcesInput
         |: Json.Decode.field "name" Json.Decode.string
-        |: Json.Decode.field "resource" Json.Decode.string
-        |: Json.Decode.field "type" Json.Decode.string
         |: Json.Decode.field "version" decodeVersion
-        |: Json.Decode.field "metadata" decodeMetadata
         |: Json.Decode.field "first_occurrence" Json.Decode.bool
 
 
 decodeResourcesOutput : Json.Decode.Decoder BuildResourcesOutput
 decodeResourcesOutput =
     Json.Decode.succeed BuildResourcesOutput
-        |: Json.Decode.field "resource" Json.Decode.string
+        |: Json.Decode.field "name" Json.Decode.string
         |: (Json.Decode.field "version" <| Json.Decode.dict Json.Decode.string)
 
 
@@ -629,10 +623,12 @@ type alias Resource =
     { teamName : String
     , pipelineName : String
     , name : String
-    , paused : Bool
     , failingToCheck : Bool
     , checkError : String
+    , checkSetupError : String
     , lastChecked : Maybe Date
+    , pinnedVersion : Maybe Version
+    , pinnedInConfig : Bool
     }
 
 
@@ -646,10 +642,8 @@ type alias ResourceIdentifier =
 type alias VersionedResource =
     { id : Int
     , version : Version
-    , enabled : Bool
     , metadata : Metadata
-    , resourceType : String
-    , resourceName : String
+    , enabled : Bool
     }
 
 
@@ -667,10 +661,12 @@ decodeResource =
         |: Json.Decode.field "team_name" Json.Decode.string
         |: Json.Decode.field "pipeline_name" Json.Decode.string
         |: Json.Decode.field "name" Json.Decode.string
-        |: (defaultTo False <| Json.Decode.field "paused" Json.Decode.bool)
         |: (defaultTo False <| Json.Decode.field "failing_to_check" Json.Decode.bool)
         |: (defaultTo "" <| Json.Decode.field "check_error" Json.Decode.string)
+        |: (defaultTo "" <| Json.Decode.field "check_setup_error" Json.Decode.string)
         |: Json.Decode.maybe (Json.Decode.field "last_checked" (Json.Decode.map dateFromSeconds Json.Decode.float))
+        |: Json.Decode.maybe (Json.Decode.field "pinned_version" decodeVersion)
+        |: (defaultTo False <| Json.Decode.field "pinned_in_config" Json.Decode.bool)
 
 
 decodeVersionedResource : Json.Decode.Decoder VersionedResource
@@ -678,10 +674,8 @@ decodeVersionedResource =
     Json.Decode.succeed VersionedResource
         |: Json.Decode.field "id" Json.Decode.int
         |: Json.Decode.field "version" decodeVersion
-        |: Json.Decode.field "enabled" Json.Decode.bool
         |: defaultTo [] (Json.Decode.field "metadata" decodeMetadata)
-        |: Json.Decode.field "type" Json.Decode.string
-        |: Json.Decode.field "resource" Json.Decode.string
+        |: Json.Decode.field "enabled" Json.Decode.bool
 
 
 

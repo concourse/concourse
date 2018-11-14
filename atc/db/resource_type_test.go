@@ -1,7 +1,10 @@
 package db_test
 
 import (
+	"errors"
+
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -125,6 +128,115 @@ var _ = Describe("ResourceType", func() {
 			It("does not return inactive resource types", func() {
 				Expect(resourceTypes).To(HaveLen(1))
 				Expect(resourceTypes[0].Name()).To(Equal("some-type"))
+			})
+		})
+	})
+
+	Describe("SetCheckError", func() {
+		var resourceType db.ResourceType
+
+		BeforeEach(func() {
+			var err error
+			resourceType, _, err = pipeline.ResourceType("some-type")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when the resource is first created", func() {
+			It("is not errored", func() {
+				Expect(resourceType.CheckError()).To(BeNil())
+			})
+		})
+
+		Context("when a resource check is marked as errored", func() {
+			It("is then marked as errored", func() {
+				originalCause := errors.New("on fire")
+
+				err := resourceType.SetCheckError(originalCause)
+				Expect(err).ToNot(HaveOccurred())
+
+				returnedResourceType, _, err := pipeline.ResourceType("some-type")
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(returnedResourceType.CheckError()).To(Equal(originalCause))
+			})
+		})
+
+		Context("when a resource is cleared of check errors", func() {
+			It("is not marked as errored again", func() {
+				originalCause := errors.New("on fire")
+
+				err := resourceType.SetCheckError(originalCause)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = resourceType.SetCheckError(nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				returnedResourceType, _, err := pipeline.ResourceType("some-type")
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(returnedResourceType.CheckError()).To(BeNil())
+			})
+		})
+	})
+
+	Describe("Resource type version", func() {
+		var (
+			resourceType       db.ResourceType
+			resourceTypeConfig db.ResourceConfig
+		)
+
+		BeforeEach(func() {
+			var err error
+			resourceType, _, err = pipeline.ResourceType("some-type")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resourceType.Version()).To(BeNil())
+
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			brt := db.BaseResourceType{
+				Name: "registry-image",
+			}
+			_, err = brt.FindOrCreate(setupTx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			resourceTypeConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "registry-image", atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			err = resourceType.SetResourceConfig(resourceTypeConfig.ID())
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			reloaded, err := resourceType.Reload()
+			Expect(reloaded).To(BeTrue())
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when the resource type has proper versions", func() {
+			BeforeEach(func() {
+				err := resourceTypeConfig.SaveVersions([]atc.Version{
+					atc.Version{"version": "1"},
+					atc.Version{"version": "2"},
+				})
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns the version", func() {
+				Expect(resourceType.Version()).To(Equal(atc.Version{"version": "2"}))
+			})
+		})
+
+		Context("when the version has a check order of 0", func() {
+			BeforeEach(func() {
+				created, err := resourceTypeConfig.SaveUncheckedVersion(atc.Version{"version": "not-returned"}, nil)
+				Expect(created).To(BeTrue())
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns the version", func() {
+				Expect(resourceType.Version()).To(BeNil())
 			})
 		})
 	})

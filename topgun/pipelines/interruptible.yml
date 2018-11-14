@@ -1,0 +1,21 @@
+jobs:
+- name: interruptible-job
+  interruptible: true
+  plan:
+  - task: wait-forever
+    timeout: 1h
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      run:
+        path: sh
+        args:
+        - -c
+        - |
+          while sleep 1; do
+            echo waiting forever...
+          done

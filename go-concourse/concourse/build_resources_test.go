@@ -21,41 +21,24 @@ var _ = Describe("ATC Handler Build Resources", func() {
 				expectedBuildInputsOutputs = atc.BuildInputsOutputs{
 					Inputs: []atc.PublicBuildInput{
 						{
-							Name:     "input1",
-							Resource: "myresource1",
-							Type:     "git",
-							Version:  atc.Version{"version": "value1"},
-							Metadata: []atc.MetadataField{
-								{
-									Name:  "meta1",
-									Value: "value1",
-								},
-								{
-									Name:  "meta2",
-									Value: "value2",
-								},
-							},
-							PipelineID:      57,
-							FirstOccurrence: true,
+							Name:    "input1",
+							Version: atc.Version{"version": "value1"},
 						},
 						{
 							Name:            "input2",
-							Resource:        "myresource2",
-							Type:            "git",
 							Version:         atc.Version{"version": "value2"},
-							Metadata:        []atc.MetadataField{},
 							PipelineID:      57,
 							FirstOccurrence: false,
 						},
 					},
-					Outputs: []atc.VersionedResource{
+					Outputs: []atc.PublicBuildOutput{
 						{
-							Resource: "myresource3",
-							Version:  atc.Version{"version": "value3"},
+							Name:    "myresource3",
+							Version: atc.Version{"version": "value3"},
 						},
 						{
-							Resource: "myresource4",
-							Version:  atc.Version{"version": "value4"},
+							Name:    "myresource4",
+							Version: atc.Version{"version": "value4"},
 						},
 					},
 				}

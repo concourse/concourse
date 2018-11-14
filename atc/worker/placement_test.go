@@ -1,6 +1,8 @@
 package worker_test
 
 import (
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
@@ -24,23 +26,27 @@ var (
 	compatibleWorkerTwoCaches *workerfakes.FakeWorker
 	compatibleWorkerNoCaches1 *workerfakes.FakeWorker
 	compatibleWorkerNoCaches2 *workerfakes.FakeWorker
+
+	logger *lagertest.TestLogger
 )
 
 var _ = Describe("VolumeLocalityPlacementStrategy", func() {
 	Describe("Choose", func() {
 		JustBeforeEach(func() {
 			chosenWorker, chooseErr = strategy.Choose(
+				logger,
 				workers,
 				spec,
 			)
 		})
 
 		BeforeEach(func() {
+			logger = lagertest.NewTestLogger("volume-locality-placement-test")
 			strategy = NewVolumeLocalityPlacementStrategy()
 
 			fakeInput1 := new(workerfakes.FakeInputSource)
 			fakeInput1AS := new(workerfakes.FakeArtifactSource)
-			fakeInput1AS.VolumeOnStub = func(worker Worker) (Volume, bool, error) {
+			fakeInput1AS.VolumeOnStub = func(logger lager.Logger, worker Worker) (Volume, bool, error) {
 				switch worker {
 				case compatibleWorkerOneCache1, compatibleWorkerOneCache2, compatibleWorkerTwoCaches:
 					return new(workerfakes.FakeVolume), true, nil
@@ -52,7 +58,7 @@ var _ = Describe("VolumeLocalityPlacementStrategy", func() {
 
 			fakeInput2 := new(workerfakes.FakeInputSource)
 			fakeInput2AS := new(workerfakes.FakeArtifactSource)
-			fakeInput2AS.VolumeOnStub = func(worker Worker) (Volume, bool, error) {
+			fakeInput2AS.VolumeOnStub = func(logger lager.Logger, worker Worker) (Volume, bool, error) {
 				switch worker {
 				case compatibleWorkerTwoCaches:
 					return new(workerfakes.FakeVolume), true, nil
@@ -123,6 +129,7 @@ var _ = Describe("VolumeLocalityPlacementStrategy", func() {
 
 				for i := 0; i < 100; i++ {
 					worker, err := strategy.Choose(
+						logger,
 						workers,
 						spec,
 					)
@@ -154,6 +161,7 @@ var _ = Describe("VolumeLocalityPlacementStrategy", func() {
 
 				for i := 0; i < 100; i++ {
 					worker, err := strategy.Choose(
+						logger,
 						workers,
 						spec,
 					)
@@ -173,6 +181,7 @@ var _ = Describe("RandomPlacementStrategy", func() {
 	Describe("Choose", func() {
 		JustBeforeEach(func() {
 			chosenWorker, chooseErr = strategy.Choose(
+				logger,
 				workers,
 				spec,
 			)
@@ -195,6 +204,7 @@ var _ = Describe("RandomPlacementStrategy", func() {
 
 			for i := 0; i < 100; i++ {
 				worker, err := strategy.Choose(
+					logger,
 					workers,
 					spec,
 				)

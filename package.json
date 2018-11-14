@@ -17,9 +17,11 @@
   },
   "scripts": {
     "build": "yarn run build-less && yarn run build-elm",
+    "build-debug": "yarn run build-less && yarn run build-elm-debug",
     "test": "cd web/elm && elm test",
     "build-less": "lessc --clean-css=--advanced web/assets/css/main.less web/public/main.css",
     "build-elm": "cd web/elm && elm package install -y && elm make --warn --output ../public/elm.js --yes src/Main.elm && uglifyjs < ../public/elm.js > ../public/elm.min.js",
-    "watch": "chokidar -i elm-stuff 'web/elm/src/**/*.elm' 'web/assets/css/*.less' -c 'yarn run build' --initial"
+    "build-elm-debug": "cd web/elm && elm package install -y && elm make --debug --warn --output ../public/elm.js --yes src/Main.elm && uglifyjs < ../public/elm.js > ../public/elm.min.js",
+    "watch": "chokidar -i elm-stuff 'web/elm/src/**/*.elm' 'web/assets/css/*.less' -c 'yarn run build-debug' --initial"
   }
 }

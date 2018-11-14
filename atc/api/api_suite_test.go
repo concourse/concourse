@@ -35,7 +35,6 @@ var (
 	sink *lager.ReconfigurableSink
 
 	externalURL  = "https://example.com"
-	oAuthBaseURL = "https://oauth.example.com"
 
 	fakeEngine              *enginefakes.FakeEngine
 	fakeWorkerClient        *workerfakes.FakeClient
@@ -47,6 +46,7 @@ var (
 	dbPipelineFactory       *dbfakes.FakePipelineFactory
 	dbJobFactory            *dbfakes.FakeJobFactory
 	dbResourceFactory       *dbfakes.FakeResourceFactory
+	dbResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 	fakePipeline            *dbfakes.FakePipeline
 	fakeAccessor            *accessorfakes.FakeAccessFactory
 	dbWorkerFactory         *dbfakes.FakeWorkerFactory
@@ -98,6 +98,7 @@ var _ = BeforeEach(func() {
 	dbPipelineFactory = new(dbfakes.FakePipelineFactory)
 	dbJobFactory = new(dbfakes.FakeJobFactory)
 	dbResourceFactory = new(dbfakes.FakeResourceFactory)
+	dbResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 	dbBuildFactory = new(dbfakes.FakeBuildFactory)
 
 	interceptTimeoutFactory = new(containerserverfakes.FakeInterceptTimeoutFactory)
@@ -179,6 +180,7 @@ var _ = BeforeEach(func() {
 		fakeContainerRepository,
 		fakeDestroyer,
 		dbBuildFactory,
+		dbResourceConfigFactory,
 
 		peerURL,
 		constructedEventHandler.Construct,

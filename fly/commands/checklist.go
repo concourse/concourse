@@ -86,6 +86,6 @@ func orphanedJobs(config atc.Config) []string {
 		result = append(result, job)
 	}
 
-	sort.Sort(sort.StringSlice(result))
+	sort.Strings(result)
 	return result
 }

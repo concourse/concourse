@@ -92,7 +92,7 @@ func (db VersionsDB) VersionsOfResourcePassedJobs(resourceID int, passed JobSet)
 	candidates := VersionCandidates{}
 
 	firstTick := true
-	for jobID, _ := range passed {
+	for jobID := range passed {
 		versions := VersionCandidates{}
 
 		for _, output := range db.BuildOutputs {

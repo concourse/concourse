@@ -10,7 +10,13 @@ import (
 
 var _ = Describe("Resource-types checks", func() {
 	BeforeEach(func() {
-		setAndUnpausePipeline("fixtures/resource-types.yml")
+		hash, err := uuid.NewV4()
+		Expect(err).ToNot(HaveOccurred())
+
+		setAndUnpausePipeline(
+			"fixtures/resource-types.yml",
+			"-v", "hash="+hash.String(),
+		)
 	})
 
 	It("can check the resource-type", func() {

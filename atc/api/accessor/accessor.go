@@ -86,7 +86,7 @@ func (a *access) TeamRoles() map[string][]string {
 					}
 				}
 			} else {
-				mapstructure.Decode(teamsClaim, &teamRoles)
+				_ = mapstructure.Decode(teamsClaim, &teamRoles)
 			}
 		}
 	}
@@ -97,7 +97,7 @@ func (a *access) TeamRoles() map[string][]string {
 func (a *access) TeamNames() []string {
 
 	teams := []string{}
-	for teamName, _ := range a.TeamRoles() {
+	for teamName := range a.TeamRoles() {
 		teams = append(teams, teamName)
 	}
 
@@ -152,6 +152,8 @@ var requiredRoles = map[string]string{
 	atc.GetResourceVersion:            "viewer",
 	atc.EnableResourceVersion:         "member",
 	atc.DisableResourceVersion:        "member",
+	atc.PinResourceVersion:            "member",
+	atc.UnpinResourceVersion:          "member",
 	atc.ListBuildsWithVersionAsInput:  "viewer",
 	atc.ListBuildsWithVersionAsOutput: "viewer",
 	atc.GetResourceCausality:          "viewer",

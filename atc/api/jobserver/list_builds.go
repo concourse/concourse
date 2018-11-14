@@ -14,17 +14,20 @@ import (
 func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
-			builds []db.Build
-			err    error
-			until  int
-			since  int
-			limit  int
+			builds     []db.Build
+			pagination db.Pagination
+			err        error
+			until      int
+			since      int
+			limit      int
 		)
 
 		logger := s.logger.Session("list-job-builds")
 
 		jobName := r.FormValue(":job_name")
 		teamName := r.FormValue(":team_name")
+
+		timestamps := r.FormValue(atc.PaginationQueryTimestamps)
 
 		urlUntil := r.FormValue(atc.PaginationQueryUntil)
 		until, _ = strconv.Atoi(urlUntil)
@@ -50,11 +53,19 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		builds, pagination, err := job.Builds(db.Page{
-			Since: since,
-			Until: until,
-			Limit: limit,
-		})
+		if timestamps == "" {
+			builds, pagination, err = job.Builds(db.Page{
+				Since: since,
+				Until: until,
+				Limit: limit,
+			})
+		} else {
+			builds, pagination, err = job.BuildsWithTime(db.Page{
+				Since: since,
+				Until: until,
+				Limit: limit,
+			})
+		}
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return

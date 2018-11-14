@@ -1,0 +1,42 @@
+- type: replace
+  path: /instance_groups/name=web/jobs/name=web/properties/vault/tls?
+  value:
+    ca_cert: ((vault_ca))
+    client_cert: ((vault_client))
+
+- type: replace
+  path: /instance_groups/name=vault/jobs/name=vault/properties/tls?
+  value: ((vault_tls))
+
+- type: replace
+  path: /variables?/-
+  value:
+    name: vault_ca
+    type: certificate
+    options:
+      is_ca: true
+      common_name: vaultCA
+
+- type: replace
+  path: /variables?/-
+  value:
+    name: vault_tls
+    type: certificate
+    options:
+      ca: vault_ca
+      common_name: ((vault_ip))
+      alternative_names:
+      - ((vault_ip))
+      extended_key_usage:
+      - server_auth
+
+- type: replace
+  path: /variables?/-
+  value:
+    name: vault_client
+    type: certificate
+    options:
+      ca: vault_ca
+      common_name: concourse
+      extended_key_usage:
+      - client_auth

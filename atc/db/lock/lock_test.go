@@ -84,7 +84,7 @@ var _ = Describe("Locks", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		if dbLock != nil {
-			dbLock.Release()
+			_ = dbLock.Release()
 		}
 	})
 
@@ -159,7 +159,8 @@ var _ = Describe("Locks", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeFalse())
 
-				dbLock.Release()
+				err = dbLock.Release()
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("acquires the locks once it is released", func() {
@@ -173,13 +174,15 @@ var _ = Describe("Locks", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeFalse())
 
-				dbLock.Release()
+				err = dbLock.Release()
+				Expect(err).NotTo(HaveOccurred())
 
 				dbLock2, acquired, err = lockFactory2.Acquire(logger, lock.LockID{42})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
-				dbLock2.Release()
+				err = dbLock2.Release()
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 
@@ -273,7 +276,8 @@ var _ = Describe("Locks", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
-				lock.Release()
+				err = lock.Release()
+				Expect(err).NotTo(HaveOccurred())
 
 				_, acquired, err = pipeline.AcquireSchedulingLock(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
@@ -294,7 +298,8 @@ var _ = Describe("Locks", func() {
 					return acquired
 				}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
 
-				lock.Release()
+				err = lock.Release()
+				Expect(err).NotTo(HaveOccurred())
 
 				time.Sleep(time.Second)
 
@@ -302,7 +307,8 @@ var _ = Describe("Locks", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
-				newLock.Release()
+				err = newLock.Release()
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 	})
@@ -328,7 +334,8 @@ var _ = Describe("Locks", func() {
 				return acquired
 			}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
 
-			lock.Release()
+			err = lock.Release()
+			Expect(err).NotTo(HaveOccurred())
 
 			time.Sleep(time.Second)
 
@@ -336,7 +343,8 @@ var _ = Describe("Locks", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(acquired).To(BeTrue())
 
-			newLock.Release()
+			err = newLock.Release()
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 })

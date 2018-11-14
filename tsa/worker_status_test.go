@@ -1,11 +1,13 @@
 package tsa_test
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 
 	"github.com/concourse/concourse/tsa"
 
+	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tsa/tsafakes"
@@ -19,7 +21,7 @@ var _ = Describe("Worker Status Test", func() {
 	var (
 		workerStatus *tsa.WorkerStatus
 
-		logger             *lagertest.TestLogger
+		ctx                context.Context
 		worker             atc.Worker
 		fakeTokenGenerator *tsafakes.FakeTokenGenerator
 		fakeATC            *ghttp.Server
@@ -28,7 +30,7 @@ var _ = Describe("Worker Status Test", func() {
 
 	BeforeEach(func() {
 		var err error
-		logger = lagertest.NewTestLogger("test")
+		ctx = lagerctx.NewContext(context.Background(), lagertest.NewTestLogger("test"))
 		worker = atc.Worker{
 			Name: "some-worker",
 			Team: "some-team",
@@ -60,7 +62,7 @@ var _ = Describe("Worker Status Test", func() {
 
 	Context("ResourceType not valid", func() {
 		It("Returns an error", func() {
-			err := workerStatus.WorkerStatus(logger, worker, "")
+			err := workerStatus.WorkerStatus(ctx, worker, "")
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal(tsa.ResourceActionMissing))
 		})
@@ -78,7 +80,7 @@ var _ = Describe("Worker Status Test", func() {
 		})
 
 		It("tells the ATC to get destroying containers", func() {
-			err := workerStatus.WorkerStatus(logger, worker, tsa.ReportContainers)
+			err := workerStatus.WorkerStatus(ctx, worker, tsa.ReportContainers)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -92,7 +94,7 @@ var _ = Describe("Worker Status Test", func() {
 			})
 
 			It("errors", func() {
-				err := workerStatus.WorkerStatus(logger, worker, tsa.ReportContainers)
+				err := workerStatus.WorkerStatus(ctx, worker, tsa.ReportContainers)
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("403")))
@@ -106,7 +108,7 @@ var _ = Describe("Worker Status Test", func() {
 			})
 
 			It("errors", func() {
-				err := workerStatus.WorkerStatus(logger, worker, tsa.ReportContainers)
+				err := workerStatus.WorkerStatus(ctx, worker, tsa.ReportContainers)
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("empty-worker-name")))
@@ -120,7 +122,7 @@ var _ = Describe("Worker Status Test", func() {
 			})
 
 			It("errors", func() {
-				err := workerStatus.WorkerStatus(logger, worker, tsa.ReportContainers)
+				err := workerStatus.WorkerStatus(ctx, worker, tsa.ReportContainers)
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("bblah")))
@@ -134,7 +136,7 @@ var _ = Describe("Worker Status Test", func() {
 			})
 
 			It("errors", func() {
-				err := workerStatus.WorkerStatus(logger, worker, tsa.ReportContainers)
+				err := workerStatus.WorkerStatus(ctx, worker, tsa.ReportContainers)
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -149,7 +151,7 @@ var _ = Describe("Worker Status Test", func() {
 			})
 
 			It("errors", func() {
-				err := workerStatus.WorkerStatus(logger, worker, tsa.ReportContainers)
+				err := workerStatus.WorkerStatus(ctx, worker, tsa.ReportContainers)
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("bad-response (500)")))
@@ -169,7 +171,7 @@ var _ = Describe("Worker Status Test", func() {
 			})
 
 			It("does not error", func() {
-				err := workerStatus.WorkerStatus(logger, worker, tsa.ReportContainers)
+				err := workerStatus.WorkerStatus(ctx, worker, tsa.ReportContainers)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
@@ -189,7 +191,7 @@ var _ = Describe("Worker Status Test", func() {
 		})
 
 		It("tells the ATC to get destroying volumes", func() {
-			err := workerStatus.WorkerStatus(logger, worker, tsa.ReportVolumes)
+			err := workerStatus.WorkerStatus(ctx, worker, tsa.ReportVolumes)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -203,7 +205,7 @@ var _ = Describe("Worker Status Test", func() {
 			})
 
 			It("errors", func() {
-				err := workerStatus.WorkerStatus(logger, worker, tsa.ReportVolumes)
+				err := workerStatus.WorkerStatus(ctx, worker, tsa.ReportVolumes)
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("403")))
@@ -217,7 +219,7 @@ var _ = Describe("Worker Status Test", func() {
 			})
 
 			It("errors", func() {
-				err := workerStatus.WorkerStatus(logger, worker, tsa.ReportVolumes)
+				err := workerStatus.WorkerStatus(ctx, worker, tsa.ReportVolumes)
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("empty-worker-name")))
@@ -231,7 +233,7 @@ var _ = Describe("Worker Status Test", func() {
 			})
 
 			It("errors", func() {
-				err := workerStatus.WorkerStatus(logger, worker, tsa.ReportVolumes)
+				err := workerStatus.WorkerStatus(ctx, worker, tsa.ReportVolumes)
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("bblah")))
@@ -245,7 +247,7 @@ var _ = Describe("Worker Status Test", func() {
 			})
 
 			It("errors", func() {
-				err := workerStatus.WorkerStatus(logger, worker, tsa.ReportVolumes)
+				err := workerStatus.WorkerStatus(ctx, worker, tsa.ReportVolumes)
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -260,7 +262,7 @@ var _ = Describe("Worker Status Test", func() {
 			})
 
 			It("errors", func() {
-				err := workerStatus.WorkerStatus(logger, worker, tsa.ReportVolumes)
+				err := workerStatus.WorkerStatus(ctx, worker, tsa.ReportVolumes)
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("bad-response (500)")))
@@ -280,7 +282,7 @@ var _ = Describe("Worker Status Test", func() {
 			})
 
 			It("does not error", func() {
-				err := workerStatus.WorkerStatus(logger, worker, tsa.ReportVolumes)
+				err := workerStatus.WorkerStatus(ctx, worker, tsa.ReportVolumes)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))

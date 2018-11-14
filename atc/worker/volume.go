@@ -30,6 +30,7 @@ type Volume interface {
 
 	CreateChildForContainer(db.CreatingContainer, string) (db.CreatingVolume, error)
 
+	WorkerName() string
 	Destroy() error
 }
 
@@ -92,6 +93,10 @@ func (v *volume) StreamOut(path string) (io.ReadCloser, error) {
 
 func (v *volume) Properties() (baggageclaim.VolumeProperties, error) {
 	return v.bcVolume.Properties()
+}
+
+func (v *volume) WorkerName() string {
+	return v.dbVolume.WorkerName()
 }
 
 func (v *volume) Destroy() error {

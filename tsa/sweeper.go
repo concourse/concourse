@@ -1,6 +1,7 @@
 package tsa
 
 import (
+	"context"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/tedsuo/rata"
 )
@@ -25,7 +27,9 @@ type Sweeper struct {
 	TokenGenerator TokenGenerator
 }
 
-func (l *Sweeper) Sweep(logger lager.Logger, worker atc.Worker, resourceAction string) ([]byte, error) {
+func (l *Sweeper) Sweep(ctx context.Context, worker atc.Worker, resourceAction string) ([]byte, error) {
+	logger := lagerctx.FromContext(ctx)
+
 	logger.Debug("start")
 	defer logger.Debug("end")
 

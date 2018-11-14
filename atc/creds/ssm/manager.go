@@ -24,7 +24,7 @@ type SsmManager struct {
 	AwsAccessKeyID         string `long:"access-key" description:"AWS Access key ID"`
 	AwsSecretAccessKey     string `long:"secret-key" description:"AWS Secret Access Key"`
 	AwsSessionToken        string `long:"session-token" description:"AWS Session Token"`
-	AwsRegion              string `long:"region" description:"AWS region to send requests to" env:"AWS_REGION"`
+	AwsRegion              string `long:"region" description:"AWS region to send requests to"`
 	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"AWS SSM parameter name template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
 	TeamSecretTemplate     string `long:"team-secret-template" description:"AWS SSM parameter name template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
 	Ssm                    *Ssm

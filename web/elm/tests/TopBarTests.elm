@@ -5,6 +5,9 @@ import Dict
 import Expect exposing (..)
 import Test exposing (..)
 import TopBar exposing (userDisplayName)
+import Navigation
+import QueryString
+import Routes
 
 
 userWithId : Concourse.User
@@ -46,6 +49,13 @@ all =
                     Expect.equal
                         "some-email"
                         (TopBar.userDisplayName userWithEmail)
+            , test "clicking a pinned resource navigates to the pinned resource page" <|
+                \_ ->
+                    TopBar.init { logical = Routes.Pipeline "team" "pipeline", queries = QueryString.empty, page = Nothing, hash = "" }
+                        |> Tuple.first
+                        |> TopBar.update (TopBar.GoToPinnedResource "resource")
+                        |> Tuple.second
+                        |> Expect.equal (Navigation.newUrl "/teams/team/pipelines/pipeline/resources/resource")
             , test "displays id if no userName, name or email present" <|
                 \_ ->
                     Expect.equal

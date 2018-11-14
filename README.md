@@ -84,6 +84,7 @@ Concourse instance to the next.
   reference material.
 * The [Concourse Tutorial](https://concoursetutorial.com) by Stark & Wayne is
   great for a guided introduction to all the core concepts.
+* See Concourse in action with our [production pipelines](https://ci.concourse-ci.org/)
 * Hang around in the [forums](https://discuss.concourse-ci.org) or in
   [Discord](https://discord.gg/MeRxXKW).
 

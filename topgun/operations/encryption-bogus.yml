@@ -1,0 +1,7 @@
+- type: replace
+  path: /instance_groups/name=web/jobs/name=web/properties/encryption_key?
+  value: '12345678901234567890123456789012'
+
+- type: replace
+  path: /instance_groups/name=web/jobs/name=web/properties/old_encryption_key?
+  value: '09876543210987654321098765432109'

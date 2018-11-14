@@ -32,6 +32,7 @@ type Job interface {
 
 	CreateBuild() (Build, error)
 	Builds(page Page) ([]Build, Pagination, error)
+	BuildsWithTime(page Page) ([]Build, Pagination, error)
 	Build(name string) (Build, bool, error)
 	FinishedAndNextBuild() (Build, Build, error)
 	UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error
@@ -183,83 +184,27 @@ func (j *job) UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error {
 	return nil
 }
 
-func (j *job) Builds(page Page) ([]Build, Pagination, error) {
-	query := buildsQuery.Where(sq.Eq{"j.id": j.id})
-
-	limit := uint64(page.Limit)
-
-	var reverse bool
-	if page.Since == 0 && page.Until == 0 {
-		query = query.OrderBy("b.id DESC").Limit(limit)
-	} else if page.Until != 0 {
-		query = query.Where(sq.Gt{"b.id": page.Until}).OrderBy("b.id ASC").Limit(limit)
-		reverse = true
-	} else {
-		query = query.Where(sq.Lt{"b.id": page.Since}).OrderBy("b.id DESC").Limit(limit)
-	}
-
-	rows, err := query.RunWith(j.conn).Query()
-	if err != nil {
-		return nil, Pagination{}, err
-	}
-
-	defer Close(rows)
-
-	builds := []Build{}
-
-	for rows.Next() {
-		build := &build{conn: j.conn, lockFactory: j.lockFactory}
-		err = scanBuild(build, rows, j.conn.EncryptionStrategy())
-		if err != nil {
-			return nil, Pagination{}, err
-		}
-
-		if reverse {
-			builds = append([]Build{build}, builds...)
-		} else {
-			builds = append(builds, build)
-		}
-	}
-
-	if len(builds) == 0 {
-		return []Build{}, Pagination{}, nil
-	}
-
-	var maxID, minID int
-	err = psql.Select("COALESCE(MAX(b.id), 0) as maxID", "COALESCE(MIN(b.id), 0) as minID").
-		From("builds b").
+func (j *job) BuildsWithTime(page Page) ([]Build, Pagination, error) {
+	newBuildsQuery := buildsQuery.Where(sq.Eq{"j.id": j.id})
+	newMinMaxIdQuery := minMaxIdQuery.
 		Join("jobs j ON b.job_id = j.id").
 		Where(sq.Eq{
 			"j.name":        j.name,
 			"j.pipeline_id": j.pipelineID,
-		}).
-		RunWith(j.conn).
-		QueryRow().
-		Scan(&maxID, &minID)
-	if err != nil {
-		return nil, Pagination{}, err
-	}
+		})
+	return getBuildsWithDates(newBuildsQuery, newMinMaxIdQuery, page, j.conn, j.lockFactory)
+}
 
-	firstBuild := builds[0]
-	lastBuild := builds[len(builds)-1]
+func (j *job) Builds(page Page) ([]Build, Pagination, error) {
+	newBuildsQuery := buildsQuery.Where(sq.Eq{"j.id": j.id})
+	newMinMaxIdQuery := minMaxIdQuery.
+		Join("jobs j ON b.job_id = j.id").
+		Where(sq.Eq{
+			"j.name":        j.name,
+			"j.pipeline_id": j.pipelineID,
+		})
 
-	var pagination Pagination
-
-	if firstBuild.ID() < maxID {
-		pagination.Previous = &Page{
-			Until: firstBuild.ID(),
-			Limit: page.Limit,
-		}
-	}
-
-	if lastBuild.ID() > minID {
-		pagination.Next = &Page{
-			Since: lastBuild.ID(),
-			Limit: page.Limit,
-		}
-	}
-
-	return builds, pagination, nil
+	return getBuildsWithPagination(newBuildsQuery, newMinMaxIdQuery, page, j.conn, j.lockFactory)
 }
 
 func (j *job) Build(name string) (Build, bool, error) {
@@ -591,8 +536,7 @@ func (j *job) ClearTaskCache(stepName string, cachePath string) (int64, error) {
 
 	defer Rollback(tx)
 
-	var sqlBuilder sq.DeleteBuilder
-	sqlBuilder = psql.Delete("worker_task_caches").
+	var sqlBuilder sq.DeleteBuilder = psql.Delete("worker_task_caches").
 		Where(sq.Eq{
 			"job_id":    j.id,
 			"step_name": stepName,
@@ -673,11 +617,10 @@ func (j *job) updatePausedJob(pause bool) error {
 }
 
 func (j *job) getBuildInputs(table string) ([]BuildInput, error) {
-	rows, err := psql.Select("i.input_name, i.first_occurrence, r.name, v.type, v.version, v.metadata").
+	rows, err := psql.Select("i.input_name, i.first_occurrence, i.resource_id, v.version").
 		From(table + " i").
 		Join("jobs j ON i.job_id = j.id").
-		Join("versioned_resources v ON v.id = i.version_id").
-		Join("resources r ON r.id = v.resource_id").
+		Join("resource_config_versions v ON v.id = i.resource_config_version_id").
 		Where(sq.Eq{
 			"j.name":        j.name,
 			"j.pipeline_id": j.pipelineID,
@@ -693,15 +636,12 @@ func (j *job) getBuildInputs(table string) ([]BuildInput, error) {
 		var (
 			inputName       string
 			firstOccurrence bool
-			resourceName    string
-			resourceType    string
 			versionBlob     string
-			metadataBlob    string
-			version         ResourceVersion
-			metadata        []ResourceMetadataField
+			version         atc.Version
+			resourceID      int
 		)
 
-		err := rows.Scan(&inputName, &firstOccurrence, &resourceName, &resourceType, &versionBlob, &metadataBlob)
+		err := rows.Scan(&inputName, &firstOccurrence, &resourceID, &versionBlob)
 		if err != nil {
 			return nil, err
 		}
@@ -711,19 +651,10 @@ func (j *job) getBuildInputs(table string) ([]BuildInput, error) {
 			return nil, err
 		}
 
-		err = json.Unmarshal([]byte(metadataBlob), &metadata)
-		if err != nil {
-			return nil, err
-		}
-
 		buildInputs = append(buildInputs, BuildInput{
-			Name: inputName,
-			VersionedResource: VersionedResource{
-				Resource: resourceName,
-				Type:     resourceType,
-				Version:  version,
-				Metadata: metadata,
-			},
+			Name:            inputName,
+			ResourceID:      resourceID,
+			Version:         version,
 			FirstOccurrence: firstOccurrence,
 		})
 	}
@@ -766,7 +697,7 @@ func (j *job) saveJobInputMapping(table string, inputMapping algorithm.InputMapp
 		return err
 	}
 
-	rows, err := psql.Select("input_name, version_id, first_occurrence").
+	rows, err := psql.Select("input_name, resource_config_version_id, resource_id, first_occurrence").
 		From(table).
 		Where(sq.Eq{"job_id": j.id}).
 		RunWith(tx).
@@ -779,7 +710,7 @@ func (j *job) saveJobInputMapping(table string, inputMapping algorithm.InputMapp
 	for rows.Next() {
 		var inputName string
 		var inputVersion algorithm.InputVersion
-		err = rows.Scan(&inputName, &inputVersion.VersionID, &inputVersion.FirstOccurrence)
+		err = rows.Scan(&inputName, &inputVersion.VersionID, &inputVersion.ResourceID, &inputVersion.FirstOccurrence)
 		if err != nil {
 			return err
 		}
@@ -808,10 +739,11 @@ func (j *job) saveJobInputMapping(table string, inputMapping algorithm.InputMapp
 		if !found || inputVersion != oldInputVersion {
 			_, err := psql.Insert(table).
 				SetMap(map[string]interface{}{
-					"job_id":           j.id,
-					"input_name":       inputName,
-					"version_id":       inputVersion.VersionID,
-					"first_occurrence": inputVersion.FirstOccurrence,
+					"job_id":                     j.id,
+					"input_name":                 inputName,
+					"resource_config_version_id": inputVersion.VersionID,
+					"resource_id":                inputVersion.ResourceID,
+					"first_occurrence":           inputVersion.FirstOccurrence,
 				}).
 				RunWith(tx).
 				Exec()
@@ -897,7 +829,11 @@ func scanJob(j *job, row scannable) error {
 
 	j.config = config
 
-	json.Unmarshal(tagsBlob, &tags)
+	err = json.Unmarshal(tagsBlob, &tags)
+	if err != nil {
+		return err
+	}
+
 	j.tags = tags
 
 	return nil

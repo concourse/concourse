@@ -2,8 +2,8 @@
 
 set -e -u
 
-DIR="$(dirname $0)/.."
+cd $(dirname $0)/..
 
-go build -tags 'postgres' -o $GOPATH/bin/migrate $DIR/db/migration/cli
+go build -tags 'postgres' -o $(go env GOPATH)/bin/migrate ./db/migration/cli
 
-migrate generate -d $DIR/db/migration/migrations/ -n"$1" -t ${2-"sql"}
+migrate generate -d ./db/migration/migrations/ -n"$1" -t ${2-"sql"}

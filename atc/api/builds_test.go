@@ -696,47 +696,26 @@ var _ = Describe("Builds API", func() {
 					BeforeEach(func() {
 						build.ResourcesReturns([]db.BuildInput{
 							{
-								Name: "input1",
-								VersionedResource: db.VersionedResource{
-									Resource: "myresource1",
-									Type:     "git",
-									Version:  db.ResourceVersion{"version": "value1"},
-									Metadata: []db.ResourceMetadataField{
-										{
-											Name:  "meta1",
-											Value: "value1",
-										},
-										{
-											Name:  "meta2",
-											Value: "value2",
-										},
-									},
-								},
+								Name:            "input1",
+								Version:         atc.Version{"version": "value1"},
+								ResourceID:      1,
 								FirstOccurrence: true,
 							},
 							{
-								Name: "input2",
-								VersionedResource: db.VersionedResource{
-									Resource: "myresource2",
-									Type:     "git",
-									Version:  db.ResourceVersion{"version": "value2"},
-									Metadata: []db.ResourceMetadataField{},
-								},
+								Name:            "input2",
+								Version:         atc.Version{"version": "value2"},
+								ResourceID:      2,
 								FirstOccurrence: false,
 							},
 						},
 							[]db.BuildOutput{
 								{
-									VersionedResource: db.VersionedResource{
-										Resource: "myresource3",
-										Version:  db.ResourceVersion{"version": "value3"},
-									},
+									Name:    "myresource3",
+									Version: atc.Version{"version": "value3"},
 								},
 								{
-									VersionedResource: db.VersionedResource{
-										Resource: "myresource4",
-										Version:  db.ResourceVersion{"version": "value4"},
-									},
+									Name:    "myresource4",
+									Version: atc.Version{"version": "value4"},
 								},
 							}, nil)
 					})
@@ -753,48 +732,25 @@ var _ = Describe("Builds API", func() {
 							"inputs": [
 								{
 									"name": "input1",
-									"resource": "myresource1",
-									"type": "git",
 									"version": {"version": "value1"},
-									"metadata":[
-										{
-											"name": "meta1",
-											"value": "value1"
-										},
-										{
-											"name": "meta2",
-											"value": "value2"
-										}
-									],
 									"pipeline_id": 42,
 									"first_occurrence": true
 								},
 								{
 									"name": "input2",
-									"resource": "myresource2",
-									"type": "git",
 									"version": {"version": "value2"},
-									"metadata": [],
 									"pipeline_id": 42,
 									"first_occurrence": false
 								}
 							],
 							"outputs": [
 								{
-									"id": 0,
-									"type":"",
-									"metadata":null,
-									"resource": "myresource3",
-									"version": {"version": "value3"},
-									"enabled": false
+									"name": "myresource3",
+									"version": {"version": "value3"}
 								},
 								{
-									"id": 0,
-									"type":"",
-									"metadata":null,
-									"resource": "myresource4",
-									"version": {"version": "value4"},
-									"enabled": false
+									"name": "myresource4",
+									"version": {"version": "value4"}
 								}
 							]
 						}`))

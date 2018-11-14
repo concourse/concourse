@@ -29,7 +29,7 @@ type ResourceCacheFactory interface {
 	// Also, metadata will be available to us before we create resource cache so this
 	// method can be removed at that point. See  https://github.com/concourse/concourse/issues/534
 	UpdateResourceCacheMetadata(UsedResourceCache, []atc.MetadataField) error
-	ResourceCacheMetadata(UsedResourceCache) (ResourceMetadataFields, error)
+	ResourceCacheMetadata(UsedResourceCache) (ResourceConfigMetadataFields, error)
 }
 
 type resourceCacheFactory struct {
@@ -102,7 +102,7 @@ func (f *resourceCacheFactory) UpdateResourceCacheMetadata(resourceCache UsedRes
 	return err
 }
 
-func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache UsedResourceCache) (ResourceMetadataFields, error) {
+func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache UsedResourceCache) (ResourceConfigMetadataFields, error) {
 	var metadataJSON sql.NullString
 	err := psql.Select("metadata").
 		From("resource_caches").
@@ -114,7 +114,7 @@ func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache UsedResourceC
 		return nil, err
 	}
 
-	var metadata []ResourceMetadataField
+	var metadata []ResourceConfigMetadataField
 	if metadataJSON.Valid {
 		err = json.Unmarshal([]byte(metadataJSON.String), &metadata)
 		if err != nil {
@@ -123,4 +123,48 @@ func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache UsedResourceC
 	}
 
 	return metadata, nil
+}
+
+func findResourceCacheByID(tx Tx, resourceCacheID int, lock lock.LockFactory, conn Conn) (UsedResourceCache, bool, error) {
+	var rcID int
+	var versionBytes string
+
+	err := psql.Select("resource_config_id", "version").
+		From("resource_caches").
+		Where(sq.Eq{"id": resourceCacheID}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&rcID, &versionBytes)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+
+	var version atc.Version
+	err = json.Unmarshal([]byte(versionBytes), &version)
+	if err != nil {
+		return nil, false, err
+	}
+
+	rc, found, err := findResourceConfigByID(tx, rcID, lock, conn)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	usedResourceCache := &usedResourceCache{
+		id:             resourceCacheID,
+		version:        version,
+		resourceConfig: rc,
+		lockFactory:    lock,
+		conn:           conn,
+	}
+
+	return usedResourceCache, true, nil
 }

@@ -38,7 +38,7 @@ var _ = Describe("ContainerRepository", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession, defaultTeam.ID()), fullMetadata)
+				creatingContainer, err = defaultWorker.CreateContainer(db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession), fullMetadata)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -198,9 +198,8 @@ var _ = Describe("ContainerRepository", func() {
 				build, err = defaultJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err = defaultTeam.CreateContainer(
-					defaultWorker.Name(),
-					db.NewBuildStepContainerOwner(build.ID(), "simple-plan"),
+				creatingContainer, err = defaultWorker.CreateContainer(
+					db.NewBuildStepContainerOwner(build.ID(), "simple-plan", defaultTeam.ID()),
 					fullMetadata,
 				)
 				Expect(err).NotTo(HaveOccurred())
@@ -307,14 +306,13 @@ var _ = Describe("ContainerRepository", func() {
 				build, err = defaultJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingTaskContainer, err = defaultTeam.CreateContainer(
-					defaultWorker.Name(),
-					db.NewBuildStepContainerOwner(build.ID(), "simple-plan"),
+				creatingTaskContainer, err = defaultWorker.CreateContainer(
+					db.NewBuildStepContainerOwner(build.ID(), "simple-plan", defaultTeam.ID()),
 					fullMetadata,
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewImageCheckContainerOwner(creatingTaskContainer), fullMetadata)
+				creatingContainer, err = defaultWorker.CreateContainer(db.NewImageCheckContainerOwner(creatingTaskContainer, defaultTeam.ID()), fullMetadata)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -376,14 +374,13 @@ var _ = Describe("ContainerRepository", func() {
 				build, err = defaultJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingTaskContainer, err = defaultTeam.CreateContainer(
-					defaultWorker.Name(),
-					db.NewBuildStepContainerOwner(build.ID(), "simple-plan"),
+				creatingTaskContainer, err = defaultWorker.CreateContainer(
+					db.NewBuildStepContainerOwner(build.ID(), "simple-plan", defaultTeam.ID()),
 					fullMetadata,
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewImageGetContainerOwner(creatingTaskContainer), fullMetadata)
+				creatingContainer, err = defaultWorker.CreateContainer(db.NewImageGetContainerOwner(creatingTaskContainer, defaultTeam.ID()), fullMetadata)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -900,6 +897,27 @@ var _ = Describe("ContainerRepository", func() {
 		Context("when the reported handles is a subset", func() {
 			BeforeEach(func() {
 				handles = []string{"some-handle1"}
+			})
+
+			Context("having the containers in the creating state in the db", func() {
+				BeforeEach(func() {
+					result, err := psql.Update("containers").
+						Where(sq.Eq{"handle": "some-handle3"}).
+						SetMap(map[string]interface{}{
+							"state":         atc.ContainerStateCreating,
+							"missing_since": nil,
+						}).RunWith(dbConn).Exec()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(result.RowsAffected()).To(Equal(int64(1)))
+				})
+
+				It("does not mark as missing", func() {
+					err = psql.Select("missing_since").From("containers").
+						Where(sq.Eq{"handle": "some-handle3"}).RunWith(dbConn).QueryRow().
+						Scan(&missingSince)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(missingSince.Valid).To(BeFalse())
+				})
 			})
 
 			It("should mark containers not in the subset and not already marked as missing", func() {

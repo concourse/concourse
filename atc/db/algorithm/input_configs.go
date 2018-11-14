@@ -80,6 +80,7 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 		inputVersionID := basicMapping[inputName]
 		firstOccurrence := db.IsVersionFirstOccurrence(inputVersionID, inputConfig.JobID, inputName)
 		mapping[inputName] = InputVersion{
+			ResourceID:      inputConfig.ResourceID,
 			VersionID:       inputVersionID,
 			FirstOccurrence: firstOccurrence,
 		}

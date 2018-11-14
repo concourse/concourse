@@ -70,9 +70,9 @@ func (ra *ReAuther) renewable(leaseEnd, tokenEOL time.Time) bool {
 // sleep until the tokenEOl or half the lease duration
 func (ra *ReAuther) sleep(leaseEnd, tokenEOL time.Time) {
 	if ra.maxTTL != 0 && leaseEnd.After(tokenEOL) {
-		time.Sleep(tokenEOL.Sub(time.Now()))
+		time.Sleep(time.Until(tokenEOL))
 	} else {
-		time.Sleep(leaseEnd.Sub(time.Now()) / 2)
+		time.Sleep(time.Until(leaseEnd) / 2)
 	}
 }
 

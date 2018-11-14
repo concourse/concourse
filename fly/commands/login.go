@@ -219,7 +219,6 @@ func (command *LoginCommand) authCodeGrant(targetUrl string) (string, string, er
 }
 
 func checkTokenTeams(tokenValue string, loginTeam string) error {
-
 	tokenContents := strings.Split(tokenValue, ".")
 	if len(tokenContents) < 2 {
 		return nil
@@ -235,12 +234,17 @@ func checkTokenTeams(tokenValue string, loginTeam string) error {
 		return err
 	}
 
+	var teamNames []string
 	teamRoles := map[string][]string{}
-	if err := mapstructure.Decode(payload["teams"], &teamRoles); err != nil {
+	if err := mapstructure.Decode(payload["teams"], &teamRoles); err == nil {
+		for team, _ := range teamRoles {
+			teamNames = append(teamNames, team)
+		}
+	} else if err := mapstructure.Decode(payload["teams"], &teamNames); err != nil {
 		return err
 	}
 
-	for team, _ := range teamRoles {
+	for _, team := range teamNames {
 		if team == loginTeam {
 			return nil
 		}

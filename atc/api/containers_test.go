@@ -348,26 +348,6 @@ var _ = Describe("Containers API", func() {
 					})
 				})
 			})
-
-			Describe("querying with type 'check'", func() {
-				BeforeEach(func() {
-					req.URL.RawQuery = url.Values{
-						"type":          []string{"check"},
-						"resource_name": []string{"some-resource"},
-						"pipeline_name": []string{"some-pipeline"},
-					}.Encode()
-				})
-
-				It("queries with check properties", func() {
-					_, err := client.Do(req)
-					Expect(err).NotTo(HaveOccurred())
-
-					_, pipelineName, resourceName, variablesFactory := dbTeam.FindCheckContainersArgsForCall(0)
-					Expect(pipelineName).To(Equal("some-pipeline"))
-					Expect(resourceName).To(Equal("some-resource"))
-					Expect(variablesFactory).To(Equal(fakeVariablesFactory))
-				})
-			})
 		})
 	})
 

@@ -2,11 +2,15 @@
 resources:
 - name: some-resource
   type: mock
-  source: {}
+  source:
+    initial_version: ((hash))
 
 - name: pending-resource
   type: mock
-  source: {no_initial_version: true}
+  source:
+    no_initial_version: true
+    # this initial version is to make it unique and isnt really used
+    initial_version: ((hash))
 
 jobs:
 - name: some-passing-job

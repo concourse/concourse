@@ -1,0 +1,10 @@
+- type: replace
+  path: /instance_groups/-
+  value:
+    name: credhub
+    instances: 1
+    networks: [{name: topgun}]
+    azs: [z1]
+    vm_type: topgun
+    stemcell: xenial
+    jobs: []

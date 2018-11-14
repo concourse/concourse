@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/worker"
@@ -19,7 +20,7 @@ import (
 type TaskConfigSource interface {
 	// FetchConfig returns the TaskConfig, and may have to a task config file out
 	// of the worker.ArtifactRepository.
-	FetchConfig(*worker.ArtifactRepository) (atc.TaskConfig, error)
+	FetchConfig(lager.Logger, *worker.ArtifactRepository) (atc.TaskConfig, error)
 	Warnings() []string
 }
 
@@ -29,7 +30,7 @@ type StaticConfigSource struct {
 }
 
 // FetchConfig returns the configuration.
-func (configSource StaticConfigSource) FetchConfig(*worker.ArtifactRepository) (atc.TaskConfig, error) {
+func (configSource StaticConfigSource) FetchConfig(lager.Logger, *worker.ArtifactRepository) (atc.TaskConfig, error) {
 	taskConfig := atc.TaskConfig{}
 
 	if configSource.Plan.Config != nil {
@@ -91,10 +92,10 @@ type FileConfigSource struct {
 //
 // If the task config file is not found, or is invalid YAML, or is an invalid
 // task configuration, the respective errors will be bubbled up.
-func (configSource FileConfigSource) FetchConfig(repo *worker.ArtifactRepository) (atc.TaskConfig, error) {
+func (configSource FileConfigSource) FetchConfig(logger lager.Logger, repo *worker.ArtifactRepository) (atc.TaskConfig, error) {
 	segs := strings.SplitN(configSource.Path, "/", 2)
 	if len(segs) != 2 {
-		return atc.TaskConfig{}, UnspecifiedArtifactSourceError{configSource.Path}
+		return atc.TaskConfig{}, UnspecifiedArtifactSourceError(configSource)
 	}
 
 	sourceName := worker.ArtifactName(segs[0])
@@ -105,7 +106,7 @@ func (configSource FileConfigSource) FetchConfig(repo *worker.ArtifactRepository
 		return atc.TaskConfig{}, UnknownArtifactSourceError{sourceName, configSource.Path}
 	}
 
-	stream, err := source.StreamFile(filePath)
+	stream, err := source.StreamFile(logger, filePath)
 	if err != nil {
 		if err == baggageclaim.ErrFileNotFound {
 			return atc.TaskConfig{}, fmt.Errorf("task config '%s/%s' not found", sourceName, filePath)
@@ -142,13 +143,13 @@ type MergedConfigSource struct {
 // FetchConfig fetches both config sources, and merges the second config source
 // into the first. This allows the user to set params required by a task loaded
 // from a file by providing them in static configuration.
-func (configSource *MergedConfigSource) FetchConfig(source *worker.ArtifactRepository) (atc.TaskConfig, error) {
-	aConfig, err := configSource.A.FetchConfig(source)
+func (configSource *MergedConfigSource) FetchConfig(logger lager.Logger, source *worker.ArtifactRepository) (atc.TaskConfig, error) {
+	aConfig, err := configSource.A.FetchConfig(logger, source)
 	if err != nil {
 		return atc.TaskConfig{}, err
 	}
 
-	bConfig, err := configSource.B.FetchConfig(source)
+	bConfig, err := configSource.B.FetchConfig(logger, source)
 	if err != nil {
 		return atc.TaskConfig{}, err
 	}
@@ -176,8 +177,8 @@ type ValidatingConfigSource struct {
 
 // FetchConfig fetches the config using the underlying ConfigSource, and checks
 // that it's valid.
-func (configSource ValidatingConfigSource) FetchConfig(source *worker.ArtifactRepository) (atc.TaskConfig, error) {
-	config, err := configSource.ConfigSource.FetchConfig(source)
+func (configSource ValidatingConfigSource) FetchConfig(logger lager.Logger, source *worker.ArtifactRepository) (atc.TaskConfig, error) {
+	config, err := configSource.ConfigSource.FetchConfig(logger, source)
 	if err != nil {
 		return atc.TaskConfig{}, err
 	}

@@ -192,7 +192,7 @@ var _ = Describe("Add global users", func() {
 			SetupTeam(db, "main", legacyConfig)
 			db.Close()
 
-			db, err := postgresRunner.TryOpenDBAtVersion(postMigrationVersion)
+			_, err := postgresRunner.TryOpenDBAtVersion(postMigrationVersion)
 			Expect(err).To(HaveOccurred())
 		})
 

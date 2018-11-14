@@ -16,9 +16,13 @@ var _ = Describe("image resource caching", func() {
 
 		version = u.String()
 
+		hash, err := uuid.NewV4()
+		Expect(err).ToNot(HaveOccurred())
+
 		setAndUnpausePipeline(
 			"fixtures/image-resource-with-params.yml",
 			"-v", "initial_version="+version,
+			"-v", "hash="+hash.String(),
 		)
 	})
 

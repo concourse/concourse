@@ -80,11 +80,10 @@ func (runner *workerJobRunner) syncWorkersLoop(logger lager.Logger) {
 
 	ticker := time.NewTicker(runner.workersSyncInterval)
 
-	for {
-		select {
-		case <-ticker.C:
-			runner.syncWorkers(logger)
-		}
+	// https://gobyexample.com/range-over-channels
+	// cleaner than for { select {} }
+	for range ticker.C {
+		runner.syncWorkers(logger)
 	}
 }
 

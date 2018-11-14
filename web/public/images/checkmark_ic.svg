@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="12px" height="9px" viewBox="0 0 12 9" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch Beta 51.2 (57516) - http://www.bohemiancoding.com/sketch -->
+    <title>checkmark_ic</title>
+    <desc>Created with Sketch Beta.</desc>
+    <defs></defs>
+    <g id="Resource_pinning_flow" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="2_00_resource_pinned_pipeline_via_cli" transform="translate(-19.000000, -355.000000)">
+            <g id="checkmark_ic" transform="translate(17.000000, 351.000000)">
+                <polygon id="Shape" points="0 0 16 0 16 16 0 16"></polygon>
+                <polygon id="Shape" fill="#FFFFFF" fill-rule="nonzero" points="5.81818182 11.119403 2.95454545 8.29850746 2 9.23880597 5.81818182 13 14 4.94029851 13.0454545 4"></polygon>
+            </g>
+        </g>
+    </g>
+</svg>

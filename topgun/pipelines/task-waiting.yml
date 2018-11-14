@@ -1,0 +1,20 @@
+jobs:
+- name: simple-job
+  plan:
+  - task: simple-task
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+      run:
+        path: sh
+        args:
+        - -c
+        - |
+          until test -f /tmp/stop-waiting; do
+            echo 'waiting for /tmp/stop-waiting to exist'
+            sleep 1
+          done
+
+          echo done

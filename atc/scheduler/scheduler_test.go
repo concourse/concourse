@@ -202,8 +202,8 @@ var _ = Describe("Scheduler", func() {
 			Context("when no first occurrence input has trigger: true", func() {
 				BeforeEach(func() {
 					fakeInputMapper.SaveNextInputMappingReturns(algorithm.InputMapping{
-						"a": algorithm.InputVersion{VersionID: 1, FirstOccurrence: false},
-						"b": algorithm.InputVersion{VersionID: 2, FirstOccurrence: true},
+						"a": algorithm.InputVersion{VersionID: 1, ResourceID: 11, FirstOccurrence: false},
+						"b": algorithm.InputVersion{VersionID: 2, ResourceID: 12, FirstOccurrence: true},
 					}, nil)
 				})
 
@@ -220,8 +220,8 @@ var _ = Describe("Scheduler", func() {
 			Context("when a first occurrence input has trigger: true", func() {
 				BeforeEach(func() {
 					fakeInputMapper.SaveNextInputMappingReturns(algorithm.InputMapping{
-						"a": algorithm.InputVersion{VersionID: 1, FirstOccurrence: true},
-						"b": algorithm.InputVersion{VersionID: 2, FirstOccurrence: false},
+						"a": algorithm.InputVersion{VersionID: 1, ResourceID: 11, FirstOccurrence: true},
+						"b": algorithm.InputVersion{VersionID: 2, ResourceID: 12, FirstOccurrence: false},
 					}, nil)
 				})
 
@@ -395,7 +395,7 @@ var _ = Describe("Scheduler", func() {
 			Context("when saving the next input mapping succeeds", func() {
 				BeforeEach(func() {
 					fakeInputMapper.SaveNextInputMappingReturns(algorithm.InputMapping{
-						"some-input": algorithm.InputVersion{VersionID: 1, FirstOccurrence: true},
+						"some-input": algorithm.InputVersion{VersionID: 1, ResourceID: 11, FirstOccurrence: true},
 					}, nil)
 				})
 

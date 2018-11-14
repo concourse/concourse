@@ -3,6 +3,7 @@ package exec
 import (
 	"fmt"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -82,6 +83,6 @@ type PutResourceSource struct {
 	worker.ArtifactSource
 }
 
-func (source PutResourceSource) StreamTo(dest worker.ArtifactDestination) error {
-	return source.ArtifactSource.StreamTo(worker.ArtifactDestination(dest))
+func (source PutResourceSource) StreamTo(logger lager.Logger, dest worker.ArtifactDestination) error {
+	return source.ArtifactSource.StreamTo(logger, worker.ArtifactDestination(dest))
 }

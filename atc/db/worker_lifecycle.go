@@ -13,6 +13,7 @@ type WorkerLifecycle interface {
 	StallUnresponsiveWorkers() ([]string, error)
 	LandFinishedLandingWorkers() ([]string, error)
 	DeleteFinishedRetiringWorkers() ([]string, error)
+	GetWorkerStateByName() (map[string]WorkerState, error)
 }
 
 type workerLifecycle struct {
@@ -180,6 +181,39 @@ func (lifecycle *workerLifecycle) LandFinishedLandingWorkers() ([]string, error)
 	return workersAffected(rows)
 }
 
+func (lifecycle *workerLifecycle) GetWorkerStateByName() (map[string]WorkerState, error) {
+	rows, err := psql.Select(`
+		name,
+		state
+	`).
+		From("workers").
+		RunWith(lifecycle.conn).
+		Query()
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer Close(rows)
+	var name string
+	var state WorkerState
+
+	workerStateByName := make(map[string]WorkerState)
+
+	for rows.Next() {
+		err := rows.Scan(
+			&name,
+			&state,
+		)
+		if err != nil {
+			return nil, err
+		}
+		workerStateByName[name] = state
+	}
+
+	return workerStateByName, nil
+
+}
 func workersAffected(rows *sql.Rows) ([]string, error) {
 	var (
 		err         error

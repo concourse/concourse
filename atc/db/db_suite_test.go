@@ -169,13 +169,6 @@ var _ = BeforeEach(func() {
 	Expect(found).To(BeTrue())
 	Expect(err).NotTo(HaveOccurred())
 
-	err = defaultResourceType.SaveVersion(atc.Version{"some-type": "version"})
-	Expect(err).NotTo(HaveOccurred())
-
-	found, err = defaultResourceType.Reload()
-	Expect(err).NotTo(HaveOccurred())
-	Expect(found).To(BeTrue())
-
 	defaultResource, found, err = defaultPipeline.Resource("some-resource")
 	Expect(err).NotTo(HaveOccurred())
 	Expect(found).To(BeTrue())
