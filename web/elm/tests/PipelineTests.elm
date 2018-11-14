@@ -88,11 +88,11 @@ all =
                             >> Query.fromHtml
                             >> Query.find [ id "top-bar-app" ]
                             >> Query.has [ id "pin-icon" ]
-                    , it "top bar is 54px tall with dark grey background" <|
+                    , it "top bar is 56px tall with dark grey background" <|
                         Layout.view
                             >> Query.fromHtml
                             >> Query.find [ id "top-bar-app" ]
-                            >> Query.has [ style [ ( "background-color", "#1e1d1d" ), ( "height", "54px" ) ] ]
+                            >> Query.has [ style [ ( "background-color", "#1e1d1d" ), ( "height", "56px" ) ] ]
                     , it "top bar lays out contents horizontally" <|
                         Layout.view
                             >> Query.fromHtml
@@ -137,17 +137,7 @@ all =
                             >> Query.find [ id "top-bar-app" ]
                             >> Query.children []
                             >> Query.first
-                            >> Query.find
-                                [ style
-                                    [ ( "background-image", "url(/public/images/concourse_logo_white.svg)" )
-                                    , ( "background-position", "50% 50%" )
-                                    , ( "background-repeat", "no-repeat" )
-                                    , ( "background-size", "42px 42px" )
-                                    , ( "width", "54px" )
-                                    , ( "height", "54px" )
-                                    ]
-                                ]
-                            >> Query.has [ attribute <| Attr.href "/" ]
+                            >> Query.has [ tag "a", attribute <| Attr.href "/" ]
                     , it "pin icon has a pin background" <|
                         Layout.view
                             >> Query.fromHtml
@@ -553,7 +543,47 @@ all =
                                     >> Query.each (Query.has [ tag "li" ])
                                 ]
                     ]
-                , rspecStyleDescribe "when on build page"
+                , test "top bar lays out contents horizontally" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.has [ style [ ( "display", "inline-block" ) ] ]
+                , test "top bar centers contents vertically" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.has [ style [ ( "align-items", "center" ) ] ]
+                , test "top bar maximizes spacing between the left and right navs" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.has [ style [ ( "justify-content", "space-between" ), ( "left", "0" ), ( "right", "0" ) ] ]
+                , test "top bar is sticky" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.has [ style [ ( "z-index", "100" ), ( "position", "fixed" ) ] ]
+                , test "breadcrumb items are laid out horizontally" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "nav" ]
+                            |> Query.first
+                            |> Query.find [ tag "ul" ]
+                            |> Query.children []
+                            |> Query.each
+                                (Query.has [ style [ ( "display", "inline-block" ) ] ])
+                , rspecStyleDescribe "when on job page"
                     (init "/teams/team/pipeline/pipeline/jobs/job/builds/1")
                     [ it "shows no pin icon on top bar when viewing build page" <|
                         Layout.view
@@ -561,6 +591,203 @@ all =
                             >> Query.find [ id "top-bar-app" ]
                             >> Query.hasNot [ id "pin-icon" ]
                     ]
+                , test "top nav bar is blue when pipeline is paused" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> Layout.update
+                                (Layout.TopMsg 1
+                                    (TopBar.PipelineFetched
+                                        (Ok
+                                            { id = 0
+                                            , name = "pipeline"
+                                            , paused = True
+                                            , public = True
+                                            , teamName = "team"
+                                            , groups = []
+                                            }
+                                        )
+                                    )
+                                )
+                            |> Tuple.first
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.has
+                                [ style
+                                    [ ( "background-color", "#3498db" ) ]
+                                ]
+                , test "breadcrumb list is laid out horizontally" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "ul" ]
+                            |> Query.first
+                            |> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
+                , test "pipeline breadcrumb is laid out horizontally" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                            |> Query.has [ style [ ( "display", "inline-block" ) ] ]
+                , test "top bar has pipeline breadcrumb with icon rendered first" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                            |> Query.children []
+                            |> Query.first
+                            |> Query.has pipelineBreadcrumbSelector
+                , test "top bar has pipeline name after pipeline icon" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has
+                                [ text "pipeline" ]
+                , test "pipeline breadcrumb should have a link to the pipeline page" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "nav" ]
+                            |> Query.first
+                            |> Query.find [ tag "ul" ]
+                            |> Query.children []
+                            |> Query.first
+                            |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                , test "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "nav" ]
+                            |> Query.first
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                , test "pipeline breadcrumb should have a link to the pipeline page when viewing resource details" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/resources/resource"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "nav" ]
+                            |> Query.first
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                , test "there should be a / between pipeline and job in breadcrumb" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "nav" ]
+                            |> Query.first
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has [ text "/" ]
+                , test "job breadcrumb is laid out horizontally with appropriate spacing" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "nav" ]
+                            |> Query.first
+                            |> Query.find [ tag "ul" ]
+                            |> Query.children []
+                            |> Query.index 2
+                            |> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
+                , test "top bar has job breadcrumb with job icon rendered first" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "nav" ]
+                            |> Query.first
+                            |> Query.find [ tag "ul" ]
+                            |> Query.children []
+                            |> Query.index 2
+                            |> Query.has jobBreadcrumbSelector
+                , test "top bar has build name after job icon" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "nav" ]
+                            |> Query.first
+                            |> Query.find [ tag "ul" ]
+                            |> Query.children []
+                            |> Query.index 2
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has
+                                [ text "job" ]
+                , test "there should be a / between pipeline and resource in breadcrumb" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/resources/resource"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "nav" ]
+                            |> Query.first
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has [ text "/" ]
+                , test "resource breadcrumb is laid out horizontally with appropriate spacing" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/resources/resource"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "nav" ]
+                            |> Query.first
+                            |> Query.find [ tag "ul" ]
+                            |> Query.children []
+                            |> Query.index 2
+                            |> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
+                , test "top bar has resource breadcrumb with resource icon rendered first" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/resources/resource"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "nav" ]
+                            |> Query.first
+                            |> Query.find [ tag "ul" ]
+                            |> Query.children []
+                            |> Query.index 2
+                            |> Query.has resourceBreadcrumbSelector
+                , test "top bar has resource name after resource icon" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/resources/resource"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "nav" ]
+                            |> Query.first
+                            |> Query.find [ tag "ul" ]
+                            |> Query.children []
+                            |> Query.index 2
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has
+                                [ text "resource" ]
                 ]
         ]
 
@@ -568,6 +795,33 @@ all =
 pinBadgeSelector : List Selector.Selector
 pinBadgeSelector =
     [ id "pin-badge" ]
+
+
+pipelineBreadcrumbSelector : List Selector.Selector
+pipelineBreadcrumbSelector =
+    [ style
+        [ ( "background-image", "url(/public/images/ic_breadcrumb_pipeline.svg)" )
+        , ( "background-repeat", "no-repeat" )
+        ]
+    ]
+
+
+jobBreadcrumbSelector : List Selector.Selector
+jobBreadcrumbSelector =
+    [ style
+        [ ( "background-image", "url(/public/images/ic_breadcrumb_job.svg)" )
+        , ( "background-repeat", "no-repeat" )
+        ]
+    ]
+
+
+resourceBreadcrumbSelector : List Selector.Selector
+resourceBreadcrumbSelector =
+    [ style
+        [ ( "background-image", "url(/public/images/ic_breadcrumb_resource.svg)" )
+        , ( "background-repeat", "no-repeat" )
+        ]
+    ]
 
 
 init : String -> Layout.Model

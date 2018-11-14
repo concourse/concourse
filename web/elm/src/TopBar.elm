@@ -224,29 +224,40 @@ urlUpdate route model =
 view : Model -> Html Msg
 view model =
     Html.div
-        [ style
-            [ ( "background-color", "#1e1d1d" )
-            , ( "height", "54px" )
+        [ id "top-bar-app"
+        , style
+            [ ( "height", "56px" )
+            , ( "background-color"
+              , if isPaused model.pipeline then
+                    "#3498db"
+                else
+                    "#1e1d1d"
+              )
             , ( "display", "flex" )
             , ( "align-items", "center" )
             , ( "justify-content", "space-between" )
+            , ( "z-index", "100" )
+            , ( "left", "0" )
+            , ( "right", "0" )
+            , ( "position", "fixed" )
             ]
         , id "top-bar-app"
         ]
         [ Html.nav
             [ style [ ( "display", "flex" ) ] ]
-            [ Html.a
-                [ style
-                    [ ( "background-image", "url(/public/images/concourse_logo_white.svg)" )
-                    , ( "background-position", "50% 50%" )
-                    , ( "background-repeat", "no-repeat" )
-                    , ( "background-size", "42px 42px" )
-                    , ( "width", "54px" )
-                    , ( "height", "54px" )
+            [ Html.a [ href "/" ]
+                [ Html.div
+                    [ style
+                        [ ( "background-image", "url(/public/images/concourse_logo_white.svg)" )
+                        , ( "background-position", "50% 50%" )
+                        , ( "background-repeat", "no-repeat" )
+                        , ( "background-size", "42px 42px" )
+                        , ( "width", "54px" )
+                        , ( "height", "54px" )
+                        ]
                     ]
-                , href "/"
+                    []
                 ]
-                []
             , Html.ul [ class "groups" ] <| viewBreadcrumbs model
             ]
         , Html.nav
@@ -280,6 +291,7 @@ view model =
                                  , ( "background-repeat", "no-repeat" )
                                  , ( "background-position", "50% 50%" )
                                  , ( "position", "relative" )
+                                 , ( "top", "10px" )
                                  ]
                                 )
                              ]
@@ -378,11 +390,7 @@ view model =
                 _ ->
                     []
              )
-                ++ [ Html.div [ class "topbar-login" ]
-                        [ Html.div [ class "topbar-user-info" ]
-                            [ viewUserState model.userState model.userMenuVisible
-                            ]
-                        ]
+                ++ [ viewUserState model.userState model.userMenuVisible
                    ]
             )
         ]
@@ -416,7 +424,31 @@ viewBreadcrumbs model =
 
 viewBreadcrumbSeparator : Html Msg
 viewBreadcrumbSeparator =
-    Html.li [ class "nav-item" ] [ Html.text "/" ]
+    Html.li [ style cssBreadcrumbContainer ] [ Html.text "/" ]
+
+
+viewBreadcrumbsComponent : String -> String -> List (Html Msg)
+viewBreadcrumbsComponent componentType name =
+    [ Html.div
+        [ style <|
+            [ ( "background-image", "url(/public/images/ic_breadcrumb_" ++ componentType ++ ".svg)" )
+            , ( "background-repeat", "no-repeat" )
+            , ( "background-size", "contain" )
+            , ( "display", "inline-block" )
+            , ( "vertical-align", "middle" )
+            , ( "height", "16px" )
+            , ( "width", "32px" )
+            , ( "margin-right", "10px" )
+            ]
+        ]
+        []
+    , Html.text <| decodeName name
+    ]
+
+
+cssBreadcrumbContainer : List ( String, String )
+cssBreadcrumbContainer =
+    [ ( "display", "inline-block" ), ( "vertical-align", "middle" ), ( "font-size", "18px" ), ( "padding", "0 10px" ), ( "line-height", "54px" ) ]
 
 
 viewBreadcrumbPipeline : String -> Routes.Route -> Html Msg
@@ -425,30 +457,29 @@ viewBreadcrumbPipeline pipelineName route =
         url =
             Routes.toString route
     in
-        Html.li [ class "nav-item" ]
+        Html.li [ style cssBreadcrumbContainer ]
             [ Html.a
                 [ StrictEvents.onLeftClick <| ResetToPipeline url
                 , href url
                 ]
-                [ Html.div [ class "breadcrumb-icon breadcrumb-pipeline-icon" ] []
-                , Html.text <| decodeName pipelineName
-                ]
+              <|
+                viewBreadcrumbsComponent "pipeline" pipelineName
             ]
 
 
 viewBreadcrumbJob : String -> Html Msg
 viewBreadcrumbJob name =
-    Html.li [ class "nav-item" ]
-        [ Html.div [ class "breadcrumb-icon breadcrumb-job-icon" ] []
-        , Html.text <| decodeName name
+    Html.li [ style cssBreadcrumbContainer ]
+        [ Html.div [] <|
+            viewBreadcrumbsComponent "job" name
         ]
 
 
 viewBreadcrumbResource : String -> Html Msg
 viewBreadcrumbResource name =
-    Html.li [ class "nav-item" ]
-        [ Html.div [ class "breadcrumb-icon breadcrumb-resource-icon" ] []
-        , Html.text <| decodeName name
+    Html.li [ style cssBreadcrumbContainer ]
+        [ Html.div [] <|
+            viewBreadcrumbsComponent "resource" name
         ]
 
 
@@ -462,6 +493,29 @@ isPaused =
     Maybe.withDefault False << Maybe.map .paused
 
 
+cssUserContainer : List ( String, String )
+cssUserContainer =
+    [ ( "position", "relative" )
+    , ( "display", "flex" )
+
+    -- , ( "max-width", "20%" )
+    , ( "flex-direction", "column" )
+    , ( "border-left", "1px solid #3d3c3c" )
+    , ( "line-height", "56px" )
+    ]
+
+
+cssUserName : List ( String, String )
+cssUserName =
+    [ ( "padding", "0 30px" )
+    , ( "cursor", "pointer" )
+    , ( "display", "flex" )
+    , ( "align-items", "center" )
+    , ( "justify-content", "center" )
+    , ( "flex-grow", "1" )
+    ]
+
+
 viewUserState : UserState -> Bool -> Html Msg
 viewUserState userState userMenuVisible =
     case userState of
@@ -469,28 +523,50 @@ viewUserState userState userMenuVisible =
             Html.text ""
 
         UserStateLoggedOut ->
-            Html.div [ class "user-id", onClick LogIn ]
+            Html.div
+                [ onClick LogIn
+                , style cssUserContainer
+                ]
                 [ Html.a
                     [ href "/sky/login"
                     , Html.Attributes.attribute "aria-label" "Log In"
-                    , class "login-button"
+                    , style cssUserName
                     ]
                     [ Html.text "login"
                     ]
                 ]
 
         UserStateLoggedIn user ->
-            Html.div [ class "user-info" ]
-                [ Html.div [ class "user-id", onClick ToggleUserMenu ]
-                    [ Html.text <|
-                        userDisplayName user
+            Html.div
+                [ style cssUserContainer ]
+                [ Html.div
+                    [ style cssUserName
+                    , onClick ToggleUserMenu
                     ]
-                , Html.div [ classList [ ( "user-menu", True ), ( "hidden", not userMenuVisible ) ], onClick LogOut ]
-                    [ Html.a
-                        [ Html.Attributes.attribute "aria-label" "Log Out"
-                        ]
-                        [ Html.text "logout"
-                        ]
+                    [ Html.text (userDisplayName user)
+                    , (if userMenuVisible then
+                        Html.div
+                            [ attribute "aria-label" "Log Out"
+                            , style
+                                [ ( "position", "absolute" )
+                                , ( "top", "55px" )
+                                , ( "background-color", "#1e1d1d" )
+                                , ( "height", "54px" )
+                                , ( "width", "100%" )
+                                , ( "border-top", "1px solid #3d3c3c" )
+                                , ( "cursor", "pointer" )
+                                , ( "display", "flex" )
+                                , ( "align-items", "center" )
+                                , ( "justify-content", "center" )
+                                , ( "flex-grow", "1" )
+                                ]
+                            , onClick LogOut
+                            , id "logout-button"
+                            ]
+                            [ Html.div [] [ Html.text "logout" ] ]
+                       else
+                        Html.text ""
+                      )
                     ]
                 ]
 
