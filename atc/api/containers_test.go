@@ -880,20 +880,12 @@ var _ = Describe("Containers API", func() {
 			})
 
 			Context("with no params", func() {
-				It("returns 404", func() {
+				It("returns 400 Bad Request", func() {
 					response, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeContainerRepository.FindDestroyingContainersCallCount()).To(Equal(0))
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-
-				It("returns Content-Type application/json", func() {
-					response, err := client.Do(req)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 			})
 
