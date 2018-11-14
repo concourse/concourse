@@ -2,14 +2,15 @@ package k8s_test
 
 import (
 	"fmt"
+	"path"
+	"strconv"
+	"time"
+
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
-	"path"
-	"strconv"
-	"time"
 )
 
 // TODO
@@ -33,20 +34,19 @@ import (
 
 // delete the helm release
 
-
-func HelmDeploy(releaseName string){
+func HelmDeploy(releaseName string) {
 	helmArgs := []string{
 		"upgrade",
 		"-f",
-		path.Join(Environment.ChartDir,"values.yaml"),
+		path.Join(Environment.ChartDir, "values.yaml"),
 		"--install",
 		"--force",
 		"--set=concourse.web.kubernetes.keepNamespaces=false",
 		"--set=concourse.worker.ephemeral=true",
 		"--set=concourse.worker.replicas=1",
 		"--set=concourse.worker.baggageclaim.driver=btrfs",
-		"--set=image="+Environment.ConcourseImageName,
-		"--set=imageDigest="+Environment.ConcourseImageDigest,
+		"--set=image=" + Environment.ConcourseImageName,
+		"--set=imageDigest=" + Environment.ConcourseImageDigest,
 		releaseName,
 		"--wait",
 		Environment.ChartDir,
@@ -55,8 +55,7 @@ func HelmDeploy(releaseName string){
 	Wait(Start("helm", helmArgs...))
 }
 
-
-func HelmDestroy(releaseName string){
+func HelmDestroy(releaseName string) {
 	helmArgs := []string{
 		"delete",
 		releaseName,
@@ -66,26 +65,26 @@ func HelmDestroy(releaseName string){
 }
 
 func StartKubectlProxy(port int) *gexec.Session {
-	session := Start("kubectl", "proxy", "--port", strconv.Itoa(port) )
+	session := Start("kubectl", "proxy", "--port", strconv.Itoa(port))
 	Eventually(session.Out).Should(gbytes.Say("Starting to serve on"))
 	return session
 }
 
 // TODO completely remove this
-func StartWebProxy(releaseName string, port int) *gexec.Session{
-	session := Start("kubectl", "port-forward", "service/" + releaseName + "-web", fmt.Sprintf("%d:8080", port))
+func StartWebProxy(releaseName string, port int) *gexec.Session {
+	session := Start("kubectl", "port-forward", "service/"+releaseName+"-web", fmt.Sprintf("%d:8080", port))
 	Eventually(session.Out).Should(gbytes.Say("Forwarding"))
 	return session
 }
 
-var _ = Describe("Ephemeral workers", func () {
+var _ = Describe("Ephemeral workers", func() {
 	var (
 		proxySession *gexec.Session
 		releaseName  string
 		atcEndpoint  string
 	)
 
-	BeforeEach(func(){
+	BeforeEach(func() {
 		port := 8080 + GinkgoParallelNode()
 		releaseName = fmt.Sprintf("topgun-ephemeral-workers-%d", GinkgoParallelNode())
 		HelmDeploy(releaseName)
@@ -106,15 +105,15 @@ var _ = Describe("Ephemeral workers", func () {
 		Wait(proxySession.Interrupt())
 	})
 
-	It("Gets properly cleaned when getting removed and then put back on", func () {
+	It("Gets properly cleaned when getting removed and then put back on", func() {
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)
 
 		// prepare fly
 		// wait for worker to be there
-		By("Waiting for a running worker")
+		By("waiting for a running worker")
 		Eventually(
-			getRunningWorkers(fly.GetWorkers()), 2 * time.Minute, 10 * time.Second).
+			getRunningWorkers(fly.GetWorkers()), 2*time.Minute, 10*time.Second).
 			ShouldNot(HaveLen(0))
 
 		By("setting pipeline that creates resource config")
@@ -132,10 +131,10 @@ var _ = Describe("Ephemeral workers", func () {
 })
 
 func getRunningWorkers(workers []Worker) (running []Worker) {
-	for _, w := range workers{
-		if w.State == "running"{
+	for _, w := range workers {
+		if w.State == "running" {
 			running = append(running, w)
 		}
 	}
-    return
+	return
 }

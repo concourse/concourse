@@ -26,7 +26,7 @@ var (
 		ChartDir             string `env:"CHART_DIR,required"`
 	}
 	flyPath string
-	fly Fly
+	fly     Fly
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -50,9 +50,9 @@ var _ = BeforeEach(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	fly = Fly{
-		Bin: flyPath,
+		Bin:    flyPath,
 		Target: "concourse-topgun-k8s-" + strconv.Itoa(GinkgoParallelNode()),
-		Home: filepath.Join(tmp, "fly-home"),
+		Home:   filepath.Join(tmp, "fly-home"),
 	}
 
 	err = os.Mkdir(fly.Home, 0755)
