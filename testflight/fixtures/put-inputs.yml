@@ -1,0 +1,49 @@
+---
+resources:
+- name: specified-input
+  type: mock
+  source:
+    initial_version: v1
+
+- name: all-input
+  type: mock
+  source:
+    initial_version: v1
+
+- name: some-resource
+  type: mock
+  source:
+    initial_version: v1
+
+jobs:
+- name: job-using-specified-inputs
+  plan:
+  - get: specified-input
+  - get: all-input
+  - put: some-resource
+    inputs: [specified-input]
+  - task: failing-task
+    config:
+      platform: linux
+      image_resource:
+        type: mock
+        source: {mirror_self: true}
+      run:
+        path: sh
+        args: ["-c", "exit 1"]
+
+- name: job-using-all-inputs
+  plan:
+  - get: specified-input
+  - get: all-input
+  - put: some-resource
+    inputs: all
+  - task: failing-task
+    config:
+      platform: linux
+      image_resource:
+        type: mock
+        source: {mirror_self: true}
+      run:
+        path: sh
+        args: ["-c", "exit 1"]

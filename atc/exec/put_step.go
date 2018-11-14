@@ -27,11 +27,11 @@ type PutStep struct {
 
 	name         string
 	resourceType string
+	resource     string
 	source       creds.Source
 	params       creds.Params
 	tags         atc.Tags
-
-	resource string
+	inputs       PutInputs
 
 	delegate              PutDelegate
 	resourceFactory       resource.ResourceFactory
@@ -54,6 +54,7 @@ func NewPutStep(
 	source creds.Source,
 	params creds.Params,
 	tags atc.Tags,
+	inputs PutInputs,
 	delegate PutDelegate,
 	resourceFactory resource.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
@@ -71,6 +72,7 @@ func NewPutStep(
 		source:                source,
 		params:                params,
 		tags:                  tags,
+		inputs:                inputs,
 		delegate:              delegate,
 		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
@@ -92,6 +94,11 @@ func NewPutStep(
 func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 
+	containerInputs, err := step.inputs.FindAll(state.Artifacts())
+	if err != nil {
+		return err
+	}
+
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: step.resourceType,
@@ -102,13 +109,8 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		Dir: resource.ResourcesDir("put"),
 
 		Env: step.stepMetadata.Env(),
-	}
 
-	for name, source := range state.Artifacts().AsMap() {
-		containerSpec.Inputs = append(containerSpec.Inputs, &putInputSource{
-			name:   name,
-			source: PutResourceSource{source},
-		})
+		Inputs: containerInputs,
 	}
 
 	putResource, err := step.resourceFactory.NewResource(
@@ -198,23 +200,4 @@ func (step *PutStep) VersionInfo() VersionInfo {
 // Succeeded returns true if the resource script exited successfully.
 func (step *PutStep) Succeeded() bool {
 	return step.succeeded
-}
-
-type PutResourceSource struct {
-	worker.ArtifactSource
-}
-
-func (source PutResourceSource) StreamTo(logger lager.Logger, dest worker.ArtifactDestination) error {
-	return source.ArtifactSource.StreamTo(logger, worker.ArtifactDestination(dest))
-}
-
-type putInputSource struct {
-	name   worker.ArtifactName
-	source worker.ArtifactSource
-}
-
-func (s *putInputSource) Source() worker.ArtifactSource { return s.source }
-
-func (s *putInputSource) DestinationPath() string {
-	return resource.ResourcesDir("put/" + string(s.name))
 }
