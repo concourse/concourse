@@ -322,33 +322,16 @@ jobs:
     - task: concourse-darwin
       file: concourse/ci/tasks/concourse-build-darwin.yml
       input_mapping: {concourse: built-concourse}
-  - task: zero-out-huge-stuff
-    config:
-      platform: linux
-
-      image_resource:
-        type: registry-image
-        source: {repository: busybox}
-
-      outputs:
-      - name: dev-image
-      - name: unit-image
-      - name: fly-linux
-      - name: fly-windows
-      - name: fly-darwin
-      - name: gdn
-      - name: resource-types
-
-      run:
-        path: echo
-        args: ["Having https://github.com/concourse/concourse/issues/1202 would be nice!"]
   - aggregate:
     - put: linux-rc
       params: {file: concourse-linux/concourse-*.tgz}
+      inputs: [concourse-linux]
     - put: windows-rc
       params: {file: concourse-windows/concourse-*.zip}
+      inputs: [concourse-windows]
     - put: darwin-rc
       params: {file: concourse-darwin/concourse-*.tgz}
+      inputs: [concourse-darwin]
 
 - name: bin-smoke
   public: true
