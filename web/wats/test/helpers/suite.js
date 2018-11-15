@@ -21,12 +21,6 @@ class Suite {
     this.web = new Web(this.url, this.adminUsername, this.adminPassword);
   }
 
-  static async build(t) {
-    let suite = new Suite();
-    await suite.init(t);
-    return suite;
-  }
-
   async init(t) {
     await this.newTeam(this.adminUsername, this.teamName);
     await this.newTeam(this.guestUsername, this.guestTeamName);

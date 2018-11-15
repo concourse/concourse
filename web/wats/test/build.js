@@ -6,7 +6,8 @@ const color = require('color');
 const palette = require('./helpers/palette');
 
 test.beforeEach(async t => {
-  t.context = await Suite.build(t);
+  t.context = new Suite();
+  await t.context.init(t);
 });
 
 test.afterEach(async t => {
