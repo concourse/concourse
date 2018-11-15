@@ -97,6 +97,8 @@ github.com/concourse/dex v0.0.0-20181017143659-4a3bb9452ad1 h1:M0js96H9c4BKZiLKW
 github.com/concourse/dex v0.0.0-20181017143659-4a3bb9452ad1/go.mod h1:ju6DjJBZWrfjDhOtUSOiHpVI3Bhu0FUgw/Qr8gkzGYE=
 github.com/concourse/dex v0.0.0-20181109175645-c786b294b45a h1:hazA+V+b0OG2SivXd/G/SK5qHCEGBofNkYd3QlwPCoo=
 github.com/concourse/dex v0.0.0-20181109175645-c786b294b45a/go.mod h1:k/aVIidZ0RF6rZU8XNn/CigfhxEe7gcZC9NMJw8ya70=
+github.com/concourse/dex v0.0.0-20181115190355-a0c6a3042c28 h1:sJd/rCdmv3aS6Wzn7eGopLZZmnin0ivBjNkf+JdGdx4=
+github.com/concourse/dex v0.0.0-20181115190355-a0c6a3042c28/go.mod h1:INKKyRQ1Yjry0qvpftH1BRmCYPa7Kcxgc67KVdfPjyo=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c h1:SwMKBc36jGTSS5/3AqVtbRjbGTvDfR3pJ5MkzfiYSas=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
 github.com/concourse/go-archive v0.0.0-20180803203406-784931698f4f h1:Z7s60kZd9kuWiosivO9QPGH1vmfC/lzLDiuWIy0MT+o=

@@ -40,8 +40,9 @@ require (
 	github.com/cloudfoundry/bosh-utils v0.0.0-20180919212956-15c556314b68 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
+	github.com/cockroachdb/cockroach-go v0.0.0-20160916181719-31611c0501c8 // indirect
 	github.com/concourse/baggageclaim v1.3.0
-	github.com/concourse/dex v0.0.0-20181109175645-c786b294b45a
+	github.com/concourse/dex v0.0.0-20181115190355-a0c6a3042c28
 	github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c
 	github.com/concourse/go-archive v1.0.0
 	github.com/concourse/retryhttp v0.0.0-20170802173037-937335fd9545
@@ -69,6 +70,7 @@ require (
 	github.com/go-openapi/jsonreference v0.0.0-20180825180305-1c6a3fa339f2 // indirect
 	github.com/go-openapi/spec v0.0.0-20180825180323-f1468acb3b29 // indirect
 	github.com/go-openapi/swag v0.0.0-20180908172849-dd0dad036e67 // indirect
+	github.com/go-sql-driver/mysql v0.0.0-20160802113842-0b58b37b664c // indirect
 	github.com/go-test/deep v1.0.1 // indirect
 	github.com/gobuffalo/packr v1.13.7
 	github.com/gocql/gocql v0.0.0-20180920092337-799fb0373110 // indirect
