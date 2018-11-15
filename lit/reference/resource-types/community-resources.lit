@@ -218,6 +218,8 @@ before using it!
   \table-row{\link{Gate Resource}{https://github.com/Meshcloud/gate-resource}}{by \ghuser{Meshcloud}}
 }{
   \table-row{\link{Packer}{https://github.com/Snapkitchen/concourse-packer-resource}}{by \ghuser{Snapkitchen}}
+}{
+  \table-row{\link{Github Webhook Resource}{https://github.com/homedepot/github-webhook-resource}}{by \ghuser{homedepot}}
 }
 
 \section{
