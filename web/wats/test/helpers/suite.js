@@ -57,9 +57,6 @@ class Suite {
   }
 
   async finish(t) {
-    await this.destroyTeams();
-    await this.fly.cleanup();
-
     if (this.web.page && !this.succeeded) {
       await this.web.page.screenshot({path: 'failure.png'});
     }
@@ -67,6 +64,9 @@ class Suite {
     if (this.web.browser) {
       await this.web.browser.close();
     }
+
+    await this.destroyTeams();
+    await this.fly.cleanup();
   }
 }
 
