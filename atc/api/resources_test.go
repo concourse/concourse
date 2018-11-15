@@ -135,6 +135,19 @@ var _ = Describe("Resources API", func() {
 				})
 			})
 
+			Context("when there are no visible resources", func() {
+				BeforeEach(func() {
+					dbResourceFactory.VisibleResourcesReturns(nil, nil)
+				})
+
+				It("returns empty array", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`[]`))
+				})
+			})
+
 			Context("when not authenticated", func() {
 				It("populates resource factory with no team names", func() {
 					Expect(dbResourceFactory.VisibleResourcesCallCount()).To(Equal(1))

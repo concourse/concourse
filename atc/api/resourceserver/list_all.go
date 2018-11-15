@@ -21,7 +21,7 @@ func (s *Server) ListAllResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var resources []atc.Resource
+	resources := []atc.Resource{}
 
 	for _, resource := range dbResources {
 		resources = append(
