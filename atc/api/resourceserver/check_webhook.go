@@ -45,36 +45,31 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		var fromVersion atc.Version
-		resourceConfigId := pipelineResource.ResourceConfigID()
-		resourceConfig, found, err := s.resourceConfigFactory.FindResourceConfigByID(resourceConfigId)
-		if err != nil {
-			logger.Error("failed-to-get-resource-config", err, lager.Data{"resource-config-id": resourceConfigId})
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
 
-		if found {
-			latestVersion, found, err := resourceConfig.LatestVersion()
+		go func() {
+			var fromVersion atc.Version
+			resourceConfigId := pipelineResource.ResourceConfigID()
+			resourceConfig, found, err := s.resourceConfigFactory.FindResourceConfigByID(resourceConfigId)
 			if err != nil {
-				logger.Error("failed-to-get-latest-resource-version", err, lager.Data{"resource-config-id": resourceConfigId})
-				w.WriteHeader(http.StatusInternalServerError)
+				logger.Error("failed-to-get-resource-config", err, lager.Data{"resource-config-id": resourceConfigId})
 				return
 			}
-			if found {
-				fromVersion = atc.Version(latestVersion.Version())
-			}
-		}
 
-		scanner := s.scannerFactory.NewResourceScanner(dbPipeline)
-		err = scanner.ScanFromVersion(logger, resourceName, fromVersion)
-		switch err.(type) {
-		case db.ResourceNotFoundError:
-			w.WriteHeader(http.StatusNotFound)
-		case error:
-			w.WriteHeader(http.StatusInternalServerError)
-		default:
-			w.WriteHeader(http.StatusOK)
-		}
+			if found {
+				latestVersion, found, err := resourceConfig.LatestVersion()
+				if err != nil {
+					logger.Error("failed-to-get-latest-resource-version", err, lager.Data{"resource-config-id": resourceConfigId})
+					return
+				}
+				if found {
+					fromVersion = atc.Version(latestVersion.Version())
+				}
+			}
+
+			scanner := s.scannerFactory.NewResourceScanner(dbPipeline)
+			scanner.ScanFromVersion(logger, resourceName, fromVersion)
+		}()
+
+		w.WriteHeader(http.StatusOK)
 	})
 }
