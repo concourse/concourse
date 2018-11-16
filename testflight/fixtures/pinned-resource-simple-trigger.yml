@@ -2,8 +2,12 @@
 resources:
 - name: some-resource
   type: mock
-  version: {version: ((pinned_resource_version))}
-  source: {no_initial_version: true}
+  version: ((pinned_resource_version))
+  source:
+    no_initial_version: true
+
+    # this initial version is to make it unique and isnt really used
+    initial_version: ((hash))
 
 jobs:
 - name: some-passing-job

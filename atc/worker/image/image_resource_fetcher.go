@@ -158,7 +158,7 @@ func (i *imageResourceFetcher) Fetch(
 		params,
 		i.customTypes,
 		resourceCache,
-		db.NewImageGetContainerOwner(container),
+		db.NewImageGetContainerOwner(container, i.teamID),
 	)
 
 	err = i.imageFetchingDelegate.ImageVersionDetermined(resourceCache)
@@ -228,7 +228,7 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 	checkResourceType, err := i.resourceFactory.NewResource(
 		ctx,
 		logger,
-		db.NewImageCheckContainerOwner(container),
+		db.NewImageCheckContainerOwner(container, i.teamID),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},
@@ -296,7 +296,7 @@ func (i *imageResourceFetcher) getLatestVersion(
 	checkingResource, err := i.resourceFactory.NewResource(
 		ctx,
 		logger,
-		db.NewImageCheckContainerOwner(container),
+		db.NewImageCheckContainerOwner(container, i.teamID),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},

@@ -168,40 +168,80 @@ var _ = Describe("login Command", func() {
 			Expect(sess.ExitCode()).To(Equal(0))
 		})
 
-		It("fails if user is not in the team", func() {
-			loginATCServer.AppendHandlers(
-				infoHandler(),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/sky/token"),
-					ghttp.RespondWithJSONEncoded(
-						200,
-						map[string]string{
-							"token_type": "Bearer",
-							/**
-							{
-								"teams": [
-									"some-other-team:owner"
-								],
-								"user_id": "test",
-								"user_name": "test"
-							}
-							*/
-							"access_token": "ewog.ewogICJ0ZWFtcyI6IFsKICAgICJzb21lLW90aGVyLXRlYW06b3duZXIiCiAgXSwKICAidXNlcl9pZCI6ICJ0ZXN0IiwKICAidXNlcl9uYW1lIjogInRlc3QiCn0",
-						},
+		Context("when the token's roles doesn't include the team", func() {
+			BeforeEach(func() {
+				encodedToken := base64.StdEncoding.WithPadding(base64.NoPadding).EncodeToString([]byte(`{
+					"teams": {
+						"some-other-team": ["owner"]
+					},
+					"user_id": "test",
+					"user_name": "test"
+				}`))
+
+				loginATCServer.AppendHandlers(
+					infoHandler(),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("POST", "/sky/token"),
+						ghttp.RespondWithJSONEncoded(
+							200,
+							map[string]string{
+								"token_type":   "Bearer",
+								"access_token": "foo." + encodedToken,
+							},
+						),
 					),
-				),
-			)
+				)
+			})
 
-			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "dummy-user", "-p", "dummy-pass")
+			It("fails", func() {
+				flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "dummy-user", "-p", "dummy-pass")
 
-			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess).Should(gbytes.Say("logging in to team 'some-team'"))
+				Eventually(sess).Should(gbytes.Say("logging in to team 'some-team'"))
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
-			Expect(sess.Err.Contents()).To(ContainSubstring("user [test] is not in team [some-team]"))
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+				Expect(sess.Err.Contents()).To(ContainSubstring("user [test] is not in team [some-team]"))
+			})
+		})
+
+		Context("when the token's (legacy) team list doesn't include the team", func() {
+			BeforeEach(func() {
+				encodedToken := base64.StdEncoding.WithPadding(base64.NoPadding).EncodeToString([]byte(`{
+					"teams": ["some-other-team"],
+					"user_id": "test",
+					"user_name": "test"
+				}`))
+
+				loginATCServer.AppendHandlers(
+					infoHandler(),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("POST", "/sky/token"),
+						ghttp.RespondWithJSONEncoded(
+							200,
+							map[string]string{
+								"token_type":   "Bearer",
+								"access_token": "foo." + encodedToken,
+							},
+						),
+					),
+				)
+			})
+
+			It("fails", func() {
+				flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "dummy-user", "-p", "dummy-pass")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess).Should(gbytes.Say("logging in to team 'some-team'"))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+				Expect(sess.Err.Contents()).To(ContainSubstring("user [test] is not in team [some-team]"))
+			})
 		})
 
 		Context("when tracing is not enabled", func() {

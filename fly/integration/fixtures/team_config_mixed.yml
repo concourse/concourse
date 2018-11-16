@@ -3,7 +3,8 @@ roles:
     local:
       users: ["some-user"]
   - name: viewer
-    allow_all_users: true
+    local:
+      users: ["some-viewer"]
   - name: owner
     github:
       users: ["some-github-user"]

@@ -348,26 +348,6 @@ var _ = Describe("Containers API", func() {
 					})
 				})
 			})
-
-			Describe("querying with type 'check'", func() {
-				BeforeEach(func() {
-					req.URL.RawQuery = url.Values{
-						"type":          []string{"check"},
-						"resource_name": []string{"some-resource"},
-						"pipeline_name": []string{"some-pipeline"},
-					}.Encode()
-				})
-
-				It("queries with check properties", func() {
-					_, err := client.Do(req)
-					Expect(err).NotTo(HaveOccurred())
-
-					_, pipelineName, resourceName, variablesFactory := dbTeam.FindCheckContainersArgsForCall(0)
-					Expect(pipelineName).To(Equal("some-pipeline"))
-					Expect(resourceName).To(Equal("some-resource"))
-					Expect(variablesFactory).To(Equal(fakeVariablesFactory))
-				})
-			})
 		})
 	})
 
@@ -900,20 +880,12 @@ var _ = Describe("Containers API", func() {
 			})
 
 			Context("with no params", func() {
-				It("returns 404", func() {
+				It("returns 400 Bad Request", func() {
 					response, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeContainerRepository.FindDestroyingContainersCallCount()).To(Equal(0))
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-
-				It("returns Content-Type application/json", func() {
-					response, err := client.Do(req)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 			})
 

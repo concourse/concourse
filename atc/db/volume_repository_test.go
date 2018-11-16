@@ -79,7 +79,7 @@ var _ = Describe("VolumeFactory", func() {
 
 		Context("with container volumes", func() {
 			JustBeforeEach(func() {
-				creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+				creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 					Type:     "task",
 					StepName: "some-task",
 				})
@@ -167,7 +167,7 @@ var _ = Describe("VolumeFactory", func() {
 		)
 
 		BeforeEach(func() {
-			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+			creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
 			})
@@ -208,28 +208,25 @@ var _ = Describe("VolumeFactory", func() {
 			resourceCacheVolumeCreated, err := resourceCacheVolume.Created()
 			Expect(err).NotTo(HaveOccurred())
 
-			usedWorkerBaseResourceType := db.UsedWorkerBaseResourceType{
-				ID:      1,
-				Name:    "test",
-				Version: "test-version",
-
-				WorkerName: defaultWorker.Name(),
-			}
-			baseResourceTypeVolume, err := volumeRepository.CreateBaseResourceTypeVolume(defaultTeam.ID(), &usedWorkerBaseResourceType)
-			Expect(err).NotTo(HaveOccurred())
-			createdBaseResourceTypeVolume, err := baseResourceTypeVolume.Created()
-			Expect(err).NotTo(HaveOccurred())
-			expectedCreatedHandles = append(expectedCreatedHandles, createdBaseResourceTypeVolume.Handle())
-
-			result, err := psql.Update("volumes").
-				Set("team_id", nil).
-				Where(
-					sq.Eq{"handle": createdBaseResourceTypeVolume.Handle()},
-				).
-				RunWith(dbConn).Exec()
-
+			usedWorkerBaseResourceType, found, err := workerBaseResourceTypeFactory.Find(defaultWorkerResourceType.Type, defaultWorker)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(result.RowsAffected()).To(Equal(int64(1)))
+			Expect(found).To(BeTrue())
+
+			baseResourceTypeVolume, err := volumeRepository.CreateBaseResourceTypeVolume(usedWorkerBaseResourceType)
+			Expect(err).NotTo(HaveOccurred())
+
+			oldResourceTypeVolume, err := baseResourceTypeVolume.Created()
+			Expect(err).NotTo(HaveOccurred())
+			expectedCreatedHandles = append(expectedCreatedHandles, oldResourceTypeVolume.Handle())
+
+			newVersion := defaultWorkerResourceType
+			newVersion.Version = "some-new-brt-version"
+
+			newWorker := defaultWorkerPayload
+			newWorker.ResourceTypes = []atc.WorkerResourceType{newVersion}
+
+			defaultWorker, err = workerFactory.SaveWorker(newWorker, 0)
+			Expect(err).ToNot(HaveOccurred())
 
 			err = resourceCacheVolumeCreated.InitializeResourceCache(usedResourceCache)
 			Expect(err).NotTo(HaveOccurred())
@@ -294,13 +291,10 @@ var _ = Describe("VolumeFactory", func() {
 			It("does not return volumes from stalled worker", func() {
 				createdVolumes, err := volumeRepository.GetOrphanedVolumes()
 				Expect(err).NotTo(HaveOccurred())
-				createdHandles := []string{}
 
-				for _, vol := range createdVolumes {
-					createdHandles = append(createdHandles, vol.Handle())
-					Expect(vol.WorkerName()).To(Equal("other-worker"))
+				for _, v := range createdVolumes {
+					Expect(v.WorkerName()).ToNot(Equal(defaultWorker.Name()))
 				}
-				Expect(createdHandles).To(HaveLen(1))
 			})
 		})
 
@@ -313,24 +307,20 @@ var _ = Describe("VolumeFactory", func() {
 				Expect(landedWorkers).To(ContainElement(defaultWorker.Name()))
 			})
 
-			It("does not return volumes", func() {
+			It("does not return volumes for the worker", func() {
 				createdVolumes, err := volumeRepository.GetOrphanedVolumes()
 				Expect(err).NotTo(HaveOccurred())
-				createdHandles := []string{}
 
-				for _, vol := range createdVolumes {
-					createdHandles = append(createdHandles, vol.Handle())
-					Expect(vol.WorkerName()).To(Equal("other-worker"))
+				for _, v := range createdVolumes {
+					Expect(v.WorkerName()).ToNot(Equal(defaultWorker.Name()))
 				}
-				Expect(createdVolumes).To(HaveLen(1))
 			})
 		})
 	})
 
 	Describe("DestroyFailedVolumes", func() {
-
 		BeforeEach(func() {
-			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+			creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
 			})
@@ -355,7 +345,7 @@ var _ = Describe("VolumeFactory", func() {
 
 		Context("when worker has detroying volumes", func() {
 			BeforeEach(func() {
-				creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+				creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 					Type:     "task",
 					StepName: "some-task",
 				})
@@ -396,6 +386,28 @@ var _ = Describe("VolumeFactory", func() {
 		})
 	})
 
+	Describe("CreateBaseResourceTypeVolume", func() {
+		var usedWorkerBaseResourceType *db.UsedWorkerBaseResourceType
+		BeforeEach(func() {
+			workerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
+			var err error
+			var found bool
+			usedWorkerBaseResourceType, found, err = workerBaseResourceTypeFactory.Find("some-base-resource-type", defaultWorker)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
+		It("creates a CreatingVolume with no team ID set", func() {
+			volume, err := volumeRepository.CreateBaseResourceTypeVolume(usedWorkerBaseResourceType)
+			Expect(err).NotTo(HaveOccurred())
+			var teamID int
+			err = psql.Select("team_id").From("volumes").
+				Where(sq.Eq{"handle": volume.Handle()}).RunWith(dbConn).QueryRow().Scan(&teamID)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Scan error"))
+		})
+	})
+
 	Describe("FindBaseResourceTypeVolume", func() {
 		var usedWorkerBaseResourceType *db.UsedWorkerBaseResourceType
 		BeforeEach(func() {
@@ -412,14 +424,14 @@ var _ = Describe("VolumeFactory", func() {
 
 			BeforeEach(func() {
 				var err error
-				volume, err := volumeRepository.CreateBaseResourceTypeVolume(defaultTeam.ID(), usedWorkerBaseResourceType)
+				volume, err := volumeRepository.CreateBaseResourceTypeVolume(usedWorkerBaseResourceType)
 				Expect(err).NotTo(HaveOccurred())
 				existingVolume, err = volume.Created()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("returns created volume", func() {
-				creatingVolume, createdVolume, err := volumeRepository.FindBaseResourceTypeVolume(defaultTeam.ID(), usedWorkerBaseResourceType)
+				creatingVolume, createdVolume, err := volumeRepository.FindBaseResourceTypeVolume(usedWorkerBaseResourceType)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(creatingVolume).To(BeNil())
 				Expect(createdVolume).ToNot(BeNil())
@@ -432,12 +444,12 @@ var _ = Describe("VolumeFactory", func() {
 
 			BeforeEach(func() {
 				var err error
-				existingVolume, err = volumeRepository.CreateBaseResourceTypeVolume(defaultTeam.ID(), usedWorkerBaseResourceType)
+				existingVolume, err = volumeRepository.CreateBaseResourceTypeVolume(usedWorkerBaseResourceType)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("returns creating volume", func() {
-				creatingVolume, createdVolume, err := volumeRepository.FindBaseResourceTypeVolume(defaultTeam.ID(), usedWorkerBaseResourceType)
+				creatingVolume, createdVolume, err := volumeRepository.FindBaseResourceTypeVolume(usedWorkerBaseResourceType)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(creatingVolume).ToNot(BeNil())
 				Expect(creatingVolume.Handle()).To(Equal(existingVolume.Handle()))
@@ -486,7 +498,7 @@ var _ = Describe("VolumeFactory", func() {
 
 			BeforeEach(func() {
 				var err error
-				creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+				creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 					Type:     "get",
 					StepName: "some-resource",
 				})
@@ -785,6 +797,26 @@ var _ = Describe("VolumeFactory", func() {
 		Context("when the reported handles is a subset", func() {
 			BeforeEach(func() {
 				handles = []string{"some-handle1"}
+			})
+
+			Context("having the volumes in the creating state in the db", func() {
+				BeforeEach(func() {
+					result, err := psql.Update("volumes").
+						Where(sq.Eq{"handle": "some-handle3"}).
+						SetMap(map[string]interface{}{
+							"state":         db.VolumeStateCreating,
+							"missing_since": nil,
+						}).RunWith(dbConn).Exec()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(result.RowsAffected()).To(Equal(int64(1)))
+				})
+
+				It("does not mark as missing", func() {
+					err = psql.Select("missing_since").From("volumes").
+						Where(sq.Eq{"handle": "some-handle3"}).RunWith(dbConn).QueryRow().Scan(&missingSince)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(missingSince.Valid).To(BeFalse())
+				})
 			})
 
 			It("should mark volumes not in the subset and not already marked as missing", func() {

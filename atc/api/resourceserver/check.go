@@ -42,21 +42,21 @@ func (s *Server) CheckResource(dbPipeline db.Pipeline) http.Handler {
 			if err != nil {
 				logger.Error("failed-to-encode-check-response-body", err)
 				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(err.Error()))
+				_, _ = w.Write([]byte(err.Error()))
 			}
 		case db.ResourceNotFoundError:
 			w.WriteHeader(http.StatusNotFound)
 		case db.ResourceTypeNotFoundError:
 			w.Header().Set("Content-Type", jsonapi.MediaType)
 			w.WriteHeader(http.StatusBadRequest)
-			jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{{
+			_ = jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{{
 				Title:  "Resource Type Not Found Error",
 				Detail: err.Error(),
 				Status: "400",
 			}})
 		case error:
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+			_,_ = w.Write([]byte(err.Error()))
 		default:
 			w.WriteHeader(http.StatusOK)
 		}

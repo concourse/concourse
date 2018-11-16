@@ -5,6 +5,7 @@ import (
 	"context"
 	"io/ioutil"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
@@ -16,6 +17,7 @@ var _ = Describe("UserArtifactStep", func() {
 	var (
 		ctx    context.Context
 		cancel func()
+		logger *lagertest.TestLogger
 
 		state    exec.RunState
 		delegate *execfakes.FakeBuildStepDelegate
@@ -26,6 +28,7 @@ var _ = Describe("UserArtifactStep", func() {
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
+		logger = lagertest.NewTestLogger("user-artifact-step-test")
 
 		state = exec.NewRunState()
 
@@ -62,7 +65,7 @@ var _ = Describe("UserArtifactStep", func() {
 		go state.SendUserInput("some-plan-id", input)
 
 		Expect(dest.StreamInCallCount()).To(Equal(0))
-		Expect(source.StreamTo(dest)).To(Succeed())
+		Expect(source.StreamTo(logger, dest)).To(Succeed())
 		Expect(dest.StreamInCallCount()).To(Equal(1))
 
 		path, stream := dest.StreamInArgsForCall(0)

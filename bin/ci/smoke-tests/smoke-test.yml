@@ -47,7 +47,7 @@ run:
       --log-level debug \
       --postgres-socket /var/run/postgresql \
       --add-local-user 'test:$2a$10$GXdnc1kAKG2u1Ba5DOO1G.uPADrfqr/ifudwHG/pTSUnKj/QQfi8i' \
-      --main-team-allow-all-users \
+      --main-team-local-user test \
       --session-signing-key session_signing_key \
       --tsa-host-key host_key \
       --tsa-authorized-keys authorized_worker_keys > web.stdout.log 2> web.stderr.log &

@@ -79,7 +79,7 @@ func buildIDOrNone(id int) ui.TableCell {
 
 	if id == 0 {
 		column.Contents = "none"
-		column.Color = color.New(color.Faint)
+		column.Color = ui.OffColor
 	} else {
 		column.Contents = strconv.Itoa(id)
 	}

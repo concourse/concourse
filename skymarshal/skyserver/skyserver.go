@@ -133,7 +133,7 @@ func (self *skyServer) NewLogin(w http.ResponseWriter, r *http.Request) {
 		Name:     stateCookieName,
 		Value:    stateToken,
 		Path:     "/",
-		Expires:  time.Now().Add(time.Minute),
+		Expires:  time.Now().Add(time.Hour),
 		Secure:   self.config.SecureCookies,
 		HttpOnly: true,
 	})
@@ -214,7 +214,7 @@ func (self *skyServer) Callback(w http.ResponseWriter, r *http.Request) {
 
 	if skyToken, err = self.config.TokenIssuer.Issue(verifiedClaims); err != nil {
 		logger.Error("failed-to-issue-concourse-token", err)
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 

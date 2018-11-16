@@ -3,15 +3,14 @@ module Concourse.Resource
         ( fetchAllResources
         , fetchResource
         , fetchResourcesRaw
-        , pause
-        , unpause
         , fetchVersionedResources
         , fetchVersionedResource
-        , enableVersionedResource
-        , disableVersionedResource
+        , enableDisableVersionedResource
         , fetchInputTo
         , fetchOutputOf
         , fetchCausality
+        , pinVersion
+        , unpinVersion
         )
 
 import Concourse
@@ -50,37 +49,6 @@ fetchResourcesRaw pi =
             ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/resources")
 
 
-pause : Concourse.ResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-pause =
-    pauseUnpause True
-
-
-unpause : Concourse.ResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-unpause =
-    pauseUnpause False
-
-
-pauseUnpause : Bool -> Concourse.ResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-pauseUnpause pause rid csrfToken =
-    let
-        action =
-            if pause then
-                "pause"
-            else
-                "unpause"
-    in
-        Http.toTask <|
-            Http.request
-                { method = "PUT"
-                , url = "/api/v1/teams/" ++ rid.teamName ++ "/pipelines/" ++ rid.pipelineName ++ "/resources/" ++ rid.resourceName ++ "/" ++ action
-                , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
-                , body = Http.emptyBody
-                , expect = Http.expectStringResponse (\_ -> Ok ())
-                , timeout = Nothing
-                , withCredentials = False
-                }
-
-
 fetchVersionedResource : Concourse.VersionedResourceIdentifier -> Task Http.Error Concourse.VersionedResource
 fetchVersionedResource vrid =
     Http.toTask
@@ -103,16 +71,6 @@ fetchVersionedResources rid page =
             "/api/v1/teams/" ++ rid.teamName ++ "/pipelines/" ++ rid.pipelineName ++ "/resources/" ++ rid.resourceName ++ "/versions"
     in
         Concourse.Pagination.fetch Concourse.decodeVersionedResource url page
-
-
-enableVersionedResource : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-enableVersionedResource =
-    enableDisableVersionedResource True
-
-
-disableVersionedResource : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-disableVersionedResource =
-    enableDisableVersionedResource False
 
 
 enableDisableVersionedResource : Bool -> Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
@@ -176,3 +134,31 @@ fetchCausality vrid =
                 ++ "/versions/"
                 ++ toString vrid.versionID
                 ++ "/causality"
+
+
+pinVersion : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
+pinVersion vrid csrfToken =
+    Http.toTask <|
+        Http.request
+            { method = "PUT"
+            , url = "/api/v1/teams/" ++ vrid.teamName ++ "/pipelines/" ++ vrid.pipelineName ++ "/resources/" ++ vrid.resourceName ++ "/versions/" ++ (toString vrid.versionID) ++ "/pin"
+            , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
+            , body = Http.emptyBody
+            , expect = Http.expectStringResponse (\_ -> Ok ())
+            , timeout = Nothing
+            , withCredentials = False
+            }
+
+
+unpinVersion : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
+unpinVersion vrid csrfToken =
+    Http.toTask <|
+        Http.request
+            { method = "PUT"
+            , url = "/api/v1/teams/" ++ vrid.teamName ++ "/pipelines/" ++ vrid.pipelineName ++ "/resources/" ++ vrid.resourceName ++ "/versions/" ++ (toString vrid.versionID) ++ "/unpin"
+            , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
+            , body = Http.emptyBody
+            , expect = Http.expectStringResponse (\_ -> Ok ())
+            , timeout = Nothing
+            , withCredentials = False
+            }

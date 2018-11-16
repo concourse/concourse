@@ -1,0 +1,13 @@
+---
+jobs:
+- name: some-job
+  plan:
+  - task: wait
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: alpine}
+      run:
+        path: echo
+        args: ['Hello, world!']

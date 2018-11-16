@@ -10,3 +10,6 @@ var ErroredColor = color.New(color.FgWhite, color.BgRed, color.Bold)
 var BlinkingErrorColor = color.New(color.BlinkSlow, color.FgWhite, color.BgRed, color.Bold)
 var AbortedColor = color.New(color.FgMagenta)
 var PausedColor = color.New(color.FgCyan)
+
+var OnColor = color.New(color.FgCyan)
+var OffColor = color.New(color.Faint)

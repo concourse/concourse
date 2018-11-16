@@ -29,8 +29,10 @@ var _ = Describe("PutStep", func() {
 
 		pipelineResourceName string
 
-		fakeResourceFactory *resourcefakes.FakeResourceFactory
-		variables           creds.Variables
+		fakeResourceFactory       *resourcefakes.FakeResourceFactory
+		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
+
+		variables creds.Variables
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}
 
@@ -51,6 +53,8 @@ var _ = Describe("PutStep", func() {
 
 		putStep *exec.PutStep
 		stepErr error
+
+		putInputs exec.PutInputs
 	)
 
 	BeforeEach(func() {
@@ -65,6 +69,7 @@ var _ = Describe("PutStep", func() {
 		pipelineResourceName = "some-resource"
 
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
+		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		variables = template.StaticVariables{
 			"custom-param": "source",
 			"source-param": "super-secret-source",
@@ -92,6 +97,8 @@ var _ = Describe("PutStep", func() {
 		})
 
 		stepErr = nil
+
+		putInputs = exec.NewAllInputs()
 	})
 
 	AfterEach(func() {
@@ -107,8 +114,10 @@ var _ = Describe("PutStep", func() {
 			creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
 			creds.NewParams(variables, atc.Params{"some-param": "some-value"}),
 			[]string{"some", "tags"},
+			putInputs,
 			fakeDelegate,
 			fakeResourceFactory,
+			fakeResourceConfigFactory,
 			planID,
 			containerMetadata,
 			stepMetadata,
@@ -138,12 +147,18 @@ var _ = Describe("PutStep", func() {
 		Context("when the tracker can initialize the resource", func() {
 			var (
 				fakeResource        *resourcefakes.FakeResource
+				fakeResourceConfig  *dbfakes.FakeResourceConfig
 				fakeVersionedSource *resourcefakes.FakeVersionedSource
 			)
 
 			BeforeEach(func() {
 				fakeResource = new(resourcefakes.FakeResource)
 				fakeResourceFactory.NewResourceReturns(fakeResource, nil)
+
+				fakeResourceConfig = new(dbfakes.FakeResourceConfig)
+				fakeResourceConfig.IDReturns(1)
+
+				fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
 
 				fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 				fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
@@ -152,12 +167,12 @@ var _ = Describe("PutStep", func() {
 				fakeResource.PutReturns(fakeVersionedSource, nil)
 			})
 
-			It("initializes the resource with the correct type, session, and sources", func() {
+			It("initializes the resource with the correct type, session, and sources with no inputs specified (meaning it takes all artifacts)", func() {
 				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 
 				_, _, owner, cm, containerSpec, actualResourceTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
 				Expect(cm).To(Equal(containerMetadata))
-				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID))))
+				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
 				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 					ResourceType: "some-resource-type",
 				}))
@@ -177,6 +192,24 @@ var _ = Describe("PutStep", func() {
 				))
 				Expect(actualResourceTypes).To(Equal(resourceTypes))
 				Expect(delegate).To(Equal(fakeDelegate))
+			})
+
+			Context("when the inputs are specified", func() {
+				BeforeEach(func() {
+					putInputs = exec.NewSpecificInputs([]string{"some-source", "some-other-source"})
+				})
+
+				It("initializes the resource with specified inputs", func() {
+					_, _, _, _, containerSpec, _, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+					Expect(containerSpec.Inputs).To(HaveLen(2))
+					Expect([]worker.ArtifactSource{
+						containerSpec.Inputs[0].Source(),
+						containerSpec.Inputs[1].Source(),
+					}).To(ConsistOf(
+						exec.PutResourceSource{fakeSource},
+						exec.PutResourceSource{fakeOtherSource},
+					))
+				})
 			})
 
 			It("puts the resource with the given context", func() {
@@ -215,16 +248,39 @@ var _ = Describe("PutStep", func() {
 				Expect(putStep.Succeeded()).To(BeTrue())
 			})
 
-			It("saves the build output", func() {
-				Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
+			It("finds or creates a resource config", func() {
+				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
+				_, actualResourceType, actualSource, actualResourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
+				Expect(actualResourceType).To(Equal("some-resource-type"))
+				Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
+				Expect(actualResourceTypes).To(Equal(resourceTypes))
+			})
 
-				vr := fakeBuild.SaveOutputArgsForCall(0)
-				Expect(vr).To(Equal(db.VersionedResource{
-					Resource: "some-resource",
-					Type:     "some-resource-type",
-					Version:  db.ResourceVersion{"some": "version"},
-					Metadata: db.NewResourceMetadataFields([]atc.MetadataField{{"some", "metadata"}}),
-				}))
+			Context("when finding or creating a resource config", func() {
+				It("saves the version", func() {
+					Expect(fakeResourceConfig.SaveUncheckedVersionCallCount()).To(Equal(1))
+
+					version, metadata := fakeResourceConfig.SaveUncheckedVersionArgsForCall(0)
+					Expect(version).To(Equal(atc.Version{"some": "version"}))
+					Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields([]atc.MetadataField{{"some", "metadata"}})))
+				})
+
+				Context("when saving a version", func() {
+					BeforeEach(func() {
+						fakeResourceConfig.SaveUncheckedVersionReturns(true, nil)
+					})
+
+					It("saves the build output", func() {
+						Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
+
+						resourceConfig, version, outputName, resourceName, created := fakeBuild.SaveOutputArgsForCall(0)
+						Expect(resourceConfig.ID()).To(Equal(fakeResourceConfig.ID()))
+						Expect(version).To(Equal(atc.Version{"some": "version"}))
+						Expect(outputName).To(Equal("some-name"))
+						Expect(resourceName).To(Equal("some-resource"))
+						Expect(created).To(BeTrue())
+					})
+				})
 			})
 
 			Context("when the resource is blank", func() {
@@ -257,6 +313,30 @@ var _ = Describe("PutStep", func() {
 					Version:  atc.Version{"some": "version"},
 					Metadata: []atc.MetadataField{{"some", "metadata"}},
 				}))
+			})
+
+			Context("when saving a version of the resource config fails", func() {
+				disaster := errors.New("nah")
+
+				BeforeEach(func() {
+					fakeResourceConfig.SaveUncheckedVersionReturns(false, disaster)
+				})
+
+				It("returns the error", func() {
+					Expect(stepErr).To(Equal(disaster))
+				})
+			})
+
+			Context("when finding or creating resource config fails", func() {
+				disaster := errors.New("no")
+
+				BeforeEach(func() {
+					fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(nil, disaster)
+				})
+
+				It("returns the error", func() {
+					Expect(stepErr).To(Equal(disaster))
+				})
 			})
 
 			Context("when saving the build output fails", func() {

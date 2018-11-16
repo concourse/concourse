@@ -135,6 +135,8 @@ var _ = BeforeEach(func() {
 	}
 
 	defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, 0)
+	Expect(err).NotTo(HaveOccurred())
+
 	otherWorker, err = workerFactory.SaveWorker(otherWorkerPayload, 0)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -169,13 +171,6 @@ var _ = BeforeEach(func() {
 	defaultResourceType, found, err = defaultPipeline.ResourceType("some-type")
 	Expect(found).To(BeTrue())
 	Expect(err).NotTo(HaveOccurred())
-
-	err = defaultResourceType.SaveVersion(atc.Version{"some-type": "version"})
-	Expect(err).NotTo(HaveOccurred())
-
-	found, err = defaultResourceType.Reload()
-	Expect(err).NotTo(HaveOccurred())
-	Expect(found).To(BeTrue())
 
 	defaultResource, found, err = defaultPipeline.Resource("some-resource")
 	Expect(err).NotTo(HaveOccurred())

@@ -133,8 +133,10 @@ type RunCommand struct {
 	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
 
 	GC struct {
-		Interval               time.Duration `long:"interval" default:"30s" description:"Interval on which to perform garbage collection."`
-		OneOffBuildGracePeriod time.Duration `long:"one-off-grace-period" default:"5m" description:"Grace period before reaping one-off task containers"`
+		Interval time.Duration `long:"interval" default:"30s" description:"Interval on which to perform garbage collection."`
+
+		OneOffBuildGracePeriod time.Duration `long:"one-off-grace-period" default:"5m" description:"Period after which one-off build containers will be garbage-collected."`
+		MissingGracePeriod     time.Duration `long:"missing-grace-period" default:"5m" description:"Period after which to reap containers and volumes that were created but went missing from the worker."`
 	} `group:"Garbage Collection" namespace:"gc"`
 
 	BuildTrackerInterval time.Duration `long:"build-tracker-interval" default:"10s" description:"Interval on which to run build tracking."`
@@ -249,7 +251,7 @@ func (cmd *Migration) migrateDBToVersion() error {
 
 	err := helper.MigrateToVersion(version)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Could not migrate to version: %d Reason: %s", version, err.Error()))
+		return fmt.Errorf("Could not migrate to version: %d Reason: %s", version, err.Error())
 	}
 
 	fmt.Println("Successfully migrated to version:", version)
@@ -326,6 +328,15 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		cmd.ExternalURL = cmd.defaultURL()
 	}
 
+	if len(positionalArguments) != 0 {
+		return nil, fmt.Errorf("unexpected positional arguments: %v", positionalArguments)
+	}
+
+	err := cmd.validate()
+	if err != nil {
+		return nil, err
+	}
+
 	radar.GlobalResourceCheckTimeout = cmd.GlobalResourceCheckTimeout
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
@@ -364,7 +375,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	members, err := cmd.constructMembers(positionalArguments, logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory)
+	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -400,7 +411,6 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 }
 
 func (cmd *RunCommand) constructMembers(
-	positionalArguments []string,
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 	apiConn db.Conn,
@@ -408,16 +418,6 @@ func (cmd *RunCommand) constructMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 ) ([]grouper.Member, error) {
-
-	if len(positionalArguments) != 0 {
-		return nil, fmt.Errorf("unexpected positional arguments: %v", positionalArguments)
-	}
-
-	err := cmd.validate()
-	if err != nil {
-		return nil, err
-	}
-
 	if cmd.TelemetryOptIn {
 		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", concourse.Version)
 		go func() {
@@ -525,7 +525,8 @@ func (cmd *RunCommand) constructAPIMembers(
 	if err != nil {
 		return nil, err
 	}
-	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, variablesFactory, defaultLimits)
+
+	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits)
 
 	dbResourceConfigCheckSessionFactory := db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
@@ -567,6 +568,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		dbContainerRepository,
 		gcContainerDestroyer,
 		dbBuildFactory,
+		dbResourceConfigFactory,
 		engine,
 		workerClient,
 		workerProvider,
@@ -721,7 +723,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	if err != nil {
 		return nil, err
 	}
-	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, variablesFactory, defaultLimits)
+	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits)
 
 	dbResourceConfigCheckSessionFactory := db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
@@ -781,7 +783,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
 				gc.NewVolumeCollector(
 					dbVolumeRepository,
-					cmd.GC.Interval*3, // volume missing-since grace period (must be larger than gc.interval so it doesn't race)
+					cmd.GC.MissingGracePeriod,
 				),
 				gc.NewContainerCollector(
 					dbContainerRepository,
@@ -790,7 +792,7 @@ func (cmd *RunCommand) constructBackendMembers(
 						workerProvider,
 						time.Minute,
 					),
-					cmd.GC.Interval*3, // container missing-since grace period (must be larger than gc.interval so it doesn't race)
+					cmd.GC.MissingGracePeriod,
 				),
 				gc.NewResourceConfigCheckSessionCollector(
 					resourceConfigCheckSessionLifecycle,
@@ -1180,7 +1182,8 @@ func (cmd *RunCommand) constructEngine(
 	workerClient worker.Client,
 	resourceFetcher resource.Fetcher,
 	resourceFactory resource.ResourceFactory,
-	dbResourceCacheFactory db.ResourceCacheFactory,
+	resourceCacheFactory db.ResourceCacheFactory,
+	resourceConfigFactory db.ResourceConfigFactory,
 	variablesFactory creds.VariablesFactory,
 	defaultLimits atc.ContainerLimits,
 ) engine.Engine {
@@ -1188,7 +1191,8 @@ func (cmd *RunCommand) constructEngine(
 		workerClient,
 		resourceFetcher,
 		resourceFactory,
-		dbResourceCacheFactory,
+		resourceCacheFactory,
+		resourceConfigFactory,
 		variablesFactory,
 		defaultLimits,
 	)
@@ -1247,6 +1251,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	dbContainerRepository db.ContainerRepository,
 	gcContainerDestroyer gc.Destroyer,
 	dbBuildFactory db.BuildFactory,
+	resourceConfigFactory db.ResourceConfigFactory,
 	engine engine.Engine,
 	workerClient worker.Client,
 	workerProvider worker.WorkerProvider,
@@ -1289,6 +1294,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		dbContainerRepository,
 		gcContainerDestroyer,
 		dbBuildFactory,
+		resourceConfigFactory,
 
 		cmd.PeerURLOrDefault().String(),
 		buildserver.NewEventHandler,
@@ -1347,8 +1353,8 @@ func (cmd *RunCommand) constructPipelineSyncer(
 			variables := variablesFactory.NewVariables(pipeline.TeamName(), pipeline.Name())
 			return grouper.NewParallel(os.Interrupt, grouper.Members{
 				{
-					pipeline.ScopedName("radar"),
-					radar.NewRunner(
+					Name: pipeline.ScopedName("radar"),
+					Runner: radar.NewRunner(
 						logger.Session(pipeline.ScopedName("radar")),
 						cmd.Developer.Noop,
 						radarSchedulerFactory.BuildScanRunnerFactory(pipeline, cmd.ExternalURL.String(), variables),
@@ -1357,8 +1363,8 @@ func (cmd *RunCommand) constructPipelineSyncer(
 					),
 				},
 				{
-					pipeline.ScopedName("scheduler"),
-					&scheduler.Runner{
+					Name: pipeline.ScopedName("scheduler"),
+					Runner: &scheduler.Runner{
 						Logger:    logger.Session(pipeline.ScopedName("scheduler")),
 						Pipeline:  pipeline,
 						Scheduler: radarSchedulerFactory.BuildScheduler(pipeline, cmd.ExternalURL.String(), variables),

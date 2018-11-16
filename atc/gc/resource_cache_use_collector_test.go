@@ -25,9 +25,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 	Describe("Run", func() {
 		Describe("cache uses", func() {
 			var (
-				pipelineWithTypes     db.Pipeline
 				versionedResourceType atc.VersionedResourceType
-				dbResourceType        db.ResourceType
 			)
 
 			countResourceCacheUses := func() int {
@@ -59,26 +57,6 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					},
 					Version: atc.Version{"some-type": "version"},
 				}
-
-				var created bool
-				var err error
-				pipelineWithTypes, created, err = defaultTeam.SavePipeline(
-					"pipeline-with-types",
-					atc.Config{
-						ResourceTypes: atc.ResourceTypes{versionedResourceType.ResourceType},
-					},
-					0,
-					db.PipelineNoChange,
-				)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(created).To(BeTrue())
-
-				var found bool
-				dbResourceType, found, err = pipelineWithTypes.ResourceType("some-type")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(dbResourceType.SaveVersion(versionedResourceType.Version)).To(Succeed())
-				Expect(dbResourceType.Reload()).To(BeTrue())
 			})
 
 			Describe("for one-off builds", func() {
@@ -229,9 +207,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					}, 0)
 					Expect(err).ToNot(HaveOccurred())
 
-					container, err = defaultTeam.CreateContainer(
-						worker.Name(),
-						db.NewBuildStepContainerOwner(defaultBuild.ID(), "some-plan"),
+					container, err = worker.CreateContainer(
+						db.NewBuildStepContainerOwner(defaultBuild.ID(), "some-plan", defaultTeam.ID()),
 						db.ContainerMetadata{},
 					)
 					Expect(err).ToNot(HaveOccurred())

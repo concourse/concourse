@@ -25,7 +25,7 @@ var _ = Describe("Volume", func() {
 		resourceConfigCheckSession, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(logger, "some-base-resource-type", atc.Source{}, creds.VersionedResourceTypes{}, expiries)
 		Expect(err).ToNot(HaveOccurred())
 
-		defaultCreatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession, defaultTeam.ID()), db.ContainerMetadata{Type: "check"})
+		defaultCreatingContainer, err = defaultWorker.CreateContainer(db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession), db.ContainerMetadata{Type: "check"})
 		Expect(err).ToNot(HaveOccurred())
 
 		defaultCreatedContainer, err = defaultCreatingContainer.Created()
@@ -215,7 +215,7 @@ var _ = Describe("Volume", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+			creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 				Type:     "get",
 				StepName: "some-resource",
 			})
@@ -240,7 +240,7 @@ var _ = Describe("Volume", func() {
 
 		Context("when there's already an initialized resource cache on the same worker", func() {
 			It("leaves the volume owned by the the container", func() {
-				creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+				creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 					Type:     "get",
 					StepName: "some-resource",
 				})
@@ -271,7 +271,7 @@ var _ = Describe("Volume", func() {
 				build, err := defaultTeam.CreateOneOffBuild()
 				Expect(err).ToNot(HaveOccurred())
 
-				creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{})
+				creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{})
 				Expect(err).ToNot(HaveOccurred())
 
 				v, err := volumeRepository.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path")
@@ -401,7 +401,7 @@ var _ = Describe("Volume", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+			creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 				Type:     "get",
 				StepName: "some-resource",
 			})
@@ -445,7 +445,7 @@ var _ = Describe("Volume", func() {
 			usedWorkerBaseResourceType, found, err := workerBaseResourceTypeFactory.Find("some-base-resource-type", defaultWorker)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
-			creatingVolume, err := volumeRepository.CreateBaseResourceTypeVolume(defaultTeam.ID(), usedWorkerBaseResourceType)
+			creatingVolume, err := volumeRepository.CreateBaseResourceTypeVolume(usedWorkerBaseResourceType)
 			Expect(err).ToNot(HaveOccurred())
 			createdVolume, err := creatingVolume.Created()
 			Expect(err).ToNot(HaveOccurred())
@@ -456,7 +456,7 @@ var _ = Describe("Volume", func() {
 			Expect(volumeBaseResourceType.Name).To(Equal("some-base-resource-type"))
 			Expect(volumeBaseResourceType.Version).To(Equal("some-brt-version"))
 
-			_, createdVolume, err = volumeRepository.FindBaseResourceTypeVolume(defaultTeam.ID(), usedWorkerBaseResourceType)
+			_, createdVolume, err = volumeRepository.FindBaseResourceTypeVolume(usedWorkerBaseResourceType)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(createdVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeResourceType)))
 			volumeBaseResourceType, err = createdVolume.BaseResourceType()
@@ -496,7 +496,7 @@ var _ = Describe("Volume", func() {
 			build, err := defaultTeam.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingContainer, err = defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+			creatingContainer, err = defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
 			})
@@ -524,7 +524,7 @@ var _ = Describe("Volume", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingContainer, err := defaultTeam.CreateContainer(defaultWorker.Name(), db.NewBuildStepContainerOwner(build.ID(), "some-plan"), db.ContainerMetadata{
+			creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 				Type:     "get",
 				StepName: "some-resource",
 			})

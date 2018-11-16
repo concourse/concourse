@@ -1,6 +1,0 @@
-roles:
-  - name:  owner
-    local:
-      users: ["some-admin"]
-    allow_all_users: true
-

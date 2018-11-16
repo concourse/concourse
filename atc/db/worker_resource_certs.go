@@ -55,24 +55,6 @@ func (workerResourceCerts WorkerResourceCerts) findQuery() sq.SelectBuilder {
 		})
 }
 
-func (workerResourceCerts WorkerResourceCerts) find(tx Tx) (*UsedWorkerResourceCerts, bool, error) {
-	var id int
-	err := workerResourceCerts.findQuery().
-		RunWith(tx).
-		QueryRow().
-		Scan(&id)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, false, nil
-		}
-
-		return nil, false, err
-	}
-
-	return &UsedWorkerResourceCerts{ID: id}, true, nil
-}
-
 func (workerResourceCerts WorkerResourceCerts) create(tx Tx) (*UsedWorkerResourceCerts, error) {
 	var id int
 	err := psql.Insert("worker_resource_certs").

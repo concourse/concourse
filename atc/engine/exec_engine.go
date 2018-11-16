@@ -77,6 +77,7 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, build db.Build) (Buil
 	var metadata execMetadata
 	err := json.Unmarshal([]byte(build.EngineMetadata()), &metadata)
 	if err != nil {
+		cancel()
 		logger.Error("invalid-metadata", err)
 		return nil, err
 	}

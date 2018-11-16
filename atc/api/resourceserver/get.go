@@ -28,6 +28,7 @@ func (s *Server) GetResource(pipeline db.Pipeline) http.Handler {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+
 		acc := accessor.GetAccessor(r)
 		resource := present.Resource(
 			dbResource,

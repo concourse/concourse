@@ -7,11 +7,9 @@ image_resource:
 
 inputs:
 - name: concourse
-- name: version
-- name: charts
 
 params:
-  RELEASE_NAME:
+  RELEASE_NAME: concourse
   KUBE_CONFIG:
   ATC_USERNAME:
   ATC_PASSWORD:

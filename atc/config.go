@@ -62,13 +62,15 @@ type ResourceConfig struct {
 }
 
 type ResourceType struct {
-	Name       string `yaml:"name" json:"name" mapstructure:"name"`
-	Type       string `yaml:"type" json:"type" mapstructure:"type"`
-	Source     Source `yaml:"source" json:"source" mapstructure:"source"`
-	Privileged bool   `yaml:"privileged,omitempty" json:"privileged" mapstructure:"privileged"`
-	CheckEvery string `yaml:"check_every,omitempty" json:"check_every" mapstructure:"check_every"`
-	Tags       Tags   `yaml:"tags,omitempty" json:"tags" mapstructure:"tags"`
-	Params     Params `yaml:"params,omitempty" json:"params" mapstructure:"params"`
+	Name            string `yaml:"name" json:"name" mapstructure:"name"`
+	Type            string `yaml:"type" json:"type" mapstructure:"type"`
+	Source          Source `yaml:"source" json:"source" mapstructure:"source"`
+	Privileged      bool   `yaml:"privileged,omitempty" json:"privileged" mapstructure:"privileged"`
+	CheckEvery      string `yaml:"check_every,omitempty" json:"check_every,omitempty" mapstructure:"check_every"`
+	Tags            Tags   `yaml:"tags,omitempty" json:"tags,omitempty" mapstructure:"tags"`
+	Params          Params `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`
+	CheckSetupError string `yaml:"check_setup_error,omitempty" json:"check_setup_error,omitempty" mapstructure:"check_setup_error"`
+	CheckError      string `yaml:"check_error,omitempty" json:"check_error,omitempty" mapstructure:"check_error"`
 }
 
 type ResourceTypes []ResourceType
@@ -108,9 +110,9 @@ type PlanSequence []PlanConfig
 // A VersionConfig represents the choice to include every version of a
 // resource, the latest version of a resource, or a pinned (specific) one.
 type VersionConfig struct {
-	Every  bool    `yaml:"every,omitempty" json:"every,omitempty"`
-	Latest bool    `yaml:"latest,omitempty" json:"latest,omitempty"`
-	Pinned Version `yaml:"pinned,omitempty" json:"pinned,omitempty"`
+	Every  bool
+	Latest bool
+	Pinned Version
 }
 
 func (c *VersionConfig) UnmarshalJSON(version []byte) error {
@@ -205,6 +207,99 @@ func (c *VersionConfig) MarshalJSON() ([]byte, error) {
 	return json.Marshal("")
 }
 
+// A InputsConfig represents the choice to include every artifact within the
+// job as an input to the put step or specific ones.
+type InputsConfig struct {
+	All       bool
+	Specified []string
+}
+
+func (c *InputsConfig) UnmarshalJSON(inputs []byte) error {
+	var data interface{}
+
+	err := json.Unmarshal(inputs, &data)
+	if err != nil {
+		return err
+	}
+
+	switch actual := data.(type) {
+	case string:
+		c.All = actual == "all"
+	case []interface{}:
+		inputs := []string{}
+
+		for _, v := range actual {
+			str, ok := v.(string)
+			if !ok {
+				return fmt.Errorf("non-string put input: %v", v)
+			}
+
+			inputs = append(inputs, strings.TrimSpace(str))
+		}
+
+		c.Specified = inputs
+	default:
+		return errors.New("unknown type for put inputs")
+	}
+
+	return nil
+}
+
+func (c *InputsConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var data interface{}
+
+	err := unmarshal(&data)
+	if err != nil {
+		return err
+	}
+
+	switch actual := data.(type) {
+	case string:
+		c.All = actual == "all"
+	case []interface{}:
+		inputs := []string{}
+
+		for _, v := range actual {
+			str, ok := v.(string)
+			if !ok {
+				return fmt.Errorf("non-string put input: %v", v)
+			}
+
+			inputs = append(inputs, strings.TrimSpace(str))
+		}
+
+		c.Specified = inputs
+	default:
+		return errors.New("unknown type for put inputs")
+	}
+
+	return nil
+}
+
+func (c InputsConfig) MarshalYAML() (interface{}, error) {
+	if c.All {
+		return InputsAll, nil
+	}
+
+	if c.Specified != nil {
+		return c.Specified, nil
+	}
+
+	return nil, nil
+}
+
+func (c InputsConfig) MarshalJSON() ([]byte, error) {
+	if c.All {
+		return json.Marshal(InputsAll)
+	}
+
+	if c.Specified != nil {
+		return json.Marshal(c.Specified)
+	}
+
+	return json.Marshal("")
+}
+
 // A PlanConfig is a flattened set of configuration corresponding to
 // a particular Plan, where Source and Version are populated lazily.
 type PlanConfig struct {
@@ -234,6 +329,9 @@ type PlanConfig struct {
 
 	// corresponding resource config, e.g. aws-stemcell
 	Resource string `yaml:"resource,omitempty" json:"resource,omitempty" mapstructure:"resource"`
+
+	// inputs to a put step either a list (e.g. [artifact-1, aritfact-2]) or all (e.g. all)
+	Inputs InputsConfig `yaml:"inputs,omitempty" json:"inputs,omitempty" mapstructure:"inputs"`
 
 	// corresponds to a Task plan
 	// name of 'task', e.g. unit, go1.3, go1.4

@@ -312,7 +312,9 @@ func (atcConfig ATCConfig) showHelpfulMessage(created bool, updated bool) {
 func diff(existingConfig atc.Config, newConfig atc.Config) bool {
 	var diffExists bool
 
-	indent := gexec.NewPrefixedWriter("  ", os.Stdout)
+	stdout, _ := ui.ForTTY(os.Stdout)
+
+	indent := gexec.NewPrefixedWriter("  ", stdout)
 
 	groupDiffs := groupDiffIndices(GroupIndex(existingConfig.Groups), GroupIndex(newConfig.Groups))
 	if len(groupDiffs) > 0 {

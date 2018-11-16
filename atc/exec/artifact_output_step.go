@@ -44,7 +44,7 @@ func (step *ArtifactOutputStep) Run(ctx context.Context, state RunState) error {
 		defer pb.Finish()
 
 		logger.Debug("sending-plan-output")
-		return source.StreamTo(streamDestination{io.MultiWriter(w, pb)})
+		return source.StreamTo(logger, streamDestination{io.MultiWriter(w, pb)})
 	})
 }
 

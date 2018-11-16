@@ -41,10 +41,7 @@ func Upload(client concourse.Client, buildID int, input Input, includeIgnored bo
 
 	if !found {
 		fmt.Fprintf(ui.Stderr, "build disappeared while uploading '%s'", input.Name)
-		return
 	}
-
-	return
 }
 
 func getGitFiles(dir string) ([]string, error) {

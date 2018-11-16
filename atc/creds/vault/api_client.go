@@ -51,8 +51,8 @@ func (ac *APIClient) Read(path string) (*vaultapi.Secret, error) {
 
 func (ac *APIClient) loginParams() map[string]interface{} {
 	loginParams := make(map[string]interface{})
-	for _, param := range ac.authConfig.Params {
-		loginParams[param.Name] = param.Value
+	for k, v := range ac.authConfig.Params {
+		loginParams[k] = v
 	}
 
 	return loginParams

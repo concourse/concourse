@@ -12,9 +12,9 @@ import (
 
 func (team *team) CheckResourceType(pipelineName string, resourceTypeName string, version atc.Version) (bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"resource_name": resourceTypeName,
-		"team_name":     team.name,
+		"pipeline_name":      pipelineName,
+		"resource_type_name": resourceTypeName,
+		"team_name":          team.name,
 	}
 
 	jsonBytes, err := json.Marshal(atc.CheckRequestBody{From: version})

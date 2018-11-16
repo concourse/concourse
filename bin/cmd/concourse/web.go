@@ -59,9 +59,16 @@ func (cmd *WebCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
+	logger, _ := cmd.RunCommand.Logger.Logger("web")
 	return grouper.NewParallel(os.Interrupt, grouper.Members{
-		{Name: "atc", Runner: atcRunner},
-		{Name: "tsa", Runner: tsaRunner},
+		{
+			Name:   "atc",
+			Runner: NewLoggingRunner(logger.Session("atc-runner"), atcRunner),
+		},
+		{
+			Name:   "tsa",
+			Runner: NewLoggingRunner(logger.Session("tsa-runner"), tsaRunner),
+		},
 	}), nil
 }
 

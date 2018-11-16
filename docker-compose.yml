@@ -13,6 +13,7 @@ services:
     build:
       context: .
       dockerfile: ${DOCKERFILE}
+    image: concourse/concourse:local
     volumes:
     - .:/src
     command: web
@@ -26,23 +27,28 @@ services:
     - CONCOURSE_EXTERNAL_URL=http://localhost:8080
     - CONCOURSE_ADD_LOCAL_USER=test:test,guest:guest
     - CONCOURSE_MAIN_TEAM_LOCAL_USER=test
-    - CONCOURSE_TSA_HEARTBEAT_INTERVAL=5s
     - CONCOURSE_LOG_LEVEL=debug
 
   worker:
     build:
       context: .
       dockerfile: ${DOCKERFILE}
+    image: concourse/concourse:local
     command: worker
     privileged: true
     depends_on: [web]
     ports: ["7777:7777", "7788:7788"]
     environment:
+    - CONCOURSE_LOG_LEVEL=debug
     - CONCOURSE_TSA_HOST=web:2222
     - CONCOURSE_EPHEMERAL=true
 
       # avoid using loopbacks
     - CONCOURSE_BAGGAGECLAIM_DRIVER=overlay
+
+      # so we can reach Garden/Baggageclaim for debugging
+    - CONCOURSE_BIND_IP=0.0.0.0
+    - CONCOURSE_BAGGAGECLAIM_BIND_IP=0.0.0.0
 
       # so that CI can configure a different network range that doesn't overlap
       # with the outer Garden

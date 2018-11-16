@@ -14,6 +14,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (class, classList, id, href, src, attribute)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Html.Events exposing (onMouseEnter)
+import Html.Styled as HS
 import Http
 import Mouse
 import NewTopBar
@@ -183,7 +184,7 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
     Html.div [ class "page" ]
-        [ Html.map TopBarMsg (NewTopBar.view model.topBar)
+        [ (Html.map TopBarMsg << HS.toUnstyled) (NewTopBar.view model.topBar)
         , dashboardView model
         ]
 

@@ -1,0 +1,12 @@
+[Unit]
+Description=Concourse Web
+After=postgresql.service
+
+[Service]
+ExecStart=/usr/local/concourse/bin/concourse web
+User=concourse
+Group=concourse
+Type=simple
+
+[Install]
+WantedBy=multi-user.target

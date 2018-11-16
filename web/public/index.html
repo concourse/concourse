@@ -32,7 +32,7 @@
         body = (section) => Array.from(section.childNodes).find(n => n.classList && n.classList.contains(config.sectionBodyClass));
         lowestHeaderTop = (section) => body(section).offsetTop + body(section).scrollHeight - header(section).scrollHeight;
 
-        pageHeaderHeight = () => document.querySelector("." + config.pageHeaderClass).offsetHeight;
+        pageHeaderHeight = () => config.pageHeaderHeight;
         viewportTop = () => window.pageYOffset + pageHeaderHeight();
 
         updateHeader = (section) => {

@@ -26,9 +26,9 @@ func (s *Server) BuildResources(build db.Build) http.Handler {
 			atcInputs = append(atcInputs, present.PublicBuildInput(input, build.PipelineID()))
 		}
 
-		atcOutputs := []atc.VersionedResource{}
+		atcOutputs := make([]atc.PublicBuildOutput, 0, len(outputs))
 		for _, output := range outputs {
-			atcOutputs = append(atcOutputs, present.VersionedResource(output.VersionedResource))
+			atcOutputs = append(atcOutputs, present.PublicBuildOutput(output))
 		}
 
 		output := atc.BuildInputsOutputs{

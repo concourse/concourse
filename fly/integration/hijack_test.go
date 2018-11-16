@@ -721,6 +721,22 @@ var _ = Describe("Hijacking", func() {
 			})
 		})
 
+		Context("when called with a step type", func() {
+			BeforeEach(func() {
+				containerArguments = "pipeline_name=some-pipeline&job_name=some-job&step_name=some-step&type=put"
+				jobName = "some-job"
+				buildName = "3"
+				buildID = 13
+				stepType = "put"
+				stepName = "some-step"
+				attempt = ""
+			})
+
+			It("hijacks the job's next build", func() {
+				hijack("--job", "some-pipeline/some-job", "--step", "some-step", "--step-type", "put")
+			})
+		})
+
 		Context("when called with a specific path and args", func() {
 			BeforeEach(func() {
 				path = "sh"

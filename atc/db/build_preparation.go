@@ -13,13 +13,13 @@ const (
 type MissingInputReasons map[string]string
 
 const (
-	NoVerionsSatisfiedPassedConstraints string = "no versions satisfy passed constraints"
-	NoVersionsAvailable                 string = "no versions available"
-	PinnedVersionUnavailable            string = "pinned version %s is not available"
+	NoVersionsSatisfiedPassedConstraints string = "no versions satisfy passed constraints"
+	NoVersionsAvailable                  string = "no versions available"
+	PinnedVersionUnavailable             string = "pinned version %s is not available"
 )
 
 func (mir MissingInputReasons) RegisterPassedConstraint(inputName string) {
-	mir[inputName] = NoVerionsSatisfiedPassedConstraints
+	mir[inputName] = NoVersionsSatisfiedPassedConstraints
 }
 
 func (mir MissingInputReasons) RegisterNoVersions(inputName string) {

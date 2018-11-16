@@ -1,0 +1,7 @@
+- type: replace
+  path: /instance_groups/name=web/jobs/name=web/properties/default_task_cpu_limit?
+  value: ((default_task_cpu_limit))
+
+- type: replace
+  path: /instance_groups/name=web/jobs/name=web/properties/default_task_memory_limit?
+  value: ((default_task_memory_limit))

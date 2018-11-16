@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/concourse/concourse/fly/ui"
-	"github.com/concourse/go-archive/tgzfs"
 	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/go-archive/tgzfs"
 )
 
 func Download(client concourse.Client, buildID int, output Output) {

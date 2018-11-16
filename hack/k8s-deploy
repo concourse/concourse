@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# k8s-deploy - deploys Concourse against a running
+# k8s cluster making use of Helm.
+
+set -o errexit
+
+readonly HELM_RELEASE=${HELM_RELEASE:-"local"}
+readonly IMAGE_NAME=${IMAGE_NAME:-"concourse/concourse:local"}
+
+if [[ -z "$1" ]]; then
+  echo "Usage: $0 <charts_dir>"
+  exit 1
+fi
+
+chart_dir=$1
+
+helm upgrade \
+ -f $chart_dir/values.yaml \
+ --install \
+ --force \
+ --set=concourse.web.kubernetes.keepNamespaces=false \
+ --set=concourse.worker.ephemeral=true \
+ --set=concourse.worker.replicas=1 \
+ --set=concourse.worker.baggageclaim.driver=btrfs \
+ --set=concourse.worker.baggageclaim.driver=btrfs \
+ --set=image=$IMAGE_NAME \
+ --set=imageTag="latest" \
+ $HELM_RELEASE \
+ --wait \
+ $chart_dir

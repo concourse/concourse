@@ -19,7 +19,7 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/mapstructure"
 	"github.com/tedsuo/rata"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var (
@@ -325,6 +325,7 @@ func saveConfigRequestUnmarshaler(r *http.Request) (atc.Config, db.PipelinePause
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			atc.SanitizeDecodeHook,
 			atc.VersionConfigDecodeHook,
+			atc.InputsConfigDecodeHook,
 			atc.ContainerLimitsDecodeHook,
 		),
 	}

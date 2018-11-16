@@ -1,9 +1,12 @@
 package db_test
 
 import (
+	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	. "github.com/concourse/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -47,7 +50,6 @@ var _ = Describe("Worker", func() {
 	})
 
 	Describe("Land", func() {
-
 		BeforeEach(func() {
 			var err error
 			worker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
@@ -55,7 +57,6 @@ var _ = Describe("Worker", func() {
 		})
 
 		Context("when the worker is present", func() {
-
 			It("marks the worker as `landing`", func() {
 				err := worker.Land()
 				Expect(err).NotTo(HaveOccurred())
@@ -205,4 +206,187 @@ var _ = Describe("Worker", func() {
 		})
 	})
 
+	Describe("FindContainerOnWorker/CreateContainer", func() {
+		var (
+			containerMetadata ContainerMetadata
+			containerOwner    ContainerOwner
+
+			foundCreatingContainer CreatingContainer
+			foundCreatedContainer  CreatedContainer
+			worker                 Worker
+		)
+
+		expiries := ContainerOwnerExpiries{
+			GraceTime: 2 * time.Minute,
+			Min:       5 * time.Minute,
+			Max:       1 * time.Hour,
+		}
+
+		BeforeEach(func() {
+			containerMetadata = ContainerMetadata{
+				Type: "check",
+			}
+
+			var err error
+			worker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+			Expect(err).NotTo(HaveOccurred())
+
+			atcWorker2 := atcWorker
+			atcWorker2.Name = "some-name2"
+			atcWorker2.GardenAddr = "some-garden-addr-other"
+			otherWorker, err = workerFactory.SaveWorker(atcWorker2, 5*time.Minute)
+			Expect(err).NotTo(HaveOccurred())
+
+			resourceConfigCheckSession, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
+				logger,
+				"some-resource-type",
+				atc.Source{"some": "source"},
+				creds.VersionedResourceTypes{},
+				expiries,
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			containerOwner = NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession)
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			foundCreatingContainer, foundCreatedContainer, err = worker.FindContainerOnWorker(containerOwner)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when there is a creating container", func() {
+			var creatingContainer CreatingContainer
+
+			BeforeEach(func() {
+				var err error
+				creatingContainer, err = worker.CreateContainer(containerOwner, containerMetadata)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns it", func() {
+				Expect(foundCreatedContainer).To(BeNil())
+				Expect(foundCreatingContainer).ToNot(BeNil())
+			})
+
+			Context("when finding on another worker", func() {
+				BeforeEach(func() {
+					worker = otherWorker
+				})
+
+				It("does not find it", func() {
+					Expect(foundCreatingContainer).To(BeNil())
+					Expect(foundCreatedContainer).To(BeNil())
+				})
+			})
+
+			Context("when there is a created container", func() {
+				BeforeEach(func() {
+					_, err := creatingContainer.Created()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns it", func() {
+					Expect(foundCreatedContainer).ToNot(BeNil())
+					Expect(foundCreatingContainer).To(BeNil())
+				})
+
+				Context("when finding on another worker", func() {
+					BeforeEach(func() {
+						worker = otherWorker
+					})
+
+					It("does not find it", func() {
+						Expect(foundCreatingContainer).To(BeNil())
+						Expect(foundCreatedContainer).To(BeNil())
+					})
+				})
+			})
+
+			Context("when the creating container is failed and gced", func() {
+				BeforeEach(func() {
+					var err error
+					_, err = creatingContainer.Failed()
+					Expect(err).ToNot(HaveOccurred())
+
+					containerRepository := NewContainerRepository(dbConn)
+					containersDestroyed, err := containerRepository.DestroyFailedContainers()
+					Expect(containersDestroyed).To(Equal(1))
+					Expect(err).ToNot(HaveOccurred())
+
+					var checkSessions int
+					err = dbConn.QueryRow("SELECT COUNT(*) FROM worker_resource_config_check_sessions").Scan(&checkSessions)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(checkSessions).To(Equal(1))
+				})
+
+				Context("and we create a new container", func() {
+					BeforeEach(func() {
+						_, err := worker.CreateContainer(containerOwner, containerMetadata)
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("does not duplicate the worker resource config check session", func() {
+						var checkSessions int
+						err := dbConn.QueryRow("SELECT COUNT(*) FROM worker_resource_config_check_sessions").Scan(&checkSessions)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(checkSessions).To(Equal(1))
+					})
+				})
+			})
+		})
+
+		Context("when there is no container", func() {
+			It("returns nil", func() {
+				Expect(foundCreatedContainer).To(BeNil())
+				Expect(foundCreatingContainer).To(BeNil())
+			})
+		})
+
+		Context("when the container has a meta type", func() {
+			var container CreatingContainer
+
+			Context("when the meta type is check", func() {
+				BeforeEach(func() {
+					containerMetadata = ContainerMetadata{
+						Type: "check",
+					}
+
+					var err error
+					container, err = worker.CreateContainer(containerOwner, containerMetadata)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns a container with empty team id", func() {
+					var teamID sql.NullString
+
+					err := dbConn.QueryRow(fmt.Sprintf("SELECT team_id FROM containers WHERE id='%d'", container.ID())).Scan(&teamID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(teamID.Valid).To(BeFalse())
+				})
+			})
+
+			Context("when the meta type is not check", func() {
+				BeforeEach(func() {
+					containerMetadata = ContainerMetadata{
+						Type: "get",
+					}
+
+					oneOffBuild, err := defaultTeam.CreateOneOffBuild()
+					Expect(err).ToNot(HaveOccurred())
+
+					container, err = worker.CreateContainer(NewBuildStepContainerOwner(oneOffBuild.ID(), atc.PlanID("1"), 1), containerMetadata)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns a container with a team id", func() {
+					var teamID sql.NullString
+
+					err := dbConn.QueryRow(fmt.Sprintf("SELECT team_id FROM containers WHERE id='%d'", container.ID())).Scan(&teamID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(teamID.Valid).To(BeTrue())
+				})
+			})
+		})
+	})
 })

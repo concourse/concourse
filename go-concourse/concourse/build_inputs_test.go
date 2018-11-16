@@ -101,7 +101,7 @@ var _ = Describe("ATC Handler Build Inputs", func() {
 				)
 			})
 
-			It("returns the builds for a given resource_version_id", func() {
+			It("returns the builds for a given resource_config_version_id", func() {
 				Expect(clientErr).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(actualBuilds).To(Equal(expectedBuilds))

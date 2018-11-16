@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
@@ -14,10 +15,24 @@ func (s *Server) ListBuildsWithVersionAsOutput(pipeline db.Pipeline) http.Handle
 	logger := s.logger.Session("list-builds-with-version-as-output")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		versionIDString := r.FormValue(":resource_version_id")
+		versionIDString := r.FormValue(":resource_config_version_id")
+		resourceName := r.FormValue(":resource_name")
 		versionID, _ := strconv.Atoi(versionIDString)
 
-		builds, err := pipeline.GetBuildsWithVersionAsOutput(versionID)
+		resource, found, err := pipeline.Resource(resourceName)
+		if err != nil {
+			logger.Error("failed-to-find-resource", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			logger.Debug("resource-not-found", lager.Data{"resource-name": resourceName})
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		builds, err := pipeline.GetBuildsWithVersionAsOutput(resource.ID(), versionID)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

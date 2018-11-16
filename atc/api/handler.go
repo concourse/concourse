@@ -46,6 +46,7 @@ func NewHandler(
 	containerRepository db.ContainerRepository,
 	destroyer gc.Destroyer,
 	dbBuildFactory db.BuildFactory,
+	dbResourceConfigFactory db.ResourceConfigFactory,
 
 	peerURL string,
 	eventHandlerFactory buildserver.EventHandlerFactory,
@@ -81,7 +82,7 @@ func NewHandler(
 
 	buildServer := buildserver.NewServer(logger, externalURL, peerURL, engine, workerClient, dbTeamFactory, dbBuildFactory, eventHandlerFactory, drain)
 	jobServer := jobserver.NewServer(logger, schedulerFactory, externalURL, variablesFactory, dbJobFactory)
-	resourceServer := resourceserver.NewServer(logger, scannerFactory, variablesFactory, dbResourceFactory)
+	resourceServer := resourceserver.NewServer(logger, scannerFactory, variablesFactory, dbResourceFactory, dbResourceConfigFactory)
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL, engine)
 	configServer := configserver.NewServer(logger, dbTeamFactory, variablesFactory)
@@ -144,8 +145,6 @@ func NewHandler(
 		atc.ListResources:        pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
 		atc.ListResourceTypes:    pipelineHandlerFactory.HandlerFor(resourceServer.ListVersionedResourceTypes),
 		atc.GetResource:          pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
-		atc.PauseResource:        pipelineHandlerFactory.HandlerFor(resourceServer.PauseResource),
-		atc.UnpauseResource:      pipelineHandlerFactory.HandlerFor(resourceServer.UnpauseResource),
 		atc.CheckResource:        pipelineHandlerFactory.HandlerFor(resourceServer.CheckResource),
 		atc.CheckResourceWebHook: pipelineHandlerFactory.HandlerFor(resourceServer.CheckResourceWebHook),
 		atc.CheckResourceType:    pipelineHandlerFactory.HandlerFor(resourceServer.CheckResourceType),
@@ -154,6 +153,8 @@ func NewHandler(
 		atc.GetResourceVersion:            pipelineHandlerFactory.HandlerFor(versionServer.GetResourceVersion),
 		atc.EnableResourceVersion:         pipelineHandlerFactory.HandlerFor(versionServer.EnableResourceVersion),
 		atc.DisableResourceVersion:        pipelineHandlerFactory.HandlerFor(versionServer.DisableResourceVersion),
+		atc.PinResourceVersion:            pipelineHandlerFactory.HandlerFor(versionServer.PinResourceVersion),
+		atc.UnpinResourceVersion:          pipelineHandlerFactory.HandlerFor(versionServer.UnpinResourceVersion),
 		atc.ListBuildsWithVersionAsInput:  pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsInput),
 		atc.ListBuildsWithVersionAsOutput: pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsOutput),
 		atc.GetResourceCausality:          pipelineHandlerFactory.HandlerFor(versionServer.GetCausality),

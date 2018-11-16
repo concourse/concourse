@@ -1,0 +1,9 @@
+- type: replace
+  path: /instance_groups/name=other_worker/jobs/name=worker/properties/certs_path?
+  value: ""
+- type: replace
+  path: /instance_groups/name=worker/jobs/name=worker/properties/tags?
+  value: [certs]
+- type: replace
+  path: /instance_groups/name=other_worker/jobs/name=worker/properties/tags?
+  value: [no-certs]

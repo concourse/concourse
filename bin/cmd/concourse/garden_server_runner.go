@@ -22,9 +22,7 @@ func (runner gardenServerRunner) Run(signals <-chan os.Signal, ready chan<- stru
 
 	runner.logger.Info("started")
 
-	select {
-	case <-signals:
-		runner.gardenServer.Stop()
-		return nil
-	}
+	<-signals
+	runner.gardenServer.Stop()
+	return nil
 }

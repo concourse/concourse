@@ -25,7 +25,9 @@ if [ -e final-version/version ]; then
 fi
 
 pushd concourse
-  go build -ldflags "$ldflags" -o concourse ./bin/cmd/concourse
+  go install github.com/gobuffalo/packr/packr
+  packr build -o concourse -ldflags "$ldflags" ./bin/cmd/concourse
+  test "$(./concourse --version)" = "$final_version"
 popd
 
 output=concourse-${platform}

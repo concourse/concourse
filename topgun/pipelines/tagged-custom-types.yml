@@ -1,0 +1,18 @@
+---
+resource_types:
+- name: my-time
+  type: registry-image
+  tags: [tagged]
+  source: {repository: concourse/time-resource}
+
+resources:
+- name: 10m
+  type: my-time
+  tags: [tagged]
+  source: {interval: 1h}
+
+jobs:
+- name: get-10m
+  plan:
+  - get: 10m
+    tags: [tagged]

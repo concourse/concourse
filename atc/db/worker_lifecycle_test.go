@@ -174,7 +174,7 @@ var _ = Describe("Worker Lifecycle", func() {
 						err = dbBuild.Finish(s)
 						Expect(err).ToNot(HaveOccurred())
 					}
-					_, err = defaultTeam.CreateContainer(dbWorker.Name(), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
+					_, err = dbWorker.CreateContainer(db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4), defaultTeam.ID()), db.ContainerMetadata{})
 					Expect(err).ToNot(HaveOccurred())
 
 					_, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -207,7 +207,7 @@ var _ = Describe("Worker Lifecycle", func() {
 					Expect(err).ToNot(HaveOccurred())
 				}
 
-				_, err := defaultTeam.CreateContainer(dbWorker.Name(), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
+				_, err := dbWorker.CreateContainer(db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4), defaultTeam.ID()), db.ContainerMetadata{})
 				Expect(err).ToNot(HaveOccurred())
 
 				_, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -419,7 +419,7 @@ var _ = Describe("Worker Lifecycle", func() {
 						Expect(err).ToNot(HaveOccurred())
 					}
 
-					_, err = defaultTeam.CreateContainer(dbWorker.Name(), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
+					_, err = dbWorker.CreateContainer(db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4), defaultTeam.ID()), db.ContainerMetadata{})
 					Expect(err).ToNot(HaveOccurred())
 
 					_, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -453,7 +453,7 @@ var _ = Describe("Worker Lifecycle", func() {
 					Expect(err).ToNot(HaveOccurred())
 				}
 
-				_, err := defaultTeam.CreateContainer(dbWorker.Name(), db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4)), db.ContainerMetadata{})
+				_, err := dbWorker.CreateContainer(db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4), defaultTeam.ID()), db.ContainerMetadata{})
 				Expect(err).ToNot(HaveOccurred())
 
 				_, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -551,5 +551,26 @@ var _ = Describe("Worker Lifecycle", func() {
 				)
 			})
 		})
+	})
+
+	Describe("GetWorkersState", func() {
+
+		JustBeforeEach(func() {
+			atcWorker.State = string(db.WorkerStateStalled)
+			_, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("gets the workers' state", func() {
+			countByState, err := workerLifecycle.GetWorkerStateByName()
+			Expect(err).ToNot(HaveOccurred())
+			expectedState := map[string]db.WorkerState{
+				"default-worker": db.WorkerStateRunning,
+				"other-worker":   db.WorkerStateRunning,
+				"some-name":      db.WorkerStateStalled,
+			}
+			Expect(countByState).To(Equal(expectedState))
+		})
+
 	})
 })

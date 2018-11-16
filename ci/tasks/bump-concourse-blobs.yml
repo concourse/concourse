@@ -1,0 +1,23 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: concourse/unit
+
+inputs:
+- name: concourse
+- name: version
+- name: concourse-release-repo
+- name: linux-rc
+- name: windows-rc
+
+outputs:
+- name: bumped-concourse-release-repo
+
+params:
+  GCP_JSON_KEY:
+
+run:
+  path: concourse/ci/tasks/scripts/bump-concourse-blobs

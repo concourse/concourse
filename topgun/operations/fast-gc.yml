@@ -1,0 +1,7 @@
+- type: replace
+  path: /instance_groups/name=web/jobs/name=web/properties/gc_interval?
+  value: 1s
+
+- type: replace
+  path: /instance_groups/name=worker/jobs/name=worker/properties/sweep_interval?
+  value: 1s

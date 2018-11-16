@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 
+	uuid "github.com/nu7hatch/gouuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -11,11 +12,20 @@ import (
 )
 
 var _ = Describe("serial groups", func() {
+	var hash string
+
+	BeforeEach(func() {
+		u, err := uuid.NewV4()
+		Expect(err).ToNot(HaveOccurred())
+
+		hash = u.String()
+	})
+
 	Context("when no inputs are available for one resource", func() {
 		var pendingS *gexec.Session
 
 		BeforeEach(func() {
-			setAndUnpausePipeline("fixtures/serial-groups.yml")
+			setAndUnpausePipeline("fixtures/serial-groups.yml", "-v", "hash="+hash)
 
 			pendingS = spawnFly("trigger-job", "-j", inPipeline("some-pending-job"), "-w")
 		})
@@ -32,8 +42,21 @@ var _ = Describe("serial groups", func() {
 	})
 
 	Context("when inputs eventually become available for one resource", func() {
+		var hash2 string
+
 		BeforeEach(func() {
-			setAndUnpausePipeline("fixtures/serial-groups-inputs-updated.yml")
+			u, err := uuid.NewV4()
+			Expect(err).ToNot(HaveOccurred())
+
+			hash2 = u.String()
+		})
+
+		BeforeEach(func() {
+			setAndUnpausePipeline(
+				"fixtures/serial-groups-inputs-updated.yml",
+				"-v", "hash-1="+hash,
+				"-v", "hash-2="+hash2,
+			)
 		})
 
 		It("is able to run second job with latest inputs", func() {

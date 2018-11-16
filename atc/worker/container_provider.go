@@ -98,8 +98,7 @@ func (p *containerProvider) FindOrCreateContainer(
 	for {
 		var gardenContainer garden.Container
 
-		creatingContainer, createdContainer, err := p.dbTeamFactory.GetByID(spec.TeamID).FindContainerOnWorker(
-			p.worker.Name(),
+		creatingContainer, createdContainer, err := p.worker.FindContainerOnWorker(
 			owner,
 		)
 		if err != nil {
@@ -168,8 +167,7 @@ func (p *containerProvider) FindOrCreateContainer(
 			if creatingContainer == nil {
 				logger.Debug("creating-container-in-db")
 
-				creatingContainer, err = p.dbTeamFactory.GetByID(spec.TeamID).CreateContainer(
-					p.worker.Name(),
+				creatingContainer, err = p.worker.CreateContainer(
 					owner,
 					metadata,
 				)
@@ -385,7 +383,7 @@ func (p *containerProvider) createGardenContainer(
 	for _, inputSource := range spec.Inputs {
 		var inputVolume Volume
 
-		localVolume, found, err := inputSource.Source().VolumeOn(worker)
+		localVolume, found, err := inputSource.Source().VolumeOn(logger, worker)
 		if err != nil {
 			return nil, err
 		}
@@ -422,7 +420,11 @@ func (p *containerProvider) createGardenContainer(
 				return nil, err
 			}
 
-			err = inputSource.Source().StreamTo(inputVolume)
+			destData := lager.Data{
+				"dest-volume": inputVolume.Handle(),
+				"dest-worker": inputVolume.WorkerName(),
+			}
+			err = inputSource.Source().StreamTo(logger.Session("stream-to", destData), inputVolume)
 			if err != nil {
 				return nil, err
 			}

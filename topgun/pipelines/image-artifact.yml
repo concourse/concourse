@@ -1,0 +1,38 @@
+---
+resources:
+  - name: a-docker-resource-with-bash
+    type: registry-image
+    source:
+      repository: ubuntu
+
+jobs:
+- name: artifact-test-stream-in
+  plan:
+  - get: a-docker-resource-with-bash
+  - task: artifact-dependent-task
+    image: a-docker-resource-with-bash  # this should override images specified below
+    tags: ["tagged"]
+    config:
+      platform: linux
+      rootfs_uri: docker:///ignored     # this should be overriden
+      image_resource:                   # this should also be overriden
+        type: registry-image
+        source: {repository: ignored}
+      run:
+          path: ls
+          args: ["-a", "/root"]
+
+- name: artifact-test-found-locally
+  plan:
+  - get: a-docker-resource-with-bash
+  - task: artifact-dependent-task
+    image: a-docker-resource-with-bash  # this should override images specified below
+    config:
+      platform: linux
+      rootfs_uri: docker:///ignored     # this should be overriden
+      image_resource:                   # this should also be overriden
+        type: registry-image
+        source: {repository: ignored}
+      run:
+          path: ls
+          args: ["-a", "/root"]

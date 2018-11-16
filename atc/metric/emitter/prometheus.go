@@ -128,7 +128,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Name:      "finished",
 			Help:      "Count of builds finished across various dimensions.",
 		},
-		[]string{"team", "pipeline", "status"},
+		[]string{"team", "pipeline", "job", "status"},
 	)
 	prometheus.MustRegister(buildsFinishedVec)
 	buildDurationsVec := prometheus.NewHistogramVec(
@@ -357,12 +357,18 @@ func (emitter *PrometheusEmitter) buildFinishedMetrics(logger lager.Logger, even
 		return
 	}
 
+	job, exists := event.Attributes["job"]
+	if !exists {
+		logger.Error("failed-to-find-job-in-event", fmt.Errorf("expected job to exist in event.Attributes"))
+		return
+	}
+
 	buildStatus, exists := event.Attributes["build_status"]
 	if !exists {
 		logger.Error("failed-to-find-build_status-in-event", fmt.Errorf("expected build_status to exist in event.Attributes"))
 		return
 	}
-	emitter.buildsFinishedVec.WithLabelValues(team, pipeline, buildStatus).Inc()
+	emitter.buildsFinishedVec.WithLabelValues(team, pipeline, job, buildStatus).Inc()
 
 	// concourse_builds_(aborted|succeeded|failed|errored)_total
 	switch buildStatus {

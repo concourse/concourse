@@ -1,0 +1,87 @@
+---
+name: concourse-smoke
+
+releases:
+- name: concourse
+  version: latest
+- name: postgres
+  version: latest
+- name: bpm
+  version: latest
+
+instance_groups:
+- name: concourse
+  instances: 1
+  azs: [z1]
+  networks: [{name: test}]
+  persistent_disk: 10240
+  vm_type: test
+  stemcell: xenial
+  jobs:
+  - release: bpm
+    name: bpm
+
+  - release: concourse
+    name: web
+    properties:
+      log_level: debug
+
+      postgresql:
+        database: atc
+        role:
+          name: atc
+          password: ((postgres_password))
+
+      main_team:
+        auth:
+          local:
+            users: [admin]
+
+      add_local_users:
+      - admin:admin
+      - guest:guest
+
+      token_signing_key: ((token_signing_key))
+
+      worker_gateway:
+        host_key: ((tsa_host_key))
+        authorized_keys: [((worker_key.public_key))]
+
+  - release: concourse
+    name: worker
+    properties:
+      worker_gateway:
+        worker_key: ((worker_key))
+
+  - release: postgres
+    name: postgres
+    properties:
+      databases:
+        port: 5432
+        databases:
+        - name: atc
+        roles:
+        - name: atc
+          password: ((postgres_password))
+
+variables:
+- name: postgres_password
+  type: password
+- name: token_signing_key
+  type: rsa
+- name: tsa_host_key
+  type: ssh
+- name: worker_key
+  type: ssh
+
+stemcells:
+- alias: xenial
+  os: ubuntu-xenial
+  version: latest
+
+update:
+  canaries: 1
+  max_in_flight: 3
+  serial: false
+  canary_watch_time: 1000-60000
+  update_watch_time: 1000-60000

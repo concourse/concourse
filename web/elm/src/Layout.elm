@@ -1,9 +1,12 @@
-port module Layout exposing (Flags, Model, Msg, init, locationMsg, subscriptions, update, view)
+port module Layout exposing (Flags, Model, Msg(..), init, locationMsg, subscriptions, update, view)
 
+import Concourse
 import Favicon
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id)
+import Json.Decode
 import Navigation
+import Pipeline
 import Routes
 import SubPage
 import Task exposing (Task)
@@ -168,6 +171,52 @@ update msg model =
                     ]
                 )
 
+        SubMsg navIndex (SubPage.PipelineMsg (Pipeline.ResourcesFetched (Ok fetchedResources))) ->
+            let
+                resources : Result String (List Concourse.Resource)
+                resources =
+                    Json.Decode.decodeValue (Json.Decode.list Concourse.decodeResource) fetchedResources
+
+                pinnedResources : List ( String, Concourse.Version )
+                pinnedResources =
+                    case resources of
+                        Ok rs ->
+                            rs
+                                |> List.filterMap
+                                    (\resource ->
+                                        case resource.pinnedVersion of
+                                            Just v ->
+                                                Just ( resource.name, v )
+
+                                            Nothing ->
+                                                Nothing
+                                    )
+
+                        Err _ ->
+                            []
+
+                topBar =
+                    model.topModel
+            in
+                if validNavIndex model.navIndex navIndex then
+                    let
+                        ( subModel, subCmd ) =
+                            SubPage.update
+                                model.turbulenceImgSrc
+                                model.notFoundImgSrc
+                                model.csrfToken
+                                (SubPage.PipelineMsg (Pipeline.ResourcesFetched (Ok fetchedResources)))
+                                model.subModel
+                    in
+                        ( { model
+                            | subModel = subModel
+                            , topModel = { topBar | pinnedResources = pinnedResources }
+                          }
+                        , Cmd.map (SubMsg navIndex) subCmd
+                        )
+                else
+                    ( model, Cmd.none )
+
         -- otherwise, pass down
         SubMsg navIndex m ->
             if validNavIndex model.navIndex navIndex then
@@ -255,8 +304,7 @@ view model =
 
         _ ->
             Html.div [ class "content-frame" ]
-                [ Html.div [ id "top-bar-app" ]
-                    [ Html.map (TopMsg model.navIndex) (TopBar.view model.topModel) ]
+                [ Html.map (TopMsg model.navIndex) (TopBar.view model.topModel)
                 , Html.div [ class "bottom" ]
                     [ Html.div [ id "content" ]
                         [ Html.div [ id "subpage" ]

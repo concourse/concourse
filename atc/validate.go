@@ -289,7 +289,7 @@ func (ft foundTypes) IsValid() (bool, string) {
 	if len(ft.found) > 1 {
 		types := make([]string, 0, len(ft.found))
 
-		for typee, _ := range ft.found {
+		for typee := range ft.found {
 			types = append(types, typee)
 		}
 

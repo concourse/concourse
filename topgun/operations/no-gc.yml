@@ -1,0 +1,3 @@
+- type: replace
+  path: /instance_groups/name=web/jobs/name=web/properties/gc_interval?
+  value: 24h

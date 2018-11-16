@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -e -u
+
+outputs=$PWD/outputs
+
+if [ -z $DEPLOYMENT ]; then
+  DEPLOYMENT='smoke'
+fi
+
+deployment_path="concourse/ci/deployments/$DEPLOYMENT"
+
+if [ -d linux-rc ]; then
+  cp linux-rc/concourse-*.tgz $deployment_path/concourse.tgz
+fi
+
+cd $deployment_path
+
+echo "$GCP_KEY" > keys/gcp.json
+
+echo "$SSH_KEY" > keys/id_rsa
+chmod 0600 keys/id_rsa
+ssh-keygen -y -f keys/id_rsa > keys/id_rsa.pub
+
+terraform init
+
+terraform apply --auto-approve --var project=$GCP_PROJECT
+
+terraform output | while read name _ value; do
+  echo "$value" > $outputs/$name
+done

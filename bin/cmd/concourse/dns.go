@@ -30,7 +30,7 @@ func (config DNSConfig) Server() (*dns.Server, error) {
 		if err != nil {
 			var m *dns.Msg
 			m.SetRcode(r, dns.RcodeRefused)
-			w.WriteMsg(m)
+			_ = w.WriteMsg(m)
 		}
 	})
 

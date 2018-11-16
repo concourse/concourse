@@ -1,0 +1,34 @@
+---
+- type: replace
+  path: /releases/-
+  value:
+    name: vault
+    version: ((vault_release_version))
+
+- type: replace
+  path: /instance_groups/-
+  value:
+    name: vault
+    instances: 1
+    networks: [{name: test}]
+    azs: [z1]
+    persistent_disk: 10240
+    vm_type: test
+    stemcell: xenial
+    jobs:
+    - release: vault
+      name: vault
+      properties: {}
+
+- type: replace
+  path: /instance_groups/name=web/instances
+  value: ((web_instances))
+
+- type: replace
+  path: /instance_groups/name=web/jobs/name=web/properties/vault?
+  value:
+    url: ((vault_url))
+    auth:
+      client_token: ((vault_client_token))
+      backend: ((vault_auth_backend))
+      params: ((vault_auth_params))

@@ -1,16 +1,26 @@
 package testflight_test
 
 import (
+	uuid "github.com/nu7hatch/gouuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("Resource version", func() {
+	var hash string
+
+	BeforeEach(func() {
+		u, err := uuid.NewV4()
+		Expect(err).ToNot(HaveOccurred())
+
+		hash = u.String()
+	})
+
 	Describe("when the version is not pinned on the resource", func() {
 		Describe("version: latest", func() {
 			BeforeEach(func() {
-				setAndUnpausePipeline("fixtures/resource-version-latest.yml")
+				setAndUnpausePipeline("fixtures/resource-version-latest.yml", "-v", "hash="+hash)
 			})
 
 			It("only runs builds with latest version", func() {
@@ -29,7 +39,7 @@ var _ = Describe("Resource version", func() {
 
 		Describe("version: every", func() {
 			BeforeEach(func() {
-				setAndUnpausePipeline("fixtures/resource-version-every.yml")
+				setAndUnpausePipeline("fixtures/resource-version-every.yml", "-v", "hash="+hash)
 			})
 
 			It("runs builds with every version", func() {
@@ -54,7 +64,7 @@ var _ = Describe("Resource version", func() {
 
 		Describe("version: pinned", func() {
 			BeforeEach(func() {
-				setAndUnpausePipeline("fixtures/resource-version-every.yml")
+				setAndUnpausePipeline("fixtures/resource-version-every.yml", "-v", "hash="+hash)
 			})
 
 			It("only runs builds with the pinned version", func() {
@@ -67,7 +77,7 @@ var _ = Describe("Resource version", func() {
 				guid3 := newMockVersion("some-resource", "guid3")
 				_ = newMockVersion("some-resource", "guid4")
 
-				setPipeline("fixtures/pinned-version.yml", "-v", "pinned_version="+guid3)
+				setPipeline("fixtures/pinned-version.yml", "-v", "hash="+hash, "-v", "pinned_version="+guid3)
 
 				watch = fly("trigger-job", "-j", inPipeline("some-passing-job"), "-w")
 				Expect(watch).To(gbytes.Say(guid3))
@@ -81,12 +91,13 @@ var _ = Describe("Resource version", func() {
 		var versionConfig string
 
 		BeforeEach(func() {
-			versionConfig = "nil"
+			versionConfig = "null"
 
 			setAndUnpausePipeline(
 				"fixtures/pinned-resource-simple-trigger.yml",
-				"-v", "pinned_resource_version=bogus",
+				"-y", "pinned_resource_version=null",
 				"-y", "version_config="+versionConfig,
+				"-v", "hash="+hash,
 			)
 
 			olderGUID = newMockVersion("some-resource", "older")
@@ -97,8 +108,9 @@ var _ = Describe("Resource version", func() {
 		JustBeforeEach(func() {
 			setPipeline(
 				"fixtures/pinned-resource-simple-trigger.yml",
-				"-v", "pinned_resource_version="+pinnedGUID,
+				"-y", `pinned_resource_version={"version":"`+pinnedGUID+`"}`,
 				"-y", "version_config="+versionConfig,
+				"-v", "hash="+hash,
 			)
 		})
 

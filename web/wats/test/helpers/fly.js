@@ -24,7 +24,7 @@ class Fly {
     await this.loginAs(this.teamName);
   }
 
-  destroyTeam (teamName) {
+  destroyTeam(teamName) {
     return this.run(`destroy-team --team-name ${teamName} --non-interactive`)
   }
 

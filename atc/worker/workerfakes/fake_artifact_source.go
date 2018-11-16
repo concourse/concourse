@@ -5,14 +5,16 @@ import (
 	io "io"
 	sync "sync"
 
+	lager "code.cloudfoundry.org/lager"
 	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakeArtifactSource struct {
-	StreamFileStub        func(string) (io.ReadCloser, error)
+	StreamFileStub        func(lager.Logger, string) (io.ReadCloser, error)
 	streamFileMutex       sync.RWMutex
 	streamFileArgsForCall []struct {
-		arg1 string
+		arg1 lager.Logger
+		arg2 string
 	}
 	streamFileReturns struct {
 		result1 io.ReadCloser
@@ -22,10 +24,11 @@ type FakeArtifactSource struct {
 		result1 io.ReadCloser
 		result2 error
 	}
-	StreamToStub        func(worker.ArtifactDestination) error
+	StreamToStub        func(lager.Logger, worker.ArtifactDestination) error
 	streamToMutex       sync.RWMutex
 	streamToArgsForCall []struct {
-		arg1 worker.ArtifactDestination
+		arg1 lager.Logger
+		arg2 worker.ArtifactDestination
 	}
 	streamToReturns struct {
 		result1 error
@@ -33,10 +36,11 @@ type FakeArtifactSource struct {
 	streamToReturnsOnCall map[int]struct {
 		result1 error
 	}
-	VolumeOnStub        func(worker.Worker) (worker.Volume, bool, error)
+	VolumeOnStub        func(lager.Logger, worker.Worker) (worker.Volume, bool, error)
 	volumeOnMutex       sync.RWMutex
 	volumeOnArgsForCall []struct {
-		arg1 worker.Worker
+		arg1 lager.Logger
+		arg2 worker.Worker
 	}
 	volumeOnReturns struct {
 		result1 worker.Volume
@@ -52,16 +56,17 @@ type FakeArtifactSource struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeArtifactSource) StreamFile(arg1 string) (io.ReadCloser, error) {
+func (fake *FakeArtifactSource) StreamFile(arg1 lager.Logger, arg2 string) (io.ReadCloser, error) {
 	fake.streamFileMutex.Lock()
 	ret, specificReturn := fake.streamFileReturnsOnCall[len(fake.streamFileArgsForCall)]
 	fake.streamFileArgsForCall = append(fake.streamFileArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("StreamFile", []interface{}{arg1})
+		arg1 lager.Logger
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("StreamFile", []interface{}{arg1, arg2})
 	fake.streamFileMutex.Unlock()
 	if fake.StreamFileStub != nil {
-		return fake.StreamFileStub(arg1)
+		return fake.StreamFileStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -76,11 +81,11 @@ func (fake *FakeArtifactSource) StreamFileCallCount() int {
 	return len(fake.streamFileArgsForCall)
 }
 
-func (fake *FakeArtifactSource) StreamFileArgsForCall(i int) string {
+func (fake *FakeArtifactSource) StreamFileArgsForCall(i int) (lager.Logger, string) {
 	fake.streamFileMutex.RLock()
 	defer fake.streamFileMutex.RUnlock()
 	argsForCall := fake.streamFileArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeArtifactSource) StreamFileReturns(result1 io.ReadCloser, result2 error) {
@@ -105,16 +110,17 @@ func (fake *FakeArtifactSource) StreamFileReturnsOnCall(i int, result1 io.ReadCl
 	}{result1, result2}
 }
 
-func (fake *FakeArtifactSource) StreamTo(arg1 worker.ArtifactDestination) error {
+func (fake *FakeArtifactSource) StreamTo(arg1 lager.Logger, arg2 worker.ArtifactDestination) error {
 	fake.streamToMutex.Lock()
 	ret, specificReturn := fake.streamToReturnsOnCall[len(fake.streamToArgsForCall)]
 	fake.streamToArgsForCall = append(fake.streamToArgsForCall, struct {
-		arg1 worker.ArtifactDestination
-	}{arg1})
-	fake.recordInvocation("StreamTo", []interface{}{arg1})
+		arg1 lager.Logger
+		arg2 worker.ArtifactDestination
+	}{arg1, arg2})
+	fake.recordInvocation("StreamTo", []interface{}{arg1, arg2})
 	fake.streamToMutex.Unlock()
 	if fake.StreamToStub != nil {
-		return fake.StreamToStub(arg1)
+		return fake.StreamToStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -129,11 +135,11 @@ func (fake *FakeArtifactSource) StreamToCallCount() int {
 	return len(fake.streamToArgsForCall)
 }
 
-func (fake *FakeArtifactSource) StreamToArgsForCall(i int) worker.ArtifactDestination {
+func (fake *FakeArtifactSource) StreamToArgsForCall(i int) (lager.Logger, worker.ArtifactDestination) {
 	fake.streamToMutex.RLock()
 	defer fake.streamToMutex.RUnlock()
 	argsForCall := fake.streamToArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeArtifactSource) StreamToReturns(result1 error) {
@@ -155,16 +161,17 @@ func (fake *FakeArtifactSource) StreamToReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeArtifactSource) VolumeOn(arg1 worker.Worker) (worker.Volume, bool, error) {
+func (fake *FakeArtifactSource) VolumeOn(arg1 lager.Logger, arg2 worker.Worker) (worker.Volume, bool, error) {
 	fake.volumeOnMutex.Lock()
 	ret, specificReturn := fake.volumeOnReturnsOnCall[len(fake.volumeOnArgsForCall)]
 	fake.volumeOnArgsForCall = append(fake.volumeOnArgsForCall, struct {
-		arg1 worker.Worker
-	}{arg1})
-	fake.recordInvocation("VolumeOn", []interface{}{arg1})
+		arg1 lager.Logger
+		arg2 worker.Worker
+	}{arg1, arg2})
+	fake.recordInvocation("VolumeOn", []interface{}{arg1, arg2})
 	fake.volumeOnMutex.Unlock()
 	if fake.VolumeOnStub != nil {
-		return fake.VolumeOnStub(arg1)
+		return fake.VolumeOnStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -179,11 +186,11 @@ func (fake *FakeArtifactSource) VolumeOnCallCount() int {
 	return len(fake.volumeOnArgsForCall)
 }
 
-func (fake *FakeArtifactSource) VolumeOnArgsForCall(i int) worker.Worker {
+func (fake *FakeArtifactSource) VolumeOnArgsForCall(i int) (lager.Logger, worker.Worker) {
 	fake.volumeOnMutex.RLock()
 	defer fake.volumeOnMutex.RUnlock()
 	argsForCall := fake.volumeOnArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeArtifactSource) VolumeOnReturns(result1 worker.Volume, result2 bool, result3 error) {

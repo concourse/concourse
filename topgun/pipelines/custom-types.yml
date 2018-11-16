@@ -1,0 +1,25 @@
+---
+resource_types:
+- name: my-time
+  type: registry-image
+  source: {repository: concourse/time-resource}
+
+resources:
+- name: 10m
+  type: my-time
+  source: {interval: 1h}
+
+jobs:
+- name: get-10m
+  plan:
+  - get: 10m
+  - task: fail
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+
+      run:
+        path: "false"

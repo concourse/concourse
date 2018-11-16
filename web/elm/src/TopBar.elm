@@ -3,9 +3,11 @@ port module TopBar exposing (Model, Msg(..), fetchUser, init, subscriptions, upd
 import Concourse
 import Concourse.Pipeline
 import Concourse.User
+import Colors
+import Dict
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, disabled, href, id, style)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onMouseOver, onMouseOut, onMouseEnter, onMouseLeave)
 import Http
 import LoginRedirect
 import Navigation exposing (Location)
@@ -21,6 +23,8 @@ type alias Model =
     , pipeline : Maybe Concourse.Pipeline
     , userState : UserState
     , userMenuVisible : Bool
+    , pinnedResources : List ( String, Concourse.Version )
+    , showPinIconDropDown : Bool
     }
 
 
@@ -41,6 +45,8 @@ type Msg
     | ResetToPipeline String
     | LoggedOut (Result Http.Error ())
     | ToggleUserMenu
+    | TogglePinIconDropdown
+    | GoToPinnedResource String
 
 
 init : Routes.ConcourseRoute -> ( Model, Cmd Msg )
@@ -53,6 +59,8 @@ init route =
           , pipeline = Nothing
           , userState = UserStateUnknown
           , userMenuVisible = False
+          , pinnedResources = []
+          , showPinIconDropDown = False
           }
         , case pid of
             Nothing ->
@@ -131,6 +139,16 @@ update msg model =
         ToggleUserMenu ->
             ( { model | userMenuVisible = not model.userMenuVisible }, Cmd.none )
 
+        TogglePinIconDropdown ->
+            ( { model | showPinIconDropDown = not model.showPinIconDropDown }, Cmd.none )
+
+        GoToPinnedResource resourceName ->
+            let
+                url =
+                    Routes.toString model.route.logical
+            in
+                ( model, Navigation.newUrl (url ++ "/resources/" ++ resourceName) )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -205,23 +223,183 @@ urlUpdate route model =
 
 view : Model -> Html Msg
 view model =
-    Html.nav
-        [ classList
-            [ ( "module-topbar", True )
-            , ( "top-bar", True )
-            , ( "test", True )
-            , ( "paused", isPaused model.pipeline )
+    Html.div
+        [ id "top-bar-app"
+        , style
+            [ ( "height", "56px" )
+            , ( "background-color"
+              , if isPaused model.pipeline then
+                    "#3498db"
+                else
+                    "#1e1d1d"
+              )
+            , ( "display", "flex" )
+            , ( "align-items", "center" )
+            , ( "justify-content", "space-between" )
+            , ( "z-index", "100" )
+            , ( "left", "0" )
+            , ( "right", "0" )
+            , ( "position", "fixed" )
             ]
+        , id "top-bar-app"
         ]
-        [ Html.div
-            [ classList [ ( "topbar-logo", True ) ] ]
-            [ Html.a [ class "logo-image-link", href "/" ] [] ]
-        , Html.ul [ class "groups" ] <| viewBreadcrumbs model
-        , Html.div [ class "topbar-login" ]
-            [ Html.div [ class "topbar-user-info" ]
-                [ viewUserState model.userState model.userMenuVisible
+        [ Html.nav
+            [ style [ ( "display", "flex" ) ] ]
+            [ Html.a [ href "/" ]
+                [ Html.div
+                    [ style
+                        [ ( "background-image", "url(/public/images/concourse_logo_white.svg)" )
+                        , ( "background-position", "50% 50%" )
+                        , ( "background-repeat", "no-repeat" )
+                        , ( "background-size", "42px 42px" )
+                        , ( "width", "54px" )
+                        , ( "height", "54px" )
+                        ]
+                    ]
+                    []
+                ]
+            , Html.ul [ class "groups" ] <| viewBreadcrumbs model
+            ]
+        , Html.nav
+            [ style
+                [ ( "display", "flex" )
+                , ( "max-width", "20%" )
                 ]
             ]
+            ((case model.route.logical of
+                Routes.Pipeline _ _ ->
+                    [ Html.div
+                        ([ style
+                            [ ( "margin-right", "15px" )
+                            , ( "top", "10px" )
+                            , ( "position", "relative" )
+                            , ( "height", "40px" )
+                            ]
+                         , id "pin-icon"
+                         ]
+                            ++ (if model.showPinIconDropDown then
+                                    [ style
+                                        [ ( "background-color", "#3d3c3c" )
+                                        , ( "border-radius", "50%" )
+                                        ]
+                                    ]
+                                else
+                                    []
+                               )
+                        )
+                        [ Html.div
+                            ([ style
+                                ([ ( "background-image"
+                                   , if List.length model.pinnedResources > 0 then
+                                        "url(/public/images/pin_ic_white.svg)"
+                                     else
+                                        "url(/public/images/pin_ic_grey.svg)"
+                                   )
+                                 , ( "width", "40px" )
+                                 , ( "height", "40px" )
+                                 , ( "background-repeat", "no-repeat" )
+                                 , ( "background-position", "50% 50%" )
+                                 , ( "position", "relative" )
+                                 ]
+                                )
+                             ]
+                                ++ (if List.length model.pinnedResources > 0 then
+                                        [ onMouseEnter TogglePinIconDropdown
+                                        , onMouseLeave TogglePinIconDropdown
+                                        ]
+                                    else
+                                        []
+                                   )
+                            )
+                            (if List.length model.pinnedResources > 0 then
+                                ([ Html.div
+                                    [ style
+                                        [ ( "background-color", Colors.pinned )
+                                        , ( "border-radius", "50%" )
+                                        , ( "width", "15px" )
+                                        , ( "height", "15px" )
+                                        , ( "position", "absolute" )
+                                        , ( "top", "3px" )
+                                        , ( "right", "3px" )
+                                        , ( "display", "flex" )
+                                        , ( "align-items", "center" )
+                                        , ( "justify-content", "center" )
+                                        ]
+                                    , id "pin-badge"
+                                    ]
+                                    [ Html.div [] [ Html.text <| toString <| List.length model.pinnedResources ]
+                                    ]
+                                 ]
+                                    ++ (if model.showPinIconDropDown then
+                                            [ Html.ul
+                                                [ style
+                                                    [ ( "background-color", "#fff" )
+                                                    , ( "color", "#1e1d1d" )
+                                                    , ( "position", "absolute" )
+                                                    , ( "top", "100%" )
+                                                    , ( "right", "0" )
+                                                    , ( "white-space", "nowrap" )
+                                                    , ( "list-style-type", "none" )
+                                                    , ( "padding", "10px" )
+                                                    , ( "margin-top", "0" )
+                                                    , ( "z-index", "1" )
+                                                    ]
+                                                ]
+                                                (model.pinnedResources
+                                                    |> List.map
+                                                        (\( resourceName, pinnedVersion ) ->
+                                                            Html.li
+                                                                [ onClick (GoToPinnedResource resourceName)
+                                                                , style
+                                                                    [ ( "cursor", "pointer" )
+                                                                    ]
+                                                                ]
+                                                                [ Html.div
+                                                                    [ style [ ( "font-weight", "700" ) ] ]
+                                                                    [ Html.text resourceName ]
+                                                                , Html.table []
+                                                                    (pinnedVersion
+                                                                        |> Dict.toList
+                                                                        |> List.map
+                                                                            (\( k, v ) ->
+                                                                                Html.tr []
+                                                                                    [ Html.td [] [ Html.text k ]
+                                                                                    , Html.td [] [ Html.text v ]
+                                                                                    ]
+                                                                            )
+                                                                    )
+                                                                ]
+                                                        )
+                                                )
+                                            , Html.div
+                                                [ style
+                                                    [ ( "border-width", "5px" )
+                                                    , ( "border-style", "solid" )
+                                                    , ( "border-color", "transparent transparent #fff transparent" )
+                                                    , ( "position", "absolute" )
+                                                    , ( "top", "100%" )
+                                                    , ( "right", "50%" )
+                                                    , ( "margin-right", "-5px" )
+                                                    , ( "margin-top", "-10px" )
+                                                    ]
+                                                ]
+                                                []
+                                            ]
+                                        else
+                                            []
+                                       )
+                                )
+                             else
+                                []
+                            )
+                        ]
+                    ]
+
+                _ ->
+                    []
+             )
+                ++ viewUserState model.userState model.userMenuVisible
+            )
         ]
 
 
@@ -253,7 +431,31 @@ viewBreadcrumbs model =
 
 viewBreadcrumbSeparator : Html Msg
 viewBreadcrumbSeparator =
-    Html.li [ class "nav-item" ] [ Html.text "/" ]
+    Html.li [ style cssBreadcrumbContainer ] [ Html.text "/" ]
+
+
+viewBreadcrumbsComponent : String -> String -> List (Html Msg)
+viewBreadcrumbsComponent componentType name =
+    [ Html.div
+        [ style <|
+            [ ( "background-image", "url(/public/images/ic_breadcrumb_" ++ componentType ++ ".svg)" )
+            , ( "background-repeat", "no-repeat" )
+            , ( "background-size", "contain" )
+            , ( "display", "inline-block" )
+            , ( "vertical-align", "middle" )
+            , ( "height", "16px" )
+            , ( "width", "32px" )
+            , ( "margin-right", "10px" )
+            ]
+        ]
+        []
+    , Html.text <| decodeName name
+    ]
+
+
+cssBreadcrumbContainer : List ( String, String )
+cssBreadcrumbContainer =
+    [ ( "display", "inline-block" ), ( "vertical-align", "middle" ), ( "font-size", "18px" ), ( "padding", "0 10px" ), ( "line-height", "54px" ) ]
 
 
 viewBreadcrumbPipeline : String -> Routes.Route -> Html Msg
@@ -262,30 +464,29 @@ viewBreadcrumbPipeline pipelineName route =
         url =
             Routes.toString route
     in
-        Html.li [ class "nav-item" ]
+        Html.li [ style cssBreadcrumbContainer ]
             [ Html.a
                 [ StrictEvents.onLeftClick <| ResetToPipeline url
                 , href url
                 ]
-                [ Html.div [ class "breadcrumb-icon breadcrumb-pipeline-icon" ] []
-                , Html.text <| decodeName pipelineName
-                ]
+              <|
+                viewBreadcrumbsComponent "pipeline" pipelineName
             ]
 
 
 viewBreadcrumbJob : String -> Html Msg
 viewBreadcrumbJob name =
-    Html.li [ class "nav-item" ]
-        [ Html.div [ class "breadcrumb-icon breadcrumb-job-icon" ] []
-        , Html.text <| decodeName name
+    Html.li [ style cssBreadcrumbContainer ]
+        [ Html.div [] <|
+            viewBreadcrumbsComponent "job" name
         ]
 
 
 viewBreadcrumbResource : String -> Html Msg
 viewBreadcrumbResource name =
-    Html.li [ class "nav-item" ]
-        [ Html.div [ class "breadcrumb-icon breadcrumb-resource-icon" ] []
-        , Html.text <| decodeName name
+    Html.li [ style cssBreadcrumbContainer ]
+        [ Html.div [] <|
+            viewBreadcrumbsComponent "resource" name
         ]
 
 
@@ -299,37 +500,82 @@ isPaused =
     Maybe.withDefault False << Maybe.map .paused
 
 
-viewUserState : UserState -> Bool -> Html Msg
+cssUserContainer : List ( String, String )
+cssUserContainer =
+    [ ( "position", "relative" )
+    , ( "display", "flex" )
+    , ( "flex-direction", "column" )
+    , ( "border-left", "1px solid #3d3c3c" )
+    , ( "line-height", "56px" )
+    ]
+
+
+cssUserName : List ( String, String )
+cssUserName =
+    [ ( "padding", "0 30px" )
+    , ( "cursor", "pointer" )
+    , ( "display", "flex" )
+    , ( "align-items", "center" )
+    , ( "justify-content", "center" )
+    , ( "flex-grow", "1" )
+    ]
+
+
+viewUserState : UserState -> Bool -> List (Html Msg)
 viewUserState userState userMenuVisible =
     case userState of
         UserStateUnknown ->
-            Html.text ""
+            []
 
         UserStateLoggedOut ->
-            Html.div [ class "user-id", onClick LogIn ]
+            [ Html.div
+                [ onClick LogIn
+                , style cssUserContainer
+                ]
                 [ Html.a
                     [ href "/sky/login"
                     , Html.Attributes.attribute "aria-label" "Log In"
-                    , class "login-button"
+                    , style cssUserName
                     ]
                     [ Html.text "login"
                     ]
                 ]
+            ]
 
         UserStateLoggedIn user ->
-            Html.div [ class "user-info" ]
-                [ Html.div [ class "user-id", onClick ToggleUserMenu ]
-                    [ Html.text <|
-                        userDisplayName user
+            [ Html.div
+                [ style cssUserContainer ]
+                [ Html.div
+                    [ style cssUserName
+                    , onClick ToggleUserMenu
                     ]
-                , Html.div [ classList [ ( "user-menu", True ), ( "hidden", not userMenuVisible ) ], onClick LogOut ]
-                    [ Html.a
-                        [ Html.Attributes.attribute "aria-label" "Log Out"
-                        ]
-                        [ Html.text "logout"
-                        ]
+                    [ Html.text (userDisplayName user)
+                    , (if userMenuVisible then
+                        Html.div
+                            [ attribute "aria-label" "Log Out"
+                            , style
+                                [ ( "position", "absolute" )
+                                , ( "top", "55px" )
+                                , ( "background-color", "#1e1d1d" )
+                                , ( "height", "54px" )
+                                , ( "width", "100%" )
+                                , ( "border-top", "1px solid #3d3c3c" )
+                                , ( "cursor", "pointer" )
+                                , ( "display", "flex" )
+                                , ( "align-items", "center" )
+                                , ( "justify-content", "center" )
+                                , ( "flex-grow", "1" )
+                                ]
+                            , onClick LogOut
+                            , id "logout-button"
+                            ]
+                            [ Html.div [] [ Html.text "logout" ] ]
+                       else
+                        Html.text ""
+                      )
                     ]
                 ]
+            ]
 
 
 userDisplayName : Concourse.User -> String
