@@ -238,6 +238,9 @@ jobs:
     - get: dev-image
       passed: [build-rc]
       params: {format: oci}
+    - get: unit-image
+      passed: [build-rc]
+      trigger: true
     - get: charts
   - task: terraform-k8s-smoke
     file: concourse/ci/tasks/terraform-smoke.yml
