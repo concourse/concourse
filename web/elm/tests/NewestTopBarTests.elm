@@ -1,7 +1,5 @@
-module NewestTopBarTests exposing (all, userWithEmail, userWithId, userWithName, userWithUserName)
+module NewestTopBarTests exposing (all)
 
-import Concourse
-import Dict
 import Html.Styled exposing (toUnstyled)
 import NewestTopBar
 import QueryString
@@ -10,215 +8,140 @@ import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector exposing (attribute, containing, id, style, tag, text, class)
 import Html.Attributes as Attr
-import Expect
+import Expect exposing (..)
 
 
-userWithId : Concourse.User
-userWithId =
-    { id = "some-id", email = "", name = "", userName = "", teams = Dict.empty }
+rspecStyleDescribe : String -> model -> List (model -> Test) -> Test
+rspecStyleDescribe description beforeEach subTests =
+    Test.describe description
+        (subTests |> List.map (\f -> f beforeEach))
 
 
-userWithEmail : Concourse.User
-userWithEmail =
-    { id = "some-id", email = "some-email", name = "", userName = "", teams = Dict.empty }
-
-
-userWithName : Concourse.User
-userWithName =
-    { id = "some-id", email = "some-email", name = "some-name", userName = "", teams = Dict.empty }
-
-
-userWithUserName : Concourse.User
-userWithUserName =
-    { id = "some-id", email = "some-email", name = "some-name", userName = "some-user-name", teams = Dict.empty }
+it : String -> (model -> Expectation) -> model -> Test
+it desc expectationFunc model =
+    Test.test desc <|
+        \_ -> expectationFunc model
 
 
 all : Test
 all =
-    describe "TopBar"
-        [ describe "userDisplayName"
-            [ test "concourse logo is visible on top bar" <|
-                \_ ->
-                    NewestTopBar.init { logical = Routes.Pipeline "team" "pipeline", queries = QueryString.empty, page = Nothing, hash = "" }
-                        |> Tuple.first
-                        |> NewestTopBar.view
-                        |> toUnstyled
-                        |> Query.fromHtml
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has
-                            [ style
-                                [ ( "background-image", "url(/public/images/concourse_logo_white.svg)" )
-                                , ( "background-position", "50% 50%" )
-                                , ( "background-repeat", "no-repeat" )
-                                , ( "background-size", "42px 42px" )
-                                , ( "width", "54px" )
-                                , ( "height", "54px" )
-                                ]
+    describe "NewestTopBar"
+        [ rspecStyleDescribe "rendering top bar on pipeline page"
+            (NewestTopBar.init { logical = Routes.Pipeline "team" "pipeline", queries = QueryString.empty, page = Nothing, hash = "" }
+                |> Tuple.first
+                |> NewestTopBar.view
+                |> toUnstyled
+                |> Query.fromHtml
+            )
+            [ it "concourse logo is visible on top bar" <|
+                Query.children []
+                    >> Query.index 1
+                    >> Query.has
+                        [ style
+                            [ ( "background-image", "url(/public/images/concourse_logo_white.svg)" )
+                            , ( "background-position", "50% 50%" )
+                            , ( "background-repeat", "no-repeat" )
+                            , ( "background-size", "42px 42px" )
+                            , ( "width", "54px" )
+                            , ( "height", "54px" )
                             ]
-            , test "top bar renders pipeline breadcrumb selector" <|
-                \_ ->
-                    NewestTopBar.init { logical = Routes.Pipeline "team" "pipeline", queries = QueryString.empty, page = Nothing, hash = "" }
-                        |> Tuple.first
-                        |> NewestTopBar.view
-                        |> toUnstyled
-                        |> Query.fromHtml
-                        |> Query.has [ id "breadcrumb-pipeline" ]
-            , test "top bar has pipeline breadcrumb with icon rendered first" <|
-                \_ ->
-                    NewestTopBar.init { logical = Routes.Pipeline "team" "pipeline", queries = QueryString.empty, page = Nothing, hash = "" }
-                        |> Tuple.first
-                        |> NewestTopBar.view
-                        |> toUnstyled
-                        |> Query.fromHtml
-                        |> Query.find [ id "breadcrumb-pipeline" ]
-                        |> Query.children []
-                        |> Query.first
-                        |> Query.has pipelineBreadcrumbSelector
-            , test "top bar has pipeline name after pipeline icon" <|
-                \_ ->
-                    NewestTopBar.init { logical = Routes.Pipeline "team" "pipeline", queries = QueryString.empty, page = Nothing, hash = "" }
-                        |> Tuple.first
-                        |> NewestTopBar.view
-                        |> toUnstyled
-                        |> Query.fromHtml
-                        |> Query.find [ id "breadcrumb-pipeline" ]
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has
-                            [ text "pipeline" ]
-            , test "pipeline breadcrumb should have a link to the pipeline page" <|
-                \_ ->
-                    NewestTopBar.init { logical = Routes.Pipeline "team" "pipeline", queries = QueryString.empty, page = Nothing, hash = "" }
-                        |> Tuple.first
-                        |> NewestTopBar.view
-                        |> toUnstyled
-                        |> Query.fromHtml
-                        |> Query.find [ id "breadcrumb-pipeline" ]
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
-            , test "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
-                \_ ->
-                    NewestTopBar.init { logical = Routes.Build "team" "pipeline" "job" "1", queries = QueryString.empty, page = Nothing, hash = "" }
-                        |> Tuple.first
-                        |> NewestTopBar.view
-                        |> toUnstyled
-                        |> Query.fromHtml
-                        |> Query.find [ id "breadcrumb-pipeline" ]
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
-            , test "pipeline breadcrumb should have a link to the pipeline page when viewing resource details" <|
-                \_ ->
-                    NewestTopBar.init { logical = Routes.Resource "team" "pipeline" "resource", queries = QueryString.empty, page = Nothing, hash = "" }
-                        |> Tuple.first
-                        |> NewestTopBar.view
-                        |> toUnstyled
-                        |> Query.fromHtml
-                        |> Query.find [ id "breadcrumb-pipeline" ]
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
-            , test "pipeline breadcrumb should have a link to the pipeline page when viewing job details" <|
-                \_ ->
-                    NewestTopBar.init { logical = Routes.Job "team" "pipeline" "job", queries = QueryString.empty, page = Nothing, hash = "" }
-                        |> Tuple.first
-                        |> NewestTopBar.view
-                        |> toUnstyled
-                        |> Query.fromHtml
-                        |> Query.find [ id "breadcrumb-pipeline" ]
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
-            , test "there is a / between pipeline and job in breadcrumb" <|
-                \_ ->
-                    NewestTopBar.init { logical = Routes.Build "team" "pipeline" "job" "1", queries = QueryString.empty, page = Nothing, hash = "" }
-                        |> Tuple.first
-                        |> NewestTopBar.view
-                        |> toUnstyled
-                        |> Query.fromHtml
-                        |> Query.findAll [ tag "li" ]
-                        |> Expect.all
-                            ([ Query.index 1 >> Query.has [ class "breadcrumb-separator" ]
-                             , Query.index 0 >> Query.has [ id "breadcrumb-pipeline" ]
-                             , Query.index 2 >> Query.has [ id "breadcrumb-job" ]
-                             ]
-                            )
-            , test "job breadcrumb is laid out horizontally with appropriate spacing" <|
-                \_ ->
-                    NewestTopBar.init { logical = Routes.Build "team" "pipeline" "job" "1", queries = QueryString.empty, page = Nothing, hash = "" }
-                        |> Tuple.first
-                        |> NewestTopBar.view
-                        |> toUnstyled
-                        |> Query.fromHtml
-                        |> Query.find [ id "breadcrumb-job" ]
-                        |> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
-            , test "top bar has job breadcrumb with job icon rendered first" <|
-                \_ ->
-                    NewestTopBar.init { logical = Routes.Build "team" "pipeline" "job" "1", queries = QueryString.empty, page = Nothing, hash = "" }
-                        |> Tuple.first
-                        |> NewestTopBar.view
-                        |> toUnstyled
-                        |> Query.fromHtml
-                        |> Query.find [ id "breadcrumb-job" ]
-                        |> Query.has jobBreadcrumbSelector
-            , test "top bar has build name after job icon" <|
-                \_ ->
-                    NewestTopBar.init { logical = Routes.Build "team" "pipeline" "job" "1", queries = QueryString.empty, page = Nothing, hash = "" }
-                        |> Tuple.first
-                        |> NewestTopBar.view
-                        |> toUnstyled
-                        |> Query.fromHtml
-                        |> Query.find [ id "breadcrumb-job" ]
-                        |> Query.has
-                            [ text "job" ]
-            , test "there is a / between pipeline and resource in breadcrumb" <|
-                \_ ->
-                    NewestTopBar.init { logical = Routes.Resource "team" "pipeline" "resource", queries = QueryString.empty, page = Nothing, hash = "" }
-                        |> Tuple.first
-                        |> NewestTopBar.view
-                        |> toUnstyled
-                        |> Query.fromHtml
-                        |> Query.findAll [ tag "li" ]
-                        |> Expect.all
-                            ([ Query.index 1 >> Query.has [ class "breadcrumb-separator" ]
-                             , Query.index 1 >> Query.has [ text "/" ]
-                             , Query.index 2 >> Query.has [ id "breadcrumb-resource" ]
-                             ]
-                            )
-            , test "resource breadcrumb is laid out horizontally with appropriate spacing" <|
-                \_ ->
-                    NewestTopBar.init { logical = Routes.Resource "team" "pipeline" "resource", queries = QueryString.empty, page = Nothing, hash = "" }
-                        |> Tuple.first
-                        |> NewestTopBar.view
-                        |> toUnstyled
-                        |> Query.fromHtml
-                        |> Query.find [ id "breadcrumb-resource" ]
-                        |> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
-            , test "top bar has resource breadcrumb with resource icon rendered first" <|
-                \_ ->
-                    NewestTopBar.init { logical = Routes.Resource "team" "pipeline" "resource", queries = QueryString.empty, page = Nothing, hash = "" }
-                        |> Tuple.first
-                        |> NewestTopBar.view
-                        |> toUnstyled
-                        |> Query.fromHtml
-                        |> Query.find [ id "breadcrumb-resource" ]
-                        |> Query.children []
-                        |> Query.index 0
-                        |> Query.has resourceBreadcrumbSelector
-            , test "top bar has resource name after resource icon" <|
-                \_ ->
-                    NewestTopBar.init { logical = Routes.Resource "team" "pipeline" "resource", queries = QueryString.empty, page = Nothing, hash = "" }
-                        |> Tuple.first
-                        |> NewestTopBar.view
-                        |> toUnstyled
-                        |> Query.fromHtml
-                        |> Query.find [ id "breadcrumb-resource" ]
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has
-                            [ text "resource" ]
+                        ]
+            , it "top bar renders pipeline breadcrumb selector" <|
+                Query.has [ id "breadcrumb-pipeline" ]
+            , it "top bar has pipeline breadcrumb with icon rendered first" <|
+                Query.find [ id "breadcrumb-pipeline" ]
+                    >> Query.children []
+                    >> Query.first
+                    >> Query.has pipelineBreadcrumbSelector
+            , it "top bar has pipeline name after pipeline icon" <|
+                Query.find [ id "breadcrumb-pipeline" ]
+                    >> Query.children []
+                    >> Query.index 1
+                    >> Query.has
+                        [ text "pipeline" ]
+            , it "pipeline breadcrumb should have a link to the pipeline page" <|
+                Query.find [ id "breadcrumb-pipeline" ]
+                    >> Query.children []
+                    >> Query.index 1
+                    >> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+            ]
+        , rspecStyleDescribe "rendering top bar on build page"
+            (NewestTopBar.init { logical = Routes.Build "team" "pipeline" "job" "1", queries = QueryString.empty, page = Nothing, hash = "" }
+                |> Tuple.first
+                |> NewestTopBar.view
+                |> toUnstyled
+                |> Query.fromHtml
+            )
+            [ it "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
+                Query.find [ id "breadcrumb-pipeline" ]
+                    >> Query.children []
+                    >> Query.index 1
+                    >> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+            , it "job breadcrumb is laid out horizontally with appropriate spacing" <|
+                Query.find [ id "breadcrumb-job" ]
+                    >> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
+            , it "top bar has job breadcrumb with job icon rendered first" <|
+                Query.find [ id "breadcrumb-job" ]
+                    >> Query.has jobBreadcrumbSelector
+            , it "top bar has build name after job icon" <|
+                Query.find [ id "breadcrumb-job" ]
+                    >> Query.has [ text "job" ]
+            ]
+        , rspecStyleDescribe "rendering top bar on resource page"
+            (NewestTopBar.init { logical = Routes.Resource "team" "pipeline" "resource", queries = QueryString.empty, page = Nothing, hash = "" }
+                |> Tuple.first
+                |> NewestTopBar.view
+                |> toUnstyled
+                |> Query.fromHtml
+            )
+            [ it "pipeline breadcrumb should have a link to the pipeline page when viewing resource details" <|
+                Query.find [ id "breadcrumb-pipeline" ]
+                    >> Query.children []
+                    >> Query.index 1
+                    >> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+            , it "there is a / between pipeline and resource in breadcrumb" <|
+                Query.findAll [ tag "li" ]
+                    >> Expect.all
+                        ([ Query.index 1 >> Query.has [ class "breadcrumb-separator" ]
+                         , Query.index 1 >> Query.has [ text "/" ]
+                         , Query.index 2 >> Query.has [ id "breadcrumb-resource" ]
+                         ]
+                        )
+            , it "resource breadcrumb is laid out horizontally with appropriate spacing" <|
+                Query.find [ id "breadcrumb-resource" ]
+                    >> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
+            , it "top bar has resource breadcrumb with resource icon rendered first" <|
+                Query.find [ id "breadcrumb-resource" ]
+                    >> Query.children []
+                    >> Query.index 0
+                    >> Query.has resourceBreadcrumbSelector
+            , it "top bar has resource name after resource icon" <|
+                Query.find [ id "breadcrumb-resource" ]
+                    >> Query.children []
+                    >> Query.index 1
+                    >> Query.has
+                        [ text "resource" ]
+            ]
+        , rspecStyleDescribe "rendering top bar on job page"
+            (NewestTopBar.init { logical = Routes.Job "team" "pipeline" "job", queries = QueryString.empty, page = Nothing, hash = "" }
+                |> Tuple.first
+                |> NewestTopBar.view
+                |> toUnstyled
+                |> Query.fromHtml
+            )
+            [ it "pipeline breadcrumb should have a link to the pipeline page when viewing job details" <|
+                Query.find [ id "breadcrumb-pipeline" ]
+                    >> Query.children []
+                    >> Query.index 1
+                    >> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+            , it "there is a / between pipeline and job in breadcrumb" <|
+                Query.findAll [ tag "li" ]
+                    >> Expect.all
+                        ([ Query.index 1 >> Query.has [ class "breadcrumb-separator" ]
+                         , Query.index 0 >> Query.has [ id "breadcrumb-pipeline" ]
+                         , Query.index 2 >> Query.has [ id "breadcrumb-job" ]
+                         ]
+                        )
             ]
         ]
 

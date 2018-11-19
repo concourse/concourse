@@ -433,6 +433,7 @@ view model =
 
                     Routes.Job teamName pipelineName jobName ->
                         viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName)) pipelineName
+                            ++ viewJobBreadcrumb jobName
 
                     _ ->
                         []
