@@ -70,7 +70,7 @@ func BuildBinary() string {
 }
 
 func Start(env []string, command string, argv ...string) *gexec.Session {
-	TimestampedBy("running: " + strings.Join(argv, " "))
+	TimestampedBy("running: " + command + " " + strings.Join(argv, " "))
 
 	cmd := exec.Command(command, argv...)
 	cmd.Env = env

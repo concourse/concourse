@@ -33,7 +33,7 @@ type WorkerCommand struct {
 	BindIP   flag.IP `long:"bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the Garden server."`
 	BindPort uint16  `long:"bind-port" default:"7777"      description:"Port on which to listen for the Garden server."`
 
-	HealthcheckIP      flag.IP       `long:"healthcheck-ip"      default:"127.0.0.1" description:"IP address on which to listen for health checking requests"`
+	HealthcheckIP      flag.IP       `long:"healthcheck-ip"      default:"0.0.0.0"   description:"IP address on which to listen for health checking requests"`
 	HealthcheckPort    uint16        `long:"healthcheck-port"    default:"8888"      description:"Port on which to listen for health checking requests"`
 	HealthCheckTimeout time.Duration `long:"healthcheck-timeout" default:"5s"        description:"HTTP timeout for the full duration of health checking"`
 

@@ -40,11 +40,11 @@ var _ = BeforeEach(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	By("Checking if kubectl has a context set")
-	Wait(Start("kubectl", "config", "current-context"))
+	Wait(Start(nil, "kubectl", "config", "current-context"))
 
 	By("Installing tiller")
-	Wait(Start("helm", "init", "--wait"))
-	Wait(Start("helm", "dependency", "update", Environment.ChartDir))
+	Wait(Start(nil, "helm", "init", "--wait"))
+	Wait(Start(nil, "helm", "dependency", "update", Environment.ChartDir))
 
 	tmp, err := ioutil.TempDir("", "topgun-tmp")
 	Expect(err).ToNot(HaveOccurred())

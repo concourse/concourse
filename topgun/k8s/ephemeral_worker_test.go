@@ -1,9 +1,10 @@
 package k8s_test
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"path"
-	"strconv"
 	"time"
 
 	. "github.com/concourse/concourse/topgun"
@@ -13,27 +14,6 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-// TODO
-// - add paths to the charts git-resource
-// - make use of a separated namespace
-// - make use of separate values.yml files
-
-// deploy helm chart						DONE
-// - using the digest from dev-image		DONE
-// - configure only one worker				DONE
-// - configure the worker to be ephemeral	DONE
-
-// wait for a worker to be running
-// set the pipeline
-
-// delete the worker's pod
-// --- poll or `kubctl get pods --watch` until the pod is terminated
-// expect that the worker doesn't have any volumes or containers on it:
-// - according to fly volumes ++ fly containers
-// - on the actual worker
-
-// delete the helm release
-
 func HelmDeploy(releaseName string) {
 	helmArgs := []string{
 		"upgrade",
@@ -42,17 +22,21 @@ func HelmDeploy(releaseName string) {
 		"--install",
 		"--force",
 		"--set=concourse.web.kubernetes.keepNamespaces=false",
+		// TODO: https://github.com/concourse/concourse/issues/2827
+		"--set=concourse.web.gc.interval=300ms",
+		"--set=concourse.web.tsa.heartbeatInterval=300ms",
 		"--set=concourse.worker.ephemeral=true",
-		"--set=concourse.worker.replicas=1",
+		"--set=worker.replicas=1",
 		"--set=concourse.worker.baggageclaim.driver=btrfs",
 		"--set=image=" + Environment.ConcourseImageName,
 		"--set=imageDigest=" + Environment.ConcourseImageDigest,
+		"--set=imageTag=" + Environment.ConcourseImageTag,
 		releaseName,
 		"--wait",
 		Environment.ChartDir,
 	}
 
-	Wait(Start("helm", helmArgs...))
+	Wait(Start(nil, "helm", helmArgs...))
 }
 
 func HelmDestroy(releaseName string) {
@@ -61,18 +45,55 @@ func HelmDestroy(releaseName string) {
 		releaseName,
 	}
 
-	Wait(Start("helm", helmArgs...))
+	Wait(Start(nil, "helm", helmArgs...))
 }
 
-func StartKubectlProxy(port int) *gexec.Session {
-	session := Start("kubectl", "proxy", "--port", strconv.Itoa(port))
-	Eventually(session.Out).Should(gbytes.Say("Starting to serve on"))
-	return session
+func getPods(releaseName string, flags ...string) []string {
+	var (
+		podNames = []string{}
+		args     = append([]string{"get", "pods",
+			"--selector=release=" + releaseName,
+			"--output=name",
+			"--sort-by={.metadata.name}",
+			"--no-headers"}, flags...)
+		session = Start(nil, "kubectl", args...)
+	)
+
+	Wait(session)
+
+	scanner := bufio.NewScanner(bytes.NewBuffer(session.Out.Contents()))
+	for scanner.Scan() {
+		podNames = append(podNames, scanner.Text())
+	}
+
+	return podNames
 }
 
-// TODO completely remove this
+func deletePods(releaseName string, flags ...string) []string {
+	var (
+		podNames = []string{}
+		args     = append([]string{"delete", "pod",
+			"--selector=release=" + releaseName,
+		}, flags...)
+		session = Start(nil, "kubectl", args...)
+	)
+
+	Wait(session)
+
+	scanner := bufio.NewScanner(bytes.NewBuffer(session.Out.Contents()))
+	for scanner.Scan() {
+		podNames = append(podNames, scanner.Text())
+	}
+
+	return podNames
+}
+
+func getRunningPods(releaseName string) []string {
+	return getPods(releaseName, "--field-selector=status.phase=Running")
+}
+
 func StartWebProxy(releaseName string, port int) *gexec.Session {
-	session := Start("kubectl", "port-forward", "service/"+releaseName+"-web", fmt.Sprintf("%d:8080", port))
+	session := Start(nil, "kubectl", "port-forward", "service/"+releaseName+"-web", fmt.Sprintf("%d:8080", port))
 	Eventually(session.Out).Should(gbytes.Say("Forwarding"))
 	return session
 }
@@ -89,19 +110,20 @@ var _ = Describe("Ephemeral workers", func() {
 		releaseName = fmt.Sprintf("topgun-ephemeral-workers-%d", GinkgoParallelNode())
 		HelmDeploy(releaseName)
 
-		// Wait for it to be ready?
+		Eventually(func() bool {
+			expectedPods := getPods(releaseName)
+			actualPods := getRunningPods(releaseName)
+
+			return len(expectedPods) == len(actualPods)
+		}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "expected all pods to be running")
 
 		By("Creating the web proxy")
 		proxySession = StartWebProxy(releaseName, port)
 		atcEndpoint = fmt.Sprintf("http://127.0.0.1:%d", port)
-
-		// proxySession = StartKubectlProxy(port)
-		//atcEndpoint = fmt.Sprintf("http://127.0.0.1:%d/api/v1/namespaces/default/services/%s:8080/proxy/",
-		//	port, releaseName + "-web")
 	})
 
 	AfterEach(func() {
-		// HelmDestroy(releaseName)
+		HelmDestroy(releaseName)
 		Wait(proxySession.Interrupt())
 	})
 
@@ -109,24 +131,24 @@ var _ = Describe("Ephemeral workers", func() {
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)
 
-		// prepare fly
-		// wait for worker to be there
 		By("waiting for a running worker")
-		Eventually(
-			getRunningWorkers(fly.GetWorkers()), 2*time.Minute, 10*time.Second).
+		Eventually(func() []Worker {
+			return getRunningWorkers(fly.GetWorkers())
+		}, 2*time.Minute, 10*time.Second).
 			ShouldNot(HaveLen(0))
 
-		By("setting pipeline that creates resource config")
-		fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "resource-gc-test")
+		deletePods(releaseName, fmt.Sprintf("--selector=app=%s-worker", releaseName))
 
-		By("unpausing the pipeline")
-		fly.Run("unpause-pipeline", "-p", "resource-gc-test")
-
-		By("checking resource")
-		fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
-
-		// kubectl
-		// delete the worker's pod
+		Eventually(func() (runningWorkers []Worker) {
+			workers := fly.GetWorkers()
+			for _, w := range workers {
+				Expect(w.State).ToNot(Equal("stalled"), "the worker should never stall")
+				if w.State == "running" {
+					runningWorkers = append(runningWorkers, w)
+				}
+			}
+			return
+		}, 1*time.Minute, 1*time.Second).Should(HaveLen(0), "the running worker should go away")
 	})
 })
 
