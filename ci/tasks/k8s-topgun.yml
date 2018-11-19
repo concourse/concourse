@@ -12,7 +12,6 @@ params:
 
 inputs:
 - name: concourse
-- name: concourse-release
 - name: dev-image
 - name: charts
 

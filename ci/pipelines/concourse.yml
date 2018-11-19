@@ -253,7 +253,7 @@ jobs:
     file: concourse/ci/tasks/k8s-deploy.yml
     params:
      KUBE_CONFIG: ((kube_config))
-     RELEASE_NAME: concourse-testflight
+     RELEASE_NAME: concourse-smoke
      CONCOURSE_IMAGE: concourse/dev
      CONCOURSE_DIGEST_FILE: dev-image/digest
     input_mapping: {endpoint-info: outputs}
@@ -281,7 +281,6 @@ jobs:
     image: k8s-dev-image
     params:
      KUBE_CONFIG: ((kube_config))
-     RELEASE_NAME: concourse-testflight
      CONCOURSE_IMAGE_NAME: concourse/dev
 
 - name: k8s-dev-image
