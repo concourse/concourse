@@ -77,10 +77,6 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 		// containers are raw://
 		"--no-image-plugin",
 		"--graph", "",
-
-		// XXX: we've been setting this the whole time. is it necessary anymore?
-		// XXX: it's probably necessary for testflight
-		"--allow-host-access",
 	}
 
 	gdnServerFlags = append(gdnServerFlags, detectGardenFlags(logger)...)
@@ -121,6 +117,10 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 		})
 
 		gdnServerFlags = append(gdnServerFlags, "--dns-server", lip)
+
+		// must permit access to host network in order for DNS proxy address to be
+		// reachable
+		gdnServerFlags = append(gdnServerFlags, "--allow-host-access")
 	}
 
 	gdnArgs := append(gdnFlags, append([]string{"server"}, gdnServerFlags...)...)
