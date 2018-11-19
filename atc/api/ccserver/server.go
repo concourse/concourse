@@ -6,9 +6,9 @@ import (
 )
 
 type Server struct {
-	logger           lager.Logger
-	teamFactory      db.TeamFactory
-	externalURL      string
+	logger      lager.Logger
+	teamFactory db.TeamFactory
+	externalURL string
 }
 
 func NewServer(
@@ -17,8 +17,8 @@ func NewServer(
 	externalURL string,
 ) *Server {
 	return &Server{
-		logger:           logger,
-		teamFactory:      teamFactory,
-		externalURL:      externalURL,
+		logger:      logger,
+		teamFactory: teamFactory,
+		externalURL: externalURL,
 	}
 }

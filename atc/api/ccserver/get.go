@@ -17,15 +17,15 @@ import (
 type Project struct {
 	Activity        string `xml:"activity,attr"`
 	LastBuildLabel  string `xml:"lastBuildLabel,attr"`
-	LastBuildStatus	string `xml:"lastBuildStatus,attr"`
+	LastBuildStatus string `xml:"lastBuildStatus,attr"`
 	LastBuildTime   string `xml:"lastBuildTime,attr"`
-	Name			string `xml:"name,attr"`
-	WebUrl			string `xml:"webUrl,attr"`
+	Name            string `xml:"name,attr"`
+	WebUrl          string `xml:"webUrl,attr"`
 }
 
 type ProjectsContainer struct {
-	XMLName   xml.Name `xml:"Projects"`
-	Projects  []Project `xml:"Project"`
+	XMLName  xml.Name  `xml:"Projects"`
+	Projects []Project `xml:"Project"`
 }
 
 func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
@@ -118,12 +118,12 @@ func (s *Server) buildProject(build db.Build, nextBuild db.Build, pipeline db.Pi
 
 	projectName := fmt.Sprintf("%s :: %s", pipeline.Name(), job.Name())
 	return Project{
-		Activity:		 activity,
+		Activity:        activity,
 		LastBuildLabel:  fmt.Sprint(build.Name()),
 		LastBuildStatus: lastBuildStatus,
 		LastBuildTime:   build.EndTime().Format(time.RFC3339),
 		Name:            projectName,
-		WebUrl:			 webUrl,
+		WebUrl:          webUrl,
 	}
 }
 

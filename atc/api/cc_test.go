@@ -37,7 +37,7 @@ var _ = Describe("cc.xml", func() {
 
 		JustBeforeEach(func() {
 			req, err := requestGenerator.CreateRequest(atc.GetCC, rata.Params{
-				"team_name":     "a-team",
+				"team_name": "a-team",
 			}, nil)
 			Expect(err).NotTo(HaveOccurred())
 
