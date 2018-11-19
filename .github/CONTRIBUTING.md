@@ -65,6 +65,7 @@ Concourse will be running and reachable at
 To build and install the `fly` CLI from source, run:
 
 ```sh
+$ export GO111MODULE=on
 $ go install ./fly
 ```
 
