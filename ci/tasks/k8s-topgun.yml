@@ -9,6 +9,7 @@ params:
   CONCOURSE_IMAGE_DIGEST:
   CONCOURSE_DIGEST_FILE:
   CONCOURSE_IMAGE_NAME:
+  KUBE_CONFIG:
 
 inputs:
 - name: concourse
