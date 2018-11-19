@@ -57,24 +57,17 @@ func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
 	var projects []Project
 
 	for _, pipeline := range pipelines {
-		jobs, err := pipeline.Jobs()
+		dashboards, err := pipeline.Dashboard();
+
 		if err != nil {
-			logger.Error("failed-to-get-jobs", err)
+			logger.Error("failed-to-get-dashboards", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		for _, job := range jobs {
-			build, nextBuild, err := job.FinishedAndNextBuild()
-
-			if err != nil {
-				logger.Error("failed-to-get-finished-build", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			if build != nil {
-				projects = append(projects, s.buildProject(build, nextBuild, pipeline, job))
+		for _, dashboard := range dashboards {
+			if dashboard.FinishedBuild != nil {
+				projects = append(projects, s.buildProject(dashboard, pipeline))
 			}
 		}
 	}
@@ -89,19 +82,19 @@ func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) buildProject(build db.Build, nextBuild db.Build, pipeline db.Pipeline, job db.Job) Project {
+func (s *Server) buildProject(j db.DashboardJob, pipeline db.Pipeline) Project {
 	var lastBuildStatus string
 	switch {
-	case build.Status() == db.BuildStatusSucceeded:
+	case j.FinishedBuild.Status() == db.BuildStatusSucceeded:
 		lastBuildStatus = "Success"
-	case build.Status() == db.BuildStatusFailed:
+	case j.FinishedBuild.Status() == db.BuildStatusFailed:
 		lastBuildStatus = "Failure"
 	default:
 		lastBuildStatus = "Exception"
 	}
 
 	var activity string
-	if nextBuild != nil {
+	if j.NextBuild != nil {
 		activity = "Building"
 	} else {
 		activity = "Sleeping"
@@ -113,15 +106,15 @@ func (s *Server) buildProject(build db.Build, nextBuild db.Build, pipeline db.Pi
 		"pipelines",
 		pipeline.Name(),
 		"jobs",
-		job.Name(),
+		j.Job.Name(),
 	})
 
-	projectName := fmt.Sprintf("%s :: %s", pipeline.Name(), job.Name())
+	projectName := fmt.Sprintf("%s :: %s", pipeline.Name(), j.Job.Name())
 	return Project{
 		Activity:        activity,
-		LastBuildLabel:  fmt.Sprint(build.Name()),
+		LastBuildLabel:  fmt.Sprint(j.FinishedBuild.Name()),
 		LastBuildStatus: lastBuildStatus,
-		LastBuildTime:   build.EndTime().Format(time.RFC3339),
+		LastBuildTime:   j.FinishedBuild.EndTime().Format(time.RFC3339),
 		Name:            projectName,
 		WebUrl:          webUrl,
 	}

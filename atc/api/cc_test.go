@@ -77,7 +77,11 @@ var _ = Describe("cc.xml", func() {
 							fakeJob = new(dbfakes.FakeJob)
 							fakeJob.NameReturns("some-job")
 
-							fakePipeline.JobsReturns(db.Jobs{fakeJob}, nil)
+							fakePipeline.DashboardReturns(db.Dashboard{
+								{
+									Job: fakeJob,
+								},
+							}, nil)
 
 							endTime, _ = time.Parse(time.RFC3339, "2018-11-04T21:26:38Z")
 						})
@@ -88,7 +92,12 @@ var _ = Describe("cc.xml", func() {
 								succeededBuild.StatusReturns(db.BuildStatusSucceeded)
 								succeededBuild.NameReturns("42")
 								succeededBuild.EndTimeReturns(endTime)
-								fakeJob.FinishedAndNextBuildReturns(succeededBuild, nil, nil)
+								fakePipeline.DashboardReturns(db.Dashboard{
+									{
+										Job:           fakeJob,
+										FinishedBuild: succeededBuild,
+									},
+								}, nil)
 							})
 
 							It("returns 200", func() {
@@ -117,7 +126,12 @@ var _ = Describe("cc.xml", func() {
 								abortedBuild.StatusReturns(db.BuildStatusAborted)
 								abortedBuild.NameReturns("42")
 								abortedBuild.EndTimeReturns(endTime)
-								fakeJob.FinishedAndNextBuildReturns(abortedBuild, nil, nil)
+								fakePipeline.DashboardReturns(db.Dashboard{
+									{
+										Job:           fakeJob,
+										FinishedBuild: abortedBuild,
+									},
+								}, nil)
 							})
 
 							It("returns the CC.xml", func() {
@@ -138,7 +152,12 @@ var _ = Describe("cc.xml", func() {
 								erroredBuild.StatusReturns(db.BuildStatusErrored)
 								erroredBuild.NameReturns("42")
 								erroredBuild.EndTimeReturns(endTime)
-								fakeJob.FinishedAndNextBuildReturns(erroredBuild, nil, nil)
+								fakePipeline.DashboardReturns(db.Dashboard{
+									{
+										Job:           fakeJob,
+										FinishedBuild: erroredBuild,
+									},
+								}, nil)
 							})
 
 							It("returns the CC.xml", func() {
@@ -159,7 +178,12 @@ var _ = Describe("cc.xml", func() {
 								failedBuild.StatusReturns(db.BuildStatusFailed)
 								failedBuild.NameReturns("42")
 								failedBuild.EndTimeReturns(endTime)
-								fakeJob.FinishedAndNextBuildReturns(failedBuild, nil, nil)
+								fakePipeline.DashboardReturns(db.Dashboard{
+									{
+										Job:           fakeJob,
+										FinishedBuild: failedBuild,
+									},
+								}, nil)
 							})
 
 							It("returns the CC.xml", func() {
@@ -183,7 +207,13 @@ var _ = Describe("cc.xml", func() {
 
 								nextBuild := new(dbfakes.FakeBuild)
 
-								fakeJob.FinishedAndNextBuildReturns(finishedBuild, nextBuild, nil)
+								fakePipeline.DashboardReturns(db.Dashboard{
+									{
+										Job:           fakeJob,
+										FinishedBuild: finishedBuild,
+										NextBuild:     nextBuild,
+									},
+								}, nil)
 							})
 
 							It("returns the CC.xml", func() {
@@ -199,10 +229,6 @@ var _ = Describe("cc.xml", func() {
 						})
 
 						Context("when no last build exists", func() {
-							BeforeEach(func() {
-								fakeJob.FinishedAndNextBuildReturns(nil, nil, nil)
-							})
-
 							It("returns the CC.xml without the job", func() {
 								body, err := ioutil.ReadAll(response.Body)
 								Expect(err).NotTo(HaveOccurred())
@@ -210,21 +236,11 @@ var _ = Describe("cc.xml", func() {
 								Expect(body).To(MatchXML("<Projects></Projects>"))
 							})
 						})
-
-						Context("when finding the last build fails", func() {
-							BeforeEach(func() {
-								fakeJob.FinishedAndNextBuildReturns(nil, nil, errors.New("failed"))
-							})
-
-							It("returns 500", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-							})
-						})
 					})
 
 					Context("when no job is found", func() {
 						BeforeEach(func() {
-							fakePipeline.JobsReturns(db.Jobs{}, nil)
+							fakePipeline.DashboardReturns(db.Dashboard{}, nil)
 						})
 
 						It("returns 200", func() {
@@ -241,7 +257,7 @@ var _ = Describe("cc.xml", func() {
 
 					Context("when finding the jobs fails", func() {
 						BeforeEach(func() {
-							fakePipeline.JobsReturns(nil, errors.New("failed"))
+							fakePipeline.DashboardReturns(nil, errors.New("failed"))
 						})
 
 						It("returns 500", func() {
