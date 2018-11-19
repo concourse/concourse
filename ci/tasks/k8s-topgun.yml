@@ -1,0 +1,23 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: concourse/unit}
+
+params:
+  CONCOURSE_IMAGE_DIGEST:
+  CONCOURSE_DIGEST_FILE:
+  CONCOURSE_IMAGE_NAME:
+
+inputs:
+- name: concourse
+- name: concourse-release
+- name: dev-image
+- name: charts
+
+caches:
+- path: gopath
+
+run:
+  path: concourse/ci/tasks/scripts/topgun

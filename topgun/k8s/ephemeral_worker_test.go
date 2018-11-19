@@ -107,7 +107,7 @@ var _ = Describe("Ephemeral workers", func() {
 
 	BeforeEach(func() {
 		port := 8080 + GinkgoParallelNode()
-		releaseName = fmt.Sprintf("topgun-ephemeral-workers-%d", GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-ephemeral-workers-%d", GinkgoParallelNode() )
 		HelmDeploy(releaseName)
 
 		Eventually(func() bool {

@@ -3,7 +3,7 @@ platform: linux
 
 image_resource:
   type: registry-image
-  source: {repository: concourse/k8s-testflight}
+  source: {repository: concourse/k8s-dev}
 
 params:
   RELEASE_NAME:

@@ -50,6 +50,7 @@ groups:
 - name: k8s
   jobs:
   - k8s-smoke
+  - k8s-topgun
 
 - name: bosh
   jobs:
@@ -62,6 +63,7 @@ groups:
 - name: images
   jobs:
   - unit-image
+  - k8s-dev-image
 
 - name: publish
   jobs:
@@ -231,13 +233,10 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [unit, dev-image]
-      trigger: true
-    - get: unit-image
-      passed: [unit, dev-image]
+      passed: [build-rc]
       trigger: true
     - get: dev-image
-      passed: [dev-image]
+      passed: [build-rc]
       params: {format: oci}
     - get: charts
   - task: terraform-k8s-smoke
@@ -259,6 +258,53 @@ jobs:
     image: unit-image
     file: concourse/ci/tasks/smoke.yml
     input_mapping: {endpoint-info: outputs}
+
+- name: k8s-topgun
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [k8s-smoke]
+      trigger: true
+    - get: dev-image
+      passed: [k8s-smoke]
+      params: {format: oci}
+    - get: k8s-dev-image
+    - get: charts
+      passed: [k8s-smoke]
+  - task: deploy
+    file: concourse/ci/tasks/k8s-topgun.yml
+    image: k8s-dev-image
+    params:
+     KUBE_CONFIG: ((kube_config))
+     RELEASE_NAME: concourse-testflight
+     CONCOURSE_IMAGE_NAME: concourse/dev
+
+- name: k8s-dev-image
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      resource: k8s-dev-dockerfile
+      trigger: true
+    - get: builder
+  - task: build
+    image: builder
+    privileged: true
+    config:
+      platform: linux
+      params:
+        REPOSITORY: concourse/k8s-dev
+        CONTEXT: concourse/ci/dockerfiles/k8s-dev
+      inputs: [{name: concourse}]
+      outputs: [{name: image}]
+      caches: [{path: cache}]
+      run: {path: build}
+  - put: k8s-dev-image
+    params: {image: image/image.tar}
+
 
 - name: rc
   public: true
@@ -621,6 +667,20 @@ resources:
     branch: master
     paths: [ci/dockerfiles/unit]
 
+- name: k8s-dev-dockerfile
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse.git
+    branch: master
+    paths: [ci/dockerfiles/k8s-dev]
+
+- name: k8s-dev-image
+  type: registry-image-beta
+  source:
+    repository: concourse/k8s-dev
+    username: ((docker.username))
+    password: ((docker.password))
+
 - name: dev-image
   type: registry-image-beta
   source:
@@ -820,7 +880,7 @@ resources:
   type: git
   source:
      uri: https://github.com/concourse/charts.git
-     branch: concourse-chart-image-digest
+     branch: concourse-probes
 
 - name: golang-windows
   type: s3
