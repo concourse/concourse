@@ -126,6 +126,25 @@ container as a shared volume, so changes to the `.js`/`.css` assets will
 automatically propagate without needing a restart.
 
 
+### Debugging with dlv
+
+With concourse already running, during local development is possible to attach
+[`dlv`](https://github.com/derekparker/delve) to either the `web` or `worker` instance,
+allowing you to set breakpoints and inspect the current state of either one of those.
+
+To trace a running web instance:
+
+```sh
+./hack/trace web
+```
+
+To trace a running worker instance:
+
+```sh
+./hack/trace worker
+```
+
+
 ## Connecting to Postgres
 
 If you want to poke around the database, you can connect to the `db` node using
