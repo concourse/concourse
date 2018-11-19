@@ -20,4 +20,4 @@ caches:
 - path: gopath
 
 run:
-  path: concourse/ci/tasks/scripts/topgun
+  path: concourse/ci/tasks/scripts/k8s-topgun
