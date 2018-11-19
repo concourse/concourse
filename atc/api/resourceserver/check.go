@@ -56,7 +56,7 @@ func (s *Server) CheckResource(dbPipeline db.Pipeline) http.Handler {
 			}})
 		case error:
 			w.WriteHeader(http.StatusInternalServerError)
-			_,_ = w.Write([]byte(err.Error()))
+			_, _ = w.Write([]byte(err.Error()))
 		default:
 			w.WriteHeader(http.StatusOK)
 		}

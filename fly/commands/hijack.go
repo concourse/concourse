@@ -107,6 +107,10 @@ func (command *HijackCommand) Execute([]string) error {
 
 			infos = append(infos, fmt.Sprintf("type: %s", container.Type))
 
+			if container.Type == "check" {
+				infos = append(infos, fmt.Sprintf("expires in: %s", container.ExpiresIn))
+			}
+
 			if container.Attempt != "" {
 				infos = append(infos, fmt.Sprintf("attempt: %s", container.Attempt))
 			}

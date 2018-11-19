@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/gorilla/websocket"
@@ -96,6 +97,35 @@ func (s *Server) HijackContainer(team db.Team) http.Handler {
 
 		if !found {
 			hLog.Info("container-not-found")
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		isCheckContainer, err := team.IsCheckContainer(handle)
+		if err != nil {
+			hLog.Error("failed-to-find-container", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if isCheckContainer {
+			acc := accessor.GetAccessor(r)
+			if !acc.IsAdmin() {
+				hLog.Error("user-not-authorized-to-hijack-check-container", err)
+				w.WriteHeader(http.StatusForbidden)
+				return
+			}
+		}
+
+		ok, err := team.IsContainerWithinTeam(handle, isCheckContainer)
+		if err != nil {
+			hLog.Error("failed-to-find-container-within-team", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !ok {
+			hLog.Error("container-not-found-within-team", err)
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}

@@ -5,7 +5,9 @@ import (
 	sync "sync"
 	time "time"
 
+	lager "code.cloudfoundry.org/lager"
 	atc "github.com/concourse/concourse/atc"
+	creds "github.com/concourse/concourse/atc/creds"
 	db "github.com/concourse/concourse/atc/db"
 )
 
@@ -60,6 +62,19 @@ type FakeTeam struct {
 		result2 db.Pagination
 		result3 error
 	}
+	ContainersStub        func(lager.Logger) ([]db.Container, error)
+	containersMutex       sync.RWMutex
+	containersArgsForCall []struct {
+		arg1 lager.Logger
+	}
+	containersReturns struct {
+		result1 []db.Container
+		result2 error
+	}
+	containersReturnsOnCall map[int]struct {
+		result1 []db.Container
+		result2 error
+	}
 	CreateOneOffBuildStub        func() (db.Build, error)
 	createOneOffBuildMutex       sync.RWMutex
 	createOneOffBuildArgsForCall []struct {
@@ -81,6 +96,24 @@ type FakeTeam struct {
 	}
 	deleteReturnsOnCall map[int]struct {
 		result1 error
+	}
+	FindCheckContainersStub        func(lager.Logger, string, string, creds.VariablesFactory) ([]db.Container, map[int]time.Time, error)
+	findCheckContainersMutex       sync.RWMutex
+	findCheckContainersArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 string
+		arg3 string
+		arg4 creds.VariablesFactory
+	}
+	findCheckContainersReturns struct {
+		result1 []db.Container
+		result2 map[int]time.Time
+		result3 error
+	}
+	findCheckContainersReturnsOnCall map[int]struct {
+		result1 []db.Container
+		result2 map[int]time.Time
+		result3 error
 	}
 	FindContainerByHandleStub        func(string) (db.Container, bool, error)
 	findContainerByHandleMutex       sync.RWMutex
@@ -149,6 +182,33 @@ type FakeTeam struct {
 	}
 	iDReturnsOnCall map[int]struct {
 		result1 int
+	}
+	IsCheckContainerStub        func(string) (bool, error)
+	isCheckContainerMutex       sync.RWMutex
+	isCheckContainerArgsForCall []struct {
+		arg1 string
+	}
+	isCheckContainerReturns struct {
+		result1 bool
+		result2 error
+	}
+	isCheckContainerReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
+	IsContainerWithinTeamStub        func(string, bool) (bool, error)
+	isContainerWithinTeamMutex       sync.RWMutex
+	isContainerWithinTeamArgsForCall []struct {
+		arg1 string
+		arg2 bool
+	}
+	isContainerWithinTeamReturns struct {
+		result1 bool
+		result2 error
+	}
+	isContainerWithinTeamReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
 	}
 	NameStub        func() string
 	nameMutex       sync.RWMutex
@@ -503,6 +563,59 @@ func (fake *FakeTeam) BuildsWithTimeReturnsOnCall(i int, result1 []db.Build, res
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeam) Containers(arg1 lager.Logger) ([]db.Container, error) {
+	fake.containersMutex.Lock()
+	ret, specificReturn := fake.containersReturnsOnCall[len(fake.containersArgsForCall)]
+	fake.containersArgsForCall = append(fake.containersArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	fake.recordInvocation("Containers", []interface{}{arg1})
+	fake.containersMutex.Unlock()
+	if fake.ContainersStub != nil {
+		return fake.ContainersStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.containersReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) ContainersCallCount() int {
+	fake.containersMutex.RLock()
+	defer fake.containersMutex.RUnlock()
+	return len(fake.containersArgsForCall)
+}
+
+func (fake *FakeTeam) ContainersArgsForCall(i int) lager.Logger {
+	fake.containersMutex.RLock()
+	defer fake.containersMutex.RUnlock()
+	argsForCall := fake.containersArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTeam) ContainersReturns(result1 []db.Container, result2 error) {
+	fake.ContainersStub = nil
+	fake.containersReturns = struct {
+		result1 []db.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) ContainersReturnsOnCall(i int, result1 []db.Container, result2 error) {
+	fake.ContainersStub = nil
+	if fake.containersReturnsOnCall == nil {
+		fake.containersReturnsOnCall = make(map[int]struct {
+			result1 []db.Container
+			result2 error
+		})
+	}
+	fake.containersReturnsOnCall[i] = struct {
+		result1 []db.Container
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) CreateOneOffBuild() (db.Build, error) {
 	fake.createOneOffBuildMutex.Lock()
 	ret, specificReturn := fake.createOneOffBuildReturnsOnCall[len(fake.createOneOffBuildArgsForCall)]
@@ -588,6 +701,65 @@ func (fake *FakeTeam) DeleteReturnsOnCall(i int, result1 error) {
 	fake.deleteReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeTeam) FindCheckContainers(arg1 lager.Logger, arg2 string, arg3 string, arg4 creds.VariablesFactory) ([]db.Container, map[int]time.Time, error) {
+	fake.findCheckContainersMutex.Lock()
+	ret, specificReturn := fake.findCheckContainersReturnsOnCall[len(fake.findCheckContainersArgsForCall)]
+	fake.findCheckContainersArgsForCall = append(fake.findCheckContainersArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 string
+		arg3 string
+		arg4 creds.VariablesFactory
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("FindCheckContainers", []interface{}{arg1, arg2, arg3, arg4})
+	fake.findCheckContainersMutex.Unlock()
+	if fake.FindCheckContainersStub != nil {
+		return fake.FindCheckContainersStub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.findCheckContainersReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeTeam) FindCheckContainersCallCount() int {
+	fake.findCheckContainersMutex.RLock()
+	defer fake.findCheckContainersMutex.RUnlock()
+	return len(fake.findCheckContainersArgsForCall)
+}
+
+func (fake *FakeTeam) FindCheckContainersArgsForCall(i int) (lager.Logger, string, string, creds.VariablesFactory) {
+	fake.findCheckContainersMutex.RLock()
+	defer fake.findCheckContainersMutex.RUnlock()
+	argsForCall := fake.findCheckContainersArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeTeam) FindCheckContainersReturns(result1 []db.Container, result2 map[int]time.Time, result3 error) {
+	fake.FindCheckContainersStub = nil
+	fake.findCheckContainersReturns = struct {
+		result1 []db.Container
+		result2 map[int]time.Time
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) FindCheckContainersReturnsOnCall(i int, result1 []db.Container, result2 map[int]time.Time, result3 error) {
+	fake.FindCheckContainersStub = nil
+	if fake.findCheckContainersReturnsOnCall == nil {
+		fake.findCheckContainersReturnsOnCall = make(map[int]struct {
+			result1 []db.Container
+			result2 map[int]time.Time
+			result3 error
+		})
+	}
+	fake.findCheckContainersReturnsOnCall[i] = struct {
+		result1 []db.Container
+		result2 map[int]time.Time
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeTeam) FindContainerByHandle(arg1 string) (db.Container, bool, error) {
@@ -851,6 +1023,113 @@ func (fake *FakeTeam) IDReturnsOnCall(i int, result1 int) {
 	fake.iDReturnsOnCall[i] = struct {
 		result1 int
 	}{result1}
+}
+
+func (fake *FakeTeam) IsCheckContainer(arg1 string) (bool, error) {
+	fake.isCheckContainerMutex.Lock()
+	ret, specificReturn := fake.isCheckContainerReturnsOnCall[len(fake.isCheckContainerArgsForCall)]
+	fake.isCheckContainerArgsForCall = append(fake.isCheckContainerArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("IsCheckContainer", []interface{}{arg1})
+	fake.isCheckContainerMutex.Unlock()
+	if fake.IsCheckContainerStub != nil {
+		return fake.IsCheckContainerStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.isCheckContainerReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) IsCheckContainerCallCount() int {
+	fake.isCheckContainerMutex.RLock()
+	defer fake.isCheckContainerMutex.RUnlock()
+	return len(fake.isCheckContainerArgsForCall)
+}
+
+func (fake *FakeTeam) IsCheckContainerArgsForCall(i int) string {
+	fake.isCheckContainerMutex.RLock()
+	defer fake.isCheckContainerMutex.RUnlock()
+	argsForCall := fake.isCheckContainerArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTeam) IsCheckContainerReturns(result1 bool, result2 error) {
+	fake.IsCheckContainerStub = nil
+	fake.isCheckContainerReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) IsCheckContainerReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.IsCheckContainerStub = nil
+	if fake.isCheckContainerReturnsOnCall == nil {
+		fake.isCheckContainerReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.isCheckContainerReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) IsContainerWithinTeam(arg1 string, arg2 bool) (bool, error) {
+	fake.isContainerWithinTeamMutex.Lock()
+	ret, specificReturn := fake.isContainerWithinTeamReturnsOnCall[len(fake.isContainerWithinTeamArgsForCall)]
+	fake.isContainerWithinTeamArgsForCall = append(fake.isContainerWithinTeamArgsForCall, struct {
+		arg1 string
+		arg2 bool
+	}{arg1, arg2})
+	fake.recordInvocation("IsContainerWithinTeam", []interface{}{arg1, arg2})
+	fake.isContainerWithinTeamMutex.Unlock()
+	if fake.IsContainerWithinTeamStub != nil {
+		return fake.IsContainerWithinTeamStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.isContainerWithinTeamReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) IsContainerWithinTeamCallCount() int {
+	fake.isContainerWithinTeamMutex.RLock()
+	defer fake.isContainerWithinTeamMutex.RUnlock()
+	return len(fake.isContainerWithinTeamArgsForCall)
+}
+
+func (fake *FakeTeam) IsContainerWithinTeamArgsForCall(i int) (string, bool) {
+	fake.isContainerWithinTeamMutex.RLock()
+	defer fake.isContainerWithinTeamMutex.RUnlock()
+	argsForCall := fake.isContainerWithinTeamArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeTeam) IsContainerWithinTeamReturns(result1 bool, result2 error) {
+	fake.IsContainerWithinTeamStub = nil
+	fake.isContainerWithinTeamReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) IsContainerWithinTeamReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.IsContainerWithinTeamStub = nil
+	if fake.isContainerWithinTeamReturnsOnCall == nil {
+		fake.isContainerWithinTeamReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.isContainerWithinTeamReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeTeam) Name() string {
@@ -1466,10 +1745,14 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.buildsMutex.RUnlock()
 	fake.buildsWithTimeMutex.RLock()
 	defer fake.buildsWithTimeMutex.RUnlock()
+	fake.containersMutex.RLock()
+	defer fake.containersMutex.RUnlock()
 	fake.createOneOffBuildMutex.RLock()
 	defer fake.createOneOffBuildMutex.RUnlock()
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
+	fake.findCheckContainersMutex.RLock()
+	defer fake.findCheckContainersMutex.RUnlock()
 	fake.findContainerByHandleMutex.RLock()
 	defer fake.findContainerByHandleMutex.RUnlock()
 	fake.findContainersByMetadataMutex.RLock()
@@ -1480,6 +1763,10 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.findWorkerForContainerMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
+	fake.isCheckContainerMutex.RLock()
+	defer fake.isCheckContainerMutex.RUnlock()
+	fake.isContainerWithinTeamMutex.RLock()
+	defer fake.isContainerWithinTeamMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
 	fake.orderPipelinesMutex.RLock()

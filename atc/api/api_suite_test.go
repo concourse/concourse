@@ -34,7 +34,7 @@ import (
 var (
 	sink *lager.ReconfigurableSink
 
-	externalURL  = "https://example.com"
+	externalURL = "https://example.com"
 
 	fakeEngine              *enginefakes.FakeEngine
 	fakeWorkerClient        *workerfakes.FakeClient

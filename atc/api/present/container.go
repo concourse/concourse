@@ -1,14 +1,16 @@
 package present
 
 import (
+	"time"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
-func Container(container db.Container) atc.Container {
+func Container(container db.Container, expiresAt time.Time) atc.Container {
 	meta := container.Metadata()
 
-	return atc.Container{
+	atcContainer := atc.Container{
 		ID:         container.Handle(),
 		WorkerName: container.WorkerName(),
 
@@ -29,4 +31,10 @@ func Container(container db.Container) atc.Container {
 		WorkingDirectory: meta.WorkingDirectory,
 		User:             meta.User,
 	}
+
+	if !expiresAt.IsZero() {
+		atcContainer.ExpiresIn = expiresAt.Sub(time.Now()).Round(time.Second).String()
+	}
+
+	return atcContainer
 }

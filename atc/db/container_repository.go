@@ -275,7 +275,6 @@ func selectContainers(asOptional ...string) sq.SelectBuilder {
 	table := "containers"
 	if len(asOptional) > 0 {
 		as := asOptional[0]
-
 		for i, c := range columns {
 			columns[i] = as + "." + c
 		}

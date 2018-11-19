@@ -3,6 +3,7 @@ package containerserver
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/api/present"
@@ -30,9 +31,29 @@ func (s *Server) GetContainer(team db.Team) http.Handler {
 			return
 		}
 
+		isCheckContainer, err := team.IsCheckContainer(handle)
+		if err != nil {
+			hLog.Error("failed-to-find-container", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		ok, err := team.IsContainerWithinTeam(handle, isCheckContainer)
+		if err != nil {
+			hLog.Error("failed-to-find-container-within-team", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !ok {
+			hLog.Error("container-not-found-within-team", err)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
 		hLog.Debug("found-container")
 
-		presentedContainer := present.Container(container)
+		presentedContainer := present.Container(container, time.Time{})
 
 		w.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(w).Encode(presentedContainer)
