@@ -486,7 +486,7 @@ func (emitter *PrometheusEmitter) resourceMetric(logger lager.Logger, event metr
 		return
 	}
 
-	emitter.resourceChecksVec.WithLabelValues(pipeline, team).Inc()
+	emitter.resourceChecksVec.WithLabelValues(team, pipeline).Inc()
 }
 
 // updateLastSeen tracks for each worker when it last received a metric event.
