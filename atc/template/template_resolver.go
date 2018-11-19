@@ -1,52 +1,55 @@
 package template
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/cloudfoundry/bosh-cli/director/template"
-	temp "github.com/concourse/concourse/fly/template"
-	"gopkg.in/yaml.v2"
+	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
+	"github.com/hashicorp/go-multierror"
+	"regexp"
 )
 
+var templateOldStyleFormatRegex = regexp.MustCompile(`\{\{([-\w\p{L}]+)\}\}`)
+
 type TemplateResolver struct {
+	configPayload []byte
+	params        []boshtemplate.StaticVariables
 }
 
-func (templateResolver TemplateResolver) Resolve(configPayload []byte, paramPayloads [][]byte, flagVars template.StaticVariables, allowEmptyInOldStyleTemplates bool) ([]byte, error) {
+func NewTemplateResolver(configPayload []byte, params []boshtemplate.StaticVariables) TemplateResolver {
+	return TemplateResolver{
+		configPayload: configPayload,
+		params:        params,
+	}
+}
+
+func (resolver TemplateResolver) Resolve(allowEmptyInOldStyleTemplates bool) ([]byte, error) {
 	var err error
-	if temp.Present(configPayload) {
-		configPayload, err = templateResolver.resolveDeprecatedTemplateStyle(configPayload, paramPayloads, flagVars, allowEmptyInOldStyleTemplates)
+
+	if PresentDeprecated(resolver.configPayload) {
+		resolver.configPayload, err = resolver.ResolveDeprecated(allowEmptyInOldStyleTemplates)
 		if err != nil {
 			return nil, fmt.Errorf("could not resolve old-style template vars: %s", err.Error())
 		}
 	}
 
-	configPayload, err = templateResolver.resolveTemplates(configPayload, paramPayloads, flagVars)
+	resolver.configPayload, err = resolver.resolve()
 	if err != nil {
 		return nil, fmt.Errorf("could not resolve template vars: %s", err.Error())
 	}
 
-	return configPayload, nil
+	return resolver.configPayload, nil
 }
 
-func (templateResolver TemplateResolver) resolveTemplates(configPayload []byte, paramPayloads [][]byte, flagVars template.StaticVariables) ([]byte, error) {
-	tpl := template.NewTemplate(configPayload)
+func (resolver TemplateResolver) resolve() ([]byte, error) {
+	tpl := boshtemplate.NewTemplate(resolver.configPayload)
 
-	vars := []template.Variables{}
-	if flagVars != nil {
-		vars = append(vars, flagVars)
-	}
-	for i := len(paramPayloads) - 1; i >= 0; i-- {
-		payload := paramPayloads[i]
-
-		var staticVars template.StaticVariables
-		err := yaml.Unmarshal(payload, &staticVars)
-		if err != nil {
-			return nil, err
-		}
-
-		vars = append(vars, staticVars)
+	vars := []boshtemplate.Variables{}
+	for i := len(resolver.params) - 1; i >= 0; i-- {
+		vars = append(vars, resolver.params[i])
 	}
 
-	bytes, err := tpl.Evaluate(template.NewMultiVars(vars), nil, template.EvaluateOpts{})
+	bytes, err := tpl.Evaluate(boshtemplate.NewMultiVars(vars), nil, boshtemplate.EvaluateOpts{})
+
 	if err != nil {
 		return nil, err
 	}
@@ -54,26 +57,32 @@ func (templateResolver TemplateResolver) resolveTemplates(configPayload []byte, 
 	return bytes, nil
 }
 
-func (templateResolver TemplateResolver) resolveDeprecatedTemplateStyle(
-	configPayload []byte,
-	paramPayloads [][]byte,
-	flagVars template.StaticVariables,
-	allowEmpty bool,
-) ([]byte, error) {
-	vars := temp.Variables{}
-	for _, payload := range paramPayloads {
-		var payloadVars temp.Variables
-		err := yaml.Unmarshal(payload, &payloadVars)
-		if err != nil {
-			return nil, err
+func (resolver TemplateResolver) ResolveDeprecated(allowEmpty bool) ([]byte, error) {
+	vars := boshtemplate.StaticVariables{}
+	for _, payload := range resolver.params {
+		for k, v := range payload {
+			vars[k] = v
+		}
+	}
+
+	var variableErrors error
+
+	return templateOldStyleFormatRegex.ReplaceAllFunc(resolver.configPayload, func(match []byte) []byte {
+		key := string(templateOldStyleFormatRegex.FindSubmatch(match)[1])
+
+		value, found := vars[key]
+		if !found && !allowEmpty {
+			variableErrors = multierror.Append(variableErrors, fmt.Errorf("unbound variable in template: '%s'", key))
+			return match
 		}
 
-		vars = vars.Merge(payloadVars)
-	}
+		saveValue, _ := json.Marshal(value)
 
-	for k, v := range flagVars {
-		vars[k] = v.(string)
-	}
+		return []byte(saveValue)
+	}), variableErrors
 
-	return temp.Evaluate(configPayload, vars, allowEmpty)
+}
+
+func PresentDeprecated(content []byte) bool {
+	return templateOldStyleFormatRegex.Match(content)
 }

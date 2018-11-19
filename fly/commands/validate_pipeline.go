@@ -3,7 +3,7 @@ package commands
 import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/commands/internal/setpipelinehelpers"
+	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 )
 
 type ValidatePipelineCommand struct {
@@ -18,6 +18,6 @@ type ValidatePipelineCommand struct {
 }
 
 func (command *ValidatePipelineCommand) Execute(args []string) error {
-	atcConfig := setpipelinehelpers.ATCConfig{}
-	return atcConfig.Validate(command.Config, command.Var, command.YAMLVar, command.VarsFrom, command.Strict, command.Output)
+	yamlTemplate := paramhelpers.NewYamlTemplateWithParams(command.Config, command.VarsFrom, command.Var, command.YAMLVar)
+	return yamlTemplate.Validate(command.Strict, command.Output)
 }

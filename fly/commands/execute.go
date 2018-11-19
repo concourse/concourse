@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/executehelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/commands/internal/setpipelinehelpers"
+	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 	"github.com/concourse/concourse/fly/config"
 	"github.com/concourse/concourse/fly/eventstream"
 	"github.com/concourse/concourse/fly/rc"
@@ -48,12 +48,13 @@ func (command *ExecuteCommand) Execute(args []string) error {
 
 	includeIgnored := command.IncludeIgnored
 
-	taskConfigBytes, err := setpipelinehelpers.ATCConfig{}.NewConfig(command.TaskConfig, command.VarsFrom, command.Var, command.YAMLVar, false, false)
+	taskTemplate := paramhelpers.NewYamlTemplateWithParams(command.TaskConfig, command.VarsFrom, command.Var, command.YAMLVar)
+	taskTemplateEvaluated, err := taskTemplate.Evaluate(false, false)
 	if err != nil {
 		return err
 	}
 
-	taskConfig, err := config.OverrideTaskParams(taskConfigBytes, args)
+	taskConfig, err := config.OverrideTaskParams(taskTemplateEvaluated, args)
 	if err != nil {
 		return err
 	}

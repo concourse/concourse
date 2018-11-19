@@ -4,6 +4,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/commands/internal/setpipelinehelpers"
+	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/mgutz/ansi"
 )
@@ -56,5 +57,6 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		CheckCredentials: command.CheckCredentials,
 	}
 
-	return atcConfig.Set(configPath, command.Var, command.YAMLVar, templateVariablesFiles)
+	yamlTemplateWithParams := paramhelpers.NewYamlTemplateWithParams(configPath, templateVariablesFiles, command.Var, command.YAMLVar)
+	return atcConfig.Set(yamlTemplateWithParams)
 }

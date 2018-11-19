@@ -3,8 +3,8 @@ package exec
 import (
 	"encoding/json"
 	"fmt"
-	atctemplate "github.com/concourse/concourse/atc/template"
-	"gopkg.in/yaml.v2"
+	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
+	"github.com/concourse/concourse/atc/template"
 	"io/ioutil"
 	"math"
 	"strconv"
@@ -28,18 +28,19 @@ type TaskConfigSource interface {
 
 // StaticConfigSource represents a statically configured TaskConfig.
 type StaticConfigSource struct {
-	Plan atc.TaskPlan
+	Config *atc.TaskConfig
+	Params atc.Params
 }
 
 // FetchConfig returns the configuration.
 func (configSource StaticConfigSource) FetchConfig(lager.Logger, *worker.ArtifactRepository) (atc.TaskConfig, error) {
 	taskConfig := atc.TaskConfig{}
 
-	if configSource.Plan.Config != nil {
-		taskConfig = *configSource.Plan.Config
+	if configSource.Config != nil {
+		taskConfig = *configSource.Config
 	}
 
-	if configSource.Plan.Params == nil {
+	if configSource.Params == nil {
 		return taskConfig, nil
 	}
 
@@ -47,7 +48,7 @@ func (configSource StaticConfigSource) FetchConfig(lager.Logger, *worker.Artifac
 		taskConfig.Params = map[string]string{}
 	}
 
-	for key, val := range configSource.Plan.Params {
+	for key, val := range configSource.Params {
 		switch v := val.(type) {
 		case string:
 			taskConfig.Params[key] = v
@@ -76,7 +77,8 @@ func (configSource StaticConfigSource) Warnings() []string {
 // FileConfigSource represents a dynamically configured TaskConfig, which will
 // be fetched from a specified file in the worker.ArtifactRepository.
 type FileConfigSource struct {
-	Plan atc.TaskPlan
+	ConfigPath string
+	Vars       atc.Params
 }
 
 // FetchConfig reads the specified file from the worker.ArtifactRepository and loads the
@@ -95,9 +97,9 @@ type FileConfigSource struct {
 // If the task config file is not found, or is invalid YAML, or is an invalid
 // task configuration, the respective errors will be bubbled up.
 func (configSource FileConfigSource) FetchConfig(logger lager.Logger, repo *worker.ArtifactRepository) (atc.TaskConfig, error) {
-	segs := strings.SplitN(configSource.Plan.ConfigPath, "/", 2)
+	segs := strings.SplitN(configSource.ConfigPath, "/", 2)
 	if len(segs) != 2 {
-		return atc.TaskConfig{}, UnspecifiedArtifactSourceError{configSource.Plan.ConfigPath}
+		return atc.TaskConfig{}, UnspecifiedArtifactSourceError{configSource.ConfigPath}
 	}
 
 	sourceName := worker.ArtifactName(segs[0])
@@ -105,7 +107,7 @@ func (configSource FileConfigSource) FetchConfig(logger lager.Logger, repo *work
 
 	source, found := repo.SourceFor(sourceName)
 	if !found {
-		return atc.TaskConfig{}, UnknownArtifactSourceError{sourceName, configSource.Plan.ConfigPath}
+		return atc.TaskConfig{}, UnknownArtifactSourceError{sourceName, configSource.ConfigPath}
 	}
 
 	stream, err := source.StreamFile(logger, filePath)
@@ -124,18 +126,15 @@ func (configSource FileConfigSource) FetchConfig(logger lager.Logger, repo *work
 	}
 
 	// process template of an external task, using vars provided from the pipeline
-	varsContents, err := yaml.Marshal(configSource.Plan.Vars)
+	variables := boshtemplate.StaticVariables(configSource.Vars)
+	streamedFile, err = template.NewTemplateResolver(streamedFile, []boshtemplate.StaticVariables{variables}).Resolve(true)
 	if err != nil {
-		return atc.TaskConfig{}, fmt.Errorf("failed to load %s: %s", configSource.Plan.ConfigPath, err)
-	}
-	streamedFile, err = atctemplate.TemplateResolver{}.Resolve(streamedFile, [][]byte{varsContents}, nil, true)
-	if err != nil {
-		return atc.TaskConfig{}, fmt.Errorf("failed to load %s: %s", configSource.Plan.ConfigPath, err)
+		return atc.TaskConfig{}, fmt.Errorf("failed to load %s: %s", configSource.ConfigPath, err)
 	}
 
 	config, err := atc.NewTaskConfig(streamedFile)
 	if err != nil {
-		return atc.TaskConfig{}, fmt.Errorf("failed to load %s: %s", configSource.Plan.ConfigPath, err)
+		return atc.TaskConfig{}, fmt.Errorf("failed to load %s: %s", configSource.ConfigPath, err)
 	}
 
 	return config, nil

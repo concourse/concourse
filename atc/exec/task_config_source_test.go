@@ -73,7 +73,7 @@ var _ = Describe("TaskConfigSource", func() {
 		)
 
 		JustBeforeEach(func() {
-			configSource = StaticConfigSource{Plan: taskPlan}
+			configSource = StaticConfigSource{Config: taskPlan.Config, Params: taskPlan.Params}
 		})
 
 		Context("when the params contain a floating point value", func() {
@@ -179,7 +179,7 @@ var _ = Describe("TaskConfigSource", func() {
 					"task-variable-name": "task-variable-value",
 				},
 			}
-			configSource = FileConfigSource{Plan: taskPlan}
+			configSource = FileConfigSource{ConfigPath: taskPlan.ConfigPath, Vars: taskPlan.Vars}
 		})
 
 		JustBeforeEach(func() {
@@ -188,7 +188,7 @@ var _ = Describe("TaskConfigSource", func() {
 
 		Context("when the path does not indicate an artifact source", func() {
 			BeforeEach(func() {
-				configSource.Plan.ConfigPath = "foo-bar.yml"
+				configSource.ConfigPath = "foo-bar.yml"
 			})
 
 			It("returns an error", func() {

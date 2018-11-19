@@ -138,13 +138,13 @@ func (factory *gardenFactory) Task(
 	var taskConfigSource TaskConfigSource
 	if plan.Task.ConfigPath != "" && (plan.Task.Config != nil || plan.Task.Params != nil) {
 		taskConfigSource = &MergedConfigSource{
-			A: FileConfigSource{Plan: *plan.Task},
-			B: StaticConfigSource{Plan: *plan.Task},
+			A: FileConfigSource{ConfigPath: plan.Task.ConfigPath, Vars: plan.Task.Vars},
+			B: StaticConfigSource{Config: plan.Task.Config, Params: plan.Task.Params},
 		}
 	} else if plan.Task.Config != nil {
-		taskConfigSource = StaticConfigSource{Plan: *plan.Task}
+		taskConfigSource = StaticConfigSource{Config: plan.Task.Config, Params: plan.Task.Params}
 	} else if plan.Task.ConfigPath != "" {
-		taskConfigSource = FileConfigSource{Plan: *plan.Task}
+		taskConfigSource = FileConfigSource{ConfigPath: plan.Task.ConfigPath, Vars: plan.Task.Vars}
 	}
 
 	taskConfigSource = ValidatingConfigSource{ConfigSource: taskConfigSource}
