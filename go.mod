@@ -42,7 +42,7 @@ require (
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
 	github.com/cockroachdb/cockroach-go v0.0.0-20160916181719-31611c0501c8 // indirect
 	github.com/concourse/baggageclaim v1.3.0
-	github.com/concourse/dex v0.0.0-20181116184439-546f619f62c4
+	github.com/concourse/dex v0.0.0-20181119164634-7f0c91c63428
 	github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c
 	github.com/concourse/go-archive v1.0.0
 	github.com/concourse/retryhttp v0.0.0-20170802173037-937335fd9545
@@ -128,7 +128,7 @@ require (
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
-	github.com/lib/pq v0.0.0-20180523175426-90697d60dd84
+	github.com/lib/pq v0.0.0-20181016162627-9eb73efc1fcc
 	github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329 // indirect
 	github.com/mattn/go-colorable v0.0.9
 	github.com/mattn/go-isatty v0.0.3

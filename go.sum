@@ -101,6 +101,8 @@ github.com/concourse/dex v0.0.0-20181115190355-a0c6a3042c28 h1:sJd/rCdmv3aS6Wzn7
 github.com/concourse/dex v0.0.0-20181115190355-a0c6a3042c28/go.mod h1:INKKyRQ1Yjry0qvpftH1BRmCYPa7Kcxgc67KVdfPjyo=
 github.com/concourse/dex v0.0.0-20181116184439-546f619f62c4 h1:R1Pgrlrx7TZTA+240WC3w11VjVnhOIoLWvHPLcI+4dI=
 github.com/concourse/dex v0.0.0-20181116184439-546f619f62c4/go.mod h1:INKKyRQ1Yjry0qvpftH1BRmCYPa7Kcxgc67KVdfPjyo=
+github.com/concourse/dex v0.0.0-20181119164634-7f0c91c63428 h1:5jYl5kGsANvaKMB3Z/0OOZvutvyMNF28BiAj/mQrGSw=
+github.com/concourse/dex v0.0.0-20181119164634-7f0c91c63428/go.mod h1:kmPlHm15mmvC763kFcCk1kFqoDN/bM+Hnq6T0G040ac=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c h1:SwMKBc36jGTSS5/3AqVtbRjbGTvDfR3pJ5MkzfiYSas=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
 github.com/concourse/go-archive v0.0.0-20180803203406-784931698f4f h1:Z7s60kZd9kuWiosivO9QPGH1vmfC/lzLDiuWIy0MT+o=
@@ -325,6 +327,7 @@ github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0/go.mod h1:vmVJ0l/dxyfGW6Fm
 github.com/lib/pq v0.0.0-20160831222520-50761b0867bd/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/lib/pq v0.0.0-20180523175426-90697d60dd84 h1:it29sI2IM490luSc3RAhp5WuCYnc6RtbfLVAB7nmC5M=
 github.com/lib/pq v0.0.0-20180523175426-90697d60dd84/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
+github.com/lib/pq v0.0.0-20181016162627-9eb73efc1fcc/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329 h1:2gxZ0XQIU/5z3Z3bUBu+FXuk2pFbkN6tcwi/pjyaDic=
 github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329/go.mod h1:C1wdFJiN94OJF2b5HbByQZoLdCWB1Yqtg26g4irojpc=
 github.com/mattn/go-colorable v0.0.9 h1:UVL0vNpWh04HeJXV0KLcaT7r06gOH2l4OW6ddYRUIY4=
