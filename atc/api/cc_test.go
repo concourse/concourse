@@ -63,8 +63,6 @@ var _ = Describe("cc.xml", func() {
 					var fakePipeline *dbfakes.FakePipeline
 					BeforeEach(func() {
 						fakePipeline = new(dbfakes.FakePipeline)
-						fakePipeline.NameReturns("something-else")
-						fakePipeline.TeamNameReturns("a-team")
 						fakeTeam.PipelinesReturns([]db.Pipeline{
 							fakePipeline,
 						}, nil)
@@ -75,6 +73,8 @@ var _ = Describe("cc.xml", func() {
 						var endTime time.Time
 						BeforeEach(func() {
 							fakeJob = new(dbfakes.FakeJob)
+							fakeJob.PipelineNameReturns("something-else")
+							fakeJob.TeamNameReturns("a-team")
 							fakeJob.NameReturns("some-job")
 
 							fakePipeline.DashboardReturns(db.Dashboard{

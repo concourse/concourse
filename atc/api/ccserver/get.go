@@ -65,9 +65,9 @@ func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		for _, dashboard := range dashboards {
-			if dashboard.FinishedBuild != nil {
-				projects = append(projects, s.buildProject(dashboard, pipeline))
+		for _, dashboardJob := range dashboards {
+			if dashboardJob.FinishedBuild != nil {
+				projects = append(projects, s.buildProject(dashboardJob))
 			}
 		}
 	}
@@ -82,7 +82,7 @@ func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) buildProject(j db.DashboardJob, pipeline db.Pipeline) Project {
+func (s *Server) buildProject(j db.DashboardJob) Project {
 	var lastBuildStatus string
 	switch {
 	case j.FinishedBuild.Status() == db.BuildStatusSucceeded:
@@ -102,14 +102,14 @@ func (s *Server) buildProject(j db.DashboardJob, pipeline db.Pipeline) Project {
 
 	webUrl := s.createWebUrl([]string{
 		"teams",
-		pipeline.TeamName(),
+		j.Job.TeamName(),
 		"pipelines",
-		pipeline.Name(),
+		j.Job.PipelineName(),
 		"jobs",
 		j.Job.Name(),
 	})
 
-	projectName := fmt.Sprintf("%s :: %s", pipeline.Name(), j.Job.Name())
+	projectName := fmt.Sprintf("%s :: %s", j.Job.PipelineName(), j.Job.Name())
 	return Project{
 		Activity:        activity,
 		LastBuildLabel:  fmt.Sprint(j.FinishedBuild.Name()),
