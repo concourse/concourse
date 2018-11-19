@@ -1,17 +1,17 @@
 #!/bin/bash
 
-set -o errexit
+set -e -u
 
-readonly DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd $(dirname $0)/..
+
 container_name=""
-
 case $1 in
 web)
   container_name="concourse_web_1"
   ;;
 
 worker)
-  container_name="concourse_web_1"
+  container_name="concourse_worker_1"
   ;;
 
 *)
@@ -20,9 +20,9 @@ worker)
   ;;
 esac
 
-tracee_pid=$(docker exec $container_name pidof concourse)
+trace_pid=$(docker exec $container_name pidof concourse)
 
-docker build --tag dlv ./dlv
+docker build --tag dlv ./hack/dlv
 
 docker run \
   --interactive \
@@ -30,6 +30,6 @@ docker run \
   --privileged \
   --rm \
   --tty \
-  --volume $DIR/..:/src \
+  --mount type=bind,source="$(pwd)",target=/src \
   dlv \
-  dlv attach $tracee_pid
+  dlv attach $trace_pid
