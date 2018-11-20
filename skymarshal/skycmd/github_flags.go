@@ -54,6 +54,7 @@ func (self *GithubFlags) Serialize(redirectURI string) ([]byte, error) {
 		HostName:      self.Host,
 		RootCA:        self.CACert.Path(),
 		TeamNameField: "both",
+		LoadAllGroups: true,
 	})
 }
 
