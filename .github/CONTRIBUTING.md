@@ -30,6 +30,9 @@ You'll also, of course, need to clone this repo:
 $ git clone https://github.com/concourse/concourse
 ```
 
+> *Concourse uses Go 1.11's module system, so make sure it's **not** cloned
+> under your `$GOPATH`.*
+
 
 ## Prerequisite: building the web UI
 
