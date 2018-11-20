@@ -1,9 +1,10 @@
 package main
 
 import (
+	"os"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/ifrit"
-	"os"
 )
 
 func NewLoggingRunner(logger lager.Logger, runner ifrit.Runner) ifrit.Runner {
@@ -20,6 +21,11 @@ type loggingRunner struct {
 
 func (lr *loggingRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	err := lr.runner.Run(signals, ready)
-	lr.logger.Info("logging-runner-exited", lager.Data{"err": err})
+	if err != nil {
+		lr.logger.Error("logging-runner-exited", err)
+	} else {
+		lr.logger.Info("logging-runner-exited")
+	}
+
 	return err
 }
