@@ -19,7 +19,6 @@ do
 
   echo "Setting ${name} example..."
   if [ -s $tmp_vars_path ]; then
-    echo "klfjslfkaj"
     fly -t prod sp -n -p ${name} -c ${tmp_config_path} -l ${tmp_vars_path}
   else
     fly -t prod sp -n -p ${name} -c ${tmp_config_path}
