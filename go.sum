@@ -103,6 +103,8 @@ github.com/concourse/dex v0.0.0-20181116184439-546f619f62c4 h1:R1Pgrlrx7TZTA+240
 github.com/concourse/dex v0.0.0-20181116184439-546f619f62c4/go.mod h1:INKKyRQ1Yjry0qvpftH1BRmCYPa7Kcxgc67KVdfPjyo=
 github.com/concourse/dex v0.0.0-20181119164634-7f0c91c63428 h1:5jYl5kGsANvaKMB3Z/0OOZvutvyMNF28BiAj/mQrGSw=
 github.com/concourse/dex v0.0.0-20181119164634-7f0c91c63428/go.mod h1:kmPlHm15mmvC763kFcCk1kFqoDN/bM+Hnq6T0G040ac=
+github.com/concourse/dex v0.0.0-20181120150407-23c62cf82b98 h1:PwgDnelfU6WtQshQYffPCyXLWicEeteY9AW4qyYwMOg=
+github.com/concourse/dex v0.0.0-20181120150407-23c62cf82b98/go.mod h1:KxaXUXusJaySm+1AjQmBwiyDe7wcR4lLV0GxwOcV598=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c h1:SwMKBc36jGTSS5/3AqVtbRjbGTvDfR3pJ5MkzfiYSas=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
 github.com/concourse/go-archive v0.0.0-20180803203406-784931698f4f h1:Z7s60kZd9kuWiosivO9QPGH1vmfC/lzLDiuWIy0MT+o=
@@ -527,6 +529,8 @@ gopkg.in/inf.v0 v0.9.1 h1:73M5CoZyi3ZLMOyDlQh031Cx6N9NDJ2Vvfl76EDAgDc=
 gopkg.in/inf.v0 v0.9.1/go.mod h1:cWUDdTG/fYaXco+Dcufb5Vnc6Gp2YChqWtbxRZE0mXw=
 gopkg.in/ldap.v2 v2.3.0 h1:vwU7LAjFERkhFo+UiiJ70sMaE6KEgCrB6KTWjP4ZhO0=
 gopkg.in/ldap.v2 v2.3.0/go.mod h1:oI0cpe/D7HRtBQl8aTg+ZmzFUAvu4lsv3eLXMLGFxWk=
+gopkg.in/ldap.v2 v2.5.1 h1:wiu0okdNfjlBzg6UWvd1Hn8Y+Ux17/u/4nlk4CQr6tU=
+gopkg.in/ldap.v2 v2.5.1/go.mod h1:oI0cpe/D7HRtBQl8aTg+ZmzFUAvu4lsv3eLXMLGFxWk=
 gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce h1:xcEWjVhvbDy+nHP67nPDDpbYrY+ILlfndk4bRioVHaU=
 gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce/go.mod h1:yeKp02qBN3iKW1OzL3MGk2IdtZzaj7SFntXj72NppTA=
 gopkg.in/square/go-jose.v2 v2.1.8 h1:yECBkTX7ypNaRFILw4trAAYXRLvcGxTeHCBKj/fc8gU=
