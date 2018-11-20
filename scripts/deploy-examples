@@ -4,25 +4,42 @@ set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
-fly -t prod login -n examples
+deploy () {
+  local examples=$(ls ${DIR}/../lit/examples/*.lit)
+  fly -t prod login -n examples
 
-EXAMPLE_PATHS=$(ls ${DIR}/../lit/examples/*.lit)
+  for path in $examples
+  do
+    name=$(basename -s '.lit' $path)
+    tmp_config_path="/tmp/${name}"
+    tmp_vars_path="/tmp/${name}.vars"
 
-for path in $EXAMPLE_PATHS
-do
-  name=$(basename -s '.lit' $path)
-  tmp_config_path="/tmp/${name}"
-  tmp_vars_path="/tmp/${name}.vars"
+    awk '/{configuration}/{flag=1;next}/}}}/{flag=0}flag' ${path} | sed '1d' > $tmp_config_path
+    awk '/{variables}/{flag=1;next}/}}}/{flag=0}flag' ${path} | sed '1d' > $tmp_vars_path
 
-  awk '/{configuration}/{flag=1;next}/}}}/{flag=0}flag' ${path} | sed '1d' > $tmp_config_path
-  awk '/{variables}/{flag=1;next}/}}}/{flag=0}flag' ${path} | sed '1d' > $tmp_vars_path
+    echo "Setting ${name} example..."
+    if [ -s $tmp_vars_path ]; then
+      fly -t prod sp -n -p ${name} -c ${tmp_config_path} -l ${tmp_vars_path}
+    else
+      fly -t prod sp -n -p ${name} -c ${tmp_config_path} -v DOCKERHUB_EMAIL=$DOCKERHUB_EMAIL -v DOCKERHUB_PASSWORD=$DOCKERHUB_PASSWORD -v DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME
+    fi
 
-  echo "Setting ${name} example..."
-  if [ -s $tmp_vars_path ]; then
-    fly -t prod sp -n -p ${name} -c ${tmp_config_path} -l ${tmp_vars_path}
-  else
-    fly -t prod sp -n -p ${name} -c ${tmp_config_path}
-  fi
+    fly -t prod up -p ${name}
 
-  fly -t prod up -p ${name}
-done
+    rm $tmp_config_path
+    rm $tmp_vars_path
+  done
+}
+
+LPASS_DOCKERHUB_ID="$1"
+
+if [ -z $LPASS_DOCKERHUB_ID ]; then
+  echo "Please provide a the Dockerhub entry ID";
+  exit 1;
+else
+  DOCKERHUB_EMAIL=$(lpass show --notes $LPASS_DOCKERHUB_ID)
+  DOCKERHUB_USERNAME=$(lpass show --field=nw_password $LPASS_DOCKERHUB_ID)
+  DOCKERHUB_PASSWORD=$(lpass show --field=nw_username $LPASS_DOCKERHUB_ID)
+
+  deploy
+fi
