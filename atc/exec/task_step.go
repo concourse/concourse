@@ -447,29 +447,30 @@ func newTaskArtifactSource(
 	}
 }
 
-func (src *taskArtifactSource) StreamTo(logger lager.Logger, destination worker.ArtifactDestination) (err error) {
-	srcData := lager.Data{
+func (src *taskArtifactSource) StreamTo(logger lager.Logger, destination worker.ArtifactDestination) error {
+	logger = logger.Session("task-artifact-streaming", lager.Data{
 		"src-volume": src.Handle(),
 		"src-worker": src.WorkerName(),
-	}
-	logger.Debug("task-artifact-start-streaming", srcData)
+	})
 
-	defer func() {
-		if err != nil {
-			logger.Error("task-artifact-streaming", err, srcData)
-		} else {
-			logger.Debug("task-artifact-end-streaming", srcData)
-		}
-	}()
+	logger.Debug("start")
+
+	defer logger.Debug("end")
 
 	out, err := src.StreamOut(".")
 	if err != nil {
+		logger.Error("failed", err)
 		return err
 	}
 
 	defer out.Close()
 
-	return destination.StreamIn(".", out)
+	err = destination.StreamIn(".", out)
+	if err != nil {
+		logger.Error("failed", err)
+		return err
+	}
+	return nil
 }
 
 func (src *taskArtifactSource) StreamFile(logger lager.Logger, filename string) (io.ReadCloser, error) {
