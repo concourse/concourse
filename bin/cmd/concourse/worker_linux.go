@@ -76,7 +76,6 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 		// disable graph and grootfs setup; all images passed to Concourse
 		// containers are raw://
 		"--no-image-plugin",
-		"--graph", "",
 	}
 
 	gdnServerFlags = append(gdnServerFlags, detectGardenFlags(logger)...)
