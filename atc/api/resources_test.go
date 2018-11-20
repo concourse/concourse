@@ -1020,38 +1020,6 @@ var _ = Describe("Resources API", func() {
 			fakeResourceConfigVersion *dbfakes.FakeResourceConfigVersion
 		)
 
-		ExpectResourceWebhookScanErrorsToBeHandled := func() {
-			Context("when checking fails with ResourceNotFoundError", func() {
-				BeforeEach(func() {
-					fakeScanner.ScanFromVersionReturns(db.ResourceNotFoundError{})
-				})
-
-				It("returns 404", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
-
-			Context("when checking the resource fails internally", func() {
-				BeforeEach(func() {
-					fakeScanner.ScanFromVersionReturns(errors.New("welp"))
-				})
-
-				It("returns 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-
-			Context("when checking the resource fails with err", func() {
-				BeforeEach(func() {
-					fakeScanner.ScanFromVersionReturns(errors.New("error"))
-				})
-
-				It("returns 400", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-		}
-
 		BeforeEach(func() {
 			fakeScanner = new(radarfakes.FakeScanner)
 			fakeScannerFactory.NewResourceScannerReturns(fakeScanner)
@@ -1128,7 +1096,7 @@ var _ = Describe("Resources API", func() {
 						})
 
 						It("tries to scan with the latest version", func() {
-							Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+							Eventually(fakeScanner.ScanFromVersionCallCount).Should(Equal(1))
 							_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
 							Expect(actualResourceName).To(Equal("resource-name"))
 							Expect(actualFromVersion).To(Equal(atc.Version{"some": "version"}))
@@ -1137,8 +1105,6 @@ var _ = Describe("Resources API", func() {
 						It("returns 200", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
-
-						ExpectResourceWebhookScanErrorsToBeHandled()
 					})
 
 					Context("when the latest version is not found", func() {
@@ -1147,7 +1113,7 @@ var _ = Describe("Resources API", func() {
 						})
 
 						It("tries to scan with no version specified", func() {
-							Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+							Eventually(fakeScanner.ScanFromVersionCallCount).Should(Equal(1))
 							_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
 							Expect(actualResourceName).To(Equal("resource-name"))
 							Expect(actualFromVersion).To(BeNil())
@@ -1156,8 +1122,6 @@ var _ = Describe("Resources API", func() {
 						It("returns 200", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
-
-						ExpectResourceWebhookScanErrorsToBeHandled()
 					})
 
 					Context("when failing to get latest version for resource", func() {
@@ -1165,23 +1129,9 @@ var _ = Describe("Resources API", func() {
 							fakeResourceConfig.LatestVersionReturns(nil, false, errors.New("disaster"))
 						})
 
-						It("returns 500", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-						})
-
 						It("does not scan from version", func() {
 							Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(0))
 						})
-					})
-				})
-
-				Context("when finding the resource config fails", func() {
-					BeforeEach(func() {
-						dbResourceConfigFactory.FindResourceConfigByIDReturns(nil, false, errors.New("oops"))
-					})
-
-					It("returns 500", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
 
