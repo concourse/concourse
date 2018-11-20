@@ -109,7 +109,7 @@ func (s *Server) buildProject(j db.DashboardJob) Project {
 		j.Job.Name(),
 	})
 
-	projectName := fmt.Sprintf("%s :: %s", j.Job.PipelineName(), j.Job.Name())
+	projectName := fmt.Sprintf("%s/%s", j.Job.PipelineName(), j.Job.Name())
 	return Project{
 		Activity:        activity,
 		LastBuildLabel:  fmt.Sprint(j.FinishedBuild.Name()),
