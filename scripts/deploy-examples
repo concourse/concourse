@@ -4,18 +4,26 @@ set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
-fly -t prod login -n example
+fly -t prod login -n examples
 
 EXAMPLE_PATHS=$(ls ${DIR}/../lit/examples/*.lit)
 
 for path in $EXAMPLE_PATHS
 do
   name=$(basename -s '.lit' $path)
-  tmp_path="/tmp/${name}"
-  awk '/{{{/{flag=1;next}/}}}/{flag=0}flag' ${path} > $tmp_path
+  tmp_config_path="/tmp/${name}"
+  tmp_vars_path="/tmp/${name}.vars"
+
+  awk '/{configuration}/{flag=1;next}/}}}/{flag=0}flag' ${path} | sed '1d' > $tmp_config_path
+  awk '/{variables}/{flag=1;next}/}}}/{flag=0}flag' ${path} | sed '1d' > $tmp_vars_path
 
   echo "Setting ${name} example..."
+  if [ -s $tmp_vars_path ]; then
+    echo "klfjslfkaj"
+    fly -t prod sp -n -p ${name} -c ${tmp_config_path} -l ${tmp_vars_path}
+  else
+    fly -t prod sp -n -p ${name} -c ${tmp_config_path}
+  fi
 
-  fly -t prod sp -n -p ${name} -c ${tmp_path}
   fly -t prod up -p ${name}
 done
