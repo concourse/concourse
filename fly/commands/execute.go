@@ -48,7 +48,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 
 	includeIgnored := command.IncludeIgnored
 
-	taskTemplate := paramhelpers.NewYamlTemplateWithParams(command.TaskConfig, command.VarsFrom, command.Var, command.YAMLVar)
+	taskTemplate := templatehelpers.NewYamlTemplateWithParams(command.TaskConfig, command.VarsFrom, command.Var, command.YAMLVar)
 	taskTemplateEvaluated, err := taskTemplate.Evaluate(false, false)
 	if err != nil {
 		return err

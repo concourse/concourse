@@ -57,6 +57,6 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		CheckCredentials: command.CheckCredentials,
 	}
 
-	yamlTemplateWithParams := paramhelpers.NewYamlTemplateWithParams(configPath, templateVariablesFiles, command.Var, command.YAMLVar)
+	yamlTemplateWithParams := templatehelpers.NewYamlTemplateWithParams(configPath, templateVariablesFiles, command.Var, command.YAMLVar)
 	return atcConfig.Set(yamlTemplateWithParams)
 }

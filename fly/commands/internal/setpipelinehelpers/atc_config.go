@@ -2,7 +2,6 @@ package setpipelinehelpers
 
 import (
 	"fmt"
-	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 	"net/url"
 	"os"
 
@@ -10,6 +9,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/onsi/gomega/gexec"
@@ -38,7 +38,7 @@ func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
 	return confirm
 }
 
-func (atcConfig ATCConfig) Set(yamlTemplateWithParams paramhelpers.YamlTemplateWithParams) error {
+func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTemplateWithParams) error {
 	evaluatedTemplate, err := yamlTemplateWithParams.Evaluate(false, false)
 	if err != nil {
 		return err

@@ -18,6 +18,6 @@ type ValidatePipelineCommand struct {
 }
 
 func (command *ValidatePipelineCommand) Execute(args []string) error {
-	yamlTemplate := paramhelpers.NewYamlTemplateWithParams(command.Config, command.VarsFrom, command.Var, command.YAMLVar)
+	yamlTemplate := templatehelpers.NewYamlTemplateWithParams(command.Config, command.VarsFrom, command.Var, command.YAMLVar)
 	return yamlTemplate.Validate(command.Strict, command.Output)
 }

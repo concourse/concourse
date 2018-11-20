@@ -1,4 +1,4 @@
-package paramhelpers
+package templatehelpers
 
 import (
 	"fmt"
