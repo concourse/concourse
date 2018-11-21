@@ -12,17 +12,17 @@ var templateOldStyleFormatRegex = regexp.MustCompile(`\{\{([-\w\p{L}]+)\}\}`)
 
 type TemplateResolver struct {
 	configPayload []byte
-	params        []boshtemplate.StaticVariables
+	params        []boshtemplate.Variables
 }
 
-func NewTemplateResolver(configPayload []byte, params []boshtemplate.StaticVariables) TemplateResolver {
+func NewTemplateResolver(configPayload []byte, params []boshtemplate.Variables) TemplateResolver {
 	return TemplateResolver{
 		configPayload: configPayload,
 		params:        params,
 	}
 }
 
-func (resolver TemplateResolver) Resolve(allowEmptyInOldStyleTemplates bool) ([]byte, error) {
+func (resolver TemplateResolver) Resolve(expectAllKeys bool, allowEmptyInOldStyleTemplates bool) ([]byte, error) {
 	var err error
 
 	if PresentDeprecated(resolver.configPayload) {
@@ -32,7 +32,7 @@ func (resolver TemplateResolver) Resolve(allowEmptyInOldStyleTemplates bool) ([]
 		}
 	}
 
-	resolver.configPayload, err = resolver.resolve()
+	resolver.configPayload, err = resolver.resolve(expectAllKeys)
 	if err != nil {
 		return nil, fmt.Errorf("could not resolve template vars: %s", err.Error())
 	}
@@ -40,7 +40,7 @@ func (resolver TemplateResolver) Resolve(allowEmptyInOldStyleTemplates bool) ([]
 	return resolver.configPayload, nil
 }
 
-func (resolver TemplateResolver) resolve() ([]byte, error) {
+func (resolver TemplateResolver) resolve(expectAllKeys bool) ([]byte, error) {
 	tpl := boshtemplate.NewTemplate(resolver.configPayload)
 
 	vars := []boshtemplate.Variables{}
@@ -48,7 +48,7 @@ func (resolver TemplateResolver) resolve() ([]byte, error) {
 		vars = append(vars, resolver.params[i])
 	}
 
-	bytes, err := tpl.Evaluate(boshtemplate.NewMultiVars(vars), nil, boshtemplate.EvaluateOpts{})
+	bytes, err := tpl.Evaluate(boshtemplate.NewMultiVars(vars), nil, boshtemplate.EvaluateOpts{ExpectAllKeys: expectAllKeys})
 
 	if err != nil {
 		return nil, err
@@ -59,9 +59,12 @@ func (resolver TemplateResolver) resolve() ([]byte, error) {
 
 func (resolver TemplateResolver) ResolveDeprecated(allowEmpty bool) ([]byte, error) {
 	vars := boshtemplate.StaticVariables{}
-	for _, payload := range resolver.params {
-		for k, v := range payload {
-			vars[k] = v
+	for _, variable := range resolver.params {
+		// ideally we should deprecate old-style template parameters and remove this all together
+		if staticVar, ok := variable.(boshtemplate.StaticVariables); ok {
+			for k, v := range staticVar {
+				vars[k] = v
+			}
 		}
 	}
 

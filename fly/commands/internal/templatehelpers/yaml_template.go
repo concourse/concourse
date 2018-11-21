@@ -50,7 +50,7 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 		}
 	}
 
-	var params []boshtemplate.StaticVariables
+	var params []boshtemplate.Variables
 	for _, path := range yamlTemplate.templateVariablesFiles {
 		templateVars, err := ioutil.ReadFile(string(path))
 		if err != nil {
@@ -75,7 +75,7 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 	}
 	params = append(params, vars)
 
-	evaluatedConfig, err := template.NewTemplateResolver(config, params).Resolve(allowEmpty)
+	evaluatedConfig, err := template.NewTemplateResolver(config, params).Resolve(false, allowEmpty)
 	if err != nil {
 		return nil, err
 	}

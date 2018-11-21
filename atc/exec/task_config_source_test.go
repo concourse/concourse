@@ -12,6 +12,8 @@ import (
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"gopkg.in/yaml.v2"
 
+	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -179,7 +181,7 @@ var _ = Describe("TaskConfigSource", func() {
 					"task-variable-name": "task-variable-value",
 				},
 			}
-			configSource = FileConfigSource{ConfigPath: taskPlan.ConfigPath, Vars: taskPlan.Vars}
+			configSource = FileConfigSource{ConfigPath: taskPlan.ConfigPath, Vars: []boshtemplate.Variables{boshtemplate.StaticVariables(taskPlan.Vars)}}
 		})
 
 		JustBeforeEach(func() {

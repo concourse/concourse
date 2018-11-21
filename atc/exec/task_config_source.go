@@ -78,7 +78,7 @@ func (configSource StaticConfigSource) Warnings() []string {
 // be fetched from a specified file in the worker.ArtifactRepository.
 type FileConfigSource struct {
 	ConfigPath string
-	Vars       atc.Params
+	Vars       []boshtemplate.Variables
 }
 
 // FetchConfig reads the specified file from the worker.ArtifactRepository and loads the
@@ -125,9 +125,8 @@ func (configSource FileConfigSource) FetchConfig(logger lager.Logger, repo *work
 		return atc.TaskConfig{}, err
 	}
 
-	// process template of an external task, using vars provided from the pipeline
-	variables := boshtemplate.StaticVariables(configSource.Vars)
-	streamedFile, err = template.NewTemplateResolver(streamedFile, []boshtemplate.StaticVariables{variables}).Resolve(true)
+	// process template of an external task, using vars provided from the pipeline as well as cred manager vars
+	streamedFile, err = template.NewTemplateResolver(streamedFile, configSource.Vars).Resolve(true, true)
 	if err != nil {
 		return atc.TaskConfig{}, fmt.Errorf("failed to load %s: %s", configSource.ConfigPath, err)
 	}

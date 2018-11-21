@@ -10,9 +10,9 @@ import (
 
 var _ = Describe("Template", func() {
 	var (
-		paramPayload     []byte
-		configPayload    []byte
-		evaluatedContent []byte
+		paramPayload  []byte
+		configPayload []byte
+		staticVars    boshtemplate.StaticVariables
 	)
 
 	BeforeEach(func() {
@@ -28,11 +28,7 @@ env-tags: ["speedy"]
 	})
 
 	JustBeforeEach(func() {
-		var staticVars boshtemplate.StaticVariables
 		err := yaml.Unmarshal(paramPayload, &staticVars)
-		Expect(err).NotTo(HaveOccurred())
-
-		evaluatedContent, err = template.NewTemplateResolver(configPayload, []boshtemplate.StaticVariables{staticVars}).Resolve(true)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -60,8 +56,15 @@ jobs:
 `)
 			})
 
-			It("evaluates params", func() {
-				Expect(evaluatedContent).To(MatchYAML([]byte(`
+			It("evaluates all params", func() {
+				evaluatedContent1, err := template.NewTemplateResolver(configPayload, []boshtemplate.Variables{staticVars}).Resolve(false, true)
+				Expect(err).NotTo(HaveOccurred())
+
+				evaluatedContent2, err := template.NewTemplateResolver(configPayload, []boshtemplate.Variables{staticVars}).Resolve(true, true)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(evaluatedContent1).To(Equal(evaluatedContent2))
+				Expect(evaluatedContent1).To(MatchYAML([]byte(`
 resources:
 - name: my-repo
   source:
@@ -99,7 +102,9 @@ resources:
 `)
 			})
 
-			It("evaluates the params with the given secrets", func() {
+			It("evaluates only given params if expectAllKeys = false", func() {
+				evaluatedContent, err := template.NewTemplateResolver(configPayload, []boshtemplate.Variables{staticVars}).Resolve(false, true)
+				Expect(err).NotTo(HaveOccurred())
 				Expect(evaluatedContent).To(MatchYAML([]byte(`
 resources:
 - name: my-repo
@@ -113,6 +118,11 @@ resources:
 `,
 				)))
 			})
+
+			It("fails with an error if expectAllKeys = true", func() {
+				_, err := template.NewTemplateResolver(configPayload, []boshtemplate.Variables{staticVars}).Resolve(true, true)
+				Expect(err).To(HaveOccurred())
+			})
 		})
 	})
 
@@ -122,7 +132,7 @@ resources:
 			"key": "foo",
 		}
 
-		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.StaticVariables{variables}).ResolveDeprecated(false)
+		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.Variables{variables}).ResolveDeprecated(false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"foo"`)))
 	})
@@ -134,7 +144,7 @@ resources:
 			"value": "bar",
 		}
 
-		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.StaticVariables{variables}).ResolveDeprecated(false)
+		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.Variables{variables}).ResolveDeprecated(false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"foo"="bar"`)))
 	})
@@ -145,7 +155,7 @@ resources:
 			"Ω": "☃",
 		}
 
-		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.StaticVariables{variables}).ResolveDeprecated(false)
+		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.Variables{variables}).ResolveDeprecated(false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"☃"`)))
 	})
@@ -157,7 +167,7 @@ resources:
 			"with_an_underscore": "underscore",
 		}
 
-		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.StaticVariables{variables}).ResolveDeprecated(false)
+		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.Variables{variables}).ResolveDeprecated(false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"dash" = "underscore"`)))
 	})
@@ -168,7 +178,7 @@ resources:
 			"key": "foo",
 		}
 
-		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.StaticVariables{variables}).ResolveDeprecated(false)
+		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.Variables{variables}).ResolveDeprecated(false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"foo"="foo"`)))
 	})
@@ -179,7 +189,7 @@ resources:
 			"key": "this\nhas\nmany\nlines",
 		}
 
-		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.StaticVariables{variables}).ResolveDeprecated(false)
+		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.Variables{variables}).ResolveDeprecated(false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"this\nhas\nmany\nlines"`)))
 	})
@@ -193,7 +203,7 @@ resources:
 
 `
 
-		_, err := template.NewTemplateResolver(byteSlice, []boshtemplate.StaticVariables{variables}).ResolveDeprecated(false)
+		_, err := template.NewTemplateResolver(byteSlice, []boshtemplate.Variables{variables}).ResolveDeprecated(false)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal(errorMsg))
 	})
@@ -202,7 +212,7 @@ resources:
 		byteSlice := []byte("{{}")
 		variables := boshtemplate.StaticVariables{}
 
-		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.StaticVariables{variables}).ResolveDeprecated(false)
+		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.Variables{variables}).ResolveDeprecated(false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte("{{}")))
 	})

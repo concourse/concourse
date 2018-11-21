@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
+	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -135,21 +136,21 @@ func (factory *gardenFactory) Task(
 	workingDirectory := factory.taskWorkingDirectory(worker.ArtifactName(plan.Task.Name))
 	containerMetadata.WorkingDirectory = workingDirectory
 
+	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
+
 	var taskConfigSource TaskConfigSource
 	if plan.Task.ConfigPath != "" && (plan.Task.Config != nil || plan.Task.Params != nil) {
 		taskConfigSource = &MergedConfigSource{
-			A: FileConfigSource{ConfigPath: plan.Task.ConfigPath, Vars: plan.Task.Vars},
+			A: FileConfigSource{ConfigPath: plan.Task.ConfigPath, Vars: []boshtemplate.Variables{boshtemplate.StaticVariables(plan.Task.Vars), variables}},
 			B: StaticConfigSource{Config: plan.Task.Config, Params: plan.Task.Params},
 		}
 	} else if plan.Task.Config != nil {
 		taskConfigSource = StaticConfigSource{Config: plan.Task.Config, Params: plan.Task.Params}
 	} else if plan.Task.ConfigPath != "" {
-		taskConfigSource = FileConfigSource{ConfigPath: plan.Task.ConfigPath, Vars: plan.Task.Vars}
+		taskConfigSource = FileConfigSource{ConfigPath: plan.Task.ConfigPath, Vars: []boshtemplate.Variables{boshtemplate.StaticVariables(plan.Task.Vars), variables}}
 	}
 
 	taskConfigSource = ValidatingConfigSource{ConfigSource: taskConfigSource}
-
-	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
 	taskStep := NewTaskStep(
 		Privileged(plan.Task.Privileged),

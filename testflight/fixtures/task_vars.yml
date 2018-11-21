@@ -29,3 +29,15 @@ jobs:
     vars:
       image_resource_type: mock
       echo_text: Hello World
+
+- name: external-task-failure
+  plan:
+    - get: some-resource
+
+    - task: process-task-definition
+      file: some-resource/task_unwrap.yml
+
+    - task: run
+      file: unwrapped-task-resource/task.yml
+      vars:
+        image_resource_type: mock
