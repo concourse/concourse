@@ -119,7 +119,7 @@ func (t *team) FindWorkerForContainer(handle string) (Worker, bool, error) {
 func (t *team) Containers(
 	logger lager.Logger,
 ) ([]Container, error) {
-	rows, err := selectContainers("c", "rccs").
+	rows, err := selectContainers("c").
 		Join("worker_resource_config_check_sessions wrccs ON wrccs.id = c.worker_resource_config_check_session_id").
 		Join("resource_config_check_sessions rccs ON rccs.id = wrccs.resource_config_check_session_id").
 		Join("resources r ON r.resource_config_id = rccs.resource_config_id").
@@ -134,26 +134,30 @@ func (t *team) Containers(
 		return nil, err
 	}
 
-	defer Close(rows)
-
 	var containers []Container
-	for rows.Next() {
-		creating, created, destroying, _, err := scanContainer(rows, t.conn)
-		if err != nil {
-			return nil, err
-		}
+	containers, err = scanContainers(rows, t.conn, containers)
+	if err != nil {
+		return nil, err
+	}
 
-		if creating != nil {
-			containers = append(containers, creating)
-		}
+	rows, err = selectContainers("c").
+		Join("worker_resource_config_check_sessions wrccs ON wrccs.id = c.worker_resource_config_check_session_id").
+		Join("resource_config_check_sessions rccs ON rccs.id = wrccs.resource_config_check_session_id").
+		Join("resource_types rt ON rt.resource_config_id = rccs.resource_config_id").
+		Join("pipelines p ON p.id = rt.pipeline_id").
+		Where(sq.Eq{
+			"p.team_id": t.id,
+		}).
+		Distinct().
+		RunWith(t.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
 
-		if created != nil {
-			containers = append(containers, created)
-		}
-
-		if destroying != nil {
-			containers = append(containers, destroying)
-		}
+	containers, err = scanContainers(rows, t.conn, containers)
+	if err != nil {
+		return nil, err
 	}
 
 	rows, err = selectContainers("c").
@@ -166,25 +170,9 @@ func (t *team) Containers(
 		return nil, err
 	}
 
-	defer Close(rows)
-
-	for rows.Next() {
-		creating, created, destroying, _, err := scanContainer(rows, t.conn)
-		if err != nil {
-			return nil, err
-		}
-
-		if creating != nil {
-			containers = append(containers, creating)
-		}
-
-		if created != nil {
-			containers = append(containers, created)
-		}
-
-		if destroying != nil {
-			containers = append(containers, destroying)
-		}
+	containers, err = scanContainers(rows, t.conn, containers)
+	if err != nil {
+		return nil, err
 	}
 
 	return containers, nil
@@ -278,26 +266,11 @@ func (t *team) FindContainersByMetadata(metadata ContainerMetadata) ([]Container
 		return nil, err
 	}
 
-	defer Close(rows)
-
 	var containers []Container
-	for rows.Next() {
-		creating, created, destroying, _, err := scanContainer(rows, t.conn)
-		if err != nil {
-			return nil, err
-		}
 
-		if creating != nil {
-			containers = append(containers, creating)
-		}
-
-		if created != nil {
-			containers = append(containers, created)
-		}
-
-		if destroying != nil {
-			containers = append(containers, destroying)
-		}
+	containers, err = scanContainers(rows, t.conn, containers)
+	if err != nil {
+		return nil, err
 	}
 
 	return containers, nil
@@ -448,6 +421,16 @@ func (t *team) SavePipeline(
 		if err != nil {
 			return nil, false, err
 		}
+	}
+
+	_, err = tx.Exec(`
+			UPDATE resources
+			SET resource_config_id = NULL
+			WHERE pipeline_id = $1
+			AND active = false
+		`, pipelineID)
+	if err != nil {
+		return nil, false, err
 	}
 
 	for _, resourceType := range config.ResourceTypes {
@@ -769,26 +752,11 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 		return nil, nil, err
 	}
 
-	defer Close(rows)
-
 	var containers []Container
-	for rows.Next() {
-		creating, created, destroying, _, err := scanContainer(rows, t.conn)
-		if err != nil {
-			return nil, nil, err
-		}
 
-		if creating != nil {
-			containers = append(containers, creating)
-		}
-
-		if created != nil {
-			containers = append(containers, created)
-		}
-
-		if destroying != nil {
-			containers = append(containers, destroying)
-		}
+	containers, err = scanContainers(rows, t.conn, containers)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	rows, err = psql.Select("c.id", "rccs.expires_at").
@@ -1036,6 +1004,33 @@ func scanPipelines(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]P
 	}
 
 	return pipelines, nil
+}
+
+func scanContainers(rows *sql.Rows, conn Conn, initContainers []Container) ([]Container, error) {
+	containers := initContainers
+
+	defer Close(rows)
+
+	for rows.Next() {
+		creating, created, destroying, _, err := scanContainer(rows, conn)
+		if err != nil {
+			return []Container{}, err
+		}
+
+		if creating != nil {
+			containers = append(containers, creating)
+		}
+
+		if created != nil {
+			containers = append(containers, created)
+		}
+
+		if destroying != nil {
+			containers = append(containers, destroying)
+		}
+	}
+
+	return containers, nil
 }
 
 func (t *team) queryTeam(tx Tx, query string, params ...interface{}) error {

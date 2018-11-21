@@ -126,6 +126,16 @@ var _ = Describe("Hijacked containers", func() {
 		By("checking resource")
 		fly.Run("check-resource", "-r", "hijacked-resource-test/tick-tock")
 
+		containers := flyTable("containers")
+		var checkContainerHandle string
+		for _, c := range containers {
+			if c["type"] == "check" {
+				checkContainerHandle = c["handle"]
+				break
+			}
+		}
+		Expect(checkContainerHandle).ToNot(BeEmpty())
+
 		By("hijacking into the resource container")
 		hijackSession := fly.Start(
 			"hijack",
@@ -136,8 +146,9 @@ var _ = Describe("Hijacked containers", func() {
 		By("reconfiguring pipeline without resource")
 		fly.Run("set-pipeline", "-n", "-c", "pipelines/task-waiting.yml", "-p", "hijacked-resource-test")
 
-		By("verifying the hijacked container exists via fly and Garden")
-		Consistently(getContainer("type", "check"), 2*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{true, true}))
+		By("verifying the hijacked container exists via Garden")
+		_, err := workerGardenClient.Lookup(checkContainerHandle)
+		Expect(err).NotTo(HaveOccurred())
 
 		By("unhijacking and seeing the container removed via fly/Garden after 5 minutes")
 		hijackSession.Interrupt()

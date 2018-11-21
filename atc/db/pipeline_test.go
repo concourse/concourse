@@ -183,6 +183,18 @@ var _ = Describe("Pipeline", func() {
 			It("pauses the pipeline", func() {
 				Expect(pipeline.Paused()).To(BeTrue())
 			})
+
+			It("nulls out resource_config_id for all resources", func() {
+				resource, found, err := pipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(resource.ResourceConfigID()).To(BeZero())
+
+				resource, found, err = pipeline.Resource("some-other-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(resource.ResourceConfigID()).To(BeZero())
+			})
 		})
 	})
 
