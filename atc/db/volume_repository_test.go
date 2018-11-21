@@ -380,7 +380,7 @@ var _ = Describe("VolumeFactory", func() {
 				It("returns empty volumes", func() {
 					destroyingVolumes, err := volumeRepository.GetDestroyingVolumes(defaultWorker.Name())
 					Expect(err).NotTo(HaveOccurred())
-					Expect(destroyingVolumes).To(Equal([]string{}))
+					Expect(destroyingVolumes).To(BeEmpty())
 				})
 			})
 		})

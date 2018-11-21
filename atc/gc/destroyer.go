@@ -10,7 +10,11 @@ import (
 
 //go:generate counterfeiter . Destroyer
 
-// Destroyer allows the caller to remove containers and volumes
+// TODO : consider making this just a struct with methods on it,
+// we don't ever use the FakeDestroyer, so we don't even need the
+// interface boundaries for testing
+
+// Destroyer allows removal of containers and volumes from the database
 type Destroyer interface {
 	FindDestroyingVolumesForGc(workerName string) ([]string, error)
 	DestroyContainers(workerName string, handles []string) error
@@ -80,6 +84,9 @@ func (d *destroyer) DestroyVolumes(workerName string, currentHandles []string) e
 	return nil
 }
 
+
+// TODO : Remove this and call GetDestroyingVolumes directly on the volumeRepository
+// feels odd to have a "Find*" on an interface named "Destroyer"
 func (d *destroyer) FindDestroyingVolumesForGc(workerName string) ([]string, error) {
 	destroyingVolumesHandles, err := d.volumeRepository.GetDestroyingVolumes(workerName)
 	if err != nil {
