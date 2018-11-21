@@ -41,7 +41,7 @@ services:
     environment:
     - CONCOURSE_LOG_LEVEL=debug
     - CONCOURSE_TSA_HOST=web:2222
-    - CONCOURSE_EPHEMERAL=true
+    - CONCOURSE_EPHEMERAL=${CONCOURSE_EPHEMERAL:-true}
 
       # avoid using loopbacks
     - CONCOURSE_BAGGAGECLAIM_DRIVER=overlay

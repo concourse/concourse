@@ -32,7 +32,7 @@ func (f *Fly) Login(user, password, endpoint string) {
 			"-c", endpoint,
 			"-u", user,
 			"-p", password,
-		).Wait()
+		)
 	}, 2*time.Minute, 10*time.Second).
 		Should(gexec.Exit(0), "Fly should have been able to log in")
 }
