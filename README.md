@@ -95,4 +95,4 @@ Our user base is basically everyone that develops software (and wants it to
 work).
 
 It's a lot of work, and we need your help! If you're interested, check out our
-[contributing docs](.github/CONTRIBUTING.md).
+[contributing docs](CONTRIBUTING.md).
