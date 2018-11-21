@@ -13,6 +13,12 @@ on request (just ask in `#introductions`), which will allow you to chat in the
 `#contributors` channel where you can ask for help or get feedback on something
 you're working on.
 
+## Contribution Process
+
+* [Fork this repo](https://help.github.com/articles/fork-a-repo/) into your GitHub account: `https://github.com/concourse/concourse`
+* Install the [development dependencies](#development-dependencies) and follow the instructions below for [building the web UI](#prerequisite-building-the-web-ui) and [running concourse](#running-concourse)
+* Make your changes as commits and push them to your local repo. Don't forget to write tests, since pull requests without tests are unlikely to be merged. See the [testing section](#testing) below for more details on running and writing tests.
+* Submit a pull request.
 
 ## Development dependencies
 
@@ -23,12 +29,6 @@ development:
 * [`git`](https://git-scm.com/) v2.11+
 * [`yarn`](https://yarnpkg.com/en/docs/install)
 * [`docker-compose`](https://docs.docker.com/compose/install/)
-
-You'll also, of course, need to clone this repo:
-
-```sh
-$ git clone https://github.com/concourse/concourse
-```
 
 > *Concourse uses Go 1.11's module system, so make sure it's **not** cloned
 > under your `$GOPATH`.*
