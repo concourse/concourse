@@ -21,6 +21,7 @@ var _ = Describe("V1.0 Renderer", func() {
 	var (
 		out    *gbytes.Buffer
 		stream *eventstreamfakes.FakeEventStream
+		options eventstream.RenderOptions
 
 		receivedEvents chan<- atc.Event
 
@@ -31,6 +32,7 @@ var _ = Describe("V1.0 Renderer", func() {
 		color.NoColor = false
 		out = gbytes.NewBuffer()
 		stream = new(eventstreamfakes.FakeEventStream)
+		options = eventstream.RenderOptions{}
 
 		events := make(chan atc.Event, 100)
 		receivedEvents = events
@@ -46,7 +48,7 @@ var _ = Describe("V1.0 Renderer", func() {
 	})
 
 	JustBeforeEach(func() {
-		exitStatus = eventstream.Render(out, stream)
+		exitStatus = eventstream.Render(out, stream, options)
 	})
 
 	Context("when a Log event is received", func() {

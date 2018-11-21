@@ -11,7 +11,11 @@ import (
 	"github.com/fatih/color"
 )
 
-func Render(dst io.Writer, src eventstream.EventStream) int {
+type RenderOptions struct {
+	ShowTimestamp bool
+}
+
+func Render(dst io.Writer, src eventstream.EventStream, options RenderOptions) int {
 	exitStatus := 0
 
 	for {
