@@ -27,7 +27,7 @@ func HelmDeploy(releaseName string) {
 		"--set=concourse.web.tsa.heartbeatInterval=300ms",
 		"--set=concourse.worker.ephemeral=true",
 		"--set=worker.replicas=1",
-		"--set=concourse.worker.baggageclaim.driver=btrfs",
+		"--set=concourse.worker.baggageclaim.driver=detect",
 		"--set=image=" + Environment.ConcourseImageName,
 		"--set=imageDigest=" + Environment.ConcourseImageDigest,
 		"--set=imageTag=" + Environment.ConcourseImageTag,
@@ -107,7 +107,7 @@ var _ = Describe("Ephemeral workers", func() {
 
 	BeforeEach(func() {
 		port := 8080 + GinkgoParallelNode()
-		releaseName = fmt.Sprintf("topgun-ephemeral-workers-%d", GinkgoParallelNode() )
+		releaseName = fmt.Sprintf("topgun-ephemeral-workers-%d", GinkgoParallelNode())
 		HelmDeploy(releaseName)
 
 		Eventually(func() bool {
