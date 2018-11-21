@@ -54,15 +54,16 @@ pushd charts/stable/concourse/
     --force \
     --set image=$CONCOURSE_IMAGE \
     --set imageDigest="$CONCOURSE_DIGEST" \
-    --set concourse.worker.garden.allowHostAccess="true" \
-    --set concourse.worker.baggageclaim.driver="detect" \
-    --set concourse.web.auth.mainTeam.localUser="admin" \
     --set secrets.localUsers="admin:$ATC_ADMIN_PASSWORD\,guest:$ATC_GUEST_PASSWORD" \
-    --set web.service.type="LoadBalancer" \
-    --set web.service.loadBalancerIP="$LOADBALANCER_IP" \
+    --set concourse.web.auth.mainTeam.localUser="admin" \
     --set concourse.web.externalUrl="http://$LOADBALANCER_IP:8080" \
-    --set worker.resources.requests.cpu="1000m" \
+    --set concourse.worker.baggageclaim.driver="detect" \
+    --set concourse.worker.garden.allowHostAccess="true" \
+    --set web.service.loadBalancerIP="$LOADBALANCER_IP" \
+    --set web.service.type="LoadBalancer" \
     --set worker.replicas="1" \
+    --set worker.resources.requests.cpu="1000m" \
+    --set=concourse.web.kubernetes.keepNamespaces=false \
     $RELEASE_NAME \
     .
 popd
