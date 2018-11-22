@@ -242,6 +242,7 @@ jobs:
       passed: [build-rc]
       trigger: true
     - get: charts
+      trigger: true
   - task: terraform-k8s-smoke
     file: concourse/ci/tasks/terraform-smoke.yml
     params:
