@@ -276,6 +276,7 @@ jobs:
       params: {format: oci}
     - get: k8s-dev-image
     - get: charts
+      trigger: true
       passed: [k8s-smoke]
   - task: deploy
     file: concourse/ci/tasks/k8s-topgun.yml
