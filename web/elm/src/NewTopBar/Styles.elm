@@ -60,6 +60,7 @@ topBarCSS =
     , ( "background-color", "#1e1d1d" )
     , ( "height", "56px" )
     , ( "align-items", "center" )
+    , ( "font-weight", "700" )
     ]
 
 
@@ -428,4 +429,5 @@ dropdownItemCSS =
     , ( "margin-top", "-1px" )
     , ( "color", "#9b9b9b" )
     , ( "font-size", "1.15em" )
+    , ( "cursor", "pointer" )
     ]

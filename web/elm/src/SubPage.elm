@@ -114,6 +114,7 @@ init flags route =
                 , search = querySearchForRoute route
                 , highDensity = False
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+                , route = route
                 }
                 |> Tuple.mapFirst DashboardModel
 
@@ -124,6 +125,7 @@ init flags route =
                 , search = querySearchForRoute route
                 , highDensity = True
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+                , route = route
                 }
                 |> Tuple.mapFirst DashboardModel
 

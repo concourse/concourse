@@ -95,7 +95,6 @@ type Effect
     | FetchBuildPrep Time Int Int
     | FetchBuildPlan Int
     | FetchBuildPlanAndResources Int
-    | FocusSearchInput
     | GetCurrentTime
     | DoTriggerBuild Concourse.JobIdentifier String
     | DoAbortBuild Int Concourse.CSRFToken
@@ -222,9 +221,6 @@ runEffect effect =
 
         SendTokenToFly authToken flyPort ->
             sendTokenToFly authToken flyPort
-
-        FocusSearchInput ->
-            Task.attempt (always EmptyCallback) (Dom.focus "search-input-field")
 
         ModifyUrl url ->
             Navigation.modifyUrl url

@@ -27,7 +27,9 @@ import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Html.Styled as HS
 import List.Extra
+import QueryString
 import RemoteData
+import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -445,7 +447,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> queryView
-                    |> Query.find [ id "top-bar" ]
+                    |> Query.find [ id "top-bar-app" ]
                     |> Query.has [ style [ ( "font-weight", "700" ) ] ]
         , test "logging out causes pipeline list to reload" <|
             let
@@ -2814,6 +2816,17 @@ whenOnDashboard { highDensity } =
         , search = ""
         , highDensity = highDensity
         , pipelineRunningKeyframes = pipelineRunningKeyframes
+        , route =
+            { logical =
+                if highDensity then
+                    Routes.DashboardHd
+
+                else
+                    Routes.Dashboard
+            , queries = QueryString.empty
+            , page = Nothing
+            , hash = ""
+            }
         }
         |> Tuple.first
 

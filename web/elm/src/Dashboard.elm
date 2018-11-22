@@ -7,7 +7,6 @@ module Dashboard exposing
     , view
     )
 
-import Array
 import Callback exposing (Callback(..))
 import Char
 import Concourse
@@ -19,7 +18,7 @@ import Dashboard.Details as Details
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
 import Dashboard.Models as Models
-import Dashboard.Msgs as Msgs exposing (Msg(..))
+import Dashboard.Msgs as Msgs exposing (Msg(..), fromDashboardMsg)
 import Dashboard.Styles as Styles
 import Dashboard.SubState as SubState
 import Dashboard.Text as Text
@@ -45,12 +44,11 @@ import Monocle.Lens
 import Monocle.Optional
 import MonocleHelpers exposing (..)
 import Mouse
-import NewTopBar
+import NewestTopBar as NewTopBar
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
 import Routes
 import ScreenSize
-import SearchBar exposing (SearchBar(..))
 import Simple.Fuzzy exposing (filter, match, root)
 import Task
 import Time exposing (Time)
@@ -64,6 +62,7 @@ type alias Flags =
     , search : String
     , highDensity : Bool
     , pipelineRunningKeyframes : String
+    , route : Routes.ConcourseRoute
     }
 
 
@@ -86,7 +85,7 @@ type alias Model =
     , version : String
     , userState : UserState.UserState
     , userMenuVisible : Bool
-    , searchBar : SearchBar
+    , topBar : NewTopBar.Model
     , hideFooter : Bool
     , hideFooterCounter : Int
     , showHelp : Bool
@@ -101,13 +100,8 @@ substateOptional =
 init : Flags -> ( Model, List Effect )
 init flags =
     let
-        searchBar =
-            Expanded
-                { query = flags.search
-                , selectionMade = False
-                , showAutocomplete = False
-                , selection = 0
-                }
+        ( topBar, topBarEffects ) =
+            NewTopBar.init flags.route
     in
     ( { state = Err NotAsked
       , csrfToken = flags.csrfToken
@@ -125,18 +119,33 @@ init flags =
       , hideFooter = False
       , hideFooterCounter = 0
       , showHelp = False
-      , searchBar = searchBar
+      , topBar = topBar
       }
     , [ FetchData
       , PinTeamNames Group.stickyHeaderConfig
       , SetTitle <| "Dashboard" ++ " - "
       , GetScreenSize
       ]
+        ++ topBarEffects
     )
 
 
 handleCallback : Callback -> Model -> ( Model, List Effect )
 handleCallback msg model =
+    let
+        ( newTopBar, topBarEffects ) =
+            NewTopBar.handleCallback msg model.topBar
+
+        ( newModel, dashboardEffects ) =
+            handleCallbackWithoutTopBar msg model
+    in
+    ( { newModel | topBar = newTopBar }
+    , topBarEffects ++ dashboardEffects
+    )
+
+
+handleCallbackWithoutTopBar : Callback -> Model -> ( Model, List Effect )
+handleCallbackWithoutTopBar msg model =
     case msg of
         APIDataFetched RemoteData.NotAsked ->
             ( { model | state = Err NotAsked }, [] )
@@ -225,17 +234,7 @@ handleCallback msg model =
                 newSize =
                     ScreenSize.fromWindowSize size
             in
-            ( { model
-                | screenSize = newSize
-                , searchBar =
-                    SearchBar.screenSizeChanged
-                        { oldSize = model.screenSize
-                        , newSize = newSize
-                        }
-                        model.searchBar
-              }
-            , []
-            )
+            ( { model | screenSize = newSize }, [] )
 
         _ ->
             ( model, [] )
@@ -243,6 +242,20 @@ handleCallback msg model =
 
 update : Msg -> Model -> ( Model, List Effect )
 update msg model =
+    let
+        ( newTopBar, topBarEffects ) =
+            NewTopBar.update (fromDashboardMsg msg) model.topBar
+
+        ( newModel, dashboardEffects ) =
+            updateWithoutTopBar msg model
+    in
+    ( { newModel | topBar = newTopBar }
+    , topBarEffects ++ dashboardEffects
+    )
+
+
+updateWithoutTopBar : Msg -> Model -> ( Model, List Effect )
+updateWithoutTopBar msg model =
     case msg of
         ClockTick now ->
             ( let
@@ -259,9 +272,7 @@ update msg model =
             )
 
         AutoRefresh _ ->
-            ( model
-            , [ FetchData ]
-            )
+            ( model, [ FetchData ] )
 
         KeyPressed keycode ->
             handleKeyPressed (Char.fromCode keycode) model
@@ -397,18 +408,7 @@ update msg model =
             ( { model | hoveredTopCliIcon = state }, [] )
 
         FilterMsg query ->
-            let
-                newModel =
-                    case model.searchBar of
-                        Expanded r ->
-                            { model | searchBar = Expanded { r | query = query } }
-
-                        _ ->
-                            model
-            in
-            ( newModel
-            , [ FocusSearchInput, ModifyUrl (NewTopBar.queryStringFromSearch query) ]
-            )
+            ( model, [] )
 
         LogIn ->
             ( model, [ RedirectToLogin ] )
@@ -420,226 +420,25 @@ update msg model =
             ( { model | userMenuVisible = not model.userMenuVisible }, [] )
 
         FocusMsg ->
-            let
-                newModel =
-                    case model.searchBar of
-                        Expanded r ->
-                            { model
-                                | searchBar =
-                                    Expanded
-                                        { r
-                                            | showAutocomplete = True
-                                        }
-                            }
-
-                        _ ->
-                            model
-            in
-            ( newModel, [] )
+            ( model, [] )
 
         BlurMsg ->
-            let
-                newModel =
-                    case model.searchBar of
-                        Expanded r ->
-                            case model.screenSize of
-                                ScreenSize.Mobile ->
-                                    if String.isEmpty r.query then
-                                        { model | searchBar = Collapsed }
-
-                                    else
-                                        { model
-                                            | searchBar =
-                                                Expanded
-                                                    { r
-                                                        | showAutocomplete = False
-                                                        , selectionMade = False
-                                                        , selection = 0
-                                                    }
-                                        }
-
-                                ScreenSize.Desktop ->
-                                    { model
-                                        | searchBar =
-                                            Expanded
-                                                { r
-                                                    | showAutocomplete = False
-                                                    , selectionMade = False
-                                                    , selection = 0
-                                                }
-                                    }
-
-                                ScreenSize.BigDesktop ->
-                                    { model
-                                        | searchBar =
-                                            Expanded
-                                                { r
-                                                    | showAutocomplete = False
-                                                    , selectionMade = False
-                                                    , selection = 0
-                                                }
-                                    }
-
-                        _ ->
-                            model
-            in
-            ( newModel, [] )
+            ( model, [] )
 
         SelectMsg index ->
-            let
-                newModel =
-                    case model.searchBar of
-                        Expanded r ->
-                            { model
-                                | searchBar =
-                                    Expanded
-                                        { r
-                                            | selectionMade = True
-                                            , selection = index + 1
-                                        }
-                            }
-
-                        _ ->
-                            model
-            in
-            ( newModel, [] )
+            ( model, [] )
 
         KeyDowns keycode ->
-            case model.searchBar of
-                Expanded r ->
-                    if not r.showAutocomplete then
-                        ( { model
-                            | searchBar =
-                                Expanded
-                                    { r
-                                        | selectionMade = False
-                                        , selection = 0
-                                    }
-                          }
-                        , []
-                        )
-
-                    else
-                        case keycode of
-                            -- enter key
-                            13 ->
-                                if not r.selectionMade then
-                                    ( model, [] )
-
-                                else
-                                    let
-                                        options =
-                                            Array.fromList
-                                                (NewTopBar.autocompleteOptions
-                                                    { query = r.query
-                                                    , groups = model.groups
-                                                    }
-                                                )
-
-                                        index =
-                                            (r.selection - 1) % Array.length options
-
-                                        selectedItem =
-                                            case Array.get index options of
-                                                Nothing ->
-                                                    r.query
-
-                                                Just item ->
-                                                    item
-                                    in
-                                    ( { model
-                                        | searchBar =
-                                            Expanded
-                                                { r
-                                                    | selectionMade = False
-                                                    , selection = 0
-                                                    , query = selectedItem
-                                                }
-                                      }
-                                    , []
-                                    )
-
-                            -- up arrow
-                            38 ->
-                                ( { model
-                                    | searchBar =
-                                        Expanded
-                                            { r
-                                                | selectionMade = True
-                                                , selection = r.selection - 1
-                                            }
-                                  }
-                                , []
-                                )
-
-                            -- down arrow
-                            40 ->
-                                ( { model
-                                    | searchBar =
-                                        Expanded
-                                            { r
-                                                | selectionMade = True
-                                                , selection = r.selection + 1
-                                            }
-                                  }
-                                , []
-                                )
-
-                            -- escape key
-                            27 ->
-                                ( model, [ FocusSearchInput ] )
-
-                            _ ->
-                                ( { model
-                                    | searchBar =
-                                        Expanded
-                                            { r
-                                                | selectionMade = False
-                                                , selection = 0
-                                            }
-                                  }
-                                , []
-                                )
-
-                _ ->
-                    ( model, [] )
+            ( model, [] )
 
         ShowSearchInput ->
-            let
-                newModel =
-                    { model
-                        | searchBar =
-                            Expanded
-                                { query = ""
-                                , selectionMade = False
-                                , showAutocomplete = False
-                                , selection = 0
-                                }
-                    }
-            in
-            case model.searchBar of
-                Collapsed ->
-                    ( newModel, [ FocusSearchInput ] )
-
-                _ ->
-                    ( model, [] )
+            ( model, [] )
 
         ResizeScreen size ->
-            let
-                newSize =
-                    ScreenSize.fromWindowSize size
-            in
-            ( { model
-                | screenSize = newSize
-                , searchBar =
-                    SearchBar.screenSizeChanged
-                        { oldSize = model.screenSize
-                        , newSize = newSize
-                        }
-                        model.searchBar
-              }
-            , []
-            )
+            ( { model | screenSize = ScreenSize.fromWindowSize size }, [] )
+
+        FromTopBar m ->
+            ( model, [] )
 
 
 subscriptions : Model -> Sub Msg
@@ -664,7 +463,7 @@ view model =
             , ( "font-weight", "700" )
             ]
         ]
-        [ NewTopBar.view model
+        [ Html.map FromTopBar (NewTopBar.view model.topBar)
         , dashboardView model
         ]
 
@@ -688,7 +487,7 @@ dashboardView model =
                             ++ pipelinesView
                                 { groups = model.groups
                                 , substate = substate
-                                , query = NewTopBar.query model
+                                , query = NewTopBar.query model.topBar
                                 , hoveredPipeline = model.hoveredPipeline
                                 , pipelineRunningKeyframes =
                                     model.pipelineRunningKeyframes
@@ -908,7 +707,7 @@ handleKeyPressed : Char -> Footer.Model r -> ( Footer.Model r, List Effect )
 handleKeyPressed key model =
     case key of
         '/' ->
-            ( model, [ FocusSearchInput ] )
+            ( model, [] )
 
         '?' ->
             ( Footer.toggleHelp model, [] )

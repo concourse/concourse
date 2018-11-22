@@ -1,15 +1,17 @@
 module NewestTopBar exposing
     ( Model
-    , Msg(..)
+    , autocompleteOptions
     , handleCallback
     , init
     , query
+    , queryStringFromSearch
     , update
     , view
     )
 
 import Array
 import Callback exposing (Callback(..))
+import Char
 import Concourse
 import Effects exposing (Effect(..))
 import Html.Styled as Html exposing (Html)
@@ -28,7 +30,7 @@ import Html.Styled.Attributes as HA
         )
 import Html.Styled.Events exposing (..)
 import Http
-import Keyboard
+import NewTopBar.Msgs exposing (Msg(..))
 import NewTopBar.Styles as Styles
 import QueryString
 import RemoteData exposing (RemoteData)
@@ -37,7 +39,6 @@ import ScreenSize exposing (ScreenSize(..))
 import SearchBar exposing (SearchBar(..))
 import TopBar exposing (userDisplayName)
 import UserState exposing (UserState(..))
-import Window
 
 
 
@@ -63,18 +64,6 @@ query model =
 
         Collapsed ->
             ""
-
-
-type Msg
-    = LogIn
-    | LogOut
-    | FilterMsg String
-    | FocusMsg
-    | BlurMsg
-    | SelectMsg Int
-    | KeyDown Keyboard.KeyCode
-    | ToggleUserMenu
-    | ShowSearchInput
 
 
 querySearchForRoute : Routes.ConcourseRoute -> String
@@ -111,15 +100,6 @@ init route =
       }
     , [ FetchUser, FetchTeams, GetScreenSize ]
     )
-
-
-getScreenSize : Window.Size -> ScreenSize
-getScreenSize size =
-    if size.width < 812 then
-        Mobile
-
-    else
-        Desktop
 
 
 queryStringFromSearch : String -> String
@@ -173,7 +153,7 @@ handleCallback callback model =
         ScreenResized size ->
             let
                 newSize =
-                    getScreenSize size
+                    ScreenSize.fromWindowSize size
 
                 newSizedModel =
                     { model | screenSize = newSize }
@@ -222,7 +202,7 @@ update msg model =
                             model
             in
             ( newModel
-            , [ ForceFocus "search-input-field"
+            , [ ForceFocus "search-bar"
               , ModifyUrl (queryStringFromSearch query)
               ]
             )
@@ -253,7 +233,14 @@ update msg model =
                 newModel =
                     case model.searchBar of
                         Expanded r ->
-                            { model | searchBar = Expanded { r | showAutocomplete = False } }
+                            { model
+                                | searchBar =
+                                    Expanded
+                                        { r
+                                            | showAutocomplete =
+                                                query model == "status:"
+                                        }
+                            }
 
                         Collapsed ->
                             model
@@ -324,14 +311,41 @@ update msg model =
         ShowSearchInput ->
             showSearchInput model
 
+        KeyPressed keycode ->
+            case Char.fromCode keycode of
+                '/' ->
+                    ( model, [ ForceFocus "search-input-field" ] )
+
+                _ ->
+                    ( model, [] )
+
+        ResizeScreen size ->
+            let
+                newSize =
+                    ScreenSize.fromWindowSize size
+            in
+            ( { model
+                | screenSize = newSize
+                , searchBar =
+                    SearchBar.screenSizeChanged
+                        { oldSize = model.screenSize
+                        , newSize = newSize
+                        }
+                        model.searchBar
+              }
+            , []
+            )
+
+        Noop ->
+            ( model, [] )
+
 
 showSearchInput : Model -> ( Model, List Effect )
 showSearchInput model =
     let
         newModel =
             { model
-                | screenSize = Mobile
-                , searchBar =
+                | searchBar =
                     Expanded
                         { query = ""
                         , selectionMade = False
@@ -502,7 +516,7 @@ viewSearch { showAutocomplete, active, query } =
         dropdownItem : String -> Html Msg
         dropdownItem text =
             Html.li
-                [ onClick (FilterMsg text)
+                [ onMouseDown (FilterMsg text)
                 , style Styles.dropdownItemCSS
                 ]
                 [ Html.text text ]
@@ -515,6 +529,7 @@ viewSearch { showAutocomplete, active, query } =
             , value query
             , onFocus FocusMsg
             , onBlur BlurMsg
+            , onInput FilterMsg
             ]
             []
          , Html.div
@@ -533,9 +548,25 @@ viewSearch { showAutocomplete, active, query } =
                             , ( "margin-top", "0" )
                             ]
                         ]
-                        [ dropdownItem "status:"
-                        , dropdownItem "team:"
-                        ]
+                      <|
+                        case query of
+                            "status:" ->
+                                [ dropdownItem "status: paused"
+                                , dropdownItem "status: pending"
+                                , dropdownItem "status: failed"
+                                , dropdownItem "status: errored"
+                                , dropdownItem "status: aborted"
+                                , dropdownItem "status: running"
+                                , dropdownItem "status: succeeded"
+                                ]
+
+                            "team: " ->
+                                []
+
+                            _ ->
+                                [ dropdownItem "status:"
+                                , dropdownItem "team:"
+                                ]
                     ]
 
                 else

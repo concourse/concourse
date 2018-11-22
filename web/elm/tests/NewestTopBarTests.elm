@@ -6,6 +6,7 @@ import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Html.Styled exposing (toUnstyled)
+import NewTopBar.Msgs as Msgs
 import NewestTopBar
 import QueryString
 import Routes
@@ -16,16 +17,22 @@ import Test.Html.Selector as Selector exposing (attribute, class, containing, id
 import UserState exposing (UserState(..))
 
 
-rspecStyleDescribe : String -> model -> List (model -> Test) -> Test
+rspecStyleDescribe : String -> subject -> List (subject -> Test) -> Test
 rspecStyleDescribe description beforeEach subTests =
     Test.describe description
-        (subTests |> List.map (\f -> f beforeEach))
+        (subTests |> List.map ((|>) beforeEach))
 
 
-it : String -> (model -> Expectation) -> model -> Test
-it desc expectationFunc model =
+context : String -> (setup -> subject) -> List (subject -> Test) -> (setup -> Test)
+context description beforeEach subTests setup =
+    Test.describe description
+        (subTests |> List.map ((|>) (beforeEach setup)))
+
+
+it : String -> (subject -> Expectation) -> subject -> Test
+it desc expectationFunc subject =
     Test.test desc <|
-        \_ -> expectationFunc model
+        \_ -> expectationFunc subject
 
 
 lineHeight : String
@@ -50,116 +57,169 @@ topBarHeight =
 
 searchBarBorder : String
 searchBarBorder =
+    "1px solid " ++ searchBarGrey
+
+
+searchBarGrey : String
+searchBarGrey =
     "#504b4b"
+
+
+dropdownBackgroundGrey : String
+dropdownBackgroundGrey =
+    "#2e2e2e"
+
+
+searchBarHeight : String
+searchBarHeight =
+    "30px"
+
+
+searchBarWidth : String
+searchBarWidth =
+    "220px"
+
+
+searchBarPadding : String
+searchBarPadding =
+    "0 42px"
 
 
 all : Test
 all =
     describe "NewestTopBar"
-        [ rspecStyleDescribe "rendering top bar on pipeline page"
+        [ rspecStyleDescribe "when on pipeline page"
             (NewestTopBar.init { logical = Routes.Pipeline "team" "pipeline", queries = QueryString.empty, page = Nothing, hash = "" }
                 |> Tuple.first
-                |> NewestTopBar.view
-                |> toUnstyled
-                |> Query.fromHtml
             )
-            [ it "concourse logo is visible on top bar" <|
-                Query.children []
-                    >> Query.index 1
-                    >> Query.has
-                        [ style
-                            [ ( "background-image", "url(/public/images/concourse_logo_white.svg)" )
-                            , ( "background-position", "50% 50%" )
-                            , ( "background-repeat", "no-repeat" )
-                            , ( "background-size", "42px 42px" )
-                            , ( "width", topBarHeight )
-                            , ( "height", topBarHeight )
+            [ context "when login state unknown"
+                (NewestTopBar.view
+                    >> toUnstyled
+                    >> Query.fromHtml
+                )
+                [ it "shows concourse logo" <|
+                    Query.children []
+                        >> Query.index 1
+                        >> Query.has
+                            [ style
+                                [ ( "background-image", "url(/public/images/concourse_logo_white.svg)" )
+                                , ( "background-position", "50% 50%" )
+                                , ( "background-repeat", "no-repeat" )
+                                , ( "background-size", "42px 42px" )
+                                , ( "width", topBarHeight )
+                                , ( "height", topBarHeight )
+                                ]
                             ]
-                        ]
-            , it "top bar renders pipeline breadcrumb selector" <|
-                Query.has [ id "breadcrumb-pipeline" ]
-            , it "top bar has pipeline breadcrumb with icon rendered first" <|
-                Query.find [ id "breadcrumb-pipeline" ]
-                    >> Query.children []
-                    >> Query.first
-                    >> Query.has pipelineBreadcrumbSelector
-            , it "top bar has pipeline name after pipeline icon" <|
-                Query.find [ id "breadcrumb-pipeline" ]
-                    >> Query.children []
-                    >> Query.index 1
-                    >> Query.has
-                        [ text "pipeline" ]
-            , it "pipeline breadcrumb should have a link to the pipeline page" <|
-                Query.find [ id "breadcrumb-pipeline" ]
-                    >> Query.children []
-                    >> Query.index 1
-                    >> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
-            , it "top bar is 56px tall with dark grey background" <|
-                Query.has [ style [ ( "background-color", backgroundGrey ), ( "height", lineHeight ) ] ]
-            , it "top bar lays out contents horizontally" <|
-                Query.has [ style [ ( "display", "flex" ) ] ]
-            , it "top bar centers contents vertically" <|
-                Query.has [ style [ ( "align-items", "center" ) ] ]
-            , it "top bar maximizes spacing between the left and right navs" <|
-                Query.has [ style [ ( "justify-content", "space-between" ) ] ]
-            , it "renders the login component as the last item in the top bar" <|
-                Query.children []
-                    >> Query.index -1
-                    >> Query.has [ id "login-component" ]
-            ]
-        , rspecStyleDescribe "login component when user is logged in"
-            (NewestTopBar.init { logical = Routes.Pipeline "team" "pipeline", queries = QueryString.empty, page = Nothing, hash = "" }
-                |> Tuple.first
-                |> logInUser
-                |> NewestTopBar.view
-                |> toUnstyled
-                |> Query.fromHtml
-            )
-            [ it "renders the login component as the last item in the top bar" <|
-                Query.children []
-                    >> Query.index -1
-                    >> Query.has [ id "login-component" ]
-            , it "has the login container styles" <|
-                Query.children []
-                    >> Query.index -1
-                    >> Query.find [ id "login-container" ]
-                    >> Query.has
-                        [ style
-                            [ ( "position", "relative" )
-                            , ( "display", "flex" )
-                            , ( "flex-direction", "column" )
-                            , ( "border-left", "1px solid " ++ borderGrey )
-                            , ( "line-height", lineHeight )
+                , it "shows pipeline breadcrumb" <|
+                    Query.has [ id "breadcrumb-pipeline" ]
+                , context "pipeline breadcrumb"
+                    (Query.find [ id "breadcrumb-pipeline" ])
+                    [ it "renders icon first" <|
+                        Query.children []
+                            >> Query.first
+                            >> Query.has pipelineBreadcrumbSelector
+                    , it "renders pipeline name second" <|
+                        Query.children []
+                            >> Query.index 1
+                            >> Query.has
+                                [ text "pipeline" ]
+                    , it "has link to the relevant pipeline page" <|
+                        Query.children []
+                            >> Query.index 1
+                            >> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                    ]
+                , it "is 56px tall with dark grey background" <|
+                    Query.has [ style [ ( "background-color", backgroundGrey ), ( "height", lineHeight ) ] ]
+                , it "lays out contents horizontally" <|
+                    Query.has [ style [ ( "display", "flex" ) ] ]
+                , it "centers contents vertically" <|
+                    Query.has [ style [ ( "align-items", "center" ) ] ]
+                , it "maximizes spacing between the left and right navs" <|
+                    Query.has [ style [ ( "justify-content", "space-between" ) ] ]
+                , it "renders the login component last" <|
+                    Query.children []
+                        >> Query.index -1
+                        >> Query.has [ id "login-component" ]
+                ]
+            , context "when logged in"
+                (logInUser
+                    >> NewestTopBar.view
+                    >> toUnstyled
+                    >> Query.fromHtml
+                )
+                [ it "renders the login component last" <|
+                    Query.children []
+                        >> Query.index -1
+                        >> Query.has [ id "login-component" ]
+                , it "renders login container with relative position" <|
+                    Query.children []
+                        >> Query.index -1
+                        >> Query.find [ id "login-container" ]
+                        >> Query.has
+                            [ style
+                                [ ( "position", "relative" )
+                                ]
                             ]
-                        ]
-            , it "has the login username styles" <|
-                Query.children []
-                    >> Query.index -1
-                    >> Query.find [ id "login-item" ]
-                    >> Query.has
-                        [ style
-                            [ ( "padding", "0 30px" )
-                            , ( "cursor", "pointer" )
-                            , ( "display", "flex" )
-                            , ( "align-items", "center" )
-                            , ( "justify-content", "center" )
-                            , ( "flex-grow", "1" )
+                , it "lays out login container contents vertically" <|
+                    Query.children []
+                        >> Query.index -1
+                        >> Query.find [ id "login-container" ]
+                        >> Query.has
+                            [ style
+                                [ ( "display", "flex" )
+                                , ( "flex-direction", "column" )
+                                ]
                             ]
-                        ]
-            , it "shows the logged in username when the user is logged in" <|
-                Query.children []
-                    >> Query.index -1
-                    >> Query.find [ id "login-item" ]
-                    >> Query.has [ text "test" ]
-            , it "ToggleUserMenu message is received when login menu is clicked" <|
-                Query.find [ id "login-container" ]
-                    >> Event.simulate Event.click
-                    >> Event.expect NewestTopBar.ToggleUserMenu
-            , it "renders login menu with empty content" <|
-                Query.children []
-                    >> Query.index -1
-                    >> Query.find [ id "login-item" ]
-                    >> Expect.all [ Query.has [ id "login-menu" ], Query.find [ id "login-menu" ] >> Query.children [] >> Query.count (Expect.equal 0) ]
+                , it "draws lighter grey line to the left of login container" <|
+                    Query.children []
+                        >> Query.index -1
+                        >> Query.find [ id "login-container" ]
+                        >> Query.has
+                            [ style
+                                [ ( "border-left", "1px solid " ++ borderGrey )
+                                ]
+                            ]
+                , it "renders login container tall enough" <|
+                    Query.children []
+                        >> Query.index -1
+                        >> Query.find [ id "login-container" ]
+                        >> Query.has
+                            [ style
+                                [ ( "line-height", lineHeight )
+                                ]
+                            ]
+                , it "has the login username styles" <|
+                    Query.children []
+                        >> Query.index -1
+                        >> Query.find [ id "login-item" ]
+                        >> Query.has
+                            [ style
+                                [ ( "padding", "0 30px" )
+                                , ( "cursor", "pointer" )
+                                , ( "display", "flex" )
+                                , ( "align-items", "center" )
+                                , ( "justify-content", "center" )
+                                , ( "flex-grow", "1" )
+                                ]
+                            ]
+                , it "shows the logged in username when the user is logged in" <|
+                    Query.children []
+                        >> Query.index -1
+                        >> Query.find [ id "login-item" ]
+                        >> Query.has [ text "test" ]
+                , it "ToggleUserMenu message is received when login menu is clicked" <|
+                    Query.find [ id "login-container" ]
+                        >> Event.simulate Event.click
+                        >> Event.expect Msgs.ToggleUserMenu
+                , it "renders login menu with empty content" <|
+                    Query.children []
+                        >> Query.index -1
+                        >> Query.find [ id "login-item" ]
+                        >> Expect.all
+                            [ Query.has [ id "login-menu" ]
+                            , Query.find [ id "login-menu" ] >> Query.children [] >> Query.count (Expect.equal 0)
+                            ]
+                ]
             ]
         , rspecStyleDescribe "rendering user menus on clicks"
             (NewestTopBar.init { logical = Routes.Pipeline "team" "pipeline", queries = QueryString.empty, page = Nothing, hash = "" }
@@ -167,14 +227,14 @@ all =
                 |> logInUser
             )
             [ it "shows user menu when ToggleUserMenu msg is received" <|
-                NewestTopBar.update NewestTopBar.ToggleUserMenu
+                NewestTopBar.update Msgs.ToggleUserMenu
                     >> Tuple.first
                     >> NewestTopBar.view
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Query.has [ id "logout-button" ]
             , it "renders user menu content when ToggleUserMenu msg is received and logged in" <|
-                NewestTopBar.update NewestTopBar.ToggleUserMenu
+                NewestTopBar.update Msgs.ToggleUserMenu
                     >> Tuple.first
                     >> NewestTopBar.view
                     >> toUnstyled
@@ -201,14 +261,14 @@ all =
                                 ]
                         ]
             , it "when logout is clicked, a LogOut Msg is sent" <|
-                NewestTopBar.update NewestTopBar.ToggleUserMenu
+                NewestTopBar.update Msgs.ToggleUserMenu
                     >> Tuple.first
                     >> NewestTopBar.view
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Query.find [ id "logout-button" ]
                     >> Event.simulate Event.click
-                    >> Event.expect NewestTopBar.LogOut
+                    >> Event.expect Msgs.LogOut
             , it "shows 'login' when LoggedOut Msg is successful" <|
                 NewestTopBar.handleCallback (Callback.LoggedOut (Ok ()))
                     >> Tuple.first
@@ -263,7 +323,7 @@ all =
             (NewestTopBar.init { logical = Routes.Pipeline "team" "pipeline", queries = QueryString.empty, page = Nothing, hash = "" })
             [ it "redirects to login page when you click login" <|
                 Tuple.first
-                    >> NewestTopBar.update NewestTopBar.LogIn
+                    >> NewestTopBar.update Msgs.LogIn
                     >> Tuple.second
                     >> Expect.equal [ Effects.RedirectToLogin ]
             ]
@@ -343,7 +403,37 @@ all =
                         , Query.index 2 >> Query.has [ id "breadcrumb-job" ]
                         ]
             ]
-        , rspecStyleDescribe "rendering search on dashboard page"
+        , rspecStyleDescribe "when checking search bar values"
+            (NewestTopBar.init { logical = Routes.Dashboard, queries = QueryString.parse "search=test", page = Nothing, hash = "" }
+                |> Tuple.first
+            )
+            [ it "renders the search bar with the text in the search query" <|
+                NewestTopBar.view
+                    >> toUnstyled
+                    >> Query.fromHtml
+                    >> Query.find [ id "search-bar" ]
+                    >> Query.has [ tag "input", attribute <| Attr.value "test" ]
+            , it "sends a FilterMsg when the clear search button is clicked" <|
+                NewestTopBar.view
+                    >> toUnstyled
+                    >> Query.fromHtml
+                    >> Query.find [ id "search-container" ]
+                    >> Query.find [ id "search-clear" ]
+                    >> Event.simulate Event.click
+                    >> Event.expect (Msgs.FilterMsg "")
+            , it "clears search query when FilterMsg is received with blank" <|
+                NewestTopBar.update (Msgs.FilterMsg "")
+                    >> Tuple.first
+                    >> NewestTopBar.query
+                    >> Expect.equal ""
+            , it "clear search button has full opacity when there is a query" <|
+                NewestTopBar.view
+                    >> toUnstyled
+                    >> Query.fromHtml
+                    >> Query.find [ id "search-clear" ]
+                    >> Query.has [ style [ ( "opacity", "1" ) ] ]
+            ]
+        , rspecStyleDescribe "rendering search bar on dashboard page"
             (NewestTopBar.init { logical = Routes.Dashboard, queries = QueryString.empty, page = Nothing, hash = "" }
                 |> Tuple.first
                 |> NewestTopBar.view
@@ -371,7 +461,7 @@ all =
                 Query.find [ id "search-bar" ]
                     >> Query.has
                         [ style
-                            [ ( "border", "1px solid " ++ searchBarBorder )
+                            [ ( "border", searchBarBorder )
                             , ( "color", "#fff" )
                             , ( "font-size", "1.15em" )
                             , ( "font-family", "Inconsolata, monospace" )
@@ -379,9 +469,249 @@ all =
                         ]
             , it "renders search with appropriate size and padding" <|
                 Query.find [ id "search-bar" ]
-                    >> Query.has [ style [ ( "height", "30px" ), ( "width", "220px" ), ( "padding", "0 42px" ) ] ]
+                    >> Query.has [ style [ ( "height", searchBarHeight ), ( "width", searchBarWidth ), ( "padding", searchBarPadding ) ] ]
+            , it "does not have an outline when focused" <|
+                Query.find [ id "search-bar" ]
+                    >> Query.has [ style [ ( "outline", "0" ) ] ]
+            , it "has placeholder text" <|
+                Query.find [ id "search-bar" ]
+                    >> Query.has [ tag "input", attribute <| Attr.placeholder "search" ]
+            , it "has a search container" <|
+                Query.has [ id "search-container" ]
+            , it "search container is positioned appropriately" <|
+                Query.find [ id "search-container" ]
+                    >> Query.has
+                        [ style
+                            [ ( "position", "relative" )
+                            , ( "display", "flex" )
+                            , ( "flex-direction", "column" )
+                            , ( "align-items", "stretch" )
+                            ]
+                        ]
+            , it "has a clear search button container" <|
+                Query.find [ id "search-container" ]
+                    >> Query.has [ id "search-clear" ]
+            , it "positions the clear search button correctly" <|
+                Query.find [ id "search-container" ]
+                    >> Query.has [ id "search-clear" ]
+            , it "has the appropriate background image for clear search and is in correct position" <|
+                Query.find [ id "search-clear" ]
+                    >> Query.has
+                        [ style
+                            [ ( "background-image", "url('public/images/ic_close_white_24px.svg')" )
+                            , ( "background-position", "10px 10px" )
+                            , ( "background-repeat", "no-repeat" )
+                            ]
+                        ]
+            , it "clear search button has no border and renders text appropriately" <|
+                Query.find [ id "search-clear" ]
+                    >> Query.has
+                        [ style
+                            [ ( "border", "0" )
+                            , ( "color", searchBarGrey )
+                            ]
+                        ]
+            , it "clear search button is positioned appropriately" <|
+                Query.find [ id "search-clear" ]
+                    >> Query.has
+                        [ style
+                            [ ( "position", "absolute" )
+                            , ( "right", "0" )
+                            , ( "padding", "17px" )
+                            ]
+                        ]
+            , it "sets opacity for the clear search button to low when there is no text" <|
+                Query.find [ id "search-clear" ]
+                    >> Query.has [ style [ ( "opacity", "0.2" ) ] ]
+            ]
+        , rspecStyleDescribe "when search query is updated"
+            (NewestTopBar.init { logical = Routes.Dashboard, queries = QueryString.empty, page = Nothing, hash = "" }
+                |> Tuple.first
+            )
+            [ it "search item is modified" <|
+                NewestTopBar.update (Msgs.FilterMsg "test")
+                    >> Tuple.first
+                    >> NewestTopBar.query
+                    >> Expect.equal "test"
+            , it "shows the list of statuses when `status:` is clicked in the dropdown" <|
+                NewestTopBar.update Msgs.FocusMsg
+                    >> Tuple.first
+                    >> NewestTopBar.update (Msgs.FilterMsg "status:")
+                    >> Tuple.first
+                    >> NewestTopBar.update Msgs.BlurMsg
+                    >> Tuple.first
+                    >> NewestTopBar.view
+                    >> toUnstyled
+                    >> Query.fromHtml
+                    >> Query.find [ id "search-dropdown" ]
+                    >> Query.findAll [ tag "li" ]
+                    >> Expect.all
+                        [ Query.count (Expect.equal 7)
+                        , Query.index 0 >> Query.has [ text "status: paused" ]
+                        , Query.index 1 >> Query.has [ text "status: pending" ]
+                        , Query.index 2 >> Query.has [ text "status: failed" ]
+                        , Query.index 3 >> Query.has [ text "status: errored" ]
+                        , Query.index 4 >> Query.has [ text "status: aborted" ]
+                        , Query.index 5 >> Query.has [ text "status: running" ]
+                        , Query.index 6 >> Query.has [ text "status: succeeded" ]
+                        ]
+            , it "once you pick a status, the dropdown is gone" <|
+                NewestTopBar.update Msgs.FocusMsg
+                    >> Tuple.first
+                    >> NewestTopBar.update (Msgs.FilterMsg "status:")
+                    >> Tuple.first
+                    >> NewestTopBar.update (Msgs.FilterMsg "status: pending")
+                    >> Tuple.first
+                    >> NewestTopBar.view
+                    >> toUnstyled
+                    >> Query.fromHtml
+                    >> Query.findAll [ id "search-dropdown" ]
+                    >> Query.count (Expect.equal 0)
+            ]
+        , rspecStyleDescribe "when search query is `status:`"
+            (NewestTopBar.init { logical = Routes.Dashboard, queries = QueryString.parse "search=status:", page = Nothing, hash = "" }
+                |> Tuple.first
+            )
+            [ it "should display a dropdown of status options when the search bar is focused" <|
+                NewestTopBar.update Msgs.FocusMsg
+                    >> Tuple.first
+                    >> NewestTopBar.view
+                    >> toUnstyled
+                    >> Query.fromHtml
+                    >> Query.find [ id "search-dropdown" ]
+                    >> Query.findAll [ tag "li" ]
+                    >> Expect.all
+                        [ Query.count (Expect.equal 7)
+                        , Query.index 0 >> Query.has [ text "status: paused" ]
+                        , Query.index 1 >> Query.has [ text "status: pending" ]
+                        , Query.index 2 >> Query.has [ text "status: failed" ]
+                        , Query.index 3 >> Query.has [ text "status: errored" ]
+                        , Query.index 4 >> Query.has [ text "status: aborted" ]
+                        , Query.index 5 >> Query.has [ text "status: running" ]
+                        , Query.index 6 >> Query.has [ text "status: succeeded" ]
+                        ]
+            ]
+        , rspecStyleDescribe "dropdown stuff"
+            (NewestTopBar.init { logical = Routes.Dashboard, queries = QueryString.empty, page = Nothing, hash = "" }
+                |> Tuple.first
+            )
+            [ context "before receiving FocusMsg"
+                (NewestTopBar.view
+                    >> toUnstyled
+                    >> Query.fromHtml
+                )
+                [ it "has no dropdown" <|
+                    Query.findAll [ id "search-dropdown" ]
+                        >> Query.count (Expect.equal 0)
+                , it "sends FocusMsg when focusing on search bar" <|
+                    Query.find [ id "search-bar" ]
+                        >> Event.simulate Event.focus
+                        >> Event.expect Msgs.FocusMsg
+                ]
+            , context "after receiving FocusMsg"
+                (NewestTopBar.update Msgs.FocusMsg
+                    >> Tuple.first
+                    >> NewestTopBar.view
+                    >> toUnstyled
+                    >> Query.fromHtml
+                )
+                [ it "has a dropdown when search bar is focused" <|
+                    Query.find [ id "search-container" ]
+                        >> Query.has [ id "search-dropdown" ]
+                , it "should trigger a FilterMsg when typing in the search bar" <|
+                    Query.find [ id "search-bar" ]
+                        >> Event.simulate (Event.input "test")
+                        >> Event.expect (Msgs.FilterMsg "test")
+                , context "dropdown elements"
+                    (Query.findAll [ tag "li" ])
+                    [ it "have the same width and padding as search bar" <|
+                        eachHasStyle
+                            [ ( "width", searchBarWidth )
+                            , ( "padding", searchBarPadding )
+                            ]
+                    , it "have grey background" <|
+                        eachHasStyle
+                            [ ( "background-color", dropdownBackgroundGrey )
+                            ]
+                    , it "have the same height as the search bar" <|
+                        eachHasStyle
+                            [ ( "line-height", searchBarHeight )
+                            ]
+                    , it "have no bullet points" <|
+                        eachHasStyle
+                            [ ( "list-style-type", "none" )
+                            ]
+                    , it "have the same border style as the search bar" <|
+                        eachHasStyle
+                            [ ( "border", searchBarBorder )
+                            ]
+                    , it "are vertically aligned flush to each other" <|
+                        eachHasStyle
+                            [ ( "margin-top", "-1px" )
+                            ]
+                    , it "have light grey text" <|
+                        eachHasStyle
+                            [ ( "color", "#9b9b9b" )
+                            ]
+                    , it "have slightly larger font" <|
+                        eachHasStyle
+                            [ ( "font-size", "1.15em" )
+                            ]
+                    , it "have a pointer cursor" <|
+                        eachHasStyle
+                            [ ( "cursor", "pointer" ) ]
+                    ]
+                , it "the search dropdown is positioned below the search bar" <|
+                    Query.find [ id "search-dropdown" ]
+                        >> Query.has
+                            [ style
+                                [ ( "position", "absolute" )
+                                , ( "top", "100%" )
+                                , ( "margin-top", "0" )
+                                ]
+                            ]
+                , it "the search dropdown has 2 elements" <|
+                    Query.find [ id "search-dropdown" ]
+                        >> Expect.all
+                            [ Query.findAll [ tag "li" ] >> Query.count (Expect.equal 2)
+                            , Query.has [ text "status:" ]
+                            , Query.has [ text "team:" ]
+                            ]
+                , it "when team is clicked, it should trigger a FilterMsg for team" <|
+                    Query.find [ id "search-dropdown" ]
+                        >> Query.find [ tag "li", containing [ text "team:" ] ]
+                        >> Event.simulate Event.mouseDown
+                        >> Event.expect (Msgs.FilterMsg "team:")
+                , it "when status is clicked, it should trigger a FilterMsg for status" <|
+                    Query.find [ id "search-dropdown" ]
+                        >> Query.find [ tag "li", containing [ text "status:" ] ]
+                        >> Event.simulate Event.mouseDown
+                        >> Event.expect (Msgs.FilterMsg "status:")
+                , it "sends BlurMsg when blurring the search bar" <|
+                    Query.find [ id "search-bar" ]
+                        >> Event.simulate Event.blur
+                        >> Event.expect Msgs.BlurMsg
+                ]
+            , context "after receiving FocusMsg and then BlurMsg"
+                (NewestTopBar.update Msgs.FocusMsg
+                    >> Tuple.first
+                    >> NewestTopBar.update Msgs.BlurMsg
+                    >> Tuple.first
+                    >> NewestTopBar.view
+                    >> toUnstyled
+                    >> Query.fromHtml
+                )
+                [ it "hides the dropdown" <|
+                    Query.findAll [ id "search-dropdown" ]
+                        >> Query.count (Expect.equal 0)
+                ]
             ]
         ]
+
+
+eachHasStyle : List ( String, String ) -> Query.Multiple msg -> Expectation
+eachHasStyle styles =
+    Query.each <| Query.has [ style styles ]
 
 
 logoutUser : NewestTopBar.Model -> NewestTopBar.Model

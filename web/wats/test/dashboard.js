@@ -21,6 +21,15 @@ test.afterEach.always(async t => {
   await t.context.finish(t);
 });
 
+// some tests we'd like to see for dashboard autocomplete feature
+// 1. focusing on text input opens dropdown with "status:" and "team:" options
+// 2. "blurring" text input (as in hitting tab or clicking something other than a dropdown option or the X button) closes dropdown
+// 3. clicking "status:" option in dropdown causes "status:" to be shown in the text field, the URL to show "?search=status:", changes the dropdown options to show the various statuses and keeps focus in the text field
+// 3.a. clicking one of the statuses updates the text, URL and visible pipeline cards appropriately, closes the dropdown and keeps focus in the text field
+// 4. clicking "team:" option in dropdown causes "team:" to be shown in the text field, the URL to show "?search=team:", changes the dropdown options to show the various teams and keeps focus in the text field
+// 4.a. clicking one of the teams updates the text, URL and visible pipeline cards appropriately, closes the dropdown and keeps focus in the text field
+//5. clicking X clears the text field, updates the URL to show no search, closes the dropdown and blurs the text input
+
 async function showsPipelineState(t, setup, assertions) {
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
