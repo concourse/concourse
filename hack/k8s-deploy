@@ -1,31 +1,43 @@
 #!/bin/bash
 
 # k8s-deploy - deploys Concourse against a running
-# k8s cluster making use of Helm.
+# k8s cluster making use of a local Helm chat indicated
+# via the first positional argument supplied to the
+# script.
 
 set -o errexit
 
 readonly HELM_RELEASE=${HELM_RELEASE:-"local"}
-readonly IMAGE_NAME=${IMAGE_NAME:-"concourse/concourse:local"}
+readonly IMAGE_NAME=${IMAGE_NAME:-"concourse/concourse"}
+readonly IMAGE_DIGEST=${IMAGE_DIGEST:-""}
+readonly IMAGE_TAG=${IMAGE_TAG:-"local"}
 
-if [[ -z "$1" ]]; then
-  echo "Usage: $0 <charts_dir>"
-  exit 1
+if [[ -z $1 ]]; then
+	echo "Usage: $0 <charts_dir>"
+	exit 1
 fi
 
 chart_dir=$1
 
+echo "Starting Concourse Helm deploy
+
+HELM_RELEASE  $HELM_RELEASE
+IMAGE_NAME    $IMAGE_NAME
+IMAGE_TAG     $IMAGE_TAG
+IMAGE_DIGEST  $IMAGE_DIGEST
+"
+
 helm upgrade \
- -f $chart_dir/values.yaml \
- --install \
- --force \
- --set=concourse.web.kubernetes.keepNamespaces=false \
- --set=concourse.worker.ephemeral=true \
- --set=concourse.worker.replicas=1 \
- --set=concourse.worker.baggageclaim.driver=btrfs \
- --set=concourse.worker.baggageclaim.driver=btrfs \
- --set=image=$IMAGE_NAME \
- --set=imageTag="latest" \
- $HELM_RELEASE \
- --wait \
- $chart_dir
+	-f $chart_dir/values.yaml \
+	--install \
+	--force \
+	--set=concourse.web.kubernetes.keepNamespaces=false \
+	--set=concourse.worker.ephemeral=true \
+	--set=worker.replicas=1 \
+	--set=concourse.worker.baggageclaim.driver=detect \
+	--set=image=$IMAGE_NAME \
+	--set=imageDigest=$IMAGE_DIGEST \
+	--set=imageTag=$IMAGE_TAG \
+	$HELM_RELEASE \
+	--wait \
+	$chart_dir

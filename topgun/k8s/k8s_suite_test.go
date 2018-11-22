@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/caarlos0/env"
+
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
