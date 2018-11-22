@@ -1,9 +1,8 @@
 #!/bin/bash
 
-# k8s-deploy - deploys Concourse against a running
-# k8s cluster making use of a local Helm chat indicated
-# via the first positional argument supplied to the
-# script.
+# k8s-deploy - deploys Concourse against a running k8s cluster making use
+#              of a local Helm chat indicated by the first positional
+#              argument supplied to the script.
 
 set -o errexit
 

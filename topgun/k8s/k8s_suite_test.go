@@ -1,13 +1,19 @@
 package k8s_test
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/json"
+	"github.com/caarlos0/env"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"testing"
-
-	"github.com/caarlos0/env"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
@@ -59,3 +65,131 @@ var _ = BeforeEach(func() {
 	err = os.Mkdir(fly.Home, 0755)
 	Expect(err).ToNot(HaveOccurred())
 })
+
+type pod struct {
+	Status struct {
+		Phase  string `json:"phase"`
+		HostIp string `json:"hostIP"`
+		Ip     string `json:"podIP"`
+	} `json:"status"`
+	Metadata struct {
+		Name string `json:"name"`
+	} `json:"metadata"`
+}
+
+type podListResponse struct {
+	Items []pod `json:"items"`
+}
+
+func helmDeploy(releaseName string, args ...string) {
+	helmArgs := []string{
+		"upgrade",
+		"-f",
+		path.Join(Environment.ChartDir, "values.yaml"),
+		"--install",
+		"--force",
+		"--set=concourse.web.kubernetes.keepNamespaces=false",
+		"--set=image=" + Environment.ConcourseImageName,
+		"--set=imageDigest=" + Environment.ConcourseImageDigest,
+		"--set=imageTag=" + Environment.ConcourseImageTag}
+
+	helmArgs = append(helmArgs, args...)
+	helmArgs = append(helmArgs, releaseName,
+		"--wait",
+		Environment.ChartDir)
+
+	Wait(Start(nil, "helm", helmArgs...))
+}
+
+func helmDestroy(releaseName string) {
+	helmArgs := []string{
+		"delete",
+		releaseName,
+	}
+
+	Wait(Start(nil, "helm", helmArgs...))
+}
+
+func getPods(releaseName string, flags ...string) []pod {
+	var (
+		pods podListResponse
+		args = append([]string{"get", "pods",
+			"--selector=release=" + releaseName,
+			"--output=json",
+			"--no-headers"}, flags...)
+		session = Start(nil, "kubectl", args...)
+	)
+
+	Wait(session)
+
+	err := json.Unmarshal(session.Out.Contents(), &pods)
+	Expect(err).ToNot(HaveOccurred())
+
+	return pods.Items
+}
+
+func getPodsNames(releaseName string, flags ...string) []string {
+	var (
+		podNames []string
+		args     = append([]string{"get", "pods",
+			"--selector=release=" + releaseName,
+			"--output=name",
+			"--sort-by={.metadata.name}",
+			"--no-headers"}, flags...)
+		session = Start(nil, "kubectl", args...)
+	)
+
+	Wait(session)
+
+	scanner := bufio.NewScanner(bytes.NewBuffer(session.Out.Contents()))
+	for scanner.Scan() {
+		podNames = append(podNames, scanner.Text())
+	}
+
+	return podNames
+}
+
+func deletePods(releaseName string, flags ...string) []string {
+	var (
+		podNames []string
+		args     = append([]string{"delete", "pod",
+			"--selector=release=" + releaseName,
+		}, flags...)
+		session = Start(nil, "kubectl", args...)
+	)
+
+	Wait(session)
+
+	scanner := bufio.NewScanner(bytes.NewBuffer(session.Out.Contents()))
+	for scanner.Scan() {
+		podNames = append(podNames, scanner.Text())
+	}
+
+	return podNames
+}
+
+func getRunningPods(releaseName string) []string {
+	return getPodsNames(releaseName, "--field-selector=status.phase=Running")
+}
+
+func startAtcServiceProxy(releaseName string) (*gexec.Session, string) {
+	session := Start(nil, "kubectl", "port-forward", "service/"+releaseName+"-web", ":8080")
+	Eventually(session.Out).Should(gbytes.Say("Forwarding"))
+
+	address := regexp.MustCompile(`127\.0\.0\.1:[0-9]+`).
+		FindStringSubmatch(string(session.Out.Contents()))
+
+	Expect(address).NotTo(BeEmpty())
+
+	return session, "http://" + address[0]
+}
+
+func getRunningWorkers(workers []Worker) (running []Worker) {
+	for _, w := range workers {
+		if w.State == "running" {
+			running = append(running, w)
+		}
+	}
+	return
+}
+

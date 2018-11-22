@@ -21,8 +21,10 @@ type Fly struct {
 }
 
 type Worker struct {
-	Name  string `json:"name"`
-	State string `json:"state"`
+	Name            string `json:"name"`
+	State           string `json:"state"`
+	GardenAddress   string `json:"addr"`
+	BaggageclaimUrl string `json:"baggageclaim_url"`
 }
 
 func (f *Fly) Login(user, password, endpoint string) {
