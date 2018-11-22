@@ -3,7 +3,10 @@
 
 set -e -u
 
+readonly MAX_TICKS="${MAX_TICKS:-60}"
+
 instance_ip="$(cat endpoint-info/instance_ip)"
+
 test -n "$instance_ip"
 
 export ATC_URL="http://${instance_ip}:8080"
@@ -30,7 +33,7 @@ until curl -sf "$ATC_URL/api/v1/info"; do
 
   ((ticks++))
 
-  if [ "$ticks" -ge 60 ]; then
+  if [ $ticks -ge $MAX_TICKS ]; then
     echo "giving up. :("
     exit 1
   fi

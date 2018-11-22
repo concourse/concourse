@@ -262,6 +262,8 @@ jobs:
     image: unit-image
     file: concourse/ci/tasks/smoke.yml
     input_mapping: {endpoint-info: outputs}
+    params:
+      MAX_TICKS: 180
 
 - name: k8s-topgun
   public: true
