@@ -16,7 +16,7 @@ if [[ -z $1 ]]; then
 	exit 1
 fi
 
-chart_dir=$1
+charts_dir=$1
 
 echo "Starting Concourse Helm deploy
 
@@ -26,17 +26,21 @@ IMAGE_TAG     $IMAGE_TAG
 IMAGE_DIGEST  $IMAGE_DIGEST
 "
 
+helm dependency update $charts_dir
+
 helm upgrade \
-	-f $chart_dir/values.yaml \
+	-f $charts_dir/values.yaml \
 	--install \
 	--force \
-	--set=concourse.web.kubernetes.keepNamespaces=false \
-	--set=concourse.worker.ephemeral=true \
-	--set=worker.replicas=1 \
-	--set=concourse.worker.baggageclaim.driver=detect \
 	--set=image=$IMAGE_NAME \
 	--set=imageDigest=$IMAGE_DIGEST \
 	--set=imageTag=$IMAGE_TAG \
+	--set=worker.replicas=1 \
+	--set=prometheus.enabled=true \
+	--set=concourse.web.prometheus.enabled=true \
+	--set=concourse.web.kubernetes.keepNamespaces=false \
+	--set=concourse.worker.ephemeral=true \
+	--set=concourse.worker.baggageclaim.driver=detect \
 	$HELM_RELEASE \
 	--wait \
-	$chart_dir
+	$charts_dir

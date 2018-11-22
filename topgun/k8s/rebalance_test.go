@@ -37,7 +37,7 @@ var _ = Describe("Worker Rebalancing", func() {
 		}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "expected all pods to be running")
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startAtcServiceProxy(releaseName)
+		proxySession, atcEndpoint = startPortForwarding(releaseName+"-web", "8080")
 
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)
