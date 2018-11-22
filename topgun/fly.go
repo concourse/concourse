@@ -27,12 +27,15 @@ type Worker struct {
 
 func (f *Fly) Login(user, password, endpoint string) {
 	Eventually(func() *gexec.Session {
-		return f.Start(
+		sess := f.Start(
 			"login",
 			"-c", endpoint,
 			"-u", user,
 			"-p", password,
 		)
+
+		<-sess.Exited
+		return sess
 	}, 2*time.Minute, 10*time.Second).
 		Should(gexec.Exit(0), "Fly should have been able to log in")
 }
