@@ -30,22 +30,15 @@ var _ = Describe("Ephemeral workers", func() {
 			"--set=concourse.worker.baggageclaim.driver=detect")
 
 		Eventually(func() bool {
-			expectedPods := getPodsNames(releaseName)
-			actualPods := getRunningPods(releaseName)
+			expectedPods := getPodsNames(getPods(releaseName))
+			actualPods := getPodsNames(getPods(releaseName, "--field-selector=status.phase=Running"))
 
 			return len(expectedPods) == len(actualPods)
 		}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "expected all pods to be running")
 
 		By("Creating the web proxy")
 		proxySession, atcEndpoint = startAtcServiceProxy(releaseName)
-	})
 
-	AfterEach(func() {
-		helmDestroy(releaseName)
-		Wait(proxySession.Interrupt())
-	})
-
-	It("Gets properly cleaned when getting removed and then put back on", func() {
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)
 
@@ -54,7 +47,14 @@ var _ = Describe("Ephemeral workers", func() {
 			return getRunningWorkers(fly.GetWorkers())
 		}, 2*time.Minute, 10*time.Second).
 			ShouldNot(HaveLen(0))
+	})
 
+	AfterEach(func() {
+		helmDestroy(releaseName)
+		Wait(proxySession.Interrupt())
+	})
+
+	It("Gets properly cleaned when getting removed and then put back on", func() {
 		deletePods(releaseName, fmt.Sprintf("--selector=app=%s-worker", releaseName))
 
 		Eventually(func() (runningWorkers []Worker) {
@@ -69,4 +69,3 @@ var _ = Describe("Ephemeral workers", func() {
 		}, 1*time.Minute, 1*time.Second).Should(HaveLen(0), "the running worker should go away")
 	})
 })
-

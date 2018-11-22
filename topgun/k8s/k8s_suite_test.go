@@ -128,25 +128,14 @@ func getPods(releaseName string, flags ...string) []pod {
 	return pods.Items
 }
 
-func getPodsNames(releaseName string, flags ...string) []string {
-	var (
-		podNames []string
-		args     = append([]string{"get", "pods",
-			"--selector=release=" + releaseName,
-			"--output=name",
-			"--sort-by={.metadata.name}",
-			"--no-headers"}, flags...)
-		session = Start(nil, "kubectl", args...)
-	)
+func getPodsNames(pods []pod) []string {
+	var names []string
 
-	Wait(session)
-
-	scanner := bufio.NewScanner(bytes.NewBuffer(session.Out.Contents()))
-	for scanner.Scan() {
-		podNames = append(podNames, scanner.Text())
+	for _, pod := range pods {
+		names = append(names, pod.Metadata.Name)
 	}
 
-	return podNames
+	return names
 }
 
 func deletePods(releaseName string, flags ...string) []string {
@@ -166,10 +155,6 @@ func deletePods(releaseName string, flags ...string) []string {
 	}
 
 	return podNames
-}
-
-func getRunningPods(releaseName string) []string {
-	return getPodsNames(releaseName, "--field-selector=status.phase=Running")
 }
 
 func startAtcServiceProxy(releaseName string) (*gexec.Session, string) {
@@ -192,4 +177,3 @@ func getRunningWorkers(workers []Worker) (running []Worker) {
 	}
 	return
 }
-

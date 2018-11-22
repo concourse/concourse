@@ -30,14 +30,23 @@ var _ = Describe("Worker Rebalancing", func() {
 			"--set=concourse.worker.baggageclaim.driver=detect")
 
 		Eventually(func() bool {
-			expectedPods := getPodsNames(releaseName)
-			actualPods := getRunningPods(releaseName)
+			expectedPods := getPodsNames(getPods(releaseName))
+			actualPods := getPodsNames(getPods(releaseName, "--field-selector=status.phase=Running"))
 
 			return len(expectedPods) == len(actualPods)
 		}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "expected all pods to be running")
 
 		By("Creating the web proxy")
 		proxySession, atcEndpoint = startAtcServiceProxy(releaseName)
+
+		By("Logging in")
+		fly.Login("test", "test", atcEndpoint)
+
+		By("waiting for a running worker")
+		Eventually(func() []Worker {
+			return getRunningWorkers(fly.GetWorkers())
+		}, 2*time.Minute, 10*time.Second).
+			ShouldNot(HaveLen(0))
 	})
 
 	AfterEach(func() {
@@ -45,28 +54,23 @@ var _ = Describe("Worker Rebalancing", func() {
 		Wait(proxySession.Interrupt())
 	})
 
-	Describe("when a rebalance time is configured", func() {
-		It("the worker eventually connects to both web nodes over a period of time", func() {
-			By("Logging in")
-			fly.Login("test", "test", atcEndpoint)
+	It("eventually has worker connecting to each web nodes over a period of time", func() {
+		pods := getPods(releaseName, "--selector=app="+releaseName+"-web")
 
-			pods := getPods(releaseName, "--selector=app="+releaseName+"-web")
+		Eventually(func() string {
+			workers := fly.GetWorkers()
+			Expect(workers).To(HaveLen(1))
 
-			Eventually(func() string {
-				workers := fly.GetWorkers()
-				Expect(workers).To(HaveLen(1))
-				return strings.Split(workers[0].GardenAddress, ":")[0]
-			}, 2*time.Minute, 10*time.Second).
-				Should(Equal(pods[0].Status.Ip))
+			return strings.Split(workers[0].GardenAddress, ":")[0]
+		}, 2*time.Minute, 10*time.Second).
+			Should(Equal(pods[0].Status.Ip))
 
-			Eventually(func() string {
-				workers := fly.GetWorkers()
+		Eventually(func() string {
+			workers := fly.GetWorkers()
 
-				Expect(workers).To(HaveLen(1))
-				return strings.Split(workers[0].GardenAddress, ":")[0]
-			}, 2*time.Minute, 10*time.Second).
-				Should(Equal(pods[1].Status.Ip))
-		})
+			Expect(workers).To(HaveLen(1))
+			return strings.Split(workers[0].GardenAddress, ":")[0]
+		}, 2*time.Minute, 10*time.Second).
+			Should(Equal(pods[1].Status.Ip))
 	})
 })
-
