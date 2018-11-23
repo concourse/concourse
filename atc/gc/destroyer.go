@@ -84,7 +84,6 @@ func (d *destroyer) DestroyVolumes(workerName string, currentHandles []string) e
 	return nil
 }
 
-
 // TODO : Remove this and call GetDestroyingVolumes directly on the volumeRepository
 // feels odd to have a "Find*" on an interface named "Destroyer"
 func (d *destroyer) FindDestroyingVolumesForGc(workerName string) ([]string, error) {
