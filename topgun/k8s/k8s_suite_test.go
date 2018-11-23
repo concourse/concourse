@@ -25,41 +25,53 @@ func TestK8s(t *testing.T) {
 	RunSpecs(t, "K8s Suite")
 }
 
+type environment struct {
+	ConcourseImageDigest string `env:"CONCOURSE_IMAGE_DIGEST"`
+	ConcourseImageName   string `env:"CONCOURSE_IMAGE_NAME,required"`
+	ConcourseImageTag    string `env:"CONCOURSE_IMAGE_TAG"`
+	ChartDir             string `env:"CHART_DIR,required"`
+	FlyPath              string `env:"FLY_PATH"`
+}
+
 var (
-	Environment struct {
-		ConcourseImageDigest string `env:"CONCOURSE_IMAGE_DIGEST"`
-		ConcourseImageName   string `env:"CONCOURSE_IMAGE_NAME,required"`
-		ConcourseImageTag    string `env:"CONCOURSE_IMAGE_TAG"`
-		ChartDir             string `env:"CHART_DIR,required"`
-	}
-	flyPath string
-	fly     Fly
+	Environment environment
+	fly         Fly
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	return []byte(BuildBinary())
-}, func(data []byte) {
-	flyPath = string(data)
-})
+	var parsedEnv environment
 
-var _ = BeforeEach(func() {
-	err := env.Parse(&Environment)
+	err := env.Parse(&parsedEnv)
 	Expect(err).ToNot(HaveOccurred())
+
+	if parsedEnv.FlyPath == "" {
+		parsedEnv.FlyPath = BuildBinary()
+	}
 
 	By("Checking if kubectl has a context set")
 	Wait(Start(nil, "kubectl", "config", "current-context"))
 
 	By("Installing tiller")
 	Wait(Start(nil, "helm", "init", "--wait"))
-	Wait(Start(nil, "helm", "dependency", "update", Environment.ChartDir))
+	Wait(Start(nil, "helm", "dependency", "update", parsedEnv.ChartDir))
 
+	envBytes, err := json.Marshal(parsedEnv)
+	Expect(err).ToNot(HaveOccurred())
+
+	return envBytes
+}, func(data []byte) {
+	err := json.Unmarshal(data, &Environment)
+	Expect(err).ToNot(HaveOccurred())
+})
+
+var _ = BeforeEach(func() {
 	tmp, err := ioutil.TempDir("", "topgun-tmp")
 	Expect(err).ToNot(HaveOccurred())
 
 	fly = Fly{
-		Bin:    flyPath,
+		Bin:    Environment.FlyPath,
 		Target: "concourse-topgun-k8s-" + strconv.Itoa(GinkgoParallelNode()),
-		Home:   filepath.Join(tmp, "fly-home"),
+		Home:   filepath.Join(tmp, "fly-home-"+strconv.Itoa(GinkgoParallelNode())),
 	}
 
 	err = os.Mkdir(fly.Home, 0755)
