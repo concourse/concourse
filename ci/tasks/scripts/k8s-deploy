@@ -43,15 +43,15 @@ if [ -n "${CONCOURSE_DIGEST_FILE}" ]; then
   fi
 fi
 
-external_ip='127.0.0.1'
 app="${RELEASE_NAME}-web"
 
 pushd charts/stable/concourse/
   helm init --wait
-  helm dependency update
-  helm upgrade -f values.yaml \
+  helm dependency update --debug
+  helm upgrade \
     --install \
     --force \
+    --values values.yaml \
     --set image=$CONCOURSE_IMAGE \
     --set imageDigest="$CONCOURSE_DIGEST" \
     --set secrets.localUsers="admin:$ATC_ADMIN_PASSWORD\,guest:$ATC_GUEST_PASSWORD" \

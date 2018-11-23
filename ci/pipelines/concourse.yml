@@ -280,7 +280,7 @@ jobs:
     - get: charts
       trigger: true
       passed: [k8s-smoke]
-  - task: deploy
+  - task: k8s-topgun
     file: concourse/ci/tasks/k8s-topgun.yml
     image: k8s-dev-image
     params:

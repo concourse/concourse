@@ -29,9 +29,10 @@ IMAGE_DIGEST  $IMAGE_DIGEST
 helm dependency update $charts_dir
 
 helm upgrade \
-	-f $charts_dir/values.yaml \
 	--install \
 	--force \
+	--wait \
+	--values $charts_dir/values.yaml \
 	--set=image=$IMAGE_NAME \
 	--set=imageDigest=$IMAGE_DIGEST \
 	--set=imageTag=$IMAGE_TAG \
@@ -42,5 +43,4 @@ helm upgrade \
 	--set=concourse.worker.ephemeral=true \
 	--set=concourse.worker.baggageclaim.driver=detect \
 	$HELM_RELEASE \
-	--wait \
 	$charts_dir
