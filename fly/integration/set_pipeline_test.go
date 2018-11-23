@@ -193,7 +193,6 @@ var _ = Describe("Fly CLI", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess.Err).Should(gbytes.Say(`could not resolve old-style template vars`))
 					Eventually(sess.Err).Should(gbytes.Say(`2 errors occurred:`))
 					Eventually(sess.Err).Should(gbytes.Say(`\* unbound variable in template: 'resource-type'`))
 					Eventually(sess.Err).Should(gbytes.Say(`\* unbound variable in template: 'resource-key'`))
@@ -607,7 +606,7 @@ this is super secure
 				})
 
 				Context("when the --check-creds option is used", func() {
-					Context("when the variable exists in the credentials maanger", func() {
+					Context("when the variable exists in the credentials manager", func() {
 						It("should succeed and send the vars uninterpolated", func() {
 							Expect(func() {
 								flyCmd := exec.Command(

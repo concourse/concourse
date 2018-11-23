@@ -53,7 +53,6 @@ var _ = Describe("TaskStep", func() {
 		resourceTypes creds.VersionedResourceTypes
 		inputMapping  map[string]string
 		outputMapping map[string]string
-		variables     creds.Variables
 
 		repo  *worker.ArtifactRepository
 		state *execfakes.FakeRunState
@@ -88,7 +87,7 @@ var _ = Describe("TaskStep", func() {
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(repo)
 
-		resourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+		resourceTypes = creds.NewVersionedResourceTypes(template.StaticVariables{}, atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
 					Name:   "custom-resource",
@@ -103,11 +102,6 @@ var _ = Describe("TaskStep", func() {
 		inputMapping = nil
 		outputMapping = nil
 		imageArtifactName = ""
-
-		variables = template.StaticVariables{
-			"source-param": "super-secret-source",
-			"task-param":   "super-secret-param",
-		}
 
 		containerMetadata = db.ContainerMetadata{
 			Type:     db.ContainerTypeTask,
@@ -135,7 +129,6 @@ var _ = Describe("TaskStep", func() {
 			planID,
 			containerMetadata,
 			resourceTypes,
-			variables,
 			atc.ContainerLimits{},
 		)
 
@@ -152,7 +145,7 @@ var _ = Describe("TaskStep", func() {
 				Platform: "some-platform",
 				ImageResource: &atc.ImageResource{
 					Type:    "docker",
-					Source:  atc.Source{"some": "((source-param))"},
+					Source:  atc.Source{"some": "secret-source-param"},
 					Params:  &atc.Params{"some": "params"},
 					Version: &atc.Version{"some": "version"},
 				},
@@ -161,7 +154,7 @@ var _ = Describe("TaskStep", func() {
 					Memory: &memory,
 				},
 				Params: map[string]string{
-					"SECURE": "((task-param))",
+					"SECURE": "secret-task-param",
 				},
 				Run: atc.TaskRunConfig{
 					Path: "ls",
@@ -217,7 +210,7 @@ var _ = Describe("TaskStep", func() {
 					ImageSpec: worker.ImageSpec{
 						ImageResource: &worker.ImageResource{
 							Type:    "docker",
-							Source:  creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
+							Source:  creds.NewSource(template.StaticVariables{}, atc.Source{"some": "secret-source-param"}),
 							Params:  &atc.Params{"some": "params"},
 							Version: &atc.Version{"some": "version"},
 						},
@@ -228,7 +221,7 @@ var _ = Describe("TaskStep", func() {
 						Memory: &memory,
 					},
 					Dir:     "some-artifact-root",
-					Env:     []string{"SECURE=super-secret-param"},
+					Env:     []string{"SECURE=secret-task-param"},
 					Inputs:  []worker.InputSource{},
 					Outputs: worker.OutputPaths{},
 				}))

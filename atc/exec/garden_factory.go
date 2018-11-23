@@ -136,20 +136,22 @@ func (factory *gardenFactory) Task(
 	workingDirectory := factory.taskWorkingDirectory(worker.ArtifactName(plan.Task.Name))
 	containerMetadata.WorkingDirectory = workingDirectory
 
-	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
+	credMgrVariables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
+	taskVarsWithCredMgr := []boshtemplate.Variables{boshtemplate.StaticVariables(plan.Task.Vars), credMgrVariables}
 
 	var taskConfigSource TaskConfigSource
-	if plan.Task.ConfigPath != "" && (plan.Task.Config != nil || plan.Task.Params != nil) {
-		taskConfigSource = &MergedConfigSource{
-			A: FileConfigSource{ConfigPath: plan.Task.ConfigPath, Vars: []boshtemplate.Variables{boshtemplate.StaticVariables(plan.Task.Vars), variables}},
-			B: StaticConfigSource{Config: plan.Task.Config, Params: plan.Task.Params},
-		}
-	} else if plan.Task.Config != nil {
-		taskConfigSource = StaticConfigSource{Config: plan.Task.Config, Params: plan.Task.Params}
-	} else if plan.Task.ConfigPath != "" {
-		taskConfigSource = FileConfigSource{ConfigPath: plan.Task.ConfigPath, Vars: []boshtemplate.Variables{boshtemplate.StaticVariables(plan.Task.Vars), variables}}
+	if plan.Task.ConfigPath != "" {
+		// external task
+		taskConfigSource = FileConfigSource{ConfigPath: plan.Task.ConfigPath, Vars: taskVarsWithCredMgr}
+	} else {
+		// embedded task
+		taskConfigSource = StaticConfigSource{Config: plan.Task.Config, Vars: taskVarsWithCredMgr}
 	}
 
+	// override params
+	taskConfigSource = OverrideParamsConfigSource{ConfigSource: taskConfigSource, Params: plan.Task.Params}
+
+	// validate
 	taskConfigSource = ValidatingConfigSource{ConfigSource: taskConfigSource}
 
 	taskStep := NewTaskStep(
@@ -172,8 +174,7 @@ func (factory *gardenFactory) Task(
 		plan.ID,
 		containerMetadata,
 
-		creds.NewVersionedResourceTypes(variables, plan.Task.VersionedResourceTypes),
-		variables,
+		creds.NewVersionedResourceTypes(credMgrVariables, plan.Task.VersionedResourceTypes),
 		factory.defaultLimits,
 	)
 

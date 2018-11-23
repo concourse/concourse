@@ -28,13 +28,13 @@ func (resolver TemplateResolver) Resolve(expectAllKeys bool, allowEmptyInOldStyl
 	if PresentDeprecated(resolver.configPayload) {
 		resolver.configPayload, err = resolver.ResolveDeprecated(allowEmptyInOldStyleTemplates)
 		if err != nil {
-			return nil, fmt.Errorf("could not resolve old-style template vars: %s", err.Error())
+			return nil, err
 		}
 	}
 
 	resolver.configPayload, err = resolver.resolve(expectAllKeys)
 	if err != nil {
-		return nil, fmt.Errorf("could not resolve template vars: %s", err.Error())
+		return nil, err
 	}
 
 	return resolver.configPayload, nil

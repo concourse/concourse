@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 
+	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
+
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -87,7 +89,6 @@ type TaskStep struct {
 
 	resourceTypes creds.VersionedResourceTypes
 
-	variables     creds.Variables
 	defaultLimits atc.ContainerLimits
 
 	succeeded bool
@@ -110,7 +111,6 @@ func NewTaskStep(
 	planID atc.PlanID,
 	containerMetadata db.ContainerMetadata,
 	resourceTypes creds.VersionedResourceTypes,
-	variables creds.Variables,
 	defaultLimits atc.ContainerLimits,
 ) Step {
 	return &TaskStep{
@@ -130,7 +130,6 @@ func NewTaskStep(
 		planID:            planID,
 		containerMetadata: containerMetadata,
 		resourceTypes:     resourceTypes,
-		variables:         variables,
 		defaultLimits:     defaultLimits,
 	}
 }
@@ -310,18 +309,13 @@ func (action *TaskStep) containerSpec(logger lager.Logger, repository *worker.Ar
 	} else if config.ImageResource != nil {
 		imageSpec.ImageResource = &worker.ImageResource{
 			Type:    config.ImageResource.Type,
-			Source:  creds.NewSource(action.variables, config.ImageResource.Source),
+			Source:  creds.NewSource(boshtemplate.StaticVariables{}, config.ImageResource.Source),
 			Params:  config.ImageResource.Params,
 			Version: config.ImageResource.Version,
 		}
 
 	} else if config.RootfsURI != "" {
 		imageSpec.ImageURL = config.RootfsURI
-	}
-
-	params, err := creds.NewTaskParams(action.variables, config.Params).Evaluate()
-	if err != nil {
-		return worker.ContainerSpec{}, err
 	}
 
 	containerSpec := worker.ContainerSpec{
@@ -332,7 +326,7 @@ func (action *TaskStep) containerSpec(logger lager.Logger, repository *worker.Ar
 		Limits:    worker.ContainerLimits(config.Limits),
 		User:      config.Run.User,
 		Dir:       action.artifactsRoot,
-		Env:       action.envForParams(params),
+		Env:       action.envForParams(config.Params),
 
 		Inputs:  []worker.InputSource{},
 		Outputs: worker.OutputPaths{},

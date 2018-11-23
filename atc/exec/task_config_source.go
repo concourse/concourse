@@ -29,7 +29,7 @@ type TaskConfigSource interface {
 // StaticConfigSource represents a statically configured TaskConfig.
 type StaticConfigSource struct {
 	Config *atc.TaskConfig
-	Params atc.Params
+	Vars   []boshtemplate.Variables
 }
 
 // FetchConfig returns the configuration.
@@ -40,31 +40,20 @@ func (configSource StaticConfigSource) FetchConfig(lager.Logger, *worker.Artifac
 		taskConfig = *configSource.Config
 	}
 
-	if configSource.Params == nil {
-		return taskConfig, nil
+	byteConfig, err := json.Marshal(taskConfig)
+	if err != nil {
+		return atc.TaskConfig{}, fmt.Errorf("failed to marshal task config: %s", err)
 	}
 
-	if taskConfig.Params == nil {
-		taskConfig.Params = map[string]string{}
+	// process task template, using cred manager vars
+	byteConfig, err = template.NewTemplateResolver(byteConfig, configSource.Vars).Resolve(true, true)
+	if err != nil {
+		return atc.TaskConfig{}, fmt.Errorf("failed to interpolate task config: %s", err)
 	}
 
-	for key, val := range configSource.Params {
-		switch v := val.(type) {
-		case string:
-			taskConfig.Params[key] = v
-		case float64:
-			if math.Floor(v) == v {
-				taskConfig.Params[key] = strconv.FormatInt(int64(v), 10)
-			} else {
-				taskConfig.Params[key] = strconv.FormatFloat(v, 'f', -1, 64)
-			}
-		default:
-			bs, err := json.Marshal(val)
-			if err != nil {
-				return atc.TaskConfig{}, err
-			}
-			taskConfig.Params[key] = string(bs)
-		}
+	taskConfig, err = atc.NewTaskConfig(byteConfig)
+	if err != nil {
+		return atc.TaskConfig{}, fmt.Errorf("failed to create task config from bytes: %s", err)
 	}
 
 	return taskConfig, nil
@@ -120,20 +109,20 @@ func (configSource FileConfigSource) FetchConfig(logger lager.Logger, repo *work
 
 	defer stream.Close()
 
-	streamedFile, err := ioutil.ReadAll(stream)
+	byteConfig, err := ioutil.ReadAll(stream)
 	if err != nil {
 		return atc.TaskConfig{}, err
 	}
 
-	// process template of an external task, using vars provided from the pipeline as well as cred manager vars
-	streamedFile, err = template.NewTemplateResolver(streamedFile, configSource.Vars).Resolve(true, true)
+	// process task template, using vars provided from the pipeline as well as cred manager vars
+	byteConfig, err = template.NewTemplateResolver(byteConfig, configSource.Vars).Resolve(true, true)
 	if err != nil {
-		return atc.TaskConfig{}, fmt.Errorf("failed to load %s: %s", configSource.ConfigPath, err)
+		return atc.TaskConfig{}, fmt.Errorf("failed to interpolate task config %s: %s", configSource.ConfigPath, err)
 	}
 
-	config, err := atc.NewTaskConfig(streamedFile)
+	config, err := atc.NewTaskConfig(byteConfig)
 	if err != nil {
-		return atc.TaskConfig{}, fmt.Errorf("failed to load %s: %s", configSource.ConfigPath, err)
+		return atc.TaskConfig{}, fmt.Errorf("failed to create task config from bytes %s: %s", configSource.ConfigPath, err)
 	}
 
 	return config, nil
@@ -143,40 +132,51 @@ func (configSource FileConfigSource) Warnings() []string {
 	return []string{}
 }
 
-// MergedConfigSource is used to join two config sources together.
-type MergedConfigSource struct {
-	A             TaskConfigSource
-	B             TaskConfigSource
-	MergeWarnings []string
+// OverrideParamsConfigSource is used to override params in a config source
+type OverrideParamsConfigSource struct {
+	ConfigSource TaskConfigSource
+	Params       atc.Params
 }
 
-// FetchConfig fetches both config sources, and merges the second config source
-// into the first. This allows the user to set params required by a task loaded
+// FetchConfig overrides parameters, allowing the user to set params required by a task loaded
 // from a file by providing them in static configuration.
-func (configSource *MergedConfigSource) FetchConfig(logger lager.Logger, source *worker.ArtifactRepository) (atc.TaskConfig, error) {
-	aConfig, err := configSource.A.FetchConfig(logger, source)
+func (configSource OverrideParamsConfigSource) FetchConfig(logger lager.Logger, source *worker.ArtifactRepository) (atc.TaskConfig, error) {
+	taskConfig, err := configSource.ConfigSource.FetchConfig(logger, source)
 	if err != nil {
 		return atc.TaskConfig{}, err
 	}
 
-	bConfig, err := configSource.B.FetchConfig(logger, source)
-	if err != nil {
-		return atc.TaskConfig{}, err
+	if taskConfig.Params == nil {
+		taskConfig.Params = map[string]string{}
 	}
 
-	mergedConfig, warnings, err := aConfig.Merge(bConfig)
-	configSource.MergeWarnings = warnings
+	for key, val := range configSource.Params {
+		switch v := val.(type) {
+		case string:
+			taskConfig.Params[key] = v
+		case float64:
+			if math.Floor(v) == v {
+				taskConfig.Params[key] = strconv.FormatInt(int64(v), 10)
+			} else {
+				taskConfig.Params[key] = strconv.FormatFloat(v, 'f', -1, 64)
+			}
+		default:
+			bs, err := json.Marshal(val)
+			if err != nil {
+				return atc.TaskConfig{}, err
+			}
+			taskConfig.Params[key] = string(bs)
+		}
+	}
 
-	return mergedConfig, err
+	return taskConfig, nil
 }
 
-func (configSource *MergedConfigSource) Warnings() []string {
-	warnings := []string{}
-	warnings = append(warnings, configSource.A.Warnings()...)
-	warnings = append(warnings, configSource.B.Warnings()...)
-	warnings = append(warnings, configSource.MergeWarnings...)
-
-	return warnings
+func (configSource OverrideParamsConfigSource) Warnings() []string {
+	if len(configSource.Params) > 0 {
+		return []string{fmt.Sprintf("overriding task parameters via 'params' is deprecated. use 'vars' instead")}
+	}
+	return nil
 }
 
 // ValidatingConfigSource delegates to another ConfigSource, and validates its

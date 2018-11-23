@@ -76,42 +76,53 @@ run:
 			fly("unpause-pipeline", "-p", pipelineName)
 		})
 
-		It("runs pipeline job with external task without error when vars are passed from the pipeline", func() {
-			execS := fly("trigger-job", "-w", "-j", pipelineName+"/external-task-success")
-			Expect(execS).To(gbytes.Say("Hello World"))
+		Context("when required vars are passed from the pipeline", func() {
+			It("successfully runs pipeline job with external task", func() {
+				execS := fly("trigger-job", "-w", "-j", pipelineName+"/external-task-success")
+				Expect(execS).To(gbytes.Say("Hello World"))
+			})
 		})
 
-		It("runs external task via fly execute without error when vars are passed from command line using -v", func() {
-			execS := flyIn(fixture, "execute", "-c", "task.yml", "-v", "image_resource_type=mock", "-v", "echo_text=Hello World From Command Line")
-			Expect(execS).To(gbytes.Say("Hello World From Command Line"))
+		Context("when not all required vars are passed from the pipeline", func() {
+			It("fails pipeline job with external task due to an uninterpolated variable", func() {
+				execS := spawnFly("trigger-job", "-w", "-j", pipelineName+"/external-task-failure")
+				<-execS.Exited
+				Expect(execS).To(gexec.Exit(2))
+				Expect(execS.Out).To(gbytes.Say("Expected to find variables: echo_text"))
+			})
 		})
 
-		It("runs external task via fly execute without error when vars are passed from command line using -l", func() {
-			varsContents := `
+		Context("when required vars are passed from from command line using -v", func() {
+			It("successfully runs external task via fly execute", func() {
+				execS := flyIn(fixture, "execute", "-c", "task.yml", "-v", "image_resource_type=mock", "-v", "echo_text=Hello World From Command Line")
+				Expect(execS).To(gbytes.Say("Hello World From Command Line"))
+			})
+		})
+
+		Context("when required vars are passed from from command line using -v", func() {
+			It("successfully runs external task via fly execute", func() {
+				varsContents := `
 image_resource_type: mock
 echo_text: Hello World From Command Line
 `
-			err := ioutil.WriteFile(
-				filepath.Join(fixture, "vars.yml"),
-				[]byte(varsContents),
-				0755,
-			)
-			Expect(err).NotTo(HaveOccurred())
-			execS := flyIn(fixture, "execute", "-c", "task.yml", "-l", "vars.yml")
-			Expect(execS).To(gbytes.Say("Hello World From Command Line"))
+				err := ioutil.WriteFile(
+					filepath.Join(fixture, "vars.yml"),
+					[]byte(varsContents),
+					0755,
+				)
+				Expect(err).NotTo(HaveOccurred())
+				execS := flyIn(fixture, "execute", "-c", "task.yml", "-l", "vars.yml")
+				Expect(execS).To(gbytes.Say("Hello World From Command Line"))
+			})
 		})
 
-		It("fails pipeline job with external task if it has an uninterpolated variable", func() {
-			execS := spawnFly("trigger-job", "-w", "-j", pipelineName+"/external-task-failure")
-			<-execS.Exited
-			Expect(execS).To(gexec.Exit(2))
-			Expect(execS.Out).To(gbytes.Say("Expected to find variables: echo_text"))
-		})
-
-		It("should fail external task via fly execute if it has an uninterpolated variable (but it succeeds)", func() {
-			// TODO: not sure how to change implementation to fail early on one-off tasks with uninterpolated variables via fly execute
-			execS := flyIn(fixture, "execute", "-c", "task.yml", "-v", "image_resource_type=mock")
-			Expect(execS).To(gbytes.Say("((echo_text))"))
+		Context("when not all required vars are passed from from command line", func() {
+			It("fails external task via fly execute due to an uninterpolated variable", func() {
+				execS := spawnFlyIn(fixture, "execute", "-c", "task.yml", "-v", "image_resource_type=mock")
+				<-execS.Exited
+				Expect(execS).To(gexec.Exit(2))
+				Expect(execS.Out).To(gbytes.Say("Expected to find variables: echo_text"))
+			})
 		})
 
 	})
