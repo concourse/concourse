@@ -11,9 +11,9 @@ import (
 )
 
 type WatchCommand struct {
-	Job   		flaghelpers.JobFlag `short:"j" long:"job"   	value-name:"PIPELINE/JOB"   description:"Watches builds of the given job"`
-	Build 		string              `short:"b" long:"build"                               	description:"Watches a specific build"`
-	Timestamp 	bool				`short:"t" long:"timestamp"								description:"Print with timestamp"`
+	Job       flaghelpers.JobFlag `short:"j" long:"job"   	value-name:"PIPELINE/JOB"   description:"Watches builds of the given job"`
+	Build     string              `short:"b" long:"build"                               	description:"Watches a specific build"`
+	Timestamp bool                `short:"u" long:"timestamps"								description:"Print with timestamp"`
 }
 
 func (command *WatchCommand) Execute(args []string) error {

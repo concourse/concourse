@@ -16,6 +16,8 @@ type RenderOptions struct {
 }
 
 func Render(dst io.Writer, src eventstream.EventStream, options RenderOptions) int {
+	dstImpl := NewTimestampedWriter(dst, options.ShowTimestamp)
+
 	exitStatus := 0
 
 	for {
@@ -24,37 +26,42 @@ func Render(dst io.Writer, src eventstream.EventStream, options RenderOptions) i
 			if err == io.EOF {
 				return exitStatus
 			} else {
-				eventLog := NewEventLogFromError("%s", err)
-				fmt.Fprint(dst, AdditionalFormatting(eventLog, options))
+				dstImpl.SetTimestamp(0)
+				fmt.Fprintf(dstImpl, "failed to parse next event: %s\n", err)
 				return 255
 			}
 		}
 
-		var eventLog EventLog
 		switch e := ev.(type) {
 		case event.Log:
-			eventLog = NewEventLog("%s", e.Payload, e.Time)
+			dstImpl.SetTimestamp(e.Time)
+			fmt.Fprintf(dstImpl, "%s", e.Payload)
 
 		case event.LogV50:
-			eventLog = NewEventLog("%s", e.Payload, 0)
+			dstImpl.SetTimestamp(0)
+			fmt.Fprintf(dstImpl, "%s", e.Payload)
 
 		case event.InitializeTask:
-			eventLog = NewEventLog("\x1b[1m%s\x1b[0m\n", "initializing", e.Time)
+			dstImpl.SetTimestamp(e.Time)
+			fmt.Fprintf(dstImpl, "\x1b[1minitializing\x1b[0m\n")
 
 		case event.StartTask:
 			buildConfig := e.TaskConfig
 
 			argv := strings.Join(append([]string{buildConfig.Run.Path}, buildConfig.Run.Args...), " ")
-			eventLog = NewEventLog("\x1b[1mrunning %s\x1b[0m\n", argv, e.Time)
+			dstImpl.SetTimestamp(e.Time)
+			fmt.Fprintf(dstImpl, "\x1b[1mrunning %s\x1b[0m\n", argv)
 
 		case event.FinishTask:
 			exitStatus = e.ExitStatus
 
 		case event.Error:
 			errCol := ui.ErroredColor.SprintFunc()
-			eventLog = NewEventLog("%s\n", errCol(e.Message), 0)
+			dstImpl.SetTimestamp(0)
+			fmt.Fprintf(dstImpl, "%s\n", errCol(e.Message))
 
 		case event.Status:
+			dstImpl.SetTimestamp(e.Time)
 			var printColor *color.Color
 
 			switch e.Status {
@@ -81,17 +88,14 @@ func Render(dst io.Writer, src eventstream.EventStream, options RenderOptions) i
 					exitStatus = 3
 				}
 			default:
-				eventLog = NewEventLogFromStatus("unknown status: %s",  e.Status, e.Time)
-				fmt.Fprint(dst, AdditionalFormatting(eventLog, options))
+				fmt.Fprintf(dstImpl, "unknown status: %s", e.Status)
 				return 255
 			}
 
 			printColorFunc := printColor.SprintFunc()
-			eventLog = NewEventLog("%s\n", printColorFunc(e.Status), e.Time)
-			fmt.Fprint(dst, AdditionalFormatting(eventLog, options))
+			fmt.Fprintf(dstImpl, "%s\n", printColorFunc(e.Status))
 
 			return exitStatus
 		}
-		fmt.Fprint(dst, AdditionalFormatting(eventLog, options))
 	}
 }
