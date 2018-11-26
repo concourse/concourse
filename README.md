@@ -13,18 +13,12 @@ engine](https://vito.github.io/booklit/).
 
 ## Prerequisites
 
-* Have Go v1.8+ installed and configured. You can find the relevant
+* Have Go v1.11.2+ installed and configured. You can find the relevant
   instructions for your platform of choice here: [Go Getting
   Started](https://golang.org/doc/install)
 
 * Clone this repository:
   [https://github.com/concourse/docs](https://github.com/concourse/docs)
-
-* Set your GOPATH and initialize submodules
-  ```
-  direnv allow  # or source .envrc
-  git submodule update --init --recursive
-  ```
 
 ## Compiling the Docs
 
