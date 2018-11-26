@@ -19,8 +19,8 @@ import (
 
 var _ = Describe("V1.0 Renderer", func() {
 	var (
-		out    *gbytes.Buffer
-		stream *eventstreamfakes.FakeEventStream
+		out     *gbytes.Buffer
+		stream  *eventstreamfakes.FakeEventStream
 		options eventstream.RenderOptions
 
 		receivedEvents chan<- atc.Event
@@ -55,7 +55,7 @@ var _ = Describe("V1.0 Renderer", func() {
 		BeforeEach(func() {
 			receivedEvents <- event.Log{
 				Payload: "hello",
-				Time: time.Now().Unix(),
+				Time:    time.Now().Unix(),
 			}
 		})
 
@@ -82,7 +82,7 @@ var _ = Describe("V1.0 Renderer", func() {
 			}
 		})
 
-		It("prints its message with a red background in white, followed by a linebreak", func() {
+		It("prints its message in bold red, followed by a linebreak", func() {
 			Expect(out.Contents()).To(ContainSubstring(ui.ErroredColor.SprintFunc()("oh no!") + "\n"))
 		})
 
@@ -191,7 +191,7 @@ var _ = Describe("V1.0 Renderer", func() {
 			BeforeEach(func() {
 				receivedEvents <- event.Status{
 					Status: atc.StatusSucceeded,
-					Time: time.Now().Unix(),
+					Time:   time.Now().Unix(),
 				}
 			})
 
@@ -218,7 +218,7 @@ var _ = Describe("V1.0 Renderer", func() {
 			BeforeEach(func() {
 				receivedEvents <- event.Status{
 					Status: atc.StatusFailed,
-					Time: time.Now().Unix(),
+					Time:   time.Now().Unix(),
 				}
 			})
 
@@ -245,11 +245,11 @@ var _ = Describe("V1.0 Renderer", func() {
 			BeforeEach(func() {
 				receivedEvents <- event.Status{
 					Status: atc.StatusErrored,
-					Time: time.Now().Unix(),
+					Time:   time.Now().Unix(),
 				}
 			})
 
-			It("prints it in magenta", func() {
+			It("prints it in bold red", func() {
 				Expect(out.Contents()).To(ContainSubstring(ui.ErroredColor.SprintFunc()("errored") + "\n"))
 			})
 
@@ -272,7 +272,7 @@ var _ = Describe("V1.0 Renderer", func() {
 			BeforeEach(func() {
 				receivedEvents <- event.Status{
 					Status: atc.StatusAborted,
-					Time: time.Now().Unix(),
+					Time:   time.Now().Unix(),
 				}
 			})
 

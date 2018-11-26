@@ -111,31 +111,6 @@ var _ = Describe("Watching", func() {
 		})
 	})
 
-	Context("with just timestamp configuration", func() {
-		BeforeEach(func() {
-			atcServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/builds"),
-					ghttp.RespondWithJSONEncoded(200, []atc.Build{
-						{ID: 3, Name: "1", Status: "started", JobName: "some-job"},
-						{ID: 3, Name: "3", Status: "started"},
-						{ID: 2, Name: "2", Status: "started"},
-						{ID: 1, Name: "1", Status: "finished"},
-					}),
-				),
-				eventsHandler(),
-			)
-		})
-
-		It("watches the most recent one-off build with '--timestamp' configuration", func() {
-			watch("--timestamps")
-		})
-
-		It("watches the most recent one-off build with short hand ('-u') timestamp configuration", func() {
-			watch("-u")
-		})
-	})
-
 	Context("with a build ID and no job", func() {
 		BeforeEach(func() {
 			atcServer.AppendHandlers(
@@ -145,10 +120,6 @@ var _ = Describe("Watching", func() {
 
 		It("Watches the given build id", func() {
 			watch("--build", "3")
-		})
-
-		It("Watches the given build id with timestamp prefixed", func() {
-			watch("--build", "3", "--timestamps")
 		})
 	})
 
@@ -205,10 +176,6 @@ var _ = Describe("Watching", func() {
 			It("watches the job's next build", func() {
 				watch("--job", "some-pipeline/some-job")
 			})
-
-			It("watches the job's next build with timestamps prefixed", func() {
-				watch("--job", "some-pipeline/some-job", "--timestamps")
-			})
 		})
 
 		Context("when the job only has a finished build", func() {
@@ -253,10 +220,6 @@ var _ = Describe("Watching", func() {
 
 			It("watches the given build", func() {
 				watch("--job", "main/some-job", "--build", "3")
-			})
-
-			It("watches the given build with timestamp prefixed", func() {
-				watch("--job", "main/some-job", "--build", "3", "--timestamps")
 			})
 		})
 	})
