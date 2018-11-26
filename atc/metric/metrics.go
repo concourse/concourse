@@ -452,7 +452,7 @@ func (event WorkersState) Emit(logger lager.Logger) {
 				Value: numericState,
 				State: eventState,
 				Attributes: map[string]string{
-					"name":         workerName,
+					"worker":       workerName,
 					"worker_state": string(workerState),
 				},
 			},
