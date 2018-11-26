@@ -42,6 +42,7 @@ type Team interface {
 	ClearTaskCache(pipelineName string, jobName string, stepName string, cachePath string) (int64, error)
 
 	Resource(pipelineName string, resourceName string) (atc.Resource, bool, error)
+	ListResources(pipelineName string) ([]atc.Resource, error)
 	VersionedResourceTypes(pipelineName string) (atc.VersionedResourceTypes, bool, error)
 	ResourceVersions(pipelineName string, resourceName string, page Page) ([]atc.ResourceVersion, Pagination, bool, error)
 	CheckResource(pipelineName string, resourceName string, version atc.Version) (bool, error)

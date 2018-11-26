@@ -29,3 +29,24 @@ func (team *team) Resource(pipelineName string, resourceName string) (atc.Resour
 		return resource, false, err
 	}
 }
+
+func (team *team) ListResources(pipelineName string) ([]atc.Resource, error) {
+	if pipelineName == "" {
+		return []atc.Resource{}, NameRequiredError("pipeline")
+	}
+
+	params := rata.Params{
+		"pipeline_name": pipelineName,
+		"team_name":     team.name,
+	}
+
+	var resources []atc.Resource
+	err := team.connection.Send(internal.Request{
+		RequestName: atc.ListResources,
+		Params:      params,
+	}, &internal.Response{
+		Result: &resources,
+	})
+
+	return resources, err
+}
