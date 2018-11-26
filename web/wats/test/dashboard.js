@@ -177,3 +177,18 @@ test.skip('links to specific builds', async t => {
   await t.context.web.clickAndWait(`${group} .node[data-tooltip="passing"] a`, '.build-header');
   t.regex(await t.context.web.text(), /passing #1/);
 });
+
+test.only('dropdown is gone after selecting a specific status to filter', async t => {
+  await t.context.web.page.goto(t.context.web.route('/'));
+
+  await t.context.web.clickAndWait('#search-bar', '#search-dropdown');
+  const statusOption = await t.context.web.page.$x("//ul[@id='search-dropdown']/li[contains(text(), 'status:')]");
+  await statusOption[0].click();
+  await t.context.web.page.waitForSelector('#search-dropdown');
+  const statusPaused = await t.context.web.page.$x("//ul[@id='search-dropdown']/li[contains(text(), 'status: paused')]");
+  await statusPaused[0].click();
+
+  let dropdown = await t.context.web.page.waitForSelector('#search-dropdown');
+  let dropdownChildren = await dropdown.$x("*");
+  t.deepEqual(dropdownChildren, []);
+});

@@ -24,6 +24,7 @@ class Web {
     });
 
     this.page = await this.browser.newPage();
+    await this.page.setViewport({width: 1000, height: 1000})
     //Default page navigation timeout to 90 Seconds.
     this.page.setDefaultNavigationTimeout(90000);
     this.page.on("console", msg => {
@@ -63,6 +64,8 @@ class Web {
     await this.page.waitForSelector('#login', {timeout: 90000});
     await this.page.type('#login', this.username);
     await this.page.type('#password', this.password);
+    await this.clickAndWait('#submit-login', '#login-item');
+    t.notRegex(await this.text(), /login/);
   }
 
   async clickAndWait(clickSelector, waitSelector) {
