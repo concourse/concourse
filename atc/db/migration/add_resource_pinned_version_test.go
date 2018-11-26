@@ -38,10 +38,11 @@ var _ = Describe("Add resource pinned version", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		_, err = db.Exec(`
-			INSERT INTO resource_config_versions(id, resource_config_id, check_order, version, version_md5, metadata) VALUES
-			(1, 1, 1, '{"version": "1"}', 'abcde', 'null'),
-			(2, 1, 4, '{"version": "4"}', 'bcdef', 'null'),
-			(3, 2, 2, '{"version": "2"}', 'cdefg', 'null')
+			INSERT INTO versioned_resources(id, resource_id, check_order, version, metadata, type) VALUES
+			(1, 1, 1, '{"version": "1"}', 'null', 'git'),
+			(2, 1, 4, '{"version": "4"}', 'null', 'git'),
+			(3, 2, 2, '{"version": "2"}', 'null', 'git'),
+			(4, 3, 1, '{"version": "1"}', 'null', 'git')
 			`)
 	}
 
@@ -77,7 +78,7 @@ var _ = Describe("Add resource pinned version", func() {
 
 			Expect(pinnedVersions).To(HaveLen(2))
 			Expect(pinnedVersions[1]).To(Equal(`{"version": "4"}`))
-			Expect(pinnedVersions[3]).To(Equal(`{"version": "2"}`))
+			Expect(pinnedVersions[3]).To(Equal(`{"version": "1"}`))
 		})
 	})
 })
