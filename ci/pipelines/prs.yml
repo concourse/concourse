@@ -51,6 +51,7 @@ jobs:
     file: concourse-pr/ci/tasks/yarn-test.yml
     input_mapping: {concourse: concourse-pr}
   - task: unit
+    timeout: 1h
     file: concourse-pr/ci/tasks/unit.yml
     input_mapping: {concourse: built-concourse}
     tags: [pr]
@@ -78,6 +79,7 @@ jobs:
     file: concourse-pr/ci/tasks/yarn-build.yml
     input_mapping: {concourse: concourse-pr}
   - task: testflight
+    timeout: 1h
     privileged: true
     file: concourse-pr/ci/tasks/docker-compose-testflight.yml
     input_mapping: {concourse: built-concourse}
@@ -106,6 +108,7 @@ jobs:
     file: concourse-pr/ci/tasks/yarn-build.yml
     input_mapping: {concourse: concourse-pr}
   - task: watsjs
+    timeout: 1h
     privileged: true
     file: concourse-pr/ci/tasks/docker-compose-watsjs.yml
     input_mapping: {concourse: built-concourse}
