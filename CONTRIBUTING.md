@@ -15,10 +15,25 @@ you're working on.
 
 ## Contribution Process
 
-* [Fork this repo](https://help.github.com/articles/fork-a-repo/) into your GitHub account: `https://github.com/concourse/concourse`
-* Install the [development dependencies](#development-dependencies) and follow the instructions below for [building the web UI](#prerequisite-building-the-web-ui) and [running concourse](#running-concourse)
-* Make your changes as commits and push them to your local repo. Don't forget to write tests, since pull requests without tests are unlikely to be merged. See the [testing section](#testing) below for more details on running and writing tests.
-* Submit a pull request.
+* [Fork this repo](https://help.github.com/articles/fork-a-repo/) into your
+  GitHub account.
+
+* Install the [development dependencies](#development-dependencies) and follow
+  the instructions below for [building the web
+  UI](#prerequisite-building-the-web-ui) and [running
+  concourse](#running-concourse)
+
+* Make your changes, then commit and push them to your fork.
+
+  * Don't forget to write tests; pull requests without tests are unlikely to be
+    merged. See the [testing section](#testing) below for more details on
+    running and writing tests.
+
+  * *Optional: check out our [Go style
+    guide](https://github.com/concourse/concourse/wiki/Concourse-Go-Style-Guide)!*
+
+* [Submit a pull
+  request!](https://help.github.com/articles/creating-a-pull-request-from-a-fork/)
 
 ## Development dependencies
 
