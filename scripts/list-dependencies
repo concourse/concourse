@@ -1,6 +1,0 @@
-#!/bin/bash
-# vim: set ft=sh
-
-gosub list \
-  -a github.com/vito/booklit/cmd/... \
-  -a concourse-lit/...

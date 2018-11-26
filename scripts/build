@@ -4,15 +4,12 @@ set -e -u
 
 cd $(dirname $0)/..
 
-export GOPATH=$PWD
-export PATH=$PWD/bin:$PATH
-
 go install github.com/vito/booklit/cmd/booklit
 
 booklit -i lit/index.lit -o . \
   --save-search-index \
   --html-templates html/ \
-  --plugin concourse-lit/splash \
-  --plugin concourse-lit/resources-table \
-  --plugin concourse-lit/docs \
-  --plugin concourse-lit/community "$@"
+  --plugin github.com/concourse/docs/go/splash \
+  --plugin github.com/concourse/docs/go/resources-table \
+  --plugin github.com/concourse/docs/go/docs \
+  --plugin github.com/concourse/docs/go/community "$@"
