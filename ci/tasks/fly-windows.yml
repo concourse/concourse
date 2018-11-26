@@ -4,9 +4,8 @@ platform: windows
 inputs:
 - name: concourse
 
-# won't work until https://github.com/concourse/concourse/issues/2506 is fixed
-# caches:
-# - path: gopath
+caches:
+- path: gopath
 
 run:
   path: powershell
