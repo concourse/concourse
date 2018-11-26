@@ -1072,7 +1072,7 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("tries to find the resource config using the resource config id", func() {
-					Expect(dbResourceConfigFactory.FindResourceConfigByIDCallCount()).To(Equal(1))
+					Eventually(dbResourceConfigFactory.FindResourceConfigByIDCallCount).Should(Equal(1))
 					Expect(dbResourceConfigFactory.FindResourceConfigByIDArgsForCall(0)).To(Equal(1))
 				})
 
