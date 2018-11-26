@@ -49,6 +49,7 @@ type FlyCommand struct {
 	FormatPipeline   FormatPipelineCommand   `command:"format-pipeline"     alias:"fp"   description:"Format a pipeline config"`
 	OrderPipelines   OrderPipelinesCommand   `command:"order-pipelines"     alias:"op"   description:"Orders pipelines"`
 
+	Resources        ResourcesCommand        `command:"resources"           alias:"rs"   description:"List the resources in the pipeline"`
 	ResourceVersions ResourceVersionsCommand `command:"resource-versions"   alias:"rvs"  description:"List the versions of a resource"`
 	CheckResource    CheckResourceCommand    `command:"check-resource"      alias:"cr"   description:"Check a resource"`
 
