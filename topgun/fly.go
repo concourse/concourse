@@ -2,10 +2,7 @@ package topgun
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
-	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/onsi/gomega/gexec"
@@ -72,37 +69,4 @@ func BuildBinary() string {
 	Expect(err).ToNot(HaveOccurred())
 
 	return flyBinPath
-}
-
-func Start(env []string, command string, argv ...string) *gexec.Session {
-	TimestampedBy("running: " + command + " " + strings.Join(argv, " "))
-
-	cmd := exec.Command(command, argv...)
-	cmd.Env = env
-
-	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).ToNot(HaveOccurred())
-
-	return session
-}
-
-func SpawnInteractive(stdin io.Reader, env []string, command string, argv ...string) *gexec.Session {
-	TimestampedBy("interactively running: " + command + " " + strings.Join(argv, " "))
-
-	cmd := exec.Command(command, argv...)
-	cmd.Stdin = stdin
-	cmd.Env = env
-
-	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).ToNot(HaveOccurred())
-	return session
-}
-
-func TimestampedBy(msg string) {
-	By(fmt.Sprintf("[%.9f] %s", float64(time.Now().UnixNano())/1e9, msg))
-}
-
-func Wait(session *gexec.Session) {
-	<-session.Exited
-	Expect(session.ExitCode()).To(Equal(0))
 }
