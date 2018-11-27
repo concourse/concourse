@@ -136,11 +136,12 @@ func (configSource FileConfigSource) Warnings() []string {
 type OverrideParamsConfigSource struct {
 	ConfigSource TaskConfigSource
 	Params       atc.Params
+	WarningList  []string
 }
 
 // FetchConfig overrides parameters, allowing the user to set params required by a task loaded
 // from a file by providing them in static configuration.
-func (configSource OverrideParamsConfigSource) FetchConfig(logger lager.Logger, source *worker.ArtifactRepository) (atc.TaskConfig, error) {
+func (configSource *OverrideParamsConfigSource) FetchConfig(logger lager.Logger, source *worker.ArtifactRepository) (atc.TaskConfig, error) {
 	taskConfig, err := configSource.ConfigSource.FetchConfig(logger, source)
 	if err != nil {
 		return atc.TaskConfig{}, err
@@ -151,6 +152,10 @@ func (configSource OverrideParamsConfigSource) FetchConfig(logger lager.Logger, 
 	}
 
 	for key, val := range configSource.Params {
+		if _, exists := taskConfig.Params[key]; !exists {
+			configSource.WarningList = append(configSource.WarningList, fmt.Sprintf("%s was defined in pipeline but missing from task file", key))
+		}
+
 		switch v := val.(type) {
 		case string:
 			taskConfig.Params[key] = v
@@ -173,10 +178,7 @@ func (configSource OverrideParamsConfigSource) FetchConfig(logger lager.Logger, 
 }
 
 func (configSource OverrideParamsConfigSource) Warnings() []string {
-	if len(configSource.Params) > 0 {
-		return []string{fmt.Sprintf("overriding task parameters via 'params' is deprecated. use 'vars' instead")}
-	}
-	return nil
+	return configSource.WarningList
 }
 
 // ValidatingConfigSource delegates to another ConfigSource, and validates its

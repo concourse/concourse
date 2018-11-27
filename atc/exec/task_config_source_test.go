@@ -330,7 +330,7 @@ run: {path: a/file}
 
 			It("returns a deprecation warning", func() {
 				Expect(configSource.Warnings()).To(HaveLen(1))
-				Expect(configSource.Warnings()[0]).To(ContainSubstring("overriding task parameters via 'params' is deprecated. use 'vars' instead"))
+				Expect(configSource.Warnings()[0]).To(ContainSubstring("EXTRA_PARAM was defined in pipeline but missing from task file"))
 			})
 
 			Context("when params have int or float values", func() {

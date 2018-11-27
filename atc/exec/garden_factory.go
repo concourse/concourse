@@ -143,14 +143,14 @@ func (factory *gardenFactory) Task(
 		// external task - interpolate it with vars + cred mgr variables
 		taskVars := []boshtemplate.Variables{boshtemplate.StaticVariables(plan.Task.Vars), credMgrVariables}
 		taskConfigSource = FileConfigSource{ConfigPath: plan.Task.ConfigPath, Vars: taskVars}
+
+		// override params
+		taskConfigSource = &OverrideParamsConfigSource{ConfigSource: taskConfigSource, Params: plan.Task.Params}
 	} else {
 		// embedded task - interpolate it with just cred mgr variables
 		taskVars := []boshtemplate.Variables{credMgrVariables}
 		taskConfigSource = StaticConfigSource{Config: plan.Task.Config, Vars: taskVars}
 	}
-
-	// override params
-	taskConfigSource = OverrideParamsConfigSource{ConfigSource: taskConfigSource, Params: plan.Task.Params}
 
 	// validate
 	taskConfigSource = ValidatingConfigSource{ConfigSource: taskConfigSource}
