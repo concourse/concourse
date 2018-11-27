@@ -2,9 +2,11 @@ package token
 
 import (
 	"errors"
+	"sort"
 	"strings"
 	"time"
 
+	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 	"golang.org/x/oauth2"
 )
@@ -113,9 +115,15 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 
 	teams := map[string][]string{}
 	for team, roles := range teamSet {
-		for role, _ := range roles {
-			teams[team] = append(teams[team], role)
+		rolesArray := []string{}
+		for role := range roles {
+			rolesArray = append(rolesArray, role)
 		}
+		roleComparator := func(i, j int) bool {
+			return accessor.CompareRoles(rolesArray[i], rolesArray[j])
+		}
+		sort.Slice(rolesArray, roleComparator)
+		teams[team] = rolesArray
 	}
 
 	if len(teams) == 0 {
