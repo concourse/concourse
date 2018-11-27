@@ -115,15 +115,13 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 
 	teams := map[string][]string{}
 	for team, roles := range teamSet {
-		rolesArray := []string{}
-		for role := range roles {
-			rolesArray = append(rolesArray, role)
+		for role, _ := range roles {
+			teams[team] = append(teams[team], role)
 		}
 		roleComparator := func(i, j int) bool {
-			return accessor.CompareRoles(rolesArray[i], rolesArray[j])
+			return accessor.CompareRoles(teams[team][i], teams[team][j])
 		}
-		sort.Slice(rolesArray, roleComparator)
-		teams[team] = rolesArray
+		sort.Slice(teams[team], roleComparator)
 	}
 
 	if len(teams) == 0 {
