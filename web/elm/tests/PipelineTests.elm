@@ -12,7 +12,7 @@ import SubPage
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector as Selector exposing (attribute, containing, id, style, tag, text)
+import Test.Html.Selector as Selector exposing (attribute, class, containing, id, style, tag, text)
 import Time exposing (Time)
 import TopBar
 
@@ -63,6 +63,27 @@ all =
                             |> .hideLegend
                             |> Expect.equal True
                 , test "ShowLegend" <|
+                    \_ ->
+                        (init "/teams/team/pipelines/pipeline")
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ class "legend" ]
+                            |> Query.children []
+                            |> Expect.all
+                                [ Query.count (Expect.equal 20)
+                                , Query.index 1 >> Query.has [ text "succeeded" ]
+                                , Query.index 3 >> Query.has [ text "errored" ]
+                                , Query.index 5 >> Query.has [ text "aborted" ]
+                                , Query.index 7 >> Query.has [ text "paused" ]
+                                , Query.index 8 >> Query.has [ style [ ( "background-color", "#5C3BD1" ) ] ]
+                                , Query.index 9 >> Query.has [ text "pinned" ]
+                                , Query.index 11 >> Query.has [ text "failed" ]
+                                , Query.index 13 >> Query.has [ text "pending" ]
+                                , Query.index 15 >> Query.has [ text "started" ]
+                                , Query.index 17 >> Query.has [ text "dependency" ]
+                                , Query.index 19 >> Query.has [ text "dependency (trigger)" ]
+                                ]
+                , test "Legend has definition for pinned resource color" <|
                     \_ ->
                         { defaultModel | hideLegend = True, hideLegendCounter = 3 * Time.second }
                             |> update (ShowLegend)

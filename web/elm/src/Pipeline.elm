@@ -1,6 +1,7 @@
 port module Pipeline exposing (Model, Msg(..), Flags, init, update, updateWithMessage, view, subscriptions, changeToPipelineAndGroups, resetPipelineFocus)
 
 import Char
+import Colors
 import Concourse
 import Concourse.Cli
 import Concourse.Info
@@ -339,6 +340,8 @@ view model =
                 , Html.dd [] [ Html.text "aborted" ]
                 , Html.dt [ class "paused" ] []
                 , Html.dd [] [ Html.text "paused" ]
+                , Html.dt [ Html.Attributes.style [ ( "background-color", Colors.pinned ) ] ] []
+                , Html.dd [] [ Html.text "pinned" ]
                 , Html.dt [ class "failed" ] []
                 , Html.dd [] [ Html.text "failed" ]
                 , Html.dt [ class "pending" ] []
