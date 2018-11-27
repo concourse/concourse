@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestSetpipelinehelpers(t *testing.T) {
+func TestTemplatehelpers(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Template Helpers Test Suite")
 }
