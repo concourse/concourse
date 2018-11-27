@@ -210,7 +210,7 @@ func spawnIn(dir string, argc string, argv ...string) *gexec.Session {
 
 func wait(session *gexec.Session) {
 	<-session.Exited
-	Expect(session.ExitCode()).To(Equal(0))
+	Expect(session.ExitCode()).To(Equal(0), "Output: "+string(session.Out.Contents()))
 }
 
 var colSplit = regexp.MustCompile(`\s{2,}`)
