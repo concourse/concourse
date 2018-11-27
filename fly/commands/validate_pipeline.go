@@ -4,6 +4,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
+	"github.com/concourse/concourse/fly/commands/internal/validatepipelinehelpers"
 )
 
 type ValidatePipelineCommand struct {
@@ -19,5 +20,5 @@ type ValidatePipelineCommand struct {
 
 func (command *ValidatePipelineCommand) Execute(args []string) error {
 	yamlTemplate := templatehelpers.NewYamlTemplateWithParams(command.Config, command.VarsFrom, command.Var, command.YAMLVar)
-	return yamlTemplate.Validate(command.Strict, command.Output)
+	return validatepipelinehelpers.Validate(yamlTemplate, command.Strict, command.Output)
 }
