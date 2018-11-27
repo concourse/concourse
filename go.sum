@@ -113,8 +113,9 @@ github.com/concourse/go-archive v0.0.0-20180803203406-784931698f4f h1:Z7s60kZd9k
 github.com/concourse/go-archive v0.0.0-20180803203406-784931698f4f/go.mod h1:Xfo080IPQBmVz3I5ehjCddW3phA2mwv0NFwlpjf5CO8=
 github.com/concourse/go-archive v1.0.0 h1:nRejB54QZL8UwCKR5UlenYqwkEKN1A7khsarI5oRBkY=
 github.com/concourse/go-archive v1.0.0/go.mod h1:Xfo080IPQBmVz3I5ehjCddW3phA2mwv0NFwlpjf5CO8=
-github.com/concourse/retryhttp v0.0.0-20170802173037-937335fd9545 h1:EprZV3ig+v+5sOp0eruDCgrW/nlmyXm4Z8JOF1Unz1o=
 github.com/concourse/retryhttp v0.0.0-20170802173037-937335fd9545/go.mod h1:4+V9YCkKuoV7rg+/No+ZM9FsO3BK4tIJNUiYMI7nki0=
+github.com/concourse/retryhttp v0.0.0-20181126170240-7ab5e29e634f h1:YlKSrd1N2/WnG3ce28g6DOj6oXpZbBjH/3G97qdTZns=
+github.com/concourse/retryhttp v0.0.0-20181126170240-7ab5e29e634f/go.mod h1:4+V9YCkKuoV7rg+/No+ZM9FsO3BK4tIJNUiYMI7nki0=
 github.com/containerd/continuity v0.0.0-20180919190352-508d86ade3c2 h1:oiQ0OCfHdE7YXG94mc3HpKhbaZ8Nk17lw4E+ycI8Zgs=
 github.com/containerd/continuity v0.0.0-20180919190352-508d86ade3c2/go.mod h1:GL3xCUCBDV3CZiTSEKksMWbLE66hEyuu9qyDOOqM47Y=
 github.com/coreos/etcd v3.2.9+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
