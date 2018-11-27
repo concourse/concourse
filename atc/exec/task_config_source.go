@@ -29,33 +29,14 @@ type TaskConfigSource interface {
 // StaticConfigSource represents a statically configured TaskConfig.
 type StaticConfigSource struct {
 	Config *atc.TaskConfig
-	Vars   []boshtemplate.Variables
 }
 
 // FetchConfig returns the configuration.
 func (configSource StaticConfigSource) FetchConfig(lager.Logger, *worker.ArtifactRepository) (atc.TaskConfig, error) {
 	taskConfig := atc.TaskConfig{}
-
 	if configSource.Config != nil {
 		taskConfig = *configSource.Config
 	}
-
-	byteConfig, err := json.Marshal(taskConfig)
-	if err != nil {
-		return atc.TaskConfig{}, fmt.Errorf("failed to marshal task config: %s", err)
-	}
-
-	// process task template, using cred manager vars
-	byteConfig, err = template.NewTemplateResolver(byteConfig, configSource.Vars).Resolve(true, true)
-	if err != nil {
-		return atc.TaskConfig{}, fmt.Errorf("failed to interpolate task config: %s", err)
-	}
-
-	taskConfig, err = atc.NewTaskConfig(byteConfig)
-	if err != nil {
-		return atc.TaskConfig{}, fmt.Errorf("failed to create task config from bytes: %s", err)
-	}
-
 	return taskConfig, nil
 }
 
@@ -67,7 +48,6 @@ func (configSource StaticConfigSource) Warnings() []string {
 // be fetched from a specified file in the worker.ArtifactRepository.
 type FileConfigSource struct {
 	ConfigPath string
-	Vars       []boshtemplate.Variables
 }
 
 // FetchConfig reads the specified file from the worker.ArtifactRepository and loads the
@@ -112,12 +92,6 @@ func (configSource FileConfigSource) FetchConfig(logger lager.Logger, repo *work
 	byteConfig, err := ioutil.ReadAll(stream)
 	if err != nil {
 		return atc.TaskConfig{}, err
-	}
-
-	// process task template, using vars provided from the pipeline as well as cred manager vars
-	byteConfig, err = template.NewTemplateResolver(byteConfig, configSource.Vars).Resolve(true, true)
-	if err != nil {
-		return atc.TaskConfig{}, fmt.Errorf("failed to interpolate task config %s: %s", configSource.ConfigPath, err)
 	}
 
 	config, err := atc.NewTaskConfig(byteConfig)
@@ -179,6 +153,42 @@ func (configSource *OverrideParamsConfigSource) FetchConfig(logger lager.Logger,
 
 func (configSource OverrideParamsConfigSource) Warnings() []string {
 	return configSource.WarningList
+}
+
+// InterpolateTemplateConfigSource represents a config source interpolated by template vars
+type InterpolateTemplateConfigSource struct {
+	ConfigSource TaskConfigSource
+	Vars         []boshtemplate.Variables
+}
+
+// FetchConfig returns the interpolated configuration
+func (configSource InterpolateTemplateConfigSource) FetchConfig(logger lager.Logger, source *worker.ArtifactRepository) (atc.TaskConfig, error) {
+	taskConfig, err := configSource.ConfigSource.FetchConfig(logger, source)
+	if err != nil {
+		return atc.TaskConfig{}, err
+	}
+
+	byteConfig, err := json.Marshal(taskConfig)
+	if err != nil {
+		return atc.TaskConfig{}, fmt.Errorf("failed to marshal task config: %s", err)
+	}
+
+	// process task config using the provided variables
+	byteConfig, err = template.NewTemplateResolver(byteConfig, configSource.Vars).Resolve(true, true)
+	if err != nil {
+		return atc.TaskConfig{}, fmt.Errorf("failed to interpolate task config: %s", err)
+	}
+
+	taskConfig, err = atc.NewTaskConfig(byteConfig)
+	if err != nil {
+		return atc.TaskConfig{}, fmt.Errorf("failed to create task config from bytes: %s", err)
+	}
+
+	return taskConfig, nil
+}
+
+func (configSource InterpolateTemplateConfigSource) Warnings() []string {
+	return []string{}
 }
 
 // ValidatingConfigSource delegates to another ConfigSource, and validates its

@@ -139,18 +139,26 @@ func (factory *gardenFactory) Task(
 	credMgrVariables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
 	var taskConfigSource TaskConfigSource
+	var taskVars []boshtemplate.Variables
 	if plan.Task.ConfigPath != "" {
-		// external task - interpolate it with vars + cred mgr variables
-		taskVars := []boshtemplate.Variables{boshtemplate.StaticVariables(plan.Task.Vars), credMgrVariables}
-		taskConfigSource = FileConfigSource{ConfigPath: plan.Task.ConfigPath, Vars: taskVars}
+		// external task - construct a source which reads it from file
+		taskConfigSource = FileConfigSource{ConfigPath: plan.Task.ConfigPath}
 
-		// override params
-		taskConfigSource = &OverrideParamsConfigSource{ConfigSource: taskConfigSource, Params: plan.Task.Params}
+		// use 'vars' from the pipeline + cred mgr variables for interpolation
+		taskVars = []boshtemplate.Variables{boshtemplate.StaticVariables(plan.Task.Vars), credMgrVariables}
 	} else {
-		// embedded task - interpolate it with just cred mgr variables
-		taskVars := []boshtemplate.Variables{credMgrVariables}
-		taskConfigSource = StaticConfigSource{Config: plan.Task.Config, Vars: taskVars}
+		// embedded task - first we take it
+		taskConfigSource = StaticConfigSource{Config: plan.Task.Config}
+
+		// use just cred mgr variables for interpolation
+		taskVars = []boshtemplate.Variables{credMgrVariables}
 	}
+
+	// override params
+	taskConfigSource = &OverrideParamsConfigSource{ConfigSource: taskConfigSource, Params: plan.Task.Params}
+
+	// interpolate template vars
+	taskConfigSource = InterpolateTemplateConfigSource{ConfigSource: taskConfigSource, Vars: taskVars}
 
 	// validate
 	taskConfigSource = ValidatingConfigSource{ConfigSource: taskConfigSource}

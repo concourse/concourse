@@ -65,31 +65,19 @@ var _ = Describe("TaskConfigSource", func() {
 	})
 
 	Describe("StaticConfigSource", func() {
-		var (
-			configSource  TaskConfigSource
-			fetchedConfig atc.TaskConfig
-			fetchErr      error
-		)
-
-		JustBeforeEach(func() {
-			configSource = StaticConfigSource{Config: &taskConfig, Vars: []boshtemplate.Variables{boshtemplate.StaticVariables(taskVars)}}
-			fetchedConfig, fetchErr = configSource.FetchConfig(logger, repo)
-		})
 
 		It("fetches task config successfully", func() {
+			configSource := StaticConfigSource{Config: &taskConfig}
+			fetchedConfig, fetchErr := configSource.FetchConfig(logger, repo)
 			Expect(fetchErr).ToNot(HaveOccurred())
+			Expect(fetchedConfig).To(Equal(taskConfig))
 		})
 
-		It("resolves task config parameters successfully", func() {
-			Expect(fetchedConfig.Run.Args).To(Equal([]string{"-al", "task-variable-value"}))
-			Expect(fetchedConfig.Params).To(Equal(map[string]string{
-				"key1": "key1-task-variable-value",
-				"key2": "key2-task-variable-value",
-			}))
-			Expect(fetchedConfig.ImageResource.Source).To(Equal(atc.Source{
-				"a":               "b",
-				"evaluated-value": "task-variable-value",
-			}))
+		It("fetches config of nil task successfully", func() {
+			configSource := StaticConfigSource{Config: nil}
+			fetchedConfig, fetchErr := configSource.FetchConfig(logger, repo)
+			Expect(fetchErr).ToNot(HaveOccurred())
+			Expect(fetchedConfig).To(Equal(atc.TaskConfig{}))
 		})
 	})
 
@@ -97,16 +85,15 @@ var _ = Describe("TaskConfigSource", func() {
 		var (
 			configSource FileConfigSource
 
-			fetchedConfig atc.TaskConfig
-			fetchErr      error
+			fetchErr error
 		)
 
 		BeforeEach(func() {
-			configSource = FileConfigSource{ConfigPath: "some/build.yml", Vars: []boshtemplate.Variables{boshtemplate.StaticVariables(taskVars)}}
+			configSource = FileConfigSource{ConfigPath: "some/build.yml"}
 		})
 
 		JustBeforeEach(func() {
-			fetchedConfig, fetchErr = configSource.FetchConfig(logger, repo)
+			_, fetchErr = configSource.FetchConfig(logger, repo)
 		})
 
 		Context("when the path does not indicate an artifact source", func() {
@@ -145,18 +132,6 @@ var _ = Describe("TaskConfigSource", func() {
 
 				It("succeeds", func() {
 					Expect(fetchErr).NotTo(HaveOccurred())
-				})
-
-				It("resolves task config parameters successfully", func() {
-					Expect(fetchedConfig.Run.Args).To(Equal([]string{"-al", "task-variable-value"}))
-					Expect(fetchedConfig.Params).To(Equal(map[string]string{
-						"key1": "key1-task-variable-value",
-						"key2": "key2-task-variable-value",
-					}))
-					Expect(fetchedConfig.ImageResource.Source).To(Equal(atc.Source{
-						"a":               "b",
-						"evaluated-value": "task-variable-value",
-					}))
 				})
 
 				It("closes the stream", func() {
@@ -427,6 +402,36 @@ run: {path: a/file}
 			It("returns the error", func() {
 				Expect(fetchErr).To(Equal(disaster))
 			})
+		})
+	})
+
+	Describe("InterpolateTemplateConfigSource", func() {
+		var (
+			configSource  TaskConfigSource
+			fetchedConfig atc.TaskConfig
+			fetchErr      error
+		)
+
+		JustBeforeEach(func() {
+			configSource = StaticConfigSource{Config: &taskConfig}
+			configSource = InterpolateTemplateConfigSource{ConfigSource: configSource, Vars: []boshtemplate.Variables{boshtemplate.StaticVariables(taskVars)}}
+			fetchedConfig, fetchErr = configSource.FetchConfig(logger, repo)
+		})
+
+		It("fetches task config successfully", func() {
+			Expect(fetchErr).ToNot(HaveOccurred())
+		})
+
+		It("resolves task config parameters successfully", func() {
+			Expect(fetchedConfig.Run.Args).To(Equal([]string{"-al", "task-variable-value"}))
+			Expect(fetchedConfig.Params).To(Equal(map[string]string{
+				"key1": "key1-task-variable-value",
+				"key2": "key2-task-variable-value",
+			}))
+			Expect(fetchedConfig.ImageResource.Source).To(Equal(atc.Source{
+				"a":               "b",
+				"evaluated-value": "task-variable-value",
+			}))
 		})
 	})
 })
