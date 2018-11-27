@@ -19,9 +19,16 @@ ENV CONCOURSE_SESSION_SIGNING_KEY /concourse-keys/session_signing_key
 ENV CONCOURSE_TSA_PUBLIC_KEY         /concourse-keys/tsa_host_key.pub
 ENV CONCOURSE_TSA_WORKER_PRIVATE_KEY /concourse-keys/worker_key
 
-# build Concourse
-COPY . /src
+RUN mkdir /src
 WORKDIR /src
+
+# download and cache go modules in a docker layer
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+
+# build Concourse
+COPY . .
 RUN go build -gcflags=all="-N -l" -o /usr/local/bin/concourse github.com/concourse/concourse/bin/cmd/concourse
 
 # override /src with a volume so we get live-updated packr stuff
