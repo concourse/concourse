@@ -1,29 +1,62 @@
-module Dashboard.Group.Tag exposing (Tag(..), ordering, splitFirst, tag, text)
+module Dashboard.Group.Tag exposing (Tag(..), ordering, splitFirst, tag, view)
 
 import Concourse
 import Dict
+import Html exposing (Html)
+import Html.Attributes exposing (class, style)
 import List.Extra
 import Ordering exposing (Ordering)
 
 
 type Tag
-    = Exposed
+    = Owner
     | Member
+    | Viewer
 
 
-ordering : Ordering Tag
+ordering : Ordering (Maybe Tag)
 ordering =
-    Ordering.explicit [ Member, Exposed ]
+    Ordering.explicit
+        [ Just Owner
+        , Just Member
+        , Just Viewer
+        , Nothing
+        ]
 
 
-text : Tag -> String
-text tag =
+view : Bool -> Tag -> Html msg
+view isHd tag =
+    Html.div
+        [ style
+            ([ ( "border", "1px solid #fff" )
+             , ( "font-size", "0.7em" )
+             , ( "padding", "0.5em 0" )
+             , ( "line-height", "0.9em" )
+             , ( "width", "6em" )
+             , ( "text-align", "center" )
+             , ( "letter-spacing", "0.2em" )
+             ]
+                ++ (if isHd then
+                        [ ( "margin-bottom", "1em" ) ]
+                    else
+                        [ ( "margin-bottom", "" ) ]
+                   )
+            )
+        ]
+        [ Html.text <| toString tag ]
+
+
+toString : Tag -> String
+toString tag =
     case tag of
-        Exposed ->
-            "EXPOSED"
+        Owner ->
+            "OWNER"
 
         Member ->
             "MEMBER"
+
+        Viewer ->
+            "VIEWER"
 
 
 splitFirst : Char -> String -> String
@@ -33,10 +66,37 @@ splitFirst delim =
         >> String.fromList
 
 
-tag : Concourse.User -> String -> Tag
+tag : Concourse.User -> String -> Maybe Tag
 tag user teamName =
-    if Dict.member teamName user.teams then
-        Member
+    case Dict.get teamName user.teams of
+        Just roles ->
+            firstRole roles
 
-    else
-        Exposed
+        Nothing ->
+            Nothing
+
+
+firstRole : List String -> Maybe Tag
+firstRole roles =
+    case List.head roles of
+        Just roles ->
+            parseRole roles
+
+        Nothing ->
+            Nothing
+
+
+parseRole : String -> Maybe Tag
+parseRole role =
+    case role of
+        "owner" ->
+            Just Owner
+
+        "member" ->
+            Just Member
+
+        "viewer" ->
+            Just Viewer
+
+        _ ->
+            Nothing

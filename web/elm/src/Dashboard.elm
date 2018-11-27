@@ -26,7 +26,6 @@ import Monocle.Optional
 import Monocle.Lens
 import MonocleHelpers exposing (..)
 import NewTopBar
-import NewTopBar.Styles as NTBS
 import NoPipeline exposing (Msg, view)
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
@@ -40,18 +39,6 @@ import Window
 type alias Ports =
     { title : String -> Cmd Msg
     }
-
-
-type alias PinTeamConfig =
-    { pageHeaderHeight : Float
-    , pageBodyClass : String
-    , sectionHeaderClass : String
-    , sectionClass : String
-    , sectionBodyClass : String
-    }
-
-
-port pinTeamNames : PinTeamConfig -> Cmd msg
 
 
 port tooltip : ( String, String ) -> Cmd msg
@@ -124,13 +111,7 @@ init ports flags =
         , Cmd.batch
             [ fetchData
             , Cmd.map TopBarMsg topBarMsg
-            , pinTeamNames
-                { pageHeaderHeight = NTBS.pageHeaderHeight
-                , pageBodyClass = "dashboard"
-                , sectionClass = "dashboard-team-group"
-                , sectionHeaderClass = "dashboard-team-header"
-                , sectionBodyClass = "dashboard-team-pipelines"
-                }
+            , Group.pinTeamNames Group.stickyHeaderConfig
             , ports.title <| "Dashboard" ++ " - "
             ]
         )
@@ -416,7 +397,7 @@ dashboardView model =
                     [ Html.div [ class "dashboard-content" ] (pipelinesView substate (NewTopBar.query model.topBar) ++ [ footerView substate ]) ]
     in
         Html.div
-            [ classList [ ( "dashboard", True ), ( "dashboard-hd", model.highDensity ) ] ]
+            [ classList [ ( .pageBodyClass Group.stickyHeaderConfig, True ), ( "dashboard-hd", model.highDensity ) ] ]
             mainContent
 
 
@@ -427,10 +408,10 @@ noResultsView query =
             Html.span [ class "monospace-bold" ] [ Html.text query ]
     in
         Html.div
-            [ class "dashboard" ]
+            [ class <| .pageBodyClass Group.stickyHeaderConfig ]
             [ Html.div [ class "dashboard-content " ]
                 [ Html.div
-                    [ class "dashboard-team-group" ]
+                    [ class <| .sectionClass Group.stickyHeaderConfig ]
                     [ Html.div [ class "no-results" ]
                         [ Html.text "No results for "
                         , boldedQuery
@@ -570,7 +551,7 @@ pipelinesView substate query =
 
                         SubState.Authenticated { user } ->
                             List.map
-                                (\g -> Group.view (GroupWithTag.headerView g) details.dragState details.dropState details.now g.group)
+                                (\g -> Group.view (GroupWithTag.headerView g False) details.dragState details.dropState details.now g.group)
                                 (GroupWithTag.addTagsAndSort user groupsToDisplay)
 
                 Nothing ->
@@ -582,7 +563,7 @@ pipelinesView substate query =
 
                         SubState.Authenticated { user } ->
                             List.map
-                                (\g -> Group.hdView (GroupWithTag.headerView g) g.group.teamName g.group.pipelines)
+                                (\g -> Group.hdView (GroupWithTag.headerView g True) g.group.teamName g.group.pipelines)
                                 (GroupWithTag.addTagsAndSort user groupsToDisplay)
     in
         if List.isEmpty groupViews then

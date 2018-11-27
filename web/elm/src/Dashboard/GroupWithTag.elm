@@ -5,11 +5,12 @@ import Dashboard.Group as Group
 import Dashboard.Group.Tag as Tag
 import Html
 import Html.Attributes exposing (class)
+import Maybe.Extra exposing (maybeToList)
 import Ordering exposing (Ordering)
 
 
 type alias TaggedGroup =
-    { group : Group.Group, tag : Tag.Tag }
+    { group : Group.Group, tag : Maybe Tag.Tag }
 
 
 addTagsAndSort : Concourse.User -> List Group.Group -> List TaggedGroup
@@ -30,8 +31,12 @@ ordering =
         |> Ordering.breakTiesWith (Ordering.byFieldWith Group.ordering .group)
 
 
-headerView : TaggedGroup -> List (Html.Html Group.Msg)
-headerView taggedGroup =
+headerView : TaggedGroup -> Bool -> List (Html.Html Group.Msg)
+headerView taggedGroup isHd =
     [ Html.div [ class "dashboard-team-name" ] [ Html.text taggedGroup.group.teamName ]
-    , Html.div [ class "dashboard-team-tag" ] [ Html.text <| Tag.text taggedGroup.tag ]
     ]
+        ++ (maybeToList <|
+                Maybe.map
+                    (Tag.view isHd)
+                    taggedGroup.tag
+           )

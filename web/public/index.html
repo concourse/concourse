@@ -39,8 +39,9 @@
           var scrolledFarEnough = section.offsetTop < viewportTop();
           var scrolledTooFar = lowestHeaderTop(section) < viewportTop();
           if (!scrolledFarEnough && !scrolledTooFar) {
-            header(section).removeAttribute('style');
-            body(section).removeAttribute('style');
+            header(section).style.top = "";
+            header(section).style.position = "";
+            body(section).style.paddingTop = "";
             return 'static';
           } else if (scrolledFarEnough && !scrolledTooFar) {
             header(section).style.position = 'fixed';
