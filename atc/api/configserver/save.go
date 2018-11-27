@@ -215,9 +215,7 @@ func validateCredParams(credMgrVars creds.Variables, config atc.Config, session 
 				// embedded task - we can fully validate it, interpolating with cred mgr variables
 				var taskConfigSource exec.TaskConfigSource
 				embeddedTaskVars := []boshtemplate.Variables{credMgrVars}
-				embeddedTaskParams := atc.Params{}
 				taskConfigSource = exec.StaticConfigSource{Config: plan.TaskConfig, Vars: embeddedTaskVars}
-				taskConfigSource = exec.OverrideParamsConfigSource{ConfigSource: taskConfigSource, Params: embeddedTaskParams}
 				taskConfigSource = exec.ValidatingConfigSource{ConfigSource: taskConfigSource}
 				_, err = taskConfigSource.FetchConfig(session, nil)
 				if err != nil {
