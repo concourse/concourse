@@ -137,15 +137,16 @@ func (factory *gardenFactory) Task(
 	containerMetadata.WorkingDirectory = workingDirectory
 
 	credMgrVariables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
-	taskVarsWithCredMgr := []boshtemplate.Variables{boshtemplate.StaticVariables(plan.Task.Vars), credMgrVariables}
 
 	var taskConfigSource TaskConfigSource
 	if plan.Task.ConfigPath != "" {
-		// external task
-		taskConfigSource = FileConfigSource{ConfigPath: plan.Task.ConfigPath, Vars: taskVarsWithCredMgr}
+		// external task - interpolate it with vars + cred mgr variables
+		taskVars := []boshtemplate.Variables{boshtemplate.StaticVariables(plan.Task.Vars), credMgrVariables}
+		taskConfigSource = FileConfigSource{ConfigPath: plan.Task.ConfigPath, Vars: taskVars}
 	} else {
-		// embedded task
-		taskConfigSource = StaticConfigSource{Config: plan.Task.Config, Vars: taskVarsWithCredMgr}
+		// embedded task - interpolate it with just cred mgr variables
+		taskVars := []boshtemplate.Variables{credMgrVariables}
+		taskConfigSource = StaticConfigSource{Config: plan.Task.Config, Vars: taskVars}
 	}
 
 	// override params
