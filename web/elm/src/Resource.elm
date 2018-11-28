@@ -37,6 +37,7 @@ import Maybe.Extra as ME
 import Navigation
 import NewTopBar.Styles as Styles
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
+import Resource.Styles
 import StrictEvents
 import Task exposing (Task)
 import Time exposing (Time)
@@ -76,6 +77,7 @@ type alias Model =
     , versions : Paginated Version
     , csrfToken : String
     , showPinBarTooltip : Bool
+    , pinIconHover : Bool
     }
 
 
@@ -110,6 +112,7 @@ type Msg
     | VersionUnpinned (Result Http.Error ())
     | ToggleVersion VersionToggleAction Int
     | VersionToggled VersionToggleAction Int (Result Http.Error ())
+    | PinIconHover Bool
 
 
 type alias Flags =
@@ -152,6 +155,7 @@ init ports flags =
                 , now = Nothing
                 , csrfToken = flags.csrfToken
                 , showPinBarTooltip = False
+                , pinIconHover = False
                 }
     in
         ( model
@@ -588,6 +592,9 @@ update action model =
                 , Cmd.none
                 )
 
+        PinIconHover state ->
+            ( { model | pinIconHover = state }, Cmd.none )
+
 
 updateVersion : Int -> (Version -> Version) -> Model -> Model
 updateVersion versionID updateFunc model =
@@ -707,85 +714,6 @@ view model =
                     ( _, _ ) ->
                         Html.text ""
 
-            pinBarVersion =
-                Pinned.stable model.pinnedVersion
-
-            pinBar =
-                Html.div
-                    ([ css
-                        [ Css.flexGrow (Css.num 1)
-                        , Css.margin (Css.px 10)
-                        , Css.paddingLeft (Css.px 7)
-                        , Css.displayFlex
-                        , Css.alignItems Css.center
-                        , Css.position Css.relative
-                        ]
-                     , style
-                        [ ( "border"
-                          , "1px solid "
-                                ++ (if ME.isJust pinBarVersion then
-                                        Colors.pinned
-                                    else
-                                        "#3d3c3c"
-                                   )
-                          )
-                        ]
-                     , id "pin-bar"
-                     ]
-                        ++ (case model.pinnedVersion of
-                                PinnedStaticallyTo _ ->
-                                    [ onMouseEnter TogglePinBarTooltip
-                                    , onMouseLeave TogglePinBarTooltip
-                                    ]
-
-                                _ ->
-                                    []
-                           )
-                    )
-                    ([ Html.div
-                        [ css
-                            [ Css.backgroundRepeat Css.noRepeat
-                            , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
-                            , Css.height (Css.px 15)
-                            , Css.width (Css.px 15)
-                            , Css.marginRight (Css.px 10)
-                            ]
-                        , style
-                            [ ( "background-image"
-                              , if ME.isJust pinBarVersion then
-                                    "url(/public/images/pin_ic_white.svg)"
-                                else
-                                    "url(/public/images/pin_ic_grey.svg)"
-                              )
-                            ]
-                        ]
-                        []
-                     ]
-                        ++ (case pinBarVersion of
-                                Just v ->
-                                    [ viewVersion v ]
-
-                                _ ->
-                                    []
-                           )
-                        ++ (if model.showPinBarTooltip then
-                                [ Html.div
-                                    [ css
-                                        [ Css.position Css.absolute
-                                        , Css.top <| Css.px -10
-                                        , Css.left <| Css.px 30
-                                        , Css.backgroundColor <| Css.hex "9b9b9b"
-                                        , Css.zIndex <| Css.int 2
-                                        , Css.padding <| Css.px 5
-                                        ]
-                                    ]
-                                    [ Html.text "pinned in pipeline config" ]
-                                ]
-                            else
-                                []
-                           )
-                    )
-
             headerHeight =
                 60
         in
@@ -821,7 +749,7 @@ view model =
                             ]
                         ]
                         [ lastCheckedView ]
-                    , pinBar
+                    , pinBar model
                     , Html.div
                         [ class previousButtonClass
                         , onClick previousButtonEvent
@@ -860,6 +788,84 @@ view model =
                     , viewVersionedResources model
                     ]
                 ]
+
+
+pinBar :
+    { a
+        | pinnedVersion : ResourcePinState Concourse.Version Int
+        , showPinBarTooltip : Bool
+        , pinIconHover : Bool
+    }
+    -> Html Msg
+pinBar { pinnedVersion, showPinBarTooltip, pinIconHover } =
+    let
+        pinBarVersion =
+            Pinned.stable pinnedVersion
+
+        attrList : List ( Html.Attribute Msg, Bool ) -> List (Html.Attribute Msg)
+        attrList =
+            List.filter Tuple.second >> List.map Tuple.first
+
+        isPinnedStatically =
+            case pinnedVersion of
+                PinnedStaticallyTo _ ->
+                    True
+
+                _ ->
+                    False
+
+        isPinnedDynamically =
+            case pinnedVersion of
+                PinnedDynamicallyTo _ ->
+                    True
+
+                _ ->
+                    False
+    in
+        Html.div
+            (attrList
+                [ ( id "pin-bar", True )
+                , ( style <| Resource.Styles.pinBar { isPinned = ME.isJust pinBarVersion }, True )
+                , ( onMouseEnter TogglePinBarTooltip, isPinnedStatically )
+                , ( onMouseLeave TogglePinBarTooltip, isPinnedStatically )
+                ]
+            )
+            ([ Html.div
+                (attrList
+                    [ ( id "pin-icon", True )
+                    , ( style <|
+                            Resource.Styles.pinIcon
+                                { isPinned = ME.isJust pinBarVersion
+                                , isPinnedDynamically = isPinnedDynamically
+                                , hover = pinIconHover
+                                }
+                      , True
+                      )
+                    , ( onClick UnpinVersion, isPinnedDynamically )
+                    , ( onMouseEnter <| PinIconHover True, isPinnedDynamically )
+                    , ( onMouseLeave <| PinIconHover False, True )
+                    ]
+                )
+                []
+             ]
+                ++ (case pinBarVersion of
+                        Just v ->
+                            [ viewVersion v ]
+
+                        _ ->
+                            []
+                   )
+                ++ (if showPinBarTooltip then
+                        [ Html.div
+                            [ id "pin-bar-tooltip"
+                            , style Resource.Styles.pinBarTooltip
+                            ]
+                            [ Html.text "pinned in pipeline config" ]
+                        ]
+                    else
+                        []
+                   )
+            )
 
 
 checkForVersionID : Int -> Concourse.VersionedResource -> Bool

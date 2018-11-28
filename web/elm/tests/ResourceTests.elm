@@ -73,6 +73,16 @@ lightGreyHex =
     "#3d3c3c"
 
 
+tooltipGreyHex : String
+tooltipGreyHex =
+    "#9b9b9b"
+
+
+darkGreyHex : String
+darkGreyHex =
+    "#1e1d1d"
+
+
 badResponse : Result Http.Error ()
 badResponse =
     Err <|
@@ -93,7 +103,7 @@ all =
         [ test "autorefresh respects expanded state" <|
             \_ ->
                 init
-                    |> givenResourceUnpinned
+                    |> givenResourceIsNotPinned
                     |> givenVersions
                     |> Resource.update
                         (Resource.ExpandVersionedResource versionID)
@@ -105,7 +115,7 @@ all =
         , test "autorefresh respects 'Inputs To'" <|
             \_ ->
                 init
-                    |> givenResourceUnpinned
+                    |> givenResourceIsNotPinned
                     |> givenVersions
                     |> Resource.update
                         (Resource.ExpandVersionedResource versionID)
@@ -131,7 +141,7 @@ all =
         , test "autorefresh respects 'Outputs Of'" <|
             \_ ->
                 init
-                    |> givenResourceUnpinned
+                    |> givenResourceIsNotPinned
                     |> givenVersions
                     |> Resource.update
                         (Resource.ExpandVersionedResource versionID)
@@ -158,7 +168,7 @@ all =
             [ test "there is a checkbox for every version" <|
                 \_ ->
                     init
-                        |> givenResourceUnpinned
+                        |> givenResourceIsNotPinned
                         |> givenVersions
                         |> queryView
                         |> Query.findAll (anyVersionSelector)
@@ -166,7 +176,7 @@ all =
             , test "there is a pointer cursor for every checkbox" <|
                 \_ ->
                     init
-                        |> givenResourceUnpinned
+                        |> givenResourceIsNotPinned
                         |> givenVersions
                         |> queryView
                         |> Query.findAll (anyVersionSelector)
@@ -306,13 +316,48 @@ all =
                         init
                             |> givenResourcePinnedStatically
                             |> queryView
+                            |> Query.find [ id "pin-bar" ]
                             |> Query.has [ text version ]
                 , test "then pin bar has purple border" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
                             |> queryView
+                            |> Query.find [ id "pin-bar" ]
                             |> Query.has purpleOutlineSelector
+                , test "pin icon on pin bar has default cursor" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedStatically
+                            |> queryView
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.has defaultCursor
+                , test "clicking pin icon on pin bar does nothing" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedStatically
+                            |> queryView
+                            |> Query.find [ id "pin-icon" ]
+                            |> Event.simulate Event.click
+                            |> Event.toResult
+                            |> Expect.err
+                , test "there is a bit of space betwen the pin icon and the version in the pin bar" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedStatically
+                            |> queryView
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.has
+                                [ style [ ( "margin-right", "10px" ) ] ]
+                , test "mousing over pin icon does nothing" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedStatically
+                            |> queryView
+                            |> Query.find [ id "pin-icon" ]
+                            |> Event.simulate Event.mouseEnter
+                            |> Event.toResult
+                            |> Expect.err
                 , test "pin button on pinned version has a purple outline" <|
                     \_ ->
                         init
@@ -366,6 +411,55 @@ all =
                             |> togglePinBarTooltip
                             |> queryView
                             |> Query.has pinBarTooltipSelector
+                , test "pin bar tooltip has text 'pinned in pipeline config'" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedStatically
+                            |> togglePinBarTooltip
+                            |> queryView
+                            |> Query.find pinBarTooltipSelector
+                            |> Query.has [ text "pinned in pipeline config" ]
+                , test "pin bar tooltip is positioned above and near the left of the pin bar" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedStatically
+                            |> togglePinBarTooltip
+                            |> queryView
+                            |> Query.find pinBarTooltipSelector
+                            |> Query.has
+                                [ style
+                                    [ ( "position", "absolute" )
+                                    , ( "top", "-10px" )
+                                    , ( "left", "30px" )
+                                    ]
+                                ]
+                , test "pin bar tooltip is light grey" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedStatically
+                            |> togglePinBarTooltip
+                            |> queryView
+                            |> Query.find pinBarTooltipSelector
+                            |> Query.has
+                                [ style [ ( "background-color", tooltipGreyHex ) ] ]
+                , test "pin bar tooltip has a bit of padding around text" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedStatically
+                            |> togglePinBarTooltip
+                            |> queryView
+                            |> Query.find pinBarTooltipSelector
+                            |> Query.has
+                                [ style [ ( "padding", "5px" ) ] ]
+                , test "pin bar tooltip appears above other elements in the DOM" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedStatically
+                            |> togglePinBarTooltip
+                            |> queryView
+                            |> Query.find pinBarTooltipSelector
+                            |> Query.has
+                                [ style [ ( "z-index", "2" ) ] ]
                 , test "mousing out of pin bar sends TogglePinBarTooltip message" <|
                     \_ ->
                         init
@@ -481,7 +575,7 @@ all =
                 , test "all pin buttons have dark background" <|
                     \_ ->
                         init
-                            |> givenResourceUnpinned
+                            |> givenResourceIsNotPinned
                             |> givenVersions
                             |> queryView
                             |> Query.findAll anyVersionSelector
@@ -500,6 +594,59 @@ all =
                         |> Tuple.first
                         |> queryView
                         |> Query.hasNot pinBarTooltipSelector
+            , test "pin icon on pin bar has pointer cursor" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> queryView
+                        |> Query.find [ id "pin-icon" ]
+                        |> Query.has pointerCursor
+            , test "clicking pin icon on bar triggers UnpinVersion msg" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> queryView
+                        |> Query.find [ id "pin-icon" ]
+                        |> Event.simulate Event.click
+                        |> Event.expect Resource.UnpinVersion
+            , test "mousing over pin icon triggers PinIconHover msg" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> queryView
+                        |> Query.find [ id "pin-icon" ]
+                        |> Event.simulate Event.mouseEnter
+                        |> Event.expect (Resource.PinIconHover True)
+            , test "TogglePinIconHover msg causes pin icon to have dark background" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> Resource.update (Resource.PinIconHover True)
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find [ id "pin-icon" ]
+                        |> Query.has [ style [ ( "background-color", darkGreyHex ) ] ]
+            , test "mousing off pin icon triggers PinIconHover msg" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> Resource.update (Resource.PinIconHover True)
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find [ id "pin-icon" ]
+                        |> Event.simulate Event.mouseLeave
+                        |> Event.expect (Resource.PinIconHover False)
+            , test "second TogglePinIconHover msg causes pin icon to have transparent background color" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> Resource.update (Resource.PinIconHover True)
+                        |> Tuple.first
+                        |> Resource.update (Resource.PinIconHover False)
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find [ id "pin-icon" ]
+                        |> Query.has [ style [ ( "background-color", "transparent" ) ] ]
             , test "pin button on pinned version has a purple outline" <|
                 \_ ->
                     init
@@ -622,18 +769,17 @@ all =
                         |> queryView
                         |> Query.find (versionSelector otherVersion)
                         |> Query.has [ style [ ( "opacity", "0.5" ) ] ]
-            , test "pin icon on pinbar is white" <|
+            , test "pin icon on pin bar is white" <|
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
                         |> queryView
-                        |> Query.find [ id "pin-bar" ]
-                        |> Query.find [ tag "div" ]
+                        |> Query.find [ id "pin-icon" ]
                         |> Query.has [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
             , test "all pin buttons have dark background" <|
                 \_ ->
                     init
-                        |> givenResourceUnpinned
+                        |> givenResourceIsNotPinned
                         |> givenVersions
                         |> queryView
                         |> Query.findAll anyVersionSelector
@@ -646,13 +792,38 @@ all =
             [ test "then nothing has purple border" <|
                 \_ ->
                     init
-                        |> givenResourceUnpinned
+                        |> givenResourceIsNotPinned
                         |> queryView
                         |> Query.hasNot purpleOutlineSelector
+            , test "pin icon on pin bar has default cursor" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.find [ id "pin-icon" ]
+                        |> Query.has defaultCursor
+            , test "clicking pin icon on pin bar does nothing" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.find [ id "pin-icon" ]
+                        |> Event.simulate Event.click
+                        |> Event.toResult
+                        |> Expect.err
+            , test "mousing over pin icon does nothing" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.find [ id "pin-icon" ]
+                        |> Event.simulate Event.mouseEnter
+                        |> Event.toResult
+                        |> Expect.err
             , test "does not show tooltip on the pin icon on ToggleVersionTooltip" <|
                 \_ ->
                     init
-                        |> givenResourceUnpinned
+                        |> givenResourceIsNotPinned
                         |> givenVersions
                         |> toggleVersionTooltip
                         |> queryView
@@ -661,7 +832,7 @@ all =
             , test "all pin buttons have pointer cursor" <|
                 \_ ->
                     init
-                        |> givenResourceUnpinned
+                        |> givenResourceIsNotPinned
                         |> givenVersions
                         |> queryView
                         |> Query.findAll anyVersionSelector
@@ -672,7 +843,7 @@ all =
             , test "all pin buttons have dark background" <|
                 \_ ->
                     init
-                        |> givenResourceUnpinned
+                        |> givenResourceIsNotPinned
                         |> givenVersions
                         |> queryView
                         |> Query.findAll anyVersionSelector
@@ -683,7 +854,7 @@ all =
             , test "sends PinVersion msg when pin button clicked" <|
                 \_ ->
                     init
-                        |> givenResourceUnpinned
+                        |> givenResourceIsNotPinned
                         |> givenVersions
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -693,7 +864,7 @@ all =
             , test "pin button on 'v1' shows transition state when (PinVersion v1) is received" <|
                 \_ ->
                     init
-                        |> givenResourceUnpinned
+                        |> givenResourceIsNotPinned
                         |> givenVersions
                         |> clickToPin versionID
                         |> queryView
@@ -703,7 +874,7 @@ all =
             , test "other pin buttons disabled when (PinVersion v1) is received" <|
                 \_ ->
                     init
-                        |> givenResourceUnpinned
+                        |> givenResourceIsNotPinned
                         |> givenVersions
                         |> clickToPin versionID
                         |> queryView
@@ -715,7 +886,7 @@ all =
             , test "pin bar shows unpinned state when (PinVersion v1) is received" <|
                 \_ ->
                     init
-                        |> givenResourceUnpinned
+                        |> givenResourceIsNotPinned
                         |> givenVersions
                         |> clickToPin versionID
                         |> queryView
@@ -723,10 +894,10 @@ all =
             , test "pin button on 'v1' still shows transition state on autorefresh before VersionPinned returns" <|
                 \_ ->
                     init
-                        |> givenResourceUnpinned
+                        |> givenResourceIsNotPinned
                         |> givenVersions
                         |> clickToPin versionID
-                        |> givenResourceUnpinned
+                        |> givenResourceIsNotPinned
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
@@ -734,7 +905,7 @@ all =
             , test "pin bar reflects 'v2' when upon successful (VersionPinned v1) msg" <|
                 \_ ->
                     init
-                        |> givenResourceUnpinned
+                        |> givenResourceIsNotPinned
                         |> givenVersions
                         |> clickToPin versionID
                         |> Resource.update (Resource.VersionPinned (Ok ()))
@@ -744,7 +915,7 @@ all =
             , test "pin bar shows unpinned state upon receiving failing (VersionPinned v1) msg" <|
                 \_ ->
                     init
-                        |> givenResourceUnpinned
+                        |> givenResourceIsNotPinned
                         |> givenVersions
                         |> clickToPin versionID
                         |> Resource.update (Resource.VersionPinned badResponse)
@@ -754,7 +925,7 @@ all =
             , test "pin button on 'v1' shows unpinned state upon receiving failing (VersionPinned v1) msg" <|
                 \_ ->
                     init
-                        |> givenResourceUnpinned
+                        |> givenResourceIsNotPinned
                         |> givenVersions
                         |> clickToPin versionID
                         |> Resource.update (Resource.VersionPinned badResponse)
@@ -763,12 +934,66 @@ all =
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
                         |> pinButtonHasUnpinnedState
-            ]
-        , describe "given versioned resource fetched"
-            [ test "there is a pin icon for each version" <|
+            , test "pin bar expands horizontally to fill available space" <|
                 \_ ->
                     init
-                        |> givenResourceUnpinned
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.find [ id "pin-bar" ]
+                        |> Query.has [ style [ ( "flex-grow", "1" ) ] ]
+            , test "pin bar margin causes outline to appear inset from the rest of the secondary top bar" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.find [ id "pin-bar" ]
+                        |> Query.has [ style [ ( "margin", "10px" ) ] ]
+            , test "there is some space between the check age and the pin bar" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.find [ id "pin-bar" ]
+                        |> Query.has [ style [ ( "padding-left", "7px" ) ] ]
+            , test "pin bar lays out contents horizontally, centering them vertically" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.find [ id "pin-bar" ]
+                        |> Query.has
+                            [ style
+                                [ ( "display", "flex" )
+                                , ( "align-items", "center" )
+                                ]
+                            ]
+            , test "pin bar is positioned relatively, to facilitate a tooltip" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.find [ id "pin-bar" ]
+                        |> Query.has [ style [ ( "position", "relative" ) ] ]
+            , test "pin icon is a 25px square icon" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.find [ id "pin-icon" ]
+                        |> Query.has
+                            [ style
+                                [ ( "background-repeat", "no-repeat" )
+                                , ( "background-position", "50% 50%" )
+                                , ( "height", "25px" )
+                                , ( "width", "25px" )
+                                ]
+                            ]
+            ]
+        , describe "given versioned resource fetched"
+            [ test "there is a pin button for each version" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
                         |> givenVersions
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -829,8 +1054,8 @@ givenResourcePinnedDynamically =
         >> Tuple.first
 
 
-givenResourceUnpinned : Resource.Model -> Resource.Model
-givenResourceUnpinned =
+givenResourceIsNotPinned : Resource.Model -> Resource.Model
+givenResourceIsNotPinned =
     Resource.update
         (Resource.ResourceFetched <|
             Ok
@@ -964,7 +1189,7 @@ findLast selectors =
 
 pinBarTooltipSelector : List Selector
 pinBarTooltipSelector =
-    [ text "pinned in pipeline config" ]
+    [ id "pin-bar-tooltip" ]
 
 
 versionTooltipSelector : List Selector
