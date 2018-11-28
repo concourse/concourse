@@ -1,4 +1,4 @@
-port module Dashboard exposing (Model, Msg(..), init, subscriptions, update, view)
+port module Dashboard exposing (Model, init, subscriptions, update, view)
 
 import Char
 import Concourse
@@ -7,9 +7,11 @@ import Concourse.Pipeline
 import Concourse.PipelineStatus
 import Concourse.User
 import Css
+import Dashboard.APIData as APIData
 import Dashboard.Details as Details
 import Dashboard.Group as Group
 import Dashboard.GroupWithTag as GroupWithTag
+import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.SubState as SubState
 import DashboardHd
@@ -26,7 +28,7 @@ import Monocle.Optional
 import Monocle.Lens
 import MonocleHelpers exposing (..)
 import NewTopBar
-import NoPipeline exposing (Msg, view)
+import NoPipeline
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
 import Routes
@@ -69,6 +71,7 @@ type alias Model =
     , topBar : NewTopBar.Model
     , turbulencePath : String -- this doesn't vary, it's more a prop (in the sense of react) than state. should be a way to use a thunk for the Turbulence case of DashboardState
     , highDensity : Bool
+    , hoveredPipeline : Maybe Concourse.Pipeline
     }
 
 
@@ -82,20 +85,6 @@ substateOptional =
     Monocle.Optional.Optional (.state >> Result.toMaybe) (\s m -> { m | state = Ok s })
 
 
-type Msg
-    = Noop
-    | APIDataFetched (RemoteData.WebData ( Time.Time, ( Group.APIData, Maybe Concourse.User ) ))
-    | ClockTick Time.Time
-    | AutoRefresh Time
-    | ShowFooter
-    | KeyPressed Keyboard.KeyCode
-    | KeyDowns Keyboard.KeyCode
-    | TopBarMsg NewTopBar.Msg
-    | PipelinePauseToggled Concourse.Pipeline (Result Http.Error ())
-    | PipelineMsg Pipeline.Msg
-    | GroupMsg Group.Msg
-
-
 init : Ports -> Flags -> ( Model, Cmd Msg )
 init ports flags =
     let
@@ -107,6 +96,7 @@ init ports flags =
           , csrfToken = flags.csrfToken
           , turbulencePath = flags.turbulencePath
           , highDensity = flags.highDensity
+          , hoveredPipeline = Nothing
           }
         , Cmd.batch
             [ fetchData
@@ -138,7 +128,7 @@ noop model =
     ( model, Cmd.none )
 
 
-substate : String -> Bool -> ( Time.Time, ( Group.APIData, Maybe Concourse.User ) ) -> Result DashboardError SubState.SubState
+substate : String -> Bool -> ( Time.Time, ( APIData.APIData, Maybe Concourse.User ) ) -> Result DashboardError SubState.SubState
 substate csrfToken highDensity ( now, ( apiData, user ) ) =
     apiData.pipelines
         |> List.head
@@ -237,7 +227,7 @@ update msg model =
                 in
                     ( { model | topBar = newTopBar }, newMsg )
 
-            PipelineMsg (Pipeline.TogglePipelinePaused pipeline) ->
+            TogglePipelinePaused pipeline ->
                 ( model, togglePipelinePaused pipeline model.csrfToken )
 
             PipelinePauseToggled pipeline (Ok ()) ->
@@ -257,30 +247,27 @@ update msg model =
             PipelinePauseToggled _ (Err _) ->
                 ( model, Cmd.none )
 
-            GroupMsg (Group.DragStart teamName index) ->
+            DragStart teamName index ->
                 model
                     |> Monocle.Optional.modify
                         (substateOptional => SubState.detailsOptional)
                         ((Details.dragStateLens |> .set) <| Group.Dragging teamName index)
                     |> noop
 
-            GroupMsg (Group.DragOver teamName index) ->
+            DragOver teamName index ->
                 model
                     |> Monocle.Optional.modify
                         (substateOptional => SubState.detailsOptional)
                         ((Details.dropStateLens |> .set) <| Group.Dropping index)
                     |> noop
 
-            GroupMsg (Group.PipelineMsg msg) ->
-                flip update model <| PipelineMsg msg
-
-            PipelineMsg (Pipeline.TooltipHd pipelineName teamName) ->
+            TooltipHd pipelineName teamName ->
                 ( model, DashboardHd.tooltipHd ( pipelineName, teamName ) )
 
-            PipelineMsg (Pipeline.Tooltip pipelineName teamName) ->
+            Tooltip pipelineName teamName ->
                 ( model, tooltip ( pipelineName, teamName ) )
 
-            GroupMsg Group.DragEnd ->
+            DragEnd ->
                 let
                     updatePipelines : ( Group.PipelineIndex, Group.PipelineIndex ) -> Group.Group -> ( Group.Group, Cmd Msg )
                     updatePipelines ( dragIndex, dropIndex ) group =
@@ -334,6 +321,9 @@ update msg model =
                                     ( ( t, newG ), msg )
                             )
                         |> Tuple.mapFirst (dragDropOptional.set ( Group.NotDragging, Group.NotDropping ))
+
+            PipelineButtonHover state ->
+                ( { model | hoveredPipeline = state }, Cmd.none )
 
 
 orderPipelines : String -> List Pipeline.PipelineWithJobs -> Concourse.CSRFToken -> Cmd Msg
@@ -394,7 +384,16 @@ dashboardView model =
                     [ Html.div [ class "dashboard-no-content", css [ Css.height (Css.pct 100) ] ] [ (Html.map (always Noop) << Html.fromUnstyled) NoPipeline.view ] ]
 
                 Ok substate ->
-                    [ Html.div [ class "dashboard-content" ] (pipelinesView substate (NewTopBar.query model.topBar) ++ [ footerView substate ]) ]
+                    [ Html.div
+                        [ class "dashboard-content" ]
+                        (pipelinesView
+                            { substate = substate
+                            , query = (NewTopBar.query model.topBar)
+                            , hoveredPipeline = model.hoveredPipeline
+                            }
+                            ++ [ footerView substate ]
+                        )
+                    ]
     in
         Html.div
             [ classList [ ( .pageBodyClass Group.stickyHeaderConfig, True ), ( "dashboard-hd", model.highDensity ) ] ]
@@ -525,8 +524,13 @@ turbulenceView path =
         ]
 
 
-pipelinesView : SubState.SubState -> String -> List (Html Msg)
-pipelinesView substate query =
+pipelinesView :
+    { substate : SubState.SubState
+    , hoveredPipeline : Maybe Concourse.Pipeline
+    , query : String
+    }
+    -> List (Html Msg)
+pipelinesView { substate, hoveredPipeline, query } =
     let
         filteredGroups =
             substate.teamData |> SubState.apiData |> Group.groups |> filter query
@@ -546,30 +550,58 @@ pipelinesView substate query =
                     case substate.teamData of
                         SubState.Unauthenticated _ ->
                             List.map
-                                (\g -> Group.view (Group.headerView g) details.dragState details.dropState details.now g)
+                                (\g ->
+                                    Group.view
+                                        { header = (Group.headerView g)
+                                        , dragState = details.dragState
+                                        , dropState = details.dropState
+                                        , now = details.now
+                                        , hoveredPipeline = hoveredPipeline
+                                        }
+                                        g
+                                )
                                 groupsToDisplay
 
                         SubState.Authenticated { user } ->
                             List.map
-                                (\g -> Group.view (GroupWithTag.headerView g False) details.dragState details.dropState details.now g.group)
+                                (\g ->
+                                    Group.view
+                                        { header = (GroupWithTag.headerView g False)
+                                        , dragState = details.dragState
+                                        , dropState = details.dropState
+                                        , now = details.now
+                                        , hoveredPipeline = hoveredPipeline
+                                        }
+                                        g.group
+                                )
                                 (GroupWithTag.addTagsAndSort user groupsToDisplay)
 
                 Nothing ->
                     case substate.teamData of
                         SubState.Unauthenticated _ ->
                             List.map
-                                (\g -> Group.hdView (Group.headerView g) g.teamName g.pipelines)
+                                (\g ->
+                                    Group.hdView
+                                        (Group.headerView g)
+                                        g.teamName
+                                        g.pipelines
+                                )
                                 groupsToDisplay
 
                         SubState.Authenticated { user } ->
                             List.map
-                                (\g -> Group.hdView (GroupWithTag.headerView g True) g.group.teamName g.group.pipelines)
+                                (\g ->
+                                    Group.hdView
+                                        (GroupWithTag.headerView g True)
+                                        g.group.teamName
+                                        g.group.pipelines
+                                )
                                 (GroupWithTag.addTagsAndSort user groupsToDisplay)
     in
         if List.isEmpty groupViews then
             [ noResultsView (toString query) ]
         else
-            List.map (Html.map GroupMsg << Html.fromUnstyled) groupViews
+            List.map Html.fromUnstyled groupViews
 
 
 handleKeyPressed : Char -> Model -> ( Model, Cmd Msg )
@@ -596,7 +628,7 @@ fetchData =
         |> Cmd.map APIDataFetched
 
 
-remoteUser : Group.APIData -> Task.Task Http.Error ( Group.APIData, Maybe Concourse.User )
+remoteUser : APIData.APIData -> Task.Task Http.Error ( APIData.APIData, Maybe Concourse.User )
 remoteUser d =
     Concourse.User.fetchUser
         |> Task.map ((,) d << Just)

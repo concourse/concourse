@@ -2,6 +2,8 @@ module DashboardTests exposing (all)
 
 import Concourse
 import Dashboard
+import Dashboard.APIData as APIData
+import Dashboard.Msgs as Msgs
 import Dict
 import Expect exposing (Expectation)
 import Dashboard.Group as Group
@@ -9,8 +11,14 @@ import Html.Attributes as Attr
 import Html.Styled as HS
 import RemoteData
 import Test exposing (..)
+import Test.Html.Event as Event
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (attribute, class, containing, style, tag, text, Selector)
+
+
+lightGrey : String
+lightGrey =
+    "#3d3c3c"
 
 
 all : Test
@@ -120,11 +128,7 @@ all =
                                 ]
                             ]
                         )
-        , test
-            ("on HD view, the role pill on a group has margin below, to create spacing "
-                ++ "between the list of pipelines and the role pill"
-            )
-          <|
+        , test "on HD view, there is space between the list of pipelines and the role pill" <|
             \_ ->
                 whenOnDashboard { highDensity = True }
                     |> givenDataAndUser
@@ -144,7 +148,332 @@ all =
                     |> Query.find teamHeaderSelector
                     |> Query.find [ containing [ text "OWNER" ] ]
                     |> Query.has [ style [ ( "margin-bottom", "" ) ] ]
+        , describe "pipeline footer" <|
+            let
+                hasStyle : List ( String, String ) -> Expectation
+                hasStyle styles =
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "team")
+                            (userWithRoles [ ( "team", [ "owner" ] ) ])
+                        |> queryView
+                        |> Query.find [ class "dashboard-pipeline-footer" ]
+                        |> Query.has [ style styles ]
+            in
+                [ test "there is a light grey line dividing the footer from the rest of the card" <|
+                    \_ ->
+                        hasStyle [ ( "border-top", "2px solid " ++ lightGrey ) ]
+                , test "has medium padding" <|
+                    \_ ->
+                        hasStyle [ ( "padding", "13.5px" ) ]
+                , test "lays out contents horizontally" <|
+                    \_ ->
+                        hasStyle [ ( "display", "flex" ) ]
+                , test "is divided into a left and right section, spread apart" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataAndUser
+                                (oneTeamOnePipeline "team")
+                                (userWithRoles [ ( "team", [ "owner" ] ) ])
+                            |> queryView
+                            |> Query.find [ class "dashboard-pipeline-footer" ]
+                            |> Expect.all
+                                [ Query.children []
+                                    >> Query.count (Expect.equal 2)
+                                , Query.has
+                                    [ style [ ( "justify-content", "space-between" ) ] ]
+                                ]
+                , test "both sections lay out contents horizontally" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataAndUser
+                                (oneTeamOnePipeline "team")
+                                (userWithRoles [ ( "team", [ "owner" ] ) ])
+                            |> queryView
+                            |> Query.find [ class "dashboard-pipeline-footer" ]
+                            |> Query.children []
+                            |> Query.each (Query.has [ style [ ( "display", "flex" ) ] ])
+                , test
+                    ("there is a 20px square open eye icon on the far right for a public pipeline"
+                        ++ " with image resized to fit"
+                    )
+                  <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataAndUser
+                                (oneTeamOnePipeline "team")
+                                (userWithRoles [ ( "team", [ "owner" ] ) ])
+                            |> queryView
+                            |> Query.find [ class "dashboard-pipeline-footer" ]
+                            |> Query.children []
+                            |> Query.index -1
+                            |> Query.children []
+                            |> Query.index -1
+                            |> Query.has
+                                (iconSelector
+                                    { size = "20px"
+                                    , image = "baseline-visibility-24px.svg"
+                                    }
+                                    ++ [ style [ ( "background-size", "contain" ) ] ]
+                                )
+                , test
+                    ("there is a 20px square slashed-out eye icon with on the far right for a"
+                        ++ " non-public pipeline with image resized to fit"
+                    )
+                  <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataAndUser
+                                (oneTeamOnePipelineNonPublic "team")
+                                (userWithRoles [ ( "team", [ "owner" ] ) ])
+                            |> queryView
+                            |> Query.find [ class "dashboard-pipeline-footer" ]
+                            |> Query.children []
+                            |> Query.index -1
+                            |> Query.children []
+                            |> Query.index -1
+                            |> Query.has
+                                (iconSelector
+                                    { size = "20px"
+                                    , image = "baseline-visibility_off-24px.svg"
+                                    }
+                                    ++ [ style [ ( "background-size", "contain" ) ] ]
+                                )
+                , test "there is medium spacing between the eye and the play/pause button" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataAndUser
+                                (oneTeamOnePipeline "team")
+                                (userWithRoles [ ( "team", [ "owner" ] ) ])
+                            |> queryView
+                            |> Query.find [ class "dashboard-pipeline-footer" ]
+                            |> Query.children []
+                            |> Query.index -1
+                            |> Query.children []
+                            |> Expect.all
+                                [ Query.count (Expect.equal 3)
+                                , Query.index 1 >> Query.has [ style [ ( "width", "13.5px" ) ] ]
+                                ]
+                , test "the right section has a 20px square pause button on the left" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataAndUser
+                                (oneTeamOnePipeline "team")
+                                (userWithRoles [ ( "team", [ "owner" ] ) ])
+                            |> queryView
+                            |> Query.find [ class "dashboard-pipeline-footer" ]
+                            |> Query.children []
+                            |> Query.index -1
+                            |> Query.children []
+                            |> Query.index 0
+                            |> Query.has
+                                (iconSelector
+                                    { size = "20px"
+                                    , image = "ic_pause_white.svg"
+                                    }
+                                )
+                , test "pause button has pointer cursor" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataAndUser
+                                (oneTeamOnePipeline "team")
+                                (userWithRoles [ ( "team", [ "owner" ] ) ])
+                            |> queryView
+                            |> Query.find [ class "dashboard-pipeline-footer" ]
+                            |> Query.find
+                                (iconSelector
+                                    { size = "20px"
+                                    , image = "ic_pause_white.svg"
+                                    }
+                                )
+                            |> Query.has [ style [ ( "cursor", "pointer" ) ] ]
+                , test "pause button is transparent" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataAndUser
+                                (oneTeamOnePipeline "team")
+                                (userWithRoles [ ( "team", [ "owner" ] ) ])
+                            |> queryView
+                            |> Query.find [ class "dashboard-pipeline-footer" ]
+                            |> Query.find
+                                (iconSelector
+                                    { size = "20px"
+                                    , image = "ic_pause_white.svg"
+                                    }
+                                )
+                            |> Query.has [ style [ ( "opacity", "0.5" ) ] ]
+                , defineHoverBehaviour
+                    { name = "pause button"
+                    , setup =
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataAndUser
+                                (oneTeamOnePipeline "team")
+                                (userWithRoles [ ( "team", [ "owner" ] ) ])
+                    , query =
+                        Dashboard.view
+                            >> HS.toUnstyled
+                            >> Query.fromHtml
+                            >> Query.find [ class "dashboard-pipeline-footer" ]
+                            >> Query.children []
+                            >> Query.index -1
+                            >> Query.children []
+                            >> Query.index 0
+                    , unhoveredSelector =
+                        { description = "a transparent 20px square pause button with pointer cursor"
+                        , selector =
+                            (iconSelector
+                                { size = "20px"
+                                , image = "ic_pause_white.svg"
+                                }
+                                ++ [ style
+                                        [ ( "cursor", "pointer" )
+                                        , ( "opacity", "0.5" )
+                                        ]
+                                   ]
+                            )
+                        }
+                    , mouseEnterMsg = Msgs.PipelineButtonHover <| Just <| onePipeline "team"
+                    , mouseLeaveMsg = Msgs.PipelineButtonHover Nothing
+                    , hoveredSelector =
+                        { description = "an opaque 20px square pause button with pointer cursor"
+                        , selector =
+                            (iconSelector
+                                { size = "20px"
+                                , image = "ic_pause_white.svg"
+                                }
+                                ++ [ style
+                                        [ ( "cursor", "pointer" )
+                                        , ( "opacity", "1" )
+                                        ]
+                                   ]
+                            )
+                        }
+                    }
+                , defineHoverBehaviour
+                    { name = "play button"
+                    , setup =
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataAndUser
+                                (oneTeamOnePipelinePaused "team")
+                                (userWithRoles [ ( "team", [ "owner" ] ) ])
+                    , query =
+                        Dashboard.view
+                            >> HS.toUnstyled
+                            >> Query.fromHtml
+                            >> Query.find [ class "dashboard-pipeline-footer" ]
+                            >> Query.children []
+                            >> Query.index -1
+                            >> Query.children []
+                            >> Query.index 0
+                    , unhoveredSelector =
+                        { description = "a transparent 20px square play button with pointer cursor"
+                        , selector =
+                            (iconSelector
+                                { size = "20px"
+                                , image = "ic_play_white.svg"
+                                }
+                                ++ [ style
+                                        [ ( "cursor", "pointer" )
+                                        , ( "opacity", "0.5" )
+                                        ]
+                                   ]
+                            )
+                        }
+                    , mouseEnterMsg = Msgs.PipelineButtonHover <| Just <| onePipelinePaused "team"
+                    , mouseLeaveMsg = Msgs.PipelineButtonHover Nothing
+                    , hoveredSelector =
+                        { description = "an opaque 20px square play button with pointer cursor"
+                        , selector =
+                            (iconSelector
+                                { size = "20px"
+                                , image = "ic_play_white.svg"
+                                }
+                                ++ [ style
+                                        [ ( "cursor", "pointer" )
+                                        , ( "opacity", "1" )
+                                        ]
+                                   ]
+                            )
+                        }
+                    }
+                ]
         ]
+
+
+defineHoverBehaviour :
+    { name : String
+    , setup : Dashboard.Model
+    , query : Dashboard.Model -> Query.Single Msgs.Msg
+    , unhoveredSelector : { description : String, selector : List Selector }
+    , mouseEnterMsg : Msgs.Msg
+    , mouseLeaveMsg : Msgs.Msg
+    , hoveredSelector : { description : String, selector : List Selector }
+    }
+    -> Test
+defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mouseLeaveMsg, hoveredSelector } =
+    describe (name ++ " hover behaviour")
+        [ test (name ++ " is " ++ unhoveredSelector.description) <|
+            \_ ->
+                setup
+                    |> query
+                    |> Query.has unhoveredSelector.selector
+        , test ("mousing over " ++ name ++ " triggers " ++ toString mouseEnterMsg ++ " msg") <|
+            \_ ->
+                setup
+                    |> query
+                    |> Event.simulate Event.mouseEnter
+                    |> Event.expect mouseEnterMsg
+        , test
+            (toString mouseEnterMsg
+                ++ " msg causes "
+                ++ name
+                ++ " to become "
+                ++ hoveredSelector.description
+            )
+          <|
+            \_ ->
+                setup
+                    |> Dashboard.update mouseEnterMsg
+                    |> Tuple.first
+                    |> query
+                    |> Query.has hoveredSelector.selector
+        , test ("mousing off " ++ name ++ " triggers " ++ toString mouseLeaveMsg ++ " msg") <|
+            \_ ->
+                setup
+                    |> Dashboard.update mouseEnterMsg
+                    |> Tuple.first
+                    |> query
+                    |> Event.simulate Event.mouseLeave
+                    |> Event.expect mouseLeaveMsg
+        , test
+            (toString mouseLeaveMsg
+                ++ " msg causes "
+                ++ name
+                ++ " to become "
+                ++ unhoveredSelector.description
+            )
+          <|
+            \_ ->
+                setup
+                    |> Dashboard.update mouseEnterMsg
+                    |> Tuple.first
+                    |> Dashboard.update mouseLeaveMsg
+                    |> Tuple.first
+                    |> query
+                    |> Query.has unhoveredSelector.selector
+        ]
+
+
+iconSelector : { size : String, image : String } -> List Selector
+iconSelector { size, image } =
+    [ style
+        [ ( "background-image", "url(public/images/" ++ image ++ ")" )
+        , ( "background-position", "50% 50%" )
+        , ( "background-repeat", "no-repeat" )
+        , ( "width", size )
+        , ( "height", size )
+        ]
+    ]
 
 
 whenOnDashboard : { highDensity : Bool } -> Dashboard.Model
@@ -160,17 +489,17 @@ whenOnDashboard { highDensity } =
         |> Tuple.first
 
 
-queryView : Dashboard.Model -> Query.Single Dashboard.Msg
+queryView : Dashboard.Model -> Query.Single Msgs.Msg
 queryView =
     Dashboard.view
         >> HS.toUnstyled
         >> Query.fromHtml
 
 
-givenDataAndUser : Group.APIData -> Concourse.User -> Dashboard.Model -> Dashboard.Model
+givenDataAndUser : APIData.APIData -> Concourse.User -> Dashboard.Model -> Dashboard.Model
 givenDataAndUser data user =
     Dashboard.update
-        (Dashboard.APIDataFetched <|
+        (Msgs.APIDataFetched <|
             RemoteData.Success ( 0, ( data, Just user ) )
         )
         >> Tuple.first
@@ -187,16 +516,16 @@ userWithRoles roles =
     }
 
 
-givenDataUnauthenticated : Group.APIData -> Dashboard.Model -> Dashboard.Model
+givenDataUnauthenticated : APIData.APIData -> Dashboard.Model -> Dashboard.Model
 givenDataUnauthenticated data =
     Dashboard.update
-        (Dashboard.APIDataFetched <|
+        (Msgs.APIDataFetched <|
             RemoteData.Success ( 0, ( data, Nothing ) )
         )
         >> Tuple.first
 
 
-givenPipelineWithJob : Group.APIData
+givenPipelineWithJob : APIData.APIData
 givenPipelineWithJob =
     { teams = []
     , pipelines =
@@ -239,12 +568,70 @@ givenPipelineWithJob =
     }
 
 
-oneTeamOnePipeline : String -> Group.APIData
+oneTeamOnePipelinePaused : String -> APIData.APIData
+oneTeamOnePipelinePaused teamName =
+    { teams = [ { id = 0, name = teamName } ]
+    , pipelines =
+        [ { id = 0
+          , name = "pipeline"
+          , paused = True
+          , public = True
+          , teamName = teamName
+          , groups = []
+          }
+        ]
+    , jobs = []
+    , resources = []
+    , version = ""
+    }
+
+
+oneTeamOnePipelineNonPublic : String -> APIData.APIData
+oneTeamOnePipelineNonPublic teamName =
+    { teams = [ { id = 0, name = teamName } ]
+    , pipelines =
+        [ { id = 0
+          , name = "pipeline"
+          , paused = False
+          , public = False
+          , teamName = teamName
+          , groups = []
+          }
+        ]
+    , jobs = []
+    , resources = []
+    , version = ""
+    }
+
+
+oneTeamOnePipeline : String -> APIData.APIData
 oneTeamOnePipeline teamName =
     apiData [ ( teamName, [ "pipeline" ] ) ]
 
 
-apiData : List ( String, List String ) -> Group.APIData
+onePipeline : String -> Concourse.Pipeline
+onePipeline teamName =
+    { id = 0
+    , name = "pipeline"
+    , paused = False
+    , public = True
+    , teamName = teamName
+    , groups = []
+    }
+
+
+onePipelinePaused : String -> Concourse.Pipeline
+onePipelinePaused teamName =
+    { id = 0
+    , name = "pipeline"
+    , paused = True
+    , public = True
+    , teamName = teamName
+    , groups = []
+    }
+
+
+apiData : List ( String, List String ) -> APIData.APIData
 apiData pipelines =
     { teams = pipelines |> List.map Tuple.first |> List.indexedMap Concourse.Team
     , pipelines =
@@ -274,14 +661,14 @@ teamHeaderSelector =
     [ class <| .sectionHeaderClass Group.stickyHeaderConfig ]
 
 
-teamHeaderHasNoPill : String -> Query.Single Dashboard.Msg -> Expectation
+teamHeaderHasNoPill : String -> Query.Single Msgs.Msg -> Expectation
 teamHeaderHasNoPill teamName =
     Query.find (teamHeaderSelector ++ [ containing [ text teamName ] ])
         >> Query.children []
         >> Query.count (Expect.equal 1)
 
 
-teamHeaderHasPill : String -> String -> Query.Single Dashboard.Msg -> Expectation
+teamHeaderHasPill : String -> String -> Query.Single Msgs.Msg -> Expectation
 teamHeaderHasPill teamName pillText =
     Query.find (teamHeaderSelector ++ [ containing [ text teamName ] ])
         >> Query.children []

@@ -3,6 +3,7 @@ module Dashboard.GroupWithTag exposing (TaggedGroup, addTag, addTagsAndSort, hea
 import Concourse
 import Dashboard.Group as Group
 import Dashboard.Group.Tag as Tag
+import Dashboard.Msgs exposing (Msg)
 import Html
 import Html.Attributes exposing (class)
 import Maybe.Extra exposing (maybeToList)
@@ -31,7 +32,7 @@ ordering =
         |> Ordering.breakTiesWith (Ordering.byFieldWith Group.ordering .group)
 
 
-headerView : TaggedGroup -> Bool -> List (Html.Html Group.Msg)
+headerView : TaggedGroup -> Bool -> List (Html.Html Msg)
 headerView taggedGroup isHd =
     [ Html.div [ class "dashboard-team-name" ] [ Html.text taggedGroup.group.teamName ]
     ]

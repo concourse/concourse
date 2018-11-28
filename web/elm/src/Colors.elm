@@ -14,3 +14,8 @@ pinBarTooltip =
 pinIconHover : String
 pinIconHover =
     "#1e1d1d"
+
+
+dashboardBackground : String
+dashboardBackground =
+    "#3d3c3c"

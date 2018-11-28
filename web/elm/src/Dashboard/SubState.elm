@@ -1,7 +1,7 @@
 module Dashboard.SubState exposing (..)
 
 import Concourse
-import Dashboard.Group as Group
+import Dashboard.APIData as APIData
 import Dashboard.Details as Details
 import Monocle.Optional
 import Monocle.Lens
@@ -64,27 +64,27 @@ updateFooter counter =
 
 type TeamData
     = Unauthenticated
-        { apiData : Group.APIData
+        { apiData : APIData.APIData
         }
     | Authenticated
-        { apiData : Group.APIData
+        { apiData : APIData.APIData
         , user : Concourse.User
         }
 
 
-teamData : Group.APIData -> Maybe Concourse.User -> TeamData
+teamData : APIData.APIData -> Maybe Concourse.User -> TeamData
 teamData apiData user =
     user
         |> Maybe.map (\u -> Authenticated { apiData = apiData, user = u })
         |> Maybe.withDefault (Unauthenticated { apiData = apiData })
 
 
-apiDataLens : Monocle.Lens.Lens TeamData Group.APIData
+apiDataLens : Monocle.Lens.Lens TeamData APIData.APIData
 apiDataLens =
     Monocle.Lens.Lens apiData setApiData
 
 
-apiData : TeamData -> Group.APIData
+apiData : TeamData -> APIData.APIData
 apiData teamData =
     case teamData of
         Unauthenticated { apiData } ->
@@ -94,7 +94,7 @@ apiData teamData =
             apiData
 
 
-setApiData : Group.APIData -> TeamData -> TeamData
+setApiData : APIData.APIData -> TeamData -> TeamData
 setApiData apiData teamData =
     case teamData of
         Unauthenticated _ ->

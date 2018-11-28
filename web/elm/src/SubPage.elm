@@ -2,23 +2,24 @@ port module SubPage exposing (Model(..), Msg(..), init, subscriptions, update, u
 
 import Autoscroll
 import Build
+import Build
 import Concourse
+import Dashboard
+import Dashboard.Msgs
+import DashboardHd
 import Html exposing (Html)
 import Html.Styled as HS
 import Http
 import Job
 import Json.Encode
-import Resource
-import Build
 import NotFound
 import Pipeline
 import QueryString
 import Resource
+import Resource
 import Routes
 import String
 import UpdateMsg exposing (UpdateMsg)
-import Dashboard
-import DashboardHd
 
 
 -- TODO: move ports somewhere else
@@ -48,7 +49,7 @@ type Msg
     | PipelineMsg Pipeline.Msg
     | NewCSRFToken String
     | DashboardPipelinesFetched (Result Http.Error (List Concourse.Pipeline))
-    | DashboardMsg Dashboard.Msg
+    | DashboardMsg Dashboard.Msgs.Msg
     | DashboardHdMsg DashboardHd.Msg
 
 

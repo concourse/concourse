@@ -1,7 +1,6 @@
 module Dashboard.Pipeline
     exposing
-        ( Msg(..)
-        , PipelineWithJobs
+        ( PipelineWithJobs
         , SummaryPipeline
         , PreviewPipeline
         , pipelineNotSetView
@@ -11,14 +10,16 @@ module Dashboard.Pipeline
         , pipelineStatusFromJobs
         )
 
+import Colors
 import Concourse
 import Concourse.PipelineStatus
 import Duration
+import Dashboard.Msgs exposing (Msg(..))
 import DashboardPreview
 import Date
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (on, onMouseEnter)
+import Html.Events exposing (on, onMouseEnter, onMouseLeave)
 import List.Extra
 import Maybe.Extra
 import Routes
@@ -41,12 +42,6 @@ type alias PipelineWithJobs =
     }
 
 
-type Msg
-    = Tooltip String String
-    | TooltipHd String String
-    | TogglePipelinePaused Concourse.Pipeline
-
-
 pipelineNotSetView : Html msg
 pipelineNotSetView =
     Html.div [ class "pipeline-wrapper" ]
@@ -60,11 +55,6 @@ pipelineNotSetView =
                 ]
             ]
         ]
-
-
-viewPreview : Time -> PreviewPipeline -> Html Msg
-viewPreview now (PreviewPipeline pwj) =
-    pipelineView now pwj
 
 
 viewSummary : SummaryPipeline -> Html Msg
@@ -101,12 +91,12 @@ hdPipelineView { pipeline, jobs, resourceError } =
         ]
 
 
-pipelineView : Time -> PipelineWithJobs -> Html Msg
-pipelineView now ({ pipeline, jobs, resourceError } as pipelineWithJobs) =
+pipelineView : { now : Time, pipelineWithJobs : PipelineWithJobs, hovered : Bool } -> Html Msg
+pipelineView { now, pipelineWithJobs, hovered } =
     Html.div [ class "dashboard-pipeline-content" ]
         [ headerView pipelineWithJobs
-        , DashboardPreview.view jobs
-        , footerView pipelineWithJobs now
+        , DashboardPreview.view pipelineWithJobs.jobs
+        , footerView pipelineWithJobs now hovered
         ]
 
 
@@ -124,13 +114,56 @@ headerView ({ pipeline, resourceError } as pipelineWithJobs) =
         ]
 
 
-footerView : PipelineWithJobs -> Time -> Html Msg
-footerView pipelineWithJobs now =
-    Html.div [ class "dashboard-pipeline-footer" ]
-        [ Html.div [ class "dashboard-pipeline-icon" ] []
-        , transitionView now pipelineWithJobs
-        , pauseToggleView pipelineWithJobs.pipeline
+footerView : PipelineWithJobs -> Time -> Bool -> Html Msg
+footerView pipelineWithJobs now hovered =
+    let
+        spacer =
+            Html.div [ style [ ( "width", "13.5px" ) ] ] []
+    in
+        Html.div
+            [ class "dashboard-pipeline-footer"
+            , style
+                [ ( "border-top", "2px solid " ++ Colors.dashboardBackground )
+                , ( "padding", "13.5px" )
+                , ( "display", "flex" )
+                , ( "justify-content", "space-between" )
+                ]
+            ]
+            [ Html.div
+                [ style [ ( "display", "flex" ) ]
+                ]
+                [ Html.div [ class "dashboard-pipeline-icon" ] []
+                , transitionView now pipelineWithJobs
+                ]
+            , Html.div
+                [ style [ ( "display", "flex" ) ]
+                ]
+              <|
+                List.intersperse spacer
+                    [ pauseToggleView pipelineWithJobs.pipeline hovered
+                    , visibilityView pipelineWithJobs.pipeline.public
+                    ]
+            ]
+
+
+visibilityView : Bool -> Html Msg
+visibilityView public =
+    Html.div
+        [ style
+            [ ( "background-image"
+              , if public then
+                    "url(public/images/baseline-visibility-24px.svg)"
+                else
+                    "url(public/images/baseline-visibility_off-24px.svg)"
+              )
+            , ( "background-position", "50% 50%" )
+            , ( "background-repeat", "no-repeat" )
+            , ( "background-size", "contain" )
+            , ( "width", "20px" )
+            , ( "height", "20px" )
+            ]
         ]
+        []
 
 
 type alias Event =
@@ -255,14 +288,30 @@ containsStatus =
     List.member << Just
 
 
-pauseToggleView : Concourse.Pipeline -> Html Msg
-pauseToggleView pipeline =
+pauseToggleView : Concourse.Pipeline -> Bool -> Html Msg
+pauseToggleView pipeline hovered =
     Html.a
-        [ classList
-            [ ( "pause-toggle", True )
-            , ( "icon-play", pipeline.paused )
-            , ( "icon-pause", not pipeline.paused )
+        [ style
+            [ ( "background-image"
+              , if pipeline.paused then
+                    "url(public/images/ic_play_white.svg)"
+                else
+                    "url(public/images/ic_pause_white.svg)"
+              )
+            , ( "background-position", "50% 50%" )
+            , ( "background-repeat", "no-repeat" )
+            , ( "width", "20px" )
+            , ( "height", "20px" )
+            , ( "cursor", "pointer" )
+            , ( "opacity"
+              , if hovered then
+                    "1"
+                else
+                    "0.5"
+              )
             ]
         , onLeftClick <| TogglePipelinePaused pipeline
+        , onMouseEnter <| PipelineButtonHover <| Just pipeline
+        , onMouseLeave <| PipelineButtonHover Nothing
         ]
         []

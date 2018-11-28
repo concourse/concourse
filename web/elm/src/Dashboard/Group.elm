@@ -7,6 +7,8 @@ import Concourse.Pipeline
 import Concourse.PipelineStatus
 import Concourse.Resource
 import Concourse.Team
+import Dashboard.APIData exposing (APIData)
+import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Pipeline as Pipeline
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -28,15 +30,6 @@ import Time exposing (Time)
 type alias Group =
     { pipelines : List Pipeline.PipelineWithJobs
     , teamName : String
-    }
-
-
-type alias APIData =
-    { teams : List Concourse.Team
-    , pipelines : List Concourse.Pipeline
-    , jobs : List Concourse.Job
-    , resources : List Concourse.Resource
-    , version : String
     }
 
 
@@ -164,13 +157,6 @@ setDropIndex dropIndex dropState =
 
         NotDropping ->
             NotDropping
-
-
-type Msg
-    = DragStart String Int
-    | DragOver String Int
-    | DragEnd
-    | PipelineMsg Pipeline.Msg
 
 
 allPipelines : APIData -> List Pipeline.PipelineWithJobs
@@ -306,8 +292,16 @@ ordering =
     Ordering.byField .teamName
 
 
-view : List (Html Msg) -> DragState -> DropState -> Time -> Group -> Html Msg
-view header dragState dropState now group =
+view :
+    { header : List (Html Msg)
+    , dragState : DragState
+    , dropState : DropState
+    , now : Time
+    , hoveredPipeline : Maybe Concourse.Pipeline
+    }
+    -> Group
+    -> Html Msg
+view { header, dragState, dropState, now, hoveredPipeline } group =
     let
         pipelines =
             if List.isEmpty group.pipelines then
@@ -322,18 +316,35 @@ view header dragState dropState now group =
                                     [ classList
                                         [ ( "dashboard-pipeline", True )
                                         , ( "dashboard-paused", pipeline.pipeline.paused )
-                                        , ( "dashboard-running", not <| List.isEmpty <| List.filterMap .nextBuild pipeline.jobs )
-                                        , ( "dashboard-status-" ++ Concourse.PipelineStatus.show (Pipeline.pipelineStatusFromJobs pipeline.jobs False), not pipeline.pipeline.paused )
-                                        , ( "dragging", dragState == Dragging pipeline.pipeline.teamName i )
+                                        , ( "dashboard-running"
+                                          , not <|
+                                                List.isEmpty <|
+                                                    List.filterMap .nextBuild pipeline.jobs
+                                          )
+                                        , ( "dashboard-status-"
+                                                ++ Concourse.PipelineStatus.show
+                                                    (Pipeline.pipelineStatusFromJobs pipeline.jobs False)
+                                          , not pipeline.pipeline.paused
+                                          )
+                                        , ( "dragging"
+                                          , dragState == Dragging pipeline.pipeline.teamName i
+                                          )
                                         ]
                                     , attribute "data-pipeline-name" pipeline.pipeline.name
-                                    , attribute "ondragstart" "event.dataTransfer.setData('text/plain', '');"
+                                    , attribute
+                                        "ondragstart"
+                                        "event.dataTransfer.setData('text/plain', '');"
                                     , draggable "true"
-                                    , on "dragstart" (Json.Decode.succeed (DragStart pipeline.pipeline.teamName i))
+                                    , on "dragstart"
+                                        (Json.Decode.succeed (DragStart pipeline.pipeline.teamName i))
                                     , on "dragend" (Json.Decode.succeed DragEnd)
                                     ]
                                     [ Html.div [ class "dashboard-pipeline-banner" ] []
-                                    , Html.map PipelineMsg <| Pipeline.pipelineView now pipeline
+                                    , Pipeline.pipelineView
+                                        { now = now
+                                        , pipelineWithJobs = pipeline
+                                        , hovered = hoveredPipeline == Just pipeline.pipeline
+                                        }
                                     ]
                                 ]
                         )
@@ -341,7 +352,11 @@ view header dragState dropState now group =
                     )
                     [ pipelineDropAreaView dragState dropState group.teamName (List.length group.pipelines) ]
     in
-        Html.div [ id group.teamName, class "dashboard-team-group", attribute "data-team-name" group.teamName ]
+        Html.div
+            [ id group.teamName
+            , class "dashboard-team-group"
+            , attribute "data-team-name" group.teamName
+            ]
             [ Html.div
                 [ style [ ( "display", "flex" ), ( "align-items", "center" ) ]
                 , class stickyHeaderConfig.sectionHeaderClass
@@ -358,7 +373,7 @@ hdView header teamName pipelines =
             if List.isEmpty pipelines then
                 [ pipelineNotSetView ]
             else
-                List.map (Pipeline.hdPipelineView >> Html.map PipelineMsg) pipelines
+                List.map Pipeline.hdPipelineView pipelines
     in
         Html.div [ class "pipeline-wrapper" ] <|
             case teamPipelines of
