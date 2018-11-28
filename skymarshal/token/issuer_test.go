@@ -148,7 +148,7 @@ var _ = Describe("Token Issuer", func() {
 			}
 
 			AssertTokenAdminClaims := func() {
-				Context("when team is admin", func() {
+				Context("when team is admin and user is owner", func() {
 					BeforeEach(func() {
 						fakeTeam1.AdminReturns(true)
 						fakeTeam1.AuthReturns(atc.TeamAuth{"owner": {}})
@@ -157,6 +157,30 @@ var _ = Describe("Token Issuer", func() {
 						AssertIssueToken()
 						claims := fakeGenerator.GenerateArgsForCall(0)
 						Expect(claims["is_admin"]).To(BeTrue())
+					})
+				})
+
+				Context("when team is admin and user is member", func() {
+					BeforeEach(func() {
+						fakeTeam1.AdminReturns(true)
+						fakeTeam1.AuthReturns(atc.TeamAuth{"member": {}})
+					})
+					It("includes expected claims", func() {
+						AssertIssueToken()
+						claims := fakeGenerator.GenerateArgsForCall(0)
+						Expect(claims["is_admin"]).To(BeFalse())
+					})
+				})
+
+				Context("when team is admin and user is viewer", func() {
+					BeforeEach(func() {
+						fakeTeam1.AdminReturns(true)
+						fakeTeam1.AuthReturns(atc.TeamAuth{"viewer": {}})
+					})
+					It("includes expected claims", func() {
+						AssertIssueToken()
+						claims := fakeGenerator.GenerateArgsForCall(0)
+						Expect(claims["is_admin"]).To(BeFalse())
 					})
 				})
 

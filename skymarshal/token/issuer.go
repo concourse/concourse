@@ -74,18 +74,18 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 
 			if len(userAuth) == 0 && len(groupAuth) == 0 {
 				teamSet[team.Name()][role] = true
-				isAdmin = isAdmin || team.Admin()
+				isAdmin = isAdmin || (team.Admin() && role == "owner")
 			}
 
 			for _, user := range userAuth {
 				if strings.EqualFold(user, connectorId+":"+userId) {
 					teamSet[team.Name()][role] = true
-					isAdmin = isAdmin || team.Admin()
+					isAdmin = isAdmin || (team.Admin() && role == "owner")
 				}
 				if userName != "" {
 					if strings.EqualFold(user, connectorId+":"+userName) {
 						teamSet[team.Name()][role] = true
-						isAdmin = isAdmin || team.Admin()
+						isAdmin = isAdmin || (team.Admin() && role == "owner")
 					}
 				}
 			}
@@ -99,13 +99,13 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 						// match the provider plus the org e.g. github:org-name
 						if strings.EqualFold(group, connectorId+":"+parts[0]) {
 							teamSet[team.Name()][role] = true
-							isAdmin = isAdmin || team.Admin()
+							isAdmin = isAdmin || (team.Admin() && role == "owner")
 						}
 
 						// match the provider plus the entire claim group e.g. github:org-name:team-name
 						if strings.EqualFold(group, connectorId+":"+claimGroup) {
 							teamSet[team.Name()][role] = true
-							isAdmin = isAdmin || team.Admin()
+							isAdmin = isAdmin || (team.Admin() && role == "owner")
 						}
 					}
 				}
