@@ -18,20 +18,21 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 	var (
 		collector                           gc.Collector
 		resourceConfigCheckSessionLifecycle db.ResourceConfigCheckSessionLifecycle
-		resourceConfigCheckSessionFactory   db.ResourceConfigCheckSessionFactory
-		resourceConfigCheckSession          db.ResourceConfigCheckSession
+		resourceConfigFactory               db.ResourceConfigFactory
+		resourceConfig                      db.ResourceConfig
 		ownerExpiries                       db.ContainerOwnerExpiries
 		resource                            db.Resource
 	)
 
 	BeforeEach(func() {
 		resourceConfigCheckSessionLifecycle = db.NewResourceConfigCheckSessionLifecycle(dbConn)
-		resourceConfigCheckSessionFactory = db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
+		resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
 		collector = gc.NewResourceConfigCheckSessionCollector(resourceConfigCheckSessionLifecycle)
 	})
 
 	Describe("Run", func() {
 		var runErr error
+		var owner db.ContainerOwner
 
 		ownerExpiries = db.ContainerOwnerExpiries{
 			GraceTime: 5 * time.Second,
@@ -46,25 +47,45 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfigCheckSession, err = resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(logger,
+			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger,
 				"some-base-type",
 				atc.Source{
 					"some": "source",
 				},
 				creds.VersionedResourceTypes{},
-				ownerExpiries,
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resource.SetResourceConfig(resourceConfigCheckSession.ResourceConfig().ID())
+			err = resource.SetResourceConfig(resourceConfig.ID())
 			Expect(err).ToNot(HaveOccurred())
+
+			owner = db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, ownerExpiries)
+
+			workerFactory := db.NewWorkerFactory(dbConn)
+			defaultWorkerPayload := atc.Worker{
+				ResourceTypes: []atc.WorkerResourceType{
+					atc.WorkerResourceType{
+						Type:    "some-base-type",
+						Image:   "/path/to/image",
+						Version: "some-brt-version",
+					},
+				},
+				Name:            "default-worker",
+				GardenAddr:      "1.2.3.4:7777",
+				BaggageclaimURL: "5.6.7.8:7878",
+			}
+			worker, err := workerFactory.SaveWorker(defaultWorkerPayload, 0)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = worker.CreateContainer(owner, db.ContainerMetadata{})
+			Expect(err).NotTo(HaveOccurred())
 		})
 
-		resourceConfigCheckSessionExists := func(resourceConfigCheckSession db.ResourceConfigCheckSession) bool {
+		resourceConfigCheckSessionExists := func(resourceConfig db.ResourceConfig) bool {
 			var count int
 			err = psql.Select("COUNT(*)").
 				From("resource_config_check_sessions").
-				Where(sq.Eq{"id": resourceConfigCheckSession.ID()}).
+				Where(sq.Eq{"resource_config_id": resourceConfig.ID()}).
 				RunWith(dbConn).
 				QueryRow().
 				Scan(&count)
@@ -83,19 +104,19 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 			})
 
 			It("removes the resource config check session", func() {
-				Expect(resourceConfigCheckSessionExists(resourceConfigCheckSession)).To(BeFalse())
+				Expect(resourceConfigCheckSessionExists(resourceConfig)).To(BeFalse())
 			})
 		})
 
 		Context("when the resource config check session is not expired", func() {
 			It("keeps the resource config check session", func() {
-				Expect(resourceConfigCheckSessionExists(resourceConfigCheckSession)).To(BeTrue())
+				Expect(resourceConfigCheckSessionExists(resourceConfig)).To(BeTrue())
 			})
 		})
 
 		Context("when the resource is active", func() {
 			It("keeps the resource config check session", func() {
-				Expect(resourceConfigCheckSessionExists(resourceConfigCheckSession)).To(BeTrue())
+				Expect(resourceConfigCheckSessionExists(resourceConfig)).To(BeTrue())
 			})
 		})
 
@@ -117,7 +138,7 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 			})
 
 			It("removes the resource config check session", func() {
-				Expect(resourceConfigCheckSessionExists(resourceConfigCheckSession)).To(BeFalse())
+				Expect(resourceConfigCheckSessionExists(resourceConfig)).To(BeFalse())
 			})
 		})
 	})

@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
+	"github.com/concourse/concourse/atc/radar"
 	"github.com/concourse/concourse/atc/radar/radarfakes"
 	"github.com/concourse/concourse/atc/worker"
 
@@ -29,13 +30,12 @@ var _ = Describe("ResourceScanner", func() {
 	var (
 		epoch time.Time
 
-		fakeResourceFactory                   *rfakes.FakeResourceFactory
-		fakeResourceConfigCheckSessionFactory *dbfakes.FakeResourceConfigCheckSessionFactory
-		fakeResourceConfigCheckSession        *dbfakes.FakeResourceConfigCheckSession
-		fakeDBPipeline                        *dbfakes.FakePipeline
-		fakeClock                             *fakeclock.FakeClock
-		interval                              time.Duration
-		variables                             creds.Variables
+		fakeResourceFactory       *rfakes.FakeResourceFactory
+		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
+		fakeDBPipeline            *dbfakes.FakePipeline
+		fakeClock                 *fakeclock.FakeClock
+		interval                  time.Duration
+		variables                 creds.Variables
 
 		fakeResourceType      *dbfakes.FakeResourceType
 		versionedResourceType atc.VersionedResourceType
@@ -77,17 +77,13 @@ var _ = Describe("ResourceScanner", func() {
 		}
 
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
-		fakeResourceConfigCheckSession = new(dbfakes.FakeResourceConfigCheckSession)
-		fakeResourceConfigCheckSessionFactory = new(dbfakes.FakeResourceConfigCheckSessionFactory)
+		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		fakeResourceType = new(dbfakes.FakeResourceType)
 		fakeDBResource = new(dbfakes.FakeResource)
 		fakeDBPipeline = new(dbfakes.FakePipeline)
 		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
-
-		fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionReturns(fakeResourceConfigCheckSession, nil)
-
 		fakeResourceConfig.IDReturns(123)
-		fakeResourceConfigCheckSession.ResourceConfigReturns(fakeResourceConfig)
+		fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
 
 		fakeDBPipeline.IDReturns(42)
 		fakeDBPipeline.NameReturns("some-pipeline")
@@ -118,7 +114,7 @@ var _ = Describe("ResourceScanner", func() {
 		scanner = NewResourceScanner(
 			fakeClock,
 			fakeResourceFactory,
-			fakeResourceConfigCheckSessionFactory,
+			fakeResourceConfigFactory,
 			interval,
 			fakeDBPipeline,
 			"https://www.example.com",
@@ -168,8 +164,8 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				Expect(fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionCallCount()).To(Equal(1))
-				_, resourceType, resourceSource, resourceTypes, _ := fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionArgsForCall(0)
+				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
+				_, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
 				Expect(resourceType).To(Equal("git"))
 				Expect(resourceSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
@@ -185,7 +181,7 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(resourceConfigID).To(Equal(123))
 
 				_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession)))
+				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))
@@ -515,8 +511,8 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				Expect(fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionCallCount()).To(Equal(1))
-				_, resourceType, resourceSource, resourceTypes, _ := fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionArgsForCall(0)
+				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
+				_, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
 				Expect(resourceType).To(Equal("git"))
 				Expect(resourceSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
@@ -532,7 +528,7 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(resourceConfigID).To(Equal(123))
 
 				_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession)))
+				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))
@@ -565,7 +561,7 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when creating the resource config fails", func() {
 				BeforeEach(func() {
-					fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionReturns(nil, errors.New("catastrophe"))
+					fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(nil, errors.New("catastrophe"))
 				})
 
 				It("sets the check error and returns the error", func() {

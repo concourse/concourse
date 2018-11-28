@@ -15,16 +15,9 @@ import (
 var _ = Describe("ResourceConfig", func() {
 	Describe("AcquireResourceConfigCheckingLockWithIntervalCheck", func() {
 		var (
-			someResource               db.Resource
-			resourceConfigCheckSession db.ResourceConfigCheckSession
-			resourceConfig             db.ResourceConfig
+			someResource   db.Resource
+			resourceConfig db.ResourceConfig
 		)
-
-		ownerExpiries := db.ContainerOwnerExpiries{
-			GraceTime: 1 * time.Minute,
-			Min:       5 * time.Minute,
-			Max:       5 * time.Minute,
-		}
 
 		BeforeEach(func() {
 			var err error
@@ -38,16 +31,13 @@ var _ = Describe("ResourceConfig", func() {
 			pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 			Expect(err).ToNot(HaveOccurred())
 
-			resourceConfigCheckSession, err = resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
+			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 				logger,
 				someResource.Type(),
 				someResource.Source(),
 				creds.NewVersionedResourceTypes(template.StaticVariables{}, pipelineResourceTypes.Deserialize()),
-				ownerExpiries,
 			)
 			Expect(err).ToNot(HaveOccurred())
-
-			resourceConfig = resourceConfigCheckSession.ResourceConfig()
 		})
 
 		Context("when there has been a check recently", func() {

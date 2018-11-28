@@ -19,12 +19,12 @@ type ScannerFactory interface {
 }
 
 type scannerFactory struct {
-	resourceFactory                   resource.ResourceFactory
-	resourceConfigCheckSessionFactory db.ResourceConfigCheckSessionFactory
-	resourceTypeCheckingInterval      time.Duration
-	resourceCheckingInterval          time.Duration
-	externalURL                       string
-	variablesFactory                  creds.VariablesFactory
+	resourceFactory              resource.ResourceFactory
+	resourceConfigFactory        db.ResourceConfigFactory
+	resourceTypeCheckingInterval time.Duration
+	resourceCheckingInterval     time.Duration
+	externalURL                  string
+	variablesFactory             creds.VariablesFactory
 }
 
 var ContainerExpiries = db.ContainerOwnerExpiries{
@@ -35,19 +35,19 @@ var ContainerExpiries = db.ContainerOwnerExpiries{
 
 func NewScannerFactory(
 	resourceFactory resource.ResourceFactory,
-	resourceConfigCheckSessionFactory db.ResourceConfigCheckSessionFactory,
+	resourceConfigFactory db.ResourceConfigFactory,
 	resourceTypeCheckingInterval time.Duration,
 	resourceCheckingInterval time.Duration,
 	externalURL string,
 	variablesFactory creds.VariablesFactory,
 ) ScannerFactory {
 	return &scannerFactory{
-		resourceFactory:                   resourceFactory,
-		resourceConfigCheckSessionFactory: resourceConfigCheckSessionFactory,
-		resourceCheckingInterval:          resourceCheckingInterval,
-		resourceTypeCheckingInterval:      resourceTypeCheckingInterval,
-		externalURL:                       externalURL,
-		variablesFactory:                  variablesFactory,
+		resourceFactory:              resourceFactory,
+		resourceConfigFactory:        resourceConfigFactory,
+		resourceCheckingInterval:     resourceCheckingInterval,
+		resourceTypeCheckingInterval: resourceTypeCheckingInterval,
+		externalURL:                  externalURL,
+		variablesFactory:             variablesFactory,
 	}
 }
 
@@ -57,7 +57,7 @@ func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
 	resourceTypeScanner := NewResourceTypeScanner(
 		clock.NewClock(),
 		f.resourceFactory,
-		f.resourceConfigCheckSessionFactory,
+		f.resourceConfigFactory,
 		f.resourceTypeCheckingInterval,
 		dbPipeline,
 		f.externalURL,
@@ -67,7 +67,7 @@ func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
 	return NewResourceScanner(
 		clock.NewClock(),
 		f.resourceFactory,
-		f.resourceConfigCheckSessionFactory,
+		f.resourceConfigFactory,
 		f.resourceCheckingInterval,
 		dbPipeline,
 		f.externalURL,
@@ -82,7 +82,7 @@ func (f *scannerFactory) NewResourceTypeScanner(dbPipeline db.Pipeline) Scanner 
 	return NewResourceTypeScanner(
 		clock.NewClock(),
 		f.resourceFactory,
-		f.resourceConfigCheckSessionFactory,
+		f.resourceConfigFactory,
 		f.resourceTypeCheckingInterval,
 		dbPipeline,
 		f.externalURL,

@@ -2,7 +2,6 @@ package db_test
 
 import (
 	"sync"
-	"time"
 
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
@@ -31,12 +30,6 @@ var _ = Describe("ResourceConfigFactory", func() {
 				Expect(build.Finish(db.BuildStatusSucceeded)).To(Succeed())
 				Expect(build.SetInterceptible(false)).To(Succeed())
 			})
-
-			ownerExpiries := db.ContainerOwnerExpiries{
-				GraceTime: 5 * time.Second,
-				Min:       10 * time.Second,
-				Max:       10 * time.Second,
-			}
 
 			It("consistently is able to be used", func() {
 				// enable concurrent use of database. this is set to 1 by default to
@@ -69,7 +62,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 					defer wg.Done()
 
 					for i := 0; i < 100; i++ {
-						_, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(logger, "some-base-resource-type", atc.Source{"some": "unique-source"}, creds.VersionedResourceTypes{}, ownerExpiries)
+						_, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-base-resource-type", atc.Source{"some": "unique-source"}, creds.VersionedResourceTypes{})
 						Expect(err).ToNot(HaveOccurred())
 					}
 				}()

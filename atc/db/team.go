@@ -120,8 +120,7 @@ func (t *team) Containers(
 	logger lager.Logger,
 ) ([]Container, error) {
 	rows, err := selectContainers("c").
-		Join("worker_resource_config_check_sessions wrccs ON wrccs.id = c.worker_resource_config_check_session_id").
-		Join("resource_config_check_sessions rccs ON rccs.id = wrccs.resource_config_check_session_id").
+		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
 		Join("resources r ON r.resource_config_id = rccs.resource_config_id").
 		Join("pipelines p ON p.id = r.pipeline_id").
 		Where(sq.Eq{
@@ -141,8 +140,7 @@ func (t *team) Containers(
 	}
 
 	rows, err = selectContainers("c").
-		Join("worker_resource_config_check_sessions wrccs ON wrccs.id = c.worker_resource_config_check_session_id").
-		Join("resource_config_check_sessions rccs ON rccs.id = wrccs.resource_config_check_session_id").
+		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
 		Join("resource_types rt ON rt.resource_config_id = rccs.resource_config_id").
 		Join("pipelines p ON p.id = rt.pipeline_id").
 		Where(sq.Eq{
@@ -205,8 +203,7 @@ func (t *team) IsContainerWithinTeam(handle string, isCheck bool) (bool, error) 
 			Join("pipelines p ON p.id = r.pipeline_id").
 			Join("resource_configs rc ON rc.id = r.resource_config_id").
 			Join("resource_config_check_sessions rccs ON rccs.resource_config_id = rc.id").
-			Join("worker_resource_config_check_sessions wrccs ON rccs.id = wrccs.resource_config_check_session_id").
-			Join("containers c ON wrccs.id = c.worker_resource_config_check_session_id").
+			Join("containers c ON rccs.id = c.resource_config_check_session_id").
 			Where(sq.Eq{
 				"c.handle":  handle,
 				"p.team_id": t.id,
@@ -740,8 +737,7 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 	}
 
 	rows, err := selectContainers("c").
-		Join("worker_resource_config_check_sessions wrccs ON wrccs.id = c.worker_resource_config_check_session_id").
-		Join("resource_config_check_sessions rccs ON rccs.id = wrccs.resource_config_check_session_id").
+		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
 		Where(sq.Eq{
 			"rccs.resource_config_id": resourceConfig.ID(),
 		}).
@@ -761,8 +757,7 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 
 	rows, err = psql.Select("c.id", "rccs.expires_at").
 		From("containers c").
-		Join("worker_resource_config_check_sessions wrccs ON wrccs.id = c.worker_resource_config_check_session_id").
-		Join("resource_config_check_sessions rccs ON rccs.id = wrccs.resource_config_check_session_id").
+		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
 		Where(sq.Eq{
 			"rccs.resource_config_id": resourceConfig.ID(),
 		}).

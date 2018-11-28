@@ -46,15 +46,33 @@ var _ = Describe("ResourceConfigCollector", func() {
 				}
 
 				BeforeEach(func() {
-					_, err = resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
+					resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
 						logger,
 						"some-base-type",
 						atc.Source{
 							"some": "source",
 						},
 						creds.VersionedResourceTypes{},
-						ownerExpiries,
 					)
+					Expect(err).NotTo(HaveOccurred())
+
+					workerFactory := db.NewWorkerFactory(dbConn)
+					defaultWorkerPayload := atc.Worker{
+						ResourceTypes: []atc.WorkerResourceType{
+							atc.WorkerResourceType{
+								Type:    "some-base-type",
+								Image:   "/path/to/image",
+								Version: "some-brt-version",
+							},
+						},
+						Name:            "default-worker",
+						GardenAddr:      "1.2.3.4:7777",
+						BaggageclaimURL: "5.6.7.8:7878",
+					}
+					worker, err := workerFactory.SaveWorker(defaultWorkerPayload, 0)
+					Expect(err).NotTo(HaveOccurred())
+
+					_, err = worker.CreateContainer(db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, ownerExpiries), db.ContainerMetadata{})
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -73,15 +91,33 @@ var _ = Describe("ResourceConfigCollector", func() {
 				}
 
 				BeforeEach(func() {
-					_, err = resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
+					resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
 						logger,
 						"some-base-type",
 						atc.Source{
 							"some": "source",
 						},
 						creds.VersionedResourceTypes{},
-						ownerExpiries,
 					)
+					Expect(err).NotTo(HaveOccurred())
+
+					workerFactory := db.NewWorkerFactory(dbConn)
+					defaultWorkerPayload := atc.Worker{
+						ResourceTypes: []atc.WorkerResourceType{
+							atc.WorkerResourceType{
+								Type:    "some-base-type",
+								Image:   "/path/to/image",
+								Version: "some-brt-version",
+							},
+						},
+						Name:            "default-worker",
+						GardenAddr:      "1.2.3.4:7777",
+						BaggageclaimURL: "5.6.7.8:7878",
+					}
+					worker, err := workerFactory.SaveWorker(defaultWorkerPayload, 0)
+					Expect(err).NotTo(HaveOccurred())
+
+					_, err = worker.CreateContainer(db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, ownerExpiries), db.ContainerMetadata{})
 					Expect(err).NotTo(HaveOccurred())
 
 					tx, err := dbConn.Begin()

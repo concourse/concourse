@@ -21,7 +21,7 @@ var _ = Describe("ContainerOwner", func() {
 			ownerExpiries db.ContainerOwnerExpiries
 			found         bool
 
-			resourceConfigCheckSession db.ResourceConfigCheckSession
+			resourceConfig db.ResourceConfig
 		)
 
 		ownerExpiries = db.ContainerOwnerExpiries{
@@ -42,20 +42,20 @@ var _ = Describe("ContainerOwner", func() {
 			worker, err = workerFactory.SaveWorker(workerPayload, 0)
 			Expect(err).NotTo(HaveOccurred())
 
-			resourceConfigCheckSession, err = resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(logger,
+			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger,
 				defaultWorkerResourceType.Type,
 				atc.Source{
 					"some-type": "source",
 				},
 				creds.VersionedResourceTypes{},
-				ownerExpiries,
 			)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		JustBeforeEach(func() {
 			owner = db.NewResourceConfigCheckSessionContainerOwner(
-				resourceConfigCheckSession,
+				resourceConfig,
+				ownerExpiries,
 			)
 		})
 
@@ -68,12 +68,13 @@ var _ = Describe("ContainerOwner", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			Context("when a resource config check session exists", func() {
+			Context("when a resource config exists", func() {
 				var createdColumns map[string]interface{}
 
 				BeforeEach(func() {
 					existingOwner := db.NewResourceConfigCheckSessionContainerOwner(
-						resourceConfigCheckSession,
+						resourceConfig,
+						ownerExpiries,
 					)
 
 					tx, err := dbConn.Begin()
@@ -86,7 +87,7 @@ var _ = Describe("ContainerOwner", func() {
 					Expect(tx.Commit()).To(Succeed())
 				})
 
-				It("finds the worker resource config check session", func() {
+				It("finds the resource config check session", func() {
 					Expect(foundColumns).To(BeEquivalentTo(createdColumns))
 					Expect(found).To(BeTrue())
 				})

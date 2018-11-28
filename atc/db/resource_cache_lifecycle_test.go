@@ -174,7 +174,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 			BeforeEach(func() {
 				var err error
-				resourceConfigCheckSession, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
+				resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
 					logger,
 					"some-base-resource-type",
 					atc.Source{
@@ -184,11 +184,10 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 						template.StaticVariables{"source-param": "some-secret-sauce"},
 						atc.VersionedResourceTypes{},
 					),
-					db.ContainerOwnerExpiries{},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				containerOwner = db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession)
+				containerOwner = db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, db.ContainerOwnerExpiries{})
 
 				container, err = defaultWorker.CreateContainer(containerOwner, db.ContainerMetadata{})
 				Expect(err).ToNot(HaveOccurred())
@@ -230,7 +229,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 		Context("when the cache is for a custom resource type", func() {
 			It("does not remove the cache if the type is still configured", func() {
-				_, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
+				_, err := resourceConfigFactory.FindOrCreateResourceConfig(
 					logger,
 					"some-type",
 					atc.Source{
@@ -251,7 +250,6 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 							},
 						},
 					),
-					db.ContainerOwnerExpiries{},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -263,7 +261,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 			})
 
 			It("removes the cache if the type is no longer configured", func() {
-				_, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
+				_, err := resourceConfigFactory.FindOrCreateResourceConfig(
 					logger,
 					"some-type",
 					atc.Source{
@@ -284,7 +282,6 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 							},
 						},
 					),
-					db.ContainerOwnerExpiries{},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -308,7 +305,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				err := defaultPipeline.Unpause()
 				Expect(err).ToNot(HaveOccurred())
 
-				resourceConfigCheckSession, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
+				resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
 					logger,
 					"some-base-resource-type",
 					atc.Source{
@@ -318,11 +315,10 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 						template.StaticVariables{"source-param": "some-secret-sauce"},
 						atc.VersionedResourceTypes{},
 					),
-					db.ContainerOwnerExpiries{},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				containerOwner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession)
+				containerOwner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, db.ContainerOwnerExpiries{})
 
 				container, err := defaultWorker.CreateContainer(containerOwner, db.ContainerMetadata{})
 				Expect(err).ToNot(HaveOccurred())
