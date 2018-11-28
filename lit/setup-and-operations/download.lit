@@ -7,6 +7,11 @@
 \omit-children-from-table-of-contents
 
 \warn{
+  If you are currently on \reference{v3.6.0} and looking to upgrade to \reference{v4.1.0}
+  and above, you must first upgrade to any version of concourse between \reference{v3.7.0}
+  and \reference{v4.0.0} (inclusive) before upgrading past it!
+}
+\warn{
   If you are currently on a version older than \reference{v3.6.0}, \bold{you
   must first upgrade to \reference{v3.6.0} before upgrading past it!}
 }
