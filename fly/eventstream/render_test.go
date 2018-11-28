@@ -19,8 +19,9 @@ import (
 
 var _ = Describe("V1.0 Renderer", func() {
 	var (
-		out    *gbytes.Buffer
-		stream *eventstreamfakes.FakeEventStream
+		out     *gbytes.Buffer
+		stream  *eventstreamfakes.FakeEventStream
+		options eventstream.RenderOptions
 
 		receivedEvents chan<- atc.Event
 
@@ -31,6 +32,7 @@ var _ = Describe("V1.0 Renderer", func() {
 		color.NoColor = false
 		out = gbytes.NewBuffer()
 		stream = new(eventstreamfakes.FakeEventStream)
+		options = eventstream.RenderOptions{}
 
 		events := make(chan atc.Event, 100)
 		receivedEvents = events
@@ -46,18 +48,30 @@ var _ = Describe("V1.0 Renderer", func() {
 	})
 
 	JustBeforeEach(func() {
-		exitStatus = eventstream.Render(out, stream)
+		exitStatus = eventstream.Render(out, stream, options)
 	})
 
 	Context("when a Log event is received", func() {
 		BeforeEach(func() {
 			receivedEvents <- event.Log{
 				Payload: "hello",
+				Time:    time.Now().Unix(),
 			}
 		})
 
 		It("prints its payload", func() {
 			Expect(out).To(gbytes.Say("hello"))
+		})
+
+		Context("and time configuration is enabled", func() {
+			BeforeEach(func() {
+				options.ShowTimestamp = true
+			})
+
+			It("prints its payload with a timestamp", func() {
+				Expect(out).To(gbytes.Say(`\d{2}\:\d{2}\:\d{2}\s{2}hello`))
+			})
+
 		})
 	})
 
@@ -68,18 +82,40 @@ var _ = Describe("V1.0 Renderer", func() {
 			}
 		})
 
-		It("prints its message with a red background in white, followed by a linebreak", func() {
+		It("prints its message in bold red, followed by a linebreak", func() {
 			Expect(out.Contents()).To(ContainSubstring(ui.ErroredColor.SprintFunc()("oh no!") + "\n"))
+		})
+
+		Context("and time configuration is enabled", func() {
+			BeforeEach(func() {
+				options.ShowTimestamp = true
+			})
+
+			It("empty space is prefixed", func() {
+				Expect(out).To(gbytes.Say(`\s{10}\w*`))
+			})
 		})
 	})
 
 	Context("when an InitializeTask event is received", func() {
 		BeforeEach(func() {
-			receivedEvents <- event.InitializeTask{}
+			receivedEvents <- event.InitializeTask{
+				Time: time.Now().Unix(),
+			}
 		})
 
 		It("prints initializing", func() {
 			Expect(out.Contents()).To(ContainSubstring("\x1b[1minitializing\x1b[0m\n"))
+		})
+
+		Context("and time configuration is enabled", func() {
+			BeforeEach(func() {
+				options.ShowTimestamp = true
+			})
+
+			It("timestamp is prefixed", func() {
+				Expect(out).To(gbytes.Say(`\d{2}\:\d{2}\:\d{2}\s{2}\w*`))
+			})
 		})
 	})
 
@@ -99,6 +135,16 @@ var _ = Describe("V1.0 Renderer", func() {
 
 		It("prints the build's run script", func() {
 			Expect(out.Contents()).To(ContainSubstring("\x1b[1mrunning /some/script arg1 arg2\x1b[0m\n"))
+		})
+
+		Context("and time configuration enabled", func() {
+			BeforeEach(func() {
+				options.ShowTimestamp = true
+			})
+
+			It("timestamp is prefixed", func() {
+				Expect(out).To(gbytes.Say(`\d{2}\:\d{2}\:\d{2}\s{2}\w*`))
+			})
 		})
 	})
 
@@ -127,6 +173,16 @@ var _ = Describe("V1.0 Renderer", func() {
 			It("exits with the status from the FinishTask event", func() {
 				Expect(exitStatus).To(Equal(42))
 			})
+
+			Context("and time configuration is enabled", func() {
+				BeforeEach(func() {
+					options.ShowTimestamp = true
+				})
+
+				It("empty string is prefixed", func() {
+					Expect(out).To(gbytes.Say(`\s{10}\w*`))
+				})
+			})
 		})
 	})
 
@@ -135,6 +191,7 @@ var _ = Describe("V1.0 Renderer", func() {
 			BeforeEach(func() {
 				receivedEvents <- event.Status{
 					Status: atc.StatusSucceeded,
+					Time:   time.Now().Unix(),
 				}
 			})
 
@@ -145,12 +202,23 @@ var _ = Describe("V1.0 Renderer", func() {
 			It("exits 0", func() {
 				Expect(exitStatus).To(Equal(0))
 			})
+
+			Context("and time configuration is enabled", func() {
+				BeforeEach(func() {
+					options.ShowTimestamp = true
+				})
+
+				It("timestamp is prefixed", func() {
+					Expect(out).To(gbytes.Say(`\d{2}\:\d{2}\:\d{2}\s{2}\w*`))
+				})
+			})
 		})
 
 		Context("with status 'failed'", func() {
 			BeforeEach(func() {
 				receivedEvents <- event.Status{
 					Status: atc.StatusFailed,
+					Time:   time.Now().Unix(),
 				}
 			})
 
@@ -161,21 +229,42 @@ var _ = Describe("V1.0 Renderer", func() {
 			It("exits 1", func() {
 				Expect(exitStatus).To(Equal(1))
 			})
+
+			Context("and time configuration is enabled", func() {
+				BeforeEach(func() {
+					options.ShowTimestamp = true
+				})
+
+				It("timestamp is prefixed", func() {
+					Expect(out).To(gbytes.Say(`\d{2}\:\d{2}\:\d{2}\s{2}\w*`))
+				})
+			})
 		})
 
 		Context("with status 'errored'", func() {
 			BeforeEach(func() {
 				receivedEvents <- event.Status{
 					Status: atc.StatusErrored,
+					Time:   time.Now().Unix(),
 				}
 			})
 
-			It("prints it in magenta", func() {
+			It("prints it in bold red", func() {
 				Expect(out.Contents()).To(ContainSubstring(ui.ErroredColor.SprintFunc()("errored") + "\n"))
 			})
 
 			It("exits 2", func() {
 				Expect(exitStatus).To(Equal(2))
+			})
+
+			Context("and time configuration is enabled", func() {
+				BeforeEach(func() {
+					options.ShowTimestamp = true
+				})
+
+				It("timestamp is prefixed", func() {
+					Expect(out).To(gbytes.Say(`\d{2}\:\d{2}\:\d{2}\s{2}\w*`))
+				})
 			})
 		})
 
@@ -183,6 +272,7 @@ var _ = Describe("V1.0 Renderer", func() {
 			BeforeEach(func() {
 				receivedEvents <- event.Status{
 					Status: atc.StatusAborted,
+					Time:   time.Now().Unix(),
 				}
 			})
 
@@ -192,6 +282,16 @@ var _ = Describe("V1.0 Renderer", func() {
 
 			It("exits 3", func() {
 				Expect(exitStatus).To(Equal(3))
+			})
+
+			Context("and time configuration is enabled", func() {
+				BeforeEach(func() {
+					options.ShowTimestamp = true
+				})
+
+				It("timestamp is prefixed", func() {
+					Expect(out).To(gbytes.Say(`\d{2}\:\d{2}\:\d{2}\s{2}\w*`))
+				})
 			})
 		})
 	})

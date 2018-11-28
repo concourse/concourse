@@ -8,5 +8,5 @@ import (
 )
 
 func RenderStream(eventSource *sse.EventSource) (int, error) {
-	return Render(os.Stdout, eventstream.NewSSEEventStream(eventSource)), nil
+	return Render(os.Stdout, eventstream.NewSSEEventStream(eventSource), RenderOptions{}), nil
 }
