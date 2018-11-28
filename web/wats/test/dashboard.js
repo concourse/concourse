@@ -27,7 +27,7 @@ async function showsPipelineState(t, setup, assertions) {
 
   await setup(t);
 
-  await t.context.web.page.goto(t.context.web.route('/dashboard'));
+  await t.context.web.page.goto(t.context.web.route('/'));
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
   await t.context.web.page.waitFor(`${group} .dashboard-pipeline`);
@@ -50,33 +50,6 @@ test('does not show team name when unauthenticated and team has no exposed pipel
   t.falsy(element);
 })
 
-test('shows team name with no tag when unauthenticated and team has an exposed pipeline', async t => {
-  await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
-  await t.context.fly.run('expose-pipeline -p some-pipeline');
-
-  let web = await Web.build(t.context.url);
-  await web.page.goto(t.context.web.route('/'));
-
-  const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
-  const element = await web.page.waitFor(group);
-  t.truthy(element);
-
-  const tag = await web.page.$(`${group} .dashboard-team-tag`);
-  t.falsy(tag);
-});
-
-test('shows team name with member tag when user is a member of the team', async t => {
-  await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
-
-  await t.context.web.page.goto(t.context.web.route('/'));
-  const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"] .dashboard-team-tag`;
-  const element = await t.context.web.page.waitFor(group);
-  t.truthy(element);
-
-  const tagText = await t.context.web.page.$$eval(group, n => n[0].innerText);
-  t.deepEqual(tagText, "MEMBER");
-})
-
 test('does not show team name when user is logged in another non-main team and has no exposed pipelines', async t => {
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
   await t.context.fly.run('login -n ' + t.context.guestTeamName + ' -u '+ t.context.guestUsername +' -p ' + t.context.guestPassword);
@@ -90,35 +63,6 @@ test('does not show team name when user is logged in another non-main team and h
   const element = await web.page.$(group);
   t.falsy(element);
 })
-
-test('shows team name with exposed tag when user is member of main team', async t => {
-  let teamName = await t.context.newTeam(t.context.guestUsername);
-
-  await t.context.web.page.goto(t.context.web.route('/'));
-  const group = `.dashboard-team-group[data-team-name="${teamName}"] .dashboard-team-tag`;
-  const element = await t.context.web.page.waitFor(group);
-  t.truthy(element);
-
-  const tagText = await t.context.web.page.$$eval(group, n => n[0].innerText);
-  t.deepEqual(tagText, "EXPOSED");
-});
-
-test('shows team name with exposed tag when team has an exposed pipeline and user is logged into another team', async t => {
-  await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
-  await t.context.fly.run('expose-pipeline -p some-pipeline');
-
-  let web = await Web.build(t.context.url, t.context.guestUsername, t.context.guestPassword);
-  await web.login(t);
-  await web.page.goto(web.route('/'));
-  await web.page.waitFor('.dashboard-content', {timeout: 90000});
-
-  const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"] .dashboard-team-tag`;
-  const element = await web.page.waitFor(group);
-  t.truthy(element);
-
-  const tagText = await web.page.$$eval(group, n => n[0].innerText);
-  t.deepEqual(tagText, "EXPOSED");
-});
 
 test('shows pipelines in their correct order', async t => {
   let pipelineOrder = ['first', 'second', 'third', 'fourth', 'fifth'];
@@ -218,7 +162,7 @@ test.skip('links to specific builds', async t => {
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
   await t.context.fly.run("trigger-job -w -j some-pipeline/passing");
 
-  await t.context.web.page.goto(t.context.web.route('/dashboard'));
+  await t.context.web.page.goto(t.context.web.route('/'));
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
   await t.context.web.clickAndWait(`${group} .node[data-tooltip="passing"] a`, '.build-header');
