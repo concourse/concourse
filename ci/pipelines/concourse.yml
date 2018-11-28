@@ -1,8 +1,4 @@
 resource_types:
-- name: registry-image-beta
-  type: registry-image
-  source: {repository: concourse/registry-image-resource}
-
 - name: gcs
   type: registry-image
   source: {repository: frodenas/gcs-resource}
@@ -681,21 +677,21 @@ resources:
     paths: [ci/dockerfiles/k8s-dev]
 
 - name: k8s-dev-image
-  type: registry-image-beta
+  type: registry-image
   source:
     repository: concourse/k8s-dev
     username: ((docker.username))
     password: ((docker.password))
 
 - name: dev-image
-  type: registry-image-beta
+  type: registry-image
   source:
     repository: concourse/dev
     username: ((docker.username))
     password: ((docker.password))
 
 - name: unit-image
-  type: registry-image-beta
+  type: registry-image
   source:
     repository: concourse/unit
     username: ((docker.username))

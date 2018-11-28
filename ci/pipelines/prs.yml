@@ -1,19 +1,12 @@
 ---
 resource_types:
-- name: registry-image
-  type: registry-image
-  source:
-    repository: concourse/registry-image-resource
-
 - name: bosh-deployment
   type: registry-image
-  source:
-    repository: cloudfoundry/bosh-deployment-resource
+  source: {repository: cloudfoundry/bosh-deployment-resource}
 
 - name: pull-request
   type: registry-image
-  source:
-    repository: teliaoss/github-pr-resource
+  source: {repository: teliaoss/github-pr-resource}
 
 
 resources:
