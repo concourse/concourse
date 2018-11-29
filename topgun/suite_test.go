@@ -211,7 +211,17 @@ func Deploy(manifest string, args ...string) {
 		Expect(dbConn.Close()).To(Succeed())
 	}
 
-	Wait(StartDeploy(manifest, args...))
+	deploy := StartDeploy(manifest, args...)
+	<-deploy.Exited
+	if deploy.ExitCode() != 0 {
+		if strings.Contains(string(deploy.Out.Contents()), "Timed out pinging") {
+			fmt.Fprintln(GinkgoWriter, "detected ping timeout; dumping vm info...")
+			bosh("vms")
+			Fail("deploy failed due to ping timeout; possible iaas flake")
+		}
+
+		Fail("deploy failed")
+	}
 
 	instances, jobInstances = loadJobInstances()
 
