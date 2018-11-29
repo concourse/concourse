@@ -17,6 +17,9 @@ inputs:
 outputs:
 - name: concourse-windows
 
+caches:
+- path: gopath
+
 run:
   path: powershell.exe
   args: [concourse/ci/tasks/scripts/concourse-build-windows.ps1]
