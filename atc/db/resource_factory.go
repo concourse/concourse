@@ -9,6 +9,7 @@ import (
 
 type ResourceFactory interface {
 	VisibleResources([]string) ([]Resource, error)
+	GetResourcesByWebhookToken(string, string, string) ([]Resource, error)
 }
 
 type resourceFactory struct {
@@ -51,6 +52,35 @@ func (r *resourceFactory) VisibleResources(teamNames []string) ([]Resource, erro
 		}
 
 		resources = append(resources, resource)
+	}
+
+	return resources, nil
+}
+
+func (r *resourceFactory) GetResourcesByWebhookToken(webhookToken string, sourceKey string, sourceValue string) (Resources, error) {
+	rows, err := resourcesQuery.
+		Where(
+			sq.And{
+				sq.Eq{"r.config::json#>>'{webhook_token}'": webhookToken},
+				sq.Eq{"r.config::json#>>'{source," + sourceKey + "}'": sourceValue},
+			}).
+		RunWith(r.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+	defer Close(rows)
+
+	var resources Resources
+
+	for rows.Next() {
+		newResource := &resource{conn: r.conn}
+		err := scanResource(newResource, rows)
+		if err != nil {
+			return nil, err
+		}
+
+		resources = append(resources, newResource)
 	}
 
 	return resources, nil

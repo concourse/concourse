@@ -20,6 +20,7 @@ type ConfigResponse struct {
 }
 
 type Config struct {
+	Webhooks      WebhookConfig   `yaml:"webhooks" json:"webhooks" mapstructure:"webhooks"`
 	Groups        GroupConfigs    `yaml:"groups" json:"groups" mapstructure:"groups"`
 	Resources     ResourceConfigs `yaml:"resources" json:"resources" mapstructure:"resources"`
 	ResourceTypes ResourceTypes   `yaml:"resource_types" json:"resource_types" mapstructure:"resource_types"`
@@ -50,8 +51,14 @@ func (groups GroupConfigs) Lookup(name string) (GroupConfig, int, bool) {
 	return GroupConfig{}, -1, false
 }
 
+type WebhookConfig struct {
+	Name  string `yaml:"name" json:"name" mapstructure:"name"`
+	Token string `yaml:"webhook_token,omitempty" json:"webhook_token" mapstructure:"webhook_token"`
+}
+
 type ResourceConfig struct {
 	Name         string  `yaml:"name" json:"name" mapstructure:"name"`
+	Webhooks     string  `yaml:"webhook,omitempty" json:"webhook" mapstructure:"webhook"`
 	WebhookToken string  `yaml:"webhook_token,omitempty" json:"webhook_token" mapstructure:"webhook_token"`
 	Type         string  `yaml:"type" json:"type" mapstructure:"type"`
 	Source       Source  `yaml:"source" json:"source" mapstructure:"source"`

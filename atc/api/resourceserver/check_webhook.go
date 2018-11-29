@@ -73,3 +73,47 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 		w.WriteHeader(http.StatusOK)
 	})
 }
+
+// CheckSharedWebHook defines a handler for process to check resources via shared webhooks
+func (s *Server) CheckSharedWebHook(w http.ResponseWriter, r *http.Request) {
+	logger := s.logger.Session("check-resource-shared-webhook")
+
+	webhookToken := r.URL.Query().Get("webhook_token")
+	if webhookToken == "" {
+		logger.Info("no-webhook-token", lager.Data{"error": "missing webhook_token"})
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	sourceKey := r.URL.Query().Get("source_key")
+	if sourceKey == "" {
+		logger.Info("no-source-key", lager.Data{"error": "missing source_key"})
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	sourceValue := r.URL.Query().Get("source_value")
+	if sourceValue == "" {
+		logger.Info("no-source-value", lager.Data{"error": "missing source_value"})
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	resources, err := s.resourceFactory.GetResourcesByWebhookToken(webhookToken, sourceKey, sourceValue)
+	if err != nil {
+		hLog.Error("failed-to-get-resources", errors.New("sorry"))
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	// ... Process pipelines / resources
+
+	err := nil
+	switch err.(type) {
+	case db.ResourceNotFoundError:
+		w.WriteHeader(http.StatusNotFound)
+	case error:
+		w.WriteHeader(http.StatusInternalServerError)
+	default:
+		w.WriteHeader(http.StatusOK)
+	}
+}
