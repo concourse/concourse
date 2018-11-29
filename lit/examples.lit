@@ -5,6 +5,7 @@
 \include-section{./examples/task-passing-artifact.lit}
 \include-section{./examples/time-triggered.lit}
 \include-section{./examples/trigger-then-continue.lit}
+\include-section{./examples/hooks.lit}
 
 \split-sections
 \table-of-contents

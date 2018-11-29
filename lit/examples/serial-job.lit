@@ -1,11 +1,11 @@
-\title{Serial Job}{serial-job}
+\title{Serial Job}{serial-job-example}
 
 \use-plugin{concourse-docs}
 
 \section{
   \title{}{pipeline}
 
-	If triggered faster than the run duration of the task(s), a \reference{job} can start many builds at the same time. Setting the serial flag restricts a job to run one build at a time.
+	If triggered faster than the run duration of the task(s), a \reference{job-example} can start many builds at the same time. Setting the serial flag restricts a job to run one build at a time.
 
 	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/serial-job}
 }

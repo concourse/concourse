@@ -1,0 +1,93 @@
+\title{Job}{hooks-example}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{}{pipeline}
+
+	\link{Job Hooks}{/steps.html} and \link{Step hooks}{on-success-step-hook} are available to perform actions based on the success, failure, or abortion of a job.
+
+	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/job}
+}
+
+\section{
+  \title{Pipeline Configuration}{configuration}
+	\codeblock{yaml}{{{
+---
+&task-config: &task-config
+  platform: linux
+  image_resource:
+    type: registry-image
+    source: { repository: busybox }
+
+jobs:
+- name: job
+  plan:
+    - task: successful-task
+      config:
+        << : *task-config
+        run:
+          path: sh
+          args: ["-lc", "exit 0"]
+      on_success:
+        task: echo
+        config:
+          << : *task-config
+          run:
+            path: echo
+            args: ["This task succeeded!"]
+      on_abort:
+        task: echo
+        config:
+          << : *task-config
+          run:
+            path: echo
+            args: ["This task was aborted!"]
+    - task: failing-task
+      config:
+        << : *task-config
+        run:
+          path: sh
+          args: ["-lc", "exit 1"]
+      on_failure:
+        task: echo
+        config:
+          << : *task-config
+          run:
+            path: echo
+            args: ["This task failed!"]
+    - on_failure:
+      task: echo
+      config:
+        << : *task-config
+        run:
+          path: echo
+          args: ["This job failed!"]
+    - on_success:
+      task: echo
+      config:
+        << : *task-config
+        run:
+          path: echo
+          args: ["This job succeeded!"]
+    - on_abort:
+      task: echo
+      config:
+        << : *task-config
+        run:
+          path: echo
+          args: ["This job was aborted!"]
+	}}}
+}
+
+\section{
+	\title{References}{references}
+
+	\list{
+		\reference{jobs}
+	}{
+		\reference{steps}
+	}{
+		\reference{tasks}
+	}
+}
