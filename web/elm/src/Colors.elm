@@ -19,3 +19,18 @@ pinIconHover =
 dashboardBackground : String
 dashboardBackground =
     "#3d3c3c"
+
+
+success : String
+success =
+    "#11c560"
+
+
+paused : String
+paused =
+    "#4a90e2"
+
+
+runningStripes : String
+runningStripes =
+    "#2a2929"

@@ -21,6 +21,21 @@ lightGrey =
     "#3d3c3c"
 
 
+green : String
+green =
+    "#11c560"
+
+
+blue : String
+blue =
+    "#4a90e2"
+
+
+darkGrey : String
+darkGrey =
+    "#2a2929"
+
+
 all : Test
 all =
     describe "Dashboard"
@@ -148,255 +163,422 @@ all =
                     |> Query.find teamHeaderSelector
                     |> Query.find [ containing [ text "OWNER" ] ]
                     |> Query.has [ style [ ( "margin-bottom", "" ) ] ]
-        , describe "pipeline footer" <|
-            let
-                hasStyle : List ( String, String ) -> Expectation
-                hasStyle styles =
-                    whenOnDashboard { highDensity = False }
-                        |> givenDataAndUser
-                            (oneTeamOnePipeline "team")
-                            (userWithRoles [ ( "team", [ "owner" ] ) ])
-                        |> queryView
-                        |> Query.find [ class "dashboard-pipeline-footer" ]
-                        |> Query.has [ style styles ]
-            in
-                [ test "there is a light grey line dividing the footer from the rest of the card" <|
-                    \_ ->
-                        hasStyle [ ( "border-top", "2px solid " ++ lightGrey ) ]
-                , test "has medium padding" <|
-                    \_ ->
-                        hasStyle [ ( "padding", "13.5px" ) ]
-                , test "lays out contents horizontally" <|
-                    \_ ->
-                        hasStyle [ ( "display", "flex" ) ]
-                , test "is divided into a left and right section, spread apart" <|
-                    \_ ->
-                        whenOnDashboard { highDensity = False }
-                            |> givenDataAndUser
-                                (oneTeamOnePipeline "team")
-                                (userWithRoles [ ( "team", [ "owner" ] ) ])
-                            |> queryView
-                            |> Query.find [ class "dashboard-pipeline-footer" ]
-                            |> Expect.all
-                                [ Query.children []
-                                    >> Query.count (Expect.equal 2)
-                                , Query.has
-                                    [ style [ ( "justify-content", "space-between" ) ] ]
+        , describe "pipeline cards"
+            [ describe "colored banner" <|
+                let
+                    findBanner =
+                        Query.find [ class "dashboard-pipeline", containing [ text "pipeline" ] ]
+                            >> Query.children []
+                            >> Query.first
+
+                    isSolid : String -> Query.Single Msgs.Msg -> Expectation
+                    isSolid color =
+                        Query.has
+                            [ style
+                                [ ( "background-color", color ) ]
+                            ]
+
+                    isColorWithStripes : String -> String -> Query.Single Msgs.Msg -> Expectation
+                    isColorWithStripes color stripeColor =
+                        Query.has
+                            [ style
+                                [ ( "background-image"
+                                  , "repeating-linear-gradient(-115deg,"
+                                        ++ stripeColor
+                                        ++ " 0,"
+                                        ++ stripeColor
+                                        ++ " 10px,"
+                                        ++ color
+                                        ++ " 0,"
+                                        ++ color
+                                        ++ " 16px)"
+                                  )
+                                , ( "animation"
+                                  , "pipeline-running 3s linear infinite"
+                                  )
                                 ]
-                , test "both sections lay out contents horizontally" <|
-                    \_ ->
-                        whenOnDashboard { highDensity = False }
-                            |> givenDataAndUser
-                                (oneTeamOnePipeline "team")
-                                (userWithRoles [ ( "team", [ "owner" ] ) ])
-                            |> queryView
-                            |> Query.find [ class "dashboard-pipeline-footer" ]
-                            |> Query.children []
-                            |> Query.each (Query.has [ style [ ( "display", "flex" ) ] ])
-                , test
-                    ("there is a 20px square open eye icon on the far right for a public pipeline"
-                        ++ " with image resized to fit"
-                    )
-                  <|
-                    \_ ->
-                        whenOnDashboard { highDensity = False }
-                            |> givenDataAndUser
-                                (oneTeamOnePipeline "team")
-                                (userWithRoles [ ( "team", [ "owner" ] ) ])
-                            |> queryView
-                            |> Query.find [ class "dashboard-pipeline-footer" ]
-                            |> Query.children []
-                            |> Query.index -1
-                            |> Query.children []
-                            |> Query.index -1
-                            |> Query.has
-                                (iconSelector
-                                    { size = "20px"
-                                    , image = "baseline-visibility-24px.svg"
+                            ]
+                in
+                    [ test "is 7px tall" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated
+                                    (oneTeamOnePipeline "team")
+                                |> queryView
+                                |> findBanner
+                                |> Query.has [ style [ ( "height", "7px" ) ] ]
+                    , test "is blue when pipeline is paused" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated
+                                    { teams =
+                                        [ { id = 0, name = "team" } ]
+                                    , pipelines =
+                                        [ onePipelinePaused "team" ]
+                                    , jobs = []
+                                    , resources = []
+                                    , version = ""
                                     }
-                                    ++ [ style [ ( "background-size", "contain" ) ] ]
-                                )
-                , test
-                    ("there is a 20px square slashed-out eye icon with on the far right for a"
-                        ++ " non-public pipeline with image resized to fit"
-                    )
-                  <|
-                    \_ ->
-                        whenOnDashboard { highDensity = False }
-                            |> givenDataAndUser
-                                (oneTeamOnePipelineNonPublic "team")
-                                (userWithRoles [ ( "team", [ "owner" ] ) ])
-                            |> queryView
-                            |> Query.find [ class "dashboard-pipeline-footer" ]
-                            |> Query.children []
-                            |> Query.index -1
-                            |> Query.children []
-                            |> Query.index -1
-                            |> Query.has
-                                (iconSelector
-                                    { size = "20px"
-                                    , image = "baseline-visibility_off-24px.svg"
+                                |> queryView
+                                |> findBanner
+                                |> isSolid blue
+                    , test "is green when pipeline is succeeding" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated
+                                    { teams =
+                                        [ { id = 0, name = "team" } ]
+                                    , pipelines =
+                                        [ onePipeline "team" ]
+                                    , jobs =
+                                        [ job Concourse.BuildStatusSucceeded
+                                        ]
+                                    , resources = []
+                                    , version = ""
                                     }
-                                    ++ [ style [ ( "background-size", "contain" ) ] ]
-                                )
-                , test "there is medium spacing between the eye and the play/pause button" <|
-                    \_ ->
+                                |> queryView
+                                |> findBanner
+                                |> isSolid green
+                    , test "is green with black stripes when pipeline is succeeding and running" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated
+                                    { teams =
+                                        [ { id = 0, name = "team" } ]
+                                    , pipelines =
+                                        [ onePipeline "team" ]
+                                    , jobs =
+                                        [ running <| job Concourse.BuildStatusSucceeded
+                                        ]
+                                    , resources = []
+                                    , version = ""
+                                    }
+                                |> queryView
+                                |> findBanner
+                                |> isColorWithStripes green darkGrey
+                    , test "is grey when pipeline is pending" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> queryView
+                                |> findBanner
+                                |> Query.has [ style [] ]
+                    , test "is grey with black stripes when pipeline is pending and running" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> queryView
+                                |> findBanner
+                                |> Query.has [ style [] ]
+                    , test "is red when pipeline is failing" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> queryView
+                                |> findBanner
+                                |> Query.has [ style [] ]
+                    , test "is red with black stripes when pipeline is failing and running" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> queryView
+                                |> findBanner
+                                |> Query.has [ style [] ]
+                    , test "is amber when pipeline is erroring" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> queryView
+                                |> findBanner
+                                |> Query.has [ style [] ]
+                    , test "is amber with black stripes when pipeline is erroring and running" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> queryView
+                                |> findBanner
+                                |> Query.has [ style [] ]
+                    , test "is brown when pipeline is aborted" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> queryView
+                                |> findBanner
+                                |> Query.has [ style [] ]
+                    , test "is brown with black stripes when pipeline is aborted and running" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> queryView
+                                |> findBanner
+                                |> Query.has [ style [] ]
+                    ]
+            , describe "footer" <|
+                let
+                    hasStyle : List ( String, String ) -> Expectation
+                    hasStyle styles =
                         whenOnDashboard { highDensity = False }
                             |> givenDataAndUser
                                 (oneTeamOnePipeline "team")
                                 (userWithRoles [ ( "team", [ "owner" ] ) ])
                             |> queryView
                             |> Query.find [ class "dashboard-pipeline-footer" ]
-                            |> Query.children []
-                            |> Query.index -1
-                            |> Query.children []
-                            |> Expect.all
-                                [ Query.count (Expect.equal 3)
-                                , Query.index 1 >> Query.has [ style [ ( "width", "13.5px" ) ] ]
-                                ]
-                , test "the right section has a 20px square pause button on the left" <|
-                    \_ ->
-                        whenOnDashboard { highDensity = False }
-                            |> givenDataAndUser
-                                (oneTeamOnePipeline "team")
-                                (userWithRoles [ ( "team", [ "owner" ] ) ])
-                            |> queryView
-                            |> Query.find [ class "dashboard-pipeline-footer" ]
-                            |> Query.children []
-                            |> Query.index -1
-                            |> Query.children []
-                            |> Query.index 0
-                            |> Query.has
+                            |> Query.has [ style styles ]
+                in
+                    [ test "there is a light grey line dividing the footer from the rest of the card" <|
+                        \_ ->
+                            hasStyle [ ( "border-top", "2px solid " ++ lightGrey ) ]
+                    , test "has medium padding" <|
+                        \_ ->
+                            hasStyle [ ( "padding", "13.5px" ) ]
+                    , test "lays out contents horizontally" <|
+                        \_ ->
+                            hasStyle [ ( "display", "flex" ) ]
+                    , test "is divided into a left and right section, spread apart" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> queryView
+                                |> Query.find [ class "dashboard-pipeline-footer" ]
+                                |> Expect.all
+                                    [ Query.children []
+                                        >> Query.count (Expect.equal 2)
+                                    , Query.has
+                                        [ style [ ( "justify-content", "space-between" ) ] ]
+                                    ]
+                    , test "both sections lay out contents horizontally" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> queryView
+                                |> Query.find [ class "dashboard-pipeline-footer" ]
+                                |> Query.children []
+                                |> Query.each (Query.has [ style [ ( "display", "flex" ) ] ])
+                    , test
+                        ("there is a 20px square open eye icon on the far right for a public pipeline"
+                            ++ " with image resized to fit"
+                        )
+                      <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> queryView
+                                |> Query.find [ class "dashboard-pipeline-footer" ]
+                                |> Query.children []
+                                |> Query.index -1
+                                |> Query.children []
+                                |> Query.index -1
+                                |> Query.has
+                                    (iconSelector
+                                        { size = "20px"
+                                        , image = "baseline-visibility-24px.svg"
+                                        }
+                                        ++ [ style [ ( "background-size", "contain" ) ] ]
+                                    )
+                    , test
+                        ("there is a 20px square slashed-out eye icon with on the far right for a"
+                            ++ " non-public pipeline with image resized to fit"
+                        )
+                      <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipelineNonPublic "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> queryView
+                                |> Query.find [ class "dashboard-pipeline-footer" ]
+                                |> Query.children []
+                                |> Query.index -1
+                                |> Query.children []
+                                |> Query.index -1
+                                |> Query.has
+                                    (iconSelector
+                                        { size = "20px"
+                                        , image = "baseline-visibility_off-24px.svg"
+                                        }
+                                        ++ [ style [ ( "background-size", "contain" ) ] ]
+                                    )
+                    , test "there is medium spacing between the eye and the play/pause button" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> queryView
+                                |> Query.find [ class "dashboard-pipeline-footer" ]
+                                |> Query.children []
+                                |> Query.index -1
+                                |> Query.children []
+                                |> Expect.all
+                                    [ Query.count (Expect.equal 3)
+                                    , Query.index 1 >> Query.has [ style [ ( "width", "13.5px" ) ] ]
+                                    ]
+                    , test "the right section has a 20px square pause button on the left" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> queryView
+                                |> Query.find [ class "dashboard-pipeline-footer" ]
+                                |> Query.children []
+                                |> Query.index -1
+                                |> Query.children []
+                                |> Query.index 0
+                                |> Query.has
+                                    (iconSelector
+                                        { size = "20px"
+                                        , image = "ic_pause_white.svg"
+                                        }
+                                    )
+                    , test "pause button has pointer cursor" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> queryView
+                                |> Query.find [ class "dashboard-pipeline-footer" ]
+                                |> Query.find
+                                    (iconSelector
+                                        { size = "20px"
+                                        , image = "ic_pause_white.svg"
+                                        }
+                                    )
+                                |> Query.has [ style [ ( "cursor", "pointer" ) ] ]
+                    , test "pause button is transparent" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> queryView
+                                |> Query.find [ class "dashboard-pipeline-footer" ]
+                                |> Query.find
+                                    (iconSelector
+                                        { size = "20px"
+                                        , image = "ic_pause_white.svg"
+                                        }
+                                    )
+                                |> Query.has [ style [ ( "opacity", "0.5" ) ] ]
+                    , defineHoverBehaviour
+                        { name = "pause button"
+                        , setup =
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                        , query =
+                            Dashboard.view
+                                >> HS.toUnstyled
+                                >> Query.fromHtml
+                                >> Query.find [ class "dashboard-pipeline-footer" ]
+                                >> Query.children []
+                                >> Query.index -1
+                                >> Query.children []
+                                >> Query.index 0
+                        , unhoveredSelector =
+                            { description = "a transparent 20px square pause button with pointer cursor"
+                            , selector =
                                 (iconSelector
                                     { size = "20px"
                                     , image = "ic_pause_white.svg"
                                     }
+                                    ++ [ style
+                                            [ ( "cursor", "pointer" )
+                                            , ( "opacity", "0.5" )
+                                            ]
+                                       ]
                                 )
-                , test "pause button has pointer cursor" <|
-                    \_ ->
-                        whenOnDashboard { highDensity = False }
-                            |> givenDataAndUser
-                                (oneTeamOnePipeline "team")
-                                (userWithRoles [ ( "team", [ "owner" ] ) ])
-                            |> queryView
-                            |> Query.find [ class "dashboard-pipeline-footer" ]
-                            |> Query.find
+                            }
+                        , mouseEnterMsg = Msgs.PipelineButtonHover <| Just <| onePipeline "team"
+                        , mouseLeaveMsg = Msgs.PipelineButtonHover Nothing
+                        , hoveredSelector =
+                            { description = "an opaque 20px square pause button with pointer cursor"
+                            , selector =
                                 (iconSelector
                                     { size = "20px"
                                     , image = "ic_pause_white.svg"
                                     }
+                                    ++ [ style
+                                            [ ( "cursor", "pointer" )
+                                            , ( "opacity", "1" )
+                                            ]
+                                       ]
                                 )
-                            |> Query.has [ style [ ( "cursor", "pointer" ) ] ]
-                , test "pause button is transparent" <|
-                    \_ ->
-                        whenOnDashboard { highDensity = False }
-                            |> givenDataAndUser
-                                (oneTeamOnePipeline "team")
-                                (userWithRoles [ ( "team", [ "owner" ] ) ])
-                            |> queryView
-                            |> Query.find [ class "dashboard-pipeline-footer" ]
-                            |> Query.find
+                            }
+                        }
+                    , defineHoverBehaviour
+                        { name = "play button"
+                        , setup =
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipelinePaused "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                        , query =
+                            Dashboard.view
+                                >> HS.toUnstyled
+                                >> Query.fromHtml
+                                >> Query.find [ class "dashboard-pipeline-footer" ]
+                                >> Query.children []
+                                >> Query.index -1
+                                >> Query.children []
+                                >> Query.index 0
+                        , unhoveredSelector =
+                            { description = "a transparent 20px square play button with pointer cursor"
+                            , selector =
                                 (iconSelector
                                     { size = "20px"
-                                    , image = "ic_pause_white.svg"
+                                    , image = "ic_play_white.svg"
                                     }
+                                    ++ [ style
+                                            [ ( "cursor", "pointer" )
+                                            , ( "opacity", "0.5" )
+                                            ]
+                                       ]
                                 )
-                            |> Query.has [ style [ ( "opacity", "0.5" ) ] ]
-                , defineHoverBehaviour
-                    { name = "pause button"
-                    , setup =
-                        whenOnDashboard { highDensity = False }
-                            |> givenDataAndUser
-                                (oneTeamOnePipeline "team")
-                                (userWithRoles [ ( "team", [ "owner" ] ) ])
-                    , query =
-                        Dashboard.view
-                            >> HS.toUnstyled
-                            >> Query.fromHtml
-                            >> Query.find [ class "dashboard-pipeline-footer" ]
-                            >> Query.children []
-                            >> Query.index -1
-                            >> Query.children []
-                            >> Query.index 0
-                    , unhoveredSelector =
-                        { description = "a transparent 20px square pause button with pointer cursor"
-                        , selector =
-                            (iconSelector
-                                { size = "20px"
-                                , image = "ic_pause_white.svg"
-                                }
-                                ++ [ style
-                                        [ ( "cursor", "pointer" )
-                                        , ( "opacity", "0.5" )
-                                        ]
-                                   ]
-                            )
+                            }
+                        , mouseEnterMsg = Msgs.PipelineButtonHover <| Just <| onePipelinePaused "team"
+                        , mouseLeaveMsg = Msgs.PipelineButtonHover Nothing
+                        , hoveredSelector =
+                            { description = "an opaque 20px square play button with pointer cursor"
+                            , selector =
+                                (iconSelector
+                                    { size = "20px"
+                                    , image = "ic_play_white.svg"
+                                    }
+                                    ++ [ style
+                                            [ ( "cursor", "pointer" )
+                                            , ( "opacity", "1" )
+                                            ]
+                                       ]
+                                )
+                            }
                         }
-                    , mouseEnterMsg = Msgs.PipelineButtonHover <| Just <| onePipeline "team"
-                    , mouseLeaveMsg = Msgs.PipelineButtonHover Nothing
-                    , hoveredSelector =
-                        { description = "an opaque 20px square pause button with pointer cursor"
-                        , selector =
-                            (iconSelector
-                                { size = "20px"
-                                , image = "ic_pause_white.svg"
-                                }
-                                ++ [ style
-                                        [ ( "cursor", "pointer" )
-                                        , ( "opacity", "1" )
-                                        ]
-                                   ]
-                            )
-                        }
-                    }
-                , defineHoverBehaviour
-                    { name = "play button"
-                    , setup =
-                        whenOnDashboard { highDensity = False }
-                            |> givenDataAndUser
-                                (oneTeamOnePipelinePaused "team")
-                                (userWithRoles [ ( "team", [ "owner" ] ) ])
-                    , query =
-                        Dashboard.view
-                            >> HS.toUnstyled
-                            >> Query.fromHtml
-                            >> Query.find [ class "dashboard-pipeline-footer" ]
-                            >> Query.children []
-                            >> Query.index -1
-                            >> Query.children []
-                            >> Query.index 0
-                    , unhoveredSelector =
-                        { description = "a transparent 20px square play button with pointer cursor"
-                        , selector =
-                            (iconSelector
-                                { size = "20px"
-                                , image = "ic_play_white.svg"
-                                }
-                                ++ [ style
-                                        [ ( "cursor", "pointer" )
-                                        , ( "opacity", "0.5" )
-                                        ]
-                                   ]
-                            )
-                        }
-                    , mouseEnterMsg = Msgs.PipelineButtonHover <| Just <| onePipelinePaused "team"
-                    , mouseLeaveMsg = Msgs.PipelineButtonHover Nothing
-                    , hoveredSelector =
-                        { description = "an opaque 20px square play button with pointer cursor"
-                        , selector =
-                            (iconSelector
-                                { size = "20px"
-                                , image = "ic_play_white.svg"
-                                }
-                                ++ [ style
-                                        [ ( "cursor", "pointer" )
-                                        , ( "opacity", "1" )
-                                        ]
-                                   ]
-                            )
-                        }
-                    }
-                ]
+                    ]
+            ]
         ]
 
 
@@ -653,6 +835,65 @@ apiData pipelines =
     , jobs = []
     , resources = []
     , version = ""
+    }
+
+
+running : Concourse.Job -> Concourse.Job
+running job =
+    { job
+        | nextBuild =
+            Just
+                { id = 1
+                , name = "1"
+                , job =
+                    Just
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , jobName = "job"
+                        }
+                , status = Concourse.BuildStatusStarted
+                , duration =
+                    { startedAt = Nothing
+                    , finishedAt = Nothing
+                    }
+                , reapTime = Nothing
+                }
+    }
+
+
+job : Concourse.BuildStatus -> Concourse.Job
+job status =
+    { pipeline =
+        { teamName = "team"
+        , pipelineName = "pipeline"
+        }
+    , name = "job"
+    , pipelineName = "pipeline"
+    , teamName = "team"
+    , nextBuild = Nothing
+    , finishedBuild =
+        Just
+            { id = 0
+            , name = "0"
+            , job =
+                Just
+                    { teamName = "team"
+                    , pipelineName = "pipeline"
+                    , jobName = "job"
+                    }
+            , status = status
+            , duration =
+                { startedAt = Nothing
+                , finishedAt = Nothing
+                }
+            , reapTime = Nothing
+            }
+    , transitionBuild = Nothing
+    , paused = False
+    , disableManualTrigger = False
+    , inputs = []
+    , outputs = []
+    , groups = []
     }
 
 

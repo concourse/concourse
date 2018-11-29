@@ -196,7 +196,6 @@
     .dashboard-pipeline-banner {
       background-color: @grey-primary;
       background-size: 200% 100%;
-      height: (@banner-height * @scale);
     }
 
     .dashboard-pipeline-content {
@@ -208,10 +207,6 @@
   }
 
   .dashboard-paused {
-    .dashboard-pipeline-banner {
-      background-color: @blue-primary;
-    }
-
     .dashboard-pipeline-icon {
       background-image: url('images/ic_pause_blue.svg');
     }
@@ -291,18 +286,8 @@
   }
 
   .dashboard-status-succeeded {
-    .dashboard-pipeline-banner {
-      background-color: @green-primary;
-    }
-
     .dashboard-pipeline-icon {
       background-image: url('images/ic_running_green.svg');
-    }
-
-    &.dashboard-running {
-      .dashboard-pipeline-banner {
-        .running-animation(@green-primary, @base01);
-      }
     }
 
     .build-duration {
