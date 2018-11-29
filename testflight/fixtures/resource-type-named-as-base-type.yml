@@ -4,13 +4,12 @@ resource_types:
   type: mock
   source:
     mirror_self: true
-    initial_version: mirror-mirror
+    initial_version: mirror-((hash))
 
 resources:
 - name: my-resource
   type: mock
-  source:
-    initial_version: ((hash))
+  source: {}
 
 jobs:
 - name: resource-getter
