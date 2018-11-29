@@ -31,6 +31,7 @@ type Worker interface {
 	Client
 
 	ActiveContainers() int
+	ActiveVolumes() int
 
 	Description() string
 	Name() string
@@ -58,6 +59,7 @@ type gardenWorker struct {
 	clock clock.Clock
 
 	activeContainers int
+	activeVolumes    int
 	resourceTypes    []atc.WorkerResourceType
 	platform         string
 	tags             atc.Tags
@@ -85,6 +87,7 @@ func NewGardenWorker(
 
 		clock:            clock,
 		activeContainers: dbWorker.ActiveContainers(),
+		activeVolumes:    dbWorker.ActiveVolumes(),
 		resourceTypes:    dbWorker.ResourceTypes(),
 		platform:         dbWorker.Platform(),
 		tags:             dbWorker.Tags(),
@@ -184,6 +187,10 @@ func (worker *gardenWorker) FindContainerByHandle(logger lager.Logger, teamID in
 
 func (worker *gardenWorker) ActiveContainers() int {
 	return worker.activeContainers
+}
+
+func (worker *gardenWorker) ActiveVolumes() int {
+	return worker.activeVolumes
 }
 
 func (worker *gardenWorker) Satisfying(logger lager.Logger, spec WorkerSpec, resourceTypes creds.VersionedResourceTypes) (Worker, error) {

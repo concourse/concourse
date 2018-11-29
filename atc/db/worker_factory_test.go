@@ -27,6 +27,7 @@ var _ = Describe("WorkerFactory", func() {
 			NoProxy:          "some-no-proxy",
 			Ephemeral:        true,
 			ActiveContainers: 140,
+			ActiveVolumes:    550,
 			ResourceTypes: []atc.WorkerResourceType{
 				{
 					Type:       "some-resource-type",
@@ -194,7 +195,6 @@ var _ = Describe("WorkerFactory", func() {
 
 			Context("when the worker has a new version", func() {
 				BeforeEach(func() {
-
 					atcWorker.Version = "1.0.0"
 				})
 
@@ -258,6 +258,7 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(foundWorker.NoProxy()).To(Equal("some-no-proxy"))
 				Expect(foundWorker.Ephemeral()).To(Equal(true))
 				Expect(foundWorker.ActiveContainers()).To(Equal(140))
+				Expect(foundWorker.ActiveVolumes()).To(Equal(550))
 				Expect(foundWorker.ResourceTypes()).To(Equal([]atc.WorkerResourceType{
 					{
 						Type:       "some-resource-type",
@@ -424,14 +425,17 @@ var _ = Describe("WorkerFactory", func() {
 			ttl              time.Duration
 			epsilon          time.Duration
 			activeContainers int
+			activeVolumes    int
 		)
 
 		BeforeEach(func() {
 			ttl = 5 * time.Minute
 			epsilon = 30 * time.Second
 			activeContainers = 0
+			activeVolumes = 0
 
 			atcWorker.ActiveContainers = activeContainers
+			atcWorker.ActiveVolumes = activeVolumes
 		})
 
 		Context("when the worker is present", func() {
@@ -440,8 +444,9 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("updates the expires field and the number of active containers", func() {
+			It("updates the expires field, and the number of active containers and volumes", func() {
 				atcWorker.ActiveContainers = 1
+				atcWorker.ActiveVolumes = 3
 
 				now := time.Now()
 				By("current time")
@@ -457,6 +462,7 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(foundWorker.Name()).To(Equal(atcWorker.Name))
 				Expect(foundWorker.ExpiresAt()).To(BeTemporally("~", later, epsilon))
 				Expect(foundWorker.ActiveContainers()).To(And(Not(Equal(activeContainers)), Equal(1)))
+				Expect(foundWorker.ActiveVolumes()).To(And(Not(Equal(activeVolumes)), Equal(3)))
 				Expect(*foundWorker.GardenAddr()).To(Equal("some-garden-addr"))
 				Expect(*foundWorker.BaggageclaimURL()).To(Equal("some-bc-url"))
 			})
