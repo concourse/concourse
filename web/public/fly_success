@@ -1,1 +1,13 @@
-You've successfully logged in! You can now close this tab and return to fly.
+<html>
+  <head></head>
+  <body>
+    <script>
+      var queryParams = window.location.search;
+      var pieces = queryParams.split("=");
+      if (pieces.length == 2 && pieces[0] == "?csrf_token") {
+        localStorage.setItem('csrf_token', pieces[1]);
+      }
+    </script>
+    <pre>You've successfully logged in! You can now close this tab and return to fly.</pre>
+  </body>
+</html>
