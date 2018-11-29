@@ -1,12 +1,4 @@
 ---
-resource_types:
-- name: mock
-  type: mock
-  source:
-    mirror_self: true
-    initial_version: mirror-mirror
-
-
 resources:
 - name: some-resource
   type: mock
@@ -15,15 +7,12 @@ resources:
       task.yml: ((task_content))
       task_unwrap.yml: ((task_unwrap_content))
 
-
 jobs:
 - name: external-task-success
   plan:
   - get: some-resource
-
   - task: process-task-definition
     file: some-resource/task_unwrap.yml
-
   - task: run
     file: unwrapped-task-resource/task.yml
     vars:
@@ -32,12 +21,10 @@ jobs:
 
 - name: external-task-failure
   plan:
-    - get: some-resource
-
-    - task: process-task-definition
-      file: some-resource/task_unwrap.yml
-
-    - task: run
-      file: unwrapped-task-resource/task.yml
-      vars:
-        image_resource_type: mock
+  - get: some-resource
+  - task: process-task-definition
+    file: some-resource/task_unwrap.yml
+  - task: run
+    file: unwrapped-task-resource/task.yml
+    vars:
+      image_resource_type: mock
