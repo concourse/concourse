@@ -95,9 +95,63 @@ of a task.
   requests.
 }{task-step-privileged}
 
+\define-attribute{vars: object}{
+  \italic{Optional.} A map of template variables to pass to an external task.
+  Only works with external tasks defined in \code{file}.
+
+  For example:
+
+  \codeblock{yaml}{{
+  plan:
+  - get: my-repo
+  - task: integration
+    file: my-repo/ci/task.yml
+    vars:
+      text: "Hello World!"
+  }}
+
+  This is often used in combination with
+  \reference{pipeline-params}{\code{((parameters))}} in the pipeline.
+
+  \codeblock{yaml}{{
+  plan:
+  - get: my-repo
+  - task: integration
+    file: my-repo/ci/task.yml
+    vars:
+      text: ((text))
+  }}
+
+  And \code{task.yml}:
+
+  \codeblock{yaml}{{{
+    ---
+    platform: linux
+
+    image_resource:
+      type: docker-image
+      source:
+        repository: my.local.registry:8080/my/image
+        username: ((myuser))
+        password: ((mypass))
+
+    run:
+      path: echo
+      args: ["((text))"]
+  }}}
+
+  This will resolve \code{((text))} to \code{{"Hello World!"}}, while \code{((myuser))} and \code{((mypass))}  will
+  be resolved in runtime via a \reference{creds}{credential manager}, if it has been configured.
+}{task-step-vars}
+
 \define-attribute{params: object}{
   \italic{Optional.} A map of task parameters to set, overriding those
   configured in \code{config} or \code{file}.
+
+  The difference between \reference{task-step-params} and \reference{task-step-vars} is that \reference{task-step-vars}
+  allows you to interpolate any template variable in an external task, while \reference{task-step-params} can be
+  used to overwrite task parameters (i.e. env variables) specifically. Also, \reference{task-step-params} can have
+  default values declared in the task.
 
   For example:
 

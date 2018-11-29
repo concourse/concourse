@@ -6,8 +6,9 @@ Automating everything means authorizing something to automate many things. This
 makes CI systems a high-risk target for security leaks.
 
 Concourse pipelines are loaded with credentials: resources are configured with
-private keys, tasks are given credentials to servers they integrate against via
-\reference{task-step-params}, etc. etc. etc. If someone gets their hands on
+private keys, tasks are given credentials to servers they integrate via
+\reference{creds}{credential manager variables}, \reference{task-step-vars}, or
+\reference{task-step-params}, etc. If someone gets their hands on
 your config, they have access to everything.
 
 To mitigate this, Concourse supports encrypting sensitive information before it
@@ -34,8 +35,8 @@ management} as well.
     Resource type \reference{resource-type-source}s, for the same reason as
     above, though this is probably a less common use case.
   }{
-    Task step \reference{task-step-params}, as they are often used to configure
-    access to e.g. an external deployment that the task is integrating with.
+    Pipeline \reference{task-step-vars} and \reference{task-step-params}, in case
+    they contain sensitive information such as usernames and/or passwords.
   }{
     Put step \reference{put-step-params} and get step
     \reference{get-step-params} are also encrypted, even though they rarely
