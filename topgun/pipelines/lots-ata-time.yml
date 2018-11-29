@@ -1,0 +1,82 @@
+resources:
+- name: booklit
+  type: git
+  source: {uri: "https://github.com/vito/booklit"}
+
+jobs:
+- name: unit
+  plan:
+  - get: booklit
+    trigger: true
+  - task: test
+    file: booklit/ci/test.yml
+- name: unit1
+  plan:
+  - get: booklit
+    trigger: true
+    passed: [unit]
+  - task: test
+    file: booklit/ci/test.yml
+- name: unit2
+  plan:
+  - get: booklit
+    trigger: true
+    passed: [unit]
+  - task: test
+    file: booklit/ci/test.yml
+- name: unit3
+  plan:
+  - get: booklit
+    trigger: true
+    passed: [unit]
+  - task: test
+    file: booklit/ci/test.yml
+- name: unit4
+  plan:
+  - get: booklit
+    trigger: true
+    passed: [unit]
+  - task: test
+    file: booklit/ci/test.yml
+- name: unit5
+  plan:
+  - get: booklit
+    trigger: true
+    passed: [unit]
+  - task: test
+    file: booklit/ci/test.yml
+- name: unit6
+  plan:
+  - get: booklit
+    trigger: true
+    passed: [unit]
+  - task: test
+    file: booklit/ci/test.yml
+- name: unit7
+  plan:
+  - get: booklit
+    trigger: true
+    passed: [unit]
+  - task: test
+    file: booklit/ci/test.yml
+- name: unit8
+  plan:
+  - get: booklit
+    trigger: true
+    passed: [unit]
+  - task: test
+    file: booklit/ci/test.yml
+- name: unit9
+  plan:
+  - get: booklit
+    trigger: true
+    passed: [unit]
+  - task: test
+    file: booklit/ci/test.yml
+- name: unit10
+  plan:
+  - get: booklit
+    trigger: true
+    passed: [unit]
+  - task: test
+    file: booklit/ci/test.yml

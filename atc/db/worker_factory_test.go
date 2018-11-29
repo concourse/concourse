@@ -108,6 +108,14 @@ var _ = Describe("WorkerFactory", func() {
 				})
 			})
 
+			It("saves the active containers", func() {
+				worker, found, err := workerFactory.GetWorker(atcWorker.Name)
+				Expect(found).To(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(worker.ActiveContainers()).To(Equal(atcWorker.ActiveContainers))
+			})
+
 			It("saves resource types", func() {
 				worker, found, err := workerFactory.GetWorker(atcWorker.Name)
 				Expect(found).To(BeTrue())
