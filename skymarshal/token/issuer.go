@@ -31,16 +31,6 @@ type issuer struct {
 }
 
 func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error) {
-
-	// TODO are these two checks necessary?
-	if self.TeamFactory == nil {
-		return nil, errors.New("Missing team factory")
-	}
-
-	if self.Generator == nil {
-		return nil, errors.New("Missing token generator")
-	}
-
 	if verifiedClaims.UserID == "" {
 		return nil, errors.New("Missing user id in verified claims")
 	}
@@ -72,6 +62,7 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 			userAuth := auth["users"]
 			groupAuth := auth["groups"]
 
+			// backwards compatibility for allow-all-users
 			if len(userAuth) == 0 && len(groupAuth) == 0 {
 				teamSet[team.Name()][role] = true
 				isAdmin = isAdmin || (team.Admin() && role == "owner")
