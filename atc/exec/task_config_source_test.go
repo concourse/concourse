@@ -10,7 +10,9 @@ import (
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
+
+	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,7 +22,7 @@ import (
 var _ = Describe("TaskConfigSource", func() {
 	var (
 		taskConfig atc.TaskConfig
-		taskPlan   atc.TaskPlan
+		taskVars   atc.Params
 		repo       *worker.ArtifactRepository
 		logger     *lagertest.TestLogger
 	)
@@ -32,18 +34,24 @@ var _ = Describe("TaskConfigSource", func() {
 			Platform:  "some-platform",
 			RootfsURI: "some-image",
 			ImageResource: &atc.ImageResource{
-				Type:    "docker",
-				Source:  atc.Source{"a": "b"},
-				Params:  &atc.Params{"some": "params"},
+				Type: "docker",
+				Source: atc.Source{
+					"a":               "b",
+					"evaluated-value": "((task-variable-name))",
+				},
+				Params: &atc.Params{
+					"some":            "params",
+					"evaluated-value": "((task-variable-name))",
+				},
 				Version: &atc.Version{"some": "version"},
 			},
 			Params: map[string]string{
-				"task-config-param-key": "task-config-param-val-1",
-				"common-key":            "task-config-param-val-2",
+				"key1": "key1-((task-variable-name))",
+				"key2": "key2-((task-variable-name))",
 			},
 			Run: atc.TaskRunConfig{
 				Path: "ls",
-				Args: []string{"-al"},
+				Args: []string{"-al", "((task-variable-name))"},
 				Dir:  "some/dir",
 				User: "some-user",
 			},
@@ -51,110 +59,25 @@ var _ = Describe("TaskConfigSource", func() {
 				{Name: "some-input", Path: "some-path"},
 			},
 		}
-
-		taskPlan = atc.TaskPlan{
-			Params: atc.Params{
-				"task-plan-param-key": "task-plan-param-val-1",
-				"common-key":          "task-plan-param-val-2",
-			},
-			Config: &taskConfig,
+		taskVars = atc.Params{
+			"task-variable-name": "task-variable-value",
 		}
 	})
 
 	Describe("StaticConfigSource", func() {
-		var (
-			configSource TaskConfigSource
-		)
 
-		JustBeforeEach(func() {
-			configSource = StaticConfigSource{Plan: taskPlan}
+		It("fetches task config successfully", func() {
+			configSource := StaticConfigSource{Config: &taskConfig}
+			fetchedConfig, fetchErr := configSource.FetchConfig(logger, repo)
+			Expect(fetchErr).ToNot(HaveOccurred())
+			Expect(fetchedConfig).To(Equal(taskConfig))
 		})
 
-		Context("when the params contain a floating point value", func() {
-			BeforeEach(func() {
-				taskPlan.Params["int-val"] = float64(1059262)
-				taskPlan.Params["float-val"] = float64(1059262.987345987)
-			})
-
-			It("does the right thing", func() {
-				fetchedConfig, err := configSource.FetchConfig(logger, repo)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(fetchedConfig.Params).To(HaveKeyWithValue("int-val", "1059262"))
-				Expect(fetchedConfig.Params).To(HaveKeyWithValue("float-val", "1059262.987345987"))
-			})
-		})
-
-		It("merges task params prefering params in task plan", func() {
-			fetchedConfig, err := configSource.FetchConfig(logger, repo)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(fetchedConfig.Params).To(Equal(map[string]string{
-				"task-plan-param-key":   "task-plan-param-val-1",
-				"task-config-param-key": "task-config-param-val-1",
-				"common-key":            "task-plan-param-val-2",
-			}))
-		})
-
-		Context("when task config params are not set", func() {
-			BeforeEach(func() {
-				taskConfig = atc.TaskConfig{}
-			})
-
-			It("uses params from task plan", func() {
-				fetchedConfig, err := configSource.FetchConfig(logger, repo)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(fetchedConfig.Params).To(Equal(map[string]string{
-					"task-plan-param-key": "task-plan-param-val-1",
-					"common-key":          "task-plan-param-val-2",
-				}))
-			})
-		})
-
-		Context("when task plan params are not set", func() {
-			BeforeEach(func() {
-				taskPlan = atc.TaskPlan{
-					Config: &taskConfig,
-				}
-			})
-
-			It("uses params from task config", func() {
-				fetchedConfig, err := configSource.FetchConfig(logger, repo)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(fetchedConfig.Params).To(Equal(map[string]string{
-					"task-config-param-key": "task-config-param-val-1",
-					"common-key":            "task-config-param-val-2",
-				}))
-			})
-		})
-
-		Context("when the plan has no task config", func() {
-			BeforeEach(func() {
-				taskPlan.Config = nil
-			})
-
-			Context("when plan has params", func() {
-				It("returns an config with plan params", func() {
-					fetchedConfig, err := configSource.FetchConfig(logger, repo)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(fetchedConfig).To(Equal(atc.TaskConfig{
-						Params: map[string]string{
-							"task-plan-param-key": "task-plan-param-val-1",
-							"common-key":          "task-plan-param-val-2",
-						},
-					}))
-				})
-			})
-
-			Context("when plan does not have params", func() {
-				BeforeEach(func() {
-					taskPlan.Params = nil
-				})
-
-				It("returns an empty config", func() {
-					fetchedConfig, err := configSource.FetchConfig(logger, repo)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(fetchedConfig).To(Equal(atc.TaskConfig{}))
-				})
-			})
+		It("fetches config of nil task successfully", func() {
+			configSource := StaticConfigSource{Config: nil}
+			fetchedConfig, fetchErr := configSource.FetchConfig(logger, repo)
+			Expect(fetchErr).ToNot(HaveOccurred())
+			Expect(fetchedConfig).To(Equal(atc.TaskConfig{}))
 		})
 	})
 
@@ -162,21 +85,20 @@ var _ = Describe("TaskConfigSource", func() {
 		var (
 			configSource FileConfigSource
 
-			fetchedConfig atc.TaskConfig
-			fetchErr      error
+			fetchErr error
 		)
 
 		BeforeEach(func() {
-			configSource = FileConfigSource{Path: "some/build.yml"}
+			configSource = FileConfigSource{ConfigPath: "some/build.yml"}
 		})
 
 		JustBeforeEach(func() {
-			fetchedConfig, fetchErr = configSource.FetchConfig(logger, repo)
+			_, fetchErr = configSource.FetchConfig(logger, repo)
 		})
 
 		Context("when the path does not indicate an artifact source", func() {
 			BeforeEach(func() {
-				configSource.Path = "foo-bar.yml"
+				configSource.ConfigPath = "foo-bar.yml"
 			})
 
 			It("returns an error", func() {
@@ -210,10 +132,6 @@ var _ = Describe("TaskConfigSource", func() {
 
 				It("succeeds", func() {
 					Expect(fetchErr).NotTo(HaveOccurred())
-				})
-
-				It("returns the unmarshalled config", func() {
-					Expect(fetchedConfig).To(Equal(taskConfig))
 				})
 
 				It("closes the stream", func() {
@@ -312,124 +230,108 @@ run: {path: a/file}
 		})
 	})
 
-	Describe("MergedConfigSource", func() {
+	Describe("OverrideParamsConfigSource", func() {
 		var (
-			fakeConfigSourceA *execfakes.FakeTaskConfigSource
-			fakeConfigSourceB *execfakes.FakeTaskConfigSource
-
+			config       atc.TaskConfig
 			configSource TaskConfigSource
+
+			overrideParams atc.Params
 
 			fetchedConfig atc.TaskConfig
 			fetchErr      error
-
-			configA atc.TaskConfig
-			configB atc.TaskConfig
 		)
 
 		BeforeEach(func() {
-			fakeConfigSourceA = new(execfakes.FakeTaskConfigSource)
-			fakeConfigSourceB = new(execfakes.FakeTaskConfigSource)
-
-			configSource = &MergedConfigSource{
-				A: fakeConfigSourceA,
-				B: fakeConfigSourceB,
-			}
-
-			configA = atc.TaskConfig{
+			config = atc.TaskConfig{
 				Platform:  "some-platform",
 				RootfsURI: "some-image",
-				Params:    map[string]string{"PARAM": "A"},
+				Params:    map[string]string{"PARAM": "A", "ORIG_PARAM": "D"},
 				Run: atc.TaskRunConfig{
 					Path: "echo",
 					Args: []string{"bananapants"},
 				},
 			}
-			configB = atc.TaskConfig{
-				Params: map[string]string{"PARAM": "B"},
-			}
+
+			overrideParams = atc.Params{"PARAM": "B", "EXTRA_PARAM": "C"}
 		})
 
-		JustBeforeEach(func() {
-			fetchedConfig, fetchErr = configSource.FetchConfig(logger, repo)
-		})
-
-		Context("when fetching via A succeeds", func() {
+		Context("when there are no params to override", func() {
 			BeforeEach(func() {
-				fakeConfigSourceA.FetchConfigReturns(configA, nil)
+				configSource = &OverrideParamsConfigSource{
+					ConfigSource: StaticConfigSource{Config: &config},
+				}
 			})
 
-			Context("and fetching via B succeeds", func() {
+			JustBeforeEach(func() {
+				fetchedConfig, fetchErr = configSource.FetchConfig(logger, repo)
+			})
+
+			It("succeeds", func() {
+				Expect(fetchErr).NotTo(HaveOccurred())
+			})
+
+			It("returns the same config", func() {
+				Expect(fetchedConfig).To(Equal(config))
+			})
+
+			It("returns no warnings", func() {
+				Expect(configSource.Warnings()).To(HaveLen(0))
+			})
+		})
+
+		Context("when override params are specified", func() {
+			BeforeEach(func() {
+				configSource = &OverrideParamsConfigSource{
+					ConfigSource: StaticConfigSource{Config: &config},
+					Params:       overrideParams,
+				}
+			})
+
+			JustBeforeEach(func() {
+				fetchedConfig, fetchErr = configSource.FetchConfig(logger, repo)
+			})
+
+			It("succeeds", func() {
+				Expect(fetchErr).NotTo(HaveOccurred())
+			})
+
+			It("returns the config with overridden parameters", func() {
+				Expect(fetchedConfig.Params).To(Equal(map[string]string{
+					"ORIG_PARAM":  "D",
+					"PARAM":       "B",
+					"EXTRA_PARAM": "C",
+				}))
+			})
+
+			It("returns a deprecation warning", func() {
+				Expect(configSource.Warnings()).To(HaveLen(1))
+				Expect(configSource.Warnings()[0]).To(ContainSubstring("EXTRA_PARAM was defined in pipeline but missing from task file"))
+			})
+
+			Context("when params have int or float values", func() {
 				BeforeEach(func() {
-					fakeConfigSourceB.FetchConfigReturns(configB, nil)
+					overrideParams["int-val"] = float64(1059262)
+					overrideParams["float-val"] = float64(1059262.987345987)
+					configSource = &OverrideParamsConfigSource{
+						ConfigSource: StaticConfigSource{Config: &config},
+						Params:       overrideParams,
+					}
 				})
 
-				It("fetches via the input source", func() {
-					_, repoA := fakeConfigSourceA.FetchConfigArgsForCall(0)
-					Expect(repoA).To(Equal(repo))
-					_, repoB := fakeConfigSourceB.FetchConfigArgsForCall(0)
-					Expect(repoB).To(Equal(repo))
+				JustBeforeEach(func() {
+					fetchedConfig, fetchErr = configSource.FetchConfig(logger, repo)
 				})
 
 				It("succeeds", func() {
 					Expect(fetchErr).NotTo(HaveOccurred())
 				})
 
-				It("returns the merged config", func() {
-					Expect(fetchedConfig).To(Equal(atc.TaskConfig{
-						Platform:  "some-platform",
-						RootfsURI: "some-image",
-						Params:    map[string]string{"PARAM": "B"},
-						Run: atc.TaskRunConfig{
-							Path: "echo",
-							Args: []string{"bananapants"},
-						},
-					}))
-				})
-
-				Context("but B defines a param not in A", func() {
-					BeforeEach(func() {
-						configB.Params["EXTRA_PARAM"] = "EXTRA_PARAM isn't defined in task file"
-					})
-
-					It("should have a warning", func() {
-						Expect(configSource.Warnings()).To(HaveLen(1))
-						Expect(configSource.Warnings()[0]).To(ContainSubstring("EXTRA_PARAM was defined in pipeline but missing from task file"))
-					})
-
-					It("should not fail", func() {
-						Expect(fetchErr).ToNot(HaveOccurred())
-					})
-				})
-
-			})
-
-			Context("and fetching via B fails", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					fakeConfigSourceB.FetchConfigReturns(atc.TaskConfig{}, disaster)
-				})
-
-				It("returns the error", func() {
-					Expect(fetchErr).To(Equal(disaster))
+				It("processes them correctly", func() {
+					Expect(fetchedConfig.Params).To(HaveKeyWithValue("int-val", "1059262"))
+					Expect(fetchedConfig.Params).To(HaveKeyWithValue("float-val", "1059262.987345987"))
 				})
 			})
-		})
 
-		Context("when fetching via A fails", func() {
-			disaster := errors.New("nope")
-
-			BeforeEach(func() {
-				fakeConfigSourceA.FetchConfigReturns(atc.TaskConfig{}, disaster)
-			})
-
-			It("returns the error", func() {
-				Expect(fetchErr).To(Equal(disaster))
-			})
-
-			It("does not fetch via B", func() {
-				Expect(fakeConfigSourceB.FetchConfigCallCount()).To(Equal(0))
-			})
 		})
 	})
 
@@ -500,6 +402,36 @@ run: {path: a/file}
 			It("returns the error", func() {
 				Expect(fetchErr).To(Equal(disaster))
 			})
+		})
+	})
+
+	Describe("InterpolateTemplateConfigSource", func() {
+		var (
+			configSource  TaskConfigSource
+			fetchedConfig atc.TaskConfig
+			fetchErr      error
+		)
+
+		JustBeforeEach(func() {
+			configSource = StaticConfigSource{Config: &taskConfig}
+			configSource = InterpolateTemplateConfigSource{ConfigSource: configSource, Vars: []boshtemplate.Variables{boshtemplate.StaticVariables(taskVars)}}
+			fetchedConfig, fetchErr = configSource.FetchConfig(logger, repo)
+		})
+
+		It("fetches task config successfully", func() {
+			Expect(fetchErr).ToNot(HaveOccurred())
+		})
+
+		It("resolves task config parameters successfully", func() {
+			Expect(fetchedConfig.Run.Args).To(Equal([]string{"-al", "task-variable-value"}))
+			Expect(fetchedConfig.Params).To(Equal(map[string]string{
+				"key1": "key1-task-variable-value",
+				"key2": "key2-task-variable-value",
+			}))
+			Expect(fetchedConfig.ImageResource.Source).To(Equal(atc.Source{
+				"a":               "b",
+				"evaluated-value": "task-variable-value",
+			}))
 		})
 	})
 })

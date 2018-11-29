@@ -101,6 +101,7 @@ type TaskPlan struct {
 
 	ConfigPath string      `json:"config_path,omitempty"`
 	Config     *TaskConfig `json:"config,omitempty"`
+	Vars       Params      `json:"vars,omitempty"`
 
 	Params            Params            `json:"params,omitempty"`
 	InputMapping      map[string]string `json:"input_mapping,omitempty"`

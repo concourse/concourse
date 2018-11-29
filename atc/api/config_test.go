@@ -774,7 +774,7 @@ jobs:
 									})
 
 									It("returns the credential name that was missing", func() {
-										Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"errors":["1 error occurred:\n\t* Expected to find variables: BAR\n\n"]}`))
+										Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"errors":["1 error occurred:\n\t* failed to interpolate task config: Expected to find variables: BAR\n\n"]}`))
 									})
 								})
 
@@ -789,7 +789,7 @@ jobs:
 									})
 
 									It("returns the credential name that was missing", func() {
-										Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"errors":["1 error occurred:\n\t* Expected to find variables: BAR\n\n"]}`))
+										Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"errors":["1 error occurred:\n\t* failed to interpolate task config: Expected to find variables: BAR\n\n"]}`))
 									})
 								})
 							})

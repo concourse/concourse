@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/concourse/concourse/atc/exec"
 	"io"
 	"io/ioutil"
 	"mime"
@@ -12,14 +13,16 @@ import (
 	"net/http"
 	"strings"
 
+	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/mapstructure"
 	"github.com/tedsuo/rata"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -165,23 +168,23 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 // Simply validate that the credentials exist; don't do anything with the actual secrets
-func validateCredParams(vars creds.Variables, config atc.Config, session lager.Logger) error {
+func validateCredParams(credMgrVars creds.Variables, config atc.Config, session lager.Logger) error {
 	var errs error
 
 	for _, resourceType := range config.ResourceTypes {
-		_, err := creds.NewSource(vars, resourceType.Source).Evaluate()
+		_, err := creds.NewSource(credMgrVars, resourceType.Source).Evaluate()
 		if err != nil {
 			errs = multierror.Append(errs, err)
 		}
 	}
 
 	for _, resource := range config.Resources {
-		_, err := creds.NewSource(vars, resource.Source).Evaluate()
+		_, err := creds.NewSource(credMgrVars, resource.Source).Evaluate()
 		if err != nil {
 			errs = multierror.Append(errs, err)
 		}
 
-		_, err = creds.NewString(vars, resource.WebhookToken).Evaluate()
+		_, err = creds.NewString(credMgrVars, resource.WebhookToken).Evaluate()
 		if err != nil {
 			errs = multierror.Append(errs, err)
 		}
@@ -189,24 +192,38 @@ func validateCredParams(vars creds.Variables, config atc.Config, session lager.L
 
 	for _, job := range config.Jobs {
 		for _, plan := range job.Plan {
-			_, err := creds.NewParams(vars, plan.Params).Evaluate()
+			_, err := creds.NewParams(credMgrVars, plan.Params).Evaluate()
 			if err != nil {
 				errs = multierror.Append(errs, err)
 			}
 
-			if plan.TaskConfig != nil {
-				if plan.TaskConfig.ImageResource != nil {
-					_, err = creds.NewSource(vars, plan.TaskConfig.ImageResource.Source).Evaluate()
-					if err != nil {
-						errs = multierror.Append(errs, err)
-					}
+			if plan.TaskConfigPath != "" {
+				// external task - we can't really validate much right now, because task yaml will be
+				// retrieved in runtime during job execution. but we can validate vars and params which will be
+				// passed to this task
+				err = creds.NewTaskParamsValidator(credMgrVars, plan.TaskConfig.Params).Validate()
+				if err != nil {
+					errs = multierror.Append(errs, err)
 				}
 
-				_, err = creds.NewTaskParams(vars, plan.TaskConfig.Params).Evaluate()
+				err = creds.NewTaskVarsValidator(credMgrVars, plan.TaskVars).Validate()
+				if err != nil {
+					errs = multierror.Append(errs, err)
+				}
+
+			} else if plan.TaskConfig != nil {
+				// embedded task - we can fully validate it, interpolating with cred mgr variables
+				var taskConfigSource exec.TaskConfigSource
+				embeddedTaskVars := []boshtemplate.Variables{credMgrVars}
+				taskConfigSource = exec.StaticConfigSource{Config: plan.TaskConfig}
+				taskConfigSource = exec.InterpolateTemplateConfigSource{ConfigSource: taskConfigSource, Vars: embeddedTaskVars}
+				taskConfigSource = exec.ValidatingConfigSource{ConfigSource: taskConfigSource}
+				_, err = taskConfigSource.FetchConfig(session, nil)
 				if err != nil {
 					errs = multierror.Append(errs, err)
 				}
 			}
+
 		}
 	}
 

@@ -238,6 +238,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 			Privileged:        planConfig.Privileged,
 			Config:            planConfig.TaskConfig,
 			ConfigPath:        planConfig.TaskConfigPath,
+			Vars:              planConfig.TaskVars,
 			Tags:              planConfig.Tags,
 			Params:            planConfig.Params,
 			InputMapping:      planConfig.InputMapping,
