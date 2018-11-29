@@ -91,7 +91,7 @@ type RunCommand struct {
 
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
-	CredentialManagement struct{} `group:"Credential Management"`
+	CredentialManagement creds.CredentialManagementConfig `group:"Credential Management"`
 	CredentialManagers   creds.Managers
 
 	EncryptionKey    flag.Cipher `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
@@ -879,7 +879,7 @@ func (cmd *RunCommand) variablesFactory(logger lager.Logger) (creds.VariablesFac
 
 		break
 	}
-	return variablesFactory, nil
+	return creds.NewRetryableVariablesFactory(variablesFactory, cmd.CredentialManagement.RetryConfig), nil
 }
 
 func (cmd *RunCommand) newKey() *encryption.Key {
