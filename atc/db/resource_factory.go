@@ -9,7 +9,7 @@ import (
 
 type ResourceFactory interface {
 	VisibleResources([]string) ([]Resource, error)
-	GetResourcesByWebhook(string) ([]Resource, error)
+	GetResourcesByWebhook(string) (Resources, error)
 }
 
 type resourceFactory struct {
