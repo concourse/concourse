@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -206,19 +205,19 @@ func Deploy(manifest string, args ...string) {
 		Expect(dbConn.Close()).To(Succeed())
 	}
 
-	deploy := StartDeploy(manifest, args...)
-	<-deploy.Exited
-	if deploy.ExitCode() != 0 {
-		if strings.Contains(string(deploy.Out.Contents()), "Timed out pinging") {
-			fmt.Fprintln(GinkgoWriter, "detected ping timeout; dumping vm info...")
-			bosh("vms")
-			log.Println("SLEEPING TO DEBUG PING TIMEOUT")
-			log.Printf("DEPLOY OUTPUT:\n%s\n", deploy.Out.Contents())
-			time.Sleep(24 * time.Hour)
-			Fail("deploy failed due to ping timeout; possible iaas flake")
+	for {
+		deploy := StartDeploy(manifest, args...)
+		<-deploy.Exited
+		if deploy.ExitCode() != 0 {
+			if strings.Contains(string(deploy.Out.Contents()), "Timed out pinging") {
+				fmt.Fprintln(GinkgoWriter, "detected ping timeout; trying again...")
+				continue
+			}
+
+			Fail("deploy failed")
 		}
 
-		Fail("deploy failed")
+		break
 	}
 
 	instances, jobInstances = loadJobInstances()
