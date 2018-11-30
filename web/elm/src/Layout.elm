@@ -20,6 +20,7 @@ type alias Flags =
     { turbulenceImgSrc : String
     , notFoundImgSrc : String
     , csrfToken : String
+    , pipelineRunningKeyframes : String
     }
 
 
@@ -49,6 +50,7 @@ type alias Model =
     , turbulenceImgSrc : String
     , notFoundImgSrc : String
     , csrfToken : String
+    , pipelineRunningKeyframes : String
     , route : Routes.ConcourseRoute
     }
 
@@ -88,7 +90,12 @@ init flags location =
                     Normal
 
         ( subModel, subCmd ) =
-            SubPage.init { turbulencePath = flags.turbulenceImgSrc, csrfToken = flags.csrfToken } route
+            SubPage.init
+                { turbulencePath = flags.turbulenceImgSrc
+                , csrfToken = flags.csrfToken
+                , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+                }
+                route
 
         ( topModel, topCmd ) =
             TopBar.init route
@@ -103,8 +110,9 @@ init flags location =
             , topBarType = topBarType
             , turbulenceImgSrc = flags.turbulenceImgSrc
             , notFoundImgSrc = flags.notFoundImgSrc
-            , route = route
             , csrfToken = flags.csrfToken
+            , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+            , route = route
             }
 
         handleTokenCmd =
@@ -265,7 +273,12 @@ urlUpdate route model =
             else if routeMatchesModel route model then
                 SubPage.urlUpdate route model.subModel
             else
-                SubPage.init { turbulencePath = model.turbulenceImgSrc, csrfToken = model.csrfToken } route
+                SubPage.init
+                    { turbulencePath = model.turbulenceImgSrc
+                    , csrfToken = model.csrfToken
+                    , pipelineRunningKeyframes = model.pipelineRunningKeyframes
+                    }
+                    route
 
         ( newTopModel, tCmd ) =
             if route == model.route then

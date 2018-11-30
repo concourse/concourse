@@ -56,6 +56,7 @@ type Msg
 type alias Flags =
     { csrfToken : String
     , turbulencePath : String
+    , pipelineRunningKeyframes : String
     }
 
 
@@ -146,6 +147,7 @@ init flags route =
                     , csrfToken = flags.csrfToken
                     , search = querySearchForRoute route
                     , highDensity = False
+                    , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
                     }
 
         Routes.DashboardHd ->
@@ -156,6 +158,7 @@ init flags route =
                     , csrfToken = flags.csrfToken
                     , search = querySearchForRoute route
                     , highDensity = True
+                    , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
                     }
 
 

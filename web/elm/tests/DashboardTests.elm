@@ -36,6 +36,11 @@ darkGrey =
     "#2a2929"
 
 
+pipelineRunningKeyframes : String
+pipelineRunningKeyframes =
+    "pipeline-running"
+
+
 all : Test
 all =
     describe "Dashboard"
@@ -194,7 +199,7 @@ all =
                                         ++ " 16px)"
                                   )
                                 , ( "animation"
-                                  , "pipeline-running 3s linear infinite"
+                                  , pipelineRunningKeyframes ++ " 3s linear infinite"
                                   )
                                 ]
                             ]
@@ -667,6 +672,7 @@ whenOnDashboard { highDensity } =
         , turbulencePath = ""
         , search = ""
         , highDensity = highDensity
+        , pipelineRunningKeyframes = pipelineRunningKeyframes
         }
         |> Tuple.first
 

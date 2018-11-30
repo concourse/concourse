@@ -851,6 +851,7 @@ init path =
         { turbulenceImgSrc = ""
         , notFoundImgSrc = ""
         , csrfToken = ""
+        , pipelineRunningKeyframes = ""
         }
         { href = ""
         , host = ""

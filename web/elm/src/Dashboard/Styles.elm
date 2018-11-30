@@ -7,9 +7,10 @@ import Concourse
 pipelineCardBanner :
     { status : Concourse.PipelineStatus
     , running : Bool
+    , pipelineRunningKeyframes : String
     }
     -> List ( String, String )
-pipelineCardBanner { status, running } =
+pipelineCardBanner { status, running, pipelineRunningKeyframes } =
     let
         withStripes : String -> String -> String
         withStripes color stripeColor =
@@ -30,7 +31,7 @@ pipelineCardBanner { status, running } =
 
                 ( Concourse.PipelineStatusSucceeded, True ) ->
                     [ ( "background-image", withStripes Colors.success Colors.runningStripes )
-                    , ( "animation", "pipeline-running 3s linear infinite" )
+                    , ( "animation", pipelineRunningKeyframes ++ " 3s linear infinite" )
                     ]
 
                 ( Concourse.PipelineStatusPaused, _ ) ->

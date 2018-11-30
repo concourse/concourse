@@ -12,6 +12,16 @@
     <script src="{{asset "graph.js"}}"></script>
     <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
     <script src="{{asset "elm.min.js"}}"></script>
+    <style>
+        @keyframes pipeline-running {
+          0% { background-position-x: -53.5px; }
+          100% { background-position-x: 0; }
+        }
+        @-webkit-keyframes pipeline-running {
+          0% { background-position-x: -53.5px; }
+          100% { background-position-x: 0; }
+        }
+    </style>
   </head>
   <body>
     <div id="elm-app-embed"></div>
@@ -22,7 +32,8 @@
       var app = Elm.Main.embed(node, {
         turbulenceImgSrc: {{asset "images/buckleup.svg"}},
         notFoundImgSrc: {{asset "images/parachute_error_404.svg"}},
-        csrfToken: {{ .CSRFToken }}
+        csrfToken: {{ .CSRFToken }},
+        pipelineRunningKeyframes: "pipeline-running"
       });
       var resizeTimer;
 

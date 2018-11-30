@@ -56,6 +56,7 @@ type alias Flags =
     , turbulencePath : String
     , search : String
     , highDensity : Bool
+    , pipelineRunningKeyframes : String
     }
 
 
@@ -72,6 +73,7 @@ type alias Model =
     , turbulencePath : String -- this doesn't vary, it's more a prop (in the sense of react) than state. should be a way to use a thunk for the Turbulence case of DashboardState
     , highDensity : Bool
     , hoveredPipeline : Maybe Concourse.Pipeline
+    , pipelineRunningKeyframes : String
     }
 
 
@@ -97,6 +99,7 @@ init ports flags =
           , turbulencePath = flags.turbulencePath
           , highDensity = flags.highDensity
           , hoveredPipeline = Nothing
+          , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
           }
         , Cmd.batch
             [ fetchData
@@ -390,6 +393,7 @@ dashboardView model =
                             { substate = substate
                             , query = (NewTopBar.query model.topBar)
                             , hoveredPipeline = model.hoveredPipeline
+                            , pipelineRunningKeyframes = model.pipelineRunningKeyframes
                             }
                             ++ [ footerView substate ]
                         )
@@ -527,10 +531,11 @@ turbulenceView path =
 pipelinesView :
     { substate : SubState.SubState
     , hoveredPipeline : Maybe Concourse.Pipeline
+    , pipelineRunningKeyframes : String
     , query : String
     }
     -> List (Html Msg)
-pipelinesView { substate, hoveredPipeline, query } =
+pipelinesView { substate, hoveredPipeline, pipelineRunningKeyframes, query } =
     let
         filteredGroups =
             substate.teamData |> SubState.apiData |> Group.groups |> filter query
@@ -557,8 +562,9 @@ pipelinesView { substate, hoveredPipeline, query } =
                                         , dropState = details.dropState
                                         , now = details.now
                                         , hoveredPipeline = hoveredPipeline
+                                        , pipelineRunningKeyframes = pipelineRunningKeyframes
+                                        , group = g
                                         }
-                                        g
                                 )
                                 groupsToDisplay
 
@@ -571,8 +577,9 @@ pipelinesView { substate, hoveredPipeline, query } =
                                         , dropState = details.dropState
                                         , now = details.now
                                         , hoveredPipeline = hoveredPipeline
+                                        , pipelineRunningKeyframes = pipelineRunningKeyframes
+                                        , group = g.group
                                         }
-                                        g.group
                                 )
                                 (GroupWithTag.addTagsAndSort user groupsToDisplay)
 

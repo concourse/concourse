@@ -299,10 +299,11 @@ view :
     , dropState : DropState
     , now : Time
     , hoveredPipeline : Maybe Concourse.Pipeline
+    , group : Group
+    , pipelineRunningKeyframes : String
     }
-    -> Group
     -> Html Msg
-view { header, dragState, dropState, now, hoveredPipeline } group =
+view { header, dragState, dropState, now, hoveredPipeline, group, pipelineRunningKeyframes } =
     let
         pipelines =
             if List.isEmpty group.pipelines then
@@ -356,6 +357,7 @@ view { header, dragState, dropState, now, hoveredPipeline } group =
                                                 Styles.pipelineCardBanner
                                                     { status = bannerStatus
                                                     , running = running
+                                                    , pipelineRunningKeyframes = pipelineRunningKeyframes
                                                     }
                                             ]
                                             []
