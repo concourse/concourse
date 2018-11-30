@@ -30,6 +30,8 @@ type LoginCommand struct {
 	TeamName    string       `short:"n" long:"team-name" description:"Team to authenticate with"`
 	CACert      atc.PathFlag `long:"ca-cert" description:"Path to Concourse PEM-encoded CA certificate file."`
 	OpenBrowser bool         `short:"b" long:"open-browser" description:"Open browser to the auth endpoint"`
+
+	BrowserOnly bool
 }
 
 func (command *LoginCommand) Execute(args []string) error {
@@ -114,12 +116,12 @@ func (command *LoginCommand) Execute(args []string) error {
 
 	if semver.Compare(legacySemver) <= 0 && semver.Compare(devSemver) != 0 {
 		// Legacy Auth Support
-		tokenType, tokenValue, err = command.legacyAuth(target)
+		tokenType, tokenValue, err = command.legacyAuth(target, command.BrowserOnly)
 	} else {
 		if command.Username != "" && command.Password != "" {
 			tokenType, tokenValue, err = command.passwordGrant(client, command.Username, command.Password)
 		} else {
-			tokenType, tokenValue, err = command.authCodeGrant(client.URL())
+			tokenType, tokenValue, err = command.authCodeGrant(client.URL(), command.BrowserOnly)
 		}
 	}
 
@@ -163,7 +165,7 @@ func (command *LoginCommand) passwordGrant(client concourse.Client, username, pa
 	return token.TokenType, token.AccessToken, nil
 }
 
-func (command *LoginCommand) authCodeGrant(targetUrl string) (string, string, error) {
+func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool) (string, string, error) {
 
 	var tokenStr string
 
@@ -192,8 +194,10 @@ func (command *LoginCommand) authCodeGrant(targetUrl string) (string, string, er
 		openURL = fmt.Sprintf("%s/sky/login?redirect_uri=%s", targetUrl, redirectUri)
 
 		fmt.Printf("  %s\n", openURL)
-		fmt.Println("")
-		fmt.Printf("or enter token manually: ")
+		if !browserOnly {
+			fmt.Println("")
+			fmt.Printf("or enter token manually: ")
+		}
 	}
 
 	if command.OpenBrowser {
@@ -202,7 +206,9 @@ func (command *LoginCommand) authCodeGrant(targetUrl string) (string, string, er
 		_ = open.Start(openURL)
 	}
 
-	go waitForTokenInput(stdinChannel, errorChannel)
+	if !browserOnly {
+		go waitForTokenInput(stdinChannel, errorChannel)
+	}
 
 	select {
 	case tokenStrMsg := <-tokenChannel:
@@ -334,7 +340,7 @@ func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken, caCer
 	return nil
 }
 
-func (command *LoginCommand) legacyAuth(target rc.Target) (string, string, error) {
+func (command *LoginCommand) legacyAuth(target rc.Target, browserOnly bool) (string, string, error) {
 
 	httpClient := target.Client().HTTPClient()
 
@@ -415,8 +421,11 @@ func (command *LoginCommand) legacyAuth(target rc.Target) (string, string, error
 		fmt.Println("navigate to the following URL in your browser:")
 		fmt.Println("")
 		fmt.Printf("    %s", theURL)
-		fmt.Println("")
-		fmt.Printf("or enter token manually: ")
+
+		if !browserOnly {
+			fmt.Println("")
+			fmt.Printf("or enter token manually: ")
+		}
 
 		if command.OpenBrowser {
 			// try to open the browser window, but don't get all hung up if it
@@ -424,7 +433,9 @@ func (command *LoginCommand) legacyAuth(target rc.Target) (string, string, error
 			_ = open.Start(theURL)
 		}
 
-		go waitForTokenInput(stdinChannel, errorChannel)
+		if !browserOnly {
+			go waitForTokenInput(stdinChannel, errorChannel)
+		}
 
 		select {
 		case tokenStrMsg := <-tokenChannel:
