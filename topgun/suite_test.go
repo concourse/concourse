@@ -47,9 +47,9 @@ var (
 	workerGardenClient       gclient.Client
 	workerBaggageclaimClient bclient.Client
 
-	concourseReleaseVersion, bpmReleaseVersion, postgresReleaseVersion  string
-	gitServerReleaseVersion, vaultReleaseVersion, credhubReleaseVersion string
-	stemcellVersion                                                     string
+	concourseReleaseVersion, bpmReleaseVersion, postgresReleaseVersion string
+	vaultReleaseVersion, credhubReleaseVersion                         string
+	stemcellVersion                                                    string
 
 	pipelineName string
 
@@ -97,11 +97,6 @@ var _ = BeforeEach(func() {
 	postgresReleaseVersion = os.Getenv("POSTGRES_RELEASE_VERSION")
 	if postgresReleaseVersion == "" {
 		postgresReleaseVersion = "latest"
-	}
-
-	gitServerReleaseVersion = os.Getenv("GIT_SERVER_RELEASE_VERSION")
-	if gitServerReleaseVersion == "" {
-		gitServerReleaseVersion = "latest"
 	}
 
 	vaultReleaseVersion = os.Getenv("VAULT_RELEASE_VERSION")
@@ -201,7 +196,6 @@ func StartDeploy(manifest string, args ...string) *gexec.Session {
 			"-v", "postgres_release_version='" + postgresReleaseVersion + "'",
 			"-v", "vault_release_version='" + vaultReleaseVersion + "'",
 			"-v", "credhub_release_version='" + credhubReleaseVersion + "'",
-			"-v", "git_server_release_version='" + gitServerReleaseVersion + "'",
 			"-v", "stemcell_version='" + stemcellVersion + "'",
 		}, args...)...,
 	)

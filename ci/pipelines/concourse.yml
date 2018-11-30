@@ -505,8 +505,6 @@ jobs:
       trigger: true
     - get: gcp-xenial-stemcell
       trigger: true
-    - get: git-server-release
-      trigger: true
     - get: vault-release
       trigger: true
     - get: credhub-release
@@ -815,11 +813,6 @@ resources:
   type: bosh-io-release
   source:
     repository: cloudfoundry-incubator/backup-and-restore-sdk-release
-
-- name: git-server-release
-  type: bosh-io-release
-  source:
-    repository: cloudfoundry-community/git-server-release
 
 - name: vault-release
   type: bosh-io-release

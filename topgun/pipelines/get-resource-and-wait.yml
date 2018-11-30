@@ -1,13 +1,12 @@
 resources:
-- name: some-repo
-  type: git
-  source:
-    uri: {{some-repo-uri}}
+- name: some-resource
+  type: mock
+  source: {initial_version: first-version}
 
 jobs:
 - name: simple-job
   plan:
-  - get: some-repo
+  - get: some-resource
   - task: wait
     config:
       platform: linux

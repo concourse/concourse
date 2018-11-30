@@ -1,7 +1,6 @@
 package topgun_test
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -111,32 +110,13 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 	})
 
 	Describe("a resource that has new versions", func() {
-		var (
-			gitRepoURI string
-			gitRepo    GitRepo
-		)
-
 		BeforeEach(func() {
-			if !strings.Contains(string(bosh("releases").Out.Contents()), "git-server") {
-				Skip("git-server release not uploaded")
-			}
-
-			Deploy("deployments/concourse.yml", "-o", "operations/add-git-server.yml")
-
-			gitRepoURI = fmt.Sprintf("git://%s/some-repo", JobInstance("git_server").IP)
-			gitRepo = NewGitRepo(gitRepoURI)
-		})
-
-		AfterEach(func() {
-			gitRepo.Cleanup()
+			Deploy("deployments/concourse.yml")
 		})
 
 		It("has its old resource cache, old resource cache uses and old resource cache volumes cleared out", func() {
-			By("creating an initial resource version")
-			gitRepo.CommitAndPush()
-
 			By("setting pipeline that creates resource cache")
-			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-git-resource.yml", "-p", "volume-gc-test", "-v", "some-repo-uri="+gitRepoURI)
+			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-resource.yml", "-p", "volume-gc-test")
 
 			By("unpausing the pipeline")
 			fly.Run("unpause-pipeline", "-p", "volume-gc-test")
@@ -144,18 +124,18 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 			By("triggering the job")
 			fly.Run("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
 
-			By("getting the resource cache volumes")
+			By("locating the cache")
 			volumes := flyTable("volumes")
-			originalResourceVolumeHandles := []string{}
+			var firstCacheHandle string
 			for _, volume := range volumes {
-				if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "ref:") {
-					originalResourceVolumeHandles = append(originalResourceVolumeHandles, volume["handle"])
+				if volume["type"] == "resource" && volume["identifier"] == "version:first-version" {
+					firstCacheHandle = volume["handle"]
 				}
 			}
-			Expect(originalResourceVolumeHandles).To(HaveLen(1))
+			Expect(firstCacheHandle).ToNot(BeEmpty(), "should have found a resource cache volume")
 
 			By("creating a new resource version")
-			gitRepo.CommitAndPush()
+			fly.Run("check-resource", "-r", "volume-gc-test/some-resource", "-f", "version:second-version")
 
 			By("triggering the job")
 			fly.Run("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
@@ -165,42 +145,23 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 				volumes := flyTable("volumes")
 				resourceVolumeHandles := []string{}
 				for _, volume := range volumes {
-					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "ref:") {
+					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "version:") {
 						resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
 					}
 				}
 				return resourceVolumeHandles
-			}, 10*time.Minute, 10*time.Second).ShouldNot(ContainElement(originalResourceVolumeHandles[0]))
+			}, 10*time.Minute, 10*time.Second).ShouldNot(ContainElement(firstCacheHandle))
 		})
 	})
 
 	Describe("resource cache is not reaped when being used by a build", func() {
-		var (
-			gitRepoURI string
-			gitRepo    GitRepo
-		)
-
 		BeforeEach(func() {
-			if !strings.Contains(string(bosh("releases").Out.Contents()), "git-server") {
-				Skip("git-server release not uploaded")
-			}
-
-			Deploy("deployments/concourse.yml", "-o", "operations/fast-gc.yml", "-o", "operations/add-git-server.yml")
-
-			gitRepoURI = fmt.Sprintf("git://%s/some-repo", JobInstance("git_server").IP)
-			gitRepo = NewGitRepo(gitRepoURI)
-		})
-
-		AfterEach(func() {
-			gitRepo.Cleanup()
+			Deploy("deployments/concourse.yml", "-o", "operations/fast-gc.yml")
 		})
 
 		It("finds the resource cache volumes throughout duration of build", func() {
-			By("creating an initial resource version")
-			gitRepo.CommitAndPush()
-
 			By("setting pipeline that creates resource cache")
-			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-git-resource-and-wait.yml", "-p", "volume-gc-test", "-v", "some-repo-uri="+gitRepoURI)
+			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-resource-and-wait.yml", "-p", "volume-gc-test")
 
 			By("unpausing the pipeline")
 			fly.Run("unpause-pipeline", "-p", "volume-gc-test")
@@ -209,33 +170,30 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 			watchSession := fly.Start("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
 			Eventually(watchSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
-			By("getting the resource cache volumes")
+			By("locating the cache")
 			volumes := flyTable("volumes")
-			originalResourceVolumeHandles := []string{}
+			var firstCacheHandle string
 			for _, volume := range volumes {
-				if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "ref:") {
-					originalResourceVolumeHandles = append(originalResourceVolumeHandles, volume["handle"])
+				if volume["type"] == "resource" && volume["identifier"] == "version:first-version" {
+					firstCacheHandle = volume["handle"]
 				}
 			}
-			Expect(originalResourceVolumeHandles).To(HaveLen(1))
+			Expect(firstCacheHandle).ToNot(BeEmpty(), "should have found a resource cache volume")
 
 			By("creating a new resource version")
-			gitRepo.CommitAndPush()
-
-			By("detecting the new version")
-			fly.Run("check-resource", "-r", "volume-gc-test/some-repo")
+			fly.Run("check-resource", "-r", "volume-gc-test/some-resource", "-f", "version:second-version")
 
 			By("not expiring the resource cache volume for the ongoing build")
 			Consistently(func() []string {
 				volumes := flyTable("volumes")
 				resourceVolumeHandles := []string{}
 				for _, volume := range volumes {
-					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "ref:") {
+					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "version:") {
 						resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
 					}
 				}
 				return resourceVolumeHandles
-			}).Should(ContainElement(originalResourceVolumeHandles[0]))
+			}).Should(ConsistOf([]string{firstCacheHandle}))
 
 			By("hijacking the build to tell it to finish")
 			fly.Run(
@@ -255,12 +213,12 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 				volumes := flyTable("volumes")
 				resourceVolumeHandles := []string{}
 				for _, volume := range volumes {
-					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "ref:") {
+					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "version:") {
 						resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
 					}
 				}
 				return resourceVolumeHandles
-			}).ShouldNot(ContainElement(originalResourceVolumeHandles[0]))
+			}).ShouldNot(ContainElement(firstCacheHandle))
 		})
 	})
 })
