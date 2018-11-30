@@ -193,11 +193,6 @@
       border-left: 60px*@scale solid transparent;
     }
 
-    .dashboard-pipeline-banner {
-      background-color: @grey-primary;
-      background-size: 200% 100%;
-    }
-
     .dashboard-pipeline-content {
       display: flex;
       flex-direction: column;
@@ -217,12 +212,6 @@
   }
 
   .dashboard-status-running {
-    &.dashboard-running {
-      .dashboard-pipeline-banner {
-        .running-animation(@grey-primary, @grey-secondary);
-      }
-    }
-
     .build-duration {
       color: @grey-primary;
     }
@@ -234,30 +223,14 @@
       background-image: url('images/ic_pending_grey.svg');
     }
 
-    &.dashboard-running {
-      .dashboard-pipeline-banner {
-        .running-animation(@grey-primary, @base01);
-      }
-    }
-
     .build-duration {
       color: @grey-primary;
     }
   }
 
   .dashboard-status-failed {
-    .dashboard-pipeline-banner {
-      background-color: @red-primary;
-    }
-
     .dashboard-pipeline-icon {
       background-image: url('images/ic_failing_red.svg');
-    }
-
-    &.dashboard-running {
-      .dashboard-pipeline-banner {
-        .running-animation(@red-primary, @base01);
-      }
     }
 
     .build-duration {
@@ -266,18 +239,8 @@
   }
 
   .dashboard-status-aborted {
-    .dashboard-pipeline-banner {
-      background-color: @brown-primary;
-    }
-
     .dashboard-pipeline-icon {
       background-image: url('images/ic_aborted_brown.svg');
-    }
-
-    &.dashboard-running {
-      .dashboard-pipeline-banner {
-        .running-animation(@brown-primary, @base01);
-      }
     }
 
     .build-duration {
@@ -296,18 +259,8 @@
   }
 
   .dashboard-status-errored {
-    .dashboard-pipeline-banner {
-      background-color: @amber-primary;
-    }
-
     .dashboard-pipeline-icon {
       background-image: url('images/ic_error_orange.svg');
-    }
-
-    &.dashboard-running {
-      .dashboard-pipeline-banner {
-        .running-animation(@amber-primary, @base01);
-      }
     }
 
     .build-duration {

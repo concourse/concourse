@@ -31,6 +31,26 @@ paused =
     "#4a90e2"
 
 
+pending : String
+pending =
+    "#9b9b9b"
+
+
+failure : String
+failure =
+    "#ed4b35"
+
+
+error : String
+error =
+    "#f5a623"
+
+
+aborted : String
+aborted =
+    "#8b572a"
+
+
 runningStripes : String
 runningStripes =
     "#2a2929"

@@ -16,9 +16,14 @@ import Test.Html.Query as Query
 import Test.Html.Selector exposing (attribute, class, containing, style, tag, text, Selector)
 
 
+middleGrey : String
+middleGrey =
+    "#3d3c3c"
+
+
 lightGrey : String
 lightGrey =
-    "#3d3c3c"
+    "#9b9b9b"
 
 
 green : String
@@ -34,6 +39,21 @@ blue =
 darkGrey : String
 darkGrey =
     "#2a2929"
+
+
+red : String
+red =
+    "#ed4b35"
+
+
+amber : String
+amber =
+    "#f5a623"
+
+
+brown : String
+brown =
+    "#8b572a"
 
 
 pipelineRunningKeyframes : String
@@ -203,6 +223,33 @@ all =
                                   )
                                 ]
                             ]
+
+                    pipelineWithStatus :
+                        Concourse.BuildStatus
+                        -> Bool
+                        -> Query.Single Msgs.Msg
+                    pipelineWithStatus status isRunning =
+                        let
+                            jobFunc =
+                                if isRunning then
+                                    job >> running
+                                else
+                                    job
+                        in
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated
+                                    { teams =
+                                        [ { id = 0, name = "team" } ]
+                                    , pipelines =
+                                        [ onePipeline "team" ]
+                                    , jobs =
+                                        [ jobFunc status
+                                        ]
+                                    , resources = []
+                                    , version = ""
+                                    }
+                                |> queryView
+                                |> findBanner
                 in
                     [ test "is 7px tall" <|
                         \_ ->
@@ -229,110 +276,66 @@ all =
                                 |> isSolid blue
                     , test "is green when pipeline is succeeding" <|
                         \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataUnauthenticated
-                                    { teams =
-                                        [ { id = 0, name = "team" } ]
-                                    , pipelines =
-                                        [ onePipeline "team" ]
-                                    , jobs =
-                                        [ job Concourse.BuildStatusSucceeded
-                                        ]
-                                    , resources = []
-                                    , version = ""
-                                    }
-                                |> queryView
-                                |> findBanner
+                            pipelineWithStatus
+                                Concourse.BuildStatusSucceeded
+                                False
                                 |> isSolid green
                     , test "is green with black stripes when pipeline is succeeding and running" <|
                         \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataUnauthenticated
-                                    { teams =
-                                        [ { id = 0, name = "team" } ]
-                                    , pipelines =
-                                        [ onePipeline "team" ]
-                                    , jobs =
-                                        [ running <| job Concourse.BuildStatusSucceeded
-                                        ]
-                                    , resources = []
-                                    , version = ""
-                                    }
-                                |> queryView
-                                |> findBanner
+                            pipelineWithStatus
+                                Concourse.BuildStatusSucceeded
+                                True
                                 |> isColorWithStripes green darkGrey
                     , test "is grey when pipeline is pending" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
+                                |> givenDataUnauthenticated
                                     (oneTeamOnePipeline "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
                                 |> queryView
                                 |> findBanner
-                                |> Query.has [ style [] ]
+                                |> isSolid lightGrey
                     , test "is grey with black stripes when pipeline is pending and running" <|
                         \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipeline "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> queryView
-                                |> findBanner
-                                |> Query.has [ style [] ]
+                            pipelineWithStatus
+                                Concourse.BuildStatusStarted
+                                True
+                                |> isColorWithStripes lightGrey darkGrey
                     , test "is red when pipeline is failing" <|
                         \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipeline "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> queryView
-                                |> findBanner
-                                |> Query.has [ style [] ]
+                            pipelineWithStatus
+                                Concourse.BuildStatusFailed
+                                False
+                                |> isSolid red
                     , test "is red with black stripes when pipeline is failing and running" <|
                         \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipeline "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> queryView
-                                |> findBanner
-                                |> Query.has [ style [] ]
+                            pipelineWithStatus
+                                Concourse.BuildStatusFailed
+                                True
+                                |> isColorWithStripes red darkGrey
                     , test "is amber when pipeline is erroring" <|
                         \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipeline "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> queryView
-                                |> findBanner
-                                |> Query.has [ style [] ]
+                            pipelineWithStatus
+                                Concourse.BuildStatusErrored
+                                False
+                                |> isSolid amber
                     , test "is amber with black stripes when pipeline is erroring and running" <|
                         \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipeline "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> queryView
-                                |> findBanner
-                                |> Query.has [ style [] ]
+                            pipelineWithStatus
+                                Concourse.BuildStatusErrored
+                                True
+                                |> isColorWithStripes amber darkGrey
                     , test "is brown when pipeline is aborted" <|
                         \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipeline "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> queryView
-                                |> findBanner
-                                |> Query.has [ style [] ]
+                            pipelineWithStatus
+                                Concourse.BuildStatusAborted
+                                False
+                                |> isSolid brown
                     , test "is brown with black stripes when pipeline is aborted and running" <|
                         \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipeline "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> queryView
-                                |> findBanner
-                                |> Query.has [ style [] ]
+                            pipelineWithStatus
+                                Concourse.BuildStatusAborted
+                                True
+                                |> isColorWithStripes brown darkGrey
                     ]
             , describe "footer" <|
                 let
@@ -346,9 +349,9 @@ all =
                             |> Query.find [ class "dashboard-pipeline-footer" ]
                             |> Query.has [ style styles ]
                 in
-                    [ test "there is a light grey line dividing the footer from the rest of the card" <|
+                    [ test "there is a middle grey line dividing the footer from the rest of the card" <|
                         \_ ->
-                            hasStyle [ ( "border-top", "2px solid " ++ lightGrey ) ]
+                            hasStyle [ ( "border-top", "2px solid " ++ middleGrey ) ]
                     , test "has medium padding" <|
                         \_ ->
                             hasStyle [ ( "padding", "13.5px" ) ]
