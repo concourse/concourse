@@ -74,32 +74,25 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 	})
 }
 
-// CheckSharedWebHook defines a handler for process to check resources via shared webhooks
-func (s *Server) CheckSharedWebHook(w http.ResponseWriter, r *http.Request) {
+// CheckResourceSharedWebHook defines a handler for process to check resources via shared webhooks
+func (s *Server) CheckResourceSharedWebHook(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("check-resource-shared-webhook")
 
-	webhookToken := r.URL.Query().Get("webhook_token")
-	if webhookToken == "" {
+	token := r.URL.Query().Get("token")
+	if token == "" {
 		logger.Info("no-webhook-token", lager.Data{"error": "missing webhook_token"})
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	sourceKey := r.URL.Query().Get("source_key")
-	if sourceKey == "" {
-		logger.Info("no-source-key", lager.Data{"error": "missing source_key"})
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		logger.Info("no-webhook-name", lager.Data{"error": "missing webhook_name"})
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	sourceValue := r.URL.Query().Get("source_value")
-	if sourceValue == "" {
-		logger.Info("no-source-value", lager.Data{"error": "missing source_value"})
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	resources, err := s.resourceFactory.GetResourcesByWebhookToken(webhookToken, sourceKey, sourceValue)
+	resources, err := s.resourceFactory.GetResourcesByWebhook(name)
 	if err != nil {
 		hLog.Error("failed-to-get-resources", errors.New("sorry"))
 		w.WriteHeader(http.StatusInternalServerError)

@@ -20,7 +20,7 @@ type ConfigResponse struct {
 }
 
 type Config struct {
-	Webhooks      WebhookConfig   `yaml:"webhooks" json:"webhooks" mapstructure:"webhooks"`
+	Webhooks      WebhookConfigs  `yaml:"webhooks" json:"webhooks" mapstructure:"webhooks"`
 	Groups        GroupConfigs    `yaml:"groups" json:"groups" mapstructure:"groups"`
 	Resources     ResourceConfigs `yaml:"resources" json:"resources" mapstructure:"resources"`
 	ResourceTypes ResourceTypes   `yaml:"resource_types" json:"resource_types" mapstructure:"resource_types"`
@@ -56,16 +56,28 @@ type WebhookConfig struct {
 	Token string `yaml:"webhook_token,omitempty" json:"webhook_token" mapstructure:"webhook_token"`
 }
 
+type WebhookConfigs []WebhookConfig
+
+func (webhooks WebhookConfigs) Lookup(name string) (WebhookConfig, int, bool) {
+	for index, webhook := range webhooks {
+		if webhook.Name == name {
+			return webhook, index, true
+		}
+	}
+
+	return WebhookConfig{}, -1, false
+}
+
 type ResourceConfig struct {
-	Name         string  `yaml:"name" json:"name" mapstructure:"name"`
-	Webhooks     string  `yaml:"webhook,omitempty" json:"webhook" mapstructure:"webhook"`
-	WebhookToken string  `yaml:"webhook_token,omitempty" json:"webhook_token" mapstructure:"webhook_token"`
-	Type         string  `yaml:"type" json:"type" mapstructure:"type"`
-	Source       Source  `yaml:"source" json:"source" mapstructure:"source"`
-	CheckEvery   string  `yaml:"check_every,omitempty" json:"check_every" mapstructure:"check_every"`
-	CheckTimeout string  `yaml:"check_timeout,omitempty" json:"check_timeout" mapstructure:"check_timeout"`
-	Tags         Tags    `yaml:"tags,omitempty" json:"tags" mapstructure:"tags"`
-	Version      Version `yaml:"version,omitempty" json:"version" mapstructure:"version"`
+	Name         string   `yaml:"name" json:"name" mapstructure:"name"`
+	Webhooks     []string `yaml:"webhooks,omitempty" json:"webhooks" mapstructure:"webhooks"`
+	WebhookToken string   `yaml:"webhook_token,omitempty" json:"webhook_token" mapstructure:"webhook_token"`
+	Type         string   `yaml:"type" json:"type" mapstructure:"type"`
+	Source       Source   `yaml:"source" json:"source" mapstructure:"source"`
+	CheckEvery   string   `yaml:"check_every,omitempty" json:"check_every" mapstructure:"check_every"`
+	CheckTimeout string   `yaml:"check_timeout,omitempty" json:"check_timeout" mapstructure:"check_timeout"`
+	Tags         Tags     `yaml:"tags,omitempty" json:"tags" mapstructure:"tags"`
+	Version      Version  `yaml:"version,omitempty" json:"version" mapstructure:"version"`
 }
 
 type ResourceType struct {

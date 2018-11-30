@@ -459,6 +459,10 @@ var _ = Describe("Accessor", func() {
 		Entry("member :: "+atc.CheckResourceWebHook, atc.CheckResourceWebHook, "member", true),
 		Entry("viewer :: "+atc.CheckResourceWebHook, atc.CheckResourceWebHook, "viewer", false),
 
+		Entry("owner :: "+atc.CheckResourceSharedWebHook, atc.CheckResourceSharedWebHook, "owner", true),
+		Entry("member :: "+atc.CheckResourceSharedWebHook, atc.CheckResourceSharedWebHook, "member", true),
+		Entry("viewer :: "+atc.CheckResourceSharedWebHook, atc.CheckResourceSharedWebHook, "viewer", false),
+
 		Entry("owner :: "+atc.CheckResourceType, atc.CheckResourceType, "owner", true),
 		Entry("member :: "+atc.CheckResourceType, atc.CheckResourceType, "member", true),
 		Entry("viewer :: "+atc.CheckResourceType, atc.CheckResourceType, "viewer", false),

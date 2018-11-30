@@ -57,13 +57,9 @@ func (r *resourceFactory) VisibleResources(teamNames []string) ([]Resource, erro
 	return resources, nil
 }
 
-func (r *resourceFactory) GetResourcesByWebhookToken(webhookToken string, sourceKey string, sourceValue string) (Resources, error) {
+func (r *resourceFactory) GetResourcesByWebhook(name string) (Resources, error) {
 	rows, err := resourcesQuery.
-		Where(
-			sq.And{
-				sq.Eq{"r.config::json#>>'{webhook_token}'": webhookToken},
-				sq.Eq{"r.config::json#>>'{source," + sourceKey + "}'": sourceValue},
-			}).
+		Where("? IN (json_array_elements(r.config::json->>'{webhooks}'))", name).
 		RunWith(r.conn).
 		Query()
 	if err != nil {
