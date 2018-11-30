@@ -25,6 +25,7 @@ deploy () {
     fi
 
     fly -t prod up -p ${name}
+    fly -t prod ep -p ${name}
 
     rm $tmp_config_path
     rm $tmp_vars_path
