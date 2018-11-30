@@ -367,34 +367,34 @@ func (command *LoginCommand) legacyAuth(target rc.Target) (string, string, error
 		if chosenMethod.Type == "" {
 			return "", "", errors.New("basic auth is not available")
 		}
-	}
+	} else {
+		choices := make([]interact.Choice, len(authMethods))
 
-	choices := make([]interact.Choice, len(authMethods))
-
-	for i, method := range authMethods {
-		choices[i] = interact.Choice{
-			Display: method.DisplayName,
-			Value:   method,
-		}
-	}
-
-	if len(choices) == 0 {
-		chosenMethod = authMethod{
-			Type: "none",
-		}
-	}
-
-	if len(choices) == 1 {
-		chosenMethod = authMethods[0]
-	}
-
-	if len(choices) > 1 {
-		err = interact.NewInteraction("choose an auth method", choices...).Resolve(&chosenMethod)
-		if err != nil {
-			return "", "", err
+		for i, method := range authMethods {
+			choices[i] = interact.Choice{
+				Display: method.DisplayName,
+				Value:   method,
+			}
 		}
 
-		fmt.Println("")
+		if len(choices) == 0 {
+			chosenMethod = authMethod{
+				Type: "none",
+			}
+		}
+
+		if len(choices) == 1 {
+			chosenMethod = authMethods[0]
+		}
+
+		if len(choices) > 1 {
+			err = interact.NewInteraction("choose an auth method", choices...).Resolve(&chosenMethod)
+			if err != nil {
+				return "", "", err
+			}
+
+			fmt.Println("")
+		}
 	}
 
 	switch chosenMethod.Type {
