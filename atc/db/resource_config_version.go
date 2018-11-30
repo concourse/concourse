@@ -15,6 +15,7 @@ type ResourceConfigVersion interface {
 	Space() atc.Space
 	Version() Version
 	Metadata() ResourceConfigMetadataFields
+	Partial() bool
 	CheckOrder() int
 	ResourceConfig() ResourceConfig
 
@@ -58,10 +59,11 @@ type Version map[string]string
 
 type resourceConfigVersion struct {
 	id         int
+	space      atc.Space
 	version    Version
 	metadata   ResourceConfigMetadataFields
+	partial    bool
 	checkOrder int
-	space      atc.Space
 
 	resourceConfig ResourceConfig
 
@@ -72,6 +74,7 @@ var resourceConfigVersionQuery = psql.Select(`
 	v.id,
 	v.version,
 	v.metadata,
+	v.partial,
 	v.check_order,
 	s.name
 `).
@@ -81,10 +84,24 @@ var resourceConfigVersionQuery = psql.Select(`
 		"v.check_order": 0,
 	})
 
+// This query is for finding ALL resource config versions (even ones that have a check order of 0)
+// Do not use this query unless you are meaning to grab versions that are not yet validated
+var uncheckedResourceConfigVersionQuery = psql.Select(`
+	v.id,
+	v.version,
+	v.metadata,
+	v.partial,
+	v.check_order,
+	s.name
+`).
+	From("resource_versions v").
+	LeftJoin("spaces s ON v.space_id = s.id")
+
 func (r *resourceConfigVersion) ID() int                                { return r.id }
 func (r *resourceConfigVersion) Space() atc.Space                       { return r.space }
 func (r *resourceConfigVersion) Version() Version                       { return r.version }
 func (r *resourceConfigVersion) Metadata() ResourceConfigMetadataFields { return r.metadata }
+func (r *resourceConfigVersion) Partial() bool                          { return r.partial }
 func (r *resourceConfigVersion) CheckOrder() int                        { return r.checkOrder }
 func (r *resourceConfigVersion) ResourceConfig() ResourceConfig         { return r.resourceConfig }
 
@@ -107,7 +124,7 @@ func (r *resourceConfigVersion) Reload() (bool, error) {
 func scanResourceConfigVersion(r *resourceConfigVersion, scan scannable) error {
 	var version, metadata sql.NullString
 
-	err := scan.Scan(&r.id, &version, &metadata, &r.checkOrder, &r.space)
+	err := scan.Scan(&r.id, &version, &metadata, &r.partial, &r.checkOrder, &r.space)
 	if err != nil {
 		return err
 	}

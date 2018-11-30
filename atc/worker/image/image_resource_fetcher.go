@@ -161,6 +161,7 @@ func (i *imageResourceFetcher) Fetch(
 
 	resourceInstance := resource.NewResourceInstance(
 		resource.ResourceType(i.imageResource.Type),
+		defaultSpace,
 		version,
 		source,
 		params,

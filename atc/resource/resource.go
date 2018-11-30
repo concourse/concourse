@@ -13,7 +13,7 @@ import (
 
 type Resource interface {
 	Get(context.Context, worker.Volume, atc.IOConfig, atc.Source, atc.Params, atc.Space, atc.Version) error
-	Put(context.Context, v2.PutEventHandler, atc.IOConfig, atc.Source, atc.Params) (atc.PutResponse, error)
+	Put(context.Context, v2.PutEventHandler, atc.IOConfig, atc.Source, atc.Params) ([]atc.SpaceVersion, error)
 	Check(context.Context, v2.CheckEventHandler, atc.Source, map[atc.Space]atc.Version) error
 	Container() worker.Container
 }

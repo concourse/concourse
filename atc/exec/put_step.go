@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"fmt"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -11,6 +12,14 @@ import (
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
+
+type VersionNotFoundError struct {
+	Space atc.Space
+}
+
+func (e *VersionNotFoundError) Error() string {
+	return fmt.Sprintf("latest version not found within space %s", e.Space)
+}
 
 //go:generate counterfeiter . PutDelegate
 
@@ -141,7 +150,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	_, err = putResource.Put(
+	versions, err := putResource.Put(
 		ctx,
 		NewPutEventHandler(),
 		atc.IOConfig{
@@ -151,7 +160,6 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		source,
 		params,
 	)
-
 	if err != nil {
 		logger.Error("failed-to-put-resource", err)
 
@@ -163,31 +171,27 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	// step.versionInfo = VersionInfo{
-	// 	Version:  versionedSource.Version(),
-	// 	Metadata: versionedSource.Metadata(),
-	// }
+	if len(versions) != 0 {
+		version := versions[len(versions)-1]
 
-	if step.resource != "" {
-		logger = logger.WithData(lager.Data{"step": step.name, "resource": step.resource, "resource-type": step.resourceType, "version": step.versionInfo.Version})
-		// created, err := resourceConfig.SaveUncheckedVersion(step.versionInfo.Version, db.NewResourceConfigMetadataFields(step.versionInfo.Metadata))
-		// if err != nil {
-		// 	logger.Error("failed-to-save-version", err)
-		// 	return err
-		// }
+		step.versionInfo = VersionInfo{
+			Version:  version.Version,
+			Space:    version.Space,
+			Metadata: version.Metadata,
+		}
 
-		// err = step.build.SaveOutput(resourceConfig, step.versionInfo.Version, step.name, step.resource, created)
-		// if err != nil {
-		// 	logger.Error("failed-to-save-output", err)
-		// 	return err
-		// }
+		if step.resource != "" {
+			logger = logger.WithData(lager.Data{"step": step.name, "resource": step.resource, "resource-type": step.resourceType})
+
+			for _, v := range versions {
+				err = step.build.SaveOutput(resourceConfig, v, step.name, step.resource)
+				if err != nil {
+					logger.Error("failed-to-save-output", err, lager.Data{"version": v.Version})
+					return err
+				}
+			}
+		}
 	}
-	// Call resourceConfig.LatestVersion() returns back all current versions for all spaces
-	//    spaceVersions := resourceConfig.LatestVersion()
-	// Grab the current version for the space returned by the put
-	//    currentVersion := spaceVersions[putSpace]
-	// Use that current version as the from for the check
-	//    Check(.., ..., currentVersion)
 
 	state.StoreResult(step.planID, step.versionInfo)
 

@@ -1,5 +1,4 @@
 BEGIN;
-
   CREATE TABLE spaces (
     id serial PRIMARY KEY,
     resource_config_id integer REFERENCES resource_configs (id) ON DELETE CASCADE,
@@ -13,6 +12,7 @@ BEGIN;
       "version" jsonb NOT NULL,
       "version_md5" text NOT NULL,
       "metadata" jsonb NOT NULL DEFAULT 'null',
+      "partial" boolean NOT NULL,
       "check_order" integer NOT NULL DEFAULT 0
   );
 
@@ -74,4 +74,11 @@ BEGIN;
 
   ALTER TABLE resource_caches DROP COLUMN metadata;
 
+  ALTER TABLE build_resource_config_version_inputs
+    RENAME TO build_inputs
+    ADD COLUMN space text NOT NULL;
+
+  ALTER TABLE build_resource_config_version_outputs
+    RENAME TO build_outputs
+    ADD COLUMN space text NOT NULL;
  COMMIT;

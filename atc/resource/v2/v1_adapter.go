@@ -48,7 +48,7 @@ func (a *V1Adapter) Get(
 		return err
 	}
 
-	_, err = a.resourceConfig.SaveUncheckedVersion(version, db.NewResourceConfigMetadataFields(versionedSource.Metadata()))
+	_, err = a.resourceConfig.SaveUncheckedVersion(atc.Space("v1space"), version, db.NewResourceConfigMetadataFields(versionedSource.Metadata()))
 	return err
 }
 
@@ -58,15 +58,18 @@ func (a *V1Adapter) Put(
 	ioConfig atc.IOConfig,
 	source atc.Source,
 	params atc.Params,
-) (atc.PutResponse, error) {
+) ([]atc.SpaceVersion, error) {
 	versionedSource, err := a.resource.Put(context, ioConfig, source, params)
 	if err != nil {
-		return atc.PutResponse{}, err
+		return nil, err
 	}
 
-	return atc.PutResponse{
-		Space:           "v1space",
-		CreatedVersions: []atc.Version{versionedSource.Version()},
+	return []atc.SpaceVersion{
+		{
+			Space:    "v1space",
+			Version:  versionedSource.Version(),
+			Metadata: versionedSource.Metadata(),
+		},
 	}, nil
 }
 

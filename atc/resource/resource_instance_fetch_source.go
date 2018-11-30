@@ -133,8 +133,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (worker.Volume
 		},
 		s.resourceInstance.Source(),
 		s.resourceInstance.Params(),
-		// XXX: use the correct space
-		"",
+		s.resourceInstance.Space(),
 		s.resourceInstance.Version(),
 	)
 	if err != nil {

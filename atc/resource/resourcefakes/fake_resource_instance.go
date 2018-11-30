@@ -91,6 +91,16 @@ type FakeResourceInstance struct {
 	sourceReturnsOnCall map[int]struct {
 		result1 atc.Source
 	}
+	SpaceStub        func() atc.Space
+	spaceMutex       sync.RWMutex
+	spaceArgsForCall []struct {
+	}
+	spaceReturns struct {
+		result1 atc.Space
+	}
+	spaceReturnsOnCall map[int]struct {
+		result1 atc.Space
+	}
 	VersionStub        func() atc.Version
 	versionMutex       sync.RWMutex
 	versionArgsForCall []struct {
@@ -425,6 +435,48 @@ func (fake *FakeResourceInstance) SourceReturnsOnCall(i int, result1 atc.Source)
 	}{result1}
 }
 
+func (fake *FakeResourceInstance) Space() atc.Space {
+	fake.spaceMutex.Lock()
+	ret, specificReturn := fake.spaceReturnsOnCall[len(fake.spaceArgsForCall)]
+	fake.spaceArgsForCall = append(fake.spaceArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Space", []interface{}{})
+	fake.spaceMutex.Unlock()
+	if fake.SpaceStub != nil {
+		return fake.SpaceStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.spaceReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceInstance) SpaceCallCount() int {
+	fake.spaceMutex.RLock()
+	defer fake.spaceMutex.RUnlock()
+	return len(fake.spaceArgsForCall)
+}
+
+func (fake *FakeResourceInstance) SpaceReturns(result1 atc.Space) {
+	fake.SpaceStub = nil
+	fake.spaceReturns = struct {
+		result1 atc.Space
+	}{result1}
+}
+
+func (fake *FakeResourceInstance) SpaceReturnsOnCall(i int, result1 atc.Space) {
+	fake.SpaceStub = nil
+	if fake.spaceReturnsOnCall == nil {
+		fake.spaceReturnsOnCall = make(map[int]struct {
+			result1 atc.Space
+		})
+	}
+	fake.spaceReturnsOnCall[i] = struct {
+		result1 atc.Space
+	}{result1}
+}
+
 func (fake *FakeResourceInstance) Version() atc.Version {
 	fake.versionMutex.Lock()
 	ret, specificReturn := fake.versionReturnsOnCall[len(fake.versionArgsForCall)]
@@ -484,6 +536,8 @@ func (fake *FakeResourceInstance) Invocations() map[string][][]interface{} {
 	defer fake.resourceTypeMutex.RUnlock()
 	fake.sourceMutex.RLock()
 	defer fake.sourceMutex.RUnlock()
+	fake.spaceMutex.RLock()
+	defer fake.spaceMutex.RUnlock()
 	fake.versionMutex.RLock()
 	defer fake.versionMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

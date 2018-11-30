@@ -76,6 +76,7 @@ type GetPlan struct {
 	Params      Params   `json:"params,omitempty"`
 	Version     *Version `json:"version,omitempty"`
 	VersionFrom *PlanID  `json:"version_from,omitempty"`
+	Space       Space    `json:"space,omitempty"`
 	Tags        Tags     `json:"tags,omitempty"`
 
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`

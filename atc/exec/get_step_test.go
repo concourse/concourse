@@ -37,14 +37,17 @@ var _ = Describe("GetStep", func() {
 		fakeResourceFetcher       *resourcefakes.FakeFetcher
 		fakeResourceCacheFactory  *dbfakes.FakeResourceCacheFactory
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
+		fakeResourceCache         *dbfakes.FakeUsedResourceCache
+		fakeResourceConfig        *dbfakes.FakeResourceConfig
+		fakeResourceConfigVersion *dbfakes.FakeResourceConfigVersion
 		fakeVariablesFactory      *credsfakes.FakeVariablesFactory
 		variables                 creds.Variables
 		fakeBuild                 *dbfakes.FakeBuild
 		fakeDelegate              *execfakes.FakeGetDelegate
 		getPlan                   *atc.GetPlan
 
-		fakeVersionedSource *resourcefakes.FakeVersionedSource
-		resourceTypes       atc.VersionedResourceTypes
+		fakeVolume    *workerfakes.FakeVolume
+		resourceTypes atc.VersionedResourceTypes
 
 		artifactRepository *worker.ArtifactRepository
 		state              *execfakes.FakeRunState
@@ -72,6 +75,9 @@ var _ = Describe("GetStep", func() {
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
+		fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
+		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
+		fakeResourceConfigVersion = new(dbfakes.FakeResourceConfigVersion)
 
 		fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
 		variables = template.StaticVariables{
@@ -83,10 +89,12 @@ var _ = Describe("GetStep", func() {
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(artifactRepository)
 
-		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
-		fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
+		fakeVolume = new(workerfakes.FakeVolume)
+		fakeResourceFetcher.FetchReturns(fakeVolume, nil)
 
 		fakeResourceFactory := new(resourcefakes.FakeResourceFactory)
+		fakeResourceCache.ResourceConfigReturns(fakeResourceConfig)
+		fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeResourceCache, nil)
 
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeBuild.IDReturns(buildID)
@@ -109,6 +117,7 @@ var _ = Describe("GetStep", func() {
 			Source:                 atc.Source{"some": "((source-param))"},
 			Params:                 atc.Params{"some-param": "some-value"},
 			Tags:                   []string{"some", "tags"},
+			Space:                  atc.Space("space"),
 			Version:                &atc.Version{"some-version": "some-value"},
 			VersionedResourceTypes: resourceTypes,
 		}
@@ -157,18 +166,19 @@ var _ = Describe("GetStep", func() {
 		Expect(actualTeamID).To(Equal(teamID))
 		Expect(resourceInstance).To(Equal(resource.NewResourceInstance(
 			"some-resource-type",
+			atc.Space("space"),
 			atc.Version{"some-version": "some-value"},
 			atc.Source{"some": "super-secret-source"},
 			atc.Params{"some-param": "some-value"},
 			creds.NewVersionedResourceTypes(variables, resourceTypes),
-			nil,
+			fakeResourceCache,
 			db.NewBuildStepContainerOwner(buildID, atc.PlanID(planID), teamID),
 		)))
 		Expect(actualResourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, resourceTypes)))
 		Expect(delegate).To(Equal(fakeDelegate))
 		expectedLockName := fmt.Sprintf("%x",
 			sha256.Sum256([]byte(
-				`{"type":"some-resource-type","version":{"some-version":"some-value"},"source":{"some":"super-secret-source"},"params":{"some-param":"some-value"},"worker_name":"fake-worker"}`,
+				`{"type":"some-resource-type","space":"space","version":{"some-version":"some-value"},"source":{"some":"super-secret-source"},"params":{"some-param":"some-value"},"worker_name":"fake-worker"}`,
 			)),
 		)
 
@@ -177,8 +187,12 @@ var _ = Describe("GetStep", func() {
 
 	Context("when fetching resource succeeds", func() {
 		BeforeEach(func() {
-			fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
-			fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
+			getPlan.Resource = "some-pipeline-resource"
+
+			fakeResourceConfigVersion.MetadataReturns(db.ResourceConfigMetadataFields{{Name: "some", Value: "metadata"}})
+			fakeResourceConfig.FindUncheckedVersionReturns(fakeResourceConfigVersion, true, nil)
+			fakeResourceCache.ResourceConfigReturns(fakeResourceConfig)
+			fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeResourceCache, nil)
 		})
 
 		It("returns nil", func() {
@@ -193,59 +207,37 @@ var _ = Describe("GetStep", func() {
 			Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 			_, status, info := fakeDelegate.FinishedArgsForCall(0)
 			Expect(status).To(Equal(exec.ExitStatus(0)))
-			Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
+			Expect(info.Version).To(Equal(atc.Version{"some-version": "some-value"}))
 			Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
 		})
 
-		Context("when getting a pipeline resource", func() {
-			var fakeResourceCache *dbfakes.FakeUsedResourceCache
-			var fakeResourceConfig *dbfakes.FakeResourceConfig
+		It("finds the resource config version", func() {
+			Expect(fakeResourceConfig.FindUncheckedVersionCallCount()).To(Equal(1))
+
+			space, version := fakeResourceConfig.FindUncheckedVersionArgsForCall(0)
+			Expect(space).To(Equal(atc.Space("space")))
+			Expect(version).To(Equal(atc.Version{"some-version": "some-value"}))
+		})
+
+		Context("when it fails to find the version", func() {
+			disaster := errors.New("oops")
 
 			BeforeEach(func() {
-				getPlan.Resource = "some-pipeline-resource"
-
-				fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
-				fakeResourceConfig = new(dbfakes.FakeResourceConfig)
-				fakeResourceCache.ResourceConfigReturns(fakeResourceConfig)
-				fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeResourceCache, nil)
+				fakeResourceConfig.FindUncheckedVersionReturns(nil, false, disaster)
 			})
 
-			It("saves the resource config version", func() {
-				Expect(fakeResourceConfig.SaveUncheckedVersionCallCount()).To(Equal(1))
-
-				version, metadata := fakeResourceConfig.SaveUncheckedVersionArgsForCall(0)
-				Expect(version).To(Equal(atc.Version{"some": "version"}))
-				Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields([]atc.MetadataField{{"some", "metadata"}})))
-			})
-
-			Context("when it fails to save the version", func() {
-				disaster := errors.New("oops")
-
-				BeforeEach(func() {
-					fakeResourceConfig.SaveUncheckedVersionReturns(false, disaster)
-				})
-
-				It("returns an error", func() {
-					Expect(stepErr).To(Equal(disaster))
-				})
+			It("returns an error", func() {
+				Expect(stepErr).To(Equal(disaster))
 			})
 		})
 
-		Context("when getting an anonymous resource", func() {
-			var fakeResourceCache *dbfakes.FakeUsedResourceCache
-			var fakeResourceConfig *dbfakes.FakeResourceConfig
+		Context("when the version is not found", func() {
 			BeforeEach(func() {
-				getPlan.Resource = ""
-
-				fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
-				fakeResourceConfig = new(dbfakes.FakeResourceConfig)
-				fakeResourceCache.ResourceConfigReturns(fakeResourceConfig)
-				fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeResourceCache, nil)
+				fakeResourceConfig.FindUncheckedVersionReturns(nil, false, nil)
 			})
 
-			It("does not save the resource config version", func() {
-				// TODO: this can be removed once /check returns metadata
-				Expect(fakeResourceConfig.SaveUncheckedVersionCallCount()).To(Equal(0))
+			It("does not return an error", func() {
+				Expect(stepErr).To(BeNil())
 			})
 		})
 
@@ -272,15 +264,15 @@ var _ = Describe("GetStep", func() {
 
 					BeforeEach(func() {
 						streamedOut = gbytes.NewBuffer()
-						fakeVersionedSource.StreamOutReturns(streamedOut, nil)
+						fakeVolume.StreamOutReturns(streamedOut, nil)
 					})
 
 					It("streams the resource to the destination", func() {
 						err := artifactSource.StreamTo(fakeDestination)
 						Expect(err).NotTo(HaveOccurred())
 
-						Expect(fakeVersionedSource.StreamOutCallCount()).To(Equal(1))
-						Expect(fakeVersionedSource.StreamOutArgsForCall(0)).To(Equal("."))
+						Expect(fakeVolume.StreamOutCallCount()).To(Equal(1))
+						Expect(fakeVolume.StreamOutArgsForCall(0)).To(Equal("."))
 
 						Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
 						dest, src := fakeDestination.StreamInArgsForCall(0)
@@ -292,7 +284,7 @@ var _ = Describe("GetStep", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {
-							fakeVersionedSource.StreamOutReturns(nil, disaster)
+							fakeVolume.StreamOutReturns(nil, disaster)
 						})
 
 						It("returns the error", func() {
@@ -317,7 +309,7 @@ var _ = Describe("GetStep", func() {
 					disaster := errors.New("nope")
 
 					BeforeEach(func() {
-						fakeVersionedSource.StreamOutReturns(nil, disaster)
+						fakeVolume.StreamOutReturns(nil, disaster)
 					})
 
 					It("returns the error", func() {
@@ -336,7 +328,7 @@ var _ = Describe("GetStep", func() {
 
 					BeforeEach(func() {
 						tgzBuffer = gbytes.NewBuffer()
-						fakeVersionedSource.StreamOutReturns(tgzBuffer, nil)
+						fakeVolume.StreamOutReturns(tgzBuffer, nil)
 					})
 
 					Context("when the file exists", func() {
@@ -364,7 +356,7 @@ var _ = Describe("GetStep", func() {
 
 							Expect(ioutil.ReadAll(reader)).To(Equal([]byte(fileContent)))
 
-							Expect(fakeVersionedSource.StreamOutArgsForCall(0)).To(Equal("some-path"))
+							Expect(fakeVolume.StreamOutArgsForCall(0)).To(Equal("some-path"))
 						})
 
 						Describe("closing the stream", func() {
@@ -394,7 +386,7 @@ var _ = Describe("GetStep", func() {
 					disaster := errors.New("nope")
 
 					BeforeEach(func() {
-						fakeVersionedSource.StreamOutReturns(nil, disaster)
+						fakeVolume.StreamOutReturns(nil, disaster)
 					})
 
 					It("returns the error", func() {
@@ -408,7 +400,7 @@ var _ = Describe("GetStep", func() {
 
 	Context("when fetching the resource exits unsuccessfully", func() {
 		BeforeEach(func() {
-			fakeResourceFetcher.FetchReturns(nil, resource.ErrResourceScriptFailed{
+			fakeResourceFetcher.FetchReturns(nil, atc.ErrResourceScriptFailed{
 				ExitStatus: 42,
 			})
 		})

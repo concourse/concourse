@@ -135,7 +135,7 @@ func NewGetStep(
 func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 
-	version, err := step.versionSource.Version(state)
+	version, space, err := step.versionSource.SpaceVersion(state)
 	if err != nil {
 		return err
 	}
@@ -150,6 +150,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
+	// XXX: find or create resource cache from space too
 	resourceCache, err := step.dbResourceCacheFactory.FindOrCreateResourceCache(
 		logger,
 		db.ForBuild(step.buildID),
@@ -166,6 +167,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 
 	resourceInstance := resource.NewResourceInstance(
 		resource.ResourceType(step.resourceType),
+		space,
 		version,
 		source,
 		params,
@@ -198,16 +200,15 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	// XXX: Need to find version that might have a check order of 0 AND get space from exec
-	resourceVersion, found, err := resourceCache.ResourceConfig().FindVersion(version, atc.Space(""))
-	if !found {
-		logger.Error("resource-version-not-found", err, lager.Data{"version": version})
-		return nil
-	}
-
+	resourceVersion, found, err := resourceCache.ResourceConfig().FindUncheckedVersion(space, version)
 	if err != nil {
 		logger.Error("failed-to-find-resource-version", err, lager.Data{"version": version})
 		return err
+	}
+
+	if !found {
+		logger.Error("resource-version-not-found", err, lager.Data{"version": version})
+		return nil
 	}
 
 	state.Artifacts().RegisterSource(worker.ArtifactName(step.name), &getArtifactSource{

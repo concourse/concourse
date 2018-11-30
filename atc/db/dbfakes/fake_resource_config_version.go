@@ -39,6 +39,16 @@ type FakeResourceConfigVersion struct {
 	metadataReturnsOnCall map[int]struct {
 		result1 db.ResourceConfigMetadataFields
 	}
+	PartialStub        func() bool
+	partialMutex       sync.RWMutex
+	partialArgsForCall []struct {
+	}
+	partialReturns struct {
+		result1 bool
+	}
+	partialReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	ReloadStub        func() (bool, error)
 	reloadMutex       sync.RWMutex
 	reloadArgsForCall []struct {
@@ -208,6 +218,48 @@ func (fake *FakeResourceConfigVersion) MetadataReturnsOnCall(i int, result1 db.R
 	}
 	fake.metadataReturnsOnCall[i] = struct {
 		result1 db.ResourceConfigMetadataFields
+	}{result1}
+}
+
+func (fake *FakeResourceConfigVersion) Partial() bool {
+	fake.partialMutex.Lock()
+	ret, specificReturn := fake.partialReturnsOnCall[len(fake.partialArgsForCall)]
+	fake.partialArgsForCall = append(fake.partialArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Partial", []interface{}{})
+	fake.partialMutex.Unlock()
+	if fake.PartialStub != nil {
+		return fake.PartialStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.partialReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceConfigVersion) PartialCallCount() int {
+	fake.partialMutex.RLock()
+	defer fake.partialMutex.RUnlock()
+	return len(fake.partialArgsForCall)
+}
+
+func (fake *FakeResourceConfigVersion) PartialReturns(result1 bool) {
+	fake.PartialStub = nil
+	fake.partialReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeResourceConfigVersion) PartialReturnsOnCall(i int, result1 bool) {
+	fake.PartialStub = nil
+	if fake.partialReturnsOnCall == nil {
+		fake.partialReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.partialReturnsOnCall[i] = struct {
+		result1 bool
 	}{result1}
 }
 
@@ -391,6 +443,8 @@ func (fake *FakeResourceConfigVersion) Invocations() map[string][][]interface{} 
 	defer fake.iDMutex.RUnlock()
 	fake.metadataMutex.RLock()
 	defer fake.metadataMutex.RUnlock()
+	fake.partialMutex.RLock()
+	defer fake.partialMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
 	fake.resourceConfigMutex.RLock()

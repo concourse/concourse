@@ -81,16 +81,21 @@ func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
 	return configs
 }
 
-var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, rcv.version, r.nonce, r.check_error, c.check_error").
+// XXX: Instead of always using default space, we should use the space specified on the resource
+// XXX: ALSO pull out the version query to a separate method
+var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, rv.version, r.nonce, r.check_error, c.check_error").
 	From("resource_types r").
 	LeftJoin("resource_configs c ON r.resource_config_id = c.id").
 	LeftJoin(`LATERAL (
-		SELECT rcv.*
-		FROM resource_config_versions rcv
-		WHERE rcv.resource_config_id = c.id AND rcv.check_order != 0
-		ORDER BY rcv.check_order DESC
+		SELECT rv.*
+		FROM resource_versions rv, spaces s
+		WHERE s.resource_config_id = c.id
+		AND s.name = c.default_space
+		AND s.id = rv.space_id
+		AND rv.check_order != 0
+		ORDER BY rv.check_order DESC
 		LIMIT 1
-	) AS rcv ON true`).
+	) AS rv ON true`).
 	Where(sq.Eq{"r.active": true})
 
 type resourceType struct {

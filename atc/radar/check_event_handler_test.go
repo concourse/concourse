@@ -112,8 +112,10 @@ var _ = Describe("Check Event Handler", func() {
 
 		It("saves the version", func() {
 			Expect(fakeResourceConfig.SaveVersionCallCount()).To(Equal(1))
-			_, savedVersion := fakeResourceConfig.SaveVersionArgsForCall(0)
-			Expect(savedVersion).To(Equal(atc.SpaceVersion{space, version, metadata}))
+			_, actualSpace, actualVersion, actualMetadata := fakeResourceConfig.SaveVersionArgsForCall(0)
+			Expect(actualSpace).To(Equal(space))
+			Expect(actualVersion).To(Equal(version))
+			Expect(actualMetadata).To(Equal(metadata))
 		})
 	})
 

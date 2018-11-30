@@ -9,41 +9,50 @@ import (
 )
 
 type FakePutEventHandler struct {
-	CreatedResponseStub        func(atc.Space, atc.Version, *atc.PutResponse) error
+	CreatedResponseStub        func(atc.Space, atc.Version, atc.Metadata, []atc.SpaceVersion) ([]atc.SpaceVersion, error)
 	createdResponseMutex       sync.RWMutex
 	createdResponseArgsForCall []struct {
 		arg1 atc.Space
 		arg2 atc.Version
-		arg3 *atc.PutResponse
+		arg3 atc.Metadata
+		arg4 []atc.SpaceVersion
 	}
 	createdResponseReturns struct {
-		result1 error
+		result1 []atc.SpaceVersion
+		result2 error
 	}
 	createdResponseReturnsOnCall map[int]struct {
-		result1 error
+		result1 []atc.SpaceVersion
+		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakePutEventHandler) CreatedResponse(arg1 atc.Space, arg2 atc.Version, arg3 *atc.PutResponse) error {
+func (fake *FakePutEventHandler) CreatedResponse(arg1 atc.Space, arg2 atc.Version, arg3 atc.Metadata, arg4 []atc.SpaceVersion) ([]atc.SpaceVersion, error) {
+	var arg4Copy []atc.SpaceVersion
+	if arg4 != nil {
+		arg4Copy = make([]atc.SpaceVersion, len(arg4))
+		copy(arg4Copy, arg4)
+	}
 	fake.createdResponseMutex.Lock()
 	ret, specificReturn := fake.createdResponseReturnsOnCall[len(fake.createdResponseArgsForCall)]
 	fake.createdResponseArgsForCall = append(fake.createdResponseArgsForCall, struct {
 		arg1 atc.Space
 		arg2 atc.Version
-		arg3 *atc.PutResponse
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("CreatedResponse", []interface{}{arg1, arg2, arg3})
+		arg3 atc.Metadata
+		arg4 []atc.SpaceVersion
+	}{arg1, arg2, arg3, arg4Copy})
+	fake.recordInvocation("CreatedResponse", []interface{}{arg1, arg2, arg3, arg4Copy})
 	fake.createdResponseMutex.Unlock()
 	if fake.CreatedResponseStub != nil {
-		return fake.CreatedResponseStub(arg1, arg2, arg3)
+		return fake.CreatedResponseStub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
 	fakeReturns := fake.createdResponseReturns
-	return fakeReturns.result1
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakePutEventHandler) CreatedResponseCallCount() int {
@@ -52,30 +61,33 @@ func (fake *FakePutEventHandler) CreatedResponseCallCount() int {
 	return len(fake.createdResponseArgsForCall)
 }
 
-func (fake *FakePutEventHandler) CreatedResponseArgsForCall(i int) (atc.Space, atc.Version, *atc.PutResponse) {
+func (fake *FakePutEventHandler) CreatedResponseArgsForCall(i int) (atc.Space, atc.Version, atc.Metadata, []atc.SpaceVersion) {
 	fake.createdResponseMutex.RLock()
 	defer fake.createdResponseMutex.RUnlock()
 	argsForCall := fake.createdResponseArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakePutEventHandler) CreatedResponseReturns(result1 error) {
+func (fake *FakePutEventHandler) CreatedResponseReturns(result1 []atc.SpaceVersion, result2 error) {
 	fake.CreatedResponseStub = nil
 	fake.createdResponseReturns = struct {
-		result1 error
-	}{result1}
+		result1 []atc.SpaceVersion
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakePutEventHandler) CreatedResponseReturnsOnCall(i int, result1 error) {
+func (fake *FakePutEventHandler) CreatedResponseReturnsOnCall(i int, result1 []atc.SpaceVersion, result2 error) {
 	fake.CreatedResponseStub = nil
 	if fake.createdResponseReturnsOnCall == nil {
 		fake.createdResponseReturnsOnCall = make(map[int]struct {
-			result1 error
+			result1 []atc.SpaceVersion
+			result2 error
 		})
 	}
 	fake.createdResponseReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
+		result1 []atc.SpaceVersion
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakePutEventHandler) Invocations() map[string][][]interface{} {

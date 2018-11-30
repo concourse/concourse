@@ -332,10 +332,14 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				err = defaultResource.SetResourceConfig(rc.ResourceConfig().ID())
 				Expect(err).ToNot(HaveOccurred())
 
-				err = rc.ResourceConfig().SaveVersions([]atc.Version{{"some": "version"}})
-				Expect(err).ToNot(HaveOccurred())
+				saveVersions(rc.ResourceConfig(), []atc.SpaceVersion{
+					{
+						Space:   atc.Space("space"),
+						Version: atc.Version{"some": "version"},
+					},
+				})
 
-				resourceConfigVersion, found, err := rc.ResourceConfig().FindVersion(atc.Version{"some": "version"})
+				resourceConfigVersion, found, err := rc.ResourceConfig().FindVersion(atc.Space("space"), atc.Version{"some": "version"})
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 

@@ -88,7 +88,7 @@ type Build interface {
 	Events(uint) (EventSource, error)
 	SaveEvent(event atc.Event) error
 
-	SaveOutput(ResourceConfig, atc.Version, string, string, bool) error
+	SaveOutput(ResourceConfig, atc.SpaceVersion, string, string) error
 	UseInputs(inputs []BuildInput) error
 
 	Resources() ([]BuildInput, []BuildOutput, error)
@@ -773,10 +773,9 @@ func (b *build) SaveEvent(event atc.Event) error {
 
 func (b *build) SaveOutput(
 	rc ResourceConfig,
-	version atc.Version,
+	version atc.SpaceVersion,
 	outputName string,
 	resourceName string,
-	newVersion bool,
 ) error {
 	// We should never save outputs for builds without a Pipeline ID because
 	// One-off Builds will never have Put steps. This shouldn't happen, but
@@ -785,58 +784,33 @@ func (b *build) SaveOutput(
 		return ErrBuildHasNoPipeline
 	}
 
-	tx, err := b.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer Rollback(tx)
-
 	var versionJSON string
-	versionBytes, err := json.Marshal(version)
+	versionBytes, err := json.Marshal(version.Version)
 	if err != nil {
 		return err
 	}
 
 	versionJSON = string(versionBytes)
 
-	if newVersion {
-		// XXX: FIX
-		err = incrementCheckOrder(tx, rc, atc.Space("space"), versionJSON)
-		if err != nil {
-			return err
-		}
-
-		err = bumpCacheIndexForPipelinesUsingResourceConfig(tx, rc.ID())
-		if err != nil {
-			return err
-		}
-	}
-
 	// Use the Resource Name and the Build's Pipeline ID to find the Resource ID
-	selectResourceID := sq.Select("r.id", strconv.Itoa(b.id), fmt.Sprintf("md5('%s')", versionJSON), fmt.Sprintf("'%s'", outputName)).
+	selectResourceID := sq.Select("r.id", strconv.Itoa(b.id), string(version.Space), fmt.Sprintf("md5('%s')", versionJSON), fmt.Sprintf("'%s'", outputName)).
 		From("resources r").Where(sq.Eq{
 		"r.pipeline_id": b.pipelineID,
 		"r.name":        resourceName,
 	})
 
-	_, err = psql.Insert("build_resource_config_version_outputs").
-		Columns("resource_id", "build_id", "version_md5", "name").
+	_, err = psql.Insert("build_outputs").
+		Columns("resource_id", "build_id", "space", "version_md5", "name").
 		Select(selectResourceID).
 		Suffix("ON CONFLICT DO NOTHING").
-		RunWith(tx).
+		RunWith(b.conn).
 		Exec()
 
 	if err != nil {
 		return err
 	}
 
-	err = bumpCacheIndex(tx, b.pipelineID)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	return nil
 }
 
 func (b *build) UseInputs(inputs []BuildInput) error {

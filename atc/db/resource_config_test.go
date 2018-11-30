@@ -193,102 +193,10 @@ var _ = Describe("ResourceConfig", func() {
 		})
 	})
 
-	Describe("SaveVersions", func() {
-		var (
-			originalVersionSlice []atc.Version
-			resourceConfig       db.ResourceConfig
-		)
-
-		BeforeEach(func() {
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			brt := db.BaseResourceType{
-				Name: "some-type",
-			}
-			_, err = brt.FindOrCreate(setupTx)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
-			resourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			originalVersionSlice = []atc.Version{
-				{"ref": "v1"},
-				{"ref": "v3"},
-			}
-		})
-
-		// XXX: Can make test more resilient if there is a method that gives all versions by descending check order
-		It("ensures versioned resources have the correct check_order", func() {
-			err := resourceConfig.SaveVersions(originalVersionSlice)
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resourceConfig.SaveSpace(atc.Space("space"))
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resourceConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"ref": "v3"})
-			Expect(err).ToNot(HaveOccurred())
-
-			latestVR, err := resourceConfig.LatestVersions()
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(latestVR[0].Version()).To(Equal(db.Version{"ref": "v3"}))
-			Expect(latestVR[0].CheckOrder()).To(Equal(2))
-
-			pretendCheckResults := []atc.Version{
-				{"ref": "v2"},
-				{"ref": "v3"},
-			}
-
-			err = resourceConfig.SaveVersions(pretendCheckResults)
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resourceConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"ref": "v3"})
-			Expect(err).ToNot(HaveOccurred())
-
-			latestVR, err = resourceConfig.LatestVersions()
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(latestVR[0].Version()).To(Equal(db.Version{"ref": "v3"}))
-			Expect(latestVR[0].CheckOrder()).To(Equal(4))
-		})
-
-		Context("when the versions already exists", func() {
-			var newVersionSlice []atc.Version
-
-			BeforeEach(func() {
-				newVersionSlice = []atc.Version{
-					{"ref": "v1"},
-					{"ref": "v3"},
-				}
-			})
-
-			It("does not change the check order", func() {
-				err := resourceConfig.SaveVersions(newVersionSlice)
-				Expect(err).ToNot(HaveOccurred())
-
-				err = resourceConfig.SaveSpace(atc.Space("space"))
-				Expect(err).ToNot(HaveOccurred())
-
-				err = resourceConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"ref": "v3"})
-				Expect(err).ToNot(HaveOccurred())
-
-				latestVR, err := resourceConfig.LatestVersions()
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(latestVR[0].Version()).To(Equal(db.Version{"ref": "v3"}))
-				Expect(latestVR[0].CheckOrder()).To(Equal(2))
-			})
-		})
-	})
-
 	Describe("LatestVersions", func() {
 		var (
 			resourceConfig db.ResourceConfig
 			latestCV       []db.ResourceConfigVersion
-			found          bool
 		)
 
 		Context("when the resource config exists", func() {
@@ -326,8 +234,6 @@ var _ = Describe("ResourceConfig", func() {
 			})
 
 			It("gets latest version of resource", func() {
-				Expect(found).To(BeTrue())
-
 				Expect(latestCV).To(HaveLen(1))
 				Expect(latestCV[0].Version()).To(Equal(db.Version{"ref": "v3"}))
 				Expect(latestCV[0].CheckOrder()).To(Equal(2))
@@ -371,7 +277,7 @@ var _ = Describe("ResourceConfig", func() {
 		Context("when the version exists", func() {
 			BeforeEach(func() {
 				var err error
-				latestCV, found, err = resourceConfig.FindVersion(atc.Version{"ref": "v1"}, atc.Space("space"))
+				latestCV, found, err = resourceConfig.FindVersion(atc.Space("space"), atc.Version{"ref": "v1"})
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -387,7 +293,7 @@ var _ = Describe("ResourceConfig", func() {
 		Context("when the version does not exist", func() {
 			BeforeEach(func() {
 				var err error
-				latestCV, found, err = resourceConfig.FindVersion(atc.Version{"ref": "v2"}, atc.Space("space"))
+				latestCV, found, err = resourceConfig.FindVersion(atc.Space("space"), atc.Version{"ref": "v2"})
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -399,13 +305,56 @@ var _ = Describe("ResourceConfig", func() {
 		Context("when the space does not exist", func() {
 			BeforeEach(func() {
 				var err error
-				latestCV, found, err = resourceConfig.FindVersion(atc.Version{"ref": "v2"}, atc.Space("non-existant"))
+				latestCV, found, err = resourceConfig.FindVersion(atc.Space("non-existant"), atc.Version{"ref": "v2"})
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("does not get the version of resource", func() {
 				Expect(found).To(BeFalse())
 			})
+		})
+	})
+
+	Describe("FindUncheckedVersion", func() {
+		var (
+			resourceConfig db.ResourceConfig
+			latestCV       db.ResourceConfigVersion
+			found          bool
+		)
+
+		BeforeEach(func() {
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			brt := db.BaseResourceType{
+				Name: "some-type",
+			}
+			_, err = brt.FindOrCreate(setupTx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			err = resourceConfig.SaveSpace(atc.Space("space"))
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = resourceConfig.SaveUncheckedVersion(atc.Space("space"), atc.Version{"ref": "v1"}, nil)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			latestCV, found, err = resourceConfig.FindUncheckedVersion(atc.Space("space"), atc.Version{"ref": "v1"})
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("gets the version of resource", func() {
+			Expect(found).To(BeTrue())
+
+			Expect(latestCV.ResourceConfig().ID()).To(Equal(resourceConfig.ID()))
+			Expect(latestCV.Version()).To(Equal(db.Version{"ref": "v1"}))
+			Expect(latestCV.CheckOrder()).To(Equal(0))
 		})
 	})
 
@@ -454,7 +403,7 @@ var _ = Describe("ResourceConfig", func() {
 		})
 	})
 
-	Describe("SaveVersion/SaveSpace", func() {
+	Describe("SavePartialVersion/SaveSpace", func() {
 		var (
 			resourceConfig db.ResourceConfig
 			spaceVersion   atc.SpaceVersion
@@ -490,13 +439,12 @@ var _ = Describe("ResourceConfig", func() {
 		It("saves the version if the space exists", func() {
 			saveVersions(resourceConfig, []atc.SpaceVersion{spaceVersion})
 
-			err = resourceConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"some": "version"})
+			err := resourceConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"some": "version"})
 			Expect(err).ToNot(HaveOccurred())
 
 			latestVR, err := resourceConfig.LatestVersions()
 			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
+			Expect(latestVR).ToNot(BeEmpty())
 			Expect(latestVR[0].Version()).To(Equal(db.Version{"some": "version"}))
 			Expect(latestVR[0].CheckOrder()).To(Equal(1))
 		})
@@ -516,16 +464,84 @@ var _ = Describe("ResourceConfig", func() {
 			})
 
 			It("does not save the version", func() {
-				tx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
-
-				defer tx.Rollback()
-
-				err = resourceConfig.SaveVersion(tx, spaceVersion)
+				err := resourceConfig.SavePartialVersion(spaceVersion.Space, spaceVersion.Version, spaceVersion.Metadata)
 				Expect(err).To(HaveOccurred())
+			})
+		})
 
-				err = tx.Commit()
+		Context("when saving multiple versions", func() {
+			It("ensures versions have the correct check_order", func() {
+				originalVersionSlice := []atc.SpaceVersion{
+					{
+						Space:   atc.Space("space"),
+						Version: atc.Version{"ref": "v1"},
+					},
+					{
+						Space:   atc.Space("space"),
+						Version: atc.Version{"ref": "v3"},
+					},
+				}
+
+				saveVersions(resourceConfig, originalVersionSlice)
+
+				err := resourceConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"ref": "v3"})
 				Expect(err).ToNot(HaveOccurred())
+
+				latestVR, err := resourceConfig.LatestVersions()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(latestVR[0].Version()).To(Equal(db.Version{"ref": "v3"}))
+				Expect(latestVR[0].CheckOrder()).To(Equal(2))
+
+				pretendCheckResults := []atc.SpaceVersion{
+					{
+						Space:   atc.Space("space"),
+						Version: atc.Version{"ref": "v2"},
+					},
+					{
+						Space:   atc.Space("space"),
+						Version: atc.Version{"ref": "v3"},
+					},
+				}
+
+				saveVersions(resourceConfig, pretendCheckResults)
+
+				err = resourceConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"ref": "v3"})
+				Expect(err).ToNot(HaveOccurred())
+
+				latestVR, err = resourceConfig.LatestVersions()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(latestVR[0].Version()).To(Equal(db.Version{"ref": "v3"}))
+				Expect(latestVR[0].CheckOrder()).To(Equal(4))
+			})
+		})
+
+		Context("when the versions already exists", func() {
+			var newVersionSlice []atc.SpaceVersion
+
+			BeforeEach(func() {
+				newVersionSlice = []atc.SpaceVersion{
+					{
+						Space:   atc.Space("space"),
+						Version: atc.Version{"ref": "v1"},
+					},
+					{
+						Space:   atc.Space("space"),
+						Version: atc.Version{"ref": "v3"},
+					},
+				}
+			})
+
+			It("does not change the check order", func() {
+				saveVersions(resourceConfig, newVersionSlice)
+
+				err := resourceConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"ref": "v3"})
+				Expect(err).ToNot(HaveOccurred())
+
+				latestVR, err := resourceConfig.LatestVersions()
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(latestVR[0].Version()).To(Equal(db.Version{"ref": "v3"}))
+				Expect(latestVR[0].CheckOrder()).To(Equal(2))
 			})
 		})
 	})
@@ -617,19 +633,14 @@ var _ = Describe("ResourceConfig", func() {
 })
 
 func saveVersions(resourceConfig db.ResourceConfig, versions []atc.SpaceVersion) {
-	tx, err := dbConn.Begin()
-	Expect(err).ToNot(HaveOccurred())
-
-	defer Rollback(tx)
-
-	err = resourceConfig.SaveSpace(space)
-	Expect(err).ToNot(HaveOccurred())
-
 	for _, version := range versions {
-		err = resourceConfig.SaveVersion(tx, version)
+		err := resourceConfig.SaveSpace(version.Space)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = resourceConfig.SavePartialVersion(version.Space, version.Version, version.Metadata)
 		Expect(err).ToNot(HaveOccurred())
 	}
 
-	err = tx.Commit()
+	err := resourceConfig.FinishSavingVersions()
 	Expect(err).ToNot(HaveOccurred())
 }

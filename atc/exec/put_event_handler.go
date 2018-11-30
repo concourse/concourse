@@ -21,12 +21,11 @@ func NewPutEventHandler() *putEventHandler {
 	return &putEventHandler{}
 }
 
-func (p *putEventHandler) CreatedResponse(space atc.Space, version atc.Version, putResponse *atc.PutResponse) error {
-	if putResponse.Space != "" && putResponse.Space != space {
-		return PutMultipleSpacesError{FirstSpace: putResponse.Space, SecondSpace: space}
+func (p *putEventHandler) CreatedResponse(space atc.Space, version atc.Version, metadata atc.Metadata, spaceVersions []atc.SpaceVersion) ([]atc.SpaceVersion, error) {
+	if len(spaceVersions) != 0 && spaceVersions[len(spaceVersions)-1].Space != space {
+		return nil, PutMultipleSpacesError{FirstSpace: spaceVersions[len(spaceVersions)-1].Space, SecondSpace: space}
 	}
 
-	putResponse.Space = space
-	putResponse.CreatedVersions = append(putResponse.CreatedVersions, version)
-	return nil
+	spaceVersions = append(spaceVersions, atc.SpaceVersion{space, version, metadata})
+	return spaceVersions, nil
 }

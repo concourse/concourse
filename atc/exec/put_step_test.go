@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/execfakes"
-	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
@@ -141,9 +140,9 @@ var _ = Describe("PutStep", func() {
 
 		Context("when the tracker can initialize the resource", func() {
 			var (
-				fakeResource        *resourcefakes.FakeResource
-				fakeResourceConfig  *dbfakes.FakeResourceConfig
-				fakeVersionedSource *resourcefakes.FakeVersionedSource
+				fakeResource       *resourcefakes.FakeResource
+				fakeResourceConfig *dbfakes.FakeResourceConfig
+				versions           []atc.SpaceVersion
 			)
 
 			BeforeEach(func() {
@@ -155,17 +154,34 @@ var _ = Describe("PutStep", func() {
 
 				fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
 
-				fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
-				fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
-				fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
+				versions = []atc.SpaceVersion{
+					{
+						Space:   atc.Space("space"),
+						Version: atc.Version{"some": "version"},
+						Metadata: atc.Metadata{
+							atc.MetadataField{
+								Name:  "some",
+								Value: "metadata",
+							},
+						},
+					},
+				}
 
-				fakeResource.PutReturns(fakeVersionedSource, nil)
+				fakeResource.PutReturns(versions, nil)
+			})
+
+			It("finds or creates a resource config", func() {
+				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
+				_, actualResourceType, actualSource, actualResourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
+				Expect(actualResourceType).To(Equal("some-resource-type"))
+				Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
+				Expect(actualResourceTypes).To(Equal(resourceTypes))
 			})
 
 			It("initializes the resource with the correct type, session, and sources", func() {
 				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 
-				_, _, owner, cm, containerSpec, actualResourceTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
+				_, _, owner, cm, containerSpec, actualResourceTypes, delegate, resourceConfig := fakeResourceFactory.NewResourceArgsForCall(0)
 				Expect(cm).To(Equal(containerMetadata))
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
 				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
@@ -187,18 +203,19 @@ var _ = Describe("PutStep", func() {
 				))
 				Expect(actualResourceTypes).To(Equal(resourceTypes))
 				Expect(delegate).To(Equal(fakeDelegate))
+				Expect(resourceConfig.ID()).To(Equal(1))
 			})
 
 			It("puts the resource with the given context", func() {
 				Expect(fakeResource.PutCallCount()).To(Equal(1))
-				putCtx, _, _, _ := fakeResource.PutArgsForCall(0)
+				putCtx, _, _, _, _ := fakeResource.PutArgsForCall(0)
 				Expect(putCtx).To(Equal(ctx))
 			})
 
 			It("puts the resource with the correct source and params", func() {
 				Expect(fakeResource.PutCallCount()).To(Equal(1))
 
-				_, _, putSource, putParams := fakeResource.PutArgsForCall(0)
+				_, _, _, putSource, putParams := fakeResource.PutArgsForCall(0)
 				Expect(putSource).To(Equal(atc.Source{"some": "super-secret-source"}))
 				Expect(putParams).To(Equal(atc.Params{"some-param": "some-value"}))
 			})
@@ -206,7 +223,7 @@ var _ = Describe("PutStep", func() {
 			It("puts the resource with the io config forwarded", func() {
 				Expect(fakeResource.PutCallCount()).To(Equal(1))
 
-				_, ioConfig, _, _ := fakeResource.PutArgsForCall(0)
+				_, _, ioConfig, _, _ := fakeResource.PutArgsForCall(0)
 				Expect(ioConfig.Stdout).To(Equal(stdoutBuf))
 				Expect(ioConfig.Stderr).To(Equal(stderrBuf))
 			})
@@ -215,48 +232,124 @@ var _ = Describe("PutStep", func() {
 				Expect(fakeResource.PutCallCount()).To(Equal(1))
 			})
 
-			It("reports the created version info", func() {
-				info := putStep.VersionInfo()
-				Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
-				Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
+			Context("when a version is returned", func() {
+				It("reports the created version info", func() {
+					info := putStep.VersionInfo()
+					Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
+					Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
+				})
+			})
+
+			Context("when no versions are returned", func() {
+				BeforeEach(func() {
+					versions = []atc.SpaceVersion{}
+					fakeResource.PutReturns(versions, nil)
+				})
+
+				It("reports the created version info", func() {
+					info := putStep.VersionInfo()
+					Expect(info.Version).To(BeNil())
+					Expect(info.Metadata).To(BeNil())
+				})
+			})
+
+			Context("when multiple versions are returned", func() {
+				BeforeEach(func() {
+					versions = []atc.SpaceVersion{
+						{
+							Space:   atc.Space("space"),
+							Version: atc.Version{"some": "version"},
+							Metadata: atc.Metadata{
+								atc.MetadataField{
+									Name:  "some",
+									Value: "metadata",
+								},
+							},
+						},
+						{
+							Space:   atc.Space("space"),
+							Version: atc.Version{"some": "other-version"},
+							Metadata: atc.Metadata{
+								atc.MetadataField{
+									Name:  "some",
+									Value: "other-metadata",
+								},
+							},
+						},
+					}
+
+					fakeResource.PutReturns(versions, nil)
+				})
+
+				It("reports the latest version returned from the put step into the version info", func() {
+					info := putStep.VersionInfo()
+					Expect(info.Version).To(Equal(atc.Version{"some": "other-version"}))
+					Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "other-metadata"}}))
+				})
 			})
 
 			It("is successful", func() {
 				Expect(putStep.Succeeded()).To(BeTrue())
 			})
 
-			It("finds or creates a resource config", func() {
-				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
-				_, actualResourceType, actualSource, actualResourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
-				Expect(actualResourceType).To(Equal("some-resource-type"))
-				Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
-				Expect(actualResourceTypes).To(Equal(resourceTypes))
-			})
-
-			Context("when finding or creating a resource config", func() {
-				It("saves the version", func() {
-					Expect(fakeResourceConfig.SaveUncheckedVersionCallCount()).To(Equal(1))
-
-					version, metadata := fakeResourceConfig.SaveUncheckedVersionArgsForCall(0)
-					Expect(version).To(Equal(atc.Version{"some": "version"}))
-					Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields([]atc.MetadataField{{"some", "metadata"}})))
+			Context("when a version is returned by the put", func() {
+				BeforeEach(func() {
+					fakeResourceConfig.SaveUncheckedVersionReturns(true, nil)
 				})
 
-				Context("when saving a version", func() {
-					BeforeEach(func() {
-						fakeResourceConfig.SaveUncheckedVersionReturns(true, nil)
-					})
+				It("saves the build output", func() {
+					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
 
-					It("saves the build output", func() {
-						Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
+					resourceConfig, version, outputName, resourceName := fakeBuild.SaveOutputArgsForCall(0)
+					Expect(resourceConfig.ID()).To(Equal(fakeResourceConfig.ID()))
+					Expect(version).To(Equal(atc.Version{"some": "version"}))
+					Expect(outputName).To(Equal("some-name"))
+					Expect(resourceName).To(Equal("some-resource"))
+				})
+			})
 
-						resourceConfig, version, outputName, resourceName, created := fakeBuild.SaveOutputArgsForCall(0)
-						Expect(resourceConfig.ID()).To(Equal(fakeResourceConfig.ID()))
-						Expect(version).To(Equal(atc.Version{"some": "version"}))
-						Expect(outputName).To(Equal("some-name"))
-						Expect(resourceName).To(Equal("some-resource"))
-						Expect(created).To(BeTrue())
-					})
+			Context("when multiple versions are return by the put", func() {
+				BeforeEach(func() {
+					versions = []atc.SpaceVersion{
+						{
+							Space:   atc.Space("space"),
+							Version: atc.Version{"some": "version"},
+							Metadata: atc.Metadata{
+								atc.MetadataField{
+									Name:  "some",
+									Value: "metadata",
+								},
+							},
+						},
+						{
+							Space:   atc.Space("space"),
+							Version: atc.Version{"some": "other-version"},
+							Metadata: atc.Metadata{
+								atc.MetadataField{
+									Name:  "some",
+									Value: "other-metadata",
+								},
+							},
+						},
+					}
+
+					fakeResource.PutReturns(versions, nil)
+				})
+
+				It("saves the build output for all versions", func() {
+					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(2))
+
+					resourceConfig, version, outputName, resourceName := fakeBuild.SaveOutputArgsForCall(0)
+					Expect(resourceConfig.ID()).To(Equal(fakeResourceConfig.ID()))
+					Expect(version).To(Equal(atc.Version{"some": "version"}))
+					Expect(outputName).To(Equal("some-name"))
+					Expect(resourceName).To(Equal("some-resource"))
+
+					resourceConfig, version, outputName, resourceName = fakeBuild.SaveOutputArgsForCall(1)
+					Expect(resourceConfig.ID()).To(Equal(fakeResourceConfig.ID()))
+					Expect(version).To(Equal(atc.Version{"some": "other-version"}))
+					Expect(outputName).To(Equal("some-name"))
+					Expect(resourceName).To(Equal("some-resource"))
 				})
 			})
 
@@ -292,18 +385,6 @@ var _ = Describe("PutStep", func() {
 				}))
 			})
 
-			Context("when saving a version of the resource config fails", func() {
-				disaster := errors.New("nah")
-
-				BeforeEach(func() {
-					fakeResourceConfig.SaveUncheckedVersionReturns(false, disaster)
-				})
-
-				It("returns the error", func() {
-					Expect(stepErr).To(Equal(disaster))
-				})
-			})
-
 			Context("when finding or creating resource config fails", func() {
 				disaster := errors.New("no")
 
@@ -330,7 +411,7 @@ var _ = Describe("PutStep", func() {
 
 			Context("when performing the put exits unsuccessfully", func() {
 				BeforeEach(func() {
-					fakeResource.PutReturns(nil, resource.ErrResourceScriptFailed{
+					fakeResource.PutReturns(nil, atc.ErrResourceScriptFailed{
 						ExitStatus: 42,
 					})
 				})

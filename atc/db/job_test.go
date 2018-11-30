@@ -603,12 +603,26 @@ var _ = Describe("Job", func() {
 			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{}, creds.VersionedResourceTypes{})
 			Expect(err).NotTo(HaveOccurred())
 
-			err = resourceConfig.SaveVersions([]atc.Version{
-				{"version": "v1"},
-				{"version": "v2"},
-				{"version": "v3"},
+			saveVersions(resourceConfig, []atc.SpaceVersion{
+				atc.SpaceVersion{
+					Space:   atc.Space("space"),
+					Version: atc.Version{"version": "v1"},
+					Metadata: atc.Metadata{
+						atc.MetadataField{
+							Name:  "name1",
+							Value: "value1",
+						},
+					},
+				},
+				atc.SpaceVersion{
+					Space:   atc.Space("space"),
+					Version: atc.Version{"version": "v2"},
+				},
+				atc.SpaceVersion{
+					Space:   atc.Space("space"),
+					Version: atc.Version{"version": "v3"},
+				},
 			})
-			Expect(err).NotTo(HaveOccurred())
 
 			var found bool
 			job, found, err = pipeline.Job("some-job")
@@ -621,15 +635,6 @@ var _ = Describe("Job", func() {
 
 			err = resource.SetResourceConfig(resourceConfig.ID())
 			Expect(err).ToNot(HaveOccurred())
-
-			// save metadata for v1
-			_, err = resourceConfig.SaveUncheckedVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
-				db.ResourceConfigMetadataField{
-					Name:  "name1",
-					Value: "value1",
-				},
-			})
-			Expect(err).NotTo(HaveOccurred())
 
 			reversions, _, found, err := resource.Versions(db.Page{Limit: 3})
 			Expect(err).NotTo(HaveOccurred())
@@ -785,10 +790,25 @@ var _ = Describe("Job", func() {
 			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{}, creds.VersionedResourceTypes{})
 			Expect(err).NotTo(HaveOccurred())
 
-			err = resourceConfig.SaveVersions([]atc.Version{
-				{"version": "v1"},
-				{"version": "v2"},
-				{"version": "v3"},
+			saveVersions(resourceConfig, []atc.SpaceVersion{
+				atc.SpaceVersion{
+					Space:   atc.Space("space"),
+					Version: atc.Version{"version": "v1"},
+					Metadata: atc.Metadata{
+						atc.MetadataField{
+							Name:  "name1",
+							Value: "value1",
+						},
+					},
+				},
+				atc.SpaceVersion{
+					Space:   atc.Space("space"),
+					Version: atc.Version{"version": "v2"},
+				},
+				atc.SpaceVersion{
+					Space:   atc.Space("space"),
+					Version: atc.Version{"version": "v3"},
+				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -803,15 +823,6 @@ var _ = Describe("Job", func() {
 
 			err = resource.SetResourceConfig(resourceConfig.ID())
 			Expect(err).ToNot(HaveOccurred())
-
-			// save metadata for v1
-			_, err = resourceConfig.SaveUncheckedVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
-				db.ResourceConfigMetadataField{
-					Name:  "name1",
-					Value: "value1",
-				},
-			})
-			Expect(err).NotTo(HaveOccurred())
 
 			reversions, _, found, err := resource.Versions(db.Page{Limit: 3})
 			Expect(err).NotTo(HaveOccurred())

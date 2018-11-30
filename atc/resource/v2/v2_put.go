@@ -14,7 +14,7 @@ import (
 //go:generate counterfeiter . PutEventHandler
 
 type PutEventHandler interface {
-	CreatedResponse(atc.Space, atc.Version, *atc.PutResponse) error
+	CreatedResponse(atc.Space, atc.Version, atc.Metadata, []atc.SpaceVersion) ([]atc.SpaceVersion, error)
 }
 
 const responsePath = "response"
@@ -30,7 +30,7 @@ func (r *resource) Put(
 	ioConfig atc.IOConfig,
 	source atc.Source,
 	params atc.Params,
-) (atc.PutResponse, error) {
+) ([]atc.SpaceVersion, error) {
 	var responseFile *os.File
 
 	_, err := os.Stat(responsePath)
@@ -43,14 +43,14 @@ func (r *resource) Put(
 	defer responseFile.Close()
 
 	if err != nil {
-		return atc.PutResponse{}, err
+		return nil, err
 	}
 
 	config := constructConfig(source, params)
 	input := PutRequest{config, responseFile.Name()}
 	request, err := json.Marshal(input)
 	if err != nil {
-		return atc.PutResponse{}, err
+		return nil, err
 	}
 
 	stderr := new(bytes.Buffer)
@@ -75,7 +75,7 @@ func (r *resource) Put(
 			Args: []string{atc.ResourcesDir("put")},
 		}, processIO)
 		if err != nil {
-			return atc.PutResponse{}, err
+			return nil, err
 		}
 	}
 
@@ -92,11 +92,11 @@ func (r *resource) Put(
 	select {
 	case <-processExited:
 		if processErr != nil {
-			return atc.PutResponse{}, processErr
+			return nil, processErr
 		}
 
 		if processStatus != 0 {
-			return atc.PutResponse{}, atc.ErrResourceScriptFailed{
+			return nil, atc.ErrResourceScriptFailed{
 				Path:       r.info.Artifacts.Put,
 				Args:       []string{atc.ResourcesDir("put")},
 				ExitStatus: processStatus,
@@ -107,12 +107,12 @@ func (r *resource) Put(
 
 		fileReader, err := os.Open(responseFile.Name())
 		if err != nil {
-			return atc.PutResponse{}, err
+			return nil, err
 		}
 
 		decoder := json.NewDecoder(fileReader)
 
-		putResponse := atc.PutResponse{}
+		spaceVersions := []atc.SpaceVersion{}
 		for {
 			var event Event
 			err := decoder.Decode(&event)
@@ -121,24 +121,24 @@ func (r *resource) Put(
 					break
 				}
 
-				return atc.PutResponse{}, err
+				return nil, err
 			}
 
 			if event.Action == "created" {
-				err := eventHandler.CreatedResponse(event.Space, event.Version, &putResponse)
+				spaceVersions, err = eventHandler.CreatedResponse(event.Space, event.Version, event.Metadata, spaceVersions)
 				if err != nil {
-					return atc.PutResponse{}, nil
+					return nil, nil
 				}
 			} else {
-				return atc.PutResponse{}, ActionNotFoundError{event.Action}
+				return nil, ActionNotFoundError{event.Action}
 			}
 		}
 
-		return putResponse, nil
+		return spaceVersions, nil
 
 	case <-ctx.Done():
 		r.container.Stop(false)
 		<-processExited
-		return atc.PutResponse{}, ctx.Err()
+		return nil, ctx.Err()
 	}
 }

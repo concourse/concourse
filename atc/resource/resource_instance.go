@@ -18,6 +18,7 @@ type ResourceInstance interface {
 	// XXX: do we need these?
 	Source() atc.Source
 	Params() atc.Params
+	Space() atc.Space
 	Version() atc.Version
 	ResourceType() ResourceType
 
@@ -31,6 +32,7 @@ type ResourceInstance interface {
 
 type resourceInstance struct {
 	resourceTypeName ResourceType
+	space            atc.Space
 	version          atc.Version
 	source           atc.Source
 	params           atc.Params
@@ -42,6 +44,7 @@ type resourceInstance struct {
 
 func NewResourceInstance(
 	resourceTypeName ResourceType,
+	space atc.Space,
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
@@ -52,6 +55,7 @@ func NewResourceInstance(
 ) ResourceInstance {
 	return &resourceInstance{
 		resourceTypeName: resourceTypeName,
+		space:            space,
 		version:          version,
 		source:           source,
 		params:           params,
@@ -78,6 +82,10 @@ func (instance resourceInstance) Params() atc.Params {
 	return instance.params
 }
 
+func (instance resourceInstance) Space() atc.Space {
+	return instance.space
+}
+
 func (instance resourceInstance) Version() atc.Version {
 	return instance.version
 }
@@ -90,6 +98,7 @@ func (instance resourceInstance) ResourceType() ResourceType {
 func (instance resourceInstance) LockName(workerName string) (string, error) {
 	id := &resourceInstanceLockID{
 		Type:       instance.resourceTypeName,
+		Space:      instance.space,
 		Version:    instance.version,
 		Source:     instance.source,
 		Params:     instance.params,
@@ -110,8 +119,10 @@ func (instance resourceInstance) FindOn(logger lager.Logger, workerClient worker
 	)
 }
 
+// XXX: What is this for???
 type resourceInstanceLockID struct {
 	Type       ResourceType `json:"type,omitempty"`
+	Space      atc.Space    `json:"space,omitempty"`
 	Version    atc.Version  `json:"version,omitempty"`
 	Source     atc.Source   `json:"source,omitempty"`
 	Params     atc.Params   `json:"params,omitempty"`

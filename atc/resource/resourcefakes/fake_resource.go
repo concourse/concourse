@@ -53,7 +53,7 @@ type FakeResource struct {
 	getReturnsOnCall map[int]struct {
 		result1 error
 	}
-	PutStub        func(context.Context, v2.PutEventHandler, atc.IOConfig, atc.Source, atc.Params) (atc.PutResponse, error)
+	PutStub        func(context.Context, v2.PutEventHandler, atc.IOConfig, atc.Source, atc.Params) ([]atc.SpaceVersion, error)
 	putMutex       sync.RWMutex
 	putArgsForCall []struct {
 		arg1 context.Context
@@ -63,11 +63,11 @@ type FakeResource struct {
 		arg5 atc.Params
 	}
 	putReturns struct {
-		result1 atc.PutResponse
+		result1 []atc.SpaceVersion
 		result2 error
 	}
 	putReturnsOnCall map[int]struct {
-		result1 atc.PutResponse
+		result1 []atc.SpaceVersion
 		result2 error
 	}
 	invocations      map[string][][]interface{}
@@ -225,7 +225,7 @@ func (fake *FakeResource) GetReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeResource) Put(arg1 context.Context, arg2 v2.PutEventHandler, arg3 atc.IOConfig, arg4 atc.Source, arg5 atc.Params) (atc.PutResponse, error) {
+func (fake *FakeResource) Put(arg1 context.Context, arg2 v2.PutEventHandler, arg3 atc.IOConfig, arg4 atc.Source, arg5 atc.Params) ([]atc.SpaceVersion, error) {
 	fake.putMutex.Lock()
 	ret, specificReturn := fake.putReturnsOnCall[len(fake.putArgsForCall)]
 	fake.putArgsForCall = append(fake.putArgsForCall, struct {
@@ -260,24 +260,24 @@ func (fake *FakeResource) PutArgsForCall(i int) (context.Context, v2.PutEventHan
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
-func (fake *FakeResource) PutReturns(result1 atc.PutResponse, result2 error) {
+func (fake *FakeResource) PutReturns(result1 []atc.SpaceVersion, result2 error) {
 	fake.PutStub = nil
 	fake.putReturns = struct {
-		result1 atc.PutResponse
+		result1 []atc.SpaceVersion
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeResource) PutReturnsOnCall(i int, result1 atc.PutResponse, result2 error) {
+func (fake *FakeResource) PutReturnsOnCall(i int, result1 []atc.SpaceVersion, result2 error) {
 	fake.PutStub = nil
 	if fake.putReturnsOnCall == nil {
 		fake.putReturnsOnCall = make(map[int]struct {
-			result1 atc.PutResponse
+			result1 []atc.SpaceVersion
 			result2 error
 		})
 	}
 	fake.putReturnsOnCall[i] = struct {
-		result1 atc.PutResponse
+		result1 []atc.SpaceVersion
 		result2 error
 	}{result1, result2}
 }

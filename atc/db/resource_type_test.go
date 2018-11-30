@@ -216,11 +216,19 @@ var _ = Describe("ResourceType", func() {
 
 		Context("when the resource type has proper versions", func() {
 			BeforeEach(func() {
-				err := resourceTypeConfig.SaveVersions([]atc.Version{
-					atc.Version{"version": "1"},
-					atc.Version{"version": "2"},
-				})
+				err := resourceTypeConfig.SaveDefaultSpace(atc.Space("space"))
 				Expect(err).ToNot(HaveOccurred())
+
+				saveVersions(resourceTypeConfig, []atc.SpaceVersion{
+					atc.SpaceVersion{
+						Space:   atc.Space("space"),
+						Version: atc.Version{"version": "1"},
+					},
+					atc.SpaceVersion{
+						Space:   atc.Space("space"),
+						Version: atc.Version{"version": "2"},
+					},
+				})
 			})
 
 			It("returns the version", func() {
@@ -230,9 +238,12 @@ var _ = Describe("ResourceType", func() {
 
 		Context("when the version has a check order of 0", func() {
 			BeforeEach(func() {
-				created, err := resourceTypeConfig.SaveUncheckedVersion(atc.Version{"version": "not-returned"}, nil)
-				Expect(created).To(BeTrue())
+				err := resourceTypeConfig.SaveSpace(atc.Space("space"))
 				Expect(err).ToNot(HaveOccurred())
+
+				created, err := resourceTypeConfig.SaveUncheckedVersion(atc.Space("space"), atc.Version{"version": "not-returned"}, nil)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
 			})
 
 			It("returns the version", func() {

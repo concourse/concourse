@@ -401,7 +401,7 @@ var _ = Describe("Build", func() {
 			build, err := job.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			created, err := resourceConfig.SaveUncheckedVersion(atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{
+			created, err := resourceConfig.SaveUncheckedVersion(atc.Space("space"), atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{
 				{
 					Name:  "meta1",
 					Value: "data1",
@@ -414,10 +414,10 @@ var _ = Describe("Build", func() {
 			Expect(created).To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
 
-			err = build.SaveOutput(resourceConfig, atc.Version{"some": "version"}, "output-name", "some-explicit-resource", created)
+			err = build.SaveOutput(resourceConfig, atc.Version{"some": "version"}, "output-name", "some-explicit-resource")
 			Expect(err).ToNot(HaveOccurred())
 
-			rcv, found, err := resourceConfig.FindVersion(atc.Version{"some": "version"})
+			rcv, found, err := resourceConfig.FindUncheckedVersion(atc.Space("space"), atc.Version{"some": "version"})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -502,19 +502,26 @@ var _ = Describe("Build", func() {
 			err = resource2.SetResourceConfig(resourceConfig2.ID())
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfig1.SaveVersions([]atc.Version{
-				{"ver": "1"},
-				{"ver": "2"},
+			saveVersions(resourceConfig1, []atc.SpaceVersion{
+				atc.SpaceVersion{
+					Version: atc.Version{"ver": "1"},
+					Space:   atc.Space("space"),
+				},
+				atc.SpaceVersion{
+					Version: atc.Version{"ver": "2"},
+					Space:   atc.Space("space"),
+				},
 			})
-			Expect(err).ToNot(HaveOccurred())
 
 			// This version should not be returned by the Resources method because it has a check order of 0
-			created, err := resourceConfig1.SaveUncheckedVersion(atc.Version{"ver": "not-returned"}, nil)
+			created, err := resourceConfig1.SaveUncheckedVersion(atc.Space("space"), atc.Version{"ver": "not-returned"}, nil)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(created).To(BeTrue())
 
-			err = resourceConfig2.SaveVersions([]atc.Version{atc.Version{"ver": "2"}})
-			Expect(err).ToNot(HaveOccurred())
+			saveVersions(resourceConfig2, []atc.SpaceVersion{{
+				Space:   atc.Space("space"),
+				Version: atc.Version{"ver": "2"},
+			}})
 		})
 
 		It("returns build inputs and outputs", func() {
@@ -532,7 +539,7 @@ var _ = Describe("Build", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// save explicit output from 'put'
-			err = build.SaveOutput(resourceConfig2, atc.Version{"ver": "2"}, "some-output-name", "some-other-resource", false)
+			err = build.SaveOutput(resourceConfig2, atc.Version{"ver": "2"}, "some-output-name", "some-other-resource")
 			Expect(err).NotTo(HaveOccurred())
 
 			inputs, outputs, err := build.Resources()
@@ -725,10 +732,14 @@ var _ = Describe("Build", func() {
 					resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
 
-					err = resourceConfig.SaveVersions([]atc.Version{{"version": "v5"}})
-					Expect(err).NotTo(HaveOccurred())
+					saveVersions(resourceConfig, []atc.SpaceVersion{
+						atc.SpaceVersion{
+							Version: atc.Version{"version": "v5"},
+							Space:   atc.Space("space"),
+						},
+					})
 
-					rcv, found, err := resourceConfig.FindVersion(atc.Version{"version": "v5"})
+					rcv, found, err := resourceConfig.FindVersion(atc.Space("space"), atc.Version{"version": "v5"})
 					Expect(found).To(BeTrue())
 					Expect(err).NotTo(HaveOccurred())
 
@@ -902,8 +913,10 @@ var _ = Describe("Build", func() {
 					resourceConfig1, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "source-1"}, creds.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
 
-					err = resourceConfig1.SaveVersions([]atc.Version{{"version": "v1"}})
-					Expect(err).NotTo(HaveOccurred())
+					saveVersions(resourceConfig1, []atc.SpaceVersion{{
+						Space:   atc.Space("space"),
+						Version: atc.Version{"version": "v1"},
+					}})
 
 					resourceConfig6, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "source-6"}, creds.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
@@ -915,8 +928,10 @@ var _ = Describe("Build", func() {
 					err = resource6.SetResourceConfig(resourceConfig6.ID())
 					Expect(err).NotTo(HaveOccurred())
 
-					err = resourceConfig6.SaveVersions([]atc.Version{{"version": "v6"}})
-					Expect(err).NotTo(HaveOccurred())
+					saveVersions(resourceConfig6, []atc.SpaceVersion{{
+						Space:   atc.Space("space"),
+						Version: atc.Version{"version": "v6"},
+					}})
 
 					job, found, err := pipeline.Job("some-job")
 					Expect(err).NotTo(HaveOccurred())
@@ -1086,8 +1101,10 @@ var _ = Describe("Build", func() {
 			err = resource.SetResourceConfig(resourceConfig.ID())
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfig.SaveVersions([]atc.Version{atc.Version{"some": "version"}})
-			Expect(err).ToNot(HaveOccurred())
+			saveVersions(resourceConfig, []atc.SpaceVersion{{
+				Space:   atc.Space("space"),
+				Version: atc.Version{"some": "version"},
+			}})
 
 			err = build.UseInputs([]db.BuildInput{
 				db.BuildInput{
@@ -1120,8 +1137,10 @@ var _ = Describe("Build", func() {
 			err = resource.SetResourceConfig(resourceConfig.ID())
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfig.SaveVersions([]atc.Version{atc.Version{"some": "weird-version"}})
-			Expect(err).ToNot(HaveOccurred())
+			saveVersions(resourceConfig, []atc.SpaceVersion{{
+				Space:   atc.Space("space"),
+				Version: atc.Version{"some": "weird-version"},
+			}})
 
 			setupTx2, err := dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())
@@ -1143,8 +1162,10 @@ var _ = Describe("Build", func() {
 			err = weirdResource.SetResourceConfig(weirdRC.ID())
 			Expect(err).ToNot(HaveOccurred())
 
-			err = weirdRC.SaveVersions([]atc.Version{atc.Version{"weird": "version"}})
-			Expect(err).ToNot(HaveOccurred())
+			saveVersions(weirdRC, []atc.SpaceVersion{{
+				Space:   atc.Space("space"),
+				Version: atc.Version{"weird": "version"},
+			}})
 
 			err = build.UseInputs([]db.BuildInput{
 				{

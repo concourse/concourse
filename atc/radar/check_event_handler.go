@@ -26,7 +26,7 @@ type checkEventHandler struct {
 
 func (c *checkEventHandler) DefaultSpace(space atc.Space) error {
 	if space != "" {
-		err := c.resourceConfig.SaveDefaultSpace(c.tx, space)
+		err := c.resourceConfig.SaveDefaultSpace(space)
 		if err != nil {
 			c.logger.Error("failed-to-save-default-space", err, lager.Data{
 				"space": space,
@@ -44,7 +44,7 @@ func (c *checkEventHandler) DefaultSpace(space atc.Space) error {
 
 func (c *checkEventHandler) Discovered(space atc.Space, version atc.Version, metadata atc.Metadata) error {
 	if _, ok := c.spaces[space]; !ok {
-		err := c.resourceConfig.SaveSpace(c.tx, space)
+		err := c.resourceConfig.SaveSpace(space)
 		if err != nil {
 			c.logger.Error("failed-to-save-space", err, lager.Data{
 				"space": space,
@@ -57,7 +57,7 @@ func (c *checkEventHandler) Discovered(space atc.Space, version atc.Version, met
 		})
 	}
 
-	err := c.resourceConfig.SaveVersion(c.tx, atc.SpaceVersion{space, version, metadata})
+	err := c.resourceConfig.SavePartialVersion(space, version, metadata)
 	if err != nil {
 		c.logger.Error("failed-to-save-resource-config-version", err, lager.Data{
 			"version": fmt.Sprintf("%v", version),
@@ -80,8 +80,13 @@ func (c *checkEventHandler) LatestVersions() error {
 		return nil
 	}
 
+	err := c.resourceConfig.FinishSavingVersions()
+	if err != nil {
+		return err
+	}
+
 	for space, version := range c.spaces {
-		err := c.resourceConfig.SaveSpaceLatestVersion(c.tx, space, version)
+		err := c.resourceConfig.SaveSpaceLatestVersion(space, version)
 		if err != nil {
 			return err
 		}

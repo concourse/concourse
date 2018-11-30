@@ -1294,16 +1294,21 @@ var _ = Describe("Team", func() {
 			rc, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = rc.SaveVersions([]atc.Version{
-				atc.Version{"version": "v1"},
-				atc.Version{"version": "v2"},
+			saveVersions(rc, []atc.SpaceVersion{
+				atc.SpaceVersion{
+					Space:   atc.Space("space"),
+					Version: atc.Version{"version": "v1"},
+				},
+				atc.SpaceVersion{
+					Space:   atc.Space("space"),
+					Version: atc.Version{"version": "v2"},
+				},
 			})
-			Expect(err).ToNot(HaveOccurred())
 
 			err = resource.SetResourceConfig(rc.ID())
 			Expect(err).ToNot(HaveOccurred())
 
-			rcv, found, err := rc.FindVersion(atc.Version{"version": "v1"})
+			rcv, found, err := rc.FindVersion(atc.Space("space"), atc.Version{"version": "v1"})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -1350,16 +1355,21 @@ var _ = Describe("Team", func() {
 			rc, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = rc.SaveVersions([]atc.Version{
-				atc.Version{"version": "v1"},
-				atc.Version{"version": "v2"},
+			saveVersions(rc, []atc.SpaceVersion{
+				atc.SpaceVersion{
+					Space:   atc.Space("space"),
+					Version: atc.Version{"version": "v1"},
+				},
+				atc.SpaceVersion{
+					Space:   atc.Space("space"),
+					Version: atc.Version{"version": "v2"},
+				},
 			})
-			Expect(err).ToNot(HaveOccurred())
 
 			err = resource.SetResourceConfig(rc.ID())
 			Expect(err).ToNot(HaveOccurred())
 
-			rcv, found, err := rc.FindVersion(atc.Version{"version": "v1"})
+			rcv, found, err := rc.FindVersion(atc.Space("space"), atc.Version{"version": "v1"})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 

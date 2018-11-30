@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/resource/v2"
 )
 
@@ -12,44 +13,88 @@ var _ = Describe("Put Event Handler", func() {
 	var handler v2.PutEventHandler
 
 	BeforeEach(func() {
-		handler = NewPutEventHandler()
+		handler = exec.NewPutEventHandler()
 	})
 
 	Describe("CreatedResponse", func() {
 		var (
-			space       atc.Space
-			version     atc.Version
-			putResponse atc.PutResponse
+			space    atc.Space
+			version  atc.Version
+			metadata atc.Metadata
+
+			previousVersions []atc.SpaceVersion
+			actualVersions   []atc.SpaceVersion
+
 			responseErr error
 		)
 
 		BeforeEach(func() {
 			space = atc.Space("space")
 			version = atc.Version{"ref": "v2"}
-			putResponse = atc.PutResponse{
-				Space: atc.Space("space"),
-				CreatedVersions: []atc.Version{
-					{"ref": "v1"},
+			metadata = atc.Metadata{
+				atc.MetadataField{
+					Name:  "meta",
+					Value: "data2",
+				},
+			}
+
+			previousVersions = []atc.SpaceVersion{
+				atc.SpaceVersion{
+					Space:   atc.Space("space"),
+					Version: atc.Version{"ref": "v1"},
+					Metadata: atc.Metadata{
+						atc.MetadataField{
+							Name:  "meta",
+							Value: "data",
+						},
+					},
 				},
 			}
 		})
 
 		JustBeforeEach(func() {
-			responseErr = handler.CreatedResponse(space, version, &putResponse)
+			actualVersions, responseErr = handler.CreatedResponse(space, version, metadata, previousVersions)
 		})
 
-		It("sets the put response", func() {
-			Expect(err).ToNot(HaveOccurred())
-			Expect(putResponse).To(Equal(atc.PutResponse{Space: space, CreatedVersions: []atc.Version{
-				{"ref": "v1"},
-				version,
-			}}))
+		It("appends the version to the list", func() {
+			Expect(responseErr).ToNot(HaveOccurred())
+			Expect(actualVersions).To(ConsistOf([]atc.SpaceVersion{
+				atc.SpaceVersion{
+					Space:   atc.Space("space"),
+					Version: atc.Version{"ref": "v1"},
+					Metadata: atc.Metadata{
+						atc.MetadataField{
+							Name:  "meta",
+							Value: "data",
+						},
+					},
+				},
+				atc.SpaceVersion{
+					Space:   atc.Space("space"),
+					Version: atc.Version{"ref": "v2"},
+					Metadata: atc.Metadata{
+						atc.MetadataField{
+							Name:  "meta",
+							Value: "data2",
+						},
+					},
+				},
+			}))
 		})
 
 		Context("when the response contains more than one space", func() {
 			BeforeEach(func() {
-				putResponse = atc.PutResponse{
-					Space: atc.Space("different-space"),
+				previousVersions = []atc.SpaceVersion{
+					atc.SpaceVersion{
+						Space:   atc.Space("different-space"),
+						Version: atc.Version{"ref": "v1"},
+						Metadata: atc.Metadata{
+							atc.MetadataField{
+								Name:  "meta",
+								Value: "data",
+							},
+						},
+					},
 				}
 			})
 
