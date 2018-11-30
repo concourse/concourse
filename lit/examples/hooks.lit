@@ -30,14 +30,14 @@ jobs:
           path: sh
           args: ["-lc", "exit 0"]
       on_success:
-        task: echo
+        task: task-success
         config:
           << : *task-config
           run:
             path: echo
             args: ["This task succeeded!"]
       on_abort:
-        task: echo
+        task: task-aborted
         config:
           << : *task-config
           run:
@@ -50,28 +50,28 @@ jobs:
           path: sh
           args: ["-lc", "exit 1"]
       on_failure:
-        task: echo
+        task: task-failure
         config:
           << : *task-config
           run:
             path: echo
             args: ["This task failed!"]
   on_success:
-    task: echo
+    task: job-success
     config:
       << : *task-config
       run:
         path: echo
         args: ["This job succeeded!"]
   on_failure:
-    task: echo
+    task: job-failure
     config:
       << : *task-config
       run:
         path: echo
         args: ["This job failed!"]
   on_abort:
-    task: echo
+    task: job-aborted
     config:
       << : *task-config
       run:
