@@ -14,7 +14,7 @@
   \title{Pipeline Configuration}{configuration}
 	\codeblock{yaml}{{{
 ---
-&task-config: &task-config
+task-config: &task-config
   platform: linux
   image_resource:
     type: registry-image
@@ -56,27 +56,27 @@ jobs:
           run:
             path: echo
             args: ["This task failed!"]
-    - on_failure:
-      task: echo
-      config:
-        << : *task-config
-        run:
-          path: echo
-          args: ["This job failed!"]
-    - on_success:
-      task: echo
-      config:
-        << : *task-config
-        run:
-          path: echo
-          args: ["This job succeeded!"]
-    - on_abort:
-      task: echo
-      config:
-        << : *task-config
-        run:
-          path: echo
-          args: ["This job was aborted!"]
+  on_success:
+    task: echo
+    config:
+      << : *task-config
+      run:
+        path: echo
+        args: ["This job succeeded!"]
+  on_failure:
+    task: echo
+    config:
+      << : *task-config
+      run:
+        path: echo
+        args: ["This job failed!"]
+  on_abort:
+    task: echo
+    config:
+      << : *task-config
+      run:
+        path: echo
+        args: ["This job was aborted!"]
 	}}}
 }
 
