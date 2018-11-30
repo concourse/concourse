@@ -47,7 +47,7 @@ func flyrcPath() string {
 	return filepath.Join(userHomeDir(), ".flyrc")
 }
 
-func DeleteTarget(targetName TargetName) error {
+func LogoutTarget(targetName TargetName) error {
 	flyTargets, err := LoadTargets()
 	if err != nil {
 		return err
@@ -60,6 +60,21 @@ func DeleteTarget(targetName TargetName) error {
 	}
 
 	return writeTargets(flyrcPath(), flyTargets)
+}
+
+func DeleteTarget(targetName TargetName) error {
+	flyTargets, err := LoadTargets()
+	if err != nil {
+		return err
+	}
+
+	delete(flyTargets.Targets, targetName)
+
+	return writeTargets(flyrcPath(), flyTargets)
+}
+
+func DeleteAllTargets() error {
+	return writeTargets(flyrcPath(), &targetDetailsYAML{})
 }
 
 func SaveTarget(

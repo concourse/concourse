@@ -59,6 +59,59 @@ var _ = Describe("Targets", func() {
 		})
 	})
 
+	Describe("Deleting Target", func() {
+		BeforeEach(func() {
+			flyrcContents := `targets:
+  target-name:
+    api: http://concourse.com
+    team: some-team
+    token:
+      type: Bearer
+      value: some-token
+  new-target:
+    api: some-api
+    team: another-team
+    token:
+      type: Bearer
+      value: some-other-token`
+			ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
+		})
+		Describe("DeleteTarget", func() {
+			Context("when provided with target name to delete", func() {
+				BeforeEach(func() {
+					err := rc.DeleteTarget("target-name")
+					Expect(err).ToNot(HaveOccurred())
+				})
+				It("should delete target from flyrc", func() {
+					returnedTargets, err := rc.LoadTargets()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(returnedTargets.Targets).To(Equal(map[rc.TargetName]rc.TargetProps{
+						"new-target": {
+							API:      "some-api",
+							TeamName: "another-team",
+							Token: &rc.TargetToken{
+								Type:  "Bearer",
+								Value: "some-other-token",
+							},
+						}}))
+				})
+			})
+		})
+		Describe("DeleteAllTargets", func() {
+			Context("when deleting all targets", func() {
+				BeforeEach(func() {
+					err := rc.DeleteAllTargets()
+					Expect(err).ToNot(HaveOccurred())
+				})
+				It("should delete all targets from flyrc", func() {
+					returnedTargets, err := rc.LoadTargets()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(returnedTargets.Targets).To(Equal(map[rc.TargetName]rc.TargetProps{}))
+				})
+			})
+		})
+	})
+
 	Describe("SaveTarget", func() {
 		Context("when managing .flyrc", func() {
 			BeforeEach(func() {
