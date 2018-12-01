@@ -112,6 +112,62 @@ var _ = Describe("Targets", func() {
 		})
 	})
 
+	Describe("UpdateTarget", func() {
+		BeforeEach(func() {
+			flyrcContents := `targets:
+  some-target:
+    api: http://concourse.com
+    team: main
+    token:
+      type: Bearer
+      value: some-token`
+			ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
+		})
+		Context("when props are provided for update", func() {
+			It("should update target to specified prop attributes", func() {
+				targetProps := rc.TargetProps{
+					API:      "new-api",
+					TeamName: "other-team",
+				}
+				err := rc.UpdateTargetProps("some-target", targetProps)
+				Expect(err).ToNot(HaveOccurred())
+
+				targets, err := rc.LoadTargets()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(targets.Targets).To(Equal(map[rc.TargetName]rc.TargetProps{
+					"some-target": {
+						API:      "new-api",
+						TeamName: "other-team",
+						Token: &rc.TargetToken{
+							Type:  "Bearer",
+							Value: "some-token",
+						},
+					},
+				}))
+			})
+		})
+
+		Context("when target name is provided for update", func() {
+			It("should update target name and keep old prop attributes", func() {
+				err := rc.UpdateTargetName("some-target", "some-other-target")
+				Expect(err).ToNot(HaveOccurred())
+
+				targets, err := rc.LoadTargets()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(targets.Targets).To(Equal(map[rc.TargetName]rc.TargetProps{
+					"some-other-target": {
+						API:      "http://concourse.com",
+						TeamName: "main",
+						Token: &rc.TargetToken{
+							Type:  "Bearer",
+							Value: "some-token",
+						},
+					},
+				}))
+			})
+		})
+	})
+
 	Describe("SaveTarget", func() {
 		Context("when managing .flyrc", func() {
 			BeforeEach(func() {
