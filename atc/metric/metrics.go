@@ -1,6 +1,7 @@
 package metric
 
 import (
+	"github.com/concourse/concourse/atc/db/lock"
 	"strconv"
 	"time"
 
@@ -416,6 +417,91 @@ func (event ResourceCheck) Emit(logger lager.Logger) {
 	)
 }
 
+var lockTypeNames = map[int]string{
+	lock.LockTypeResourceConfigChecking: "ResourceConfigChecking",
+	lock.LockTypeBuildTracking:          "BuildTracking",
+	lock.LockTypePipelineScheduling:     "PipelineScheduling",
+	lock.LockTypeBatch:                  "Batch",
+	lock.LockTypeVolumeCreating:         "VolumeCreating",
+	lock.LockTypeContainerCreating:      "ContainerCreating",
+	lock.LockTypeDatabaseMigration:      "DatabaseMigration",
+}
+
+type LockAcquired struct {
+	LockType string
+	ObjectID int
+}
+
+func (event LockAcquired) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("lock-acquired"),
+		Event{
+			Name:  "lock held",
+			Value: 1,
+			State: EventStateOK,
+			Attributes: map[string]string{
+				"type":      event.LockType,
+				"object_id": strconv.Itoa(event.ObjectID),
+			},
+		},
+	)
+}
+
+type LockReleased struct {
+	LockType string
+	ObjectID int
+}
+
+func (event LockReleased) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("lock-released"),
+		Event{
+			Name:  "lock held",
+			Value: 0,
+			State: EventStateOK,
+			Attributes: map[string]string{
+				"type":      event.LockType,
+				"object_id": strconv.Itoa(event.ObjectID),
+			},
+		},
+	)
+}
+
+func LogLockAcquired(logger lager.Logger, lockID lock.LockID) {
+	logger.Debug("acquired")
+
+	if len(lockID) > 0 {
+		if lockType, ok := lockTypeNames[lockID[0]]; ok {
+			var objectID int
+			if len(lockID) > 1 {
+				objectID = lockID[1];
+			}
+
+			LockAcquired{
+				LockType:lockType,
+				ObjectID: objectID,
+			}.Emit(logger)
+		}
+	}
+}
+
+func LogLockReleased(logger lager.Logger, lockID lock.LockID) {
+	logger.Debug("released")
+
+	if len(lockID) > 0 {
+		if lockType, ok := lockTypeNames[lockID[0]]; ok {
+			var objectID int
+			if len(lockID) > 1 {
+				objectID = lockID[1];
+			}
+			LockReleased{
+				LockType: lockType,
+				ObjectID: objectID,
+			}.Emit(logger)
+		}
+	}
+}
+
 type WorkersState struct {
 	WorkerStateByName map[string]db.WorkerState
 }
@@ -458,5 +544,4 @@ func (event WorkersState) Emit(logger lager.Logger) {
 			},
 		)
 	}
-
 }

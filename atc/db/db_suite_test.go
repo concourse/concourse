@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/postgresrunner"
 	"github.com/tedsuo/ifrit"
 )
@@ -89,7 +90,7 @@ var _ = BeforeEach(func() {
 
 	dbConn = postgresRunner.OpenConn()
 
-	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
+	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), metric.LogLockAcquired, metric.LogLockReleased)
 
 	buildFactory = db.NewBuildFactory(dbConn, lockFactory, 5*time.Minute)
 	volumeRepository = db.NewVolumeRepository(dbConn)
