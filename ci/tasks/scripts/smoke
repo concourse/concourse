@@ -4,6 +4,7 @@
 set -e -u
 
 readonly MAX_TICKS="${MAX_TICKS:-60}"
+readonly DIR=$(cd $(dirname $0)/.. && pwd)
 
 instance_ip="$(cat endpoint-info/instance_ip)"
 
@@ -25,22 +26,7 @@ else
   export ATC_GUEST_PASSWORD=guest
 fi
 
-ticks=0
-echo -n 'waiting for ATC to be running...'
-until curl -sf "$ATC_URL/api/v1/info"; do
-  echo -n .
-
-  ((ticks++))
-
-  if [ $ticks -ge $MAX_TICKS ]; then
-    echo "giving up. :("
-    exit 1
-  fi
-
-  sleep 1
-done
-
-echo 'ok!'
+$DIR/wait-atc
 
 if curl "$ATC_URL/api/v1/cli?arch=amd64&platform=linux" -o /usr/local/bin/fly; then
   chmod +x /usr/local/bin/fly
@@ -52,4 +38,4 @@ fi
 
 fly --version
 
-$(dirname $0)/watsjs test/smoke.js
+$DIR/watsjs test/smoke.js
