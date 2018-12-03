@@ -4,7 +4,7 @@ import Concourse
 import Concourse.Info
 import Concourse.Job
 import Concourse.Pipeline
-import Concourse.PipelineStatus
+import Concourse.PipelineStatus as PipelineStatus
 import Concourse.Resource
 import Concourse.Team
 import Dashboard.APIData exposing (APIData)
@@ -314,13 +314,7 @@ view { header, dragState, dropState, now, hoveredPipeline, group, pipelineRunnin
                         (\i pipeline ->
                             let
                                 pipelineStatus =
-                                    Pipeline.pipelineStatusFromJobs pipeline.jobs False
-
-                                bannerStatus =
-                                    if pipeline.pipeline.paused then
-                                        Concourse.PipelineStatusPaused
-                                    else
-                                        Pipeline.pipelineStatusFromJobs pipeline.jobs False
+                                    Pipeline.pipelineStatus pipeline
 
                                 running =
                                     not <|
@@ -335,7 +329,7 @@ view { header, dragState, dropState, now, hoveredPipeline, group, pipelineRunnin
                                             , ( "dashboard-paused", pipeline.pipeline.paused )
                                             , ( "dashboard-running", running )
                                             , ( "dashboard-status-"
-                                                    ++ Concourse.PipelineStatus.show pipelineStatus
+                                                    ++ PipelineStatus.show pipelineStatus
                                               , not pipeline.pipeline.paused
                                               )
                                             , ( "dragging"
@@ -355,7 +349,7 @@ view { header, dragState, dropState, now, hoveredPipeline, group, pipelineRunnin
                                             [ class "dashboard-pipeline-banner"
                                             , style <|
                                                 Styles.pipelineCardBanner
-                                                    { status = bannerStatus
+                                                    { status = pipelineStatus
                                                     , running = running
                                                     , pipelineRunningKeyframes = pipelineRunningKeyframes
                                                     }

@@ -30,7 +30,6 @@ module Concourse
         , PipelineGroup
         , PipelineIdentifier
         , PipelineName
-        , PipelineStatus(..)
         , Resource
         , ResourceIdentifier
         , Team
@@ -584,16 +583,6 @@ type alias PipelineGroup =
     , jobs : List String
     , resources : List String
     }
-
-
-type PipelineStatus
-    = PipelineStatusAborted
-    | PipelineStatusErrored
-    | PipelineStatusFailed
-    | PipelineStatusPaused
-    | PipelineStatusPending
-    | PipelineStatusRunning
-    | PipelineStatusSucceeded
 
 
 decodePipeline : Json.Decode.Decoder Pipeline

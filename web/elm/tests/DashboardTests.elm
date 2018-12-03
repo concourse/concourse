@@ -336,6 +336,57 @@ all =
                                 Concourse.BuildStatusAborted
                                 True
                                 |> isColorWithStripes brown darkGrey
+                    , describe "status priorities" <|
+                        let
+                            givenTwoJobs :
+                                Concourse.BuildStatus
+                                -> Concourse.BuildStatus
+                                -> Query.Single Msgs.Msg
+                            givenTwoJobs firstStatus secondStatus =
+                                whenOnDashboard { highDensity = False }
+                                    |> givenDataUnauthenticated
+                                        { teams =
+                                            [ { id = 0, name = "team" } ]
+                                        , pipelines =
+                                            [ onePipeline "team" ]
+                                        , jobs =
+                                            [ job firstStatus
+                                            , otherJob secondStatus
+                                            ]
+                                        , resources = []
+                                        , version = ""
+                                        }
+                                    |> queryView
+                        in
+                            [ test "failed is more important than errored" <|
+                                \_ ->
+                                    givenTwoJobs
+                                        Concourse.BuildStatusFailed
+                                        Concourse.BuildStatusErrored
+                                        |> findBanner
+                                        |> isSolid red
+                            , test "errored is more important than aborted" <|
+                                \_ ->
+                                    givenTwoJobs
+                                        Concourse.BuildStatusErrored
+                                        Concourse.BuildStatusAborted
+                                        |> findBanner
+                                        |> isSolid amber
+                            , test "aborted is more important than succeeding" <|
+                                \_ ->
+                                    givenTwoJobs
+                                        Concourse.BuildStatusAborted
+                                        Concourse.BuildStatusSucceeded
+                                        |> findBanner
+                                        |> isSolid brown
+                            , test "succeeding is more important than pending" <|
+                                \_ ->
+                                    givenTwoJobs
+                                        Concourse.BuildStatusSucceeded
+                                        Concourse.BuildStatusPending
+                                        |> findBanner
+                                        |> isSolid green
+                            ]
                     ]
             , describe "footer" <|
                 let
@@ -870,13 +921,23 @@ running job =
     }
 
 
+otherJob : Concourse.BuildStatus -> Concourse.Job
+otherJob =
+    jobWithName "other-job"
+
+
 job : Concourse.BuildStatus -> Concourse.Job
-job status =
+job =
+    jobWithName "job"
+
+
+jobWithName : String -> Concourse.BuildStatus -> Concourse.Job
+jobWithName jobName status =
     { pipeline =
         { teamName = "team"
         , pipelineName = "pipeline"
         }
-    , name = "job"
+    , name = jobName
     , pipelineName = "pipeline"
     , teamName = "team"
     , nextBuild = Nothing
@@ -888,7 +949,7 @@ job status =
                 Just
                     { teamName = "team"
                     , pipelineName = "pipeline"
-                    , jobName = "job"
+                    , jobName = jobName
                     }
             , status = status
             , duration =

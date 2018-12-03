@@ -1,11 +1,11 @@
 module Dashboard.Styles exposing (..)
 
 import Colors
-import Concourse
+import Concourse.PipelineStatus exposing (PipelineStatus(..))
 
 
 pipelineCardBanner :
-    { status : Concourse.PipelineStatus
+    { status : PipelineStatus
     , running : Bool
     , pipelineRunningKeyframes : String
     }
@@ -38,35 +38,29 @@ pipelineCardBanner { status, running, pipelineRunningKeyframes } =
                 ++ color
                 ++ " 16px)"
 
-        texture : String -> List ( String, String )
-        texture =
-            if running then
+        texture : Bool -> String -> List ( String, String )
+        texture isRunning =
+            if isRunning then
                 striped
             else
                 solid
-
-        color : String
-        color =
-            case status of
-                Concourse.PipelineStatusSucceeded ->
-                    Colors.success
-
-                Concourse.PipelineStatusPaused ->
-                    Colors.paused
-
-                Concourse.PipelineStatusPending ->
-                    Colors.pending
-
-                Concourse.PipelineStatusFailed ->
-                    Colors.failure
-
-                Concourse.PipelineStatusErrored ->
-                    Colors.error
-
-                Concourse.PipelineStatusAborted ->
-                    Colors.aborted
-
-                Concourse.PipelineStatusRunning ->
-                    Colors.pending
     in
-        [ ( "height", "7px" ) ] ++ texture color
+        [ ( "height", "7px" ) ]
+            ++ case status of
+                PipelineStatusPaused ->
+                    solid Colors.paused
+
+                PipelineStatusSucceeded isRunning ->
+                    texture isRunning Colors.success
+
+                PipelineStatusPending isRunning ->
+                    texture isRunning Colors.pending
+
+                PipelineStatusFailed isRunning ->
+                    texture isRunning Colors.failure
+
+                PipelineStatusErrored isRunning ->
+                    texture isRunning Colors.error
+
+                PipelineStatusAborted isRunning ->
+                    texture isRunning Colors.aborted

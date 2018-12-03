@@ -7,12 +7,12 @@ module Dashboard.Pipeline
         , pipelineView
         , hdPipelineView
         , pipelineStatus
-        , pipelineStatusFromJobs
         )
 
 import Colors
 import Concourse
-import Concourse.PipelineStatus
+import Concourse.PipelineStatus as PipelineStatus
+import Concourse.BuildStatus as BuildStatus
 import Duration
 import Dashboard.Msgs exposing (Msg(..))
 import DashboardPreview
@@ -63,13 +63,13 @@ viewSummary (SummaryPipeline pwj) =
 
 
 hdPipelineView : PipelineWithJobs -> Html Msg
-hdPipelineView { pipeline, jobs, resourceError } =
+hdPipelineView ({ pipeline, jobs, resourceError } as pwj) =
     Html.div
         [ classList
             [ ( "dashboard-pipeline", True )
             , ( "dashboard-paused", pipeline.paused )
             , ( "dashboard-running", List.any (\job -> job.nextBuild /= Nothing) jobs )
-            , ( "dashboard-status-" ++ Concourse.PipelineStatus.show (pipelineStatusFromJobs jobs False), not pipeline.paused )
+            , ( "dashboard-status-" ++ PipelineStatus.show (pipelineStatus pwj), not pipeline.paused )
             ]
         , attribute "data-pipeline-name" pipeline.name
         , attribute "data-team-name" pipeline.teamName
@@ -221,19 +221,31 @@ sinceTransitionText pipeline now =
 
 
 statusAgeText : PipelineWithJobs -> Time -> String
-statusAgeText pipeline =
+statusAgeText pipeline now =
     case pipelineStatus pipeline of
-        Concourse.PipelineStatusPaused ->
-            always "paused"
+        PipelineStatus.PipelineStatusPaused ->
+            "paused"
 
-        Concourse.PipelineStatusPending ->
-            always "pending"
+        PipelineStatus.PipelineStatusPending False ->
+            "pending"
 
-        Concourse.PipelineStatusRunning ->
-            always "running"
+        PipelineStatus.PipelineStatusPending True ->
+            "running"
+
+        PipelineStatus.PipelineStatusAborted True ->
+            "running"
+
+        PipelineStatus.PipelineStatusErrored True ->
+            "running"
+
+        PipelineStatus.PipelineStatusFailed True ->
+            "running"
+
+        PipelineStatus.PipelineStatusSucceeded True ->
+            "running"
 
         _ ->
-            sinceTransitionText pipeline
+            sinceTransitionText pipeline now
 
 
 transitionView : Time -> PipelineWithJobs -> Html a
@@ -242,50 +254,52 @@ transitionView time pipeline =
         [ Html.text <| statusAgeText pipeline time ]
 
 
-pipelineStatus : PipelineWithJobs -> Concourse.PipelineStatus
+jobStatus : Concourse.Job -> Concourse.BuildStatus
+jobStatus job =
+    case job.finishedBuild of
+        Just build ->
+            build.status
+
+        Nothing ->
+            Concourse.BuildStatusPending
+
+
+pipelineStatus : PipelineWithJobs -> PipelineStatus.PipelineStatus
 pipelineStatus { pipeline, jobs } =
     if pipeline.paused then
-        Concourse.PipelineStatusPaused
+        PipelineStatus.PipelineStatusPaused
     else
-        pipelineStatusFromJobs jobs True
+        let
+            isRunning =
+                List.any (\job -> job.nextBuild /= Nothing) jobs
 
+            mostImportantJobStatus =
+                jobs
+                    |> List.map jobStatus
+                    |> List.sortWith BuildStatus.ordering
+                    |> List.head
+        in
+            case mostImportantJobStatus of
+                Nothing ->
+                    PipelineStatus.PipelineStatusPending isRunning
 
-pipelineStatusFromJobs : List Concourse.Job -> Bool -> Concourse.PipelineStatus
-pipelineStatusFromJobs jobs includeNextBuilds =
-    let
-        statuses =
-            jobStatuses jobs
-    in
-        if containsStatus Concourse.BuildStatusPending statuses then
-            Concourse.PipelineStatusPending
-        else if includeNextBuilds && List.any (\job -> job.nextBuild /= Nothing) jobs then
-            Concourse.PipelineStatusRunning
-        else if containsStatus Concourse.BuildStatusFailed statuses then
-            Concourse.PipelineStatusFailed
-        else if containsStatus Concourse.BuildStatusErrored statuses then
-            Concourse.PipelineStatusErrored
-        else if containsStatus Concourse.BuildStatusAborted statuses then
-            Concourse.PipelineStatusAborted
-        else if containsStatus Concourse.BuildStatusSucceeded statuses then
-            Concourse.PipelineStatusSucceeded
-        else
-            Concourse.PipelineStatusPending
+                Just Concourse.BuildStatusPending ->
+                    PipelineStatus.PipelineStatusPending isRunning
 
+                Just Concourse.BuildStatusStarted ->
+                    PipelineStatus.PipelineStatusPending isRunning
 
-jobStatuses : List Concourse.Job -> List (Maybe Concourse.BuildStatus)
-jobStatuses jobs =
-    List.concatMap
-        (\job ->
-            [ Maybe.map .status job.finishedBuild
-            , Maybe.map .status job.nextBuild
-            ]
-        )
-        jobs
+                Just Concourse.BuildStatusSucceeded ->
+                    PipelineStatus.PipelineStatusSucceeded isRunning
 
+                Just Concourse.BuildStatusFailed ->
+                    PipelineStatus.PipelineStatusFailed isRunning
 
-containsStatus : Concourse.BuildStatus -> List (Maybe Concourse.BuildStatus) -> Bool
-containsStatus =
-    List.member << Just
+                Just Concourse.BuildStatusErrored ->
+                    PipelineStatus.PipelineStatusErrored isRunning
+
+                Just Concourse.BuildStatusAborted ->
+                    PipelineStatus.PipelineStatusAborted isRunning
 
 
 pauseToggleView : Concourse.Pipeline -> Bool -> Html Msg

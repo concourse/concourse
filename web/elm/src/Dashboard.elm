@@ -14,7 +14,6 @@ import Dashboard.GroupWithTag as GroupWithTag
 import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.SubState as SubState
-import DashboardHd
 import Dom
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes exposing (attribute, css, class, classList, draggable, href, id, src)
@@ -44,6 +43,9 @@ type alias Ports =
 
 
 port tooltip : ( String, String ) -> Cmd msg
+
+
+port tooltipHd : ( String, String ) -> Cmd msg
 
 
 
@@ -265,7 +267,7 @@ update msg model =
                     |> noop
 
             TooltipHd pipelineName teamName ->
-                ( model, DashboardHd.tooltipHd ( pipelineName, teamName ) )
+                ( model, tooltipHd ( pipelineName, teamName ) )
 
             Tooltip pipelineName teamName ->
                 ( model, tooltip ( pipelineName, teamName ) )

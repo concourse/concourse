@@ -1,6 +1,18 @@
 module Concourse.BuildStatus exposing (..)
 
 import Concourse
+import Ordering exposing (Ordering)
+
+
+ordering : Ordering Concourse.BuildStatus
+ordering =
+    Ordering.explicit
+        [ Concourse.BuildStatusFailed
+        , Concourse.BuildStatusErrored
+        , Concourse.BuildStatusAborted
+        , Concourse.BuildStatusSucceeded
+        , Concourse.BuildStatusPending
+        ]
 
 
 show : Concourse.BuildStatus -> String

@@ -1,41 +1,54 @@
 module Concourse.PipelineStatus exposing (..)
 
-import Concourse
+
+type PipelineStatus
+    = PipelineStatusPaused
+    | PipelineStatusAborted Bool
+    | PipelineStatusErrored Bool
+    | PipelineStatusFailed Bool
+    | PipelineStatusPending Bool
+    | PipelineStatusSucceeded Bool
 
 
-show : Concourse.PipelineStatus -> String
+show : PipelineStatus -> String
 show status =
     case status of
-        Concourse.PipelineStatusAborted ->
-            "aborted"
-
-        Concourse.PipelineStatusErrored ->
-            "errored"
-
-        Concourse.PipelineStatusFailed ->
-            "failed"
-
-        Concourse.PipelineStatusPaused ->
+        PipelineStatusPaused ->
             "paused"
 
-        Concourse.PipelineStatusPending ->
+        PipelineStatusAborted _ ->
+            "aborted"
+
+        PipelineStatusErrored _ ->
+            "errored"
+
+        PipelineStatusFailed _ ->
+            "failed"
+
+        PipelineStatusPending _ ->
             "pending"
 
-        Concourse.PipelineStatusRunning ->
-            "running"
-
-        Concourse.PipelineStatusSucceeded ->
+        PipelineStatusSucceeded _ ->
             "succeeded"
 
 
-isRunning : Concourse.PipelineStatus -> Bool
+isRunning : PipelineStatus -> Bool
 isRunning status =
     case status of
-        Concourse.PipelineStatusPending ->
-            True
-
-        Concourse.PipelineStatusRunning ->
-            True
-
-        _ ->
+        PipelineStatusPaused ->
             False
+
+        PipelineStatusAborted isRunning ->
+            isRunning
+
+        PipelineStatusErrored isRunning ->
+            isRunning
+
+        PipelineStatusFailed isRunning ->
+            isRunning
+
+        PipelineStatusPending isRunning ->
+            isRunning
+
+        PipelineStatusSucceeded isRunning ->
+            isRunning
