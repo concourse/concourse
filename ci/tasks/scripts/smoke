@@ -3,8 +3,8 @@
 
 set -e -u
 
-readonly MAX_TICKS="${MAX_TICKS:-60}"
-readonly DIR=$(cd $(dirname $0)/.. && pwd)
+export MAX_TICKS="${MAX_TICKS:-60}"
+readonly DIR=$(cd $(dirname $0) && pwd)
 
 instance_ip="$(cat endpoint-info/instance_ip)"
 
