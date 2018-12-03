@@ -9,8 +9,10 @@ RUN apt-get update && apt-get -y install \
       software-properties-common
 
 # install PostgreSQL for DB tests
-RUN apt-get update && apt-get -y install postgresql
-ENV PATH $PATH:/usr/lib/postgresql/9.6/bin
+RUN curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+RUN add-apt-repository "deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main"
+RUN apt-get update && apt-get -y install postgresql-11
+ENV PATH $PATH:/usr/lib/postgresql/11/bin
 
 # install Node 8.x
 RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
