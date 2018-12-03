@@ -40,6 +40,12 @@ func (fake *FakeWorkerJobRunner) TryCallCount() int {
 	return len(fake.tryArgsForCall)
 }
 
+func (fake *FakeWorkerJobRunner) TryCalls(stub func(lager.Logger, string, gc.Job)) {
+	fake.tryMutex.Lock()
+	defer fake.tryMutex.Unlock()
+	fake.TryStub = stub
+}
+
 func (fake *FakeWorkerJobRunner) TryArgsForCall(i int) (lager.Logger, string, gc.Job) {
 	fake.tryMutex.RLock()
 	defer fake.tryMutex.RUnlock()

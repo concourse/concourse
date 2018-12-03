@@ -79,6 +79,12 @@ func (fake *FakeBuild) AbortCallCount() int {
 	return len(fake.abortArgsForCall)
 }
 
+func (fake *FakeBuild) AbortCalls(stub func(lager.Logger) error) {
+	fake.abortMutex.Lock()
+	defer fake.abortMutex.Unlock()
+	fake.AbortStub = stub
+}
+
 func (fake *FakeBuild) AbortArgsForCall(i int) lager.Logger {
 	fake.abortMutex.RLock()
 	defer fake.abortMutex.RUnlock()
@@ -87,6 +93,8 @@ func (fake *FakeBuild) AbortArgsForCall(i int) lager.Logger {
 }
 
 func (fake *FakeBuild) AbortReturns(result1 error) {
+	fake.abortMutex.Lock()
+	defer fake.abortMutex.Unlock()
 	fake.AbortStub = nil
 	fake.abortReturns = struct {
 		result1 error
@@ -94,6 +102,8 @@ func (fake *FakeBuild) AbortReturns(result1 error) {
 }
 
 func (fake *FakeBuild) AbortReturnsOnCall(i int, result1 error) {
+	fake.abortMutex.Lock()
+	defer fake.abortMutex.Unlock()
 	fake.AbortStub = nil
 	if fake.abortReturnsOnCall == nil {
 		fake.abortReturnsOnCall = make(map[int]struct {
@@ -128,7 +138,15 @@ func (fake *FakeBuild) MetadataCallCount() int {
 	return len(fake.metadataArgsForCall)
 }
 
+func (fake *FakeBuild) MetadataCalls(stub func() string) {
+	fake.metadataMutex.Lock()
+	defer fake.metadataMutex.Unlock()
+	fake.MetadataStub = stub
+}
+
 func (fake *FakeBuild) MetadataReturns(result1 string) {
+	fake.metadataMutex.Lock()
+	defer fake.metadataMutex.Unlock()
 	fake.MetadataStub = nil
 	fake.metadataReturns = struct {
 		result1 string
@@ -136,6 +154,8 @@ func (fake *FakeBuild) MetadataReturns(result1 string) {
 }
 
 func (fake *FakeBuild) MetadataReturnsOnCall(i int, result1 string) {
+	fake.metadataMutex.Lock()
+	defer fake.metadataMutex.Unlock()
 	fake.MetadataStub = nil
 	if fake.metadataReturnsOnCall == nil {
 		fake.metadataReturnsOnCall = make(map[int]struct {
@@ -167,6 +187,12 @@ func (fake *FakeBuild) ReceiveInputCallCount() int {
 	return len(fake.receiveInputArgsForCall)
 }
 
+func (fake *FakeBuild) ReceiveInputCalls(stub func(lager.Logger, atc.PlanID, io.ReadCloser)) {
+	fake.receiveInputMutex.Lock()
+	defer fake.receiveInputMutex.Unlock()
+	fake.ReceiveInputStub = stub
+}
+
 func (fake *FakeBuild) ReceiveInputArgsForCall(i int) (lager.Logger, atc.PlanID, io.ReadCloser) {
 	fake.receiveInputMutex.RLock()
 	defer fake.receiveInputMutex.RUnlock()
@@ -190,6 +216,12 @@ func (fake *FakeBuild) ResumeCallCount() int {
 	fake.resumeMutex.RLock()
 	defer fake.resumeMutex.RUnlock()
 	return len(fake.resumeArgsForCall)
+}
+
+func (fake *FakeBuild) ResumeCalls(stub func(lager.Logger)) {
+	fake.resumeMutex.Lock()
+	defer fake.resumeMutex.Unlock()
+	fake.ResumeStub = stub
 }
 
 func (fake *FakeBuild) ResumeArgsForCall(i int) lager.Logger {
@@ -217,6 +249,12 @@ func (fake *FakeBuild) SendOutputCallCount() int {
 	fake.sendOutputMutex.RLock()
 	defer fake.sendOutputMutex.RUnlock()
 	return len(fake.sendOutputArgsForCall)
+}
+
+func (fake *FakeBuild) SendOutputCalls(stub func(lager.Logger, atc.PlanID, io.Writer)) {
+	fake.sendOutputMutex.Lock()
+	defer fake.sendOutputMutex.Unlock()
+	fake.SendOutputStub = stub
 }
 
 func (fake *FakeBuild) SendOutputArgsForCall(i int) (lager.Logger, atc.PlanID, io.Writer) {

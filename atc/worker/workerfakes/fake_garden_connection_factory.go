@@ -46,7 +46,15 @@ func (fake *FakeGardenConnectionFactory) BuildConnectionCallCount() int {
 	return len(fake.buildConnectionArgsForCall)
 }
 
+func (fake *FakeGardenConnectionFactory) BuildConnectionCalls(stub func() connection.Connection) {
+	fake.buildConnectionMutex.Lock()
+	defer fake.buildConnectionMutex.Unlock()
+	fake.BuildConnectionStub = stub
+}
+
 func (fake *FakeGardenConnectionFactory) BuildConnectionReturns(result1 connection.Connection) {
+	fake.buildConnectionMutex.Lock()
+	defer fake.buildConnectionMutex.Unlock()
 	fake.BuildConnectionStub = nil
 	fake.buildConnectionReturns = struct {
 		result1 connection.Connection
@@ -54,6 +62,8 @@ func (fake *FakeGardenConnectionFactory) BuildConnectionReturns(result1 connecti
 }
 
 func (fake *FakeGardenConnectionFactory) BuildConnectionReturnsOnCall(i int, result1 connection.Connection) {
+	fake.buildConnectionMutex.Lock()
+	defer fake.buildConnectionMutex.Unlock()
 	fake.BuildConnectionStub = nil
 	if fake.buildConnectionReturnsOnCall == nil {
 		fake.buildConnectionReturnsOnCall = make(map[int]struct {

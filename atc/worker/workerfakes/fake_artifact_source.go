@@ -81,6 +81,12 @@ func (fake *FakeArtifactSource) StreamFileCallCount() int {
 	return len(fake.streamFileArgsForCall)
 }
 
+func (fake *FakeArtifactSource) StreamFileCalls(stub func(lager.Logger, string) (io.ReadCloser, error)) {
+	fake.streamFileMutex.Lock()
+	defer fake.streamFileMutex.Unlock()
+	fake.StreamFileStub = stub
+}
+
 func (fake *FakeArtifactSource) StreamFileArgsForCall(i int) (lager.Logger, string) {
 	fake.streamFileMutex.RLock()
 	defer fake.streamFileMutex.RUnlock()
@@ -89,6 +95,8 @@ func (fake *FakeArtifactSource) StreamFileArgsForCall(i int) (lager.Logger, stri
 }
 
 func (fake *FakeArtifactSource) StreamFileReturns(result1 io.ReadCloser, result2 error) {
+	fake.streamFileMutex.Lock()
+	defer fake.streamFileMutex.Unlock()
 	fake.StreamFileStub = nil
 	fake.streamFileReturns = struct {
 		result1 io.ReadCloser
@@ -97,6 +105,8 @@ func (fake *FakeArtifactSource) StreamFileReturns(result1 io.ReadCloser, result2
 }
 
 func (fake *FakeArtifactSource) StreamFileReturnsOnCall(i int, result1 io.ReadCloser, result2 error) {
+	fake.streamFileMutex.Lock()
+	defer fake.streamFileMutex.Unlock()
 	fake.StreamFileStub = nil
 	if fake.streamFileReturnsOnCall == nil {
 		fake.streamFileReturnsOnCall = make(map[int]struct {
@@ -135,6 +145,12 @@ func (fake *FakeArtifactSource) StreamToCallCount() int {
 	return len(fake.streamToArgsForCall)
 }
 
+func (fake *FakeArtifactSource) StreamToCalls(stub func(lager.Logger, worker.ArtifactDestination) error) {
+	fake.streamToMutex.Lock()
+	defer fake.streamToMutex.Unlock()
+	fake.StreamToStub = stub
+}
+
 func (fake *FakeArtifactSource) StreamToArgsForCall(i int) (lager.Logger, worker.ArtifactDestination) {
 	fake.streamToMutex.RLock()
 	defer fake.streamToMutex.RUnlock()
@@ -143,6 +159,8 @@ func (fake *FakeArtifactSource) StreamToArgsForCall(i int) (lager.Logger, worker
 }
 
 func (fake *FakeArtifactSource) StreamToReturns(result1 error) {
+	fake.streamToMutex.Lock()
+	defer fake.streamToMutex.Unlock()
 	fake.StreamToStub = nil
 	fake.streamToReturns = struct {
 		result1 error
@@ -150,6 +168,8 @@ func (fake *FakeArtifactSource) StreamToReturns(result1 error) {
 }
 
 func (fake *FakeArtifactSource) StreamToReturnsOnCall(i int, result1 error) {
+	fake.streamToMutex.Lock()
+	defer fake.streamToMutex.Unlock()
 	fake.StreamToStub = nil
 	if fake.streamToReturnsOnCall == nil {
 		fake.streamToReturnsOnCall = make(map[int]struct {
@@ -186,6 +206,12 @@ func (fake *FakeArtifactSource) VolumeOnCallCount() int {
 	return len(fake.volumeOnArgsForCall)
 }
 
+func (fake *FakeArtifactSource) VolumeOnCalls(stub func(lager.Logger, worker.Worker) (worker.Volume, bool, error)) {
+	fake.volumeOnMutex.Lock()
+	defer fake.volumeOnMutex.Unlock()
+	fake.VolumeOnStub = stub
+}
+
 func (fake *FakeArtifactSource) VolumeOnArgsForCall(i int) (lager.Logger, worker.Worker) {
 	fake.volumeOnMutex.RLock()
 	defer fake.volumeOnMutex.RUnlock()
@@ -194,6 +220,8 @@ func (fake *FakeArtifactSource) VolumeOnArgsForCall(i int) (lager.Logger, worker
 }
 
 func (fake *FakeArtifactSource) VolumeOnReturns(result1 worker.Volume, result2 bool, result3 error) {
+	fake.volumeOnMutex.Lock()
+	defer fake.volumeOnMutex.Unlock()
 	fake.VolumeOnStub = nil
 	fake.volumeOnReturns = struct {
 		result1 worker.Volume
@@ -203,6 +231,8 @@ func (fake *FakeArtifactSource) VolumeOnReturns(result1 worker.Volume, result2 b
 }
 
 func (fake *FakeArtifactSource) VolumeOnReturnsOnCall(i int, result1 worker.Volume, result2 bool, result3 error) {
+	fake.volumeOnMutex.Lock()
+	defer fake.volumeOnMutex.Unlock()
 	fake.VolumeOnStub = nil
 	if fake.volumeOnReturnsOnCall == nil {
 		fake.volumeOnReturnsOnCall = make(map[int]struct {

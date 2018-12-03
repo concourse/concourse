@@ -78,6 +78,12 @@ func (fake *FakeContainerProvider) FindCreatedContainerByHandleCallCount() int {
 	return len(fake.findCreatedContainerByHandleArgsForCall)
 }
 
+func (fake *FakeContainerProvider) FindCreatedContainerByHandleCalls(stub func(lager.Logger, string, int) (worker.Container, bool, error)) {
+	fake.findCreatedContainerByHandleMutex.Lock()
+	defer fake.findCreatedContainerByHandleMutex.Unlock()
+	fake.FindCreatedContainerByHandleStub = stub
+}
+
 func (fake *FakeContainerProvider) FindCreatedContainerByHandleArgsForCall(i int) (lager.Logger, string, int) {
 	fake.findCreatedContainerByHandleMutex.RLock()
 	defer fake.findCreatedContainerByHandleMutex.RUnlock()
@@ -86,6 +92,8 @@ func (fake *FakeContainerProvider) FindCreatedContainerByHandleArgsForCall(i int
 }
 
 func (fake *FakeContainerProvider) FindCreatedContainerByHandleReturns(result1 worker.Container, result2 bool, result3 error) {
+	fake.findCreatedContainerByHandleMutex.Lock()
+	defer fake.findCreatedContainerByHandleMutex.Unlock()
 	fake.FindCreatedContainerByHandleStub = nil
 	fake.findCreatedContainerByHandleReturns = struct {
 		result1 worker.Container
@@ -95,6 +103,8 @@ func (fake *FakeContainerProvider) FindCreatedContainerByHandleReturns(result1 w
 }
 
 func (fake *FakeContainerProvider) FindCreatedContainerByHandleReturnsOnCall(i int, result1 worker.Container, result2 bool, result3 error) {
+	fake.findCreatedContainerByHandleMutex.Lock()
+	defer fake.findCreatedContainerByHandleMutex.Unlock()
 	fake.FindCreatedContainerByHandleStub = nil
 	if fake.findCreatedContainerByHandleReturnsOnCall == nil {
 		fake.findCreatedContainerByHandleReturnsOnCall = make(map[int]struct {
@@ -140,6 +150,12 @@ func (fake *FakeContainerProvider) FindOrCreateContainerCallCount() int {
 	return len(fake.findOrCreateContainerArgsForCall)
 }
 
+func (fake *FakeContainerProvider) FindOrCreateContainerCalls(stub func(context.Context, lager.Logger, db.ContainerOwner, worker.ImageFetchingDelegate, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes) (worker.Container, error)) {
+	fake.findOrCreateContainerMutex.Lock()
+	defer fake.findOrCreateContainerMutex.Unlock()
+	fake.FindOrCreateContainerStub = stub
+}
+
 func (fake *FakeContainerProvider) FindOrCreateContainerArgsForCall(i int) (context.Context, lager.Logger, db.ContainerOwner, worker.ImageFetchingDelegate, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes) {
 	fake.findOrCreateContainerMutex.RLock()
 	defer fake.findOrCreateContainerMutex.RUnlock()
@@ -148,6 +164,8 @@ func (fake *FakeContainerProvider) FindOrCreateContainerArgsForCall(i int) (cont
 }
 
 func (fake *FakeContainerProvider) FindOrCreateContainerReturns(result1 worker.Container, result2 error) {
+	fake.findOrCreateContainerMutex.Lock()
+	defer fake.findOrCreateContainerMutex.Unlock()
 	fake.FindOrCreateContainerStub = nil
 	fake.findOrCreateContainerReturns = struct {
 		result1 worker.Container
@@ -156,6 +174,8 @@ func (fake *FakeContainerProvider) FindOrCreateContainerReturns(result1 worker.C
 }
 
 func (fake *FakeContainerProvider) FindOrCreateContainerReturnsOnCall(i int, result1 worker.Container, result2 error) {
+	fake.findOrCreateContainerMutex.Lock()
+	defer fake.findOrCreateContainerMutex.Unlock()
 	fake.FindOrCreateContainerStub = nil
 	if fake.findOrCreateContainerReturnsOnCall == nil {
 		fake.findOrCreateContainerReturnsOnCall = make(map[int]struct {

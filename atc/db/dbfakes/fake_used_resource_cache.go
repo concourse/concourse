@@ -89,7 +89,15 @@ func (fake *FakeUsedResourceCache) BaseResourceTypeCallCount() int {
 	return len(fake.baseResourceTypeArgsForCall)
 }
 
+func (fake *FakeUsedResourceCache) BaseResourceTypeCalls(stub func() *db.UsedBaseResourceType) {
+	fake.baseResourceTypeMutex.Lock()
+	defer fake.baseResourceTypeMutex.Unlock()
+	fake.BaseResourceTypeStub = stub
+}
+
 func (fake *FakeUsedResourceCache) BaseResourceTypeReturns(result1 *db.UsedBaseResourceType) {
+	fake.baseResourceTypeMutex.Lock()
+	defer fake.baseResourceTypeMutex.Unlock()
 	fake.BaseResourceTypeStub = nil
 	fake.baseResourceTypeReturns = struct {
 		result1 *db.UsedBaseResourceType
@@ -97,6 +105,8 @@ func (fake *FakeUsedResourceCache) BaseResourceTypeReturns(result1 *db.UsedBaseR
 }
 
 func (fake *FakeUsedResourceCache) BaseResourceTypeReturnsOnCall(i int, result1 *db.UsedBaseResourceType) {
+	fake.baseResourceTypeMutex.Lock()
+	defer fake.baseResourceTypeMutex.Unlock()
 	fake.BaseResourceTypeStub = nil
 	if fake.baseResourceTypeReturnsOnCall == nil {
 		fake.baseResourceTypeReturnsOnCall = make(map[int]struct {
@@ -132,6 +142,12 @@ func (fake *FakeUsedResourceCache) DestroyCallCount() int {
 	return len(fake.destroyArgsForCall)
 }
 
+func (fake *FakeUsedResourceCache) DestroyCalls(stub func(db.Tx) (bool, error)) {
+	fake.destroyMutex.Lock()
+	defer fake.destroyMutex.Unlock()
+	fake.DestroyStub = stub
+}
+
 func (fake *FakeUsedResourceCache) DestroyArgsForCall(i int) db.Tx {
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
@@ -140,6 +156,8 @@ func (fake *FakeUsedResourceCache) DestroyArgsForCall(i int) db.Tx {
 }
 
 func (fake *FakeUsedResourceCache) DestroyReturns(result1 bool, result2 error) {
+	fake.destroyMutex.Lock()
+	defer fake.destroyMutex.Unlock()
 	fake.DestroyStub = nil
 	fake.destroyReturns = struct {
 		result1 bool
@@ -148,6 +166,8 @@ func (fake *FakeUsedResourceCache) DestroyReturns(result1 bool, result2 error) {
 }
 
 func (fake *FakeUsedResourceCache) DestroyReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.destroyMutex.Lock()
+	defer fake.destroyMutex.Unlock()
 	fake.DestroyStub = nil
 	if fake.destroyReturnsOnCall == nil {
 		fake.destroyReturnsOnCall = make(map[int]struct {
@@ -184,7 +204,15 @@ func (fake *FakeUsedResourceCache) IDCallCount() int {
 	return len(fake.iDArgsForCall)
 }
 
+func (fake *FakeUsedResourceCache) IDCalls(stub func() int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
+	fake.IDStub = stub
+}
+
 func (fake *FakeUsedResourceCache) IDReturns(result1 int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
 	fake.IDStub = nil
 	fake.iDReturns = struct {
 		result1 int
@@ -192,6 +220,8 @@ func (fake *FakeUsedResourceCache) IDReturns(result1 int) {
 }
 
 func (fake *FakeUsedResourceCache) IDReturnsOnCall(i int, result1 int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
 	fake.IDStub = nil
 	if fake.iDReturnsOnCall == nil {
 		fake.iDReturnsOnCall = make(map[int]struct {
@@ -226,7 +256,15 @@ func (fake *FakeUsedResourceCache) ResourceConfigCallCount() int {
 	return len(fake.resourceConfigArgsForCall)
 }
 
+func (fake *FakeUsedResourceCache) ResourceConfigCalls(stub func() db.ResourceConfig) {
+	fake.resourceConfigMutex.Lock()
+	defer fake.resourceConfigMutex.Unlock()
+	fake.ResourceConfigStub = stub
+}
+
 func (fake *FakeUsedResourceCache) ResourceConfigReturns(result1 db.ResourceConfig) {
+	fake.resourceConfigMutex.Lock()
+	defer fake.resourceConfigMutex.Unlock()
 	fake.ResourceConfigStub = nil
 	fake.resourceConfigReturns = struct {
 		result1 db.ResourceConfig
@@ -234,6 +272,8 @@ func (fake *FakeUsedResourceCache) ResourceConfigReturns(result1 db.ResourceConf
 }
 
 func (fake *FakeUsedResourceCache) ResourceConfigReturnsOnCall(i int, result1 db.ResourceConfig) {
+	fake.resourceConfigMutex.Lock()
+	defer fake.resourceConfigMutex.Unlock()
 	fake.ResourceConfigStub = nil
 	if fake.resourceConfigReturnsOnCall == nil {
 		fake.resourceConfigReturnsOnCall = make(map[int]struct {
@@ -268,7 +308,15 @@ func (fake *FakeUsedResourceCache) VersionCallCount() int {
 	return len(fake.versionArgsForCall)
 }
 
+func (fake *FakeUsedResourceCache) VersionCalls(stub func() atc.Version) {
+	fake.versionMutex.Lock()
+	defer fake.versionMutex.Unlock()
+	fake.VersionStub = stub
+}
+
 func (fake *FakeUsedResourceCache) VersionReturns(result1 atc.Version) {
+	fake.versionMutex.Lock()
+	defer fake.versionMutex.Unlock()
 	fake.VersionStub = nil
 	fake.versionReturns = struct {
 		result1 atc.Version
@@ -276,6 +324,8 @@ func (fake *FakeUsedResourceCache) VersionReturns(result1 atc.Version) {
 }
 
 func (fake *FakeUsedResourceCache) VersionReturnsOnCall(i int, result1 atc.Version) {
+	fake.versionMutex.Lock()
+	defer fake.versionMutex.Unlock()
 	fake.VersionStub = nil
 	if fake.versionReturnsOnCall == nil {
 		fake.versionReturnsOnCall = make(map[int]struct {

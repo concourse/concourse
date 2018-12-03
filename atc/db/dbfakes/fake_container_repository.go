@@ -116,7 +116,15 @@ func (fake *FakeContainerRepository) DestroyFailedContainersCallCount() int {
 	return len(fake.destroyFailedContainersArgsForCall)
 }
 
+func (fake *FakeContainerRepository) DestroyFailedContainersCalls(stub func() (int, error)) {
+	fake.destroyFailedContainersMutex.Lock()
+	defer fake.destroyFailedContainersMutex.Unlock()
+	fake.DestroyFailedContainersStub = stub
+}
+
 func (fake *FakeContainerRepository) DestroyFailedContainersReturns(result1 int, result2 error) {
+	fake.destroyFailedContainersMutex.Lock()
+	defer fake.destroyFailedContainersMutex.Unlock()
 	fake.DestroyFailedContainersStub = nil
 	fake.destroyFailedContainersReturns = struct {
 		result1 int
@@ -125,6 +133,8 @@ func (fake *FakeContainerRepository) DestroyFailedContainersReturns(result1 int,
 }
 
 func (fake *FakeContainerRepository) DestroyFailedContainersReturnsOnCall(i int, result1 int, result2 error) {
+	fake.destroyFailedContainersMutex.Lock()
+	defer fake.destroyFailedContainersMutex.Unlock()
 	fake.DestroyFailedContainersStub = nil
 	if fake.destroyFailedContainersReturnsOnCall == nil {
 		fake.destroyFailedContainersReturnsOnCall = make(map[int]struct {
@@ -162,6 +172,12 @@ func (fake *FakeContainerRepository) FindDestroyingContainersCallCount() int {
 	return len(fake.findDestroyingContainersArgsForCall)
 }
 
+func (fake *FakeContainerRepository) FindDestroyingContainersCalls(stub func(string) ([]string, error)) {
+	fake.findDestroyingContainersMutex.Lock()
+	defer fake.findDestroyingContainersMutex.Unlock()
+	fake.FindDestroyingContainersStub = stub
+}
+
 func (fake *FakeContainerRepository) FindDestroyingContainersArgsForCall(i int) string {
 	fake.findDestroyingContainersMutex.RLock()
 	defer fake.findDestroyingContainersMutex.RUnlock()
@@ -170,6 +186,8 @@ func (fake *FakeContainerRepository) FindDestroyingContainersArgsForCall(i int) 
 }
 
 func (fake *FakeContainerRepository) FindDestroyingContainersReturns(result1 []string, result2 error) {
+	fake.findDestroyingContainersMutex.Lock()
+	defer fake.findDestroyingContainersMutex.Unlock()
 	fake.FindDestroyingContainersStub = nil
 	fake.findDestroyingContainersReturns = struct {
 		result1 []string
@@ -178,6 +196,8 @@ func (fake *FakeContainerRepository) FindDestroyingContainersReturns(result1 []s
 }
 
 func (fake *FakeContainerRepository) FindDestroyingContainersReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.findDestroyingContainersMutex.Lock()
+	defer fake.findDestroyingContainersMutex.Unlock()
 	fake.FindDestroyingContainersStub = nil
 	if fake.findDestroyingContainersReturnsOnCall == nil {
 		fake.findDestroyingContainersReturnsOnCall = make(map[int]struct {
@@ -214,7 +234,15 @@ func (fake *FakeContainerRepository) FindOrphanedContainersCallCount() int {
 	return len(fake.findOrphanedContainersArgsForCall)
 }
 
+func (fake *FakeContainerRepository) FindOrphanedContainersCalls(stub func() ([]db.CreatingContainer, []db.CreatedContainer, []db.DestroyingContainer, error)) {
+	fake.findOrphanedContainersMutex.Lock()
+	defer fake.findOrphanedContainersMutex.Unlock()
+	fake.FindOrphanedContainersStub = stub
+}
+
 func (fake *FakeContainerRepository) FindOrphanedContainersReturns(result1 []db.CreatingContainer, result2 []db.CreatedContainer, result3 []db.DestroyingContainer, result4 error) {
+	fake.findOrphanedContainersMutex.Lock()
+	defer fake.findOrphanedContainersMutex.Unlock()
 	fake.FindOrphanedContainersStub = nil
 	fake.findOrphanedContainersReturns = struct {
 		result1 []db.CreatingContainer
@@ -225,6 +253,8 @@ func (fake *FakeContainerRepository) FindOrphanedContainersReturns(result1 []db.
 }
 
 func (fake *FakeContainerRepository) FindOrphanedContainersReturnsOnCall(i int, result1 []db.CreatingContainer, result2 []db.CreatedContainer, result3 []db.DestroyingContainer, result4 error) {
+	fake.findOrphanedContainersMutex.Lock()
+	defer fake.findOrphanedContainersMutex.Unlock()
 	fake.FindOrphanedContainersStub = nil
 	if fake.findOrphanedContainersReturnsOnCall == nil {
 		fake.findOrphanedContainersReturnsOnCall = make(map[int]struct {
@@ -272,6 +302,12 @@ func (fake *FakeContainerRepository) RemoveDestroyingContainersCallCount() int {
 	return len(fake.removeDestroyingContainersArgsForCall)
 }
 
+func (fake *FakeContainerRepository) RemoveDestroyingContainersCalls(stub func(string, []string) (int, error)) {
+	fake.removeDestroyingContainersMutex.Lock()
+	defer fake.removeDestroyingContainersMutex.Unlock()
+	fake.RemoveDestroyingContainersStub = stub
+}
+
 func (fake *FakeContainerRepository) RemoveDestroyingContainersArgsForCall(i int) (string, []string) {
 	fake.removeDestroyingContainersMutex.RLock()
 	defer fake.removeDestroyingContainersMutex.RUnlock()
@@ -280,6 +316,8 @@ func (fake *FakeContainerRepository) RemoveDestroyingContainersArgsForCall(i int
 }
 
 func (fake *FakeContainerRepository) RemoveDestroyingContainersReturns(result1 int, result2 error) {
+	fake.removeDestroyingContainersMutex.Lock()
+	defer fake.removeDestroyingContainersMutex.Unlock()
 	fake.RemoveDestroyingContainersStub = nil
 	fake.removeDestroyingContainersReturns = struct {
 		result1 int
@@ -288,6 +326,8 @@ func (fake *FakeContainerRepository) RemoveDestroyingContainersReturns(result1 i
 }
 
 func (fake *FakeContainerRepository) RemoveDestroyingContainersReturnsOnCall(i int, result1 int, result2 error) {
+	fake.removeDestroyingContainersMutex.Lock()
+	defer fake.removeDestroyingContainersMutex.Unlock()
 	fake.RemoveDestroyingContainersStub = nil
 	if fake.removeDestroyingContainersReturnsOnCall == nil {
 		fake.removeDestroyingContainersReturnsOnCall = make(map[int]struct {
@@ -325,6 +365,12 @@ func (fake *FakeContainerRepository) RemoveMissingContainersCallCount() int {
 	return len(fake.removeMissingContainersArgsForCall)
 }
 
+func (fake *FakeContainerRepository) RemoveMissingContainersCalls(stub func(time.Duration) (int, error)) {
+	fake.removeMissingContainersMutex.Lock()
+	defer fake.removeMissingContainersMutex.Unlock()
+	fake.RemoveMissingContainersStub = stub
+}
+
 func (fake *FakeContainerRepository) RemoveMissingContainersArgsForCall(i int) time.Duration {
 	fake.removeMissingContainersMutex.RLock()
 	defer fake.removeMissingContainersMutex.RUnlock()
@@ -333,6 +379,8 @@ func (fake *FakeContainerRepository) RemoveMissingContainersArgsForCall(i int) t
 }
 
 func (fake *FakeContainerRepository) RemoveMissingContainersReturns(result1 int, result2 error) {
+	fake.removeMissingContainersMutex.Lock()
+	defer fake.removeMissingContainersMutex.Unlock()
 	fake.RemoveMissingContainersStub = nil
 	fake.removeMissingContainersReturns = struct {
 		result1 int
@@ -341,6 +389,8 @@ func (fake *FakeContainerRepository) RemoveMissingContainersReturns(result1 int,
 }
 
 func (fake *FakeContainerRepository) RemoveMissingContainersReturnsOnCall(i int, result1 int, result2 error) {
+	fake.removeMissingContainersMutex.Lock()
+	defer fake.removeMissingContainersMutex.Unlock()
 	fake.RemoveMissingContainersStub = nil
 	if fake.removeMissingContainersReturnsOnCall == nil {
 		fake.removeMissingContainersReturnsOnCall = make(map[int]struct {
@@ -384,6 +434,12 @@ func (fake *FakeContainerRepository) UpdateContainersMissingSinceCallCount() int
 	return len(fake.updateContainersMissingSinceArgsForCall)
 }
 
+func (fake *FakeContainerRepository) UpdateContainersMissingSinceCalls(stub func(string, []string) error) {
+	fake.updateContainersMissingSinceMutex.Lock()
+	defer fake.updateContainersMissingSinceMutex.Unlock()
+	fake.UpdateContainersMissingSinceStub = stub
+}
+
 func (fake *FakeContainerRepository) UpdateContainersMissingSinceArgsForCall(i int) (string, []string) {
 	fake.updateContainersMissingSinceMutex.RLock()
 	defer fake.updateContainersMissingSinceMutex.RUnlock()
@@ -392,6 +448,8 @@ func (fake *FakeContainerRepository) UpdateContainersMissingSinceArgsForCall(i i
 }
 
 func (fake *FakeContainerRepository) UpdateContainersMissingSinceReturns(result1 error) {
+	fake.updateContainersMissingSinceMutex.Lock()
+	defer fake.updateContainersMissingSinceMutex.Unlock()
 	fake.UpdateContainersMissingSinceStub = nil
 	fake.updateContainersMissingSinceReturns = struct {
 		result1 error
@@ -399,6 +457,8 @@ func (fake *FakeContainerRepository) UpdateContainersMissingSinceReturns(result1
 }
 
 func (fake *FakeContainerRepository) UpdateContainersMissingSinceReturnsOnCall(i int, result1 error) {
+	fake.updateContainersMissingSinceMutex.Lock()
+	defer fake.updateContainersMissingSinceMutex.Unlock()
 	fake.UpdateContainersMissingSinceStub = nil
 	if fake.updateContainersMissingSinceReturnsOnCall == nil {
 		fake.updateContainersMissingSinceReturnsOnCall = make(map[int]struct {

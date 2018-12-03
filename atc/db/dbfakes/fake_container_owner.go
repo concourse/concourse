@@ -67,6 +67,12 @@ func (fake *FakeContainerOwner) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
+func (fake *FakeContainerOwner) CreateCalls(stub func(db.Tx, string) (map[string]interface{}, error)) {
+	fake.createMutex.Lock()
+	defer fake.createMutex.Unlock()
+	fake.CreateStub = stub
+}
+
 func (fake *FakeContainerOwner) CreateArgsForCall(i int) (db.Tx, string) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
@@ -75,6 +81,8 @@ func (fake *FakeContainerOwner) CreateArgsForCall(i int) (db.Tx, string) {
 }
 
 func (fake *FakeContainerOwner) CreateReturns(result1 map[string]interface{}, result2 error) {
+	fake.createMutex.Lock()
+	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	fake.createReturns = struct {
 		result1 map[string]interface{}
@@ -83,6 +91,8 @@ func (fake *FakeContainerOwner) CreateReturns(result1 map[string]interface{}, re
 }
 
 func (fake *FakeContainerOwner) CreateReturnsOnCall(i int, result1 map[string]interface{}, result2 error) {
+	fake.createMutex.Lock()
+	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	if fake.createReturnsOnCall == nil {
 		fake.createReturnsOnCall = make(map[int]struct {
@@ -120,6 +130,12 @@ func (fake *FakeContainerOwner) FindCallCount() int {
 	return len(fake.findArgsForCall)
 }
 
+func (fake *FakeContainerOwner) FindCalls(stub func(db.Conn) (squirrel.Eq, bool, error)) {
+	fake.findMutex.Lock()
+	defer fake.findMutex.Unlock()
+	fake.FindStub = stub
+}
+
 func (fake *FakeContainerOwner) FindArgsForCall(i int) db.Conn {
 	fake.findMutex.RLock()
 	defer fake.findMutex.RUnlock()
@@ -128,6 +144,8 @@ func (fake *FakeContainerOwner) FindArgsForCall(i int) db.Conn {
 }
 
 func (fake *FakeContainerOwner) FindReturns(result1 squirrel.Eq, result2 bool, result3 error) {
+	fake.findMutex.Lock()
+	defer fake.findMutex.Unlock()
 	fake.FindStub = nil
 	fake.findReturns = struct {
 		result1 squirrel.Eq
@@ -137,6 +155,8 @@ func (fake *FakeContainerOwner) FindReturns(result1 squirrel.Eq, result2 bool, r
 }
 
 func (fake *FakeContainerOwner) FindReturnsOnCall(i int, result1 squirrel.Eq, result2 bool, result3 error) {
+	fake.findMutex.Lock()
+	defer fake.findMutex.Unlock()
 	fake.FindStub = nil
 	if fake.findReturnsOnCall == nil {
 		fake.findReturnsOnCall = make(map[int]struct {

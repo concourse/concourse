@@ -50,6 +50,12 @@ func (fake *FakeGenerator) GenerateCallCount() int {
 	return len(fake.generateArgsForCall)
 }
 
+func (fake *FakeGenerator) GenerateCalls(stub func(map[string]interface{}) (*oauth2.Token, error)) {
+	fake.generateMutex.Lock()
+	defer fake.generateMutex.Unlock()
+	fake.GenerateStub = stub
+}
+
 func (fake *FakeGenerator) GenerateArgsForCall(i int) map[string]interface{} {
 	fake.generateMutex.RLock()
 	defer fake.generateMutex.RUnlock()
@@ -58,6 +64,8 @@ func (fake *FakeGenerator) GenerateArgsForCall(i int) map[string]interface{} {
 }
 
 func (fake *FakeGenerator) GenerateReturns(result1 *oauth2.Token, result2 error) {
+	fake.generateMutex.Lock()
+	defer fake.generateMutex.Unlock()
 	fake.GenerateStub = nil
 	fake.generateReturns = struct {
 		result1 *oauth2.Token
@@ -66,6 +74,8 @@ func (fake *FakeGenerator) GenerateReturns(result1 *oauth2.Token, result2 error)
 }
 
 func (fake *FakeGenerator) GenerateReturnsOnCall(i int, result1 *oauth2.Token, result2 error) {
+	fake.generateMutex.Lock()
+	defer fake.generateMutex.Unlock()
 	fake.GenerateStub = nil
 	if fake.generateReturnsOnCall == nil {
 		fake.generateReturnsOnCall = make(map[int]struct {

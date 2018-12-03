@@ -66,6 +66,12 @@ func (fake *FakeResourceFactory) NewResourceCallCount() int {
 	return len(fake.newResourceArgsForCall)
 }
 
+func (fake *FakeResourceFactory) NewResourceCalls(stub func(context.Context, lager.Logger, db.ContainerOwner, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes, worker.ImageFetchingDelegate) (resource.Resource, error)) {
+	fake.newResourceMutex.Lock()
+	defer fake.newResourceMutex.Unlock()
+	fake.NewResourceStub = stub
+}
+
 func (fake *FakeResourceFactory) NewResourceArgsForCall(i int) (context.Context, lager.Logger, db.ContainerOwner, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes, worker.ImageFetchingDelegate) {
 	fake.newResourceMutex.RLock()
 	defer fake.newResourceMutex.RUnlock()
@@ -74,6 +80,8 @@ func (fake *FakeResourceFactory) NewResourceArgsForCall(i int) (context.Context,
 }
 
 func (fake *FakeResourceFactory) NewResourceReturns(result1 resource.Resource, result2 error) {
+	fake.newResourceMutex.Lock()
+	defer fake.newResourceMutex.Unlock()
 	fake.NewResourceStub = nil
 	fake.newResourceReturns = struct {
 		result1 resource.Resource
@@ -82,6 +90,8 @@ func (fake *FakeResourceFactory) NewResourceReturns(result1 resource.Resource, r
 }
 
 func (fake *FakeResourceFactory) NewResourceReturnsOnCall(i int, result1 resource.Resource, result2 error) {
+	fake.newResourceMutex.Lock()
+	defer fake.newResourceMutex.Unlock()
 	fake.NewResourceStub = nil
 	if fake.newResourceReturnsOnCall == nil {
 		fake.newResourceReturnsOnCall = make(map[int]struct {

@@ -44,6 +44,12 @@ func (fake *FakeRejector) ForbiddenCallCount() int {
 	return len(fake.forbiddenArgsForCall)
 }
 
+func (fake *FakeRejector) ForbiddenCalls(stub func(http.ResponseWriter, *http.Request)) {
+	fake.forbiddenMutex.Lock()
+	defer fake.forbiddenMutex.Unlock()
+	fake.ForbiddenStub = stub
+}
+
 func (fake *FakeRejector) ForbiddenArgsForCall(i int) (http.ResponseWriter, *http.Request) {
 	fake.forbiddenMutex.RLock()
 	defer fake.forbiddenMutex.RUnlock()
@@ -68,6 +74,12 @@ func (fake *FakeRejector) UnauthorizedCallCount() int {
 	fake.unauthorizedMutex.RLock()
 	defer fake.unauthorizedMutex.RUnlock()
 	return len(fake.unauthorizedArgsForCall)
+}
+
+func (fake *FakeRejector) UnauthorizedCalls(stub func(http.ResponseWriter, *http.Request)) {
+	fake.unauthorizedMutex.Lock()
+	defer fake.unauthorizedMutex.Unlock()
+	fake.UnauthorizedStub = stub
 }
 
 func (fake *FakeRejector) UnauthorizedArgsForCall(i int) (http.ResponseWriter, *http.Request) {

@@ -70,6 +70,12 @@ func (fake *FakeFetcher) FetchCallCount() int {
 	return len(fake.fetchArgsForCall)
 }
 
+func (fake *FakeFetcher) FetchCalls(stub func(context.Context, lager.Logger, resource.Session, atc.Tags, int, creds.VersionedResourceTypes, resource.ResourceInstance, resource.Metadata, worker.ImageFetchingDelegate) (resource.VersionedSource, error)) {
+	fake.fetchMutex.Lock()
+	defer fake.fetchMutex.Unlock()
+	fake.FetchStub = stub
+}
+
 func (fake *FakeFetcher) FetchArgsForCall(i int) (context.Context, lager.Logger, resource.Session, atc.Tags, int, creds.VersionedResourceTypes, resource.ResourceInstance, resource.Metadata, worker.ImageFetchingDelegate) {
 	fake.fetchMutex.RLock()
 	defer fake.fetchMutex.RUnlock()
@@ -78,6 +84,8 @@ func (fake *FakeFetcher) FetchArgsForCall(i int) (context.Context, lager.Logger,
 }
 
 func (fake *FakeFetcher) FetchReturns(result1 resource.VersionedSource, result2 error) {
+	fake.fetchMutex.Lock()
+	defer fake.fetchMutex.Unlock()
 	fake.FetchStub = nil
 	fake.fetchReturns = struct {
 		result1 resource.VersionedSource
@@ -86,6 +94,8 @@ func (fake *FakeFetcher) FetchReturns(result1 resource.VersionedSource, result2 
 }
 
 func (fake *FakeFetcher) FetchReturnsOnCall(i int, result1 resource.VersionedSource, result2 error) {
+	fake.fetchMutex.Lock()
+	defer fake.fetchMutex.Unlock()
 	fake.FetchStub = nil
 	if fake.fetchReturnsOnCall == nil {
 		fake.fetchReturnsOnCall = make(map[int]struct {

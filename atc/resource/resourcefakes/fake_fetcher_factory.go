@@ -48,6 +48,12 @@ func (fake *FakeFetcherFactory) FetcherForCallCount() int {
 	return len(fake.fetcherForArgsForCall)
 }
 
+func (fake *FakeFetcherFactory) FetcherForCalls(stub func(worker.Client) resource.Fetcher) {
+	fake.fetcherForMutex.Lock()
+	defer fake.fetcherForMutex.Unlock()
+	fake.FetcherForStub = stub
+}
+
 func (fake *FakeFetcherFactory) FetcherForArgsForCall(i int) worker.Client {
 	fake.fetcherForMutex.RLock()
 	defer fake.fetcherForMutex.RUnlock()
@@ -56,6 +62,8 @@ func (fake *FakeFetcherFactory) FetcherForArgsForCall(i int) worker.Client {
 }
 
 func (fake *FakeFetcherFactory) FetcherForReturns(result1 resource.Fetcher) {
+	fake.fetcherForMutex.Lock()
+	defer fake.fetcherForMutex.Unlock()
 	fake.FetcherForStub = nil
 	fake.fetcherForReturns = struct {
 		result1 resource.Fetcher
@@ -63,6 +71,8 @@ func (fake *FakeFetcherFactory) FetcherForReturns(result1 resource.Fetcher) {
 }
 
 func (fake *FakeFetcherFactory) FetcherForReturnsOnCall(i int, result1 resource.Fetcher) {
+	fake.fetcherForMutex.Lock()
+	defer fake.fetcherForMutex.Unlock()
 	fake.FetcherForStub = nil
 	if fake.fetcherForReturnsOnCall == nil {
 		fake.fetcherForReturnsOnCall = make(map[int]struct {

@@ -90,6 +90,12 @@ func (fake *FakeBuildDelegate) BuildStepDelegateCallCount() int {
 	return len(fake.buildStepDelegateArgsForCall)
 }
 
+func (fake *FakeBuildDelegate) BuildStepDelegateCalls(stub func(atc.PlanID) exec.BuildStepDelegate) {
+	fake.buildStepDelegateMutex.Lock()
+	defer fake.buildStepDelegateMutex.Unlock()
+	fake.BuildStepDelegateStub = stub
+}
+
 func (fake *FakeBuildDelegate) BuildStepDelegateArgsForCall(i int) atc.PlanID {
 	fake.buildStepDelegateMutex.RLock()
 	defer fake.buildStepDelegateMutex.RUnlock()
@@ -98,6 +104,8 @@ func (fake *FakeBuildDelegate) BuildStepDelegateArgsForCall(i int) atc.PlanID {
 }
 
 func (fake *FakeBuildDelegate) BuildStepDelegateReturns(result1 exec.BuildStepDelegate) {
+	fake.buildStepDelegateMutex.Lock()
+	defer fake.buildStepDelegateMutex.Unlock()
 	fake.BuildStepDelegateStub = nil
 	fake.buildStepDelegateReturns = struct {
 		result1 exec.BuildStepDelegate
@@ -105,6 +113,8 @@ func (fake *FakeBuildDelegate) BuildStepDelegateReturns(result1 exec.BuildStepDe
 }
 
 func (fake *FakeBuildDelegate) BuildStepDelegateReturnsOnCall(i int, result1 exec.BuildStepDelegate) {
+	fake.buildStepDelegateMutex.Lock()
+	defer fake.buildStepDelegateMutex.Unlock()
 	fake.BuildStepDelegateStub = nil
 	if fake.buildStepDelegateReturnsOnCall == nil {
 		fake.buildStepDelegateReturnsOnCall = make(map[int]struct {
@@ -134,6 +144,12 @@ func (fake *FakeBuildDelegate) FinishCallCount() int {
 	fake.finishMutex.RLock()
 	defer fake.finishMutex.RUnlock()
 	return len(fake.finishArgsForCall)
+}
+
+func (fake *FakeBuildDelegate) FinishCalls(stub func(lager.Logger, error, bool)) {
+	fake.finishMutex.Lock()
+	defer fake.finishMutex.Unlock()
+	fake.FinishStub = stub
 }
 
 func (fake *FakeBuildDelegate) FinishArgsForCall(i int) (lager.Logger, error, bool) {
@@ -167,6 +183,12 @@ func (fake *FakeBuildDelegate) GetDelegateCallCount() int {
 	return len(fake.getDelegateArgsForCall)
 }
 
+func (fake *FakeBuildDelegate) GetDelegateCalls(stub func(atc.PlanID) exec.GetDelegate) {
+	fake.getDelegateMutex.Lock()
+	defer fake.getDelegateMutex.Unlock()
+	fake.GetDelegateStub = stub
+}
+
 func (fake *FakeBuildDelegate) GetDelegateArgsForCall(i int) atc.PlanID {
 	fake.getDelegateMutex.RLock()
 	defer fake.getDelegateMutex.RUnlock()
@@ -175,6 +197,8 @@ func (fake *FakeBuildDelegate) GetDelegateArgsForCall(i int) atc.PlanID {
 }
 
 func (fake *FakeBuildDelegate) GetDelegateReturns(result1 exec.GetDelegate) {
+	fake.getDelegateMutex.Lock()
+	defer fake.getDelegateMutex.Unlock()
 	fake.GetDelegateStub = nil
 	fake.getDelegateReturns = struct {
 		result1 exec.GetDelegate
@@ -182,6 +206,8 @@ func (fake *FakeBuildDelegate) GetDelegateReturns(result1 exec.GetDelegate) {
 }
 
 func (fake *FakeBuildDelegate) GetDelegateReturnsOnCall(i int, result1 exec.GetDelegate) {
+	fake.getDelegateMutex.Lock()
+	defer fake.getDelegateMutex.Unlock()
 	fake.GetDelegateStub = nil
 	if fake.getDelegateReturnsOnCall == nil {
 		fake.getDelegateReturnsOnCall = make(map[int]struct {
@@ -217,6 +243,12 @@ func (fake *FakeBuildDelegate) PutDelegateCallCount() int {
 	return len(fake.putDelegateArgsForCall)
 }
 
+func (fake *FakeBuildDelegate) PutDelegateCalls(stub func(atc.PlanID) exec.PutDelegate) {
+	fake.putDelegateMutex.Lock()
+	defer fake.putDelegateMutex.Unlock()
+	fake.PutDelegateStub = stub
+}
+
 func (fake *FakeBuildDelegate) PutDelegateArgsForCall(i int) atc.PlanID {
 	fake.putDelegateMutex.RLock()
 	defer fake.putDelegateMutex.RUnlock()
@@ -225,6 +257,8 @@ func (fake *FakeBuildDelegate) PutDelegateArgsForCall(i int) atc.PlanID {
 }
 
 func (fake *FakeBuildDelegate) PutDelegateReturns(result1 exec.PutDelegate) {
+	fake.putDelegateMutex.Lock()
+	defer fake.putDelegateMutex.Unlock()
 	fake.PutDelegateStub = nil
 	fake.putDelegateReturns = struct {
 		result1 exec.PutDelegate
@@ -232,6 +266,8 @@ func (fake *FakeBuildDelegate) PutDelegateReturns(result1 exec.PutDelegate) {
 }
 
 func (fake *FakeBuildDelegate) PutDelegateReturnsOnCall(i int, result1 exec.PutDelegate) {
+	fake.putDelegateMutex.Lock()
+	defer fake.putDelegateMutex.Unlock()
 	fake.PutDelegateStub = nil
 	if fake.putDelegateReturnsOnCall == nil {
 		fake.putDelegateReturnsOnCall = make(map[int]struct {
@@ -267,6 +303,12 @@ func (fake *FakeBuildDelegate) TaskDelegateCallCount() int {
 	return len(fake.taskDelegateArgsForCall)
 }
 
+func (fake *FakeBuildDelegate) TaskDelegateCalls(stub func(atc.PlanID) exec.TaskDelegate) {
+	fake.taskDelegateMutex.Lock()
+	defer fake.taskDelegateMutex.Unlock()
+	fake.TaskDelegateStub = stub
+}
+
 func (fake *FakeBuildDelegate) TaskDelegateArgsForCall(i int) atc.PlanID {
 	fake.taskDelegateMutex.RLock()
 	defer fake.taskDelegateMutex.RUnlock()
@@ -275,6 +317,8 @@ func (fake *FakeBuildDelegate) TaskDelegateArgsForCall(i int) atc.PlanID {
 }
 
 func (fake *FakeBuildDelegate) TaskDelegateReturns(result1 exec.TaskDelegate) {
+	fake.taskDelegateMutex.Lock()
+	defer fake.taskDelegateMutex.Unlock()
 	fake.TaskDelegateStub = nil
 	fake.taskDelegateReturns = struct {
 		result1 exec.TaskDelegate
@@ -282,6 +326,8 @@ func (fake *FakeBuildDelegate) TaskDelegateReturns(result1 exec.TaskDelegate) {
 }
 
 func (fake *FakeBuildDelegate) TaskDelegateReturnsOnCall(i int, result1 exec.TaskDelegate) {
+	fake.taskDelegateMutex.Lock()
+	defer fake.taskDelegateMutex.Unlock()
 	fake.TaskDelegateStub = nil
 	if fake.taskDelegateReturnsOnCall == nil {
 		fake.taskDelegateReturnsOnCall = make(map[int]struct {

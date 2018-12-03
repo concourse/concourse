@@ -70,6 +70,12 @@ func (fake *FakeResourceCacheLifecycle) CleanBuildImageResourceCachesCallCount()
 	return len(fake.cleanBuildImageResourceCachesArgsForCall)
 }
 
+func (fake *FakeResourceCacheLifecycle) CleanBuildImageResourceCachesCalls(stub func(lager.Logger) error) {
+	fake.cleanBuildImageResourceCachesMutex.Lock()
+	defer fake.cleanBuildImageResourceCachesMutex.Unlock()
+	fake.CleanBuildImageResourceCachesStub = stub
+}
+
 func (fake *FakeResourceCacheLifecycle) CleanBuildImageResourceCachesArgsForCall(i int) lager.Logger {
 	fake.cleanBuildImageResourceCachesMutex.RLock()
 	defer fake.cleanBuildImageResourceCachesMutex.RUnlock()
@@ -78,6 +84,8 @@ func (fake *FakeResourceCacheLifecycle) CleanBuildImageResourceCachesArgsForCall
 }
 
 func (fake *FakeResourceCacheLifecycle) CleanBuildImageResourceCachesReturns(result1 error) {
+	fake.cleanBuildImageResourceCachesMutex.Lock()
+	defer fake.cleanBuildImageResourceCachesMutex.Unlock()
 	fake.CleanBuildImageResourceCachesStub = nil
 	fake.cleanBuildImageResourceCachesReturns = struct {
 		result1 error
@@ -85,6 +93,8 @@ func (fake *FakeResourceCacheLifecycle) CleanBuildImageResourceCachesReturns(res
 }
 
 func (fake *FakeResourceCacheLifecycle) CleanBuildImageResourceCachesReturnsOnCall(i int, result1 error) {
+	fake.cleanBuildImageResourceCachesMutex.Lock()
+	defer fake.cleanBuildImageResourceCachesMutex.Unlock()
 	fake.CleanBuildImageResourceCachesStub = nil
 	if fake.cleanBuildImageResourceCachesReturnsOnCall == nil {
 		fake.cleanBuildImageResourceCachesReturnsOnCall = make(map[int]struct {
@@ -120,6 +130,12 @@ func (fake *FakeResourceCacheLifecycle) CleanUpInvalidCachesCallCount() int {
 	return len(fake.cleanUpInvalidCachesArgsForCall)
 }
 
+func (fake *FakeResourceCacheLifecycle) CleanUpInvalidCachesCalls(stub func(lager.Logger) error) {
+	fake.cleanUpInvalidCachesMutex.Lock()
+	defer fake.cleanUpInvalidCachesMutex.Unlock()
+	fake.CleanUpInvalidCachesStub = stub
+}
+
 func (fake *FakeResourceCacheLifecycle) CleanUpInvalidCachesArgsForCall(i int) lager.Logger {
 	fake.cleanUpInvalidCachesMutex.RLock()
 	defer fake.cleanUpInvalidCachesMutex.RUnlock()
@@ -128,6 +144,8 @@ func (fake *FakeResourceCacheLifecycle) CleanUpInvalidCachesArgsForCall(i int) l
 }
 
 func (fake *FakeResourceCacheLifecycle) CleanUpInvalidCachesReturns(result1 error) {
+	fake.cleanUpInvalidCachesMutex.Lock()
+	defer fake.cleanUpInvalidCachesMutex.Unlock()
 	fake.CleanUpInvalidCachesStub = nil
 	fake.cleanUpInvalidCachesReturns = struct {
 		result1 error
@@ -135,6 +153,8 @@ func (fake *FakeResourceCacheLifecycle) CleanUpInvalidCachesReturns(result1 erro
 }
 
 func (fake *FakeResourceCacheLifecycle) CleanUpInvalidCachesReturnsOnCall(i int, result1 error) {
+	fake.cleanUpInvalidCachesMutex.Lock()
+	defer fake.cleanUpInvalidCachesMutex.Unlock()
 	fake.CleanUpInvalidCachesStub = nil
 	if fake.cleanUpInvalidCachesReturnsOnCall == nil {
 		fake.cleanUpInvalidCachesReturnsOnCall = make(map[int]struct {
@@ -170,6 +190,12 @@ func (fake *FakeResourceCacheLifecycle) CleanUsesForFinishedBuildsCallCount() in
 	return len(fake.cleanUsesForFinishedBuildsArgsForCall)
 }
 
+func (fake *FakeResourceCacheLifecycle) CleanUsesForFinishedBuildsCalls(stub func(lager.Logger) error) {
+	fake.cleanUsesForFinishedBuildsMutex.Lock()
+	defer fake.cleanUsesForFinishedBuildsMutex.Unlock()
+	fake.CleanUsesForFinishedBuildsStub = stub
+}
+
 func (fake *FakeResourceCacheLifecycle) CleanUsesForFinishedBuildsArgsForCall(i int) lager.Logger {
 	fake.cleanUsesForFinishedBuildsMutex.RLock()
 	defer fake.cleanUsesForFinishedBuildsMutex.RUnlock()
@@ -178,6 +204,8 @@ func (fake *FakeResourceCacheLifecycle) CleanUsesForFinishedBuildsArgsForCall(i 
 }
 
 func (fake *FakeResourceCacheLifecycle) CleanUsesForFinishedBuildsReturns(result1 error) {
+	fake.cleanUsesForFinishedBuildsMutex.Lock()
+	defer fake.cleanUsesForFinishedBuildsMutex.Unlock()
 	fake.CleanUsesForFinishedBuildsStub = nil
 	fake.cleanUsesForFinishedBuildsReturns = struct {
 		result1 error
@@ -185,6 +213,8 @@ func (fake *FakeResourceCacheLifecycle) CleanUsesForFinishedBuildsReturns(result
 }
 
 func (fake *FakeResourceCacheLifecycle) CleanUsesForFinishedBuildsReturnsOnCall(i int, result1 error) {
+	fake.cleanUsesForFinishedBuildsMutex.Lock()
+	defer fake.cleanUsesForFinishedBuildsMutex.Unlock()
 	fake.CleanUsesForFinishedBuildsStub = nil
 	if fake.cleanUsesForFinishedBuildsReturnsOnCall == nil {
 		fake.cleanUsesForFinishedBuildsReturnsOnCall = make(map[int]struct {

@@ -62,6 +62,12 @@ func (fake *FakeBuildFactory) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
+func (fake *FakeBuildFactory) CreateCalls(stub func(atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)) {
+	fake.createMutex.Lock()
+	defer fake.createMutex.Unlock()
+	fake.CreateStub = stub
+}
+
 func (fake *FakeBuildFactory) CreateArgsForCall(i int) (atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
@@ -70,6 +76,8 @@ func (fake *FakeBuildFactory) CreateArgsForCall(i int) (atc.JobConfig, atc.Resou
 }
 
 func (fake *FakeBuildFactory) CreateReturns(result1 atc.Plan, result2 error) {
+	fake.createMutex.Lock()
+	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	fake.createReturns = struct {
 		result1 atc.Plan
@@ -78,6 +86,8 @@ func (fake *FakeBuildFactory) CreateReturns(result1 atc.Plan, result2 error) {
 }
 
 func (fake *FakeBuildFactory) CreateReturnsOnCall(i int, result1 atc.Plan, result2 error) {
+	fake.createMutex.Lock()
+	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	if fake.createReturnsOnCall == nil {
 		fake.createReturnsOnCall = make(map[int]struct {

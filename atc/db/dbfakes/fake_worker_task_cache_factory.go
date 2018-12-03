@@ -73,6 +73,12 @@ func (fake *FakeWorkerTaskCacheFactory) FindCallCount() int {
 	return len(fake.findArgsForCall)
 }
 
+func (fake *FakeWorkerTaskCacheFactory) FindCalls(stub func(int, string, string, string) (*db.UsedWorkerTaskCache, bool, error)) {
+	fake.findMutex.Lock()
+	defer fake.findMutex.Unlock()
+	fake.FindStub = stub
+}
+
 func (fake *FakeWorkerTaskCacheFactory) FindArgsForCall(i int) (int, string, string, string) {
 	fake.findMutex.RLock()
 	defer fake.findMutex.RUnlock()
@@ -81,6 +87,8 @@ func (fake *FakeWorkerTaskCacheFactory) FindArgsForCall(i int) (int, string, str
 }
 
 func (fake *FakeWorkerTaskCacheFactory) FindReturns(result1 *db.UsedWorkerTaskCache, result2 bool, result3 error) {
+	fake.findMutex.Lock()
+	defer fake.findMutex.Unlock()
 	fake.FindStub = nil
 	fake.findReturns = struct {
 		result1 *db.UsedWorkerTaskCache
@@ -90,6 +98,8 @@ func (fake *FakeWorkerTaskCacheFactory) FindReturns(result1 *db.UsedWorkerTaskCa
 }
 
 func (fake *FakeWorkerTaskCacheFactory) FindReturnsOnCall(i int, result1 *db.UsedWorkerTaskCache, result2 bool, result3 error) {
+	fake.findMutex.Lock()
+	defer fake.findMutex.Unlock()
 	fake.FindStub = nil
 	if fake.findReturnsOnCall == nil {
 		fake.findReturnsOnCall = make(map[int]struct {
@@ -132,6 +142,12 @@ func (fake *FakeWorkerTaskCacheFactory) FindOrCreateCallCount() int {
 	return len(fake.findOrCreateArgsForCall)
 }
 
+func (fake *FakeWorkerTaskCacheFactory) FindOrCreateCalls(stub func(int, string, string, string) (*db.UsedWorkerTaskCache, error)) {
+	fake.findOrCreateMutex.Lock()
+	defer fake.findOrCreateMutex.Unlock()
+	fake.FindOrCreateStub = stub
+}
+
 func (fake *FakeWorkerTaskCacheFactory) FindOrCreateArgsForCall(i int) (int, string, string, string) {
 	fake.findOrCreateMutex.RLock()
 	defer fake.findOrCreateMutex.RUnlock()
@@ -140,6 +156,8 @@ func (fake *FakeWorkerTaskCacheFactory) FindOrCreateArgsForCall(i int) (int, str
 }
 
 func (fake *FakeWorkerTaskCacheFactory) FindOrCreateReturns(result1 *db.UsedWorkerTaskCache, result2 error) {
+	fake.findOrCreateMutex.Lock()
+	defer fake.findOrCreateMutex.Unlock()
 	fake.FindOrCreateStub = nil
 	fake.findOrCreateReturns = struct {
 		result1 *db.UsedWorkerTaskCache
@@ -148,6 +166,8 @@ func (fake *FakeWorkerTaskCacheFactory) FindOrCreateReturns(result1 *db.UsedWork
 }
 
 func (fake *FakeWorkerTaskCacheFactory) FindOrCreateReturnsOnCall(i int, result1 *db.UsedWorkerTaskCache, result2 error) {
+	fake.findOrCreateMutex.Lock()
+	defer fake.findOrCreateMutex.Unlock()
 	fake.FindOrCreateStub = nil
 	if fake.findOrCreateReturnsOnCall == nil {
 		fake.findOrCreateReturnsOnCall = make(map[int]struct {

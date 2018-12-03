@@ -53,6 +53,12 @@ func (fake *FakeWorkerBaseResourceTypeFactory) FindCallCount() int {
 	return len(fake.findArgsForCall)
 }
 
+func (fake *FakeWorkerBaseResourceTypeFactory) FindCalls(stub func(string, db.Worker) (*db.UsedWorkerBaseResourceType, bool, error)) {
+	fake.findMutex.Lock()
+	defer fake.findMutex.Unlock()
+	fake.FindStub = stub
+}
+
 func (fake *FakeWorkerBaseResourceTypeFactory) FindArgsForCall(i int) (string, db.Worker) {
 	fake.findMutex.RLock()
 	defer fake.findMutex.RUnlock()
@@ -61,6 +67,8 @@ func (fake *FakeWorkerBaseResourceTypeFactory) FindArgsForCall(i int) (string, d
 }
 
 func (fake *FakeWorkerBaseResourceTypeFactory) FindReturns(result1 *db.UsedWorkerBaseResourceType, result2 bool, result3 error) {
+	fake.findMutex.Lock()
+	defer fake.findMutex.Unlock()
 	fake.FindStub = nil
 	fake.findReturns = struct {
 		result1 *db.UsedWorkerBaseResourceType
@@ -70,6 +78,8 @@ func (fake *FakeWorkerBaseResourceTypeFactory) FindReturns(result1 *db.UsedWorke
 }
 
 func (fake *FakeWorkerBaseResourceTypeFactory) FindReturnsOnCall(i int, result1 *db.UsedWorkerBaseResourceType, result2 bool, result3 error) {
+	fake.findMutex.Lock()
+	defer fake.findMutex.Unlock()
 	fake.FindStub = nil
 	if fake.findReturnsOnCall == nil {
 		fake.findReturnsOnCall = make(map[int]struct {

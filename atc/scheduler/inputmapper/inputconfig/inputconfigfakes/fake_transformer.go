@@ -60,6 +60,12 @@ func (fake *FakeTransformer) TransformInputConfigsCallCount() int {
 	return len(fake.transformInputConfigsArgsForCall)
 }
 
+func (fake *FakeTransformer) TransformInputConfigsCalls(stub func(*algorithm.VersionsDB, string, []atc.JobInput) (algorithm.InputConfigs, error)) {
+	fake.transformInputConfigsMutex.Lock()
+	defer fake.transformInputConfigsMutex.Unlock()
+	fake.TransformInputConfigsStub = stub
+}
+
 func (fake *FakeTransformer) TransformInputConfigsArgsForCall(i int) (*algorithm.VersionsDB, string, []atc.JobInput) {
 	fake.transformInputConfigsMutex.RLock()
 	defer fake.transformInputConfigsMutex.RUnlock()
@@ -68,6 +74,8 @@ func (fake *FakeTransformer) TransformInputConfigsArgsForCall(i int) (*algorithm
 }
 
 func (fake *FakeTransformer) TransformInputConfigsReturns(result1 algorithm.InputConfigs, result2 error) {
+	fake.transformInputConfigsMutex.Lock()
+	defer fake.transformInputConfigsMutex.Unlock()
 	fake.TransformInputConfigsStub = nil
 	fake.transformInputConfigsReturns = struct {
 		result1 algorithm.InputConfigs
@@ -76,6 +84,8 @@ func (fake *FakeTransformer) TransformInputConfigsReturns(result1 algorithm.Inpu
 }
 
 func (fake *FakeTransformer) TransformInputConfigsReturnsOnCall(i int, result1 algorithm.InputConfigs, result2 error) {
+	fake.transformInputConfigsMutex.Lock()
+	defer fake.transformInputConfigsMutex.Unlock()
 	fake.TransformInputConfigsStub = nil
 	if fake.transformInputConfigsReturnsOnCall == nil {
 		fake.transformInputConfigsReturnsOnCall = make(map[int]struct {

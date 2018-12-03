@@ -56,6 +56,12 @@ func (fake *FakeRequestGenerator) CreateRequestCallCount() int {
 	return len(fake.createRequestArgsForCall)
 }
 
+func (fake *FakeRequestGenerator) CreateRequestCalls(stub func(string, rata.Params, io.Reader) (*http.Request, error)) {
+	fake.createRequestMutex.Lock()
+	defer fake.createRequestMutex.Unlock()
+	fake.CreateRequestStub = stub
+}
+
 func (fake *FakeRequestGenerator) CreateRequestArgsForCall(i int) (string, rata.Params, io.Reader) {
 	fake.createRequestMutex.RLock()
 	defer fake.createRequestMutex.RUnlock()
@@ -64,6 +70,8 @@ func (fake *FakeRequestGenerator) CreateRequestArgsForCall(i int) (string, rata.
 }
 
 func (fake *FakeRequestGenerator) CreateRequestReturns(result1 *http.Request, result2 error) {
+	fake.createRequestMutex.Lock()
+	defer fake.createRequestMutex.Unlock()
 	fake.CreateRequestStub = nil
 	fake.createRequestReturns = struct {
 		result1 *http.Request
@@ -72,6 +80,8 @@ func (fake *FakeRequestGenerator) CreateRequestReturns(result1 *http.Request, re
 }
 
 func (fake *FakeRequestGenerator) CreateRequestReturnsOnCall(i int, result1 *http.Request, result2 error) {
+	fake.createRequestMutex.Lock()
+	defer fake.createRequestMutex.Unlock()
 	fake.CreateRequestStub = nil
 	if fake.createRequestReturnsOnCall == nil {
 		fake.createRequestReturnsOnCall = make(map[int]struct {

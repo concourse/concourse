@@ -91,6 +91,12 @@ func (fake *FakeFactory) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
+func (fake *FakeFactory) GetCalls(stub func(lager.Logger, atc.Plan, db.Build, exec.StepMetadata, db.ContainerMetadata, exec.GetDelegate) exec.Step) {
+	fake.getMutex.Lock()
+	defer fake.getMutex.Unlock()
+	fake.GetStub = stub
+}
+
 func (fake *FakeFactory) GetArgsForCall(i int) (lager.Logger, atc.Plan, db.Build, exec.StepMetadata, db.ContainerMetadata, exec.GetDelegate) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
@@ -99,6 +105,8 @@ func (fake *FakeFactory) GetArgsForCall(i int) (lager.Logger, atc.Plan, db.Build
 }
 
 func (fake *FakeFactory) GetReturns(result1 exec.Step) {
+	fake.getMutex.Lock()
+	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	fake.getReturns = struct {
 		result1 exec.Step
@@ -106,6 +114,8 @@ func (fake *FakeFactory) GetReturns(result1 exec.Step) {
 }
 
 func (fake *FakeFactory) GetReturnsOnCall(i int, result1 exec.Step) {
+	fake.getMutex.Lock()
+	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	if fake.getReturnsOnCall == nil {
 		fake.getReturnsOnCall = make(map[int]struct {
@@ -146,6 +156,12 @@ func (fake *FakeFactory) PutCallCount() int {
 	return len(fake.putArgsForCall)
 }
 
+func (fake *FakeFactory) PutCalls(stub func(lager.Logger, atc.Plan, db.Build, exec.StepMetadata, db.ContainerMetadata, exec.PutDelegate) exec.Step) {
+	fake.putMutex.Lock()
+	defer fake.putMutex.Unlock()
+	fake.PutStub = stub
+}
+
 func (fake *FakeFactory) PutArgsForCall(i int) (lager.Logger, atc.Plan, db.Build, exec.StepMetadata, db.ContainerMetadata, exec.PutDelegate) {
 	fake.putMutex.RLock()
 	defer fake.putMutex.RUnlock()
@@ -154,6 +170,8 @@ func (fake *FakeFactory) PutArgsForCall(i int) (lager.Logger, atc.Plan, db.Build
 }
 
 func (fake *FakeFactory) PutReturns(result1 exec.Step) {
+	fake.putMutex.Lock()
+	defer fake.putMutex.Unlock()
 	fake.PutStub = nil
 	fake.putReturns = struct {
 		result1 exec.Step
@@ -161,6 +179,8 @@ func (fake *FakeFactory) PutReturns(result1 exec.Step) {
 }
 
 func (fake *FakeFactory) PutReturnsOnCall(i int, result1 exec.Step) {
+	fake.putMutex.Lock()
+	defer fake.putMutex.Unlock()
 	fake.PutStub = nil
 	if fake.putReturnsOnCall == nil {
 		fake.putReturnsOnCall = make(map[int]struct {
@@ -200,6 +220,12 @@ func (fake *FakeFactory) TaskCallCount() int {
 	return len(fake.taskArgsForCall)
 }
 
+func (fake *FakeFactory) TaskCalls(stub func(lager.Logger, atc.Plan, db.Build, db.ContainerMetadata, exec.TaskDelegate) exec.Step) {
+	fake.taskMutex.Lock()
+	defer fake.taskMutex.Unlock()
+	fake.TaskStub = stub
+}
+
 func (fake *FakeFactory) TaskArgsForCall(i int) (lager.Logger, atc.Plan, db.Build, db.ContainerMetadata, exec.TaskDelegate) {
 	fake.taskMutex.RLock()
 	defer fake.taskMutex.RUnlock()
@@ -208,6 +234,8 @@ func (fake *FakeFactory) TaskArgsForCall(i int) (lager.Logger, atc.Plan, db.Buil
 }
 
 func (fake *FakeFactory) TaskReturns(result1 exec.Step) {
+	fake.taskMutex.Lock()
+	defer fake.taskMutex.Unlock()
 	fake.TaskStub = nil
 	fake.taskReturns = struct {
 		result1 exec.Step
@@ -215,6 +243,8 @@ func (fake *FakeFactory) TaskReturns(result1 exec.Step) {
 }
 
 func (fake *FakeFactory) TaskReturnsOnCall(i int, result1 exec.Step) {
+	fake.taskMutex.Lock()
+	defer fake.taskMutex.Unlock()
 	fake.TaskStub = nil
 	if fake.taskReturnsOnCall == nil {
 		fake.taskReturnsOnCall = make(map[int]struct {

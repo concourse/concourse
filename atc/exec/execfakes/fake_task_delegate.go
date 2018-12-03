@@ -90,6 +90,12 @@ func (fake *FakeTaskDelegate) ErroredCallCount() int {
 	return len(fake.erroredArgsForCall)
 }
 
+func (fake *FakeTaskDelegate) ErroredCalls(stub func(lager.Logger, string)) {
+	fake.erroredMutex.Lock()
+	defer fake.erroredMutex.Unlock()
+	fake.ErroredStub = stub
+}
+
 func (fake *FakeTaskDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
 	fake.erroredMutex.RLock()
 	defer fake.erroredMutex.RUnlock()
@@ -114,6 +120,12 @@ func (fake *FakeTaskDelegate) FinishedCallCount() int {
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
 	return len(fake.finishedArgsForCall)
+}
+
+func (fake *FakeTaskDelegate) FinishedCalls(stub func(lager.Logger, exec.ExitStatus)) {
+	fake.finishedMutex.Lock()
+	defer fake.finishedMutex.Unlock()
+	fake.FinishedStub = stub
 }
 
 func (fake *FakeTaskDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.ExitStatus) {
@@ -147,6 +159,12 @@ func (fake *FakeTaskDelegate) ImageVersionDeterminedCallCount() int {
 	return len(fake.imageVersionDeterminedArgsForCall)
 }
 
+func (fake *FakeTaskDelegate) ImageVersionDeterminedCalls(stub func(db.UsedResourceCache) error) {
+	fake.imageVersionDeterminedMutex.Lock()
+	defer fake.imageVersionDeterminedMutex.Unlock()
+	fake.ImageVersionDeterminedStub = stub
+}
+
 func (fake *FakeTaskDelegate) ImageVersionDeterminedArgsForCall(i int) db.UsedResourceCache {
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
@@ -155,6 +173,8 @@ func (fake *FakeTaskDelegate) ImageVersionDeterminedArgsForCall(i int) db.UsedRe
 }
 
 func (fake *FakeTaskDelegate) ImageVersionDeterminedReturns(result1 error) {
+	fake.imageVersionDeterminedMutex.Lock()
+	defer fake.imageVersionDeterminedMutex.Unlock()
 	fake.ImageVersionDeterminedStub = nil
 	fake.imageVersionDeterminedReturns = struct {
 		result1 error
@@ -162,6 +182,8 @@ func (fake *FakeTaskDelegate) ImageVersionDeterminedReturns(result1 error) {
 }
 
 func (fake *FakeTaskDelegate) ImageVersionDeterminedReturnsOnCall(i int, result1 error) {
+	fake.imageVersionDeterminedMutex.Lock()
+	defer fake.imageVersionDeterminedMutex.Unlock()
 	fake.ImageVersionDeterminedStub = nil
 	if fake.imageVersionDeterminedReturnsOnCall == nil {
 		fake.imageVersionDeterminedReturnsOnCall = make(map[int]struct {
@@ -192,6 +214,12 @@ func (fake *FakeTaskDelegate) InitializingCallCount() int {
 	return len(fake.initializingArgsForCall)
 }
 
+func (fake *FakeTaskDelegate) InitializingCalls(stub func(lager.Logger, atc.TaskConfig)) {
+	fake.initializingMutex.Lock()
+	defer fake.initializingMutex.Unlock()
+	fake.InitializingStub = stub
+}
+
 func (fake *FakeTaskDelegate) InitializingArgsForCall(i int) (lager.Logger, atc.TaskConfig) {
 	fake.initializingMutex.RLock()
 	defer fake.initializingMutex.RUnlock()
@@ -216,6 +244,12 @@ func (fake *FakeTaskDelegate) StartingCallCount() int {
 	fake.startingMutex.RLock()
 	defer fake.startingMutex.RUnlock()
 	return len(fake.startingArgsForCall)
+}
+
+func (fake *FakeTaskDelegate) StartingCalls(stub func(lager.Logger, atc.TaskConfig)) {
+	fake.startingMutex.Lock()
+	defer fake.startingMutex.Unlock()
+	fake.StartingStub = stub
 }
 
 func (fake *FakeTaskDelegate) StartingArgsForCall(i int) (lager.Logger, atc.TaskConfig) {
@@ -248,7 +282,15 @@ func (fake *FakeTaskDelegate) StderrCallCount() int {
 	return len(fake.stderrArgsForCall)
 }
 
+func (fake *FakeTaskDelegate) StderrCalls(stub func() io.Writer) {
+	fake.stderrMutex.Lock()
+	defer fake.stderrMutex.Unlock()
+	fake.StderrStub = stub
+}
+
 func (fake *FakeTaskDelegate) StderrReturns(result1 io.Writer) {
+	fake.stderrMutex.Lock()
+	defer fake.stderrMutex.Unlock()
 	fake.StderrStub = nil
 	fake.stderrReturns = struct {
 		result1 io.Writer
@@ -256,6 +298,8 @@ func (fake *FakeTaskDelegate) StderrReturns(result1 io.Writer) {
 }
 
 func (fake *FakeTaskDelegate) StderrReturnsOnCall(i int, result1 io.Writer) {
+	fake.stderrMutex.Lock()
+	defer fake.stderrMutex.Unlock()
 	fake.StderrStub = nil
 	if fake.stderrReturnsOnCall == nil {
 		fake.stderrReturnsOnCall = make(map[int]struct {
@@ -290,7 +334,15 @@ func (fake *FakeTaskDelegate) StdoutCallCount() int {
 	return len(fake.stdoutArgsForCall)
 }
 
+func (fake *FakeTaskDelegate) StdoutCalls(stub func() io.Writer) {
+	fake.stdoutMutex.Lock()
+	defer fake.stdoutMutex.Unlock()
+	fake.StdoutStub = stub
+}
+
 func (fake *FakeTaskDelegate) StdoutReturns(result1 io.Writer) {
+	fake.stdoutMutex.Lock()
+	defer fake.stdoutMutex.Unlock()
 	fake.StdoutStub = nil
 	fake.stdoutReturns = struct {
 		result1 io.Writer
@@ -298,6 +350,8 @@ func (fake *FakeTaskDelegate) StdoutReturns(result1 io.Writer) {
 }
 
 func (fake *FakeTaskDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
+	fake.stdoutMutex.Lock()
+	defer fake.stdoutMutex.Unlock()
 	fake.StdoutStub = nil
 	if fake.stdoutReturnsOnCall == nil {
 		fake.stdoutReturnsOnCall = make(map[int]struct {

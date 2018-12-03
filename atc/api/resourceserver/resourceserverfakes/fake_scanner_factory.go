@@ -60,6 +60,12 @@ func (fake *FakeScannerFactory) NewResourceScannerCallCount() int {
 	return len(fake.newResourceScannerArgsForCall)
 }
 
+func (fake *FakeScannerFactory) NewResourceScannerCalls(stub func(db.Pipeline) radar.Scanner) {
+	fake.newResourceScannerMutex.Lock()
+	defer fake.newResourceScannerMutex.Unlock()
+	fake.NewResourceScannerStub = stub
+}
+
 func (fake *FakeScannerFactory) NewResourceScannerArgsForCall(i int) db.Pipeline {
 	fake.newResourceScannerMutex.RLock()
 	defer fake.newResourceScannerMutex.RUnlock()
@@ -68,6 +74,8 @@ func (fake *FakeScannerFactory) NewResourceScannerArgsForCall(i int) db.Pipeline
 }
 
 func (fake *FakeScannerFactory) NewResourceScannerReturns(result1 radar.Scanner) {
+	fake.newResourceScannerMutex.Lock()
+	defer fake.newResourceScannerMutex.Unlock()
 	fake.NewResourceScannerStub = nil
 	fake.newResourceScannerReturns = struct {
 		result1 radar.Scanner
@@ -75,6 +83,8 @@ func (fake *FakeScannerFactory) NewResourceScannerReturns(result1 radar.Scanner)
 }
 
 func (fake *FakeScannerFactory) NewResourceScannerReturnsOnCall(i int, result1 radar.Scanner) {
+	fake.newResourceScannerMutex.Lock()
+	defer fake.newResourceScannerMutex.Unlock()
 	fake.NewResourceScannerStub = nil
 	if fake.newResourceScannerReturnsOnCall == nil {
 		fake.newResourceScannerReturnsOnCall = make(map[int]struct {
@@ -110,6 +120,12 @@ func (fake *FakeScannerFactory) NewResourceTypeScannerCallCount() int {
 	return len(fake.newResourceTypeScannerArgsForCall)
 }
 
+func (fake *FakeScannerFactory) NewResourceTypeScannerCalls(stub func(db.Pipeline) radar.Scanner) {
+	fake.newResourceTypeScannerMutex.Lock()
+	defer fake.newResourceTypeScannerMutex.Unlock()
+	fake.NewResourceTypeScannerStub = stub
+}
+
 func (fake *FakeScannerFactory) NewResourceTypeScannerArgsForCall(i int) db.Pipeline {
 	fake.newResourceTypeScannerMutex.RLock()
 	defer fake.newResourceTypeScannerMutex.RUnlock()
@@ -118,6 +134,8 @@ func (fake *FakeScannerFactory) NewResourceTypeScannerArgsForCall(i int) db.Pipe
 }
 
 func (fake *FakeScannerFactory) NewResourceTypeScannerReturns(result1 radar.Scanner) {
+	fake.newResourceTypeScannerMutex.Lock()
+	defer fake.newResourceTypeScannerMutex.Unlock()
 	fake.NewResourceTypeScannerStub = nil
 	fake.newResourceTypeScannerReturns = struct {
 		result1 radar.Scanner
@@ -125,6 +143,8 @@ func (fake *FakeScannerFactory) NewResourceTypeScannerReturns(result1 radar.Scan
 }
 
 func (fake *FakeScannerFactory) NewResourceTypeScannerReturnsOnCall(i int, result1 radar.Scanner) {
+	fake.newResourceTypeScannerMutex.Lock()
+	defer fake.newResourceTypeScannerMutex.Unlock()
 	fake.NewResourceTypeScannerStub = nil
 	if fake.newResourceTypeScannerReturnsOnCall == nil {
 		fake.newResourceTypeScannerReturnsOnCall = make(map[int]struct {

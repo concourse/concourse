@@ -45,7 +45,15 @@ func (fake *FakeLock) ReleaseCallCount() int {
 	return len(fake.releaseArgsForCall)
 }
 
+func (fake *FakeLock) ReleaseCalls(stub func() error) {
+	fake.releaseMutex.Lock()
+	defer fake.releaseMutex.Unlock()
+	fake.ReleaseStub = stub
+}
+
 func (fake *FakeLock) ReleaseReturns(result1 error) {
+	fake.releaseMutex.Lock()
+	defer fake.releaseMutex.Unlock()
 	fake.ReleaseStub = nil
 	fake.releaseReturns = struct {
 		result1 error
@@ -53,6 +61,8 @@ func (fake *FakeLock) ReleaseReturns(result1 error) {
 }
 
 func (fake *FakeLock) ReleaseReturnsOnCall(i int, result1 error) {
+	fake.releaseMutex.Lock()
+	defer fake.releaseMutex.Unlock()
 	fake.ReleaseStub = nil
 	if fake.releaseReturnsOnCall == nil {
 		fake.releaseReturnsOnCall = make(map[int]struct {

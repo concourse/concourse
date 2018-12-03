@@ -47,7 +47,15 @@ func (fake *FakeFetchSourceProvider) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
+func (fake *FakeFetchSourceProvider) GetCalls(stub func() (resource.FetchSource, error)) {
+	fake.getMutex.Lock()
+	defer fake.getMutex.Unlock()
+	fake.GetStub = stub
+}
+
 func (fake *FakeFetchSourceProvider) GetReturns(result1 resource.FetchSource, result2 error) {
+	fake.getMutex.Lock()
+	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	fake.getReturns = struct {
 		result1 resource.FetchSource
@@ -56,6 +64,8 @@ func (fake *FakeFetchSourceProvider) GetReturns(result1 resource.FetchSource, re
 }
 
 func (fake *FakeFetchSourceProvider) GetReturnsOnCall(i int, result1 resource.FetchSource, result2 error) {
+	fake.getMutex.Lock()
+	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	if fake.getReturnsOnCall == nil {
 		fake.getReturnsOnCall = make(map[int]struct {

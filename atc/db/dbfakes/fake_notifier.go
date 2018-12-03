@@ -55,7 +55,15 @@ func (fake *FakeNotifier) CloseCallCount() int {
 	return len(fake.closeArgsForCall)
 }
 
+func (fake *FakeNotifier) CloseCalls(stub func() error) {
+	fake.closeMutex.Lock()
+	defer fake.closeMutex.Unlock()
+	fake.CloseStub = stub
+}
+
 func (fake *FakeNotifier) CloseReturns(result1 error) {
+	fake.closeMutex.Lock()
+	defer fake.closeMutex.Unlock()
 	fake.CloseStub = nil
 	fake.closeReturns = struct {
 		result1 error
@@ -63,6 +71,8 @@ func (fake *FakeNotifier) CloseReturns(result1 error) {
 }
 
 func (fake *FakeNotifier) CloseReturnsOnCall(i int, result1 error) {
+	fake.closeMutex.Lock()
+	defer fake.closeMutex.Unlock()
 	fake.CloseStub = nil
 	if fake.closeReturnsOnCall == nil {
 		fake.closeReturnsOnCall = make(map[int]struct {
@@ -97,7 +107,15 @@ func (fake *FakeNotifier) NotifyCallCount() int {
 	return len(fake.notifyArgsForCall)
 }
 
+func (fake *FakeNotifier) NotifyCalls(stub func() <-chan struct{}) {
+	fake.notifyMutex.Lock()
+	defer fake.notifyMutex.Unlock()
+	fake.NotifyStub = stub
+}
+
 func (fake *FakeNotifier) NotifyReturns(result1 <-chan struct{}) {
+	fake.notifyMutex.Lock()
+	defer fake.notifyMutex.Unlock()
 	fake.NotifyStub = nil
 	fake.notifyReturns = struct {
 		result1 <-chan struct{}
@@ -105,6 +123,8 @@ func (fake *FakeNotifier) NotifyReturns(result1 <-chan struct{}) {
 }
 
 func (fake *FakeNotifier) NotifyReturnsOnCall(i int, result1 <-chan struct{}) {
+	fake.notifyMutex.Lock()
+	defer fake.notifyMutex.Unlock()
 	fake.NotifyStub = nil
 	if fake.notifyReturnsOnCall == nil {
 		fake.notifyReturnsOnCall = make(map[int]struct {

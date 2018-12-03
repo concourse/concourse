@@ -58,7 +58,15 @@ func (fake *FakeEventStream) CloseCallCount() int {
 	return len(fake.closeArgsForCall)
 }
 
+func (fake *FakeEventStream) CloseCalls(stub func() error) {
+	fake.closeMutex.Lock()
+	defer fake.closeMutex.Unlock()
+	fake.CloseStub = stub
+}
+
 func (fake *FakeEventStream) CloseReturns(result1 error) {
+	fake.closeMutex.Lock()
+	defer fake.closeMutex.Unlock()
 	fake.CloseStub = nil
 	fake.closeReturns = struct {
 		result1 error
@@ -66,6 +74,8 @@ func (fake *FakeEventStream) CloseReturns(result1 error) {
 }
 
 func (fake *FakeEventStream) CloseReturnsOnCall(i int, result1 error) {
+	fake.closeMutex.Lock()
+	defer fake.closeMutex.Unlock()
 	fake.CloseStub = nil
 	if fake.closeReturnsOnCall == nil {
 		fake.closeReturnsOnCall = make(map[int]struct {
@@ -100,7 +110,15 @@ func (fake *FakeEventStream) NextEventCallCount() int {
 	return len(fake.nextEventArgsForCall)
 }
 
+func (fake *FakeEventStream) NextEventCalls(stub func() (atc.Event, error)) {
+	fake.nextEventMutex.Lock()
+	defer fake.nextEventMutex.Unlock()
+	fake.NextEventStub = stub
+}
+
 func (fake *FakeEventStream) NextEventReturns(result1 atc.Event, result2 error) {
+	fake.nextEventMutex.Lock()
+	defer fake.nextEventMutex.Unlock()
 	fake.NextEventStub = nil
 	fake.nextEventReturns = struct {
 		result1 atc.Event
@@ -109,6 +127,8 @@ func (fake *FakeEventStream) NextEventReturns(result1 atc.Event, result2 error) 
 }
 
 func (fake *FakeEventStream) NextEventReturnsOnCall(i int, result1 atc.Event, result2 error) {
+	fake.nextEventMutex.Lock()
+	defer fake.nextEventMutex.Unlock()
 	fake.NextEventStub = nil
 	if fake.nextEventReturnsOnCall == nil {
 		fake.nextEventReturnsOnCall = make(map[int]struct {

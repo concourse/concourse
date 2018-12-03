@@ -83,6 +83,12 @@ func (fake *FakeConnection) ConnectToEventStreamCallCount() int {
 	return len(fake.connectToEventStreamArgsForCall)
 }
 
+func (fake *FakeConnection) ConnectToEventStreamCalls(stub func(internal.Request) (*sse.EventSource, error)) {
+	fake.connectToEventStreamMutex.Lock()
+	defer fake.connectToEventStreamMutex.Unlock()
+	fake.ConnectToEventStreamStub = stub
+}
+
 func (fake *FakeConnection) ConnectToEventStreamArgsForCall(i int) internal.Request {
 	fake.connectToEventStreamMutex.RLock()
 	defer fake.connectToEventStreamMutex.RUnlock()
@@ -91,6 +97,8 @@ func (fake *FakeConnection) ConnectToEventStreamArgsForCall(i int) internal.Requ
 }
 
 func (fake *FakeConnection) ConnectToEventStreamReturns(result1 *sse.EventSource, result2 error) {
+	fake.connectToEventStreamMutex.Lock()
+	defer fake.connectToEventStreamMutex.Unlock()
 	fake.ConnectToEventStreamStub = nil
 	fake.connectToEventStreamReturns = struct {
 		result1 *sse.EventSource
@@ -99,6 +107,8 @@ func (fake *FakeConnection) ConnectToEventStreamReturns(result1 *sse.EventSource
 }
 
 func (fake *FakeConnection) ConnectToEventStreamReturnsOnCall(i int, result1 *sse.EventSource, result2 error) {
+	fake.connectToEventStreamMutex.Lock()
+	defer fake.connectToEventStreamMutex.Unlock()
 	fake.ConnectToEventStreamStub = nil
 	if fake.connectToEventStreamReturnsOnCall == nil {
 		fake.connectToEventStreamReturnsOnCall = make(map[int]struct {
@@ -135,7 +145,15 @@ func (fake *FakeConnection) HTTPClientCallCount() int {
 	return len(fake.hTTPClientArgsForCall)
 }
 
+func (fake *FakeConnection) HTTPClientCalls(stub func() *http.Client) {
+	fake.hTTPClientMutex.Lock()
+	defer fake.hTTPClientMutex.Unlock()
+	fake.HTTPClientStub = stub
+}
+
 func (fake *FakeConnection) HTTPClientReturns(result1 *http.Client) {
+	fake.hTTPClientMutex.Lock()
+	defer fake.hTTPClientMutex.Unlock()
 	fake.HTTPClientStub = nil
 	fake.hTTPClientReturns = struct {
 		result1 *http.Client
@@ -143,6 +161,8 @@ func (fake *FakeConnection) HTTPClientReturns(result1 *http.Client) {
 }
 
 func (fake *FakeConnection) HTTPClientReturnsOnCall(i int, result1 *http.Client) {
+	fake.hTTPClientMutex.Lock()
+	defer fake.hTTPClientMutex.Unlock()
 	fake.HTTPClientStub = nil
 	if fake.hTTPClientReturnsOnCall == nil {
 		fake.hTTPClientReturnsOnCall = make(map[int]struct {
@@ -179,6 +199,12 @@ func (fake *FakeConnection) SendCallCount() int {
 	return len(fake.sendArgsForCall)
 }
 
+func (fake *FakeConnection) SendCalls(stub func(internal.Request, *internal.Response) error) {
+	fake.sendMutex.Lock()
+	defer fake.sendMutex.Unlock()
+	fake.SendStub = stub
+}
+
 func (fake *FakeConnection) SendArgsForCall(i int) (internal.Request, *internal.Response) {
 	fake.sendMutex.RLock()
 	defer fake.sendMutex.RUnlock()
@@ -187,6 +213,8 @@ func (fake *FakeConnection) SendArgsForCall(i int) (internal.Request, *internal.
 }
 
 func (fake *FakeConnection) SendReturns(result1 error) {
+	fake.sendMutex.Lock()
+	defer fake.sendMutex.Unlock()
 	fake.SendStub = nil
 	fake.sendReturns = struct {
 		result1 error
@@ -194,6 +222,8 @@ func (fake *FakeConnection) SendReturns(result1 error) {
 }
 
 func (fake *FakeConnection) SendReturnsOnCall(i int, result1 error) {
+	fake.sendMutex.Lock()
+	defer fake.sendMutex.Unlock()
 	fake.SendStub = nil
 	if fake.sendReturnsOnCall == nil {
 		fake.sendReturnsOnCall = make(map[int]struct {
@@ -228,7 +258,15 @@ func (fake *FakeConnection) URLCallCount() int {
 	return len(fake.uRLArgsForCall)
 }
 
+func (fake *FakeConnection) URLCalls(stub func() string) {
+	fake.uRLMutex.Lock()
+	defer fake.uRLMutex.Unlock()
+	fake.URLStub = stub
+}
+
 func (fake *FakeConnection) URLReturns(result1 string) {
+	fake.uRLMutex.Lock()
+	defer fake.uRLMutex.Unlock()
 	fake.URLStub = nil
 	fake.uRLReturns = struct {
 		result1 string
@@ -236,6 +274,8 @@ func (fake *FakeConnection) URLReturns(result1 string) {
 }
 
 func (fake *FakeConnection) URLReturnsOnCall(i int, result1 string) {
+	fake.uRLMutex.Lock()
+	defer fake.uRLMutex.Unlock()
 	fake.URLStub = nil
 	if fake.uRLReturnsOnCall == nil {
 		fake.uRLReturnsOnCall = make(map[int]struct {

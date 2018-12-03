@@ -55,7 +55,15 @@ func (fake *FakeInputSource) DestinationPathCallCount() int {
 	return len(fake.destinationPathArgsForCall)
 }
 
+func (fake *FakeInputSource) DestinationPathCalls(stub func() string) {
+	fake.destinationPathMutex.Lock()
+	defer fake.destinationPathMutex.Unlock()
+	fake.DestinationPathStub = stub
+}
+
 func (fake *FakeInputSource) DestinationPathReturns(result1 string) {
+	fake.destinationPathMutex.Lock()
+	defer fake.destinationPathMutex.Unlock()
 	fake.DestinationPathStub = nil
 	fake.destinationPathReturns = struct {
 		result1 string
@@ -63,6 +71,8 @@ func (fake *FakeInputSource) DestinationPathReturns(result1 string) {
 }
 
 func (fake *FakeInputSource) DestinationPathReturnsOnCall(i int, result1 string) {
+	fake.destinationPathMutex.Lock()
+	defer fake.destinationPathMutex.Unlock()
 	fake.DestinationPathStub = nil
 	if fake.destinationPathReturnsOnCall == nil {
 		fake.destinationPathReturnsOnCall = make(map[int]struct {
@@ -97,7 +107,15 @@ func (fake *FakeInputSource) SourceCallCount() int {
 	return len(fake.sourceArgsForCall)
 }
 
+func (fake *FakeInputSource) SourceCalls(stub func() worker.ArtifactSource) {
+	fake.sourceMutex.Lock()
+	defer fake.sourceMutex.Unlock()
+	fake.SourceStub = stub
+}
+
 func (fake *FakeInputSource) SourceReturns(result1 worker.ArtifactSource) {
+	fake.sourceMutex.Lock()
+	defer fake.sourceMutex.Unlock()
 	fake.SourceStub = nil
 	fake.sourceReturns = struct {
 		result1 worker.ArtifactSource
@@ -105,6 +123,8 @@ func (fake *FakeInputSource) SourceReturns(result1 worker.ArtifactSource) {
 }
 
 func (fake *FakeInputSource) SourceReturnsOnCall(i int, result1 worker.ArtifactSource) {
+	fake.sourceMutex.Lock()
+	defer fake.sourceMutex.Unlock()
 	fake.SourceStub = nil
 	if fake.sourceReturnsOnCall == nil {
 		fake.sourceReturnsOnCall = make(map[int]struct {

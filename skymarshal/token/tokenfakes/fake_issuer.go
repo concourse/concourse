@@ -50,6 +50,12 @@ func (fake *FakeIssuer) IssueCallCount() int {
 	return len(fake.issueArgsForCall)
 }
 
+func (fake *FakeIssuer) IssueCalls(stub func(*token.VerifiedClaims) (*oauth2.Token, error)) {
+	fake.issueMutex.Lock()
+	defer fake.issueMutex.Unlock()
+	fake.IssueStub = stub
+}
+
 func (fake *FakeIssuer) IssueArgsForCall(i int) *token.VerifiedClaims {
 	fake.issueMutex.RLock()
 	defer fake.issueMutex.RUnlock()
@@ -58,6 +64,8 @@ func (fake *FakeIssuer) IssueArgsForCall(i int) *token.VerifiedClaims {
 }
 
 func (fake *FakeIssuer) IssueReturns(result1 *oauth2.Token, result2 error) {
+	fake.issueMutex.Lock()
+	defer fake.issueMutex.Unlock()
 	fake.IssueStub = nil
 	fake.issueReturns = struct {
 		result1 *oauth2.Token
@@ -66,6 +74,8 @@ func (fake *FakeIssuer) IssueReturns(result1 *oauth2.Token, result2 error) {
 }
 
 func (fake *FakeIssuer) IssueReturnsOnCall(i int, result1 *oauth2.Token, result2 error) {
+	fake.issueMutex.Lock()
+	defer fake.issueMutex.Unlock()
 	fake.IssueStub = nil
 	if fake.issueReturnsOnCall == nil {
 		fake.issueReturnsOnCall = make(map[int]struct {

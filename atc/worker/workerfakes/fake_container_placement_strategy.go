@@ -59,6 +59,12 @@ func (fake *FakeContainerPlacementStrategy) ChooseCallCount() int {
 	return len(fake.chooseArgsForCall)
 }
 
+func (fake *FakeContainerPlacementStrategy) ChooseCalls(stub func(lager.Logger, []worker.Worker, worker.ContainerSpec) (worker.Worker, error)) {
+	fake.chooseMutex.Lock()
+	defer fake.chooseMutex.Unlock()
+	fake.ChooseStub = stub
+}
+
 func (fake *FakeContainerPlacementStrategy) ChooseArgsForCall(i int) (lager.Logger, []worker.Worker, worker.ContainerSpec) {
 	fake.chooseMutex.RLock()
 	defer fake.chooseMutex.RUnlock()
@@ -67,6 +73,8 @@ func (fake *FakeContainerPlacementStrategy) ChooseArgsForCall(i int) (lager.Logg
 }
 
 func (fake *FakeContainerPlacementStrategy) ChooseReturns(result1 worker.Worker, result2 error) {
+	fake.chooseMutex.Lock()
+	defer fake.chooseMutex.Unlock()
 	fake.ChooseStub = nil
 	fake.chooseReturns = struct {
 		result1 worker.Worker
@@ -75,6 +83,8 @@ func (fake *FakeContainerPlacementStrategy) ChooseReturns(result1 worker.Worker,
 }
 
 func (fake *FakeContainerPlacementStrategy) ChooseReturnsOnCall(i int, result1 worker.Worker, result2 error) {
+	fake.chooseMutex.Lock()
+	defer fake.chooseMutex.Unlock()
 	fake.ChooseStub = nil
 	if fake.chooseReturnsOnCall == nil {
 		fake.chooseReturnsOnCall = make(map[int]struct {

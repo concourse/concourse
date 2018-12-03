@@ -96,7 +96,15 @@ func (fake *FakeAccess) CSRFTokenCallCount() int {
 	return len(fake.cSRFTokenArgsForCall)
 }
 
+func (fake *FakeAccess) CSRFTokenCalls(stub func() string) {
+	fake.cSRFTokenMutex.Lock()
+	defer fake.cSRFTokenMutex.Unlock()
+	fake.CSRFTokenStub = stub
+}
+
 func (fake *FakeAccess) CSRFTokenReturns(result1 string) {
+	fake.cSRFTokenMutex.Lock()
+	defer fake.cSRFTokenMutex.Unlock()
 	fake.CSRFTokenStub = nil
 	fake.cSRFTokenReturns = struct {
 		result1 string
@@ -104,6 +112,8 @@ func (fake *FakeAccess) CSRFTokenReturns(result1 string) {
 }
 
 func (fake *FakeAccess) CSRFTokenReturnsOnCall(i int, result1 string) {
+	fake.cSRFTokenMutex.Lock()
+	defer fake.cSRFTokenMutex.Unlock()
 	fake.CSRFTokenStub = nil
 	if fake.cSRFTokenReturnsOnCall == nil {
 		fake.cSRFTokenReturnsOnCall = make(map[int]struct {
@@ -138,7 +148,15 @@ func (fake *FakeAccess) IsAdminCallCount() int {
 	return len(fake.isAdminArgsForCall)
 }
 
+func (fake *FakeAccess) IsAdminCalls(stub func() bool) {
+	fake.isAdminMutex.Lock()
+	defer fake.isAdminMutex.Unlock()
+	fake.IsAdminStub = stub
+}
+
 func (fake *FakeAccess) IsAdminReturns(result1 bool) {
+	fake.isAdminMutex.Lock()
+	defer fake.isAdminMutex.Unlock()
 	fake.IsAdminStub = nil
 	fake.isAdminReturns = struct {
 		result1 bool
@@ -146,6 +164,8 @@ func (fake *FakeAccess) IsAdminReturns(result1 bool) {
 }
 
 func (fake *FakeAccess) IsAdminReturnsOnCall(i int, result1 bool) {
+	fake.isAdminMutex.Lock()
+	defer fake.isAdminMutex.Unlock()
 	fake.IsAdminStub = nil
 	if fake.isAdminReturnsOnCall == nil {
 		fake.isAdminReturnsOnCall = make(map[int]struct {
@@ -180,7 +200,15 @@ func (fake *FakeAccess) IsAuthenticatedCallCount() int {
 	return len(fake.isAuthenticatedArgsForCall)
 }
 
+func (fake *FakeAccess) IsAuthenticatedCalls(stub func() bool) {
+	fake.isAuthenticatedMutex.Lock()
+	defer fake.isAuthenticatedMutex.Unlock()
+	fake.IsAuthenticatedStub = stub
+}
+
 func (fake *FakeAccess) IsAuthenticatedReturns(result1 bool) {
+	fake.isAuthenticatedMutex.Lock()
+	defer fake.isAuthenticatedMutex.Unlock()
 	fake.IsAuthenticatedStub = nil
 	fake.isAuthenticatedReturns = struct {
 		result1 bool
@@ -188,6 +216,8 @@ func (fake *FakeAccess) IsAuthenticatedReturns(result1 bool) {
 }
 
 func (fake *FakeAccess) IsAuthenticatedReturnsOnCall(i int, result1 bool) {
+	fake.isAuthenticatedMutex.Lock()
+	defer fake.isAuthenticatedMutex.Unlock()
 	fake.IsAuthenticatedStub = nil
 	if fake.isAuthenticatedReturnsOnCall == nil {
 		fake.isAuthenticatedReturnsOnCall = make(map[int]struct {
@@ -223,6 +253,12 @@ func (fake *FakeAccess) IsAuthorizedCallCount() int {
 	return len(fake.isAuthorizedArgsForCall)
 }
 
+func (fake *FakeAccess) IsAuthorizedCalls(stub func(string) bool) {
+	fake.isAuthorizedMutex.Lock()
+	defer fake.isAuthorizedMutex.Unlock()
+	fake.IsAuthorizedStub = stub
+}
+
 func (fake *FakeAccess) IsAuthorizedArgsForCall(i int) string {
 	fake.isAuthorizedMutex.RLock()
 	defer fake.isAuthorizedMutex.RUnlock()
@@ -231,6 +267,8 @@ func (fake *FakeAccess) IsAuthorizedArgsForCall(i int) string {
 }
 
 func (fake *FakeAccess) IsAuthorizedReturns(result1 bool) {
+	fake.isAuthorizedMutex.Lock()
+	defer fake.isAuthorizedMutex.Unlock()
 	fake.IsAuthorizedStub = nil
 	fake.isAuthorizedReturns = struct {
 		result1 bool
@@ -238,6 +276,8 @@ func (fake *FakeAccess) IsAuthorizedReturns(result1 bool) {
 }
 
 func (fake *FakeAccess) IsAuthorizedReturnsOnCall(i int, result1 bool) {
+	fake.isAuthorizedMutex.Lock()
+	defer fake.isAuthorizedMutex.Unlock()
 	fake.IsAuthorizedStub = nil
 	if fake.isAuthorizedReturnsOnCall == nil {
 		fake.isAuthorizedReturnsOnCall = make(map[int]struct {
@@ -272,7 +312,15 @@ func (fake *FakeAccess) IsSystemCallCount() int {
 	return len(fake.isSystemArgsForCall)
 }
 
+func (fake *FakeAccess) IsSystemCalls(stub func() bool) {
+	fake.isSystemMutex.Lock()
+	defer fake.isSystemMutex.Unlock()
+	fake.IsSystemStub = stub
+}
+
 func (fake *FakeAccess) IsSystemReturns(result1 bool) {
+	fake.isSystemMutex.Lock()
+	defer fake.isSystemMutex.Unlock()
 	fake.IsSystemStub = nil
 	fake.isSystemReturns = struct {
 		result1 bool
@@ -280,6 +328,8 @@ func (fake *FakeAccess) IsSystemReturns(result1 bool) {
 }
 
 func (fake *FakeAccess) IsSystemReturnsOnCall(i int, result1 bool) {
+	fake.isSystemMutex.Lock()
+	defer fake.isSystemMutex.Unlock()
 	fake.IsSystemStub = nil
 	if fake.isSystemReturnsOnCall == nil {
 		fake.isSystemReturnsOnCall = make(map[int]struct {
@@ -314,7 +364,15 @@ func (fake *FakeAccess) TeamNamesCallCount() int {
 	return len(fake.teamNamesArgsForCall)
 }
 
+func (fake *FakeAccess) TeamNamesCalls(stub func() []string) {
+	fake.teamNamesMutex.Lock()
+	defer fake.teamNamesMutex.Unlock()
+	fake.TeamNamesStub = stub
+}
+
 func (fake *FakeAccess) TeamNamesReturns(result1 []string) {
+	fake.teamNamesMutex.Lock()
+	defer fake.teamNamesMutex.Unlock()
 	fake.TeamNamesStub = nil
 	fake.teamNamesReturns = struct {
 		result1 []string
@@ -322,6 +380,8 @@ func (fake *FakeAccess) TeamNamesReturns(result1 []string) {
 }
 
 func (fake *FakeAccess) TeamNamesReturnsOnCall(i int, result1 []string) {
+	fake.teamNamesMutex.Lock()
+	defer fake.teamNamesMutex.Unlock()
 	fake.TeamNamesStub = nil
 	if fake.teamNamesReturnsOnCall == nil {
 		fake.teamNamesReturnsOnCall = make(map[int]struct {

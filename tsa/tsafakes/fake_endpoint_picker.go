@@ -46,7 +46,15 @@ func (fake *FakeEndpointPicker) PickCallCount() int {
 	return len(fake.pickArgsForCall)
 }
 
+func (fake *FakeEndpointPicker) PickCalls(stub func() *rata.RequestGenerator) {
+	fake.pickMutex.Lock()
+	defer fake.pickMutex.Unlock()
+	fake.PickStub = stub
+}
+
 func (fake *FakeEndpointPicker) PickReturns(result1 *rata.RequestGenerator) {
+	fake.pickMutex.Lock()
+	defer fake.pickMutex.Unlock()
 	fake.PickStub = nil
 	fake.pickReturns = struct {
 		result1 *rata.RequestGenerator
@@ -54,6 +62,8 @@ func (fake *FakeEndpointPicker) PickReturns(result1 *rata.RequestGenerator) {
 }
 
 func (fake *FakeEndpointPicker) PickReturnsOnCall(i int, result1 *rata.RequestGenerator) {
+	fake.pickMutex.Lock()
+	defer fake.pickMutex.Unlock()
 	fake.PickStub = nil
 	if fake.pickReturnsOnCall == nil {
 		fake.pickReturnsOnCall = make(map[int]struct {

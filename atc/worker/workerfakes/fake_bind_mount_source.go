@@ -52,6 +52,12 @@ func (fake *FakeBindMountSource) VolumeOnCallCount() int {
 	return len(fake.volumeOnArgsForCall)
 }
 
+func (fake *FakeBindMountSource) VolumeOnCalls(stub func(worker.Worker) (garden.BindMount, bool, error)) {
+	fake.volumeOnMutex.Lock()
+	defer fake.volumeOnMutex.Unlock()
+	fake.VolumeOnStub = stub
+}
+
 func (fake *FakeBindMountSource) VolumeOnArgsForCall(i int) worker.Worker {
 	fake.volumeOnMutex.RLock()
 	defer fake.volumeOnMutex.RUnlock()
@@ -60,6 +66,8 @@ func (fake *FakeBindMountSource) VolumeOnArgsForCall(i int) worker.Worker {
 }
 
 func (fake *FakeBindMountSource) VolumeOnReturns(result1 garden.BindMount, result2 bool, result3 error) {
+	fake.volumeOnMutex.Lock()
+	defer fake.volumeOnMutex.Unlock()
 	fake.VolumeOnStub = nil
 	fake.volumeOnReturns = struct {
 		result1 garden.BindMount
@@ -69,6 +77,8 @@ func (fake *FakeBindMountSource) VolumeOnReturns(result1 garden.BindMount, resul
 }
 
 func (fake *FakeBindMountSource) VolumeOnReturnsOnCall(i int, result1 garden.BindMount, result2 bool, result3 error) {
+	fake.volumeOnMutex.Lock()
+	defer fake.volumeOnMutex.Unlock()
 	fake.VolumeOnStub = nil
 	if fake.volumeOnReturnsOnCall == nil {
 		fake.volumeOnReturnsOnCall = make(map[int]struct {

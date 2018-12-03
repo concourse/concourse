@@ -76,6 +76,12 @@ func (fake *FakeFetchSource) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
+func (fake *FakeFetchSource) CreateCalls(stub func(context.Context) (resource.VersionedSource, error)) {
+	fake.createMutex.Lock()
+	defer fake.createMutex.Unlock()
+	fake.CreateStub = stub
+}
+
 func (fake *FakeFetchSource) CreateArgsForCall(i int) context.Context {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
@@ -84,6 +90,8 @@ func (fake *FakeFetchSource) CreateArgsForCall(i int) context.Context {
 }
 
 func (fake *FakeFetchSource) CreateReturns(result1 resource.VersionedSource, result2 error) {
+	fake.createMutex.Lock()
+	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	fake.createReturns = struct {
 		result1 resource.VersionedSource
@@ -92,6 +100,8 @@ func (fake *FakeFetchSource) CreateReturns(result1 resource.VersionedSource, res
 }
 
 func (fake *FakeFetchSource) CreateReturnsOnCall(i int, result1 resource.VersionedSource, result2 error) {
+	fake.createMutex.Lock()
+	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	if fake.createReturnsOnCall == nil {
 		fake.createReturnsOnCall = make(map[int]struct {
@@ -128,7 +138,15 @@ func (fake *FakeFetchSource) FindCallCount() int {
 	return len(fake.findArgsForCall)
 }
 
+func (fake *FakeFetchSource) FindCalls(stub func() (resource.VersionedSource, bool, error)) {
+	fake.findMutex.Lock()
+	defer fake.findMutex.Unlock()
+	fake.FindStub = stub
+}
+
 func (fake *FakeFetchSource) FindReturns(result1 resource.VersionedSource, result2 bool, result3 error) {
+	fake.findMutex.Lock()
+	defer fake.findMutex.Unlock()
 	fake.FindStub = nil
 	fake.findReturns = struct {
 		result1 resource.VersionedSource
@@ -138,6 +156,8 @@ func (fake *FakeFetchSource) FindReturns(result1 resource.VersionedSource, resul
 }
 
 func (fake *FakeFetchSource) FindReturnsOnCall(i int, result1 resource.VersionedSource, result2 bool, result3 error) {
+	fake.findMutex.Lock()
+	defer fake.findMutex.Unlock()
 	fake.FindStub = nil
 	if fake.findReturnsOnCall == nil {
 		fake.findReturnsOnCall = make(map[int]struct {
@@ -176,7 +196,15 @@ func (fake *FakeFetchSource) LockNameCallCount() int {
 	return len(fake.lockNameArgsForCall)
 }
 
+func (fake *FakeFetchSource) LockNameCalls(stub func() (string, error)) {
+	fake.lockNameMutex.Lock()
+	defer fake.lockNameMutex.Unlock()
+	fake.LockNameStub = stub
+}
+
 func (fake *FakeFetchSource) LockNameReturns(result1 string, result2 error) {
+	fake.lockNameMutex.Lock()
+	defer fake.lockNameMutex.Unlock()
 	fake.LockNameStub = nil
 	fake.lockNameReturns = struct {
 		result1 string
@@ -185,6 +213,8 @@ func (fake *FakeFetchSource) LockNameReturns(result1 string, result2 error) {
 }
 
 func (fake *FakeFetchSource) LockNameReturnsOnCall(i int, result1 string, result2 error) {
+	fake.lockNameMutex.Lock()
+	defer fake.lockNameMutex.Unlock()
 	fake.LockNameStub = nil
 	if fake.lockNameReturnsOnCall == nil {
 		fake.lockNameReturnsOnCall = make(map[int]struct {

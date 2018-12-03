@@ -93,7 +93,15 @@ func (fake *FakeVersionedSource) MetadataCallCount() int {
 	return len(fake.metadataArgsForCall)
 }
 
+func (fake *FakeVersionedSource) MetadataCalls(stub func() []atc.MetadataField) {
+	fake.metadataMutex.Lock()
+	defer fake.metadataMutex.Unlock()
+	fake.MetadataStub = stub
+}
+
 func (fake *FakeVersionedSource) MetadataReturns(result1 []atc.MetadataField) {
+	fake.metadataMutex.Lock()
+	defer fake.metadataMutex.Unlock()
 	fake.MetadataStub = nil
 	fake.metadataReturns = struct {
 		result1 []atc.MetadataField
@@ -101,6 +109,8 @@ func (fake *FakeVersionedSource) MetadataReturns(result1 []atc.MetadataField) {
 }
 
 func (fake *FakeVersionedSource) MetadataReturnsOnCall(i int, result1 []atc.MetadataField) {
+	fake.metadataMutex.Lock()
+	defer fake.metadataMutex.Unlock()
 	fake.MetadataStub = nil
 	if fake.metadataReturnsOnCall == nil {
 		fake.metadataReturnsOnCall = make(map[int]struct {
@@ -137,6 +147,12 @@ func (fake *FakeVersionedSource) StreamInCallCount() int {
 	return len(fake.streamInArgsForCall)
 }
 
+func (fake *FakeVersionedSource) StreamInCalls(stub func(string, io.Reader) error) {
+	fake.streamInMutex.Lock()
+	defer fake.streamInMutex.Unlock()
+	fake.StreamInStub = stub
+}
+
 func (fake *FakeVersionedSource) StreamInArgsForCall(i int) (string, io.Reader) {
 	fake.streamInMutex.RLock()
 	defer fake.streamInMutex.RUnlock()
@@ -145,6 +161,8 @@ func (fake *FakeVersionedSource) StreamInArgsForCall(i int) (string, io.Reader) 
 }
 
 func (fake *FakeVersionedSource) StreamInReturns(result1 error) {
+	fake.streamInMutex.Lock()
+	defer fake.streamInMutex.Unlock()
 	fake.StreamInStub = nil
 	fake.streamInReturns = struct {
 		result1 error
@@ -152,6 +170,8 @@ func (fake *FakeVersionedSource) StreamInReturns(result1 error) {
 }
 
 func (fake *FakeVersionedSource) StreamInReturnsOnCall(i int, result1 error) {
+	fake.streamInMutex.Lock()
+	defer fake.streamInMutex.Unlock()
 	fake.StreamInStub = nil
 	if fake.streamInReturnsOnCall == nil {
 		fake.streamInReturnsOnCall = make(map[int]struct {
@@ -187,6 +207,12 @@ func (fake *FakeVersionedSource) StreamOutCallCount() int {
 	return len(fake.streamOutArgsForCall)
 }
 
+func (fake *FakeVersionedSource) StreamOutCalls(stub func(string) (io.ReadCloser, error)) {
+	fake.streamOutMutex.Lock()
+	defer fake.streamOutMutex.Unlock()
+	fake.StreamOutStub = stub
+}
+
 func (fake *FakeVersionedSource) StreamOutArgsForCall(i int) string {
 	fake.streamOutMutex.RLock()
 	defer fake.streamOutMutex.RUnlock()
@@ -195,6 +221,8 @@ func (fake *FakeVersionedSource) StreamOutArgsForCall(i int) string {
 }
 
 func (fake *FakeVersionedSource) StreamOutReturns(result1 io.ReadCloser, result2 error) {
+	fake.streamOutMutex.Lock()
+	defer fake.streamOutMutex.Unlock()
 	fake.StreamOutStub = nil
 	fake.streamOutReturns = struct {
 		result1 io.ReadCloser
@@ -203,6 +231,8 @@ func (fake *FakeVersionedSource) StreamOutReturns(result1 io.ReadCloser, result2
 }
 
 func (fake *FakeVersionedSource) StreamOutReturnsOnCall(i int, result1 io.ReadCloser, result2 error) {
+	fake.streamOutMutex.Lock()
+	defer fake.streamOutMutex.Unlock()
 	fake.StreamOutStub = nil
 	if fake.streamOutReturnsOnCall == nil {
 		fake.streamOutReturnsOnCall = make(map[int]struct {
@@ -239,7 +269,15 @@ func (fake *FakeVersionedSource) VersionCallCount() int {
 	return len(fake.versionArgsForCall)
 }
 
+func (fake *FakeVersionedSource) VersionCalls(stub func() atc.Version) {
+	fake.versionMutex.Lock()
+	defer fake.versionMutex.Unlock()
+	fake.VersionStub = stub
+}
+
 func (fake *FakeVersionedSource) VersionReturns(result1 atc.Version) {
+	fake.versionMutex.Lock()
+	defer fake.versionMutex.Unlock()
 	fake.VersionStub = nil
 	fake.versionReturns = struct {
 		result1 atc.Version
@@ -247,6 +285,8 @@ func (fake *FakeVersionedSource) VersionReturns(result1 atc.Version) {
 }
 
 func (fake *FakeVersionedSource) VersionReturnsOnCall(i int, result1 atc.Version) {
+	fake.versionMutex.Lock()
+	defer fake.versionMutex.Unlock()
 	fake.VersionStub = nil
 	if fake.versionReturnsOnCall == nil {
 		fake.versionReturnsOnCall = make(map[int]struct {
@@ -281,7 +321,15 @@ func (fake *FakeVersionedSource) VolumeCallCount() int {
 	return len(fake.volumeArgsForCall)
 }
 
+func (fake *FakeVersionedSource) VolumeCalls(stub func() worker.Volume) {
+	fake.volumeMutex.Lock()
+	defer fake.volumeMutex.Unlock()
+	fake.VolumeStub = stub
+}
+
 func (fake *FakeVersionedSource) VolumeReturns(result1 worker.Volume) {
+	fake.volumeMutex.Lock()
+	defer fake.volumeMutex.Unlock()
 	fake.VolumeStub = nil
 	fake.volumeReturns = struct {
 		result1 worker.Volume
@@ -289,6 +337,8 @@ func (fake *FakeVersionedSource) VolumeReturns(result1 worker.Volume) {
 }
 
 func (fake *FakeVersionedSource) VolumeReturnsOnCall(i int, result1 worker.Volume) {
+	fake.volumeMutex.Lock()
+	defer fake.volumeMutex.Unlock()
 	fake.VolumeStub = nil
 	if fake.volumeReturnsOnCall == nil {
 		fake.volumeReturnsOnCall = make(map[int]struct {

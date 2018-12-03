@@ -64,6 +64,12 @@ func (fake *FakeTaskConfigSource) FetchConfigCallCount() int {
 	return len(fake.fetchConfigArgsForCall)
 }
 
+func (fake *FakeTaskConfigSource) FetchConfigCalls(stub func(lager.Logger, *worker.ArtifactRepository) (atc.TaskConfig, error)) {
+	fake.fetchConfigMutex.Lock()
+	defer fake.fetchConfigMutex.Unlock()
+	fake.FetchConfigStub = stub
+}
+
 func (fake *FakeTaskConfigSource) FetchConfigArgsForCall(i int) (lager.Logger, *worker.ArtifactRepository) {
 	fake.fetchConfigMutex.RLock()
 	defer fake.fetchConfigMutex.RUnlock()
@@ -72,6 +78,8 @@ func (fake *FakeTaskConfigSource) FetchConfigArgsForCall(i int) (lager.Logger, *
 }
 
 func (fake *FakeTaskConfigSource) FetchConfigReturns(result1 atc.TaskConfig, result2 error) {
+	fake.fetchConfigMutex.Lock()
+	defer fake.fetchConfigMutex.Unlock()
 	fake.FetchConfigStub = nil
 	fake.fetchConfigReturns = struct {
 		result1 atc.TaskConfig
@@ -80,6 +88,8 @@ func (fake *FakeTaskConfigSource) FetchConfigReturns(result1 atc.TaskConfig, res
 }
 
 func (fake *FakeTaskConfigSource) FetchConfigReturnsOnCall(i int, result1 atc.TaskConfig, result2 error) {
+	fake.fetchConfigMutex.Lock()
+	defer fake.fetchConfigMutex.Unlock()
 	fake.FetchConfigStub = nil
 	if fake.fetchConfigReturnsOnCall == nil {
 		fake.fetchConfigReturnsOnCall = make(map[int]struct {
@@ -116,7 +126,15 @@ func (fake *FakeTaskConfigSource) WarningsCallCount() int {
 	return len(fake.warningsArgsForCall)
 }
 
+func (fake *FakeTaskConfigSource) WarningsCalls(stub func() []string) {
+	fake.warningsMutex.Lock()
+	defer fake.warningsMutex.Unlock()
+	fake.WarningsStub = stub
+}
+
 func (fake *FakeTaskConfigSource) WarningsReturns(result1 []string) {
+	fake.warningsMutex.Lock()
+	defer fake.warningsMutex.Unlock()
 	fake.WarningsStub = nil
 	fake.warningsReturns = struct {
 		result1 []string
@@ -124,6 +142,8 @@ func (fake *FakeTaskConfigSource) WarningsReturns(result1 []string) {
 }
 
 func (fake *FakeTaskConfigSource) WarningsReturnsOnCall(i int, result1 []string) {
+	fake.warningsMutex.Lock()
+	defer fake.warningsMutex.Unlock()
 	fake.WarningsStub = nil
 	if fake.warningsReturnsOnCall == nil {
 		fake.warningsReturnsOnCall = make(map[int]struct {

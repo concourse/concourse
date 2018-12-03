@@ -65,6 +65,12 @@ func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderCallCount() in
 	return len(fake.newFetchSourceProviderArgsForCall)
 }
 
+func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderCalls(stub func(lager.Logger, resource.Session, resource.Metadata, atc.Tags, int, creds.VersionedResourceTypes, resource.ResourceInstance, worker.ImageFetchingDelegate) resource.FetchSourceProvider) {
+	fake.newFetchSourceProviderMutex.Lock()
+	defer fake.newFetchSourceProviderMutex.Unlock()
+	fake.NewFetchSourceProviderStub = stub
+}
+
 func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderArgsForCall(i int) (lager.Logger, resource.Session, resource.Metadata, atc.Tags, int, creds.VersionedResourceTypes, resource.ResourceInstance, worker.ImageFetchingDelegate) {
 	fake.newFetchSourceProviderMutex.RLock()
 	defer fake.newFetchSourceProviderMutex.RUnlock()
@@ -73,6 +79,8 @@ func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderArgsForCall(i 
 }
 
 func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderReturns(result1 resource.FetchSourceProvider) {
+	fake.newFetchSourceProviderMutex.Lock()
+	defer fake.newFetchSourceProviderMutex.Unlock()
 	fake.NewFetchSourceProviderStub = nil
 	fake.newFetchSourceProviderReturns = struct {
 		result1 resource.FetchSourceProvider
@@ -80,6 +88,8 @@ func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderReturns(result
 }
 
 func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderReturnsOnCall(i int, result1 resource.FetchSourceProvider) {
+	fake.newFetchSourceProviderMutex.Lock()
+	defer fake.newFetchSourceProviderMutex.Unlock()
 	fake.NewFetchSourceProviderStub = nil
 	if fake.newFetchSourceProviderReturnsOnCall == nil {
 		fake.newFetchSourceProviderReturnsOnCall = make(map[int]struct {

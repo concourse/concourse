@@ -60,6 +60,12 @@ func (fake *FakeStep) RunCallCount() int {
 	return len(fake.runArgsForCall)
 }
 
+func (fake *FakeStep) RunCalls(stub func(context.Context, exec.RunState) error) {
+	fake.runMutex.Lock()
+	defer fake.runMutex.Unlock()
+	fake.RunStub = stub
+}
+
 func (fake *FakeStep) RunArgsForCall(i int) (context.Context, exec.RunState) {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
@@ -68,6 +74,8 @@ func (fake *FakeStep) RunArgsForCall(i int) (context.Context, exec.RunState) {
 }
 
 func (fake *FakeStep) RunReturns(result1 error) {
+	fake.runMutex.Lock()
+	defer fake.runMutex.Unlock()
 	fake.RunStub = nil
 	fake.runReturns = struct {
 		result1 error
@@ -75,6 +83,8 @@ func (fake *FakeStep) RunReturns(result1 error) {
 }
 
 func (fake *FakeStep) RunReturnsOnCall(i int, result1 error) {
+	fake.runMutex.Lock()
+	defer fake.runMutex.Unlock()
 	fake.RunStub = nil
 	if fake.runReturnsOnCall == nil {
 		fake.runReturnsOnCall = make(map[int]struct {
@@ -109,7 +119,15 @@ func (fake *FakeStep) SucceededCallCount() int {
 	return len(fake.succeededArgsForCall)
 }
 
+func (fake *FakeStep) SucceededCalls(stub func() bool) {
+	fake.succeededMutex.Lock()
+	defer fake.succeededMutex.Unlock()
+	fake.SucceededStub = stub
+}
+
 func (fake *FakeStep) SucceededReturns(result1 bool) {
+	fake.succeededMutex.Lock()
+	defer fake.succeededMutex.Unlock()
 	fake.SucceededStub = nil
 	fake.succeededReturns = struct {
 		result1 bool
@@ -117,6 +135,8 @@ func (fake *FakeStep) SucceededReturns(result1 bool) {
 }
 
 func (fake *FakeStep) SucceededReturnsOnCall(i int, result1 bool) {
+	fake.succeededMutex.Lock()
+	defer fake.succeededMutex.Unlock()
 	fake.SucceededStub = nil
 	if fake.succeededReturnsOnCall == nil {
 		fake.succeededReturnsOnCall = make(map[int]struct {

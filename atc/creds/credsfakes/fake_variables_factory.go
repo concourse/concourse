@@ -49,6 +49,12 @@ func (fake *FakeVariablesFactory) NewVariablesCallCount() int {
 	return len(fake.newVariablesArgsForCall)
 }
 
+func (fake *FakeVariablesFactory) NewVariablesCalls(stub func(string, string) creds.Variables) {
+	fake.newVariablesMutex.Lock()
+	defer fake.newVariablesMutex.Unlock()
+	fake.NewVariablesStub = stub
+}
+
 func (fake *FakeVariablesFactory) NewVariablesArgsForCall(i int) (string, string) {
 	fake.newVariablesMutex.RLock()
 	defer fake.newVariablesMutex.RUnlock()
@@ -57,6 +63,8 @@ func (fake *FakeVariablesFactory) NewVariablesArgsForCall(i int) (string, string
 }
 
 func (fake *FakeVariablesFactory) NewVariablesReturns(result1 creds.Variables) {
+	fake.newVariablesMutex.Lock()
+	defer fake.newVariablesMutex.Unlock()
 	fake.NewVariablesStub = nil
 	fake.newVariablesReturns = struct {
 		result1 creds.Variables
@@ -64,6 +72,8 @@ func (fake *FakeVariablesFactory) NewVariablesReturns(result1 creds.Variables) {
 }
 
 func (fake *FakeVariablesFactory) NewVariablesReturnsOnCall(i int, result1 creds.Variables) {
+	fake.newVariablesMutex.Lock()
+	defer fake.newVariablesMutex.Unlock()
 	fake.NewVariablesStub = nil
 	if fake.newVariablesReturnsOnCall == nil {
 		fake.newVariablesReturnsOnCall = make(map[int]struct {

@@ -132,6 +132,12 @@ func (fake *FakeBuildFactory) BuildCallCount() int {
 	return len(fake.buildArgsForCall)
 }
 
+func (fake *FakeBuildFactory) BuildCalls(stub func(int) (db.Build, bool, error)) {
+	fake.buildMutex.Lock()
+	defer fake.buildMutex.Unlock()
+	fake.BuildStub = stub
+}
+
 func (fake *FakeBuildFactory) BuildArgsForCall(i int) int {
 	fake.buildMutex.RLock()
 	defer fake.buildMutex.RUnlock()
@@ -140,6 +146,8 @@ func (fake *FakeBuildFactory) BuildArgsForCall(i int) int {
 }
 
 func (fake *FakeBuildFactory) BuildReturns(result1 db.Build, result2 bool, result3 error) {
+	fake.buildMutex.Lock()
+	defer fake.buildMutex.Unlock()
 	fake.BuildStub = nil
 	fake.buildReturns = struct {
 		result1 db.Build
@@ -149,6 +157,8 @@ func (fake *FakeBuildFactory) BuildReturns(result1 db.Build, result2 bool, resul
 }
 
 func (fake *FakeBuildFactory) BuildReturnsOnCall(i int, result1 db.Build, result2 bool, result3 error) {
+	fake.buildMutex.Lock()
+	defer fake.buildMutex.Unlock()
 	fake.BuildStub = nil
 	if fake.buildReturnsOnCall == nil {
 		fake.buildReturnsOnCall = make(map[int]struct {
@@ -187,7 +197,15 @@ func (fake *FakeBuildFactory) GetAllStartedBuildsCallCount() int {
 	return len(fake.getAllStartedBuildsArgsForCall)
 }
 
+func (fake *FakeBuildFactory) GetAllStartedBuildsCalls(stub func() ([]db.Build, error)) {
+	fake.getAllStartedBuildsMutex.Lock()
+	defer fake.getAllStartedBuildsMutex.Unlock()
+	fake.GetAllStartedBuildsStub = stub
+}
+
 func (fake *FakeBuildFactory) GetAllStartedBuildsReturns(result1 []db.Build, result2 error) {
+	fake.getAllStartedBuildsMutex.Lock()
+	defer fake.getAllStartedBuildsMutex.Unlock()
 	fake.GetAllStartedBuildsStub = nil
 	fake.getAllStartedBuildsReturns = struct {
 		result1 []db.Build
@@ -196,6 +214,8 @@ func (fake *FakeBuildFactory) GetAllStartedBuildsReturns(result1 []db.Build, res
 }
 
 func (fake *FakeBuildFactory) GetAllStartedBuildsReturnsOnCall(i int, result1 []db.Build, result2 error) {
+	fake.getAllStartedBuildsMutex.Lock()
+	defer fake.getAllStartedBuildsMutex.Unlock()
 	fake.GetAllStartedBuildsStub = nil
 	if fake.getAllStartedBuildsReturnsOnCall == nil {
 		fake.getAllStartedBuildsReturnsOnCall = make(map[int]struct {
@@ -232,7 +252,15 @@ func (fake *FakeBuildFactory) GetDrainableBuildsCallCount() int {
 	return len(fake.getDrainableBuildsArgsForCall)
 }
 
+func (fake *FakeBuildFactory) GetDrainableBuildsCalls(stub func() ([]db.Build, error)) {
+	fake.getDrainableBuildsMutex.Lock()
+	defer fake.getDrainableBuildsMutex.Unlock()
+	fake.GetDrainableBuildsStub = stub
+}
+
 func (fake *FakeBuildFactory) GetDrainableBuildsReturns(result1 []db.Build, result2 error) {
+	fake.getDrainableBuildsMutex.Lock()
+	defer fake.getDrainableBuildsMutex.Unlock()
 	fake.GetDrainableBuildsStub = nil
 	fake.getDrainableBuildsReturns = struct {
 		result1 []db.Build
@@ -241,6 +269,8 @@ func (fake *FakeBuildFactory) GetDrainableBuildsReturns(result1 []db.Build, resu
 }
 
 func (fake *FakeBuildFactory) GetDrainableBuildsReturnsOnCall(i int, result1 []db.Build, result2 error) {
+	fake.getDrainableBuildsMutex.Lock()
+	defer fake.getDrainableBuildsMutex.Unlock()
 	fake.GetDrainableBuildsStub = nil
 	if fake.getDrainableBuildsReturnsOnCall == nil {
 		fake.getDrainableBuildsReturnsOnCall = make(map[int]struct {
@@ -277,7 +307,15 @@ func (fake *FakeBuildFactory) MarkNonInterceptibleBuildsCallCount() int {
 	return len(fake.markNonInterceptibleBuildsArgsForCall)
 }
 
+func (fake *FakeBuildFactory) MarkNonInterceptibleBuildsCalls(stub func() error) {
+	fake.markNonInterceptibleBuildsMutex.Lock()
+	defer fake.markNonInterceptibleBuildsMutex.Unlock()
+	fake.MarkNonInterceptibleBuildsStub = stub
+}
+
 func (fake *FakeBuildFactory) MarkNonInterceptibleBuildsReturns(result1 error) {
+	fake.markNonInterceptibleBuildsMutex.Lock()
+	defer fake.markNonInterceptibleBuildsMutex.Unlock()
 	fake.MarkNonInterceptibleBuildsStub = nil
 	fake.markNonInterceptibleBuildsReturns = struct {
 		result1 error
@@ -285,6 +323,8 @@ func (fake *FakeBuildFactory) MarkNonInterceptibleBuildsReturns(result1 error) {
 }
 
 func (fake *FakeBuildFactory) MarkNonInterceptibleBuildsReturnsOnCall(i int, result1 error) {
+	fake.markNonInterceptibleBuildsMutex.Lock()
+	defer fake.markNonInterceptibleBuildsMutex.Unlock()
 	fake.MarkNonInterceptibleBuildsStub = nil
 	if fake.markNonInterceptibleBuildsReturnsOnCall == nil {
 		fake.markNonInterceptibleBuildsReturnsOnCall = make(map[int]struct {
@@ -320,6 +360,12 @@ func (fake *FakeBuildFactory) PublicBuildsCallCount() int {
 	return len(fake.publicBuildsArgsForCall)
 }
 
+func (fake *FakeBuildFactory) PublicBuildsCalls(stub func(db.Page) ([]db.Build, db.Pagination, error)) {
+	fake.publicBuildsMutex.Lock()
+	defer fake.publicBuildsMutex.Unlock()
+	fake.PublicBuildsStub = stub
+}
+
 func (fake *FakeBuildFactory) PublicBuildsArgsForCall(i int) db.Page {
 	fake.publicBuildsMutex.RLock()
 	defer fake.publicBuildsMutex.RUnlock()
@@ -328,6 +374,8 @@ func (fake *FakeBuildFactory) PublicBuildsArgsForCall(i int) db.Page {
 }
 
 func (fake *FakeBuildFactory) PublicBuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.publicBuildsMutex.Lock()
+	defer fake.publicBuildsMutex.Unlock()
 	fake.PublicBuildsStub = nil
 	fake.publicBuildsReturns = struct {
 		result1 []db.Build
@@ -337,6 +385,8 @@ func (fake *FakeBuildFactory) PublicBuildsReturns(result1 []db.Build, result2 db
 }
 
 func (fake *FakeBuildFactory) PublicBuildsReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.publicBuildsMutex.Lock()
+	defer fake.publicBuildsMutex.Unlock()
 	fake.PublicBuildsStub = nil
 	if fake.publicBuildsReturnsOnCall == nil {
 		fake.publicBuildsReturnsOnCall = make(map[int]struct {
@@ -382,6 +432,12 @@ func (fake *FakeBuildFactory) VisibleBuildsCallCount() int {
 	return len(fake.visibleBuildsArgsForCall)
 }
 
+func (fake *FakeBuildFactory) VisibleBuildsCalls(stub func([]string, db.Page) ([]db.Build, db.Pagination, error)) {
+	fake.visibleBuildsMutex.Lock()
+	defer fake.visibleBuildsMutex.Unlock()
+	fake.VisibleBuildsStub = stub
+}
+
 func (fake *FakeBuildFactory) VisibleBuildsArgsForCall(i int) ([]string, db.Page) {
 	fake.visibleBuildsMutex.RLock()
 	defer fake.visibleBuildsMutex.RUnlock()
@@ -390,6 +446,8 @@ func (fake *FakeBuildFactory) VisibleBuildsArgsForCall(i int) ([]string, db.Page
 }
 
 func (fake *FakeBuildFactory) VisibleBuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.visibleBuildsMutex.Lock()
+	defer fake.visibleBuildsMutex.Unlock()
 	fake.VisibleBuildsStub = nil
 	fake.visibleBuildsReturns = struct {
 		result1 []db.Build
@@ -399,6 +457,8 @@ func (fake *FakeBuildFactory) VisibleBuildsReturns(result1 []db.Build, result2 d
 }
 
 func (fake *FakeBuildFactory) VisibleBuildsReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.visibleBuildsMutex.Lock()
+	defer fake.visibleBuildsMutex.Unlock()
 	fake.VisibleBuildsStub = nil
 	if fake.visibleBuildsReturnsOnCall == nil {
 		fake.visibleBuildsReturnsOnCall = make(map[int]struct {
@@ -444,6 +504,12 @@ func (fake *FakeBuildFactory) VisibleBuildsWithTimeCallCount() int {
 	return len(fake.visibleBuildsWithTimeArgsForCall)
 }
 
+func (fake *FakeBuildFactory) VisibleBuildsWithTimeCalls(stub func([]string, db.Page) ([]db.Build, db.Pagination, error)) {
+	fake.visibleBuildsWithTimeMutex.Lock()
+	defer fake.visibleBuildsWithTimeMutex.Unlock()
+	fake.VisibleBuildsWithTimeStub = stub
+}
+
 func (fake *FakeBuildFactory) VisibleBuildsWithTimeArgsForCall(i int) ([]string, db.Page) {
 	fake.visibleBuildsWithTimeMutex.RLock()
 	defer fake.visibleBuildsWithTimeMutex.RUnlock()
@@ -452,6 +518,8 @@ func (fake *FakeBuildFactory) VisibleBuildsWithTimeArgsForCall(i int) ([]string,
 }
 
 func (fake *FakeBuildFactory) VisibleBuildsWithTimeReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.visibleBuildsWithTimeMutex.Lock()
+	defer fake.visibleBuildsWithTimeMutex.Unlock()
 	fake.VisibleBuildsWithTimeStub = nil
 	fake.visibleBuildsWithTimeReturns = struct {
 		result1 []db.Build
@@ -461,6 +529,8 @@ func (fake *FakeBuildFactory) VisibleBuildsWithTimeReturns(result1 []db.Build, r
 }
 
 func (fake *FakeBuildFactory) VisibleBuildsWithTimeReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.visibleBuildsWithTimeMutex.Lock()
+	defer fake.visibleBuildsWithTimeMutex.Unlock()
 	fake.VisibleBuildsWithTimeStub = nil
 	if fake.visibleBuildsWithTimeReturnsOnCall == nil {
 		fake.visibleBuildsWithTimeReturnsOnCall = make(map[int]struct {

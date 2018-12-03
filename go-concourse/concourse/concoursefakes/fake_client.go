@@ -286,6 +286,12 @@ func (fake *FakeClient) AbortBuildCallCount() int {
 	return len(fake.abortBuildArgsForCall)
 }
 
+func (fake *FakeClient) AbortBuildCalls(stub func(string) error) {
+	fake.abortBuildMutex.Lock()
+	defer fake.abortBuildMutex.Unlock()
+	fake.AbortBuildStub = stub
+}
+
 func (fake *FakeClient) AbortBuildArgsForCall(i int) string {
 	fake.abortBuildMutex.RLock()
 	defer fake.abortBuildMutex.RUnlock()
@@ -294,6 +300,8 @@ func (fake *FakeClient) AbortBuildArgsForCall(i int) string {
 }
 
 func (fake *FakeClient) AbortBuildReturns(result1 error) {
+	fake.abortBuildMutex.Lock()
+	defer fake.abortBuildMutex.Unlock()
 	fake.AbortBuildStub = nil
 	fake.abortBuildReturns = struct {
 		result1 error
@@ -301,6 +309,8 @@ func (fake *FakeClient) AbortBuildReturns(result1 error) {
 }
 
 func (fake *FakeClient) AbortBuildReturnsOnCall(i int, result1 error) {
+	fake.abortBuildMutex.Lock()
+	defer fake.abortBuildMutex.Unlock()
 	fake.AbortBuildStub = nil
 	if fake.abortBuildReturnsOnCall == nil {
 		fake.abortBuildReturnsOnCall = make(map[int]struct {
@@ -336,6 +346,12 @@ func (fake *FakeClient) BuildCallCount() int {
 	return len(fake.buildArgsForCall)
 }
 
+func (fake *FakeClient) BuildCalls(stub func(string) (atc.Build, bool, error)) {
+	fake.buildMutex.Lock()
+	defer fake.buildMutex.Unlock()
+	fake.BuildStub = stub
+}
+
 func (fake *FakeClient) BuildArgsForCall(i int) string {
 	fake.buildMutex.RLock()
 	defer fake.buildMutex.RUnlock()
@@ -344,6 +360,8 @@ func (fake *FakeClient) BuildArgsForCall(i int) string {
 }
 
 func (fake *FakeClient) BuildReturns(result1 atc.Build, result2 bool, result3 error) {
+	fake.buildMutex.Lock()
+	defer fake.buildMutex.Unlock()
 	fake.BuildStub = nil
 	fake.buildReturns = struct {
 		result1 atc.Build
@@ -353,6 +371,8 @@ func (fake *FakeClient) BuildReturns(result1 atc.Build, result2 bool, result3 er
 }
 
 func (fake *FakeClient) BuildReturnsOnCall(i int, result1 atc.Build, result2 bool, result3 error) {
+	fake.buildMutex.Lock()
+	defer fake.buildMutex.Unlock()
 	fake.BuildStub = nil
 	if fake.buildReturnsOnCall == nil {
 		fake.buildReturnsOnCall = make(map[int]struct {
@@ -392,6 +412,12 @@ func (fake *FakeClient) BuildEventsCallCount() int {
 	return len(fake.buildEventsArgsForCall)
 }
 
+func (fake *FakeClient) BuildEventsCalls(stub func(string) (concourse.Events, error)) {
+	fake.buildEventsMutex.Lock()
+	defer fake.buildEventsMutex.Unlock()
+	fake.BuildEventsStub = stub
+}
+
 func (fake *FakeClient) BuildEventsArgsForCall(i int) string {
 	fake.buildEventsMutex.RLock()
 	defer fake.buildEventsMutex.RUnlock()
@@ -400,6 +426,8 @@ func (fake *FakeClient) BuildEventsArgsForCall(i int) string {
 }
 
 func (fake *FakeClient) BuildEventsReturns(result1 concourse.Events, result2 error) {
+	fake.buildEventsMutex.Lock()
+	defer fake.buildEventsMutex.Unlock()
 	fake.BuildEventsStub = nil
 	fake.buildEventsReturns = struct {
 		result1 concourse.Events
@@ -408,6 +436,8 @@ func (fake *FakeClient) BuildEventsReturns(result1 concourse.Events, result2 err
 }
 
 func (fake *FakeClient) BuildEventsReturnsOnCall(i int, result1 concourse.Events, result2 error) {
+	fake.buildEventsMutex.Lock()
+	defer fake.buildEventsMutex.Unlock()
 	fake.BuildEventsStub = nil
 	if fake.buildEventsReturnsOnCall == nil {
 		fake.buildEventsReturnsOnCall = make(map[int]struct {
@@ -445,6 +475,12 @@ func (fake *FakeClient) BuildPlanCallCount() int {
 	return len(fake.buildPlanArgsForCall)
 }
 
+func (fake *FakeClient) BuildPlanCalls(stub func(int) (atc.PublicBuildPlan, bool, error)) {
+	fake.buildPlanMutex.Lock()
+	defer fake.buildPlanMutex.Unlock()
+	fake.BuildPlanStub = stub
+}
+
 func (fake *FakeClient) BuildPlanArgsForCall(i int) int {
 	fake.buildPlanMutex.RLock()
 	defer fake.buildPlanMutex.RUnlock()
@@ -453,6 +489,8 @@ func (fake *FakeClient) BuildPlanArgsForCall(i int) int {
 }
 
 func (fake *FakeClient) BuildPlanReturns(result1 atc.PublicBuildPlan, result2 bool, result3 error) {
+	fake.buildPlanMutex.Lock()
+	defer fake.buildPlanMutex.Unlock()
 	fake.BuildPlanStub = nil
 	fake.buildPlanReturns = struct {
 		result1 atc.PublicBuildPlan
@@ -462,6 +500,8 @@ func (fake *FakeClient) BuildPlanReturns(result1 atc.PublicBuildPlan, result2 bo
 }
 
 func (fake *FakeClient) BuildPlanReturnsOnCall(i int, result1 atc.PublicBuildPlan, result2 bool, result3 error) {
+	fake.buildPlanMutex.Lock()
+	defer fake.buildPlanMutex.Unlock()
 	fake.BuildPlanStub = nil
 	if fake.buildPlanReturnsOnCall == nil {
 		fake.buildPlanReturnsOnCall = make(map[int]struct {
@@ -501,6 +541,12 @@ func (fake *FakeClient) BuildResourcesCallCount() int {
 	return len(fake.buildResourcesArgsForCall)
 }
 
+func (fake *FakeClient) BuildResourcesCalls(stub func(int) (atc.BuildInputsOutputs, bool, error)) {
+	fake.buildResourcesMutex.Lock()
+	defer fake.buildResourcesMutex.Unlock()
+	fake.BuildResourcesStub = stub
+}
+
 func (fake *FakeClient) BuildResourcesArgsForCall(i int) int {
 	fake.buildResourcesMutex.RLock()
 	defer fake.buildResourcesMutex.RUnlock()
@@ -509,6 +555,8 @@ func (fake *FakeClient) BuildResourcesArgsForCall(i int) int {
 }
 
 func (fake *FakeClient) BuildResourcesReturns(result1 atc.BuildInputsOutputs, result2 bool, result3 error) {
+	fake.buildResourcesMutex.Lock()
+	defer fake.buildResourcesMutex.Unlock()
 	fake.BuildResourcesStub = nil
 	fake.buildResourcesReturns = struct {
 		result1 atc.BuildInputsOutputs
@@ -518,6 +566,8 @@ func (fake *FakeClient) BuildResourcesReturns(result1 atc.BuildInputsOutputs, re
 }
 
 func (fake *FakeClient) BuildResourcesReturnsOnCall(i int, result1 atc.BuildInputsOutputs, result2 bool, result3 error) {
+	fake.buildResourcesMutex.Lock()
+	defer fake.buildResourcesMutex.Unlock()
 	fake.BuildResourcesStub = nil
 	if fake.buildResourcesReturnsOnCall == nil {
 		fake.buildResourcesReturnsOnCall = make(map[int]struct {
@@ -557,6 +607,12 @@ func (fake *FakeClient) BuildsCallCount() int {
 	return len(fake.buildsArgsForCall)
 }
 
+func (fake *FakeClient) BuildsCalls(stub func(concourse.Page) ([]atc.Build, concourse.Pagination, error)) {
+	fake.buildsMutex.Lock()
+	defer fake.buildsMutex.Unlock()
+	fake.BuildsStub = stub
+}
+
 func (fake *FakeClient) BuildsArgsForCall(i int) concourse.Page {
 	fake.buildsMutex.RLock()
 	defer fake.buildsMutex.RUnlock()
@@ -565,6 +621,8 @@ func (fake *FakeClient) BuildsArgsForCall(i int) concourse.Page {
 }
 
 func (fake *FakeClient) BuildsReturns(result1 []atc.Build, result2 concourse.Pagination, result3 error) {
+	fake.buildsMutex.Lock()
+	defer fake.buildsMutex.Unlock()
 	fake.BuildsStub = nil
 	fake.buildsReturns = struct {
 		result1 []atc.Build
@@ -574,6 +632,8 @@ func (fake *FakeClient) BuildsReturns(result1 []atc.Build, result2 concourse.Pag
 }
 
 func (fake *FakeClient) BuildsReturnsOnCall(i int, result1 []atc.Build, result2 concourse.Pagination, result3 error) {
+	fake.buildsMutex.Lock()
+	defer fake.buildsMutex.Unlock()
 	fake.BuildsStub = nil
 	if fake.buildsReturnsOnCall == nil {
 		fake.buildsReturnsOnCall = make(map[int]struct {
@@ -614,6 +674,12 @@ func (fake *FakeClient) GetCLIReaderCallCount() int {
 	return len(fake.getCLIReaderArgsForCall)
 }
 
+func (fake *FakeClient) GetCLIReaderCalls(stub func(string, string) (io.ReadCloser, http.Header, error)) {
+	fake.getCLIReaderMutex.Lock()
+	defer fake.getCLIReaderMutex.Unlock()
+	fake.GetCLIReaderStub = stub
+}
+
 func (fake *FakeClient) GetCLIReaderArgsForCall(i int) (string, string) {
 	fake.getCLIReaderMutex.RLock()
 	defer fake.getCLIReaderMutex.RUnlock()
@@ -622,6 +688,8 @@ func (fake *FakeClient) GetCLIReaderArgsForCall(i int) (string, string) {
 }
 
 func (fake *FakeClient) GetCLIReaderReturns(result1 io.ReadCloser, result2 http.Header, result3 error) {
+	fake.getCLIReaderMutex.Lock()
+	defer fake.getCLIReaderMutex.Unlock()
 	fake.GetCLIReaderStub = nil
 	fake.getCLIReaderReturns = struct {
 		result1 io.ReadCloser
@@ -631,6 +699,8 @@ func (fake *FakeClient) GetCLIReaderReturns(result1 io.ReadCloser, result2 http.
 }
 
 func (fake *FakeClient) GetCLIReaderReturnsOnCall(i int, result1 io.ReadCloser, result2 http.Header, result3 error) {
+	fake.getCLIReaderMutex.Lock()
+	defer fake.getCLIReaderMutex.Unlock()
 	fake.GetCLIReaderStub = nil
 	if fake.getCLIReaderReturnsOnCall == nil {
 		fake.getCLIReaderReturnsOnCall = make(map[int]struct {
@@ -669,7 +739,15 @@ func (fake *FakeClient) GetInfoCallCount() int {
 	return len(fake.getInfoArgsForCall)
 }
 
+func (fake *FakeClient) GetInfoCalls(stub func() (atc.Info, error)) {
+	fake.getInfoMutex.Lock()
+	defer fake.getInfoMutex.Unlock()
+	fake.GetInfoStub = stub
+}
+
 func (fake *FakeClient) GetInfoReturns(result1 atc.Info, result2 error) {
+	fake.getInfoMutex.Lock()
+	defer fake.getInfoMutex.Unlock()
 	fake.GetInfoStub = nil
 	fake.getInfoReturns = struct {
 		result1 atc.Info
@@ -678,6 +756,8 @@ func (fake *FakeClient) GetInfoReturns(result1 atc.Info, result2 error) {
 }
 
 func (fake *FakeClient) GetInfoReturnsOnCall(i int, result1 atc.Info, result2 error) {
+	fake.getInfoMutex.Lock()
+	defer fake.getInfoMutex.Unlock()
 	fake.GetInfoStub = nil
 	if fake.getInfoReturnsOnCall == nil {
 		fake.getInfoReturnsOnCall = make(map[int]struct {
@@ -714,7 +794,15 @@ func (fake *FakeClient) HTTPClientCallCount() int {
 	return len(fake.hTTPClientArgsForCall)
 }
 
+func (fake *FakeClient) HTTPClientCalls(stub func() *http.Client) {
+	fake.hTTPClientMutex.Lock()
+	defer fake.hTTPClientMutex.Unlock()
+	fake.HTTPClientStub = stub
+}
+
 func (fake *FakeClient) HTTPClientReturns(result1 *http.Client) {
+	fake.hTTPClientMutex.Lock()
+	defer fake.hTTPClientMutex.Unlock()
 	fake.HTTPClientStub = nil
 	fake.hTTPClientReturns = struct {
 		result1 *http.Client
@@ -722,6 +810,8 @@ func (fake *FakeClient) HTTPClientReturns(result1 *http.Client) {
 }
 
 func (fake *FakeClient) HTTPClientReturnsOnCall(i int, result1 *http.Client) {
+	fake.hTTPClientMutex.Lock()
+	defer fake.hTTPClientMutex.Unlock()
 	fake.HTTPClientStub = nil
 	if fake.hTTPClientReturnsOnCall == nil {
 		fake.hTTPClientReturnsOnCall = make(map[int]struct {
@@ -757,6 +847,12 @@ func (fake *FakeClient) LandWorkerCallCount() int {
 	return len(fake.landWorkerArgsForCall)
 }
 
+func (fake *FakeClient) LandWorkerCalls(stub func(string) error) {
+	fake.landWorkerMutex.Lock()
+	defer fake.landWorkerMutex.Unlock()
+	fake.LandWorkerStub = stub
+}
+
 func (fake *FakeClient) LandWorkerArgsForCall(i int) string {
 	fake.landWorkerMutex.RLock()
 	defer fake.landWorkerMutex.RUnlock()
@@ -765,6 +861,8 @@ func (fake *FakeClient) LandWorkerArgsForCall(i int) string {
 }
 
 func (fake *FakeClient) LandWorkerReturns(result1 error) {
+	fake.landWorkerMutex.Lock()
+	defer fake.landWorkerMutex.Unlock()
 	fake.LandWorkerStub = nil
 	fake.landWorkerReturns = struct {
 		result1 error
@@ -772,6 +870,8 @@ func (fake *FakeClient) LandWorkerReturns(result1 error) {
 }
 
 func (fake *FakeClient) LandWorkerReturnsOnCall(i int, result1 error) {
+	fake.landWorkerMutex.Lock()
+	defer fake.landWorkerMutex.Unlock()
 	fake.LandWorkerStub = nil
 	if fake.landWorkerReturnsOnCall == nil {
 		fake.landWorkerReturnsOnCall = make(map[int]struct {
@@ -806,7 +906,15 @@ func (fake *FakeClient) ListPipelinesCallCount() int {
 	return len(fake.listPipelinesArgsForCall)
 }
 
+func (fake *FakeClient) ListPipelinesCalls(stub func() ([]atc.Pipeline, error)) {
+	fake.listPipelinesMutex.Lock()
+	defer fake.listPipelinesMutex.Unlock()
+	fake.ListPipelinesStub = stub
+}
+
 func (fake *FakeClient) ListPipelinesReturns(result1 []atc.Pipeline, result2 error) {
+	fake.listPipelinesMutex.Lock()
+	defer fake.listPipelinesMutex.Unlock()
 	fake.ListPipelinesStub = nil
 	fake.listPipelinesReturns = struct {
 		result1 []atc.Pipeline
@@ -815,6 +923,8 @@ func (fake *FakeClient) ListPipelinesReturns(result1 []atc.Pipeline, result2 err
 }
 
 func (fake *FakeClient) ListPipelinesReturnsOnCall(i int, result1 []atc.Pipeline, result2 error) {
+	fake.listPipelinesMutex.Lock()
+	defer fake.listPipelinesMutex.Unlock()
 	fake.ListPipelinesStub = nil
 	if fake.listPipelinesReturnsOnCall == nil {
 		fake.listPipelinesReturnsOnCall = make(map[int]struct {
@@ -851,7 +961,15 @@ func (fake *FakeClient) ListTeamsCallCount() int {
 	return len(fake.listTeamsArgsForCall)
 }
 
+func (fake *FakeClient) ListTeamsCalls(stub func() ([]atc.Team, error)) {
+	fake.listTeamsMutex.Lock()
+	defer fake.listTeamsMutex.Unlock()
+	fake.ListTeamsStub = stub
+}
+
 func (fake *FakeClient) ListTeamsReturns(result1 []atc.Team, result2 error) {
+	fake.listTeamsMutex.Lock()
+	defer fake.listTeamsMutex.Unlock()
 	fake.ListTeamsStub = nil
 	fake.listTeamsReturns = struct {
 		result1 []atc.Team
@@ -860,6 +978,8 @@ func (fake *FakeClient) ListTeamsReturns(result1 []atc.Team, result2 error) {
 }
 
 func (fake *FakeClient) ListTeamsReturnsOnCall(i int, result1 []atc.Team, result2 error) {
+	fake.listTeamsMutex.Lock()
+	defer fake.listTeamsMutex.Unlock()
 	fake.ListTeamsStub = nil
 	if fake.listTeamsReturnsOnCall == nil {
 		fake.listTeamsReturnsOnCall = make(map[int]struct {
@@ -896,7 +1016,15 @@ func (fake *FakeClient) ListWorkersCallCount() int {
 	return len(fake.listWorkersArgsForCall)
 }
 
+func (fake *FakeClient) ListWorkersCalls(stub func() ([]atc.Worker, error)) {
+	fake.listWorkersMutex.Lock()
+	defer fake.listWorkersMutex.Unlock()
+	fake.ListWorkersStub = stub
+}
+
 func (fake *FakeClient) ListWorkersReturns(result1 []atc.Worker, result2 error) {
+	fake.listWorkersMutex.Lock()
+	defer fake.listWorkersMutex.Unlock()
 	fake.ListWorkersStub = nil
 	fake.listWorkersReturns = struct {
 		result1 []atc.Worker
@@ -905,6 +1033,8 @@ func (fake *FakeClient) ListWorkersReturns(result1 []atc.Worker, result2 error) 
 }
 
 func (fake *FakeClient) ListWorkersReturnsOnCall(i int, result1 []atc.Worker, result2 error) {
+	fake.listWorkersMutex.Lock()
+	defer fake.listWorkersMutex.Unlock()
 	fake.ListWorkersStub = nil
 	if fake.listWorkersReturnsOnCall == nil {
 		fake.listWorkersReturnsOnCall = make(map[int]struct {
@@ -942,6 +1072,12 @@ func (fake *FakeClient) PruneWorkerCallCount() int {
 	return len(fake.pruneWorkerArgsForCall)
 }
 
+func (fake *FakeClient) PruneWorkerCalls(stub func(string) error) {
+	fake.pruneWorkerMutex.Lock()
+	defer fake.pruneWorkerMutex.Unlock()
+	fake.PruneWorkerStub = stub
+}
+
 func (fake *FakeClient) PruneWorkerArgsForCall(i int) string {
 	fake.pruneWorkerMutex.RLock()
 	defer fake.pruneWorkerMutex.RUnlock()
@@ -950,6 +1086,8 @@ func (fake *FakeClient) PruneWorkerArgsForCall(i int) string {
 }
 
 func (fake *FakeClient) PruneWorkerReturns(result1 error) {
+	fake.pruneWorkerMutex.Lock()
+	defer fake.pruneWorkerMutex.Unlock()
 	fake.PruneWorkerStub = nil
 	fake.pruneWorkerReturns = struct {
 		result1 error
@@ -957,6 +1095,8 @@ func (fake *FakeClient) PruneWorkerReturns(result1 error) {
 }
 
 func (fake *FakeClient) PruneWorkerReturnsOnCall(i int, result1 error) {
+	fake.pruneWorkerMutex.Lock()
+	defer fake.pruneWorkerMutex.Unlock()
 	fake.PruneWorkerStub = nil
 	if fake.pruneWorkerReturnsOnCall == nil {
 		fake.pruneWorkerReturnsOnCall = make(map[int]struct {
@@ -993,6 +1133,12 @@ func (fake *FakeClient) ReadOutputFromBuildPlanCallCount() int {
 	return len(fake.readOutputFromBuildPlanArgsForCall)
 }
 
+func (fake *FakeClient) ReadOutputFromBuildPlanCalls(stub func(int, atc.PlanID) (io.ReadCloser, bool, error)) {
+	fake.readOutputFromBuildPlanMutex.Lock()
+	defer fake.readOutputFromBuildPlanMutex.Unlock()
+	fake.ReadOutputFromBuildPlanStub = stub
+}
+
 func (fake *FakeClient) ReadOutputFromBuildPlanArgsForCall(i int) (int, atc.PlanID) {
 	fake.readOutputFromBuildPlanMutex.RLock()
 	defer fake.readOutputFromBuildPlanMutex.RUnlock()
@@ -1001,6 +1147,8 @@ func (fake *FakeClient) ReadOutputFromBuildPlanArgsForCall(i int) (int, atc.Plan
 }
 
 func (fake *FakeClient) ReadOutputFromBuildPlanReturns(result1 io.ReadCloser, result2 bool, result3 error) {
+	fake.readOutputFromBuildPlanMutex.Lock()
+	defer fake.readOutputFromBuildPlanMutex.Unlock()
 	fake.ReadOutputFromBuildPlanStub = nil
 	fake.readOutputFromBuildPlanReturns = struct {
 		result1 io.ReadCloser
@@ -1010,6 +1158,8 @@ func (fake *FakeClient) ReadOutputFromBuildPlanReturns(result1 io.ReadCloser, re
 }
 
 func (fake *FakeClient) ReadOutputFromBuildPlanReturnsOnCall(i int, result1 io.ReadCloser, result2 bool, result3 error) {
+	fake.readOutputFromBuildPlanMutex.Lock()
+	defer fake.readOutputFromBuildPlanMutex.Unlock()
 	fake.ReadOutputFromBuildPlanStub = nil
 	if fake.readOutputFromBuildPlanReturnsOnCall == nil {
 		fake.readOutputFromBuildPlanReturnsOnCall = make(map[int]struct {
@@ -1050,6 +1200,12 @@ func (fake *FakeClient) SaveWorkerCallCount() int {
 	return len(fake.saveWorkerArgsForCall)
 }
 
+func (fake *FakeClient) SaveWorkerCalls(stub func(atc.Worker, *time.Duration) (*atc.Worker, error)) {
+	fake.saveWorkerMutex.Lock()
+	defer fake.saveWorkerMutex.Unlock()
+	fake.SaveWorkerStub = stub
+}
+
 func (fake *FakeClient) SaveWorkerArgsForCall(i int) (atc.Worker, *time.Duration) {
 	fake.saveWorkerMutex.RLock()
 	defer fake.saveWorkerMutex.RUnlock()
@@ -1058,6 +1214,8 @@ func (fake *FakeClient) SaveWorkerArgsForCall(i int) (atc.Worker, *time.Duration
 }
 
 func (fake *FakeClient) SaveWorkerReturns(result1 *atc.Worker, result2 error) {
+	fake.saveWorkerMutex.Lock()
+	defer fake.saveWorkerMutex.Unlock()
 	fake.SaveWorkerStub = nil
 	fake.saveWorkerReturns = struct {
 		result1 *atc.Worker
@@ -1066,6 +1224,8 @@ func (fake *FakeClient) SaveWorkerReturns(result1 *atc.Worker, result2 error) {
 }
 
 func (fake *FakeClient) SaveWorkerReturnsOnCall(i int, result1 *atc.Worker, result2 error) {
+	fake.saveWorkerMutex.Lock()
+	defer fake.saveWorkerMutex.Unlock()
 	fake.SaveWorkerStub = nil
 	if fake.saveWorkerReturnsOnCall == nil {
 		fake.saveWorkerReturnsOnCall = make(map[int]struct {
@@ -1105,6 +1265,12 @@ func (fake *FakeClient) SendInputToBuildPlanCallCount() int {
 	return len(fake.sendInputToBuildPlanArgsForCall)
 }
 
+func (fake *FakeClient) SendInputToBuildPlanCalls(stub func(int, atc.PlanID, io.Reader) (bool, error)) {
+	fake.sendInputToBuildPlanMutex.Lock()
+	defer fake.sendInputToBuildPlanMutex.Unlock()
+	fake.SendInputToBuildPlanStub = stub
+}
+
 func (fake *FakeClient) SendInputToBuildPlanArgsForCall(i int) (int, atc.PlanID, io.Reader) {
 	fake.sendInputToBuildPlanMutex.RLock()
 	defer fake.sendInputToBuildPlanMutex.RUnlock()
@@ -1113,6 +1279,8 @@ func (fake *FakeClient) SendInputToBuildPlanArgsForCall(i int) (int, atc.PlanID,
 }
 
 func (fake *FakeClient) SendInputToBuildPlanReturns(result1 bool, result2 error) {
+	fake.sendInputToBuildPlanMutex.Lock()
+	defer fake.sendInputToBuildPlanMutex.Unlock()
 	fake.SendInputToBuildPlanStub = nil
 	fake.sendInputToBuildPlanReturns = struct {
 		result1 bool
@@ -1121,6 +1289,8 @@ func (fake *FakeClient) SendInputToBuildPlanReturns(result1 bool, result2 error)
 }
 
 func (fake *FakeClient) SendInputToBuildPlanReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.sendInputToBuildPlanMutex.Lock()
+	defer fake.sendInputToBuildPlanMutex.Unlock()
 	fake.SendInputToBuildPlanStub = nil
 	if fake.sendInputToBuildPlanReturnsOnCall == nil {
 		fake.sendInputToBuildPlanReturnsOnCall = make(map[int]struct {
@@ -1158,6 +1328,12 @@ func (fake *FakeClient) TeamCallCount() int {
 	return len(fake.teamArgsForCall)
 }
 
+func (fake *FakeClient) TeamCalls(stub func(string) concourse.Team) {
+	fake.teamMutex.Lock()
+	defer fake.teamMutex.Unlock()
+	fake.TeamStub = stub
+}
+
 func (fake *FakeClient) TeamArgsForCall(i int) string {
 	fake.teamMutex.RLock()
 	defer fake.teamMutex.RUnlock()
@@ -1166,6 +1342,8 @@ func (fake *FakeClient) TeamArgsForCall(i int) string {
 }
 
 func (fake *FakeClient) TeamReturns(result1 concourse.Team) {
+	fake.teamMutex.Lock()
+	defer fake.teamMutex.Unlock()
 	fake.TeamStub = nil
 	fake.teamReturns = struct {
 		result1 concourse.Team
@@ -1173,6 +1351,8 @@ func (fake *FakeClient) TeamReturns(result1 concourse.Team) {
 }
 
 func (fake *FakeClient) TeamReturnsOnCall(i int, result1 concourse.Team) {
+	fake.teamMutex.Lock()
+	defer fake.teamMutex.Unlock()
 	fake.TeamStub = nil
 	if fake.teamReturnsOnCall == nil {
 		fake.teamReturnsOnCall = make(map[int]struct {
@@ -1207,7 +1387,15 @@ func (fake *FakeClient) URLCallCount() int {
 	return len(fake.uRLArgsForCall)
 }
 
+func (fake *FakeClient) URLCalls(stub func() string) {
+	fake.uRLMutex.Lock()
+	defer fake.uRLMutex.Unlock()
+	fake.URLStub = stub
+}
+
 func (fake *FakeClient) URLReturns(result1 string) {
+	fake.uRLMutex.Lock()
+	defer fake.uRLMutex.Unlock()
 	fake.URLStub = nil
 	fake.uRLReturns = struct {
 		result1 string
@@ -1215,6 +1403,8 @@ func (fake *FakeClient) URLReturns(result1 string) {
 }
 
 func (fake *FakeClient) URLReturnsOnCall(i int, result1 string) {
+	fake.uRLMutex.Lock()
+	defer fake.uRLMutex.Unlock()
 	fake.URLStub = nil
 	if fake.uRLReturnsOnCall == nil {
 		fake.uRLReturnsOnCall = make(map[int]struct {

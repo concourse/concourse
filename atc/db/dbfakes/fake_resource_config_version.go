@@ -97,7 +97,15 @@ func (fake *FakeResourceConfigVersion) CheckOrderCallCount() int {
 	return len(fake.checkOrderArgsForCall)
 }
 
+func (fake *FakeResourceConfigVersion) CheckOrderCalls(stub func() int) {
+	fake.checkOrderMutex.Lock()
+	defer fake.checkOrderMutex.Unlock()
+	fake.CheckOrderStub = stub
+}
+
 func (fake *FakeResourceConfigVersion) CheckOrderReturns(result1 int) {
+	fake.checkOrderMutex.Lock()
+	defer fake.checkOrderMutex.Unlock()
 	fake.CheckOrderStub = nil
 	fake.checkOrderReturns = struct {
 		result1 int
@@ -105,6 +113,8 @@ func (fake *FakeResourceConfigVersion) CheckOrderReturns(result1 int) {
 }
 
 func (fake *FakeResourceConfigVersion) CheckOrderReturnsOnCall(i int, result1 int) {
+	fake.checkOrderMutex.Lock()
+	defer fake.checkOrderMutex.Unlock()
 	fake.CheckOrderStub = nil
 	if fake.checkOrderReturnsOnCall == nil {
 		fake.checkOrderReturnsOnCall = make(map[int]struct {
@@ -139,7 +149,15 @@ func (fake *FakeResourceConfigVersion) IDCallCount() int {
 	return len(fake.iDArgsForCall)
 }
 
+func (fake *FakeResourceConfigVersion) IDCalls(stub func() int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
+	fake.IDStub = stub
+}
+
 func (fake *FakeResourceConfigVersion) IDReturns(result1 int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
 	fake.IDStub = nil
 	fake.iDReturns = struct {
 		result1 int
@@ -147,6 +165,8 @@ func (fake *FakeResourceConfigVersion) IDReturns(result1 int) {
 }
 
 func (fake *FakeResourceConfigVersion) IDReturnsOnCall(i int, result1 int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
 	fake.IDStub = nil
 	if fake.iDReturnsOnCall == nil {
 		fake.iDReturnsOnCall = make(map[int]struct {
@@ -181,7 +201,15 @@ func (fake *FakeResourceConfigVersion) MetadataCallCount() int {
 	return len(fake.metadataArgsForCall)
 }
 
+func (fake *FakeResourceConfigVersion) MetadataCalls(stub func() db.ResourceConfigMetadataFields) {
+	fake.metadataMutex.Lock()
+	defer fake.metadataMutex.Unlock()
+	fake.MetadataStub = stub
+}
+
 func (fake *FakeResourceConfigVersion) MetadataReturns(result1 db.ResourceConfigMetadataFields) {
+	fake.metadataMutex.Lock()
+	defer fake.metadataMutex.Unlock()
 	fake.MetadataStub = nil
 	fake.metadataReturns = struct {
 		result1 db.ResourceConfigMetadataFields
@@ -189,6 +217,8 @@ func (fake *FakeResourceConfigVersion) MetadataReturns(result1 db.ResourceConfig
 }
 
 func (fake *FakeResourceConfigVersion) MetadataReturnsOnCall(i int, result1 db.ResourceConfigMetadataFields) {
+	fake.metadataMutex.Lock()
+	defer fake.metadataMutex.Unlock()
 	fake.MetadataStub = nil
 	if fake.metadataReturnsOnCall == nil {
 		fake.metadataReturnsOnCall = make(map[int]struct {
@@ -223,7 +253,15 @@ func (fake *FakeResourceConfigVersion) ReloadCallCount() int {
 	return len(fake.reloadArgsForCall)
 }
 
+func (fake *FakeResourceConfigVersion) ReloadCalls(stub func() (bool, error)) {
+	fake.reloadMutex.Lock()
+	defer fake.reloadMutex.Unlock()
+	fake.ReloadStub = stub
+}
+
 func (fake *FakeResourceConfigVersion) ReloadReturns(result1 bool, result2 error) {
+	fake.reloadMutex.Lock()
+	defer fake.reloadMutex.Unlock()
 	fake.ReloadStub = nil
 	fake.reloadReturns = struct {
 		result1 bool
@@ -232,6 +270,8 @@ func (fake *FakeResourceConfigVersion) ReloadReturns(result1 bool, result2 error
 }
 
 func (fake *FakeResourceConfigVersion) ReloadReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.reloadMutex.Lock()
+	defer fake.reloadMutex.Unlock()
 	fake.ReloadStub = nil
 	if fake.reloadReturnsOnCall == nil {
 		fake.reloadReturnsOnCall = make(map[int]struct {
@@ -268,7 +308,15 @@ func (fake *FakeResourceConfigVersion) ResourceConfigCallCount() int {
 	return len(fake.resourceConfigArgsForCall)
 }
 
+func (fake *FakeResourceConfigVersion) ResourceConfigCalls(stub func() db.ResourceConfig) {
+	fake.resourceConfigMutex.Lock()
+	defer fake.resourceConfigMutex.Unlock()
+	fake.ResourceConfigStub = stub
+}
+
 func (fake *FakeResourceConfigVersion) ResourceConfigReturns(result1 db.ResourceConfig) {
+	fake.resourceConfigMutex.Lock()
+	defer fake.resourceConfigMutex.Unlock()
 	fake.ResourceConfigStub = nil
 	fake.resourceConfigReturns = struct {
 		result1 db.ResourceConfig
@@ -276,6 +324,8 @@ func (fake *FakeResourceConfigVersion) ResourceConfigReturns(result1 db.Resource
 }
 
 func (fake *FakeResourceConfigVersion) ResourceConfigReturnsOnCall(i int, result1 db.ResourceConfig) {
+	fake.resourceConfigMutex.Lock()
+	defer fake.resourceConfigMutex.Unlock()
 	fake.ResourceConfigStub = nil
 	if fake.resourceConfigReturnsOnCall == nil {
 		fake.resourceConfigReturnsOnCall = make(map[int]struct {
@@ -310,7 +360,15 @@ func (fake *FakeResourceConfigVersion) VersionCallCount() int {
 	return len(fake.versionArgsForCall)
 }
 
+func (fake *FakeResourceConfigVersion) VersionCalls(stub func() db.Version) {
+	fake.versionMutex.Lock()
+	defer fake.versionMutex.Unlock()
+	fake.VersionStub = stub
+}
+
 func (fake *FakeResourceConfigVersion) VersionReturns(result1 db.Version) {
+	fake.versionMutex.Lock()
+	defer fake.versionMutex.Unlock()
 	fake.VersionStub = nil
 	fake.versionReturns = struct {
 		result1 db.Version
@@ -318,6 +376,8 @@ func (fake *FakeResourceConfigVersion) VersionReturns(result1 db.Version) {
 }
 
 func (fake *FakeResourceConfigVersion) VersionReturnsOnCall(i int, result1 db.Version) {
+	fake.versionMutex.Lock()
+	defer fake.versionMutex.Unlock()
 	fake.VersionStub = nil
 	if fake.versionReturnsOnCall == nil {
 		fake.versionReturnsOnCall = make(map[int]struct {

@@ -55,6 +55,12 @@ func (fake *FakeUpdater) UpdateMaxInFlightReachedCallCount() int {
 	return len(fake.updateMaxInFlightReachedArgsForCall)
 }
 
+func (fake *FakeUpdater) UpdateMaxInFlightReachedCalls(stub func(lager.Logger, db.Job, int) (bool, error)) {
+	fake.updateMaxInFlightReachedMutex.Lock()
+	defer fake.updateMaxInFlightReachedMutex.Unlock()
+	fake.UpdateMaxInFlightReachedStub = stub
+}
+
 func (fake *FakeUpdater) UpdateMaxInFlightReachedArgsForCall(i int) (lager.Logger, db.Job, int) {
 	fake.updateMaxInFlightReachedMutex.RLock()
 	defer fake.updateMaxInFlightReachedMutex.RUnlock()
@@ -63,6 +69,8 @@ func (fake *FakeUpdater) UpdateMaxInFlightReachedArgsForCall(i int) (lager.Logge
 }
 
 func (fake *FakeUpdater) UpdateMaxInFlightReachedReturns(result1 bool, result2 error) {
+	fake.updateMaxInFlightReachedMutex.Lock()
+	defer fake.updateMaxInFlightReachedMutex.Unlock()
 	fake.UpdateMaxInFlightReachedStub = nil
 	fake.updateMaxInFlightReachedReturns = struct {
 		result1 bool
@@ -71,6 +79,8 @@ func (fake *FakeUpdater) UpdateMaxInFlightReachedReturns(result1 bool, result2 e
 }
 
 func (fake *FakeUpdater) UpdateMaxInFlightReachedReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.updateMaxInFlightReachedMutex.Lock()
+	defer fake.updateMaxInFlightReachedMutex.Unlock()
 	fake.UpdateMaxInFlightReachedStub = nil
 	if fake.updateMaxInFlightReachedReturnsOnCall == nil {
 		fake.updateMaxInFlightReachedReturnsOnCall = make(map[int]struct {

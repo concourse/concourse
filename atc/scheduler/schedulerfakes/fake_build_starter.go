@@ -63,6 +63,12 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJobCallCount() int {
 	return len(fake.tryStartPendingBuildsForJobArgsForCall)
 }
 
+func (fake *FakeBuildStarter) TryStartPendingBuildsForJobCalls(stub func(lager.Logger, db.Job, db.Resources, atc.VersionedResourceTypes, []db.Build) error) {
+	fake.tryStartPendingBuildsForJobMutex.Lock()
+	defer fake.tryStartPendingBuildsForJobMutex.Unlock()
+	fake.TryStartPendingBuildsForJobStub = stub
+}
+
 func (fake *FakeBuildStarter) TryStartPendingBuildsForJobArgsForCall(i int) (lager.Logger, db.Job, db.Resources, atc.VersionedResourceTypes, []db.Build) {
 	fake.tryStartPendingBuildsForJobMutex.RLock()
 	defer fake.tryStartPendingBuildsForJobMutex.RUnlock()
@@ -71,6 +77,8 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJobArgsForCall(i int) (lag
 }
 
 func (fake *FakeBuildStarter) TryStartPendingBuildsForJobReturns(result1 error) {
+	fake.tryStartPendingBuildsForJobMutex.Lock()
+	defer fake.tryStartPendingBuildsForJobMutex.Unlock()
 	fake.TryStartPendingBuildsForJobStub = nil
 	fake.tryStartPendingBuildsForJobReturns = struct {
 		result1 error
@@ -78,6 +86,8 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJobReturns(result1 error) 
 }
 
 func (fake *FakeBuildStarter) TryStartPendingBuildsForJobReturnsOnCall(i int, result1 error) {
+	fake.tryStartPendingBuildsForJobMutex.Lock()
+	defer fake.tryStartPendingBuildsForJobMutex.Unlock()
 	fake.TryStartPendingBuildsForJobStub = nil
 	if fake.tryStartPendingBuildsForJobReturnsOnCall == nil {
 		fake.tryStartPendingBuildsForJobReturnsOnCall = make(map[int]struct {

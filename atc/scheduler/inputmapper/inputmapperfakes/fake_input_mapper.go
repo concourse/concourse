@@ -58,6 +58,12 @@ func (fake *FakeInputMapper) SaveNextInputMappingCallCount() int {
 	return len(fake.saveNextInputMappingArgsForCall)
 }
 
+func (fake *FakeInputMapper) SaveNextInputMappingCalls(stub func(lager.Logger, *algorithm.VersionsDB, db.Job, db.Resources) (algorithm.InputMapping, error)) {
+	fake.saveNextInputMappingMutex.Lock()
+	defer fake.saveNextInputMappingMutex.Unlock()
+	fake.SaveNextInputMappingStub = stub
+}
+
 func (fake *FakeInputMapper) SaveNextInputMappingArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, db.Job, db.Resources) {
 	fake.saveNextInputMappingMutex.RLock()
 	defer fake.saveNextInputMappingMutex.RUnlock()
@@ -66,6 +72,8 @@ func (fake *FakeInputMapper) SaveNextInputMappingArgsForCall(i int) (lager.Logge
 }
 
 func (fake *FakeInputMapper) SaveNextInputMappingReturns(result1 algorithm.InputMapping, result2 error) {
+	fake.saveNextInputMappingMutex.Lock()
+	defer fake.saveNextInputMappingMutex.Unlock()
 	fake.SaveNextInputMappingStub = nil
 	fake.saveNextInputMappingReturns = struct {
 		result1 algorithm.InputMapping
@@ -74,6 +82,8 @@ func (fake *FakeInputMapper) SaveNextInputMappingReturns(result1 algorithm.Input
 }
 
 func (fake *FakeInputMapper) SaveNextInputMappingReturnsOnCall(i int, result1 algorithm.InputMapping, result2 error) {
+	fake.saveNextInputMappingMutex.Lock()
+	defer fake.saveNextInputMappingMutex.Unlock()
 	fake.SaveNextInputMappingStub = nil
 	if fake.saveNextInputMappingReturnsOnCall == nil {
 		fake.saveNextInputMappingReturnsOnCall = make(map[int]struct {

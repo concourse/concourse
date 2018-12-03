@@ -53,6 +53,12 @@ func (fake *FakeVerifier) VerifyCallCount() int {
 	return len(fake.verifyArgsForCall)
 }
 
+func (fake *FakeVerifier) VerifyCalls(stub func(context.Context, *oauth2.Token) (*token.VerifiedClaims, error)) {
+	fake.verifyMutex.Lock()
+	defer fake.verifyMutex.Unlock()
+	fake.VerifyStub = stub
+}
+
 func (fake *FakeVerifier) VerifyArgsForCall(i int) (context.Context, *oauth2.Token) {
 	fake.verifyMutex.RLock()
 	defer fake.verifyMutex.RUnlock()
@@ -61,6 +67,8 @@ func (fake *FakeVerifier) VerifyArgsForCall(i int) (context.Context, *oauth2.Tok
 }
 
 func (fake *FakeVerifier) VerifyReturns(result1 *token.VerifiedClaims, result2 error) {
+	fake.verifyMutex.Lock()
+	defer fake.verifyMutex.Unlock()
 	fake.VerifyStub = nil
 	fake.verifyReturns = struct {
 		result1 *token.VerifiedClaims
@@ -69,6 +77,8 @@ func (fake *FakeVerifier) VerifyReturns(result1 *token.VerifiedClaims, result2 e
 }
 
 func (fake *FakeVerifier) VerifyReturnsOnCall(i int, result1 *token.VerifiedClaims, result2 error) {
+	fake.verifyMutex.Lock()
+	defer fake.verifyMutex.Unlock()
 	fake.VerifyStub = nil
 	if fake.verifyReturnsOnCall == nil {
 		fake.verifyReturnsOnCall = make(map[int]struct {

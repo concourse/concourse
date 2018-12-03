@@ -54,6 +54,12 @@ func (fake *FakeSchedulerFactory) BuildSchedulerCallCount() int {
 	return len(fake.buildSchedulerArgsForCall)
 }
 
+func (fake *FakeSchedulerFactory) BuildSchedulerCalls(stub func(db.Pipeline, string, creds.Variables) scheduler.BuildScheduler) {
+	fake.buildSchedulerMutex.Lock()
+	defer fake.buildSchedulerMutex.Unlock()
+	fake.BuildSchedulerStub = stub
+}
+
 func (fake *FakeSchedulerFactory) BuildSchedulerArgsForCall(i int) (db.Pipeline, string, creds.Variables) {
 	fake.buildSchedulerMutex.RLock()
 	defer fake.buildSchedulerMutex.RUnlock()
@@ -62,6 +68,8 @@ func (fake *FakeSchedulerFactory) BuildSchedulerArgsForCall(i int) (db.Pipeline,
 }
 
 func (fake *FakeSchedulerFactory) BuildSchedulerReturns(result1 scheduler.BuildScheduler) {
+	fake.buildSchedulerMutex.Lock()
+	defer fake.buildSchedulerMutex.Unlock()
 	fake.BuildSchedulerStub = nil
 	fake.buildSchedulerReturns = struct {
 		result1 scheduler.BuildScheduler
@@ -69,6 +77,8 @@ func (fake *FakeSchedulerFactory) BuildSchedulerReturns(result1 scheduler.BuildS
 }
 
 func (fake *FakeSchedulerFactory) BuildSchedulerReturnsOnCall(i int, result1 scheduler.BuildScheduler) {
+	fake.buildSchedulerMutex.Lock()
+	defer fake.buildSchedulerMutex.Unlock()
 	fake.BuildSchedulerStub = nil
 	if fake.buildSchedulerReturnsOnCall == nil {
 		fake.buildSchedulerReturnsOnCall = make(map[int]struct {

@@ -91,6 +91,12 @@ func (fake *FakeBuildScheduler) SaveNextInputMappingCallCount() int {
 	return len(fake.saveNextInputMappingArgsForCall)
 }
 
+func (fake *FakeBuildScheduler) SaveNextInputMappingCalls(stub func(lager.Logger, db.Job, db.Resources) error) {
+	fake.saveNextInputMappingMutex.Lock()
+	defer fake.saveNextInputMappingMutex.Unlock()
+	fake.SaveNextInputMappingStub = stub
+}
+
 func (fake *FakeBuildScheduler) SaveNextInputMappingArgsForCall(i int) (lager.Logger, db.Job, db.Resources) {
 	fake.saveNextInputMappingMutex.RLock()
 	defer fake.saveNextInputMappingMutex.RUnlock()
@@ -99,6 +105,8 @@ func (fake *FakeBuildScheduler) SaveNextInputMappingArgsForCall(i int) (lager.Lo
 }
 
 func (fake *FakeBuildScheduler) SaveNextInputMappingReturns(result1 error) {
+	fake.saveNextInputMappingMutex.Lock()
+	defer fake.saveNextInputMappingMutex.Unlock()
 	fake.SaveNextInputMappingStub = nil
 	fake.saveNextInputMappingReturns = struct {
 		result1 error
@@ -106,6 +114,8 @@ func (fake *FakeBuildScheduler) SaveNextInputMappingReturns(result1 error) {
 }
 
 func (fake *FakeBuildScheduler) SaveNextInputMappingReturnsOnCall(i int, result1 error) {
+	fake.saveNextInputMappingMutex.Lock()
+	defer fake.saveNextInputMappingMutex.Unlock()
 	fake.SaveNextInputMappingStub = nil
 	if fake.saveNextInputMappingReturnsOnCall == nil {
 		fake.saveNextInputMappingReturnsOnCall = make(map[int]struct {
@@ -150,6 +160,12 @@ func (fake *FakeBuildScheduler) ScheduleCallCount() int {
 	return len(fake.scheduleArgsForCall)
 }
 
+func (fake *FakeBuildScheduler) ScheduleCalls(stub func(lager.Logger, *algorithm.VersionsDB, []db.Job, db.Resources, atc.VersionedResourceTypes) (map[string]time.Duration, error)) {
+	fake.scheduleMutex.Lock()
+	defer fake.scheduleMutex.Unlock()
+	fake.ScheduleStub = stub
+}
+
 func (fake *FakeBuildScheduler) ScheduleArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, []db.Job, db.Resources, atc.VersionedResourceTypes) {
 	fake.scheduleMutex.RLock()
 	defer fake.scheduleMutex.RUnlock()
@@ -158,6 +174,8 @@ func (fake *FakeBuildScheduler) ScheduleArgsForCall(i int) (lager.Logger, *algor
 }
 
 func (fake *FakeBuildScheduler) ScheduleReturns(result1 map[string]time.Duration, result2 error) {
+	fake.scheduleMutex.Lock()
+	defer fake.scheduleMutex.Unlock()
 	fake.ScheduleStub = nil
 	fake.scheduleReturns = struct {
 		result1 map[string]time.Duration
@@ -166,6 +184,8 @@ func (fake *FakeBuildScheduler) ScheduleReturns(result1 map[string]time.Duration
 }
 
 func (fake *FakeBuildScheduler) ScheduleReturnsOnCall(i int, result1 map[string]time.Duration, result2 error) {
+	fake.scheduleMutex.Lock()
+	defer fake.scheduleMutex.Unlock()
 	fake.ScheduleStub = nil
 	if fake.scheduleReturnsOnCall == nil {
 		fake.scheduleReturnsOnCall = make(map[int]struct {
@@ -206,6 +226,12 @@ func (fake *FakeBuildScheduler) TriggerImmediatelyCallCount() int {
 	return len(fake.triggerImmediatelyArgsForCall)
 }
 
+func (fake *FakeBuildScheduler) TriggerImmediatelyCalls(stub func(lager.Logger, db.Job, db.Resources, atc.VersionedResourceTypes) (db.Build, scheduler.Waiter, error)) {
+	fake.triggerImmediatelyMutex.Lock()
+	defer fake.triggerImmediatelyMutex.Unlock()
+	fake.TriggerImmediatelyStub = stub
+}
+
 func (fake *FakeBuildScheduler) TriggerImmediatelyArgsForCall(i int) (lager.Logger, db.Job, db.Resources, atc.VersionedResourceTypes) {
 	fake.triggerImmediatelyMutex.RLock()
 	defer fake.triggerImmediatelyMutex.RUnlock()
@@ -214,6 +240,8 @@ func (fake *FakeBuildScheduler) TriggerImmediatelyArgsForCall(i int) (lager.Logg
 }
 
 func (fake *FakeBuildScheduler) TriggerImmediatelyReturns(result1 db.Build, result2 scheduler.Waiter, result3 error) {
+	fake.triggerImmediatelyMutex.Lock()
+	defer fake.triggerImmediatelyMutex.Unlock()
 	fake.TriggerImmediatelyStub = nil
 	fake.triggerImmediatelyReturns = struct {
 		result1 db.Build
@@ -223,6 +251,8 @@ func (fake *FakeBuildScheduler) TriggerImmediatelyReturns(result1 db.Build, resu
 }
 
 func (fake *FakeBuildScheduler) TriggerImmediatelyReturnsOnCall(i int, result1 db.Build, result2 scheduler.Waiter, result3 error) {
+	fake.triggerImmediatelyMutex.Lock()
+	defer fake.triggerImmediatelyMutex.Unlock()
 	fake.TriggerImmediatelyStub = nil
 	if fake.triggerImmediatelyReturnsOnCall == nil {
 		fake.triggerImmediatelyReturnsOnCall = make(map[int]struct {

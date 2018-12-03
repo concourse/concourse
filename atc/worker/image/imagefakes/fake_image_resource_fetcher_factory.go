@@ -63,6 +63,12 @@ func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherCallCount() 
 	return len(fake.newImageResourceFetcherArgsForCall)
 }
 
+func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherCalls(stub func(worker.Worker, resource.ResourceFactory, worker.ImageResource, atc.Version, int, creds.VersionedResourceTypes, worker.ImageFetchingDelegate) image.ImageResourceFetcher) {
+	fake.newImageResourceFetcherMutex.Lock()
+	defer fake.newImageResourceFetcherMutex.Unlock()
+	fake.NewImageResourceFetcherStub = stub
+}
+
 func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherArgsForCall(i int) (worker.Worker, resource.ResourceFactory, worker.ImageResource, atc.Version, int, creds.VersionedResourceTypes, worker.ImageFetchingDelegate) {
 	fake.newImageResourceFetcherMutex.RLock()
 	defer fake.newImageResourceFetcherMutex.RUnlock()
@@ -71,6 +77,8 @@ func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherArgsForCall(
 }
 
 func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherReturns(result1 image.ImageResourceFetcher) {
+	fake.newImageResourceFetcherMutex.Lock()
+	defer fake.newImageResourceFetcherMutex.Unlock()
 	fake.NewImageResourceFetcherStub = nil
 	fake.newImageResourceFetcherReturns = struct {
 		result1 image.ImageResourceFetcher
@@ -78,6 +86,8 @@ func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherReturns(resu
 }
 
 func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherReturnsOnCall(i int, result1 image.ImageResourceFetcher) {
+	fake.newImageResourceFetcherMutex.Lock()
+	defer fake.newImageResourceFetcherMutex.Unlock()
 	fake.NewImageResourceFetcherStub = nil
 	if fake.newImageResourceFetcherReturnsOnCall == nil {
 		fake.newImageResourceFetcherReturnsOnCall = make(map[int]struct {

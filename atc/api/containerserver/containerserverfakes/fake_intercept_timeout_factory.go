@@ -45,7 +45,15 @@ func (fake *FakeInterceptTimeoutFactory) NewInterceptTimeoutCallCount() int {
 	return len(fake.newInterceptTimeoutArgsForCall)
 }
 
+func (fake *FakeInterceptTimeoutFactory) NewInterceptTimeoutCalls(stub func() containerserver.InterceptTimeout) {
+	fake.newInterceptTimeoutMutex.Lock()
+	defer fake.newInterceptTimeoutMutex.Unlock()
+	fake.NewInterceptTimeoutStub = stub
+}
+
 func (fake *FakeInterceptTimeoutFactory) NewInterceptTimeoutReturns(result1 containerserver.InterceptTimeout) {
+	fake.newInterceptTimeoutMutex.Lock()
+	defer fake.newInterceptTimeoutMutex.Unlock()
 	fake.NewInterceptTimeoutStub = nil
 	fake.newInterceptTimeoutReturns = struct {
 		result1 containerserver.InterceptTimeout
@@ -53,6 +61,8 @@ func (fake *FakeInterceptTimeoutFactory) NewInterceptTimeoutReturns(result1 cont
 }
 
 func (fake *FakeInterceptTimeoutFactory) NewInterceptTimeoutReturnsOnCall(i int, result1 containerserver.InterceptTimeout) {
+	fake.newInterceptTimeoutMutex.Lock()
+	defer fake.newInterceptTimeoutMutex.Unlock()
 	fake.NewInterceptTimeoutStub = nil
 	if fake.newInterceptTimeoutReturnsOnCall == nil {
 		fake.newInterceptTimeoutReturnsOnCall = make(map[int]struct {

@@ -54,6 +54,12 @@ func (fake *FakeJobFactory) VisibleJobsCallCount() int {
 	return len(fake.visibleJobsArgsForCall)
 }
 
+func (fake *FakeJobFactory) VisibleJobsCalls(stub func([]string) (db.Dashboard, error)) {
+	fake.visibleJobsMutex.Lock()
+	defer fake.visibleJobsMutex.Unlock()
+	fake.VisibleJobsStub = stub
+}
+
 func (fake *FakeJobFactory) VisibleJobsArgsForCall(i int) []string {
 	fake.visibleJobsMutex.RLock()
 	defer fake.visibleJobsMutex.RUnlock()
@@ -62,6 +68,8 @@ func (fake *FakeJobFactory) VisibleJobsArgsForCall(i int) []string {
 }
 
 func (fake *FakeJobFactory) VisibleJobsReturns(result1 db.Dashboard, result2 error) {
+	fake.visibleJobsMutex.Lock()
+	defer fake.visibleJobsMutex.Unlock()
 	fake.VisibleJobsStub = nil
 	fake.visibleJobsReturns = struct {
 		result1 db.Dashboard
@@ -70,6 +78,8 @@ func (fake *FakeJobFactory) VisibleJobsReturns(result1 db.Dashboard, result2 err
 }
 
 func (fake *FakeJobFactory) VisibleJobsReturnsOnCall(i int, result1 db.Dashboard, result2 error) {
+	fake.visibleJobsMutex.Lock()
+	defer fake.visibleJobsMutex.Unlock()
 	fake.VisibleJobsStub = nil
 	if fake.visibleJobsReturnsOnCall == nil {
 		fake.visibleJobsReturnsOnCall = make(map[int]struct {

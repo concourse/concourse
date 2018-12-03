@@ -60,7 +60,15 @@ func (fake *FakeInterceptTimeout) ChannelCallCount() int {
 	return len(fake.channelArgsForCall)
 }
 
+func (fake *FakeInterceptTimeout) ChannelCalls(stub func() <-chan time.Time) {
+	fake.channelMutex.Lock()
+	defer fake.channelMutex.Unlock()
+	fake.ChannelStub = stub
+}
+
 func (fake *FakeInterceptTimeout) ChannelReturns(result1 <-chan time.Time) {
+	fake.channelMutex.Lock()
+	defer fake.channelMutex.Unlock()
 	fake.ChannelStub = nil
 	fake.channelReturns = struct {
 		result1 <-chan time.Time
@@ -68,6 +76,8 @@ func (fake *FakeInterceptTimeout) ChannelReturns(result1 <-chan time.Time) {
 }
 
 func (fake *FakeInterceptTimeout) ChannelReturnsOnCall(i int, result1 <-chan time.Time) {
+	fake.channelMutex.Lock()
+	defer fake.channelMutex.Unlock()
 	fake.ChannelStub = nil
 	if fake.channelReturnsOnCall == nil {
 		fake.channelReturnsOnCall = make(map[int]struct {
@@ -102,7 +112,15 @@ func (fake *FakeInterceptTimeout) ErrorCallCount() int {
 	return len(fake.errorArgsForCall)
 }
 
+func (fake *FakeInterceptTimeout) ErrorCalls(stub func() error) {
+	fake.errorMutex.Lock()
+	defer fake.errorMutex.Unlock()
+	fake.ErrorStub = stub
+}
+
 func (fake *FakeInterceptTimeout) ErrorReturns(result1 error) {
+	fake.errorMutex.Lock()
+	defer fake.errorMutex.Unlock()
 	fake.ErrorStub = nil
 	fake.errorReturns = struct {
 		result1 error
@@ -110,6 +128,8 @@ func (fake *FakeInterceptTimeout) ErrorReturns(result1 error) {
 }
 
 func (fake *FakeInterceptTimeout) ErrorReturnsOnCall(i int, result1 error) {
+	fake.errorMutex.Lock()
+	defer fake.errorMutex.Unlock()
 	fake.ErrorStub = nil
 	if fake.errorReturnsOnCall == nil {
 		fake.errorReturnsOnCall = make(map[int]struct {
@@ -136,6 +156,12 @@ func (fake *FakeInterceptTimeout) ResetCallCount() int {
 	fake.resetMutex.RLock()
 	defer fake.resetMutex.RUnlock()
 	return len(fake.resetArgsForCall)
+}
+
+func (fake *FakeInterceptTimeout) ResetCalls(stub func()) {
+	fake.resetMutex.Lock()
+	defer fake.resetMutex.Unlock()
+	fake.ResetStub = stub
 }
 
 func (fake *FakeInterceptTimeout) Invocations() map[string][][]interface{} {

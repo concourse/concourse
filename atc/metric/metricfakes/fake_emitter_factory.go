@@ -67,7 +67,15 @@ func (fake *FakeEmitterFactory) DescriptionCallCount() int {
 	return len(fake.descriptionArgsForCall)
 }
 
+func (fake *FakeEmitterFactory) DescriptionCalls(stub func() string) {
+	fake.descriptionMutex.Lock()
+	defer fake.descriptionMutex.Unlock()
+	fake.DescriptionStub = stub
+}
+
 func (fake *FakeEmitterFactory) DescriptionReturns(result1 string) {
+	fake.descriptionMutex.Lock()
+	defer fake.descriptionMutex.Unlock()
 	fake.DescriptionStub = nil
 	fake.descriptionReturns = struct {
 		result1 string
@@ -75,6 +83,8 @@ func (fake *FakeEmitterFactory) DescriptionReturns(result1 string) {
 }
 
 func (fake *FakeEmitterFactory) DescriptionReturnsOnCall(i int, result1 string) {
+	fake.descriptionMutex.Lock()
+	defer fake.descriptionMutex.Unlock()
 	fake.DescriptionStub = nil
 	if fake.descriptionReturnsOnCall == nil {
 		fake.descriptionReturnsOnCall = make(map[int]struct {
@@ -109,7 +119,15 @@ func (fake *FakeEmitterFactory) IsConfiguredCallCount() int {
 	return len(fake.isConfiguredArgsForCall)
 }
 
+func (fake *FakeEmitterFactory) IsConfiguredCalls(stub func() bool) {
+	fake.isConfiguredMutex.Lock()
+	defer fake.isConfiguredMutex.Unlock()
+	fake.IsConfiguredStub = stub
+}
+
 func (fake *FakeEmitterFactory) IsConfiguredReturns(result1 bool) {
+	fake.isConfiguredMutex.Lock()
+	defer fake.isConfiguredMutex.Unlock()
 	fake.IsConfiguredStub = nil
 	fake.isConfiguredReturns = struct {
 		result1 bool
@@ -117,6 +135,8 @@ func (fake *FakeEmitterFactory) IsConfiguredReturns(result1 bool) {
 }
 
 func (fake *FakeEmitterFactory) IsConfiguredReturnsOnCall(i int, result1 bool) {
+	fake.isConfiguredMutex.Lock()
+	defer fake.isConfiguredMutex.Unlock()
 	fake.IsConfiguredStub = nil
 	if fake.isConfiguredReturnsOnCall == nil {
 		fake.isConfiguredReturnsOnCall = make(map[int]struct {
@@ -151,7 +171,15 @@ func (fake *FakeEmitterFactory) NewEmitterCallCount() int {
 	return len(fake.newEmitterArgsForCall)
 }
 
+func (fake *FakeEmitterFactory) NewEmitterCalls(stub func() (metric.Emitter, error)) {
+	fake.newEmitterMutex.Lock()
+	defer fake.newEmitterMutex.Unlock()
+	fake.NewEmitterStub = stub
+}
+
 func (fake *FakeEmitterFactory) NewEmitterReturns(result1 metric.Emitter, result2 error) {
+	fake.newEmitterMutex.Lock()
+	defer fake.newEmitterMutex.Unlock()
 	fake.NewEmitterStub = nil
 	fake.newEmitterReturns = struct {
 		result1 metric.Emitter
@@ -160,6 +188,8 @@ func (fake *FakeEmitterFactory) NewEmitterReturns(result1 metric.Emitter, result
 }
 
 func (fake *FakeEmitterFactory) NewEmitterReturnsOnCall(i int, result1 metric.Emitter, result2 error) {
+	fake.newEmitterMutex.Lock()
+	defer fake.newEmitterMutex.Unlock()
 	fake.NewEmitterStub = nil
 	if fake.newEmitterReturnsOnCall == nil {
 		fake.newEmitterReturnsOnCall = make(map[int]struct {
