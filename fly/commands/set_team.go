@@ -114,5 +114,8 @@ func (command *SetTeamCommand) ErrorAuthNotConfigured(err error) {
 
 	case skycmd.ErrAuthNotConfiguredFromFlags:
 		fmt.Fprintln(ui.Stderr, "You have not provided a list of users and groups for the specified team.")
+
+	default:
+		fmt.Fprintln(ui.Stderr, "error:", err)
 	}
 }
