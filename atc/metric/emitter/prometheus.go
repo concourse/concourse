@@ -187,7 +187,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Name:      "duration_seconds",
 			Help:      "Response time in seconds",
 		},
-		[]string{"method", "route"},
+		[]string{"method", "route", "status"},
 	)
 	prometheus.MustRegister(httpRequestsDuration)
 
@@ -484,13 +484,19 @@ func (emitter *PrometheusEmitter) httpResponseTimeMetrics(logger lager.Logger, e
 		return
 	}
 
+	status, exists := event.Attributes["status"]
+	if !exists {
+		logger.Error("failed-to-find-status-in-event", fmt.Errorf("expected status to exist in event.Attributes"))
+		return
+	}
+
 	responseTime, ok := event.Value.(float64)
 	if !ok {
 		logger.Error("http-response-time-event-value-type-mismatch", fmt.Errorf("expected event.Value to be a float64"))
 		return
 	}
 
-	emitter.httpRequestsDuration.WithLabelValues(method, route).Observe(responseTime / 1000)
+	emitter.httpRequestsDuration.WithLabelValues(method, route, status).Observe(responseTime / 1000)
 }
 
 func (emitter *PrometheusEmitter) schedulingMetrics(logger lager.Logger, event metric.Event) {

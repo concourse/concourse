@@ -55,6 +55,7 @@ require (
 	github.com/emicklei/go-restful v2.8.0+incompatible // indirect
 	github.com/fatih/color v1.7.0
 	github.com/fatih/structs v1.0.0 // indirect
+	github.com/felixge/httpsnoop v1.0.0
 	github.com/felixge/tcpkeepalive v0.0.0-20160804073959-5bb0b2dea91e
 	github.com/go-ldap/ldap v2.5.1+incompatible // indirect
 	github.com/go-openapi/jsonpointer v0.0.0-20180825180259-52eb3d4b47c6 // indirect
