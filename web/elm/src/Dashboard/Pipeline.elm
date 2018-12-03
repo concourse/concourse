@@ -15,6 +15,7 @@ import Concourse.PipelineStatus as PipelineStatus
 import Concourse.BuildStatus as BuildStatus
 import Duration
 import Dashboard.Msgs exposing (Msg(..))
+import Dashboard.Styles as Styles
 import DashboardPreview
 import Date
 import Html exposing (..)
@@ -122,17 +123,17 @@ footerView pipelineWithJobs now hovered =
     in
         Html.div
             [ class "dashboard-pipeline-footer"
-            , style
-                [ ( "border-top", "2px solid " ++ Colors.dashboardBackground )
-                , ( "padding", "13.5px" )
-                , ( "display", "flex" )
-                , ( "justify-content", "space-between" )
-                ]
+            , style Styles.pipelineCardFooter
             ]
             [ Html.div
                 [ style [ ( "display", "flex" ) ]
                 ]
-                [ Html.div [ class "dashboard-pipeline-icon" ] []
+                [ Html.div
+                    [ style <|
+                        Styles.pipelineCardStatusIcon <|
+                            pipelineStatus pipelineWithJobs
+                    ]
+                    []
                 , transitionView now pipelineWithJobs
                 ]
             , Html.div
@@ -250,7 +251,10 @@ statusAgeText pipeline now =
 
 transitionView : Time -> PipelineWithJobs -> Html a
 transitionView time pipeline =
-    Html.div [ class "build-duration" ]
+    Html.div
+        [ class "build-duration"
+        , style <| Styles.pipelineCardTransitionAge <| pipelineStatus pipeline
+        ]
         [ Html.text <| statusAgeText pipeline time ]
 
 

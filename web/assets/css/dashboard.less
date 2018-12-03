@@ -80,15 +80,6 @@
     }
   }
 
-  .build-duration {
-    display: inline-block;
-    line-height: 40px * @scale;
-    font-size: (36px * @scale);
-    letter-spacing: (0.1em * @scale);
-    margin-left: (16px * @scale);
-    float: left;
-  }
-
   .dashboard-team-group {
     overflow: hidden;
   }
@@ -198,73 +189,6 @@
       flex-direction: column;
       background: @base01;
       position: relative;
-    }
-  }
-
-  .dashboard-paused {
-    .dashboard-pipeline-icon {
-      background-image: url('images/ic_pause_blue.svg');
-    }
-
-    .build-duration {
-      color: @blue-primary;
-    }
-  }
-
-  .dashboard-status-running {
-    .build-duration {
-      color: @grey-primary;
-    }
-  }
-
-  .dashboard-status-pending {
-    .dashboard-pipeline-icon {
-      min-width: 24px * @scale;
-      background-image: url('images/ic_pending_grey.svg');
-    }
-
-    .build-duration {
-      color: @grey-primary;
-    }
-  }
-
-  .dashboard-status-failed {
-    .dashboard-pipeline-icon {
-      background-image: url('images/ic_failing_red.svg');
-    }
-
-    .build-duration {
-      color: @red-primary;
-    }
-  }
-
-  .dashboard-status-aborted {
-    .dashboard-pipeline-icon {
-      background-image: url('images/ic_aborted_brown.svg');
-    }
-
-    .build-duration {
-      color: @brown-primary;
-    }
-  }
-
-  .dashboard-status-succeeded {
-    .dashboard-pipeline-icon {
-      background-image: url('images/ic_running_green.svg');
-    }
-
-    .build-duration {
-      color: @green-primary;
-    }
-  }
-
-  .dashboard-status-errored {
-    .dashboard-pipeline-icon {
-      background-image: url('images/ic_error_orange.svg');
-    }
-
-    .build-duration {
-      color: @amber-primary;
     }
   }
 

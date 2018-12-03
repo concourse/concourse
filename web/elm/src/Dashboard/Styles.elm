@@ -1,7 +1,35 @@
-module Dashboard.Styles exposing (..)
+module Dashboard.Styles
+    exposing
+        ( pipelineCardBanner
+        , pipelineCardFooter
+        , pipelineCardStatusIcon
+        , pipelineCardTransitionAge
+        )
 
 import Colors
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
+
+
+statusColor : PipelineStatus -> String
+statusColor status =
+    case status of
+        PipelineStatusPaused ->
+            Colors.paused
+
+        PipelineStatusSucceeded _ ->
+            Colors.success
+
+        PipelineStatusPending _ ->
+            Colors.pending
+
+        PipelineStatusFailed _ ->
+            Colors.failure
+
+        PipelineStatusErrored _ ->
+            Colors.error
+
+        PipelineStatusAborted _ ->
+            Colors.aborted
 
 
 pipelineCardBanner :
@@ -44,23 +72,62 @@ pipelineCardBanner { status, running, pipelineRunningKeyframes } =
                 striped
             else
                 solid
+
+        color =
+            statusColor status
+
+        isRunning =
+            Concourse.PipelineStatus.isRunning status
     in
-        [ ( "height", "7px" ) ]
-            ++ case status of
+        [ ( "height", "7px" ) ] ++ texture isRunning color
+
+
+pipelineCardFooter : List ( String, String )
+pipelineCardFooter =
+    [ ( "border-top", "2px solid " ++ Colors.dashboardBackground )
+    , ( "padding", "13.5px" )
+    , ( "display", "flex" )
+    , ( "justify-content", "space-between" )
+    ]
+
+
+pipelineCardStatusIcon : PipelineStatus -> List ( String, String )
+pipelineCardStatusIcon pipelineStatus =
+    let
+        image =
+            case pipelineStatus of
                 PipelineStatusPaused ->
-                    solid Colors.paused
+                    "ic_pause_blue.svg"
 
-                PipelineStatusSucceeded isRunning ->
-                    texture isRunning Colors.success
+                PipelineStatusPending _ ->
+                    "ic_pending_grey.svg"
 
-                PipelineStatusPending isRunning ->
-                    texture isRunning Colors.pending
+                PipelineStatusSucceeded _ ->
+                    "ic_running_green.svg"
 
-                PipelineStatusFailed isRunning ->
-                    texture isRunning Colors.failure
+                PipelineStatusFailed _ ->
+                    "ic_failing_red.svg"
 
-                PipelineStatusErrored isRunning ->
-                    texture isRunning Colors.error
+                PipelineStatusAborted _ ->
+                    "ic_aborted_brown.svg"
 
-                PipelineStatusAborted isRunning ->
-                    texture isRunning Colors.aborted
+                PipelineStatusErrored _ ->
+                    "ic_error_orange.svg"
+    in
+        [ ( "background-image", "url(public/images/" ++ image ++ ")" )
+        , ( "height", "20px" )
+        , ( "width", "20px" )
+        , ( "background-position", "50% 50%" )
+        , ( "background-repeat", "no-repeat" )
+        , ( "background-size", "contain" )
+        ]
+
+
+pipelineCardTransitionAge : PipelineStatus -> List ( String, String )
+pipelineCardTransitionAge status =
+    [ ( "color", statusColor status )
+    , ( "font-size", "18px" )
+    , ( "line-height", "20px" )
+    , ( "letter-spacing", "0.05em" )
+    , ( "margin-left", "8px" )
+    ]
