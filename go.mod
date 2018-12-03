@@ -64,6 +64,7 @@ require (
 	github.com/fatih/gomodifytags v0.0.0-20180914191908-141225bf62b6 // indirect
 	github.com/fatih/motion v0.0.0-20180408211639-218875ebe238 // indirect
 	github.com/fatih/structs v1.0.0 // indirect
+	github.com/felixge/httpsnoop v1.0.0
 	github.com/felixge/tcpkeepalive v0.0.0-20160804073959-5bb0b2dea91e
 	github.com/go-ldap/ldap v2.5.1+incompatible // indirect
 	github.com/go-openapi/jsonpointer v0.0.0-20180825180259-52eb3d4b47c6 // indirect
