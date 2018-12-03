@@ -29,10 +29,9 @@ var _ = Describe("Locks", func() {
 		team        db.Team
 		teamFactory db.TeamFactory
 
-		logger *lagertest.TestLogger
-		fakeLogFunc = func(logger lager.Logger, id lock.LockID){}
+		logger      *lagertest.TestLogger
+		fakeLogFunc = func(logger lager.Logger, id lock.LockID) {}
 	)
-
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -42,7 +41,7 @@ var _ = Describe("Locks", func() {
 
 		logger = lagertest.NewTestLogger("test")
 
-		lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc,fakeLogFunc)
+		lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
 
 		dbConn = postgresRunner.OpenConn()
 		teamFactory = db.NewTeamFactory(dbConn, lockFactory)

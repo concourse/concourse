@@ -22,7 +22,7 @@ func ShowErrors(errorHeader string, errorMessages []string) {
 	fmt.Fprintln(ui.Stderr, "")
 	PrintWarningHeader()
 
-	fmt.Fprintln(ui.Stderr, errorHeader + ":")
+	fmt.Fprintln(ui.Stderr, errorHeader+":")
 	for _, errorMessage := range errorMessages {
 		fmt.Fprintf(ui.Stderr, "  - %s\n", errorMessage)
 	}

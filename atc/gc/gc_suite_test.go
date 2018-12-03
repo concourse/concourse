@@ -47,7 +47,7 @@ var (
 
 	usedResource db.Resource
 	logger       *lagertest.TestLogger
-	fakeLogFunc = func(logger lager.Logger, id lock.LockID){}
+	fakeLogFunc  = func(logger lager.Logger, id lock.LockID) {}
 )
 
 var _ = BeforeSuite(func() {

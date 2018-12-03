@@ -474,11 +474,11 @@ func LogLockAcquired(logger lager.Logger, lockID lock.LockID) {
 		if lockType, ok := lockTypeNames[lockID[0]]; ok {
 			var objectID int
 			if len(lockID) > 1 {
-				objectID = lockID[1];
+				objectID = lockID[1]
 			}
 
 			LockAcquired{
-				LockType:lockType,
+				LockType: lockType,
 				ObjectID: objectID,
 			}.Emit(logger)
 		}
@@ -492,7 +492,7 @@ func LogLockReleased(logger lager.Logger, lockID lock.LockID) {
 		if lockType, ok := lockTypeNames[lockID[0]]; ok {
 			var objectID int
 			if len(lockID) > 1 {
-				objectID = lockID[1];
+				objectID = lockID[1]
 			}
 			LockReleased{
 				LockType: lockType,

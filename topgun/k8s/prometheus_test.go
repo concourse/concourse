@@ -69,7 +69,7 @@ var _ = Describe("Prometheus integration", func() {
 		}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "expected all pods to be running")
 
 		By("Creating the prometheus proxy")
-		proxySession, prometheusEndpoint = startPortForwarding(releaseName + "-server", "80")
+		proxySession, prometheusEndpoint = startPortForwarding(releaseName+"-server", "80")
 	})
 
 	AfterEach(func() {
@@ -92,4 +92,3 @@ var _ = Describe("Prometheus integration", func() {
 		}, 2*time.Minute, 10*time.Second).Should(BeTrue(), "be able to retrieve metrics")
 	})
 })
-

@@ -97,8 +97,8 @@ func NewTestLockFactory(db LockDB) LockFactory {
 			mutex: &sync.Mutex{},
 		},
 		acquireMutex: &sync.Mutex{},
-		acquireFunc: func(logger lager.Logger, id LockID){},
-		releaseFunc: func(logger lager.Logger, id LockID){},
+		acquireFunc:  func(logger lager.Logger, id LockID) {},
+		releaseFunc:  func(logger lager.Logger, id LockID) {},
 	}
 }
 

@@ -22,5 +22,5 @@ var _ = Describe("ATC Config", func() {
 			})
 		})
 	})
-	
+
 })

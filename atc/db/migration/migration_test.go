@@ -31,7 +31,7 @@ var _ = Describe("Migration", func() {
 		lockFactory lock.LockFactory
 		strategy    encryption.Strategy
 		bindata     *migrationfakes.FakeBindata
-		fakeLogFunc = func(logger lager.Logger, id lock.LockID){}
+		fakeLogFunc = func(logger lager.Logger, id lock.LockID) {}
 	)
 
 	BeforeEach(func() {

@@ -21,7 +21,7 @@ var _ = Describe("OpenHelper", func() {
 		strategy    encryption.Strategy
 		bindata     *migrationfakes.FakeBindata
 		openHelper  *migration.OpenHelper
-		fakeLogFunc = func(logger lager.Logger, id lock.LockID){}
+		fakeLogFunc = func(logger lager.Logger, id lock.LockID) {}
 	)
 
 	JustBeforeEach(func() {
