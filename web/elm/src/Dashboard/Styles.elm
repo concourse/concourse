@@ -1,8 +1,11 @@
 module Dashboard.Styles
     exposing
-        ( pipelineCardBanner
+        ( infoBar
+        , legend
+        , legendItem
+        , pipelineCardBanner
         , pipelineCardFooter
-        , pipelineCardStatusIcon
+        , pipelineStatusIcon
         , pipelineCardTransitionAge
         )
 
@@ -91,8 +94,8 @@ pipelineCardFooter =
     ]
 
 
-pipelineCardStatusIcon : PipelineStatus -> List ( String, String )
-pipelineCardStatusIcon pipelineStatus =
+pipelineStatusIcon : PipelineStatus -> List ( String, String )
+pipelineStatusIcon pipelineStatus =
     let
         image =
             case pipelineStatus of
@@ -130,4 +133,32 @@ pipelineCardTransitionAge status =
     , ( "line-height", "20px" )
     , ( "letter-spacing", "0.05em" )
     , ( "margin-left", "8px" )
+    ]
+
+
+infoBar : List ( String, String )
+infoBar =
+    [ ( "height", "50px" )
+    , ( "position", "fixed" )
+    , ( "bottom", "0" )
+    , ( "background-color", Colors.frame )
+    , ( "width", "100%" )
+    , ( "display", "flex" )
+    , ( "justify-content", "space-between" )
+    , ( "align-items", "center" )
+    ]
+
+
+legend : List ( String, String )
+legend =
+    [ ( "display", "flex" )
+    ]
+
+
+legendItem : List ( String, String )
+legendItem =
+    [ ( "display", "flex" )
+    , ( "text-transform", "uppercase" )
+    , ( "align-items", "center" )
+    , ( "color", Colors.bottomBarText )
     ]

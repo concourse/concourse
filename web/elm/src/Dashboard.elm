@@ -14,9 +14,21 @@ import Dashboard.GroupWithTag as GroupWithTag
 import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.SubState as SubState
+import Dashboard.Styles as Styles
 import Dom
 import Html.Styled as Html exposing (Html)
-import Html.Styled.Attributes exposing (attribute, css, class, classList, draggable, href, id, src)
+import Html.Styled.Attributes
+    exposing
+        ( attribute
+        , css
+        , class
+        , classList
+        , draggable
+        , href
+        , id
+        , src
+        , style
+        )
 import Http
 import Keyboard
 import List.Extra
@@ -28,6 +40,7 @@ import Monocle.Lens
 import MonocleHelpers exposing (..)
 import NewTopBar
 import NoPipeline
+import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
 import Routes
@@ -76,6 +89,7 @@ type alias Model =
     , highDensity : Bool
     , hoveredPipeline : Maybe Concourse.Pipeline
     , pipelineRunningKeyframes : String
+    , groups : List Group.Group
     }
 
 
@@ -102,6 +116,7 @@ init ports flags =
           , highDensity = flags.highDensity
           , hoveredPipeline = Nothing
           , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+          , groups = []
           }
         , Cmd.batch
             [ fetchData
@@ -182,15 +197,19 @@ update msg model =
                         model |> stateLens.set (Err (Turbulence model.turbulencePath))
 
                     RemoteData.Success ( now, ( apiData, user ) ) ->
-                        model
-                            |> Monocle.Lens.modify stateLens
-                                (Result.map
-                                    (.set SubState.teamDataLens (SubState.teamData apiData user)
-                                        >> .set (SubState.detailsOptional =|> Details.nowLens) now
-                                        >> Ok
-                                    )
-                                    >> Result.withDefault (substate model.csrfToken model.highDensity ( now, ( apiData, user ) ))
-                                )
+                        let
+                            newModel =
+                                model
+                                    |> Monocle.Lens.modify stateLens
+                                        (Result.map
+                                            (.set SubState.teamDataLens (SubState.teamData apiData user)
+                                                >> .set (SubState.detailsOptional =|> Details.nowLens) now
+                                                >> Ok
+                                            )
+                                            >> Result.withDefault (substate model.csrfToken model.highDensity ( now, ( apiData, user ) ))
+                                        )
+                        in
+                            { newModel | groups = Group.groups apiData }
                 )
                     |> noop
 
@@ -392,12 +411,13 @@ dashboardView model =
                     [ Html.div
                         [ class "dashboard-content" ]
                         (pipelinesView
-                            { substate = substate
+                            { groups = model.groups
+                            , substate = substate
                             , query = (NewTopBar.query model.topBar)
                             , hoveredPipeline = model.hoveredPipeline
                             , pipelineRunningKeyframes = model.pipelineRunningKeyframes
                             }
-                            ++ [ footerView substate ]
+                            ++ footerView substate
                         )
                     ]
     in
@@ -460,62 +480,95 @@ toggleView highDensity =
             [ Html.div [ class <| "dashboard-pipeline-icon " ++ hdClass ] [], Html.text "high-density" ]
 
 
-footerView : SubState.SubState -> Html Msg
+footerView : SubState.SubState -> List (Html Msg)
 footerView substate =
     let
         showHelp =
             substate.details |> Maybe.map .showHelp |> Maybe.withDefault False
     in
-        Html.div [] <|
-            [ Html.div
-                [ if substate.hideFooter || showHelp then
-                    class "dashboard-footer hidden"
-                  else
-                    class "dashboard-footer"
+        if showHelp then
+            [ keyboardHelpView ]
+        else if not substate.hideFooter then
+            [ infoView substate ]
+        else
+            []
+
+
+legendItem : PipelineStatus -> Html Msg
+legendItem status =
+    Html.div [ style Styles.legendItem ]
+        [ Html.div
+            [ style <| Styles.pipelineStatusIcon status ]
+            []
+        , Html.text <| PipelineStatus.show status
+        ]
+
+
+infoView : SubState.SubState -> Html Msg
+infoView substate =
+    Html.div
+        [ id "dashboard-info"
+        , style Styles.infoBar
+        ]
+        [ Html.div
+            [ id "legend"
+            , style Styles.legend
+            ]
+          <|
+            List.map legendItem
+                [ PipelineStatusPending False
+                , PipelineStatusPaused
                 ]
-                [ Html.div [ class "dashboard-legend" ]
-                    [ Html.div [ class "dashboard-status-pending" ]
-                        [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "pending" ]
-                    , Html.div [ class "dashboard-paused" ]
-                        [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "paused" ]
-                    , Html.div [ class "dashboard-running" ]
-                        [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "running" ]
-                    , Html.div [ class "dashboard-status-failed" ]
-                        [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "failing" ]
-                    , Html.div [ class "dashboard-status-errored" ]
-                        [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "errored" ]
-                    , Html.div [ class "dashboard-status-aborted" ]
-                        [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "aborted" ]
-                    , Html.div [ class "dashboard-status-succeeded" ]
-                        [ Html.div [ class "dashboard-pipeline-icon" ] [], Html.text "succeeded" ]
-                    , Html.div [ class "dashboard-status-separator" ] [ Html.text "|" ]
-                    , Html.div [ class "dashboard-high-density" ] [ substate.details |> Maybe.Extra.isJust |> not |> toggleView ]
-                    ]
-                , Html.div [ class "concourse-info" ]
-                    [ Html.div [ class "concourse-version" ]
-                        [ Html.text "version: v", substate.teamData |> SubState.apiData |> .version |> Html.text ]
-                    , Html.div [ class "concourse-cli" ]
-                        [ Html.text "cli: "
-                        , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "darwin"), attribute "aria-label" "Download OS X CLI" ]
-                            [ Html.i [ class "fa fa-apple" ] [] ]
-                        , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "windows"), attribute "aria-label" "Download Windows CLI" ]
-                            [ Html.i [ class "fa fa-windows" ] [] ]
-                        , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "linux"), attribute "aria-label" "Download Linux CLI" ]
-                            [ Html.i [ class "fa fa-linux" ] [] ]
+                ++ [ Html.div [ style Styles.legendItem ]
+                        [ Html.div
+                            [ style
+                                [ ( "background-image", "url(public/images/ic_running_legend.svg)" )
+                                , ( "height", "20px" )
+                                , ( "width", "20px" )
+                                , ( "background-repeat", "no-repeat" )
+                                , ( "background-position", "50% 50%" )
+                                ]
+                            ]
+                            []
+                        , Html.text "running"
                         ]
+                   ]
+                ++ List.map legendItem
+                    [ PipelineStatusFailed PipelineStatus.Running
+                    , PipelineStatusErrored PipelineStatus.Running
+                    , PipelineStatusAborted PipelineStatus.Running
+                    , PipelineStatusSucceeded PipelineStatus.Running
                     ]
-                ]
-            , Html.div
-                [ classList
-                    [ ( "keyboard-help", True )
-                    , ( "hidden", not showHelp )
-                    ]
-                ]
-                [ Html.div [ class "help-title" ] [ Html.text "keyboard shortcuts" ]
-                , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "/" ] ], Html.text "search" ]
-                , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "?" ] ], Html.text "hide/show help" ]
+                ++ [ Html.div [ class "dashboard-status-separator" ] [ Html.text "|" ]
+                   , Html.div [ class "dashboard-high-density" ] [ substate.details |> Maybe.Extra.isJust |> not |> toggleView ]
+                   ]
+        , Html.div [ id "concourse-info" ]
+            [ Html.div [ class "concourse-version" ]
+                [ Html.text "version: v", substate.teamData |> SubState.apiData |> .version |> Html.text ]
+            , Html.div [ class "concourse-cli" ]
+                [ Html.text "cli: "
+                , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "darwin"), attribute "aria-label" "Download OS X CLI" ]
+                    [ Html.i [ class "fa fa-apple" ] [] ]
+                , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "windows"), attribute "aria-label" "Download Windows CLI" ]
+                    [ Html.i [ class "fa fa-windows" ] [] ]
+                , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "linux"), attribute "aria-label" "Download Linux CLI" ]
+                    [ Html.i [ class "fa fa-linux" ] [] ]
                 ]
             ]
+        ]
+
+
+keyboardHelpView : Html Msg
+keyboardHelpView =
+    Html.div
+        [ classList
+            [ ( "keyboard-help", True )
+            ]
+        ]
+        [ Html.div [ class "help-title" ] [ Html.text "keyboard shortcuts" ]
+        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "/" ] ], Html.text "search" ]
+        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "?" ] ], Html.text "hide/show help" ]
+        ]
 
 
 turbulenceView : String -> Html Msg
@@ -531,16 +584,17 @@ turbulenceView path =
 
 
 pipelinesView :
-    { substate : SubState.SubState
+    { groups : List Group.Group
+    , substate : SubState.SubState
     , hoveredPipeline : Maybe Concourse.Pipeline
     , pipelineRunningKeyframes : String
     , query : String
     }
     -> List (Html Msg)
-pipelinesView { substate, hoveredPipeline, pipelineRunningKeyframes, query } =
+pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, query } =
     let
         filteredGroups =
-            substate.teamData |> SubState.apiData |> Group.groups |> filter query
+            groups |> filter query
 
         groupsToDisplay =
             if List.all (String.startsWith "team:") (filterTerms query) then
@@ -675,7 +729,7 @@ filterPipelinesByTerm term ({ pipelines } as group) =
                 term
 
         filterByStatus =
-            fuzzySearch (Pipeline.pipelineStatus >> Concourse.PipelineStatus.show) statusSearchTerm pipelines
+            fuzzySearch (.status >> Concourse.PipelineStatus.show) statusSearchTerm pipelines
     in
         { group
             | pipelines =

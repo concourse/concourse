@@ -14,8 +14,13 @@ import RemoteData
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (attribute, class, containing, style, tag, text, Selector)
+import Test.Html.Selector exposing (attribute, class, containing, id, style, tag, text, Selector)
 import Time exposing (Time)
+
+
+almostBlack : String
+almostBlack =
+    "#1e1d1d"
 
 
 middleGrey : String
@@ -26,6 +31,11 @@ middleGrey =
 lightGrey : String
 lightGrey =
     "#9b9b9b"
+
+
+menuGrey : String
+menuGrey =
+    "#868585"
 
 
 green : String
@@ -599,7 +609,7 @@ all =
                                                     , pipelines =
                                                         [ onePipeline "team" ]
                                                     , jobs =
-                                                        [ jobWithNameStartedAt
+                                                        [ jobWithNameTransitionedAt
                                                             "job"
                                                             (Just 0)
                                                             Concourse.BuildStatusSucceeded
@@ -871,6 +881,179 @@ all =
                             ]
                         ]
                 ]
+        , describe "bottom bar"
+            [ test "appears by default" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> Dashboard.update Msgs.ShowFooter
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.has [ id "dashboard-info" ]
+            , test "is 50px tall, almost black, fixed to the bottom of the viewport and covers entire width" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> Dashboard.update Msgs.ShowFooter
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find [ id "dashboard-info" ]
+                        |> Query.has
+                            [ style
+                                [ ( "height", "50px" )
+                                , ( "position", "fixed" )
+                                , ( "bottom", "0" )
+                                , ( "background-color", almostBlack )
+                                , ( "width", "100%" )
+                                ]
+                            ]
+            , test "lays out contents horizontally, centering vertically, maximizing space between children" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> Dashboard.update Msgs.ShowFooter
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find [ id "dashboard-info" ]
+                        |> Query.has
+                            [ style
+                                [ ( "display", "flex" )
+                                , ( "justify-content", "space-between" )
+                                , ( "align-items", "center" )
+                                ]
+                            ]
+            , test "two children are legend and concourse-info" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> Dashboard.update Msgs.ShowFooter
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find [ id "dashboard-info" ]
+                        |> Query.children []
+                        |> Expect.all
+                            [ Query.count (Expect.equal 2)
+                            , Query.index 0 >> Query.has [ id "legend" ]
+                            , Query.index 1 >> Query.has [ id "concourse-info" ]
+                            ]
+            , describe "legend"
+                [ test "lays out contents horizontally" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> Dashboard.update Msgs.ShowFooter
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ id "legend" ]
+                            |> Query.has
+                                [ style
+                                    [ ( "display", "flex" )
+                                    ]
+                                ]
+                , test "shows pipeline statuses" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> Dashboard.update Msgs.ShowFooter
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ id "legend" ]
+                            |> Query.children []
+                            |> Expect.all
+                                [ Query.count (Expect.equal 9)
+                                , Query.index 0
+                                    >> Query.children []
+                                    >> Expect.all
+                                        [ Query.count (Expect.equal 2)
+                                        , Query.index 0
+                                            >> Query.has
+                                                (iconSelector
+                                                    { size = "20px"
+                                                    , image = "ic_pending_grey.svg"
+                                                    }
+                                                )
+                                        , Query.index 1 >> Query.has [ text "pending" ]
+                                        ]
+                                , Query.index 1
+                                    >> Query.children []
+                                    >> Expect.all
+                                        [ Query.count (Expect.equal 2)
+                                        , Query.index 0
+                                            >> Query.has
+                                                (iconSelector
+                                                    { size = "20px"
+                                                    , image = "ic_pause_blue.svg"
+                                                    }
+                                                )
+                                        , Query.index 1 >> Query.has [ text "paused" ]
+                                        ]
+                                ]
+                , test "legend items lay out contents horizontally, centered vertically in grey caps" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> Dashboard.update Msgs.ShowFooter
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ id "legend" ]
+                            |> Query.children []
+                            |> Query.index 0
+                            |> Query.has
+                                [ style
+                                    [ ( "text-transform", "uppercase" )
+                                    , ( "display", "flex" )
+                                    , ( "align-items", "center" )
+                                    , ( "color", menuGrey )
+                                    ]
+                                ]
+                , test "third legend item shows running indicator" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> queryView
+                            |> Query.find [ id "legend" ]
+                            |> Query.children []
+                            |> Query.index 2
+                            |> Expect.all
+                                [ Query.has
+                                    [ style
+                                        [ ( "text-transform", "uppercase" )
+                                        , ( "display", "flex" )
+                                        ]
+                                    ]
+                                , Query.children []
+                                    >> Expect.all
+                                        [ Query.count (Expect.equal 2)
+                                        , Query.index 0
+                                            >> Query.has
+                                                (iconSelector
+                                                    { size = "20px"
+                                                    , image = "ic_running_legend.svg"
+                                                    }
+                                                )
+                                        , Query.index 1 >> Query.has [ text "running" ]
+                                        ]
+                                ]
+                ]
+            , test "hides after 6 seconds" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> Dashboard.update (Msgs.ClockTick 1000)
+                        |> Tuple.first
+                        |> Dashboard.update (Msgs.ClockTick 1000)
+                        |> Tuple.first
+                        |> Dashboard.update (Msgs.ClockTick 1000)
+                        |> Tuple.first
+                        |> Dashboard.update (Msgs.ClockTick 1000)
+                        |> Tuple.first
+                        |> Dashboard.update (Msgs.ClockTick 1000)
+                        |> Tuple.first
+                        |> Dashboard.update (Msgs.ClockTick 1000)
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.hasNot [ id "dashboard-info" ]
+            ]
         ]
 
 
@@ -1156,16 +1339,16 @@ running job =
 
 otherJob : Concourse.BuildStatus -> Concourse.Job
 otherJob =
-    jobWithNameStartedAt "other-job" Nothing
+    jobWithNameTransitionedAt "other-job" <| Just 0
 
 
 job : Concourse.BuildStatus -> Concourse.Job
 job =
-    jobWithNameStartedAt "job" Nothing
+    jobWithNameTransitionedAt "job" <| Just 0
 
 
-jobWithNameStartedAt : String -> Maybe Time -> Concourse.BuildStatus -> Concourse.Job
-jobWithNameStartedAt jobName startedAt status =
+jobWithNameTransitionedAt : String -> Maybe Time -> Concourse.BuildStatus -> Concourse.Job
+jobWithNameTransitionedAt jobName transitionedAt status =
     { pipeline =
         { teamName = "team"
         , pipelineName = "pipeline"
@@ -1192,7 +1375,7 @@ jobWithNameStartedAt jobName startedAt status =
             , reapTime = Nothing
             }
     , transitionBuild =
-        startedAt
+        transitionedAt
             |> Maybe.map
                 (\t ->
                     { id = 1
@@ -1205,8 +1388,8 @@ jobWithNameStartedAt jobName startedAt status =
                             }
                     , status = status
                     , duration =
-                        { startedAt = Just <| Date.fromTime t
-                        , finishedAt = Nothing
+                        { startedAt = Nothing
+                        , finishedAt = Just <| Date.fromTime t
                         }
                     , reapTime = Nothing
                     }

@@ -1,13 +1,20 @@
 module Concourse.PipelineStatus exposing (..)
 
+import Time exposing (Time)
+
+
+type StatusDetails
+    = Running
+    | Since Time
+
 
 type PipelineStatus
     = PipelineStatusPaused
-    | PipelineStatusAborted Bool
-    | PipelineStatusErrored Bool
-    | PipelineStatusFailed Bool
+    | PipelineStatusAborted StatusDetails
+    | PipelineStatusErrored StatusDetails
+    | PipelineStatusFailed StatusDetails
     | PipelineStatusPending Bool
-    | PipelineStatusSucceeded Bool
+    | PipelineStatusSucceeded StatusDetails
 
 
 show : PipelineStatus -> String
@@ -38,17 +45,17 @@ isRunning status =
         PipelineStatusPaused ->
             False
 
-        PipelineStatusAborted isRunning ->
-            isRunning
+        PipelineStatusAborted details ->
+            details == Running
 
-        PipelineStatusErrored isRunning ->
-            isRunning
+        PipelineStatusErrored details ->
+            details == Running
 
-        PipelineStatusFailed isRunning ->
-            isRunning
+        PipelineStatusFailed details ->
+            details == Running
 
         PipelineStatusPending isRunning ->
             isRunning
 
-        PipelineStatusSucceeded isRunning ->
-            isRunning
+        PipelineStatusSucceeded details ->
+            details == Running

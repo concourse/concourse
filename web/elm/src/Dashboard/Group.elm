@@ -1,5 +1,6 @@
 port module Dashboard.Group exposing (..)
 
+import Concourse.BuildStatus
 import Concourse
 import Concourse.Info
 import Concourse.Job
@@ -11,6 +12,7 @@ import Dashboard.APIData exposing (APIData)
 import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.Styles as Styles
+import Date exposing (Date)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onMouseEnter)
@@ -165,24 +167,124 @@ allPipelines data =
     data.pipelines
         |> List.map
             (\p ->
-                { pipeline = p
-                , jobs =
-                    data.jobs
-                        |> List.filter
-                            (\j ->
-                                (j.teamName == p.teamName)
-                                    && (j.pipelineName == p.name)
-                            )
-                , resourceError =
-                    data.resources
-                        |> List.any
-                            (\r ->
-                                (r.teamName == p.teamName)
-                                    && (r.pipelineName == p.name)
-                                    && r.failingToCheck
-                            )
-                }
+                let
+                    jobs =
+                        data.jobs
+                            |> List.filter
+                                (\j ->
+                                    (j.teamName == p.teamName)
+                                        && (j.pipelineName == p.name)
+                                )
+                in
+                    { pipeline = p
+                    , jobs = jobs
+                    , resourceError =
+                        data.resources
+                            |> List.any
+                                (\r ->
+                                    (r.teamName == p.teamName)
+                                        && (r.pipelineName == p.name)
+                                        && r.failingToCheck
+                                )
+                    , status = pipelineStatus p jobs
+                    }
             )
+
+
+pipelineStatus : Concourse.Pipeline -> List Concourse.Job -> PipelineStatus.PipelineStatus
+pipelineStatus pipeline jobs =
+    if pipeline.paused then
+        PipelineStatus.PipelineStatusPaused
+    else
+        let
+            isRunning =
+                List.any (\job -> job.nextBuild /= Nothing) jobs
+
+            mostImportantJobStatus =
+                jobs
+                    |> List.map jobStatus
+                    |> List.sortWith Concourse.BuildStatus.ordering
+                    |> List.head
+
+            firstNonSuccess =
+                jobs
+                    |> List.filter (jobStatus >> (/=) Concourse.BuildStatusSucceeded)
+                    |> List.filterMap transition
+                    |> List.sort
+                    |> List.head
+
+            lastTransition =
+                jobs
+                    |> List.filterMap transition
+                    |> List.sort
+                    |> List.reverse
+                    |> List.head
+
+            transitionTime =
+                case firstNonSuccess of
+                    Just t ->
+                        Just t
+
+                    Nothing ->
+                        lastTransition
+        in
+            case ( mostImportantJobStatus, transitionTime ) of
+                ( _, Nothing ) ->
+                    PipelineStatus.PipelineStatusPending isRunning
+
+                ( Nothing, _ ) ->
+                    PipelineStatus.PipelineStatusPending isRunning
+
+                ( Just Concourse.BuildStatusPending, _ ) ->
+                    PipelineStatus.PipelineStatusPending isRunning
+
+                ( Just Concourse.BuildStatusStarted, _ ) ->
+                    PipelineStatus.PipelineStatusPending isRunning
+
+                ( Just Concourse.BuildStatusSucceeded, Just since ) ->
+                    if isRunning then
+                        PipelineStatus.PipelineStatusSucceeded PipelineStatus.Running
+                    else
+                        PipelineStatus.PipelineStatusSucceeded (PipelineStatus.Since since)
+
+                ( Just Concourse.BuildStatusFailed, Just since ) ->
+                    if isRunning then
+                        PipelineStatus.PipelineStatusFailed PipelineStatus.Running
+                    else
+                        PipelineStatus.PipelineStatusFailed (PipelineStatus.Since since)
+
+                ( Just Concourse.BuildStatusErrored, Just since ) ->
+                    if isRunning then
+                        PipelineStatus.PipelineStatusErrored PipelineStatus.Running
+                    else
+                        PipelineStatus.PipelineStatusErrored (PipelineStatus.Since since)
+
+                ( Just Concourse.BuildStatusAborted, Just since ) ->
+                    if isRunning then
+                        PipelineStatus.PipelineStatusAborted PipelineStatus.Running
+                    else
+                        PipelineStatus.PipelineStatusAborted (PipelineStatus.Since since)
+
+
+jobStatus : Concourse.Job -> Concourse.BuildStatus
+jobStatus job =
+    case job.finishedBuild of
+        Just build ->
+            build.status
+
+        Nothing ->
+            Concourse.BuildStatusPending
+
+
+transition : Concourse.Job -> Maybe Time
+transition job =
+    case job.transitionBuild of
+        Just build ->
+            build.duration.finishedAt
+                |> Maybe.map Date.toTime
+
+        Nothing ->
+            Nothing
 
 
 shiftPipelines : Int -> Int -> Group -> Group
@@ -313,9 +415,6 @@ view { header, dragState, dropState, now, hoveredPipeline, group, pipelineRunnin
                     (List.indexedMap
                         (\i pipeline ->
                             let
-                                pipelineStatus =
-                                    Pipeline.pipelineStatus pipeline
-
                                 running =
                                     not <|
                                         List.isEmpty <|
@@ -329,7 +428,7 @@ view { header, dragState, dropState, now, hoveredPipeline, group, pipelineRunnin
                                             , ( "dashboard-paused", pipeline.pipeline.paused )
                                             , ( "dashboard-running", running )
                                             , ( "dashboard-status-"
-                                                    ++ PipelineStatus.show pipelineStatus
+                                                    ++ PipelineStatus.show pipeline.status
                                               , not pipeline.pipeline.paused
                                               )
                                             , ( "dragging"
@@ -349,7 +448,7 @@ view { header, dragState, dropState, now, hoveredPipeline, group, pipelineRunnin
                                             [ class "dashboard-pipeline-banner"
                                             , style <|
                                                 Styles.pipelineCardBanner
-                                                    { status = pipelineStatus
+                                                    { status = pipeline.status
                                                     , running = running
                                                     , pipelineRunningKeyframes = pipelineRunningKeyframes
                                                     }

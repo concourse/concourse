@@ -1,6 +1,16 @@
 module Colors exposing (..)
 
 
+frame : String
+frame =
+    "#1e1d1d"
+
+
+bottomBarText : String
+bottomBarText =
+    "#868585"
+
+
 pinned : String
 pinned =
     "#5C3BD1"

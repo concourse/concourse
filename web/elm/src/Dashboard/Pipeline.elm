@@ -1,45 +1,30 @@
 module Dashboard.Pipeline
     exposing
         ( PipelineWithJobs
-        , SummaryPipeline
-        , PreviewPipeline
         , pipelineNotSetView
         , pipelineView
         , hdPipelineView
-        , pipelineStatus
         )
 
-import Colors
 import Concourse
 import Concourse.PipelineStatus as PipelineStatus
-import Concourse.BuildStatus as BuildStatus
 import Duration
 import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
 import DashboardPreview
-import Date
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onMouseEnter, onMouseLeave)
-import List.Extra
-import Maybe.Extra
 import Routes
 import StrictEvents exposing (onLeftClick)
 import Time exposing (Time)
-
-
-type SummaryPipeline
-    = SummaryPipeline PipelineWithJobs
-
-
-type PreviewPipeline
-    = PreviewPipeline PipelineWithJobs
 
 
 type alias PipelineWithJobs =
     { pipeline : Concourse.Pipeline
     , jobs : List Concourse.Job
     , resourceError : Bool
+    , status : PipelineStatus.PipelineStatus
     }
 
 
@@ -58,19 +43,14 @@ pipelineNotSetView =
         ]
 
 
-viewSummary : SummaryPipeline -> Html Msg
-viewSummary (SummaryPipeline pwj) =
-    hdPipelineView pwj
-
-
 hdPipelineView : PipelineWithJobs -> Html Msg
-hdPipelineView ({ pipeline, jobs, resourceError } as pwj) =
+hdPipelineView ({ pipeline, jobs, resourceError, status } as pwj) =
     Html.div
         [ classList
             [ ( "dashboard-pipeline", True )
             , ( "dashboard-paused", pipeline.paused )
             , ( "dashboard-running", List.any (\job -> job.nextBuild /= Nothing) jobs )
-            , ( "dashboard-status-" ++ PipelineStatus.show (pipelineStatus pwj), not pipeline.paused )
+            , ( "dashboard-status-" ++ PipelineStatus.show status, not pipeline.paused )
             ]
         , attribute "data-pipeline-name" pipeline.name
         , attribute "data-team-name" pipeline.teamName
@@ -130,8 +110,7 @@ footerView pipelineWithJobs now hovered =
                 ]
                 [ Html.div
                     [ style <|
-                        Styles.pipelineCardStatusIcon <|
-                            pipelineStatus pipelineWithJobs
+                        Styles.pipelineStatusIcon pipelineWithJobs.status
                     ]
                     []
                 , transitionView now pipelineWithJobs
@@ -167,63 +146,19 @@ visibilityView public =
         []
 
 
-type alias Event =
-    { succeeded : Bool
-    , time : Time
-    }
+sinceTransitionText : PipelineStatus.StatusDetails -> Time -> String
+sinceTransitionText details now =
+    case details of
+        PipelineStatus.Running ->
+            "running"
 
-
-transitionTime : PipelineWithJobs -> Maybe Time
-transitionTime pipeline =
-    let
-        events =
-            pipeline.jobs |> List.filterMap jobEvent |> List.sortBy .time
-    in
-        events
-            |> List.Extra.dropWhile .succeeded
-            |> List.head
-            |> Maybe.map Just
-            |> Maybe.withDefault (List.Extra.last events)
-            |> Maybe.map .time
-
-
-jobEvent : Concourse.Job -> Maybe Event
-jobEvent job =
-    Maybe.map
-        (Event <| jobSucceeded job)
-        (transitionStart job)
-
-
-equalBy : (a -> b) -> a -> a -> Bool
-equalBy f x y =
-    f x == f y
-
-
-jobSucceeded : Concourse.Job -> Bool
-jobSucceeded =
-    .finishedBuild
-        >> Maybe.map (.status >> (==) Concourse.BuildStatusSucceeded)
-        >> Maybe.withDefault False
-
-
-transitionStart : Concourse.Job -> Maybe Time
-transitionStart =
-    .transitionBuild
-        >> Maybe.map (.duration >> .startedAt)
-        >> Maybe.Extra.join
-        >> Maybe.map Date.toTime
-
-
-sinceTransitionText : PipelineWithJobs -> Time -> String
-sinceTransitionText pipeline now =
-    Maybe.map (flip Duration.between now) (transitionTime pipeline)
-        |> Maybe.map Duration.format
-        |> Maybe.withDefault ""
+        PipelineStatus.Since time ->
+            Duration.format <| Duration.between time now
 
 
 statusAgeText : PipelineWithJobs -> Time -> String
 statusAgeText pipeline now =
-    case pipelineStatus pipeline of
+    case pipeline.status of
         PipelineStatus.PipelineStatusPaused ->
             "paused"
 
@@ -233,77 +168,26 @@ statusAgeText pipeline now =
         PipelineStatus.PipelineStatusPending True ->
             "running"
 
-        PipelineStatus.PipelineStatusAborted True ->
-            "running"
+        PipelineStatus.PipelineStatusAborted details ->
+            sinceTransitionText details now
 
-        PipelineStatus.PipelineStatusErrored True ->
-            "running"
+        PipelineStatus.PipelineStatusErrored details ->
+            sinceTransitionText details now
 
-        PipelineStatus.PipelineStatusFailed True ->
-            "running"
+        PipelineStatus.PipelineStatusFailed details ->
+            sinceTransitionText details now
 
-        PipelineStatus.PipelineStatusSucceeded True ->
-            "running"
-
-        _ ->
-            sinceTransitionText pipeline now
+        PipelineStatus.PipelineStatusSucceeded details ->
+            sinceTransitionText details now
 
 
 transitionView : Time -> PipelineWithJobs -> Html a
 transitionView time pipeline =
     Html.div
         [ class "build-duration"
-        , style <| Styles.pipelineCardTransitionAge <| pipelineStatus pipeline
+        , style <| Styles.pipelineCardTransitionAge pipeline.status
         ]
         [ Html.text <| statusAgeText pipeline time ]
-
-
-jobStatus : Concourse.Job -> Concourse.BuildStatus
-jobStatus job =
-    case job.finishedBuild of
-        Just build ->
-            build.status
-
-        Nothing ->
-            Concourse.BuildStatusPending
-
-
-pipelineStatus : PipelineWithJobs -> PipelineStatus.PipelineStatus
-pipelineStatus { pipeline, jobs } =
-    if pipeline.paused then
-        PipelineStatus.PipelineStatusPaused
-    else
-        let
-            isRunning =
-                List.any (\job -> job.nextBuild /= Nothing) jobs
-
-            mostImportantJobStatus =
-                jobs
-                    |> List.map jobStatus
-                    |> List.sortWith BuildStatus.ordering
-                    |> List.head
-        in
-            case mostImportantJobStatus of
-                Nothing ->
-                    PipelineStatus.PipelineStatusPending isRunning
-
-                Just Concourse.BuildStatusPending ->
-                    PipelineStatus.PipelineStatusPending isRunning
-
-                Just Concourse.BuildStatusStarted ->
-                    PipelineStatus.PipelineStatusPending isRunning
-
-                Just Concourse.BuildStatusSucceeded ->
-                    PipelineStatus.PipelineStatusSucceeded isRunning
-
-                Just Concourse.BuildStatusFailed ->
-                    PipelineStatus.PipelineStatusFailed isRunning
-
-                Just Concourse.BuildStatusErrored ->
-                    PipelineStatus.PipelineStatusErrored isRunning
-
-                Just Concourse.BuildStatusAborted ->
-                    PipelineStatus.PipelineStatusAborted isRunning
 
 
 pauseToggleView : Concourse.Pipeline -> Bool -> Html Msg
