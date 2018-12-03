@@ -15,7 +15,7 @@ import (
 )
 
 var ErrAuthNotConfiguredFromFlags = errors.New("ErrAuthNotConfiguredFromFlags")
-var ErrAuthNotConfiguredFromConfig = errors.New("ErrAuthNotConfiguredFromConfig")
+var ErrAuthNotConfiguredFromFile = errors.New("ErrAuthNotConfiguredFromFile")
 
 var connectors []*Connector
 
@@ -58,77 +58,23 @@ type AuthTeamFlags struct {
 func (self *AuthTeamFlags) Format() (AuthConfig, error) {
 
 	if path := self.Config.Path(); path != "" {
-		return self.formatFromConfig()
+		return self.formatFromFile()
 
 	} else {
 		return self.formatFromFlags()
 	}
 }
 
-type Config interface {
-	Name() string
-	Serialize(redirectURI string) ([]byte, error)
-}
+// When formatting from a configuration file we iterate over each connector
+// type and create a new instance of the TeamConfig object for each connector.
+// These connectors all have their own unique configuration so we need to use
+// mapstructure to decode the generic result into a known struct.
 
-type TeamConfig interface {
-	IsValid() bool
-	GetUsers() []string
-	GetGroups() []string
-}
+// e.g.
+// The github connector has configuration for: users, teams, orgs
+// The cf conncetor has configuration for: users, orgs, spaces
 
-type Connector struct {
-	id         string
-	config     Config
-	teamConfig TeamConfig
-}
-
-func (self *Connector) ID() string {
-	return self.id
-}
-
-func (self *Connector) Name() string {
-	return self.config.Name()
-}
-
-func (self *Connector) Serialize(redirectURI string) ([]byte, error) {
-	return self.config.Serialize(redirectURI)
-}
-
-func (self *Connector) HasTeamConfig() bool {
-	return self.teamConfig.IsValid()
-}
-
-func (self *Connector) GetTeamUsers() []string {
-	return self.teamConfig.GetUsers()
-}
-
-func (self *Connector) GetTeamGroups() []string {
-	return self.teamConfig.GetGroups()
-}
-
-// We use some reflect magic to zero out our teamConfig
-// before we parse each new role.
-func (self *Connector) Parse(config interface{}) error {
-
-	typeof := reflect.TypeOf(self.teamConfig)
-	if typeof.Kind() == reflect.Ptr {
-		typeof = typeof.Elem()
-	}
-
-	valueof := reflect.ValueOf(self.teamConfig)
-	if valueof.Kind() == reflect.Ptr {
-		valueof = valueof.Elem()
-	}
-
-	instance := reflect.New(typeof).Elem()
-	if valueof.CanSet() {
-		valueof.Set(instance)
-	}
-
-	return mapstructure.Decode(config, &self.teamConfig)
-}
-
-func (self *AuthTeamFlags) formatFromConfig() (AuthConfig, error) {
+func (self *AuthTeamFlags) formatFromFile() (AuthConfig, error) {
 
 	content, err := ioutil.ReadFile(self.Config.Path())
 	if err != nil {
@@ -152,30 +98,43 @@ func (self *AuthTeamFlags) formatFromConfig() (AuthConfig, error) {
 
 		for _, connector := range connectors {
 			config, ok := role[connector.ID()]
-			if ok {
-				connector.Parse(config)
-			}
-
-			if !connector.HasTeamConfig() {
+			if !ok {
 				continue
 			}
 
-			for _, user := range connector.GetTeamUsers() {
-				users = append(users, connector.ID()+":"+strings.ToLower(user))
+			teamConfig, err := connector.newTeamConfig()
+			if err != nil {
+				return nil, err
 			}
 
-			for _, group := range connector.GetTeamGroups() {
-				groups = append(groups, connector.ID()+":"+strings.ToLower(group))
+			err = mapstructure.Decode(config, &teamConfig)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, user := range teamConfig.GetUsers() {
+				if user != "" {
+					users = append(users, connector.ID()+":"+strings.ToLower(user))
+				}
+			}
+
+			for _, group := range teamConfig.GetGroups() {
+				if group != "" {
+					groups = append(groups, connector.ID()+":"+strings.ToLower(group))
+				}
 			}
 		}
 
 		if conf, ok := role["local"].(map[interface{}]interface{}); ok {
 			for _, user := range conf["users"].([]interface{}) {
-				users = append(users, "local:"+strings.ToLower(user.(string)))
+				if user != "" {
+					users = append(users, "local:"+strings.ToLower(user.(string)))
+				}
 			}
 		}
+
 		if len(users) == 0 && len(groups) == 0 {
-			return nil, ErrAuthNotConfiguredFromConfig
+			return nil, ErrAuthNotConfiguredFromFile
 		}
 
 		auth[roleName] = map[string][]string{
@@ -187,6 +146,10 @@ func (self *AuthTeamFlags) formatFromConfig() (AuthConfig, error) {
 	return auth, nil
 }
 
+// When formatting team config from the command line flags, the connector's
+// TeamConfig has already been populated by the flags library. All we need to
+// do is grab the teamConfig object and extract the users and groups.
+
 func (self *AuthTeamFlags) formatFromFlags() (AuthConfig, error) {
 
 	users := []string{}
@@ -194,21 +157,25 @@ func (self *AuthTeamFlags) formatFromFlags() (AuthConfig, error) {
 
 	for _, connector := range connectors {
 
-		if !connector.HasTeamConfig() {
-			continue
+		teamConfig := connector.teamConfig
+
+		for _, user := range teamConfig.GetUsers() {
+			if user != "" {
+				users = append(users, connector.ID()+":"+strings.ToLower(user))
+			}
 		}
 
-		for _, user := range connector.GetTeamUsers() {
-			users = append(users, connector.ID()+":"+strings.ToLower(user))
-		}
-
-		for _, group := range connector.GetTeamGroups() {
-			groups = append(groups, connector.ID()+":"+strings.ToLower(group))
+		for _, group := range teamConfig.GetGroups() {
+			if group != "" {
+				groups = append(groups, connector.ID()+":"+strings.ToLower(group))
+			}
 		}
 	}
 
 	for _, user := range self.LocalUsers {
-		users = append(users, "local:"+strings.ToLower(user))
+		if user != "" {
+			users = append(users, "local:"+strings.ToLower(user))
+		}
 	}
 
 	if len(users) == 0 && len(groups) == 0 {
@@ -221,6 +188,55 @@ func (self *AuthTeamFlags) formatFromFlags() (AuthConfig, error) {
 			"groups": groups,
 		},
 	}, nil
+}
+
+type Config interface {
+	Name() string
+	Serialize(redirectURI string) ([]byte, error)
+}
+
+type TeamConfig interface {
+	GetUsers() []string
+	GetGroups() []string
+}
+
+type Connector struct {
+	id         string
+	config     Config
+	teamConfig TeamConfig
+}
+
+func (self *Connector) ID() string {
+	return self.id
+}
+
+func (self *Connector) Name() string {
+	return self.config.Name()
+}
+
+func (self *Connector) Serialize(redirectURI string) ([]byte, error) {
+	return self.config.Serialize(redirectURI)
+}
+
+func (self *Connector) newTeamConfig() (TeamConfig, error) {
+
+	typeof := reflect.TypeOf(self.teamConfig)
+	if typeof.Kind() == reflect.Ptr {
+		typeof = typeof.Elem()
+	}
+
+	valueof := reflect.ValueOf(self.teamConfig)
+	if valueof.Kind() == reflect.Ptr {
+		valueof = valueof.Elem()
+	}
+
+	instance := reflect.New(typeof).Interface()
+	res, ok := instance.(TeamConfig)
+	if !ok {
+		return nil, errors.New("Invalid TeamConfig")
+	}
+
+	return res, nil
 }
 
 type AuthConfig map[string]map[string][]string

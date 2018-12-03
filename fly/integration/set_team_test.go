@@ -48,6 +48,19 @@ var _ = Describe("Fly CLI", func() {
 						Eventually(sess).Should(gexec.Exit(1))
 					})
 				})
+
+				Context("auth config contains empty user", func() {
+					BeforeEach(func() {
+						cmdParams = []string{"-c", "fixtures/team_config_empty_users.yml"}
+					})
+
+					It("returns an error", func() {
+						sess, err := gexec.Start(flyCmd, nil, nil)
+						Expect(err).ToNot(HaveOccurred())
+						Eventually(sess.Err).Should(gbytes.Say("You have not provided a list of users and groups for one of the roles in your config yaml."))
+						Eventually(sess).Should(gexec.Exit(1))
+					})
+				})
 			})
 		})
 
@@ -197,6 +210,36 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("- none"))
 					Eventually(sess.Out).Should(gbytes.Say("Groups \\(viewer\\):"))
 					Eventually(sess.Out).Should(gbytes.Say("- oauth:some-group"))
+
+					Eventually(sess).Should(gexec.Exit(1))
+				})
+			})
+
+			Context("Setting auth with empty values", func() {
+				BeforeEach(func() {
+					cmdParams = []string{"-c", "fixtures/team_config_empty_values.yml"}
+				})
+
+				It("shows the users and groups configured for a given role", func() {
+					sess, err := gexec.Start(flyCmd, nil, nil)
+					Expect(err).ToNot(HaveOccurred())
+
+					Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
+
+					Eventually(sess.Out).Should(gbytes.Say("Users \\(member\\):"))
+					Eventually(sess.Out).Should(gbytes.Say("- none"))
+					Eventually(sess.Out).Should(gbytes.Say("Groups \\(member\\):"))
+					Eventually(sess.Out).Should(gbytes.Say("- github:some-org"))
+
+					Eventually(sess.Out).Should(gbytes.Say("Users \\(owner\\):"))
+					Eventually(sess.Out).Should(gbytes.Say("- local:some-admin"))
+					Eventually(sess.Out).Should(gbytes.Say("Groups \\(owner\\):"))
+					Eventually(sess.Out).Should(gbytes.Say("- none"))
+
+					Eventually(sess.Out).Should(gbytes.Say("Users \\(viewer\\):"))
+					Eventually(sess.Out).Should(gbytes.Say("- local:some-viewer"))
+					Eventually(sess.Out).Should(gbytes.Say("Groups \\(viewer\\):"))
+					Eventually(sess.Out).Should(gbytes.Say("- none"))
 
 					Eventually(sess).Should(gexec.Exit(1))
 				})
@@ -386,6 +429,19 @@ var _ = Describe("Fly CLI", func() {
 						Eventually(sess).Should(gexec.Exit(1))
 					})
 				})
+
+				Context("empty auth values provided", func() {
+					BeforeEach(func() {
+						cmdParams = []string{"--local-user", ""}
+					})
+
+					It("returns an error", func() {
+						sess, err := gexec.Start(flyCmd, nil, nil)
+						Expect(err).ToNot(HaveOccurred())
+						Eventually(sess.Err).Should(gbytes.Say("You have not provided a list of users and groups for the specified team."))
+						Eventually(sess).Should(gexec.Exit(1))
+					})
+				})
 			})
 		})
 
@@ -485,6 +541,25 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("- none"))
 					Eventually(sess.Out).Should(gbytes.Say("Groups \\(owner\\):"))
 					Eventually(sess.Out).Should(gbytes.Say("- oauth:cool-scope-name"))
+
+					Eventually(sess).Should(gexec.Exit(1))
+				})
+			})
+
+			Context("Setting auth with empty arguments", func() {
+				BeforeEach(func() {
+					cmdParams = []string{"--oauth-group", "", "--github-team", "samson-org:samson-team", "--github-user", ""}
+				})
+
+				It("ignores empty arguments", func() {
+					sess, err := gexec.Start(flyCmd, nil, nil)
+					Expect(err).ToNot(HaveOccurred())
+
+					Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
+					Eventually(sess.Out).Should(gbytes.Say("Users \\(owner\\):"))
+					Eventually(sess.Out).Should(gbytes.Say("- none"))
+					Eventually(sess.Out).Should(gbytes.Say("Groups \\(owner\\):"))
+					Eventually(sess.Out).Should(gbytes.Say("- github:samson-org:samson-team"))
 
 					Eventually(sess).Should(gexec.Exit(1))
 				})

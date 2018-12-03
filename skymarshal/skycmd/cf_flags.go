@@ -74,10 +74,6 @@ type CFTeamFlags struct {
 	SpaceGuids []string `long:"space-guid" description:"(Deprecated) List of whitelisted CloudFoundry space guids" value-name:"SPACE_GUID"`
 }
 
-func (self *CFTeamFlags) IsValid() bool {
-	return len(self.Users) > 0 || len(self.Orgs) > 0 || len(self.Spaces) > 0 || len(self.SpaceGuids) > 0
-}
-
 func (self *CFTeamFlags) GetUsers() []string {
 	return self.Users
 }

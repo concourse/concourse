@@ -56,10 +56,6 @@ type BitbucketCloudTeamFlags struct {
 	Teams []string `long:"team" description:"List of whitelisted Bitbucket Cloud teams" value-name:"TEAM_NAME"`
 }
 
-func (self *BitbucketCloudTeamFlags) IsValid() bool {
-	return len(self.Users) > 0 || len(self.Teams) > 0
-}
-
 func (self *BitbucketCloudTeamFlags) GetUsers() []string {
 	return self.Users
 }

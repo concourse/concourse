@@ -64,10 +64,6 @@ type GithubTeamFlags struct {
 	Teams []string `long:"team" description:"List of whitelisted GitHub teams" value-name:"ORG_NAME:TEAM_NAME"`
 }
 
-func (self *GithubTeamFlags) IsValid() bool {
-	return len(self.Users) > 0 || len(self.Orgs) > 0 || len(self.Teams) > 0
-}
-
 func (self *GithubTeamFlags) GetUsers() []string {
 	return self.Users
 }

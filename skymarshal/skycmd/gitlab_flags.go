@@ -58,10 +58,6 @@ type GitlabTeamFlags struct {
 	Groups []string `long:"group" description:"List of whitelisted GitLab groups" value-name:"GROUP_NAME"`
 }
 
-func (self *GitlabTeamFlags) IsValid() bool {
-	return len(self.Users) > 0 || len(self.Groups) > 0
-}
-
 func (self *GitlabTeamFlags) GetUsers() []string {
 	return self.Users
 }

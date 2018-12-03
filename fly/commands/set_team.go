@@ -109,7 +109,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 
 func (command *SetTeamCommand) ErrorAuthNotConfigured(err error) {
 	switch err {
-	case skycmd.ErrAuthNotConfiguredFromConfig:
+	case skycmd.ErrAuthNotConfiguredFromFile:
 		fmt.Fprintln(ui.Stderr, "You have not provided a list of users and groups for one of the roles in your config yaml.")
 
 	case skycmd.ErrAuthNotConfiguredFromFlags:

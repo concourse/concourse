@@ -93,10 +93,6 @@ type OAuthTeamFlags struct {
 	Groups []string `json:"groups" long:"group" description:"List of whitelisted OAuth2 groups" value-name:"GROUP_NAME"`
 }
 
-func (self *OAuthTeamFlags) IsValid() bool {
-	return len(self.Users) > 0 || len(self.Groups) > 0
-}
-
 func (self *OAuthTeamFlags) GetUsers() []string {
 	return self.Users
 }

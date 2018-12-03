@@ -111,10 +111,6 @@ type LDAPTeamFlags struct {
 	Groups []string `json:"groups" long:"group" description:"List of whitelisted LDAP groups" value-name:"GROUP_NAME"`
 }
 
-func (self *LDAPTeamFlags) IsValid() bool {
-	return len(self.Users) > 0 || len(self.Groups) > 0
-}
-
 func (self *LDAPTeamFlags) GetUsers() []string {
 	return self.Users
 }

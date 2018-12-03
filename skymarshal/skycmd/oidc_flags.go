@@ -83,10 +83,6 @@ type OIDCTeamFlags struct {
 	Groups []string `json:"groups" long:"group" description:"List of whitelisted OIDC groups" value-name:"GROUP_NAME"`
 }
 
-func (self *OIDCTeamFlags) IsValid() bool {
-	return len(self.Users) > 0 || len(self.Groups) > 0
-}
-
 func (self *OIDCTeamFlags) GetUsers() []string {
 	return self.Users
 }
