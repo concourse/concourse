@@ -3,6 +3,12 @@ module Dashboard.Styles
         ( infoBar
         , legend
         , legendItem
+        , legendSeparator
+        , highDensityToggle
+        , highDensityIcon
+        , info
+        , infoItem
+        , infoCliIcon
         , pipelineCardBanner
         , pipelineCardFooter
         , pipelineStatusIcon
@@ -152,6 +158,7 @@ infoBar =
 legend : List ( String, String )
 legend =
     [ ( "display", "flex" )
+    , ( "padding-left", "30px" )
     ]
 
 
@@ -161,4 +168,69 @@ legendItem =
     , ( "text-transform", "uppercase" )
     , ( "align-items", "center" )
     , ( "color", Colors.bottomBarText )
+    , ( "margin-right", "20px" )
+    ]
+
+
+legendSeparator : List ( String, String )
+legendSeparator =
+    [ ( "color", Colors.bottomBarText )
+    , ( "margin-right", "20px" )
+    , ( "display", "flex" )
+    , ( "align-items", "center" )
+    ]
+
+
+highDensityToggle : List ( String, String )
+highDensityToggle =
+    [ ( "color", Colors.bottomBarText )
+    , ( "margin-right", "20px" )
+    , ( "display", "flex" )
+    , ( "text-transform", "uppercase" )
+    , ( "align-items", "center" )
+    ]
+
+
+highDensityIcon : Bool -> List ( String, String )
+highDensityIcon highDensity =
+    [ ( "background-image"
+      , if highDensity then
+            "url(public/images/ic_hd_on.svg)"
+        else
+            "url(public/images/ic_hd_off.svg)"
+      )
+    , ( "background-size", "contain" )
+    , ( "height", "20px" )
+    , ( "width", "35px" )
+    , ( "flex-shrink", "0" )
+    , ( "margin-right", "10px" )
+    ]
+
+
+info : List ( String, String )
+info =
+    [ ( "display", "flex" )
+    , ( "color", Colors.bottomBarText )
+    , ( "font-size", "1.25em" )
+    ]
+
+
+infoItem : List ( String, String )
+infoItem =
+    [ ( "margin-right", "30px" )
+    , ( "display", "flex" )
+    , ( "align-items", "center" )
+    ]
+
+
+infoCliIcon : Bool -> List ( String, String )
+infoCliIcon hovered =
+    [ ( "margin-right", "10px" )
+    , ( "font-size", "1.2em" )
+    , ( "color"
+      , if hovered then
+            Colors.cliIconHover
+        else
+            Colors.bottomBarText
+      )
     ]

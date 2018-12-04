@@ -1,4 +1,4 @@
-module Dashboard.Msgs exposing (Msg(..))
+module Dashboard.Msgs exposing (Cli(..), Msg(..))
 
 import RemoteData
 import Concourse
@@ -7,6 +7,12 @@ import Http
 import Time
 import Keyboard
 import NewTopBar
+
+
+type Cli
+    = OSX
+    | Windows
+    | Linux
 
 
 type Msg
@@ -26,3 +32,4 @@ type Msg
     | TooltipHd String String
     | TogglePipelinePaused Concourse.Pipeline
     | PipelineButtonHover (Maybe Concourse.Pipeline)
+    | CliHover (Maybe Cli)

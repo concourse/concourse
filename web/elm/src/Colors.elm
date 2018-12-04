@@ -64,3 +64,8 @@ aborted =
 runningStripes : String
 runningStripes =
     "#2a2929"
+
+
+cliIconHover : String
+cliIconHover =
+    "#fff"

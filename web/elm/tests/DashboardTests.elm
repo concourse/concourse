@@ -68,6 +68,11 @@ brown =
     "#8b572a"
 
 
+white : String
+white =
+    "#fff"
+
+
 pipelineRunningKeyframes : String
 pipelineRunningKeyframes =
     "pipeline-running"
@@ -886,16 +891,12 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                        |> Dashboard.update Msgs.ShowFooter
-                        |> Tuple.first
                         |> queryView
                         |> Query.has [ id "dashboard-info" ]
             , test "is 50px tall, almost black, fixed to the bottom of the viewport and covers entire width" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                        |> Dashboard.update Msgs.ShowFooter
-                        |> Tuple.first
                         |> queryView
                         |> Query.find [ id "dashboard-info" ]
                         |> Query.has
@@ -911,8 +912,6 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                        |> Dashboard.update Msgs.ShowFooter
-                        |> Tuple.first
                         |> queryView
                         |> Query.find [ id "dashboard-info" ]
                         |> Query.has
@@ -926,8 +925,6 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                        |> Dashboard.update Msgs.ShowFooter
-                        |> Tuple.first
                         |> queryView
                         |> Query.find [ id "dashboard-info" ]
                         |> Query.children []
@@ -937,25 +934,22 @@ all =
                             , Query.index 1 >> Query.has [ id "concourse-info" ]
                             ]
             , describe "legend"
-                [ test "lays out contents horizontally" <|
+                [ test "lays out contents horizontally with 30px left side padding" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> Dashboard.update Msgs.ShowFooter
-                            |> Tuple.first
                             |> queryView
                             |> Query.find [ id "legend" ]
                             |> Query.has
                                 [ style
                                     [ ( "display", "flex" )
+                                    , ( "padding-left", "30px" )
                                     ]
                                 ]
                 , test "shows pipeline statuses" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> Dashboard.update Msgs.ShowFooter
-                            |> Tuple.first
                             |> queryView
                             |> Query.find [ id "legend" ]
                             |> Query.children []
@@ -964,7 +958,7 @@ all =
                                 , Query.index 0
                                     >> Query.children []
                                     >> Expect.all
-                                        [ Query.count (Expect.equal 2)
+                                        [ Query.count (Expect.equal 3)
                                         , Query.index 0
                                             >> Query.has
                                                 (iconSelector
@@ -972,12 +966,18 @@ all =
                                                     , image = "ic_pending_grey.svg"
                                                     }
                                                 )
-                                        , Query.index 1 >> Query.has [ text "pending" ]
+                                        , Query.index 1
+                                            >> Query.has
+                                                [ style
+                                                    [ ( "width", "10px" )
+                                                    ]
+                                                ]
+                                        , Query.index 2 >> Query.has [ text "pending" ]
                                         ]
                                 , Query.index 1
                                     >> Query.children []
                                     >> Expect.all
-                                        [ Query.count (Expect.equal 2)
+                                        [ Query.count (Expect.equal 3)
                                         , Query.index 0
                                             >> Query.has
                                                 (iconSelector
@@ -985,15 +985,37 @@ all =
                                                     , image = "ic_pause_blue.svg"
                                                     }
                                                 )
-                                        , Query.index 1 >> Query.has [ text "paused" ]
+                                        , Query.index 1
+                                            >> Query.has
+                                                [ style
+                                                    [ ( "width", "10px" )
+                                                    ]
+                                                ]
+                                        , Query.index 2 >> Query.has [ text "paused" ]
                                         ]
                                 ]
+                , test "the legend separator is grey" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> queryView
+                            |> Query.find [ id "legend" ]
+                            |> Query.children []
+                            |> Query.index -2
+                            |> Query.has [ style [ ( "color", menuGrey ) ] ]
+                , test "the legend separator centers contents vertically" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> queryView
+                            |> Query.find [ id "legend" ]
+                            |> Query.children []
+                            |> Query.index -2
+                            |> Query.has [ style [ ( "display", "flex" ), ( "align-items", "center" ) ] ]
                 , test "legend items lay out contents horizontally, centered vertically in grey caps" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> Dashboard.update Msgs.ShowFooter
-                            |> Tuple.first
                             |> queryView
                             |> Query.find [ id "legend" ]
                             |> Query.children []
@@ -1006,6 +1028,20 @@ all =
                                     , ( "color", menuGrey )
                                     ]
                                 ]
+                , test "legend items have 20px space between them" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> queryView
+                            |> Query.find [ id "legend" ]
+                            |> Query.children []
+                            |> Query.each
+                                (Query.has
+                                    [ style
+                                        [ ( "margin-right", "20px" )
+                                        ]
+                                    ]
+                                )
                 , test "third legend item shows running indicator" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
@@ -1023,7 +1059,7 @@ all =
                                     ]
                                 , Query.children []
                                     >> Expect.all
-                                        [ Query.count (Expect.equal 2)
+                                        [ Query.count (Expect.equal 3)
                                         , Query.index 0
                                             >> Query.has
                                                 (iconSelector
@@ -1031,10 +1067,286 @@ all =
                                                     , image = "ic_running_legend.svg"
                                                     }
                                                 )
-                                        , Query.index 1 >> Query.has [ text "running" ]
+                                        , Query.index 1
+                                            >> Query.has
+                                                [ style
+                                                    [ ( "width", "10px" )
+                                                    ]
+                                                ]
+                                        , Query.index 2 >> Query.has [ text "running" ]
                                         ]
                                 ]
                 ]
+            , describe "HD toggle" <|
+                let
+                    findHDToggle =
+                        Query.find [ id "legend" ]
+                            >> Query.children []
+                            >> Query.index -1
+
+                    hdToggle =
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> queryView
+                            |> findHDToggle
+                in
+                    [ describe "on non-hd view"
+                        [ test "lays out contents horizontally" <|
+                            \_ ->
+                                hdToggle
+                                    |> Query.has
+                                        [ style
+                                            [ ( "display", "flex" ) ]
+                                        ]
+                        , test "centers contents vertically" <|
+                            \_ ->
+                                hdToggle
+                                    |> Query.has
+                                        [ style
+                                            [ ( "align-items", "center" ) ]
+                                        ]
+                        , test "has a margin of 10px between the button and the label" <|
+                            \_ ->
+                                hdToggle
+                                    |> Query.children []
+                                    |> Query.index 0
+                                    |> Query.has
+                                        [ style [ ( "margin-right", "10px" ) ] ]
+                        , test "displays the label using a grey color" <|
+                            \_ ->
+                                hdToggle
+                                    |> Query.has
+                                        [ style
+                                            [ ( "color", menuGrey ) ]
+                                        ]
+                        , test "label text is all caps" <|
+                            \_ ->
+                                hdToggle
+                                    |> Query.has
+                                        [ style
+                                            [ ( "text-transform", "uppercase" ) ]
+                                        ]
+                        , test "displays the off state" <|
+                            \_ ->
+                                hdToggle
+                                    |> Query.children []
+                                    |> Query.index 0
+                                    |> Query.has
+                                        [ style
+                                            [ ( "background-image", "url(public/images/ic_hd_off.svg)" )
+                                            , ( "background-size", "contain" )
+                                            , ( "height", "20px" )
+                                            , ( "width", "35px" )
+                                            ]
+                                        ]
+                        , test "will not shrink on resizing" <|
+                            \_ ->
+                                hdToggle
+                                    |> Query.children []
+                                    |> Query.index 0
+                                    |> Query.has
+                                        [ style [ ( "flex-shrink", "0" ) ] ]
+                        ]
+                    , describe "on HD view"
+                        [ test "displays the on state" <|
+                            \_ ->
+                                whenOnDashboard { highDensity = True }
+                                    |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                                    |> queryView
+                                    |> findHDToggle
+                                    |> Query.children []
+                                    |> Query.index 0
+                                    |> Query.has
+                                        [ style
+                                            [ ( "background-image", "url(public/images/ic_hd_on.svg)" )
+                                            , ( "background-size", "contain" )
+                                            , ( "height", "20px" )
+                                            , ( "width", "35px" )
+                                            ]
+                                        ]
+                        , test "will not shrink on resizing" <|
+                            \_ ->
+                                whenOnDashboard { highDensity = True }
+                                    |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                                    |> queryView
+                                    |> findHDToggle
+                                    |> Query.children []
+                                    |> Query.index 0
+                                    |> Query.has
+                                        [ style [ ( "flex-shrink", "0" ) ] ]
+                        ]
+                    ]
+            , describe "info section" <|
+                let
+                    info =
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> queryView
+                            |> Query.find [ id "concourse-info" ]
+                in
+                    [ test "lays out contents horizontally" <|
+                        \_ ->
+                            info
+                                |> Query.has [ style [ ( "display", "flex" ) ] ]
+                    , test "displays info in a grey color" <|
+                        \_ ->
+                            info
+                                |> Query.has [ style [ ( "color", menuGrey ) ] ]
+                    , test "displays text slightly larger" <|
+                        \_ ->
+                            info
+                                |> Query.has [ style [ ( "font-size", "1.25em" ) ] ]
+                    , test "each info item is spaced out by 30px" <|
+                        \_ ->
+                            info
+                                |> Query.children []
+                                |> Query.each
+                                    (Query.has [ style [ ( "margin-right", "30px" ) ] ])
+                    , test "each info item centers contents vertically" <|
+                        \_ ->
+                            info
+                                |> Query.children []
+                                |> Query.each
+                                    (Query.has
+                                        [ style
+                                            [ ( "align-items", "center" )
+                                            , ( "display", "flex" )
+                                            ]
+                                        ]
+                                    )
+                    , test "items in CLI section are 10 px apart" <|
+                        \_ ->
+                            info
+                                |> Query.children []
+                                |> Query.index -1
+                                |> Query.children []
+                                |> Query.each
+                                    (Query.has [ style [ ( "margin-right", "10px" ) ] ])
+                    , describe "cli download icons" <|
+                        let
+                            cliIcons =
+                                info
+                                    |> Query.children []
+                                    |> Query.index -1
+                                    |> Query.children [ tag "a" ]
+                        in
+                            [ test "font size is slightly larger" <|
+                                \_ ->
+                                    cliIcons
+                                        |> Query.each
+                                            (Query.has [ style [ ( "font-size", "1.2em" ) ] ])
+                            , test "icons are grey" <|
+                                \_ ->
+                                    cliIcons
+                                        |> Query.each
+                                            (Query.has [ style [ ( "color", menuGrey ) ] ])
+                            , test "icons have descriptive ARIA labels" <|
+                                \_ ->
+                                    cliIcons
+                                        |> Expect.all
+                                            [ Query.count (Expect.equal 3)
+                                            , Query.index 0
+                                                >> Query.has
+                                                    [ attribute <|
+                                                        Attr.attribute
+                                                            "aria-label"
+                                                            "Download OS X CLI"
+                                                    ]
+                                            , Query.index 1
+                                                >> Query.has
+                                                    [ attribute <|
+                                                        Attr.attribute
+                                                            "aria-label"
+                                                            "Download Windows CLI"
+                                                    ]
+                                            , Query.index 2
+                                                >> Query.has
+                                                    [ attribute <|
+                                                        Attr.attribute
+                                                            "aria-label"
+                                                            "Download Linux CLI"
+                                                    ]
+                                            ]
+                            , defineHoverBehaviour
+                                { name = "os x cli icon"
+                                , setup =
+                                    whenOnDashboard { highDensity = False }
+                                        |> givenDataUnauthenticated
+                                            (apiData
+                                                [ ( "team", [ "pipeline" ] ) ]
+                                            )
+                                , query = queryView >> Query.find [ id "cli-osx" ]
+                                , unhoveredSelector =
+                                    { description = "grey apple icon"
+                                    , selector =
+                                        [ style [ ( "color", menuGrey ) ]
+                                        , containing [ tag "i", class "fa-apple" ]
+                                        ]
+                                    }
+                                , mouseEnterMsg = Msgs.CliHover <| Just Msgs.OSX
+                                , mouseLeaveMsg = Msgs.CliHover Nothing
+                                , hoveredSelector =
+                                    { description = "white apple icon"
+                                    , selector =
+                                        [ style [ ( "color", white ) ]
+                                        , containing [ tag "i", class "fa-apple" ]
+                                        ]
+                                    }
+                                }
+                            , defineHoverBehaviour
+                                { name = "windows cli icon"
+                                , setup =
+                                    whenOnDashboard { highDensity = False }
+                                        |> givenDataUnauthenticated
+                                            (apiData
+                                                [ ( "team", [ "pipeline" ] ) ]
+                                            )
+                                , query = queryView >> Query.find [ id "cli-windows" ]
+                                , unhoveredSelector =
+                                    { description = "grey windows icon"
+                                    , selector =
+                                        [ style [ ( "color", menuGrey ) ]
+                                        , containing [ tag "i", class "fa-windows" ]
+                                        ]
+                                    }
+                                , mouseEnterMsg = Msgs.CliHover <| Just Msgs.Windows
+                                , mouseLeaveMsg = Msgs.CliHover Nothing
+                                , hoveredSelector =
+                                    { description = "white windows icon"
+                                    , selector =
+                                        [ style [ ( "color", white ) ]
+                                        , containing [ tag "i", class "fa-windows" ]
+                                        ]
+                                    }
+                                }
+                            , defineHoverBehaviour
+                                { name = "linux cli icon"
+                                , setup =
+                                    whenOnDashboard { highDensity = False }
+                                        |> givenDataUnauthenticated
+                                            (apiData
+                                                [ ( "team", [ "pipeline" ] ) ]
+                                            )
+                                , query = queryView >> Query.find [ id "cli-linux" ]
+                                , unhoveredSelector =
+                                    { description = "grey linux icon"
+                                    , selector =
+                                        [ style [ ( "color", menuGrey ) ]
+                                        , containing [ tag "i", class "fa-linux" ]
+                                        ]
+                                    }
+                                , mouseEnterMsg = Msgs.CliHover <| Just Msgs.Linux
+                                , mouseLeaveMsg = Msgs.CliHover Nothing
+                                , hoveredSelector =
+                                    { description = "white linux icon"
+                                    , selector =
+                                        [ style [ ( "color", white ) ]
+                                        , containing [ tag "i", class "fa-linux" ]
+                                        ]
+                                    }
+                                }
+                            ]
+                    ]
             , test "hides after 6 seconds" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }

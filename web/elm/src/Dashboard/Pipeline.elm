@@ -120,7 +120,7 @@ footerView pipelineWithJobs now hovered =
                 ]
               <|
                 List.intersperse spacer
-                    [ pauseToggleView pipelineWithJobs.pipeline hovered
+                    [ pauseToggleView pipelineWithJobs hovered
                     , visibilityView pipelineWithJobs.pipeline.public
                     ]
             ]
@@ -190,15 +190,17 @@ transitionView time pipeline =
         [ Html.text <| statusAgeText pipeline time ]
 
 
-pauseToggleView : Concourse.Pipeline -> Bool -> Html Msg
+pauseToggleView : PipelineWithJobs -> Bool -> Html Msg
 pauseToggleView pipeline hovered =
     Html.a
         [ style
             [ ( "background-image"
-              , if pipeline.paused then
-                    "url(public/images/ic_play_white.svg)"
-                else
-                    "url(public/images/ic_pause_white.svg)"
+              , case pipeline.status of
+                    PipelineStatus.PipelineStatusPaused ->
+                        "url(public/images/ic_play_white.svg)"
+
+                    _ ->
+                        "url(public/images/ic_pause_white.svg)"
               )
             , ( "background-position", "50% 50%" )
             , ( "background-repeat", "no-repeat" )
@@ -212,8 +214,8 @@ pauseToggleView pipeline hovered =
                     "0.5"
               )
             ]
-        , onLeftClick <| TogglePipelinePaused pipeline
-        , onMouseEnter <| PipelineButtonHover <| Just pipeline
+        , onLeftClick <| TogglePipelinePaused pipeline.pipeline
+        , onMouseEnter <| PipelineButtonHover <| Just pipeline.pipeline
         , onMouseLeave <| PipelineButtonHover Nothing
         ]
         []

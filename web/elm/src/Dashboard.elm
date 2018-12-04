@@ -11,7 +11,7 @@ import Dashboard.APIData as APIData
 import Dashboard.Details as Details
 import Dashboard.Group as Group
 import Dashboard.GroupWithTag as GroupWithTag
-import Dashboard.Msgs exposing (Msg(..))
+import Dashboard.Msgs as Msgs exposing (Msg(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.SubState as SubState
 import Dashboard.Styles as Styles
@@ -29,6 +29,7 @@ import Html.Styled.Attributes
         , src
         , style
         )
+import Html.Styled.Events exposing (onMouseEnter, onMouseLeave)
 import Http
 import Keyboard
 import List.Extra
@@ -90,6 +91,7 @@ type alias Model =
     , hoveredPipeline : Maybe Concourse.Pipeline
     , pipelineRunningKeyframes : String
     , groups : List Group.Group
+    , hoveredCliIcon : Maybe Msgs.Cli
     }
 
 
@@ -117,6 +119,7 @@ init ports flags =
           , hoveredPipeline = Nothing
           , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
           , groups = []
+          , hoveredCliIcon = Nothing
           }
         , Cmd.batch
             [ fetchData
@@ -349,6 +352,9 @@ update msg model =
             PipelineButtonHover state ->
                 ( { model | hoveredPipeline = state }, Cmd.none )
 
+            CliHover state ->
+                ( { model | hoveredCliIcon = state }, Cmd.none )
+
 
 orderPipelines : String -> List Pipeline.PipelineWithJobs -> Concourse.CSRFToken -> Cmd Msg
 orderPipelines teamName pipelines csrfToken =
@@ -417,9 +423,12 @@ dashboardView model =
                             , hoveredPipeline = model.hoveredPipeline
                             , pipelineRunningKeyframes = model.pipelineRunningKeyframes
                             }
-                            ++ footerView substate
                         )
                     ]
+                        ++ footerView
+                            { substate = substate
+                            , hoveredCliIcon = model.hoveredCliIcon
+                            }
     in
         Html.div
             [ classList [ ( .pageBodyClass Group.stickyHeaderConfig, True ), ( "dashboard-hd", model.highDensity ) ] ]
@@ -464,24 +473,24 @@ helpView details =
 toggleView : Bool -> Html Msg
 toggleView highDensity =
     let
-        hdClass =
-            if highDensity then
-                "hd-on"
-            else
-                "hd-off"
-
         route =
             if highDensity then
                 Routes.dashboardRoute
             else
                 Routes.dashboardHdRoute
     in
-        Html.a [ class "toggle-high-density", href route, attribute "aria-label" "Toggle high-density view" ]
-            [ Html.div [ class <| "dashboard-pipeline-icon " ++ hdClass ] [], Html.text "high-density" ]
+        Html.a
+            [ style Styles.highDensityToggle
+            , href route
+            , attribute "aria-label" "Toggle high-density view"
+            ]
+            [ Html.div [ style <| Styles.highDensityIcon highDensity ] []
+            , Html.text "high-density"
+            ]
 
 
-footerView : SubState.SubState -> List (Html Msg)
-footerView substate =
+footerView : { substate : SubState.SubState, hoveredCliIcon : Maybe Msgs.Cli } -> List (Html Msg)
+footerView { substate, hoveredCliIcon } =
     let
         showHelp =
             substate.details |> Maybe.map .showHelp |> Maybe.withDefault False
@@ -489,7 +498,11 @@ footerView substate =
         if showHelp then
             [ keyboardHelpView ]
         else if not substate.hideFooter then
-            [ infoView substate ]
+            [ infoView
+                { substate = substate
+                , hoveredCliIcon = hoveredCliIcon
+                }
+            ]
         else
             []
 
@@ -500,62 +513,90 @@ legendItem status =
         [ Html.div
             [ style <| Styles.pipelineStatusIcon status ]
             []
+        , Html.div [ style [ ( "width", "10px" ) ] ] []
         , Html.text <| PipelineStatus.show status
         ]
 
 
-infoView : SubState.SubState -> Html Msg
-infoView substate =
-    Html.div
-        [ id "dashboard-info"
-        , style Styles.infoBar
-        ]
-        [ Html.div
-            [ id "legend"
-            , style Styles.legend
-            ]
-          <|
-            List.map legendItem
-                [ PipelineStatusPending False
-                , PipelineStatusPaused
-                ]
-                ++ [ Html.div [ style Styles.legendItem ]
-                        [ Html.div
-                            [ style
-                                [ ( "background-image", "url(public/images/ic_running_legend.svg)" )
-                                , ( "height", "20px" )
-                                , ( "width", "20px" )
-                                , ( "background-repeat", "no-repeat" )
-                                , ( "background-position", "50% 50%" )
-                                ]
-                            ]
-                            []
-                        , Html.text "running"
-                        ]
-                   ]
-                ++ List.map legendItem
-                    [ PipelineStatusFailed PipelineStatus.Running
-                    , PipelineStatusErrored PipelineStatus.Running
-                    , PipelineStatusAborted PipelineStatus.Running
-                    , PipelineStatusSucceeded PipelineStatus.Running
+infoView : { substate : SubState.SubState, hoveredCliIcon : Maybe Msgs.Cli } -> Html Msg
+infoView { substate, hoveredCliIcon } =
+    let
+        cliIcon : Msgs.Cli -> Maybe Msgs.Cli -> Html Msg
+        cliIcon cli hoveredCliIcon =
+            let
+                ( cliName, ariaText, icon ) =
+                    case cli of
+                        Msgs.OSX ->
+                            ( "osx", "OS X", "apple" )
+
+                        Msgs.Windows ->
+                            ( "windows", "Windows", "windows" )
+
+                        Msgs.Linux ->
+                            ( "linux", "Linux", "linux" )
+            in
+                Html.a
+                    [ href (Concourse.Cli.downloadUrl "amd64" cliName)
+                    , attribute "aria-label" <| "Download " ++ ariaText ++ " CLI"
+                    , style <| Styles.infoCliIcon (hoveredCliIcon == Just cli)
+                    , id <| "cli-" ++ cliName
+                    , onMouseEnter <| CliHover <| Just cli
+                    , onMouseLeave <| CliHover Nothing
                     ]
-                ++ [ Html.div [ class "dashboard-status-separator" ] [ Html.text "|" ]
-                   , Html.div [ class "dashboard-high-density" ] [ substate.details |> Maybe.Extra.isJust |> not |> toggleView ]
-                   ]
-        , Html.div [ id "concourse-info" ]
-            [ Html.div [ class "concourse-version" ]
-                [ Html.text "version: v", substate.teamData |> SubState.apiData |> .version |> Html.text ]
-            , Html.div [ class "concourse-cli" ]
-                [ Html.text "cli: "
-                , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "darwin"), attribute "aria-label" "Download OS X CLI" ]
-                    [ Html.i [ class "fa fa-apple" ] [] ]
-                , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "windows"), attribute "aria-label" "Download Windows CLI" ]
-                    [ Html.i [ class "fa fa-windows" ] [] ]
-                , Html.a [ href (Concourse.Cli.downloadUrl "amd64" "linux"), attribute "aria-label" "Download Linux CLI" ]
-                    [ Html.i [ class "fa fa-linux" ] [] ]
+                    [ Html.i [ class <| "fa fa-" ++ icon ] [] ]
+    in
+        Html.div
+            [ id "dashboard-info"
+            , style Styles.infoBar
+            ]
+            [ Html.div
+                [ id "legend"
+                , style Styles.legend
+                ]
+              <|
+                List.map legendItem
+                    [ PipelineStatusPending False
+                    , PipelineStatusPaused
+                    ]
+                    ++ [ Html.div [ style Styles.legendItem ]
+                            [ Html.div
+                                [ style
+                                    [ ( "background-image", "url(public/images/ic_running_legend.svg)" )
+                                    , ( "height", "20px" )
+                                    , ( "width", "20px" )
+                                    , ( "background-repeat", "no-repeat" )
+                                    , ( "background-position", "50% 50%" )
+                                    ]
+                                ]
+                                []
+                            , Html.div [ style [ ( "width", "10px" ) ] ] []
+                            , Html.text "running"
+                            ]
+                       ]
+                    ++ List.map legendItem
+                        [ PipelineStatusFailed PipelineStatus.Running
+                        , PipelineStatusErrored PipelineStatus.Running
+                        , PipelineStatusAborted PipelineStatus.Running
+                        , PipelineStatusSucceeded PipelineStatus.Running
+                        ]
+                    ++ [ Html.div
+                            [ style Styles.legendSeparator ]
+                            [ Html.text "|" ]
+                       , toggleView (substate.details == Nothing)
+                       ]
+            , Html.div [ id "concourse-info", style Styles.info ]
+                [ Html.div [ style Styles.infoItem ]
+                    [ Html.text "version: v", substate.teamData |> SubState.apiData |> .version |> Html.text ]
+                , Html.div [ style Styles.infoItem ]
+                    [ Html.span
+                        [ style [ ( "margin-right", "10px" ) ] ]
+                        [ Html.text "cli: " ]
+                    , cliIcon Msgs.OSX hoveredCliIcon
+                    , cliIcon Msgs.Windows hoveredCliIcon
+                    , cliIcon Msgs.Linux hoveredCliIcon
+                    ]
                 ]
             ]
-        ]
 
 
 keyboardHelpView : Html Msg
