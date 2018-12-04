@@ -100,9 +100,18 @@ func (command *TeamsCommand) Execute([]string) error {
 
 	if command.Details {
 		roleComparator := func(i, j int) bool {
-			role1 := getRoleFromTableRow(table.Data[i])
-			role2 := getRoleFromTableRow(table.Data[j])
-			return !accessor.CompareRoles(role2, role1)
+			team1, role1 := getRoleFromTableRow(table.Data[i])
+			team2, role2 := getRoleFromTableRow(table.Data[j])
+
+			if team1 < team2 {
+				return true
+			}
+
+			if team1 == team2 && accessor.CompareRoles(role1, role2) {
+				return true
+			}
+
+			return false
 		}
 
 		sort.SliceStable(table.Data, roleComparator)
@@ -113,6 +122,8 @@ func (command *TeamsCommand) Execute([]string) error {
 	return table.Render(os.Stdout, Fly.PrintTableHeaders)
 }
 
-func getRoleFromTableRow(row ui.TableRow) string {
-	return strings.Split(row[0].Contents, "/")[1]
+func getRoleFromTableRow(row ui.TableRow) (string, string) {
+	team := strings.Split(row[0].Contents, "/")[0]
+	role := strings.Split(row[0].Contents, "/")[1]
+	return team, role
 }
