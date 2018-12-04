@@ -6,8 +6,9 @@ type FlyCommand struct {
 	Help HelpCommand `command:"help" description:"Print this help message"`
 
 	Target       rc.TargetName       `short:"t" long:"target" description:"Concourse target name"`
-	Targets      TargetsCommand      `command:"targets"       alias:"ts"  description:"List saved targets"`
+	Targets      TargetsCommand      `command:"targets" alias:"ts" description:"List saved targets"`
 	DeleteTarget DeleteTargetCommand `command:"delete-target" alias:"dtg" description:"Delete target"`
+	EditTarget   EditTargetCommand   `command:"edit-target" alias:"etg" description:"Edit a target"`
 
 	Version func() `short:"v" long:"version" description:"Print the version of Fly and exit"`
 
