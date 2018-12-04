@@ -13,7 +13,7 @@ func (s *Server) ListJobs(pipeline db.Pipeline) http.Handler {
 	logger := s.logger.Session("list-jobs")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var jobs []atc.Job
+		jobs := []atc.Job{}
 
 		dashboard, err := pipeline.Dashboard()
 
