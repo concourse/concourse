@@ -2,7 +2,7 @@ resources:
 - name: timer
   type: time
   source:
-    interval: 24h
+    interval: 12h
 
 jobs:
 - name: newjob1
