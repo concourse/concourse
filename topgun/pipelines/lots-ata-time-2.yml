@@ -5,7 +5,7 @@ resources:
     interval: 12h
 
 jobs:
-- name: newjob1
+- name: exiter1
   plan:
   - get: timer
     trigger: true
@@ -22,7 +22,7 @@ jobs:
         - |
           exit 2
 
-- name: newjob2
+- name: exiter2
   plan:
   - get: timer
     trigger: true
@@ -39,7 +39,7 @@ jobs:
         - |
           exit 2
 
-- name: newjob3
+- name: exiter3
   plan:
   - get: timer
     trigger: true
@@ -55,7 +55,7 @@ jobs:
         - -c
         - |
           exit 2
-- name: newjob4
+- name: exiter4
   plan:
   - get: timer
     trigger: true
@@ -71,7 +71,7 @@ jobs:
         - -c
         - |
           exit 2
-- name: newjob5
+- name: exiter5
   plan:
   - get: timer
     trigger: true
@@ -87,7 +87,7 @@ jobs:
         - -c
         - |
           exit 2
-- name: newjob6
+- name: exiter6
   plan:
   - get: timer
     trigger: true
@@ -103,7 +103,7 @@ jobs:
         - -c
         - |
           exit 2
-- name: newjob7
+- name: exiter7
   plan:
   - get: timer
     trigger: true
@@ -119,7 +119,7 @@ jobs:
         - -c
         - |
           exit 2
-- name: newjob8
+- name: exiter8
   plan:
   - get: timer
     trigger: true
@@ -135,7 +135,7 @@ jobs:
         - -c
         - |
           exit 2
-- name: newjob9
+- name: exiter9
   plan:
   - get: timer
     trigger: true
@@ -151,7 +151,7 @@ jobs:
         - -c
         - |
           exit 2
-- name: newjob10
+- name: exiter10
   plan:
   - get: timer
     trigger: true
