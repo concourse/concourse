@@ -24,6 +24,7 @@ type ResourceFactory interface {
 		owner db.ContainerOwner,
 		metadata db.ContainerMetadata,
 		containerSpec worker.ContainerSpec,
+		workerSpec worker.WorkerSpec,
 		resourceTypes creds.VersionedResourceTypes,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
 	) (Resource, error)
@@ -39,6 +40,7 @@ func (f *resourceFactory) NewResource(
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
 	containerSpec worker.ContainerSpec,
+	workerSpec worker.WorkerSpec,
 	resourceTypes creds.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (Resource, error) {
@@ -54,6 +56,7 @@ func (f *resourceFactory) NewResource(
 		owner,
 		metadata,
 		containerSpec,
+		workerSpec,
 		resourceTypes,
 	)
 	if err != nil {

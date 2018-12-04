@@ -63,7 +63,8 @@ type ContainerProvider interface {
 		owner db.ContainerOwner,
 		delegate ImageFetchingDelegate,
 		metadata db.ContainerMetadata,
-		spec ContainerSpec,
+		containerSpec ContainerSpec,
+		workerSpec WorkerSpec,
 		resourceTypes creds.VersionedResourceTypes,
 	) (Container, error)
 }
@@ -92,7 +93,8 @@ func (p *containerProvider) FindOrCreateContainer(
 	owner db.ContainerOwner,
 	delegate ImageFetchingDelegate,
 	metadata db.ContainerMetadata,
-	spec ContainerSpec,
+	containerSpec ContainerSpec,
+	workerSpec WorkerSpec,
 	resourceTypes creds.VersionedResourceTypes,
 ) (Container, error) {
 	for {
@@ -141,7 +143,6 @@ func (p *containerProvider) FindOrCreateContainer(
 		if gardenContainer != nil {
 			logger.Debug("found-created-container-in-garden")
 		} else {
-
 			worker := NewGardenWorker(
 				p.gardenClient,
 				p.baggageclaimClient,
@@ -155,8 +156,8 @@ func (p *containerProvider) FindOrCreateContainer(
 				logger,
 				worker,
 				p.volumeClient,
-				spec.ImageSpec,
-				spec.TeamID,
+				containerSpec.ImageSpec,
+				containerSpec.TeamID,
 				delegate,
 				resourceTypes,
 			)
@@ -208,7 +209,7 @@ func (p *containerProvider) FindOrCreateContainer(
 			gardenContainer, err = p.createGardenContainer(
 				logger,
 				creatingContainer,
-				spec,
+				containerSpec,
 				fetchedImage,
 			)
 			if err != nil {

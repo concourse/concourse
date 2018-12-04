@@ -113,12 +113,20 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		Inputs: containerInputs,
 	}
 
+	workerSpec := worker.WorkerSpec{
+		ResourceType:  step.resourceType,
+		Tags:          step.tags,
+		TeamID:        step.build.TeamID(),
+		ResourceTypes: step.resourceTypes,
+	}
+
 	putResource, err := step.resourceFactory.NewResource(
 		ctx,
 		logger,
 		db.NewBuildStepContainerOwner(step.build.ID(), step.planID, step.build.TeamID()),
 		step.containerMetadata,
 		containerSpec,
+		workerSpec,
 		step.resourceTypes,
 		step.delegate,
 	)

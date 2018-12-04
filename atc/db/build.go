@@ -139,8 +139,8 @@ type build struct {
 	drained     bool
 }
 
-var ErrBuildDisappeared = errors.New("build-disappeared-from-db")
-var ErrBuildHasNoPipeline = errors.New("build-has-no-pipeline")
+var ErrBuildDisappeared = errors.New("build disappeared from db")
+var ErrBuildHasNoPipeline = errors.New("build has no pipeline")
 
 func (b *build) ID() int                      { return b.id }
 func (b *build) Name() string                 { return b.name }

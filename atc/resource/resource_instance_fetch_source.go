@@ -110,6 +110,13 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (VersionedSour
 		},
 	}
 
+	workerSpec := worker.WorkerSpec{
+		ResourceType:  string(s.resourceInstance.ResourceType()),
+		Tags:          s.tags,
+		TeamID:        s.teamID,
+		ResourceTypes: s.resourceTypes,
+	}
+
 	resourceFactory := NewResourceFactory(s.worker)
 	resource, err := resourceFactory.NewResource(
 		ctx,
@@ -117,6 +124,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (VersionedSour
 		s.resourceInstance.ContainerOwner(),
 		s.session.Metadata,
 		containerSpec,
+		workerSpec,
 		s.resourceTypes,
 		s.imageFetchingDelegate,
 	)

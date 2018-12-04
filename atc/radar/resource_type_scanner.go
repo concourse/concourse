@@ -218,12 +218,18 @@ func (scanner *resourceTypeScanner) check(
 		return nil
 	}
 
-	resourceSpec := worker.ContainerSpec{
+	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: savedResourceType.Type(),
 		},
 		Tags:   savedResourceType.Tags(),
 		TeamID: scanner.dbPipeline.TeamID(),
+	}
+
+	workerSpec := worker.WorkerSpec{
+		ResourceType:  savedResourceType.Type(),
+		Tags:          savedResourceType.Tags(),
+		ResourceTypes: versionedResourceTypes.Without(savedResourceType.Name()),
 	}
 
 	res, err := scanner.resourceFactory.NewResource(
@@ -233,7 +239,8 @@ func (scanner *resourceTypeScanner) check(
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},
-		resourceSpec,
+		containerSpec,
+		workerSpec,
 		versionedResourceTypes.Without(savedResourceType.Name()),
 		worker.NoopImageFetchingDelegate{},
 	)

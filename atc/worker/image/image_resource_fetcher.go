@@ -236,9 +236,15 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 			ImageSpec: worker.ImageSpec{
 				ResourceType: resourceType.Name,
 			},
-			Tags:   i.worker.Tags(),
 			TeamID: i.teamID,
-		}, i.customTypes,
+			Tags:   i.worker.Tags(),
+		},
+		worker.WorkerSpec{
+			ResourceType:  resourceType.Name,
+			Tags:          i.worker.Tags(),
+			ResourceTypes: i.customTypes,
+		},
+		i.customTypes,
 		worker.NoopImageFetchingDelegate{},
 	)
 	if err != nil {
@@ -288,6 +294,12 @@ func (i *imageResourceFetcher) getLatestVersion(
 		TeamID: i.teamID,
 	}
 
+	workerSpec := worker.WorkerSpec{
+		ResourceType:  i.imageResource.Type,
+		Tags:          i.worker.Tags(),
+		ResourceTypes: i.customTypes,
+	}
+
 	source, err := i.imageResource.Source.Evaluate()
 	if err != nil {
 		return nil, err
@@ -301,6 +313,7 @@ func (i *imageResourceFetcher) getLatestVersion(
 			Type: db.ContainerTypeCheck,
 		},
 		resourceSpec,
+		workerSpec,
 		i.customTypes,
 		i.imageFetchingDelegate,
 	)

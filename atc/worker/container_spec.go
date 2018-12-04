@@ -10,10 +10,11 @@ import (
 )
 
 type WorkerSpec struct {
-	Platform     string
-	ResourceType string
-	Tags         []string
-	TeamID       int
+	Platform      string
+	ResourceType  string
+	Tags          []string
+	TeamID        int
+	ResourceTypes creds.VersionedResourceTypes
 }
 
 type ContainerSpec struct {
@@ -83,15 +84,6 @@ func (cl ContainerLimits) ToGardenLimits() garden.Limits {
 		gardenLimits.Memory = garden.MemoryLimits{LimitInBytes: *cl.Memory}
 	}
 	return gardenLimits
-}
-
-func (spec ContainerSpec) WorkerSpec() WorkerSpec {
-	return WorkerSpec{
-		ResourceType: spec.ImageSpec.ResourceType,
-		Platform:     spec.Platform,
-		Tags:         spec.Tags,
-		TeamID:       spec.TeamID,
-	}
 }
 
 func (spec WorkerSpec) Description() string {

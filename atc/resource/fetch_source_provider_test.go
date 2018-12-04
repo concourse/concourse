@@ -81,13 +81,13 @@ var _ = Describe("FetchSourceProvider", func() {
 			_, err := fetchSourceProvider.Get()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeWorkerClient.SatisfyingCallCount()).To(Equal(1))
-			_, resourceSpec, actualResourceTypes := fakeWorkerClient.SatisfyingArgsForCall(0)
-			Expect(resourceSpec).To(Equal(worker.WorkerSpec{
-				ResourceType: "some-resource-type",
-				Tags:         tags,
-				TeamID:       teamID,
+			_, workerSpec := fakeWorkerClient.SatisfyingArgsForCall(0)
+			Expect(workerSpec).To(Equal(worker.WorkerSpec{
+				ResourceType:  "some-resource-type",
+				Tags:          tags,
+				TeamID:        teamID,
+				ResourceTypes: resourceTypes,
 			}))
-			Expect(actualResourceTypes).To(Equal(resourceTypes))
 		})
 
 		Context("when worker is found for resource types", func() {

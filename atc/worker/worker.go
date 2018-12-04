@@ -166,7 +166,8 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	delegate ImageFetchingDelegate,
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
-	spec ContainerSpec,
+	containerSpec ContainerSpec,
+	workerSpec WorkerSpec,
 	resourceTypes creds.VersionedResourceTypes,
 ) (Container, error) {
 
@@ -176,7 +177,8 @@ func (worker *gardenWorker) FindOrCreateContainer(
 		owner,
 		delegate,
 		metadata,
-		spec,
+		containerSpec,
+		workerSpec,
 		resourceTypes,
 	)
 }
@@ -193,13 +195,13 @@ func (worker *gardenWorker) ActiveVolumes() int {
 	return worker.activeVolumes
 }
 
-func (worker *gardenWorker) Satisfying(logger lager.Logger, spec WorkerSpec, resourceTypes creds.VersionedResourceTypes) (Worker, error) {
+func (worker *gardenWorker) Satisfying(logger lager.Logger, spec WorkerSpec) (Worker, error) {
 	if spec.TeamID != worker.teamID && worker.teamID != 0 {
 		return nil, ErrTeamMismatch
 	}
 
 	if spec.ResourceType != "" {
-		underlyingType := determineUnderlyingTypeName(spec.ResourceType, resourceTypes)
+		underlyingType := determineUnderlyingTypeName(spec.ResourceType, spec.ResourceTypes)
 
 		matchedType := false
 		for _, t := range worker.resourceTypes {
@@ -240,14 +242,6 @@ func determineUnderlyingTypeName(typeName string, resourceTypes creds.VersionedR
 		delete(resourceTypesMap, underlyingTypeName)
 	}
 	return underlyingTypeName
-}
-
-func (worker *gardenWorker) AllSatisfying(logger lager.Logger, spec WorkerSpec, resourceTypes creds.VersionedResourceTypes) ([]Worker, error) {
-	return nil, ErrNotImplemented
-}
-
-func (worker *gardenWorker) RunningWorkers(logger lager.Logger) ([]Worker, error) {
-	return nil, ErrNotImplemented
 }
 
 func (worker *gardenWorker) Description() string {

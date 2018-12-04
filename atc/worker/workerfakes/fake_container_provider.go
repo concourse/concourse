@@ -29,7 +29,7 @@ type FakeContainerProvider struct {
 		result2 bool
 		result3 error
 	}
-	FindOrCreateContainerStub        func(context.Context, lager.Logger, db.ContainerOwner, worker.ImageFetchingDelegate, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes) (worker.Container, error)
+	FindOrCreateContainerStub        func(context.Context, lager.Logger, db.ContainerOwner, worker.ImageFetchingDelegate, db.ContainerMetadata, worker.ContainerSpec, worker.WorkerSpec, creds.VersionedResourceTypes) (worker.Container, error)
 	findOrCreateContainerMutex       sync.RWMutex
 	findOrCreateContainerArgsForCall []struct {
 		arg1 context.Context
@@ -38,7 +38,8 @@ type FakeContainerProvider struct {
 		arg4 worker.ImageFetchingDelegate
 		arg5 db.ContainerMetadata
 		arg6 worker.ContainerSpec
-		arg7 creds.VersionedResourceTypes
+		arg7 worker.WorkerSpec
+		arg8 creds.VersionedResourceTypes
 	}
 	findOrCreateContainerReturns struct {
 		result1 worker.Container
@@ -120,7 +121,7 @@ func (fake *FakeContainerProvider) FindCreatedContainerByHandleReturnsOnCall(i i
 	}{result1, result2, result3}
 }
 
-func (fake *FakeContainerProvider) FindOrCreateContainer(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerOwner, arg4 worker.ImageFetchingDelegate, arg5 db.ContainerMetadata, arg6 worker.ContainerSpec, arg7 creds.VersionedResourceTypes) (worker.Container, error) {
+func (fake *FakeContainerProvider) FindOrCreateContainer(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerOwner, arg4 worker.ImageFetchingDelegate, arg5 db.ContainerMetadata, arg6 worker.ContainerSpec, arg7 worker.WorkerSpec, arg8 creds.VersionedResourceTypes) (worker.Container, error) {
 	fake.findOrCreateContainerMutex.Lock()
 	ret, specificReturn := fake.findOrCreateContainerReturnsOnCall[len(fake.findOrCreateContainerArgsForCall)]
 	fake.findOrCreateContainerArgsForCall = append(fake.findOrCreateContainerArgsForCall, struct {
@@ -130,12 +131,13 @@ func (fake *FakeContainerProvider) FindOrCreateContainer(arg1 context.Context, a
 		arg4 worker.ImageFetchingDelegate
 		arg5 db.ContainerMetadata
 		arg6 worker.ContainerSpec
-		arg7 creds.VersionedResourceTypes
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
-	fake.recordInvocation("FindOrCreateContainer", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+		arg7 worker.WorkerSpec
+		arg8 creds.VersionedResourceTypes
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
+	fake.recordInvocation("FindOrCreateContainer", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
 	fake.findOrCreateContainerMutex.Unlock()
 	if fake.FindOrCreateContainerStub != nil {
-		return fake.FindOrCreateContainerStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+		return fake.FindOrCreateContainerStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -150,17 +152,17 @@ func (fake *FakeContainerProvider) FindOrCreateContainerCallCount() int {
 	return len(fake.findOrCreateContainerArgsForCall)
 }
 
-func (fake *FakeContainerProvider) FindOrCreateContainerCalls(stub func(context.Context, lager.Logger, db.ContainerOwner, worker.ImageFetchingDelegate, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes) (worker.Container, error)) {
+func (fake *FakeContainerProvider) FindOrCreateContainerCalls(stub func(context.Context, lager.Logger, db.ContainerOwner, worker.ImageFetchingDelegate, db.ContainerMetadata, worker.ContainerSpec, worker.WorkerSpec, creds.VersionedResourceTypes) (worker.Container, error)) {
 	fake.findOrCreateContainerMutex.Lock()
 	defer fake.findOrCreateContainerMutex.Unlock()
 	fake.FindOrCreateContainerStub = stub
 }
 
-func (fake *FakeContainerProvider) FindOrCreateContainerArgsForCall(i int) (context.Context, lager.Logger, db.ContainerOwner, worker.ImageFetchingDelegate, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes) {
+func (fake *FakeContainerProvider) FindOrCreateContainerArgsForCall(i int) (context.Context, lager.Logger, db.ContainerOwner, worker.ImageFetchingDelegate, db.ContainerMetadata, worker.ContainerSpec, worker.WorkerSpec, creds.VersionedResourceTypes) {
 	fake.findOrCreateContainerMutex.RLock()
 	defer fake.findOrCreateContainerMutex.RUnlock()
 	argsForCall := fake.findOrCreateContainerArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8
 }
 
 func (fake *FakeContainerProvider) FindOrCreateContainerReturns(result1 worker.Container, result2 error) {

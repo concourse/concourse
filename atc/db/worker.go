@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -13,9 +14,17 @@ import (
 )
 
 var (
-	ErrWorkerNotPresent         = errors.New("worker-not-present-in-db")
-	ErrCannotPruneRunningWorker = errors.New("worker-not-stalled-for-pruning")
+	ErrWorkerNotPresent         = errors.New("worker not present in db")
+	ErrCannotPruneRunningWorker = errors.New("worker not stalled for pruning")
 )
+
+type ContainerOwnerDisappearedError struct {
+	owner ContainerOwner
+}
+
+func (e ContainerOwnerDisappearedError) Error() string {
+	return fmt.Sprintf("container owner %T disappeared", e.owner)
+}
 
 type WorkerState string
 
@@ -302,7 +311,7 @@ func (worker *worker) CreateContainer(owner ContainerOwner, meta ContainerMetada
 		Scan(cols...)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqFKeyViolationErrCode {
-			return nil, ErrBuildDisappeared
+			return nil, ContainerOwnerDisappearedError{owner}
 		}
 
 		return nil, err

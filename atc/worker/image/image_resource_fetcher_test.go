@@ -192,8 +192,9 @@ var _ = Describe("Image", func() {
 
 					It("checks for the latest version of the resource type", func() {
 						By("using the resource factory to find or create a resource container")
-						_, _, _, _, containerSpec, _, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+						_, _, _, _, containerSpec, workerSpec, _, _ := fakeResourceFactory.NewResourceArgsForCall(0)
 						Expect(containerSpec.ImageSpec.ResourceType).To(Equal("custom-type-a"))
+						Expect(workerSpec.ResourceType).To(Equal("custom-type-a"))
 
 						By("calling the resource type's check script")
 						Expect(fakeCheckResourceType.CheckCallCount()).To(Equal(1))
@@ -206,9 +207,10 @@ var _ = Describe("Image", func() {
 
 						It("uses the version of the custom type when checking for the original resource", func() {
 							Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(2))
-							_, _, _, _, containerSpec, customTypes, _ := fakeResourceFactory.NewResourceArgsForCall(1)
+							_, _, _, _, containerSpec, workerSpec, customTypes, _ := fakeResourceFactory.NewResourceArgsForCall(1)
 							Expect(containerSpec.ImageSpec.ResourceType).To(Equal("custom-type-a"))
 							Expect(customTypes[0].Version).To(Equal(atc.Version{"some": "version"}))
+							Expect(workerSpec.ResourceType).To(Equal("custom-type-a"))
 						})
 					})
 				})
@@ -278,13 +280,13 @@ var _ = Describe("Image", func() {
 
 								It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 									Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
-									cctx, _, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
+									cctx, _, owner, metadata, containerSpec, workerSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
 									Expect(cctx).To(Equal(ctx))
 									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
 									Expect(metadata).To(Equal(db.ContainerMetadata{
 										Type: db.ContainerTypeCheck,
 									}))
-									Expect(resourceSpec).To(Equal(worker.ContainerSpec{
+									Expect(containerSpec).To(Equal(worker.ContainerSpec{
 										ImageSpec: worker.ImageSpec{
 											ResourceType: "docker",
 										},
@@ -293,6 +295,12 @@ var _ = Describe("Image", func() {
 									}))
 									Expect(actualCustomTypes).To(Equal(customTypes))
 									Expect(delegate).To(Equal(fakeImageFetchingDelegate))
+									Expect(workerSpec).To(Equal(worker.WorkerSpec{
+										ResourceType:  "docker",
+										Tags:          []string{"worker", "tags"},
+										ResourceTypes: customTypes,
+										TeamID:        0,
+									}))
 								})
 							})
 
@@ -319,18 +327,24 @@ var _ = Describe("Image", func() {
 
 							It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 								Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
-								cctx, _, owner, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
+								cctx, _, owner, metadata, containerSpec, workerSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
 								Expect(cctx).To(Equal(ctx))
 								Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
 								Expect(metadata).To(Equal(db.ContainerMetadata{
 									Type: db.ContainerTypeCheck,
 								}))
-								Expect(resourceSpec).To(Equal(worker.ContainerSpec{
+								Expect(containerSpec).To(Equal(worker.ContainerSpec{
 									ImageSpec: worker.ImageSpec{
 										ResourceType: "docker",
 									},
 									Tags:   []string{"worker", "tags"},
 									TeamID: 123,
+								}))
+								Expect(workerSpec).To(Equal(worker.WorkerSpec{
+									ResourceType:  "docker",
+									Tags:          []string{"worker", "tags"},
+									ResourceTypes: customTypes,
+									TeamID:        0,
 								}))
 								Expect(actualCustomTypes).To(Equal(customTypes))
 								Expect(delegate).To(Equal(fakeImageFetchingDelegate))

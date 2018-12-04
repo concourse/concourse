@@ -16,7 +16,7 @@ import (
 
 const GetResourceLockInterval = 5 * time.Second
 
-var ErrFailedToGetLock = errors.New("failed-to-get-lock")
+var ErrFailedToGetLock = errors.New("failed to get lock")
 var ErrInterrupted = errors.New("interrupted")
 
 //go:generate counterfeiter . Fetcher

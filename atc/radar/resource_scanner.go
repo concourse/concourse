@@ -289,6 +289,12 @@ func (scanner *resourceScanner) check(
 		Env:    metadata.Env(),
 	}
 
+	workerSpec := worker.WorkerSpec{
+		ResourceType:  savedResource.Type(),
+		Tags:          savedResource.Tags(),
+		ResourceTypes: resourceTypes,
+	}
+
 	res, err := scanner.resourceFactory.NewResource(
 		context.Background(),
 		logger,
@@ -297,6 +303,7 @@ func (scanner *resourceScanner) check(
 			Type: db.ContainerTypeCheck,
 		},
 		containerSpec,
+		workerSpec,
 		resourceTypes,
 		worker.NoopImageFetchingDelegate{},
 	)

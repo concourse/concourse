@@ -394,13 +394,20 @@ var _ = Describe("DBProvider", func() {
 			})
 
 			Context("creating the connection to garden", func() {
-				var spec ContainerSpec
+				var (
+					containerSpec ContainerSpec
+					workerSpec    WorkerSpec
+				)
 
 				JustBeforeEach(func() {
-					spec = ContainerSpec{
+					containerSpec = ContainerSpec{
 						ImageSpec: ImageSpec{
 							ResourceType: "some-resource-a",
 						},
+					}
+
+					workerSpec = WorkerSpec{
+						ResourceType: "some-resource-a",
 					}
 
 					fakeContainer := new(gfakes.FakeContainer)
@@ -411,7 +418,7 @@ var _ = Describe("DBProvider", func() {
 
 					By("connecting to the worker")
 					fakeDBWorkerFactory.GetWorkerReturns(fakeWorker1, true, nil)
-					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, spec, nil)
+					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, containerSpec, workerSpec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = container.Destroy()
@@ -456,10 +463,14 @@ var _ = Describe("DBProvider", func() {
 				})
 
 				It("calls through to garden", func() {
-					spec := ContainerSpec{
+					containerSpec := ContainerSpec{
 						ImageSpec: ImageSpec{
 							ResourceType: "some-resource-a",
 						},
+					}
+
+					workerSpec := WorkerSpec{
+						ResourceType: "some-resource-a",
 					}
 
 					fakeContainer := new(gfakes.FakeContainer)
@@ -468,7 +479,7 @@ var _ = Describe("DBProvider", func() {
 					fakeGardenBackend.CreateReturns(fakeContainer, nil)
 					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
-					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, spec, nil)
+					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, containerSpec, workerSpec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(container.Handle()).To(Equal("created-handle"))

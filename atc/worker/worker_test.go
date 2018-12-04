@@ -201,11 +201,6 @@ var _ = Describe("Worker", func() {
 		)
 
 		BeforeEach(func() {
-			spec = WorkerSpec{
-				Tags:   []string{"some", "tags"},
-				TeamID: teamID,
-			}
-
 			variables := template.StaticVariables{}
 
 			customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
@@ -250,10 +245,16 @@ var _ = Describe("Worker", func() {
 					Version: atc.Version{"some": "version"},
 				},
 			})
+
+			spec = WorkerSpec{
+				Tags:          []string{"some", "tags"},
+				TeamID:        teamID,
+				ResourceTypes: customTypes,
+			}
 		})
 
 		JustBeforeEach(func() {
-			satisfyingWorker, satisfyingErr = gardenWorker.Satisfying(logger, spec, customTypes)
+			satisfyingWorker, satisfyingErr = gardenWorker.Satisfying(logger, spec)
 		})
 
 		Context("when the platform is compatible", func() {

@@ -390,17 +390,6 @@ type FakePipeline struct {
 		result1 db.Resources
 		result2 error
 	}
-	ScopedNameStub        func(string) string
-	scopedNameMutex       sync.RWMutex
-	scopedNameArgsForCall []struct {
-		arg1 string
-	}
-	scopedNameReturns struct {
-		result1 string
-	}
-	scopedNameReturnsOnCall map[int]struct {
-		result1 string
-	}
 	TeamIDStub        func() int
 	teamIDMutex       sync.RWMutex
 	teamIDArgsForCall []struct {
@@ -2229,66 +2218,6 @@ func (fake *FakePipeline) ResourcesReturnsOnCall(i int, result1 db.Resources, re
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) ScopedName(arg1 string) string {
-	fake.scopedNameMutex.Lock()
-	ret, specificReturn := fake.scopedNameReturnsOnCall[len(fake.scopedNameArgsForCall)]
-	fake.scopedNameArgsForCall = append(fake.scopedNameArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("ScopedName", []interface{}{arg1})
-	fake.scopedNameMutex.Unlock()
-	if fake.ScopedNameStub != nil {
-		return fake.ScopedNameStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.scopedNameReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakePipeline) ScopedNameCallCount() int {
-	fake.scopedNameMutex.RLock()
-	defer fake.scopedNameMutex.RUnlock()
-	return len(fake.scopedNameArgsForCall)
-}
-
-func (fake *FakePipeline) ScopedNameCalls(stub func(string) string) {
-	fake.scopedNameMutex.Lock()
-	defer fake.scopedNameMutex.Unlock()
-	fake.ScopedNameStub = stub
-}
-
-func (fake *FakePipeline) ScopedNameArgsForCall(i int) string {
-	fake.scopedNameMutex.RLock()
-	defer fake.scopedNameMutex.RUnlock()
-	argsForCall := fake.scopedNameArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakePipeline) ScopedNameReturns(result1 string) {
-	fake.scopedNameMutex.Lock()
-	defer fake.scopedNameMutex.Unlock()
-	fake.ScopedNameStub = nil
-	fake.scopedNameReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakePipeline) ScopedNameReturnsOnCall(i int, result1 string) {
-	fake.scopedNameMutex.Lock()
-	defer fake.scopedNameMutex.Unlock()
-	fake.ScopedNameStub = nil
-	if fake.scopedNameReturnsOnCall == nil {
-		fake.scopedNameReturnsOnCall = make(map[int]struct {
-			result1 string
-		})
-	}
-	fake.scopedNameReturnsOnCall[i] = struct {
-		result1 string
-	}{result1}
-}
-
 func (fake *FakePipeline) TeamID() int {
 	fake.teamIDMutex.Lock()
 	ret, specificReturn := fake.teamIDReturnsOnCall[len(fake.teamIDArgsForCall)]
@@ -2510,8 +2439,6 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.resourceVersionMutex.RUnlock()
 	fake.resourcesMutex.RLock()
 	defer fake.resourcesMutex.RUnlock()
-	fake.scopedNameMutex.RLock()
-	defer fake.scopedNameMutex.RUnlock()
 	fake.teamIDMutex.RLock()
 	defer fake.teamIDMutex.RUnlock()
 	fake.teamNameMutex.RLock()

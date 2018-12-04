@@ -180,12 +180,12 @@ var _ = Describe("ResourceScanner", func() {
 				resourceConfigID := fakeDBResource.SetResourceConfigArgsForCall(0)
 				Expect(resourceConfigID).To(Equal(123))
 
-				_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+				_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))
-				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
+				Expect(containerSpec).To(Equal(worker.ContainerSpec{
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "git",
 					},
@@ -196,6 +196,11 @@ var _ = Describe("ResourceScanner", func() {
 						"RESOURCE_PIPELINE_NAME=some-pipeline",
 						"RESOURCE_NAME=some-resource",
 					},
+				}))
+				Expect(workerSpec).To(Equal(worker.WorkerSpec{
+					ResourceType:  "git",
+					Tags:          atc.Tags{"some-tag"},
+					ResourceTypes: creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{versionedResourceType}),
 				}))
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 					versionedResourceType,
@@ -527,12 +532,12 @@ var _ = Describe("ResourceScanner", func() {
 				resourceConfigID := fakeDBResource.SetResourceConfigArgsForCall(0)
 				Expect(resourceConfigID).To(Equal(123))
 
-				_, _, owner, metadata, resourceSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+				_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))
-				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
+				Expect(containerSpec).To(Equal(worker.ContainerSpec{
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "git",
 					},
@@ -543,6 +548,11 @@ var _ = Describe("ResourceScanner", func() {
 						"RESOURCE_PIPELINE_NAME=some-pipeline",
 						"RESOURCE_NAME=some-resource",
 					},
+				}))
+				Expect(workerSpec).To(Equal(worker.WorkerSpec{
+					ResourceType:  "git",
+					Tags:          atc.Tags{"some-tag"},
+					ResourceTypes: creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{versionedResourceType}),
 				}))
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 					versionedResourceType,

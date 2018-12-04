@@ -177,6 +177,11 @@ func (action *TaskStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
+	workerSpec, err := action.workerSpec(logger, action.resourceTypes, repository, config)
+	if err != nil {
+		return err
+	}
+
 	container, err := action.workerPool.FindOrCreateContainer(
 		ctx,
 		logger,
@@ -184,6 +189,7 @@ func (action *TaskStep) Run(ctx context.Context, state RunState) error {
 		db.NewBuildStepContainerOwner(action.buildID, action.planID, action.teamID),
 		action.containerMetadata,
 		containerSpec,
+		workerSpec,
 		action.resourceTypes,
 	)
 	if err != nil {
@@ -293,19 +299,23 @@ func (action *TaskStep) Succeeded() bool {
 	return action.succeeded
 }
 
-func (action *TaskStep) containerSpec(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig) (worker.ContainerSpec, error) {
+func (action *TaskStep) imageSpec(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig) (worker.ImageSpec, error) {
 	imageSpec := worker.ImageSpec{
 		Privileged: bool(action.privileged),
 	}
 
+	// Determine the source of the container image
+	// a reference to an artifact (get step, task output) ?
 	if action.imageArtifactName != "" {
 		source, found := repository.SourceFor(worker.ArtifactName(action.imageArtifactName))
 		if !found {
-			return worker.ContainerSpec{}, MissingTaskImageSourceError{action.imageArtifactName}
+			return worker.ImageSpec{}, MissingTaskImageSourceError{action.imageArtifactName}
 		}
 
 		imageSpec.ImageArtifactSource = source
 		imageSpec.ImageArtifactName = worker.ArtifactName(action.imageArtifactName)
+
+		//an image_resource
 	} else if config.ImageResource != nil {
 		imageSpec.ImageResource = &worker.ImageResource{
 			Type:    config.ImageResource.Type,
@@ -313,24 +323,16 @@ func (action *TaskStep) containerSpec(logger lager.Logger, repository *worker.Ar
 			Params:  config.ImageResource.Params,
 			Version: config.ImageResource.Version,
 		}
-
+		// a rootfs_uri
 	} else if config.RootfsURI != "" {
 		imageSpec.ImageURL = config.RootfsURI
 	}
 
-	containerSpec := worker.ContainerSpec{
-		Platform:  config.Platform,
-		Tags:      action.tags,
-		TeamID:    action.teamID,
-		ImageSpec: imageSpec,
-		Limits:    worker.ContainerLimits(config.Limits),
-		User:      config.Run.User,
-		Dir:       action.artifactsRoot,
-		Env:       action.envForParams(config.Params),
+	return imageSpec, nil
+}
 
-		Inputs:  []worker.InputSource{},
-		Outputs: worker.OutputPaths{},
-	}
+func (action *TaskStep) containerInputs(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig) ([]worker.InputSource, error) {
+	inputs := []worker.InputSource{}
 
 	var missingRequiredInputs []string
 	for _, input := range config.Inputs {
@@ -347,7 +349,7 @@ func (action *TaskStep) containerSpec(logger lager.Logger, repository *worker.Ar
 			continue
 		}
 
-		containerSpec.Inputs = append(containerSpec.Inputs, &taskInputSource{
+		inputs = append(inputs, &taskInputSource{
 			config:        input,
 			source:        source,
 			artifactsRoot: action.artifactsRoot,
@@ -355,16 +357,44 @@ func (action *TaskStep) containerSpec(logger lager.Logger, repository *worker.Ar
 	}
 
 	if len(missingRequiredInputs) > 0 {
-		return worker.ContainerSpec{}, MissingInputsError{missingRequiredInputs}
+		return nil, MissingInputsError{missingRequiredInputs}
 	}
 
 	for _, cacheConfig := range config.Caches {
 		source := newTaskCacheSource(logger, action.teamID, action.jobID, action.stepName, cacheConfig.Path)
-		containerSpec.Inputs = append(containerSpec.Inputs, &taskCacheInputSource{
+		inputs = append(inputs, &taskCacheInputSource{
 			source:        source,
 			artifactsRoot: action.artifactsRoot,
 			cachePath:     cacheConfig.Path,
 		})
+	}
+
+	return inputs, nil
+}
+
+func (action *TaskStep) containerSpec(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig) (worker.ContainerSpec, error) {
+	imageSpec, err := action.imageSpec(logger, repository, config)
+	if err != nil {
+		return worker.ContainerSpec{}, err
+	}
+
+	containerSpec := worker.ContainerSpec{
+		Platform:  config.Platform,
+		Tags:      action.tags,
+		TeamID:    action.teamID,
+		ImageSpec: imageSpec,
+		Limits:    worker.ContainerLimits(config.Limits),
+		User:      config.Run.User,
+		Dir:       action.artifactsRoot,
+		Env:       action.envForParams(config.Params),
+
+		Inputs:  []worker.InputSource{},
+		Outputs: worker.OutputPaths{},
+	}
+
+	containerSpec.Inputs, err = action.containerInputs(logger, repository, config)
+	if err != nil {
+		return worker.ContainerSpec{}, err
 	}
 
 	for _, output := range config.Outputs {
@@ -373,6 +403,26 @@ func (action *TaskStep) containerSpec(logger lager.Logger, repository *worker.Ar
 	}
 
 	return containerSpec, nil
+}
+
+func (action *TaskStep) workerSpec(logger lager.Logger, resourceTypes creds.VersionedResourceTypes, repository *worker.ArtifactRepository, config atc.TaskConfig) (worker.WorkerSpec, error) {
+	workerSpec := worker.WorkerSpec{
+		Platform:      config.Platform,
+		Tags:          action.tags,
+		TeamID:        action.teamID,
+		ResourceTypes: resourceTypes,
+	}
+
+	imageSpec, err := action.imageSpec(logger, repository, config)
+	if err != nil {
+		return worker.WorkerSpec{}, err
+	}
+
+	if imageSpec.ImageResource != nil {
+		workerSpec.ResourceType = imageSpec.ImageResource.Type
+	}
+
+	return workerSpec, nil
 }
 
 func (action *TaskStep) registerOutputs(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig, container worker.Container) error {
