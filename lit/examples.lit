@@ -1,4 +1,4 @@
-\title{Examples}{Examples}
+\title{Examples}{examples}
 
 \include-section{./examples/job.lit}
 \include-section{./examples/serial-job.lit}
@@ -6,6 +6,7 @@
 \include-section{./examples/time-triggered.lit}
 \include-section{./examples/trigger-then-continue.lit}
 \include-section{./examples/hooks.lit}
+\include-section{./examples/golang.lit}
 
 \split-sections
 \table-of-contents
