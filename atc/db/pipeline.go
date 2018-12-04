@@ -40,7 +40,6 @@ type Pipeline interface {
 	ConfigVersion() ConfigVersion
 	Public() bool
 	Paused() bool
-	ScopedName(string) string
 
 	CheckPaused() (bool, error)
 	Reload() (bool, error)
@@ -153,10 +152,6 @@ func (p *pipeline) Groups() atc.GroupConfigs     { return p.groups }
 func (p *pipeline) ConfigVersion() ConfigVersion { return p.configVersion }
 func (p *pipeline) Public() bool                 { return p.public }
 func (p *pipeline) Paused() bool                 { return p.paused }
-
-func (p *pipeline) ScopedName(n string) string {
-	return p.name + ":" + n
-}
 
 // IMPORTANT: This method is broken with the new resource config versions changes
 func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {

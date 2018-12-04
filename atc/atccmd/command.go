@@ -751,7 +751,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		}},
 		{Name: "pipelines", Runner: pipelines.SyncRunner{
 			Syncer: cmd.constructPipelineSyncer(
-				logger.Session("syncer"),
+				logger.Session("pipelines"),
 				dbPipelineFactory,
 				radarSchedulerFactory,
 				variablesFactory,
@@ -1351,9 +1351,12 @@ func (cmd *RunCommand) constructPipelineSyncer(
 			variables := variablesFactory.NewVariables(pipeline.TeamName(), pipeline.Name())
 			return grouper.NewParallel(os.Interrupt, grouper.Members{
 				{
-					Name: pipeline.ScopedName("radar"),
+					Name: fmt.Sprintf("radar:%d", pipeline.ID()),
 					Runner: radar.NewRunner(
-						logger.Session(pipeline.ScopedName("radar")),
+						logger.Session("radar").WithData(lager.Data{
+							"team":     pipeline.TeamName(),
+							"pipeline": pipeline.Name(),
+						}),
 						cmd.Developer.Noop,
 						radarSchedulerFactory.BuildScanRunnerFactory(pipeline, cmd.ExternalURL.String(), variables),
 						pipeline,
@@ -1361,9 +1364,12 @@ func (cmd *RunCommand) constructPipelineSyncer(
 					),
 				},
 				{
-					Name: pipeline.ScopedName("scheduler"),
+					Name: fmt.Sprintf("scheduler:%d", pipeline.ID()),
 					Runner: &scheduler.Runner{
-						Logger:    logger.Session(pipeline.ScopedName("scheduler")),
+						Logger: logger.Session("scheduler", lager.Data{
+							"team":     pipeline.TeamName(),
+							"pipeline": pipeline.Name(),
+						}),
 						Pipeline:  pipeline,
 						Scheduler: radarSchedulerFactory.BuildScheduler(pipeline, cmd.ExternalURL.String(), variables),
 						Noop:      cmd.Developer.Noop,

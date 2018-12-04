@@ -101,13 +101,13 @@ func (r *Runner) tick(ctx context.Context) error {
 
 func (r *Runner) scanResources(ctx context.Context, resources atc.ResourceConfigs) {
 	for _, resource := range resources {
-		scopedName := r.pipeline.ScopedName("resource:" + resource.Name)
+		scopedName := "resource:" + resource.Name
 		if _, found := r.scanning.Load(scopedName); found {
 			continue
 		}
 
 		logger := r.logger.Session("scan-resource", lager.Data{
-			"pipeline-scoped-name": scopedName,
+			"resource": resource.Name,
 		})
 
 		r.scanningWg.Add(1)
@@ -118,9 +118,7 @@ func (r *Runner) scanResources(ctx context.Context, resources atc.ResourceConfig
 			runner := r.scanRunnerFactory.ScanResourceRunner(logger, name)
 			err := runner.Run(ctx)
 			if err != nil {
-				r.logger.Info("scanresources-runner-error", lager.Data{
-					"error": err,
-				})
+				r.logger.Error("failed-to-run-scan-resource", err)
 			}
 			r.scanning.Delete(scopedName)
 		}(resource.Name, scopedName)
@@ -129,13 +127,13 @@ func (r *Runner) scanResources(ctx context.Context, resources atc.ResourceConfig
 
 func (r *Runner) scanResourceTypes(ctx context.Context, resourceTypes atc.ResourceTypes) {
 	for _, resourceType := range resourceTypes {
-		scopedName := r.pipeline.ScopedName("resource-type:" + resourceType.Name)
+		scopedName := "resource-type:" + resourceType.Name
 		if _, found := r.scanning.Load(scopedName); found {
 			continue
 		}
 
 		logger := r.logger.Session("scan-resource-type", lager.Data{
-			"pipeline-scoped-name": scopedName,
+			"resource-type": resourceType.Name,
 		})
 
 		r.scanningWg.Add(1)
@@ -146,9 +144,7 @@ func (r *Runner) scanResourceTypes(ctx context.Context, resourceTypes atc.Resour
 			runner := r.scanRunnerFactory.ScanResourceTypeRunner(logger, name)
 			err := runner.Run(ctx)
 			if err != nil {
-				r.logger.Info("scanresources-runner-error", lager.Data{
-					"error": err,
-				})
+				r.logger.Error("failed-to-run-scan-resource-type", err)
 			}
 			r.scanning.Delete(scopedName)
 		}(resourceType.Name, scopedName)
