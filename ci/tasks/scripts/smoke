@@ -28,7 +28,7 @@ fi
 
 $DIR/wait-atc
 
-if curl "$ATC_URL/api/v1/cli?arch=amd64&platform=linux" -o /usr/local/bin/fly; then
+if curl "$ATC_URL/api/v1/cli?arch=amd64&platform=linux" --fail -o /usr/local/bin/fly; then
   chmod +x /usr/local/bin/fly
 else
   pushd concourse/fly
