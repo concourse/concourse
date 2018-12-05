@@ -8,6 +8,7 @@
 \include-section{./examples/hooks.lit}
 \include-section{./examples/golang.lit}
 \include-section{./examples/rails.lit}
+\include-section{./examples/nodejs.lit}
 
 \split-sections
 \table-of-contents
