@@ -2,7 +2,7 @@ port module Dashboard exposing (Model, init, subscriptions, update, view)
 
 import Char
 import Concourse
-import Concourse.Cli
+import Concourse.Cli as Cli
 import Concourse.Pipeline
 import Concourse.PipelineStatus
 import Concourse.User
@@ -91,7 +91,7 @@ type alias Model =
     , hoveredPipeline : Maybe Concourse.Pipeline
     , pipelineRunningKeyframes : String
     , groups : List Group.Group
-    , hoveredCliIcon : Maybe Msgs.Cli
+    , hoveredCliIcon : Maybe Cli.Cli
     }
 
 
@@ -489,7 +489,7 @@ toggleView highDensity =
             ]
 
 
-footerView : { substate : SubState.SubState, hoveredCliIcon : Maybe Msgs.Cli } -> List (Html Msg)
+footerView : { substate : SubState.SubState, hoveredCliIcon : Maybe Cli.Cli } -> List (Html Msg)
 footerView { substate, hoveredCliIcon } =
     let
         showHelp =
@@ -518,25 +518,25 @@ legendItem status =
         ]
 
 
-infoView : { substate : SubState.SubState, hoveredCliIcon : Maybe Msgs.Cli } -> Html Msg
+infoView : { substate : SubState.SubState, hoveredCliIcon : Maybe Cli.Cli } -> Html Msg
 infoView { substate, hoveredCliIcon } =
     let
-        cliIcon : Msgs.Cli -> Maybe Msgs.Cli -> Html Msg
+        cliIcon : Cli.Cli -> Maybe Cli.Cli -> Html Msg
         cliIcon cli hoveredCliIcon =
             let
                 ( cliName, ariaText, icon ) =
                     case cli of
-                        Msgs.OSX ->
+                        Cli.OSX ->
                             ( "osx", "OS X", "apple" )
 
-                        Msgs.Windows ->
+                        Cli.Windows ->
                             ( "windows", "Windows", "windows" )
 
-                        Msgs.Linux ->
+                        Cli.Linux ->
                             ( "linux", "Linux", "linux" )
             in
                 Html.a
-                    [ href (Concourse.Cli.downloadUrl "amd64" cliName)
+                    [ href (Cli.downloadUrl "amd64" cliName)
                     , attribute "aria-label" <| "Download " ++ ariaText ++ " CLI"
                     , style <| Styles.infoCliIcon (hoveredCliIcon == Just cli)
                     , id <| "cli-" ++ cliName
@@ -591,9 +591,9 @@ infoView { substate, hoveredCliIcon } =
                     [ Html.span
                         [ style [ ( "margin-right", "10px" ) ] ]
                         [ Html.text "cli: " ]
-                    , cliIcon Msgs.OSX hoveredCliIcon
-                    , cliIcon Msgs.Windows hoveredCliIcon
-                    , cliIcon Msgs.Linux hoveredCliIcon
+                    , cliIcon Cli.OSX hoveredCliIcon
+                    , cliIcon Cli.Windows hoveredCliIcon
+                    , cliIcon Cli.Linux hoveredCliIcon
                     ]
                 ]
             ]

@@ -1,6 +1,7 @@
 module DashboardTests exposing (all)
 
 import Concourse
+import Concourse.Cli as Cli
 import Dashboard
 import Dashboard.APIData as APIData
 import Dashboard.Msgs as Msgs
@@ -1283,7 +1284,7 @@ all =
                                         , containing [ tag "i", class "fa-apple" ]
                                         ]
                                     }
-                                , mouseEnterMsg = Msgs.CliHover <| Just Msgs.OSX
+                                , mouseEnterMsg = Msgs.CliHover <| Just Cli.OSX
                                 , mouseLeaveMsg = Msgs.CliHover Nothing
                                 , hoveredSelector =
                                     { description = "white apple icon"
@@ -1309,7 +1310,7 @@ all =
                                         , containing [ tag "i", class "fa-windows" ]
                                         ]
                                     }
-                                , mouseEnterMsg = Msgs.CliHover <| Just Msgs.Windows
+                                , mouseEnterMsg = Msgs.CliHover <| Just Cli.Windows
                                 , mouseLeaveMsg = Msgs.CliHover Nothing
                                 , hoveredSelector =
                                     { description = "white windows icon"
@@ -1335,7 +1336,7 @@ all =
                                         , containing [ tag "i", class "fa-linux" ]
                                         ]
                                     }
-                                , mouseEnterMsg = Msgs.CliHover <| Just Msgs.Linux
+                                , mouseEnterMsg = Msgs.CliHover <| Just Cli.Linux
                                 , mouseLeaveMsg = Msgs.CliHover Nothing
                                 , hoveredSelector =
                                     { description = "white linux icon"
