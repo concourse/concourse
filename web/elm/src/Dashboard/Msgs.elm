@@ -8,6 +8,7 @@ import Keyboard
 import NewTopBar
 import RemoteData
 import Time
+import Window
 
 
 type Msg
@@ -28,3 +29,4 @@ type Msg
     | TogglePipelinePaused Concourse.Pipeline
     | PipelineButtonHover (Maybe Concourse.Pipeline)
     | CliHover (Maybe Cli.Cli)
+    | ScreenResized Window.Size

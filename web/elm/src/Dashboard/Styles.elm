@@ -142,23 +142,33 @@ pipelineCardTransitionAge status =
     ]
 
 
-infoBar : List ( String, String )
-infoBar =
-    [ ( "height", "50px" )
-    , ( "position", "fixed" )
-    , ( "bottom", "0" )
-    , ( "background-color", Colors.frame )
-    , ( "width", "100%" )
-    , ( "display", "flex" )
-    , ( "justify-content", "space-between" )
-    , ( "align-items", "center" )
-    ]
+infoBar : Int -> List ( String, String )
+infoBar screenWidth =
+    let
+        styleList : List ( a, Bool ) -> List a
+        styleList =
+            List.filter Tuple.second >> List.map Tuple.first
+    in
+        ([ ( "position", "fixed" )
+         , ( "bottom", "0" )
+         , ( "line-height", "35px" )
+         , ( "padding", "7.5px 30px" )
+         , ( "background-color", Colors.frame )
+         , ( "width", "100%" )
+         , ( "box-sizing", "border-box" )
+         , ( "display", "flex" )
+         , ( "justify-content", "space-between" )
+         ]
+            ++ styleList
+                [ ( ( "flex-direction", "column" ), screenWidth <= 1230 )
+                ]
+        )
 
 
 legend : List ( String, String )
 legend =
     [ ( "display", "flex" )
-    , ( "padding-left", "30px" )
+    , ( "flex-wrap", "wrap" )
     ]
 
 

@@ -92,6 +92,7 @@ type alias Model =
     , pipelineRunningKeyframes : String
     , groups : List Group.Group
     , hoveredCliIcon : Maybe Cli.Cli
+    , screenWidth : Int
     }
 
 
@@ -120,12 +121,14 @@ init ports flags =
           , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
           , groups = []
           , hoveredCliIcon = Nothing
+          , screenWidth = 1234
           }
         , Cmd.batch
             [ fetchData
             , Cmd.map TopBarMsg topBarMsg
             , Group.pinTeamNames Group.stickyHeaderConfig
             , ports.title <| "Dashboard" ++ " - "
+            , Task.perform ScreenResized Window.size
             ]
         )
 
@@ -355,6 +358,9 @@ update msg model =
             CliHover state ->
                 ( { model | hoveredCliIcon = state }, Cmd.none )
 
+            ScreenResized size ->
+                ( { model | screenWidth = size.width }, Cmd.none )
+
 
 orderPipelines : String -> List Pipeline.PipelineWithJobs -> Concourse.CSRFToken -> Cmd Msg
 orderPipelines teamName pipelines csrfToken =
@@ -388,6 +394,7 @@ subscriptions model =
         , Keyboard.presses KeyPressed
         , Keyboard.downs KeyDowns
         , Window.resizes (TopBarMsg << NewTopBar.ScreenResized)
+        , Window.resizes Msgs.ScreenResized
         ]
 
 
@@ -428,6 +435,7 @@ dashboardView model =
                         ++ footerView
                             { substate = substate
                             , hoveredCliIcon = model.hoveredCliIcon
+                            , screenWidth = model.screenWidth
                             }
     in
         Html.div
@@ -489,8 +497,13 @@ toggleView highDensity =
             ]
 
 
-footerView : { substate : SubState.SubState, hoveredCliIcon : Maybe Cli.Cli } -> List (Html Msg)
-footerView { substate, hoveredCliIcon } =
+footerView :
+    { substate : SubState.SubState
+    , hoveredCliIcon : Maybe Cli.Cli
+    , screenWidth : Int
+    }
+    -> List (Html Msg)
+footerView { substate, hoveredCliIcon, screenWidth } =
     let
         showHelp =
             substate.details |> Maybe.map .showHelp |> Maybe.withDefault False
@@ -501,6 +514,7 @@ footerView { substate, hoveredCliIcon } =
             [ infoView
                 { substate = substate
                 , hoveredCliIcon = hoveredCliIcon
+                , screenWidth = screenWidth
                 }
             ]
         else
@@ -518,9 +532,24 @@ legendItem status =
         ]
 
 
-infoView : { substate : SubState.SubState, hoveredCliIcon : Maybe Cli.Cli } -> Html Msg
-infoView { substate, hoveredCliIcon } =
+infoView :
+    { substate : SubState.SubState
+    , hoveredCliIcon : Maybe Cli.Cli
+    , screenWidth : Int
+    }
+    -> Html Msg
+infoView { substate, hoveredCliIcon, screenWidth } =
     let
+        legendSeparator : Int -> List (Html Msg)
+        legendSeparator screenWidth =
+            if screenWidth > 812 then
+                [ Html.div
+                    [ style Styles.legendSeparator ]
+                    [ Html.text "|" ]
+                ]
+            else
+                []
+
         cliIcon : Cli.Cli -> Maybe Cli.Cli -> Html Msg
         cliIcon cli hoveredCliIcon =
             let
@@ -547,7 +576,7 @@ infoView { substate, hoveredCliIcon } =
     in
         Html.div
             [ id "dashboard-info"
-            , style Styles.infoBar
+            , style <| Styles.infoBar screenWidth
             ]
             [ Html.div
                 [ id "legend"
@@ -579,11 +608,8 @@ infoView { substate, hoveredCliIcon } =
                         , PipelineStatusAborted PipelineStatus.Running
                         , PipelineStatusSucceeded PipelineStatus.Running
                         ]
-                    ++ [ Html.div
-                            [ style Styles.legendSeparator ]
-                            [ Html.text "|" ]
-                       , toggleView (substate.details == Nothing)
-                       ]
+                    ++ legendSeparator screenWidth
+                    ++ [ toggleView (substate.details == Nothing) ]
             , Html.div [ id "concourse-info", style Styles.info ]
                 [ Html.div [ style Styles.infoItem ]
                     [ Html.text "version: v", substate.teamData |> SubState.apiData |> .version |> Html.text ]

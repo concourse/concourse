@@ -902,14 +902,16 @@ all =
                         |> Query.find [ id "dashboard-info" ]
                         |> Query.has
                             [ style
-                                [ ( "height", "50px" )
+                                [ ( "line-height", "35px" )
+                                , ( "padding", "7.5px 30px" )
                                 , ( "position", "fixed" )
                                 , ( "bottom", "0" )
                                 , ( "background-color", almostBlack )
                                 , ( "width", "100%" )
+                                , ( "box-sizing", "border-box" )
                                 ]
                             ]
-            , test "lays out contents horizontally, centering vertically, maximizing space between children" <|
+            , test "lays out contents horizontally, maximizing space between children" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
@@ -919,7 +921,6 @@ all =
                             [ style
                                 [ ( "display", "flex" )
                                 , ( "justify-content", "space-between" )
-                                , ( "align-items", "center" )
                                 ]
                             ]
             , test "two children are legend and concourse-info" <|
@@ -934,8 +935,21 @@ all =
                             , Query.index 0 >> Query.has [ id "legend" ]
                             , Query.index 1 >> Query.has [ id "concourse-info" ]
                             ]
+            , test "lays out children on two lines when view width is below 1230px" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> Dashboard.update (Msgs.ScreenResized { width = 1229, height = 300 })
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find [ id "dashboard-info" ]
+                        |> Query.has
+                            [ style
+                                [ ( "flex-direction", "column" )
+                                ]
+                            ]
             , describe "legend"
-                [ test "lays out contents horizontally with 30px left side padding" <|
+                [ test "lays out contents horizontally" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
@@ -944,7 +958,6 @@ all =
                             |> Query.has
                                 [ style
                                     [ ( "display", "flex" )
-                                    , ( "padding-left", "30px" )
                                     ]
                                 ]
                 , test "shows pipeline statuses" <|
@@ -1013,6 +1026,29 @@ all =
                             |> Query.children []
                             |> Query.index -2
                             |> Query.has [ style [ ( "display", "flex" ), ( "align-items", "center" ) ] ]
+                , test "the legend separator is gone when the window width is below 812px" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> Dashboard.update (Msgs.ScreenResized { width = 800, height = 300 })
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ id "legend" ]
+                            |> Expect.all
+                                [ Query.hasNot [ text "|" ]
+                                , Query.children [] >> Query.count (Expect.equal 8)
+                                ]
+                , test "legend items wrap when window width is below 812px" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> Dashboard.update (Msgs.ScreenResized { width = 800, height = 300 })
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ id "legend" ]
+                            |> Query.has
+                                [ style [ ( "flex-wrap", "wrap" ) ]
+                                ]
                 , test "legend items lay out contents horizontally, centered vertically in grey caps" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
@@ -1188,7 +1224,11 @@ all =
                     [ test "lays out contents horizontally" <|
                         \_ ->
                             info
-                                |> Query.has [ style [ ( "display", "flex" ) ] ]
+                                |> Query.has
+                                    [ style
+                                        [ ( "display", "flex" )
+                                        ]
+                                    ]
                     , test "displays info in a grey color" <|
                         \_ ->
                             info
