@@ -15,40 +15,40 @@
 	\codeblock{yaml}{{{
 ---
 resources:
-- name: mock-resource-git
-  type: git
-  source:
-    uri: https://github.com/concourse/mock-resource
+  - name: mock-resource-git
+    type: git
+    source:
+      uri: https://github.com/concourse/mock-resource
 
-- name: dockerhub-edge
-  type: docker-image
-  source:
-    tag: example-edge
-    repository: concourse/docs
-    email: ((DOCKERHUB_EMAIL))
-    username: ((DOCKERHUB_USERNAME))
-    password: ((DOCKERHUB_PASSWORD))
+  - name: dockerhub-edge
+    type: docker-image
+    source:
+      tag: example-edge
+      repository: concourse/docs
+      email: ((DOCKERHUB_EMAIL))
+      username: ((DOCKERHUB_USERNAME))
+      password: ((DOCKERHUB_PASSWORD))
 
 jobs:
-- name: build-image
-  plan:
-    - get: mock-resource-git
-      trigger: true
-    - put: dockerhub-edge
-      params:
-        build: mock-resource-git
-- name: test-image
-  plan:
-    - get: dockerhub-edge
-      passed: [build-image]
-      trigger: true
-    - task: test-image
-      image: dockerhub-edge
-      config:
-        platform: linux
-        run:
-          path: ls
-          args: ["-la"]
+  - name: build-image
+    plan:
+      - get: mock-resource-git
+        trigger: true
+      - put: dockerhub-edge
+        params:
+          build: mock-resource-git
+  - name: test-image
+    plan:
+      - get: dockerhub-edge
+        passed: [build-image]
+        trigger: true
+      - task: test-image
+        image: dockerhub-edge
+        config:
+          platform: linux
+          run:
+            path: ls
+            args: ["-la"]
 	}}}
 }
 

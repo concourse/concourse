@@ -15,28 +15,28 @@
 	\codeblock{yaml}{{{
 ---
 jobs:
-- name: ((first))-job
-  plan:
-    - task: simple-task
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source: { repository: busybox }
-        run:
-          path: echo
-          args: ["Hello, ((hello))!"]
-- name: level-((number))-job
-  plan:
-    - task: simple-task
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source: { repository: busybox }
-        run:
-          path: echo
-          args: ["Hello, ((hello))!"]
+  - name: ((first))-job
+    plan:
+      - task: simple-task
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: { repository: busybox }
+          run:
+            path: echo
+            args: ["Hello, ((hello))!"]
+  - name: level-((number))-job
+    plan:
+      - task: simple-task
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: { repository: busybox }
+          run:
+            path: echo
+            args: ["Hello, ((hello))!"]
 	}}}
 }
 
@@ -46,7 +46,7 @@ jobs:
 ---
 first: initial
 number: 9000
-hello: HAL 
+hello: HAL
 	}}}
 }
 

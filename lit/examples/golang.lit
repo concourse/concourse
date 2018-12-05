@@ -14,6 +14,12 @@
   \title{Pipeline Configuration}{configuration}
 	\codeblock{yaml}{{{
 ---
+resources:
+  - name: golang-mock-git
+    type: git
+    source:
+      uri: https://github.com/golang/mock.git
+
 task-config: &task-config
   platform: linux
   inputs:
@@ -22,51 +28,45 @@ task-config: &task-config
   run:
     path: /bin/sh
     args:
-    - -c
-    - |
-      SRCPATH=$PWD/go/src/github.com/golang/mock
-      GOPATH=$PWD/go
-      cd $SRCPATH
-      go get -t -v ./...
-      go test -v ./...
-
-resources:
-  - name: golang-mock-git
-    type: git
-    source:
-      uri: https://github.com/golang/mock.git
+      - -c
+      - |
+        SRCPATH=$PWD/go/src/github.com/golang/mock
+        GOPATH=$PWD/go
+        cd $SRCPATH
+        go get -t -v ./...
+        go test -v ./...
 
 jobs:
-- name: golang-1.11
-  plan:
-    - get: golang-mock-git
-      trigger: true
-    - task: run-tests
-      config:
-        << : *task-config
-        image_resource:
-          type: registry-image
-          source: { repository: golang, tag: 1.11-stretch }
-- name: golang-1.10
-  plan:
-    - get: golang-mock-git
-      trigger: true
-    - task: run-tests
-      config:
-        << : *task-config
-        image_resource:
-          type: registry-image
-          source: { repository: golang, tag: 1.10-stretch }
-- name: golang-1.9
-  plan:
-    - get: golang-mock-git
-      trigger: true
-    - task: run-tests
-      config:
-        << : *task-config
-        image_resource:
-          type: registry-image
-          source: { repository: golang, tag: 1.9-stretch }
+  - name: golang-1.11
+    plan:
+      - get: golang-mock-git
+        trigger: true
+      - task: run-tests
+        config:
+          << : *task-config
+          image_resource:
+            type: registry-image
+            source: { repository: golang, tag: 1.11-stretch }
+  - name: golang-1.10
+    plan:
+      - get: golang-mock-git
+        trigger: true
+      - task: run-tests
+        config:
+          << : *task-config
+          image_resource:
+            type: registry-image
+            source: { repository: golang, tag: 1.10-stretch }
+  - name: golang-1.9
+    plan:
+      - get: golang-mock-git
+        trigger: true
+      - task: run-tests
+        config:
+          << : *task-config
+          image_resource:
+            type: registry-image
+            source: { repository: golang, tag: 1.9-stretch }
 	}}}
 }
 

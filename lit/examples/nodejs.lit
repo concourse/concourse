@@ -14,8 +14,6 @@
   \title{Pipeline Configuration}{configuration}
 	\codeblock{yaml}{{{
 ---
-task-config: &task-config
-
 resources:
   - name: nodejs.org-git
     type: git
@@ -23,28 +21,28 @@ resources:
       uri: https://github.com/nodejs/nodejs.org.git
 
 jobs:
-- name: test
-  plan:
-    - get: nodejs.org-git
-      trigger: true
-    - task: run-tests
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source: { repository: node, tag: "8" }
-        inputs:
-          - name: nodejs.org-git
-        run:
-          path: /bin/sh
-          args:
-          - -c
-          - |
-            echo "Node Version: $(node --version)"
-            echo "NPM Version: $(npm --version)"
-            cd nodejs.org-git
-            npm install
-            npm test
+  - name: test
+    plan:
+      - get: nodejs.org-git
+        trigger: true
+      - task: run-tests
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: { repository: node, tag: "8" }
+          inputs:
+            - name: nodejs.org-git
+          run:
+            path: /bin/sh
+            args:
+              - -c
+              - |
+                echo "Node Version: $(node --version)"
+                echo "NPM Version: $(npm --version)"
+                cd nodejs.org-git
+                npm install
+                npm test
 	}}}
 }
 

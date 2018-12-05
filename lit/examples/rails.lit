@@ -30,35 +30,35 @@ task-config: &task-config
   run:
     path: /bin/bash
     args:
-    - -c
-    - |
-      echo "=== Setting up Postgres..."
-      apt-get update
-      apt-get install -y postgresql libpq-dev cmake nodejs
-      cat > /etc/postgresql/*/main/pg_hba.conf <<-EOF
-      host   all   postgres   localhost   trust
-      EOF
-      service postgresql restart
-      echo "=== Project requires that we clone rails... "
-      cd rails-contributors-git
-      git clone --mirror https://github.com/rails/rails
-      echo "=== Installing Gems..."
-      bundle install
-      echo "=== Running Tests..."
-      bundle exec rails db:setup
-      bundle exec rails test
+      - -c
+      - |
+        echo "=== Setting up Postgres..."
+        apt-get update
+        apt-get install -y postgresql libpq-dev cmake nodejs
+        cat > /etc/postgresql/*/main/pg_hba.conf <<-EOF
+        host   all   postgres   localhost   trust
+        EOF
+        service postgresql restart
+        echo "=== Project requires that we clone rails... "
+        cd rails-contributors-git
+        git clone --mirror https://github.com/rails/rails
+        echo "=== Installing Gems..."
+        bundle install
+        echo "=== Running Tests..."
+        bundle exec rails db:setup
+        bundle exec rails test
 
 jobs:
-- name: test
-  plan:
-    - get: rails-contributors-git
-      trigger: true
-    - task: run-tests
-      config:
-        << : *task-config
-        image_resource:
-          type: registry-image
-          source: { repository: ruby, tag: 2.5.1 }
+  - name: test
+    plan:
+      - get: rails-contributors-git
+        trigger: true
+      - task: run-tests
+        config:
+          << : *task-config
+          image_resource:
+            type: registry-image
+            source: { repository: ruby, tag: 2.5.1 }
 	}}}
 }
 

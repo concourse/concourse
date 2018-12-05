@@ -15,27 +15,27 @@
 	\codeblock{yaml}{{{
 ---
 resources:
-- name: concourse-docs-git
-  type: git
-  source:
-    uri: https://github.com/concourse/docs
+  - name: concourse-docs-git
+    type: git
+    source:
+      uri: https://github.com/concourse/docs
 
 jobs:
-- name: job
-  plan:
-  - get: concourse-docs-git
-    trigger: true
-  - task: list-files
-    config:
-      inputs:
-        - name: concourse-docs-git
-      platform: linux
-      image_resource:
-        type: registry-image
-        source: { repository: busybox }
-      run:
-        path: ls
-        args: ["-la", "./concourse-docs-git"]
+  - name: job
+    plan:
+      - get: concourse-docs-git
+        trigger: true
+      - task: list-files
+        config:
+          inputs:
+            - name: concourse-docs-git
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: { repository: busybox }
+          run:
+            path: ls
+            args: ["-la", "./concourse-docs-git"]
 }}}
 }
 
