@@ -7,6 +7,7 @@
 \include-section{./examples/trigger-then-continue.lit}
 \include-section{./examples/hooks.lit}
 \include-section{./examples/golang.lit}
+\include-section{./examples/rails.lit}
 
 \split-sections
 \table-of-contents
