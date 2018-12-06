@@ -1,7 +1,5 @@
 module Dashboard.SubState exposing (..)
 
-import Concourse
-import Dashboard.APIData as APIData
 import Dashboard.Details as Details
 import Monocle.Optional
 import Monocle.Lens
@@ -11,7 +9,6 @@ import Time exposing (Time)
 
 type alias SubState =
     { details : Maybe Details.Details
-    , teamData : TeamData
     , hideFooter : Bool
     , hideFooterCounter : Time
     , csrfToken : String
@@ -26,11 +23,6 @@ detailsOptional =
 detailsLens : Monocle.Lens.Lens SubState (Maybe Details.Details)
 detailsLens =
     Monocle.Lens.Lens .details (\d ss -> { ss | details = d })
-
-
-teamDataLens : Monocle.Lens.Lens SubState TeamData
-teamDataLens =
-    Monocle.Lens.Lens .teamData (\td ss -> { ss | teamData = td })
 
 
 hideFooterLens : Monocle.Lens.Lens SubState Bool
@@ -60,45 +52,3 @@ updateFooter counter =
         hideFooterLens.set True
     else
         hideFooterCounterLens.set (counter + Time.second)
-
-
-type TeamData
-    = Unauthenticated
-        { apiData : APIData.APIData
-        }
-    | Authenticated
-        { apiData : APIData.APIData
-        , user : Concourse.User
-        }
-
-
-teamData : APIData.APIData -> Maybe Concourse.User -> TeamData
-teamData apiData user =
-    user
-        |> Maybe.map (\u -> Authenticated { apiData = apiData, user = u })
-        |> Maybe.withDefault (Unauthenticated { apiData = apiData })
-
-
-apiDataLens : Monocle.Lens.Lens TeamData APIData.APIData
-apiDataLens =
-    Monocle.Lens.Lens apiData setApiData
-
-
-apiData : TeamData -> APIData.APIData
-apiData teamData =
-    case teamData of
-        Unauthenticated { apiData } ->
-            apiData
-
-        Authenticated { apiData } ->
-            apiData
-
-
-setApiData : APIData.APIData -> TeamData -> TeamData
-setApiData apiData teamData =
-    case teamData of
-        Unauthenticated _ ->
-            Unauthenticated { apiData = apiData }
-
-        Authenticated { user } ->
-            Authenticated { apiData = apiData, user = user }

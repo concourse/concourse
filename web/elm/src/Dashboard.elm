@@ -94,6 +94,8 @@ type alias Model =
     , groups : List Group.Group
     , hoveredCliIcon : Maybe Cli.Cli
     , screenSize : ScreenSize.ScreenSize
+    , version : String
+    , user : Maybe Concourse.User
     }
 
 
@@ -123,6 +125,8 @@ init ports flags =
           , groups = []
           , hoveredCliIcon = Nothing
           , screenSize = ScreenSize.Desktop
+          , version = ""
+          , user = Nothing
           }
         , Cmd.batch
             [ fetchData
@@ -161,8 +165,7 @@ substate csrfToken highDensity ( now, ( apiData, user ) ) =
         |> List.head
         |> Maybe.map
             (always
-                { teamData = SubState.teamData apiData user
-                , details =
+                { details =
                     if highDensity then
                         Nothing
                     else
@@ -209,14 +212,15 @@ update msg model =
                                 model
                                     |> Monocle.Lens.modify stateLens
                                         (Result.map
-                                            (.set SubState.teamDataLens (SubState.teamData apiData user)
-                                                >> .set (SubState.detailsOptional =|> Details.nowLens) now
-                                                >> Ok
-                                            )
+                                            (.set (SubState.detailsOptional =|> Details.nowLens) now >> Ok)
                                             >> Result.withDefault (substate model.csrfToken model.highDensity ( now, ( apiData, user ) ))
                                         )
                         in
-                            { newModel | groups = Group.groups apiData }
+                            { newModel
+                                | groups = Group.groups apiData
+                                , version = apiData.version
+                                , user = user
+                            }
                 )
                     |> noop
 
@@ -321,6 +325,10 @@ update msg model =
                                 Group.dragIndexOptional
                                 Group.dropIndexOptional
 
+                    groupsLens : Monocle.Lens.Lens Model (List Group.Group)
+                    groupsLens =
+                        Monocle.Lens.Lens .groups (\b a -> { a | groups = b })
+
                     groupOptional : Monocle.Optional.Optional Model Group.Group
                     groupOptional =
                         (substateOptional
@@ -329,11 +337,8 @@ update msg model =
                             => Group.teamNameOptional
                         )
                             >>= (\teamName ->
-                                    substateOptional
-                                        =|> SubState.teamDataLens
-                                        =|> SubState.apiDataLens
-                                        =|> Group.groupsLens
-                                        => Group.findGroupOptional teamName
+                                    groupsLens
+                                        <|= Group.findGroupOptional teamName
                                 )
 
                     bigOptional : Monocle.Optional.Optional Model ( ( Group.PipelineIndex, Group.PipelineIndex ), Group.Group )
@@ -430,6 +435,7 @@ dashboardView model =
                             , query = (NewTopBar.query model.topBar)
                             , hoveredPipeline = model.hoveredPipeline
                             , pipelineRunningKeyframes = model.pipelineRunningKeyframes
+                            , user = model.user
                             }
                         )
                     ]
@@ -437,6 +443,7 @@ dashboardView model =
                             { substate = substate
                             , hoveredCliIcon = model.hoveredCliIcon
                             , screenSize = model.screenSize
+                            , version = model.version
                             }
     in
         Html.div
@@ -502,9 +509,10 @@ footerView :
     { substate : SubState.SubState
     , hoveredCliIcon : Maybe Cli.Cli
     , screenSize : ScreenSize.ScreenSize
+    , version : String
     }
     -> List (Html Msg)
-footerView { substate, hoveredCliIcon, screenSize } =
+footerView { substate, hoveredCliIcon, screenSize, version } =
     let
         showHelp =
             substate.details |> Maybe.map .showHelp |> Maybe.withDefault False
@@ -516,6 +524,7 @@ footerView { substate, hoveredCliIcon, screenSize } =
                 { substate = substate
                 , hoveredCliIcon = hoveredCliIcon
                 , screenSize = screenSize
+                , version = version
                 }
             ]
         else
@@ -537,9 +546,10 @@ infoView :
     { substate : SubState.SubState
     , hoveredCliIcon : Maybe Cli.Cli
     , screenSize : ScreenSize.ScreenSize
+    , version : String
     }
     -> Html Msg
-infoView { substate, hoveredCliIcon, screenSize } =
+infoView { substate, hoveredCliIcon, screenSize, version } =
     let
         legendSeparator : ScreenSize.ScreenSize -> List (Html Msg)
         legendSeparator screenSize =
@@ -621,7 +631,7 @@ infoView { substate, hoveredCliIcon, screenSize } =
                     ++ [ toggleView (substate.details == Nothing) ]
             , Html.div [ id "concourse-info", style Styles.info ]
                 [ Html.div [ style Styles.infoItem ]
-                    [ Html.text "version: v", substate.teamData |> SubState.apiData |> .version |> Html.text ]
+                    [ Html.text <| "version: v" ++ version ]
                 , Html.div [ style Styles.infoItem ]
                     [ Html.span
                         [ style [ ( "margin-right", "10px" ) ] ]
@@ -665,9 +675,10 @@ pipelinesView :
     , hoveredPipeline : Maybe Concourse.Pipeline
     , pipelineRunningKeyframes : String
     , query : String
+    , user : Maybe Concourse.User
     }
     -> List (Html Msg)
-pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, query } =
+pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, query, user } =
     let
         filteredGroups =
             groups |> filter query
@@ -684,8 +695,8 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
         groupViews =
             case substate.details of
                 Just details ->
-                    case substate.teamData of
-                        SubState.Unauthenticated _ ->
+                    case user of
+                        Nothing ->
                             List.map
                                 (\g ->
                                     Group.view
@@ -700,7 +711,7 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
                                 )
                                 groupsToDisplay
 
-                        SubState.Authenticated { user } ->
+                        Just user ->
                             List.map
                                 (\g ->
                                     Group.view
@@ -716,8 +727,8 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
                                 (GroupWithTag.addTagsAndSort user groupsToDisplay)
 
                 Nothing ->
-                    case substate.teamData of
-                        SubState.Unauthenticated _ ->
+                    case user of
+                        Nothing ->
                             List.map
                                 (\g ->
                                     Group.hdView
@@ -728,7 +739,7 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
                                 )
                                 groupsToDisplay
 
-                        SubState.Authenticated { user } ->
+                        Just user ->
                             List.map
                                 (\g ->
                                     Group.hdView

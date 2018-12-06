@@ -1704,6 +1704,21 @@ all =
                                     }
                                 }
                             ]
+                    , test "shows concourse version" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated
+                                    { teams =
+                                        [ { id = 0, name = "team" } ]
+                                    , pipelines =
+                                        [ onePipeline "team" ]
+                                    , jobs = []
+                                    , resources = []
+                                    , version = "1.2.3"
+                                    }
+                                |> queryView
+                                |> Query.find [ id "concourse-info" ]
+                                |> Query.has [ text "v1.2.3" ]
                     ]
             , test "hides after 6 seconds" <|
                 \_ ->
