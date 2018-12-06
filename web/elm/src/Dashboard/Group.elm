@@ -484,11 +484,6 @@ pipelineNotSetView =
         ]
 
 
-headerView : Group -> List (Html Msg)
-headerView group =
-    [ Html.div [ class "dashboard-team-name" ] [ Html.text group.teamName ] ]
-
-
 pipelineDropAreaView : DragState -> DropState -> String -> Int -> Html Msg
 pipelineDropAreaView dragState dropState teamName index =
     let

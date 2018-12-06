@@ -1,7 +1,6 @@
 module Dashboard.Msgs exposing (Msg(..))
 
 import Concourse.Cli as Cli
-import Concourse
 import Dashboard.APIData as APIData
 import Dashboard.Models as Models
 import Http
