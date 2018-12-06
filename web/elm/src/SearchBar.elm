@@ -22,16 +22,28 @@ screenSizeChanged :
     -> SearchBar
 screenSizeChanged { oldSize, newSize } searchBar =
     case ( searchBar, newSize ) of
-        ( Expanded r, _ ) ->
-            case ( oldSize, newSize ) of
-                ( ScreenSize.Desktop, ScreenSize.Mobile ) ->
+        ( Expanded r, ScreenSize.Mobile ) ->
+            case oldSize of
+                ScreenSize.Desktop ->
                     if String.isEmpty r.query then
                         Collapsed
                     else
                         Expanded r
 
-                _ ->
+                ScreenSize.BigDesktop ->
+                    if String.isEmpty r.query then
+                        Collapsed
+                    else
+                        Expanded r
+
+                ScreenSize.Mobile ->
                     Expanded r
+
+        ( Expanded r, ScreenSize.Desktop ) ->
+            Expanded r
+
+        ( Expanded r, ScreenSize.BigDesktop ) ->
+            Expanded r
 
         ( Collapsed, ScreenSize.Desktop ) ->
             Expanded
@@ -41,5 +53,16 @@ screenSizeChanged { oldSize, newSize } searchBar =
                 , selection = 0
                 }
 
-        _ ->
-            searchBar
+        ( Collapsed, ScreenSize.BigDesktop ) ->
+            Expanded
+                { query = ""
+                , selectionMade = False
+                , showAutocomplete = False
+                , selection = 0
+                }
+
+        ( Collapsed, ScreenSize.Mobile ) ->
+            Collapsed
+
+        ( Invisible, _ ) ->
+            Invisible

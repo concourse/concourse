@@ -9,7 +9,6 @@ import Html.Attributes as Attributes
 import Html.Styled as HS
 import Navigation
 import NewTopBar
-import RemoteData
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -51,6 +50,14 @@ bigScreen =
         << Msgs.ScreenResized
     <|
         { width = 1200, height = 900 }
+
+
+extraBigScreen : Dashboard.Model -> Dashboard.Model
+extraBigScreen =
+    updateModel
+        << Msgs.ScreenResized
+    <|
+        { width = 1500, height = 900 }
 
 
 userName : String
@@ -382,6 +389,20 @@ all =
                             |> Query.count (Expect.equal 1)
                 ]
             ]
+        , test "shows search input when switching from small to extra big screen" <|
+            \_ ->
+                init { highDensity = False, query = "" }
+                    |> smallScreen
+                    |> extraBigScreen
+                    |> queryView
+                    |> Query.has [ tag "input" ]
+        , test "hides search input when switching from extra big to small screen" <|
+            \_ ->
+                init { highDensity = False, query = "" }
+                    |> extraBigScreen
+                    |> smallScreen
+                    |> queryView
+                    |> Query.hasNot [ tag "input" ]
         , describe "on large screens"
             [ test "shows the entire search input on large screens" <|
                 \_ ->
