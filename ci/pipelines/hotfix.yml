@@ -778,7 +778,12 @@ jobs:
       passed: [bin-smoke, bin-docker, bin-testflight, bosh-upgrade]
     - get: concourse-image-rc
       passed: [bin-docker]
-    # - get: concourse-head
+
+    # TODO: concourse-head (repo we push releases to) should be a branch
+    # off concourse-bosh-release@v4.2.1, so that we can add the final release
+    # in the right place
+    - get: concourse-head
+      resource: concourse
   - task: finalize-release
     file: concourse/ci/finalize-release.yml
     params: {BOSH_PRIVATE_CONFIG: ((concourse_release_private_config))}
