@@ -86,7 +86,7 @@ type DashboardError
 type alias Model =
     { csrfToken : String
     , state : Result DashboardError SubState.SubState
-    , topBar : NewTopBar.Model
+    , topBar : NewTopBar.Model {}
     , turbulencePath : String -- this doesn't vary, it's more a prop (in the sense of react) than state. should be a way to use a thunk for the Turbulence case of DashboardState
     , highDensity : Bool
     , hoveredPipeline : Maybe Concourse.Pipeline

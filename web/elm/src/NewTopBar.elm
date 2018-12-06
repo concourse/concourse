@@ -42,15 +42,16 @@ import UserState exposing (UserState(..))
 import Window
 
 
-type alias Model =
-    { userState : UserState
-    , userMenuVisible : Bool
-    , searchBar : SearchBar
-    , teams : RemoteData.WebData (List Concourse.Team)
+type alias Model r =
+    { r
+        | userState : UserState
+        , userMenuVisible : Bool
+        , searchBar : SearchBar
+        , teams : RemoteData.WebData (List Concourse.Team)
     }
 
 
-query : Model -> String
+query : Model r -> String
 query model =
     case model.searchBar of
         Expanded r ->
@@ -77,7 +78,7 @@ type Msg
     | ScreenResized Window.Size
 
 
-init : Bool -> String -> ( Model, Cmd Msg )
+init : Bool -> String -> ( Model {}, Cmd Msg )
 init showSearch query =
     let
         searchBar =
@@ -116,7 +117,7 @@ queryStringFromSearch query =
                 QueryString.add "search" query QueryString.empty
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model r -> ( Model r, Cmd Msg )
 update msg model =
     case msg of
         Noop ->
@@ -320,7 +321,7 @@ update msg model =
                 ( newModel, Cmd.none )
 
 
-showSearchInput : Model -> ( Model, Cmd Msg )
+showSearchInput : Model r -> ( Model r, Cmd Msg )
 showSearchInput model =
     let
         newModel =
@@ -406,7 +407,7 @@ searchInput { query, screenSize } =
     ]
 
 
-view : Model -> Html Msg
+view : Model r -> Html Msg
 view model =
     Html.div [ css Styles.topBar ] <|
         viewConcourseLogo
@@ -422,7 +423,7 @@ viewConcourseLogo =
     ]
 
 
-viewMiddleSection : Model -> List (Html Msg)
+viewMiddleSection : Model r -> List (Html Msg)
 viewMiddleSection model =
     case model.searchBar of
         Invisible ->
@@ -491,7 +492,7 @@ viewAutocomplete r =
                 )
 
 
-viewUserInfo : Model -> List (Html Msg)
+viewUserInfo : Model r -> List (Html Msg)
 viewUserInfo model =
     case model.searchBar of
         Expanded r ->

@@ -21,13 +21,13 @@ import Test.Html.Selector as THS
         )
 
 
-init : { highDensity : Bool, query : String } -> NewTopBar.Model
+init : { highDensity : Bool, query : String } -> NewTopBar.Model {}
 init { highDensity, query } =
     NewTopBar.init (not highDensity) query
         |> Tuple.first
 
 
-smallScreen : NewTopBar.Model -> NewTopBar.Model
+smallScreen : NewTopBar.Model r -> NewTopBar.Model r
 smallScreen =
     updateModel
         << NewTopBar.ScreenResized
@@ -35,7 +35,7 @@ smallScreen =
         { width = 300, height = 800 }
 
 
-bigScreen : NewTopBar.Model -> NewTopBar.Model
+bigScreen : NewTopBar.Model r -> NewTopBar.Model r
 bigScreen =
     updateModel
         << NewTopBar.ScreenResized
@@ -48,7 +48,7 @@ userName =
     "some-user"
 
 
-loggedIn : NewTopBar.Model -> NewTopBar.Model
+loggedIn : NewTopBar.Model r -> NewTopBar.Model r
 loggedIn =
     updateModel
         << NewTopBar.UserFetched
@@ -62,7 +62,7 @@ loggedIn =
         }
 
 
-loggedOut : NewTopBar.Model -> NewTopBar.Model
+loggedOut : NewTopBar.Model r -> NewTopBar.Model r
 loggedOut =
     updateModel
         << NewTopBar.UserFetched
@@ -79,14 +79,14 @@ loggedOut =
         }
 
 
-queryView : NewTopBar.Model -> Query.Single NewTopBar.Msg
+queryView : NewTopBar.Model r -> Query.Single NewTopBar.Msg
 queryView =
     NewTopBar.view
         >> HS.toUnstyled
         >> Query.fromHtml
 
 
-updateModel : NewTopBar.Msg -> NewTopBar.Model -> NewTopBar.Model
+updateModel : NewTopBar.Msg -> NewTopBar.Model r -> NewTopBar.Model r
 updateModel msg =
     NewTopBar.update msg >> Tuple.first
 
