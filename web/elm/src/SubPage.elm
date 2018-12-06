@@ -6,6 +6,7 @@ import Build
 import Concourse
 import Dashboard
 import Dashboard.Msgs
+import FlySuccess
 import Html exposing (Html)
 import Html.Styled as HS
 import Http
@@ -38,6 +39,7 @@ type Model
     | PipelineModel Pipeline.Model
     | NotFoundModel NotFound.Model
     | DashboardModel Dashboard.Model
+    | FlySuccess
 
 
 type Msg
@@ -157,6 +159,9 @@ init flags route =
                     , highDensity = True
                     , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
                     }
+
+        Routes.FlySuccess ->
+            ( FlySuccess, Cmd.none )
 
 
 handleNotFound : String -> ( a -> Model, c -> Msg ) -> ( a, Cmd c, Maybe UpdateMsg ) -> ( Model, Cmd Msg )
@@ -301,6 +306,9 @@ view mdl =
         NotFoundModel model ->
             NotFound.view model
 
+        FlySuccess ->
+            FlySuccess.view
+
 
 subscriptions : Model -> Sub Msg
 subscriptions mdl =
@@ -324,4 +332,7 @@ subscriptions mdl =
             Sub.none
 
         NotFoundModel _ ->
+            Sub.none
+
+        FlySuccess ->
             Sub.none

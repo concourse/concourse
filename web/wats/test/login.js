@@ -46,14 +46,14 @@ test('can fly login with browser and reuse same browser without CSRF issues', as
     });
   });
   await flyPromise;
+  await t.context.web.page.waitForNavigation();
+  t.true(t.context.web.page.url().includes(`${t.context.url}/fly_success`));
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
   await t.context.web.page.goto(t.context.web.route('/'));
   let pipelineSelector = '.dashboard-pipeline[data-pipeline-name=some-pipeline]';
   let playButton = `${pipelineSelector} [style*="ic_play"]`;
   let pauseButton = `${pipelineSelector} [style*="ic_pause"]`;
   await t.context.web.page.waitFor(playButton);
-  await t.context.web.page.hover(playButton);
-  await t.context.web.page.waitForSelector('.dashboard-footer.hidden');
   await t.context.web.page.click(playButton);
   await t.context.web.page.waitForSelector(pauseButton, {timeout: 90000});
   t.pass();

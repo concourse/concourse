@@ -15,6 +15,7 @@ type Route
     | Pipeline String String
     | Dashboard
     | DashboardHd
+    | FlySuccess
 
 
 type alias ConcourseRoute =
@@ -62,6 +63,11 @@ dashboard =
 dashboardHd : Route.Route Route
 dashboardHd =
     DashboardHd := static "hd"
+
+
+flySuccess : Route.Route Route
+flySuccess =
+    FlySuccess := static "fly_success"
 
 
 
@@ -112,6 +118,7 @@ sitemap =
         , pipeline
         , dashboard
         , dashboardHd
+        , flySuccess
         ]
 
 
@@ -144,6 +151,9 @@ toString route =
 
         DashboardHd ->
             reverse dashboardHd []
+
+        FlySuccess ->
+            reverse flySuccess []
 
 
 parsePath : Location -> ConcourseRoute
