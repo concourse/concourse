@@ -712,6 +712,7 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
                             List.map
                                 (\g ->
                                     Group.hdView
+                                        pipelineRunningKeyframes
                                         (Group.headerView g)
                                         g.teamName
                                         g.pipelines
@@ -722,6 +723,7 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
                             List.map
                                 (\g ->
                                     Group.hdView
+                                        pipelineRunningKeyframes
                                         (GroupWithTag.headerView g True)
                                         g.group.teamName
                                         g.group.pipelines

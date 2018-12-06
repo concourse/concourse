@@ -10,6 +10,9 @@ module Dashboard.Styles
         , infoItem
         , infoCliIcon
         , pipelineCardBanner
+        , pipelineCardHd
+        , pipelineCardBannerHd
+        , pipelineCardBodyHd
         , pipelineCardFooter
         , pipelineStatusIcon
         , pipelineCardTransitionAge
@@ -43,52 +46,100 @@ statusColor status =
 
 pipelineCardBanner :
     { status : PipelineStatus
-    , running : Bool
     , pipelineRunningKeyframes : String
     }
     -> List ( String, String )
-pipelineCardBanner { status, running, pipelineRunningKeyframes } =
+pipelineCardBanner { status, pipelineRunningKeyframes } =
     let
-        solid : String -> List ( String, String )
-        solid color =
-            [ ( "background-color", color ) ]
-
-        striped : String -> List ( String, String )
-        striped color =
-            [ ( "background-image"
-              , withStripes color Colors.runningStripes
-              )
-            , ( "animation"
-              , pipelineRunningKeyframes ++ " 3s linear infinite"
-              )
-            ]
-
-        withStripes : String -> String -> String
-        withStripes color stripeColor =
-            "repeating-linear-gradient(-115deg,"
-                ++ stripeColor
-                ++ " 0,"
-                ++ stripeColor
-                ++ " 10px,"
-                ++ color
-                ++ " 0,"
-                ++ color
-                ++ " 16px)"
-
-        texture : Bool -> String -> List ( String, String )
-        texture isRunning =
-            if isRunning then
-                striped
-            else
-                solid
-
         color =
             statusColor status
 
         isRunning =
             Concourse.PipelineStatus.isRunning status
     in
-        [ ( "height", "7px" ) ] ++ texture isRunning color
+        [ ( "height", "7px" ) ] ++ texture pipelineRunningKeyframes isRunning color
+
+
+pipelineCardHd : List ( String, String )
+pipelineCardHd =
+    [ ( "display", "flex" )
+    , ( "height", "60px" )
+    , ( "width", "200px" )
+    , ( "margin", "0 60px 4px 0" )
+    , ( "position", "relative" )
+    ]
+
+
+pipelineCardBodyHd : PipelineStatus -> List ( String, String )
+pipelineCardBodyHd status =
+    case status of
+        PipelineStatusSucceeded _ ->
+            [ ( "background-color", Colors.successFaded ) ]
+
+        PipelineStatusFailed _ ->
+            [ ( "background-color", Colors.failure ) ]
+
+        PipelineStatusErrored _ ->
+            [ ( "background-color", Colors.error ) ]
+
+        _ ->
+            []
+
+
+pipelineCardBannerHd :
+    { status : PipelineStatus
+    , pipelineRunningKeyframes : String
+    }
+    -> List ( String, String )
+pipelineCardBannerHd { status, pipelineRunningKeyframes } =
+    let
+        color =
+            statusColor status
+
+        isRunning =
+            Concourse.PipelineStatus.isRunning status
+    in
+        [ ( "width", "8px" )
+        , ( "background-size", "35px" )
+        ]
+            ++ texture pipelineRunningKeyframes isRunning color
+
+
+solid : String -> List ( String, String )
+solid color =
+    [ ( "background-color", color ) ]
+
+
+striped : String -> String -> List ( String, String )
+striped pipelineRunningKeyframes color =
+    [ ( "background-image"
+      , withStripes color Colors.runningStripes
+      )
+    , ( "animation"
+      , pipelineRunningKeyframes ++ " 3s linear infinite"
+      )
+    ]
+
+
+withStripes : String -> String -> String
+withStripes color stripeColor =
+    "repeating-linear-gradient(-115deg,"
+        ++ stripeColor
+        ++ " 0,"
+        ++ stripeColor
+        ++ " 10px,"
+        ++ color
+        ++ " 0,"
+        ++ color
+        ++ " 16px)"
+
+
+texture : String -> Bool -> String -> List ( String, String )
+texture pipelineRunningKeyframes isRunning =
+    if isRunning then
+        striped pipelineRunningKeyframes
+    else
+        solid
 
 
 pipelineCardFooter : List ( String, String )

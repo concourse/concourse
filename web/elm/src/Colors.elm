@@ -36,6 +36,11 @@ success =
     "#11c560"
 
 
+successFaded : String
+successFaded =
+    "rgba(17, 197, 96, 0.2)"
+
+
 paused : String
 paused =
     "#4a90e2"

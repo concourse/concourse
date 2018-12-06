@@ -43,21 +43,33 @@ pipelineNotSetView =
         ]
 
 
-hdPipelineView : PipelineWithJobs -> Html Msg
-hdPipelineView ({ pipeline, jobs, resourceError, status } as pwj) =
+hdPipelineView :
+    { pipeline : Concourse.Pipeline
+    , jobs : List Concourse.Job
+    , resourceError : Bool
+    , status : PipelineStatus.PipelineStatus
+    , pipelineRunningKeyframes : String
+    }
+    -> Html Msg
+hdPipelineView { pipeline, jobs, resourceError, status, pipelineRunningKeyframes } =
     Html.div
-        [ classList
-            [ ( "dashboard-pipeline", True )
-            , ( "dashboard-paused", pipeline.paused )
-            , ( "dashboard-running", List.any (\job -> job.nextBuild /= Nothing) jobs )
-            , ( "dashboard-status-" ++ PipelineStatus.show status, not pipeline.paused )
-            ]
+        [ class "dashboard-pipeline"
         , attribute "data-pipeline-name" pipeline.name
         , attribute "data-team-name" pipeline.teamName
+        , style Styles.pipelineCardHd
         ]
-        [ Html.div [ class "dashboard-pipeline-banner" ] []
+        [ Html.div
+            [ class "dashboard-pipeline-banner"
+            , style <|
+                Styles.pipelineCardBannerHd
+                    { status = status
+                    , pipelineRunningKeyframes = pipelineRunningKeyframes
+                    }
+            ]
+            []
         , Html.div
             [ class "dashboard-pipeline-content"
+            , style <| Styles.pipelineCardBodyHd status
             , onMouseEnter <| TooltipHd pipeline.name pipeline.teamName
             ]
             [ Html.a [ href <| Routes.pipelineRoute pipeline ]

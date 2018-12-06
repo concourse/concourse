@@ -74,6 +74,11 @@ white =
     "#fff"
 
 
+fadedGreen : String
+fadedGreen =
+    "rgba(17, 197, 96, 0.2)"
+
+
 pipelineRunningKeyframes : String
 pipelineRunningKeyframes =
     "pipeline-running"
@@ -211,6 +216,7 @@ all =
                 pipelineWithStatus :
                     Concourse.BuildStatus
                     -> Bool
+                    -> Dashboard.Model
                     -> Query.Single Msgs.Msg
                 pipelineWithStatus status isRunning =
                     let
@@ -220,19 +226,18 @@ all =
                             else
                                 job
                     in
-                        whenOnDashboard { highDensity = False }
-                            |> givenDataUnauthenticated
-                                { teams =
-                                    [ { id = 0, name = "team" } ]
-                                , pipelines =
-                                    [ onePipeline "team" ]
-                                , jobs =
-                                    [ jobFunc status
-                                    ]
-                                , resources = []
-                                , version = ""
-                                }
-                            |> queryView
+                        givenDataUnauthenticated
+                            { teams =
+                                [ { id = 0, name = "team" } ]
+                            , pipelines =
+                                [ onePipeline "team" ]
+                            , jobs =
+                                [ jobFunc status
+                                ]
+                            , resources = []
+                            , version = ""
+                            }
+                            >> queryView
             in
                 [ describe "colored banner" <|
                     let
@@ -268,153 +273,454 @@ all =
                                       )
                                     ]
                                 ]
+
+                        isColorWithStripesHd : String -> String -> Query.Single Msgs.Msg -> Expectation
+                        isColorWithStripesHd color stripeColor =
+                            Query.has
+                                [ style
+                                    [ ( "background-image"
+                                      , "repeating-linear-gradient(-115deg,"
+                                            ++ stripeColor
+                                            ++ " 0,"
+                                            ++ stripeColor
+                                            ++ " 10px,"
+                                            ++ color
+                                            ++ " 0,"
+                                            ++ color
+                                            ++ " 16px)"
+                                      )
+                                    , ( "animation"
+                                      , pipelineRunningKeyframes ++ " 3s linear infinite"
+                                      )
+                                    , ( "background-size", "35px" )
+                                    ]
+                                ]
                     in
-                        [ test "is 7px tall" <|
-                            \_ ->
-                                whenOnDashboard { highDensity = False }
-                                    |> givenDataUnauthenticated
-                                        (oneTeamOnePipeline "team")
-                                    |> queryView
-                                    |> findBanner
-                                    |> Query.has [ style [ ( "height", "7px" ) ] ]
-                        , test "is blue when pipeline is paused" <|
-                            \_ ->
-                                whenOnDashboard { highDensity = False }
-                                    |> givenDataUnauthenticated
-                                        { teams =
-                                            [ { id = 0, name = "team" } ]
-                                        , pipelines =
-                                            [ onePipelinePaused "team" ]
-                                        , jobs = []
-                                        , resources = []
-                                        , version = ""
-                                        }
-                                    |> queryView
-                                    |> findBanner
-                                    |> isSolid blue
-                        , test "is green when pipeline is succeeding" <|
-                            \_ ->
-                                pipelineWithStatus
-                                    Concourse.BuildStatusSucceeded
-                                    False
-                                    |> findBanner
-                                    |> isSolid green
-                        , test "is green with black stripes when pipeline is succeeding and running" <|
-                            \_ ->
-                                pipelineWithStatus
-                                    Concourse.BuildStatusSucceeded
-                                    True
-                                    |> findBanner
-                                    |> isColorWithStripes green darkGrey
-                        , test "is grey when pipeline is pending" <|
-                            \_ ->
-                                whenOnDashboard { highDensity = False }
-                                    |> givenDataUnauthenticated
-                                        (oneTeamOnePipeline "team")
-                                    |> queryView
-                                    |> findBanner
-                                    |> isSolid lightGrey
-                        , test "is grey with black stripes when pipeline is pending and running" <|
-                            \_ ->
-                                pipelineWithStatus
-                                    Concourse.BuildStatusStarted
-                                    True
-                                    |> findBanner
-                                    |> isColorWithStripes lightGrey darkGrey
-                        , test "is red when pipeline is failing" <|
-                            \_ ->
-                                pipelineWithStatus
-                                    Concourse.BuildStatusFailed
-                                    False
-                                    |> findBanner
-                                    |> isSolid red
-                        , test "is red with black stripes when pipeline is failing and running" <|
-                            \_ ->
-                                pipelineWithStatus
-                                    Concourse.BuildStatusFailed
-                                    True
-                                    |> findBanner
-                                    |> isColorWithStripes red darkGrey
-                        , test "is amber when pipeline is erroring" <|
-                            \_ ->
-                                pipelineWithStatus
-                                    Concourse.BuildStatusErrored
-                                    False
-                                    |> findBanner
-                                    |> isSolid amber
-                        , test "is amber with black stripes when pipeline is erroring and running" <|
-                            \_ ->
-                                pipelineWithStatus
-                                    Concourse.BuildStatusErrored
-                                    True
-                                    |> findBanner
-                                    |> isColorWithStripes amber darkGrey
-                        , test "is brown when pipeline is aborted" <|
-                            \_ ->
-                                pipelineWithStatus
-                                    Concourse.BuildStatusAborted
-                                    False
-                                    |> findBanner
-                                    |> isSolid brown
-                        , test "is brown with black stripes when pipeline is aborted and running" <|
-                            \_ ->
-                                pipelineWithStatus
-                                    Concourse.BuildStatusAborted
-                                    True
-                                    |> findBanner
-                                    |> isColorWithStripes brown darkGrey
-                        , describe "status priorities" <|
-                            let
-                                givenTwoJobs :
-                                    Concourse.BuildStatus
-                                    -> Concourse.BuildStatus
-                                    -> Query.Single Msgs.Msg
-                                givenTwoJobs firstStatus secondStatus =
+                        [ describe "non-HD view"
+                            [ test "is 7px tall" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> givenDataUnauthenticated
+                                            (oneTeamOnePipeline "team")
+                                        |> queryView
+                                        |> findBanner
+                                        |> Query.has [ style [ ( "height", "7px" ) ] ]
+                            , test "is blue when pipeline is paused" <|
+                                \_ ->
                                     whenOnDashboard { highDensity = False }
                                         |> givenDataUnauthenticated
                                             { teams =
                                                 [ { id = 0, name = "team" } ]
                                             , pipelines =
-                                                [ onePipeline "team" ]
-                                            , jobs =
-                                                [ job firstStatus
-                                                , otherJob secondStatus
-                                                ]
+                                                [ onePipelinePaused "team" ]
+                                            , jobs = []
                                             , resources = []
                                             , version = ""
                                             }
                                         |> queryView
-                            in
-                                [ test "failed is more important than errored" <|
-                                    \_ ->
-                                        givenTwoJobs
+                                        |> findBanner
+                                        |> isSolid blue
+                            , test "is green when pipeline is succeeding" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> pipelineWithStatus
+                                            Concourse.BuildStatusSucceeded
+                                            False
+                                        |> findBanner
+                                        |> isSolid green
+                            , test "is green with black stripes when pipeline is succeeding and running" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> pipelineWithStatus
+                                            Concourse.BuildStatusSucceeded
+                                            True
+                                        |> findBanner
+                                        |> isColorWithStripes green darkGrey
+                            , test "is grey when pipeline is pending" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> givenDataUnauthenticated
+                                            (oneTeamOnePipeline "team")
+                                        |> queryView
+                                        |> findBanner
+                                        |> isSolid lightGrey
+                            , test "is grey with black stripes when pipeline is pending and running" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> pipelineWithStatus
+                                            Concourse.BuildStatusStarted
+                                            True
+                                        |> findBanner
+                                        |> isColorWithStripes lightGrey darkGrey
+                            , test "is red when pipeline is failing" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> pipelineWithStatus
                                             Concourse.BuildStatusFailed
+                                            False
+                                        |> findBanner
+                                        |> isSolid red
+                            , test "is red with black stripes when pipeline is failing and running" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> pipelineWithStatus
+                                            Concourse.BuildStatusFailed
+                                            True
+                                        |> findBanner
+                                        |> isColorWithStripes red darkGrey
+                            , test "is amber when pipeline is erroring" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> pipelineWithStatus
                                             Concourse.BuildStatusErrored
-                                            |> findBanner
-                                            |> isSolid red
-                                , test "errored is more important than aborted" <|
-                                    \_ ->
-                                        givenTwoJobs
+                                            False
+                                        |> findBanner
+                                        |> isSolid amber
+                            , test "is amber with black stripes when pipeline is erroring and running" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> pipelineWithStatus
                                             Concourse.BuildStatusErrored
+                                            True
+                                        |> findBanner
+                                        |> isColorWithStripes amber darkGrey
+                            , test "is brown when pipeline is aborted" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> pipelineWithStatus
                                             Concourse.BuildStatusAborted
-                                            |> findBanner
-                                            |> isSolid amber
-                                , test "aborted is more important than succeeding" <|
-                                    \_ ->
-                                        givenTwoJobs
+                                            False
+                                        |> findBanner
+                                        |> isSolid brown
+                            , test "is brown with black stripes when pipeline is aborted and running" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> pipelineWithStatus
                                             Concourse.BuildStatusAborted
-                                            Concourse.BuildStatusSucceeded
-                                            |> findBanner
-                                            |> isSolid brown
-                                , test "succeeding is more important than pending" <|
+                                            True
+                                        |> findBanner
+                                        |> isColorWithStripes brown darkGrey
+                            , describe "status priorities" <|
+                                let
+                                    givenTwoJobs :
+                                        Concourse.BuildStatus
+                                        -> Concourse.BuildStatus
+                                        -> Query.Single Msgs.Msg
+                                    givenTwoJobs firstStatus secondStatus =
+                                        whenOnDashboard { highDensity = False }
+                                            |> givenDataUnauthenticated
+                                                { teams =
+                                                    [ { id = 0, name = "team" } ]
+                                                , pipelines =
+                                                    [ onePipeline "team" ]
+                                                , jobs =
+                                                    [ job firstStatus
+                                                    , otherJob secondStatus
+                                                    ]
+                                                , resources = []
+                                                , version = ""
+                                                }
+                                            |> queryView
+                                in
+                                    [ test "failed is more important than errored" <|
+                                        \_ ->
+                                            givenTwoJobs
+                                                Concourse.BuildStatusFailed
+                                                Concourse.BuildStatusErrored
+                                                |> findBanner
+                                                |> isSolid red
+                                    , test "errored is more important than aborted" <|
+                                        \_ ->
+                                            givenTwoJobs
+                                                Concourse.BuildStatusErrored
+                                                Concourse.BuildStatusAborted
+                                                |> findBanner
+                                                |> isSolid amber
+                                    , test "aborted is more important than succeeding" <|
+                                        \_ ->
+                                            givenTwoJobs
+                                                Concourse.BuildStatusAborted
+                                                Concourse.BuildStatusSucceeded
+                                                |> findBanner
+                                                |> isSolid brown
+                                    , test "succeeding is more important than pending" <|
+                                        \_ ->
+                                            givenTwoJobs
+                                                Concourse.BuildStatusSucceeded
+                                                Concourse.BuildStatusPending
+                                                |> findBanner
+                                                |> isSolid green
+                                    ]
+                            , describe "HD view"
+                                [ test "is 8px wide" <|
                                     \_ ->
-                                        givenTwoJobs
-                                            Concourse.BuildStatusSucceeded
-                                            Concourse.BuildStatusPending
+                                        whenOnDashboard { highDensity = True }
+                                            |> givenDataUnauthenticated
+                                                (oneTeamOnePipeline "team")
+                                            |> queryView
+                                            |> findBanner
+                                            |> Query.has [ style [ ( "width", "8px" ) ] ]
+                                , test "is blue when pipeline is paused" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = True }
+                                            |> givenDataUnauthenticated
+                                                { teams =
+                                                    [ { id = 0, name = "team" } ]
+                                                , pipelines =
+                                                    [ onePipelinePaused "team" ]
+                                                , jobs = []
+                                                , resources = []
+                                                , version = ""
+                                                }
+                                            |> queryView
+                                            |> findBanner
+                                            |> isSolid blue
+                                , test "is green when pipeline is succeeding" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = True }
+                                            |> pipelineWithStatus
+                                                Concourse.BuildStatusSucceeded
+                                                False
                                             |> findBanner
                                             |> isSolid green
+                                , test "is green with black stripes when pipeline is succeeding and running" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = True }
+                                            |> pipelineWithStatus
+                                                Concourse.BuildStatusSucceeded
+                                                True
+                                            |> findBanner
+                                            |> isColorWithStripesHd green darkGrey
+                                , test "is grey when pipeline is pending" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = True }
+                                            |> givenDataUnauthenticated
+                                                (oneTeamOnePipeline "team")
+                                            |> queryView
+                                            |> findBanner
+                                            |> isSolid lightGrey
+                                , test "is grey with black stripes when pipeline is pending and running" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = True }
+                                            |> pipelineWithStatus
+                                                Concourse.BuildStatusStarted
+                                                True
+                                            |> findBanner
+                                            |> isColorWithStripesHd lightGrey darkGrey
+                                , test "is red when pipeline is failing" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = True }
+                                            |> pipelineWithStatus
+                                                Concourse.BuildStatusFailed
+                                                False
+                                            |> findBanner
+                                            |> isSolid red
+                                , test "is red with black stripes when pipeline is failing and running" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = True }
+                                            |> pipelineWithStatus
+                                                Concourse.BuildStatusFailed
+                                                True
+                                            |> findBanner
+                                            |> isColorWithStripesHd red darkGrey
+                                , test "is amber when pipeline is erroring" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = True }
+                                            |> pipelineWithStatus
+                                                Concourse.BuildStatusErrored
+                                                False
+                                            |> findBanner
+                                            |> isSolid amber
+                                , test "is amber with black stripes when pipeline is erroring and running" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = True }
+                                            |> pipelineWithStatus
+                                                Concourse.BuildStatusErrored
+                                                True
+                                            |> findBanner
+                                            |> isColorWithStripesHd amber darkGrey
+                                , test "is brown when pipeline is aborted" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = True }
+                                            |> pipelineWithStatus
+                                                Concourse.BuildStatusAborted
+                                                False
+                                            |> findBanner
+                                            |> isSolid brown
+                                , test "is brown with black stripes when pipeline is aborted and running" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = True }
+                                            |> pipelineWithStatus
+                                                Concourse.BuildStatusAborted
+                                                True
+                                            |> findBanner
+                                            |> isColorWithStripesHd brown darkGrey
+                                , describe "status priorities" <|
+                                    let
+                                        givenTwoJobs :
+                                            Concourse.BuildStatus
+                                            -> Concourse.BuildStatus
+                                            -> Query.Single Msgs.Msg
+                                        givenTwoJobs firstStatus secondStatus =
+                                            whenOnDashboard { highDensity = False }
+                                                |> givenDataUnauthenticated
+                                                    { teams =
+                                                        [ { id = 0, name = "team" } ]
+                                                    , pipelines =
+                                                        [ onePipeline "team" ]
+                                                    , jobs =
+                                                        [ job firstStatus
+                                                        , otherJob secondStatus
+                                                        ]
+                                                    , resources = []
+                                                    , version = ""
+                                                    }
+                                                |> queryView
+                                    in
+                                        [ test "failed is more important than errored" <|
+                                            \_ ->
+                                                givenTwoJobs
+                                                    Concourse.BuildStatusFailed
+                                                    Concourse.BuildStatusErrored
+                                                    |> findBanner
+                                                    |> isSolid red
+                                        , test "errored is more important than aborted" <|
+                                            \_ ->
+                                                givenTwoJobs
+                                                    Concourse.BuildStatusErrored
+                                                    Concourse.BuildStatusAborted
+                                                    |> findBanner
+                                                    |> isSolid amber
+                                        , test "aborted is more important than succeeding" <|
+                                            \_ ->
+                                                givenTwoJobs
+                                                    Concourse.BuildStatusAborted
+                                                    Concourse.BuildStatusSucceeded
+                                                    |> findBanner
+                                                    |> isSolid brown
+                                        , test "succeeding is more important than pending" <|
+                                            \_ ->
+                                                givenTwoJobs
+                                                    Concourse.BuildStatusSucceeded
+                                                    Concourse.BuildStatusPending
+                                                    |> findBanner
+                                                    |> isSolid green
+                                        ]
                                 ]
+                            ]
                         ]
+                , describe "on HD view"
+                    [ test "card lays out contents horizontally" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = True }
+                                |> givenDataUnauthenticated
+                                    (oneTeamOnePipeline "team")
+                                |> queryView
+                                |> Query.find
+                                    [ class "dashboard-pipeline"
+                                    , containing [ text "pipeline" ]
+                                    ]
+                                |> Query.has [ style [ ( "display", "flex" ) ] ]
+                    , test "card is 60px tall" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = True }
+                                |> givenDataUnauthenticated
+                                    (oneTeamOnePipeline "team")
+                                |> queryView
+                                |> Query.find
+                                    [ class "dashboard-pipeline"
+                                    , containing [ text "pipeline" ]
+                                    ]
+                                |> Query.has [ style [ ( "height", "60px" ) ] ]
+                    , test "card is 200px wide" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = True }
+                                |> givenDataUnauthenticated
+                                    (oneTeamOnePipeline "team")
+                                |> queryView
+                                |> Query.find
+                                    [ class "dashboard-pipeline"
+                                    , containing [ text "pipeline" ]
+                                    ]
+                                |> Query.has [ style [ ( "width", "200px" ) ] ]
+                    , test "card is positioned relatively to anchor resource error triangle" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = True }
+                                |> givenDataUnauthenticated
+                                    (oneTeamOnePipeline "team")
+                                |> queryView
+                                |> Query.find
+                                    [ class "dashboard-pipeline"
+                                    , containing [ text "pipeline" ]
+                                    ]
+                                |> Query.has [ style [ ( "position", "relative" ) ] ]
+                    , test "cards are spaced 4px apart vertically and 60px apart horizontally" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = True }
+                                |> givenDataUnauthenticated
+                                    (oneTeamOnePipeline "team")
+                                |> queryView
+                                |> Query.find
+                                    [ class "dashboard-pipeline"
+                                    , containing [ text "pipeline" ]
+                                    ]
+                                |> Query.has [ style [ ( "margin", "0 60px 4px 0" ) ] ]
+                    ]
+                , describe "body"
+                    [ describe "on HD view"
+                        [ test "is faded green when pipeline is suceeding" <|
+                            \_ ->
+                                whenOnDashboard { highDensity = True }
+                                    |> pipelineWithStatus
+                                        Concourse.BuildStatusSucceeded
+                                        False
+                                    |> Query.find
+                                        [ class "dashboard-pipeline"
+                                        , containing [ text "pipeline" ]
+                                        ]
+                                    |> Query.children []
+                                    |> Query.index 1
+                                    |> Query.has
+                                        [ style
+                                            [ ( "background-color", fadedGreen )
+                                            ]
+                                        ]
+                        , test "is red when pipeline is failing" <|
+                            \_ ->
+                                whenOnDashboard { highDensity = True }
+                                    |> pipelineWithStatus
+                                        Concourse.BuildStatusFailed
+                                        False
+                                    |> Query.find
+                                        [ class "dashboard-pipeline"
+                                        , containing [ text "pipeline" ]
+                                        ]
+                                    |> Query.children []
+                                    |> Query.index 1
+                                    |> Query.has
+                                        [ style
+                                            [ ( "background-color", red )
+                                            ]
+                                        ]
+                        , test "is amber when pipeline is erroring" <|
+                            \_ ->
+                                whenOnDashboard { highDensity = True }
+                                    |> pipelineWithStatus
+                                        Concourse.BuildStatusErrored
+                                        False
+                                    |> Query.find
+                                        [ class "dashboard-pipeline"
+                                        , containing [ text "pipeline" ]
+                                        ]
+                                    |> Query.children []
+                                    |> Query.index 1
+                                    |> Query.has
+                                        [ style
+                                            [ ( "background-color", amber )
+                                            ]
+                                        ]
+                        ]
+                    ]
                 , describe "footer" <|
                     let
                         hasStyle : List ( String, String ) -> Expectation
@@ -540,9 +846,10 @@ all =
                                 , describe "when pipeline is pending" <|
                                     [ test "status icon is grey" <|
                                         \_ ->
-                                            pipelineWithStatus
-                                                Concourse.BuildStatusPending
-                                                False
+                                            whenOnDashboard { highDensity = False }
+                                                |> pipelineWithStatus
+                                                    Concourse.BuildStatusPending
+                                                    False
                                                 |> findStatusIcon
                                                 |> Query.has
                                                     (iconSelector
@@ -553,25 +860,28 @@ all =
                                                     )
                                     , test "status text is grey" <|
                                         \_ ->
-                                            pipelineWithStatus
-                                                Concourse.BuildStatusPending
-                                                False
+                                            whenOnDashboard { highDensity = False }
+                                                |> pipelineWithStatus
+                                                    Concourse.BuildStatusPending
+                                                    False
                                                 |> findStatusText
                                                 |> Query.has
                                                     [ style [ ( "color", lightGrey ) ] ]
                                     , test "status text says 'pending'" <|
                                         \_ ->
-                                            pipelineWithStatus
-                                                Concourse.BuildStatusPending
-                                                False
+                                            whenOnDashboard { highDensity = False }
+                                                |> pipelineWithStatus
+                                                    Concourse.BuildStatusPending
+                                                    False
                                                 |> findStatusText
                                                 |> Query.has
                                                     [ text "pending" ]
                                     , test "when running, status text says 'pending'" <|
                                         \_ ->
-                                            pipelineWithStatus
-                                                Concourse.BuildStatusPending
-                                                True
+                                            whenOnDashboard { highDensity = False }
+                                                |> pipelineWithStatus
+                                                    Concourse.BuildStatusPending
+                                                    True
                                                 |> findStatusText
                                                 |> Query.has
                                                     [ text "running" ]
@@ -579,9 +889,10 @@ all =
                                 , describe "when pipeline is succeeding"
                                     [ test "status icon is a green check" <|
                                         \_ ->
-                                            pipelineWithStatus
-                                                Concourse.BuildStatusSucceeded
-                                                False
+                                            whenOnDashboard { highDensity = False }
+                                                |> pipelineWithStatus
+                                                    Concourse.BuildStatusSucceeded
+                                                    False
                                                 |> findStatusIcon
                                                 |> Query.has
                                                     (iconSelector
@@ -592,17 +903,19 @@ all =
                                                     )
                                     , test "status text is green" <|
                                         \_ ->
-                                            pipelineWithStatus
-                                                Concourse.BuildStatusSucceeded
-                                                False
+                                            whenOnDashboard { highDensity = False }
+                                                |> pipelineWithStatus
+                                                    Concourse.BuildStatusSucceeded
+                                                    False
                                                 |> findStatusText
                                                 |> Query.has
                                                     [ style [ ( "color", green ) ] ]
                                     , test "when running, status text says 'running'" <|
                                         \_ ->
-                                            pipelineWithStatus
-                                                Concourse.BuildStatusSucceeded
-                                                True
+                                            whenOnDashboard { highDensity = False }
+                                                |> pipelineWithStatus
+                                                    Concourse.BuildStatusSucceeded
+                                                    True
                                                 |> findStatusText
                                                 |> Query.has
                                                     [ text "running" ]
@@ -633,9 +946,10 @@ all =
                                 , describe "when pipeline is failing"
                                     [ test "status icon is a red !" <|
                                         \_ ->
-                                            pipelineWithStatus
-                                                Concourse.BuildStatusFailed
-                                                False
+                                            whenOnDashboard { highDensity = False }
+                                                |> pipelineWithStatus
+                                                    Concourse.BuildStatusFailed
+                                                    False
                                                 |> findStatusIcon
                                                 |> Query.has
                                                     (iconSelector
@@ -646,18 +960,20 @@ all =
                                                     )
                                     , test "status text is red" <|
                                         \_ ->
-                                            pipelineWithStatus
-                                                Concourse.BuildStatusFailed
-                                                False
+                                            whenOnDashboard { highDensity = False }
+                                                |> pipelineWithStatus
+                                                    Concourse.BuildStatusFailed
+                                                    False
                                                 |> findStatusText
                                                 |> Query.has
                                                     [ style [ ( "color", red ) ] ]
                                     ]
                                 , test "when pipeline is aborted, status icon is a brown x" <|
                                     \_ ->
-                                        pipelineWithStatus
-                                            Concourse.BuildStatusAborted
-                                            False
+                                        whenOnDashboard { highDensity = False }
+                                            |> pipelineWithStatus
+                                                Concourse.BuildStatusAborted
+                                                False
                                             |> findStatusIcon
                                             |> Query.has
                                                 (iconSelector
@@ -668,9 +984,10 @@ all =
                                                 )
                                 , test "when pipeline is errored, status icon is an amber triangle" <|
                                     \_ ->
-                                        pipelineWithStatus
-                                            Concourse.BuildStatusErrored
-                                            False
+                                        whenOnDashboard { highDensity = False }
+                                            |> pipelineWithStatus
+                                                Concourse.BuildStatusErrored
+                                                False
                                             |> findStatusIcon
                                             |> Query.has
                                                 (iconSelector
