@@ -9,11 +9,10 @@ module NewTopBar
         , showSearchInput
         )
 
-import Concourse
-import Concourse.Team
 import Concourse.User
 import Dashboard.Msgs exposing (Msg(..))
 import Dom
+import Dashboard.Group as Group
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as HA
     exposing
@@ -28,7 +27,6 @@ import Html.Styled.Attributes as HA
 import Html.Styled.Events exposing (..)
 import NewTopBar.Styles as Styles
 import QueryString
-import RemoteData exposing (RemoteData)
 import ScreenSize exposing (ScreenSize(..))
 import SearchBar exposing (SearchBar(..))
 import Task
@@ -41,7 +39,7 @@ type alias Model r =
         | userState : UserState
         , userMenuVisible : Bool
         , searchBar : SearchBar
-        , teams : RemoteData.WebData (List Concourse.Team)
+        , groups : List Group.Group
         , screenSize : ScreenSize
     }
 
@@ -193,7 +191,7 @@ viewMiddleSection model =
                                 [ css <| Styles.searchOptionsList model.screenSize ]
                                 (viewAutocomplete
                                     { query = r.query
-                                    , teams = model.teams
+                                    , groups = model.groups
                                     , selectionMade = r.selectionMade
                                     , selection = r.selection
                                     , screenSize = model.screenSize
@@ -210,7 +208,7 @@ viewMiddleSection model =
 viewAutocomplete :
     { a
         | query : String
-        , teams : RemoteData.WebData (List Concourse.Team)
+        , groups : List Group.Group
         , selectionMade : Bool
         , selection : Int
         , screenSize : ScreenSize
@@ -255,14 +253,8 @@ viewUserInfo model =
             [ Html.div [ css Styles.userInfo ] (viewUserState model) ]
 
 
-fetchTeams : Cmd Msg
-fetchTeams =
-    Cmd.map TeamsFetched <|
-        RemoteData.asCmd Concourse.Team.fetchTeams
-
-
-autocompleteOptions : { a | query : String, teams : RemoteData.WebData (List Concourse.Team) } -> List String
-autocompleteOptions { query, teams } =
+autocompleteOptions : { a | query : String, groups : List Group.Group } -> List String
+autocompleteOptions { query, groups } =
     case String.trim query of
         "" ->
             [ "status: ", "team: " ]
@@ -271,12 +263,7 @@ autocompleteOptions { query, teams } =
             [ "status: paused", "status: pending", "status: failed", "status: errored", "status: aborted", "status: running", "status: succeeded" ]
 
         "team:" ->
-            case teams of
-                RemoteData.Success ts ->
-                    List.map (\team -> "team: " ++ team.name) <| List.take 10 ts
-
-                _ ->
-                    []
+            List.map (\group -> "team: " ++ group.teamName) <| List.take 10 groups
 
         _ ->
             []

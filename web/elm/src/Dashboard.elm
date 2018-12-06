@@ -68,11 +68,6 @@ port tooltip : ( String, String ) -> Cmd msg
 port tooltipHd : ( String, String ) -> Cmd msg
 
 
-
--- TODO all the crsfToken stuff in this file only gets actually used for ordering and toggling pipelines.
--- honestly it seems like it could live in a completely different module.
-
-
 type alias Flags =
     { csrfToken : String
     , turbulencePath : String
@@ -91,7 +86,7 @@ type DashboardError
 type alias Model =
     { csrfToken : String
     , state : Result DashboardError SubState.SubState
-    , turbulencePath : String -- this doesn't vary, it's more a prop (in the sense of react) than state. should be a way to use a thunk for the Turbulence case of DashboardState
+    , turbulencePath : String
     , highDensity : Bool
     , hoveredPipeline : Maybe Concourse.Pipeline
     , pipelineRunningKeyframes : String
@@ -102,7 +97,6 @@ type alias Model =
     , userState : UserState.UserState
     , userMenuVisible : Bool
     , searchBar : SearchBar
-    , teams : RemoteData.WebData (List Concourse.Team)
     }
 
 
@@ -143,7 +137,6 @@ init ports flags =
           , userState = UserState.UserStateUnknown
           , userMenuVisible = False
           , searchBar = searchBar
-          , teams = RemoteData.Loading
           }
         , Cmd.batch
             [ fetchData
@@ -403,7 +396,6 @@ update msg model =
                     ( { model
                         | userState = UserState.UserStateLoggedOut
                         , userMenuVisible = False
-                        , teams = RemoteData.Loading
                       }
                     , Navigation.newUrl redirectUrl
                     )
@@ -414,9 +406,6 @@ update msg model =
 
             ToggleUserMenu ->
                 ( { model | userMenuVisible = not model.userMenuVisible }, Cmd.none )
-
-            TeamsFetched response ->
-                ( { model | teams = response }, Cmd.none )
 
             FocusMsg ->
                 let
@@ -479,7 +468,7 @@ update msg model =
                                     else
                                         let
                                             options =
-                                                Array.fromList (NewTopBar.autocompleteOptions { query = r.query, teams = model.teams })
+                                                Array.fromList (NewTopBar.autocompleteOptions { query = r.query, groups = model.groups })
 
                                             index =
                                                 (r.selection - 1) % Array.length options
@@ -521,35 +510,18 @@ update msg model =
                 let
                     newSize =
                         ScreenSize.fromWindowSize size
-
-                    newModel =
-                        case ( model.searchBar, newSize ) of
-                            ( Expanded r, _ ) ->
-                                case ( model.screenSize, newSize ) of
-                                    ( ScreenSize.Desktop, ScreenSize.Mobile ) ->
-                                        if String.isEmpty r.query then
-                                            { model | searchBar = Collapsed }
-                                        else
-                                            { model | searchBar = Expanded r }
-
-                                    _ ->
-                                        { model | searchBar = Expanded r }
-
-                            ( Collapsed, ScreenSize.Desktop ) ->
-                                { model
-                                    | searchBar =
-                                        Expanded
-                                            { query = ""
-                                            , selectionMade = False
-                                            , showAutocomplete = False
-                                            , selection = 0
-                                            }
-                                }
-
-                            _ ->
-                                model
                 in
-                    ( { newModel | screenSize = newSize }, Cmd.none )
+                    ( { model
+                        | screenSize = newSize
+                        , searchBar =
+                            SearchBar.screenSizeChanged
+                                { oldSize = model.screenSize
+                                , newSize = newSize
+                                }
+                                model.searchBar
+                      }
+                    , Cmd.none
+                    )
 
 
 orderPipelines : String -> List Pipeline.PipelineWithJobs -> Concourse.CSRFToken -> Cmd Msg

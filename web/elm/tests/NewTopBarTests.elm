@@ -150,15 +150,7 @@ all =
             , test "typing team: shows all teams" <|
                 \_ ->
                     init { highDensity = False, query = "" }
-                        |> updateModel
-                            (Msgs.TeamsFetched
-                                (RemoteData.Success
-                                    [ { id = 0
-                                      , name = "some-team"
-                                      }
-                                    ]
-                                )
-                            )
+                        |> givenDataUnauthenticated (apiData [ ( "some-team", [ "pipeline" ] ) ])
                         |> updateModel Msgs.FocusMsg
                         |> updateModel (Msgs.FilterMsg "team:")
                         |> queryView

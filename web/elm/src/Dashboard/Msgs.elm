@@ -28,7 +28,6 @@ type Msg
     | PipelineButtonHover (Maybe Concourse.Pipeline)
     | CliHover (Maybe Cli.Cli)
     | ScreenResized Window.Size
-    | TeamsFetched (RemoteData.WebData (List Concourse.Team))
     | LogIn
     | LogOut
     | LoggedOut (Result Http.Error ())
