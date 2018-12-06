@@ -5,7 +5,6 @@ import Concourse
 import Dashboard.APIData as APIData
 import Http
 import Keyboard
-import NewTopBar
 import RemoteData
 import Time
 import Window
@@ -19,7 +18,6 @@ type Msg
     | ShowFooter
     | KeyPressed Keyboard.KeyCode
     | KeyDowns Keyboard.KeyCode
-    | TopBarMsg NewTopBar.Msg
     | PipelinePauseToggled Concourse.Pipeline (Result Http.Error ())
     | DragStart String Int
     | DragOver String Int
@@ -30,3 +28,13 @@ type Msg
     | PipelineButtonHover (Maybe Concourse.Pipeline)
     | CliHover (Maybe Cli.Cli)
     | ScreenResized Window.Size
+    | TeamsFetched (RemoteData.WebData (List Concourse.Team))
+    | LogIn
+    | LogOut
+    | LoggedOut (Result Http.Error ())
+    | FilterMsg String
+    | FocusMsg
+    | BlurMsg
+    | SelectMsg Int
+    | ToggleUserMenu
+    | ShowSearchInput

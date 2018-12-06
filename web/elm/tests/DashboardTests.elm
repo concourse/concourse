@@ -1,4 +1,10 @@
-module DashboardTests exposing (all)
+module DashboardTests
+    exposing
+        ( all
+        , apiData
+        , givenDataAndUser
+        , givenDataUnauthenticated
+        )
 
 import Concourse
 import Concourse.Cli as Cli
@@ -87,7 +93,23 @@ pipelineRunningKeyframes =
 all : Test
 all =
     describe "Dashboard"
-        [ test "links to specific builds" <|
+        [ test "logging out causes pipeline list to reload" <|
+            let
+                showsLoadingState : Dashboard.Model -> Expectation
+                showsLoadingState =
+                    queryView
+                        >> Query.findAll [ class "dashboard-team-group" ]
+                        >> Query.count (Expect.equal 0)
+            in
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (oneTeamOnePipelineNonPublic "team")
+                            (userWithRoles [ ( "team", [ "owner" ] ) ])
+                        |> Dashboard.update Msgs.LogOut
+                        |> Tuple.first
+                        |> showsLoadingState
+        , test "links to specific builds" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> givenDataUnauthenticated givenPipelineWithJob
