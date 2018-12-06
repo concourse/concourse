@@ -3,6 +3,7 @@ module Dashboard.Msgs exposing (Msg(..))
 import Concourse.Cli as Cli
 import Concourse
 import Dashboard.APIData as APIData
+import Dashboard.Models as Models
 import Http
 import Keyboard
 import RemoteData
@@ -18,14 +19,13 @@ type Msg
     | ShowFooter
     | KeyPressed Keyboard.KeyCode
     | KeyDowns Keyboard.KeyCode
-    | PipelinePauseToggled Concourse.Pipeline (Result Http.Error ())
     | DragStart String Int
     | DragOver String Int
     | DragEnd
     | Tooltip String String
     | TooltipHd String String
-    | TogglePipelinePaused Concourse.Pipeline
-    | PipelineButtonHover (Maybe Concourse.Pipeline)
+    | TogglePipelinePaused Models.Pipeline
+    | PipelineButtonHover (Maybe Models.Pipeline)
     | CliHover (Maybe Cli.Cli)
     | ScreenResized Window.Size
     | LogIn

@@ -83,7 +83,7 @@ jobRoute j =
     (Job j.teamName j.pipelineName j.name) |> toString
 
 
-pipelineRoute : Concourse.Pipeline -> String
+pipelineRoute : { a | name : String, teamName : String } -> String
 pipelineRoute p =
     (Pipeline p.teamName p.name) |> toString
 
@@ -157,7 +157,13 @@ parsePath location =
         search =
             QueryString.one QueryString.string "search" queries
                 |> Maybe.withDefault ""
-                |> String.map (\c -> if c == '+' then ' ' else c)
+                |> String.map
+                    (\c ->
+                        if c == '+' then
+                            ' '
+                        else
+                            c
+                    )
 
         cleanedQueries =
             case search of

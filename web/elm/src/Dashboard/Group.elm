@@ -10,6 +10,7 @@ import Concourse.Resource
 import Concourse.Team
 import Dashboard.APIData exposing (APIData)
 import Dashboard.Msgs exposing (Msg(..))
+import Dashboard.Models as Models
 import Dashboard.Pipeline as Pipeline
 import Dashboard.Styles as Styles
 import Date exposing (Date)
@@ -20,9 +21,7 @@ import Http
 import Json.Decode
 import List.Extra
 import Maybe.Extra
-import Monocle.Iso
 import Monocle.Optional
-import Monocle.Lens
 import NewTopBar.Styles as NTBS
 import Ordering exposing (Ordering)
 import Set
@@ -31,7 +30,7 @@ import Time exposing (Time)
 
 
 type alias Group =
-    { pipelines : List Pipeline.PipelineWithJobs
+    { pipelines : List Models.Pipeline
     , teamName : String
     }
 
@@ -56,11 +55,6 @@ stickyHeaderConfig =
     , sectionHeaderClass = "dashboard-team-header"
     , sectionBodyClass = "dashboard-team-pipelines"
     }
-
-
-groupsLens : Monocle.Lens.Lens APIData (List Group)
-groupsLens =
-    Monocle.Lens.fromIso <| Monocle.Iso.Iso groups apiData
 
 
 findGroupOptional : String -> Monocle.Optional.Optional (List Group) Group
@@ -162,7 +156,7 @@ setDropIndex dropIndex dropState =
             NotDropping
 
 
-allPipelines : APIData -> List Pipeline.PipelineWithJobs
+allPipelines : APIData -> List Models.Pipeline
 allPipelines data =
     data.pipelines
         |> List.map
@@ -176,7 +170,10 @@ allPipelines data =
                                         && (j.pipelineName == p.name)
                                 )
                 in
-                    { pipeline = p
+                    { id = p.id
+                    , name = p.name
+                    , teamName = p.teamName
+                    , public = p.public
                     , jobs = jobs
                     , resourceError =
                         data.resources
@@ -314,24 +311,24 @@ shiftPipelines dragIndex dropIndex group =
 -- to the 'length of this file' tire fire
 
 
-shiftPipelineTo : Pipeline.PipelineWithJobs -> Int -> List Pipeline.PipelineWithJobs -> List Pipeline.PipelineWithJobs
-shiftPipelineTo ({ pipeline } as pipelineWithJobs) position pipelines =
+shiftPipelineTo : Models.Pipeline -> Int -> List Models.Pipeline -> List Models.Pipeline
+shiftPipelineTo pipeline position pipelines =
     case pipelines of
         [] ->
             if position < 0 then
                 []
             else
-                [ pipelineWithJobs ]
+                [ pipeline ]
 
         p :: ps ->
-            if p.pipeline.teamName /= pipeline.teamName then
-                p :: shiftPipelineTo pipelineWithJobs position ps
-            else if p.pipeline == pipeline then
-                shiftPipelineTo pipelineWithJobs (position - 1) ps
+            if p.teamName /= pipeline.teamName then
+                p :: shiftPipelineTo pipeline position ps
+            else if p == pipeline then
+                shiftPipelineTo pipeline (position - 1) ps
             else if position == 0 then
-                pipelineWithJobs :: p :: shiftPipelineTo pipelineWithJobs (position - 1) ps
+                pipeline :: p :: shiftPipelineTo pipeline (position - 1) ps
             else
-                p :: shiftPipelineTo pipelineWithJobs (position - 1) ps
+                p :: shiftPipelineTo pipeline (position - 1) ps
 
 
 allTeamNames : APIData -> List String
@@ -362,30 +359,9 @@ groups apiData =
             |> List.map (group (allPipelines apiData))
 
 
-
--- TODO i'd like for this to be an isomorphism, which would
--- require adding resource data to the Group type, or making
--- the APIData type smaller (or, like, not marrying Group to
--- APIData at all but using a different type)
-
-
-apiData : List Group -> APIData
-apiData groups =
-    let
-        pipelines =
-            groups |> List.concatMap .pipelines
-    in
-        { teams = groups |> List.map (\g -> { id = 0, name = g.teamName })
-        , pipelines = pipelines |> List.map .pipeline
-        , jobs = pipelines |> List.concatMap .jobs
-        , resources = []
-        , version = ""
-        }
-
-
-group : List Pipeline.PipelineWithJobs -> String -> Group
+group : List Models.Pipeline -> String -> Group
 group allPipelines teamName =
-    { pipelines = (List.filter ((==) teamName << .teamName << .pipeline) allPipelines)
+    { pipelines = (List.filter (.teamName >> (==) teamName) allPipelines)
     , teamName = teamName
     }
 
@@ -400,7 +376,7 @@ view :
     , dragState : DragState
     , dropState : DropState
     , now : Time
-    , hoveredPipeline : Maybe Concourse.Pipeline
+    , hoveredPipeline : Maybe Models.Pipeline
     , group : Group
     , pipelineRunningKeyframes : String
     }
@@ -419,22 +395,17 @@ view { header, dragState, dropState, now, hoveredPipeline, group, pipelineRunnin
                                 , Html.div
                                     [ classList
                                         [ ( "dashboard-pipeline", True )
-                                        , ( "dashboard-paused", pipeline.pipeline.paused )
-                                        , ( "dashboard-status-"
-                                                ++ PipelineStatus.show pipeline.status
-                                          , not pipeline.pipeline.paused
-                                          )
                                         , ( "dragging"
-                                          , dragState == Dragging pipeline.pipeline.teamName i
+                                          , dragState == Dragging pipeline.teamName i
                                           )
                                         ]
-                                    , attribute "data-pipeline-name" pipeline.pipeline.name
+                                    , attribute "data-pipeline-name" pipeline.name
                                     , attribute
                                         "ondragstart"
                                         "event.dataTransfer.setData('text/plain', '');"
                                     , draggable "true"
                                     , on "dragstart"
-                                        (Json.Decode.succeed (DragStart pipeline.pipeline.teamName i))
+                                        (Json.Decode.succeed (DragStart pipeline.teamName i))
                                     , on "dragend" (Json.Decode.succeed DragEnd)
                                     ]
                                     [ Html.div
@@ -448,8 +419,8 @@ view { header, dragState, dropState, now, hoveredPipeline, group, pipelineRunnin
                                         []
                                     , Pipeline.pipelineView
                                         { now = now
-                                        , pipelineWithJobs = pipeline
-                                        , hovered = hoveredPipeline == Just pipeline.pipeline
+                                        , pipeline = pipeline
+                                        , hovered = hoveredPipeline == Just pipeline
                                         }
                                     ]
                                 ]
@@ -472,7 +443,7 @@ view { header, dragState, dropState, now, hoveredPipeline, group, pipelineRunnin
             ]
 
 
-hdView : String -> List (Html Msg) -> String -> List Pipeline.PipelineWithJobs -> Html Msg
+hdView : String -> List (Html Msg) -> String -> List Models.Pipeline -> Html Msg
 hdView pipelineRunningKeyframes header teamName pipelines =
     let
         teamPipelines =
@@ -483,10 +454,7 @@ hdView pipelineRunningKeyframes header teamName pipelines =
                     |> List.map
                         (\p ->
                             Pipeline.hdPipelineView
-                                { pipeline = p.pipeline
-                                , jobs = p.jobs
-                                , resourceError = p.resourceError
-                                , status = p.status
+                                { pipeline = p
                                 , pipelineRunningKeyframes = pipelineRunningKeyframes
                                 }
                         )

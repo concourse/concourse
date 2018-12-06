@@ -17,6 +17,7 @@ import Expect exposing (Expectation)
 import Dashboard.Group as Group
 import Html.Attributes as Attr
 import Html.Styled as HS
+import Concourse.PipelineStatus as PipelineStatus
 import RemoteData
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -1159,7 +1160,17 @@ all =
                                                ]
                                         )
                                     }
-                                , mouseEnterMsg = Msgs.PipelineButtonHover <| Just <| onePipeline "team"
+                                , mouseEnterMsg =
+                                    Msgs.PipelineButtonHover <|
+                                        Just
+                                            { id = 0
+                                            , name = "pipeline"
+                                            , teamName = "team"
+                                            , public = True
+                                            , jobs = []
+                                            , resourceError = False
+                                            , status = PipelineStatus.PipelineStatusPending False
+                                            }
                                 , mouseLeaveMsg = Msgs.PipelineButtonHover Nothing
                                 , hoveredSelector =
                                     { description = "a bright 20px square pause button with pointer cursor"
@@ -1206,7 +1217,17 @@ all =
                                                ]
                                         )
                                     }
-                                , mouseEnterMsg = Msgs.PipelineButtonHover <| Just <| onePipelinePaused "team"
+                                , mouseEnterMsg =
+                                    Msgs.PipelineButtonHover <|
+                                        Just
+                                            { id = 0
+                                            , name = "pipeline"
+                                            , teamName = "team"
+                                            , public = True
+                                            , jobs = []
+                                            , resourceError = False
+                                            , status = PipelineStatus.PipelineStatusPaused
+                                            }
                                 , mouseLeaveMsg = Msgs.PipelineButtonHover Nothing
                                 , hoveredSelector =
                                     { description = "an opaque 20px square play button with pointer cursor"

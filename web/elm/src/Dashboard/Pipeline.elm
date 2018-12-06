@@ -1,14 +1,13 @@
 module Dashboard.Pipeline
     exposing
-        ( PipelineWithJobs
-        , pipelineNotSetView
+        ( pipelineNotSetView
         , pipelineView
         , hdPipelineView
         )
 
-import Concourse
 import Concourse.PipelineStatus as PipelineStatus
 import Duration
+import Dashboard.Models exposing (Pipeline)
 import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
 import DashboardPreview
@@ -18,14 +17,6 @@ import Html.Events exposing (on, onMouseEnter, onMouseLeave)
 import Routes
 import StrictEvents exposing (onLeftClick)
 import Time exposing (Time)
-
-
-type alias PipelineWithJobs =
-    { pipeline : Concourse.Pipeline
-    , jobs : List Concourse.Job
-    , resourceError : Bool
-    , status : PipelineStatus.PipelineStatus
-    }
 
 
 pipelineNotSetView : Html msg
@@ -44,14 +35,11 @@ pipelineNotSetView =
 
 
 hdPipelineView :
-    { pipeline : Concourse.Pipeline
-    , jobs : List Concourse.Job
-    , resourceError : Bool
-    , status : PipelineStatus.PipelineStatus
+    { pipeline : Pipeline
     , pipelineRunningKeyframes : String
     }
     -> Html Msg
-hdPipelineView { pipeline, jobs, resourceError, status, pipelineRunningKeyframes } =
+hdPipelineView { pipeline, pipelineRunningKeyframes } =
     Html.div
         [ class "dashboard-pipeline"
         , attribute "data-pipeline-name" pipeline.name
@@ -62,14 +50,14 @@ hdPipelineView { pipeline, jobs, resourceError, status, pipelineRunningKeyframes
             [ class "dashboard-pipeline-banner"
             , style <|
                 Styles.pipelineCardBannerHd
-                    { status = status
+                    { status = pipeline.status
                     , pipelineRunningKeyframes = pipelineRunningKeyframes
                     }
             ]
             []
         , Html.div
             [ class "dashboard-pipeline-content"
-            , style <| Styles.pipelineCardBodyHd status
+            , style <| Styles.pipelineCardBodyHd pipeline.status
             , onMouseEnter <| TooltipHd pipeline.name pipeline.teamName
             ]
             [ Html.a [ href <| Routes.pipelineRoute pipeline ]
@@ -80,21 +68,21 @@ hdPipelineView { pipeline, jobs, resourceError, status, pipelineRunningKeyframes
                     [ Html.text pipeline.name ]
                 ]
             ]
-        , Html.div [ classList [ ( "dashboard-resource-error", resourceError ) ] ] []
+        , Html.div [ classList [ ( "dashboard-resource-error", pipeline.resourceError ) ] ] []
         ]
 
 
-pipelineView : { now : Time, pipelineWithJobs : PipelineWithJobs, hovered : Bool } -> Html Msg
-pipelineView { now, pipelineWithJobs, hovered } =
+pipelineView : { now : Time, pipeline : Pipeline, hovered : Bool } -> Html Msg
+pipelineView { now, pipeline, hovered } =
     Html.div [ class "dashboard-pipeline-content" ]
-        [ headerView pipelineWithJobs
-        , DashboardPreview.view pipelineWithJobs.jobs
-        , footerView pipelineWithJobs now hovered
+        [ headerView pipeline
+        , DashboardPreview.view pipeline.jobs
+        , footerView pipeline now hovered
         ]
 
 
-headerView : PipelineWithJobs -> Html Msg
-headerView ({ pipeline, resourceError } as pipelineWithJobs) =
+headerView : Pipeline -> Html Msg
+headerView pipeline =
     Html.a [ href <| Routes.pipelineRoute pipeline, draggable "false" ]
         [ Html.div
             [ class "dashboard-pipeline-header"
@@ -102,13 +90,13 @@ headerView ({ pipeline, resourceError } as pipelineWithJobs) =
             ]
             [ Html.div [ class "dashboard-pipeline-name" ]
                 [ Html.text pipeline.name ]
-            , Html.div [ classList [ ( "dashboard-resource-error", resourceError ) ] ] []
+            , Html.div [ classList [ ( "dashboard-resource-error", pipeline.resourceError ) ] ] []
             ]
         ]
 
 
-footerView : PipelineWithJobs -> Time -> Bool -> Html Msg
-footerView pipelineWithJobs now hovered =
+footerView : Pipeline -> Time -> Bool -> Html Msg
+footerView pipeline now hovered =
     let
         spacer =
             Html.div [ style [ ( "width", "13.5px" ) ] ] []
@@ -122,18 +110,18 @@ footerView pipelineWithJobs now hovered =
                 ]
                 [ Html.div
                     [ style <|
-                        Styles.pipelineStatusIcon pipelineWithJobs.status
+                        Styles.pipelineStatusIcon pipeline.status
                     ]
                     []
-                , transitionView now pipelineWithJobs
+                , transitionView now pipeline
                 ]
             , Html.div
                 [ style [ ( "display", "flex" ) ]
                 ]
               <|
                 List.intersperse spacer
-                    [ pauseToggleView pipelineWithJobs hovered
-                    , visibilityView pipelineWithJobs.pipeline.public
+                    [ pauseToggleView pipeline hovered
+                    , visibilityView pipeline.public
                     ]
             ]
 
@@ -168,7 +156,7 @@ sinceTransitionText details now =
             Duration.format <| Duration.between time now
 
 
-statusAgeText : PipelineWithJobs -> Time -> String
+statusAgeText : Pipeline -> Time -> String
 statusAgeText pipeline now =
     case pipeline.status of
         PipelineStatus.PipelineStatusPaused ->
@@ -193,7 +181,7 @@ statusAgeText pipeline now =
             sinceTransitionText details now
 
 
-transitionView : Time -> PipelineWithJobs -> Html a
+transitionView : Time -> Pipeline -> Html a
 transitionView time pipeline =
     Html.div
         [ class "build-duration"
@@ -202,7 +190,7 @@ transitionView time pipeline =
         [ Html.text <| statusAgeText pipeline time ]
 
 
-pauseToggleView : PipelineWithJobs -> Bool -> Html Msg
+pauseToggleView : Pipeline -> Bool -> Html Msg
 pauseToggleView pipeline hovered =
     Html.a
         [ style
@@ -226,8 +214,8 @@ pauseToggleView pipeline hovered =
                     "0.5"
               )
             ]
-        , onLeftClick <| TogglePipelinePaused pipeline.pipeline
-        , onMouseEnter <| PipelineButtonHover <| Just pipeline.pipeline
+        , onLeftClick <| TogglePipelinePaused pipeline
+        , onMouseEnter <| PipelineButtonHover <| Just pipeline
         , onMouseLeave <| PipelineButtonHover Nothing
         ]
         []

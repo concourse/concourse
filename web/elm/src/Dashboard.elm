@@ -12,8 +12,8 @@ import Dashboard.APIData as APIData
 import Dashboard.Details as Details
 import Dashboard.Group as Group
 import Dashboard.GroupWithTag as GroupWithTag
+import Dashboard.Models as Models
 import Dashboard.Msgs as Msgs exposing (Msg(..))
-import Dashboard.Pipeline as Pipeline
 import Dashboard.SubState as SubState
 import Dashboard.Styles as Styles
 import Dom
@@ -33,7 +33,6 @@ import Html.Styled.Attributes
 import Html.Styled.Events exposing (onMouseEnter, onMouseLeave)
 import Http
 import Keyboard
-import List.Extra
 import LoginRedirect
 import Maybe.Extra
 import Mouse
@@ -88,7 +87,7 @@ type alias Model =
     , state : Result DashboardError SubState.SubState
     , turbulencePath : String
     , highDensity : Bool
-    , hoveredPipeline : Maybe Concourse.Pipeline
+    , hoveredPipeline : Maybe Models.Pipeline
     , pipelineRunningKeyframes : String
     , groups : List Group.Group
     , hoveredCliIcon : Maybe Cli.Cli
@@ -257,24 +256,7 @@ update msg model =
                     |> noop
 
             TogglePipelinePaused pipeline ->
-                ( model, togglePipelinePaused pipeline model.csrfToken )
-
-            PipelinePauseToggled pipeline (Ok ()) ->
-                let
-                    togglePipelinePause : List Concourse.Pipeline -> List Concourse.Pipeline
-                    togglePipelinePause pipelines =
-                        List.Extra.updateIf
-                            ((==) pipeline)
-                            -- TODO this lambda could be a utility/helper in the Concourse module
-                            (\pipeline -> { pipeline | paused = not pipeline.paused })
-                            pipelines
-                in
-                    ( model
-                    , Cmd.none
-                    )
-
-            PipelinePauseToggled _ (Err _) ->
-                ( model, Cmd.none )
+                ( model, togglePipelinePaused { pipeline = pipeline, csrfToken = model.csrfToken } )
 
             DragStart teamName index ->
                 model
@@ -524,12 +506,12 @@ update msg model =
                     )
 
 
-orderPipelines : String -> List Pipeline.PipelineWithJobs -> Concourse.CSRFToken -> Cmd Msg
+orderPipelines : String -> List Models.Pipeline -> Concourse.CSRFToken -> Cmd Msg
 orderPipelines teamName pipelines csrfToken =
     Task.attempt (always Noop) <|
         Concourse.Pipeline.order
             teamName
-            (List.map (.name << .pipeline) <| pipelines)
+            (List.map .name pipelines)
             csrfToken
 
 
@@ -537,10 +519,10 @@ orderPipelines teamName pipelines csrfToken =
 -- TODO this seems obsessed with pipelines. shouldn't be the dashboard's business
 
 
-togglePipelinePaused : Concourse.Pipeline -> Concourse.CSRFToken -> Cmd Msg
-togglePipelinePaused pipeline csrfToken =
-    Task.attempt (PipelinePauseToggled pipeline) <|
-        if pipeline.paused then
+togglePipelinePaused : { pipeline : Models.Pipeline, csrfToken : Concourse.CSRFToken } -> Cmd Msg
+togglePipelinePaused { pipeline, csrfToken } =
+    Task.attempt (always Noop) <|
+        if pipeline.status == PipelineStatus.PipelineStatusPaused then
             Concourse.Pipeline.unpause pipeline.teamName pipeline.name csrfToken
         else
             Concourse.Pipeline.pause pipeline.teamName pipeline.name csrfToken
@@ -827,7 +809,7 @@ turbulenceView path =
 pipelinesView :
     { groups : List Group.Group
     , substate : SubState.SubState
-    , hoveredPipeline : Maybe Concourse.Pipeline
+    , hoveredPipeline : Maybe Models.Pipeline
     , pipelineRunningKeyframes : String
     , query : String
     , userState : UserState.UserState
@@ -980,7 +962,7 @@ filterPipelinesByTerm term ({ pipelines } as group) =
                 if searchStatus then
                     filterByStatus
                 else
-                    fuzzySearch (.pipeline >> .name) term pipelines
+                    fuzzySearch .name term pipelines
         }
 
 
