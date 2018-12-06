@@ -11,7 +11,6 @@ import Css
 import Dashboard.APIData as APIData
 import Dashboard.Details as Details
 import Dashboard.Group as Group
-import Dashboard.GroupWithTag as GroupWithTag
 import Dashboard.Models as Models
 import Dashboard.Msgs as Msgs exposing (Msg(..))
 import Dashboard.SubState as SubState
@@ -34,7 +33,6 @@ import Html.Styled.Events exposing (onMouseEnter, onMouseLeave)
 import Http
 import Keyboard
 import LoginRedirect
-import Maybe.Extra
 import Mouse
 import Monocle.Common exposing ((=>), (<|>))
 import Monocle.Optional
@@ -224,7 +222,7 @@ update msg model =
                                         )
                         in
                             { newModel
-                                | groups = Group.groups apiData
+                                | groups = Group.groups { apiData = apiData, user = user }
                                 , version = apiData.version
                                 , userState =
                                     case user of
@@ -818,7 +816,7 @@ pipelinesView :
 pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, query, userState } =
     let
         filteredGroups =
-            groups |> filter query
+            groups |> filter query |> List.sortWith Group.ordering
 
         groupsToDisplay =
             if List.all (String.startsWith "team:") (filterTerms query) then
@@ -826,66 +824,23 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
             else
                 filteredGroups |> List.filter (.pipelines >> List.isEmpty >> not)
 
-        highDensity =
-            substate.details |> Maybe.Extra.isJust |> not
-
         groupViews =
             case substate.details of
                 Just details ->
-                    case UserState.user userState of
-                        Nothing ->
-                            List.map
-                                (\g ->
-                                    Group.view
-                                        { header = (Group.headerView g)
-                                        , dragState = details.dragState
-                                        , dropState = details.dropState
-                                        , now = details.now
-                                        , hoveredPipeline = hoveredPipeline
-                                        , pipelineRunningKeyframes = pipelineRunningKeyframes
-                                        , group = g
-                                        }
-                                )
-                                groupsToDisplay
-
-                        Just user ->
-                            List.map
-                                (\g ->
-                                    Group.view
-                                        { header = (GroupWithTag.headerView g False)
-                                        , dragState = details.dragState
-                                        , dropState = details.dropState
-                                        , now = details.now
-                                        , hoveredPipeline = hoveredPipeline
-                                        , pipelineRunningKeyframes = pipelineRunningKeyframes
-                                        , group = g.group
-                                        }
-                                )
-                                (GroupWithTag.addTagsAndSort user groupsToDisplay)
+                    groupsToDisplay
+                        |> List.map
+                            (Group.view
+                                { dragState = details.dragState
+                                , dropState = details.dropState
+                                , now = details.now
+                                , hoveredPipeline = hoveredPipeline
+                                , pipelineRunningKeyframes = pipelineRunningKeyframes
+                                }
+                            )
 
                 Nothing ->
-                    case UserState.user userState of
-                        Nothing ->
-                            List.map
-                                (\g ->
-                                    Group.hdView
-                                        pipelineRunningKeyframes
-                                        (Group.headerView g)
-                                        g.teamName
-                                        g.pipelines
-                                )
-                                groupsToDisplay
-
-                        Just user ->
-                            List.map
-                                (\g ->
-                                    Group.hdView
-                                        pipelineRunningKeyframes
-                                        (GroupWithTag.headerView g True)
-                                        g.group.teamName
-                                        g.group.pipelines
-                                )
-                                (GroupWithTag.addTagsAndSort user groupsToDisplay)
+                    groupsToDisplay
+                        |> List.map (Group.hdView pipelineRunningKeyframes)
     in
         if List.isEmpty groupViews then
             [ noResultsView (toString query) ]

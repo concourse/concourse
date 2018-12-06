@@ -9,6 +9,7 @@ import Concourse.PipelineStatus as PipelineStatus
 import Concourse.Resource
 import Concourse.Team
 import Dashboard.APIData exposing (APIData)
+import Dashboard.Group.Tag as Tag
 import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Models as Models
 import Dashboard.Pipeline as Pipeline
@@ -32,7 +33,14 @@ import Time exposing (Time)
 type alias Group =
     { pipelines : List Models.Pipeline
     , teamName : String
+    , tag : Maybe Tag.Tag
     }
+
+
+ordering : Ordering Group
+ordering =
+    Ordering.byFieldWith Tag.ordering .tag
+        |> Ordering.breakTiesWith (Ordering.byField .teamName)
 
 
 type alias StickyHeaderConfig =
@@ -349,39 +357,40 @@ remoteData =
         (Concourse.Info.fetch |> Task.map .version)
 
 
-groups : APIData -> List Group
-groups apiData =
+groups : { apiData : APIData, user : Maybe Concourse.User } -> List Group
+groups { apiData, user } =
     let
         teamNames =
             allTeamNames apiData
     in
         teamNames
-            |> List.map (group (allPipelines apiData))
+            |> List.map (group (allPipelines apiData) user)
 
 
-group : List Models.Pipeline -> String -> Group
-group allPipelines teamName =
-    { pipelines = (List.filter (.teamName >> (==) teamName) allPipelines)
+group : List Models.Pipeline -> Maybe Concourse.User -> String -> Group
+group allPipelines user teamName =
+    { pipelines = List.filter (.teamName >> (==) teamName) allPipelines
     , teamName = teamName
+    , tag =
+        case user of
+            Just u ->
+                Tag.tag u teamName
+
+            Nothing ->
+                Nothing
     }
-
-
-ordering : Ordering Group
-ordering =
-    Ordering.byField .teamName
 
 
 view :
-    { header : List (Html Msg)
-    , dragState : DragState
+    { dragState : DragState
     , dropState : DropState
     , now : Time
     , hoveredPipeline : Maybe Models.Pipeline
-    , group : Group
     , pipelineRunningKeyframes : String
     }
+    -> Group
     -> Html Msg
-view { header, dragState, dropState, now, hoveredPipeline, group, pipelineRunningKeyframes } =
+view { dragState, dropState, now, hoveredPipeline, pipelineRunningKeyframes } group =
     let
         pipelines =
             if List.isEmpty group.pipelines then
@@ -438,19 +447,27 @@ view { header, dragState, dropState, now, hoveredPipeline, group, pipelineRunnin
                 [ style [ ( "display", "flex" ), ( "align-items", "center" ) ]
                 , class stickyHeaderConfig.sectionHeaderClass
                 ]
-                header
+                ([ Html.div [ class "dashboard-team-name" ] [ Html.text group.teamName ]
+                 ]
+                    ++ (Maybe.Extra.maybeToList <| Maybe.map (Tag.view False) group.tag)
+                )
             , Html.div [ class stickyHeaderConfig.sectionBodyClass ] pipelines
             ]
 
 
-hdView : String -> List (Html Msg) -> String -> List Models.Pipeline -> Html Msg
-hdView pipelineRunningKeyframes header teamName pipelines =
+hdView : String -> Group -> Html Msg
+hdView pipelineRunningKeyframes group =
     let
+        header =
+            [ Html.div [ class "dashboard-team-name" ] [ Html.text group.teamName ]
+            ]
+                ++ (Maybe.Extra.maybeToList <| Maybe.map (Tag.view True) group.tag)
+
         teamPipelines =
-            if List.isEmpty pipelines then
+            if List.isEmpty group.pipelines then
                 [ pipelineNotSetView ]
             else
-                pipelines
+                group.pipelines
                     |> List.map
                         (\p ->
                             Pipeline.hdPipelineView
