@@ -98,7 +98,7 @@ UI, so you should make your output pretty.
 \section{
   \title{\code{in}\aux{: Fetch a given resource.}}
 
-  The \code{in} script is passed a destination directory as \code{$1}, and
+  The \code{in} script is passed a destination directory as command line argument \code{$1}, and
   is given on stdin the configured source and a precise version of the resource
   to fetch.
 
