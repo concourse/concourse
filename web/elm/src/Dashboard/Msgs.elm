@@ -13,7 +13,7 @@ import Window
 
 type Msg
     = Noop
-    | APIDataFetched (RemoteData.WebData ( Time.Time, ( APIData.APIData, Maybe Concourse.User ) ))
+    | APIDataFetched (RemoteData.WebData ( Time.Time, APIData.APIData ))
     | ClockTick Time.Time
     | AutoRefresh Time.Time
     | ShowFooter

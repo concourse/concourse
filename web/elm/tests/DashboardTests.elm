@@ -250,16 +250,19 @@ all =
                                 job
                     in
                         givenDataUnauthenticated
-                            { teams =
-                                [ { id = 0, name = "team" } ]
-                            , pipelines =
-                                [ onePipeline "team" ]
-                            , jobs =
-                                [ jobFunc status
-                                ]
-                            , resources = []
-                            , version = ""
-                            }
+                            (\u ->
+                                { teams =
+                                    [ { id = 0, name = "team" } ]
+                                , pipelines =
+                                    [ onePipeline "team" ]
+                                , jobs =
+                                    [ jobFunc status
+                                    ]
+                                , resources = []
+                                , version = ""
+                                , user = u
+                                }
+                            )
                             >> queryView
             in
                 [ describe "colored banner" <|
@@ -332,14 +335,17 @@ all =
                                 \_ ->
                                     whenOnDashboard { highDensity = False }
                                         |> givenDataUnauthenticated
-                                            { teams =
-                                                [ { id = 0, name = "team" } ]
-                                            , pipelines =
-                                                [ onePipelinePaused "team" ]
-                                            , jobs = []
-                                            , resources = []
-                                            , version = ""
-                                            }
+                                            (\u ->
+                                                { teams =
+                                                    [ { id = 0, name = "team" } ]
+                                                , pipelines =
+                                                    [ onePipelinePaused "team" ]
+                                                , jobs = []
+                                                , resources = []
+                                                , version = ""
+                                                , user = u
+                                                }
+                                            )
                                         |> queryView
                                         |> findBanner
                                         |> isSolid blue
@@ -432,17 +438,20 @@ all =
                                     givenTwoJobs firstStatus secondStatus =
                                         whenOnDashboard { highDensity = False }
                                             |> givenDataUnauthenticated
-                                                { teams =
-                                                    [ { id = 0, name = "team" } ]
-                                                , pipelines =
-                                                    [ onePipeline "team" ]
-                                                , jobs =
-                                                    [ job firstStatus
-                                                    , otherJob secondStatus
-                                                    ]
-                                                , resources = []
-                                                , version = ""
-                                                }
+                                                (\u ->
+                                                    { teams =
+                                                        [ { id = 0, name = "team" } ]
+                                                    , pipelines =
+                                                        [ onePipeline "team" ]
+                                                    , jobs =
+                                                        [ job firstStatus
+                                                        , otherJob secondStatus
+                                                        ]
+                                                    , resources = []
+                                                    , version = ""
+                                                    , user = u
+                                                    }
+                                                )
                                             |> queryView
                                 in
                                     [ test "failed is more important than errored" <|
@@ -487,14 +496,17 @@ all =
                                     \_ ->
                                         whenOnDashboard { highDensity = True }
                                             |> givenDataUnauthenticated
-                                                { teams =
-                                                    [ { id = 0, name = "team" } ]
-                                                , pipelines =
-                                                    [ onePipelinePaused "team" ]
-                                                , jobs = []
-                                                , resources = []
-                                                , version = ""
-                                                }
+                                                (\u ->
+                                                    { teams =
+                                                        [ { id = 0, name = "team" } ]
+                                                    , pipelines =
+                                                        [ onePipelinePaused "team" ]
+                                                    , jobs = []
+                                                    , resources = []
+                                                    , version = ""
+                                                    , user = u
+                                                    }
+                                                )
                                             |> queryView
                                             |> findBanner
                                             |> isSolid blue
@@ -587,17 +599,20 @@ all =
                                         givenTwoJobs firstStatus secondStatus =
                                             whenOnDashboard { highDensity = False }
                                                 |> givenDataUnauthenticated
-                                                    { teams =
-                                                        [ { id = 0, name = "team" } ]
-                                                    , pipelines =
-                                                        [ onePipeline "team" ]
-                                                    , jobs =
-                                                        [ job firstStatus
-                                                        , otherJob secondStatus
-                                                        ]
-                                                    , resources = []
-                                                    , version = ""
-                                                    }
+                                                    (\u ->
+                                                        { teams =
+                                                            [ { id = 0, name = "team" } ]
+                                                        , pipelines =
+                                                            [ onePipeline "team" ]
+                                                        , jobs =
+                                                            [ job firstStatus
+                                                            , otherJob secondStatus
+                                                            ]
+                                                        , resources = []
+                                                        , version = ""
+                                                        , user = u
+                                                        }
+                                                    )
                                                 |> queryView
                                     in
                                         [ test "failed is more important than errored" <|
@@ -810,14 +825,17 @@ all =
                                         setup =
                                             whenOnDashboard { highDensity = False }
                                                 |> givenDataUnauthenticated
-                                                    { teams =
-                                                        [ { id = 0, name = "team" } ]
-                                                    , pipelines =
-                                                        [ onePipelinePaused "team" ]
-                                                    , jobs = []
-                                                    , resources = []
-                                                    , version = ""
-                                                    }
+                                                    (\u ->
+                                                        { teams =
+                                                            [ { id = 0, name = "team" } ]
+                                                        , pipelines =
+                                                            [ onePipelinePaused "team" ]
+                                                        , jobs = []
+                                                        , resources = []
+                                                        , version = ""
+                                                        , user = u
+                                                        }
+                                                    )
                                                 |> queryView
                                     in
                                         [ test "status icon is blue pause" <|
@@ -946,19 +964,22 @@ all =
                                         \_ ->
                                             whenOnDashboard { highDensity = False }
                                                 |> givenDataUnauthenticated
-                                                    { teams =
-                                                        [ { id = 0, name = "team" } ]
-                                                    , pipelines =
-                                                        [ onePipeline "team" ]
-                                                    , jobs =
-                                                        [ jobWithNameTransitionedAt
-                                                            "job"
-                                                            (Just 0)
-                                                            Concourse.BuildStatusSucceeded
-                                                        ]
-                                                    , resources = []
-                                                    , version = ""
-                                                    }
+                                                    (\u ->
+                                                        { teams =
+                                                            [ { id = 0, name = "team" } ]
+                                                        , pipelines =
+                                                            [ onePipeline "team" ]
+                                                        , jobs =
+                                                            [ jobWithNameTransitionedAt
+                                                                "job"
+                                                                (Just 0)
+                                                                Concourse.BuildStatusSucceeded
+                                                            ]
+                                                        , resources = []
+                                                        , version = ""
+                                                        , user = u
+                                                        }
+                                                    )
                                                 |> Dashboard.update (Msgs.ClockTick 1000)
                                                 |> Tuple.first
                                                 |> queryView
@@ -1751,14 +1772,17 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> givenDataUnauthenticated
-                                    { teams =
-                                        [ { id = 0, name = "team" } ]
-                                    , pipelines =
-                                        [ onePipeline "team" ]
-                                    , jobs = []
-                                    , resources = []
-                                    , version = "1.2.3"
-                                    }
+                                    (\u ->
+                                        { teams =
+                                            [ { id = 0, name = "team" } ]
+                                        , pipelines =
+                                            [ onePipeline "team" ]
+                                        , jobs = []
+                                        , resources = []
+                                        , version = "1.2.3"
+                                        , user = u
+                                        }
+                                    )
                                 |> queryView
                                 |> Query.find [ id "concourse-info" ]
                                 |> Query.has [ text "v1.2.3" ]
@@ -1882,11 +1906,11 @@ queryView =
         >> Query.fromHtml
 
 
-givenDataAndUser : APIData.APIData -> Concourse.User -> Dashboard.Model -> Dashboard.Model
+givenDataAndUser : (Maybe Concourse.User -> APIData.APIData) -> Concourse.User -> Dashboard.Model -> Dashboard.Model
 givenDataAndUser data user =
     Dashboard.update
         (Msgs.APIDataFetched <|
-            RemoteData.Success ( 0, ( data, Just user ) )
+            RemoteData.Success ( 0, data <| Just user )
         )
         >> Tuple.first
 
@@ -1902,17 +1926,17 @@ userWithRoles roles =
     }
 
 
-givenDataUnauthenticated : APIData.APIData -> Dashboard.Model -> Dashboard.Model
+givenDataUnauthenticated : (Maybe Concourse.User -> APIData.APIData) -> Dashboard.Model -> Dashboard.Model
 givenDataUnauthenticated data =
     Dashboard.update
         (Msgs.APIDataFetched <|
-            RemoteData.Success ( 0, ( data, Nothing ) )
+            RemoteData.Success ( 0, data Nothing )
         )
         >> Tuple.first
 
 
-givenPipelineWithJob : APIData.APIData
-givenPipelineWithJob =
+givenPipelineWithJob : Maybe Concourse.User -> APIData.APIData
+givenPipelineWithJob user =
     { teams = []
     , pipelines =
         [ { id = 0
@@ -1951,11 +1975,12 @@ givenPipelineWithJob =
         ]
     , resources = []
     , version = ""
+    , user = user
     }
 
 
-oneTeamOnePipelinePaused : String -> APIData.APIData
-oneTeamOnePipelinePaused teamName =
+oneTeamOnePipelinePaused : String -> Maybe Concourse.User -> APIData.APIData
+oneTeamOnePipelinePaused teamName user =
     { teams = [ { id = 0, name = teamName } ]
     , pipelines =
         [ { id = 0
@@ -1969,11 +1994,12 @@ oneTeamOnePipelinePaused teamName =
     , jobs = []
     , resources = []
     , version = ""
+    , user = user
     }
 
 
-oneTeamOnePipelineNonPublic : String -> APIData.APIData
-oneTeamOnePipelineNonPublic teamName =
+oneTeamOnePipelineNonPublic : String -> Maybe Concourse.User -> APIData.APIData
+oneTeamOnePipelineNonPublic teamName user =
     { teams = [ { id = 0, name = teamName } ]
     , pipelines =
         [ { id = 0
@@ -1987,10 +2013,11 @@ oneTeamOnePipelineNonPublic teamName =
     , jobs = []
     , resources = []
     , version = ""
+    , user = user
     }
 
 
-oneTeamOnePipeline : String -> APIData.APIData
+oneTeamOnePipeline : String -> Maybe Concourse.User -> APIData.APIData
 oneTeamOnePipeline teamName =
     apiData [ ( teamName, [ "pipeline" ] ) ]
 
@@ -2017,8 +2044,8 @@ onePipelinePaused teamName =
     }
 
 
-apiData : List ( String, List String ) -> APIData.APIData
-apiData pipelines =
+apiData : List ( String, List String ) -> Maybe Concourse.User -> APIData.APIData
+apiData pipelines user =
     { teams = pipelines |> List.map Tuple.first |> List.indexedMap Concourse.Team
     , pipelines =
         pipelines
@@ -2039,6 +2066,7 @@ apiData pipelines =
     , jobs = []
     , resources = []
     , version = ""
+    , user = user
     }
 
 

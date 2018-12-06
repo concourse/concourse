@@ -165,8 +165,8 @@ noop model =
     ( model, Cmd.none )
 
 
-substate : String -> Bool -> ( Time.Time, ( APIData.APIData, Maybe Concourse.User ) ) -> Result DashboardError SubState.SubState
-substate csrfToken highDensity ( now, ( apiData, user ) ) =
+substate : String -> Bool -> ( Time.Time, APIData.APIData ) -> Result DashboardError SubState.SubState
+substate csrfToken highDensity ( now, apiData ) =
     apiData.pipelines
         |> List.head
         |> Maybe.map
@@ -211,21 +211,21 @@ update msg model =
                     RemoteData.Failure _ ->
                         model |> stateLens.set (Err (Turbulence model.turbulencePath))
 
-                    RemoteData.Success ( now, ( apiData, user ) ) ->
+                    RemoteData.Success ( now, apiData ) ->
                         let
                             newModel =
                                 model
                                     |> Monocle.Lens.modify stateLens
                                         (Result.map
                                             (.set (SubState.detailsOptional =|> Details.nowLens) now >> Ok)
-                                            >> Result.withDefault (substate model.csrfToken model.highDensity ( now, ( apiData, user ) ))
+                                            >> Result.withDefault (substate model.csrfToken model.highDensity ( now, apiData ))
                                         )
                         in
                             { newModel
-                                | groups = Group.groups { apiData = apiData, user = user }
+                                | groups = Group.groups apiData
                                 , version = apiData.version
                                 , userState =
-                                    case user of
+                                    case apiData.user of
                                         Just u ->
                                             UserState.UserStateLoggedIn u
 
@@ -865,8 +865,7 @@ handleKeyPressed key model =
 
 fetchData : Cmd Msg
 fetchData =
-    Group.remoteData
-        |> Task.andThen remoteUser
+    APIData.remoteData
         |> Task.map2 (,) Time.now
         |> RemoteData.asCmd
         |> Cmd.map APIDataFetched

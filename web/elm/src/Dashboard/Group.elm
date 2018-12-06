@@ -2,12 +2,7 @@ port module Dashboard.Group exposing (..)
 
 import Concourse.BuildStatus
 import Concourse
-import Concourse.Info
-import Concourse.Job
-import Concourse.Pipeline
 import Concourse.PipelineStatus as PipelineStatus
-import Concourse.Resource
-import Concourse.Team
 import Dashboard.APIData exposing (APIData)
 import Dashboard.Group.Tag as Tag
 import Dashboard.Msgs exposing (Msg(..))
@@ -18,7 +13,6 @@ import Date exposing (Date)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onMouseEnter)
-import Http
 import Json.Decode
 import List.Extra
 import Maybe.Extra
@@ -26,7 +20,6 @@ import Monocle.Optional
 import NewTopBar.Styles as NTBS
 import Ordering exposing (Ordering)
 import Set
-import Task
 import Time exposing (Time)
 
 
@@ -347,24 +340,14 @@ allTeamNames apiData =
         |> Set.toList
 
 
-remoteData : Task.Task Http.Error APIData
-remoteData =
-    Task.map5 APIData
-        Concourse.Team.fetchTeams
-        Concourse.Pipeline.fetchPipelines
-        (Concourse.Job.fetchAllJobs |> Task.map (Maybe.withDefault []))
-        (Concourse.Resource.fetchAllResources |> Task.map (Maybe.withDefault []))
-        (Concourse.Info.fetch |> Task.map .version)
-
-
-groups : { apiData : APIData, user : Maybe Concourse.User } -> List Group
-groups { apiData, user } =
+groups : APIData -> List Group
+groups apiData =
     let
         teamNames =
             allTeamNames apiData
     in
         teamNames
-            |> List.map (group (allPipelines apiData) user)
+            |> List.map (group (allPipelines apiData) apiData.user)
 
 
 group : List Models.Pipeline -> Maybe Concourse.User -> String -> Group
