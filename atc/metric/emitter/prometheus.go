@@ -175,7 +175,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Name:      "info",
 			Help:      "Per-worker information",
 		},
-		[]string{"worker", "info"},
+		[]string{"worker", "state"},
 	)
 	prometheus.MustRegister(workerInfo)
 
