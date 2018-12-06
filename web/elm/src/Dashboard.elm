@@ -45,6 +45,7 @@ import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
 import Routes
+import ScreenSize
 import Simple.Fuzzy exposing (filter, match, root)
 import Task
 import Time exposing (Time)
@@ -92,7 +93,7 @@ type alias Model =
     , pipelineRunningKeyframes : String
     , groups : List Group.Group
     , hoveredCliIcon : Maybe Cli.Cli
-    , screenWidth : Int
+    , screenSize : ScreenSize.ScreenSize
     }
 
 
@@ -121,7 +122,7 @@ init ports flags =
           , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
           , groups = []
           , hoveredCliIcon = Nothing
-          , screenWidth = 1234
+          , screenSize = ScreenSize.Desktop
           }
         , Cmd.batch
             [ fetchData
@@ -359,7 +360,7 @@ update msg model =
                 ( { model | hoveredCliIcon = state }, Cmd.none )
 
             ScreenResized size ->
-                ( { model | screenWidth = size.width }, Cmd.none )
+                ( { model | screenSize = ScreenSize.fromWindowSize size }, Cmd.none )
 
 
 orderPipelines : String -> List Pipeline.PipelineWithJobs -> Concourse.CSRFToken -> Cmd Msg
@@ -435,7 +436,7 @@ dashboardView model =
                         ++ footerView
                             { substate = substate
                             , hoveredCliIcon = model.hoveredCliIcon
-                            , screenWidth = model.screenWidth
+                            , screenSize = model.screenSize
                             }
     in
         Html.div
@@ -500,10 +501,10 @@ toggleView highDensity =
 footerView :
     { substate : SubState.SubState
     , hoveredCliIcon : Maybe Cli.Cli
-    , screenWidth : Int
+    , screenSize : ScreenSize.ScreenSize
     }
     -> List (Html Msg)
-footerView { substate, hoveredCliIcon, screenWidth } =
+footerView { substate, hoveredCliIcon, screenSize } =
     let
         showHelp =
             substate.details |> Maybe.map .showHelp |> Maybe.withDefault False
@@ -514,7 +515,7 @@ footerView { substate, hoveredCliIcon, screenWidth } =
             [ infoView
                 { substate = substate
                 , hoveredCliIcon = hoveredCliIcon
-                , screenWidth = screenWidth
+                , screenSize = screenSize
                 }
             ]
         else
@@ -535,20 +536,28 @@ legendItem status =
 infoView :
     { substate : SubState.SubState
     , hoveredCliIcon : Maybe Cli.Cli
-    , screenWidth : Int
+    , screenSize : ScreenSize.ScreenSize
     }
     -> Html Msg
-infoView { substate, hoveredCliIcon, screenWidth } =
+infoView { substate, hoveredCliIcon, screenSize } =
     let
-        legendSeparator : Int -> List (Html Msg)
-        legendSeparator screenWidth =
-            if screenWidth > 812 then
-                [ Html.div
-                    [ style Styles.legendSeparator ]
-                    [ Html.text "|" ]
-                ]
-            else
-                []
+        legendSeparator : ScreenSize.ScreenSize -> List (Html Msg)
+        legendSeparator screenSize =
+            case screenSize of
+                ScreenSize.Mobile ->
+                    []
+
+                ScreenSize.Desktop ->
+                    [ Html.div
+                        [ style Styles.legendSeparator ]
+                        [ Html.text "|" ]
+                    ]
+
+                ScreenSize.BigDesktop ->
+                    [ Html.div
+                        [ style Styles.legendSeparator ]
+                        [ Html.text "|" ]
+                    ]
 
         cliIcon : Cli.Cli -> Maybe Cli.Cli -> Html Msg
         cliIcon cli hoveredCliIcon =
@@ -576,7 +585,7 @@ infoView { substate, hoveredCliIcon, screenWidth } =
     in
         Html.div
             [ id "dashboard-info"
-            , style <| Styles.infoBar screenWidth
+            , style <| Styles.infoBar screenSize
             ]
             [ Html.div
                 [ id "legend"
@@ -608,7 +617,7 @@ infoView { substate, hoveredCliIcon, screenWidth } =
                         , PipelineStatusAborted PipelineStatus.Running
                         , PipelineStatusSucceeded PipelineStatus.Running
                         ]
-                    ++ legendSeparator screenWidth
+                    ++ legendSeparator screenSize
                     ++ [ toggleView (substate.details == Nothing) ]
             , Html.div [ id "concourse-info", style Styles.info ]
                 [ Html.div [ style Styles.infoItem ]

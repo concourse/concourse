@@ -20,6 +20,7 @@ module Dashboard.Styles
 
 import Colors
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
+import ScreenSize
 
 
 statusColor : PipelineStatus -> String
@@ -193,27 +194,27 @@ pipelineCardTransitionAge status =
     ]
 
 
-infoBar : Int -> List ( String, String )
-infoBar screenWidth =
-    let
-        styleList : List ( a, Bool ) -> List a
-        styleList =
-            List.filter Tuple.second >> List.map Tuple.first
-    in
-        ([ ( "position", "fixed" )
-         , ( "bottom", "0" )
-         , ( "line-height", "35px" )
-         , ( "padding", "7.5px 30px" )
-         , ( "background-color", Colors.frame )
-         , ( "width", "100%" )
-         , ( "box-sizing", "border-box" )
-         , ( "display", "flex" )
-         , ( "justify-content", "space-between" )
-         ]
-            ++ styleList
-                [ ( ( "flex-direction", "column" ), screenWidth <= 1230 )
-                ]
-        )
+infoBar : ScreenSize.ScreenSize -> List ( String, String )
+infoBar screenSize =
+    [ ( "position", "fixed" )
+    , ( "bottom", "0" )
+    , ( "line-height", "35px" )
+    , ( "padding", "7.5px 30px" )
+    , ( "background-color", Colors.frame )
+    , ( "width", "100%" )
+    , ( "box-sizing", "border-box" )
+    , ( "display", "flex" )
+    , ( "justify-content", "space-between" )
+    ]
+        ++ case screenSize of
+            ScreenSize.Mobile ->
+                [ ( "flex-direction", "column" ) ]
+
+            ScreenSize.Desktop ->
+                [ ( "flex-direction", "column" ) ]
+
+            ScreenSize.BigDesktop ->
+                []
 
 
 legend : List ( String, String )

@@ -105,14 +105,6 @@ init showSearch query =
         )
 
 
-getScreenSize : Window.Size -> ScreenSize
-getScreenSize size =
-    if size.width < 812 then
-        Mobile
-    else
-        Desktop
-
-
 queryStringFromSearch : String -> String
 queryStringFromSearch query =
     case query of
@@ -220,6 +212,9 @@ update msg model =
                                 Desktop ->
                                     { model | searchBar = Expanded { r | showAutocomplete = False, selectionMade = False, selection = 0 } }
 
+                                BigDesktop ->
+                                    { model | searchBar = Expanded { r | showAutocomplete = False, selectionMade = False, selection = 0 } }
+
                         _ ->
                             model
             in
@@ -292,7 +287,7 @@ update msg model =
         ScreenResized size ->
             let
                 newSize =
-                    getScreenSize size
+                    ScreenSize.fromWindowSize size
 
                 newModel =
                     case ( model.searchBar, newSize ) of
@@ -505,6 +500,9 @@ viewUserInfo model =
                     []
 
                 Desktop ->
+                    [ Html.div [ css Styles.userInfo ] (viewUserState model) ]
+
+                BigDesktop ->
                     [ Html.div [ css Styles.userInfo ] (viewUserState model) ]
 
         _ ->

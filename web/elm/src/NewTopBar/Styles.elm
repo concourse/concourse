@@ -41,11 +41,14 @@ middleSection sb =
             case sb of
                 Expanded r ->
                     case r.screenSize of
+                        Mobile ->
+                            [ alignItems stretch ]
+
                         Desktop ->
                             [ alignItems center ]
 
-                        Mobile ->
-                            [ alignItems stretch ]
+                        BigDesktop ->
+                            [ alignItems center ]
 
                 Collapsed ->
                     [ alignItems flexStart ]
@@ -77,11 +80,14 @@ searchInput screenSize =
     let
         widthStyles =
             case screenSize of
+                Mobile ->
+                    []
+
                 Desktop ->
                     [ width <| px 220 ]
 
-                Mobile ->
-                    []
+                BigDesktop ->
+                    [ width <| px 220 ]
     in
         [ backgroundColor transparent
         , backgroundImage <| url "public/images/ic_search_white_24px.svg"
@@ -135,17 +141,25 @@ searchOptionsList screenSize =
             , top <| px 32
             ]
 
+        BigDesktop ->
+            [ position absolute
+            , top <| px 32
+            ]
+
 
 searchOption : { screenSize : ScreenSize, active : Bool } -> List Style
 searchOption { screenSize, active } =
     let
         widthStyles =
             case screenSize of
+                Mobile ->
+                    []
+
                 Desktop ->
                     [ width <| px 220 ]
 
-                Mobile ->
-                    []
+                BigDesktop ->
+                    [ width <| px 220 ]
 
         activeStyles =
             if active then
