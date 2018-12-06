@@ -21,6 +21,7 @@ type WorkerFactory interface {
 	VisibleWorkers([]string) ([]Worker, error)
 
 	FindWorkerForContainerByOwner(ContainerOwner) (Worker, bool, error)
+	GetBuildContainersPerWorker() (map[string]int, error)
 }
 
 type workerFactory struct {
@@ -338,6 +339,42 @@ func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner) (Wor
 	return getWorker(f.conn, workersQuery.Join("containers c ON c.worker_name = w.name").Where(sq.And{
 		ownerEq,
 	}))
+}
+
+func (f *workerFactory) GetBuildContainersPerWorker() (map[string]int, error) {
+	rows, err := psql.Select(`
+		worker_name,
+		count(*)
+	`).
+		From(`containers`).
+		Where(`build_id IS NOT NULL`).
+		GroupBy(`worker_name`).
+		RunWith(f.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Close(rows)
+
+	containersByWorker := make(map[string]int)
+
+	for rows.Next() {
+		var workerName string
+		var numContainers int
+
+		err = rows.Scan(&workerName, &numContainers)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			return nil, err
+		}
+
+		containersByWorker[workerName] = numContainers
+	}
+
+	return containersByWorker, nil
 }
 
 func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, conn Conn) (Worker, error) {
