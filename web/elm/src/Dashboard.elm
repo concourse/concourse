@@ -49,6 +49,7 @@ import ScreenSize
 import Simple.Fuzzy exposing (filter, match, root)
 import Task
 import Time exposing (Time)
+import UserState
 import Window
 
 
@@ -95,7 +96,7 @@ type alias Model =
     , hoveredCliIcon : Maybe Cli.Cli
     , screenSize : ScreenSize.ScreenSize
     , version : String
-    , user : Maybe Concourse.User
+    , userState : UserState.UserState
     }
 
 
@@ -126,7 +127,7 @@ init ports flags =
           , hoveredCliIcon = Nothing
           , screenSize = ScreenSize.Desktop
           , version = ""
-          , user = Nothing
+          , userState = UserState.UserStateUnknown
           }
         , Cmd.batch
             [ fetchData
@@ -219,7 +220,13 @@ update msg model =
                             { newModel
                                 | groups = Group.groups apiData
                                 , version = apiData.version
-                                , user = user
+                                , userState =
+                                    case user of
+                                        Just u ->
+                                            UserState.UserStateLoggedIn u
+
+                                        Nothing ->
+                                            UserState.UserStateLoggedOut
                             }
                 )
                     |> noop
@@ -435,7 +442,7 @@ dashboardView model =
                             , query = (NewTopBar.query model.topBar)
                             , hoveredPipeline = model.hoveredPipeline
                             , pipelineRunningKeyframes = model.pipelineRunningKeyframes
-                            , user = model.user
+                            , userState = model.userState
                             }
                         )
                     ]
@@ -675,10 +682,10 @@ pipelinesView :
     , hoveredPipeline : Maybe Concourse.Pipeline
     , pipelineRunningKeyframes : String
     , query : String
-    , user : Maybe Concourse.User
+    , userState : UserState.UserState
     }
     -> List (Html Msg)
-pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, query, user } =
+pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, query, userState } =
     let
         filteredGroups =
             groups |> filter query
@@ -695,7 +702,7 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
         groupViews =
             case substate.details of
                 Just details ->
-                    case user of
+                    case UserState.user userState of
                         Nothing ->
                             List.map
                                 (\g ->
@@ -727,7 +734,7 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
                                 (GroupWithTag.addTagsAndSort user groupsToDisplay)
 
                 Nothing ->
-                    case user of
+                    case UserState.user userState of
                         Nothing ->
                             List.map
                                 (\g ->
