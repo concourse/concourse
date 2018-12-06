@@ -21,7 +21,7 @@ type WorkerFactory interface {
 	VisibleWorkers([]string) ([]Worker, error)
 
 	FindWorkerForContainerByOwner(ContainerOwner) (Worker, bool, error)
-	GetBuildContainersPerWorker() (map[string]int, error)
+	BuildContainersCountPerWorker() (map[string]int, error)
 }
 
 type workerFactory struct {
@@ -341,14 +341,11 @@ func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner) (Wor
 	}))
 }
 
-func (f *workerFactory) GetBuildContainersPerWorker() (map[string]int, error) {
-	rows, err := psql.Select(`
-		worker_name,
-		count(*)
-	`).
-		From(`containers`).
-		Where(`build_id IS NOT NULL`).
-		GroupBy(`worker_name`).
+func (f *workerFactory) BuildContainersCountPerWorker() (map[string]int, error) {
+	rows, err := psql.Select("worker_name, COUNT(*)").
+		From("containers").
+		Where("build_id IS NOT NULL").
+		GroupBy("worker_name").
 		RunWith(f.conn).
 		Query()
 	if err != nil {
@@ -357,24 +354,21 @@ func (f *workerFactory) GetBuildContainersPerWorker() (map[string]int, error) {
 
 	defer Close(rows)
 
-	containersByWorker := make(map[string]int)
+	countByWorker := make(map[string]int)
 
 	for rows.Next() {
 		var workerName string
-		var numContainers int
+		var containersCount int
 
-		err = rows.Scan(&workerName, &numContainers)
+		err = rows.Scan(&workerName, &containersCount)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
 			return nil, err
 		}
 
-		containersByWorker[workerName] = numContainers
+		countByWorker[workerName] = containersCount
 	}
 
-	return containersByWorker, nil
+	return countByWorker, nil
 }
 
 func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, conn Conn) (Worker, error) {

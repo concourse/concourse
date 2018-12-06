@@ -143,6 +143,8 @@ func (p *containerProvider) FindOrCreateContainer(
 		if gardenContainer != nil {
 			logger.Debug("found-created-container-in-garden")
 		} else {
+			// TODO: Refactor: gardenWorker calls ContainerProvider.FindOrCreateContainer,
+			// we shouldn't need to create a new garden worker in here.
 			worker := NewGardenWorker(
 				p.gardenClient,
 				p.baggageclaimClient,
@@ -150,6 +152,7 @@ func (p *containerProvider) FindOrCreateContainer(
 				p.volumeClient,
 				p.worker,
 				p.clock,
+				0,
 			)
 
 			image, err := p.imageFactory.GetImage(
@@ -377,6 +380,7 @@ func (p *containerProvider) createGardenContainer(
 		p.volumeClient,
 		p.worker,
 		p.clock,
+		0,
 	)
 
 	inputDestinationPaths := make(map[string]bool)

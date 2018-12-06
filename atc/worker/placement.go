@@ -50,23 +50,23 @@ func (strategy *VolumeLocalityPlacementStrategy) Choose(logger lager.Logger, wor
 	return highestLocalityWorkers[strategy.rand.Intn(len(highestLocalityWorkers))], nil
 }
 
-type LeastContainersFoundPlacementStrategy struct {
+type LeastBuildContainersPlacementStrategy struct {
 	rand *rand.Rand
 }
 
-func NewLeastContainersFoundPlacementStrategy() ContainerPlacementStrategy {
-	return &LeastContainersFoundPlacementStrategy{
+func NewLeastBuildContainersPlacementStrategy() ContainerPlacementStrategy {
+	return &LeastBuildContainersPlacementStrategy{
 		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
-func (strategy *LeastContainersFoundPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
+func (strategy *LeastBuildContainersPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
 	workersByWork := map[int][]Worker{}
-	minWork := int(^uint(0) >> 1)
-	for _, w := range workers {
-		work := w.ActiveContainers()
+	var minWork int
+	for i, w := range workers {
+		work := w.BuildContainers()
 		workersByWork[work] = append(workersByWork[work], w)
-		if work < minWork {
+		if i == 0 || work < minWork {
 			minWork = work
 		}
 	}

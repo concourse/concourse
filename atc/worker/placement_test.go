@@ -30,23 +30,15 @@ var (
 	logger *lagertest.TestLogger
 )
 
-var _ = Describe("LeastContainersFoundPlacementStrategy", func() {
-
+var _ = Describe("LeastBuildContainersPlacementStrategy", func() {
 	Describe("Choose", func() {
 		var compatibleWorker1 *workerfakes.FakeWorker
 		var compatibleWorker2 *workerfakes.FakeWorker
 		var compatibleWorker3 *workerfakes.FakeWorker
-		JustBeforeEach(func() {
-			chosenWorker, chooseErr = strategy.Choose(
-				logger,
-				workers,
-				spec,
-			)
-		})
 
 		BeforeEach(func() {
-			logger = lagertest.NewTestLogger("least-containers-found-placement-test")
-			strategy = NewLeastContainersFoundPlacementStrategy()
+			logger = lagertest.NewTestLogger("build-containers-equal-placement-test")
+			strategy = NewLeastBuildContainersPlacementStrategy()
 			compatibleWorker1 = new(workerfakes.FakeWorker)
 			compatibleWorker2 = new(workerfakes.FakeWorker)
 			compatibleWorker3 = new(workerfakes.FakeWorker)
@@ -63,10 +55,15 @@ var _ = Describe("LeastContainersFoundPlacementStrategy", func() {
 		Context("when there is only one worker", func() {
 			BeforeEach(func() {
 				workers = []Worker{compatibleWorker1}
-				compatibleWorker1.ActiveContainersReturns(20)
+				compatibleWorker1.BuildContainersReturns(20)
 			})
 
 			It("picks that worker", func() {
+				chosenWorker, chooseErr = strategy.Choose(
+					logger,
+					workers,
+					spec,
+				)
 				Expect(chooseErr).ToNot(HaveOccurred())
 				Expect(chosenWorker).To(Equal(compatibleWorker1))
 			})
@@ -76,24 +73,38 @@ var _ = Describe("LeastContainersFoundPlacementStrategy", func() {
 			BeforeEach(func() {
 				workers = []Worker{compatibleWorker2, compatibleWorker3}
 
-				compatibleWorker2.ActiveContainersReturns(20)
-				compatibleWorker3.ActiveContainersReturns(10)
+				compatibleWorker2.BuildContainersReturns(20)
+				compatibleWorker3.BuildContainersReturns(10)
 			})
 
 			It("picks the one with least amount of containers", func() {
-				Expect(chooseErr).ToNot(HaveOccurred())
-				Expect(chosenWorker).To(Equal(compatibleWorker3))
+				Consistently(func() Worker {
+					chosenWorker, chooseErr = strategy.Choose(
+						logger,
+						workers,
+						spec,
+					)
+					Expect(chooseErr).ToNot(HaveOccurred())
+					return chosenWorker
+				}).Should(Equal(compatibleWorker3))
 			})
 
-			Context("when there is more than one worker with the same resource utilization", func() {
+			Context("when there is more than one worker with the same number of build containers", func() {
 				BeforeEach(func() {
 					workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
-					compatibleWorker1.ActiveContainersReturns(10)
+					compatibleWorker1.BuildContainersReturns(10)
 				})
 
 				It("picks any of them", func() {
-					Expect(chooseErr).ToNot(HaveOccurred())
-					Expect(chosenWorker).To(Or(Equal(compatibleWorker1), Equal(compatibleWorker3)))
+					Consistently(func() Worker {
+						chosenWorker, chooseErr = strategy.Choose(
+							logger,
+							workers,
+							spec,
+						)
+						Expect(chooseErr).ToNot(HaveOccurred())
+						return chosenWorker
+					}).Should(Or(Equal(compatibleWorker1), Equal(compatibleWorker3)))
 				})
 			})
 		})

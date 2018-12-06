@@ -10,6 +10,18 @@ import (
 )
 
 type FakeWorkerFactory struct {
+	BuildContainersCountPerWorkerStub        func() (map[string]int, error)
+	buildContainersCountPerWorkerMutex       sync.RWMutex
+	buildContainersCountPerWorkerArgsForCall []struct {
+	}
+	buildContainersCountPerWorkerReturns struct {
+		result1 map[string]int
+		result2 error
+	}
+	buildContainersCountPerWorkerReturnsOnCall map[int]struct {
+		result1 map[string]int
+		result2 error
+	}
 	FindWorkerForContainerByOwnerStub        func(db.ContainerOwner) (db.Worker, bool, error)
 	findWorkerForContainerByOwnerMutex       sync.RWMutex
 	findWorkerForContainerByOwnerArgsForCall []struct {
@@ -24,18 +36,6 @@ type FakeWorkerFactory struct {
 		result1 db.Worker
 		result2 bool
 		result3 error
-	}
-	GetBuildContainersPerWorkerStub        func() (map[string]int, error)
-	getBuildContainersPerWorkerMutex       sync.RWMutex
-	getBuildContainersPerWorkerArgsForCall []struct {
-	}
-	getBuildContainersPerWorkerReturns struct {
-		result1 map[string]int
-		result2 error
-	}
-	getBuildContainersPerWorkerReturnsOnCall map[int]struct {
-		result1 map[string]int
-		result2 error
 	}
 	GetWorkerStub        func(string) (db.Worker, bool, error)
 	getWorkerMutex       sync.RWMutex
@@ -109,6 +109,61 @@ type FakeWorkerFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
+func (fake *FakeWorkerFactory) BuildContainersCountPerWorker() (map[string]int, error) {
+	fake.buildContainersCountPerWorkerMutex.Lock()
+	ret, specificReturn := fake.buildContainersCountPerWorkerReturnsOnCall[len(fake.buildContainersCountPerWorkerArgsForCall)]
+	fake.buildContainersCountPerWorkerArgsForCall = append(fake.buildContainersCountPerWorkerArgsForCall, struct {
+	}{})
+	fake.recordInvocation("BuildContainersCountPerWorker", []interface{}{})
+	fake.buildContainersCountPerWorkerMutex.Unlock()
+	if fake.BuildContainersCountPerWorkerStub != nil {
+		return fake.BuildContainersCountPerWorkerStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.buildContainersCountPerWorkerReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeWorkerFactory) BuildContainersCountPerWorkerCallCount() int {
+	fake.buildContainersCountPerWorkerMutex.RLock()
+	defer fake.buildContainersCountPerWorkerMutex.RUnlock()
+	return len(fake.buildContainersCountPerWorkerArgsForCall)
+}
+
+func (fake *FakeWorkerFactory) BuildContainersCountPerWorkerCalls(stub func() (map[string]int, error)) {
+	fake.buildContainersCountPerWorkerMutex.Lock()
+	defer fake.buildContainersCountPerWorkerMutex.Unlock()
+	fake.BuildContainersCountPerWorkerStub = stub
+}
+
+func (fake *FakeWorkerFactory) BuildContainersCountPerWorkerReturns(result1 map[string]int, result2 error) {
+	fake.buildContainersCountPerWorkerMutex.Lock()
+	defer fake.buildContainersCountPerWorkerMutex.Unlock()
+	fake.BuildContainersCountPerWorkerStub = nil
+	fake.buildContainersCountPerWorkerReturns = struct {
+		result1 map[string]int
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeWorkerFactory) BuildContainersCountPerWorkerReturnsOnCall(i int, result1 map[string]int, result2 error) {
+	fake.buildContainersCountPerWorkerMutex.Lock()
+	defer fake.buildContainersCountPerWorkerMutex.Unlock()
+	fake.BuildContainersCountPerWorkerStub = nil
+	if fake.buildContainersCountPerWorkerReturnsOnCall == nil {
+		fake.buildContainersCountPerWorkerReturnsOnCall = make(map[int]struct {
+			result1 map[string]int
+			result2 error
+		})
+	}
+	fake.buildContainersCountPerWorkerReturnsOnCall[i] = struct {
+		result1 map[string]int
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeWorkerFactory) FindWorkerForContainerByOwner(arg1 db.ContainerOwner) (db.Worker, bool, error) {
 	fake.findWorkerForContainerByOwnerMutex.Lock()
 	ret, specificReturn := fake.findWorkerForContainerByOwnerReturnsOnCall[len(fake.findWorkerForContainerByOwnerArgsForCall)]
@@ -173,61 +228,6 @@ func (fake *FakeWorkerFactory) FindWorkerForContainerByOwnerReturnsOnCall(i int,
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
-}
-
-func (fake *FakeWorkerFactory) GetBuildContainersPerWorker() (map[string]int, error) {
-	fake.getBuildContainersPerWorkerMutex.Lock()
-	ret, specificReturn := fake.getBuildContainersPerWorkerReturnsOnCall[len(fake.getBuildContainersPerWorkerArgsForCall)]
-	fake.getBuildContainersPerWorkerArgsForCall = append(fake.getBuildContainersPerWorkerArgsForCall, struct {
-	}{})
-	fake.recordInvocation("GetBuildContainersPerWorker", []interface{}{})
-	fake.getBuildContainersPerWorkerMutex.Unlock()
-	if fake.GetBuildContainersPerWorkerStub != nil {
-		return fake.GetBuildContainersPerWorkerStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.getBuildContainersPerWorkerReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeWorkerFactory) GetBuildContainersPerWorkerCallCount() int {
-	fake.getBuildContainersPerWorkerMutex.RLock()
-	defer fake.getBuildContainersPerWorkerMutex.RUnlock()
-	return len(fake.getBuildContainersPerWorkerArgsForCall)
-}
-
-func (fake *FakeWorkerFactory) GetBuildContainersPerWorkerCalls(stub func() (map[string]int, error)) {
-	fake.getBuildContainersPerWorkerMutex.Lock()
-	defer fake.getBuildContainersPerWorkerMutex.Unlock()
-	fake.GetBuildContainersPerWorkerStub = stub
-}
-
-func (fake *FakeWorkerFactory) GetBuildContainersPerWorkerReturns(result1 map[string]int, result2 error) {
-	fake.getBuildContainersPerWorkerMutex.Lock()
-	defer fake.getBuildContainersPerWorkerMutex.Unlock()
-	fake.GetBuildContainersPerWorkerStub = nil
-	fake.getBuildContainersPerWorkerReturns = struct {
-		result1 map[string]int
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeWorkerFactory) GetBuildContainersPerWorkerReturnsOnCall(i int, result1 map[string]int, result2 error) {
-	fake.getBuildContainersPerWorkerMutex.Lock()
-	defer fake.getBuildContainersPerWorkerMutex.Unlock()
-	fake.GetBuildContainersPerWorkerStub = nil
-	if fake.getBuildContainersPerWorkerReturnsOnCall == nil {
-		fake.getBuildContainersPerWorkerReturnsOnCall = make(map[int]struct {
-			result1 map[string]int
-			result2 error
-		})
-	}
-	fake.getBuildContainersPerWorkerReturnsOnCall[i] = struct {
-		result1 map[string]int
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeWorkerFactory) GetWorker(arg1 string) (db.Worker, bool, error) {
@@ -550,10 +550,10 @@ func (fake *FakeWorkerFactory) WorkersReturnsOnCall(i int, result1 []db.Worker, 
 func (fake *FakeWorkerFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.buildContainersCountPerWorkerMutex.RLock()
+	defer fake.buildContainersCountPerWorkerMutex.RUnlock()
 	fake.findWorkerForContainerByOwnerMutex.RLock()
 	defer fake.findWorkerForContainerByOwnerMutex.RUnlock()
-	fake.getBuildContainersPerWorkerMutex.RLock()
-	defer fake.getBuildContainersPerWorkerMutex.RUnlock()
 	fake.getWorkerMutex.RLock()
 	defer fake.getWorkerMutex.RUnlock()
 	fake.heartbeatWorkerMutex.RLock()

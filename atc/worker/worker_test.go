@@ -86,6 +86,7 @@ var _ = Describe("Worker", func() {
 			fakeVolumeClient,
 			dbWorker,
 			fakeClock,
+			0,
 		)
 
 		fakeClock.IncrementBySeconds(workerUptime)

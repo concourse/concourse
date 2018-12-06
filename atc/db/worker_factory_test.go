@@ -656,32 +656,30 @@ var _ = Describe("WorkerFactory", func() {
 		})
 	})
 
-	Describe("GetBuildContainersPerWorker", func() {
+	Describe("BuildContainersCountPerWorker", func() {
 		var (
-			containerMetadata db.ContainerMetadata
-			fakeOwner         *dbfakes.FakeContainerOwner
-			build1            db.Build
-			otherFakeOwner    *dbfakes.FakeContainerOwner
+			fakeOwner      *dbfakes.FakeContainerOwner
+			otherFakeOwner *dbfakes.FakeContainerOwner
+			build          db.Build
 		)
+
 		BeforeEach(func() {
 			var err error
-			containerMetadata = db.ContainerMetadata{
-				Type:     "task",
-				StepName: "some-task",
-			}
 
-			build1, err = defaultTeam.CreateOneOffBuild()
+			build, err = defaultTeam.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
 
 			worker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+			Expect(err).ToNot(HaveOccurred())
+
 			fakeOwner = new(dbfakes.FakeContainerOwner)
 			fakeOwner.FindReturns(sq.Eq{
-				"build_id": build1.ID(),
+				"build_id": build.ID(),
 				"plan_id":  "simple-plan",
 				"team_id":  1,
 			}, true, nil)
 			fakeOwner.CreateReturns(map[string]interface{}{
-				"build_id": build1.ID(),
+				"build_id": build.ID(),
 				"plan_id":  "simple-plan",
 				"team_id":  1,
 			}, nil)
@@ -697,10 +695,14 @@ var _ = Describe("WorkerFactory", func() {
 				"plan_id":  "simple-plan",
 				"team_id":  1,
 			}, nil)
-			creatingContainer1, err := defaultWorker.CreateContainer(fakeOwner, containerMetadata)
+
+			creatingContainer, err := defaultWorker.CreateContainer(fakeOwner, db.ContainerMetadata{
+				Type:     "task",
+				StepName: "some-task",
+			})
 			Expect(err).ToNot(HaveOccurred())
 
-			_, err = creatingContainer1.Created()
+			_, err = creatingContainer.Created()
 			Expect(err).ToNot(HaveOccurred())
 
 			_, err = defaultWorker.CreateContainer(otherFakeOwner, db.ContainerMetadata{
@@ -708,8 +710,12 @@ var _ = Describe("WorkerFactory", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			_, err = worker.CreateContainer(fakeOwner, containerMetadata)
+			_, err = worker.CreateContainer(fakeOwner, db.ContainerMetadata{
+				Type:     "task",
+				StepName: "other-task",
+			})
 			Expect(err).ToNot(HaveOccurred())
+
 			_, err = worker.CreateContainer(otherFakeOwner, db.ContainerMetadata{
 				Type: "check",
 			})
@@ -717,13 +723,12 @@ var _ = Describe("WorkerFactory", func() {
 		})
 
 		It("returns a map of worker to number of active build containers", func() {
-			containersByWorker, err := workerFactory.GetBuildContainersPerWorker()
+			containersCountByWorker, err := workerFactory.BuildContainersCountPerWorker()
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(len(containersByWorker)).To(Equal(2))
-
-			Expect(containersByWorker[defaultWorker.Name()]).To(Equal(1))
-			Expect(containersByWorker[worker.Name()]).To(Equal(1))
+			Expect(containersCountByWorker).To(HaveLen(2))
+			Expect(containersCountByWorker[defaultWorker.Name()]).To(Equal(1))
+			Expect(containersCountByWorker[worker.Name()]).To(Equal(1))
 		})
 	})
 })

@@ -200,6 +200,10 @@ var _ = Describe("DBProvider", func() {
 		Context("when the database yields workers", func() {
 			BeforeEach(func() {
 				fakeDBWorkerFactory.WorkersReturns([]db.Worker{fakeWorker1, fakeWorker2}, nil)
+				fakeDBWorkerFactory.BuildContainersCountPerWorkerReturns(map[string]int{
+					fakeWorker1.Name(): 57,
+					fakeWorker2.Name(): 68,
+				}, nil)
 			})
 
 			It("succeeds", func() {
@@ -208,6 +212,10 @@ var _ = Describe("DBProvider", func() {
 
 			It("returns a worker for each one", func() {
 				Expect(workers).To(HaveLen(2))
+			})
+
+			It("correctly populates the numBuildContainers field in each worker", func() {
+				Expect([]int{workers[0].BuildContainers(), workers[1].BuildContainers()}).To(ConsistOf(57, 68))
 			})
 
 			Context("when some of the workers returned are stalled or landing", func() {

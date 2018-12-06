@@ -32,6 +32,7 @@ type Worker interface {
 
 	ActiveContainers() int
 	ActiveVolumes() int
+	BuildContainers() int
 
 	Description() string
 	Name() string
@@ -60,6 +61,7 @@ type gardenWorker struct {
 
 	activeContainers int
 	activeVolumes    int
+	buildContainers  int
 	resourceTypes    []atc.WorkerResourceType
 	platform         string
 	tags             atc.Tags
@@ -70,6 +72,9 @@ type gardenWorker struct {
 	version          *string
 }
 
+// TODO: numBuildContainers is only needed for placement strategy but this
+// method is called in ContainerProvider.FindOrCreateContainer as well and
+// hence we pass in 0 values for numBuildContainers everywhere.
 func NewGardenWorker(
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
@@ -77,6 +82,7 @@ func NewGardenWorker(
 	volumeClient VolumeClient,
 	dbWorker db.Worker,
 	clock clock.Clock,
+	numBuildContainers int,
 ) Worker {
 
 	return &gardenWorker{
@@ -88,6 +94,7 @@ func NewGardenWorker(
 		clock:            clock,
 		activeContainers: dbWorker.ActiveContainers(),
 		activeVolumes:    dbWorker.ActiveVolumes(),
+		buildContainers:  numBuildContainers,
 		resourceTypes:    dbWorker.ResourceTypes(),
 		platform:         dbWorker.Platform(),
 		tags:             dbWorker.Tags(),
@@ -193,6 +200,10 @@ func (worker *gardenWorker) ActiveContainers() int {
 
 func (worker *gardenWorker) ActiveVolumes() int {
 	return worker.activeVolumes
+}
+
+func (worker *gardenWorker) BuildContainers() int {
+	return worker.buildContainers
 }
 
 func (worker *gardenWorker) Satisfying(logger lager.Logger, spec WorkerSpec) (Worker, error) {

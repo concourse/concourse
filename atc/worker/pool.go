@@ -35,6 +35,7 @@ type WorkerProvider interface {
 		logger lager.Logger,
 		tikTok clock.Clock,
 		savedWorker db.Worker,
+		numBuildWorkers int,
 	) Worker
 }
 

@@ -67,6 +67,11 @@ func (provider *dbWorkerProvider) RunningWorkers(logger lager.Logger) ([]Worker,
 		return nil, err
 	}
 
+	buildContainersCountPerWorker, err := provider.dbWorkerFactory.BuildContainersCountPerWorker()
+	if err != nil {
+		return nil, err
+	}
+
 	tikTok := clock.NewClock()
 
 	workers := []Worker{}
@@ -77,7 +82,12 @@ func (provider *dbWorkerProvider) RunningWorkers(logger lager.Logger) ([]Worker,
 		}
 
 		workerLog := logger.Session("running-worker")
-		worker := provider.NewGardenWorker(workerLog, tikTok, savedWorker)
+		worker := provider.NewGardenWorker(
+			workerLog,
+			tikTok,
+			savedWorker,
+			buildContainersCountPerWorker[savedWorker.Name()],
+		)
 		if !worker.IsVersionCompatible(workerLog, provider.workerVersion) {
 			continue
 		}
@@ -103,7 +113,7 @@ func (provider *dbWorkerProvider) FindWorkerForContainerByOwner(
 		return nil, false, nil
 	}
 
-	worker := provider.NewGardenWorker(logger, clock.NewClock(), dbWorker)
+	worker := provider.NewGardenWorker(logger, clock.NewClock(), dbWorker, 0)
 	if !worker.IsVersionCompatible(logger, provider.workerVersion) {
 		return nil, false, nil
 	}
@@ -127,14 +137,14 @@ func (provider *dbWorkerProvider) FindWorkerForContainer(
 		return nil, false, nil
 	}
 
-	worker := provider.NewGardenWorker(logger, clock.NewClock(), dbWorker)
+	worker := provider.NewGardenWorker(logger, clock.NewClock(), dbWorker, 0)
 	if !worker.IsVersionCompatible(logger, provider.workerVersion) {
 		return nil, false, nil
 	}
 	return worker, true, err
 }
 
-func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok clock.Clock, savedWorker db.Worker) Worker {
+func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok clock.Clock, savedWorker db.Worker, buildContainersCount int) Worker {
 	gcf := NewGardenConnectionFactory(
 		provider.dbWorkerFactory,
 		logger.Session("garden-connection"),
@@ -184,5 +194,6 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 		volumeClient,
 		savedWorker,
 		tikTok,
+		buildContainersCount,
 	)
 }
