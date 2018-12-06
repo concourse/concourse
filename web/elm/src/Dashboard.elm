@@ -128,7 +128,6 @@ init ports flags =
                     , selectionMade = False
                     , showAutocomplete = False
                     , selection = 0
-                    , screenSize = ScreenSize.Desktop
                     }
     in
         ( { state = Err NotAsked
@@ -436,7 +435,7 @@ update msg model =
                     newModel =
                         case model.searchBar of
                             Expanded r ->
-                                case r.screenSize of
+                                case model.screenSize of
                                     ScreenSize.Mobile ->
                                         if String.isEmpty r.query then
                                             { model | searchBar = Collapsed }
@@ -526,15 +525,15 @@ update msg model =
                     newModel =
                         case ( model.searchBar, newSize ) of
                             ( Expanded r, _ ) ->
-                                case ( r.screenSize, newSize ) of
+                                case ( model.screenSize, newSize ) of
                                     ( ScreenSize.Desktop, ScreenSize.Mobile ) ->
                                         if String.isEmpty r.query then
                                             { model | searchBar = Collapsed }
                                         else
-                                            { model | searchBar = Expanded { r | screenSize = newSize } }
+                                            { model | searchBar = Expanded r }
 
                                     _ ->
-                                        { model | searchBar = Expanded { r | screenSize = newSize } }
+                                        { model | searchBar = Expanded r }
 
                             ( Collapsed, ScreenSize.Desktop ) ->
                                 { model
@@ -544,7 +543,6 @@ update msg model =
                                             , selectionMade = False
                                             , showAutocomplete = False
                                             , selection = 0
-                                            , screenSize = ScreenSize.Desktop
                                             }
                                 }
 

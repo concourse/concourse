@@ -11,5 +11,4 @@ type SearchBar
         , showAutocomplete : Bool
         , selectionMade : Bool
         , selection : Int
-        , screenSize : ScreenSize
         }

@@ -34,13 +34,13 @@ concourseLogo =
     ]
 
 
-middleSection : SearchBar -> List Style
-middleSection sb =
+middleSection : { a | searchBar : SearchBar, screenSize : ScreenSize } -> List Style
+middleSection { searchBar, screenSize } =
     let
         flexLayout =
-            case sb of
-                Expanded r ->
-                    case r.screenSize of
+            case searchBar of
+                Expanded _ ->
+                    case screenSize of
                         Mobile ->
                             [ alignItems stretch ]
 

@@ -2,7 +2,6 @@ module NewTopBar
     exposing
         ( Model
         , autocompleteOptions
-        , init
         , query
         , view
         , logOut
@@ -35,7 +34,6 @@ import SearchBar exposing (SearchBar(..))
 import Task
 import TopBar exposing (userDisplayName)
 import UserState exposing (UserState(..))
-import Window
 
 
 type alias Model r =
@@ -44,6 +42,7 @@ type alias Model r =
         , userMenuVisible : Bool
         , searchBar : SearchBar
         , teams : RemoteData.WebData (List Concourse.Team)
+        , screenSize : ScreenSize
     }
 
 
@@ -55,33 +54,6 @@ query model =
 
         _ ->
             ""
-
-
-init : Bool -> String -> ( Model {}, Cmd Msg )
-init showSearch query =
-    let
-        searchBar =
-            if showSearch then
-                Expanded
-                    { query = query
-                    , selectionMade = False
-                    , showAutocomplete = False
-                    , selection = 0
-                    , screenSize = Desktop
-                    }
-            else
-                Invisible
-    in
-        ( { userState = UserStateUnknown
-          , userMenuVisible = False
-          , searchBar = searchBar
-          , teams = RemoteData.Loading
-          }
-        , Cmd.batch
-            [ fetchTeams
-            , Task.perform ScreenResized Window.size
-            ]
-        )
 
 
 queryStringFromSearch : String -> String
@@ -106,7 +78,6 @@ showSearchInput model =
                         , selectionMade = False
                         , showAutocomplete = False
                         , selection = 0
-                        , screenSize = Mobile
                         }
             }
     in
@@ -204,7 +175,7 @@ viewMiddleSection model =
             []
 
         Collapsed ->
-            [ Html.div [ css <| Styles.middleSection model.searchBar ]
+            [ Html.div [ css <| Styles.middleSection model ]
                 [ Html.a
                     [ id "search-button"
                     , onClick ShowSearchInput
@@ -215,17 +186,17 @@ viewMiddleSection model =
             ]
 
         Expanded r ->
-            [ Html.div [ css <| Styles.middleSection model.searchBar ] <|
-                (searchInput r
+            [ Html.div [ css <| Styles.middleSection model ] <|
+                (searchInput { query = r.query, screenSize = model.screenSize }
                     ++ (if r.showAutocomplete then
                             [ Html.ul
-                                [ css <| Styles.searchOptionsList r.screenSize ]
+                                [ css <| Styles.searchOptionsList model.screenSize ]
                                 (viewAutocomplete
                                     { query = r.query
                                     , teams = model.teams
                                     , selectionMade = r.selectionMade
                                     , selection = r.selection
-                                    , screenSize = r.screenSize
+                                    , screenSize = model.screenSize
                                     }
                                 )
                             ]
@@ -269,8 +240,8 @@ viewAutocomplete r =
 viewUserInfo : Model r -> List (Html Msg)
 viewUserInfo model =
     case model.searchBar of
-        Expanded r ->
-            case r.screenSize of
+        Expanded _ ->
+            case model.screenSize of
                 Mobile ->
                     []
 
