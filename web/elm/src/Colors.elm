@@ -66,11 +66,31 @@ aborted =
     "#8b572a"
 
 
-runningStripes : String
-runningStripes =
+card : String
+card =
     "#2a2929"
+
+
+flySuccessCard : String
+flySuccessCard =
+    "#323030"
+
+
+flySuccessButtonHover : String
+flySuccessButtonHover =
+    "#242424"
+
+
+flySuccessTokenCopied : String
+flySuccessTokenCopied =
+    "#196AC8"
 
 
 cliIconHover : String
 cliIconHover =
     "#fff"
+
+
+text : String
+text =
+    "#e6e7e8"

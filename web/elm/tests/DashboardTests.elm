@@ -2,8 +2,11 @@ module DashboardTests
     exposing
         ( all
         , apiData
+        , darkGrey
+        , defineHoverBehaviour
         , givenDataAndUser
         , givenDataUnauthenticated
+        , white
         )
 
 import Concourse
@@ -1167,6 +1170,7 @@ all =
                                         >> Query.index -1
                                         >> Query.children []
                                         >> Query.index 0
+                                , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                                 , unhoveredSelector =
                                     { description = "a faded 20px square pause button with pointer cursor"
                                     , selector =
@@ -1224,6 +1228,7 @@ all =
                                         >> Query.index -1
                                         >> Query.children []
                                         >> Query.index 0
+                                , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                                 , unhoveredSelector =
                                     { description = "a transparent 20px square play button with pointer cursor"
                                     , selector =
@@ -1705,6 +1710,7 @@ all =
                                         , containing [ tag "i", class "fa-apple" ]
                                         ]
                                     }
+                                , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                                 , mouseEnterMsg = Msgs.CliHover <| Just Cli.OSX
                                 , mouseLeaveMsg = Msgs.CliHover Nothing
                                 , hoveredSelector =
@@ -1731,6 +1737,7 @@ all =
                                         , containing [ tag "i", class "fa-windows" ]
                                         ]
                                     }
+                                , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                                 , mouseEnterMsg = Msgs.CliHover <| Just Cli.Windows
                                 , mouseLeaveMsg = Msgs.CliHover Nothing
                                 , hoveredSelector =
@@ -1757,6 +1764,7 @@ all =
                                         , containing [ tag "i", class "fa-linux" ]
                                         ]
                                     }
+                                , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                                 , mouseEnterMsg = Msgs.CliHover <| Just Cli.Linux
                                 , mouseLeaveMsg = Msgs.CliHover Nothing
                                 , hoveredSelector =
@@ -1811,15 +1819,16 @@ all =
 
 defineHoverBehaviour :
     { name : String
-    , setup : Dashboard.Model
-    , query : Dashboard.Model -> Query.Single Msgs.Msg
+    , setup : model
+    , query : model -> Query.Single msg
     , unhoveredSelector : { description : String, selector : List Selector }
-    , mouseEnterMsg : Msgs.Msg
-    , mouseLeaveMsg : Msgs.Msg
+    , mouseEnterMsg : msg
+    , mouseLeaveMsg : msg
+    , updateFunc : msg -> model -> model
     , hoveredSelector : { description : String, selector : List Selector }
     }
     -> Test
-defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mouseLeaveMsg, hoveredSelector } =
+defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mouseLeaveMsg, updateFunc, hoveredSelector } =
     describe (name ++ " hover behaviour")
         [ test (name ++ " is " ++ unhoveredSelector.description) <|
             \_ ->
@@ -1842,15 +1851,13 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mou
           <|
             \_ ->
                 setup
-                    |> Dashboard.update mouseEnterMsg
-                    |> Tuple.first
+                    |> updateFunc mouseEnterMsg
                     |> query
                     |> Query.has hoveredSelector.selector
         , test ("mousing off " ++ name ++ " triggers " ++ toString mouseLeaveMsg ++ " msg") <|
             \_ ->
                 setup
-                    |> Dashboard.update mouseEnterMsg
-                    |> Tuple.first
+                    |> updateFunc mouseEnterMsg
                     |> query
                     |> Event.simulate Event.mouseLeave
                     |> Event.expect mouseLeaveMsg
@@ -1864,10 +1871,8 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mou
           <|
             \_ ->
                 setup
-                    |> Dashboard.update mouseEnterMsg
-                    |> Tuple.first
-                    |> Dashboard.update mouseLeaveMsg
-                    |> Tuple.first
+                    |> updateFunc mouseEnterMsg
+                    |> updateFunc mouseLeaveMsg
                     |> query
                     |> Query.has unhoveredSelector.selector
         ]

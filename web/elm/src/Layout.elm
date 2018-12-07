@@ -1,7 +1,19 @@
-port module Layout exposing (Flags, Model, Msg(..), init, locationMsg, subscriptions, update, view)
+port module Layout
+    exposing
+        ( Flags
+        , Model
+        , Msg(..)
+        , copyToken
+        , init
+        , locationMsg
+        , subscriptions
+        , update
+        , view
+        )
 
 import Concourse
 import Favicon
+import FlySuccess
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id)
 import Json.Decode
@@ -11,6 +23,9 @@ import Routes
 import SubPage
 import Task exposing (Task)
 import TopBar
+
+
+port copyToken : String -> Cmd msg
 
 
 port newUrl : (String -> msg) -> Sub msg
@@ -224,6 +239,30 @@ update msg model =
                         )
                 else
                     ( model, Cmd.none )
+
+        SubMsg navIndex (SubPage.FlySuccessMsg (FlySuccess.CopyTokenButtonHover bool)) ->
+            let
+                newSubModel =
+                    case model.subModel of
+                        SubPage.FlySuccess m ->
+                            SubPage.FlySuccess (FlySuccess.hover bool m)
+
+                        _ ->
+                            model.subModel
+            in
+                ( { model | subModel = newSubModel }, Cmd.none )
+
+        SubMsg navIndex (SubPage.FlySuccessMsg FlySuccess.CopyToken) ->
+            let
+                newSubModel =
+                    case model.subModel of
+                        SubPage.FlySuccess m ->
+                            SubPage.FlySuccess (FlySuccess.click m)
+
+                        _ ->
+                            model.subModel
+            in
+                ( { model | subModel = newSubModel }, copyToken model.csrfToken )
 
         -- otherwise, pass down
         SubMsg navIndex m ->

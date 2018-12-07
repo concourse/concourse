@@ -39,7 +39,7 @@ type Model
     | PipelineModel Pipeline.Model
     | NotFoundModel NotFound.Model
     | DashboardModel Dashboard.Model
-    | FlySuccess
+    | FlySuccess FlySuccess.Model
 
 
 type Msg
@@ -50,6 +50,7 @@ type Msg
     | NewCSRFToken String
     | DashboardPipelinesFetched (Result Http.Error (List Concourse.Pipeline))
     | DashboardMsg Dashboard.Msgs.Msg
+    | FlySuccessMsg FlySuccess.Msg
 
 
 type alias Flags =
@@ -161,7 +162,7 @@ init flags route =
                     }
 
         Routes.FlySuccess ->
-            ( FlySuccess, Cmd.none )
+            ( FlySuccess FlySuccess.init, Cmd.none )
 
 
 handleNotFound : String -> ( a -> Model, c -> Msg ) -> ( a, Cmd c, Maybe UpdateMsg ) -> ( Model, Cmd Msg )
@@ -306,8 +307,8 @@ view mdl =
         NotFoundModel model ->
             NotFound.view model
 
-        FlySuccess ->
-            FlySuccess.view
+        FlySuccess model ->
+            Html.map FlySuccessMsg <| FlySuccess.view model
 
 
 subscriptions : Model -> Sub Msg
@@ -334,5 +335,5 @@ subscriptions mdl =
         NotFoundModel _ ->
             Sub.none
 
-        FlySuccess ->
+        FlySuccess _ ->
             Sub.none
