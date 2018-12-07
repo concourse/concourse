@@ -5,6 +5,19 @@ resources:
     uri: https://github.com/concourse/concourse.git
     branch: hotfix/redirect-issue
 
+- name: concourse-head
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse.git
+    branch: hotfix/redirect-issue
+
+- name: github-release
+  type: github-release
+  source:
+    owner: concourse
+    repository: concourse
+    access_token: ((concourse_github_release.access_token))
+
 - name: version
   type: mock
   source:
@@ -35,6 +48,11 @@ resources:
   source:
     repository: cloudfoundry/postgres-release
     regexp: 30
+
+- name: bosh-virtualbox-cpi
+  type: bosh-io-release
+  source:
+    repository: cppforlife/bosh-virtualbox-cpi-release
 
 - name: gcp-xenial-stemcell
   type: bosh-io-stemcell
@@ -68,6 +86,25 @@ resources:
   source:
     bucket: concourse-release-candidates
     regexp: concourse-(.*).tgz
+    access_key_id: ((concourse_release_bucket.access_key))
+    secret_access_key: ((concourse_release_bucket.secret_key))
+    unique: 1544212065 # we want this to be a unique resource config so we don't share cache and version history
+
+- name: nightly-release
+  type: s3
+  source:
+    bucket: concourse-nightly-releases
+    regexp: concourse-(.*).tgz
+    region_name: us-west-2
+    access_key_id: ((concourse_release_bucket.access_key))
+    secret_access_key: ((concourse_release_bucket.secret_key))
+
+- name: latest-nightly
+  type: s3
+  source:
+    bucket: concourse-nightly-releases
+    versioned_file: latest-nightly/ref
+    region_name: us-west-2
     access_key_id: ((concourse_release_bucket.access_key))
     secret_access_key: ((concourse_release_bucket.secret_key))
 
@@ -133,6 +170,14 @@ resources:
     repository: concourse/concourse-rc
     username: ((docker.username))
     password: ((docker.password))
+
+- name: concourse-image-final
+  type: docker-image
+  source:
+    repository: concourse/concourse
+    username: ((docker.username))
+    password: ((docker.password))
+
 jobs:
 - name: fly
   public: true
@@ -744,21 +789,24 @@ jobs:
       ATC_USERNAME: "test"
       ATC_PASSWORD: "test"
     timeout: 1h
-  # XXX: this should actually be a separate job, since we have metrics tied up
-  # to it.
-  # - task: lengthy-output
-  #   file: concourse/ci/tasks/lengthy-output.yml
-  #   params:
-  #     ATC_URL: "http://10.244.19.2:8080"
-  #     ATC_USERNAME: "test10"
-  #     ATC_PASSWORD: "test10"
-  #   timeout: 1h
+
+- name: nightly
+  plan:
+   - get: bosh-rc
+     passed: [bosh-upgrade]
+   - get: concourse
+     passed: [bosh-upgrade]
+   - put: nightly-release
+     params: {file: bosh-rc/concourse-*.tgz}
+   - put: latest-nightly
+     params: {file: concourse/.git/ref}
+
 - name: shipit
   serial_groups: [version]
   plan:
   - aggregate:
     - get: concourse
-      passed: [bosh-upgrade, bin-smoke]
+      passed: [nightly, bin-smoke]
     - get: version
       passed: [bosh-upgrade, bin-smoke]
     - get: garden-runc-release
@@ -767,7 +815,7 @@ jobs:
     - get: postgres-release
       passed: [bosh-upgrade]
     - get: bosh-rc
-      passed: [bosh-upgrade]
+      passed: [nightly]
     - get: concourse-bosh-deployment
       passed: [bosh-upgrade]
     - get: gcp-xenial-stemcell
@@ -787,15 +835,71 @@ jobs:
   - task: finalize-release
     file: concourse/ci/finalize-release.yml
     params: {BOSH_PRIVATE_CONFIG: ((concourse_release_private_config))}
-  # - aggregate:
-  #   - put: version
-  #     params: {file: version/version}
-  #   - put: concourse-head
-  #     params:
-  #       repository: final-release-repo
-  #       merge: true
-  #   - put: final-release
-  #     params: {file: final-release-tarball/concourse-*.tgz}
+  - aggregate:
+    - put: version
+      params: {file: version/version}
+    - put: concourse-head
+      params:
+        repository: final-release-repo
+        merge: true
+    - put: final-release
+      params: {file: final-release-tarball/concourse-*.tgz}
+
+- name: github-release
+  plan:
+  - aggregate:
+    - get: final-release
+      passed: [shipit]
+    - get: garden-runc
+      passed: [shipit]
+    - get: fly-rc
+      passed: [shipit]
+    - get: bin-rc
+      passed: [shipit]
+    - get: concourse
+      params: {submodules: none}
+      passed: [shipit]
+    - get: concourse-head
+      params: {submodules: none}
+      passed: [shipit]
+    - get: version
+      passed: [shipit]
+    - get: gcp-xenial-stemcell
+      passed: [shipit]
+    - get: bosh-virtualbox-cpi
+    - get: concourse-bosh-deployment
+    - get: postgres-release
+  - aggregate:
+    - task: build-release-notes
+      file: concourse/ci/tasks/build-release-notes.yml
+    - task: rename-release
+      file: concourse/ci/tasks/rename-release.yml
+  - put: github-release
+    params:
+      name: release-notes/release-name
+      tag: release-notes/release-name
+      body: release-notes/notes.md
+      commitish: concourse-head/.git/ref
+      globs:
+      - bin-rc/concourse_*
+      - fly-rc/fly_*
+
+- name: promote-docker
+  serial: true
+  public: true
+  plan:
+  - aggregate:
+    - get: concourse-image-rc
+      passed: [shipit]
+      params: {save: true}
+    - get: version
+      passed: [shipit]
+  - put: concourse-image-final
+    params:
+      load: concourse-image-rc
+      tag: version/version
+      tag_as_latest: true
+
 
 resource_types:
 - name: bosh-io-release
