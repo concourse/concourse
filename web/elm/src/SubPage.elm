@@ -162,7 +162,7 @@ init flags route =
                     }
 
         Routes.FlySuccess ->
-            ( FlySuccess FlySuccess.init, Cmd.none )
+            ( FlySuccess <| FlySuccess.init route, Cmd.none )
 
 
 handleNotFound : String -> ( a -> Model, c -> Msg ) -> ( a, Cmd c, Maybe UpdateMsg ) -> ( Model, Cmd Msg )

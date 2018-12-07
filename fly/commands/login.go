@@ -265,9 +265,9 @@ func listenForTokenCallback(tokenChannel chan string, errorChannel chan error, p
 	s := &http.Server{
 		Addr: "127.0.0.1:0",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			tokenChannel <- r.FormValue("token")
-			csrfToken := r.FormValue("csrf_token")
-			http.Redirect(w, r, fmt.Sprintf("%s/fly_success?csrf_token=%s", targetUrl, csrfToken), http.StatusTemporaryRedirect)
+			authToken := r.FormValue("token")
+			tokenChannel <- authToken
+			http.Redirect(w, r, fmt.Sprintf("%s/fly_success?token=%s", targetUrl, authToken), http.StatusTemporaryRedirect)
 		}),
 	}
 

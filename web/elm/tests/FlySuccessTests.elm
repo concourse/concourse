@@ -3,12 +3,13 @@ module FlySuccessTests exposing (..)
 import DashboardTests exposing (defineHoverBehaviour)
 import Expect
 import FlySuccess
+import Html.Attributes as Attr
 import Layout
 import SubPage
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Event as Event
-import Test.Html.Selector exposing (containing, id, style, tag, text)
+import Test.Html.Selector exposing (attribute, containing, id, style, tag, text)
 
 
 loginSuccessText : String
@@ -41,9 +42,9 @@ blue =
     "#196AC8"
 
 
-csrfToken : String
-csrfToken =
-    "some_csrf_token"
+authToken : String
+authToken =
+    "some_auth_token"
 
 
 all : Test
@@ -55,7 +56,7 @@ all =
                 Layout.init
                     { turbulenceImgSrc = ""
                     , notFoundImgSrc = ""
-                    , csrfToken = csrfToken
+                    , csrfToken = ""
                     , pipelineRunningKeyframes = ""
                     }
                     { href = ""
@@ -65,7 +66,7 @@ all =
                     , origin = ""
                     , port_ = ""
                     , pathname = "/fly_success"
-                    , search = ""
+                    , search = "?token=" ++ authToken
                     , hash = ""
                     , username = ""
                     , password = ""
@@ -176,6 +177,10 @@ all =
                         setup
                             >> copyTokenButton
                             >> Query.has [ style [ ( "cursor", "pointer" ) ] ]
+                    , test "has clipboard attribute that is readable by clipboard.js" <|
+                        setup
+                            >> copyTokenButton
+                            >> Query.has [ attribute <| Attr.attribute "data-clipboard-text" authToken ]
                     , defineHoverBehaviour
                         { name = "copy token button"
                         , setup = setup ()
@@ -218,11 +223,7 @@ all =
                                                 FlySuccess.CopyToken
                                         )
                         in
-                            [ test "sends token to clipboard" <|
-                                tokenCopied
-                                    >> Tuple.second
-                                    >> Expect.equal (Layout.copyToken csrfToken)
-                            , test "changes button background and border to blue" <|
+                            [ test "changes button background and border to blue" <|
                                 tokenCopied
                                     >> Tuple.first
                                     >> copyTokenButton

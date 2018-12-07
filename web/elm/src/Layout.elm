@@ -3,7 +3,6 @@ port module Layout
         ( Flags
         , Model
         , Msg(..)
-        , copyToken
         , init
         , locationMsg
         , subscriptions
@@ -23,9 +22,6 @@ import Routes
 import SubPage
 import Task exposing (Task)
 import TopBar
-
-
-port copyToken : String -> Cmd msg
 
 
 port newUrl : (String -> msg) -> Sub msg
@@ -257,12 +253,12 @@ update msg model =
                 newSubModel =
                     case model.subModel of
                         SubPage.FlySuccess m ->
-                            SubPage.FlySuccess (FlySuccess.click m)
+                            SubPage.FlySuccess (FlySuccess.copied m)
 
                         _ ->
                             model.subModel
             in
-                ( { model | subModel = newSubModel }, copyToken model.csrfToken )
+                ( { model | subModel = newSubModel }, Cmd.none )
 
         -- otherwise, pass down
         SubMsg navIndex m ->

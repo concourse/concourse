@@ -5,6 +5,7 @@
   "dependencies": {
     "ava": "^0.25.0",
     "child-process-promise": "^2.2.1",
+    "clipboardy": "^1.2.3",
     "color": "^2.0.0",
     "puppeteer": "^1.5.0",
     "tmp-promise": "^1.0.3",

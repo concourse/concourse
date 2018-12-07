@@ -1,9 +1,11 @@
-module FlySuccess exposing (Model, Msg(..), click, hover, init, view)
+module FlySuccess exposing (Model, Msg(..), copied, hover, init, view)
 
 import Colors
 import Html exposing (Html)
-import Html.Attributes exposing (id, style)
+import Html.Attributes exposing (attribute, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Routes
+import QueryString
 
 
 type Msg
@@ -13,7 +15,8 @@ type Msg
 
 type alias Model =
     { buttonHovered : Bool
-    , buttonClicked : Bool
+    , tokenCopied : Bool
+    , authToken : String
     }
 
 
@@ -22,20 +25,23 @@ hover hoverState model =
     { model | buttonHovered = hoverState }
 
 
-click : Model -> Model
-click model =
-    { model | buttonClicked = True }
+copied : Model -> Model
+copied model =
+    { model | tokenCopied = True }
 
 
-init : Model
-init =
+init : Routes.ConcourseRoute -> Model
+init route =
     { buttonHovered = False
-    , buttonClicked = False
+    , tokenCopied = False
+    , authToken =
+        QueryString.one QueryString.string "token" route.queries
+            |> Maybe.withDefault ""
     }
 
 
-view : { buttonHovered : Bool, buttonClicked : Bool } -> Html Msg
-view { buttonHovered, buttonClicked } =
+view : Model -> Html Msg
+view { buttonHovered, tokenCopied, authToken } =
     Html.div
         [ id "success-card"
         , style
@@ -68,7 +74,7 @@ view { buttonHovered, buttonClicked } =
             , style
                 [ ( "border"
                   , "1px solid "
-                        ++ if buttonClicked then
+                        ++ if tokenCopied then
                             Colors.flySuccessTokenCopied
                            else
                             Colors.text
@@ -77,14 +83,14 @@ view { buttonHovered, buttonClicked } =
                 , ( "padding", "10px 0" )
                 , ( "width", "212px" )
                 , ( "cursor"
-                  , if buttonClicked then
+                  , if tokenCopied then
                         "default"
                     else
                         "pointer"
                   )
                 , ( "text-align", "center" )
                 , ( "background-color"
-                  , if buttonClicked then
+                  , if tokenCopied then
                         Colors.flySuccessTokenCopied
                     else if buttonHovered then
                         Colors.flySuccessButtonHover
@@ -95,9 +101,10 @@ view { buttonHovered, buttonClicked } =
             , onMouseEnter <| CopyTokenButtonHover True
             , onMouseLeave <| CopyTokenButtonHover False
             , onClick CopyToken
+            , attribute "data-clipboard-text" authToken
             ]
             [ Html.text <|
-                if buttonClicked then
+                if tokenCopied then
                     "token copied"
                 else
                     "copy token to clipboard"

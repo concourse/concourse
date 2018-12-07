@@ -162,7 +162,6 @@ parsePath location =
         queries =
             QueryString.parse location.search
                 |> QueryString.remove "csrf_token"
-                |> QueryString.remove "token"
 
         search =
             QueryString.one QueryString.string "search" queries

@@ -1,6 +1,7 @@
 import test from 'ava';
-import Fly from './helpers/fly'
-import Web from './helpers/web'
+import clipboardy from 'clipboardy';
+import Fly from './helpers/fly';
+import Web from './helpers/web';
 import puppeteer from 'puppeteer';
 import Suite from './helpers/suite';
 
@@ -34,7 +35,7 @@ test.afterEach.always(async t => {
   await t.context.fly.cleanup();
 });
 
-test('can fly login with browser and reuse same browser without CSRF issues', async t => {
+test('can fly login with browser, copy token, and reuse same browser without CSRF issues', async t => {
   let flyPromise = t.context.fly.spawn(`login -c ${t.context.url}`);
   flyPromise.childProcess.stdout.on('data', async data => {
     data.toString().split("\n").forEach(async line => {
@@ -47,7 +48,13 @@ test('can fly login with browser and reuse same browser without CSRF issues', as
   });
   await flyPromise;
   await t.context.web.page.waitForNavigation();
-  t.true(t.context.web.page.url().includes(`${t.context.url}/fly_success`));
+  let currentUrl = t.context.web.page.url();
+  t.true(currentUrl.includes(`${t.context.url}/fly_success?token=`));
+  let token = decodeURI(currentUrl).split("=")[1];
+  await clipboardy.write("");
+  await t.context.web.page.click("#copy-token");
+  let clipboardContents = await clipboardy.read();
+  t.is(clipboardContents, token);
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
   await t.context.web.page.goto(t.context.web.route('/'));
   let pipelineSelector = '.dashboard-pipeline[data-pipeline-name=some-pipeline]';
