@@ -1,19 +1,55 @@
 #!/bin/bash
-set -e
 
-CHART=$PWD/helm-chart/stable/concourse
-concourse_ignore_list="CONCOURSE_VERSION|CREDHUB"
-k8s_ignore_list="LIVENESS_PROBE_FATAL_ERRORS|POD_IP"
+# check-helm-chart-parameters - verifies if there are any concourse
+# parameters that are missing from the helm chart's template files
+# that define environment variables.
+#
+# Environment variables:
+#   CHART    Location of the Concourse helm chart
 
-expected=
-for sc in web worker; do
-  expected+="$(concourse $sc --help 2>&1 | grep -o '\[\$.*\]' | tr -d \[\]\$ | egrep -v "$concourse_ignore_list")\n"
-done
-actual="$(grep -REhv '\s+#\s+' $CHART | grep -Eoh 'name: (([A-Z_])+|http_proxy|https_proxy|no_proxy)' | sed -e "s/^name: //" | egrep -v "$k8s_ignore_list")"
-echo These parameters need to be removed from the Helm chart:
-to_remove=$(comm -23 <(echo "$actual" | sort | uniq) <(echo -e "$expected" | sort | uniq) | paste -sd, -)
-echo "$to_remove"
-echo These parameters need to be added to the Helm chart:
-to_add=$(comm -13 <(echo "$actual" | sort | uniq) <(echo -e "$expected" | sort | uniq) | paste -sd, -)
-echo "$to_add"
-[ -z "$to_remove" ] && [ -z "$to_add" ]
+set -o errexit
+
+readonly CHART=${CHART:-"$PWD/helm-chart/stable/concourse"}
+readonly CONCOURSE_IGNORE_LIST="CONCOURSE_VERSION|CREDHUB"
+readonly K8S_IGNORE_LIST="LIVENESS_PROBE_FATAL_ERRORS|POD_IP"
+
+main() {
+  local actual=$(get_helm_variables)
+  local expected=$(get_concourse_variables)
+  local diff=$(get_diff "$actual" "$expected")
+
+  if [[ -z $diff ]]; then
+    echo "All good!"
+    exit 0
+  fi
+
+  echo "$diff"
+
+  exit 1
+}
+
+get_concourse_variables() {
+  for subcommand in web worker; do
+    concourse $subcommand --help 2>&1 |
+      grep -o '\[\$.*\]' |
+      tr -d \[\]\$ |
+      egrep -v "$CONCOURSE_IGNORE_LIST"
+  done
+}
+
+get_helm_variables() {
+  grep -REhv '\s+#\s+' $CHART |
+    grep -Eoh 'name: (([A-Z_])+|http_proxy|https_proxy|no_proxy)' |
+    sed -e "s/^name: //" |
+    egrep -v "$K8S_IGNORE_LIST"
+}
+
+get_diff() {
+  local actual=$1
+  local expected=$2
+
+  comm -23 <(echo "$expected" | sort -u) <(echo "$actual" | sort -u) | sed 's/^/+ /'
+  comm -13 <(echo "$expected" | sort -u) <(echo "$actual" | sort -u) | sed 's/^/- /'
+}
+
+main "$@"
