@@ -9,6 +9,7 @@
 \include-section{./examples/golang.lit}
 \include-section{./examples/rails.lit}
 \include-section{./examples/nodejs.lit}
+\include-section{./examples/php.lit}
 
 \split-sections
 \table-of-contents
