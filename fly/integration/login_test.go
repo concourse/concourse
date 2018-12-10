@@ -395,7 +395,7 @@ var _ = Describe("login Command", func() {
 				)
 			})
 
-			It("prints the authorization_code which redirects back to the local fly server", func() {
+			It("prints the authorization_code which redirects to the fly_success page", func() {
 				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL())
 
 				stdin, err := flyCmd.StdinPipe()
@@ -405,7 +405,7 @@ var _ = Describe("login Command", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(sess.Out).Should(gbytes.Say("navigate to the following URL in your browser:"))
-				Eventually(sess.Out).Should(gbytes.Say("http://127.0.0.1:(\\d+)/sky/login\\?redirect_uri=http://127.0.0.1:(\\d+)/auth/callback"))
+				Eventually(sess.Out).Should(gbytes.Say("http://127.0.0.1:(\\d+)/sky/login\\?redirect_uri=/fly_success"))
 				Eventually(sess.Out).Should(gbytes.Say("or enter token manually"))
 
 				_, err = fmt.Fprintf(stdin, "Bearer some-token\n")
@@ -416,30 +416,6 @@ var _ = Describe("login Command", func() {
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
-			})
-
-			Context("with remote flag set", func() {
-				It("redirects to token page", func() {
-					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-r")
-
-					stdin, err := flyCmd.StdinPipe()
-					Expect(err).NotTo(HaveOccurred())
-
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
-
-					Eventually(sess.Out).Should(gbytes.Say("navigate to the following URL in your browser:"))
-					Eventually(sess.Out).Should(gbytes.Say("http://127.0.0.1:(\\d+)/sky/login\\?redirect_uri=/sky/token"))
-
-					_, err = fmt.Fprintf(stdin, "Bearer some-token\n")
-					Expect(err).NotTo(HaveOccurred())
-
-					err = stdin.Close()
-					Expect(err).NotTo(HaveOccurred())
-
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
-				})
 			})
 		})
 

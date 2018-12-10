@@ -31,6 +31,7 @@ type alias Flags =
     { turbulenceImgSrc : String
     , notFoundImgSrc : String
     , csrfToken : String
+    , authToken : String
     , pipelineRunningKeyframes : String
     }
 
@@ -61,6 +62,7 @@ type alias Model =
     , turbulenceImgSrc : String
     , notFoundImgSrc : String
     , csrfToken : String
+    , authToken : String
     , pipelineRunningKeyframes : String
     , route : Routes.ConcourseRoute
     }
@@ -104,6 +106,7 @@ init flags location =
             SubPage.init
                 { turbulencePath = flags.turbulenceImgSrc
                 , csrfToken = flags.csrfToken
+                , authToken = flags.authToken
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
                 }
                 route
@@ -122,6 +125,7 @@ init flags location =
             , turbulenceImgSrc = flags.turbulenceImgSrc
             , notFoundImgSrc = flags.notFoundImgSrc
             , csrfToken = flags.csrfToken
+            , authToken = flags.authToken
             , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
             , route = route
             }
@@ -236,30 +240,6 @@ update msg model =
                 else
                     ( model, Cmd.none )
 
-        SubMsg navIndex (SubPage.FlySuccessMsg (FlySuccess.CopyTokenButtonHover bool)) ->
-            let
-                newSubModel =
-                    case model.subModel of
-                        SubPage.FlySuccess m ->
-                            SubPage.FlySuccess (FlySuccess.hover bool m)
-
-                        _ ->
-                            model.subModel
-            in
-                ( { model | subModel = newSubModel }, Cmd.none )
-
-        SubMsg navIndex (SubPage.FlySuccessMsg FlySuccess.CopyToken) ->
-            let
-                newSubModel =
-                    case model.subModel of
-                        SubPage.FlySuccess m ->
-                            SubPage.FlySuccess (FlySuccess.copied m)
-
-                        _ ->
-                            model.subModel
-            in
-                ( { model | subModel = newSubModel }, Cmd.none )
-
         -- otherwise, pass down
         SubMsg navIndex m ->
             if validNavIndex model.navIndex navIndex then
@@ -311,6 +291,7 @@ urlUpdate route model =
                 SubPage.init
                     { turbulencePath = model.turbulenceImgSrc
                     , csrfToken = model.csrfToken
+                    , authToken = model.authToken
                     , pipelineRunningKeyframes = model.pipelineRunningKeyframes
                     }
                     route

@@ -39,7 +39,7 @@ type Model
     | PipelineModel Pipeline.Model
     | NotFoundModel NotFound.Model
     | DashboardModel Dashboard.Model
-    | FlySuccess FlySuccess.Model
+    | FlySuccessModel FlySuccess.Model
 
 
 type Msg
@@ -55,6 +55,7 @@ type Msg
 
 type alias Flags =
     { csrfToken : String
+    , authToken : String
     , turbulencePath : String
     , pipelineRunningKeyframes : String
     }
@@ -162,7 +163,11 @@ init flags route =
                     }
 
         Routes.FlySuccess ->
-            ( FlySuccess <| FlySuccess.init route, Cmd.none )
+            superDupleWrap ( FlySuccessModel, FlySuccessMsg ) <|
+                FlySuccess.init
+                    { authToken = flags.authToken
+                    , fly = QueryString.one QueryString.string "fly" route.queries
+                    }
 
 
 handleNotFound : String -> ( a -> Model, c -> Msg ) -> ( a, Cmd c, Maybe UpdateMsg ) -> ( Model, Cmd Msg )
@@ -218,6 +223,9 @@ update turbulence notFound csrfToken msg mdl =
 
         ( DashboardMsg message, DashboardModel model ) ->
             superDupleWrap ( DashboardModel, DashboardMsg ) <| Dashboard.update message model
+
+        ( FlySuccessMsg message, FlySuccessModel model ) ->
+            superDupleWrap ( FlySuccessModel, FlySuccessMsg ) <| FlySuccess.update message model
 
         ( NewCSRFToken _, _ ) ->
             ( mdl, Cmd.none )
@@ -307,7 +315,7 @@ view mdl =
         NotFoundModel model ->
             NotFound.view model
 
-        FlySuccess model ->
+        FlySuccessModel model ->
             Html.map FlySuccessMsg <| FlySuccess.view model
 
 
@@ -335,5 +343,5 @@ subscriptions mdl =
         NotFoundModel _ ->
             Sub.none
 
-        FlySuccess _ ->
+        FlySuccessModel _ ->
             Sub.none

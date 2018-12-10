@@ -57,6 +57,7 @@ all =
                     { turbulenceImgSrc = ""
                     , notFoundImgSrc = ""
                     , csrfToken = ""
+                    , authToken = authToken
                     , pipelineRunningKeyframes = ""
                     }
                     { href = ""
@@ -66,7 +67,7 @@ all =
                     , origin = ""
                     , port_ = ""
                     , pathname = "/fly_success"
-                    , search = "?token=" ++ authToken
+                    , search = ""
                     , hash = ""
                     , username = ""
                     , password = ""

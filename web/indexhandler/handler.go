@@ -10,6 +10,7 @@ import (
 
 type templateData struct {
 	CSRFToken string
+	AuthToken string
 }
 
 type handler struct {
@@ -50,8 +51,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// csrfToken passed after logging in. Its validity is verified on server
 	// based on auth token in Cookie.
 	csrfToken := r.FormValue("csrf_token")
+	authToken := r.FormValue("token")
 	err := h.template.Execute(w, templateData{
 		CSRFToken: csrfToken,
+		AuthToken: authToken,
 	})
 
 	if err != nil {

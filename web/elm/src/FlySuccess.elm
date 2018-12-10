@@ -1,16 +1,17 @@
-module FlySuccess exposing (Model, Msg(..), copied, hover, init, view)
+module FlySuccess exposing (Model, Msg(..), init, update, view)
 
 import Colors
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
-import Routes
+import Http
 import QueryString
 
 
 type Msg
     = CopyTokenButtonHover Bool
     | CopyToken
+    | Noop
 
 
 type alias Model =
@@ -20,24 +21,44 @@ type alias Model =
     }
 
 
-hover : Bool -> Model -> Model
-hover hoverState model =
-    { model | buttonHovered = hoverState }
+init : { authToken : String, fly : Maybe String } -> ( Model, Cmd Msg )
+init ({ authToken, fly } as params) =
+    ( { buttonHovered = False
+      , tokenCopied = False
+      , authToken = authToken
+      }
+    , sendTokenToFly params
+    )
 
 
-copied : Model -> Model
-copied model =
-    { model | tokenCopied = True }
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        CopyTokenButtonHover hoverState ->
+            ( { model | buttonHovered = hoverState }, Cmd.none )
+
+        CopyToken ->
+            ( { model | tokenCopied = True }, Cmd.none )
+
+        Noop ->
+            ( model, Cmd.none )
 
 
-init : Routes.ConcourseRoute -> Model
-init route =
-    { buttonHovered = False
-    , tokenCopied = False
-    , authToken =
-        QueryString.one QueryString.string "token" route.queries
-            |> Maybe.withDefault ""
-    }
+sendTokenToFly : { authToken : String, fly : Maybe String } -> Cmd Msg
+sendTokenToFly { authToken, fly } =
+    case fly of
+        Nothing ->
+            Cmd.none
+
+        Just url ->
+            let
+                queryString =
+                    QueryString.empty
+                        |> QueryString.add "token" authToken
+                        |> QueryString.render
+            in
+                Http.getString (url ++ queryString)
+                    |> Http.send (always Noop)
 
 
 view : Model -> Html Msg

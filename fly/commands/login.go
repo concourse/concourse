@@ -24,7 +24,6 @@ import (
 type LoginCommand struct {
 	ATCURL      string       `short:"c" long:"concourse-url" description:"Concourse URL to authenticate with"`
 	Insecure    bool         `short:"k" long:"insecure" description:"Skip verification of the endpoint's SSL certificate"`
-	Remote      bool         `short:"r" long:"remote" description:"Login redirect to token page on browser"`
 	Username    string       `short:"u" long:"username" description:"Username for basic auth"`
 	Password    string       `short:"p" long:"password" description:"Password for basic auth"`
 	TeamName    string       `short:"n" long:"team-name" description:"Team to authenticate with"`
@@ -183,21 +182,13 @@ func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool) (
 	fmt.Println("navigate to the following URL in your browser:")
 	fmt.Println("")
 
-	if command.Remote {
-		openURL = fmt.Sprintf("%s/sky/login?redirect_uri=%s", targetUrl, "/sky/token")
+	redirectUri := "/fly_success%3Ffly%3Dhttp%3A%2F%2F127.0.0.1%3A" + port + "%2Fauth%2Fcallback"
+	openURL = fmt.Sprintf("%s/sky/login?redirect_uri=%s", targetUrl, redirectUri)
 
-		fmt.Printf("  %s\n", openURL)
+	fmt.Printf("  %s\n", openURL)
+	if !browserOnly {
 		fmt.Println("")
-		fmt.Printf("and enter token manually: ")
-	} else {
-		redirectUri := "http://127.0.0.1:" + port + "/auth/callback"
-		openURL = fmt.Sprintf("%s/sky/login?redirect_uri=%s", targetUrl, redirectUri)
-
-		fmt.Printf("  %s\n", openURL)
-		if !browserOnly {
-			fmt.Println("")
-			fmt.Printf("or enter token manually: ")
-		}
+		fmt.Printf("or enter token manually: ")
 	}
 
 	if command.OpenBrowser {
@@ -265,9 +256,9 @@ func listenForTokenCallback(tokenChannel chan string, errorChannel chan error, p
 	s := &http.Server{
 		Addr: "127.0.0.1:0",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authToken := r.FormValue("token")
-			tokenChannel <- authToken
-			http.Redirect(w, r, fmt.Sprintf("%s/fly_success?token=%s", targetUrl, authToken), http.StatusTemporaryRedirect)
+			w.Header().Set("Access-Control-Allow-Origin", targetUrl)
+			tokenChannel <- r.FormValue("token")
+			w.WriteHeader(200)
 		}),
 	}
 

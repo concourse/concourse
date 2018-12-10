@@ -47,14 +47,12 @@ test('can fly login with browser, copy token, and reuse same browser without CSR
     });
   });
   await flyPromise;
-  await t.context.web.page.waitForNavigation();
   let currentUrl = t.context.web.page.url();
-  t.true(currentUrl.includes(`${t.context.url}/fly_success?token=`));
-  let token = decodeURI(currentUrl).split("=")[1];
+  t.true(currentUrl.includes(`${t.context.url}/fly_success`));
   await clipboardy.write("");
   await t.context.web.page.click("#copy-token");
   let clipboardContents = await clipboardy.read();
-  t.is(clipboardContents, token);
+  t.true(clipboardContents.includes("Bearer "));
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
   await t.context.web.page.goto(t.context.web.route('/'));
   let pipelineSelector = '.dashboard-pipeline[data-pipeline-name=some-pipeline]';
