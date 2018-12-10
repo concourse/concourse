@@ -897,7 +897,7 @@ resources:
   type: git
   source:
      uri: https://github.com/concourse/charts.git
-     branch: concourse-probes
+     branch: merged
 
 - name: golang-windows
   type: s3
