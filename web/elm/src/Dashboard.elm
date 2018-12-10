@@ -144,16 +144,6 @@ init ports flags =
         )
 
 
-handle : a -> a -> Result e v -> a
-handle onError onSuccess result =
-    case result of
-        Ok _ ->
-            onSuccess
-
-        Err _ ->
-            onError
-
-
 substateLens : Monocle.Lens.Lens Model (Maybe SubState.SubState)
 substateLens =
     Monocle.Lens.Lens (.state >> Result.toMaybe)
@@ -191,317 +181,312 @@ substate csrfToken highDensity ( now, apiData ) =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    let
-        reload =
-            Cmd.batch <|
-                handle [] [ fetchData ] model.state
-    in
-        case msg of
-            Noop ->
+    case msg of
+        Noop ->
+            ( model, Cmd.none )
+
+        APIDataFetched remoteData ->
+            (case remoteData of
+                RemoteData.NotAsked ->
+                    model |> stateLens.set (Err NotAsked)
+
+                RemoteData.Loading ->
+                    model |> stateLens.set (Err NotAsked)
+
+                RemoteData.Failure _ ->
+                    model |> stateLens.set (Err (Turbulence model.turbulencePath))
+
+                RemoteData.Success ( now, apiData ) ->
+                    let
+                        newModel =
+                            model
+                                |> Monocle.Lens.modify stateLens
+                                    (Result.map
+                                        (.set (SubState.detailsOptional =|> Details.nowLens) now >> Ok)
+                                        >> Result.withDefault (substate model.csrfToken model.highDensity ( now, apiData ))
+                                    )
+                    in
+                        { newModel
+                            | groups = Group.groups apiData
+                            , version = apiData.version
+                            , userState =
+                                case apiData.user of
+                                    Just u ->
+                                        UserState.UserStateLoggedIn u
+
+                                    Nothing ->
+                                        UserState.UserStateLoggedOut
+                        }
+            )
+                |> noop
+
+        ClockTick now ->
+            model
+                |> Monocle.Optional.modify substateOptional (SubState.tick now)
+                |> noop
+
+        AutoRefresh _ ->
+            ( model
+            , fetchData
+            )
+
+        KeyPressed keycode ->
+            handleKeyPressed (Char.fromCode keycode) model
+
+        ShowFooter ->
+            model
+                |> Monocle.Optional.modify substateOptional SubState.showFooter
+                |> noop
+
+        TogglePipelinePaused pipeline ->
+            ( model, togglePipelinePaused { pipeline = pipeline, csrfToken = model.csrfToken } )
+
+        DragStart teamName index ->
+            model
+                |> Monocle.Optional.modify
+                    (substateOptional => SubState.detailsOptional)
+                    ((Details.dragStateLens |> .set) <| Group.Dragging teamName index)
+                |> noop
+
+        DragOver teamName index ->
+            model
+                |> Monocle.Optional.modify
+                    (substateOptional => SubState.detailsOptional)
+                    ((Details.dropStateLens |> .set) <| Group.Dropping index)
+                |> noop
+
+        TooltipHd pipelineName teamName ->
+            ( model, tooltipHd ( pipelineName, teamName ) )
+
+        Tooltip pipelineName teamName ->
+            ( model, tooltip ( pipelineName, teamName ) )
+
+        DragEnd ->
+            let
+                updatePipelines : ( Group.PipelineIndex, Group.PipelineIndex ) -> Group.Group -> ( Group.Group, Cmd Msg )
+                updatePipelines ( dragIndex, dropIndex ) group =
+                    let
+                        newGroup =
+                            Group.shiftPipelines dragIndex dropIndex group
+                    in
+                        ( newGroup, orderPipelines newGroup.teamName newGroup.pipelines model.csrfToken )
+
+                dragDropOptional : Monocle.Optional.Optional Model ( Group.DragState, Group.DropState )
+                dragDropOptional =
+                    substateOptional
+                        => SubState.detailsOptional
+                        =|> Monocle.Lens.tuple (Details.dragStateLens) (Details.dropStateLens)
+
+                dragDropIndexOptional : Monocle.Optional.Optional Model ( Group.PipelineIndex, Group.PipelineIndex )
+                dragDropIndexOptional =
+                    dragDropOptional
+                        => Monocle.Optional.zip
+                            Group.dragIndexOptional
+                            Group.dropIndexOptional
+
+                groupsLens : Monocle.Lens.Lens Model (List Group.Group)
+                groupsLens =
+                    Monocle.Lens.Lens .groups (\b a -> { a | groups = b })
+
+                groupOptional : Monocle.Optional.Optional Model Group.Group
+                groupOptional =
+                    (substateOptional
+                        => SubState.detailsOptional
+                        =|> Details.dragStateLens
+                        => Group.teamNameOptional
+                    )
+                        >>= (\teamName ->
+                                groupsLens
+                                    <|= Group.findGroupOptional teamName
+                            )
+
+                bigOptional : Monocle.Optional.Optional Model ( ( Group.PipelineIndex, Group.PipelineIndex ), Group.Group )
+                bigOptional =
+                    Monocle.Optional.tuple
+                        dragDropIndexOptional
+                        groupOptional
+            in
+                model
+                    |> modifyWithEffect bigOptional
+                        (\( t, g ) ->
+                            let
+                                ( newG, msg ) =
+                                    updatePipelines t g
+                            in
+                                ( ( t, newG ), msg )
+                        )
+                    |> Tuple.mapFirst (dragDropOptional.set ( Group.NotDragging, Group.NotDropping ))
+
+        PipelineButtonHover state ->
+            ( { model | hoveredPipeline = state }, Cmd.none )
+
+        CliHover state ->
+            ( { model | hoveredCliIcon = state }, Cmd.none )
+
+        FilterMsg query ->
+            let
+                newModel =
+                    case model.searchBar of
+                        Expanded r ->
+                            { model | searchBar = Expanded { r | query = query } }
+
+                        _ ->
+                            model
+            in
+                ( newModel
+                , Cmd.batch
+                    [ Task.attempt (always Noop) (Dom.focus "search-input-field")
+                    , Navigation.modifyUrl (NewTopBar.queryStringFromSearch query)
+                    ]
+                )
+
+        LogIn ->
+            ( model
+            , LoginRedirect.requestLoginRedirect ""
+            )
+
+        LogOut ->
+            ( { model | state = Err NotAsked }, Cmd.batch [ NewTopBar.logOut, fetchData ] )
+
+        LoggedOut (Ok ()) ->
+            let
+                redirectUrl =
+                    case model.searchBar of
+                        Invisible ->
+                            Routes.dashboardHdRoute
+
+                        _ ->
+                            Routes.dashboardRoute
+            in
+                ( { model
+                    | userState = UserState.UserStateLoggedOut
+                    , userMenuVisible = False
+                  }
+                , Navigation.newUrl redirectUrl
+                )
+
+        LoggedOut (Err err) ->
+            flip always (Debug.log "failed to log out" err) <|
                 ( model, Cmd.none )
 
-            APIDataFetched remoteData ->
-                (case remoteData of
-                    RemoteData.NotAsked ->
-                        model |> stateLens.set (Err NotAsked)
+        ToggleUserMenu ->
+            ( { model | userMenuVisible = not model.userMenuVisible }, Cmd.none )
 
-                    RemoteData.Loading ->
-                        model |> stateLens.set (Err NotAsked)
+        FocusMsg ->
+            let
+                newModel =
+                    case model.searchBar of
+                        Expanded r ->
+                            { model | searchBar = Expanded { r | showAutocomplete = True } }
 
-                    RemoteData.Failure _ ->
-                        model |> stateLens.set (Err (Turbulence model.turbulencePath))
+                        _ ->
+                            model
+            in
+                ( newModel, Cmd.none )
 
-                    RemoteData.Success ( now, apiData ) ->
-                        let
-                            newModel =
-                                model
-                                    |> Monocle.Lens.modify stateLens
-                                        (Result.map
-                                            (.set (SubState.detailsOptional =|> Details.nowLens) now >> Ok)
-                                            >> Result.withDefault (substate model.csrfToken model.highDensity ( now, apiData ))
+        BlurMsg ->
+            let
+                newModel =
+                    case model.searchBar of
+                        Expanded r ->
+                            case model.screenSize of
+                                ScreenSize.Mobile ->
+                                    if String.isEmpty r.query then
+                                        { model | searchBar = Collapsed }
+                                    else
+                                        { model | searchBar = Expanded { r | showAutocomplete = False, selectionMade = False, selection = 0 } }
+
+                                ScreenSize.Desktop ->
+                                    { model | searchBar = Expanded { r | showAutocomplete = False, selectionMade = False, selection = 0 } }
+
+                                ScreenSize.BigDesktop ->
+                                    { model | searchBar = Expanded { r | showAutocomplete = False, selectionMade = False, selection = 0 } }
+
+                        _ ->
+                            model
+            in
+                ( newModel, Cmd.none )
+
+        SelectMsg index ->
+            let
+                newModel =
+                    case model.searchBar of
+                        Expanded r ->
+                            { model | searchBar = Expanded { r | selectionMade = True, selection = index + 1 } }
+
+                        _ ->
+                            model
+            in
+                ( newModel, Cmd.none )
+
+        KeyDowns keycode ->
+            case model.searchBar of
+                Expanded r ->
+                    if not r.showAutocomplete then
+                        ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0 } }, Cmd.none )
+                    else
+                        case keycode of
+                            -- enter key
+                            13 ->
+                                if not r.selectionMade then
+                                    ( model, Cmd.none )
+                                else
+                                    let
+                                        options =
+                                            Array.fromList (NewTopBar.autocompleteOptions { query = r.query, groups = model.groups })
+
+                                        index =
+                                            (r.selection - 1) % Array.length options
+
+                                        selectedItem =
+                                            case Array.get index options of
+                                                Nothing ->
+                                                    r.query
+
+                                                Just item ->
+                                                    item
+                                    in
+                                        ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0, query = selectedItem } }
+                                        , Cmd.none
                                         )
-                        in
-                            { newModel
-                                | groups = Group.groups apiData
-                                , version = apiData.version
-                                , userState =
-                                    case apiData.user of
-                                        Just u ->
-                                            UserState.UserStateLoggedIn u
 
-                                        Nothing ->
-                                            UserState.UserStateLoggedOut
-                            }
-                )
-                    |> noop
+                            -- up arrow
+                            38 ->
+                                ( { model | searchBar = Expanded { r | selectionMade = True, selection = r.selection - 1 } }, Cmd.none )
 
-            ClockTick now ->
-                model
-                    |> Monocle.Optional.modify substateOptional (SubState.tick now)
-                    |> noop
+                            -- down arrow
+                            40 ->
+                                ( { model | searchBar = Expanded { r | selectionMade = True, selection = r.selection + 1 } }, Cmd.none )
 
-            AutoRefresh _ ->
-                ( model
-                , reload
-                )
-
-            KeyPressed keycode ->
-                handleKeyPressed (Char.fromCode keycode) model
-
-            ShowFooter ->
-                model
-                    |> Monocle.Optional.modify substateOptional SubState.showFooter
-                    |> noop
-
-            TogglePipelinePaused pipeline ->
-                ( model, togglePipelinePaused { pipeline = pipeline, csrfToken = model.csrfToken } )
-
-            DragStart teamName index ->
-                model
-                    |> Monocle.Optional.modify
-                        (substateOptional => SubState.detailsOptional)
-                        ((Details.dragStateLens |> .set) <| Group.Dragging teamName index)
-                    |> noop
-
-            DragOver teamName index ->
-                model
-                    |> Monocle.Optional.modify
-                        (substateOptional => SubState.detailsOptional)
-                        ((Details.dropStateLens |> .set) <| Group.Dropping index)
-                    |> noop
-
-            TooltipHd pipelineName teamName ->
-                ( model, tooltipHd ( pipelineName, teamName ) )
-
-            Tooltip pipelineName teamName ->
-                ( model, tooltip ( pipelineName, teamName ) )
-
-            DragEnd ->
-                let
-                    updatePipelines : ( Group.PipelineIndex, Group.PipelineIndex ) -> Group.Group -> ( Group.Group, Cmd Msg )
-                    updatePipelines ( dragIndex, dropIndex ) group =
-                        let
-                            newGroup =
-                                Group.shiftPipelines dragIndex dropIndex group
-                        in
-                            ( newGroup, orderPipelines newGroup.teamName newGroup.pipelines model.csrfToken )
-
-                    dragDropOptional : Monocle.Optional.Optional Model ( Group.DragState, Group.DropState )
-                    dragDropOptional =
-                        substateOptional
-                            => SubState.detailsOptional
-                            =|> Monocle.Lens.tuple (Details.dragStateLens) (Details.dropStateLens)
-
-                    dragDropIndexOptional : Monocle.Optional.Optional Model ( Group.PipelineIndex, Group.PipelineIndex )
-                    dragDropIndexOptional =
-                        dragDropOptional
-                            => Monocle.Optional.zip
-                                Group.dragIndexOptional
-                                Group.dropIndexOptional
-
-                    groupsLens : Monocle.Lens.Lens Model (List Group.Group)
-                    groupsLens =
-                        Monocle.Lens.Lens .groups (\b a -> { a | groups = b })
-
-                    groupOptional : Monocle.Optional.Optional Model Group.Group
-                    groupOptional =
-                        (substateOptional
-                            => SubState.detailsOptional
-                            =|> Details.dragStateLens
-                            => Group.teamNameOptional
-                        )
-                            >>= (\teamName ->
-                                    groupsLens
-                                        <|= Group.findGroupOptional teamName
-                                )
-
-                    bigOptional : Monocle.Optional.Optional Model ( ( Group.PipelineIndex, Group.PipelineIndex ), Group.Group )
-                    bigOptional =
-                        Monocle.Optional.tuple
-                            dragDropIndexOptional
-                            groupOptional
-                in
-                    model
-                        |> modifyWithEffect bigOptional
-                            (\( t, g ) ->
-                                let
-                                    ( newG, msg ) =
-                                        updatePipelines t g
-                                in
-                                    ( ( t, newG ), msg )
-                            )
-                        |> Tuple.mapFirst (dragDropOptional.set ( Group.NotDragging, Group.NotDropping ))
-
-            PipelineButtonHover state ->
-                ( { model | hoveredPipeline = state }, Cmd.none )
-
-            CliHover state ->
-                ( { model | hoveredCliIcon = state }, Cmd.none )
-
-            FilterMsg query ->
-                let
-                    newModel =
-                        case model.searchBar of
-                            Expanded r ->
-                                { model | searchBar = Expanded { r | query = query } }
+                            -- escape key
+                            27 ->
+                                ( model, Task.attempt (always Noop) (Dom.blur "search-input-field") )
 
                             _ ->
-                                model
-                in
-                    ( newModel
-                    , Cmd.batch
-                        [ Task.attempt (always Noop) (Dom.focus "search-input-field")
-                        , Navigation.modifyUrl (NewTopBar.queryStringFromSearch query)
-                        ]
-                    )
+                                ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0 } }, Cmd.none )
 
-            LogIn ->
-                ( model
-                , LoginRedirect.requestLoginRedirect ""
-                )
-
-            LogOut ->
-                ( { model | state = Err NotAsked }, Cmd.batch [ NewTopBar.logOut, reload ] )
-
-            LoggedOut (Ok ()) ->
-                let
-                    redirectUrl =
-                        case model.searchBar of
-                            Invisible ->
-                                Routes.dashboardHdRoute
-
-                            _ ->
-                                Routes.dashboardRoute
-                in
-                    ( { model
-                        | userState = UserState.UserStateLoggedOut
-                        , userMenuVisible = False
-                      }
-                    , Navigation.newUrl redirectUrl
-                    )
-
-            LoggedOut (Err err) ->
-                flip always (Debug.log "failed to log out" err) <|
+                _ ->
                     ( model, Cmd.none )
 
-            ToggleUserMenu ->
-                ( { model | userMenuVisible = not model.userMenuVisible }, Cmd.none )
+        ShowSearchInput ->
+            NewTopBar.showSearchInput model
 
-            FocusMsg ->
-                let
-                    newModel =
-                        case model.searchBar of
-                            Expanded r ->
-                                { model | searchBar = Expanded { r | showAutocomplete = True } }
-
-                            _ ->
-                                model
-                in
-                    ( newModel, Cmd.none )
-
-            BlurMsg ->
-                let
-                    newModel =
-                        case model.searchBar of
-                            Expanded r ->
-                                case model.screenSize of
-                                    ScreenSize.Mobile ->
-                                        if String.isEmpty r.query then
-                                            { model | searchBar = Collapsed }
-                                        else
-                                            { model | searchBar = Expanded { r | showAutocomplete = False, selectionMade = False, selection = 0 } }
-
-                                    ScreenSize.Desktop ->
-                                        { model | searchBar = Expanded { r | showAutocomplete = False, selectionMade = False, selection = 0 } }
-
-                                    ScreenSize.BigDesktop ->
-                                        { model | searchBar = Expanded { r | showAutocomplete = False, selectionMade = False, selection = 0 } }
-
-                            _ ->
-                                model
-                in
-                    ( newModel, Cmd.none )
-
-            SelectMsg index ->
-                let
-                    newModel =
-                        case model.searchBar of
-                            Expanded r ->
-                                { model | searchBar = Expanded { r | selectionMade = True, selection = index + 1 } }
-
-                            _ ->
-                                model
-                in
-                    ( newModel, Cmd.none )
-
-            KeyDowns keycode ->
-                case model.searchBar of
-                    Expanded r ->
-                        if not r.showAutocomplete then
-                            ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0 } }, Cmd.none )
-                        else
-                            case keycode of
-                                -- enter key
-                                13 ->
-                                    if not r.selectionMade then
-                                        ( model, Cmd.none )
-                                    else
-                                        let
-                                            options =
-                                                Array.fromList (NewTopBar.autocompleteOptions { query = r.query, groups = model.groups })
-
-                                            index =
-                                                (r.selection - 1) % Array.length options
-
-                                            selectedItem =
-                                                case Array.get index options of
-                                                    Nothing ->
-                                                        r.query
-
-                                                    Just item ->
-                                                        item
-                                        in
-                                            ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0, query = selectedItem } }
-                                            , Cmd.none
-                                            )
-
-                                -- up arrow
-                                38 ->
-                                    ( { model | searchBar = Expanded { r | selectionMade = True, selection = r.selection - 1 } }, Cmd.none )
-
-                                -- down arrow
-                                40 ->
-                                    ( { model | searchBar = Expanded { r | selectionMade = True, selection = r.selection + 1 } }, Cmd.none )
-
-                                -- escape key
-                                27 ->
-                                    ( model, Task.attempt (always Noop) (Dom.blur "search-input-field") )
-
-                                _ ->
-                                    ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0 } }, Cmd.none )
-
-                    _ ->
-                        ( model, Cmd.none )
-
-            ShowSearchInput ->
-                NewTopBar.showSearchInput model
-
-            ScreenResized size ->
-                let
-                    newSize =
-                        ScreenSize.fromWindowSize size
-                in
-                    ( { model
-                        | screenSize = newSize
-                        , searchBar =
-                            SearchBar.screenSizeChanged
-                                { oldSize = model.screenSize
-                                , newSize = newSize
-                                }
-                                model.searchBar
-                      }
-                    , Cmd.none
-                    )
+        ScreenResized size ->
+            let
+                newSize =
+                    ScreenSize.fromWindowSize size
+            in
+                ( { model
+                    | screenSize = newSize
+                    , searchBar =
+                        SearchBar.screenSizeChanged
+                            { oldSize = model.screenSize
+                            , newSize = newSize
+                            }
+                            model.searchBar
+                  }
+                , Cmd.none
+                )
 
 
 orderPipelines : String -> List Models.Pipeline -> Concourse.CSRFToken -> Cmd Msg
