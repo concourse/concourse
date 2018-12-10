@@ -47,6 +47,7 @@ groups:
   jobs:
   - k8s-smoke
   - k8s-topgun
+  - k8s-check-helm-params
 
 - name: bosh
   jobs:
@@ -260,6 +261,27 @@ jobs:
     input_mapping: {endpoint-info: outputs}
     params:
       MAX_TICKS: 180
+
+- name: k8s-check-helm-params
+  public: true
+  max_in_flight: 1
+  plan:
+  - aggregate:
+    - get: concourse
+      passed:
+      - dev-image
+      trigger: true
+    - get: dev-image
+      passed:
+      - dev-image
+      trigger: true
+    - get: helm-chart
+      resource: charts
+      trigger: true
+  - task: check-params
+    file: concourse/ci/tasks/check-helm-chart-params.yml
+    image: dev-image
+
 
 - name: k8s-topgun
   public: true
