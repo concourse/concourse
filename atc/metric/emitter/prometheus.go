@@ -72,6 +72,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		Name:      "state",
 		Help:      "Database locks held",
 	}, []string{"lockType", "objectId"})
+	prometheus.MustRegister(locksHeld)
 
 	// build metrics
 	buildsStarted := prometheus.NewCounter(prometheus.CounterOpts{
