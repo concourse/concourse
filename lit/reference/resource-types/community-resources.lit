@@ -220,6 +220,8 @@ before using it!
   \table-row{\link{Packer}{https://github.com/Snapkitchen/concourse-packer-resource}}{by \ghuser{Snapkitchen}}
 }{
   \table-row{\link{Github Webhook Resource}{https://github.com/homedepot/github-webhook-resource}}{by \ghuser{homedepot}}
+}{
+  \table-row{\link{HTTP PUT Resource}{https://github.com/lorands/http-put-resource}}{by \ghuser{lorands}}
 }
 
 \section{
