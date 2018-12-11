@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -44,7 +45,7 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	config, rawConfig, _, _, err := target.Team().PipelineConfig(pipelineName)
+	config, rawConfig, _, found, err := target.Team().PipelineConfig(pipelineName)
 	if err != nil {
 		if _, ok := err.(concourse.PipelineConfigError); ok {
 			_ = dumpRawConfig(rawConfig, asJSON)
@@ -53,6 +54,10 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 		} else {
 			return err
 		}
+	}
+
+	if !found {
+		return errors.New("pipeline not found")
 	}
 
 	return dump(config, asJSON)
