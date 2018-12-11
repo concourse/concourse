@@ -61,6 +61,7 @@ var _ = Describe("Pool", func() {
 
 			spec = WorkerSpec{
 				Platform:      "some-platform",
+				TeamID:        123,
 				Tags:          []string{"step", "tags"},
 				ResourceTypes: resourceTypes,
 			}
@@ -127,87 +128,86 @@ var _ = Describe("Pool", func() {
 
 				It("returns a NoCompatibleWorkersError", func() {
 					Expect(satisfyingErr).To(Equal(NoCompatibleWorkersError{
-						Spec:    spec,
-						Workers: []Worker{workerA, workerB, workerC},
+						Spec: spec,
 					}))
+				})
+			})
+
+			Context("with no workers", func() {
+				BeforeEach(func() {
+					fakeProvider.RunningWorkersReturns([]Worker{}, nil)
+				})
+
+				It("returns ErrNoWorkers", func() {
+					Expect(satisfyingErr).To(Equal(ErrNoWorkers))
+				})
+			})
+
+			Context("when getting the workers fails", func() {
+				disaster := errors.New("nope")
+
+				BeforeEach(func() {
+					fakeProvider.RunningWorkersReturns(nil, disaster)
+				})
+
+				It("returns the error", func() {
+					Expect(satisfyingErr).To(Equal(disaster))
 				})
 			})
 		})
 
-		Context("with no workers", func() {
-			BeforeEach(func() {
-				fakeProvider.RunningWorkersReturns([]Worker{}, nil)
-			})
-
-			It("returns ErrNoWorkers", func() {
-				Expect(satisfyingErr).To(Equal(ErrNoWorkers))
-			})
-		})
-
-		Context("when getting the workers fails", func() {
-			disaster := errors.New("nope")
-
-			BeforeEach(func() {
-				fakeProvider.RunningWorkersReturns(nil, disaster)
-			})
-
-			It("returns the error", func() {
-				Expect(satisfyingErr).To(Equal(disaster))
-			})
-		})
-	})
-
-	Describe("FindContainerByHandle", func() {
-		var (
-			foundContainer Container
-			found          bool
-			findErr        error
-		)
-
-		JustBeforeEach(func() {
-			foundContainer, found, findErr = pool.FindContainerByHandle(
-				logger,
-				4567,
-				"some-handle",
+		Describe("FindContainerByHandle", func() {
+			var (
+				foundContainer Container
+				found          bool
+				findErr        error
 			)
-		})
 
-		Context("when a worker is found with the container", func() {
-			var fakeWorker *workerfakes.FakeWorker
-			var fakeContainer *workerfakes.FakeContainer
-
-			BeforeEach(func() {
-				fakeWorker = new(workerfakes.FakeWorker)
-				fakeProvider.FindWorkerForContainerReturns(fakeWorker, true, nil)
-
-				fakeContainer = new(workerfakes.FakeContainer)
-				fakeWorker.FindContainerByHandleReturns(fakeContainer, true, nil)
+			JustBeforeEach(func() {
+				foundContainer, found, findErr = pool.FindContainerByHandle(
+					logger,
+					4567,
+					"some-handle",
+				)
 			})
 
-			It("succeeds", func() {
-				Expect(found).To(BeTrue())
-				Expect(findErr).NotTo(HaveOccurred())
+			Context("when a worker is found with the container", func() {
+				var fakeWorker *workerfakes.FakeWorker
+				var fakeContainer *workerfakes.FakeContainer
+
+				BeforeEach(func() {
+					fakeWorker = new(workerfakes.FakeWorker)
+					fakeProvider.FindWorkerForContainerReturns(fakeWorker, true, nil)
+
+					fakeContainer = new(workerfakes.FakeContainer)
+					fakeWorker.FindContainerByHandleReturns(fakeContainer, true, nil)
+				})
+
+				It("succeeds", func() {
+					Expect(found).To(BeTrue())
+					Expect(findErr).NotTo(HaveOccurred())
+				})
+
+				It("returns the created container", func() {
+					Expect(foundContainer).To(Equal(fakeContainer))
+				})
+
+				It("finds on the particular worker", func() {
+					Expect(fakeWorker.FindContainerByHandleCallCount()).To(Equal(1))
+
+					_, actualTeamID, actualHandle := fakeProvider.FindWorkerForContainerArgsForCall(0)
+					Expect(actualTeamID).To(Equal(4567))
+					Expect(actualHandle).To(Equal("some-handle"))
+				})
 			})
 
-			It("returns the created container", func() {
-				Expect(foundContainer).To(Equal(fakeContainer))
-			})
+			Context("when no worker is found with the container", func() {
+				BeforeEach(func() {
+					fakeProvider.FindWorkerForContainerReturns(nil, false, nil)
+				})
 
-			It("finds on the particular worker", func() {
-				Expect(fakeWorker.FindContainerByHandleCallCount()).To(Equal(1))
-
-				_, actualTeamID, actualHandle := fakeProvider.FindWorkerForContainerArgsForCall(0)
-				Expect(actualTeamID).To(Equal(4567))
-				Expect(actualHandle).To(Equal("some-handle"))
-			})
-		})
-
-		Context("when no worker is found with the container", func() {
-			BeforeEach(func() {
-				fakeProvider.FindWorkerForContainerReturns(nil, false, nil)
-			})
-
-			It("returns no container, false, and no error", func() {
+				It("returns no container, false, and no error", func() {
+				})
 			})
 		})
 	})
@@ -396,8 +396,7 @@ var _ = Describe("Pool", func() {
 
 					It("returns a NoCompatibleWorkersError", func() {
 						Expect(createErr).To(Equal(NoCompatibleWorkersError{
-							Spec:    workerSpec,
-							Workers: []Worker{workerA, workerB, workerC},
+							Spec: workerSpec,
 						}))
 					})
 				})
@@ -457,86 +456,104 @@ var _ = Describe("Pool", func() {
 					Expect(satisfyingWorkers).To(ConsistOf(generalWorker1))
 				})
 			})
+		})
 
-			Context("with no workers", func() {
+		Context("with no workers", func() {
+			BeforeEach(func() {
+				fakeProvider.RunningWorkersReturns([]Worker{}, nil)
+			})
+
+			It("returns ErrNoWorkers", func() {
+				Expect(createErr).To(Equal(ErrNoWorkers))
+			})
+		})
+
+		Context("with no workers and the worker spec has no team id", func() {
+			var teamWorker *workerfakes.FakeWorker
+
+			BeforeEach(func() {
+				workerSpec = WorkerSpec{
+					ResourceType:  "some-type",
+					ResourceTypes: resourceTypes,
+				}
+
+				teamWorker = new(workerfakes.FakeWorker)
+				teamWorker.SatisfyingReturns(nil, errors.New("nope"))
+				fakeProvider.RunningWorkersReturns([]Worker{teamWorker}, nil)
+			})
+
+			It("returns ErrNoGlobalWorkers", func() {
+				Expect(createErr).To(Equal(ErrNoGlobalWorkers))
+			})
+		})
+
+		Context("when getting the workers fails", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeProvider.RunningWorkersReturns(nil, disaster)
+			})
+
+			It("returns the error", func() {
+				Expect(createErr).To(Equal(disaster))
+			})
+		})
+
+		Context("with no workers available", func() {
+			BeforeEach(func() {
+				fakeProvider.RunningWorkersReturns([]Worker{}, nil)
+			})
+
+			It("returns ErrNoWorkers", func() {
+				Expect(createErr).To(Equal(ErrNoWorkers))
+			})
+		})
+
+		Context("with no compatible workers available", func() {
+			BeforeEach(func() {
+				fakeProvider.RunningWorkersReturns([]Worker{incompatibleWorker}, nil)
+			})
+
+			It("returns NoCompatibleWorkersError", func() {
+				Expect(createErr).To(Equal(NoCompatibleWorkersError{
+					Spec: workerSpec,
+				}))
+			})
+		})
+
+		Context("with compatible workers available", func() {
+			BeforeEach(func() {
+				fakeProvider.RunningWorkersReturns([]Worker{
+					incompatibleWorker,
+					compatibleWorker,
+				}, nil)
+			})
+
+			Context("when strategy returns a worker", func() {
 				BeforeEach(func() {
-					fakeProvider.RunningWorkersReturns([]Worker{}, nil)
+					fakeStrategy.ChooseReturns(compatibleWorker, nil)
 				})
 
-				It("returns ErrNoWorkers", func() {
-					Expect(createErr).To(Equal(ErrNoWorkers))
+				It("chooses a worker", func() {
+					Expect(createErr).ToNot(HaveOccurred())
+					Expect(fakeStrategy.ChooseCallCount()).To(Equal(1))
+					Expect(compatibleWorker.FindOrCreateContainerCallCount()).To(Equal(1))
+					Expect(createdContainer).To(Equal(fakeContainer))
 				})
 			})
 
-			Context("when getting the workers fails", func() {
-				disaster := errors.New("nope")
+			Context("when strategy errors", func() {
+				var (
+					strategyError error
+				)
 
 				BeforeEach(func() {
-					fakeProvider.RunningWorkersReturns(nil, disaster)
+					strategyError = errors.New("strategical explosion")
+					fakeStrategy.ChooseReturns(nil, strategyError)
 				})
 
-				It("returns the error", func() {
-					Expect(createErr).To(Equal(disaster))
-				})
-			})
-
-			Context("with no workers available", func() {
-				BeforeEach(func() {
-					fakeProvider.RunningWorkersReturns([]Worker{}, nil)
-				})
-
-				It("returns ErrNoWorkers", func() {
-					Expect(createErr).To(Equal(ErrNoWorkers))
-				})
-			})
-
-			Context("with no compatible workers available", func() {
-				BeforeEach(func() {
-					fakeProvider.RunningWorkersReturns([]Worker{incompatibleWorker}, nil)
-				})
-
-				It("returns NoCompatibleWorkersError", func() {
-					Expect(createErr).To(Equal(NoCompatibleWorkersError{
-						Spec:    workerSpec,
-						Workers: []Worker{incompatibleWorker},
-					}))
-				})
-			})
-
-			Context("with compatible workers available", func() {
-				BeforeEach(func() {
-					fakeProvider.RunningWorkersReturns([]Worker{
-						incompatibleWorker,
-						compatibleWorker,
-					}, nil)
-				})
-
-				Context("when strategy returns a worker", func() {
-					BeforeEach(func() {
-						fakeStrategy.ChooseReturns(compatibleWorker, nil)
-					})
-
-					It("chooses a worker", func() {
-						Expect(createErr).ToNot(HaveOccurred())
-						Expect(fakeStrategy.ChooseCallCount()).To(Equal(1))
-						Expect(compatibleWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-						Expect(createdContainer).To(Equal(fakeContainer))
-					})
-				})
-
-				Context("when strategy errors", func() {
-					var (
-						strategyError error
-					)
-
-					BeforeEach(func() {
-						strategyError = errors.New("strategical explosion")
-						fakeStrategy.ChooseReturns(nil, strategyError)
-					})
-
-					It("returns an error", func() {
-						Expect(createErr).To(Equal(strategyError))
-					})
+				It("returns an error", func() {
+					Expect(createErr).To(Equal(strategyError))
 				})
 			})
 		})

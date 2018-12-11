@@ -10,10 +10,12 @@ import (
 )
 
 type WorkerSpec struct {
-	Platform      string
-	ResourceType  string
-	Tags          []string
-	TeamID        int
+	Platform     string
+	ResourceType string
+	Tags         []string
+
+	TeamID int
+
 	ResourceTypes creds.VersionedResourceTypes
 }
 

@@ -623,6 +623,20 @@ var _ = Describe("ResourceTypeScanner", func() {
 				})
 			})
 
+			Context("when creating the resource checker fails with no global workers", func() {
+				BeforeEach(func() {
+					fakeResourceFactory.NewResourceReturns(nil, worker.ErrNoGlobalWorkers)
+				})
+
+				It("sets the check error and returns no workers error", func() {
+					Expect(runErr).To(HaveOccurred())
+					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+
+					resourceErr := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+					Expect(resourceErr).To(Equal(atc.ErrNoWorkers))
+				})
+			})
+
 			Context("when there is no current version", func() {
 				BeforeEach(func() {
 					fakeResourceType.VersionReturns(nil)

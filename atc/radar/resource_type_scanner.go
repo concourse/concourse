@@ -245,11 +245,17 @@ func (scanner *resourceTypeScanner) check(
 		worker.NoopImageFetchingDelegate{},
 	)
 	if err != nil {
+		logger.Error("failed-to-initialize-new-container", err)
+
+		if err == worker.ErrNoGlobalWorkers {
+			err = atc.ErrNoWorkers
+		}
+
 		chkErr := resourceConfig.SetCheckError(err)
 		if chkErr != nil {
 			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
 		}
-		logger.Error("failed-to-initialize-new-container", err)
+
 		return err
 	}
 

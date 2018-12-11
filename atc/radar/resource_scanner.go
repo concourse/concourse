@@ -52,7 +52,7 @@ func NewResourceScanner(
 	}
 }
 
-var ErrFailedToAcquireLock = errors.New("failed-to-acquire-lock")
+var ErrFailedToAcquireLock = errors.New("failed to acquire lock")
 
 func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (time.Duration, error) {
 	interval, err := scanner.scan(logger.Session("tick"), resourceName, nil, false, false)
@@ -310,10 +310,16 @@ func (scanner *resourceScanner) check(
 
 	if err != nil {
 		logger.Error("failed-to-initialize-new-container", err)
+
+		if err == worker.ErrNoGlobalWorkers {
+			err = atc.ErrNoWorkers
+		}
+
 		chkErr := resourceConfig.SetCheckError(err)
 		if chkErr != nil {
 			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
 		}
+
 		return err
 	}
 
