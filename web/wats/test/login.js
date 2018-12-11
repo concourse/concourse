@@ -52,8 +52,6 @@ test('can fly login with browser and reuse same browser without CSRF issues', as
   let playButton = `${pipelineSelector} [style*="ic_play"]`;
   let pauseButton = `${pipelineSelector} [style*="ic_pause"]`;
   await t.context.web.page.waitFor(playButton);
-  await t.context.web.page.hover(playButton);
-  await t.context.web.page.waitForSelector('.dashboard-footer.hidden');
   await t.context.web.page.click(playButton);
   await t.context.web.page.waitForSelector(pauseButton, {timeout: 90000});
   t.pass();
