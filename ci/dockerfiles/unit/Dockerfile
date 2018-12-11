@@ -33,10 +33,10 @@ RUN curl -L "https://github.com/docker/compose/releases/download/1.22.0/docker-c
       -o /usr/local/bin/docker-compose && \
       chmod +x /usr/local/bin/docker-compose
 
-# install Chrome for Puppeteer (watsjs)
+# install Chrome and xsel for Puppeteer and clipboardy (watsjs)
 RUN curl -fsSL https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
 RUN add-apt-repository "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main"
-RUN apt-get update && apt-get -y install google-chrome-unstable --no-install-recommends
+RUN apt-get update && apt-get -y install xsel google-chrome-unstable --no-install-recommends
 
 # install BOSH CLI for bosh-smoke, bosh-topgun
 RUN curl -L "https://github.com/cloudfoundry/bosh-cli/releases/download/v5.3.1/bosh-cli-5.3.1-linux-amd64" \
