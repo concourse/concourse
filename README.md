@@ -87,6 +87,7 @@ Concourse instance to the next.
 * See Concourse in action with our [production pipelines](https://ci.concourse-ci.org/)
 * Hang around in the [forums](https://discuss.concourse-ci.org) or in
   [Discord](https://discord.gg/MeRxXKW).
+* See what we're working on on the [project board](https://github.com/orgs/concourse/projects). 
 
 
 ## Contributing
