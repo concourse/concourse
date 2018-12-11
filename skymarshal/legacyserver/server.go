@@ -29,9 +29,10 @@ func NewLegacyServer(config *LegacyConfig) (http.Handler, error) {
 	handlers := map[string]http.Handler{
 		LoginRoute: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			u := url.URL{
-				Scheme: r.URL.Scheme,
-				Host:   r.URL.Host,
-				Path:   "/sky/login",
+				Scheme:   r.URL.Scheme,
+				Host:     r.URL.Host,
+				Path:     "/sky/login",
+				RawQuery: r.URL.RawQuery,
 			}
 
 			flyPort := r.FormValue("fly_port")

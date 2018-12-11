@@ -64,6 +64,28 @@ var _ = Describe("Legacy API", func() {
 				))
 			})
 		})
+
+		Context("when given other query param", func() {
+
+			BeforeEach(func() {
+				request, err = http.NewRequest("GET", server.URL+"/login?foo=bar", nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				response, err = client.Do(request)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should leave query params in the redirect", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusFound))
+
+				url, err := response.Location()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(url.Path).To(Equal("/sky/login"))
+				Expect(url.Query()["foo"]).To(Equal(
+					[]string{"bar"},
+				))
+			})
+		})
 	})
 
 	Context("GET /logout", func() {

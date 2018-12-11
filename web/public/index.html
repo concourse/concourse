@@ -98,7 +98,7 @@
         var path = document.location.pathname;
         var query = document.location.search;
         var redirect = encodeURIComponent(path + query);
-        var loginUrl = "/sky/login?redirect_uri="+ redirect;
+        var loginUrl = "/login?redirect_uri="+ redirect;
         document.location.href = loginUrl;
       });
 
