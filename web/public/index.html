@@ -110,7 +110,7 @@
         var pipelineName = pipelineInfo[0];
         var pipelineTeamName = pipelineInfo[1];
 
-        var team = $('#' + pipelineTeamName);
+        var team = $('div[id="' + pipelineTeamName + '"]');
         var title = team.find('.dashboard-pipeline[data-pipeline-name="' + pipelineName + '"]').find('.dashboard-pipeline-name');
 
         if(title.get(0).offsetWidth < title.get(0).scrollWidth){
