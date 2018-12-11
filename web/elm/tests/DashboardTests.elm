@@ -94,7 +94,205 @@ pipelineRunningKeyframes =
 all : Test
 all =
     describe "Dashboard"
-        [ test "logging out causes pipeline list to reload" <|
+        [ describe "no pipelines card" <|
+            let
+                hasNoPipelinesCard : (() -> Dashboard.Model) -> List Test
+                hasNoPipelinesCard setup =
+                    let
+                        subject : () -> Query.Single Msgs.Msg
+                        subject =
+                            setup >> queryView >> Query.find [ id "no-pipelines-card" ]
+                    in
+                        [ test "exists" <|
+                            setup
+                                >> queryView
+                                >> Query.has [ id "no-pipelines-card" ]
+                        , test "has airplane background" <|
+                            subject
+                                >> Query.has
+                                    [ style
+                                        [ ( "background-image"
+                                          , "url(public/images/airplanes_welcome_ascii.svg)"
+                                          )
+                                        , ( "background-repeat", "no-repeat" )
+                                        , ( "background-position-x", "75%" )
+                                        ]
+                                    ]
+                        , test "says 'welcome to concourse!'" <|
+                            subject
+                                >> Query.children []
+                                >> Query.first
+                                >> Query.has [ text "welcome to concourse!" ]
+                        , test "welcome message has large font" <|
+                            subject
+                                >> Query.children []
+                                >> Query.first
+                                >> Query.has [ style [ ( "font-size", "30px" ) ] ]
+                        , test "has dark grey background" <|
+                            subject
+                                >> Query.has [ style [ ( "background-color", darkGrey ) ] ]
+                        , test "is inset from the page" <|
+                            subject
+                                >> Query.has [ style [ ( "margin", "25px" ) ] ]
+                        , test "has padding around its contents" <|
+                            subject
+                                >> Query.has [ style [ ( "padding", "25px" ) ] ]
+                        , test "has set-pipeline instruction" <|
+                            subject
+                                >> Query.children []
+                                >> Query.index 2
+                                >> Query.has
+                                    [ text "then, use `fly set-pipeline` to set up your new pipeline" ]
+                        , describe "CLI download section" <|
+                            let
+                                downloadSection =
+                                    subject >> Query.children [] >> Query.index 1
+                            in
+                                [ test "has slightly larger font" <|
+                                    downloadSection
+                                        >> Query.has [ style [ ( "font-size", "1.25em" ) ] ]
+                                , test "lays out contents horizontally" <|
+                                    downloadSection
+                                        >> Query.has [ style [ ( "display", "flex" ) ] ]
+                                , test "says 'first, download the CLI tools:'" <|
+                                    downloadSection
+                                        >> Query.children []
+                                        >> Query.index 0
+                                        >> Query.has [ text "first, download the CLI tools:" ]
+                                , test "there is space between the label and the icons" <|
+                                    downloadSection
+                                        >> Query.children []
+                                        >> Query.index 0
+                                        >> Query.has [ style [ ( "margin-right", "10px" ) ] ]
+                                , describe "cli download icons" <|
+                                    let
+                                        cliIcons =
+                                            downloadSection
+                                                >> Query.children [ tag "a" ]
+                                    in
+                                        [ test "font size is slightly larger" <|
+                                            cliIcons
+                                                >> Query.each
+                                                    (Query.has [ style [ ( "font-size", "1.2em" ) ] ])
+                                        , test "icons are grey" <|
+                                            cliIcons
+                                                >> Query.each
+                                                    (Query.has [ style [ ( "color", menuGrey ) ] ])
+                                        , test "icons have descriptive ARIA labels" <|
+                                            cliIcons
+                                                >> Expect.all
+                                                    [ Query.count (Expect.equal 3)
+                                                    , Query.index 0
+                                                        >> Query.has
+                                                            [ attribute <|
+                                                                Attr.attribute
+                                                                    "aria-label"
+                                                                    "Download OS X CLI"
+                                                            ]
+                                                    , Query.index 1
+                                                        >> Query.has
+                                                            [ attribute <|
+                                                                Attr.attribute
+                                                                    "aria-label"
+                                                                    "Download Windows CLI"
+                                                            ]
+                                                    , Query.index 2
+                                                        >> Query.has
+                                                            [ attribute <|
+                                                                Attr.attribute
+                                                                    "aria-label"
+                                                                    "Download Linux CLI"
+                                                            ]
+                                                    ]
+                                        , defineHoverBehaviour
+                                            { name = "os x cli icon"
+                                            , setup = setup ()
+                                            , query = queryView >> Query.find [ id "top-cli-osx" ]
+                                            , unhoveredSelector =
+                                                { description = "grey apple icon"
+                                                , selector =
+                                                    [ style [ ( "color", menuGrey ) ]
+                                                    , containing [ tag "i", class "fa-apple" ]
+                                                    ]
+                                                }
+                                            , mouseEnterMsg = Msgs.TopCliHover <| Just Cli.OSX
+                                            , mouseLeaveMsg = Msgs.TopCliHover Nothing
+                                            , hoveredSelector =
+                                                { description = "white apple icon"
+                                                , selector =
+                                                    [ style [ ( "color", white ) ]
+                                                    , containing [ tag "i", class "fa-apple" ]
+                                                    ]
+                                                }
+                                            }
+                                        , defineHoverBehaviour
+                                            { name = "windows cli icon"
+                                            , setup = setup ()
+                                            , query = queryView >> Query.find [ id "top-cli-windows" ]
+                                            , unhoveredSelector =
+                                                { description = "grey windows icon"
+                                                , selector =
+                                                    [ style [ ( "color", menuGrey ) ]
+                                                    , containing [ tag "i", class "fa-windows" ]
+                                                    ]
+                                                }
+                                            , mouseEnterMsg = Msgs.TopCliHover <| Just Cli.Windows
+                                            , mouseLeaveMsg = Msgs.TopCliHover Nothing
+                                            , hoveredSelector =
+                                                { description = "white windows icon"
+                                                , selector =
+                                                    [ style [ ( "color", white ) ]
+                                                    , containing [ tag "i", class "fa-windows" ]
+                                                    ]
+                                                }
+                                            }
+                                        , defineHoverBehaviour
+                                            { name = "linux cli icon"
+                                            , setup = setup ()
+                                            , query = queryView >> Query.find [ id "top-cli-linux" ]
+                                            , unhoveredSelector =
+                                                { description = "grey linux icon"
+                                                , selector =
+                                                    [ style [ ( "color", menuGrey ) ]
+                                                    , containing [ tag "i", class "fa-linux" ]
+                                                    ]
+                                                }
+                                            , mouseEnterMsg = Msgs.TopCliHover <| Just Cli.Linux
+                                            , mouseLeaveMsg = Msgs.TopCliHover Nothing
+                                            , hoveredSelector =
+                                                { description = "white linux icon"
+                                                , selector =
+                                                    [ style [ ( "color", white ) ]
+                                                    , containing [ tag "i", class "fa-linux" ]
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                ]
+                        ]
+            in
+                [ describe "when there are no teams" <|
+                    hasNoPipelinesCard
+                        (\_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated (apiData [])
+                        )
+                , describe "when there are teams but no pipelines" <|
+                    hasNoPipelinesCard
+                        (\_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                        )
+                , describe "when logged in with teams but no pipelines, shows no pipelines card" <|
+                    hasNoPipelinesCard
+                        (\_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (apiData [ ( "team", [] ) ])
+                                    (userWithRoles [])
+                        )
+                ]
+        , test "logging out causes pipeline list to reload" <|
             let
                 showsLoadingState : Dashboard.Model -> Expectation
                 showsLoadingState =

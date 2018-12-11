@@ -9,6 +9,8 @@ module Dashboard.Styles
         , info
         , infoItem
         , infoCliIcon
+        , noPipelinesCard
+        , noPipelinesCardTitle
         , pipelineCardBanner
         , pipelineCardHd
         , pipelineCardBannerHd
@@ -295,4 +297,21 @@ infoCliIcon hovered =
         else
             Colors.bottomBarText
       )
+    ]
+
+
+noPipelinesCard : List ( String, String )
+noPipelinesCard =
+    [ ( "background-color", Colors.card )
+    , ( "margin", "25px" )
+    , ( "padding", "25px" )
+    , ( "background-image", "url(public/images/airplanes_welcome_ascii.svg)" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-position-x", "75%" )
+    ]
+
+
+noPipelinesCardTitle : List ( String, String )
+noPipelinesCardTitle =
+    [ ( "font-size", "30px" )
     ]

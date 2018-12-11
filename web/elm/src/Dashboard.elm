@@ -7,7 +7,6 @@ import Concourse.Cli as Cli
 import Concourse.Pipeline
 import Concourse.PipelineStatus
 import Concourse.User
-import Css
 import Dashboard.APIData as APIData
 import Dashboard.Details as Details
 import Dashboard.Group as Group
@@ -40,7 +39,6 @@ import Monocle.Lens
 import MonocleHelpers exposing (..)
 import Navigation
 import NewTopBar
-import NoPipeline
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
@@ -77,7 +75,6 @@ type alias Flags =
 type DashboardError
     = NotAsked
     | Turbulence String
-    | NoPipelines
 
 
 type alias Model =
@@ -89,6 +86,7 @@ type alias Model =
     , pipelineRunningKeyframes : String
     , groups : List Group.Group
     , hoveredCliIcon : Maybe Cli.Cli
+    , hoveredTopCliIcon : Maybe Cli.Cli
     , screenSize : ScreenSize.ScreenSize
     , version : String
     , userState : UserState.UserState
@@ -129,6 +127,7 @@ init ports flags =
           , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
           , groups = []
           , hoveredCliIcon = Nothing
+          , hoveredTopCliIcon = Nothing
           , screenSize = ScreenSize.Desktop
           , version = ""
           , userState = UserState.UserStateUnknown
@@ -157,26 +156,21 @@ noop model =
 
 substate : String -> Bool -> ( Time.Time, APIData.APIData ) -> Result DashboardError SubState.SubState
 substate csrfToken highDensity ( now, apiData ) =
-    apiData.pipelines
-        |> List.head
-        |> Maybe.map
-            (always
-                { details =
-                    if highDensity then
-                        Nothing
-                    else
-                        Just
-                            { now = now
-                            , dragState = Group.NotDragging
-                            , dropState = Group.NotDropping
-                            , showHelp = False
-                            }
-                , hideFooter = False
-                , hideFooterCounter = 0
-                , csrfToken = csrfToken
-                }
-            )
-        |> Result.fromMaybe (NoPipelines)
+    Ok
+        { details =
+            if highDensity then
+                Nothing
+            else
+                Just
+                    { now = now
+                    , dragState = Group.NotDragging
+                    , dropState = Group.NotDropping
+                    , showHelp = False
+                    }
+        , hideFooter = False
+        , hideFooterCounter = 0
+        , csrfToken = csrfToken
+        }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -322,6 +316,9 @@ update msg model =
 
         CliHover state ->
             ( { model | hoveredCliIcon = state }, Cmd.none )
+
+        TopCliHover state ->
+            ( { model | hoveredTopCliIcon = state }, Cmd.none )
 
         FilterMsg query ->
             let
@@ -543,20 +540,23 @@ dashboardView model =
                 Err (Turbulence path) ->
                     [ turbulenceView path ]
 
-                Err NoPipelines ->
-                    [ Html.div [ class "dashboard-no-content", css [ Css.height (Css.pct 100) ] ] [ (Html.map (always Noop) << Html.fromUnstyled) NoPipeline.view ] ]
-
                 Ok substate ->
                     [ Html.div
                         [ class "dashboard-content" ]
-                        (pipelinesView
-                            { groups = model.groups
-                            , substate = substate
-                            , query = NewTopBar.query model
-                            , hoveredPipeline = model.hoveredPipeline
-                            , pipelineRunningKeyframes = model.pipelineRunningKeyframes
-                            , userState = model.userState
-                            }
+                        ((if List.isEmpty (model.groups |> List.concatMap .pipelines) then
+                            [ noPipelinesCard model
+                            ]
+                          else
+                            []
+                         )
+                            ++ pipelinesView
+                                { groups = model.groups
+                                , substate = substate
+                                , query = NewTopBar.query model
+                                , hoveredPipeline = model.hoveredPipeline
+                                , pipelineRunningKeyframes = model.pipelineRunningKeyframes
+                                , userState = model.userState
+                                }
                         )
                     ]
                         ++ footerView
@@ -567,8 +567,65 @@ dashboardView model =
                             }
     in
         Html.div
-            [ classList [ ( .pageBodyClass Group.stickyHeaderConfig, True ), ( "dashboard-hd", model.highDensity ) ] ]
+            [ classList
+                [ ( .pageBodyClass Group.stickyHeaderConfig, True )
+                , ( "dashboard-hd", model.highDensity )
+                ]
+            ]
             mainContent
+
+
+noPipelinesCard : { a | hoveredTopCliIcon : Maybe Cli.Cli } -> Html Msg
+noPipelinesCard { hoveredTopCliIcon } =
+    let
+        cliIcon : Cli.Cli -> Maybe Cli.Cli -> Html Msg
+        cliIcon cli hoveredTopCliIcon =
+            let
+                ( cliName, ariaText, icon ) =
+                    case cli of
+                        Cli.OSX ->
+                            ( "osx", "OS X", "apple" )
+
+                        Cli.Windows ->
+                            ( "windows", "Windows", "windows" )
+
+                        Cli.Linux ->
+                            ( "linux", "Linux", "linux" )
+            in
+                Html.a
+                    [ href (Cli.downloadUrl "amd64" cliName)
+                    , attribute "aria-label" <| "Download " ++ ariaText ++ " CLI"
+                    , style <| Styles.infoCliIcon (hoveredTopCliIcon == Just cli)
+                    , id <| "top-cli-" ++ cliName
+                    , onMouseEnter <| TopCliHover <| Just cli
+                    , onMouseLeave <| TopCliHover Nothing
+                    ]
+                    [ Html.i [ class <| "fa fa-" ++ icon ] [] ]
+    in
+        Html.div
+            [ id "no-pipelines-card"
+            , style Styles.noPipelinesCard
+            ]
+            [ Html.div
+                [ style Styles.noPipelinesCardTitle ]
+                [ Html.text "welcome to concourse!" ]
+            , Html.div
+                [ style
+                    [ ( "font-size", "1.25em" )
+                    , ( "display", "flex" )
+                    ]
+                ]
+                [ Html.div
+                    [ style [ ( "margin-right", "10px" ) ] ]
+                    [ Html.text "first, download the CLI tools:" ]
+                , cliIcon Cli.OSX hoveredTopCliIcon
+                , cliIcon Cli.Windows hoveredTopCliIcon
+                , cliIcon Cli.Linux hoveredTopCliIcon
+                ]
+            , Html.div
+                []
+                [ Html.text "then, use `fly set-pipeline` to set up your new pipeline" ]
+            ]
 
 
 noResultsView : String -> Html Msg

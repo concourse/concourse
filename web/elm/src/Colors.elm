@@ -74,3 +74,8 @@ runningStripes =
 cliIconHover : String
 cliIconHover =
     "#fff"
+
+
+card : String
+card =
+    "#2a2929"

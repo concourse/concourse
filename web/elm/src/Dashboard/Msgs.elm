@@ -26,6 +26,7 @@ type Msg
     | TogglePipelinePaused Models.Pipeline
     | PipelineButtonHover (Maybe Models.Pipeline)
     | CliHover (Maybe Cli.Cli)
+    | TopCliHover (Maybe Cli.Cli)
     | ScreenResized Window.Size
     | LogIn
     | LogOut
