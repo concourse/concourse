@@ -395,7 +395,7 @@ var _ = Describe("login Command", func() {
 				)
 			})
 
-			It("prints the authorization_code which redirects to the fly_success page", func() {
+			It("instructs the user to visit the top-level login endpoint with fly port", func() {
 				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL())
 
 				stdin, err := flyCmd.StdinPipe()
@@ -405,7 +405,7 @@ var _ = Describe("login Command", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(sess.Out).Should(gbytes.Say("navigate to the following URL in your browser:"))
-				Eventually(sess.Out).Should(gbytes.Say("http://127.0.0.1:(\\d+)/sky/login\\?redirect_uri=/fly_success"))
+				Eventually(sess.Out).Should(gbytes.Say("http://127.0.0.1:(\\d+)/login\\?fly_port=(\\d+)"))
 				Eventually(sess.Out).Should(gbytes.Say("or enter token manually"))
 
 				_, err = fmt.Fprintf(stdin, "Bearer some-token\n")

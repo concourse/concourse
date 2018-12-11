@@ -182,8 +182,7 @@ func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool) (
 	fmt.Println("navigate to the following URL in your browser:")
 	fmt.Println("")
 
-	redirectUri := "/fly_success%3Ffly%3Dhttp%3A%2F%2F127.0.0.1%3A" + port + "%2Fauth%2Fcallback"
-	openURL = fmt.Sprintf("%s/sky/login?redirect_uri=%s", targetUrl, redirectUri)
+	openURL = fmt.Sprintf("%s/login?fly_port=%s", targetUrl, port)
 
 	fmt.Printf("  %s\n", openURL)
 	if !browserOnly {
