@@ -12,7 +12,6 @@ port module Layout
 
 import Concourse
 import Favicon
-import FlySuccess
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id)
 import Json.Decode

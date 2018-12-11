@@ -1,5 +1,4 @@
 import test from 'ava';
-import clipboardy from 'clipboardy';
 import Fly from './helpers/fly';
 import Web from './helpers/web';
 import puppeteer from 'puppeteer';
@@ -35,7 +34,7 @@ test.afterEach.always(async t => {
   await t.context.fly.cleanup();
 });
 
-test('can fly login with browser, copy token, and reuse same browser without CSRF issues', async t => {
+test('can fly login with browser and reuse same browser without CSRF issues', async t => {
   let flyPromise = t.context.fly.spawn(`login -c ${t.context.url}`);
   flyPromise.childProcess.stdout.on('data', async data => {
     data.toString().split("\n").forEach(async line => {
@@ -49,10 +48,6 @@ test('can fly login with browser, copy token, and reuse same browser without CSR
   await flyPromise;
   let currentUrl = t.context.web.page.url();
   t.true(currentUrl.includes(`${t.context.url}/fly_success`));
-  await clipboardy.write("");
-  await t.context.web.page.click("#copy-token");
-  let clipboardContents = await clipboardy.read();
-  t.true(clipboardContents.includes("Bearer "));
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
   await t.context.web.page.goto(t.context.web.route('/'));
   let pipelineSelector = '.dashboard-pipeline[data-pipeline-name=some-pipeline]';
