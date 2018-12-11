@@ -60,7 +60,7 @@ var _ = Describe("Legacy API", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(url.Path).To(Equal("/sky/login"))
 				Expect(url.Query()["redirect_uri"]).To(Equal(
-					[]string{"/fly_success?fly=http://127.0.0.1:1234/auth/callback"},
+					[]string{"/fly_success?fly_port=1234"},
 				))
 			})
 		})

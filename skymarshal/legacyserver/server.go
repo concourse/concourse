@@ -37,8 +37,7 @@ func NewLegacyServer(config *LegacyConfig) (http.Handler, error) {
 
 			flyPort := r.FormValue("fly_port")
 			if flyPort != "" {
-				u.RawQuery = "redirect_uri=/fly_success%3Ffly%3Dhttp%3A%2F%2F127.0.0.1%3A" +
-					flyPort + "%2Fauth%2Fcallback"
+				u.RawQuery = "redirect_uri=/fly_success%3Ffly_port=" + flyPort
 			}
 
 			http.Redirect(w, r, u.String(), http.StatusFound)

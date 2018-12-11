@@ -21,8 +21,8 @@ type alias Model =
     }
 
 
-init : { authToken : String, fly : Maybe String } -> ( Model, Cmd Msg )
-init ({ authToken, fly } as params) =
+init : { authToken : String, flyPort : Maybe Int } -> ( Model, Cmd Msg )
+init ({ authToken, flyPort } as params) =
     ( { buttonHovered = False
       , tokenCopied = False
       , authToken = authToken
@@ -44,20 +44,20 @@ update msg model =
             ( model, Cmd.none )
 
 
-sendTokenToFly : { authToken : String, fly : Maybe String } -> Cmd Msg
-sendTokenToFly { authToken, fly } =
-    case fly of
+sendTokenToFly : { authToken : String, flyPort : Maybe Int } -> Cmd Msg
+sendTokenToFly { authToken, flyPort } =
+    case flyPort of
         Nothing ->
             Cmd.none
 
-        Just url ->
+        Just fp ->
             let
                 queryString =
                     QueryString.empty
                         |> QueryString.add "token" authToken
                         |> QueryString.render
             in
-                Http.getString (url ++ queryString)
+                Http.getString ("http://127.0.0.1:" ++ toString fp ++ queryString)
                     |> Http.send (always Noop)
 
 

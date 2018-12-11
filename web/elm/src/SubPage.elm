@@ -166,7 +166,7 @@ init flags route =
             superDupleWrap ( FlySuccessModel, FlySuccessMsg ) <|
                 FlySuccess.init
                     { authToken = flags.authToken
-                    , fly = QueryString.one QueryString.string "fly" route.queries
+                    , flyPort = QueryString.one QueryString.int "fly_port" route.queries
                     }
 
 
