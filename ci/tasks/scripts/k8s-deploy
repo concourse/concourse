@@ -94,7 +94,7 @@ run_helm_deploy() {
     --set "concourse.worker.baggageclaim.driver=overlay" \
     --set "image=$CONCOURSE_IMAGE" \
     --set "imageDigest=$CONCOURSE_DIGEST" \
-    --set "secrets.localUsers=admin:$ATC_ADMIN_PASSWORD,guest:$ATC_GUEST_PASSWORD" \
+    --set "secrets.localUsers=admin:$ATC_ADMIN_PASSWORD\,guest:$ATC_GUEST_PASSWORD" \
     --set "web.service.loadBalancerIP=$LOADBALANCER_IP" \
     --set "web.service.type=LoadBalancer" \
     --set "worker.replicas=1" \
