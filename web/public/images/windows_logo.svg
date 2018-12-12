@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24px" height="24px" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch Beta 51.2 (57516) - http://www.bohemiancoding.com/sketch -->
+    <title>windows_logo</title>
+    <desc>Created with Sketch Beta.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="dashboard_empty_state_member1_no-pipelines" transform="translate(-862.000000, -511.000000)">
+            <g id="windows_logo" transform="translate(858.000000, 507.000000)">
+                <polygon id="Shape-Copy" points="0 0 31.8857143 0 31.8857143 32 0 32"></polygon>
+                <path d="M4,7.39800217 L13.8080392,6.06636452 L13.8123266,15.4978618 L4.00895962,15.553517 L4,7.39800217 Z M13.803367,16.5845539 L13.8109799,26.0242708 L4.00761293,24.6806051 L4.00706326,16.5212352 L13.803367,16.5845539 Z M14.992331,5.89216279 L27.9969768,4 L27.9969768,15.3779097 L14.992331,15.4808334 L14.992331,5.89216279 Z M28,16.6733261 L27.9969493,28 L14.9923035,26.1701969 L14.9740819,16.6521194 L28,16.6733261 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
+            </g>
+        </g>
+    </g>
+</svg>

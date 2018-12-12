@@ -285,13 +285,22 @@ all =
                                 ]
                         ]
             in
-                [ describe "when there are no teams" <|
+                [ describe "when unauthenticated with no teams" <|
                     hasNoPipelinesCard
                         (\_ ->
                             whenOnDashboard { highDensity = False }
                                 |> givenDataUnauthenticated (apiData [])
                         )
-                , describe "when there are teams but no pipelines" <|
+                        ++ [ test "page body is empty" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> givenDataUnauthenticated (apiData [])
+                                        |> queryView
+                                        |> Query.find [ class "dashboard-content" ]
+                                        |> Query.children []
+                                        |> Query.count (Expect.equal 1)
+                           ]
+                , describe "when unauthenticated with a team but no pipelines" <|
                     hasNoPipelinesCard
                         (\_ ->
                             whenOnDashboard { highDensity = False }

@@ -343,7 +343,7 @@ update msg model =
             )
 
         LogOut ->
-            ( { model | state = Err NotAsked }, Cmd.batch [ NewTopBar.logOut, fetchData ] )
+            ( { model | state = Err NotAsked }, NewTopBar.logOut )
 
         LoggedOut (Ok ()) ->
             let
@@ -359,7 +359,10 @@ update msg model =
                     | userState = UserState.UserStateLoggedOut
                     , userMenuVisible = False
                   }
-                , Navigation.newUrl redirectUrl
+                , Cmd.batch
+                    [ Navigation.newUrl redirectUrl
+                    , fetchData
+                    ]
                 )
 
         LoggedOut (Err err) ->
@@ -891,7 +894,7 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
                     groupsToDisplay
                         |> List.map (Group.hdView pipelineRunningKeyframes)
     in
-        if List.isEmpty groupViews then
+        if List.isEmpty groupViews && (not <| String.isEmpty query) then
             [ noResultsView (toString query) ]
         else
             List.map Html.fromUnstyled groupViews

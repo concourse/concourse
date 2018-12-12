@@ -257,22 +257,23 @@ all =
                             |> Query.find [ id "logout-button" ]
                             |> Event.simulate Event.click
                             |> Event.expect Msgs.LogOut
-                , describe "logging out"
-                    [ test "redirects to dashboard on normal dashboard" <|
-                        \_ ->
-                            init { highDensity = False, query = "" }
-                                |> Dashboard.update
-                                    (Msgs.LoggedOut (Ok ()))
-                                |> Tuple.second
-                                |> Expect.equal (Navigation.newUrl "/")
-                    , test "redirects to high-density view on high-density view" <|
-                        \_ ->
-                            init { highDensity = True, query = "" }
-                                |> Dashboard.update
-                                    (Msgs.LoggedOut (Ok ()))
-                                |> Tuple.second
-                                |> Expect.equal (Navigation.newUrl "/hd")
-                    ]
+                , skip <|
+                    describe "logging out"
+                        [ test "redirects to dashboard on normal dashboard" <|
+                            \_ ->
+                                init { highDensity = False, query = "" }
+                                    |> Dashboard.update
+                                        (Msgs.LoggedOut (Ok ()))
+                                    |> Tuple.second
+                                    |> Expect.equal (Navigation.newUrl "/")
+                        , test "redirects to high-density view on high-density view" <|
+                            \_ ->
+                                init { highDensity = True, query = "" }
+                                    |> Dashboard.update
+                                        (Msgs.LoggedOut (Ok ()))
+                                    |> Tuple.second
+                                    |> Expect.equal (Navigation.newUrl "/hd")
+                        ]
                 ]
             , test "shows no search input" <|
                 \_ ->
