@@ -12,7 +12,7 @@ RUN apt-get update && apt-get -y install \
       ca-certificates \
       curl \
       gnupg2 \
-      software-properties-common
+      software-properties-common \
       iproute2 \
       file \
       btrfs-tools \
