@@ -909,4 +909,4 @@ resources:
 
 - name: mock-version
   type: mock
-  source: {force_version: 4.2.1}
+  source: {force_version: 4.2.2}
