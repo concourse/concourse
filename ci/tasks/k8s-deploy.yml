@@ -15,10 +15,10 @@ params:
   ATC_PASSWORD:
 
 inputs:
-- name: dev-image
 - name: charts
 - name: concourse
 - name: endpoint-info
+- name: image-info
 
 run:
   path: concourse/ci/tasks/scripts/k8s-deploy

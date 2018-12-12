@@ -1,69 +1,103 @@
 #!/bin/bash
 
-set -eo pipefail
+# k8s-deploy - deploys Concourse on a K8S cluster using
+# a helm charts provided under `./charts`.
+#
+# ps.: this script is meant to be used for smoke tests.
 
-mkdir -p ~/.kube
+set -o errexit
+set -o pipefail
 
-if [ ! -f ~/.kube/config ]; then
-  echo "$KUBE_CONFIG" > ~/.kube/config
-fi
+# Variables that can be either be configured
+# by making use of environment variables when
+# executing `k8s-deploy` or the default values.
+readonly RELEASE_NAME="${RELEASE_NAME:-concourse-smoke}"
+readonly CONCOURSE_IMAGE="${CONCOURSE_IMAGE:-concourse/dev}"
 
-if [ -f endpoint-info/instance_ip ]; then
-  LOADBALANCER_IP=$(cat endpoint-info/instance_ip)
-fi
+# Variables that might be configured from files in
+# the filesystem or environment variables.
+ATC_ADMIN_PASSWORD="${ATC_ADMIN_PASSWORD:-admin}"
+ATC_GUEST_PASSWORD="${ATC_GUEST_PASSWORD:-guest}"
+LOADBALANCER_IP=$LOADBALANCER_IP
+CONCOURSE_DIGEST=$CONCOURSE_DIGEST
 
-if [ -e endpoint-info/admin_password ]; then
-  export ATC_ADMIN_PASSWORD="$(cat endpoint-info/admin_password)"
-else
-  export ATC_ADMIN_PASSWORD=admin
-fi
+main() {
+  eventually_populate_kube_config
+  eventually_populate_environment_from_fs
+  ensure_variables_are_set
+  run_helm_deploy
+}
 
-export ATC_GUEST_PASSWORD=guest
-if [ -e endpoint-info/guest_password ]; then
-  export ATC_GUEST_PASSWORD="$(cat endpoint-info/guest_password)"
-else
-  export ATC_GUEST_PASSWORD=guest
-fi
+eventually_populate_kube_config() {
+  mkdir -p ~/.kube
 
-if [ -z $RELEASE_NAME ]; then
-  RELEASE_NAME="concourse"
-fi
-
-if [ -z $CONCOURSE_IMAGE ]; then
-  CONCOURSE_IMAGE='concourse/concourse-rc'
-fi
-
-if [ -z $CONCOURSE_TAG ]; then
-  CONCOURSE_TAG='latest'
-fi
-
-if [ -n "${CONCOURSE_DIGEST_FILE}" ]; then
-  if [ -f $CONCOURSE_DIGEST_FILE ]; then
-    CONCOURSE_DIGEST="$(cat $CONCOURSE_DIGEST_FILE)"
+  if [[ -f ~/.kube/config ]]; then
+    return 0
   fi
-fi
 
-app="${RELEASE_NAME}-web"
+  if [[ -z $KUBE_CONFIG ]]; then
+    echo "Error: KUBE_CONFIG must be specified when ~/.kube/config doesnt exist"
+    exit 1
+  fi
 
-pushd charts/stable/concourse/
+  echo "$KUBE_CONFIG" >~/.kube/config
+}
+
+eventually_populate_environment_from_fs() {
+  if [[ -f endpoint-info/instance_ip ]]; then
+    LOADBALANCER_IP=$(cat endpoint-info/instance_ip)
+  fi
+
+  if [[ -f endpoint-info/admin_password ]]; then
+    ATC_ADMIN_PASSWORD="$(cat endpoint-info/admin_password)"
+  fi
+
+  if [[ -f endpoint-info/guest_password ]]; then
+    ATC_GUEST_PASSWORD="$(cat endpoint-info/guest_password)"
+  fi
+
+  if [[ -f image-info/digest ]]; then
+    CONCOURSE_DIGEST="$(cat image-info/digest)"
+  fi
+}
+
+ensure_variables_are_set() {
+  local required_vars=(
+    ATC_ADMIN_PASSWORD
+    ATC_GUEST_PASSWORD
+    CONCOURSE_DIGEST
+    CONCOURSE_IMAGE
+    LOADBALANCER_IP
+    RELEASE_NAME
+  )
+
+  for var in ${required_vars[@]}; do
+    if [[ -z ${!var} ]]; then
+      echo "ERROR: variable $var is empty"
+      exit 1
+    fi
+  done
+}
+
+run_helm_deploy() {
   helm init --wait
   helm dependency update --debug
   helm upgrade \
     --install \
-    --force \
-    --values values.yaml \
-    --set image=$CONCOURSE_IMAGE \
-    --set imageDigest="$CONCOURSE_DIGEST" \
-    --set secrets.localUsers="admin:$ATC_ADMIN_PASSWORD\,guest:$ATC_GUEST_PASSWORD" \
-    --set concourse.web.auth.mainTeam.localUser="admin" \
-    --set concourse.web.externalUrl="http://$LOADBALANCER_IP:8080" \
-    --set concourse.worker.baggageclaim.driver="detect" \
-    --set concourse.worker.garden.allowHostAccess="true" \
-    --set web.service.loadBalancerIP="$LOADBALANCER_IP" \
-    --set web.service.type="LoadBalancer" \
-    --set worker.replicas="1" \
-    --set worker.resources.requests.cpu="1000m" \
-    --set=concourse.web.kubernetes.keepNamespaces=false \
+    --wait \
+    --namespace "$RELEASE_NAME" \
+    --set "concourse.web.auth.mainTeam.localUser=admin" \
+    --set "concourse.web.externalUrl=http://$LOADBALANCER_IP:8080" \
+    --set "concourse.worker.baggageclaim.driver=overlay" \
+    --set "image=$CONCOURSE_IMAGE" \
+    --set "imageDigest=$CONCOURSE_DIGEST" \
+    --set "secrets.localUsers=admin:$ATC_ADMIN_PASSWORD,guest:$ATC_GUEST_PASSWORD" \
+    --set "web.service.loadBalancerIP=$LOADBALANCER_IP" \
+    --set "web.service.type=LoadBalancer" \
+    --set "worker.replicas=1" \
+    --set "concourse.web.kubernetes.enabled=false" \
     $RELEASE_NAME \
-    .
-popd
+    ./charts/stable/concourse
+}
+
+main "$@"

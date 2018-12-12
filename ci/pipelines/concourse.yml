@@ -232,6 +232,9 @@ jobs:
     - get: concourse
       passed: [build-rc]
       trigger: true
+    - get: k8s-dev-image
+      passed: [ k8s-dev-image ]
+      trigger: true
     - get: dev-image
       passed: [build-rc]
       params: {format: oci}
@@ -254,7 +257,7 @@ jobs:
      RELEASE_NAME: concourse-smoke
      CONCOURSE_IMAGE: concourse/dev
      CONCOURSE_DIGEST_FILE: dev-image/digest
-    input_mapping: {endpoint-info: outputs}
+    input_mapping: {endpoint-info: outputs, image-info: dev-image}
   - task: smoke
     image: unit-image
     file: concourse/ci/tasks/smoke.yml
@@ -268,12 +271,10 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed:
-      - dev-image
+      passed: [ dev-image ]
       trigger: true
     - get: dev-image
-      passed:
-      - dev-image
+      passed: [ dev-image ]
       trigger: true
     - get: helm-chart
       resource: charts
