@@ -8,8 +8,12 @@
 FROM golang:1
 
 RUN apt-get update && apt-get -y install \
-      iproute2 \
+      apt-transport-https \
       ca-certificates \
+      curl \
+      gnupg2 \
+      software-properties-common
+      iproute2 \
       file \
       btrfs-tools \
       jq
