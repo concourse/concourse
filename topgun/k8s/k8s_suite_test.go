@@ -26,10 +26,11 @@ func TestK8s(t *testing.T) {
 }
 
 type environment struct {
+	ChartsDir            string `env:"CHARTS_DIR,required"`
+	ConcourseChartDir    string `env:CONCOURSE_CHART_DIR`
 	ConcourseImageDigest string `env:"CONCOURSE_IMAGE_DIGEST"`
 	ConcourseImageName   string `env:"CONCOURSE_IMAGE_NAME,required"`
 	ConcourseImageTag    string `env:"CONCOURSE_IMAGE_TAG"`
-	ChartDir             string `env:"CHART_DIR,required"`
 	FlyPath              string `env:"FLY_PATH"`
 }
 
@@ -48,12 +49,18 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		parsedEnv.FlyPath = BuildBinary()
 	}
 
+	if parsedEnv.ConcourseChartDir == "" {
+		parsedEnv.ConcourseChartDir = path.Join(parsedEnv.ChartsDir, "stable/concourse")
+	}
+
 	By("Checking if kubectl has a context set")
 	Wait(Start(nil, "kubectl", "config", "current-context"))
 
-	By("Installing tiller")
+	By("Installing tiller in the k8s cluster")
 	Wait(Start(nil, "helm", "init", "--wait"))
-	Wait(Start(nil, "helm", "dependency", "update", parsedEnv.ChartDir))
+
+	By("Updating the dependencies of the Concourse chart locally")
+	Wait(Start(nil, "helm", "dependency", "update", parsedEnv.ConcourseChartDir))
 
 	envBytes, err := json.Marshal(parsedEnv)
 	Expect(err).ToNot(HaveOccurred())
@@ -93,40 +100,52 @@ type podListResponse struct {
 	Items []pod `json:"items"`
 }
 
-func helmDeploy(releaseName string, args ...string) {
+func helmDeploy(releaseName, chartDir string, args ...string) {
 	helmArgs := []string{
 		"upgrade",
-		"-f",
-		path.Join(Environment.ChartDir, "values.yaml"),
 		"--install",
 		"--force",
-		"--set=concourse.web.kubernetes.keepNamespaces=false",
-		"--set=image=" + Environment.ConcourseImageName,
-		"--set=imageDigest=" + Environment.ConcourseImageDigest,
-		"--set=imageTag=" + Environment.ConcourseImageTag}
+		"--wait",
+		"--namespace", releaseName,
+	}
 
 	helmArgs = append(helmArgs, args...)
-	helmArgs = append(helmArgs, releaseName,
-		"--wait",
-		Environment.ChartDir)
+	helmArgs = append(helmArgs, releaseName, chartDir)
 
 	Wait(Start(nil, "helm", helmArgs...))
+}
+
+func deployConcourseChart(releaseName string, args ...string) {
+	helmArgs := []string{
+		"--set=concourse.web.kubernetes.keepNamespaces=false",
+		"--set=concourse.web.livenessProbe.initialDelaySeconds=3s",
+		"--set=image=" + Environment.ConcourseImageName,
+		"--set=imageTag=" + Environment.ConcourseImageTag}
+
+	if Environment.ConcourseImageDigest != "" {
+		helmArgs = append(helmArgs, "--set=imageDigest="+Environment.ConcourseImageDigest)
+	}
+
+	helmArgs = append(helmArgs, args...)
+
+	helmDeploy(releaseName, Environment.ConcourseChartDir, args...)
 }
 
 func helmDestroy(releaseName string) {
 	helmArgs := []string{
 		"delete",
+		"--purge",
 		releaseName,
 	}
 
 	Wait(Start(nil, "helm", helmArgs...))
 }
 
-func getPods(releaseName string, flags ...string) []pod {
+func getPods(namespace string, flags ...string) []pod {
 	var (
 		pods podListResponse
 		args = append([]string{"get", "pods",
-			"--selector=release=" + releaseName,
+			"--namespace=" + namespace,
 			"--output=json",
 			"--no-headers"}, flags...)
 		session = Start(nil, "kubectl", args...)
@@ -150,11 +169,11 @@ func getPodsNames(pods []pod) []string {
 	return names
 }
 
-func deletePods(releaseName string, flags ...string) []string {
+func deletePods(namespace string, flags ...string) []string {
 	var (
 		podNames []string
 		args     = append([]string{"delete", "pod",
-			"--selector=release=" + releaseName,
+			"--namespace=" + namespace,
 		}, flags...)
 		session = Start(nil, "kubectl", args...)
 	)
@@ -169,8 +188,8 @@ func deletePods(releaseName string, flags ...string) []string {
 	return podNames
 }
 
-func startPortForwarding(service, port string) (*gexec.Session, string) {
-	session := Start(nil, "kubectl", "port-forward", "service/"+service, ":"+port)
+func startPortForwarding(namespace, service, port string) (*gexec.Session, string) {
+	session := Start(nil, "kubectl", "port-forward", "--namespace="+namespace, "service/"+service, ":"+port)
 	Eventually(session.Out).Should(gbytes.Say("Forwarding"))
 
 	address := regexp.MustCompile(`127\.0\.0\.1:[0-9]+`).

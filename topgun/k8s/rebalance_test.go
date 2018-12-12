@@ -22,7 +22,7 @@ var _ = Describe("Worker Rebalancing", func() {
 	BeforeEach(func() {
 		releaseName = fmt.Sprintf("topgun-worker-rebalancing-%d", GinkgoParallelNode())
 
-		helmDeploy(releaseName,
+		deployConcourseChart(releaseName,
 			"--set=concourse.worker.ephemeral=true",
 			"--set=worker.replicas=1",
 			"--set=web.replicas=2",
@@ -37,7 +37,7 @@ var _ = Describe("Worker Rebalancing", func() {
 		}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "expected all pods to be running")
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(releaseName+"-web", "8080")
+		proxySession, atcEndpoint = startPortForwarding(releaseName, releaseName+"-web", "8080")
 
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)

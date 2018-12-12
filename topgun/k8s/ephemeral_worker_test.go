@@ -21,13 +21,12 @@ var _ = Describe("Ephemeral workers", func() {
 	BeforeEach(func() {
 		releaseName = fmt.Sprintf("topgun-ephemeral-workers-%d", GinkgoParallelNode())
 
-		helmDeploy(releaseName,
+		deployConcourseChart(releaseName,
 			// TODO: https://github.com/concourse/concourse/issues/2827
 			"--set=concourse.web.gc.interval=300ms",
 			"--set=concourse.web.tsa.heartbeatInterval=300ms",
-			"--set=concourse.worker.ephemeral=true",
 			"--set=worker.replicas=1",
-			"--set=concourse.worker.baggageclaim.driver=detect")
+			"--set=concourse.worker.baggageclaim.driver=overlay")
 
 		Eventually(func() bool {
 			expectedPods := getPodsNames(getPods(releaseName))
@@ -37,7 +36,7 @@ var _ = Describe("Ephemeral workers", func() {
 		}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "expected all pods to be running")
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(releaseName+"-web", "8080")
+		proxySession, atcEndpoint = startPortForwarding(releaseName, releaseName+"-web", "8080")
 
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)
