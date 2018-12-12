@@ -8,8 +8,9 @@ resources:
 - name: concourse-head
   type: git
   source:
-    uri: https://github.com/concourse/concourse.git
-    branch: hotfix/redirect-issue
+    uri: git@github.com:concourse/concourse-bosh-release.git
+    branch: release/v4.2.2
+    private_key: ((concourse_repo_private_key))
 
 - name: github-release
   type: github-release
@@ -88,7 +89,6 @@ resources:
     regexp: concourse-(.*).tgz
     access_key_id: ((concourse_release_bucket.access_key))
     secret_access_key: ((concourse_release_bucket.secret_key))
-    unique: 1544212065 # we want this to be a unique resource config so we don't share cache and version history
 
 - name: nightly-release
   type: s3
@@ -836,8 +836,6 @@ jobs:
     file: concourse/ci/finalize-release.yml
     params: {BOSH_PRIVATE_CONFIG: ((concourse_release_private_config))}
   - aggregate:
-    - put: version
-      params: {file: version/version}
     - put: concourse-head
       params:
         repository: final-release-repo
@@ -871,15 +869,15 @@ jobs:
     - get: postgres-release
   - aggregate:
     - task: build-release-notes
-      file: concourse/ci/tasks/build-release-notes.yml
+      file: concourse/ci/build-release-notes.yml
     - task: rename-release
-      file: concourse/ci/tasks/rename-release.yml
+      file: concourse/ci/rename-release.yml
   - put: github-release
     params:
       name: release-notes/release-name
       tag: release-notes/release-name
       body: release-notes/notes.md
-      commitish: concourse-head/.git/ref
+      commitish: concourse/.git/ref
       globs:
       - bin-rc/concourse_*
       - fly-rc/fly_*
