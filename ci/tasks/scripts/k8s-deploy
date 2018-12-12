@@ -87,6 +87,7 @@ run_helm_deploy() {
   helm dependency update --debug $chart
   helm upgrade \
     --install \
+    --recreate-pods \
     --wait \
     --namespace "$RELEASE_NAME" \
     --set "concourse.web.auth.mainTeam.localUser=admin" \
