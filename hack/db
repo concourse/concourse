@@ -1,0 +1,3 @@
+#!/bin/bash
+
+psql -h localhost -p 6543 -U dev concourse
