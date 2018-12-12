@@ -256,8 +256,8 @@ jobs:
      KUBE_CONFIG: ((kube_config))
      RELEASE_NAME: concourse-smoke
      CONCOURSE_IMAGE: concourse/dev
-     CONCOURSE_DIGEST_FILE: dev-image/digest
     input_mapping: {endpoint-info: outputs, image-info: dev-image}
+    image: k8s-dev-image
   - task: smoke
     image: unit-image
     file: concourse/ci/tasks/smoke.yml

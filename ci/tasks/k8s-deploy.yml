@@ -6,13 +6,9 @@ image_resource:
   source: {repository: concourse/k8s-dev}
 
 params:
-  RELEASE_NAME:
   CONCOURSE_IMAGE:
-  CONCOURSE_TAG:
-  CONCOURSE_DIGEST_FILE:
   KUBE_CONFIG:
-  ATC_USERNAME:
-  ATC_PASSWORD:
+  RELEASE_NAME:
 
 inputs:
 - name: charts

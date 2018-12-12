@@ -80,8 +80,11 @@ ensure_variables_are_set() {
 }
 
 run_helm_deploy() {
+  local chart=./charts/stable/concourse
+
   helm init --wait
-  helm dependency update --debug
+  helm version
+  helm dependency update --debug $chart
   helm upgrade \
     --install \
     --wait \
@@ -97,7 +100,7 @@ run_helm_deploy() {
     --set "worker.replicas=1" \
     --set "concourse.web.kubernetes.enabled=false" \
     $RELEASE_NAME \
-    ./charts/stable/concourse
+    $chart
 }
 
 main "$@"
