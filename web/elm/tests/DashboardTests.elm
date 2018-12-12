@@ -107,18 +107,10 @@ all =
                             setup
                                 >> queryView
                                 >> Query.has [ id "no-pipelines-card" ]
-                        , test "has airplane background" <|
+                        , test "with correct antialiasing in WebKit-based browsers" <|
                             subject
-                                >> Query.has
-                                    [ style
-                                        [ ( "background-image"
-                                          , "url(public/images/airplanes_welcome_ascii.svg)"
-                                          )
-                                        , ( "background-repeat", "no-repeat" )
-                                        , ( "background-position-x", "75%" )
-                                        ]
-                                    ]
-                        , test "says 'welcome to concourse!'" <|
+                                >> Query.has [ style [ ( "-webkit-font-smoothing", "antialiased" ) ] ]
+                        , test "title says 'welcome to concourse!'" <|
                             subject
                                 >> Query.children []
                                 >> Query.first
@@ -127,7 +119,7 @@ all =
                             subject
                                 >> Query.children []
                                 >> Query.first
-                                >> Query.has [ style [ ( "font-size", "30px" ) ] ]
+                                >> Query.has [ style [ ( "font-size", "32px" ) ] ]
                         , test "has dark grey background" <|
                             subject
                                 >> Query.has [ style [ ( "background-color", darkGrey ) ] ]
@@ -136,137 +128,159 @@ all =
                                 >> Query.has [ style [ ( "margin", "25px" ) ] ]
                         , test "has padding around its contents" <|
                             subject
-                                >> Query.has [ style [ ( "padding", "25px" ) ] ]
-                        , test "has set-pipeline instruction" <|
-                            subject
-                                >> Query.children []
-                                >> Query.index 2
-                                >> Query.has
-                                    [ text "then, use `fly set-pipeline` to set up your new pipeline" ]
-                        , describe "CLI download section" <|
+                                >> Query.has [ style [ ( "padding", "40px" ) ] ]
+                        , describe "body" <|
                             let
-                                downloadSection =
+                                body : () -> Query.Single Msgs.Msg
+                                body =
                                     subject >> Query.children [] >> Query.index 1
                             in
-                                [ test "has slightly larger font" <|
-                                    downloadSection
-                                        >> Query.has [ style [ ( "font-size", "1.25em" ) ] ]
-                                , test "lays out contents horizontally" <|
-                                    downloadSection
-                                        >> Query.has [ style [ ( "display", "flex" ) ] ]
-                                , test "says 'first, download the CLI tools:'" <|
-                                    downloadSection
-                                        >> Query.children []
-                                        >> Query.index 0
-                                        >> Query.has [ text "first, download the CLI tools:" ]
-                                , test "there is space between the label and the icons" <|
-                                    downloadSection
-                                        >> Query.children []
-                                        >> Query.index 0
-                                        >> Query.has [ style [ ( "margin-right", "10px" ) ] ]
-                                , describe "cli download icons" <|
+                                [ test "has set-pipeline instruction" <|
+                                    body
+                                        >> Query.has
+                                            [ text
+                                                "then, use `fly set-pipeline` to set up your new pipeline"
+                                            ]
+                                , test "has 16px font" <|
+                                    body
+                                        >> Query.has [ style [ ( "font-size", "16px" ) ] ]
+                                , describe "CLI download section" <|
                                     let
-                                        cliIcons =
-                                            downloadSection
-                                                >> Query.children [ tag "a" ]
+                                        downloadSection =
+                                            body >> Query.children [] >> Query.index 0
                                     in
-                                        [ test "font size is slightly larger" <|
-                                            cliIcons
-                                                >> Query.each
-                                                    (Query.has [ style [ ( "font-size", "1.2em" ) ] ])
-                                        , test "icons are grey" <|
-                                            cliIcons
-                                                >> Query.each
-                                                    (Query.has [ style [ ( "color", menuGrey ) ] ])
-                                        , test "icons have descriptive ARIA labels" <|
-                                            cliIcons
-                                                >> Expect.all
-                                                    [ Query.count (Expect.equal 3)
-                                                    , Query.index 0
-                                                        >> Query.has
-                                                            [ attribute <|
-                                                                Attr.attribute
-                                                                    "aria-label"
-                                                                    "Download OS X CLI"
+                                        [ test "lays out contents horizontally, centers vertically" <|
+                                            downloadSection
+                                                >> Query.has
+                                                    [ style
+                                                        [ ( "display", "flex" )
+                                                        , ( "align-items", "center" )
+                                                        ]
+                                                    ]
+                                        , test "says 'first, download the CLI tools:'" <|
+                                            downloadSection
+                                                >> Query.children []
+                                                >> Query.index 0
+                                                >> Query.has [ text "first, download the CLI tools:" ]
+                                        , test "there is space between the label and the icons" <|
+                                            downloadSection
+                                                >> Query.children []
+                                                >> Query.index 0
+                                                >> Query.has [ style [ ( "margin-right", "10px" ) ] ]
+                                        , describe "cli download icons" <|
+                                            let
+                                                cliIcons =
+                                                    downloadSection
+                                                        >> Query.children [ tag "a" ]
+                                            in
+                                                [ test "icons have descriptive ARIA labels" <|
+                                                    cliIcons
+                                                        >> Expect.all
+                                                            [ Query.count (Expect.equal 3)
+                                                            , Query.index 0
+                                                                >> Query.has
+                                                                    [ attribute <|
+                                                                        Attr.attribute
+                                                                            "aria-label"
+                                                                            "Download OS X CLI"
+                                                                    ]
+                                                            , Query.index 1
+                                                                >> Query.has
+                                                                    [ attribute <|
+                                                                        Attr.attribute
+                                                                            "aria-label"
+                                                                            "Download Windows CLI"
+                                                                    ]
+                                                            , Query.index 2
+                                                                >> Query.has
+                                                                    [ attribute <|
+                                                                        Attr.attribute
+                                                                            "aria-label"
+                                                                            "Download Linux CLI"
+                                                                    ]
                                                             ]
-                                                    , Query.index 1
-                                                        >> Query.has
-                                                            [ attribute <|
-                                                                Attr.attribute
-                                                                    "aria-label"
-                                                                    "Download Windows CLI"
+                                                , defineHoverBehaviour
+                                                    { name = "os x cli icon"
+                                                    , setup = setup ()
+                                                    , query = queryView >> Query.find [ id "top-cli-osx" ]
+                                                    , unhoveredSelector =
+                                                        { description = "grey apple icon"
+                                                        , selector =
+                                                            [ style
+                                                                [ ( "opacity", "0.5" )
+                                                                , ( "margin", "5px" )
+                                                                ]
                                                             ]
-                                                    , Query.index 2
-                                                        >> Query.has
-                                                            [ attribute <|
-                                                                Attr.attribute
-                                                                    "aria-label"
-                                                                    "Download Linux CLI"
+                                                                ++ iconSelector { size = "32px", image = "apple_logo.svg" }
+                                                        }
+                                                    , mouseEnterMsg = Msgs.TopCliHover <| Just Cli.OSX
+                                                    , mouseLeaveMsg = Msgs.TopCliHover Nothing
+                                                    , hoveredSelector =
+                                                        { description = "white apple icon"
+                                                        , selector =
+                                                            [ style
+                                                                [ ( "opacity", "1" )
+                                                                , ( "margin", "5px" )
+                                                                ]
                                                             ]
-                                                    ]
-                                        , defineHoverBehaviour
-                                            { name = "os x cli icon"
-                                            , setup = setup ()
-                                            , query = queryView >> Query.find [ id "top-cli-osx" ]
-                                            , unhoveredSelector =
-                                                { description = "grey apple icon"
-                                                , selector =
-                                                    [ style [ ( "color", menuGrey ) ]
-                                                    , containing [ tag "i", class "fa-apple" ]
-                                                    ]
-                                                }
-                                            , mouseEnterMsg = Msgs.TopCliHover <| Just Cli.OSX
-                                            , mouseLeaveMsg = Msgs.TopCliHover Nothing
-                                            , hoveredSelector =
-                                                { description = "white apple icon"
-                                                , selector =
-                                                    [ style [ ( "color", white ) ]
-                                                    , containing [ tag "i", class "fa-apple" ]
-                                                    ]
-                                                }
-                                            }
-                                        , defineHoverBehaviour
-                                            { name = "windows cli icon"
-                                            , setup = setup ()
-                                            , query = queryView >> Query.find [ id "top-cli-windows" ]
-                                            , unhoveredSelector =
-                                                { description = "grey windows icon"
-                                                , selector =
-                                                    [ style [ ( "color", menuGrey ) ]
-                                                    , containing [ tag "i", class "fa-windows" ]
-                                                    ]
-                                                }
-                                            , mouseEnterMsg = Msgs.TopCliHover <| Just Cli.Windows
-                                            , mouseLeaveMsg = Msgs.TopCliHover Nothing
-                                            , hoveredSelector =
-                                                { description = "white windows icon"
-                                                , selector =
-                                                    [ style [ ( "color", white ) ]
-                                                    , containing [ tag "i", class "fa-windows" ]
-                                                    ]
-                                                }
-                                            }
-                                        , defineHoverBehaviour
-                                            { name = "linux cli icon"
-                                            , setup = setup ()
-                                            , query = queryView >> Query.find [ id "top-cli-linux" ]
-                                            , unhoveredSelector =
-                                                { description = "grey linux icon"
-                                                , selector =
-                                                    [ style [ ( "color", menuGrey ) ]
-                                                    , containing [ tag "i", class "fa-linux" ]
-                                                    ]
-                                                }
-                                            , mouseEnterMsg = Msgs.TopCliHover <| Just Cli.Linux
-                                            , mouseLeaveMsg = Msgs.TopCliHover Nothing
-                                            , hoveredSelector =
-                                                { description = "white linux icon"
-                                                , selector =
-                                                    [ style [ ( "color", white ) ]
-                                                    , containing [ tag "i", class "fa-linux" ]
-                                                    ]
-                                                }
-                                            }
+                                                                ++ iconSelector { size = "32px", image = "apple_logo.svg" }
+                                                        }
+                                                    }
+                                                , defineHoverBehaviour
+                                                    { name = "windows cli icon"
+                                                    , setup = setup ()
+                                                    , query = queryView >> Query.find [ id "top-cli-windows" ]
+                                                    , unhoveredSelector =
+                                                        { description = "grey windows icon"
+                                                        , selector =
+                                                            [ style
+                                                                [ ( "opacity", "0.5" )
+                                                                , ( "margin", "5px" )
+                                                                ]
+                                                            ]
+                                                                ++ iconSelector { size = "32px", image = "windows_logo.svg" }
+                                                        }
+                                                    , mouseEnterMsg = Msgs.TopCliHover <| Just Cli.Windows
+                                                    , mouseLeaveMsg = Msgs.TopCliHover Nothing
+                                                    , hoveredSelector =
+                                                        { description = "white windows icon"
+                                                        , selector =
+                                                            [ style
+                                                                [ ( "opacity", "1" )
+                                                                , ( "margin", "5px" )
+                                                                ]
+                                                            ]
+                                                                ++ iconSelector { size = "32px", image = "windows_logo.svg" }
+                                                        }
+                                                    }
+                                                , defineHoverBehaviour
+                                                    { name = "linux cli icon"
+                                                    , setup = setup ()
+                                                    , query = queryView >> Query.find [ id "top-cli-linux" ]
+                                                    , unhoveredSelector =
+                                                        { description = "grey linux icon"
+                                                        , selector =
+                                                            [ style
+                                                                [ ( "opacity", "0.5" )
+                                                                , ( "margin", "5px" )
+                                                                ]
+                                                            ]
+                                                                ++ iconSelector { size = "32px", image = "linux_logo.svg" }
+                                                        }
+                                                    , mouseEnterMsg = Msgs.TopCliHover <| Just Cli.Linux
+                                                    , mouseLeaveMsg = Msgs.TopCliHover Nothing
+                                                    , hoveredSelector =
+                                                        { description = "white linux icon"
+                                                        , selector =
+                                                            [ style
+                                                                [ ( "opacity", "1" )
+                                                                , ( "margin", "5px" )
+                                                                ]
+                                                            ]
+                                                                ++ iconSelector { size = "32px", image = "linux_logo.svg" }
+                                                        }
+                                                    }
+                                                ]
                                         ]
                                 ]
                         ]

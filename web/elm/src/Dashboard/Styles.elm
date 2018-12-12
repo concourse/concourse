@@ -10,6 +10,7 @@ module Dashboard.Styles
         , infoItem
         , infoCliIcon
         , noPipelinesCard
+        , noPipelinesCardBody
         , noPipelinesCardTitle
         , pipelineCardBanner
         , pipelineCardHd
@@ -18,6 +19,7 @@ module Dashboard.Styles
         , pipelineCardFooter
         , pipelineStatusIcon
         , pipelineCardTransitionAge
+        , topCliIcon
         )
 
 import Colors
@@ -300,18 +302,39 @@ infoCliIcon hovered =
     ]
 
 
+topCliIcon : { hovered : Bool, image : String } -> List ( String, String )
+topCliIcon { hovered, image } =
+    [ ( "opacity"
+      , if hovered then
+            "1"
+        else
+            "0.5"
+      )
+    , ( "background-image", "url(public/images/" ++ image ++ ")" )
+    , ( "background-position", "50% 50%" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "width", "32px" )
+    , ( "height", "32px" )
+    , ( "margin", "5px" )
+    ]
+
+
 noPipelinesCard : List ( String, String )
 noPipelinesCard =
     [ ( "background-color", Colors.card )
     , ( "margin", "25px" )
-    , ( "padding", "25px" )
-    , ( "background-image", "url(public/images/airplanes_welcome_ascii.svg)" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-position-x", "75%" )
+    , ( "padding", "40px" )
+    , ( "-webkit-font-smoothing", "antialiased" )
+    ]
+
+
+noPipelinesCardBody : List ( String, String )
+noPipelinesCardBody =
+    [ ( "font-size", "16px" )
     ]
 
 
 noPipelinesCardTitle : List ( String, String )
 noPipelinesCardTitle =
-    [ ( "font-size", "30px" )
+    [ ( "font-size", "32px" )
     ]

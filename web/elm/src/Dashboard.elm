@@ -595,12 +595,16 @@ noPipelinesCard { hoveredTopCliIcon } =
                 Html.a
                     [ href (Cli.downloadUrl "amd64" cliName)
                     , attribute "aria-label" <| "Download " ++ ariaText ++ " CLI"
-                    , style <| Styles.infoCliIcon (hoveredTopCliIcon == Just cli)
+                    , style <|
+                        Styles.topCliIcon
+                            { hovered = hoveredTopCliIcon == Just cli
+                            , image = icon ++ "_logo.svg"
+                            }
                     , id <| "top-cli-" ++ cliName
                     , onMouseEnter <| TopCliHover <| Just cli
                     , onMouseLeave <| TopCliHover Nothing
                     ]
-                    [ Html.i [ class <| "fa fa-" ++ icon ] [] ]
+                    []
     in
         Html.div
             [ id "no-pipelines-card"
@@ -610,21 +614,24 @@ noPipelinesCard { hoveredTopCliIcon } =
                 [ style Styles.noPipelinesCardTitle ]
                 [ Html.text "welcome to concourse!" ]
             , Html.div
-                [ style
-                    [ ( "font-size", "1.25em" )
-                    , ( "display", "flex" )
-                    ]
-                ]
+                [ style Styles.noPipelinesCardBody ]
                 [ Html.div
-                    [ style [ ( "margin-right", "10px" ) ] ]
-                    [ Html.text "first, download the CLI tools:" ]
-                , cliIcon Cli.OSX hoveredTopCliIcon
-                , cliIcon Cli.Windows hoveredTopCliIcon
-                , cliIcon Cli.Linux hoveredTopCliIcon
+                    [ style
+                        [ ( "display", "flex" )
+                        , ( "align-items", "center" )
+                        ]
+                    ]
+                    [ Html.div
+                        [ style [ ( "margin-right", "10px" ) ] ]
+                        [ Html.text "first, download the CLI tools:" ]
+                    , cliIcon Cli.OSX hoveredTopCliIcon
+                    , cliIcon Cli.Windows hoveredTopCliIcon
+                    , cliIcon Cli.Linux hoveredTopCliIcon
+                    ]
+                , Html.div
+                    []
+                    [ Html.text "then, use `fly set-pipeline` to set up your new pipeline" ]
                 ]
-            , Html.div
-                []
-                [ Html.text "then, use `fly set-pipeline` to set up your new pipeline" ]
             ]
 
 
