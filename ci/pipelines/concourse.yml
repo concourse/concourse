@@ -230,16 +230,16 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      #passed: [build-rc]
+      passed: [build-rc]
       trigger: true
     - get: k8s-dev-image
       passed: [ k8s-dev-image ]
       trigger: true
     - get: dev-image
-      #passed: [build-rc]
+      passed: [build-rc]
       params: {format: oci}
     - get: unit-image
-      #passed: [build-rc]
+      passed: [build-rc]
       trigger: true
     - get: charts
       trigger: true
