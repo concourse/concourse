@@ -2,11 +2,11 @@
 package concoursefakes
 
 import (
-	io "io"
-	sync "sync"
+	"io"
+	"sync"
 
-	atc "github.com/concourse/concourse/atc"
-	concourse "github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type FakeTeam struct {
@@ -290,6 +290,19 @@ type FakeTeam struct {
 	}
 	getArtifactReturnsOnCall map[int]struct {
 		result1 io.ReadCloser
+		result2 error
+	}
+	GetContainerStub        func(string) (atc.Container, error)
+	getContainerMutex       sync.RWMutex
+	getContainerArgsForCall []struct {
+		arg1 string
+	}
+	getContainerReturns struct {
+		result1 atc.Container
+		result2 error
+	}
+	getContainerReturnsOnCall map[int]struct {
+		result1 atc.Container
 		result2 error
 	}
 	HidePipelineStub        func(string) (bool, error)
@@ -1873,6 +1886,69 @@ func (fake *FakeTeam) GetArtifactReturnsOnCall(i int, result1 io.ReadCloser, res
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) GetContainer(arg1 string) (atc.Container, error) {
+	fake.getContainerMutex.Lock()
+	ret, specificReturn := fake.getContainerReturnsOnCall[len(fake.getContainerArgsForCall)]
+	fake.getContainerArgsForCall = append(fake.getContainerArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("GetContainer", []interface{}{arg1})
+	fake.getContainerMutex.Unlock()
+	if fake.GetContainerStub != nil {
+		return fake.GetContainerStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getContainerReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) GetContainerCallCount() int {
+	fake.getContainerMutex.RLock()
+	defer fake.getContainerMutex.RUnlock()
+	return len(fake.getContainerArgsForCall)
+}
+
+func (fake *FakeTeam) GetContainerCalls(stub func(string) (atc.Container, error)) {
+	fake.getContainerMutex.Lock()
+	defer fake.getContainerMutex.Unlock()
+	fake.GetContainerStub = stub
+}
+
+func (fake *FakeTeam) GetContainerArgsForCall(i int) string {
+	fake.getContainerMutex.RLock()
+	defer fake.getContainerMutex.RUnlock()
+	argsForCall := fake.getContainerArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTeam) GetContainerReturns(result1 atc.Container, result2 error) {
+	fake.getContainerMutex.Lock()
+	defer fake.getContainerMutex.Unlock()
+	fake.GetContainerStub = nil
+	fake.getContainerReturns = struct {
+		result1 atc.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) GetContainerReturnsOnCall(i int, result1 atc.Container, result2 error) {
+	fake.getContainerMutex.Lock()
+	defer fake.getContainerMutex.Unlock()
+	fake.GetContainerStub = nil
+	if fake.getContainerReturnsOnCall == nil {
+		fake.getContainerReturnsOnCall = make(map[int]struct {
+			result1 atc.Container
+			result2 error
+		})
+	}
+	fake.getContainerReturnsOnCall[i] = struct {
+		result1 atc.Container
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) HidePipeline(arg1 string) (bool, error) {
 	fake.hidePipelineMutex.Lock()
 	ret, specificReturn := fake.hidePipelineReturnsOnCall[len(fake.hidePipelineArgsForCall)]
@@ -3393,6 +3469,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.exposePipelineMutex.RUnlock()
 	fake.getArtifactMutex.RLock()
 	defer fake.getArtifactMutex.RUnlock()
+	fake.getContainerMutex.RLock()
+	defer fake.getContainerMutex.RUnlock()
 	fake.hidePipelineMutex.RLock()
 	defer fake.hidePipelineMutex.RUnlock()
 	fake.jobMutex.RLock()

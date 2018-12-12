@@ -81,4 +81,31 @@ var _ = Describe("ATC Handler Containers", func() {
 			})
 		})
 	})
+
+	Describe("GetContainer", func() {
+		Context("when passed a container handle", func() {
+			var expectedContainer atc.Container
+			BeforeEach(func() {
+				expectedURL := "/api/v1/teams/some-team/containers/myid-1"
+
+				expectedContainer = atc.Container{
+					ID:               "myid-1",
+					PipelineName:     "mypipeline-1",
+					WorkingDirectory: "/tmp/build/some-guid",
+				}
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedContainer),
+					),
+				)
+			})
+			It("should return the associated container", func() {
+				containers, err := team.GetContainer("myid-1")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(containers).To(Equal(expectedContainer))
+			})
+		})
+	})
 })
