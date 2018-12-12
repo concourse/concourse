@@ -27,7 +27,7 @@ func TestK8s(t *testing.T) {
 
 type environment struct {
 	ChartsDir            string `env:"CHARTS_DIR,required"`
-	ConcourseChartDir    string `env:CONCOURSE_CHART_DIR`
+	ConcourseChartDir    string `env:"CONCOURSE_CHART_DIR"`
 	ConcourseImageDigest string `env:"CONCOURSE_IMAGE_DIGEST"`
 	ConcourseImageName   string `env:"CONCOURSE_IMAGE_NAME,required"`
 	ConcourseImageTag    string `env:"CONCOURSE_IMAGE_TAG"`
