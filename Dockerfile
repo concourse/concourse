@@ -22,10 +22,19 @@ ENV CONCOURSE_TSA_WORKER_PRIVATE_KEY /concourse-keys/worker_key
 RUN mkdir /src
 WORKDIR /src
 
-# download and cache go modules in a docker layer
+# download go modules separately to enable caching
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
+
+# download yarn packages separately to enable caching
+COPY package.json .
+COPY yarn.lock .
+RUN yarn install
+
+# build web UI separately so we only build if necessary
+COPY web web
+RUN yarn build
 
 # build Concourse
 COPY . .

@@ -100,7 +100,7 @@ func (provider *dbWorkerProvider) RunningWorkers(logger lager.Logger) ([]Worker,
 
 func (provider *dbWorkerProvider) FindWorkerForContainerByOwner(
 	logger lager.Logger,
-	teamID int,
+	teamID int, // XXX unused
 	owner db.ContainerOwner,
 ) (Worker, bool, error) {
 	logger = logger.Session("worker-for-container")

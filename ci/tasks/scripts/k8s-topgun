@@ -13,7 +13,7 @@ if [ ! -f ~/.kube/config ]; then
 fi
 
 export CONCOURSE_IMAGE_DIGEST="$(cat dev-image/digest)"
-export CHART_DIR="$(realpath ./charts/stable/concourse)"
+export CHARTS_DIR="$(realpath ./charts)"
 
 cd concourse
 

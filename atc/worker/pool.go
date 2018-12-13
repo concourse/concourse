@@ -40,25 +40,16 @@ type WorkerProvider interface {
 }
 
 var (
-	ErrNoWorkers = errors.New("no workers")
+	ErrNoWorkers       = errors.New("no workers")
+	ErrNoGlobalWorkers = errors.New("no global workers available")
 )
 
 type NoCompatibleWorkersError struct {
-	Spec    WorkerSpec
-	Workers []Worker
+	Spec WorkerSpec
 }
 
 func (err NoCompatibleWorkersError) Error() string {
-	availableWorkers := ""
-	for _, worker := range err.Workers {
-		availableWorkers += "\n  - " + worker.Description()
-	}
-
-	return fmt.Sprintf(
-		"no workers satisfying: %s\n\navailable workers: %s",
-		err.Spec.Description(),
-		availableWorkers,
-	)
+	return fmt.Sprintf("no workers satisfying: %s", err.Spec.Description())
 }
 
 type pool struct {
@@ -107,9 +98,12 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 		return compatibleGeneralWorkers, nil
 	}
 
+	if spec.TeamID == 0 {
+		return nil, ErrNoGlobalWorkers
+	}
+
 	return nil, NoCompatibleWorkersError{
-		Spec:    spec,
-		Workers: workers,
+		Spec: spec,
 	}
 }
 

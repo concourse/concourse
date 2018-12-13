@@ -232,6 +232,9 @@ jobs:
     - get: concourse
       passed: [build-rc]
       trigger: true
+    - get: k8s-dev-image
+      passed: [ k8s-dev-image ]
+      trigger: true
     - get: dev-image
       passed: [build-rc]
       params: {format: oci}
@@ -253,8 +256,8 @@ jobs:
      KUBE_CONFIG: ((kube_config))
      RELEASE_NAME: concourse-smoke
      CONCOURSE_IMAGE: concourse/dev
-     CONCOURSE_DIGEST_FILE: dev-image/digest
-    input_mapping: {endpoint-info: outputs}
+    input_mapping: {endpoint-info: outputs, image-info: dev-image}
+    image: k8s-dev-image
   - task: smoke
     image: unit-image
     file: concourse/ci/tasks/smoke.yml
@@ -268,12 +271,10 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed:
-      - dev-image
+      passed: [ dev-image ]
       trigger: true
     - get: dev-image
-      passed:
-      - dev-image
+      passed: [ dev-image ]
       trigger: true
     - get: helm-chart
       resource: charts
@@ -897,7 +898,7 @@ resources:
   type: git
   source:
      uri: https://github.com/concourse/charts.git
-     branch: concourse-probes
+     branch: merged
 
 - name: golang-windows
   type: s3
@@ -908,4 +909,4 @@ resources:
 
 - name: mock-version
   type: mock
-  source: {force_version: 4.2.1}
+  source: {force_version: 4.2.2}

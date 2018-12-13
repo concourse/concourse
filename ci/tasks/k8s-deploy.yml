@@ -6,19 +6,15 @@ image_resource:
   source: {repository: concourse/k8s-dev}
 
 params:
-  RELEASE_NAME:
   CONCOURSE_IMAGE:
-  CONCOURSE_TAG:
-  CONCOURSE_DIGEST_FILE:
   KUBE_CONFIG:
-  ATC_USERNAME:
-  ATC_PASSWORD:
+  RELEASE_NAME:
 
 inputs:
-- name: dev-image
 - name: charts
 - name: concourse
 - name: endpoint-info
+- name: image-info
 
 run:
   path: concourse/ci/tasks/scripts/k8s-deploy
