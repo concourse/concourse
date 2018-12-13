@@ -1,0 +1,57 @@
+\title{Java Application}{java-example}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{}{pipeline}
+
+	You can run the tests for a Java application.
+
+	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/java}
+}
+
+\section{
+  \title{Pipeline Configuration}{configuration}
+	\codeblock{yaml}{{{
+---
+resources:
+  - name: apache-dubbo-git
+    type: git
+    source:
+      uri: https://github.com/apache/incubator-dubbo.git
+
+jobs:
+  - name: test
+    public: true
+    plan:
+      - get: apache-dubbo-git
+        trigger: true
+      - task: run-tests
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: { repository: oracle/openjdk, tag: "8" }
+          inputs:
+            - name: apache-dubbo-git
+          run:
+            path: /bin/sh
+            args:
+              - -c
+              - |
+                cd apache-dubbo-git
+                ./mvnw clean install -DskipTests=false -Dcheckstyle.skip=false -Drat.skip=false -Dmaven.javadoc.skip=true
+	}}}
+}
+
+\section{
+	\title{References}{references}
+
+	\list{
+		\reference{jobs}
+	}{
+		\reference{steps}
+	}{
+		\reference{tasks}
+	}
+}
