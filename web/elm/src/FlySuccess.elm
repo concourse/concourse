@@ -1,6 +1,16 @@
 module FlySuccess exposing (Model, Msg(..), init, update, view)
 
-import Colors
+import FlySuccess.Models
+    exposing
+        ( ButtonState(..)
+        , TokenTransfer
+        , TransferResult
+        , hover
+        , isClicked
+        , isPending
+        )
+import FlySuccess.Styles as Styles
+import FlySuccess.Text as Text
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
@@ -11,21 +21,27 @@ import QueryString
 type Msg
     = CopyTokenButtonHover Bool
     | CopyToken
-    | Noop
+    | TokenSentToFly Bool
 
 
 type alias Model =
-    { buttonHovered : Bool
-    , tokenCopied : Bool
+    { buttonState : ButtonState
     , authToken : String
+    , tokenTransfer : TokenTransfer
     }
 
 
 init : { authToken : String, flyPort : Maybe Int } -> ( Model, Cmd Msg )
 init ({ authToken, flyPort } as params) =
-    ( { buttonHovered = False
-      , tokenCopied = False
+    ( { buttonState = Unhovered
       , authToken = authToken
+      , tokenTransfer =
+            case flyPort of
+                Just _ ->
+                    Nothing
+
+                Nothing ->
+                    Just <| Err ()
       }
     , sendTokenToFly params
     )
@@ -34,14 +50,16 @@ init ({ authToken, flyPort } as params) =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        CopyTokenButtonHover hoverState ->
-            ( { model | buttonHovered = hoverState }, Cmd.none )
+        CopyTokenButtonHover hovered ->
+            ( { model | buttonState = hover hovered model.buttonState }
+            , Cmd.none
+            )
 
         CopyToken ->
-            ( { model | tokenCopied = True }, Cmd.none )
+            ( { model | buttonState = Clicked }, Cmd.none )
 
-        Noop ->
-            ( model, Cmd.none )
+        TokenSentToFly success ->
+            ( { model | tokenTransfer = Just <| Ok success }, Cmd.none )
 
 
 sendTokenToFly : { authToken : String, flyPort : Maybe Int } -> Cmd Msg
@@ -57,77 +75,95 @@ sendTokenToFly { authToken, flyPort } =
                         |> QueryString.add "token" authToken
                         |> QueryString.render
             in
-                Http.getString ("http://127.0.0.1:" ++ toString fp ++ queryString)
-                    |> Http.send (always Noop)
+            Http.request
+                { method = "GET"
+                , headers = []
+                , url = "http://127.0.0.1:" ++ toString fp ++ queryString
+                , body = Http.emptyBody
+                , expect = Http.expectStringResponse (\_ -> Ok ())
+                , timeout = Nothing
+                , withCredentials = False
+                }
+                |> Http.send (\r -> TokenSentToFly (r == Ok ()))
 
 
 view : Model -> Html Msg
-view { buttonHovered, tokenCopied, authToken } =
+view model =
     Html.div
         [ id "success-card"
-        , style
-            [ ( "background-color", Colors.flySuccessCard )
-            , ( "padding", "30px 20px" )
-            , ( "margin", "20px 30px" )
-            , ( "display", "flex" )
-            , ( "flex-direction", "column" )
-            , ( "align-items", "flex-start" )
-            ]
+        , style Styles.card
         ]
         [ Html.p
-            [ id "success-message"
-            , style
-                [ ( "font-size", "18px" )
-                , ( "margin", "0" )
-                ]
+            [ id "success-card-title"
+            , style Styles.title
             ]
-            [ Html.text "you have successfully logged in!" ]
-        , Html.p
-            [ id "success-details"
-            , style
-                [ ( "font-size", "14px" )
-                , ( "margin", "10px 0" )
-                ]
+            [ Html.text Text.title ]
+        , Html.div
+            [ id "success-card-body"
+            , style Styles.body
             ]
-            [ Html.text "return to fly OR go back to the Concourse dashboard" ]
-        , Html.span
-            [ id "copy-token"
-            , style
-                [ ( "border"
-                  , "1px solid "
-                        ++ if tokenCopied then
-                            Colors.flySuccessTokenCopied
-                           else
-                            Colors.text
+          <|
+            body model
+        ]
+
+
+body : Model -> List (Html Msg)
+body model =
+    let
+        elemList =
+            List.filter Tuple.second >> List.map Tuple.first
+    in
+    case model.tokenTransfer of
+        Nothing ->
+            [ Html.text Text.pending ]
+
+        Just result ->
+            let
+                success =
+                    result == Ok True
+            in
+            elemList
+                [ ( paragraph
+                        { identifier = "first-paragraph"
+                        , lines = Text.firstParagraph success
+                        }
+                  , True
                   )
-                , ( "margin", "10px 0" )
-                , ( "padding", "10px 0" )
-                , ( "width", "212px" )
-                , ( "cursor"
-                  , if tokenCopied then
-                        "default"
-                    else
-                        "pointer"
-                  )
-                , ( "text-align", "center" )
-                , ( "background-color"
-                  , if tokenCopied then
-                        Colors.flySuccessTokenCopied
-                    else if buttonHovered then
-                        Colors.flySuccessButtonHover
-                    else
-                        Colors.flySuccessCard
+                , ( button model, not success )
+                , ( paragraph
+                        { identifier = "second-paragraph"
+                        , lines = Text.secondParagraph result
+                        }
+                  , True
                   )
                 ]
-            , onMouseEnter <| CopyTokenButtonHover True
-            , onMouseLeave <| CopyTokenButtonHover False
-            , onClick CopyToken
-            , attribute "data-clipboard-text" authToken
+
+
+paragraph : { identifier : String, lines : Text.Paragraph } -> Html Msg
+paragraph { identifier, lines } =
+    lines
+        |> List.map Html.text
+        |> List.intersperse (Html.br [] [])
+        |> Html.p
+            [ id identifier
+            , style Styles.paragraph
             ]
-            [ Html.text <|
-                if tokenCopied then
-                    "token copied"
-                else
-                    "copy token to clipboard"
+
+
+button : Model -> Html Msg
+button { tokenTransfer, authToken, buttonState } =
+    Html.span
+        [ id "copy-token"
+        , style <| Styles.button buttonState
+        , onMouseEnter <| CopyTokenButtonHover True
+        , onMouseLeave <| CopyTokenButtonHover False
+        , onClick CopyToken
+        , attribute "data-clipboard-text" authToken
+        ]
+        [ Html.div
+            [ id "copy-icon"
+            , style Styles.buttonIcon
             ]
+            []
+        , Html.text <| Text.button buttonState
         ]

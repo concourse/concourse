@@ -6,6 +6,7 @@ module DashboardTests
         , defineHoverBehaviour
         , givenDataAndUser
         , givenDataUnauthenticated
+        , iconSelector
         , white
         )
 
