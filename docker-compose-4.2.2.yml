@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+  db:
+    image: postgres
+    ports: ["6543:5432"]
+    environment:
+    - POSTGRES_DB=concourse
+    - POSTGRES_USER=dev
+    - POSTGRES_PASSWORD=
+
+  web:
+    image: concourse/concourse:4.2.2
+    command: web
+    links: [db]
+    depends_on: [db]
+    ports: ["8080:8080"]
+    volumes: ["./keys/web:/concourse-keys"]
+    environment:
+    - CONCOURSE_POSTGRES_HOST=db
+    - CONCOURSE_POSTGRES_USER=dev
+    - CONCOURSE_POSTGRES_PASSWORD=dev
+    - CONCOURSE_POSTGRES_DATABASE=concourse
+    - CONCOURSE_EXTERNAL_URL=http://localhost:8080
+    - CONCOURSE_ADD_LOCAL_USER=test:test,guest:guest
+    - CONCOURSE_MAIN_TEAM_ALLOW_ALL_USERS=true
+
+  worker:
+    image: concourse/concourse:4.2.2
+    command: worker
+    privileged: true
+    links: [web]
+    depends_on: [web]
+    volumes: ["./keys/worker:/concourse-keys"]
+    environment:
+    - CONCOURSE_TSA_HOST=web:2222
+    - CONCOURSE_GARDEN_NETWORK
