@@ -22,6 +22,7 @@ resources:
 
 jobs:
   - name: triggered-first
+    public: true
     plan:
       - get: every-30s
         trigger: true
@@ -35,6 +36,7 @@ jobs:
             path: echo
             args: ["Hello, world!"]
   - name: not-triggered
+    public: true
     plan:
       - get: every-30s
         passed: [triggered-first]
@@ -48,6 +50,7 @@ jobs:
             path: echo
             args: ["Hello, world!"]
   - name: triggered-second
+    public: true
     plan:
       - get: every-30s
         passed: [triggered-first]

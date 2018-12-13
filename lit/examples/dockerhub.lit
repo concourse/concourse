@@ -31,6 +31,7 @@ resources:
 
 jobs:
   - name: build-image
+    public: true
     plan:
       - get: mock-resource-git
         trigger: true
@@ -38,6 +39,7 @@ jobs:
         params:
           build: mock-resource-git
   - name: test-image
+    public: true
     plan:
       - get: dockerhub-edge
         passed: [build-image]

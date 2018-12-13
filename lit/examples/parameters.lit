@@ -16,6 +16,7 @@
 ---
 jobs:
   - name: ((first))-job
+    public: true
     plan:
       - task: simple-task
         config:
@@ -27,6 +28,7 @@ jobs:
             path: echo
             args: ["Hello, ((hello))!"]
   - name: level-((number))-job
+    public: true
     plan:
       - task: simple-task
         config:

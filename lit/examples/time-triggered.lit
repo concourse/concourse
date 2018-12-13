@@ -22,6 +22,7 @@ resources:
 
 jobs:
   - name: job
+    public: true
     plan:
       - get: every-30s
         trigger: true

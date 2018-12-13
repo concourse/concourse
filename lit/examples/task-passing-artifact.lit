@@ -16,6 +16,7 @@
 ---
 jobs:
   - name: create-and-consume
+    public: true
     plan:
       - task: make-a-file
         config:

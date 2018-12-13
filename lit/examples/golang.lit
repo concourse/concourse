@@ -38,6 +38,7 @@ task-config: &task-config
 
 jobs:
   - name: golang-1.11
+    public: true
     plan:
       - get: golang-mock-git
         trigger: true
@@ -48,6 +49,7 @@ jobs:
             type: registry-image
             source: { repository: golang, tag: 1.11-stretch }
   - name: golang-1.10
+    public: true
     plan:
       - get: golang-mock-git
         trigger: true
@@ -58,6 +60,7 @@ jobs:
             type: registry-image
             source: { repository: golang, tag: 1.10-stretch }
   - name: golang-1.9
+    public: true
     plan:
       - get: golang-mock-git
         trigger: true

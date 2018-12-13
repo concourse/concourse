@@ -16,6 +16,7 @@
 ---
 jobs:
   - name: serial-job
+    public: true
     serial: true
     plan:
       - task: simple-task

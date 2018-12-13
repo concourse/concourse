@@ -50,6 +50,7 @@ task-config: &task-config
 
 jobs:
   - name: test
+    public: true
     plan:
       - get: rails-contributors-git
         trigger: true

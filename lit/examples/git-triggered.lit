@@ -22,6 +22,7 @@ resources:
 
 jobs:
   - name: job
+    public: true
     plan:
       - get: concourse-docs-git
         trigger: true
