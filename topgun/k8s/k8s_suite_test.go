@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"testing"
+	"time"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
@@ -56,9 +57,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	By("Checking if kubectl has a context set")
 	Wait(Start(nil, "kubectl", "config", "current-context"))
 
-	By("Installing tiller in the k8s cluster")
-	Wait(Start(nil, "helm", "init", "--wait"))
-
 	By("Updating the dependencies of the Concourse chart locally")
 	Wait(Start(nil, "helm", "dependency", "update", parsedEnv.ConcourseChartDir))
 
@@ -87,6 +85,10 @@ var _ = BeforeEach(func() {
 
 type pod struct {
 	Status struct {
+		ContainerStatuses []struct {
+			Name  string `json:"name"`
+			Ready bool   `json:"ready"`
+		} `json:"containerStatuses"`
 		Phase  string `json:"phase"`
 		HostIp string `json:"hostIP"`
 		Ip     string `json:"podIP"`
@@ -100,13 +102,13 @@ type podListResponse struct {
 	Items []pod `json:"items"`
 }
 
-func helmDeploy(releaseName, chartDir string, args ...string) {
+func helmDeploy(releaseName, namespace, chartDir string, args ...string) {
 	helmArgs := []string{
 		"upgrade",
 		"--install",
 		"--force",
 		"--wait",
-		"--namespace", releaseName,
+		"--namespace", namespace,
 	}
 
 	helmArgs = append(helmArgs, args...)
@@ -117,23 +119,20 @@ func helmDeploy(releaseName, chartDir string, args ...string) {
 
 func deployConcourseChart(releaseName string, args ...string) {
 	helmArgs := []string{
-		"--set=postgresql.persistence.enabled=false",
 		"--set=concourse.web.kubernetes.keepNamespaces=false",
-		"--set=concourse.web.livenessProbe.initialDelaySeconds=1s",
-		"--set=concourse.web.livenessProbe.periodSeconds=3s",
-		"--set=concourse.web.livenessProbe.failureThreshold=30",
-		"--set=concourse.web.readinessProbe.initialDelaySeconds=1s",
-		"--set=concourse.web.readinessProbe.periodSeconds=3s",
-		"--set=concourse.web.readinessProbe.failureThreshold=30",
-		"--set=image=" + Environment.ConcourseImageName,
-		"--set=imageTag=" + Environment.ConcourseImageTag}
+		"--set=postgresql.persistence.enabled=false",
+		"--set=image=" + Environment.ConcourseImageName}
+
+	if Environment.ConcourseImageDigest != "" {
+		helmArgs = append(helmArgs, "--set=imageTag="+Environment.ConcourseImageTag)
+	}
 
 	if Environment.ConcourseImageDigest != "" {
 		helmArgs = append(helmArgs, "--set=imageDigest="+Environment.ConcourseImageDigest)
 	}
 
 	helmArgs = append(helmArgs, args...)
-	helmDeploy(releaseName, Environment.ConcourseChartDir, helmArgs...)
+	helmDeploy(releaseName, releaseName, Environment.ConcourseChartDir, helmArgs...)
 }
 
 func helmDestroy(releaseName string) {
@@ -164,14 +163,37 @@ func getPods(namespace string, flags ...string) []pod {
 	return pods.Items
 }
 
-func getPodsNames(pods []pod) []string {
-	var names []string
+func isPodReady(p pod) bool {
+	total := len(p.Status.ContainerStatuses)
+	actual := 0
 
-	for _, pod := range pods {
-		names = append(names, pod.Metadata.Name)
+	for _, containerStatus := range p.Status.ContainerStatuses {
+		if containerStatus.Ready {
+			actual++
+		}
 	}
 
-	return names
+	return total == actual
+}
+
+func waitAllPodsInNamespaceToBeReady(namespace string) {
+	Eventually(func() bool {
+		expectedPods := getPods(namespace)
+		actualPods := getPods(namespace, "--field-selector=status.phase=Running")
+
+		if len(expectedPods) != len(actualPods) {
+			return false
+		}
+
+		podsReady := 0
+		for _, pod := range actualPods {
+			if isPodReady(pod) {
+				podsReady++
+			}
+		}
+
+		return podsReady == len(expectedPods)
+	}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "expected all pods to be running")
 }
 
 func deletePods(namespace string, flags ...string) []string {

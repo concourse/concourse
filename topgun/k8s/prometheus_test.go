@@ -51,10 +51,12 @@ var _ = Describe("Prometheus integration", func() {
 		releaseName           string
 		prometheusReleaseName string
 		prometheusEndpoint    string
+		namespace             string
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-prometheus-integration-%d", GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-pi-%d-%d", GinkgoRandomSeed(), GinkgoParallelNode())
+		namespace = releaseName
 		prometheusReleaseName = releaseName + "-prom"
 
 		deployConcourseChart(releaseName,
@@ -64,27 +66,25 @@ var _ = Describe("Prometheus integration", func() {
 			"--set=concourse.web.prometheus.enabled=true",
 			"--set=concourse.worker.baggageclaim.driver=detect")
 
-		helmDeploy(prometheusReleaseName, path.Join(Environment.ChartsDir, "stable/prometheus"),
+		helmDeploy(prometheusReleaseName,
+			namespace,
+			path.Join(Environment.ChartsDir, "stable/prometheus"),
 			"--set=nodeExporter.enabled=false",
 			"--set=kubeStateMetrics.enabled=false",
 			"--set=pushgateway.enabled=false",
 			"--set=alertmanager.enabled=false",
 			"--set=server.persistentVolume.enabled=false")
 
-		Eventually(func() bool {
-			expectedPods := getPodsNames(getPods(releaseName))
-			actualPods := getPodsNames(getPods(releaseName, "--field-selector=status.phase=Running"))
-
-			return len(expectedPods) == len(actualPods)
-		}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "expected all pods to be running")
+		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the prometheus proxy")
-		proxySession, prometheusEndpoint = startPortForwarding(prometheusReleaseName, prometheusReleaseName+"-server", "80")
+		proxySession, prometheusEndpoint = startPortForwarding(namespace, prometheusReleaseName+"-prometheus-server", "80")
 	})
 
 	AfterEach(func() {
 		helmDestroy(releaseName)
 		helmDestroy(prometheusReleaseName)
+		Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
 		Wait(proxySession.Interrupt())
 	})
 
