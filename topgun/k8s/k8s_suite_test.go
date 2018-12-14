@@ -117,8 +117,14 @@ func helmDeploy(releaseName, chartDir string, args ...string) {
 
 func deployConcourseChart(releaseName string, args ...string) {
 	helmArgs := []string{
+		"--set=postgresql.persistence.enabled=false",
 		"--set=concourse.web.kubernetes.keepNamespaces=false",
-		"--set=concourse.web.livenessProbe.initialDelaySeconds=3s",
+		"--set=concourse.web.livenessProbe.initialDelaySeconds=1s",
+		"--set=concourse.web.livenessProbe.periodSeconds=3s",
+		"--set=concourse.web.livenessProbe.failureThreshold=30",
+		"--set=concourse.web.readinessProbe.initialDelaySeconds=1s",
+		"--set=concourse.web.readinessProbe.periodSeconds=3s",
+		"--set=concourse.web.readinessProbe.failureThreshold=30",
 		"--set=image=" + Environment.ConcourseImageName,
 		"--set=imageTag=" + Environment.ConcourseImageTag}
 
@@ -127,8 +133,7 @@ func deployConcourseChart(releaseName string, args ...string) {
 	}
 
 	helmArgs = append(helmArgs, args...)
-
-	helmDeploy(releaseName, Environment.ConcourseChartDir, args...)
+	helmDeploy(releaseName, Environment.ConcourseChartDir, helmArgs...)
 }
 
 func helmDestroy(releaseName string) {
