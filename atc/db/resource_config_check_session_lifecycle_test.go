@@ -29,12 +29,8 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 		}
 
 		Context("for resources", func() {
-			findOrCreateSessionForDefaultResource := func() (db.ResourceConfig, int) {
-				resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger,
-					defaultResource.Type(),
-					defaultResource.Source(),
-					creds.VersionedResourceTypes{},
-				)
+			findOrCreateSessionForDefaultResource := func() int {
+				resourceConfig, err := defaultResource.SetResourceConfig(logger, defaultResource.Source(), creds.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
 				owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, expiry)
@@ -55,18 +51,14 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 					Expect(err).ToNot(HaveOccurred())
 				}
 
-				return resourceConfig, query["resource_config_check_session_id"].(int)
+				return query["resource_config_check_session_id"].(int)
 			}
 
 			var oldRccsID int
 
 			BeforeEach(func() {
 				By("creating the session")
-				var resourceConfig db.ResourceConfig
-				resourceConfig, oldRccsID = findOrCreateSessionForDefaultResource()
-
-				By("mapping the resource to the session's config")
-				Expect(defaultResource.SetResourceConfig(resourceConfig.ID())).To(Succeed())
+				oldRccsID = findOrCreateSessionForDefaultResource()
 			})
 
 			It("keeps check sessions for active resources", func() {
@@ -74,7 +66,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 				Expect(lifecycle.CleanInactiveResourceConfigCheckSessions()).To(Succeed())
 
 				By("find-or-creating the session again")
-				_, newRccsID := findOrCreateSessionForDefaultResource()
+				newRccsID := findOrCreateSessionForDefaultResource()
 
 				By("finding the same rccs as before")
 				Expect(oldRccsID).To(Equal(newRccsID))
@@ -105,7 +97,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 				Expect(lifecycle.CleanInactiveResourceConfigCheckSessions()).To(Succeed())
 
 				By("find-or-creating the session again")
-				_, rccsID := findOrCreateSessionForDefaultResource()
+				rccsID := findOrCreateSessionForDefaultResource()
 
 				By("having created a new session, as the old one was removed")
 				Expect(rccsID).ToNot(Equal(oldRccsID))
@@ -119,7 +111,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 				Expect(lifecycle.CleanInactiveResourceConfigCheckSessions()).To(Succeed())
 
 				By("find-or-creating the session again")
-				_, rccsID := findOrCreateSessionForDefaultResource()
+				rccsID := findOrCreateSessionForDefaultResource()
 
 				By("having created a new session, as the old one was removed")
 				Expect(rccsID).ToNot(Equal(oldRccsID))
@@ -127,9 +119,8 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 		})
 
 		Context("for resource types", func() {
-			findOrCreateSessionForDefaultResourceType := func() (db.ResourceConfig, int) {
-				resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger,
-					defaultResourceType.Type(),
+			findOrCreateSessionForDefaultResourceType := func() int {
+				resourceConfig, err := defaultResourceType.SetResourceConfig(logger,
 					defaultResourceType.Source(),
 					creds.VersionedResourceTypes{},
 				)
@@ -153,18 +144,14 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 					Expect(err).ToNot(HaveOccurred())
 				}
 
-				return resourceConfig, query["resource_config_check_session_id"].(int)
+				return query["resource_config_check_session_id"].(int)
 			}
 
 			var oldRccsID int
 
 			BeforeEach(func() {
 				By("creating the session")
-				var resourceConfig db.ResourceConfig
-				resourceConfig, oldRccsID = findOrCreateSessionForDefaultResourceType()
-
-				By("mapping the resource to the session's config")
-				Expect(defaultResourceType.SetResourceConfig(resourceConfig.ID())).To(Succeed())
+				oldRccsID = findOrCreateSessionForDefaultResourceType()
 			})
 
 			It("keeps check sessions for active resource types", func() {
@@ -172,7 +159,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 				Expect(lifecycle.CleanInactiveResourceConfigCheckSessions()).To(Succeed())
 
 				By("find-or-creating the session again")
-				_, rccsID := findOrCreateSessionForDefaultResourceType()
+				rccsID := findOrCreateSessionForDefaultResourceType()
 
 				By("finding the same session as before")
 				Expect(rccsID).To(Equal(oldRccsID))
@@ -203,7 +190,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 				Expect(lifecycle.CleanInactiveResourceConfigCheckSessions()).To(Succeed())
 
 				By("find-or-creating the session again")
-				_, rccsID := findOrCreateSessionForDefaultResourceType()
+				rccsID := findOrCreateSessionForDefaultResourceType()
 
 				By("having created a new session, as the old one was removed")
 				Expect(rccsID).ToNot(Equal(oldRccsID))
@@ -217,7 +204,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 				Expect(lifecycle.CleanInactiveResourceConfigCheckSessions()).To(Succeed())
 
 				By("find-or-creating the session again")
-				_, rccsID := findOrCreateSessionForDefaultResourceType()
+				rccsID := findOrCreateSessionForDefaultResourceType()
 
 				By("having created a new session, as the old one was removed")
 				Expect(rccsID).ToNot(Equal(oldRccsID))

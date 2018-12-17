@@ -1,9 +1,10 @@
 package gc_test
 
 import (
-	"code.cloudfoundry.org/lager"
 	"os"
 	"time"
+
+	"code.cloudfoundry.org/lager"
 
 	"code.cloudfoundry.org/lager/lagertest"
 
@@ -45,9 +46,10 @@ var (
 	defaultJob      db.Job
 	defaultBuild    db.Build
 
-	usedResource db.Resource
-	logger       *lagertest.TestLogger
-	fakeLogFunc  = func(logger lager.Logger, id lock.LockID) {}
+	usedResource     db.Resource
+	usedResourceType db.ResourceType
+	logger           *lagertest.TestLogger
+	fakeLogFunc      = func(logger lager.Logger, id lock.LockID) {}
 )
 
 var _ = BeforeSuite(func() {
@@ -84,6 +86,13 @@ var _ = BeforeEach(func() {
 				Source: atc.Source{"some": "source"},
 			},
 		},
+		ResourceTypes: atc.ResourceTypes{
+			{
+				Name:   "some-resource-type",
+				Type:   "some-base-type",
+				Source: atc.Source{"some": "source-type"},
+			},
+		},
 		Jobs: atc.JobConfigs{
 			{
 				Name: "some-job",
@@ -103,6 +112,10 @@ var _ = BeforeEach(func() {
 	Expect(found).To(BeTrue())
 
 	usedResource, found, err = defaultPipeline.Resource("some-resource")
+	Expect(err).NotTo(HaveOccurred())
+	Expect(found).To(BeTrue())
+
+	usedResourceType, found, err = defaultPipeline.ResourceType("some-resource-type")
 	Expect(err).NotTo(HaveOccurred())
 	Expect(found).To(BeTrue())
 

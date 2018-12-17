@@ -705,16 +705,6 @@ var _ = Describe("Job", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{}, creds.VersionedResourceTypes{})
-			Expect(err).NotTo(HaveOccurred())
-
-			err = resourceConfig.SaveVersions([]atc.Version{
-				{"version": "v1"},
-				{"version": "v2"},
-				{"version": "v3"},
-			})
-			Expect(err).NotTo(HaveOccurred())
-
 			var found bool
 			job, found, err = pipeline.Job("some-job")
 			Expect(err).ToNot(HaveOccurred())
@@ -724,8 +714,15 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			err = resource.SetResourceConfig(resourceConfig.ID())
+			resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
+
+			err = resourceConfig.SaveVersions([]atc.Version{
+				{"version": "v1"},
+				{"version": "v2"},
+				{"version": "v3"},
+			})
+			Expect(err).NotTo(HaveOccurred())
 
 			// save metadata for v1
 			_, err = resourceConfig.SaveUncheckedVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
@@ -887,16 +884,6 @@ var _ = Describe("Job", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{}, creds.VersionedResourceTypes{})
-			Expect(err).NotTo(HaveOccurred())
-
-			err = resourceConfig.SaveVersions([]atc.Version{
-				{"version": "v1"},
-				{"version": "v2"},
-				{"version": "v3"},
-			})
-			Expect(err).NotTo(HaveOccurred())
-
 			var found bool
 			job, found, err = pipeline.Job("some-job")
 			Expect(err).ToNot(HaveOccurred())
@@ -906,8 +893,15 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			err = resource.SetResourceConfig(resourceConfig.ID())
+			resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
+
+			err = resourceConfig.SaveVersions([]atc.Version{
+				{"version": "v1"},
+				{"version": "v2"},
+				{"version": "v3"},
+			})
+			Expect(err).NotTo(HaveOccurred())
 
 			// save metadata for v1
 			_, err = resourceConfig.SaveUncheckedVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{

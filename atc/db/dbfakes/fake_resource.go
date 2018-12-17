@@ -5,7 +5,9 @@ import (
 	sync "sync"
 	time "time"
 
+	lager "code.cloudfoundry.org/lager"
 	atc "github.com/concourse/concourse/atc"
+	creds "github.com/concourse/concourse/atc/creds"
 	db "github.com/concourse/concourse/atc/db"
 )
 
@@ -211,16 +213,20 @@ type FakeResource struct {
 	setCheckErrorReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SetResourceConfigStub        func(int) error
+	SetResourceConfigStub        func(lager.Logger, atc.Source, creds.VersionedResourceTypes) (db.ResourceConfig, error)
 	setResourceConfigMutex       sync.RWMutex
 	setResourceConfigArgsForCall []struct {
-		arg1 int
+		arg1 lager.Logger
+		arg2 atc.Source
+		arg3 creds.VersionedResourceTypes
 	}
 	setResourceConfigReturns struct {
-		result1 error
+		result1 db.ResourceConfig
+		result2 error
 	}
 	setResourceConfigReturnsOnCall map[int]struct {
-		result1 error
+		result1 db.ResourceConfig
+		result2 error
 	}
 	SourceStub        func() atc.Source
 	sourceMutex       sync.RWMutex
@@ -1341,22 +1347,24 @@ func (fake *FakeResource) SetCheckErrorReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeResource) SetResourceConfig(arg1 int) error {
+func (fake *FakeResource) SetResourceConfig(arg1 lager.Logger, arg2 atc.Source, arg3 creds.VersionedResourceTypes) (db.ResourceConfig, error) {
 	fake.setResourceConfigMutex.Lock()
 	ret, specificReturn := fake.setResourceConfigReturnsOnCall[len(fake.setResourceConfigArgsForCall)]
 	fake.setResourceConfigArgsForCall = append(fake.setResourceConfigArgsForCall, struct {
-		arg1 int
-	}{arg1})
-	fake.recordInvocation("SetResourceConfig", []interface{}{arg1})
+		arg1 lager.Logger
+		arg2 atc.Source
+		arg3 creds.VersionedResourceTypes
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("SetResourceConfig", []interface{}{arg1, arg2, arg3})
 	fake.setResourceConfigMutex.Unlock()
 	if fake.SetResourceConfigStub != nil {
-		return fake.SetResourceConfigStub(arg1)
+		return fake.SetResourceConfigStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
 	fakeReturns := fake.setResourceConfigReturns
-	return fakeReturns.result1
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeResource) SetResourceConfigCallCount() int {
@@ -1365,40 +1373,43 @@ func (fake *FakeResource) SetResourceConfigCallCount() int {
 	return len(fake.setResourceConfigArgsForCall)
 }
 
-func (fake *FakeResource) SetResourceConfigCalls(stub func(int) error) {
+func (fake *FakeResource) SetResourceConfigCalls(stub func(lager.Logger, atc.Source, creds.VersionedResourceTypes) (db.ResourceConfig, error)) {
 	fake.setResourceConfigMutex.Lock()
 	defer fake.setResourceConfigMutex.Unlock()
 	fake.SetResourceConfigStub = stub
 }
 
-func (fake *FakeResource) SetResourceConfigArgsForCall(i int) int {
+func (fake *FakeResource) SetResourceConfigArgsForCall(i int) (lager.Logger, atc.Source, creds.VersionedResourceTypes) {
 	fake.setResourceConfigMutex.RLock()
 	defer fake.setResourceConfigMutex.RUnlock()
 	argsForCall := fake.setResourceConfigArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeResource) SetResourceConfigReturns(result1 error) {
+func (fake *FakeResource) SetResourceConfigReturns(result1 db.ResourceConfig, result2 error) {
 	fake.setResourceConfigMutex.Lock()
 	defer fake.setResourceConfigMutex.Unlock()
 	fake.SetResourceConfigStub = nil
 	fake.setResourceConfigReturns = struct {
-		result1 error
-	}{result1}
+		result1 db.ResourceConfig
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeResource) SetResourceConfigReturnsOnCall(i int, result1 error) {
+func (fake *FakeResource) SetResourceConfigReturnsOnCall(i int, result1 db.ResourceConfig, result2 error) {
 	fake.setResourceConfigMutex.Lock()
 	defer fake.setResourceConfigMutex.Unlock()
 	fake.SetResourceConfigStub = nil
 	if fake.setResourceConfigReturnsOnCall == nil {
 		fake.setResourceConfigReturnsOnCall = make(map[int]struct {
-			result1 error
+			result1 db.ResourceConfig
+			result2 error
 		})
 	}
 	fake.setResourceConfigReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
+		result1 db.ResourceConfig
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeResource) Source() atc.Source {

@@ -12,6 +12,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
@@ -91,7 +92,7 @@ type Build interface {
 	Events(uint) (EventSource, error)
 	SaveEvent(event atc.Event) error
 
-	SaveOutput(ResourceConfig, atc.Version, string, string, bool) error
+	SaveOutput(lager.Logger, string, atc.Source, creds.VersionedResourceTypes, atc.Version, ResourceConfigMetadataFields, string, string) error
 	UseInputs(inputs []BuildInput) error
 
 	Resources() ([]BuildInput, []BuildOutput, error)
@@ -775,11 +776,14 @@ func (b *build) SaveEvent(event atc.Event) error {
 }
 
 func (b *build) SaveOutput(
-	rc ResourceConfig,
+	logger lager.Logger,
+	resourceType string,
+	source atc.Source,
+	resourceTypes creds.VersionedResourceTypes,
 	version atc.Version,
+	metadata ResourceConfigMetadataFields,
 	outputName string,
 	resourceName string,
-	newVersion bool,
 ) error {
 	// We should never save outputs for builds without a Pipeline ID because
 	// One-off Builds will never have Put steps. This shouldn't happen, but
@@ -795,21 +799,35 @@ func (b *build) SaveOutput(
 
 	defer Rollback(tx)
 
-	var versionJSON string
+	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceType, source, resourceTypes)
+	if err != nil {
+		return err
+	}
+
+	resourceConfig, err := resourceConfigDescriptor.findOrCreate(logger, tx, b.lockFactory, b.conn)
+	if err != nil {
+		return err
+	}
+
+	newVersion, err := saveResourceConfigVersion(tx, resourceConfig, version, metadata)
+	if err != nil {
+		return err
+	}
+
 	versionBytes, err := json.Marshal(version)
 	if err != nil {
 		return err
 	}
 
-	versionJSON = string(versionBytes)
+	versionJSON := string(versionBytes)
 
 	if newVersion {
-		err = incrementCheckOrder(tx, rc, versionJSON)
+		err = incrementCheckOrder(tx, resourceConfig, versionJSON)
 		if err != nil {
 			return err
 		}
 
-		err = bumpCacheIndexForPipelinesUsingResourceConfig(tx, rc.ID())
+		err = bumpCacheIndexForPipelinesUsingResourceConfig(tx, resourceConfig.ID())
 		if err != nil {
 			return err
 		}

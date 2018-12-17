@@ -103,7 +103,7 @@ var _ = Describe("Resource", func() {
 		)
 
 		Context("when the resource exists", func() {
-			JustBeforeEach(func() {
+			BeforeEach(func() {
 				resource, found, err = pipeline.Resource("some-resource")
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -129,15 +129,10 @@ var _ = Describe("Resource", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 
-					resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "registry-image", atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+					resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
 
 					err = resourceConfig.SetCheckError(errors.New("oops"))
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				JustBeforeEach(func() {
-					err = resource.SetResourceConfig(resourceConfig.ID())
 					Expect(err).NotTo(HaveOccurred())
 
 					found, err = resource.Reload()
@@ -259,13 +254,10 @@ var _ = Describe("Resource", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 
-				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "registry-image", atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+				resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
 				err = resourceConfig.SaveVersions([]atc.Version{version})
-				Expect(err).ToNot(HaveOccurred())
-
-				err = resource.SetResourceConfig(resourceConfig.ID())
 				Expect(err).ToNot(HaveOccurred())
 
 				var found bool
@@ -344,10 +336,7 @@ var _ = Describe("Resource", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "git", atc.Source{"some": "other-repository"}, creds.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
-
-				err = resource.SetResourceConfig(resourceConfig.ID())
+				resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{"some": "other-repository"}, creds.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
 				originalVersionSlice = []atc.Version{
@@ -509,11 +498,7 @@ var _ = Describe("Resource", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				resourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
-				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "git", atc.Source{"some": "other-repository"}, creds.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
-
-				err = resource.SetResourceConfig(resourceConfig.ID())
+				resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{"some": "other-repository"}, creds.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
 				originalVersionSlice := []atc.Version{
@@ -640,15 +625,12 @@ var _ = Describe("Resource", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 
-				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "git", atc.Source{"some": "other-repository"}, creds.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
-
 				var found bool
 				resource, found, err = pipeline.Resource("some-other-resource")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				err = resource.SetResourceConfig(resourceConfig.ID())
+				resourceConfig, err := resource.SetResourceConfig(logger, atc.Source{"some": "other-repository"}, creds.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
 				created, err := resourceConfig.SaveUncheckedVersion(atc.Version{"version": "not-returned"}, nil)
@@ -687,10 +669,7 @@ var _ = Describe("Resource", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "git", atc.Source{"some": "other-repository"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resource.SetResourceConfig(resourceConfig.ID())
+			resourceConfig, err := resource.SetResourceConfig(logger, atc.Source{"some": "other-repository"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = resourceConfig.SaveVersions([]atc.Version{
@@ -756,10 +735,7 @@ var _ = Describe("Resource", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 
-				resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "registry-image", atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
-
-				err = resource.SetResourceConfig(resourceConfig.ID())
+				resourceConfig, err := resource.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
 				err = resourceConfig.SaveVersions([]atc.Version{

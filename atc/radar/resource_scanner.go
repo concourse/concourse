@@ -145,28 +145,19 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		return 0, err
 	}
 
-	resourceConfig, err := scanner.resourceConfigFactory.FindOrCreateResourceConfig(
+	resourceConfig, err := savedResource.SetResourceConfig(
 		logger,
-		savedResource.Type(),
 		source,
 		versionedResourceTypes,
 	)
 	if err != nil {
-		logger.Error("failed-to-find-or-create-resource-config", err)
+		logger.Error("failed-to-set-resource-config-id-on-resource", err)
 		scanner.setResourceCheckError(logger, savedResource, err)
 		return 0, err
 	}
 
+	// Clear out check error on the resource
 	scanner.setResourceCheckError(logger, savedResource, nil)
-	err = savedResource.SetResourceConfig(resourceConfig.ID())
-	if err != nil {
-		logger.Error("failed-to-set-resource-config-id-on-resource", err)
-		chkErr := resourceConfig.SetCheckError(err)
-		if chkErr != nil {
-			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
-		}
-		return 0, err
-	}
 
 	currentVersion := savedResource.CurrentPinnedVersion()
 	if currentVersion != nil {

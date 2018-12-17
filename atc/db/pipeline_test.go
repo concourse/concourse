@@ -237,15 +237,14 @@ var _ = Describe("Pipeline", func() {
 		reallyOtherResourceName := "some-really-other-resource"
 
 		var (
-			dbPipeline                db.Pipeline
-			otherDBPipeline           db.Pipeline
-			resource                  db.Resource
-			otherResource             db.Resource
-			reallyOtherResource       db.Resource
-			resourceConfig            db.ResourceConfig
-			otherResourceConfig       db.ResourceConfig
-			reallyOtherResourceConfig db.ResourceConfig
-			otherPipelineResource     db.Resource
+			dbPipeline            db.Pipeline
+			otherDBPipeline       db.Pipeline
+			resource              db.Resource
+			otherResource         db.Resource
+			reallyOtherResource   db.Resource
+			resourceConfig        db.ResourceConfig
+			otherResourceConfig   db.ResourceConfig
+			otherPipelineResource db.Resource
 		)
 
 		BeforeEach(func() {
@@ -403,7 +402,6 @@ var _ = Describe("Pipeline", func() {
 
 			otherDBPipeline, _, err = team.SavePipeline("other-pipeline-name", otherPipelineConfig, 0, db.PipelineUnpaused)
 			Expect(err).ToNot(HaveOccurred())
-
 			resource, _, err = dbPipeline.Resource(resourceName)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -416,22 +414,13 @@ var _ = Describe("Pipeline", func() {
 			otherPipelineResource, _, err = otherDBPipeline.Resource(otherResourceName)
 			Expect(err).ToNot(HaveOccurred())
 
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
+			resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			otherResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"other-source-config": "some-other-value"}, creds.VersionedResourceTypes{})
+			otherResourceConfig, err = otherPipelineResource.SetResourceConfig(logger, atc.Source{"other-source-config": "some-other-value"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			reallyOtherResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-really-other-value"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resource.SetResourceConfig(resourceConfig.ID())
-			Expect(err).ToNot(HaveOccurred())
-
-			err = otherPipelineResource.SetResourceConfig(otherResourceConfig.ID())
-			Expect(err).ToNot(HaveOccurred())
-
-			err = reallyOtherResource.SetResourceConfig(reallyOtherResourceConfig.ID())
+			_, err = reallyOtherResource.SetResourceConfig(logger, atc.Source{"source-config": "some-really-other-value"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -572,7 +561,7 @@ var _ = Describe("Pipeline", func() {
 			build1DB, err := aJob.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = build1DB.SaveOutput(resourceConfig, atc.Version{"version": "1"}, "some-output-name", "some-resource", false)
+			err = build1DB.SaveOutput(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{}, atc.Version{"version": "1"}, nil, "some-output-name", "some-resource")
 			Expect(err).ToNot(HaveOccurred())
 
 			err = build1DB.Finish(db.BuildStatusSucceeded)
@@ -619,7 +608,7 @@ var _ = Describe("Pipeline", func() {
 			build2DB, err := aJob.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = build2DB.SaveOutput(resourceConfig, atc.Version{"version": "1"}, "some-output-name", "some-resource", false)
+			err = build2DB.SaveOutput(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{}, atc.Version{"version": "1"}, nil, "some-output-name", "some-resource")
 			Expect(err).ToNot(HaveOccurred())
 
 			err = build2DB.Finish(db.BuildStatusFailed)
@@ -668,7 +657,7 @@ var _ = Describe("Pipeline", func() {
 			otherPipelineBuild, err := anotherJob.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = otherPipelineBuild.SaveOutput(otherResourceConfig, atc.Version{"version": "1"}, "some-output-name", "some-other-resource", false)
+			err = otherPipelineBuild.SaveOutput(logger, "some-type", atc.Source{"other-source-config": "some-other-value"}, creds.VersionedResourceTypes{}, atc.Version{"version": "1"}, nil, "some-output-name", "some-other-resource")
 			Expect(err).ToNot(HaveOccurred())
 
 			err = otherPipelineBuild.Finish(db.BuildStatusSucceeded)
@@ -902,7 +891,7 @@ var _ = Describe("Pipeline", func() {
 				})
 				Expect(err).ToNot(HaveOccurred())
 
-				err = build.SaveOutput(resourceConfig, atc.Version(beforeVR.Version()), "some-output-name", "some-resource", false)
+				err = build.SaveOutput(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{}, atc.Version(beforeVR.Version()), nil, "some-output-name", "some-resource")
 				Expect(err).ToNot(HaveOccurred())
 
 				versions, _, found, err := resource.Versions(db.Page{Limit: 10})
@@ -925,7 +914,7 @@ var _ = Describe("Pipeline", func() {
 				savedResource, _, err := dbPipeline.Resource("some-resource")
 				Expect(err).ToNot(HaveOccurred())
 
-				err = savedResource.SetResourceConfig(resourceConfig.ID())
+				resourceConfig, err = savedResource.SetResourceConfig(logger, atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
 				savedVR, found, err := resourceConfig.LatestVersion()
@@ -985,10 +974,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some-source": "some-value"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resource.SetResourceConfig(resourceConfig.ID())
+			resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{"some-source": "some-value"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -1014,7 +1000,7 @@ var _ = Describe("Pipeline", func() {
 					ResourceID: resource.ID(),
 				}
 
-				err = build1.SaveOutput(resourceConfig, atc.Version{"version": "disabled"}, "some-output-name", "some-resource", false)
+				err = build1.SaveOutput(logger, "some-type", atc.Source{"some-source": "some-value"}, creds.VersionedResourceTypes{}, atc.Version{"version": "disabled"}, nil, "some-output-name", "some-resource")
 				Expect(err).ToNot(HaveOccurred())
 
 				err = resourceConfig.SaveVersions([]atc.Version{{"version": "enabled"}})
@@ -1041,7 +1027,7 @@ var _ = Describe("Pipeline", func() {
 
 				Expect(err).ToNot(HaveOccurred())
 
-				err = build1.SaveOutput(resourceConfig, atc.Version{"version": "other-enabled"}, "some-output-name", "some-resource", false)
+				err = build1.SaveOutput(logger, "some-type", atc.Source{"some-source": "some-value"}, creds.VersionedResourceTypes{}, atc.Version{"version": "other-enabled"}, nil, "some-output-name", "some-resource")
 				Expect(err).ToNot(HaveOccurred())
 
 				err = build1.Finish(db.BuildStatusSucceeded)
@@ -1127,10 +1113,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(found).To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
 
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resource.SetResourceConfig(resourceConfig.ID())
+			resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			By("populating resource versions")
@@ -1160,7 +1143,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("populating build outputs")
-			err = build.SaveOutput(resourceConfig, atc.Version{"key": "value"}, "some-output-name", "some-resource", true)
+			err = build.SaveOutput(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{}, atc.Version{"key": "value"}, nil, "some-output-name", "some-resource")
 			Expect(err).ToNot(HaveOccurred())
 
 			By("populating build events")
@@ -1246,10 +1229,7 @@ var _ = Describe("Pipeline", func() {
 				savedResource, _, err = pipeline.Resource("some-resource")
 				Expect(err).ToNot(HaveOccurred())
 
-				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
-
-				err = savedResource.SetResourceConfig(resourceConfig.ID())
+				resourceConfig, err = savedResource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
 				err = resourceConfig.SaveVersions([]atc.Version{{"version": "1"}})
@@ -1261,7 +1241,7 @@ var _ = Describe("Pipeline", func() {
 			})
 
 			It("will cache VersionsDB if no change has occured", func() {
-				err := build.SaveOutput(resourceConfig, atc.Version(savedVR.Version()), "some-output-name", "some-resource", false)
+				err := build.SaveOutput(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{}, atc.Version(savedVR.Version()), nil, "some-output-name", "some-resource")
 				Expect(err).ToNot(HaveOccurred())
 
 				versionsDB, err := pipeline.LoadVersionsDB()
@@ -1322,10 +1302,7 @@ var _ = Describe("Pipeline", func() {
 					otherSavedResource, _, err := otherPipeline.Resource("some-other-resource")
 					Expect(err).ToNot(HaveOccurred())
 
-					otherResourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some-source": "some-other-value"}, creds.VersionedResourceTypes{})
-					Expect(err).ToNot(HaveOccurred())
-
-					err = otherSavedResource.SetResourceConfig(otherResourceConfig.ID())
+					otherResourceConfig, err := otherSavedResource.SetResourceConfig(logger, atc.Source{"some-source": "some-other-value"}, creds.VersionedResourceTypes{})
 					Expect(err).ToNot(HaveOccurred())
 
 					otherResourceConfig.SaveVersions([]atc.Version{{"version": "1"}})
@@ -1338,7 +1315,7 @@ var _ = Describe("Pipeline", func() {
 					versionsDB, err := pipeline.LoadVersionsDB()
 					Expect(err).ToNot(HaveOccurred())
 
-					err = otherBuild.SaveOutput(otherResourceConfig, atc.Version(otherSavedVR.Version()), "some-output-name", "some-other-resource", false)
+					err = otherBuild.SaveOutput(logger, "some-type", atc.Source{"some-source": "some-other-value"}, creds.VersionedResourceTypes{}, atc.Version(otherSavedVR.Version()), nil, "some-output-name", "some-other-resource")
 					Expect(err).ToNot(HaveOccurred())
 
 					cachedVersionsDB, err := pipeline.LoadVersionsDB()
@@ -1361,16 +1338,10 @@ var _ = Describe("Pipeline", func() {
 				otherResource, _, err := pipeline.Resource("some-other-resource")
 				Expect(err).ToNot(HaveOccurred())
 
-				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
+				resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
-				otherResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "other-source"}, creds.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
-
-				err = resource.SetResourceConfig(resourceConfig.ID())
-				Expect(err).ToNot(HaveOccurred())
-
-				err = otherResource.SetResourceConfig(otherResourceConfig.ID())
+				otherResourceConfig, err = otherResource.SetResourceConfig(logger, atc.Source{"some": "other-source"}, creds.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -1416,9 +1387,6 @@ var _ = Describe("Pipeline", func() {
 				err = build.UseInputs([]db.BuildInput{{Name: "some-resource", Version: atc.Version{"version": "1"}, ResourceID: resource.ID()}})
 				Expect(err).ToNot(HaveOccurred())
 
-				err = build.SaveOutput(resourceConfig, atc.Version{"version": "1"}, "some-resource", "some-resource", false)
-				Expect(err).ToNot(HaveOccurred())
-
 				versionsDB, err := pipeline.LoadVersionsDB()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(versionsDB.ResourceVersions).To(HaveLen(1))
@@ -1437,10 +1405,7 @@ var _ = Describe("Pipeline", func() {
 					otherPipelineResource, _, err := otherPipeline.Resource("some-other-resource")
 					Expect(err).ToNot(HaveOccurred())
 
-					otherPipelineResourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some-source": "some-other-value"}, creds.VersionedResourceTypes{})
-					Expect(err).ToNot(HaveOccurred())
-
-					err = otherPipelineResource.SetResourceConfig(otherPipelineResourceConfig.ID())
+					otherPipelineResourceConfig, err := otherPipelineResource.SetResourceConfig(logger, atc.Source{"some-source": "some-other-value"}, creds.VersionedResourceTypes{})
 					Expect(err).ToNot(HaveOccurred())
 
 					err = otherPipelineResourceConfig.SaveVersions([]atc.Version{{"version": "1"}})
@@ -1738,10 +1703,7 @@ var _ = Describe("Pipeline", func() {
 			resource, _, err = pipeline.Resource("some-resource")
 			Expect(err).ToNot(HaveOccurred())
 
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resource.SetResourceConfig(resourceConfig.ID())
+			resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = resourceConfig.SaveVersions([]atc.Version{atc.Version{"version": "v1"}})
@@ -1875,10 +1837,7 @@ var _ = Describe("Pipeline", func() {
 			resource, _, err = pipeline.Resource("some-resource")
 			Expect(err).ToNot(HaveOccurred())
 
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resource.SetResourceConfig(resourceConfig.ID())
+			resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = resourceConfig.SaveVersions([]atc.Version{
@@ -1887,26 +1846,27 @@ var _ = Describe("Pipeline", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			created, err := resourceConfig.SaveUncheckedVersion(atc.Version{"version": "v1"}, []db.ResourceConfigMetadataField{
+			err = dbBuild.SaveOutput(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{}, atc.Version{"version": "v1"}, []db.ResourceConfigMetadataField{
 				{
 					Name:  "some",
 					Value: "value",
 				},
-			})
-			Expect(created).To(BeTrue())
-			Expect(err).ToNot(HaveOccurred())
-
-			err = dbBuild.SaveOutput(resourceConfig, atc.Version{"version": "v1"}, "some-output-name", "some-resource", created)
+			}, "some-output-name", "some-resource")
 			Expect(err).ToNot(HaveOccurred())
 
 			dbSecondBuild, found, err := buildFactory.Build(secondBuild.ID())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			err = dbSecondBuild.SaveOutput(resourceConfig, atc.Version{"version": "v1"}, "some-output-name", "some-resource", false)
+			err = dbSecondBuild.SaveOutput(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{}, atc.Version{"version": "v1"}, []db.ResourceConfigMetadataField{
+				{
+					Name:  "some",
+					Value: "value",
+				},
+			}, "some-output-name", "some-resource")
 			Expect(err).ToNot(HaveOccurred())
 
-			err = dbSecondBuild.SaveOutput(resourceConfig, atc.Version{"version": "v3"}, "some-output-name", "some-resource", false)
+			err = dbSecondBuild.SaveOutput(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{}, atc.Version{"version": "v3"}, nil, "some-output-name", "some-resource")
 			Expect(err).ToNot(HaveOccurred())
 
 			rcv1, found, err := resourceConfig.FindVersion(atc.Version{"version": "v1"})
@@ -2014,10 +1974,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			resourceTypeConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "base-type", atc.Source{"some": "type-source"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resourceType.SetResourceConfig(resourceTypeConfig.ID())
+			resourceTypeConfig, err := resourceType.SetResourceConfig(logger, atc.Source{"some": "type-source"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = resourceTypeConfig.SaveVersions([]atc.Version{
@@ -2026,10 +1983,7 @@ var _ = Describe("Pipeline", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			otherResourceTypeConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "base-type", atc.Source{"some": "other-type-source"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = otherResourceType.SetResourceConfig(otherResourceTypeConfig.ID())
+			otherResourceTypeConfig, err := otherResourceType.SetResourceConfig(logger, atc.Source{"some": "other-type-source"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = otherResourceTypeConfig.SaveVersions([]atc.Version{
@@ -2071,10 +2025,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resource.SetResourceConfig(resourceConfig.ID())
+			resourceConfig, err := resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			version := atc.Version{"version": "1"}

@@ -201,10 +201,7 @@ var _ = Describe("ResourceType", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			resourceTypeConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "registry-image", atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resourceType.SetResourceConfig(resourceTypeConfig.ID())
+			resourceTypeConfig, err = resourceType.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 		})
 

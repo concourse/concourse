@@ -83,7 +83,6 @@ var _ = Describe("ResourceScanner", func() {
 		fakeDBPipeline = new(dbfakes.FakePipeline)
 		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 		fakeResourceConfig.IDReturns(123)
-		fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
 
 		fakeDBPipeline.IDReturns(42)
 		fakeDBPipeline.NameReturns("some-pipeline")
@@ -105,7 +104,7 @@ var _ = Describe("ResourceScanner", func() {
 		fakeDBResource.TypeReturns("git")
 		fakeDBResource.SourceReturns(atc.Source{"uri": "((source-params))"})
 		fakeDBResource.TagsReturns(atc.Tags{"some-tag"})
-		fakeDBResource.SetResourceConfigReturns(nil)
+		fakeDBResource.SetResourceConfigReturns(fakeResourceConfig, nil)
 
 		fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
 
@@ -164,9 +163,8 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
-				_, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
-				Expect(resourceType).To(Equal("git"))
+				Expect(fakeDBResource.SetResourceConfigCallCount()).To(Equal(1))
+				_, resourceSource, resourceTypes := fakeDBResource.SetResourceConfigArgsForCall(0)
 				Expect(resourceSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 					versionedResourceType,
@@ -175,10 +173,6 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
 				err := fakeDBResource.SetCheckErrorArgsForCall(0)
 				Expect(err).To(BeNil())
-
-				Expect(fakeDBResource.SetResourceConfigCallCount()).To(Equal(1))
-				resourceConfigID := fakeDBResource.SetResourceConfigArgsForCall(0)
-				Expect(resourceConfigID).To(Equal(123))
 
 				_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
@@ -516,9 +510,8 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
-				_, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
-				Expect(resourceType).To(Equal("git"))
+				Expect(fakeDBResource.SetResourceConfigCallCount()).To(Equal(1))
+				_, resourceSource, resourceTypes := fakeDBResource.SetResourceConfigArgsForCall(0)
 				Expect(resourceSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 					versionedResourceType,
@@ -527,10 +520,6 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
 				err := fakeDBResource.SetCheckErrorArgsForCall(0)
 				Expect(err).To(BeNil())
-
-				Expect(fakeDBResource.SetResourceConfigCallCount()).To(Equal(1))
-				resourceConfigID := fakeDBResource.SetResourceConfigArgsForCall(0)
-				Expect(resourceConfigID).To(Equal(123))
 
 				_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
@@ -569,9 +558,9 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 			})
 
-			Context("when creating the resource config fails", func() {
+			Context("when setting the resource config on the resource fails", func() {
 				BeforeEach(func() {
-					fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(nil, errors.New("catastrophe"))
+					fakeDBResource.SetResourceConfigReturns(nil, errors.New("catastrophe"))
 				})
 
 				It("sets the check error and returns the error", func() {
@@ -579,20 +568,6 @@ var _ = Describe("ResourceScanner", func() {
 					Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
 
 					resourceErr := fakeDBResource.SetCheckErrorArgsForCall(0)
-					Expect(resourceErr).To(MatchError("catastrophe"))
-				})
-			})
-
-			Context("when updating the resource config id on the resource fails", func() {
-				BeforeEach(func() {
-					fakeDBResource.SetResourceConfigReturns(errors.New("catastrophe"))
-				})
-
-				It("sets the check error and returns the error", func() {
-					Expect(scanErr).To(HaveOccurred())
-					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
-
-					resourceErr := fakeResourceConfig.SetCheckErrorArgsForCall(0)
 					Expect(resourceErr).To(MatchError("catastrophe"))
 				})
 			})

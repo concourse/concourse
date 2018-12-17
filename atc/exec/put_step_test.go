@@ -257,39 +257,17 @@ var _ = Describe("PutStep", func() {
 				Expect(putStep.Succeeded()).To(BeTrue())
 			})
 
-			It("finds or creates a resource config", func() {
-				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
-				_, actualResourceType, actualSource, actualResourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
+			It("saves the build output", func() {
+				Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
+
+				_, actualResourceType, actualSource, actualResourceTypes, version, metadata, outputName, resourceName := fakeBuild.SaveOutputArgsForCall(0)
 				Expect(actualResourceType).To(Equal("some-resource-type"))
 				Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
 				Expect(actualResourceTypes).To(Equal(resourceTypes))
-			})
-
-			Context("when finding or creating a resource config", func() {
-				It("saves the version", func() {
-					Expect(fakeResourceConfig.SaveUncheckedVersionCallCount()).To(Equal(1))
-
-					version, metadata := fakeResourceConfig.SaveUncheckedVersionArgsForCall(0)
-					Expect(version).To(Equal(atc.Version{"some": "version"}))
-					Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields([]atc.MetadataField{{"some", "metadata"}})))
-				})
-
-				Context("when saving a version", func() {
-					BeforeEach(func() {
-						fakeResourceConfig.SaveUncheckedVersionReturns(true, nil)
-					})
-
-					It("saves the build output", func() {
-						Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
-
-						resourceConfig, version, outputName, resourceName, created := fakeBuild.SaveOutputArgsForCall(0)
-						Expect(resourceConfig.ID()).To(Equal(fakeResourceConfig.ID()))
-						Expect(version).To(Equal(atc.Version{"some": "version"}))
-						Expect(outputName).To(Equal("some-name"))
-						Expect(resourceName).To(Equal("some-resource"))
-						Expect(created).To(BeTrue())
-					})
-				})
+				Expect(version).To(Equal(atc.Version{"some": "version"}))
+				Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields([]atc.MetadataField{{"some", "metadata"}})))
+				Expect(outputName).To(Equal("some-name"))
+				Expect(resourceName).To(Equal("some-resource"))
 			})
 
 			Context("when the resource is blank", func() {
@@ -322,30 +300,6 @@ var _ = Describe("PutStep", func() {
 					Version:  atc.Version{"some": "version"},
 					Metadata: []atc.MetadataField{{"some", "metadata"}},
 				}))
-			})
-
-			Context("when saving a version of the resource config fails", func() {
-				disaster := errors.New("nah")
-
-				BeforeEach(func() {
-					fakeResourceConfig.SaveUncheckedVersionReturns(false, disaster)
-				})
-
-				It("returns the error", func() {
-					Expect(stepErr).To(Equal(disaster))
-				})
-			})
-
-			Context("when finding or creating resource config fails", func() {
-				disaster := errors.New("no")
-
-				BeforeEach(func() {
-					fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(nil, disaster)
-				})
-
-				It("returns the error", func() {
-					Expect(stepErr).To(Equal(disaster))
-				})
 			})
 
 			Context("when saving the build output fails", func() {
