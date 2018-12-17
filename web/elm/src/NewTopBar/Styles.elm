@@ -34,27 +34,33 @@ concourseLogo =
     ]
 
 
-middleSection : { a | searchBar : SearchBar, screenSize : ScreenSize } -> List Style
-middleSection { searchBar, screenSize } =
+middleSection :
+    { a
+        | searchBar : SearchBar
+        , screenSize : ScreenSize
+        , highDensity : Bool
+    }
+    -> List Style
+middleSection { searchBar, screenSize, highDensity } =
     let
         flexLayout =
-            case searchBar of
-                Expanded _ ->
-                    case screenSize of
-                        Mobile ->
-                            [ alignItems stretch ]
+            if highDensity then
+                []
+            else
+                case searchBar of
+                    Expanded _ ->
+                        case screenSize of
+                            Mobile ->
+                                [ alignItems stretch ]
 
-                        Desktop ->
-                            [ alignItems center ]
+                            Desktop ->
+                                [ alignItems center ]
 
-                        BigDesktop ->
-                            [ alignItems center ]
+                            BigDesktop ->
+                                [ alignItems center ]
 
-                Collapsed ->
-                    [ alignItems flexStart ]
-
-                _ ->
-                    []
+                    Collapsed ->
+                        [ alignItems flexStart ]
     in
         [ displayFlex
         , flexDirection column

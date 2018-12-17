@@ -1,28 +1,18 @@
 module Dashboard.SubState exposing (..)
 
-import Dashboard.Details as Details
-import Monocle.Optional
+import Dashboard.Group as Group
 import Monocle.Lens
-import MonocleHelpers exposing (..)
 import Time exposing (Time)
 
 
 type alias SubState =
-    { details : Maybe Details.Details
-    , hideFooter : Bool
+    { hideFooter : Bool
     , hideFooterCounter : Time
-    , csrfToken : String
+    , now : Time
+    , dragState : Group.DragState
+    , dropState : Group.DropState
+    , showHelp : Bool
     }
-
-
-detailsOptional : Monocle.Optional.Optional SubState Details.Details
-detailsOptional =
-    Monocle.Optional.Optional .details (\d ss -> { ss | details = Just d })
-
-
-detailsLens : Monocle.Lens.Lens SubState (Maybe Details.Details)
-detailsLens =
-    Monocle.Lens.Lens .details (\d ss -> { ss | details = d })
 
 
 hideFooterLens : Monocle.Lens.Lens SubState Bool
@@ -36,9 +26,8 @@ hideFooterCounterLens =
 
 
 tick : Time.Time -> SubState -> SubState
-tick now =
-    (detailsOptional =|> Details.nowLens).set now
-        >> (\ss -> (hideFooterCounterLens.get ss |> updateFooter) ss)
+tick now substate =
+    { substate | now = now } |> updateFooter substate.hideFooterCounter
 
 
 showFooter : SubState -> SubState

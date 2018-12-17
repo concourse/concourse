@@ -26,6 +26,9 @@ import Monocle.Lens
     }
 
 
-modifyWithEffect : Monocle.Optional.Optional a b -> (b -> ( b, Cmd msg )) -> a -> ( a, Cmd msg )
+modifyWithEffect : Monocle.Optional.Optional a b -> (b -> ( b, List c )) -> a -> ( a, List c )
 modifyWithEffect l f m =
-    l.getOption m |> Maybe.map f |> Maybe.map (Tuple.mapFirst (flip l.set m)) |> Maybe.withDefault ( m, Cmd.none )
+    l.getOption m
+        |> Maybe.map f
+        |> Maybe.map (Tuple.mapFirst (flip l.set m))
+        |> Maybe.withDefault ( m, [] )

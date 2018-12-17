@@ -211,7 +211,9 @@ update turbulence notFound csrfToken msg mdl =
             ( DashboardModel { model | csrfToken = c }, Cmd.none )
 
         ( DashboardMsg message, DashboardModel model ) ->
-            superDupleWrap ( DashboardModel, DashboardMsg ) <| Dashboard.update message model
+            Dashboard.update message model
+                |> Tuple.mapSecond (List.map Dashboard.toCmd >> Cmd.batch)
+                |> superDupleWrap ( DashboardModel, DashboardMsg )
 
         ( NewCSRFToken _, _ ) ->
             ( mdl, Cmd.none )

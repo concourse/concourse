@@ -22,7 +22,17 @@ import RemoteData
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (attribute, class, containing, id, style, tag, text, Selector)
+import Test.Html.Selector
+    exposing
+        ( attribute
+        , class
+        , containing
+        , id
+        , style
+        , tag
+        , text
+        , Selector
+        )
 import Time exposing (Time)
 
 
@@ -127,113 +137,180 @@ all =
                         [ tag "a" ]
                     |> Query.has
                         [ attribute <| Attr.href "/teams/team/pipelines/pipeline/jobs/job/builds/1" ]
-        , test "shows team name with no pill when unauthenticated and team has an exposed pipeline" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                    |> queryView
-                    |> teamHeaderHasNoPill "team"
-        , test "shows OWNER pill on team header for team on which user has owner role" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataAndUser
-                        (oneTeamOnePipeline "team")
-                        (userWithRoles [ ( "team", [ "owner" ] ) ])
-                    |> queryView
-                    |> teamHeaderHasPill "team" "OWNER"
-        , test "shows MEMBER pill on team header for team on which user has member role" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataAndUser
-                        (oneTeamOnePipeline "team")
-                        (userWithRoles [ ( "team", [ "member" ] ) ])
-                    |> queryView
-                    |> teamHeaderHasPill "team" "MEMBER"
-        , test "shows VIEWER pill on team header for team on which user has viewer role" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataAndUser
-                        (oneTeamOnePipeline "team")
-                        (userWithRoles [ ( "team", [ "viewer" ] ) ])
-                    |> queryView
-                    |> teamHeaderHasPill "team" "VIEWER"
-        , test "shows no pill on team header for team on which user has no role" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataAndUser
-                        (oneTeamOnePipeline "team")
-                        (userWithRoles [])
-                    |> queryView
-                    |> teamHeaderHasNoPill "team"
-        , test "shows pill for first role on team header for team on which user has multiple roles" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataAndUser
-                        (oneTeamOnePipeline "team")
-                        (userWithRoles [ ( "team", [ "member", "viewer" ] ) ])
-                    |> queryView
-                    |> teamHeaderHasPill "team" "MEMBER"
-        , test "sorts teams according to user role" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataAndUser
-                        (apiData
-                            [ ( "owner-team", [ "pipeline" ] )
-                            , ( "nonmember-team", [] )
-                            , ( "viewer-team", [] )
-                            , ( "member-team", [] )
-                            ]
-                        )
-                        (userWithRoles
-                            [ ( "owner-team", [ "owner" ] )
-                            , ( "member-team", [ "member" ] )
-                            , ( "viewer-team", [ "viewer" ] )
-                            , ( "nonmember-team", [] )
-                            ]
-                        )
-                    |> queryView
-                    |> Query.findAll teamHeaderSelector
-                    |> Expect.all
-                        [ Query.count (Expect.equal 4)
-                        , Query.index 0 >> Query.has [ text "owner-team" ]
-                        , Query.index 1 >> Query.has [ text "member-team" ]
-                        , Query.index 2 >> Query.has [ text "viewer-team" ]
-                        , Query.index 3 >> Query.has [ text "nonmember-team" ]
-                        ]
-        , test "team headers lay out contents horizontally, centering vertically" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataUnauthenticated (oneTeamOnePipeline "team")
-                    |> queryView
-                    |> Query.findAll teamHeaderSelector
-                    |> Query.each
-                        (Query.has
-                            [ style
-                                [ ( "display", "flex" )
-                                , ( "align-items", "center" )
-                                ]
-                            ]
-                        )
-        , test "on HD view, there is space between the list of pipelines and the role pill" <|
+        , test "HD view redirects to normal view when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = True }
-                    |> givenDataAndUser
-                        (oneTeamOnePipeline "team")
-                        (userWithRoles [ ( "team", [ "owner" ] ) ])
-                    |> queryView
-                    |> Query.find [ class "dashboard-team-name-wrapper" ]
-                    |> Query.find [ containing [ text "OWNER" ] ]
-                    |> Query.has [ style [ ( "margin-bottom", "1em" ) ] ]
-        , test "on non-HD view, the role pill on a group has no margin below" <|
+                    |> Dashboard.update
+                        (Msgs.APIDataFetched <|
+                            RemoteData.Success
+                                ( 0
+                                , apiData [ ( "team", [] ) ] Nothing
+                                )
+                        )
+                    |> Expect.all
+                        [ Tuple.second
+                            >> Expect.equal ([ Dashboard.ModifyUrl "/" ])
+                        , Tuple.first
+                            >> Dashboard.update
+                                (Msgs.APIDataFetched <|
+                                    RemoteData.Success
+                                        ( 0
+                                        , apiData
+                                            [ ( "team", [ "pipeline" ] ) ]
+                                            Nothing
+                                        )
+                                )
+                            >> Tuple.first
+                            >> queryView
+                            >> Expect.all
+                                [ Query.find
+                                    [ class "dashboard-pipeline-footer" ]
+                                    >> Query.children []
+                                    >> Query.first
+                                    >> Query.children []
+                                    >> Query.index -1
+                                    >> Query.has [ text "pending" ]
+                                , Query.has [ tag "input" ]
+                                ]
+                        ]
+        , test "HD view redirects to no pipelines view when pipelines disappear" <|
             \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataAndUser
-                        (oneTeamOnePipeline "team")
-                        (userWithRoles [ ( "team", [ "owner" ] ) ])
-                    |> queryView
-                    |> Query.find teamHeaderSelector
-                    |> Query.find [ containing [ text "OWNER" ] ]
-                    |> Query.has [ style [ ( "margin-bottom", "" ) ] ]
+                whenOnDashboard { highDensity = True }
+                    |> Dashboard.update
+                        (Msgs.APIDataFetched <|
+                            RemoteData.Success
+                                ( 0
+                                , apiData [ ( "team", [ "pipeline" ] ) ] Nothing
+                                )
+                        )
+                    |> Tuple.first
+                    |> Dashboard.update
+                        (Msgs.APIDataFetched <|
+                            RemoteData.Success
+                                ( 0
+                                , apiData [ ( "team", [] ) ] Nothing
+                                )
+                        )
+                    |> Expect.all
+                        [ Tuple.second
+                            >> Expect.equal ([ Dashboard.ModifyUrl "/" ])
+                        , Tuple.first
+                            >> queryView
+                            >> Query.has [ text "no pipelines configured" ]
+                        ]
+        , describe "team pills"
+            [ test
+                ("shows team name with no pill when unauthenticated "
+                    ++ "and team has an exposed pipeline"
+                )
+              <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> queryView
+                        |> teamHeaderHasNoPill "team"
+            , test "shows OWNER pill on team header for team on which user has owner role" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "team")
+                            (userWithRoles [ ( "team", [ "owner" ] ) ])
+                        |> queryView
+                        |> teamHeaderHasPill "team" "OWNER"
+            , test "shows MEMBER pill on team header for team on which user has member role" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "team")
+                            (userWithRoles [ ( "team", [ "member" ] ) ])
+                        |> queryView
+                        |> teamHeaderHasPill "team" "MEMBER"
+            , test "shows VIEWER pill on team header for team on which user has viewer role" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "team")
+                            (userWithRoles [ ( "team", [ "viewer" ] ) ])
+                        |> queryView
+                        |> teamHeaderHasPill "team" "VIEWER"
+            , test "shows no pill on team header for team on which user has no role" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "team")
+                            (userWithRoles [])
+                        |> queryView
+                        |> teamHeaderHasNoPill "team"
+            , test "shows pill for first role on team header for team on which user has multiple roles" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "team")
+                            (userWithRoles [ ( "team", [ "member", "viewer" ] ) ])
+                        |> queryView
+                        |> teamHeaderHasPill "team" "MEMBER"
+            , test "sorts teams according to user role" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (apiData
+                                [ ( "owner-team", [ "pipeline" ] )
+                                , ( "nonmember-team", [] )
+                                , ( "viewer-team", [] )
+                                , ( "member-team", [] )
+                                ]
+                            )
+                            (userWithRoles
+                                [ ( "owner-team", [ "owner" ] )
+                                , ( "member-team", [ "member" ] )
+                                , ( "viewer-team", [ "viewer" ] )
+                                , ( "nonmember-team", [] )
+                                ]
+                            )
+                        |> queryView
+                        |> Query.findAll teamHeaderSelector
+                        |> Expect.all
+                            [ Query.count (Expect.equal 4)
+                            , Query.index 0 >> Query.has [ text "owner-team" ]
+                            , Query.index 1 >> Query.has [ text "member-team" ]
+                            , Query.index 2 >> Query.has [ text "viewer-team" ]
+                            , Query.index 3 >> Query.has [ text "nonmember-team" ]
+                            ]
+            , test "team headers lay out contents horizontally, centering vertically" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataUnauthenticated (oneTeamOnePipeline "team")
+                        |> queryView
+                        |> Query.findAll teamHeaderSelector
+                        |> Query.each
+                            (Query.has
+                                [ style
+                                    [ ( "display", "flex" )
+                                    , ( "align-items", "center" )
+                                    ]
+                                ]
+                            )
+            , test "on HD view, there is space between the list of pipelines and the role pill" <|
+                \_ ->
+                    whenOnDashboard { highDensity = True }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "team")
+                            (userWithRoles [ ( "team", [ "owner" ] ) ])
+                        |> queryView
+                        |> Query.find [ class "dashboard-team-name-wrapper" ]
+                        |> Query.find [ containing [ text "OWNER" ] ]
+                        |> Query.has [ style [ ( "margin-bottom", "1em" ) ] ]
+            , test "on non-HD view, the role pill on a group has no margin below" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "team")
+                            (userWithRoles [ ( "team", [ "owner" ] ) ])
+                        |> queryView
+                        |> Query.find teamHeaderSelector
+                        |> Query.find [ containing [ text "OWNER" ] ]
+                        |> Query.has [ style [ ( "margin-bottom", "" ) ] ]
+            ]
         , describe "pipeline cards" <|
             let
                 pipelineWithStatus :

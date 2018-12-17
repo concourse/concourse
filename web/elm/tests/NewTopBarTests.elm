@@ -67,7 +67,7 @@ userName =
 
 loggedIn : Dashboard.Model -> Dashboard.Model
 loggedIn =
-    givenDataAndUser (apiData [])
+    givenDataAndUser (apiData [ ( "team", [ "pipeline" ] ) ])
         { id = "0"
         , userName = "some-user"
         , name = "some-user"
@@ -78,7 +78,7 @@ loggedIn =
 
 loggedOut : Dashboard.Model -> Dashboard.Model
 loggedOut =
-    givenDataUnauthenticated (apiData [])
+    givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
 
 
 queryView : NewTopBar.Model r -> Query.Single Msgs.Msg
@@ -264,14 +264,14 @@ all =
                                 |> Dashboard.update
                                     (Msgs.LoggedOut (Ok ()))
                                 |> Tuple.second
-                                |> Expect.equal (Navigation.newUrl "/")
+                                |> Expect.equal ([ Dashboard.NewUrl "/" ])
                     , test "redirects to high-density view on high-density view" <|
                         \_ ->
                             init { highDensity = True, query = "" }
                                 |> Dashboard.update
                                     (Msgs.LoggedOut (Ok ()))
                                 |> Tuple.second
-                                |> Expect.equal (Navigation.newUrl "/hd")
+                                |> Expect.equal ([ Dashboard.NewUrl "/hd" ])
                     ]
                 ]
             , test "shows no search input" <|
