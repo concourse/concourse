@@ -1,7 +1,16 @@
 local resource = std.extVar("resource");
 
 local build_params =
-  if resource == "semver" then
+  if resource == "registry-image" then
+    {
+      build: resource+"-resource",
+      build_args: {
+        PRIVATE_REPO: "((registry_image_resource.private_repo))",
+        PRIVATE_REPO_USERNAME: "((registry_image_resource_private_repo.username))",
+        PRIVATE_REPO_PASSWORD: "((registry_image_resource_private_repo.password))",
+      }
+    }
+  else if resource == "semver" then
     {
       build: resource+"-resource",
       build_args: {
