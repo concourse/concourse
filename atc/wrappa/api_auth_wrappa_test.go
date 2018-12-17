@@ -221,7 +221,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.DisableResourceVersion: authorized(inputHandlers[atc.DisableResourceVersion]),
 				atc.EnableResourceVersion:  authorized(inputHandlers[atc.EnableResourceVersion]),
 				atc.PinResourceVersion:     authorized(inputHandlers[atc.PinResourceVersion]),
-				atc.UnpinResourceVersion:   authorized(inputHandlers[atc.UnpinResourceVersion]),
+				atc.UnpinResource:          authorized(inputHandlers[atc.UnpinResource]),
 				atc.GetConfig:              authorized(inputHandlers[atc.GetConfig]),
 				atc.GetVersionsDB:          authorized(inputHandlers[atc.GetVersionsDB]),
 				atc.ListJobInputs:          authorized(inputHandlers[atc.ListJobInputs]),
