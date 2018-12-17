@@ -150,12 +150,22 @@ pinVersion vrid csrfToken =
             }
 
 
-unpinVersion : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-unpinVersion vrid csrfToken =
+unpinVersion :
+    Concourse.ResourceIdentifier
+    -> Concourse.CSRFToken
+    -> Task Http.Error ()
+unpinVersion rid csrfToken =
     Http.toTask <|
         Http.request
             { method = "PUT"
-            , url = "/api/v1/teams/" ++ vrid.teamName ++ "/pipelines/" ++ vrid.pipelineName ++ "/resources/" ++ vrid.resourceName ++ "/versions/" ++ (toString vrid.versionID) ++ "/unpin"
+            , url =
+                "/api/v1/teams/"
+                    ++ rid.teamName
+                    ++ "/pipelines/"
+                    ++ rid.pipelineName
+                    ++ "/resources/"
+                    ++ rid.resourceName
+                    ++ "/unpin"
             , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
             , body = Http.emptyBody
             , expect = Http.expectStringResponse (\_ -> Ok ())

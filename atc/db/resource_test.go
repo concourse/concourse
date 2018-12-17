@@ -702,7 +702,7 @@ var _ = Describe("Resource", func() {
 
 			Context("when we unpin a resource to a version", func() {
 				BeforeEach(func() {
-					err := resource.UnpinVersion(resID)
+					err := resource.UnpinVersion()
 					Expect(err).ToNot(HaveOccurred())
 
 					found, err := resource.Reload()

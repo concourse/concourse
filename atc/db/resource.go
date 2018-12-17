@@ -46,7 +46,7 @@ type Resource interface {
 	DisableVersion(rcvID int) error
 
 	PinVersion(rcvID int) error
-	UnpinVersion(rcvID int) error
+	UnpinVersion() error
 
 	SetResourceConfig(lager.Logger, atc.Source, creds.VersionedResourceTypes) (ResourceConfig, error)
 	SetCheckError(error) error
@@ -436,7 +436,7 @@ func (r *resource) PinVersion(rcvID int) error {
 	return nil
 }
 
-func (r *resource) UnpinVersion(rcvID int) error {
+func (r *resource) UnpinVersion() error {
 	results, err := psql.Update("resources").
 		Set("api_pinned_version", sq.Expr("NULL")).
 		Where(sq.Eq{"resources.id": r.id}).

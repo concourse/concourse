@@ -268,10 +268,9 @@ type FakeResource struct {
 	typeReturnsOnCall map[int]struct {
 		result1 string
 	}
-	UnpinVersionStub        func(int) error
+	UnpinVersionStub        func() error
 	unpinVersionMutex       sync.RWMutex
 	unpinVersionArgsForCall []struct {
-		arg1 int
 	}
 	unpinVersionReturns struct {
 		result1 error
@@ -1620,16 +1619,15 @@ func (fake *FakeResource) TypeReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResource) UnpinVersion(arg1 int) error {
+func (fake *FakeResource) UnpinVersion() error {
 	fake.unpinVersionMutex.Lock()
 	ret, specificReturn := fake.unpinVersionReturnsOnCall[len(fake.unpinVersionArgsForCall)]
 	fake.unpinVersionArgsForCall = append(fake.unpinVersionArgsForCall, struct {
-		arg1 int
-	}{arg1})
-	fake.recordInvocation("UnpinVersion", []interface{}{arg1})
+	}{})
+	fake.recordInvocation("UnpinVersion", []interface{}{})
 	fake.unpinVersionMutex.Unlock()
 	if fake.UnpinVersionStub != nil {
-		return fake.UnpinVersionStub(arg1)
+		return fake.UnpinVersionStub()
 	}
 	if specificReturn {
 		return ret.result1
@@ -1644,17 +1642,10 @@ func (fake *FakeResource) UnpinVersionCallCount() int {
 	return len(fake.unpinVersionArgsForCall)
 }
 
-func (fake *FakeResource) UnpinVersionCalls(stub func(int) error) {
+func (fake *FakeResource) UnpinVersionCalls(stub func() error) {
 	fake.unpinVersionMutex.Lock()
 	defer fake.unpinVersionMutex.Unlock()
 	fake.UnpinVersionStub = stub
-}
-
-func (fake *FakeResource) UnpinVersionArgsForCall(i int) int {
-	fake.unpinVersionMutex.RLock()
-	defer fake.unpinVersionMutex.RUnlock()
-	argsForCall := fake.unpinVersionArgsForCall[i]
-	return argsForCall.arg1
 }
 
 func (fake *FakeResource) UnpinVersionReturns(result1 error) {
