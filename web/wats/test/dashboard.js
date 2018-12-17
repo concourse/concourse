@@ -86,7 +86,7 @@ test('shows pipelines in their correct order', async t => {
   t.deepEqual(names, pipelineOrder);
 });
 
-test('shows pipelines with no finished builds in grey', showsPipelineState, async t => {
+test.skip('shows pipelines with no finished builds in grey', showsPipelineState, async t => {
   // no setup
 }, (t, text, background) => {
   t.regex(text, /some-pipeline/);
@@ -95,7 +95,7 @@ test('shows pipelines with no finished builds in grey', showsPipelineState, asyn
   t.deepEqual(background, palette.grey);
 });
 
-test('shows paused pipelines in blue', showsPipelineState, async t => {
+test.skip('shows paused pipelines in blue', showsPipelineState, async t => {
   await t.context.fly.run("pause-pipeline -p some-pipeline");
 }, (t, text, background) => {
   t.regex(text, /some-pipeline/);
@@ -104,14 +104,14 @@ test('shows paused pipelines in blue', showsPipelineState, async t => {
   t.deepEqual(background, palette.blue);
 });
 
-test('shows pipelines with only passing builds in green', showsPipelineState, async t => {
+test.skip('shows pipelines with only passing builds in green', showsPipelineState, async t => {
   await t.context.fly.run("trigger-job -w -j some-pipeline/passing");
 }, (t, text, background) => {
   t.regex(text, /some-pipeline/);
   t.deepEqual(background, palette.green);
 });
 
-test('shows pipelines with any failed builds in red', showsPipelineState, async t => {
+test.skip('shows pipelines with any failed builds in red', showsPipelineState, async t => {
   await t.context.fly.run("trigger-job -w -j some-pipeline/passing");
   await t.throws(t.context.fly.run("trigger-job -w -j some-pipeline/failing"));
 }, (t, text, background) => {
@@ -119,7 +119,7 @@ test('shows pipelines with any failed builds in red', showsPipelineState, async 
   t.deepEqual(background, palette.red);
 });
 
-test('shows pipelines with any errored builds in amber', showsPipelineState, async t => {
+test.skip('shows pipelines with any errored builds in amber', showsPipelineState, async t => {
   await t.context.fly.run("trigger-job -w -j some-pipeline/passing");
   await t.throws(t.context.fly.run("trigger-job -w -j some-pipeline/erroring"));
 }, (t, text, background) => {
@@ -127,7 +127,7 @@ test('shows pipelines with any errored builds in amber', showsPipelineState, asy
   t.deepEqual(background, palette.amber);
 });
 
-test('shows pipelines with any aborted builds in brown', showsPipelineState, async t => {
+test.skip('shows pipelines with any aborted builds in brown', showsPipelineState, async t => {
   await t.context.fly.run("trigger-job -j some-pipeline/passing -w");
 
   let run = t.context.fly.spawn("trigger-job -j some-pipeline/running -w");
