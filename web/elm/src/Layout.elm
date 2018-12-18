@@ -1,4 +1,14 @@
-port module Layout exposing (Flags, Model, Msg(..), init, locationMsg, subscriptions, update, view)
+port module Layout
+    exposing
+        ( Flags
+        , Model
+        , Msg(..)
+        , init
+        , locationMsg
+        , subscriptions
+        , update
+        , view
+        )
 
 import Concourse
 import Favicon
@@ -20,6 +30,7 @@ type alias Flags =
     { turbulenceImgSrc : String
     , notFoundImgSrc : String
     , csrfToken : String
+    , authToken : String
     , pipelineRunningKeyframes : String
     }
 
@@ -50,6 +61,7 @@ type alias Model =
     , turbulenceImgSrc : String
     , notFoundImgSrc : String
     , csrfToken : String
+    , authToken : String
     , pipelineRunningKeyframes : String
     , route : Routes.ConcourseRoute
     }
@@ -93,6 +105,7 @@ init flags location =
             SubPage.init
                 { turbulencePath = flags.turbulenceImgSrc
                 , csrfToken = flags.csrfToken
+                , authToken = flags.authToken
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
                 }
                 route
@@ -111,6 +124,7 @@ init flags location =
             , turbulenceImgSrc = flags.turbulenceImgSrc
             , notFoundImgSrc = flags.notFoundImgSrc
             , csrfToken = flags.csrfToken
+            , authToken = flags.authToken
             , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
             , route = route
             }
@@ -276,6 +290,7 @@ urlUpdate route model =
                 SubPage.init
                     { turbulencePath = model.turbulenceImgSrc
                     , csrfToken = model.csrfToken
+                    , authToken = model.authToken
                     , pipelineRunningKeyframes = model.pipelineRunningKeyframes
                     }
                     route

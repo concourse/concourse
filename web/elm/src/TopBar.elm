@@ -202,6 +202,9 @@ extractPidFromRoute route =
         Routes.DashboardHd ->
             Nothing
 
+        Routes.FlySuccess ->
+            Nothing
+
 
 urlUpdate : Routes.ConcourseRoute -> Model -> ( Model, Cmd Msg )
 urlUpdate route model =

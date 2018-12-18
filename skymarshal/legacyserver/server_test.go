@@ -23,20 +23,68 @@ var _ = Describe("Legacy API", func() {
 
 	Context("GET /login", func() {
 
-		BeforeEach(func() {
-			request, err = http.NewRequest("GET", server.URL+"/login", nil)
-			Expect(err).NotTo(HaveOccurred())
+		Context("when given no query params", func() {
 
-			response, err = client.Do(request)
-			Expect(err).NotTo(HaveOccurred())
+			BeforeEach(func() {
+				request, err = http.NewRequest("GET", server.URL+"/login", nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				response, err = client.Do(request)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should return status 302", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusFound))
+
+				url, err := response.Location()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(url.Path).To(Equal("/sky/login"))
+			})
+
 		})
 
-		It("should return status 301", func() {
-			Expect(response.StatusCode).To(Equal(http.StatusMovedPermanently))
+		Context("when given fly_port query param", func() {
 
-			url, err := response.Location()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(url.Path).To(Equal("/sky/login"))
+			BeforeEach(func() {
+				request, err = http.NewRequest("GET", server.URL+"/login?fly_port=1234", nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				response, err = client.Do(request)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should add redirect_uri", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusFound))
+
+				url, err := response.Location()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(url.Path).To(Equal("/sky/login"))
+				Expect(url.Query()["redirect_uri"]).To(Equal(
+					[]string{"/fly_success?fly_port=1234"},
+				))
+			})
+		})
+
+		Context("when given other query param", func() {
+
+			BeforeEach(func() {
+				request, err = http.NewRequest("GET", server.URL+"/login?foo=bar", nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				response, err = client.Do(request)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should leave query params in the redirect", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusFound))
+
+				url, err := response.Location()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(url.Path).To(Equal("/sky/login"))
+				Expect(url.Query()["foo"]).To(Equal(
+					[]string{"bar"},
+				))
+			})
 		})
 	})
 

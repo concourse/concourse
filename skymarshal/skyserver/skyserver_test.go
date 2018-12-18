@@ -92,7 +92,7 @@ var _ = Describe("Sky Server API", func() {
 					Expect(redirectURL.Host).To(Equal("example.com"))
 
 					redirectValues := redirectURL.Query()
-					Expect(redirectValues.Get("token")).To(Equal(cookieValue))
+					Expect(redirectValues.Get("token")).To(Equal(""))
 					Expect(redirectValues.Get("csrf_token")).To(Equal("some-csrf"))
 				})
 
@@ -405,7 +405,7 @@ var _ = Describe("Sky Server API", func() {
 
 						locationURL, err := redirectResponse.Location()
 						Expect(err).NotTo(HaveOccurred())
-						Expect(locationURL.String()).To(Equal("http://example.com?csrf_token=some-csrf&token=some-type+some-token"))
+						Expect(locationURL.String()).To(Equal("http://example.com?csrf_token=some-csrf"))
 					})
 				})
 			})

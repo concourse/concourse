@@ -114,7 +114,7 @@ solid color =
 striped : String -> String -> List ( String, String )
 striped pipelineRunningKeyframes color =
     [ ( "background-image"
-      , withStripes color Colors.runningStripes
+      , withStripes color Colors.card
       )
     , ( "animation"
       , pipelineRunningKeyframes ++ " 3s linear infinite"

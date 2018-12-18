@@ -12,6 +12,7 @@
     <script src="{{asset "graph.js"}}"></script>
     <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
     <script src="{{asset "elm.min.js"}}"></script>
+    <script src="{{asset "clipboard.min.js"}}"></script>
     <style>
         @keyframes pipeline-running {
           0% { background-position-x: -53.5px; }
@@ -33,6 +34,7 @@
         turbulenceImgSrc: {{asset "images/buckleup.svg"}},
         notFoundImgSrc: {{asset "images/parachute_error_404.svg"}},
         csrfToken: {{ .CSRFToken }},
+        authToken: {{ .AuthToken }},
         pipelineRunningKeyframes: "pipeline-running"
       });
       var resizeTimer;
@@ -96,7 +98,7 @@
         var path = document.location.pathname;
         var query = document.location.search;
         var redirect = encodeURIComponent(path + query);
-        var loginUrl = "/sky/login?redirect_uri="+ redirect;
+        var loginUrl = "/login?redirect_uri="+ redirect;
         document.location.href = loginUrl;
       });
 
@@ -142,6 +144,9 @@
         }
       }, false);
 
+    </script>
+    <script>
+      var clipboard = new ClipboardJS('#copy-token');
     </script>
   </body>
 </html>

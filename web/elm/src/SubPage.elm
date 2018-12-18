@@ -6,6 +6,7 @@ import Build
 import Concourse
 import Dashboard
 import Dashboard.Msgs
+import FlySuccess
 import Html exposing (Html)
 import Html.Styled as HS
 import Http
@@ -38,6 +39,7 @@ type Model
     | PipelineModel Pipeline.Model
     | NotFoundModel NotFound.Model
     | DashboardModel Dashboard.Model
+    | FlySuccessModel FlySuccess.Model
 
 
 type Msg
@@ -48,10 +50,12 @@ type Msg
     | NewCSRFToken String
     | DashboardPipelinesFetched (Result Http.Error (List Concourse.Pipeline))
     | DashboardMsg Dashboard.Msgs.Msg
+    | FlySuccessMsg FlySuccess.Msg
 
 
 type alias Flags =
     { csrfToken : String
+    , authToken : String
     , turbulencePath : String
     , pipelineRunningKeyframes : String
     }
@@ -158,6 +162,13 @@ init flags route =
                     , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
                     }
 
+        Routes.FlySuccess ->
+            superDupleWrap ( FlySuccessModel, FlySuccessMsg ) <|
+                FlySuccess.init
+                    { authToken = flags.authToken
+                    , flyPort = QueryString.one QueryString.int "fly_port" route.queries
+                    }
+
 
 handleNotFound : String -> ( a -> Model, c -> Msg ) -> ( a, Cmd c, Maybe UpdateMsg ) -> ( Model, Cmd Msg )
 handleNotFound notFound ( mdlFunc, msgFunc ) ( mdl, msg, outMessage ) =
@@ -214,6 +225,9 @@ update turbulence notFound csrfToken msg mdl =
             Dashboard.update message model
                 |> Tuple.mapSecond (List.map Dashboard.toCmd >> Cmd.batch)
                 |> superDupleWrap ( DashboardModel, DashboardMsg )
+
+        ( FlySuccessMsg message, FlySuccessModel model ) ->
+            superDupleWrap ( FlySuccessModel, FlySuccessMsg ) <| FlySuccess.update message model
 
         ( NewCSRFToken _, _ ) ->
             ( mdl, Cmd.none )
@@ -303,6 +317,9 @@ view mdl =
         NotFoundModel model ->
             NotFound.view model
 
+        FlySuccessModel model ->
+            Html.map FlySuccessMsg <| FlySuccess.view model
+
 
 subscriptions : Model -> Sub Msg
 subscriptions mdl =
@@ -326,4 +343,7 @@ subscriptions mdl =
             Sub.none
 
         NotFoundModel _ ->
+            Sub.none
+
+        FlySuccessModel _ ->
             Sub.none
