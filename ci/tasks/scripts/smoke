@@ -11,15 +11,23 @@ instance_ip="$(cat endpoint-info/instance_ip)"
 test -n "$instance_ip"
 
 export ATC_URL="http://${instance_ip}:8080"
-export ATC_ADMIN_USERNAME=admin
+
+if [ -e endpoint-info/admin_username ]; then
+  export ATC_ADMIN_USERNAME="$(cat endpoint-info/admin_username)"
+else
+  export ATC_ADMIN_USERNAME=admin
+fi
 if [ -e endpoint-info/admin_password ]; then
   export ATC_ADMIN_PASSWORD="$(cat endpoint-info/admin_password)"
 else
   export ATC_ADMIN_PASSWORD=admin
 fi
 
-export ATC_GUEST_USERNAME=guest
-export ATC_GUEST_PASSWORD=guest
+if [ -e endpoint-info/guest_username ]; then
+  export ATC_GUEST_USERNAME="$(cat endpoint-info/guest_username)"
+else
+  export ATC_GUEST_USERNAME=guest
+fi
 if [ -e endpoint-info/guest_password ]; then
   export ATC_GUEST_PASSWORD="$(cat endpoint-info/guest_password)"
 else
