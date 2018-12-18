@@ -337,11 +337,20 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
+	logger, reconfigurableSink := cmd.Logger.Logger("atc")
+
+	commandSession := logger.Session("cmd")
+	startTime := time.Now()
+
+	commandSession.Info("start")
+	defer commandSession.Info("finish", lager.Data{
+		"duration": time.Now().Sub(startTime),
+	})
+
 	radar.GlobalResourceCheckTimeout = cmd.GlobalResourceCheckTimeout
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
 	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres.ConnectionString(), retryingDriverName)
-	logger, reconfigurableSink := cmd.Logger.Logger("atc")
 
 	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
 		for _, stack := range db.GlobalConnectionTracker.Current() {
