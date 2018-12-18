@@ -5,10 +5,13 @@ import (
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
+	"golang.org/x/oauth2"
+
 	_ "github.com/lib/pq"
+
+	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"golang.org/x/oauth2"
 )
 
 var _ = Describe("Multiple ATCs Login Session Test", func() {
@@ -43,7 +46,7 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 
 			BeforeEach(func() {
 				var err error
-				token, err = fetchToken(atc0URL, atcUsername, atcPassword)
+				token, err = FetchToken(atc0URL, atcUsername, atcPassword)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("stopping the first atc")
