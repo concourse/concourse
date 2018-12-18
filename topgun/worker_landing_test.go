@@ -216,7 +216,10 @@ var _ = Describe("Worker landing", func() {
 		describeLandingTheWorker()
 	})
 
-	Context("with a single team worker", func() {
+	//TODO: Un-pend this Context when team workers can run check containers
+	// see: - https://github.com/concourse/concourse/issues/2910
+	//      - https://github.com/concourse/concourse/issues/2951
+	XContext("with a single team worker", func() {
 		BeforeEach(func() {
 			Deploy(
 				"deployments/concourse.yml",
