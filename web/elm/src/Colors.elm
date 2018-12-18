@@ -1,9 +1,33 @@
-module Colors exposing (..)
+module Colors
+    exposing
+        ( aborted
+        , bottomBarText
+        , cliIconHover
+        , dashboardBackground
+        , dashboardText
+        , error
+        , failure
+        , frame
+        , paused
+        , pending
+        , pinBarTooltip
+        , pinIconHover
+        , pinned
+        , card
+        , resourceError
+        , success
+        , successFaded
+        )
 
 
 frame : String
 frame =
     "#1e1d1d"
+
+
+dashboardText : String
+dashboardText =
+    "#fff"
 
 
 bottomBarText : String
@@ -38,7 +62,7 @@ success =
 
 successFaded : String
 successFaded =
-    "rgba(17, 197, 96, 0.2)"
+    "#284834"
 
 
 paused : String
@@ -66,9 +90,14 @@ aborted =
     "#8b572a"
 
 
-runningStripes : String
-runningStripes =
+card : String
+card =
     "#2a2929"
+
+
+resourceError : String
+resourceError =
+    "#e67e22"
 
 
 cliIconHover : String

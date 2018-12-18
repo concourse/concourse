@@ -1,16 +1,16 @@
 module Dashboard.Pipeline
     exposing
-        ( pipelineNotSetView
+        ( hdPipelineView
+        , pipelineNotSetView
         , pipelineView
-        , hdPipelineView
         )
 
 import Concourse.PipelineStatus as PipelineStatus
-import Duration
 import Dashboard.Models exposing (Pipeline)
 import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
 import DashboardPreview
+import Duration
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onMouseEnter, onMouseLeave)
@@ -21,16 +21,24 @@ import Time exposing (Time)
 
 pipelineNotSetView : Html msg
 pipelineNotSetView =
-    Html.div [ class "pipeline-wrapper" ]
+    Html.div [ class "card" ]
         [ Html.div
-            [ class "dashboard-pipeline no-set"
+            [ class "card-header"
+            , style Styles.noPipelineCardHeader
             ]
-            [ Html.div
-                [ class "dashboard-pipeline-content" ]
-                [ Html.div [ class "no-set-wrapper" ]
-                    [ Html.text "no pipelines set" ]
-                ]
+            [ Html.text "no pipeline set"
             ]
+        , Html.div
+            [ class "card-body"
+            , style Styles.cardBody
+            ]
+            [ Html.div [ style Styles.previewPlaceholder ] []
+            ]
+        , Html.div
+            [ class "card-footer"
+            , style Styles.cardFooter
+            ]
+            []
         ]
 
 
@@ -40,15 +48,17 @@ hdPipelineView :
     }
     -> Html Msg
 hdPipelineView { pipeline, pipelineRunningKeyframes } =
-    Html.div
-        [ class "dashboard-pipeline"
+    Html.a
+        [ class "card"
         , attribute "data-pipeline-name" pipeline.name
         , attribute "data-team-name" pipeline.teamName
-        , style Styles.pipelineCardHd
+        , onMouseEnter <| TooltipHd pipeline.name pipeline.teamName
+        , style <| Styles.pipelineCardHd pipeline.status
+        , href <| Routes.pipelineRoute pipeline
         ]
+    <|
         [ Html.div
-            [ class "dashboard-pipeline-banner"
-            , style <|
+            [ style <|
                 Styles.pipelineCardBannerHd
                     { status = pipeline.status
                     , pipelineRunningKeyframes = pipelineRunningKeyframes
@@ -56,27 +66,39 @@ hdPipelineView { pipeline, pipelineRunningKeyframes } =
             ]
             []
         , Html.div
-            [ class "dashboard-pipeline-content"
-            , style <| Styles.pipelineCardBodyHd pipeline.status
-            , onMouseEnter <| TooltipHd pipeline.name pipeline.teamName
+            [ style <| Styles.pipelineCardBodyHd
+            , class "dashboardhd-pipeline-name"
             ]
-            [ Html.a [ href <| Routes.pipelineRoute pipeline ]
-                [ Html.div
-                    [ class "dashboardhd-pipeline-name"
-                    , attribute "data-team-name" pipeline.teamName
-                    ]
-                    [ Html.text pipeline.name ]
-                ]
-            ]
-        , Html.div [ classList [ ( "dashboard-resource-error", pipeline.resourceError ) ] ] []
+            [ Html.text pipeline.name ]
         ]
+            ++ (if pipeline.resourceError then
+                    [ Html.div [ style Styles.resourceErrorTriangle ] [] ]
+                else
+                    []
+               )
 
 
-pipelineView : { now : Time, pipeline : Pipeline, hovered : Bool } -> Html Msg
-pipelineView { now, pipeline, hovered } =
-    Html.div [ class "dashboard-pipeline-content" ]
-        [ headerView pipeline
-        , DashboardPreview.view pipeline.jobs
+pipelineView :
+    { now : Time
+    , pipeline : Pipeline
+    , hovered : Bool
+    , pipelineRunningKeyframes : String
+    }
+    -> Html Msg
+pipelineView { now, pipeline, hovered, pipelineRunningKeyframes } =
+    Html.div
+        [ style Styles.pipelineCard
+        ]
+        [ Html.div
+            [ style <|
+                Styles.pipelineCardBanner
+                    { status = pipeline.status
+                    , pipelineRunningKeyframes = pipelineRunningKeyframes
+                    }
+            ]
+            []
+        , headerView pipeline
+        , bodyView pipeline
         , footerView pipeline now hovered
         ]
 
@@ -85,14 +107,32 @@ headerView : Pipeline -> Html Msg
 headerView pipeline =
     Html.a [ href <| Routes.pipelineRoute pipeline, draggable "false" ]
         [ Html.div
-            [ class "dashboard-pipeline-header"
+            [ class "card-header"
             , onMouseEnter <| Tooltip pipeline.name pipeline.teamName
+            , style Styles.pipelineCardHeader
             ]
-            [ Html.div [ class "dashboard-pipeline-name" ]
+            [ Html.div
+                [ class "dashboard-pipeline-name"
+                , style Styles.pipelineName
+                ]
                 [ Html.text pipeline.name ]
-            , Html.div [ classList [ ( "dashboard-resource-error", pipeline.resourceError ) ] ] []
+            , Html.div
+                [ classList
+                    [ ( "dashboard-resource-error", pipeline.resourceError )
+                    ]
+                ]
+                []
             ]
         ]
+
+
+bodyView : Pipeline -> Html Msg
+bodyView pipeline =
+    Html.div
+        [ class "card-body"
+        , style Styles.pipelineCardBody
+        ]
+        [ DashboardPreview.view pipeline.jobs ]
 
 
 footerView : Pipeline -> Time -> Bool -> Html Msg
@@ -102,15 +142,14 @@ footerView pipeline now hovered =
             Html.div [ style [ ( "width", "13.5px" ) ] ] []
     in
         Html.div
-            [ class "dashboard-pipeline-footer"
+            [ class "card-footer"
             , style Styles.pipelineCardFooter
             ]
             [ Html.div
                 [ style [ ( "display", "flex" ) ]
                 ]
                 [ Html.div
-                    [ style <|
-                        Styles.pipelineStatusIcon pipeline.status
+                    [ style <| Styles.pipelineStatusIcon pipeline.status
                     ]
                     []
                 , transitionView now pipeline

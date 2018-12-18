@@ -129,202 +129,30 @@
     width: 100%;
   }
 
-  .no-results {
-    color: @base04;
-    font-size: (36px * @scale);
-    padding-right: 0.5em;
-    text-align: center;
-  }
-
   .dashboard-team-name {
     font-size: (36px * @scale);
     padding-right: 0.5em;
   }
 
-  .dashboard-pipeline {
-    display: inline-block;
-    margin: (50px * @scale);
-    cursor: move;
-
-    &.no-set {
-      margin-left: 0;
-      cursor: default;
-
-      .dashboard-pipeline-content{
-        width: 544px * @scale;
-        // fix height 214px = 160px(grid height) + 20px(pipeline name height) + 30px(footer height) + 2px * 2 (border height)
-        height: 214px + (@banner-height + @footer-padding * 2 + @name-padding * 2) * @scale;
-        text-align: center;
-
-        .no-set-wrapper {
-          font-size: 36px * @scale;
-          color: @base04;
-          margin: auto;
-        }
-      }
-    }
-
+  .card {
     &.dragging {
       width: 0;
       margin: 0 (25px * @scale);
       overflow: hidden;
     }
 
-    .dashboard-pipeline-header {
-      border-bottom: 2px solid @base02;
-    }
-
-    .dashboard-resource-error {
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 0;
-      height: 0;
-      border-top: 60px*@scale solid @base09;
-      border-left: 60px*@scale solid transparent;
-    }
-
-    .dashboard-pipeline-content {
-      display: flex;
-      flex-direction: column;
-      background: @base01;
+    .card-header {
       position: relative;
-    }
-  }
 
-  .dashboard-high-density {
-    .toggle-high-density {
-      color: @base04;
-    }
-
-    .dashboard-pipeline-icon {
-      width: 70px * @scale;
-
-      &.hd-off {
-        background-image: url('images/ic_hd_off.svg');
-        background-size: contain;
+      .dashboard-resource-error {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 0;
+        height: 0;
+        border-top: 60px*@scale solid @base09;
+        border-left: 60px*@scale solid transparent;
       }
-
-      &.hd-on {
-        background-image: url('images/ic_hd_on.svg');
-        background-size: contain;
-      }
-    }
-  }
-}
-
-.dashboard-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background: @base00;
-  text-align: right;
-  color: @base04;
-  font-size: 20px * @scale;
-  z-index: 10;
-  height: 100px * @scale;
-  line-height: 100px * @scale;
-
-  .dashboard-legend {
-    float: left;
-    letter-spacing: (0.1em * @scale);
-    margin-left: 60px * @scale;
-
-    & > div {
-      display: inline;
-      text-transform: uppercase;
-      font-size: 24px * @scale;
-      margin-right: 40px * @scale;
-    }
-
-    .dashboard-running .dashboard-pipeline-icon {
-      background-image: url('images/ic_running_legend.svg');
-      background-position: center center;
-      width: 60px * @scale;
-    }
-  }
-
-  .dashboard-pipeline-icon {
-    position: initial;
-    display: inline-block;
-    vertical-align: middle;
-    margin: 0 20px*@scale 4px*@scale 0;
-  }
-
-  .concourse-version {
-    display: inline-block;
-    margin-right: 60px * @scale;
-    font-size: 3em * @scale;
-  }
-
-  .concourse-cli {
-    display: inline-block;
-    margin-right: 40px * @scale;
-    font-size: 3em * @scale;
-
-    .fa {
-      margin-right: 20px * @scale;
-      font-size: 2.4em * @scale;
-      color: @base04;
-
-      &:hover {
-        color: @white;
-      }
-    }
-  }
-}
-
-@media (max-width: 1230px) {
-  .dashboard-footer {
-    height: unset;
-    line-height: 70px * @scale;
-    text-align: left;
-
-    .dashboard-legend {
-      float: none;
-      margin-top: 44px * @scale;
-
-      & > div {
-        width: 222px * @scale;
-      }
-
-      .dashboard-status-separator,
-      .dashboard-high-density {
-        width: auto;
-      }
-    }
-
-    .concourse-info {
-      margin-left: 68px * @scale;
-      margin-bottom: 33px * @scale;
-    }
-  }
-}
-
-@media (max-width: 812px) {
-  .dashboard .dashboard-content {
-  }
-
-  .dashboard-footer {
-    display: block;
-
-    .dashboard-legend {
-      margin-top: 0;
-      padding-top: 44px * @scale;
-
-      .dashboard-running .dashboard-pipeline-icon {
-        width: 40px * @scale;
-      }
-
-      .dashboard-status-separator {
-        display: none;
-      }
-    }
-
-    .concourse-info {
-      margin-bottom: 0;
-      padding-bottom: 44px * @scale;
     }
   }
 }
@@ -336,18 +164,6 @@
   min-width: 40px * @scale;
   height: 40px * @scale;
   background-repeat: no-repeat;
-}
-
-.dashboard-pipeline-name {
-  color: @white;
-  text-align: left;
-  font-size: (3em * @scale);
-  letter-spacing: (0.2em * @scale);
-  padding: (@name-padding * @scale);
-  width: (490px * @scale);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 [data-tooltip] {
