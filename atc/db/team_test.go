@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -690,6 +689,47 @@ var _ = Describe("Team", func() {
 			Expect(found).To(BeTrue())
 			Expect(container).ToNot(BeNil())
 			Expect(container.Handle()).To(Equal(createdContainer.Handle()))
+		})
+	})
+
+	Describe("FindVolumeForWorkerArtifact", func() {
+
+		Context("when the artifact doesn't exist", func() {
+			It("returns not found", func() {
+				_, found, err := defaultTeam.FindVolumeForWorkerArtifact(12)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+
+		Context("when the artifact exists", func() {
+			BeforeEach(func() {
+				_, err := dbConn.Exec("INSERT INTO worker_artifacts (id, path, checksum) VALUES ($1, '/', '')", 18)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("when the associated volume doesn't exist", func() {
+				It("returns not found", func() {
+					_, found, err := defaultTeam.FindVolumeForWorkerArtifact(18)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeFalse())
+				})
+			})
+
+			Context("when the associated volume exists", func() {
+				BeforeEach(func() {
+					_, err := dbConn.Exec("INSERT INTO volumes (handle, team_id, worker_name, worker_artifact_id, state) VALUES ('some-handle', $1, $2, $3, $4)", defaultTeam.ID(), defaultWorker.Name(), 18, db.VolumeStateCreated)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("returns the volume", func() {
+					volume, found, err := defaultTeam.FindVolumeForWorkerArtifact(18)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(volume.Handle()).To(Equal("some-handle"))
+					Expect(volume.WorkerArtifactID()).To(Equal(18))
+				})
+			})
 		})
 	})
 

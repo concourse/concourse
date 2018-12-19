@@ -7,10 +7,9 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/concourse/atc"
 	"github.com/lib/pq"
 	uuid "github.com/nu7hatch/gouuid"
-
-	"github.com/concourse/concourse/atc"
 )
 
 var (
@@ -53,6 +52,7 @@ const (
 	VolumeTypeResourceType  VolumeType = "resource-type"
 	VolumeTypeResourceCerts VolumeType = "resource-certs"
 	VolumeTypeTaskCache     VolumeType = "task-cache"
+	VolumeTypeArtifact      VolumeType = "artifact"
 	VolumeTypeUknown        VolumeType = "unknown" // for migration to life
 )
 
@@ -78,6 +78,7 @@ type creatingVolume struct {
 	workerBaseResourceTypeID int
 	workerTaskCacheID        int
 	workerResourceCertsID    int
+	workerArtifactID         int
 	conn                     Conn
 }
 
@@ -145,10 +146,12 @@ type CreatedVolume interface {
 	Path() string
 	Type() VolumeType
 	TeamID() int
+	WorkerArtifactID() int
 	CreateChildForContainer(CreatingContainer, string) (CreatingVolume, error)
 	Destroying() (DestroyingVolume, error)
 	WorkerName() string
 	InitializeResourceCache(UsedResourceCache) error
+	InitializeArtifact(string, string) (WorkerArtifact, error)
 	InitializeTaskCache(int, string, string) error
 	ContainerHandle() string
 	ParentHandle() string
@@ -170,6 +173,7 @@ type createdVolume struct {
 	workerBaseResourceTypeID int
 	workerTaskCacheID        int
 	workerResourceCertsID    int
+	workerArtifactID         int
 	conn                     Conn
 }
 
@@ -186,6 +190,7 @@ func (volume *createdVolume) Type() VolumeType        { return volume.typ }
 func (volume *createdVolume) TeamID() int             { return volume.teamID }
 func (volume *createdVolume) ContainerHandle() string { return volume.containerHandle }
 func (volume *createdVolume) ParentHandle() string    { return volume.parentHandle }
+func (volume *createdVolume) WorkerArtifactID() int   { return volume.workerArtifactID }
 
 func (volume *createdVolume) ResourceType() (*VolumeResourceType, error) {
 	if volume.resourceCacheID == 0 {
@@ -383,6 +388,51 @@ func (volume *createdVolume) InitializeResourceCache(resourceCache UsedResourceC
 	volume.typ = VolumeTypeResource
 
 	return nil
+}
+
+func (volume *createdVolume) InitializeArtifact(path string, checksum string) (WorkerArtifact, error) {
+
+	tx, err := volume.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
+	atcWorkerArtifact := atc.WorkerArtifact{
+		Checksum: checksum,
+		Path:     path,
+	}
+
+	workerArtifact, err := saveWorkerArtifact(tx, volume.conn, atcWorkerArtifact)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := psql.Update("volumes").
+		Set("worker_artifact_id", workerArtifact.ID()).
+		Where(sq.Eq{"id": volume.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	affected, err := rows.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
+	if affected == 0 {
+		return nil, ErrVolumeMissing
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return workerArtifact, nil
 }
 
 func (volume *createdVolume) InitializeTaskCache(jobID int, stepName string, path string) error {

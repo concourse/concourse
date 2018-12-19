@@ -146,8 +146,8 @@ var _ = Describe("GetStep", func() {
 	})
 
 	It("finds or chooses a worker", func() {
-		Expect(fakePool.FindOrChooseWorkerCallCount()).To(Equal(1))
-		_, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerArgsForCall(0)
+		Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
+		_, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 		Expect(actualOwner).To(Equal(db.NewBuildStepContainerOwner(buildID, atc.PlanID(planID), teamID)))
 		Expect(actualContainerSpec).To(Equal(worker.ContainerSpec{
 			ImageSpec: worker.ImageSpec{
@@ -168,7 +168,7 @@ var _ = Describe("GetStep", func() {
 	Context("when find or choosing worker succeeds", func() {
 		BeforeEach(func() {
 			fakeWorker.NameReturns("some-worker")
-			fakePool.FindOrChooseWorkerReturns(fakeWorker, nil)
+			fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
 		})
 
 		It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {
@@ -566,7 +566,7 @@ var _ = Describe("GetStep", func() {
 		disaster := errors.New("oh no")
 
 		BeforeEach(func() {
-			fakePool.FindOrChooseWorkerReturns(nil, disaster)
+			fakePool.FindOrChooseWorkerForContainerReturns(nil, disaster)
 		})
 
 		It("does not finish the step via the delegate", func() {

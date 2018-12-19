@@ -49,15 +49,18 @@ type Team interface {
 
 	SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error)
 	Workers() ([]Worker, error)
+	FindVolumeForWorkerArtifact(int) (CreatedVolume, bool, error)
 
 	Containers(lager.Logger) ([]Container, error)
 	IsCheckContainer(string) (bool, error)
 	IsContainerWithinTeam(string, bool) (bool, error)
+
 	FindContainerByHandle(string) (Container, bool, error)
 	FindCheckContainers(lager.Logger, string, string, creds.VariablesFactory) ([]Container, map[int]time.Time, error)
 	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 	FindWorkerForContainer(handle string) (Worker, bool, error)
+	FindWorkerForVolume(handle string) (Worker, bool, error)
 
 	UpdateProviderAuth(auth atc.TeamAuth) error
 }
@@ -109,9 +112,40 @@ func (t *team) Workers() ([]Worker, error) {
 	}))
 }
 
+func (t *team) FindVolumeForWorkerArtifact(artifactID int) (CreatedVolume, bool, error) {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer Rollback(tx)
+
+	artifact, found, err := getWorkerArtifact(tx, t.conn, artifactID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return artifact.Volume(t.ID())
+}
+
 func (t *team) FindWorkerForContainer(handle string) (Worker, bool, error) {
 	return getWorker(t.conn, workersQuery.Join("containers c ON c.worker_name = w.name").Where(sq.And{
 		sq.Eq{"c.handle": handle},
+	}))
+}
+
+func (t *team) FindWorkerForVolume(handle string) (Worker, bool, error) {
+	return getWorker(t.conn, workersQuery.Join("volumes v ON v.worker_name = w.name").Where(sq.And{
+		sq.Eq{"v.handle": handle},
 	}))
 }
 

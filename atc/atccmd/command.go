@@ -537,6 +537,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	)
 
 	pool := worker.NewPool(workerProvider)
+	workerClient := worker.NewClient(pool, workerProvider)
 
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {
@@ -598,7 +599,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		dbBuildFactory,
 		dbResourceConfigFactory,
 		engine,
-		pool,
+		workerClient,
 		workerProvider,
 		drain,
 		radarSchedulerFactory,
@@ -1282,7 +1283,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	dbBuildFactory db.BuildFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	engine engine.Engine,
-	workerPool worker.Pool,
+	workerClient worker.Client,
 	workerProvider worker.WorkerProvider,
 	drain <-chan struct{},
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
@@ -1330,7 +1331,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		drain,
 
 		engine,
-		workerPool,
+		workerClient,
 		workerProvider,
 		radarSchedulerFactory,
 		radarScannerFactory,

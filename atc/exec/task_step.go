@@ -187,7 +187,7 @@ func (action *TaskStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	owner := db.NewBuildStepContainerOwner(action.buildID, action.planID, action.teamID)
-	chosenWorker, err := action.workerPool.FindOrChooseWorker(logger, owner, containerSpec, workerSpec, action.strategy)
+	chosenWorker, err := action.workerPool.FindOrChooseWorkerForContainer(logger, owner, containerSpec, workerSpec, action.strategy)
 	if err != nil {
 		return err
 	}
