@@ -52,9 +52,93 @@ var _ = Describe("Add global resource versions", func() {
 
 			_ = db.Close()
 
-			Expect(dvs).To(HaveLen(1))
+			Expect(dvs).To(HaveLen(2))
 			Expect(dvs[0].resourceID).To(Equal(1))
 			Expect(dvs[0].version).To(Equal(`{"version": "v3"}`))
+		})
+
+		It("migrates the build inputs into the new build resource config version inputs table", func() {
+			db = postgresRunner.OpenDBAtVersion(preMigrationVersion)
+
+			setup(db)
+			setupResource(db)
+			setupVersionedResources(db)
+			setupBuilds(db)
+			db.Close()
+
+			db = postgresRunner.OpenDBAtVersion(postMigrationVersion)
+
+			rows, err := db.Query(`SELECT build_id, version_md5, resource_id, name FROM build_resource_config_version_inputs`)
+			Expect(err).NotTo(HaveOccurred())
+
+			type buildInput struct {
+				buildID    int
+				versionMD5 string
+				resourceID int
+				name       string
+			}
+
+			buildInputs := []buildInput{}
+			for rows.Next() {
+				bi := buildInput{}
+
+				err := rows.Scan(&bi.buildID, &bi.versionMD5, &bi.resourceID, &bi.name)
+				Expect(err).NotTo(HaveOccurred())
+
+				buildInputs = append(buildInputs, bi)
+			}
+
+			rows, err = db.Query(`SELECT id, md5(version) FROM versioned_resources`)
+			Expect(err).NotTo(HaveOccurred())
+
+			versions := map[int]string{}
+			for rows.Next() {
+				var id int
+				var version string
+
+				err := rows.Scan(&id, &version)
+				Expect(err).NotTo(HaveOccurred())
+
+				versions[id] = version
+			}
+
+			_ = db.Close()
+
+			actualBuildInputs := []buildInput{
+				{
+					buildID:    1,
+					versionMD5: versions[1],
+					resourceID: 1,
+					name:       "build_input1",
+				},
+				{
+					buildID:    1,
+					versionMD5: versions[2],
+					resourceID: 1,
+					name:       "build_input2",
+				},
+				{
+					buildID:    2,
+					versionMD5: versions[1],
+					resourceID: 1,
+					name:       "build_input3",
+				},
+				{
+					buildID:    3,
+					versionMD5: versions[1],
+					resourceID: 1,
+					name:       "build_input4",
+				},
+				{
+					buildID:    4,
+					versionMD5: versions[4],
+					resourceID: 2,
+					name:       "build_input5",
+				},
+			}
+
+			Expect(buildInputs).To(HaveLen(5))
+			Expect(buildInputs).To(ConsistOf(actualBuildInputs))
 		})
 	})
 
@@ -105,7 +189,7 @@ var _ = Describe("Add global resource versions", func() {
 
 			db.Close()
 
-			Expect(vs).To(HaveLen(3))
+			Expect(vs).To(HaveLen(6))
 
 			desiredVersionedResources := []versionedResource{
 				{
@@ -126,10 +210,27 @@ var _ = Describe("Add global resource versions", func() {
 					type_:      "some-type",
 					enabled:    false,
 				},
+				{
+					resourceID: 2,
+					version:    `{"version": "v1"}`,
+					type_:      "some-type",
+					enabled:    true,
+				},
+				{
+					resourceID: 2,
+					version:    `{"version": "v2"}`,
+					type_:      "some-type",
+					enabled:    true,
+				},
+				{
+					resourceID: 2,
+					version:    `{"version": "v3"}`,
+					type_:      "some-type",
+					enabled:    true,
+				},
 			}
 
 			Expect(vs).To(ConsistOf(desiredVersionedResources))
-
 		})
 	})
 })
@@ -143,6 +244,9 @@ func setupResource(db *sql.DB) {
 
 	_, err = db.Exec(`INSERT INTO resources(name, pipeline_id, config, active, resource_config_id) VALUES('some-resource', 1, '{"type": "some-type"}', true, 1)`)
 	Expect(err).NotTo(HaveOccurred())
+
+	_, err = db.Exec(`INSERT INTO resources(name, pipeline_id, config, active, resource_config_id) VALUES('some-other-resource', 2, '{"type": "some-type"}', true, 1)`)
+	Expect(err).NotTo(HaveOccurred())
 }
 
 func setupVersionedResources(db *sql.DB) {
@@ -154,5 +258,30 @@ func setupVersionedResources(db *sql.DB) {
 
 	// Insert a disabled version into the versioned resources table
 	_, err := db.Exec(`INSERT INTO versioned_resources(version, metadata, type, enabled, resource_id, check_order) VALUES('{"version": "v3"}', 'some-metadata', 'some-type', false, 1, 3)`)
+	Expect(err).NotTo(HaveOccurred())
+
+	// Insert another version into the versioned resources table for pipeline 2
+	_, err = db.Exec(`INSERT INTO versioned_resources(version, metadata, type, enabled, resource_id, check_order) VALUES('{"version": "v1"}', 'some-metadata', 'some-type', false, 2, 1)`)
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func setupBuilds(db *sql.DB) {
+	_, err := db.Exec(`
+				INSERT INTO builds(id, name, status, job_id, team_id, pipeline_id) VALUES
+					(1, 'build1', 'succeeded', 1, 1, 1),
+					(2, 'build2', 'succeeded', 1, 1, 1),
+					(3, 'build3', 'started', 2, 1, 1),
+					(4, 'build4', 'pending', 4, 1, 2)
+			`)
+	Expect(err).NotTo(HaveOccurred())
+
+	_, err = db.Exec(`
+				INSERT INTO build_inputs(build_id, versioned_resource_id, name) VALUES
+					(1, 1, 'build_input1'),
+					(1, 2, 'build_input2'),
+					(2, 1, 'build_input3'),
+					(3, 1, 'build_input4'),
+					(4, 4, 'build_input5')
+			`)
 	Expect(err).NotTo(HaveOccurred())
 }
