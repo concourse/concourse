@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
@@ -51,25 +50,11 @@ type Worker interface {
 }
 
 type gardenWorker struct {
-	gardenClient       garden.Client
-	baggageclaimClient baggageclaim.Client
-
+	gardenClient      garden.Client
 	volumeClient      VolumeClient
 	containerProvider ContainerProvider
-
-	clock clock.Clock
-
-	activeContainers int
-	activeVolumes    int
-	buildContainers  int
-	resourceTypes    []atc.WorkerResourceType
-	platform         string
-	tags             atc.Tags
-	teamID           int
-	name             string
-	startTime        int64
-	ephemeral        bool
-	version          *string
+	dbWorker          db.Worker
+	buildContainers   int
 }
 
 // TODO: numBuildContainers is only needed for placement strategy but this
@@ -81,28 +66,15 @@ func NewGardenWorker(
 	containerProvider ContainerProvider,
 	volumeClient VolumeClient,
 	dbWorker db.Worker,
-	clock clock.Clock,
 	numBuildContainers int,
 ) Worker {
 
 	return &gardenWorker{
-		gardenClient:       gardenClient,
-		baggageclaimClient: baggageclaimClient,
-		volumeClient:       volumeClient,
-		containerProvider:  containerProvider,
-
-		clock:            clock,
-		activeContainers: dbWorker.ActiveContainers(),
-		activeVolumes:    dbWorker.ActiveVolumes(),
-		buildContainers:  numBuildContainers,
-		resourceTypes:    dbWorker.ResourceTypes(),
-		platform:         dbWorker.Platform(),
-		tags:             dbWorker.Tags(),
-		teamID:           dbWorker.TeamID(),
-		name:             dbWorker.Name(),
-		startTime:        dbWorker.StartTime(),
-		version:          dbWorker.Version(),
-		ephemeral:        dbWorker.Ephemeral(),
+		gardenClient:      gardenClient,
+		volumeClient:      volumeClient,
+		containerProvider: containerProvider,
+		dbWorker:          dbWorker,
+		buildContainers:   numBuildContainers,
 	}
 }
 
@@ -111,17 +83,18 @@ func (worker *gardenWorker) GardenClient() garden.Client {
 }
 
 func (worker *gardenWorker) IsVersionCompatible(logger lager.Logger, comparedVersion version.Version) bool {
+	workerVersion := worker.dbWorker.Version()
 	logger = logger.Session("check-version", lager.Data{
 		"want-worker-version": comparedVersion.String(),
-		"have-worker-version": worker.version,
+		"have-worker-version": workerVersion,
 	})
 
-	if worker.version == nil {
+	if workerVersion == nil {
 		logger.Info("empty-worker-version")
 		return false
 	}
 
-	v, err := version.NewVersionFromString(*worker.version)
+	v, err := version.NewVersionFromString(*workerVersion)
 	if err != nil {
 		logger.Error("failed-to-parse-version", err)
 		return false
@@ -142,7 +115,7 @@ func (worker *gardenWorker) IsVersionCompatible(logger lager.Logger, comparedVer
 }
 
 func (worker *gardenWorker) FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool) {
-	for _, rt := range worker.resourceTypes {
+	for _, rt := range worker.dbWorker.ResourceTypes() {
 		if path == rt.Image {
 			return rt, true
 		}
@@ -194,20 +167,43 @@ func (worker *gardenWorker) FindContainerByHandle(logger lager.Logger, teamID in
 	return worker.containerProvider.FindCreatedContainerByHandle(logger, handle, teamID)
 }
 
+// TODO: are these required on the Worker object?
+// does the caller already have the db.Worker available?
 func (worker *gardenWorker) ActiveContainers() int {
-	return worker.activeContainers
+	return worker.dbWorker.ActiveContainers()
 }
 
 func (worker *gardenWorker) ActiveVolumes() int {
-	return worker.activeVolumes
+	return worker.dbWorker.ActiveVolumes()
 }
+
+func (worker *gardenWorker) Name() string {
+	return worker.dbWorker.Name()
+}
+
+func (worker *gardenWorker) ResourceTypes() []atc.WorkerResourceType {
+	return worker.dbWorker.ResourceTypes()
+}
+
+func (worker *gardenWorker) Tags() atc.Tags {
+	return worker.dbWorker.Tags()
+}
+
+func (worker *gardenWorker) Ephemeral() bool {
+	return worker.dbWorker.Ephemeral()
+}
+
+// </TODO>
 
 func (worker *gardenWorker) BuildContainers() int {
 	return worker.buildContainers
 }
 
 func (worker *gardenWorker) Satisfying(logger lager.Logger, spec WorkerSpec) (Worker, error) {
-	if spec.TeamID != worker.teamID && worker.teamID != 0 {
+	workerTeamID := worker.dbWorker.TeamID()
+	workerResourceTypes := worker.dbWorker.ResourceTypes()
+
+	if spec.TeamID != workerTeamID && workerTeamID != 0 {
 		return nil, ErrTeamMismatch
 	}
 
@@ -215,7 +211,7 @@ func (worker *gardenWorker) Satisfying(logger lager.Logger, spec WorkerSpec) (Wo
 		underlyingType := determineUnderlyingTypeName(spec.ResourceType, spec.ResourceTypes)
 
 		matchedType := false
-		for _, t := range worker.resourceTypes {
+		for _, t := range workerResourceTypes {
 			if t.Type == underlyingType {
 				matchedType = true
 				break
@@ -228,7 +224,7 @@ func (worker *gardenWorker) Satisfying(logger lager.Logger, spec WorkerSpec) (Wo
 	}
 
 	if spec.Platform != "" {
-		if spec.Platform != worker.platform {
+		if spec.Platform != worker.dbWorker.Platform() {
 			return nil, ErrIncompatiblePlatform
 		}
 	}
@@ -257,48 +253,33 @@ func determineUnderlyingTypeName(typeName string, resourceTypes creds.VersionedR
 
 func (worker *gardenWorker) Description() string {
 	messages := []string{
-		fmt.Sprintf("platform '%s'", worker.platform),
+		fmt.Sprintf("platform '%s'", worker.dbWorker.Platform()),
 	}
 
-	for _, tag := range worker.tags {
+	for _, tag := range worker.dbWorker.Tags() {
 		messages = append(messages, fmt.Sprintf("tag '%s'", tag))
 	}
 
 	return strings.Join(messages, ", ")
 }
 
-func (worker *gardenWorker) Name() string {
-	return worker.name
-}
-
-func (worker *gardenWorker) ResourceTypes() []atc.WorkerResourceType {
-	return worker.resourceTypes
-}
-
-func (worker *gardenWorker) Tags() atc.Tags {
-	return worker.tags
-}
-
 func (worker *gardenWorker) IsOwnedByTeam() bool {
-	return worker.teamID != 0
+	return worker.dbWorker.TeamID() != 0
 }
 
 func (worker *gardenWorker) Uptime() time.Duration {
-	return worker.clock.Since(time.Unix(worker.startTime, 0))
-}
-
-func (worker *gardenWorker) Ephemeral() bool {
-	return worker.ephemeral
+	return time.Since(time.Unix(worker.dbWorker.StartTime(), 0))
 }
 
 func (worker *gardenWorker) tagsMatch(tags []string) bool {
-	if len(worker.tags) > 0 && len(tags) == 0 {
+	workerTags := worker.dbWorker.Tags()
+	if len(workerTags) > 0 && len(tags) == 0 {
 		return false
 	}
 
 insert_coin:
 	for _, stag := range tags {
-		for _, wtag := range worker.tags {
+		for _, wtag := range workerTags {
 			if stag == wtag {
 				continue insert_coin
 			}

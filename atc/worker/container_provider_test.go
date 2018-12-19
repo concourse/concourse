@@ -6,9 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"time"
 
-	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
@@ -102,7 +100,6 @@ var _ = Describe("ContainerProvider", func() {
 		fakeDBTeam = new(dbfakes.FakeTeam)
 		fakeDBTeamFactory.GetByIDReturns(fakeDBTeam)
 		fakeDBVolumeRepository = new(dbfakes.FakeVolumeRepository)
-		fakeClock := fakeclock.NewFakeClock(time.Unix(0, 123))
 		fakeGardenContainer = new(gardenfakes.FakeContainer)
 		fakeGardenClient.CreateReturns(fakeGardenContainer, nil)
 
@@ -116,7 +113,6 @@ var _ = Describe("ContainerProvider", func() {
 			fakeBaggageclaimClient,
 			fakeVolumeClient,
 			fakeDBWorker,
-			fakeClock,
 			fakeImageFactory,
 			fakeDBVolumeRepository,
 			fakeDBTeamFactory,

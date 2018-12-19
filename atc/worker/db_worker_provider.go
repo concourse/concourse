@@ -180,7 +180,6 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 		bClient,
 		volumeClient,
 		savedWorker,
-		tikTok,
 		provider.imageFactory,
 		provider.dbVolumeRepository,
 		provider.dbTeamFactory,
@@ -193,7 +192,6 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 		containerProvider,
 		volumeClient,
 		savedWorker,
-		tikTok,
 		buildContainersCount,
 	)
 }
