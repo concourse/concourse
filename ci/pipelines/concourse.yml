@@ -124,9 +124,8 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
-    - get: concourse
-      trigger: true
+  - get: concourse
+    trigger: true
   - task: golang-lint
     file: concourse/ci/tasks/golang-lint.yml
 
@@ -184,10 +183,10 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [unit, dev-image]
+      passed: [unit, lint, dev-image]
       trigger: true
     - get: unit-image
-      passed: [unit, dev-image]
+      passed: [unit, lint, dev-image]
       trigger: true
     - get: dev-image
       passed: [dev-image]
@@ -207,10 +206,10 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [unit, dev-image]
+      passed: [unit, lint, dev-image]
       trigger: true
     - get: unit-image
-      passed: [unit, dev-image]
+      passed: [unit, lint, dev-image]
       trigger: true
     - get: dev-image
       passed: [dev-image]
