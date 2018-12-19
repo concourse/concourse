@@ -3,7 +3,7 @@ platform: linux
 
 image_resource:
   type: registry-image
-  source: {repository: golangci/golangci-lint}
+  source: {repository: golang}
 
 inputs:
 - name: concourse
