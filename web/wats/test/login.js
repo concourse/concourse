@@ -50,7 +50,7 @@ test('can fly login with browser and reuse same browser without CSRF issues', as
   t.true(currentUrl.includes(`${t.context.url}/fly_success`));
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
   await t.context.web.page.goto(t.context.web.route('/'));
-  let pipelineSelector = '.dashboard-pipeline[data-pipeline-name=some-pipeline]';
+  let pipelineSelector = '.card[data-pipeline-name=some-pipeline]';
   let playButton = `${pipelineSelector} [style*="ic_play"]`;
   let pauseButton = `${pipelineSelector} [style*="ic_pause"]`;
   await t.context.web.page.waitFor(playButton);

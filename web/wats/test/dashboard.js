@@ -30,11 +30,11 @@ async function showsPipelineState(t, setup, assertions) {
   await t.context.web.page.goto(t.context.web.route('/'));
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
-  await t.context.web.page.waitFor(`${group} .dashboard-pipeline`);
-  const pipeline = await t.context.web.page.$(`${group} .dashboard-pipeline`);
+  await t.context.web.page.waitFor(`${group} .card`);
+  const pipeline = await t.context.web.page.$(`${group} .card`);
   const text = await t.context.web.text(pipeline);
 
-  const banner = await t.context.web.page.$(`${group} .dashboard-pipeline-banner`);
+  const banner = await t.context.web.page.$(`${group} .banner`);
   const background = await t.context.web.computedStyle(banner, 'backgroundColor');
 
   await assertions(t, text, color(background), group);
@@ -75,7 +75,7 @@ test('shows pipelines in their correct order', async t => {
   await t.context.web.page.goto(t.context.web.route('/'));
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
-  await t.context.web.page.waitFor(`${group} .pipeline-wrapper:nth-child(${pipelineOrder.length}) .dashboard-pipeline`);
+  await t.context.web.page.waitFor(`${group} .pipeline-wrapper:nth-child(${pipelineOrder.length}) .card`);
 
   const names = await t.context.web.page.$$eval(`${group} .dashboard-pipeline-name`, nameElements => {
     var names = [];
@@ -152,7 +152,7 @@ test('auto-refreshes to reflect state changes', showsPipelineState, async t => {
 
   await t.context.web.page.waitFor(10000);
 
-  let newBanner = await t.context.web.page.$(`${group} .dashboard-pipeline-banner`);
+  let newBanner = await t.context.web.page.$(`${group} .banner`);
   let newBackground = await t.context.web.computedStyle(newBanner, 'backgroundColor');
   t.deepEqual(color(newBackground), palette.red);
 });

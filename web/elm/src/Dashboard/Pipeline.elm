@@ -90,7 +90,8 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes } =
         [ style Styles.pipelineCard
         ]
         [ Html.div
-            [ style <|
+            [ class "banner"
+            , style <|
                 Styles.pipelineCardBanner
                     { status = pipeline.status
                     , pipelineRunningKeyframes = pipelineRunningKeyframes
