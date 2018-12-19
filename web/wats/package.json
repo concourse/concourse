@@ -22,6 +22,6 @@
   },
   "homepage": "https://github.com/concourse/atc#readme",
   "ava": {
-    "timeout": "30s"
+    "timeout": "5m"
   }
 }
