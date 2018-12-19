@@ -305,12 +305,9 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				err := defaultPipeline.Unpause()
 				Expect(err).ToNot(HaveOccurred())
 
-				resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
+				resourceConfig, err := defaultResource.SetResourceConfig(
 					logger,
-					"some-base-resource-type",
-					atc.Source{
-						"some": "source",
-					},
+					atc.Source{"some": "source"},
 					creds.NewVersionedResourceTypes(
 						template.StaticVariables{"source-param": "some-secret-sauce"},
 						atc.VersionedResourceTypes{},
@@ -324,9 +321,6 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				rc := createResourceCacheWithUser(db.ForContainer(container.ID()))
-
-				err = defaultResource.SetResourceConfig(rc.ResourceConfig().ID())
-				Expect(err).ToNot(HaveOccurred())
 
 				err = rc.ResourceConfig().SaveVersions([]atc.Version{{"some": "version"}})
 				Expect(err).ToNot(HaveOccurred())

@@ -1,7 +1,17 @@
 local resource = std.extVar("resource");
 
 local build_params =
-  if resource == "semver" then
+  if resource == "registry-image" then
+    {
+      build: resource+"-resource",
+      build_args: {
+        DOCKER_USERNAME: "((registry_image_resource_docker.username))",
+        DOCKER_PASSWORD: "((registry_image_resource_docker.password))",
+        DOCKER_PRIVATE_REPO: "((registry_image_resource_docker.private_repo))",
+        DOCKER_PUSH_REPO: "((registry_image_resource_docker.push_repo))",
+      }
+    }
+  else if resource == "semver" then
     {
       build: resource+"-resource",
       build_args: {

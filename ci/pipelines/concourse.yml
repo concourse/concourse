@@ -124,9 +124,8 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
-    - get: concourse
-      trigger: true
+  - get: concourse
+    trigger: true
   - task: golang-lint
     file: concourse/ci/tasks/golang-lint.yml
 
@@ -184,10 +183,10 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [unit, dev-image]
+      passed: [unit, lint, dev-image]
       trigger: true
     - get: unit-image
-      passed: [unit, dev-image]
+      passed: [unit, lint, dev-image]
       trigger: true
     - get: dev-image
       passed: [dev-image]
@@ -207,10 +206,10 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [unit, dev-image]
+      passed: [unit, lint, dev-image]
       trigger: true
     - get: unit-image
-      passed: [unit, dev-image]
+      passed: [unit, lint, dev-image]
       trigger: true
     - get: dev-image
       passed: [dev-image]
@@ -230,13 +229,16 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [build-rc]
+      passed: [watsjs, testflight]
+      trigger: true
+    - get: k8s-dev-image
+      passed: [k8s-dev-image]
       trigger: true
     - get: dev-image
-      passed: [build-rc]
+      passed: [watsjs, testflight]
       params: {format: oci}
     - get: unit-image
-      passed: [build-rc]
+      passed: [watsjs, testflight]
       trigger: true
     - get: charts
       trigger: true
@@ -253,8 +255,8 @@ jobs:
      KUBE_CONFIG: ((kube_config))
      RELEASE_NAME: concourse-smoke
      CONCOURSE_IMAGE: concourse/dev
-     CONCOURSE_DIGEST_FILE: dev-image/digest
-    input_mapping: {endpoint-info: outputs}
+    input_mapping: {endpoint-info: outputs, image-info: dev-image}
+    image: k8s-dev-image
   - task: smoke
     image: unit-image
     file: concourse/ci/tasks/smoke.yml
@@ -268,12 +270,10 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed:
-      - dev-image
+      passed: [dev-image]
       trigger: true
     - get: dev-image
-      passed:
-      - dev-image
+      passed: [dev-image]
       trigger: true
     - get: helm-chart
       resource: charts
@@ -908,4 +908,4 @@ resources:
 
 - name: mock-version
   type: mock
-  source: {force_version: 4.2.1}
+  source: {force_version: 4.2.2}

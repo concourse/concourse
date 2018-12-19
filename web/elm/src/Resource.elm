@@ -501,26 +501,15 @@ update action model =
 
         UnpinVersion ->
             let
-                pinnedVersionedResource : Maybe Version
-                pinnedVersionedResource =
-                    model.versions.content
-                        |> List.Extra.find (.version >> hasPinnedVersion model)
-
                 cmd : Cmd Msg
                 cmd =
-                    case pinnedVersionedResource of
-                        Just vr ->
-                            Task.attempt VersionUnpinned <|
-                                Concourse.Resource.unpinVersion
-                                    { teamName = model.resourceIdentifier.teamName
-                                    , pipelineName = model.resourceIdentifier.pipelineName
-                                    , resourceName = model.resourceIdentifier.resourceName
-                                    , versionID = vr.id
-                                    }
-                                    model.csrfToken
-
-                        Nothing ->
-                            Cmd.none
+                    Task.attempt VersionUnpinned <|
+                        Concourse.Resource.unpinVersion
+                            { teamName = model.resourceIdentifier.teamName
+                            , pipelineName = model.resourceIdentifier.pipelineName
+                            , resourceName = model.resourceIdentifier.resourceName
+                            }
+                            model.csrfToken
             in
                 ( { model | pinnedVersion = Pinned.startUnpinning model.pinnedVersion }, cmd )
 

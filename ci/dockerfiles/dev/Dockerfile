@@ -8,11 +8,24 @@
 FROM golang:1
 
 RUN apt-get update && apt-get -y install \
-      iproute2 \
+      apt-transport-https \
       ca-certificates \
+      curl \
+      gnupg2 \
+      software-properties-common \
+      iproute2 \
       file \
       btrfs-tools \
       jq
+
+# install Node 8.x
+RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
+RUN apt-get update && apt-get install -y nodejs
+
+# install Yarn for building the web UI
+RUN curl -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+RUN add-apt-repository "deb https://dl.yarnpkg.com/debian/ stable main"
+RUN apt-get update && apt-get -y install yarn
 
 # fetch dependencies
 COPY dumb-init/dumb-init_*_amd64 /usr/local/bin/dumb-init

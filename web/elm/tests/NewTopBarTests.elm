@@ -7,7 +7,6 @@ import Dict
 import Expect
 import Html.Attributes as Attributes
 import Html.Styled as HS
-import Navigation
 import NewTopBar
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -34,6 +33,7 @@ init { highDensity, query } =
         , pipelineRunningKeyframes = "pipeline-running"
         }
         |> Tuple.first
+        |> loggedOut
 
 
 smallScreen : Dashboard.Model -> Dashboard.Model
@@ -67,7 +67,7 @@ userName =
 
 loggedIn : Dashboard.Model -> Dashboard.Model
 loggedIn =
-    givenDataAndUser (apiData [])
+    givenDataAndUser (apiData [ ( "team", [ "pipeline" ] ) ])
         { id = "0"
         , userName = "some-user"
         , name = "some-user"
@@ -78,7 +78,7 @@ loggedIn =
 
 loggedOut : Dashboard.Model -> Dashboard.Model
 loggedOut =
-    givenDataUnauthenticated (apiData [])
+    givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
 
 
 queryView : NewTopBar.Model r -> Query.Single Msgs.Msg
@@ -257,23 +257,22 @@ all =
                             |> Query.find [ id "logout-button" ]
                             |> Event.simulate Event.click
                             |> Event.expect Msgs.LogOut
-                , skip <|
-                    describe "logging out"
-                        [ test "redirects to dashboard on normal dashboard" <|
-                            \_ ->
-                                init { highDensity = False, query = "" }
-                                    |> Dashboard.update
-                                        (Msgs.LoggedOut (Ok ()))
-                                    |> Tuple.second
-                                    |> Expect.equal (Navigation.newUrl "/")
-                        , test "redirects to high-density view on high-density view" <|
-                            \_ ->
-                                init { highDensity = True, query = "" }
-                                    |> Dashboard.update
-                                        (Msgs.LoggedOut (Ok ()))
-                                    |> Tuple.second
-                                    |> Expect.equal (Navigation.newUrl "/hd")
-                        ]
+                , describe "logging out"
+                    [ test "redirects to dashboard on normal dashboard" <|
+                        \_ ->
+                            init { highDensity = False, query = "" }
+                                |> Dashboard.update
+                                    (Msgs.LoggedOut (Ok ()))
+                                |> Tuple.second
+                                |> Expect.equal [ Dashboard.NewUrl "/", Dashboard.FetchData ]
+                    , test "redirects to high-density view on high-density view" <|
+                        \_ ->
+                            init { highDensity = True, query = "" }
+                                |> Dashboard.update
+                                    (Msgs.LoggedOut (Ok ()))
+                                |> Tuple.second
+                                |> Expect.equal [ Dashboard.NewUrl "/hd", Dashboard.FetchData ]
+                    ]
                 ]
             , test "shows no search input" <|
                 \_ ->

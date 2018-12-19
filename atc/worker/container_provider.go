@@ -7,7 +7,6 @@ import (
 	"sort"
 	"time"
 
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
@@ -24,7 +23,6 @@ func NewContainerProvider(
 	baggageclaimClient baggageclaim.Client,
 	volumeClient VolumeClient,
 	dbWorker db.Worker,
-	clock clock.Clock,
 	//TODO: less of all this junk..
 	imageFactory ImageFactory,
 	dbVolumeRepository db.VolumeRepository,
@@ -43,7 +41,6 @@ func NewContainerProvider(
 		httpProxyURL:       dbWorker.HTTPProxyURL(),
 		httpsProxyURL:      dbWorker.HTTPSProxyURL(),
 		noProxy:            dbWorker.NoProxy(),
-		clock:              clock,
 		worker:             dbWorker,
 	}
 }
@@ -83,8 +80,6 @@ type containerProvider struct {
 	httpProxyURL  string
 	httpsProxyURL string
 	noProxy       string
-
-	clock clock.Clock
 }
 
 func (p *containerProvider) FindOrCreateContainer(
@@ -151,7 +146,6 @@ func (p *containerProvider) FindOrCreateContainer(
 				p,
 				p.volumeClient,
 				p.worker,
-				p.clock,
 				0,
 			)
 
@@ -192,7 +186,7 @@ func (p *containerProvider) FindOrCreateContainer(
 			}
 
 			if !acquired {
-				p.clock.Sleep(creatingContainerRetryDelay)
+				time.Sleep(creatingContainerRetryDelay)
 				continue
 			}
 
@@ -379,7 +373,6 @@ func (p *containerProvider) createGardenContainer(
 		p,
 		p.volumeClient,
 		p.worker,
-		p.clock,
 		0,
 	)
 

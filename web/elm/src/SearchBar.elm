@@ -4,8 +4,7 @@ import ScreenSize exposing (ScreenSize)
 
 
 type SearchBar
-    = Invisible
-    | Collapsed
+    = Collapsed
     | Expanded
         { query : String
         , showAutocomplete : Bool
@@ -63,6 +62,3 @@ screenSizeChanged { oldSize, newSize } searchBar =
 
         ( Collapsed, ScreenSize.Mobile ) ->
             Collapsed
-
-        ( Invisible, _ ) ->
-            Invisible

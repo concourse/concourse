@@ -425,7 +425,7 @@ func (p *pipeline) Resource(name string) (Resource, bool, error) {
 		"r.name":        name,
 	}).RunWith(p.conn).QueryRow()
 
-	resource := &resource{conn: p.conn}
+	resource := &resource{conn: p.conn, lockFactory: p.lockFactory}
 	err := scanResource(resource, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -449,7 +449,7 @@ func (p *pipeline) BuildsWithTime(page Page) ([]Build, Pagination, error) {
 }
 
 func (p *pipeline) Resources() (Resources, error) {
-	return resources(p.id, p.conn)
+	return resources(p.id, p.conn, p.lockFactory)
 }
 
 func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
@@ -462,7 +462,7 @@ func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
 	resourceTypes := []ResourceType{}
 
 	for rows.Next() {
-		resourceType := &resourceType{conn: p.conn}
+		resourceType := &resourceType{conn: p.conn, lockFactory: p.lockFactory}
 		err := scanResourceType(resourceType, rows)
 		if err != nil {
 			return nil, err
@@ -480,7 +480,7 @@ func (p *pipeline) ResourceType(name string) (ResourceType, bool, error) {
 		"r.name":        name,
 	}).RunWith(p.conn).QueryRow()
 
-	resourceType := &resourceType{conn: p.conn}
+	resourceType := &resourceType{conn: p.conn, lockFactory: p.lockFactory}
 	err := scanResourceType(resourceType, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -1047,7 +1047,7 @@ func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, 
 	return buildName, jobID, err
 }
 
-func resources(pipelineID int, conn Conn) (Resources, error) {
+func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory) (Resources, error) {
 	rows, err := resourcesQuery.Where(sq.Eq{"r.pipeline_id": pipelineID}).RunWith(conn).Query()
 	if err != nil {
 		return nil, err
@@ -1057,7 +1057,7 @@ func resources(pipelineID int, conn Conn) (Resources, error) {
 	var resources Resources
 
 	for rows.Next() {
-		newResource := &resource{conn: conn}
+		newResource := &resource{conn: conn, lockFactory: lockFactory}
 		err := scanResource(newResource, rows)
 		if err != nil {
 			return nil, err

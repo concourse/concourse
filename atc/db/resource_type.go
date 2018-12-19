@@ -6,8 +6,11 @@ import (
 	"errors"
 	"fmt"
 
+	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db/lock"
 )
 
 type ResourceTypeNotFoundError struct {
@@ -32,7 +35,7 @@ type ResourceType interface {
 	CheckError() error
 	ResourceConfigCheckError() error
 
-	SetResourceConfig(int) error
+	SetResourceConfig(lager.Logger, atc.Source, creds.VersionedResourceTypes) (ResourceConfig, error)
 	SetCheckError(error) error
 
 	Version() atc.Version
@@ -106,7 +109,8 @@ type resourceType struct {
 	checkError               error
 	resourceConfigCheckError error
 
-	conn Conn
+	conn        Conn
+	lockFactory lock.LockFactory
 }
 
 func (t *resourceType) ID() int                         { return t.id }
@@ -136,16 +140,38 @@ func (t *resourceType) Reload() (bool, error) {
 	return true, nil
 }
 
-func (t *resourceType) SetResourceConfig(resourceConfigID int) error {
-	_, err := psql.Update("resource_types").
-		Set("resource_config_id", resourceConfigID).
+func (t *resourceType) SetResourceConfig(logger lager.Logger, source atc.Source, resourceTypes creds.VersionedResourceTypes) (ResourceConfig, error) {
+	resourceConfigDescriptor, err := constructResourceConfigDescriptor(t.type_, source, resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
+	resourceConfig, err := resourceConfigDescriptor.findOrCreate(logger, tx, t.lockFactory, t.conn)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = psql.Update("resource_types").
+		Set("resource_config_id", resourceConfig.ID()).
 		Where(sq.Eq{
 			"id": t.id,
 		}).
-		RunWith(t.conn).
+		RunWith(tx).
 		Exec()
 
-	return err
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return resourceConfig, err
 }
 
 func (t *resourceType) SetCheckError(cause error) error {

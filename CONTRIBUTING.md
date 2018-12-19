@@ -13,6 +13,7 @@ on request (just ask in `#introductions`), which will allow you to chat in the
 `#contributors` channel where you can ask for help or get feedback on something
 you're working on.
 
+
 ## Contribution Process
 
 * [Fork this repo](https://help.github.com/articles/fork-a-repo/) into your
@@ -35,6 +36,7 @@ you're working on.
 * [Submit a pull
   request!](https://help.github.com/articles/creating-a-pull-request-from-a-fork/)
 
+
 ## Development dependencies
 
 You'll need a few things installed in order to build and run Concourse during
@@ -49,23 +51,6 @@ development:
 > under your `$GOPATH`.*
 
 
-## Prerequisite: building the web UI
-
-Concourse is written in Go, but the web UI is written in
-[Elm](https://elm-lang.org) and [Less](http://lesscss.org/). Before running
-Concourse you'll need to compile them to their `.js`/.`css` assets, like so:
-
-**Install dependencies:**
-```sh
-$ yarn install
-```
-
-**build Elm/Less source:**
-```sh
-$ yarn build
-```
-
-
 ## Running Concourse
 
 To build and run a Concourse cluster from source, run the following in the root
@@ -77,6 +62,7 @@ $ docker-compose up
 
 Concourse will be running and reachable at
 [localhost:8080](http://localhost:8080).
+
 
 ### Building `fly` and targeting your local Concourse
 
@@ -91,7 +77,7 @@ on your `$PATH`!
 
 Once `fly` is built, you can get a test pipeline running like this:
 
-**Log into the locally-running Concourse instance targeted as `dev`:**
+**Log in to the locally-running Concourse instance targeted as `dev`:**
 ```sh
 $ fly -t dev login -c http://localhost:8080 -u test -p test
 ```
@@ -106,30 +92,69 @@ $ fly -t dev set-pipeline -p example -c examples/hello-world-every-minute.yml
 $ fly -t dev unpause-pipeline -p example
 ```
 
+
+## Developing Concourse
+
+Concourse's source code is structured as a monorepo containing Go source code
+for the server components and Elm/Less source code for the web UI.
+
+Currently, the top-level folders are ~~confusingly~~ cleverly named, because
+they were originally separate components living in their own Git repos with
+silly air-traffic-themed names.
+
+| directory       | description |
+| :-------------- | :----------- |
+| `/atc`          | The "brain" of Concourse: pipeline scheduling, build tracking, resource checking, and web UI/API server. One half of `concourse web`. |
+| `/fly`          | The [`fly` CLI](https://concourse-ci.org/fly.html). |
+| `/testflight`   | The acceptance test suite, exercising pipeline and `fly` features. Runs against a single Concourse deployment. |
+| `/web`          | The Elm source code and other assets for the web UI, which gets built and then embedded into the `concourse` executable and served by the ATC's web server. |
+| `/go-concourse` | A Go client libary for using the ATC API, used internally by `fly`. |
+| `/skymarshal`   | Adapts [Dex](https://github.com/dexidp/dex) into an embeddable auth component for the ATC, plus the auth flag specifications for `fly` and `concourse web`. |
+| `/tsa`          | A custom-built SSH server responsible for securely authenticating and registering workers. The other half of `concourse web`. |
+| `/worker`       | The `concourse worker` library code for registering with the TSA, periodically reaping containers/volumes, etc. |
+| `/bin`          | This is mainly glue code to wire the ATC, TSA, [BaggageClaim](https://github.com/concourse/baggageclaim), and Garden into the single `concourse` CLI. |
+| `/topgun`       | Another acceptance suite which covers operator-level features and technical aspects of the Concourse runtime. Deploys its own Concourse clusters, runs tests against them, and tears them down. |
+| `/ci`           | This folder contains all of our Concourse tasks, pipelines, and Docker images for the Concourse project itself. |
+
+
 ### Rebuilding to test your changes
 
-As you're working on server-side components, you can try out your changes by
-rebuilding and recreating the `web` and `worker` containers:
+After making any changes, you can try them out by rebuilding and recreating the
+`web` and `worker` containers:
 
 ```sh
 $ docker-compose up --build -d
 ```
 
-This can be run while the original `docker-compose up` command is still running.
+This can be run in a separate terminal while the original `docker-compose up`
+command is still running.
 
-If there are any changes to the web UI, you will also need to re-build:
+
+### Working on the web UI
+
+Concourse is written in Go, but the web UI is written in
+[Elm](https://elm-lang.org) and [Less](http://lesscss.org/).
+
+To build the web UI, first install the dependencies:
+
+```sh
+$ yarn install
+```
+
+Then, run the following to compile everything for the first time:
 
 ```sh
 $ yarn build
 ```
 
-This can be run before or after the `docker-compose up` - the compiled assets
-will automatically propagate to the running containers.
+These steps are automatically run during `docker-compose up`. When new assets
+are built locally, they will automatically propagate to the `web` container
+without requiring a restart or rebuild. This works by using a Docker shared
+volume and having the dev binary read assets from disk instead of embedding
+them.
 
-### Working on the web UI
-
-If you're actually working on the web UI you'll probably want to use `watch`
-instead of `build`:
+For a quicker feedback cycle, you'll probably want to use `watch` instead of
+`build`:
 
 ```sh
 $ yarn watch
@@ -138,13 +163,8 @@ $ yarn watch
 This will continuously monitor your local `.elm`/`.less` files and run `yarn
 build` whenever they change.
 
-If you're just working on the web UI, you won't need to restart or rebuild the
-`docker-compose` containers. The `Dockerfile` mounts the local code to the `web`
-container as a shared volume, so changes to the `.js`/`.css` assets will
-automatically propagate without needing a restart.
 
-
-### Debugging with dlv
+### Debugging with `dlv`
 
 With concourse already running, during local development is possible to attach
 [`dlv`](https://github.com/derekparker/delve) to either the `web` or `worker` instance,
@@ -153,17 +173,17 @@ allowing you to set breakpoints and inspect the current state of either one of t
 To trace a running web instance:
 
 ```sh
-./hack/trace web
+$ ./hack/trace web
 ```
 
 To trace a running worker instance:
 
 ```sh
-./hack/trace worker
+$ ./hack/trace worker
 ```
 
 
-## Connecting to Postgres
+### Connecting to Postgres
 
 If you want to poke around the database, you can connect to the `db` node using
 the following parameters:
@@ -174,10 +194,10 @@ the following parameters:
 * password: (blank)
 * database: `concourse`
 
-So you'd connect with something like `psql` like so:
+A utility script is provided to connect via `psql`:
 
 ```sh
-$ psql -h localhost -p 6543 -U dev concourse
+$ ./hack/db
 ```
 
 To reset the database, you'll need to stop everything and then blow away the
@@ -244,6 +264,12 @@ done by specifying `--nodes`:
 ```sh
 $ ginkgo -r --nodes=4 testflight
 ```
+
+### TopGun
+
+The `topgun/` suite is quite heavyweight and we don't currently expect most
+contributors to run or modify it. It's also kind of hard for ~~mere mortals~~
+external contributors to run anyway. So for now, ignore it.
 
 ### Writing tests
 

@@ -1,7 +1,6 @@
 package topgun_test
 
 import (
-	"context"
 	"crypto/tls"
 	"database/sql"
 	"fmt"
@@ -160,28 +159,6 @@ var _ = AfterEach(func() {
 	Expect(os.RemoveAll(tmp)).To(Succeed())
 })
 
-func requestCredsInfo(webUrl string) ([]byte, error) {
-	request, err := http.NewRequest("GET", webUrl+"/api/v1/info/creds", nil)
-	Expect(err).ToNot(HaveOccurred())
-
-	reqHeader := http.Header{}
-	token, err := fetchToken(webUrl, atcUsername, atcPassword)
-	Expect(err).ToNot(HaveOccurred())
-
-	reqHeader.Set("Authorization", "Bearer "+token.AccessToken)
-	request.Header = reqHeader
-
-	client := &http.Client{}
-	resp, err := client.Do(request)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(resp.StatusCode).To(Equal(200))
-
-	body, err := ioutil.ReadAll(resp.Body)
-	Expect(err).NotTo(HaveOccurred())
-
-	return body, err
-}
-
 func StartDeploy(manifest string, args ...string) *gexec.Session {
 	waitForDeploymentLock()
 
@@ -334,7 +311,7 @@ func spawnBosh(argv ...string) *gexec.Session {
 }
 
 func concourseClient() concourse.Client {
-	token, err := fetchToken(atcExternalURL, atcUsername, atcPassword)
+	token, err := FetchToken(atcExternalURL, atcUsername, atcPassword)
 	Expect(err).NotTo(HaveOccurred())
 
 	httpClient := &http.Client{
@@ -347,17 +324,6 @@ func concourseClient() concourse.Client {
 	}
 
 	return concourse.NewClient(atcExternalURL, httpClient, false)
-}
-
-func fetchToken(webURL string, username, password string) (*oauth2.Token, error) {
-	oauth2Config := oauth2.Config{
-		ClientID:     "fly",
-		ClientSecret: "Zmx5",
-		Endpoint:     oauth2.Endpoint{TokenURL: webURL + "/sky/token"},
-		Scopes:       []string{"openid", "profile", "email", "federated:id"},
-	}
-
-	return oauth2Config.PasswordCredentialsToken(context.Background(), username, password)
 }
 
 func deleteAllContainers() {
@@ -527,7 +493,7 @@ func workersWithContainers() []string {
 	}
 
 	var workerNames []string
-	for worker, _ := range usedWorkers {
+	for worker := range usedWorkers {
 		workerNames = append(workerNames, worker)
 	}
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/onsi/gomega/gexec"
 	"net/http"
+	"path"
 	"time"
 
 	. "github.com/concourse/concourse/topgun"
@@ -46,34 +47,44 @@ func getPrometheusMetrics(endpoint, releaseName string) (*prometheusMetrics, err
 
 var _ = Describe("Prometheus integration", func() {
 	var (
-		proxySession       *gexec.Session
-		releaseName        string
-		prometheusEndpoint string
+		proxySession          *gexec.Session
+		releaseName           string
+		prometheusReleaseName string
+		prometheusEndpoint    string
+		namespace             string
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-prometheus-integration-%d", GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-pi-%d-%d", GinkgoRandomSeed(), GinkgoParallelNode())
+		namespace = releaseName
+		prometheusReleaseName = releaseName + "-prom"
 
-		helmDeploy(releaseName,
+		deployConcourseChart(releaseName,
 			"--set=prometheus.enabled=true",
 			"--set=worker.replicas=1",
 			"--set=concourse.worker.ephemeral=true",
 			"--set=concourse.web.prometheus.enabled=true",
 			"--set=concourse.worker.baggageclaim.driver=detect")
 
-		Eventually(func() bool {
-			expectedPods := getPodsNames(getPods(releaseName))
-			actualPods := getPodsNames(getPods(releaseName, "--field-selector=status.phase=Running"))
+		helmDeploy(prometheusReleaseName,
+			namespace,
+			path.Join(Environment.ChartsDir, "stable/prometheus"),
+			"--set=nodeExporter.enabled=false",
+			"--set=kubeStateMetrics.enabled=false",
+			"--set=pushgateway.enabled=false",
+			"--set=alertmanager.enabled=false",
+			"--set=server.persistentVolume.enabled=false")
 
-			return len(expectedPods) == len(actualPods)
-		}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "expected all pods to be running")
+		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the prometheus proxy")
-		proxySession, prometheusEndpoint = startPortForwarding(releaseName+"-server", "80")
+		proxySession, prometheusEndpoint = startPortForwarding(namespace, prometheusReleaseName+"-prometheus-server", "80")
 	})
 
 	AfterEach(func() {
 		helmDestroy(releaseName)
+		helmDestroy(prometheusReleaseName)
+		Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
 		Wait(proxySession.Interrupt())
 	})
 

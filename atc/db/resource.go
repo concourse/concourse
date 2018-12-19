@@ -8,8 +8,11 @@ import (
 	"strconv"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/lib/pq"
 )
 
@@ -43,9 +46,9 @@ type Resource interface {
 	DisableVersion(rcvID int) error
 
 	PinVersion(rcvID int) error
-	UnpinVersion(rcvID int) error
+	UnpinVersion() error
 
-	SetResourceConfig(int) error
+	SetResourceConfig(lager.Logger, atc.Source, creds.VersionedResourceTypes) (ResourceConfig, error)
 	SetCheckError(error) error
 
 	Reload() (bool, error)
@@ -77,7 +80,8 @@ type resource struct {
 	resourceConfigCheckError error
 	resourceConfigID         int
 
-	conn Conn
+	conn        Conn
+	lockFactory lock.LockFactory
 }
 
 type ResourceNotFoundError struct {
@@ -152,18 +156,40 @@ func (r *resource) Reload() (bool, error) {
 	return true, nil
 }
 
-func (r *resource) SetResourceConfig(resourceConfigID int) error {
-	_, err := psql.Update("resources").
-		Set("resource_config_id", resourceConfigID).
+func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, resourceTypes creds.VersionedResourceTypes) (ResourceConfig, error) {
+	resourceConfigDescriptor, err := constructResourceConfigDescriptor(r.type_, source, resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
+	resourceConfig, err := resourceConfigDescriptor.findOrCreate(logger, tx, r.lockFactory, r.conn)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = psql.Update("resources").
+		Set("resource_config_id", resourceConfig.ID()).
 		Where(sq.Eq{"id": r.id}).
 		Where(sq.Or{
 			sq.Eq{"resource_config_id": nil},
-			sq.NotEq{"resource_config_id": resourceConfigID},
+			sq.NotEq{"resource_config_id": resourceConfig.ID()},
 		}).
-		RunWith(r.conn).
+		RunWith(tx).
 		Exec()
 
-	return err
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return resourceConfig, err
 }
 
 func (r *resource) SetCheckError(cause error) error {
@@ -410,7 +436,7 @@ func (r *resource) PinVersion(rcvID int) error {
 	return nil
 }
 
-func (r *resource) UnpinVersion(rcvID int) error {
+func (r *resource) UnpinVersion() error {
 	results, err := psql.Update("resources").
 		Set("api_pinned_version", sq.Expr("NULL")).
 		Where(sq.Eq{"resources.id": r.id}).

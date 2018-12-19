@@ -15,8 +15,9 @@ import (
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/lib/pq"
+
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 //go:generate counterfeiter . Conn

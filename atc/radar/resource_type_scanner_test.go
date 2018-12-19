@@ -70,7 +70,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeDBPipeline = new(dbfakes.FakePipeline)
 		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 		fakeResourceConfig.IDReturns(123)
-		fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
 
 		fakeResourceType.IDReturns(39)
 		fakeResourceType.NameReturns("some-custom-resource")
@@ -78,7 +77,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
 		fakeResourceType.VersionReturns(atc.Version{"custom": "version"})
 		fakeResourceType.TagsReturns(atc.Tags{"some-tag"})
-		fakeResourceType.SetResourceConfigReturns(nil)
+		fakeResourceType.SetResourceConfigReturns(fakeResourceConfig, nil)
 
 		fakeDBPipeline.IDReturns(42)
 		fakeDBPipeline.NameReturns("some-pipeline")
@@ -139,15 +138,10 @@ var _ = Describe("ResourceTypeScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
-				_, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
-				Expect(resourceType).To(Equal("registry-image"))
+				Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
+				_, resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
 				Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
-
-				Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
-				resourceConfigID := fakeResourceType.SetResourceConfigArgsForCall(0)
-				Expect(resourceConfigID).To(Equal(123))
 
 				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 				_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
@@ -180,19 +174,18 @@ var _ = Describe("ResourceTypeScanner", func() {
 					fakeResourceType.TypeReturns("registry-image")
 					fakeResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
 					fakeResourceType.VersionReturns(atc.Version{"custom": "image-version"})
+					fakeResourceType.SetResourceConfigReturns(fakeResourceConfig, nil)
 
 					fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{
 						fakeResourceType,
 						otherResourceType,
 					}, nil)
 					fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
-					fakeResourceType.SetResourceConfigReturns(nil)
 				})
 
 				It("constructs the resource of the correct type", func() {
-					Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
-					_, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
-					Expect(resourceType).To(Equal("registry-image"))
+					Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
+					_, resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
 					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 						versionedResourceType,
@@ -201,10 +194,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(fakeResourceType.SetCheckErrorCallCount()).To(Equal(1))
 					err := fakeResourceType.SetCheckErrorArgsForCall(0)
 					Expect(err).To(BeNil())
-
-					Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
-					resourceConfigID := fakeResourceType.SetResourceConfigArgsForCall(0)
-					Expect(resourceConfigID).To(Equal(123))
 
 					Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 					_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
@@ -409,19 +398,14 @@ var _ = Describe("ResourceTypeScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
-				_, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
-				Expect(resourceType).To(Equal("registry-image"))
+				Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
+				_, resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
 				Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
 
 				Expect(fakeResourceType.SetCheckErrorCallCount()).To(Equal(1))
 				err := fakeResourceType.SetCheckErrorArgsForCall(0)
 				Expect(err).To(BeNil())
-
-				Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
-				resourceConfigID := fakeResourceType.SetResourceConfigArgsForCall(0)
-				Expect(resourceConfigID).To(Equal(123))
 
 				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 				_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
@@ -457,7 +441,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					fakeResourceType.IDReturns(40)
 					fakeResourceType.NameReturns("custom-resource-child")
 					fakeResourceType.TypeReturns("custom-resource-parent")
-					fakeResourceType.SetResourceConfigReturns(nil)
+					fakeResourceType.SetResourceConfigReturns(fakeResourceConfig, nil)
 
 					// testing recursion is fun!
 					fakeDBPipeline.ResourceTypesReturnsOnCall(0, []db.ResourceType{
@@ -480,7 +464,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 					Context("when the check for the parent succeeds", func() {
 						It("reloads the resource types from the database", func() {
-
 							Expect(runErr).ToNot(HaveOccurred())
 							Expect(fakeDBPipeline.ResourceTypesCallCount()).To(Equal(4))
 						})
@@ -513,7 +496,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 					It("does not check for versions of the parent resource type", func() {
 						Expect(fakeDBPipeline.ResourceTypeCallCount()).To(Equal(1))
-						Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
 					})
 				})
 			})
@@ -527,27 +509,22 @@ var _ = Describe("ResourceTypeScanner", func() {
 					fakeResourceType.NameReturns("registry-image")
 					fakeResourceType.TypeReturns("registry-image")
 					fakeResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
+					fakeResourceType.SetResourceConfigReturns(fakeResourceConfig, nil)
 
 					fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{
 						fakeResourceType,
 						otherResourceType,
 					}, nil)
 					fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
-					fakeResourceType.SetResourceConfigReturns(nil)
 				})
 
 				It("constructs the resource of the correct type", func() {
-					Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
-					_, resourceType, resourceSource, resourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
-					Expect(resourceType).To(Equal("registry-image"))
+					Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
+					_, resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
 					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 						versionedResourceType,
 					})))
-
-					Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
-					resourceConfigID := fakeResourceType.SetResourceConfigArgsForCall(0)
-					Expect(resourceConfigID).To(Equal(123))
 
 					Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 					_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
@@ -581,9 +558,9 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Eventually(fakeLock.ReleaseCallCount()).Should(Equal(1))
 			})
 
-			Context("when creating the resource config fails", func() {
+			Context("when setting the resource config on the resource type fails", func() {
 				BeforeEach(func() {
-					fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(nil, errors.New("catastrophe"))
+					fakeResourceType.SetResourceConfigReturns(nil, errors.New("catastrophe"))
 				})
 
 				It("sets the check error and returns the error", func() {
@@ -591,20 +568,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(fakeResourceType.SetCheckErrorCallCount()).To(Equal(1))
 
 					chkErr := fakeResourceType.SetCheckErrorArgsForCall(0)
-					Expect(chkErr).To(MatchError("catastrophe"))
-				})
-			})
-
-			Context("when updating the resource config id on the resource type fails", func() {
-				BeforeEach(func() {
-					fakeResourceType.SetResourceConfigReturns(errors.New("catastrophe"))
-				})
-
-				It("sets the check error and returns the error", func() {
-					Expect(runErr).To(HaveOccurred())
-					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
-
-					chkErr := fakeResourceConfig.SetCheckErrorArgsForCall(0)
 					Expect(chkErr).To(MatchError("catastrophe"))
 				})
 			})

@@ -1,14 +1,13 @@
-package versionserver
+package resourceserver
 
 import (
 	"net/http"
-	"strconv"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 )
 
-func (s *Server) UnpinResourceVersion(pipeline db.Pipeline) http.Handler {
+func (s *Server) UnpinResource(pipeline db.Pipeline) http.Handler {
 	logger := s.logger.Session("unpin-resource-version")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceName := r.FormValue(":resource_name")
@@ -24,13 +23,7 @@ func (s *Server) UnpinResourceVersion(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		resourceConfigVersionID, err := strconv.Atoi(r.FormValue(":resource_config_version_id"))
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		err = resource.UnpinVersion(resourceConfigVersionID)
+		err = resource.UnpinVersion()
 		if err != nil {
 			logger.Error("failed-to-unpin-resource-version", err)
 			w.WriteHeader(http.StatusInternalServerError)

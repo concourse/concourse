@@ -24,7 +24,6 @@ import (
 type LoginCommand struct {
 	ATCURL      string       `short:"c" long:"concourse-url" description:"Concourse URL to authenticate with"`
 	Insecure    bool         `short:"k" long:"insecure" description:"Skip verification of the endpoint's SSL certificate"`
-	Remote      bool         `short:"r" long:"remote" description:"Login redirect to token page on browser"`
 	Username    string       `short:"u" long:"username" description:"Username for basic auth"`
 	Password    string       `short:"p" long:"password" description:"Password for basic auth"`
 	TeamName    string       `short:"n" long:"team-name" description:"Team to authenticate with"`
@@ -183,21 +182,12 @@ func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool) (
 	fmt.Println("navigate to the following URL in your browser:")
 	fmt.Println("")
 
-	if command.Remote {
-		openURL = fmt.Sprintf("%s/sky/login?redirect_uri=%s", targetUrl, "/sky/token")
+	openURL = fmt.Sprintf("%s/login?fly_port=%s", targetUrl, port)
 
-		fmt.Printf("  %s\n", openURL)
+	fmt.Printf("  %s\n", openURL)
+	if !browserOnly {
 		fmt.Println("")
-		fmt.Printf("and enter token manually: ")
-	} else {
-		redirectUri := "http://127.0.0.1:" + port + "/auth/callback"
-		openURL = fmt.Sprintf("%s/sky/login?redirect_uri=%s", targetUrl, redirectUri)
-
-		fmt.Printf("  %s\n", openURL)
-		if !browserOnly {
-			fmt.Println("")
-			fmt.Printf("or enter token manually: ")
-		}
+		fmt.Printf("or enter token manually: ")
 	}
 
 	if command.OpenBrowser {
@@ -265,9 +255,9 @@ func listenForTokenCallback(tokenChannel chan string, errorChannel chan error, p
 	s := &http.Server{
 		Addr: "127.0.0.1:0",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", targetUrl)
 			tokenChannel <- r.FormValue("token")
-			csrfToken := r.FormValue("csrf_token")
-			http.Redirect(w, r, fmt.Sprintf("%s/public/fly_success?csrf_token=%s", targetUrl, csrfToken), http.StatusTemporaryRedirect)
+			w.WriteHeader(200)
 		}),
 	}
 

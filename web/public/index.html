@@ -12,6 +12,7 @@
     <script src="{{asset "graph.js"}}"></script>
     <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
     <script src="{{asset "elm.min.js"}}"></script>
+    <script src="{{asset "clipboard.min.js"}}"></script>
     <style>
         @keyframes pipeline-running {
           0% { background-position-x: -53.5px; }
@@ -33,6 +34,7 @@
         turbulenceImgSrc: {{asset "images/buckleup.svg"}},
         notFoundImgSrc: {{asset "images/parachute_error_404.svg"}},
         csrfToken: {{ .CSRFToken }},
+        authToken: {{ .AuthToken }},
         pipelineRunningKeyframes: "pipeline-running"
       });
       var resizeTimer;
@@ -96,7 +98,7 @@
         var path = document.location.pathname;
         var query = document.location.search;
         var redirect = encodeURIComponent(path + query);
-        var loginUrl = "/sky/login?redirect_uri="+ redirect;
+        var loginUrl = "/login?redirect_uri="+ redirect;
         document.location.href = loginUrl;
       });
 
@@ -111,7 +113,7 @@
         var pipelineTeamName = pipelineInfo[1];
 
         var team = $('div[id="' + pipelineTeamName + '"]');
-        var title = team.find('.dashboard-pipeline[data-pipeline-name="' + pipelineName + '"]').find('.dashboard-pipeline-name');
+        var title = team.find('.card[data-pipeline-name="' + pipelineName + '"]').find('.dashboard-pipeline-name');
 
         if(title.get(0).offsetWidth < title.get(0).scrollWidth){
             title.parent().attr('data-tooltip', pipelineName);
@@ -122,7 +124,7 @@
         var pipelineName = pipelineInfo[0];
         var pipelineTeamName = pipelineInfo[1];
 
-        var title = $('.dashboard-pipeline[data-pipeline-name="' + pipelineName + '"][data-team-name="' + pipelineTeamName + '"]').find('.dashboardhd-pipeline-name');
+        var title = $('.card[data-pipeline-name="' + pipelineName + '"][data-team-name="' + pipelineTeamName + '"]').find('.dashboardhd-pipeline-name');
 
         if(title.get(0).offsetWidth < title.get(0).scrollWidth){
             title.parent().attr('data-tooltip', pipelineName);
@@ -142,6 +144,9 @@
         }
       }, false);
 
+    </script>
+    <script>
+      var clipboard = new ClipboardJS('#copy-token');
     </script>
   </body>
 </html>

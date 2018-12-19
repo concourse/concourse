@@ -2,27 +2,42 @@ module DashboardTests
     exposing
         ( all
         , apiData
+        , darkGrey
+        , defineHoverBehaviour
         , givenDataAndUser
         , givenDataUnauthenticated
+        , iconSelector
+        , white
         )
 
+import Char
 import Concourse
 import Concourse.Cli as Cli
+import Concourse.PipelineStatus as PipelineStatus
 import Dashboard
 import Dashboard.APIData as APIData
+import Dashboard.Group as Group
 import Dashboard.Msgs as Msgs
 import Date exposing (Date)
 import Dict
 import Expect exposing (Expectation)
-import Dashboard.Group as Group
 import Html.Attributes as Attr
 import Html.Styled as HS
-import Concourse.PipelineStatus as PipelineStatus
 import RemoteData
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (attribute, class, containing, id, style, tag, text, Selector)
+import Test.Html.Selector
+    exposing
+        ( Selector
+        , attribute
+        , class
+        , containing
+        , id
+        , style
+        , tag
+        , text
+        )
 import Time exposing (Time)
 
 
@@ -83,7 +98,12 @@ white =
 
 fadedGreen : String
 fadedGreen =
-    "rgba(17, 197, 96, 0.2)"
+    "#284834"
+
+
+orange : String
+orange =
+    "#e67e22"
 
 
 pipelineRunningKeyframes : String
@@ -203,6 +223,7 @@ all =
                                                     { name = "os x cli icon"
                                                     , setup = setup ()
                                                     , query = queryView >> Query.find [ id "top-cli-osx" ]
+                                                    , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                                                     , unhoveredSelector =
                                                         { description = "grey apple icon"
                                                         , selector =
@@ -230,6 +251,7 @@ all =
                                                     { name = "windows cli icon"
                                                     , setup = setup ()
                                                     , query = queryView >> Query.find [ id "top-cli-windows" ]
+                                                    , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                                                     , unhoveredSelector =
                                                         { description = "grey windows icon"
                                                         , selector =
@@ -257,6 +279,7 @@ all =
                                                     { name = "linux cli icon"
                                                     , setup = setup ()
                                                     , query = queryView >> Query.find [ id "top-cli-linux" ]
+                                                    , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                                                     , unhoveredSelector =
                                                         { description = "grey linux icon"
                                                         , selector =
@@ -347,116 +370,261 @@ all =
                     |> Query.find
                         [ tag "a" ]
                     |> Query.has
-                        [ attribute <| Attr.href "/teams/team/pipelines/pipeline/jobs/job/builds/1" ]
-        , test "shows team name with no pill when unauthenticated and team has an exposed pipeline" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                    |> queryView
-                    |> teamHeaderHasNoPill "team"
-        , test "shows OWNER pill on team header for team on which user has owner role" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataAndUser
-                        (oneTeamOnePipeline "team")
-                        (userWithRoles [ ( "team", [ "owner" ] ) ])
-                    |> queryView
-                    |> teamHeaderHasPill "team" "OWNER"
-        , test "shows MEMBER pill on team header for team on which user has member role" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataAndUser
-                        (oneTeamOnePipeline "team")
-                        (userWithRoles [ ( "team", [ "member" ] ) ])
-                    |> queryView
-                    |> teamHeaderHasPill "team" "MEMBER"
-        , test "shows VIEWER pill on team header for team on which user has viewer role" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataAndUser
-                        (oneTeamOnePipeline "team")
-                        (userWithRoles [ ( "team", [ "viewer" ] ) ])
-                    |> queryView
-                    |> teamHeaderHasPill "team" "VIEWER"
-        , test "shows no pill on team header for team on which user has no role" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataAndUser
-                        (oneTeamOnePipeline "team")
-                        (userWithRoles [])
-                    |> queryView
-                    |> teamHeaderHasNoPill "team"
-        , test "shows pill for first role on team header for team on which user has multiple roles" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataAndUser
-                        (oneTeamOnePipeline "team")
-                        (userWithRoles [ ( "team", [ "member", "viewer" ] ) ])
-                    |> queryView
-                    |> teamHeaderHasPill "team" "MEMBER"
-        , test "sorts teams according to user role" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataAndUser
-                        (apiData
-                            [ ( "owner-team", [ "pipeline" ] )
-                            , ( "nonmember-team", [] )
-                            , ( "viewer-team", [] )
-                            , ( "member-team", [] )
-                            ]
-                        )
-                        (userWithRoles
-                            [ ( "owner-team", [ "owner" ] )
-                            , ( "member-team", [ "member" ] )
-                            , ( "viewer-team", [ "viewer" ] )
-                            , ( "nonmember-team", [] )
-                            ]
-                        )
-                    |> queryView
-                    |> Query.findAll teamHeaderSelector
-                    |> Expect.all
-                        [ Query.count (Expect.equal 4)
-                        , Query.index 0 >> Query.has [ text "owner-team" ]
-                        , Query.index 1 >> Query.has [ text "member-team" ]
-                        , Query.index 2 >> Query.has [ text "viewer-team" ]
-                        , Query.index 3 >> Query.has [ text "nonmember-team" ]
+                        [ attribute <|
+                            Attr.href "/teams/team/pipelines/pipeline/jobs/job/builds/1"
                         ]
-        , test "team headers lay out contents horizontally, centering vertically" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataUnauthenticated (oneTeamOnePipeline "team")
-                    |> queryView
-                    |> Query.findAll teamHeaderSelector
-                    |> Query.each
-                        (Query.has
-                            [ style
-                                [ ( "display", "flex" )
-                                , ( "align-items", "center" )
-                                ]
-                            ]
-                        )
-        , test "on HD view, there is space between the list of pipelines and the role pill" <|
+        , test "HD view redirects to normal view when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = True }
-                    |> givenDataAndUser
-                        (oneTeamOnePipeline "team")
-                        (userWithRoles [ ( "team", [ "owner" ] ) ])
-                    |> queryView
-                    |> Query.find [ class "dashboard-team-name-wrapper" ]
-                    |> Query.find [ containing [ text "OWNER" ] ]
-                    |> Query.has [ style [ ( "margin-bottom", "1em" ) ] ]
-        , test "on non-HD view, the role pill on a group has no margin below" <|
+                    |> Dashboard.update
+                        (Msgs.APIDataFetched <|
+                            RemoteData.Success
+                                ( 0
+                                , apiData [ ( "team", [] ) ] Nothing
+                                )
+                        )
+                    |> Expect.all
+                        [ Tuple.second
+                            >> Expect.equal [ Dashboard.ModifyUrl "/" ]
+                        , Tuple.first
+                            >> Dashboard.update
+                                (Msgs.APIDataFetched <|
+                                    RemoteData.Success
+                                        ( 0
+                                        , apiData
+                                            [ ( "team", [ "pipeline" ] ) ]
+                                            Nothing
+                                        )
+                                )
+                            >> Tuple.first
+                            >> queryView
+                            >> Expect.all
+                                [ Query.find
+                                    [ class "card-footer" ]
+                                    >> Query.children []
+                                    >> Query.first
+                                    >> Query.children []
+                                    >> Query.index -1
+                                    >> Query.has [ text "pending" ]
+                                , Query.has [ tag "input" ]
+                                ]
+                        ]
+        , test "HD view redirects to no pipelines view when pipelines disappear" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> Dashboard.update
+                        (Msgs.APIDataFetched <|
+                            RemoteData.Success
+                                ( 0
+                                , apiData [ ( "team", [ "pipeline" ] ) ] Nothing
+                                )
+                        )
+                    |> Tuple.first
+                    |> Dashboard.update
+                        (Msgs.APIDataFetched <|
+                            RemoteData.Success
+                                ( 0
+                                , apiData [ ( "team", [] ) ] Nothing
+                                )
+                        )
+                    |> Expect.all
+                        [ Tuple.second
+                            >> Expect.equal [ Dashboard.ModifyUrl "/" ]
+                        , Tuple.first
+                            >> queryView
+                            >> Query.has [ text "welcome to concourse!" ]
+                        ]
+        , test "no search bar when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> givenDataAndUser
-                        (oneTeamOnePipeline "team")
-                        (userWithRoles [ ( "team", [ "owner" ] ) ])
+                    |> Dashboard.update
+                        (Msgs.APIDataFetched <|
+                            RemoteData.Success
+                                ( 0
+                                , apiData [ ( "team", [] ) ] Nothing
+                                )
+                        )
+                    |> Tuple.first
                     |> queryView
-                    |> Query.find teamHeaderSelector
-                    |> Query.find [ containing [ text "OWNER" ] ]
-                    |> Query.has [ style [ ( "margin-bottom", "" ) ] ]
+                    |> Query.hasNot [ tag "input" ]
+        , test "bottom bar appears when there are no pipelines" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Dashboard.update
+                        (Msgs.APIDataFetched <|
+                            RemoteData.Success
+                                ( 0
+                                , apiData [ ( "team", [] ) ] Nothing
+                                )
+                        )
+                    |> Tuple.first
+                    |> queryView
+                    |> Query.has [ id "dashboard-info" ]
+        , test "bottom bar has no legend when there are no pipelines" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Dashboard.update
+                        (Msgs.APIDataFetched <|
+                            RemoteData.Success
+                                ( 0
+                                , apiData [ ( "team", [] ) ] Nothing
+                                )
+                        )
+                    |> Tuple.first
+                    |> queryView
+                    |> Query.hasNot [ id "legend" ]
+        , test "concourse info is right-justified when there are no pipelines" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Dashboard.update
+                        (Msgs.APIDataFetched <|
+                            RemoteData.Success
+                                ( 0
+                                , apiData [ ( "team", [] ) ] Nothing
+                                )
+                        )
+                    |> Tuple.first
+                    |> queryView
+                    |> Query.find [ id "dashboard-info" ]
+                    |> Query.has [ style [ ( "justify-content", "flex-end" ) ] ]
+        , test "pressing '?' does nothing when there are no pipelines" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Dashboard.update
+                        (Msgs.APIDataFetched <|
+                            RemoteData.Success
+                                ( 0
+                                , apiData [ ( "team", [] ) ] Nothing
+                                )
+                        )
+                    |> Tuple.first
+                    |> Dashboard.update (Msgs.KeyPressed (Char.toCode '?'))
+                    |> Tuple.first
+                    |> queryView
+                    |> Query.has [ id "dashboard-info" ]
+        , describe "team pills"
+            [ test
+                ("shows team name with no pill when unauthenticated "
+                    ++ "and team has an exposed pipeline"
+                )
+              <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> queryView
+                        |> teamHeaderHasNoPill "team"
+            , test "shows OWNER pill on team header for team on which user has owner role" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "team")
+                            (userWithRoles [ ( "team", [ "owner" ] ) ])
+                        |> queryView
+                        |> teamHeaderHasPill "team" "OWNER"
+            , test "shows MEMBER pill on team header for team on which user has member role" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "team")
+                            (userWithRoles [ ( "team", [ "member" ] ) ])
+                        |> queryView
+                        |> teamHeaderHasPill "team" "MEMBER"
+            , test "shows VIEWER pill on team header for team on which user has viewer role" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "team")
+                            (userWithRoles [ ( "team", [ "viewer" ] ) ])
+                        |> queryView
+                        |> teamHeaderHasPill "team" "VIEWER"
+            , test "shows no pill on team header for team on which user has no role" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "team")
+                            (userWithRoles [])
+                        |> queryView
+                        |> teamHeaderHasNoPill "team"
+            , test "shows pill for first role on team header for team on which user has multiple roles" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "team")
+                            (userWithRoles [ ( "team", [ "member", "viewer" ] ) ])
+                        |> queryView
+                        |> teamHeaderHasPill "team" "MEMBER"
+            , test "sorts teams according to user role" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (apiData
+                                [ ( "owner-team", [ "pipeline" ] )
+                                , ( "nonmember-team", [] )
+                                , ( "viewer-team", [] )
+                                , ( "member-team", [] )
+                                ]
+                            )
+                            (userWithRoles
+                                [ ( "owner-team", [ "owner" ] )
+                                , ( "member-team", [ "member" ] )
+                                , ( "viewer-team", [ "viewer" ] )
+                                , ( "nonmember-team", [] )
+                                ]
+                            )
+                        |> queryView
+                        |> Query.findAll teamHeaderSelector
+                        |> Expect.all
+                            [ Query.count (Expect.equal 4)
+                            , Query.index 0 >> Query.has [ text "owner-team" ]
+                            , Query.index 1 >> Query.has [ text "member-team" ]
+                            , Query.index 2 >> Query.has [ text "viewer-team" ]
+                            , Query.index 3 >> Query.has [ text "nonmember-team" ]
+                            ]
+            , test "team headers lay out contents horizontally, centering vertically" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataUnauthenticated (oneTeamOnePipeline "team")
+                        |> queryView
+                        |> Query.findAll teamHeaderSelector
+                        |> Query.each
+                            (Query.has
+                                [ style
+                                    [ ( "display", "flex" )
+                                    , ( "align-items", "center" )
+                                    ]
+                                ]
+                            )
+            , test "on HD view, there is space between the list of pipelines and the role pill" <|
+                \_ ->
+                    whenOnDashboard { highDensity = True }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "team")
+                            (userWithRoles [ ( "team", [ "owner" ] ) ])
+                        |> queryView
+                        |> Query.find [ class "dashboard-team-name-wrapper" ]
+                        |> Query.find [ containing [ text "OWNER" ] ]
+                        |> Query.has [ style [ ( "margin-bottom", "1em" ) ] ]
+            , test "on non-HD view, the role pill on a group has no margin below" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "team")
+                            (userWithRoles [ ( "team", [ "owner" ] ) ])
+                        |> queryView
+                        |> Query.find teamHeaderSelector
+                        |> Query.find [ containing [ text "OWNER" ] ]
+                        |> Query.has [ style [ ( "margin-bottom", "" ) ] ]
+            ]
         , describe "pipeline cards" <|
             let
+                findHeader : Query.Single Msgs.Msg -> Query.Single Msgs.Msg
+                findHeader =
+                    Query.find [ class "card-header" ]
+
+                findBody : Query.Single Msgs.Msg -> Query.Single Msgs.Msg
+                findBody =
+                    Query.find [ class "card-body" ]
+
                 pipelineWithStatus :
                     Concourse.BuildStatus
                     -> Bool
@@ -486,10 +654,205 @@ all =
                             )
                             >> queryView
             in
-                [ describe "colored banner" <|
+                [ describe "when team has no visible pipelines" <|
+                    let
+                        noPipelinesCard : () -> Query.Single Msgs.Msg
+                        noPipelinesCard _ =
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated
+                                    (apiData
+                                        [ ( "some-team", [] )
+                                        , ( "other-team", [ "pipeline" ] )
+                                        ]
+                                    )
+                                |> queryView
+                                |> Query.find
+                                    [ class "dashboard-team-group"
+                                    , attribute <|
+                                        Attr.attribute "data-team-name"
+                                            "some-team"
+                                    ]
+                                |> Query.find [ class "card" ]
+                    in
+                        [ describe "header" <|
+                            let
+                                header : () -> Query.Single Msgs.Msg
+                                header =
+                                    noPipelinesCard
+                                        >> findHeader
+                            in
+                                [ test "says 'no pipeline set' in smooth white font" <|
+                                    header
+                                        >> Expect.all
+                                            [ Query.has [ text "no pipeline set" ]
+                                            , Query.has
+                                                [ style
+                                                    [ ( "color", white )
+                                                    , ( "-webkit-font-smoothing"
+                                                      , "antialiased"
+                                                      )
+                                                    ]
+                                                ]
+                                            ]
+                                , test "has dark grey background and 12.5px padding" <|
+                                    header
+                                        >> Query.has
+                                            [ style
+                                                [ ( "background-color", darkGrey )
+                                                , ( "padding", "12.5px" )
+                                                ]
+                                            ]
+                                , test "text is larger and wider spaced" <|
+                                    header
+                                        >> Query.has
+                                            [ style
+                                                [ ( "font-size", "1.5em" )
+                                                , ( "letter-spacing", "0.1em" )
+                                                ]
+                                            ]
+                                , test "text is centered" <|
+                                    header
+                                        >> Query.has
+                                            [ style
+                                                [ ( "text-align", "center" )
+                                                ]
+                                            ]
+                                ]
+                        , describe "body" <|
+                            let
+                                body : () -> Query.Single Msgs.Msg
+                                body =
+                                    noPipelinesCard
+                                        >> Query.find [ class "card-body" ]
+                            in
+                                [ test "has 200px width, 120px height, 20px 36px padding" <|
+                                    body
+                                        >> Query.has
+                                            [ style
+                                                [ ( "width", "200px" )
+                                                , ( "height", "120px" )
+                                                , ( "padding", "20px 36px" )
+                                                ]
+                                            ]
+                                , test "has dark grey background" <|
+                                    body
+                                        >> Query.has
+                                            [ style
+                                                [ ( "background-color", darkGrey )
+                                                ]
+                                            ]
+                                , test "has 2px margins above and below" <|
+                                    body
+                                        >> Query.has
+                                            [ style
+                                                [ ( "margin", "2px 0" )
+                                                ]
+                                            ]
+                                , test "has lighter grey placeholder box that fills" <|
+                                    body
+                                        >> Expect.all
+                                            [ Query.has
+                                                [ style [ ( "display", "flex" ) ] ]
+                                            , Query.children []
+                                                >> Query.first
+                                                >> Query.has
+                                                    [ style
+                                                        [ ( "background-color"
+                                                          , middleGrey
+                                                          )
+                                                        , ( "flex-grow", "1" )
+                                                        ]
+                                                    ]
+                                            ]
+                                ]
+                        , test "footer is dark grey and 47 pixels tall" <|
+                            noPipelinesCard
+                                >> Query.find [ class "card-footer" ]
+                                >> Query.has
+                                    [ style
+                                        [ ( "background-color", darkGrey )
+                                        , ( "height", "47px" )
+                                        ]
+                                    ]
+                        ]
+                , test "has 'move' cursor" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated
+                                (oneTeamOnePipeline "team")
+                            |> queryView
+                            |> Query.find
+                                [ class "card"
+                                , containing [ text "pipeline" ]
+                                ]
+                            |> Query.has [ style [ ( "cursor", "move" ) ] ]
+                , test "has 25px margins" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated
+                                (oneTeamOnePipeline "team")
+                            |> queryView
+                            |> Query.find
+                                [ class "card"
+                                , containing [ text "pipeline" ]
+                                ]
+                            |> Query.has [ style [ ( "margin", "25px" ) ] ]
+                , describe "header" <|
+                    let
+                        header : () -> Query.Single Msgs.Msg
+                        header _ =
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated
+                                    (oneTeamOnePipeline "team")
+                                |> queryView
+                                |> Query.find
+                                    [ class "card"
+                                    , containing [ text "pipeline" ]
+                                    ]
+                                |> findHeader
+                    in
+                        [ test "has dark grey background" <|
+                            header
+                                >> Query.has
+                                    [ style
+                                        [ ( "background-color", darkGrey ) ]
+                                    ]
+                        , test "has larger, spaced-out smooth white text" <|
+                            header
+                                >> Query.has
+                                    [ style
+                                        [ ( "font-size", "1.5em" )
+                                        , ( "letter-spacing", "0.1em" )
+                                        , ( "color", white )
+                                        , ( "-webkit-font-smoothing", "antialiased" )
+                                        ]
+                                    ]
+                        , test "has 12.5px padding" <|
+                            header
+                                >> Query.has
+                                    [ style
+                                        [ ( "padding", "12.5px" ) ]
+                                    ]
+                        , test "text does not overflow or wrap" <|
+                            header
+                                >> Query.children []
+                                >> Query.first
+                                >> Query.has
+                                    [ style
+                                        [ ( "width", "245px" )
+                                        , ( "white-space", "nowrap" )
+                                        , ( "overflow", "hidden" )
+                                        , ( "text-overflow", "ellipsis" )
+                                        ]
+                                    ]
+                        ]
+                , describe "colored banner" <|
                     let
                         findBanner =
-                            Query.find [ class "dashboard-pipeline", containing [ text "pipeline" ] ]
+                            Query.find
+                                [ class "card"
+                                , containing [ text "pipeline" ]
+                                ]
                                 >> Query.children []
                                 >> Query.first
 
@@ -868,117 +1231,303 @@ all =
                                 ]
                             ]
                         ]
-                , describe "on HD view"
-                    [ test "card lays out contents horizontally" <|
-                        \_ ->
+                , describe "on HD view" <|
+                    let
+                        setup : () -> Query.Single Msgs.Msg
+                        setup _ =
                             whenOnDashboard { highDensity = True }
                                 |> givenDataUnauthenticated
                                     (oneTeamOnePipeline "team")
                                 |> queryView
-                                |> Query.find
-                                    [ class "dashboard-pipeline"
-                                    , containing [ text "pipeline" ]
-                                    ]
-                                |> Query.has [ style [ ( "display", "flex" ) ] ]
-                    , test "card is 60px tall" <|
-                        \_ ->
+
+                        noPipelines : () -> Query.Single Msgs.Msg
+                        noPipelines _ =
                             whenOnDashboard { highDensity = True }
                                 |> givenDataUnauthenticated
-                                    (oneTeamOnePipeline "team")
+                                    (apiData
+                                        [ ( "some-team", [] )
+                                        , ( "other-team", [ "pipeline" ] )
+                                        ]
+                                    )
                                 |> queryView
-                                |> Query.find
-                                    [ class "dashboard-pipeline"
-                                    , containing [ text "pipeline" ]
+
+                        card : Query.Single Msgs.Msg -> Query.Single Msgs.Msg
+                        card =
+                            Query.find
+                                [ class "card"
+                                , containing [ text "pipeline" ]
+                                ]
+
+                        cardText : Query.Single Msgs.Msg -> Query.Single Msgs.Msg
+                        cardText =
+                            card
+                                >> Query.children []
+                                >> Query.index 1
+
+                        noPipelinesCard =
+                            Query.find
+                                [ class "card"
+                                , containing [ text "no pipeline" ]
+                                ]
+                    in
+                        [ test "no pipelines card has 14px font and 1px spacing" <|
+                            noPipelines
+                                >> noPipelinesCard
+                                >> Query.has
+                                    [ style
+                                        [ ( "font-size", "14px" )
+                                        , ( "letter-spacing", "1px" )
+                                        ]
                                     ]
-                                |> Query.has [ style [ ( "height", "60px" ) ] ]
-                    , test "card is 200px wide" <|
-                        \_ ->
-                            whenOnDashboard { highDensity = True }
-                                |> givenDataUnauthenticated
-                                    (oneTeamOnePipeline "team")
-                                |> queryView
-                                |> Query.find
-                                    [ class "dashboard-pipeline"
-                                    , containing [ text "pipeline" ]
+                        , test "no pipelines card text is vertically centered" <|
+                            noPipelines
+                                >> noPipelinesCard
+                                >> Query.has
+                                    [ style
+                                        [ ( "display", "flex" )
+                                        , ( "align-items", "center" )
+                                        ]
                                     ]
-                                |> Query.has [ style [ ( "width", "200px" ) ] ]
-                    , test "card is positioned relatively to anchor resource error triangle" <|
-                        \_ ->
-                            whenOnDashboard { highDensity = True }
-                                |> givenDataUnauthenticated
-                                    (oneTeamOnePipeline "team")
-                                |> queryView
-                                |> Query.find
-                                    [ class "dashboard-pipeline"
-                                    , containing [ text "pipeline" ]
+                        , test "no pipelines card is 60px tall" <|
+                            noPipelines
+                                >> noPipelinesCard
+                                >> Query.has [ style [ ( "height", "60px" ) ] ]
+                        , test "no pipelines card has 60px right margin" <|
+                            noPipelines
+                                >> noPipelinesCard
+                                >> Query.has [ style [ ( "margin-right", "60px" ) ] ]
+                        , test "no pipelines card text has 10px padding" <|
+                            noPipelines
+                                >> noPipelinesCard
+                                >> Query.children []
+                                >> Query.index 1
+                                >> Query.has [ style [ ( "padding", "10px" ) ] ]
+                        , test "no pipelines card is 200px wide" <|
+                            noPipelines
+                                >> noPipelinesCard
+                                >> Query.has [ style [ ( "width", "200px" ) ] ]
+                        , test "no pipelines card has dark grey background" <|
+                            noPipelines
+                                >> noPipelinesCard
+                                >> Query.has
+                                    [ style
+                                        [ ( "background-color", darkGrey ) ]
                                     ]
-                                |> Query.has [ style [ ( "position", "relative" ) ] ]
-                    , test "cards are spaced 4px apart vertically and 60px apart horizontally" <|
-                        \_ ->
-                            whenOnDashboard { highDensity = True }
-                                |> givenDataUnauthenticated
-                                    (oneTeamOnePipeline "team")
-                                |> queryView
-                                |> Query.find
-                                    [ class "dashboard-pipeline"
-                                    , containing [ text "pipeline" ]
+                        , test "card has larger tighter font" <|
+                            setup
+                                >> card
+                                >> Query.has
+                                    [ style
+                                        [ ( "font-size", "19px" )
+                                        , ( "letter-spacing", "1px" )
+                                        ]
                                     ]
-                                |> Query.has [ style [ ( "margin", "0 60px 4px 0" ) ] ]
-                    ]
-                , describe "body"
-                    [ describe "on HD view"
-                        [ test "is faded green when pipeline is suceeding" <|
+                        , test "card text does not overflow or wrap" <|
+                            setup
+                                >> cardText
+                                >> Query.has
+                                    [ style
+                                        [ ( "width", "180px" )
+                                        , ( "white-space", "nowrap" )
+                                        , ( "overflow", "hidden" )
+                                        , ( "text-overflow", "ellipsis" )
+                                        ]
+                                    ]
+                        , test "card text is vertically centered" <|
+                            setup
+                                >> cardText
+                                >> Query.has
+                                    [ style [ ( "align-self", "center" ) ] ]
+                        , test "card text has 10px padding" <|
+                            setup
+                                >> cardText
+                                >> Query.has
+                                    [ style [ ( "padding", "10px" ) ] ]
+                        , test "card lays out contents horizontally" <|
+                            setup
+                                >> card
+                                >> Query.has
+                                    [ style [ ( "display", "flex" ) ] ]
+                        , test "card is 60px tall" <|
+                            setup
+                                >> card
+                                >> Query.has [ style [ ( "height", "60px" ) ] ]
+                        , test "card is 200px wide" <|
+                            setup
+                                >> card
+                                >> Query.has [ style [ ( "width", "200px" ) ] ]
+                        , test "no triangle when there is no resource error" <|
+                            setup
+                                >> card
+                                >> Query.children []
+                                >> Query.count (Expect.equal 2)
+                        , describe "resource error triangle" <|
+                            let
+                                givenResourceError : () -> Query.Single Msgs.Msg
+                                givenResourceError _ =
+                                    whenOnDashboard { highDensity = True }
+                                        |> givenDataUnauthenticated
+                                            (\user ->
+                                                { teams =
+                                                    [ { id = 0
+                                                      , name = "team"
+                                                      }
+                                                    ]
+                                                , pipelines =
+                                                    [ { id = 0
+                                                      , name = "pipeline"
+                                                      , paused = False
+                                                      , public = True
+                                                      , teamName = "team"
+                                                      , groups = []
+                                                      }
+                                                    ]
+                                                , jobs = []
+                                                , resources =
+                                                    [ { teamName = "team"
+                                                      , pipelineName = "pipeline"
+                                                      , name = "resource"
+                                                      , failingToCheck = True
+                                                      , checkError = ""
+                                                      , checkSetupError = ""
+                                                      , lastChecked = Nothing
+                                                      , pinnedVersion = Nothing
+                                                      , pinnedInConfig = False
+                                                      }
+                                                    ]
+                                                , version = ""
+                                                , user = user
+                                                }
+                                            )
+                                        |> queryView
+
+                                resourceErrorTriangle =
+                                    Query.children []
+                                        >> Query.index -1
+                            in
+                                [ test "exists" <|
+                                    givenResourceError
+                                        >> card
+                                        >> Query.children []
+                                        >> Query.count (Expect.equal 3)
+                                , test "is at the top right of card" <|
+                                    givenResourceError
+                                        >> card
+                                        >> Expect.all
+                                            [ Query.has
+                                                [ style
+                                                    [ ( "position"
+                                                      , "relative"
+                                                      )
+                                                    ]
+                                                ]
+                                            , resourceErrorTriangle
+                                                >> Query.has
+                                                    [ style
+                                                        [ ( "position"
+                                                          , "absolute"
+                                                          )
+                                                        , ( "top", "0" )
+                                                        , ( "right", "0" )
+                                                        ]
+                                                    ]
+                                            ]
+                                , test "is an orange 'top right' triangle" <|
+                                    givenResourceError
+                                        >> card
+                                        >> resourceErrorTriangle
+                                        >> Query.has
+                                            [ style
+                                                [ ( "width", "0" )
+                                                , ( "height", "0" )
+                                                , ( "border-top"
+                                                  , "30px solid " ++ orange
+                                                  )
+                                                , ( "border-left"
+                                                  , "30px solid transparent"
+                                                  )
+                                                ]
+                                            ]
+                                ]
+                        , test
+                            ("cards are spaced 4px apart vertically and "
+                                ++ "60px apart horizontally"
+                            )
+                          <|
+                            setup
+                                >> card
+                                >> Query.has
+                                    [ style [ ( "margin", "0 60px 4px 0" ) ] ]
+                        , test "card is faded green when pipeline is suceeding" <|
                             \_ ->
                                 whenOnDashboard { highDensity = True }
                                     |> pipelineWithStatus
                                         Concourse.BuildStatusSucceeded
                                         False
-                                    |> Query.find
-                                        [ class "dashboard-pipeline"
-                                        , containing [ text "pipeline" ]
-                                        ]
-                                    |> Query.children []
-                                    |> Query.index 1
+                                    |> card
                                     |> Query.has
                                         [ style
                                             [ ( "background-color", fadedGreen )
                                             ]
                                         ]
-                        , test "is red when pipeline is failing" <|
+                        , test "card is red when pipeline is failing" <|
                             \_ ->
                                 whenOnDashboard { highDensity = True }
                                     |> pipelineWithStatus
                                         Concourse.BuildStatusFailed
                                         False
-                                    |> Query.find
-                                        [ class "dashboard-pipeline"
-                                        , containing [ text "pipeline" ]
-                                        ]
-                                    |> Query.children []
-                                    |> Query.index 1
+                                    |> card
                                     |> Query.has
                                         [ style
                                             [ ( "background-color", red )
                                             ]
                                         ]
-                        , test "is amber when pipeline is erroring" <|
+                        , test "card is amber when pipeline is erroring" <|
                             \_ ->
                                 whenOnDashboard { highDensity = True }
                                     |> pipelineWithStatus
                                         Concourse.BuildStatusErrored
                                         False
-                                    |> Query.find
-                                        [ class "dashboard-pipeline"
-                                        , containing [ text "pipeline" ]
-                                        ]
-                                    |> Query.children []
-                                    |> Query.index 1
+                                    |> card
                                     |> Query.has
                                         [ style
                                             [ ( "background-color", amber )
                                             ]
                                         ]
                         ]
+                , describe "body"
+                    [ test "has dark grey background" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated
+                                    (oneTeamOnePipeline "team")
+                                |> queryView
+                                |> Query.find
+                                    [ class "card"
+                                    , containing [ text "pipeline" ]
+                                    ]
+                                |> findBody
+                                |> Query.has
+                                    [ style
+                                        [ ( "background-color", darkGrey )
+                                        ]
+                                    ]
+                    , test "has 2x margin above and below" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated
+                                    (oneTeamOnePipeline "team")
+                                |> queryView
+                                |> Query.find
+                                    [ class "card"
+                                    , containing [ text "pipeline" ]
+                                    ]
+                                |> findBody
+                                |> Query.has
+                                    [ style
+                                        [ ( "margin", "2px 0" )
+                                        ]
+                                    ]
                     ]
                 , describe "footer" <|
                     let
@@ -989,12 +1538,12 @@ all =
                                     (oneTeamOnePipeline "team")
                                     (userWithRoles [ ( "team", [ "owner" ] ) ])
                                 |> queryView
-                                |> Query.find [ class "dashboard-pipeline-footer" ]
+                                |> Query.find [ class "card-footer" ]
                                 |> Query.has [ style styles ]
                     in
-                        [ test "there is a middle grey line dividing the footer from the rest of the card" <|
+                        [ test "has dark grey background" <|
                             \_ ->
-                                hasStyle [ ( "border-top", "2px solid " ++ middleGrey ) ]
+                                hasStyle [ ( "background-color", darkGrey ) ]
                         , test "has medium padding" <|
                             \_ ->
                                 hasStyle [ ( "padding", "13.5px" ) ]
@@ -1008,7 +1557,7 @@ all =
                                         (oneTeamOnePipeline "team")
                                         (userWithRoles [ ( "team", [ "owner" ] ) ])
                                     |> queryView
-                                    |> Query.find [ class "dashboard-pipeline-footer" ]
+                                    |> Query.find [ class "card-footer" ]
                                     |> Expect.all
                                         [ Query.children []
                                             >> Query.count (Expect.equal 2)
@@ -1022,20 +1571,20 @@ all =
                                         (oneTeamOnePipeline "team")
                                         (userWithRoles [ ( "team", [ "owner" ] ) ])
                                     |> queryView
-                                    |> Query.find [ class "dashboard-pipeline-footer" ]
+                                    |> Query.find [ class "card-footer" ]
                                     |> Query.children []
                                     |> Query.each (Query.has [ style [ ( "display", "flex" ) ] ])
                         , describe "left-hand section" <|
                             let
                                 findStatusIcon =
-                                    Query.find [ class "dashboard-pipeline-footer" ]
+                                    Query.find [ class "card-footer" ]
                                         >> Query.children []
                                         >> Query.first
                                         >> Query.children []
                                         >> Query.first
 
                                 findStatusText =
-                                    Query.find [ class "dashboard-pipeline-footer" ]
+                                    Query.find [ class "card-footer" ]
                                         >> Query.children []
                                         >> Query.first
                                         >> Query.children []
@@ -1274,7 +1823,7 @@ all =
                                             (oneTeamOnePipeline "team")
                                             (userWithRoles [ ( "team", [ "owner" ] ) ])
                                         |> queryView
-                                        |> Query.find [ class "dashboard-pipeline-footer" ]
+                                        |> Query.find [ class "card-footer" ]
                                         |> Query.children []
                                         |> Query.index -1
                                         |> Query.children []
@@ -1297,7 +1846,7 @@ all =
                                             (oneTeamOnePipelineNonPublic "team")
                                             (userWithRoles [ ( "team", [ "owner" ] ) ])
                                         |> queryView
-                                        |> Query.find [ class "dashboard-pipeline-footer" ]
+                                        |> Query.find [ class "card-footer" ]
                                         |> Query.children []
                                         |> Query.index -1
                                         |> Query.children []
@@ -1316,7 +1865,7 @@ all =
                                             (oneTeamOnePipeline "team")
                                             (userWithRoles [ ( "team", [ "owner" ] ) ])
                                         |> queryView
-                                        |> Query.find [ class "dashboard-pipeline-footer" ]
+                                        |> Query.find [ class "card-footer" ]
                                         |> Query.children []
                                         |> Query.index -1
                                         |> Query.children []
@@ -1331,7 +1880,7 @@ all =
                                             (oneTeamOnePipeline "team")
                                             (userWithRoles [ ( "team", [ "owner" ] ) ])
                                         |> queryView
-                                        |> Query.find [ class "dashboard-pipeline-footer" ]
+                                        |> Query.find [ class "card-footer" ]
                                         |> Query.children []
                                         |> Query.index -1
                                         |> Query.children []
@@ -1349,7 +1898,7 @@ all =
                                             (oneTeamOnePipeline "team")
                                             (userWithRoles [ ( "team", [ "owner" ] ) ])
                                         |> queryView
-                                        |> Query.find [ class "dashboard-pipeline-footer" ]
+                                        |> Query.find [ class "card-footer" ]
                                         |> Query.find
                                             (iconSelector
                                                 { size = "20px"
@@ -1364,7 +1913,7 @@ all =
                                             (oneTeamOnePipeline "team")
                                             (userWithRoles [ ( "team", [ "owner" ] ) ])
                                         |> queryView
-                                        |> Query.find [ class "dashboard-pipeline-footer" ]
+                                        |> Query.find [ class "card-footer" ]
                                         |> Query.find
                                             (iconSelector
                                                 { size = "20px"
@@ -1383,15 +1932,16 @@ all =
                                     Dashboard.view
                                         >> HS.toUnstyled
                                         >> Query.fromHtml
-                                        >> Query.find [ class "dashboard-pipeline-footer" ]
+                                        >> Query.find [ class "card-footer" ]
                                         >> Query.children []
                                         >> Query.index -1
                                         >> Query.children []
                                         >> Query.index 0
+                                , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                                 , unhoveredSelector =
                                     { description = "a faded 20px square pause button with pointer cursor"
                                     , selector =
-                                        (iconSelector
+                                        iconSelector
                                             { size = "20px"
                                             , image = "ic_pause_white.svg"
                                             }
@@ -1400,7 +1950,6 @@ all =
                                                     , ( "opacity", "0.5" )
                                                     ]
                                                ]
-                                        )
                                     }
                                 , mouseEnterMsg =
                                     Msgs.PipelineButtonHover <|
@@ -1417,7 +1966,7 @@ all =
                                 , hoveredSelector =
                                     { description = "a bright 20px square pause button with pointer cursor"
                                     , selector =
-                                        (iconSelector
+                                        iconSelector
                                             { size = "20px"
                                             , image = "ic_pause_white.svg"
                                             }
@@ -1426,7 +1975,6 @@ all =
                                                     , ( "opacity", "1" )
                                                     ]
                                                ]
-                                        )
                                     }
                                 }
                             , defineHoverBehaviour
@@ -1440,15 +1988,16 @@ all =
                                     Dashboard.view
                                         >> HS.toUnstyled
                                         >> Query.fromHtml
-                                        >> Query.find [ class "dashboard-pipeline-footer" ]
+                                        >> Query.find [ class "card-footer" ]
                                         >> Query.children []
                                         >> Query.index -1
                                         >> Query.children []
                                         >> Query.index 0
+                                , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                                 , unhoveredSelector =
                                     { description = "a transparent 20px square play button with pointer cursor"
                                     , selector =
-                                        (iconSelector
+                                        iconSelector
                                             { size = "20px"
                                             , image = "ic_play_white.svg"
                                             }
@@ -1457,7 +2006,6 @@ all =
                                                     , ( "opacity", "0.5" )
                                                     ]
                                                ]
-                                        )
                                     }
                                 , mouseEnterMsg =
                                     Msgs.PipelineButtonHover <|
@@ -1474,7 +2022,7 @@ all =
                                 , hoveredSelector =
                                     { description = "an opaque 20px square play button with pointer cursor"
                                     , selector =
-                                        (iconSelector
+                                        iconSelector
                                             { size = "20px"
                                             , image = "ic_play_white.svg"
                                             }
@@ -1483,7 +2031,6 @@ all =
                                                     , ( "opacity", "1" )
                                                     ]
                                                ]
-                                        )
                                     }
                                 }
                             ]
@@ -1926,6 +2473,7 @@ all =
                                         , containing [ tag "i", class "fa-apple" ]
                                         ]
                                     }
+                                , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                                 , mouseEnterMsg = Msgs.CliHover <| Just Cli.OSX
                                 , mouseLeaveMsg = Msgs.CliHover Nothing
                                 , hoveredSelector =
@@ -1952,6 +2500,7 @@ all =
                                         , containing [ tag "i", class "fa-windows" ]
                                         ]
                                     }
+                                , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                                 , mouseEnterMsg = Msgs.CliHover <| Just Cli.Windows
                                 , mouseLeaveMsg = Msgs.CliHover Nothing
                                 , hoveredSelector =
@@ -1978,6 +2527,7 @@ all =
                                         , containing [ tag "i", class "fa-linux" ]
                                         ]
                                     }
+                                , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                                 , mouseEnterMsg = Msgs.CliHover <| Just Cli.Linux
                                 , mouseLeaveMsg = Msgs.CliHover Nothing
                                 , hoveredSelector =
@@ -2032,15 +2582,16 @@ all =
 
 defineHoverBehaviour :
     { name : String
-    , setup : Dashboard.Model
-    , query : Dashboard.Model -> Query.Single Msgs.Msg
+    , setup : model
+    , query : model -> Query.Single msg
     , unhoveredSelector : { description : String, selector : List Selector }
-    , mouseEnterMsg : Msgs.Msg
-    , mouseLeaveMsg : Msgs.Msg
+    , mouseEnterMsg : msg
+    , mouseLeaveMsg : msg
+    , updateFunc : msg -> model -> model
     , hoveredSelector : { description : String, selector : List Selector }
     }
     -> Test
-defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mouseLeaveMsg, hoveredSelector } =
+defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mouseLeaveMsg, updateFunc, hoveredSelector } =
     describe (name ++ " hover behaviour")
         [ test (name ++ " is " ++ unhoveredSelector.description) <|
             \_ ->
@@ -2063,15 +2614,13 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mou
           <|
             \_ ->
                 setup
-                    |> Dashboard.update mouseEnterMsg
-                    |> Tuple.first
+                    |> updateFunc mouseEnterMsg
                     |> query
                     |> Query.has hoveredSelector.selector
         , test ("mousing off " ++ name ++ " triggers " ++ toString mouseLeaveMsg ++ " msg") <|
             \_ ->
                 setup
-                    |> Dashboard.update mouseEnterMsg
-                    |> Tuple.first
+                    |> updateFunc mouseEnterMsg
                     |> query
                     |> Event.simulate Event.mouseLeave
                     |> Event.expect mouseLeaveMsg
@@ -2085,10 +2634,8 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mou
           <|
             \_ ->
                 setup
-                    |> Dashboard.update mouseEnterMsg
-                    |> Tuple.first
-                    |> Dashboard.update mouseLeaveMsg
-                    |> Tuple.first
+                    |> updateFunc mouseEnterMsg
+                    |> updateFunc mouseLeaveMsg
                     |> query
                     |> Query.has unhoveredSelector.selector
         ]

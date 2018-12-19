@@ -15,29 +15,25 @@ var _ = Describe("Ephemeral workers", func() {
 	var (
 		proxySession *gexec.Session
 		releaseName  string
+		namespace    string
 		atcEndpoint  string
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-ephemeral-workers-%d", GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-ew-%d-%d", GinkgoRandomSeed(), GinkgoParallelNode())
+		namespace = releaseName
 
-		helmDeploy(releaseName,
+		deployConcourseChart(releaseName,
 			// TODO: https://github.com/concourse/concourse/issues/2827
 			"--set=concourse.web.gc.interval=300ms",
 			"--set=concourse.web.tsa.heartbeatInterval=300ms",
-			"--set=concourse.worker.ephemeral=true",
 			"--set=worker.replicas=1",
-			"--set=concourse.worker.baggageclaim.driver=detect")
+			"--set=concourse.worker.baggageclaim.driver=overlay")
 
-		Eventually(func() bool {
-			expectedPods := getPodsNames(getPods(releaseName))
-			actualPods := getPodsNames(getPods(releaseName, "--field-selector=status.phase=Running"))
-
-			return len(expectedPods) == len(actualPods)
-		}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "expected all pods to be running")
+		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(releaseName+"-web", "8080")
+		proxySession, atcEndpoint = startPortForwarding(namespace, releaseName+"-web", "8080")
 
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)
@@ -51,6 +47,7 @@ var _ = Describe("Ephemeral workers", func() {
 
 	AfterEach(func() {
 		helmDestroy(releaseName)
+		Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
 		Wait(proxySession.Interrupt())
 	})
 

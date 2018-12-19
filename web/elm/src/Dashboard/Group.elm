@@ -1,12 +1,45 @@
-port module Dashboard.Group exposing (..)
+port module Dashboard.Group
+    exposing
+        ( DragState(..)
+        , DropState(..)
+        , Group
+        , PipelineIndex
+        , StickyHeaderConfig
+        , allPipelines
+        , allTeamNames
+        , dragIndex
+        , dragIndexOptional
+        , dropIndex
+        , dropIndexOptional
+        , findGroupOptional
+        , group
+        , groups
+        , hdView
+        , jobStatus
+        , ordering
+        , pinTeamNames
+        , pipelineDropAreaView
+        , pipelineNotSetView
+        , pipelineStatus
+        , setDragIndex
+        , setDropIndex
+        , setTeamName
+        , shiftPipelineTo
+        , shiftPipelines
+        , stickyHeaderConfig
+        , teamName
+        , teamNameOptional
+        , transition
+        , view
+        )
 
-import Concourse.BuildStatus
 import Concourse
+import Concourse.BuildStatus
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.APIData exposing (APIData)
 import Dashboard.Group.Tag as Tag
-import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Models as Models
+import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.Styles as Styles
 import Date exposing (Date)
@@ -386,7 +419,7 @@ view { dragState, dropState, now, hoveredPipeline, pipelineRunningKeyframes } gr
                                 [ pipelineDropAreaView dragState dropState group.teamName i
                                 , Html.div
                                     [ classList
-                                        [ ( "dashboard-pipeline", True )
+                                        [ ( "card", True )
                                         , ( "dragging"
                                           , dragState == Dragging pipeline.teamName i
                                           )
@@ -400,19 +433,11 @@ view { dragState, dropState, now, hoveredPipeline, pipelineRunningKeyframes } gr
                                         (Json.Decode.succeed (DragStart pipeline.teamName i))
                                     , on "dragend" (Json.Decode.succeed DragEnd)
                                     ]
-                                    [ Html.div
-                                        [ class "dashboard-pipeline-banner"
-                                        , style <|
-                                            Styles.pipelineCardBanner
-                                                { status = pipeline.status
-                                                , pipelineRunningKeyframes = pipelineRunningKeyframes
-                                                }
-                                        ]
-                                        []
-                                    , Pipeline.pipelineView
+                                    [ Pipeline.pipelineView
                                         { now = now
                                         , pipeline = pipeline
                                         , hovered = hoveredPipeline == Just pipeline
+                                        , pipelineRunningKeyframes = pipelineRunningKeyframes
                                         }
                                     ]
                                 ]
@@ -472,14 +497,12 @@ hdView pipelineRunningKeyframes group =
 pipelineNotSetView : Html msg
 pipelineNotSetView =
     Html.div
-        [ class "dashboard-pipeline" ]
+        [ class "card" ]
         [ Html.div
-            [ classList
-                [ ( "dashboard-pipeline-content", True )
-                , ( "no-set", True )
-                ]
-            ]
-            [ Html.a [] [ Html.text "no pipelines set" ]
+            [ style Styles.noPipelineCardHd ]
+            [ Html.div
+                [ style Styles.noPipelineCardTextHd ]
+                [ Html.text "no pipelines set" ]
             ]
         ]
 

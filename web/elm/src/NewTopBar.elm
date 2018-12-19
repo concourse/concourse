@@ -6,12 +6,10 @@ module NewTopBar
         , view
         , logOut
         , queryStringFromSearch
-        , showSearchInput
         )
 
 import Concourse.User
 import Dashboard.Msgs exposing (Msg(..))
-import Dom
 import Dashboard.Group as Group
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as HA
@@ -41,6 +39,7 @@ type alias Model r =
         , searchBar : SearchBar
         , groups : List Group.Group
         , screenSize : ScreenSize
+        , highDensity : Bool
     }
 
 
@@ -63,28 +62,6 @@ queryStringFromSearch query =
         query ->
             QueryString.render <|
                 QueryString.add "search" query QueryString.empty
-
-
-showSearchInput : Model r -> ( Model r, Cmd Msg )
-showSearchInput model =
-    let
-        newModel =
-            { model
-                | searchBar =
-                    Expanded
-                        { query = ""
-                        , selectionMade = False
-                        , showAutocomplete = False
-                        , selection = 0
-                        }
-            }
-    in
-        case model.searchBar of
-            Collapsed ->
-                ( newModel, Task.attempt (always Noop) (Dom.focus "search-input-field") )
-
-            _ ->
-                ( model, Cmd.none )
 
 
 viewUserState : { a | userState : UserState, userMenuVisible : Bool } -> List (Html Msg)
@@ -168,41 +145,47 @@ viewConcourseLogo =
 
 viewMiddleSection : Model r -> List (Html Msg)
 viewMiddleSection model =
-    case model.searchBar of
-        Invisible ->
-            []
-
-        Collapsed ->
-            [ Html.div [ css <| Styles.middleSection model ]
-                [ Html.a
-                    [ id "search-button"
-                    , onClick ShowSearchInput
-                    , css Styles.searchButton
+    if hideSearch model then
+        []
+    else
+        case model.searchBar of
+            Collapsed ->
+                [ Html.div [ css <| Styles.middleSection model ]
+                    [ Html.a
+                        [ id "search-button"
+                        , onClick ShowSearchInput
+                        , css Styles.searchButton
+                        ]
+                        []
                     ]
-                    []
                 ]
-            ]
 
-        Expanded r ->
-            [ Html.div [ css <| Styles.middleSection model ] <|
-                (searchInput { query = r.query, screenSize = model.screenSize }
-                    ++ (if r.showAutocomplete then
-                            [ Html.ul
-                                [ css <| Styles.searchOptionsList model.screenSize ]
-                                (viewAutocomplete
-                                    { query = r.query
-                                    , groups = model.groups
-                                    , selectionMade = r.selectionMade
-                                    , selection = r.selection
-                                    , screenSize = model.screenSize
-                                    }
-                                )
-                            ]
-                        else
-                            []
-                       )
-                )
-            ]
+            Expanded r ->
+                [ Html.div [ css <| Styles.middleSection model ] <|
+                    (searchInput { query = r.query, screenSize = model.screenSize }
+                        ++ (if r.showAutocomplete then
+                                [ Html.ul
+                                    [ css <| Styles.searchOptionsList model.screenSize ]
+                                    (viewAutocomplete
+                                        { query = r.query
+                                        , groups = model.groups
+                                        , selectionMade = r.selectionMade
+                                        , selection = r.selection
+                                        , screenSize = model.screenSize
+                                        }
+                                    )
+                                ]
+                            else
+                                []
+                           )
+                    )
+                ]
+
+
+hideSearch : { a | highDensity : Bool, groups : List Group.Group } -> Bool
+hideSearch model =
+    model.highDensity
+        || List.isEmpty (model.groups |> List.concatMap .pipelines)
 
 
 viewAutocomplete :

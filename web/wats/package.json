@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/concourse/atc/issues"
   },
-  "homepage": "https://github.com/concourse/atc#readme"
+  "homepage": "https://github.com/concourse/atc#readme",
+  "ava": {
+    "timeout": "5m"
+  }
 }

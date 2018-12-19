@@ -3,7 +3,6 @@ package worker_test
 import (
 	"time"
 
-	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/garden/gardenfakes"
 
 	"code.cloudfoundry.org/lager/lagertest"
@@ -24,7 +23,6 @@ var _ = Describe("Worker", func() {
 	var (
 		logger                 *lagertest.TestLogger
 		fakeVolumeClient       *wfakes.FakeVolumeClient
-		fakeClock              *fakeclock.FakeClock
 		fakeContainerProvider  *wfakes.FakeContainerProvider
 		activeContainers       int
 		resourceTypes          []atc.WorkerResourceType
@@ -34,7 +32,6 @@ var _ = Describe("Worker", func() {
 		ephemeral              bool
 		workerName             string
 		workerStartTime        int64
-		workerUptime           uint64
 		gardenWorker           Worker
 		workerVersion          string
 		fakeGardenClient       *gardenfakes.FakeClient
@@ -44,7 +41,6 @@ var _ = Describe("Worker", func() {
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeVolumeClient = new(wfakes.FakeVolumeClient)
-		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		activeContainers = 42
 		resourceTypes = []atc.WorkerResourceType{
 			{
@@ -58,8 +54,7 @@ var _ = Describe("Worker", func() {
 		teamID = 17
 		ephemeral = true
 		workerName = "some-worker"
-		workerStartTime = fakeClock.Now().Unix()
-		workerUptime = 0
+		workerStartTime = time.Now().Unix()
 		workerVersion = "1.2.3"
 
 		fakeContainerProvider = new(wfakes.FakeContainerProvider)
@@ -85,11 +80,9 @@ var _ = Describe("Worker", func() {
 			fakeContainerProvider,
 			fakeVolumeClient,
 			dbWorker,
-			fakeClock,
 			0,
 		)
 
-		fakeClock.IncrementBySeconds(workerUptime)
 	})
 
 	Describe("IsVersionCompatible", func() {

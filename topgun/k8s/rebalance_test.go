@@ -15,29 +15,26 @@ import (
 var _ = Describe("Worker Rebalancing", func() {
 	var (
 		releaseName  string
+		namespace    string
 		proxySession *gexec.Session
 		atcEndpoint  string
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-worker-rebalancing-%d", GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-wr-%d-%d", GinkgoRandomSeed(), GinkgoParallelNode())
+		namespace = releaseName
 
-		helmDeploy(releaseName,
+		deployConcourseChart(releaseName,
 			"--set=concourse.worker.ephemeral=true",
 			"--set=worker.replicas=1",
 			"--set=web.replicas=2",
 			"--set=concourse.worker.rebalanceInterval=5s",
 			"--set=concourse.worker.baggageclaim.driver=detect")
 
-		Eventually(func() bool {
-			expectedPods := getPodsNames(getPods(releaseName))
-			actualPods := getPodsNames(getPods(releaseName, "--field-selector=status.phase=Running"))
-
-			return len(expectedPods) == len(actualPods)
-		}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "expected all pods to be running")
+		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(releaseName+"-web", "8080")
+		proxySession, atcEndpoint = startPortForwarding(namespace, releaseName+"-web", "8080")
 
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)
@@ -51,6 +48,7 @@ var _ = Describe("Worker Rebalancing", func() {
 
 	AfterEach(func() {
 		helmDestroy(releaseName)
+		Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
 		Wait(proxySession.Interrupt())
 	})
 

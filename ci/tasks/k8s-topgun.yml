@@ -3,12 +3,12 @@ platform: linux
 
 image_resource:
   type: registry-image
-  source: {repository: concourse/unit}
+  source: {repository: concourse/k8s-dev}
 
 params:
-  CONCOURSE_IMAGE_DIGEST:
-  CONCOURSE_DIGEST_FILE:
+  CONCOURSE_CHART_DIR:
   CONCOURSE_IMAGE_NAME:
+  CONCOURSE_IMAGE_TAG:
   KUBE_CONFIG:
 
 inputs:

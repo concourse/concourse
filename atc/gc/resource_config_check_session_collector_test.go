@@ -18,7 +18,6 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 	var (
 		collector                           gc.Collector
 		resourceConfigCheckSessionLifecycle db.ResourceConfigCheckSessionLifecycle
-		resourceConfigFactory               db.ResourceConfigFactory
 		resourceConfig                      db.ResourceConfig
 		ownerExpiries                       db.ContainerOwnerExpiries
 		resource                            db.Resource
@@ -47,16 +46,12 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger,
-				"some-base-type",
+			resourceConfig, err = resource.SetResourceConfig(
+				logger,
 				atc.Source{
 					"some": "source",
 				},
-				creds.VersionedResourceTypes{},
-			)
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resource.SetResourceConfig(resourceConfig.ID())
+				creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			owner = db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, ownerExpiries)

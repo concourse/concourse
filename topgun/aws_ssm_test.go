@@ -133,7 +133,10 @@ var _ = Describe("AWS SSM", func() {
 			})
 
 			JustBeforeEach(func() {
-				body, err := requestCredsInfo(atcUrl)
+				token, err := FetchToken(atcUrl, atcUsername, atcPassword)
+				Expect(err).ToNot(HaveOccurred())
+
+				body, err := RequestCredsInfo(atcUrl, token.AccessToken)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = json.Unmarshal(body, &parsedResponse)

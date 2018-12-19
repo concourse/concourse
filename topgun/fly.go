@@ -1,16 +1,16 @@
 package topgun
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"io"
-	"os/exec"
-	"strings"
+	"io/ioutil"
+	"net/http"
 	"time"
 
 	"github.com/onsi/gomega/gexec"
+	"golang.org/x/oauth2"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
@@ -74,35 +74,34 @@ func BuildBinary() string {
 	return flyBinPath
 }
 
-func Start(env []string, command string, argv ...string) *gexec.Session {
-	TimestampedBy("running: " + command + " " + strings.Join(argv, " "))
-
-	cmd := exec.Command(command, argv...)
-	cmd.Env = env
-
-	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+func RequestCredsInfo(webUrl, token string) ([]byte, error) {
+	request, err := http.NewRequest("GET", webUrl+"/api/v1/info/creds", nil)
 	Expect(err).ToNot(HaveOccurred())
 
-	return session
+	reqHeader := http.Header{}
+	reqHeader.Set("Authorization", "Bearer "+token)
+
+	request.Header = reqHeader
+
+	client := &http.Client{}
+	resp, err := client.Do(request)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(resp.StatusCode).To(Equal(200))
+
+	body, err := ioutil.ReadAll(resp.Body)
+	Expect(err).NotTo(HaveOccurred())
+
+	return body, err
 }
 
-func SpawnInteractive(stdin io.Reader, env []string, command string, argv ...string) *gexec.Session {
-	TimestampedBy("interactively running: " + command + " " + strings.Join(argv, " "))
+func FetchToken(webURL, username, password string) (*oauth2.Token, error) {
+	oauth2Config := oauth2.Config{
+		ClientID:     "fly",
+		ClientSecret: "Zmx5",
+		Endpoint:     oauth2.Endpoint{TokenURL: webURL + "/sky/token"},
+		Scopes:       []string{"openid", "profile", "email", "federated:id"},
+	}
 
-	cmd := exec.Command(command, argv...)
-	cmd.Stdin = stdin
-	cmd.Env = env
-
-	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).ToNot(HaveOccurred())
-	return session
+	return oauth2Config.PasswordCredentialsToken(context.Background(), username, password)
 }
 
-func TimestampedBy(msg string) {
-	By(fmt.Sprintf("[%.9f] %s", float64(time.Now().UnixNano())/1e9, msg))
-}
-
-func Wait(session *gexec.Session) {
-	<-session.Exited
-	Expect(session.ExitCode()).To(Equal(0))
-}

@@ -439,15 +439,7 @@ var _ = Describe("Team", func() {
 			pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 			Expect(err).ToNot(HaveOccurred())
 
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
-				logger,
-				defaultResource.Type(),
-				defaultResource.Source(),
-				creds.NewVersionedResourceTypes(variables, pipelineResourceTypes.Deserialize()),
-			)
-			Expect(err).ToNot(HaveOccurred())
-
-			err = defaultResource.SetResourceConfig(resourceConfig.ID())
+			resourceConfig, err = defaultResource.SetResourceConfig(logger, defaultResource.Source(), creds.NewVersionedResourceTypes(variables, pipelineResourceTypes.Deserialize()))
 			Expect(err).ToNot(HaveOccurred())
 
 			resourceContainer, err = defaultWorker.CreateContainer(
@@ -1486,16 +1478,13 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			rc, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
+			rc, err := resource.SetResourceConfig(logger, atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = rc.SaveVersions([]atc.Version{
 				atc.Version{"version": "v1"},
 				atc.Version{"version": "v2"},
 			})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resource.SetResourceConfig(rc.ID())
 			Expect(err).ToNot(HaveOccurred())
 
 			rcv, found, err := rc.FindVersion(atc.Version{"version": "v1"})
@@ -1542,16 +1531,13 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			rc, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
+			rc, err := resource.SetResourceConfig(logger, atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = rc.SaveVersions([]atc.Version{
 				atc.Version{"version": "v1"},
 				atc.Version{"version": "v2"},
 			})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resource.SetResourceConfig(rc.ID())
 			Expect(err).ToNot(HaveOccurred())
 
 			rcv, found, err := rc.FindVersion(atc.Version{"version": "v1"})
@@ -2255,15 +2241,11 @@ var _ = Describe("Team", func() {
 			}
 
 			BeforeEach(func() {
-				resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
+				resourceConfig, err := defaultResource.SetResourceConfig(
 					logger,
-					defaultResource.Type(),
 					defaultResource.Source(),
 					creds.VersionedResourceTypes{},
 				)
-				Expect(err).ToNot(HaveOccurred())
-
-				err = defaultResource.SetResourceConfig(resourceConfig.ID())
 				Expect(err).ToNot(HaveOccurred())
 
 				resourceContainer, err = defaultWorker.CreateContainer(

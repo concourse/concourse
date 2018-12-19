@@ -76,7 +76,12 @@ var _ = Describe("ResourceCacheCollector", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				err = resource.SetResourceConfig(jobCache.ResourceConfig().ID())
+				_, err = resource.SetResourceConfig(
+					logger,
+					atc.Source{
+						"some": "source",
+					},
+					creds.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 			})
 

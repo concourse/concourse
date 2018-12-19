@@ -1,24 +1,36 @@
 module Dashboard.Styles
     exposing
-        ( infoBar
+        ( cardBody
+        , cardFooter
+        , highDensityIcon
+        , highDensityToggle
+        , info
+        , infoBar
+        , infoCliIcon
+        , infoItem
         , legend
         , legendItem
         , legendSeparator
-        , highDensityToggle
-        , highDensityIcon
-        , info
-        , infoItem
-        , infoCliIcon
+        , noPipelineCardHd
+        , noPipelineCardHeader
+        , noPipelineCardTextHd
         , noPipelinesCard
         , noPipelinesCardBody
         , noPipelinesCardTitle
+        , pipelineCard
         , pipelineCardBanner
-        , pipelineCardHd
         , pipelineCardBannerHd
+        , pipelineCardBody
         , pipelineCardBodyHd
         , pipelineCardFooter
-        , pipelineStatusIcon
+        , pipelineCardHd
+        , pipelineCardHeader
         , pipelineCardTransitionAge
+        , pipelineName
+        , pipelineStatusIcon
+        , previewPlaceholder
+        , resourceErrorTriangle
+        , runningLegendItem
         , topCliIcon
         )
 
@@ -49,6 +61,13 @@ statusColor status =
             Colors.aborted
 
 
+pipelineCard : List ( String, String )
+pipelineCard =
+    [ ( "cursor", "move" )
+    , ( "margin", "25px" )
+    ]
+
+
 pipelineCardBanner :
     { status : PipelineStatus
     , pipelineRunningKeyframes : String
@@ -65,30 +84,124 @@ pipelineCardBanner { status, pipelineRunningKeyframes } =
         [ ( "height", "7px" ) ] ++ texture pipelineRunningKeyframes isRunning color
 
 
-pipelineCardHd : List ( String, String )
-pipelineCardHd =
+noPipelineCardHd : List ( String, String )
+noPipelineCardHd =
+    [ ( "background-color", Colors.card )
+    , ( "font-size", "14px" )
+    , ( "width", "200px" )
+    , ( "height", "60px" )
+    , ( "display", "flex" )
+    , ( "align-items", "center" )
+    , ( "letter-spacing", "1px" )
+    , ( "margin-right", "60px" )
+    ]
+
+
+noPipelineCardTextHd : List ( String, String )
+noPipelineCardTextHd =
+    [ ( "padding", "10px" )
+    ]
+
+
+noPipelineCardHeader : List ( String, String )
+noPipelineCardHeader =
+    [ ( "color", Colors.dashboardText )
+    , ( "background-color", Colors.card )
+    , ( "font-size", "1.5em" )
+    , ( "letter-spacing", "0.1em" )
+    , ( "padding", "12.5px" )
+    , ( "text-align", "center" )
+    , ( "-webkit-font-smoothing", "antialiased" )
+    ]
+
+
+pipelineCardHeader : List ( String, String )
+pipelineCardHeader =
+    [ ( "background-color", Colors.card )
+    , ( "color", Colors.dashboardText )
+    , ( "font-size", "1.5em" )
+    , ( "letter-spacing", "0.1em" )
+    , ( "-webkit-font-smoothing", "antialiased" )
+    , ( "padding", "12.5px" )
+    ]
+
+
+pipelineName : List ( String, String )
+pipelineName =
+    [ ( "width", "245px" )
+    , ( "white-space", "nowrap" )
+    , ( "overflow", "hidden" )
+    , ( "text-overflow", "ellipsis" )
+    ]
+
+
+cardBody : List ( String, String )
+cardBody =
+    [ ( "width", "200px" )
+    , ( "height", "120px" )
+    , ( "padding", "20px 36px" )
+    , ( "background-color", Colors.card )
+    , ( "margin", "2px 0" )
+    , ( "display", "flex" )
+    ]
+
+
+pipelineCardBody : List ( String, String )
+pipelineCardBody =
+    [ ( "background-color", Colors.card )
+    , ( "margin", "2px 0" )
+    ]
+
+
+cardFooter : List ( String, String )
+cardFooter =
+    [ ( "height", "47px" )
+    , ( "background-color", Colors.card )
+    ]
+
+
+previewPlaceholder : List ( String, String )
+previewPlaceholder =
+    [ ( "background-color", Colors.dashboardBackground )
+    , ( "flex-grow", "1" )
+    ]
+
+
+pipelineCardHd : PipelineStatus -> List ( String, String )
+pipelineCardHd status =
     [ ( "display", "flex" )
     , ( "height", "60px" )
     , ( "width", "200px" )
     , ( "margin", "0 60px 4px 0" )
     , ( "position", "relative" )
+    , ( "background-color"
+      , case status of
+            PipelineStatusSucceeded _ ->
+                Colors.successFaded
+
+            PipelineStatusFailed _ ->
+                Colors.failure
+
+            PipelineStatusErrored _ ->
+                Colors.error
+
+            _ ->
+                Colors.card
+      )
+    , ( "font-size", "19px" )
+    , ( "letter-spacing", "1px" )
     ]
 
 
-pipelineCardBodyHd : PipelineStatus -> List ( String, String )
-pipelineCardBodyHd status =
-    case status of
-        PipelineStatusSucceeded _ ->
-            [ ( "background-color", Colors.successFaded ) ]
-
-        PipelineStatusFailed _ ->
-            [ ( "background-color", Colors.failure ) ]
-
-        PipelineStatusErrored _ ->
-            [ ( "background-color", Colors.error ) ]
-
-        _ ->
-            []
+pipelineCardBodyHd : List ( String, String )
+pipelineCardBodyHd =
+    [ ( "width", "180px" )
+    , ( "white-space", "nowrap" )
+    , ( "overflow", "hidden" )
+    , ( "text-overflow", "ellipsis" )
+    , ( "align-self", "center" )
+    , ( "padding", "10px" )
+    ]
 
 
 pipelineCardBannerHd :
@@ -118,7 +231,7 @@ solid color =
 striped : String -> String -> List ( String, String )
 striped pipelineRunningKeyframes color =
     [ ( "background-image"
-      , withStripes color Colors.runningStripes
+      , withStripes color Colors.card
       )
     , ( "animation"
       , pipelineRunningKeyframes ++ " 3s linear infinite"
@@ -149,10 +262,10 @@ texture pipelineRunningKeyframes isRunning =
 
 pipelineCardFooter : List ( String, String )
 pipelineCardFooter =
-    [ ( "border-top", "2px solid " ++ Colors.dashboardBackground )
-    , ( "padding", "13.5px" )
+    [ ( "padding", "13.5px" )
     , ( "display", "flex" )
     , ( "justify-content", "space-between" )
+    , ( "background-color", Colors.card )
     ]
 
 
@@ -198,8 +311,10 @@ pipelineCardTransitionAge status =
     ]
 
 
-infoBar : ScreenSize.ScreenSize -> List ( String, String )
-infoBar screenSize =
+infoBar :
+    { hideLegend : Bool, screenSize : ScreenSize.ScreenSize }
+    -> List ( String, String )
+infoBar { hideLegend, screenSize } =
     [ ( "position", "fixed" )
     , ( "bottom", "0" )
     , ( "line-height", "35px" )
@@ -208,17 +323,23 @@ infoBar screenSize =
     , ( "width", "100%" )
     , ( "box-sizing", "border-box" )
     , ( "display", "flex" )
-    , ( "justify-content", "space-between" )
+    , ( "justify-content"
+      , if hideLegend then
+            "flex-end"
+        else
+            "space-between"
+      )
     ]
-        ++ case screenSize of
-            ScreenSize.Mobile ->
-                [ ( "flex-direction", "column" ) ]
+        ++ (case screenSize of
+                ScreenSize.Mobile ->
+                    [ ( "flex-direction", "column" ) ]
 
-            ScreenSize.Desktop ->
-                [ ( "flex-direction", "column" ) ]
+                ScreenSize.Desktop ->
+                    [ ( "flex-direction", "column" ) ]
 
-            ScreenSize.BigDesktop ->
-                []
+                ScreenSize.BigDesktop ->
+                    []
+           )
 
 
 legend : List ( String, String )
@@ -336,5 +457,26 @@ noPipelinesCardBody =
 
 noPipelinesCardTitle : List ( String, String )
 noPipelinesCardTitle =
-    [ ( "font-size", "32px" )
+    [ ( "font-size", "32px" ) ]
+
+
+resourceErrorTriangle : List ( String, String )
+resourceErrorTriangle =
+    [ ( "position", "absolute" )
+    , ( "top", "0" )
+    , ( "right", "0" )
+    , ( "width", "0" )
+    , ( "height", "0" )
+    , ( "border-top", "30px solid " ++ Colors.resourceError )
+    , ( "border-left", "30px solid transparent" )
+    ]
+
+
+runningLegendItem : List ( String, String )
+runningLegendItem =
+    [ ( "background-image", "url(public/images/ic_running_legend.svg)" )
+    , ( "height", "20px" )
+    , ( "width", "20px" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-position", "50% 50%" )
     ]

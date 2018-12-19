@@ -12,7 +12,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/skymarshal/token"
-	"github.com/coreos/go-oidc"
+	oidc "github.com/coreos/go-oidc"
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2/jwt"
 )
@@ -250,7 +250,6 @@ func (self *skyServer) Redirect(w http.ResponseWriter, r *http.Request, token *o
 	})
 
 	params := redirectUrl.Query()
-	params.Set("token", tokenStr)
 	params.Set("csrf_token", csrfToken)
 	redirectUrl.RawQuery = params.Encode()
 
