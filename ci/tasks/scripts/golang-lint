@@ -1,0 +1,20 @@
+#!/bin/bash
+
+export GOPATH=$PWD/gopath
+export PATH=$GOPATH/bin:$PATH
+
+old_ref=""
+if [ -e old-ref/ref ]; then
+  old_ref="$(cat old-ref/ref)"
+fi
+
+cp concourse/.git/ref old-ref/ref
+
+cd concourse
+
+go mod download
+
+golangci-lint run \
+  --deadline=10m \
+  --new-from-rev=$old_ref \
+  -E gosec -E gocritic -E gofmt -E gocyclo

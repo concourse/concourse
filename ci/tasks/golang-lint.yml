@@ -10,19 +10,7 @@ inputs:
 
 caches:
 - path: gopath
+- path: old-ref
 
 run:
-  path: golangci-lint
-  args:
-    - run
-    - "-E"
-    - "gosec"
-    - "-E"
-    - "gocritic"
-    - "-E"
-    - "gofmt"
-    - "-E"
-    - "gocyclo"
-    - "--deadline"
-    - "10m"
-  dir: concourse
+  path: concourse/ci/tasks/scripts/golang-lint
