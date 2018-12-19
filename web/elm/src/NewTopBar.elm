@@ -145,7 +145,7 @@ viewConcourseLogo =
 
 viewMiddleSection : Model r -> List (Html Msg)
 viewMiddleSection model =
-    if model.highDensity then
+    if hideSearch model then
         []
     else
         case model.searchBar of
@@ -180,6 +180,12 @@ viewMiddleSection model =
                            )
                     )
                 ]
+
+
+hideSearch : { a | highDensity : Bool, groups : List Group.Group } -> Bool
+hideSearch model =
+    model.highDensity
+        || List.isEmpty (model.groups |> List.concatMap .pipelines)
 
 
 viewAutocomplete :

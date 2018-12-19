@@ -209,6 +209,19 @@ all =
                             >> queryView
                             >> Query.has [ text "no pipelines configured" ]
                         ]
+        , test "no search bar when there are no pipelines" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Dashboard.update
+                        (Msgs.APIDataFetched <|
+                            RemoteData.Success
+                                ( 0
+                                , apiData [ ( "team", [] ) ] Nothing
+                                )
+                        )
+                    |> Tuple.first
+                    |> queryView
+                    |> Query.hasNot [ tag "input" ]
         , describe "team pills"
             [ test
                 ("shows team name with no pill when unauthenticated "

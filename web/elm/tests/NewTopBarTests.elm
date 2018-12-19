@@ -7,7 +7,6 @@ import Dict
 import Expect
 import Html.Attributes as Attributes
 import Html.Styled as HS
-import Navigation
 import NewTopBar
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -34,6 +33,7 @@ init { highDensity, query } =
         , pipelineRunningKeyframes = "pipeline-running"
         }
         |> Tuple.first
+        |> loggedOut
 
 
 smallScreen : Dashboard.Model -> Dashboard.Model
