@@ -113,7 +113,7 @@
         var pipelineTeamName = pipelineInfo[1];
 
         var team = $('div[id="' + pipelineTeamName + '"]');
-        var title = team.find('.dashboard-pipeline[data-pipeline-name="' + pipelineName + '"]').find('.dashboard-pipeline-name');
+        var title = team.find('.card[data-pipeline-name="' + pipelineName + '"]').find('.dashboard-pipeline-name');
 
         if(title.get(0).offsetWidth < title.get(0).scrollWidth){
             title.parent().attr('data-tooltip', pipelineName);
@@ -124,7 +124,7 @@
         var pipelineName = pipelineInfo[0];
         var pipelineTeamName = pipelineInfo[1];
 
-        var title = $('.dashboard-pipeline[data-pipeline-name="' + pipelineName + '"][data-team-name="' + pipelineTeamName + '"]').find('.dashboardhd-pipeline-name');
+        var title = $('.card[data-pipeline-name="' + pipelineName + '"][data-team-name="' + pipelineTeamName + '"]').find('.dashboardhd-pipeline-name');
 
         if(title.get(0).offsetWidth < title.get(0).scrollWidth){
             title.parent().attr('data-tooltip', pipelineName);
