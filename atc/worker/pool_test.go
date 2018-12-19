@@ -7,13 +7,13 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
+	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -613,6 +613,116 @@ var _ = Describe("Pool", func() {
 						Expect(createErr).To(Equal(strategyError))
 					})
 				})
+			})
+		})
+	})
+
+	Describe("CreateVolume", func() {
+		var (
+			fakeWorker *workerfakes.FakeWorker
+			volumeSpec VolumeSpec
+			volumeType db.VolumeType
+			err        error
+		)
+
+		BeforeEach(func() {
+			volumeSpec = VolumeSpec{
+				Strategy: baggageclaim.EmptyStrategy{},
+			}
+
+			volumeType = db.VolumeTypeArtifact
+
+			fakeWorker = new(workerfakes.FakeWorker)
+			fakeWorker.SatisfyingReturns(fakeWorker, nil)
+
+			fakeProvider.RunningWorkersReturns([]Worker{fakeWorker}, nil)
+		})
+
+		JustBeforeEach(func() {
+			_, err = pool.CreateVolume(logger, volumeSpec, 1, volumeType)
+		})
+
+		Context("when no workers can be found", func() {
+			BeforeEach(func() {
+				fakeProvider.RunningWorkersReturns([]Worker{}, nil)
+			})
+
+			It("returns an error", func() {
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		It("creates the volume on the worker", func() {
+			Expect(err).ToNot(HaveOccurred())
+			Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(1))
+			l, spec, id, t := fakeWorker.CreateVolumeArgsForCall(0)
+			Expect(l).To(Equal(logger))
+			Expect(spec).To(Equal(volumeSpec))
+			Expect(id).To(Equal(1))
+			Expect(t).To(Equal(volumeType))
+		})
+	})
+
+	Describe("LookupVolume", func() {
+		var (
+			fakeWorker  *workerfakes.FakeWorker
+			foundVolume Volume
+			found       bool
+			err         error
+		)
+
+		BeforeEach(func() {
+			fakeWorker = new(workerfakes.FakeWorker)
+			fakeWorker.SatisfyingReturns(fakeWorker, nil)
+
+			fakeProvider.RunningWorkersReturns([]Worker{fakeWorker}, nil)
+		})
+
+		JustBeforeEach(func() {
+			foundVolume, found, err = pool.LookupVolume(logger, "some-handle")
+		})
+
+		Context("when no workers can be found", func() {
+			BeforeEach(func() {
+				fakeProvider.RunningWorkersReturns([]Worker{}, nil)
+			})
+
+			It("returns error", func() {
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when none of the workers contain the volume", func() {
+			BeforeEach(func() {
+				fakeWorker1 := new(workerfakes.FakeWorker)
+				fakeWorker1.SatisfyingReturns(fakeWorker1, nil)
+				fakeWorker1.LookupVolumeReturns(nil, false, nil)
+
+				fakeWorker2 := new(workerfakes.FakeWorker)
+				fakeWorker2.SatisfyingReturns(fakeWorker2, nil)
+				fakeWorker2.LookupVolumeReturns(nil, false, nil)
+
+				fakeProvider.RunningWorkersReturns([]Worker{fakeWorker1, fakeWorker2}, nil)
+			})
+
+			It("returns not found", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+
+		Context("when a worker contains the volume", func() {
+			var fakeVolume *workerfakes.FakeVolume
+
+			BeforeEach(func() {
+				fakeVolume = new(workerfakes.FakeVolume)
+				fakeVolume.HandleReturns("some-handle")
+
+				fakeWorker.LookupVolumeReturns(fakeVolume, true, nil)
+			})
+
+			It("returns the volume", func() {
+				Expect(foundVolume).To(Equal(fakeVolume))
 			})
 		})
 	})

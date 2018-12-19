@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"code.cloudfoundry.org/lager"
-
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -27,6 +26,7 @@ type Volume interface {
 
 	InitializeResourceCache(db.UsedResourceCache) error
 	InitializeTaskCache(lager.Logger, int, string, string, bool) error
+	InitializeArtifact(string, string) (db.WorkerArtifact, error)
 
 	CreateChildForContainer(db.CreatingContainer, string) (db.CreatingVolume, error)
 
@@ -111,6 +111,10 @@ func (v *volume) COWStrategy() baggageclaim.COWStrategy {
 
 func (v *volume) InitializeResourceCache(urc db.UsedResourceCache) error {
 	return v.dbVolume.InitializeResourceCache(urc)
+}
+
+func (v *volume) InitializeArtifact(path string, checksum string) (db.WorkerArtifact, error) {
+	return v.dbVolume.InitializeArtifact(path, checksum)
 }
 
 func (v *volume) InitializeTaskCache(

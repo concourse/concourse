@@ -260,6 +260,42 @@ var _ = Describe("Volume", func() {
 		})
 	})
 
+	Describe("createdVolume.InitializeArtifact", func() {
+		var (
+			workerArtifact db.WorkerArtifact
+			creatingVolume db.CreatingVolume
+			createdVolume  db.CreatedVolume
+			err            error
+		)
+
+		BeforeEach(func() {
+			creatingVolume, err = volumeRepository.CreateVolume(defaultTeam.ID(), defaultWorker.Name(), db.VolumeTypeArtifact)
+			Expect(err).ToNot(HaveOccurred())
+
+			createdVolume, err = creatingVolume.Created()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			workerArtifact, err = createdVolume.InitializeArtifact("/some/path", "some-checksum")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("initialize worker artifact", func() {
+			Expect(workerArtifact.ID()).To(Equal(1))
+			Expect(workerArtifact.Path()).To(Equal("/some/path"))
+			Expect(workerArtifact.Checksum()).To(Equal("some-checksum"))
+			Expect(workerArtifact.CreatedAt()).ToNot(BeNil())
+		})
+
+		It("associates worker artifact with the volume", func() {
+			created, found, err := volumeRepository.FindCreatedVolume(createdVolume.Handle())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(created.WorkerArtifactID()).To(Equal(workerArtifact.ID()))
+		})
+	})
+
 	Describe("createdVolume.InitializeTaskCache", func() {
 		Context("when there is a volume that belongs to worker task cache", func() {
 			var (

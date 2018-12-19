@@ -100,6 +100,9 @@ const (
 
 	SendInputToBuildPlan    = "SendInputToBuildPlan"
 	ReadOutputFromBuildPlan = "ReadOutputFromBuildPlan"
+
+	CreateArtifact = "CreateArtifact"
+	GetArtifact    = "GetArtifact"
 )
 
 const (
@@ -203,4 +206,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/rename", Method: "PUT", Name: RenameTeam},
 	{Path: "/api/v1/teams/:team_name", Method: "DELETE", Name: DestroyTeam},
 	{Path: "/api/v1/teams/:team_name/builds", Method: "GET", Name: ListTeamBuilds},
+
+	{Path: "/api/v1/teams/:team_name/artifacts", Method: "POST", Name: CreateArtifact},
+	{Path: "/api/v1/teams/:team_name/artifacts/:artifact_id", Method: "GET", Name: GetArtifact},
 })

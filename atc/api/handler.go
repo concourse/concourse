@@ -5,9 +5,8 @@ import (
 	"path/filepath"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/tedsuo/rata"
-
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/artifactserver"
 	"github.com/concourse/concourse/atc/api/buildserver"
 	"github.com/concourse/concourse/atc/api/ccserver"
 	"github.com/concourse/concourse/atc/api/cliserver"
@@ -29,6 +28,7 @@ import (
 	"github.com/concourse/concourse/atc/mainredirect"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/wrappa"
+	"github.com/tedsuo/rata"
 )
 
 func NewHandler(
@@ -95,6 +95,7 @@ func NewHandler(
 	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
 	infoServer := infoserver.NewServer(logger, version, workerVersion, credsManagers)
+	artifactServer := artifactserver.NewServer(logger, workerClient)
 
 	handlers := map[string]http.Handler{
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
@@ -194,6 +195,9 @@ func NewHandler(
 		atc.RenameTeam:     http.HandlerFunc(teamServer.RenameTeam),
 		atc.DestroyTeam:    http.HandlerFunc(teamServer.DestroyTeam),
 		atc.ListTeamBuilds: http.HandlerFunc(teamServer.ListTeamBuilds),
+
+		atc.CreateArtifact: teamHandlerFactory.HandlerFor(artifactServer.CreateArtifact),
+		atc.GetArtifact:    teamHandlerFactory.HandlerFor(artifactServer.GetArtifact),
 	}
 
 	return rata.NewRouter(atc.Routes, wrapper.Wrap(handlers))

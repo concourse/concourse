@@ -49,10 +49,12 @@ type Team interface {
 
 	SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error)
 	Workers() ([]Worker, error)
+	FindVolumeForWorkerArtifact(int) (CreatedVolume, bool, error)
 
 	Containers(lager.Logger) ([]Container, error)
 	IsCheckContainer(string) (bool, error)
 	IsContainerWithinTeam(string, bool) (bool, error)
+
 	FindContainerByHandle(string) (Container, bool, error)
 	FindCheckContainers(lager.Logger, string, string, creds.VariablesFactory) ([]Container, map[int]time.Time, error)
 	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
@@ -107,6 +109,31 @@ func (t *team) Workers() ([]Worker, error) {
 		sq.Eq{"t.id": t.id},
 		sq.Eq{"w.team_id": nil},
 	}))
+}
+
+func (t *team) FindVolumeForWorkerArtifact(artifactID int) (CreatedVolume, bool, error) {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer Rollback(tx)
+
+	artifact, found, err := getWorkerArtifact(tx, t.conn, artifactID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return artifact.Volume(t.ID())
 }
 
 func (t *team) FindWorkerForContainer(handle string) (Worker, bool, error) {

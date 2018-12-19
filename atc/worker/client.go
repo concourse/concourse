@@ -28,6 +28,7 @@ type Client interface {
 
 	FindContainerByHandle(lager.Logger, int, string) (Container, bool, error)
 
+	CreateVolume(lager.Logger, VolumeSpec, int, db.VolumeType) (Volume, error)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 
 	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)

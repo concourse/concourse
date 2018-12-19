@@ -158,6 +158,21 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
+	FindVolumeForWorkerArtifactStub        func(int) (db.CreatedVolume, bool, error)
+	findVolumeForWorkerArtifactMutex       sync.RWMutex
+	findVolumeForWorkerArtifactArgsForCall []struct {
+		arg1 int
+	}
+	findVolumeForWorkerArtifactReturns struct {
+		result1 db.CreatedVolume
+		result2 bool
+		result3 error
+	}
+	findVolumeForWorkerArtifactReturnsOnCall map[int]struct {
+		result1 db.CreatedVolume
+		result2 bool
+		result3 error
+	}
 	FindWorkerForContainerStub        func(string) (db.Worker, bool, error)
 	findWorkerForContainerMutex       sync.RWMutex
 	findWorkerForContainerArgsForCall []struct {
@@ -1032,6 +1047,72 @@ func (fake *FakeTeam) FindCreatedContainerByHandleReturnsOnCall(i int, result1 d
 	}
 	fake.findCreatedContainerByHandleReturnsOnCall[i] = struct {
 		result1 db.CreatedContainer
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) FindVolumeForWorkerArtifact(arg1 int) (db.CreatedVolume, bool, error) {
+	fake.findVolumeForWorkerArtifactMutex.Lock()
+	ret, specificReturn := fake.findVolumeForWorkerArtifactReturnsOnCall[len(fake.findVolumeForWorkerArtifactArgsForCall)]
+	fake.findVolumeForWorkerArtifactArgsForCall = append(fake.findVolumeForWorkerArtifactArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	fake.recordInvocation("FindVolumeForWorkerArtifact", []interface{}{arg1})
+	fake.findVolumeForWorkerArtifactMutex.Unlock()
+	if fake.FindVolumeForWorkerArtifactStub != nil {
+		return fake.FindVolumeForWorkerArtifactStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.findVolumeForWorkerArtifactReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeTeam) FindVolumeForWorkerArtifactCallCount() int {
+	fake.findVolumeForWorkerArtifactMutex.RLock()
+	defer fake.findVolumeForWorkerArtifactMutex.RUnlock()
+	return len(fake.findVolumeForWorkerArtifactArgsForCall)
+}
+
+func (fake *FakeTeam) FindVolumeForWorkerArtifactCalls(stub func(int) (db.CreatedVolume, bool, error)) {
+	fake.findVolumeForWorkerArtifactMutex.Lock()
+	defer fake.findVolumeForWorkerArtifactMutex.Unlock()
+	fake.FindVolumeForWorkerArtifactStub = stub
+}
+
+func (fake *FakeTeam) FindVolumeForWorkerArtifactArgsForCall(i int) int {
+	fake.findVolumeForWorkerArtifactMutex.RLock()
+	defer fake.findVolumeForWorkerArtifactMutex.RUnlock()
+	argsForCall := fake.findVolumeForWorkerArtifactArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTeam) FindVolumeForWorkerArtifactReturns(result1 db.CreatedVolume, result2 bool, result3 error) {
+	fake.findVolumeForWorkerArtifactMutex.Lock()
+	defer fake.findVolumeForWorkerArtifactMutex.Unlock()
+	fake.FindVolumeForWorkerArtifactStub = nil
+	fake.findVolumeForWorkerArtifactReturns = struct {
+		result1 db.CreatedVolume
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) FindVolumeForWorkerArtifactReturnsOnCall(i int, result1 db.CreatedVolume, result2 bool, result3 error) {
+	fake.findVolumeForWorkerArtifactMutex.Lock()
+	defer fake.findVolumeForWorkerArtifactMutex.Unlock()
+	fake.FindVolumeForWorkerArtifactStub = nil
+	if fake.findVolumeForWorkerArtifactReturnsOnCall == nil {
+		fake.findVolumeForWorkerArtifactReturnsOnCall = make(map[int]struct {
+			result1 db.CreatedVolume
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findVolumeForWorkerArtifactReturnsOnCall[i] = struct {
+		result1 db.CreatedVolume
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
@@ -2029,6 +2110,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.findContainersByMetadataMutex.RUnlock()
 	fake.findCreatedContainerByHandleMutex.RLock()
 	defer fake.findCreatedContainerByHandleMutex.RUnlock()
+	fake.findVolumeForWorkerArtifactMutex.RLock()
+	defer fake.findVolumeForWorkerArtifactMutex.RUnlock()
 	fake.findWorkerForContainerMutex.RLock()
 	defer fake.findWorkerForContainerMutex.RUnlock()
 	fake.iDMutex.RLock()

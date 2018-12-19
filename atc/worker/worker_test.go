@@ -4,16 +4,15 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden/gardenfakes"
-
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/worker"
 	wfakes "github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/cppforlife/go-semi-semantic/version"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -184,6 +183,30 @@ var _ = Describe("Worker", func() {
 			Expect(found).To(BeTrue())
 		})
 
+	})
+
+	Describe("CreateVolume", func() {
+		var (
+			fakeVolume *wfakes.FakeVolume
+			volume     Volume
+			err        error
+		)
+
+		BeforeEach(func() {
+			fakeVolume = new(wfakes.FakeVolume)
+			fakeVolumeClient.CreateVolumeReturns(fakeVolume, nil)
+		})
+
+		JustBeforeEach(func() {
+			volume, err = gardenWorker.CreateVolume(logger, VolumeSpec{}, 42, db.VolumeTypeArtifact)
+		})
+
+		It("calls the volume client", func() {
+			Expect(fakeVolumeClient.CreateVolumeCallCount()).To(Equal(1))
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(volume).To(Equal(fakeVolume))
+		})
 	})
 
 	Describe("Satisfying", func() {
