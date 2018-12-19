@@ -10,6 +10,7 @@ module DashboardTests
         , white
         )
 
+import Char
 import Concourse
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus
@@ -222,6 +223,61 @@ all =
                     |> Tuple.first
                     |> queryView
                     |> Query.hasNot [ tag "input" ]
+        , test "bottom bar appears when there are no pipelines" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Dashboard.update
+                        (Msgs.APIDataFetched <|
+                            RemoteData.Success
+                                ( 0
+                                , apiData [ ( "team", [] ) ] Nothing
+                                )
+                        )
+                    |> Tuple.first
+                    |> queryView
+                    |> Query.has [ id "dashboard-info" ]
+        , test "bottom bar has no legend when there are no pipelines" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Dashboard.update
+                        (Msgs.APIDataFetched <|
+                            RemoteData.Success
+                                ( 0
+                                , apiData [ ( "team", [] ) ] Nothing
+                                )
+                        )
+                    |> Tuple.first
+                    |> queryView
+                    |> Query.hasNot [ id "legend" ]
+        , test "concourse info is right-justified when there are no pipelines" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Dashboard.update
+                        (Msgs.APIDataFetched <|
+                            RemoteData.Success
+                                ( 0
+                                , apiData [ ( "team", [] ) ] Nothing
+                                )
+                        )
+                    |> Tuple.first
+                    |> queryView
+                    |> Query.find [ id "dashboard-info" ]
+                    |> Query.has [ style [ ( "justify-content", "flex-end" ) ] ]
+        , test "pressing '?' does nothing when there are no pipelines" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Dashboard.update
+                        (Msgs.APIDataFetched <|
+                            RemoteData.Success
+                                ( 0
+                                , apiData [ ( "team", [] ) ] Nothing
+                                )
+                        )
+                    |> Tuple.first
+                    |> Dashboard.update (Msgs.KeyPressed (Char.toCode '?'))
+                    |> Tuple.first
+                    |> queryView
+                    |> Query.has [ id "dashboard-info" ]
         , describe "team pills"
             [ test
                 ("shows team name with no pill when unauthenticated "

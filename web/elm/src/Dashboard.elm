@@ -19,11 +19,11 @@ import Concourse.User
 import Css
 import Dashboard.APIData as APIData
 import Dashboard.Details as Details
+import Dashboard.Footer as Footer
 import Dashboard.Group as Group
 import Dashboard.Models as Models
 import Dashboard.Msgs as Msgs exposing (Msg(..))
 import Dashboard.SubState as SubState
-import Dashboard.Styles as Styles
 import Dom
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes
@@ -38,7 +38,6 @@ import Html.Styled.Attributes
         , src
         , style
         )
-import Html.Styled.Events exposing (onMouseEnter, onMouseLeave)
 import Http
 import Keyboard
 import LoginRedirect
@@ -103,6 +102,9 @@ type alias Model =
     , userState : UserState.UserState
     , userMenuVisible : Bool
     , searchBar : SearchBar
+    , hideFooter : Bool
+    , hideFooterCounter : Int
+    , showHelp : Bool
     }
 
 
@@ -186,6 +188,9 @@ init ports flags =
           , version = ""
           , userState = UserState.UserStateUnknown
           , userMenuVisible = False
+          , hideFooter = False
+          , hideFooterCounter = 0
+          , showHelp = False
           , searchBar = searchBar
           }
         , Cmd.batch
@@ -250,12 +255,9 @@ update msg model =
                                         { model
                                             | state =
                                                 Ok
-                                                    { hideFooter = False
-                                                    , hideFooterCounter = 0
-                                                    , now = now
+                                                    { now = now
                                                     , dragState = Group.NotDragging
                                                     , dropState = Group.NotDropping
-                                                    , showHelp = False
                                                     }
                                         }
 
@@ -287,12 +289,16 @@ update msg model =
             )
 
         ClockTick now ->
-            ( case model.state of
-                Ok substate ->
-                    { model | state = Ok (SubState.tick now substate) }
+            ( let
+                newModel =
+                    Footer.tick model
+              in
+                case model.state of
+                    Ok substate ->
+                        { newModel | state = Ok (SubState.tick now substate) }
 
-                _ ->
-                    model
+                    _ ->
+                        newModel
             , []
             )
 
@@ -305,14 +311,7 @@ update msg model =
             handleKeyPressed (Char.fromCode keycode) model
 
         ShowFooter ->
-            ( case model.state of
-                Ok substate ->
-                    { model | state = Ok (SubState.showFooter substate) }
-
-                _ ->
-                    model
-            , []
-            )
+            ( Footer.showFooter model, [] )
 
         TogglePipelinePaused pipeline ->
             ( model
@@ -729,7 +728,16 @@ dashboardView model =
                     [ turbulenceView path ]
 
                 Err NoPipelines ->
-                    [ Html.div [ class "dashboard-no-content", css [ Css.height (Css.pct 100) ] ] [ (Html.map (always Noop) << Html.fromUnstyled) NoPipeline.view ] ]
+                    [ Html.div
+                        [ class "dashboard-no-content"
+                        , css [ Css.height (Css.pct 100) ]
+                        ]
+                      <|
+                        [ (Html.map (always Noop) << Html.fromUnstyled)
+                            NoPipeline.view
+                        ]
+                            ++ (List.map Html.fromUnstyled <| Footer.view model)
+                    ]
 
                 Ok substate ->
                     [ Html.div
@@ -745,16 +753,14 @@ dashboardView model =
                             }
                         )
                     ]
-                        ++ footerView
-                            { substate = substate
-                            , hoveredCliIcon = model.hoveredCliIcon
-                            , screenSize = model.screenSize
-                            , version = model.version
-                            , highDensity = model.highDensity
-                            }
+                        ++ (List.map Html.fromUnstyled <| Footer.view model)
     in
         Html.div
-            [ classList [ ( .pageBodyClass Group.stickyHeaderConfig, True ), ( "dashboard-hd", model.highDensity ) ] ]
+            [ classList
+                [ ( .pageBodyClass Group.stickyHeaderConfig, True )
+                , ( "dashboard-hd", model.highDensity )
+                ]
+            ]
             mainContent
 
 
@@ -779,187 +785,36 @@ noResultsView query =
             ]
 
 
-helpView : Details.Details r -> Html Msg
-helpView details =
+helpView : { a | showHelp : Bool } -> Html Msg
+helpView { showHelp } =
     Html.div
         [ classList
             [ ( "keyboard-help", True )
-            , ( "hidden", not details.showHelp )
+            , ( "hidden", not showHelp )
             ]
         ]
-        [ Html.div [ class "help-title" ] [ Html.text "keyboard shortcuts" ]
-        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "/" ] ], Html.text "search" ]
-        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "?" ] ], Html.text "hide/show help" ]
-        ]
-
-
-toggleView : Bool -> Html Msg
-toggleView highDensity =
-    let
-        route =
-            if highDensity then
-                Routes.dashboardRoute
-            else
-                Routes.dashboardHdRoute
-    in
-        Html.a
-            [ style Styles.highDensityToggle
-            , href route
-            , attribute "aria-label" "Toggle high-density view"
-            ]
-            [ Html.div [ style <| Styles.highDensityIcon highDensity ] []
-            , Html.text "high-density"
-            ]
-
-
-footerView :
-    { substate : SubState.SubState
-    , hoveredCliIcon : Maybe Cli.Cli
-    , screenSize : ScreenSize.ScreenSize
-    , version : String
-    , highDensity : Bool
-    }
-    -> List (Html Msg)
-footerView { substate, hoveredCliIcon, screenSize, version, highDensity } =
-    if substate.showHelp then
-        [ keyboardHelpView ]
-    else if not substate.hideFooter then
-        [ infoView
-            { substate = substate
-            , hoveredCliIcon = hoveredCliIcon
-            , screenSize = screenSize
-            , version = version
-            , highDensity = highDensity
-            }
-        ]
-    else
-        []
-
-
-legendItem : PipelineStatus -> Html Msg
-legendItem status =
-    Html.div [ style Styles.legendItem ]
         [ Html.div
-            [ style <| Styles.pipelineStatusIcon status ]
-            []
-        , Html.div [ style [ ( "width", "10px" ) ] ] []
-        , Html.text <| PipelineStatus.show status
-        ]
-
-
-infoView :
-    { substate : SubState.SubState
-    , hoveredCliIcon : Maybe Cli.Cli
-    , screenSize : ScreenSize.ScreenSize
-    , version : String
-    , highDensity : Bool
-    }
-    -> Html Msg
-infoView { substate, hoveredCliIcon, screenSize, version, highDensity } =
-    let
-        legendSeparator : ScreenSize.ScreenSize -> List (Html Msg)
-        legendSeparator screenSize =
-            case screenSize of
-                ScreenSize.Mobile ->
-                    []
-
-                ScreenSize.Desktop ->
-                    [ Html.div
-                        [ style Styles.legendSeparator ]
-                        [ Html.text "|" ]
-                    ]
-
-                ScreenSize.BigDesktop ->
-                    [ Html.div
-                        [ style Styles.legendSeparator ]
-                        [ Html.text "|" ]
-                    ]
-
-        cliIcon : Cli.Cli -> Maybe Cli.Cli -> Html Msg
-        cliIcon cli hoveredCliIcon =
-            let
-                ( cliName, ariaText, icon ) =
-                    case cli of
-                        Cli.OSX ->
-                            ( "osx", "OS X", "apple" )
-
-                        Cli.Windows ->
-                            ( "windows", "Windows", "windows" )
-
-                        Cli.Linux ->
-                            ( "linux", "Linux", "linux" )
-            in
-                Html.a
-                    [ href (Cli.downloadUrl "amd64" cliName)
-                    , attribute "aria-label" <| "Download " ++ ariaText ++ " CLI"
-                    , style <| Styles.infoCliIcon (hoveredCliIcon == Just cli)
-                    , id <| "cli-" ++ cliName
-                    , onMouseEnter <| CliHover <| Just cli
-                    , onMouseLeave <| CliHover Nothing
-                    ]
-                    [ Html.i [ class <| "fa fa-" ++ icon ] [] ]
-    in
-        Html.div
-            [ id "dashboard-info"
-            , style <| Styles.infoBar screenSize
-            ]
+            [ class "help-title" ]
+            [ Html.text "keyboard shortcuts" ]
+        , Html.div
+            [ class "help-line" ]
             [ Html.div
-                [ id "legend"
-                , style Styles.legend
+                [ class "keys" ]
+                [ Html.span
+                    [ class "key" ]
+                    [ Html.text "/" ]
                 ]
-              <|
-                List.map legendItem
-                    [ PipelineStatusPending False
-                    , PipelineStatusPaused
-                    ]
-                    ++ [ Html.div [ style Styles.legendItem ]
-                            [ Html.div
-                                [ style
-                                    [ ( "background-image", "url(public/images/ic_running_legend.svg)" )
-                                    , ( "height", "20px" )
-                                    , ( "width", "20px" )
-                                    , ( "background-repeat", "no-repeat" )
-                                    , ( "background-position", "50% 50%" )
-                                    ]
-                                ]
-                                []
-                            , Html.div [ style [ ( "width", "10px" ) ] ] []
-                            , Html.text "running"
-                            ]
-                       ]
-                    ++ List.map legendItem
-                        [ PipelineStatusFailed PipelineStatus.Running
-                        , PipelineStatusErrored PipelineStatus.Running
-                        , PipelineStatusAborted PipelineStatus.Running
-                        , PipelineStatusSucceeded PipelineStatus.Running
-                        ]
-                    ++ legendSeparator screenSize
-                    ++ [ toggleView highDensity ]
-            , Html.div [ id "concourse-info", style Styles.info ]
-                [ Html.div [ style Styles.infoItem ]
-                    [ Html.text <| "version: v" ++ version ]
-                , Html.div [ style Styles.infoItem ]
-                    [ Html.span
-                        [ style [ ( "margin-right", "10px" ) ] ]
-                        [ Html.text "cli: " ]
-                    , cliIcon Cli.OSX hoveredCliIcon
-                    , cliIcon Cli.Windows hoveredCliIcon
-                    , cliIcon Cli.Linux hoveredCliIcon
-                    ]
+            , Html.text "search"
+            ]
+        , Html.div [ class "help-line" ]
+            [ Html.div
+                [ class "keys" ]
+                [ Html.span
+                    [ class "key" ]
+                    [ Html.text "?" ]
                 ]
+            , Html.text "hide/show help"
             ]
-
-
-keyboardHelpView : Html Msg
-keyboardHelpView =
-    Html.div
-        [ classList
-            [ ( "keyboard-help", True )
-            ]
-        ]
-        [ Html.div [ class "help-title" ] [ Html.text "keyboard shortcuts" ]
-        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "/" ] ], Html.text "search" ]
-        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "?" ] ], Html.text "hide/show help" ]
         ]
 
 
@@ -1018,19 +873,17 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
             List.map Html.fromUnstyled groupViews
 
 
-handleKeyPressed : Char -> Model -> ( Model, List Effect )
+handleKeyPressed : Char -> Footer.Model r -> ( Footer.Model r, List Effect )
 handleKeyPressed key model =
     case key of
         '/' ->
             ( model, [ FocusSearchInput ] )
 
         '?' ->
-            model
-                |> Monocle.Optional.modify substateOptional Details.toggleHelp
-                |> noop
+            ( Footer.toggleHelp model, [] )
 
         _ ->
-            update ShowFooter model
+            ( Footer.showFooter model, [] )
 
 
 fetchData : Cmd Msg

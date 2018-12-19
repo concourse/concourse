@@ -27,6 +27,7 @@ module Dashboard.Styles
         , pipelineStatusIcon
         , previewPlaceholder
         , resourceErrorTriangle
+        , runningLegendItem
         )
 
 import Colors
@@ -306,8 +307,10 @@ pipelineCardTransitionAge status =
     ]
 
 
-infoBar : ScreenSize.ScreenSize -> List ( String, String )
-infoBar screenSize =
+infoBar :
+    { hideLegend : Bool, screenSize : ScreenSize.ScreenSize }
+    -> List ( String, String )
+infoBar { hideLegend, screenSize } =
     [ ( "position", "fixed" )
     , ( "bottom", "0" )
     , ( "line-height", "35px" )
@@ -316,7 +319,12 @@ infoBar screenSize =
     , ( "width", "100%" )
     , ( "box-sizing", "border-box" )
     , ( "display", "flex" )
-    , ( "justify-content", "space-between" )
+    , ( "justify-content"
+      , if hideLegend then
+            "flex-end"
+        else
+            "space-between"
+      )
     ]
         ++ (case screenSize of
                 ScreenSize.Mobile ->
@@ -420,4 +428,14 @@ resourceErrorTriangle =
     , ( "height", "0" )
     , ( "border-top", "30px solid " ++ Colors.resourceError )
     , ( "border-left", "30px solid transparent" )
+    ]
+
+
+runningLegendItem : List ( String, String )
+runningLegendItem =
+    [ ( "background-image", "url(public/images/ic_running_legend.svg)" )
+    , ( "height", "20px" )
+    , ( "width", "20px" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-position", "50% 50%" )
     ]
