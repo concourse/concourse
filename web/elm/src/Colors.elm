@@ -1,27 +1,27 @@
-module Colors
-    exposing
-        ( aborted
-        , bottomBarText
-        , cliIconHover
-        , dashboardBackground
-        , dashboardText
-        , error
-        , failure
-        , flySuccessCard
-        , flySuccessButtonHover
-        , flySuccessTokenCopied
-        , frame
-        , paused
-        , pending
-        , pinBarTooltip
-        , pinIconHover
-        , pinned
-        , card
-        , resourceError
-        , success
-        , successFaded
-        , text
-        )
+module Colors exposing
+    ( aborted
+    , asciiArt
+    , bottomBarText
+    , card
+    , cliIconHover
+    , dashboardBackground
+    , dashboardText
+    , error
+    , failure
+    , flySuccessButtonHover
+    , flySuccessCard
+    , flySuccessTokenCopied
+    , frame
+    , paused
+    , pending
+    , pinBarTooltip
+    , pinIconHover
+    , pinned
+    , resourceError
+    , success
+    , successFaded
+    , text
+    )
 
 
 frame : String
@@ -127,3 +127,8 @@ cliIconHover =
 text : String
 text =
     "#e6e7e8"
+
+
+asciiArt : String
+asciiArt =
+    "#888888"

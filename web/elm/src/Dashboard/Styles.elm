@@ -1,38 +1,38 @@
-module Dashboard.Styles
-    exposing
-        ( cardBody
-        , cardFooter
-        , highDensityIcon
-        , highDensityToggle
-        , info
-        , infoBar
-        , infoCliIcon
-        , infoItem
-        , legend
-        , legendItem
-        , legendSeparator
-        , noPipelineCardHd
-        , noPipelineCardHeader
-        , noPipelineCardTextHd
-        , noPipelinesCard
-        , noPipelinesCardBody
-        , noPipelinesCardTitle
-        , pipelineCard
-        , pipelineCardBanner
-        , pipelineCardBannerHd
-        , pipelineCardBody
-        , pipelineCardBodyHd
-        , pipelineCardFooter
-        , pipelineCardHd
-        , pipelineCardHeader
-        , pipelineCardTransitionAge
-        , pipelineName
-        , pipelineStatusIcon
-        , previewPlaceholder
-        , resourceErrorTriangle
-        , runningLegendItem
-        , topCliIcon
-        )
+module Dashboard.Styles exposing
+    ( asciiArt
+    , cardBody
+    , cardFooter
+    , highDensityIcon
+    , highDensityToggle
+    , info
+    , infoBar
+    , infoCliIcon
+    , infoItem
+    , legend
+    , legendItem
+    , legendSeparator
+    , noPipelineCardHd
+    , noPipelineCardHeader
+    , noPipelineCardTextHd
+    , pipelineCard
+    , pipelineCardBanner
+    , pipelineCardBannerHd
+    , pipelineCardBody
+    , pipelineCardBodyHd
+    , pipelineCardFooter
+    , pipelineCardHd
+    , pipelineCardHeader
+    , pipelineCardTransitionAge
+    , pipelineName
+    , pipelineStatusIcon
+    , previewPlaceholder
+    , resourceErrorTriangle
+    , runningLegendItem
+    , topCliIcon
+    , welcomeCard
+    , welcomeCardBody
+    , welcomeCardTitle
+    )
 
 import Colors
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
@@ -81,7 +81,7 @@ pipelineCardBanner { status, pipelineRunningKeyframes } =
         isRunning =
             Concourse.PipelineStatus.isRunning status
     in
-        [ ( "height", "7px" ) ] ++ texture pipelineRunningKeyframes isRunning color
+    [ ( "height", "7px" ) ] ++ texture pipelineRunningKeyframes isRunning color
 
 
 noPipelineCardHd : List ( String, String )
@@ -217,10 +217,10 @@ pipelineCardBannerHd { status, pipelineRunningKeyframes } =
         isRunning =
             Concourse.PipelineStatus.isRunning status
     in
-        [ ( "width", "8px" )
-        , ( "background-size", "35px" )
-        ]
-            ++ texture pipelineRunningKeyframes isRunning color
+    [ ( "width", "8px" )
+    , ( "background-size", "35px" )
+    ]
+        ++ texture pipelineRunningKeyframes isRunning color
 
 
 solid : String -> List ( String, String )
@@ -256,6 +256,7 @@ texture : String -> Bool -> String -> List ( String, String )
 texture pipelineRunningKeyframes isRunning =
     if isRunning then
         striped pipelineRunningKeyframes
+
     else
         solid
 
@@ -292,13 +293,13 @@ pipelineStatusIcon pipelineStatus =
                 PipelineStatusErrored _ ->
                     "ic_error_orange.svg"
     in
-        [ ( "background-image", "url(public/images/" ++ image ++ ")" )
-        , ( "height", "20px" )
-        , ( "width", "20px" )
-        , ( "background-position", "50% 50%" )
-        , ( "background-repeat", "no-repeat" )
-        , ( "background-size", "contain" )
-        ]
+    [ ( "background-image", "url(public/images/" ++ image ++ ")" )
+    , ( "height", "20px" )
+    , ( "width", "20px" )
+    , ( "background-position", "50% 50%" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-size", "contain" )
+    ]
 
 
 pipelineCardTransitionAge : PipelineStatus -> List ( String, String )
@@ -326,6 +327,7 @@ infoBar { hideLegend, screenSize } =
     , ( "justify-content"
       , if hideLegend then
             "flex-end"
+
         else
             "space-between"
       )
@@ -383,6 +385,7 @@ highDensityIcon highDensity =
     [ ( "background-image"
       , if highDensity then
             "url(public/images/ic_hd_on.svg)"
+
         else
             "url(public/images/ic_hd_off.svg)"
       )
@@ -417,6 +420,7 @@ infoCliIcon hovered =
     , ( "color"
       , if hovered then
             Colors.cliIconHover
+
         else
             Colors.bottomBarText
       )
@@ -428,6 +432,7 @@ topCliIcon { hovered, image } =
     [ ( "opacity"
       , if hovered then
             "1"
+
         else
             "0.5"
       )
@@ -437,26 +442,29 @@ topCliIcon { hovered, image } =
     , ( "width", "32px" )
     , ( "height", "32px" )
     , ( "margin", "5px" )
+    , ( "z-index", "1" )
     ]
 
 
-noPipelinesCard : List ( String, String )
-noPipelinesCard =
+welcomeCard : List ( String, String )
+welcomeCard =
     [ ( "background-color", Colors.card )
     , ( "margin", "25px" )
     , ( "padding", "40px" )
     , ( "-webkit-font-smoothing", "antialiased" )
+    , ( "position", "relative" )
+    , ( "overflow", "hidden" )
     ]
 
 
-noPipelinesCardBody : List ( String, String )
-noPipelinesCardBody =
+welcomeCardBody : List ( String, String )
+welcomeCardBody =
     [ ( "font-size", "16px" )
     ]
 
 
-noPipelinesCardTitle : List ( String, String )
-noPipelinesCardTitle =
+welcomeCardTitle : List ( String, String )
+welcomeCardTitle =
     [ ( "font-size", "32px" ) ]
 
 
@@ -479,4 +487,17 @@ runningLegendItem =
     , ( "width", "20px" )
     , ( "background-repeat", "no-repeat" )
     , ( "background-position", "50% 50%" )
+    ]
+
+
+asciiArt : List ( String, String )
+asciiArt =
+    [ ( "font-size", "16px" )
+    , ( "line-height", "8px" )
+    , ( "position", "absolute" )
+    , ( "top", "0" )
+    , ( "left", "23em" )
+    , ( "margin", "0" )
+    , ( "white-space", "pre" )
+    , ( "color", Colors.asciiArt )
     ]
