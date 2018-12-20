@@ -14,27 +14,30 @@ on request (just ask in `#introductions`), which will allow you to chat in the
 you're working on.
 
 
-## Contribution Process
+## Contribution process
 
 * [Fork this repo](https://help.github.com/articles/fork-a-repo/) into your
   GitHub account.
 
 * Install the [development dependencies](#development-dependencies) and follow
-  the instructions below for [building the web
-  UI](#prerequisite-building-the-web-ui) and [running
-  concourse](#running-concourse)
+  the instructions below for [running](#running-concourse) and
+  [developing](#developing-concourse) Concourse.
 
-* Make your changes, then commit and push them to your fork.
+* Commit your changes and push them to a branch on your fork.
 
   * Don't forget to write tests; pull requests without tests are unlikely to be
-    merged. See the [testing section](#testing) below for more details on
-    running and writing tests.
+    merged. For instruction on writing and running the various test suites, see
+    [Testing your changes](#testing-your-changes).
+
+  * All commits must have a signature certifying agreement to the [Developer
+    Certificate of Origin](https://developercertificate.org). For more
+    information, see [Signing your work](#signing-your-work).
 
   * *Optional: check out our [Go style
     guide](https://github.com/concourse/concourse/wiki/Concourse-Go-Style-Guide)!*
 
-* [Submit a pull
-  request!](https://help.github.com/articles/creating-a-pull-request-from-a-fork/)
+* When you're ready, [submit a pull
+  request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/)!
 
 
 ## Development dependencies
@@ -42,7 +45,7 @@ you're working on.
 You'll need a few things installed in order to build and run Concourse during
 development:
 
-* [`go`](https://golang.org/dl/) v1.11.2+
+* [`go`](https://golang.org/dl/) v1.11.4+
 * [`git`](https://git-scm.com/) v2.11+
 * [`yarn`](https://yarnpkg.com/en/docs/install)
 * [`docker-compose`](https://docs.docker.com/compose/install/)
@@ -62,7 +65,6 @@ $ docker-compose up
 
 Concourse will be running and reachable at
 [localhost:8080](http://localhost:8080).
-
 
 ### Building `fly` and targeting your local Concourse
 
@@ -116,7 +118,6 @@ silly air-traffic-themed names.
 | `/topgun`       | Another acceptance suite which covers operator-level features and technical aspects of the Concourse runtime. Deploys its own Concourse clusters, runs tests against them, and tears them down. |
 | `/ci`           | This folder contains all of our Concourse tasks, pipelines, and Docker images for the Concourse project itself. |
 
-
 ### Rebuilding to test your changes
 
 After making any changes, you can try them out by rebuilding and recreating the
@@ -128,7 +129,6 @@ $ docker-compose up --build -d
 
 This can be run in a separate terminal while the original `docker-compose up`
 command is still running.
-
 
 ### Working on the web UI
 
@@ -163,7 +163,6 @@ $ yarn watch
 This will continuously monitor your local `.elm`/`.less` files and run `yarn
 build` whenever they change.
 
-
 ### Debugging with `dlv`
 
 With concourse already running, during local development is possible to attach
@@ -181,7 +180,6 @@ To trace a running worker instance:
 ```sh
 $ ./hack/trace worker
 ```
-
 
 ### Connecting to Postgres
 
@@ -210,12 +208,37 @@ $ docker-compose start
 ```
 
 
-## Testing
+## Testing your changes
+
+Any new feature or bug fix should have tests written for it. If there are no
+tests, it is unlikely that your pull request will be merged, especially if it's
+for a substantial feature.
+
+There are a few different test suites in Concourse:
+
+* **unit tests**: Unit tests live throughout the codebase (`foo_test.go`
+  alongside `foo.go`), and should probably be written for any contribution.
+
+* `testflight/`: This suite is the "core Concourse" acceptance tests
+  suite, exercising pipeline logic and `fly execute`. A new test should be
+  added to `testflight` for most features that are exposed via pipelines or `fly`.
+
+* `web/wats/`: This suite covers specifically the web UI, and run against a
+  real Concourse cluster just like `testflight`. This suite is still in its
+  early stages and we're working out a unit testing strategy as well, so
+  expectations are low for PRs, though we may provide guidance and only require
+  coverage on a case-by-case basis.
+
+* `topgun/`: This suite is more heavyweight and exercises behavior that
+  may be more visible to operators than end-users. We typicall do not expect
+  pull requests to add to this suite.
+
+If you need help figuring out the testing strategy for your change, ask in
+Discord!
 
 Concourse uses [Ginkgo](http://github.com/onsi/ginkgo) as its test framework
-and suite runner of choice.
-
-You'll need to install the `ginkgo` CLI to run the tests:
+and suite runner of choice for Go code. You'll need to install the `ginkgo` CLI
+to run the unit tests and `testflight`:
 
 ```sh
 $ go get github.com/onsi/ginkgo/ginkgo
@@ -257,7 +280,7 @@ run it for unit tests:
 $ ginkgo -r -p testflight
 ```
 
-Note: because Testflight actually runs real workloads, you *may* want to limit
+Note: because `testflight` actually runs real workloads, you *may* want to limit
 the parallelism if you're on a machine with more than, say, 8 cores. This can be
 done by specifying `--nodes`:
 
@@ -265,21 +288,81 @@ done by specifying `--nodes`:
 $ ginkgo -r --nodes=4 testflight
 ```
 
-### TopGun
+### A note on `topgun`
 
 The `topgun/` suite is quite heavyweight and we don't currently expect most
 contributors to run or modify it. It's also kind of hard for ~~mere mortals~~
 external contributors to run anyway. So for now, ignore it.
 
-### Writing tests
 
-Any new feature or bug fix should have tests written for it. If there are no
-tests, it is unlikely that your pull request will be merged, especially if it's
-for a substantial feature.
+## Signing your work
 
-Tests should be written using the Ginkgo test framework. A `testflight` test
-should be written if you're submitting a new user-facing feature to the "core"
-Concourse.
+Concourse has joined other open-source projects in adopting the [Developer
+Certificate of Origin](https://developercertificate.org/) process for
+contributions. The purpose of the DCO is simply to determine that the content
+you are contributing is appropriate for submitting under the terms of our
+open-source license (Apache v2).
 
-If you need help figuring out the testing strategy for your change, ask in
-Discord!
+The content of the DCO is as follows:
+
+```
+Developer Certificate of Origin
+Version 1.1
+
+Copyright (C) 2004, 2006 The Linux Foundation and its contributors.
+1 Letterman Drive
+Suite D4700
+San Francisco, CA, 94129
+
+Everyone is permitted to copy and distribute verbatim copies of this
+license document, but changing it is not allowed.
+
+
+Developer's Certificate of Origin 1.1
+
+By making a contribution to this project, I certify that:
+
+(a) The contribution was created in whole or in part by me and I
+    have the right to submit it under the open source license
+    indicated in the file; or
+
+(b) The contribution is based upon previous work that, to the best
+    of my knowledge, is covered under an appropriate open source
+    license and I have the right under that license to submit that
+    work with modifications, whether created in whole or in part
+    by me, under the same open source license (unless I am
+    permitted to submit under a different license), as indicated
+    in the file; or
+
+(c) The contribution was provided directly to me by some other
+    person who certified (a), (b) or (c) and I have not modified
+    it.
+
+(d) I understand and agree that this project and the contribution
+    are public and that a record of the contribution (including all
+    personal information I submit with it, including my sign-off) is
+    maintained indefinitely and may be redistributed consistent with
+    this project or the open source license(s) involved.
+```
+
+This is also available at <https://developercertificate.org>.
+
+All commits require a `Signed-off-by:` signature indicating that the author has
+agreed to the DCO. This must be done using your real name, and must be done on
+each commit. This line can be automatically appended via `git commit -s`.
+
+Your commit should look something like this in `git log`:
+
+```
+commit 8a0a135f8d3362691235d057896e6fc2a1ca421b (HEAD -> master)
+Author: Alex Suraci <asuraci@example.com>
+Date:   Tue Dec 18 12:06:07 2018 -0500
+
+    document DCO process
+
+    Signed-off-by: Alex Suraci <asuraci@example.com>
+```
+
+If you forgot to add the signature, you can run `git commit --amend -s`. Note
+that you will have to force-push (`push -f`) after amending if you've already
+pushed commits without the signature.
