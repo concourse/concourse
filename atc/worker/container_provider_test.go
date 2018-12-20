@@ -110,7 +110,6 @@ var _ = Describe("ContainerProvider", func() {
 
 		containerProvider = NewContainerProvider(
 			fakeGardenClient,
-			fakeBaggageclaimClient,
 			fakeVolumeClient,
 			fakeDBWorker,
 			fakeImageFactory,

@@ -177,7 +177,6 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 
 	containerProvider := NewContainerProvider(
 		gClient,
-		bClient,
 		volumeClient,
 		savedWorker,
 		provider.imageFactory,
@@ -188,7 +187,6 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 
 	return NewGardenWorker(
 		gClient,
-		bClient,
 		containerProvider,
 		volumeClient,
 		savedWorker,

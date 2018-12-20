@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -54,20 +53,17 @@ type imageResourceFetcherFactory struct {
 	resourceFetcherFactory  resource.FetcherFactory
 	dbResourceCacheFactory  db.ResourceCacheFactory
 	dbResourceConfigFactory db.ResourceConfigFactory
-	clock                   clock.Clock
 }
 
 func NewImageResourceFetcherFactory(
 	resourceFetcherFactory resource.FetcherFactory,
 	dbResourceCacheFactory db.ResourceCacheFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
-	clock clock.Clock,
 ) ImageResourceFetcherFactory {
 	return &imageResourceFetcherFactory{
 		resourceFetcherFactory:  resourceFetcherFactory,
 		dbResourceCacheFactory:  dbResourceCacheFactory,
 		dbResourceConfigFactory: dbResourceConfigFactory,
-		clock:                   clock,
 	}
 }
 
@@ -85,7 +81,6 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 		resourceFactory:         resourceFactory,
 		dbResourceCacheFactory:  f.dbResourceCacheFactory,
 		dbResourceConfigFactory: f.dbResourceConfigFactory,
-		clock:                   f.clock,
 
 		worker:                worker,
 		imageResource:         imageResource,
@@ -102,7 +97,6 @@ type imageResourceFetcher struct {
 	resourceFactory         resource.ResourceFactory
 	dbResourceCacheFactory  db.ResourceCacheFactory
 	dbResourceConfigFactory db.ResourceConfigFactory
-	clock                   clock.Clock
 
 	imageResource         worker.ImageResource
 	version               atc.Version
