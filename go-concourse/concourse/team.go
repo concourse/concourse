@@ -1,6 +1,8 @@
 package concourse
 
 import (
+	"io"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 )
@@ -58,6 +60,9 @@ type Team interface {
 	CreateBuild(plan atc.Plan) (atc.Build, error)
 	Builds(page Page) ([]atc.Build, Pagination, error)
 	OrderingPipelines(pipelineNames []string) error
+
+	CreateArtifact(io.Reader) (atc.WorkerArtifact, error)
+	GetArtifact(int) (io.ReadCloser, error)
 }
 
 type team struct {

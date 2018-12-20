@@ -140,7 +140,7 @@ func (worker *gardenWorker) CertsVolume(logger lager.Logger) (Volume, bool, erro
 }
 
 func (worker *gardenWorker) CreateVolume(logger lager.Logger, spec VolumeSpec, teamID int, volumeType db.VolumeType) (Volume, error) {
-	return worker.volumeClient.CreateVolume(logger.Session("find-or-create"), spec, teamID, worker.name, volumeType)
+	return worker.volumeClient.CreateVolume(logger.Session("find-or-create"), spec, teamID, worker.Name(), volumeType)
 }
 
 func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Volume, bool, error) {
