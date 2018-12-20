@@ -489,6 +489,11 @@ func (t *team) SavePipeline(
 		}
 	}
 
+	err = t.updateName(tx, config.Jobs, pipelineID)
+	if err != nil {
+		return nil, false, err
+	}
+
 	for _, job := range config.Jobs {
 		err = t.saveJob(tx, job, pipelineID, jobGroups[job.Name])
 		if err != nil {
@@ -501,6 +506,14 @@ func (t *team) SavePipeline(
 				return nil, false, err
 			}
 		}
+	}
+
+	_, err = tx.Exec(`
+		DELETE FROM jobs
+		WHERE pipeline_id = $1 AND active = false
+		`, pipelineID)
+	if err != nil {
+		return nil, false, err
 	}
 
 	err = removeUnusedWorkerTaskCaches(tx, pipelineID, config.Jobs)
@@ -887,6 +900,85 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 	}
 
 	return containers, checkContainersExpiresAt, nil
+}
+
+type UpdateName struct {
+	OldName string
+	NewName string
+	Id      int
+}
+
+func (t *team) updateName(tx Tx, jobs []atc.JobConfig, pipelineID int) error {
+	jobsToUpdate := []UpdateName{}
+	jobsToQuery := []string{}
+
+	for _, job := range jobs {
+		jobsToQuery = append(jobsToQuery, job.OldName)
+	}
+
+	jobsToQueryString := fmt.Sprint(`'` + strings.Join(jobsToQuery, `','`) + `'`)
+
+	rows, err := tx.Query(
+		fmt.Sprintf("SELECT id, name FROM jobs "+
+			"WHERE pipeline_id = %d "+
+			"AND name IN (%s)", pipelineID, jobsToQueryString))
+
+	if err != nil {
+		return err
+	}
+
+	defer Close(rows)
+
+	for rows.Next() {
+		var id int
+		var name string
+		var newName string
+
+		err := rows.Scan(&id, &name)
+		if err != nil {
+			return err
+		}
+
+		for _, job := range jobs {
+			if job.OldName == name {
+				newName = job.Name
+				break
+			}
+		}
+
+		jobsToUpdate = append(jobsToUpdate, UpdateName{
+			OldName: name,
+			NewName: newName,
+			Id:      id,
+		})
+
+	}
+
+	for _, updateName := range jobsToUpdate {
+		_, err = tx.Exec(`
+	       UPDATE jobs
+	       SET name = $1
+	       WHERE id = $1 AND pipeline_id = $2
+	   `, updateName.Id, pipelineID)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, updateName := range jobsToUpdate {
+		_, err = tx.Exec(`
+            UPDATE jobs
+            SET name = $2
+            WHERE id = $1 AND pipeline_id = $3
+        `, updateName.Id, updateName.NewName, pipelineID)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int, groups []string) error {

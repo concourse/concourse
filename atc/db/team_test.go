@@ -1964,6 +1964,46 @@ var _ = Describe("Team", func() {
 			Expect(found).To(BeFalse())
 		})
 
+		It("removes jobs that are inactive", func() {
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).ToNot(HaveOccurred())
+
+			job, _, err := pipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+
+			jobs := config.Jobs
+			config.Jobs = []atc.JobConfig{}
+
+			_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+			Expect(err).ToNot(HaveOccurred())
+
+			config.Jobs = jobs
+
+			updatedAgainPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion()+1, db.PipelineNoChange)
+			Expect(err).ToNot(HaveOccurred())
+
+			newJob, _, err := updatedAgainPipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(job.ID()).ToNot(Equal(newJob.ID()))
+		})
+
+		It("updates job name but keeps history when old name is specified", func() {
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).ToNot(HaveOccurred())
+
+			job, _, _ := pipeline.Job("some-job")
+
+			config.Jobs[0].Name = "some-other-job"
+			config.Jobs[0].OldName = "some-job"
+
+			updatedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+			Expect(err).ToNot(HaveOccurred())
+
+			updatedJob, _, _ := updatedPipeline.Job("some-other-job")
+			Expect(updatedJob.ID()).To(Equal(job.ID()))
+			Expect(updatedJob.Name()).To(Equal("some-other-job"))
+		})
+
 		It("removes worker task caches for jobs that are no longer in pipeline", func() {
 			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).ToNot(HaveOccurred())
