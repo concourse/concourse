@@ -264,14 +264,14 @@ all =
                                 |> Dashboard.update
                                     (Msgs.LoggedOut (Ok ()))
                                 |> Tuple.second
-                                |> Expect.equal ([ Dashboard.NewUrl "/" ])
+                                |> Expect.equal [ Dashboard.NewUrl "/", Dashboard.FetchData ]
                     , test "redirects to high-density view on high-density view" <|
                         \_ ->
                             init { highDensity = True, query = "" }
                                 |> Dashboard.update
                                     (Msgs.LoggedOut (Ok ()))
                                 |> Tuple.second
-                                |> Expect.equal ([ Dashboard.NewUrl "/hd" ])
+                                |> Expect.equal [ Dashboard.NewUrl "/hd", Dashboard.FetchData ]
                     ]
                 ]
             , test "shows no search input" <|

@@ -1,55 +1,54 @@
-port module Dashboard
-    exposing
-        ( Model
-        , Effect(..)
-        , init
-        , subscriptions
-        , update
-        , view
-        , toCmd
-        )
+port module Dashboard exposing
+    ( Effect(..)
+    , Model
+    , init
+    , subscriptions
+    , toCmd
+    , update
+    , view
+    )
 
 import Array
 import Char
 import Concourse
 import Concourse.Cli as Cli
 import Concourse.Pipeline
-import Concourse.PipelineStatus
+import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Concourse.User
-import Css
 import Dashboard.APIData as APIData
 import Dashboard.Details as Details
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
 import Dashboard.Models as Models
 import Dashboard.Msgs as Msgs exposing (Msg(..))
+import Dashboard.Styles as Styles
 import Dashboard.SubState as SubState
+import Dashboard.Text as Text
 import Dom
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes
     exposing
         ( attribute
-        , css
         , class
         , classList
+        , css
         , draggable
         , href
         , id
         , src
         , style
         )
+import Html.Styled.Events exposing (onMouseEnter, onMouseLeave)
 import Http
 import Keyboard
 import LoginRedirect
-import Mouse
-import Monocle.Common exposing ((=>), (<|>))
-import Monocle.Optional
+import Monocle.Common exposing ((<|>), (=>))
 import Monocle.Lens
+import Monocle.Optional
 import MonocleHelpers exposing (..)
+import Mouse
 import Navigation
 import NewTopBar
-import NoPipeline
-import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
 import Routes
@@ -85,7 +84,6 @@ type alias Flags =
 type DashboardError
     = NotAsked
     | Turbulence String
-    | NoPipelines
 
 
 type alias Model =
@@ -97,6 +95,7 @@ type alias Model =
     , pipelineRunningKeyframes : String
     , groups : List Group.Group
     , hoveredCliIcon : Maybe Cli.Cli
+    , hoveredTopCliIcon : Maybe Cli.Cli
     , screenSize : ScreenSize.ScreenSize
     , version : String
     , userState : UserState.UserState
@@ -155,11 +154,6 @@ toCmd effect =
             NewTopBar.logOut
 
 
-stateLens : Monocle.Lens.Lens Model (Result DashboardError SubState.SubState)
-stateLens =
-    Monocle.Lens.Lens .state (\b a -> { a | state = b })
-
-
 substateOptional : Monocle.Optional.Optional Model SubState.SubState
 substateOptional =
     Monocle.Optional.Optional (.state >> Result.toMaybe) (\s m -> { m | state = Ok s })
@@ -176,41 +170,31 @@ init ports flags =
                 , selection = 0
                 }
     in
-        ( { state = Err NotAsked
-          , csrfToken = flags.csrfToken
-          , turbulencePath = flags.turbulencePath
-          , highDensity = flags.highDensity
-          , hoveredPipeline = Nothing
-          , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
-          , groups = []
-          , hoveredCliIcon = Nothing
-          , screenSize = ScreenSize.Desktop
-          , version = ""
-          , userState = UserState.UserStateUnknown
-          , userMenuVisible = False
-          , hideFooter = False
-          , hideFooterCounter = 0
-          , showHelp = False
-          , searchBar = searchBar
-          }
-        , Cmd.batch
-            [ fetchData
-            , Group.pinTeamNames Group.stickyHeaderConfig
-            , ports.title <| "Dashboard" ++ " - "
-            , Task.perform ScreenResized Window.size
-            ]
-        )
-
-
-substateLens : Monocle.Lens.Lens Model (Maybe SubState.SubState)
-substateLens =
-    Monocle.Lens.Lens (.state >> Result.toMaybe)
-        (\mss model -> Maybe.map (\ss -> { model | state = Ok ss }) mss |> Maybe.withDefault model)
-
-
-noop : Model -> ( Model, List Effect )
-noop model =
-    ( model, [] )
+    ( { state = Err NotAsked
+      , csrfToken = flags.csrfToken
+      , turbulencePath = flags.turbulencePath
+      , highDensity = flags.highDensity
+      , hoveredPipeline = Nothing
+      , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+      , groups = []
+      , hoveredCliIcon = Nothing
+      , hoveredTopCliIcon = Nothing
+      , screenSize = ScreenSize.Desktop
+      , version = ""
+      , userState = UserState.UserStateUnknown
+      , userMenuVisible = False
+      , hideFooter = False
+      , hideFooterCounter = 0
+      , showHelp = False
+      , searchBar = searchBar
+      }
+    , Cmd.batch
+        [ fetchData
+        , Group.pinTeamNames Group.stickyHeaderConfig
+        , ports.title <| "Dashboard" ++ " - "
+        , Task.perform ScreenResized Window.size
+        ]
+    )
 
 
 update : Msg -> Model -> ( Model, List Effect )
@@ -220,7 +204,7 @@ update msg model =
             ( model, [] )
 
         APIDataFetched remoteData ->
-            (case remoteData of
+            case remoteData of
                 RemoteData.NotAsked ->
                     ( { model | state = Err NotAsked }, [] )
 
@@ -241,25 +225,22 @@ update msg model =
                             List.isEmpty <| List.concatMap .pipelines groups
 
                         newModel =
-                            if noPipelines then
-                                { model | state = Err NoPipelines }
-                            else
-                                case model.state of
-                                    Ok substate ->
-                                        { model
-                                            | state =
-                                                Ok (SubState.tick now substate)
-                                        }
+                            case model.state of
+                                Ok substate ->
+                                    { model
+                                        | state =
+                                            Ok (SubState.tick now substate)
+                                    }
 
-                                    _ ->
-                                        { model
-                                            | state =
-                                                Ok
-                                                    { now = now
-                                                    , dragState = Group.NotDragging
-                                                    , dropState = Group.NotDropping
-                                                    }
-                                        }
+                                _ ->
+                                    { model
+                                        | state =
+                                            Ok
+                                                { now = now
+                                                , dragState = Group.NotDragging
+                                                , dropState = Group.NotDropping
+                                                }
+                                    }
 
                         userState =
                             case apiData.user of
@@ -269,36 +250,36 @@ update msg model =
                                 Nothing ->
                                     UserState.UserStateLoggedOut
                     in
-                        if model.highDensity && noPipelines then
-                            ( { newModel
-                                | highDensity = False
-                                , groups = groups
-                                , version = apiData.version
-                                , userState = userState
-                              }
-                            , [ ModifyUrl Routes.dashboardRoute ]
-                            )
-                        else
-                            ( { newModel
-                                | groups = groups
-                                , version = apiData.version
-                                , userState = userState
-                              }
-                            , []
-                            )
-            )
+                    if model.highDensity && noPipelines then
+                        ( { newModel
+                            | highDensity = False
+                            , groups = groups
+                            , version = apiData.version
+                            , userState = userState
+                          }
+                        , [ ModifyUrl Routes.dashboardRoute ]
+                        )
+
+                    else
+                        ( { newModel
+                            | groups = groups
+                            , version = apiData.version
+                            , userState = userState
+                          }
+                        , []
+                        )
 
         ClockTick now ->
             ( let
                 newModel =
                     Footer.tick model
               in
-                case model.state of
-                    Ok substate ->
-                        { newModel | state = Ok (SubState.tick now substate) }
+              case model.state of
+                Ok substate ->
+                    { newModel | state = Ok (SubState.tick now substate) }
 
-                    _ ->
-                        newModel
+                _ ->
+                    newModel
             , []
             )
 
@@ -321,18 +302,44 @@ update msg model =
             )
 
         DragStart teamName index ->
-            model
-                |> Monocle.Optional.modify
-                    substateOptional
-                    ((Details.dragStateLens |> .set) <| Group.Dragging teamName index)
-                |> noop
+            let
+                newModel =
+                    case model.state of
+                        Ok substate ->
+                            { model
+                                | state =
+                                    Ok
+                                        { substate
+                                            | dragState =
+                                                Group.Dragging
+                                                    teamName
+                                                    index
+                                        }
+                            }
+
+                        _ ->
+                            model
+            in
+            ( newModel, [] )
 
         DragOver teamName index ->
-            model
-                |> Monocle.Optional.modify
-                    substateOptional
-                    ((Details.dropStateLens |> .set) <| Group.Dropping index)
-                |> noop
+            let
+                newModel =
+                    case model.state of
+                        Ok substate ->
+                            { model
+                                | state =
+                                    Ok
+                                        { substate
+                                            | dropState =
+                                                Group.Dropping index
+                                        }
+                            }
+
+                        _ ->
+                            model
+            in
+            ( newModel, [] )
 
         TooltipHd pipelineName teamName ->
             ( model, [ ShowTooltipHd ( pipelineName, teamName ) ] )
@@ -351,20 +358,20 @@ update msg model =
                         newGroup =
                             Group.shiftPipelines dragIndex dropIndex group
                     in
-                        ( newGroup
-                        , [ SendOrderPipelinesRequest
-                                newGroup.teamName
-                                newGroup.pipelines
-                                model.csrfToken
-                          ]
-                        )
+                    ( newGroup
+                    , [ SendOrderPipelinesRequest
+                            newGroup.teamName
+                            newGroup.pipelines
+                            model.csrfToken
+                      ]
+                    )
 
                 dragDropOptional : Monocle.Optional.Optional Model ( Group.DragState, Group.DropState )
                 dragDropOptional =
                     substateOptional
                         =|> Monocle.Lens.tuple
-                                (Details.dragStateLens)
-                                (Details.dropStateLens)
+                                Details.dragStateLens
+                                Details.dropStateLens
 
                 dragDropIndexOptional : Monocle.Optional.Optional Model ( Group.PipelineIndex, Group.PipelineIndex )
                 dragDropIndexOptional =
@@ -394,22 +401,25 @@ update msg model =
                         dragDropIndexOptional
                         groupOptional
             in
-                model
-                    |> modifyWithEffect bigOptional
-                        (\( t, g ) ->
-                            let
-                                ( newG, msg ) =
-                                    updatePipelines t g
-                            in
-                                ( ( t, newG ), msg )
-                        )
-                    |> Tuple.mapFirst (dragDropOptional.set ( Group.NotDragging, Group.NotDropping ))
+            model
+                |> modifyWithEffect bigOptional
+                    (\( t, g ) ->
+                        let
+                            ( newG, msg ) =
+                                updatePipelines t g
+                        in
+                        ( ( t, newG ), msg )
+                    )
+                |> Tuple.mapFirst (dragDropOptional.set ( Group.NotDragging, Group.NotDropping ))
 
         PipelineButtonHover state ->
             ( { model | hoveredPipeline = state }, [] )
 
         CliHover state ->
             ( { model | hoveredCliIcon = state }, [] )
+
+        TopCliHover state ->
+            ( { model | hoveredTopCliIcon = state }, [] )
 
         FilterMsg query ->
             let
@@ -421,30 +431,31 @@ update msg model =
                         _ ->
                             model
             in
-                ( newModel
-                , [ FocusSearchInput, ModifyUrl (NewTopBar.queryStringFromSearch query) ]
-                )
+            ( newModel
+            , [ FocusSearchInput, ModifyUrl (NewTopBar.queryStringFromSearch query) ]
+            )
 
         LogIn ->
             ( model, [ RedirectToLogin "" ] )
 
         LogOut ->
-            ( { model | state = Err NotAsked }, [ SendLogOutRequest, FetchData ] )
+            ( { model | state = Err NotAsked }, [ SendLogOutRequest ] )
 
         LoggedOut (Ok ()) ->
             let
                 redirectUrl =
                     if model.highDensity then
                         Routes.dashboardHdRoute
+
                     else
                         Routes.dashboardRoute
             in
-                ( { model
-                    | userState = UserState.UserStateLoggedOut
-                    , userMenuVisible = False
-                  }
-                , [ NewUrl redirectUrl ]
-                )
+            ( { model
+                | userState = UserState.UserStateLoggedOut
+                , userMenuVisible = False
+              }
+            , [ NewUrl redirectUrl, FetchData ]
+            )
 
         LoggedOut (Err err) ->
             flip always (Debug.log "failed to log out" err) <|
@@ -469,7 +480,7 @@ update msg model =
                         _ ->
                             model
             in
-                ( newModel, [] )
+            ( newModel, [] )
 
         BlurMsg ->
             let
@@ -480,6 +491,7 @@ update msg model =
                                 ScreenSize.Mobile ->
                                     if String.isEmpty r.query then
                                         { model | searchBar = Collapsed }
+
                                     else
                                         { model
                                             | searchBar =
@@ -516,7 +528,7 @@ update msg model =
                         _ ->
                             model
             in
-                ( newModel, [] )
+            ( newModel, [] )
 
         SelectMsg index ->
             let
@@ -535,7 +547,7 @@ update msg model =
                         _ ->
                             model
             in
-                ( newModel, [] )
+            ( newModel, [] )
 
         KeyDowns keycode ->
             case model.searchBar of
@@ -551,12 +563,14 @@ update msg model =
                           }
                         , []
                         )
+
                     else
                         case keycode of
                             -- enter key
                             13 ->
                                 if not r.selectionMade then
                                     ( model, [] )
+
                                 else
                                     let
                                         options =
@@ -578,17 +592,17 @@ update msg model =
                                                 Just item ->
                                                     item
                                     in
-                                        ( { model
-                                            | searchBar =
-                                                Expanded
-                                                    { r
-                                                        | selectionMade = False
-                                                        , selection = 0
-                                                        , query = selectedItem
-                                                    }
-                                          }
-                                        , []
-                                        )
+                                    ( { model
+                                        | searchBar =
+                                            Expanded
+                                                { r
+                                                    | selectionMade = False
+                                                    , selection = 0
+                                                    , query = selectedItem
+                                                }
+                                      }
+                                    , []
+                                    )
 
                             -- up arrow
                             38 ->
@@ -648,29 +662,29 @@ update msg model =
                                 }
                     }
             in
-                case model.searchBar of
-                    Collapsed ->
-                        ( newModel, [ FocusSearchInput ] )
+            case model.searchBar of
+                Collapsed ->
+                    ( newModel, [ FocusSearchInput ] )
 
-                    _ ->
-                        ( model, [] )
+                _ ->
+                    ( model, [] )
 
         ScreenResized size ->
             let
                 newSize =
                     ScreenSize.fromWindowSize size
             in
-                ( { model
-                    | screenSize = newSize
-                    , searchBar =
-                        SearchBar.screenSizeChanged
-                            { oldSize = model.screenSize
-                            , newSize = newSize
-                            }
-                            model.searchBar
-                  }
-                , []
-                )
+            ( { model
+                | screenSize = newSize
+                , searchBar =
+                    SearchBar.screenSizeChanged
+                        { oldSize = model.screenSize
+                        , newSize = newSize
+                        }
+                        model.searchBar
+              }
+            , []
+            )
 
 
 orderPipelines : String -> List Models.Pipeline -> Concourse.CSRFToken -> Cmd Msg
@@ -691,6 +705,7 @@ togglePipelinePaused { pipeline, csrfToken } =
     Task.attempt (always Noop) <|
         if pipeline.status == PipelineStatus.PipelineStatusPaused then
             Concourse.Pipeline.unpause pipeline.teamName pipeline.name csrfToken
+
         else
             Concourse.Pipeline.pause pipeline.teamName pipeline.name csrfToken
 
@@ -727,41 +742,129 @@ dashboardView model =
                 Err (Turbulence path) ->
                     [ turbulenceView path ]
 
-                Err NoPipelines ->
-                    [ Html.div
-                        [ class "dashboard-no-content"
-                        , css [ Css.height (Css.pct 100) ]
-                        ]
-                      <|
-                        [ (Html.map (always Noop) << Html.fromUnstyled)
-                            NoPipeline.view
-                        ]
-                            ++ (List.map Html.fromUnstyled <| Footer.view model)
-                    ]
-
                 Ok substate ->
                     [ Html.div
                         [ class "dashboard-content" ]
-                        (pipelinesView
-                            { groups = model.groups
-                            , substate = substate
-                            , query = NewTopBar.query model
-                            , hoveredPipeline = model.hoveredPipeline
-                            , pipelineRunningKeyframes = model.pipelineRunningKeyframes
-                            , userState = model.userState
-                            , highDensity = model.highDensity
-                            }
-                        )
+                      <|
+                        welcomeCard model
+                            ++ pipelinesView
+                                { groups = model.groups
+                                , substate = substate
+                                , query = NewTopBar.query model
+                                , hoveredPipeline = model.hoveredPipeline
+                                , pipelineRunningKeyframes =
+                                    model.pipelineRunningKeyframes
+                                , userState = model.userState
+                                , highDensity = model.highDensity
+                                }
                     ]
                         ++ (List.map Html.fromUnstyled <| Footer.view model)
     in
-        Html.div
-            [ classList
-                [ ( .pageBodyClass Group.stickyHeaderConfig, True )
-                , ( "dashboard-hd", model.highDensity )
+    Html.div
+        [ classList
+            [ ( .pageBodyClass Group.stickyHeaderConfig, True )
+            , ( "dashboard-hd", model.highDensity )
+            ]
+        ]
+        mainContent
+
+
+welcomeCard :
+    { a
+        | hoveredTopCliIcon : Maybe Cli.Cli
+        , groups : List Group.Group
+        , userState : UserState.UserState
+    }
+    -> List (Html Msg)
+welcomeCard { hoveredTopCliIcon, groups, userState } =
+    let
+        noPipelines =
+            List.isEmpty (groups |> List.concatMap .pipelines)
+
+        cliIcon : Cli.Cli -> Maybe Cli.Cli -> Html Msg
+        cliIcon cli hoveredTopCliIcon =
+            let
+                ( cliName, ariaText, icon ) =
+                    case cli of
+                        Cli.OSX ->
+                            ( "osx", "OS X", "apple" )
+
+                        Cli.Windows ->
+                            ( "windows", "Windows", "windows" )
+
+                        Cli.Linux ->
+                            ( "linux", "Linux", "linux" )
+            in
+            Html.a
+                [ href (Cli.downloadUrl "amd64" cliName)
+                , attribute "aria-label" <| "Download " ++ ariaText ++ " CLI"
+                , style <|
+                    Styles.topCliIcon
+                        { hovered = hoveredTopCliIcon == Just cli
+                        , image = icon ++ "_logo.svg"
+                        }
+                , id <| "top-cli-" ++ cliName
+                , onMouseEnter <| TopCliHover <| Just cli
+                , onMouseLeave <| TopCliHover Nothing
+                ]
+                []
+    in
+    if noPipelines then
+        [ Html.div
+            [ id "welcome-card"
+            , style Styles.welcomeCard
+            ]
+            [ Html.div
+                [ style Styles.welcomeCardTitle ]
+                [ Html.text Text.welcome ]
+            , Html.div
+                [ style Styles.welcomeCardBody ]
+              <|
+                [ Html.div
+                    [ style
+                        [ ( "display", "flex" )
+                        , ( "align-items", "center" )
+                        ]
+                    ]
+                    [ Html.div
+                        [ style [ ( "margin-right", "10px" ) ] ]
+                        [ Html.text Text.cliInstructions ]
+                    , cliIcon Cli.OSX hoveredTopCliIcon
+                    , cliIcon Cli.Windows hoveredTopCliIcon
+                    , cliIcon Cli.Linux hoveredTopCliIcon
+                    ]
+                , Html.div
+                    []
+                    [ Html.text Text.setPipelineInstructions ]
+                ]
+                    ++ loginInstruction userState
+            , Html.pre [ style Styles.asciiArt ] [ Html.text Text.asciiArt ]
+            ]
+        ]
+
+    else
+        []
+
+
+loginInstruction : UserState.UserState -> List (Html Msg)
+loginInstruction userState =
+    case userState of
+        UserState.UserStateLoggedIn _ ->
+            []
+
+        _ ->
+            [ Html.div
+                [ id "login-instruction"
+                , style [ ( "line-height", "42px" ) ]
+                ]
+                [ Html.text "login "
+                , Html.a
+                    [ href "/login"
+                    , style [ ( "text-decoration", "underline" ) ]
+                    ]
+                    [ Html.text "here" ]
                 ]
             ]
-            mainContent
 
 
 noResultsView : String -> Html Msg
@@ -770,19 +873,19 @@ noResultsView query =
         boldedQuery =
             Html.span [ class "monospace-bold" ] [ Html.text query ]
     in
-        Html.div
-            [ class <| .pageBodyClass Group.stickyHeaderConfig ]
-            [ Html.div [ class "dashboard-content " ]
-                [ Html.div
-                    [ class <| .sectionClass Group.stickyHeaderConfig ]
-                    [ Html.div [ class "no-results" ]
-                        [ Html.text "No results for "
-                        , boldedQuery
-                        , Html.text " matched your search."
-                        ]
+    Html.div
+        [ class <| .pageBodyClass Group.stickyHeaderConfig ]
+        [ Html.div [ class "dashboard-content " ]
+            [ Html.div
+                [ class <| .sectionClass Group.stickyHeaderConfig ]
+                [ Html.div [ class "no-results" ]
+                    [ Html.text "No results for "
+                    , boldedQuery
+                    , Html.text " matched your search."
                     ]
                 ]
             ]
+        ]
 
 
 helpView : { a | showHelp : Bool } -> Html Msg
@@ -848,6 +951,7 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
         groupsToDisplay =
             if List.all (String.startsWith "team:") (filterTerms query) then
                 filteredGroups
+
             else
                 filteredGroups |> List.filter (.pipelines >> List.isEmpty >> not)
 
@@ -855,6 +959,7 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
             if highDensity then
                 groupsToDisplay
                     |> List.map (Group.hdView pipelineRunningKeyframes)
+
             else
                 groupsToDisplay
                     |> List.map
@@ -867,10 +972,11 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
                             }
                         )
     in
-        if List.isEmpty groupViews then
-            [ noResultsView (toString query) ]
-        else
-            List.map Html.fromUnstyled groupViews
+    if List.isEmpty groupViews && (not <| String.isEmpty query) then
+        [ noResultsView (toString query) ]
+
+    else
+        List.map Html.fromUnstyled groupViews
 
 
 handleKeyPressed : Char -> Footer.Model r -> ( Footer.Model r, List Effect )
@@ -928,19 +1034,21 @@ filterPipelinesByTerm term ({ pipelines } as group) =
         statusSearchTerm =
             if searchStatus then
                 String.dropLeft 7 term
+
             else
                 term
 
         filterByStatus =
-            fuzzySearch (.status >> Concourse.PipelineStatus.show) statusSearchTerm pipelines
+            fuzzySearch (.status >> PipelineStatus.show) statusSearchTerm pipelines
     in
-        { group
-            | pipelines =
-                if searchStatus then
-                    filterByStatus
-                else
-                    fuzzySearch .name term pipelines
-        }
+    { group
+        | pipelines =
+            if searchStatus then
+                filterByStatus
+
+            else
+                fuzzySearch .name term pipelines
+    }
 
 
 filterGroupsByTerm : String -> List Group.Group -> List Group.Group
@@ -952,13 +1060,15 @@ filterGroupsByTerm term groups =
         teamSearchTerm =
             if searchTeams then
                 String.dropLeft 5 term
+
             else
                 term
     in
-        if searchTeams then
-            fuzzySearch .teamName teamSearchTerm groups
-        else
-            groups |> List.map (filterPipelinesByTerm term)
+    if searchTeams then
+        fuzzySearch .teamName teamSearchTerm groups
+
+    else
+        groups |> List.map (filterPipelinesByTerm term)
 
 
 fuzzySearch : (a -> String) -> String -> List a -> List a
@@ -967,7 +1077,8 @@ fuzzySearch map needle records =
         negateSearch =
             String.startsWith "-" needle
     in
-        if negateSearch then
-            List.filter (not << Simple.Fuzzy.match needle << map) records
-        else
-            List.filter (Simple.Fuzzy.match needle << map) records
+    if negateSearch then
+        List.filter (not << Simple.Fuzzy.match needle << map) records
+
+    else
+        List.filter (Simple.Fuzzy.match needle << map) records
