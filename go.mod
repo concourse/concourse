@@ -33,7 +33,7 @@ require (
 	github.com/charlievieth/fs v0.0.0-20170613215519-7dc373669fa1 // indirect
 	github.com/circonus-labs/circonus-gometrics v2.2.1+incompatible // indirect
 	github.com/circonus-labs/circonusllhist v0.0.0-20180430145027-5eb751da55c6 // indirect
-	github.com/cloudfoundry/bosh-cli v5.1.1+incompatible
+	github.com/cloudfoundry/bosh-cli v5.4.0+incompatible
 	github.com/cloudfoundry/bosh-utils v0.0.0-20180919212956-15c556314b68 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
@@ -157,7 +157,7 @@ require (
 	github.com/vito/houdini v0.0.0-20170630141751-8dda540e3245
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	golang.org/x/crypto v0.0.0-20181112202954-3d3f9f413869
-	golang.org/x/net v0.0.0-20181113165502-88d92db4c548 // indirect
+	golang.org/x/net v0.0.0-20181217023233-e147a9138326 // indirect
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
 	golang.org/x/sync v0.0.0-20181108010431-42b317875d0f // indirect
 	golang.org/x/sys v0.0.0-20181107165924-66b7b1311ac8 // indirect
