@@ -1,6 +1,8 @@
 module BuildTests exposing (all)
 
 import Build
+import Build.Effects as Effects
+import Build.Msgs as Msgs
 import Concourse
 import Expect
 import Test exposing (..)
@@ -29,7 +31,7 @@ all =
 
             fetchBuild =
                 Build.update
-                    (Build.BuildFetched 1
+                    (Msgs.BuildFetched 1
                         (Ok
                             { id = 1
                             , name = "1"
@@ -61,13 +63,13 @@ all =
                 pageLoad
                     |> Tuple.second
                     |> Expect.equal
-                        [ Build.FetchJobBuild 1
+                        [ Effects.FetchJobBuild 1
                             { teamName = "team"
                             , pipelineName = "pipeline"
                             , jobName = "job"
                             , buildName = "1"
                             }
-                        , Build.GetCurrentTime
+                        , Effects.GetCurrentTime
                         ]
         , test "has a header after the build is fetched" <|
             \_ ->

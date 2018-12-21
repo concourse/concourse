@@ -6,7 +6,6 @@ import Concourse.Pagination exposing (Paginated)
 import Http
 import Keyboard
 import Scroll
-import StepTree
 import StrictEvents
 import Time
 
@@ -32,4 +31,8 @@ type Msg
     | KeyUped Keyboard.KeyCode
     | PlanAndResourcesFetched (Result Http.Error ( Concourse.BuildPlan, Concourse.BuildResources ))
     | BuildEventsMsg Concourse.BuildEvents.Msg
-    | StepTreeMsg StepTree.Msg
+    | ToggleStep String
+    | Finished
+    | SwitchTab String Int
+    | SetHighlight String Int
+    | ExtendHighlight String Int

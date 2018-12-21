@@ -1,4 +1,4 @@
-module Build.Effects exposing (Effect(..))
+module Build.Effects exposing (Effect(..), toCmd)
 
 import Build.Msgs exposing (Msg(..))
 import Concourse
@@ -30,6 +30,7 @@ type Effect
     | SetFavIcon Concourse.BuildStatus
     | SetTitle (String -> Cmd Msg) String
     | NewUrl String
+    | ModifyUrl String
     | DoTriggerBuild Concourse.JobIdentifier Concourse.CSRFToken
     | RedirectToLogin String
     | DoAbortBuild Int Concourse.CSRFToken
@@ -76,6 +77,9 @@ toCmd effect =
 
         NewUrl url ->
             Navigation.newUrl url
+
+        ModifyUrl url ->
+            Navigation.modifyUrl url
 
         DoTriggerBuild job csrfToken ->
             triggerBuild job csrfToken

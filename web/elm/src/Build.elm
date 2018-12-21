@@ -12,22 +12,18 @@ module Build exposing
     )
 
 import Autoscroll
-import Build.Effects exposing (Effect(..))
+import Build.Effects exposing (Effect(..), toCmd)
 import Build.Msgs exposing (Msg(..))
 import BuildDuration
 import BuildOutput
 import Char
 import Concourse
-import Concourse.Build
-import Concourse.BuildPrep
 import Concourse.BuildStatus
-import Concourse.Job
 import Concourse.Pagination exposing (Paginated)
 import Date exposing (Date)
 import Date.Format
 import Debug
 import Dict exposing (Dict)
-import Favicon
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -47,16 +43,13 @@ import Html.Lazy
 import Http
 import Keyboard
 import LoadingIndicator
-import LoginRedirect
 import Maybe.Extra
-import Navigation
-import Process
 import RemoteData exposing (WebData)
 import Routes
 import Scroll
+import StepTree
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
-import Task exposing (Task)
 import Time exposing (Time)
 import UpdateMsg exposing (UpdateMsg)
 import Views
@@ -72,7 +65,12 @@ type Page
     | JobBuildPage Concourse.JobBuildIdentifier
 
 
-initJobBuildPage : Concourse.TeamName -> Concourse.PipelineName -> Concourse.JobName -> Concourse.BuildName -> Page
+initJobBuildPage :
+    Concourse.TeamName
+    -> Concourse.PipelineName
+    -> Concourse.JobName
+    -> Concourse.BuildName
+    -> Page
 initJobBuildPage teamName pipelineName jobName buildName =
     JobBuildPage
         { teamName = teamName
@@ -148,7 +146,11 @@ subscriptions model =
     Sub.batch
         [ Time.every Time.second ClockTick
         , Scroll.fromWindowBottom WindowScrolled
-        , case model.currentBuild |> RemoteData.toMaybe |> Maybe.andThen .output of
+        , case
+            model.currentBuild
+                |> RemoteData.toMaybe
+                |> Maybe.andThen .output
+          of
             Nothing ->
                 Sub.none
 
@@ -170,7 +172,13 @@ changeToBuild page model =
                 model.browsingIndex + 1
 
             newBuild =
-                RemoteData.map (\cb -> { cb | prep = Nothing, output = Nothing })
+                RemoteData.map
+                    (\cb ->
+                        { cb
+                            | prep = Nothing
+                            , output = Nothing
+                        }
+                    )
                     model.currentBuild
         in
         ( { model
@@ -201,18 +209,18 @@ extractTitle model =
             ""
 
 
-updateWithMessage : Msg -> Model -> ( Model, List Effect, Maybe UpdateMsg )
+updateWithMessage : Msg -> Model -> ( Model, Cmd Msg, Maybe UpdateMsg )
 updateWithMessage message model =
     let
-        ( mdl, msg ) =
+        ( mdl, effects ) =
             update message model
     in
     case mdl.currentBuild of
         RemoteData.Failure _ ->
-            ( mdl, msg, Just UpdateMsg.NotFound )
+            ( mdl, Cmd.batch (List.map toCmd effects), Just UpdateMsg.NotFound )
 
         _ ->
-            ( mdl, msg, Nothing )
+            ( mdl, Cmd.batch (List.map toCmd effects), Nothing )
 
 
 update : Msg -> Model -> ( Model, List Effect )
@@ -296,36 +304,37 @@ update action model =
             flip always (Debug.log "failed to fetch build preparation" err) <|
                 ( model, [] )
 
-        --        BuildOutputMsg browsingIndex action ->
-        --            if browsingIndex == model.browsingIndex then
-        --                let
-        --                    currentBuild =
-        --                        model.currentBuild |> RemoteData.toMaybe
-        --                in
-        --                case ( currentBuild, currentBuild |> Maybe.andThen .output ) of
-        --                    ( Just currentBuild, Just output ) ->
-        --                        let
-        --                            ( newOutput, cmd, outMsg ) =
-        --                                BuildOutput.update action output
-        --
-        --                            ( newModel, newCmd ) =
-        --                                handleOutMsg outMsg
-        --                                    { model
-        --                                        | currentBuild = RemoteData.Success { currentBuild | output = Just newOutput }
-        --                                    }
-        --                        in
-        --                        ( newModel
-        --                        , Cmd.batch
-        --                            [ newCmd
-        --                            , cmd
-        --                            ]
-        --                        )
-        --
-        --                    _ ->
-        --                        Debug.crash "impossible (received action for missing BuildOutput)"
-        --
-        --            else
-        --                ( model, Cmd.none )
+        PlanAndResourcesFetched result ->
+            updateOutput (BuildOutput.planAndResourcesFetched result) model
+
+        BuildEventsMsg action ->
+            updateOutput (BuildOutput.handleEventsMsg action) model
+
+        ToggleStep id ->
+            updateOutput
+                (BuildOutput.handleStepTreeMsg <| StepTree.toggleStep id)
+                model
+
+        Finished ->
+            updateOutput
+                (BuildOutput.handleStepTreeMsg <| StepTree.finished)
+                model
+
+        SwitchTab id tab ->
+            updateOutput
+                (BuildOutput.handleStepTreeMsg <| StepTree.switchTab id tab)
+                model
+
+        SetHighlight id line ->
+            updateOutput
+                (BuildOutput.handleStepTreeMsg <| StepTree.setHighlight id line)
+                model
+
+        ExtendHighlight id line ->
+            updateOutput
+                (BuildOutput.handleStepTreeMsg <| StepTree.extendHighlight id line)
+                model
+
         BuildHistoryFetched (Err err) ->
             flip always (Debug.log "failed to fetch build history" err) <|
                 ( model, [] )
@@ -376,6 +385,39 @@ update action model =
 
                 _ ->
                     ( model, [] )
+
+
+updateOutput :
+    (BuildOutput.Model
+     -> ( BuildOutput.Model, List Effect, BuildOutput.OutMsg )
+    )
+    -> Model
+    -> ( Model, List Effect )
+updateOutput updater model =
+    let
+        currentBuild =
+            model.currentBuild |> RemoteData.toMaybe
+    in
+    case ( currentBuild, currentBuild |> Maybe.andThen .output ) of
+        ( Just currentBuild, Just output ) ->
+            let
+                ( newOutput, effects, outMsg ) =
+                    updater output
+
+                ( newModel, newCmd ) =
+                    handleOutMsg outMsg
+                        { model
+                            | currentBuild =
+                                RemoteData.Success
+                                    { currentBuild
+                                        | output = Just newOutput
+                                    }
+                        }
+            in
+            ( newModel, newCmd ++ effects )
+
+        _ ->
+            ( model, [] )
 
 
 handleKeyPressed : Char -> Model -> ( Model, List Effect )
