@@ -22,34 +22,34 @@ type GitlabFlags struct {
 	Host         string `long:"host" description:"Hostname of Gitlab Enterprise deployment (Include scheme, No trailing slash)"`
 }
 
-func (self *GitlabFlags) Name() string {
+func (flag *GitlabFlags) Name() string {
 	return "GitLab"
 }
 
-func (self *GitlabFlags) Validate() error {
+func (flag *GitlabFlags) Validate() error {
 	var errs *multierror.Error
 
-	if self.ClientID == "" {
+	if flag.ClientID == "" {
 		errs = multierror.Append(errs, errors.New("Missing client-id"))
 	}
 
-	if self.ClientSecret == "" {
+	if flag.ClientSecret == "" {
 		errs = multierror.Append(errs, errors.New("Missing client-secret"))
 	}
 
 	return errs.ErrorOrNil()
 }
 
-func (self *GitlabFlags) Serialize(redirectURI string) ([]byte, error) {
-	if err := self.Validate(); err != nil {
+func (flag *GitlabFlags) Serialize(redirectURI string) ([]byte, error) {
+	if err := flag.Validate(); err != nil {
 		return nil, err
 	}
 
 	return json.Marshal(gitlab.Config{
-		ClientID:     self.ClientID,
-		ClientSecret: self.ClientSecret,
+		ClientID:     flag.ClientID,
+		ClientSecret: flag.ClientSecret,
 		RedirectURI:  redirectURI,
-		BaseURL:      self.Host,
+		BaseURL:      flag.Host,
 	})
 }
 
@@ -58,10 +58,10 @@ type GitlabTeamFlags struct {
 	Groups []string `long:"group" description:"List of whitelisted GitLab groups" value-name:"GROUP_NAME"`
 }
 
-func (self *GitlabTeamFlags) GetUsers() []string {
-	return self.Users
+func (flag *GitlabTeamFlags) GetUsers() []string {
+	return flag.Users
 }
 
-func (self *GitlabTeamFlags) GetGroups() []string {
-	return self.Groups
+func (flag *GitlabTeamFlags) GetGroups() []string {
+	return flag.Groups
 }

@@ -178,7 +178,7 @@ var _ = Describe("Sky Server API", func() {
 					BeforeEach(func() {
 						cookieExpiration = time.Now().Add(-1 * time.Hour)
 
-						tokenGenerator := token.NewGenerator(signingKey)
+						tokenGenerator := token.newGenerator(signingKey)
 						oauthToken, err := tokenGenerator.Generate(map[string]interface{}{
 							"exp":  cookieExpiration.Unix(),
 							"csrf": "some-csrf",
@@ -194,7 +194,7 @@ var _ = Describe("Sky Server API", func() {
 					BeforeEach(func() {
 						cookieExpiration = time.Now().Add(1 * time.Hour)
 
-						tokenGenerator := token.NewGenerator(signingKey)
+						tokenGenerator := token.newGenerator(signingKey)
 						oauthToken, err := tokenGenerator.Generate(map[string]interface{}{
 							"exp":  cookieExpiration.Unix(),
 							"csrf": "some-csrf",
@@ -454,7 +454,7 @@ var _ = Describe("Sky Server API", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					cookieExpiration := time.Now().Add(time.Hour)
-					tokenGenerator := token.NewGenerator(signingKey)
+					tokenGenerator := token.newGenerator(signingKey)
 					oauthToken, err = tokenGenerator.Generate(map[string]interface{}{
 						"exp":  cookieExpiration.Unix(),
 						"csrf": "some-csrf",
@@ -776,7 +776,7 @@ var _ = Describe("Sky Server API", func() {
 					wrongSigningKey, err := rsa.GenerateKey(rand.Reader, 2048)
 					Expect(err).NotTo(HaveOccurred())
 
-					tokenGenerator := token.NewGenerator(wrongSigningKey)
+					tokenGenerator := token.newGenerator(wrongSigningKey)
 					token, err := tokenGenerator.Generate(map[string]interface{}{"sub": "some-sub"})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -790,7 +790,7 @@ var _ = Describe("Sky Server API", func() {
 
 			Context("bearer token is expired", func() {
 				BeforeEach(func() {
-					tokenGenerator := token.NewGenerator(signingKey)
+					tokenGenerator := token.newGenerator(signingKey)
 					token, err := tokenGenerator.Generate(map[string]interface{}{
 						"exp": time.Now().Add(-1 * time.Hour).Unix(),
 					})
@@ -810,7 +810,7 @@ var _ = Describe("Sky Server API", func() {
 				BeforeEach(func() {
 					expiration = time.Now().Add(1 * time.Hour).Unix()
 
-					tokenGenerator := token.NewGenerator(signingKey)
+					tokenGenerator := token.newGenerator(signingKey)
 					token, err := tokenGenerator.Generate(map[string]interface{}{
 						"exp":       expiration,
 						"sub":       "some-sub",

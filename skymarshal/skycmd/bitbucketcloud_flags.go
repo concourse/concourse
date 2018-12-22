@@ -21,32 +21,32 @@ type BitbucketCloudFlags struct {
 	ClientSecret string `long:"client-secret" description:"(Required) Client secret"`
 }
 
-func (self *BitbucketCloudFlags) Name() string {
+func (flag *BitbucketCloudFlags) Name() string {
 	return "Bitbucket Cloud"
 }
 
-func (self *BitbucketCloudFlags) Validate() error {
+func (flag *BitbucketCloudFlags) Validate() error {
 	var errs *multierror.Error
 
-	if self.ClientID == "" {
+	if flag.ClientID == "" {
 		errs = multierror.Append(errs, errors.New("Missing client-id"))
 	}
 
-	if self.ClientSecret == "" {
+	if flag.ClientSecret == "" {
 		errs = multierror.Append(errs, errors.New("Missing client-secret"))
 	}
 
 	return errs.ErrorOrNil()
 }
 
-func (self *BitbucketCloudFlags) Serialize(redirectURI string) ([]byte, error) {
-	if err := self.Validate(); err != nil {
+func (flag *BitbucketCloudFlags) Serialize(redirectURI string) ([]byte, error) {
+	if err := flag.Validate(); err != nil {
 		return nil, err
 	}
 
 	return json.Marshal(bitbucketcloud.Config{
-		ClientID:     self.ClientID,
-		ClientSecret: self.ClientSecret,
+		ClientID:     flag.ClientID,
+		ClientSecret: flag.ClientSecret,
 		RedirectURI:  redirectURI,
 	})
 }
@@ -56,10 +56,10 @@ type BitbucketCloudTeamFlags struct {
 	Teams []string `long:"team" description:"List of whitelisted Bitbucket Cloud teams" value-name:"TEAM_NAME"`
 }
 
-func (self *BitbucketCloudTeamFlags) GetUsers() []string {
-	return self.Users
+func (flag *BitbucketCloudTeamFlags) GetUsers() []string {
+	return flag.Users
 }
 
-func (self *BitbucketCloudTeamFlags) GetGroups() []string {
-	return self.Teams
+func (flag *BitbucketCloudTeamFlags) GetGroups() []string {
+	return flag.Teams
 }
