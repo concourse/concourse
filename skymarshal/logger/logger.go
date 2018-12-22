@@ -15,23 +15,23 @@ func New(logger lager.Logger) *logrus.Logger {
 		Level:     logrus.DebugLevel,
 	}
 
-	log.Hooks.Add(NewLagerHook(logger))
+	log.Hooks.Add(newLagerHook(logger))
 	return log
 }
 
-func NewLagerHook(logger lager.Logger) *LagerHook {
-	return &LagerHook{logger}
+func newLagerHook(logger lager.Logger) *lagerHook {
+	return &lagerHook{logger}
 }
 
-type LagerHook struct {
+type lagerHook struct {
 	lager.Logger
 }
 
-func (lf *LagerHook) Levels() []logrus.Level {
+func (lf *lagerHook) Levels() []logrus.Level {
 	return logrus.AllLevels
 }
 
-func (lf *LagerHook) Fire(entry *logrus.Entry) error {
+func (lf *lagerHook) Fire(entry *logrus.Entry) error {
 	switch entry.Level {
 	case logrus.DebugLevel:
 		lf.Logger.Debug("event", lager.Data{"message": entry.Message, "fields": entry.Data})
