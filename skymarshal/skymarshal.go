@@ -57,7 +57,7 @@ func NewServer(config *Config) (*Server, error) {
 	redirectURL := externalURL.String() + "/sky/callback"
 
 	tokenVerifier := token.NewVerifier(clientID, issuerURL)
-	tokenIssuer := token.NewIssuer(config.TeamFactory, token.newGenerator(signingKey), config.Flags.Expiration)
+	tokenIssuer := token.NewIssuer(config.TeamFactory, token.NewGenerator(signingKey), config.Flags.Expiration)
 
 	skyServer, err := skyserver.NewSkyServer(&skyserver.SkyConfig{
 		Logger:          config.Logger.Session("sky"),

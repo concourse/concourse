@@ -18,7 +18,7 @@ var _ = Describe("Token Generator", func() {
 
 		Context("with invalid signing key", func() {
 			BeforeEach(func() {
-				tokenGenerator = token.newGenerator(nil)
+				tokenGenerator = token.NewGenerator(nil)
 			})
 
 			It("errors", func() {
@@ -35,7 +35,7 @@ var _ = Describe("Token Generator", func() {
 				signingKey, err = rsa.GenerateKey(rand.Reader, 2048)
 				Expect(err).NotTo(HaveOccurred())
 
-				tokenGenerator = token.newGenerator(signingKey)
+				tokenGenerator = token.NewGenerator(signingKey)
 			})
 
 			Context("without claims", func() {
