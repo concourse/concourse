@@ -45,3 +45,10 @@ func Wait(session *gexec.Session) {
 	<-session.Exited
 	Expect(session.ExitCode()).To(Equal(0))
 }
+
+func Run(env []string, command string, argv ...string) *gexec.Session {
+	session := Start(env, command, argv...)
+	Wait(session)
+	return session
+}
+

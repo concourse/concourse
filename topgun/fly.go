@@ -27,6 +27,14 @@ type Worker struct {
 	BaggageclaimUrl string `json:"baggageclaim_url"`
 }
 
+type Pipeline struct {
+	ID       int    `json:"id"`
+	Name     string `json:"name"`
+	Paused   bool   `json:"paused"`
+	Public   bool   `json:"public"`
+	TeamName string `json:"team_name"`
+}
+
 func (f *Fly) Login(user, password, endpoint string) {
 	Eventually(func() *gexec.Session {
 		sess := f.Start(
@@ -67,6 +75,19 @@ func (f *Fly) GetWorkers() []Worker {
 	return workers
 }
 
+func (f *Fly) GetPipelines() []Pipeline {
+	var pipelines = []Pipeline{}
+
+	sess := f.Start("pipelines", "--json")
+	<-sess.Exited
+	Expect(sess.ExitCode()).To(BeZero())
+
+	err := json.Unmarshal(sess.Out.Contents(), &pipelines)
+	Expect(err).ToNot(HaveOccurred())
+
+	return pipelines
+}
+
 func BuildBinary() string {
 	flyBinPath, err := gexec.Build("github.com/concourse/concourse/fly")
 	Expect(err).ToNot(HaveOccurred())
@@ -104,4 +125,3 @@ func FetchToken(webURL, username, password string) (*oauth2.Token, error) {
 
 	return oauth2Config.PasswordCredentialsToken(context.Background(), username, password)
 }
-

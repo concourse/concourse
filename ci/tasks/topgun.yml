@@ -6,26 +6,28 @@ image_resource:
   source: {repository: concourse/unit}
 
 params:
-  BOSH_ENVIRONMENT:
-  BOSH_USER:
-  BOSH_PASSWORD:
+  AWS_ACCESS_KEY_ID:
+  AWS_REGION:
+  AWS_SECRET_ACCESS_KEY:
+  BOSH_CA_CERT:
   BOSH_CLIENT:
   BOSH_CLIENT_SECRET:
+  BOSH_ENVIRONMENT:
   BOSH_KEY:
+  BOSH_PASSWORD:
+  BOSH_USER:
   SKIP:
   TOPGUN_NETWORK_OFFSET:
-  AWS_REGION:
-  AWS_ACCESS_KEY_ID:
-  AWS_SECRET_ACCESS_KEY:
 
 inputs:
+- name: bbr
+- name: bpm-release
 - name: concourse
 - name: concourse-release
-- name: bpm-release
-- name: postgres-release
-- name: vault-release
 - name: credhub-release
+- name: postgres-release
 - name: stemcell
+- name: vault-release
 
 caches:
 - path: gopath

@@ -666,6 +666,8 @@ jobs:
       trigger: true
     - get: postgres-release
       trigger: true
+    - get: bbr
+      trigger: true
     - get: bpm-release
       trigger: true
     - get: gcp-xenial-stemcell
@@ -726,6 +728,7 @@ jobs:
       stemcell: gcp-xenial-stemcell
     params:
       BOSH_ENVIRONMENT: ((bosh_target))
+      BOSH_CA_CERT: ((tmp_bosh_client.ca_cert))
       BOSH_CLIENT: ((bosh_client.id))
       BOSH_CLIENT_SECRET: ((bosh_client.secret))
       BOSH_KEY: ((topgun_bosh_key))
@@ -938,6 +941,13 @@ resources:
   source:
     owner: Yelp
     repository: dumb-init
+    access_token: ((concourse_github_dummy.access_token))
+
+- name: bbr
+  type: github-release
+  source:
+    owner: cloudfoundry-incubator
+    repository: bosh-backup-and-restore
     access_token: ((concourse_github_dummy.access_token))
 
 - name: gdn
