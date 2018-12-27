@@ -1,0 +1,30 @@
+- type: replace
+  path: /releases/-
+  value:
+    name: backup-and-restore-sdk
+    version: "1.11.2"
+
+- type: replace
+  path: /instance_groups/name=db/jobs/-
+  value:
+    name: database-backup-restorer
+    release: backup-and-restore-sdk
+    properties: {}
+
+- type: replace
+  path: /instance_groups/name=db/jobs/-
+  value:
+    release: concourse
+    name: bbr-atcdb
+    properties:
+      postgresql_database: atc
+      postgresql:
+        database: atc
+        role:
+          name: atc
+          password: dummy-password
+
+- type: replace
+  path: /releases/name=postgres/version
+  value: 31
+

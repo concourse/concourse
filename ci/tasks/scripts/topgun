@@ -23,6 +23,9 @@ bosh upload-release vault-release/*.tgz
 bosh upload-release credhub-release/*.tgz
 bosh upload-stemcell stemcell/*.tgz
 
+tar xf ./bbr/bbr-*.tar
+install ./releases/bbr /usr/local/bin/
+
 cd concourse
 
 go mod download
