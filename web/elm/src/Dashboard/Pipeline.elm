@@ -1,9 +1,8 @@
-module Dashboard.Pipeline
-    exposing
-        ( hdPipelineView
-        , pipelineNotSetView
-        , pipelineView
-        )
+module Dashboard.Pipeline exposing
+    ( hdPipelineView
+    , pipelineNotSetView
+    , pipelineView
+    )
 
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.Models exposing (Pipeline)
@@ -73,6 +72,7 @@ hdPipelineView { pipeline, pipelineRunningKeyframes } =
         ]
             ++ (if pipeline.resourceError then
                     [ Html.div [ style Styles.resourceErrorTriangle ] [] ]
+
                 else
                     []
                )
@@ -142,28 +142,28 @@ footerView pipeline now hovered =
         spacer =
             Html.div [ style [ ( "width", "13.5px" ) ] ] []
     in
-        Html.div
-            [ class "card-footer"
-            , style Styles.pipelineCardFooter
+    Html.div
+        [ class "card-footer"
+        , style Styles.pipelineCardFooter
+        ]
+        [ Html.div
+            [ style [ ( "display", "flex" ) ]
             ]
             [ Html.div
-                [ style [ ( "display", "flex" ) ]
+                [ style <| Styles.pipelineStatusIcon pipeline.status
                 ]
-                [ Html.div
-                    [ style <| Styles.pipelineStatusIcon pipeline.status
-                    ]
-                    []
-                , transitionView now pipeline
-                ]
-            , Html.div
-                [ style [ ( "display", "flex" ) ]
-                ]
-              <|
-                List.intersperse spacer
-                    [ pauseToggleView pipeline hovered
-                    , visibilityView pipeline.public
-                    ]
+                []
+            , transitionView now pipeline
             ]
+        , Html.div
+            [ style [ ( "display", "flex" ) ]
+            ]
+          <|
+            List.intersperse spacer
+                [ pauseToggleView pipeline hovered
+                , visibilityView pipeline.public
+                ]
+        ]
 
 
 visibilityView : Bool -> Html Msg
@@ -172,9 +172,10 @@ visibilityView public =
         [ style
             [ ( "background-image"
               , if public then
-                    "url(public/images/baseline-visibility-24px.svg)"
+                    "url(/public/images/baseline-visibility-24px.svg)"
+
                 else
-                    "url(public/images/baseline-visibility_off-24px.svg)"
+                    "url(/public/images/baseline-visibility_off-24px.svg)"
               )
             , ( "background-position", "50% 50%" )
             , ( "background-repeat", "no-repeat" )
@@ -237,10 +238,10 @@ pauseToggleView pipeline hovered =
             [ ( "background-image"
               , case pipeline.status of
                     PipelineStatus.PipelineStatusPaused ->
-                        "url(public/images/ic_play_white.svg)"
+                        "url(/public/images/ic_play_white.svg)"
 
                     _ ->
-                        "url(public/images/ic_pause_white.svg)"
+                        "url(/public/images/ic_pause_white.svg)"
               )
             , ( "background-position", "50% 50%" )
             , ( "background-repeat", "no-repeat" )
@@ -250,6 +251,7 @@ pauseToggleView pipeline hovered =
             , ( "opacity"
               , if hovered then
                     "1"
+
                 else
                     "0.5"
               )

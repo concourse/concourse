@@ -6,6 +6,7 @@ module DashboardTests exposing
     , givenDataAndUser
     , givenDataUnauthenticated
     , iconSelector
+    , middleGrey
     , white
     )
 
@@ -376,13 +377,13 @@ all =
                                 (userWithRoles [])
                     )
             , test "no login instruction when logged in" <|
-                   \_ -> 
-                        whenOnDashboard { highDensity = False }
-                            |> givenDataAndUser
-                                (apiData [ ( "team", [] ) ])
-                                (userWithRoles [])
-                            |> queryView
-                            |> Query.hasNot [ id "login-instruction" ]
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (apiData [ ( "team", [] ) ])
+                            (userWithRoles [])
+                        |> queryView
+                        |> Query.hasNot [ id "login-instruction" ]
             , test "has login instruction when unauthenticated" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
@@ -2390,7 +2391,9 @@ all =
                                 |> Query.index 0
                                 |> Query.has
                                     [ style
-                                        [ ( "background-image", "url(public/images/ic_hd_off.svg)" )
+                                        [ ( "background-image"
+                                          , "url(/public/images/ic_hd_off.svg)"
+                                          )
                                         , ( "background-size", "contain" )
                                         , ( "height", "20px" )
                                         , ( "width", "35px" )
@@ -2408,14 +2411,19 @@ all =
                     [ test "displays the on state" <|
                         \_ ->
                             whenOnDashboard { highDensity = True }
-                                |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                                |> givenDataUnauthenticated
+                                    (apiData
+                                        [ ( "team", [ "pipeline" ] ) ]
+                                    )
                                 |> queryView
                                 |> findHDToggle
                                 |> Query.children []
                                 |> Query.index 0
                                 |> Query.has
                                     [ style
-                                        [ ( "background-image", "url(public/images/ic_hd_on.svg)" )
+                                        [ ( "background-image"
+                                          , "url(/public/images/ic_hd_on.svg)"
+                                          )
                                         , ( "background-size", "contain" )
                                         , ( "height", "20px" )
                                         , ( "width", "35px" )
@@ -2424,7 +2432,10 @@ all =
                     , test "will not shrink on resizing" <|
                         \_ ->
                             whenOnDashboard { highDensity = True }
-                                |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                                |> givenDataUnauthenticated
+                                    (apiData
+                                        [ ( "team", [ "pipeline" ] ) ]
+                                    )
                                 |> queryView
                                 |> findHDToggle
                                 |> Query.children []
@@ -2715,7 +2726,7 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mou
 iconSelector : { size : String, image : String } -> List Selector
 iconSelector { size, image } =
     [ style
-        [ ( "background-image", "url(public/images/" ++ image ++ ")" )
+        [ ( "background-image", "url(/public/images/" ++ image ++ ")" )
         , ( "background-position", "50% 50%" )
         , ( "background-repeat", "no-repeat" )
         , ( "width", size )

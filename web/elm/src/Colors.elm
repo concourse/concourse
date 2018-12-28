@@ -1,10 +1,10 @@
 module Colors exposing
     ( aborted
     , asciiArt
+    , background
     , bottomBarText
     , card
     , cliIconHover
-    , dashboardBackground
     , dashboardText
     , error
     , failure
@@ -54,8 +54,8 @@ pinIconHover =
     "#1e1d1d"
 
 
-dashboardBackground : String
-dashboardBackground =
+background : String
+background =
     "#3d3c3c"
 
 

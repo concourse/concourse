@@ -1,4 +1,4 @@
-module Build.Msgs exposing (Msg(..))
+module Build.Msgs exposing (HoveredButton(..), Msg(..))
 
 import Concourse
 import Concourse.BuildEvents
@@ -13,6 +13,7 @@ import Time
 type Msg
     = Noop
     | SwitchToBuild Concourse.Build
+    | Hover HoveredButton
     | TriggerBuild (Maybe Concourse.JobIdentifier)
     | BuildTriggered (Result Http.Error Concourse.Build)
     | AbortBuild Int
@@ -36,3 +37,9 @@ type Msg
     | SwitchTab String Int
     | SetHighlight String Int
     | ExtendHighlight String Int
+
+
+type HoveredButton
+    = Neither
+    | Abort
+    | Trigger

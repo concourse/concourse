@@ -162,7 +162,7 @@ cardFooter =
 
 previewPlaceholder : List ( String, String )
 previewPlaceholder =
-    [ ( "background-color", Colors.dashboardBackground )
+    [ ( "background-color", Colors.background )
     , ( "flex-grow", "1" )
     ]
 
@@ -293,7 +293,7 @@ pipelineStatusIcon pipelineStatus =
                 PipelineStatusErrored _ ->
                     "ic_error_orange.svg"
     in
-    [ ( "background-image", "url(public/images/" ++ image ++ ")" )
+    [ ( "background-image", "url(/public/images/" ++ image ++ ")" )
     , ( "height", "20px" )
     , ( "width", "20px" )
     , ( "background-position", "50% 50%" )
@@ -384,10 +384,10 @@ highDensityIcon : Bool -> List ( String, String )
 highDensityIcon highDensity =
     [ ( "background-image"
       , if highDensity then
-            "url(public/images/ic_hd_on.svg)"
+            "url(/public/images/ic_hd_on.svg)"
 
         else
-            "url(public/images/ic_hd_off.svg)"
+            "url(/public/images/ic_hd_off.svg)"
       )
     , ( "background-size", "contain" )
     , ( "height", "20px" )
@@ -436,7 +436,7 @@ topCliIcon { hovered, image } =
         else
             "0.5"
       )
-    , ( "background-image", "url(public/images/" ++ image ++ ")" )
+    , ( "background-image", "url(/public/images/" ++ image ++ ")" )
     , ( "background-position", "50% 50%" )
     , ( "background-repeat", "no-repeat" )
     , ( "width", "32px" )
@@ -482,7 +482,7 @@ resourceErrorTriangle =
 
 runningLegendItem : List ( String, String )
 runningLegendItem =
-    [ ( "background-image", "url(public/images/ic_running_legend.svg)" )
+    [ ( "background-image", "url(/public/images/ic_running_legend.svg)" )
     , ( "height", "20px" )
     , ( "width", "20px" )
     , ( "background-repeat", "no-repeat" )

@@ -13,7 +13,8 @@ module Build exposing
 
 import Autoscroll
 import Build.Effects exposing (Effect(..), toCmd)
-import Build.Msgs exposing (Msg(..))
+import Build.Msgs exposing (HoveredButton(..), Msg(..))
+import Build.Styles as Styles
 import BuildDuration
 import BuildOutput
 import Char
@@ -39,6 +40,7 @@ import Html.Attributes
         , tabindex
         , title
         )
+import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
 import Http
 import Keyboard
@@ -101,6 +103,7 @@ type alias Model =
     , previousTriggerBuildByKey : Bool
     , showHelp : Bool
     , hash : String
+    , hoveredButton : HoveredButton
     }
 
 
@@ -136,6 +139,7 @@ init ports flags page =
                 , previousTriggerBuildByKey = False
                 , showHelp = False
                 , hash = flags.hash
+                , hoveredButton = Neither
                 }
     in
     ( model, effects ++ [ GetCurrentTime ] )
@@ -231,6 +235,9 @@ update action model =
 
         SwitchToBuild build ->
             ( model, [ NewUrl <| Routes.buildRoute build ] )
+
+        Hover state ->
+            ( { model | hoveredButton = state }, [] )
 
         TriggerBuild job ->
             case job of
@@ -881,14 +888,20 @@ viewBuildPrepStatus status =
 
 
 viewBuildHeader : Concourse.Build -> Model -> Html Msg
-viewBuildHeader build { now, job, history } =
+viewBuildHeader build { now, job, history, hoveredButton } =
     let
         triggerButton =
             case job of
                 Just { name, pipeline } ->
                     let
                         actionUrl =
-                            "/teams/" ++ pipeline.teamName ++ "/pipelines/" ++ pipeline.pipelineName ++ "/jobs/" ++ name ++ "/builds"
+                            "/teams/"
+                                ++ pipeline.teamName
+                                ++ "/pipelines/"
+                                ++ pipeline.pipelineName
+                                ++ "/jobs/"
+                                ++ name
+                                ++ "/builds"
 
                         buttonDisabled =
                             case job of
@@ -899,15 +912,22 @@ viewBuildHeader build { now, job, history } =
                                     job.disableManualTrigger
                     in
                     Html.button
-                        [ class "build-action fr"
-                        , disabled buttonDisabled
+                        [ disabled buttonDisabled
                         , attribute "role" "button"
                         , attribute "tabindex" "0"
                         , attribute "aria-label" "Trigger Build"
                         , attribute "title" "Trigger Build"
                         , onLeftClick <| TriggerBuild build.job
+                        , onMouseEnter <| Hover Trigger
+                        , onFocus <| Hover Trigger
+                        , onMouseLeave <| Hover Neither
+                        , onBlur <| Hover Neither
+                        , style Styles.triggerButton
                         ]
-                        [ Html.i [ class "fa fa-plus-circle" ] [] ]
+                        [ Html.div
+                            [ style <| Styles.triggerIcon <| hoveredButton == Trigger ]
+                            []
+                        ]
 
                 _ ->
                     Html.text ""
@@ -915,14 +935,21 @@ viewBuildHeader build { now, job, history } =
         abortButton =
             if Concourse.BuildStatus.isRunning build.status then
                 Html.button
-                    [ class "build-action build-action-abort fr"
-                    , onLeftClick (AbortBuild build.id)
+                    [ onLeftClick (AbortBuild build.id)
                     , attribute "role" "button"
                     , attribute "tabindex" "0"
                     , attribute "aria-label" "Abort Build"
                     , attribute "title" "Abort Build"
+                    , onMouseEnter <| Hover Abort
+                    , onFocus <| Hover Abort
+                    , onMouseLeave <| Hover Neither
+                    , onBlur <| Hover Neither
+                    , style Styles.abortButton
                     ]
-                    [ Html.i [ class "fa fa-times-circle" ] [] ]
+                    [ Html.div
+                        [ style <| Styles.abortIcon <| hoveredButton == Abort ]
+                        []
+                    ]
 
             else
                 Html.text ""
@@ -964,8 +991,8 @@ viewBuildHeader build { now, job, history } =
                         Html.text ""
                 ]
             , Html.div
-                [ class "build-actions fr" ]
-                [ triggerButton, abortButton ]
+                [ style [ ( "display", "flex" ) ] ]
+                [ abortButton, triggerButton ]
             ]
         , Html.div
             [ onMouseWheel ScrollBuilds

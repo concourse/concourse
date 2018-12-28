@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="30px" height="30px" viewBox="0 0 30 30" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 51.2 (57519) - http://www.bohemiancoding.com/sketch -->
+    <title>ic_abort_circle_outline_white</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="ic_abort_circle_outline_white" transform="translate(-2.000000, -2.000000)">
+            <polygon id="Shape" points="0 0 35 0 35 35 0 35"></polygon>
+            <path d="M12.9789583,10.9371875 L10.9371875,12.9789583 L15.0207292,17.0625 L10.9371875,21.1460417 L12.9789583,23.1878125 L17.0625,19.1042708 L21.1460417,23.1878125 L23.1878125,21.1460417 L19.1042708,17.0625 L23.1878125,12.9789583 L21.1460417,10.9371875 L17.0625,15.0207292 L12.9789583,10.9371875 Z M17.0625,2.625 C9.093,2.625 2.625,9.093 2.625,17.0625 C2.625,25.032 9.093,31.5 17.0625,31.5 C25.032,31.5 31.5,25.032 31.5,17.0625 C31.5,9.093 25.032,2.625 17.0625,2.625 Z M17.0625,28.6125 C10.6955625,28.6125 5.5125,23.4294375 5.5125,17.0625 C5.5125,10.6955625 10.6955625,5.5125 17.0625,5.5125 C23.4294375,5.5125 28.6125,10.6955625 28.6125,17.0625 C28.6125,23.4294375 23.4294375,28.6125 17.0625,28.6125 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero" transform="translate(17.062500, 17.062500) rotate(90.000000) translate(-17.062500, -17.062500) "></path>
+        </g>
+    </g>
+</svg>

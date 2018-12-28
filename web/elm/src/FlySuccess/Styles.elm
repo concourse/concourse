@@ -89,7 +89,7 @@ button buttonState =
 
 buttonIcon : List ( String, String )
 buttonIcon =
-    [ ( "background-image", "url(public/images/clippy.svg)" )
+    [ ( "background-image", "url(/public/images/clippy.svg)" )
     , ( "background-position", "50% 50%" )
     , ( "background-repeat", "no-repeat" )
     , ( "width", "20px" )
