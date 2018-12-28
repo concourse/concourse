@@ -492,7 +492,6 @@ func (cmd *RunCommand) constructAPIMembers(
 		resourceFetcherFactory,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
-		clock.NewClock(),
 	)
 
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
@@ -691,8 +690,8 @@ func (cmd *RunCommand) constructBackendMembers(
 		resourceFetcherFactory,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
-		clock.NewClock(),
 	)
+
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
 	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
 	dbVolumeRepository := db.NewVolumeRepository(dbConn)

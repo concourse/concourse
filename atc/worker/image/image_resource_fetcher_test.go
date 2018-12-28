@@ -2,18 +2,13 @@ package image_test
 
 import (
 	"archive/tar"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"time"
-
-	"code.cloudfoundry.org/clock/fakeclock"
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -24,6 +19,8 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/image"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"io"
+	"io/ioutil"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -48,7 +45,7 @@ var _ = Describe("Image", func() {
 	var ctx context.Context
 	var fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 	var fakeWorker *workerfakes.FakeWorker
-	var fakeClock *fakeclock.FakeClock
+
 	var customTypes creds.VersionedResourceTypes
 	var privileged bool
 
@@ -66,7 +63,6 @@ var _ = Describe("Image", func() {
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		fakeResourceFetcherFactory.FetcherForReturns(fakeResourceFetcher)
 		fakeCreatingContainer = new(dbfakes.FakeCreatingContainer)
-		fakeClock = fakeclock.NewFakeClock(time.Now())
 		stderrBuf = gbytes.NewBuffer()
 
 		variables = template.StaticVariables{
@@ -116,7 +112,6 @@ var _ = Describe("Image", func() {
 			fakeResourceFetcherFactory,
 			fakeResourceCacheFactory,
 			fakeResourceConfigFactory,
-			fakeClock,
 		).NewImageResourceFetcher(
 			fakeWorker,
 			fakeResourceFactory,

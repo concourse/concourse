@@ -64,6 +64,9 @@ groups:
 
 - name: publish
   jobs:
+  - major
+  - minor
+  - patch
   - push-docs
 
 - name: workers
@@ -674,6 +677,30 @@ jobs:
   - task: install-mingw
     file: concourse/ci/tasks/choco-install.yml
     params: {PACKAGE: mingw}
+
+- name: major
+  public: true
+  serial_groups: [version]
+  plan:
+  - put: version
+    params: {bump: major, pre: rc}
+
+- name: minor
+  public: true
+  serial_groups: [version]
+  plan:
+  - put: version
+    params: {bump: minor, pre: rc}
+
+- name: patch
+  public: true
+  serial_groups: [version]
+  plan:
+  # - get: version
+  #   passed: [shipit]
+  #   trigger: true
+  - put: version
+    params: {bump: patch, pre: rc}
 
 resources:
 - name: concourse

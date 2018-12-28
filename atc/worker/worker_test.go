@@ -7,7 +7,6 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
-	"github.com/concourse/baggageclaim/baggageclaimfakes"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -35,7 +34,6 @@ var _ = Describe("Worker", func() {
 		gardenWorker           Worker
 		workerVersion          string
 		fakeGardenClient       *gardenfakes.FakeClient
-		fakeBaggageClaimClient *baggageclaimfakes.FakeClient
 	)
 
 	BeforeEach(func() {
@@ -59,7 +57,6 @@ var _ = Describe("Worker", func() {
 
 		fakeContainerProvider = new(wfakes.FakeContainerProvider)
 		fakeGardenClient = new(gardenfakes.FakeClient)
-		fakeBaggageClaimClient = new(baggageclaimfakes.FakeClient)
 	})
 
 	JustBeforeEach(func() {
@@ -76,7 +73,6 @@ var _ = Describe("Worker", func() {
 
 		gardenWorker = NewGardenWorker(
 			fakeGardenClient,
-			fakeBaggageClaimClient,
 			fakeContainerProvider,
 			fakeVolumeClient,
 			dbWorker,

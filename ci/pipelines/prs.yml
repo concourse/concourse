@@ -16,6 +16,12 @@ resources:
     repository: concourse/concourse
     access_token: ((pull_requests_access_token))
 
+- name: baggageclaim-pr
+  type: pull-request
+  source:
+    repository: concourse/baggageclaim
+    access_token: ((pull_requests_access_token))
+
 - name: dev-image
   type: registry-image
   source: {repository: concourse/dev}
@@ -105,4 +111,25 @@ jobs:
     privileged: true
     file: concourse-pr/ci/tasks/docker-compose-watsjs.yml
     input_mapping: {concourse: built-concourse}
+    tags: [pr]
+
+- name: baggageclaim
+  public: true
+  on_failure:
+    put: baggageclaim-pr
+    params: {path: baggageclaim-pr, status: failure, context: baggageclaim}
+  on_success:
+    put: baggageclaim-pr
+    params: {path: baggageclaim-pr, status: success, context: baggageclaim}
+  plan:
+  - get: baggageclaim-pr
+    trigger: true
+    version: every
+  - put: baggageclaim-pr
+    params: {path: baggageclaim-pr, status: pending, context: baggageclaim}
+  - task: unit-linux
+    privileged: true
+    timeout: 1h
+    file: baggageclaim-pr/ci/unit-linux.yml
+    input_mapping: {baggageclaim: baggageclaim-pr}
     tags: [pr]

@@ -9,7 +9,6 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -57,18 +56,20 @@ type gardenWorker struct {
 	buildContainers   int
 }
 
-// TODO: numBuildContainers is only needed for placement strategy but this
-// method is called in ContainerProvider.FindOrCreateContainer as well and
-// hence we pass in 0 values for numBuildContainers everywhere.
+
+// NewGardenWorker constructs a Worker using the gardenWorker runtime implementation and allows container and volume
+// creation on a specific Garden worker.
+// A Garden Worker is comprised of: db.Worker, garden Client, container provider, and a volume client
 func NewGardenWorker(
 	gardenClient garden.Client,
-	baggageclaimClient baggageclaim.Client,
 	containerProvider ContainerProvider,
 	volumeClient VolumeClient,
 	dbWorker db.Worker,
 	numBuildContainers int,
+	// TODO: numBuildContainers is only needed for placement strategy but this
+	// method is called in ContainerProvider.FindOrCreateContainer as well and
+	// hence we pass in 0 values for numBuildContainers everywhere.
 ) Worker {
-
 	return &gardenWorker{
 		gardenClient:      gardenClient,
 		volumeClient:      volumeClient,
