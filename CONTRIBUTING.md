@@ -223,6 +223,12 @@ There are a few different test suites in Concourse:
   suite, exercising pipeline logic and `fly execute`. A new test should be
   added to `testflight` for most features that are exposed via pipelines or `fly`.
 
+* `web/elm/tests/`: These test the various Elm functions in the web UI code
+  in isolation. For the most part, the tests for `web/elm/src/<module name>.elm`
+  will be in `web/elm/tests/<module name>Tests.elm`. We have been finding it
+  helpful to test the `update` and `view` functions pretty exhaustively,
+  leaving the models free to be refactored.
+
 * `web/wats/`: This suite covers specifically the web UI, and run against a
   real Concourse cluster just like `testflight`. This suite is still in its
   early stages and we're working out a unit testing strategy as well, so
@@ -230,7 +236,7 @@ There are a few different test suites in Concourse:
   coverage on a case-by-case basis.
 
 * `topgun/`: This suite is more heavyweight and exercises behavior that
-  may be more visible to operators than end-users. We typicall do not expect
+  may be more visible to operators than end-users. We typically do not expect
   pull requests to add to this suite.
 
 If you need help figuring out the testing strategy for your change, ask in
@@ -266,6 +272,12 @@ one package is running at a time (the `ginkgo` default). The `go test` default
 is to run each package in parallel, so tests that allocate ports for test
 servers and such will collide with each other.
 
+#### Running elm tests
+
+You can run `yarn test` from the root of the repo or `elm-test` from the
+`web/elm` directory. They are pretty snappy so you can comfortably run the
+whole suite on every change.
+
 ### Running the acceptance tests (`testflight`)
 
 The `testflight` package contains tests that run against a real live Concourse.
@@ -287,6 +299,14 @@ done by specifying `--nodes`:
 ```sh
 $ ginkgo -r --nodes=4 testflight
 ```
+
+### Running the web acceptance tests (`web/wats`)
+
+Run `yarn test` from the `web/wats` directory. They use puppeteer to run
+a headless Chromium. A handy fact is that in most cases if a test fails,
+a screenshot taken at the moment of the failure will be at
+`web/wats/failure.png`.
+
 
 ### A note on `topgun`
 
