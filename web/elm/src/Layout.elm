@@ -1,19 +1,18 @@
-port module Layout
-    exposing
-        ( Flags
-        , Model
-        , Msg(..)
-        , init
-        , locationMsg
-        , subscriptions
-        , update
-        , view
-        )
+port module Layout exposing
+    ( Flags
+    , Model
+    , Msg(..)
+    , init
+    , locationMsg
+    , subscriptions
+    , update
+    , view
+    )
 
 import Concourse
 import Favicon
 import Html exposing (Html)
-import Html.Attributes as Attributes exposing (class, id)
+import Html.Attributes as Attributes exposing (class, id, style)
 import Json.Decode
 import Navigation
 import Pipeline
@@ -134,23 +133,25 @@ init flags location =
             -- getting it from query params
             if flags.csrfToken == "" then
                 loadToken ()
+
             else
                 saveToken flags.csrfToken
 
         stripCSRFTokenParamCmd =
             if flags.csrfToken == "" then
                 Cmd.none
+
             else
                 Navigation.modifyUrl (Routes.customToString route)
     in
-        ( model
-        , Cmd.batch
-            [ handleTokenCmd
-            , stripCSRFTokenParamCmd
-            , Cmd.map (SubMsg navIndex) subCmd
-            , Cmd.map (TopMsg navIndex) topCmd
-            ]
-        )
+    ( model
+    , Cmd.batch
+        [ handleTokenCmd
+        , stripCSRFTokenParamCmd
+        , Cmd.map (SubMsg navIndex) subCmd
+        , Cmd.map (TopMsg navIndex) topCmd
+        ]
+    )
 
 
 locationMsg : Navigation.Location -> Msg
@@ -184,14 +185,14 @@ update msg model =
                 ( newSubModel, subCmd ) =
                     SubPage.update model.turbulenceImgSrc model.notFoundImgSrc tokenValue (SubPage.NewCSRFToken tokenValue) model.subModel
             in
-                ( { model
-                    | csrfToken = tokenValue
-                    , subModel = newSubModel
-                  }
-                , Cmd.batch
-                    [ Cmd.map (SubMsg anyNavIndex) subCmd
-                    ]
-                )
+            ( { model
+                | csrfToken = tokenValue
+                , subModel = newSubModel
+              }
+            , Cmd.batch
+                [ Cmd.map (SubMsg anyNavIndex) subCmd
+                ]
+            )
 
         SubMsg navIndex (SubPage.PipelineMsg (Pipeline.ResourcesFetched (Ok fetchedResources))) ->
             let
@@ -220,24 +221,25 @@ update msg model =
                 topBar =
                     model.topModel
             in
-                if validNavIndex model.navIndex navIndex then
-                    let
-                        ( subModel, subCmd ) =
-                            SubPage.update
-                                model.turbulenceImgSrc
-                                model.notFoundImgSrc
-                                model.csrfToken
-                                (SubPage.PipelineMsg (Pipeline.ResourcesFetched (Ok fetchedResources)))
-                                model.subModel
-                    in
-                        ( { model
-                            | subModel = subModel
-                            , topModel = { topBar | pinnedResources = pinnedResources }
-                          }
-                        , Cmd.map (SubMsg navIndex) subCmd
-                        )
-                else
-                    ( model, Cmd.none )
+            if validNavIndex model.navIndex navIndex then
+                let
+                    ( subModel, subCmd ) =
+                        SubPage.update
+                            model.turbulenceImgSrc
+                            model.notFoundImgSrc
+                            model.csrfToken
+                            (SubPage.PipelineMsg (Pipeline.ResourcesFetched (Ok fetchedResources)))
+                            model.subModel
+                in
+                ( { model
+                    | subModel = subModel
+                    , topModel = { topBar | pinnedResources = pinnedResources }
+                  }
+                , Cmd.map (SubMsg navIndex) subCmd
+                )
+
+            else
+                ( model, Cmd.none )
 
         -- otherwise, pass down
         SubMsg navIndex m ->
@@ -246,7 +248,8 @@ update msg model =
                     ( subModel, subCmd ) =
                         SubPage.update model.turbulenceImgSrc model.notFoundImgSrc model.csrfToken m model.subModel
                 in
-                    ( { model | subModel = subModel }, Cmd.map (SubMsg navIndex) subCmd )
+                ( { model | subModel = subModel }, Cmd.map (SubMsg navIndex) subCmd )
+
             else
                 ( model, Cmd.none )
 
@@ -256,7 +259,8 @@ update msg model =
                     ( topModel, topCmd ) =
                         TopBar.update m model.topModel
                 in
-                    ( { model | topModel = topModel }, Cmd.map (TopMsg navIndex) topCmd )
+                ( { model | topModel = topModel }, Cmd.map (TopMsg navIndex) topCmd )
+
             else
                 ( model, Cmd.none )
 
@@ -268,6 +272,7 @@ validNavIndex : NavIndex -> NavIndex -> Bool
 validNavIndex modelNavIndex navIndex =
     if navIndex == anyNavIndex then
         True
+
     else
         navIndex == modelNavIndex
 
@@ -278,14 +283,17 @@ urlUpdate route model =
         navIndex =
             if route == model.route then
                 model.navIndex
+
             else
                 model.navIndex + 1
 
         ( newSubmodel, cmd ) =
             if route == model.route then
                 ( model.subModel, Cmd.none )
+
             else if routeMatchesModel route model then
                 SubPage.urlUpdate route model.subModel
+
             else
                 SubPage.init
                     { turbulencePath = model.turbulenceImgSrc
@@ -298,21 +306,22 @@ urlUpdate route model =
         ( newTopModel, tCmd ) =
             if route == model.route then
                 ( model.topModel, Cmd.none )
+
             else
                 TopBar.urlUpdate route model.topModel
     in
-        ( { model
-            | navIndex = navIndex
-            , subModel = newSubmodel
-            , topModel = newTopModel
-            , route = route
-          }
-        , Cmd.batch
-            [ Cmd.map (SubMsg navIndex) cmd
-            , Cmd.map (TopMsg navIndex) tCmd
-            , resetFavicon
-            ]
-        )
+    ( { model
+        | navIndex = navIndex
+        , subModel = newSubmodel
+        , topModel = newTopModel
+        , route = route
+      }
+    , Cmd.batch
+        [ Cmd.map (SubMsg navIndex) cmd
+        , Cmd.map (TopMsg navIndex) tCmd
+        , resetFavicon
+        ]
+    )
 
 
 resetFavicon : Cmd Msg
@@ -328,7 +337,10 @@ view model =
             Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
 
         _ ->
-            Html.div [ class "content-frame" ]
+            Html.div
+                [ class "content-frame"
+                , style [ ( "-webkit-font-smoothing", "antialiased" ) ]
+                ]
                 [ Html.map (TopMsg model.navIndex) (TopBar.view model.topModel)
                 , Html.div [ class "bottom" ]
                     [ Html.div [ id "content" ]
