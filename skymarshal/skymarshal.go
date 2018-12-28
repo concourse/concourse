@@ -24,7 +24,7 @@ type Config struct {
 	TeamFactory db.TeamFactory
 	Flags       skycmd.AuthFlags
 	ExternalURL string
-	HttpClient  *http.Client
+	HTTPClient  *http.Client
 	Storage     storage.Storage
 }
 
@@ -33,8 +33,8 @@ type Server struct {
 	*rsa.PrivateKey
 }
 
-func (self *Server) PublicKey() *rsa.PublicKey {
-	return &self.PrivateKey.PublicKey
+func (s *Server) PublicKey() *rsa.PublicKey {
+	return &s.PrivateKey.PublicKey
 }
 
 func NewServer(config *Config) (*Server, error) {
@@ -48,7 +48,7 @@ func NewServer(config *Config) (*Server, error) {
 		return nil, err
 	}
 
-	clientId := "skymarshal"
+	clientID := "skymarshal"
 	clientSecretBytes := sha256.Sum256(signingKey.D.Bytes())
 	clientSecret := fmt.Sprintf("%x", clientSecretBytes[:])
 
@@ -56,7 +56,7 @@ func NewServer(config *Config) (*Server, error) {
 	issuerURL := externalURL.String() + issuerPath
 	redirectURL := externalURL.String() + "/sky/callback"
 
-	tokenVerifier := token.NewVerifier(clientId, issuerURL)
+	tokenVerifier := token.NewVerifier(clientID, issuerURL)
 	tokenIssuer := token.NewIssuer(config.TeamFactory, token.NewGenerator(signingKey), config.Flags.Expiration)
 
 	skyServer, err := skyserver.NewSkyServer(&skyserver.SkyConfig{
@@ -65,10 +65,10 @@ func NewServer(config *Config) (*Server, error) {
 		TokenIssuer:     tokenIssuer,
 		SigningKey:      signingKey,
 		DexIssuerURL:    issuerURL,
-		DexClientID:     clientId,
+		DexClientID:     clientID,
 		DexClientSecret: clientSecret,
 		DexRedirectURL:  redirectURL,
-		DexHttpClient:   config.HttpClient,
+		DexHTTPClient:   config.HTTPClient,
 		SecureCookies:   config.Flags.SecureCookies,
 	})
 	if err != nil {
@@ -80,7 +80,7 @@ func NewServer(config *Config) (*Server, error) {
 		Flags:        config.Flags,
 		IssuerURL:    issuerURL,
 		WebHostURL:   issuerPath,
-		ClientID:     clientId,
+		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		RedirectURL:  redirectURL,
 		Storage:      config.Storage,

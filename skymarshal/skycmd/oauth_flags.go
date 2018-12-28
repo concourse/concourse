@@ -30,60 +30,59 @@ type OAuthFlags struct {
 	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
 }
 
-func (self *OAuthFlags) Name() string {
-	if self.DisplayName != "" {
-		return self.DisplayName
-	} else {
-		return "OAuth2"
+func (flag *OAuthFlags) Name() string {
+	if flag.DisplayName != "" {
+		return flag.DisplayName
 	}
+	return "OAuth2"
 }
 
-func (self *OAuthFlags) Validate() error {
+func (flag *OAuthFlags) Validate() error {
 	var errs *multierror.Error
 
-	if self.AuthURL == "" {
+	if flag.AuthURL == "" {
 		errs = multierror.Append(errs, errors.New("Missing auth-url"))
 	}
 
-	if self.TokenURL == "" {
+	if flag.TokenURL == "" {
 		errs = multierror.Append(errs, errors.New("Missing token-url"))
 	}
 
-	if self.UserInfoURL == "" {
+	if flag.UserInfoURL == "" {
 		errs = multierror.Append(errs, errors.New("Missing userinfo-url"))
 	}
 
-	if self.ClientID == "" {
+	if flag.ClientID == "" {
 		errs = multierror.Append(errs, errors.New("Missing client-id"))
 	}
 
-	if self.ClientSecret == "" {
+	if flag.ClientSecret == "" {
 		errs = multierror.Append(errs, errors.New("Missing client-secret"))
 	}
 
 	return errs.ErrorOrNil()
 }
 
-func (self *OAuthFlags) Serialize(redirectURI string) ([]byte, error) {
-	if err := self.Validate(); err != nil {
+func (flag *OAuthFlags) Serialize(redirectURI string) ([]byte, error) {
+	if err := flag.Validate(); err != nil {
 		return nil, err
 	}
 
 	caCerts := []string{}
-	for _, file := range self.CACerts {
+	for _, file := range flag.CACerts {
 		caCerts = append(caCerts, file.Path())
 	}
 
 	return json.Marshal(oauth.Config{
-		ClientID:           self.ClientID,
-		ClientSecret:       self.ClientSecret,
-		AuthorizationURL:   self.AuthURL,
-		TokenURL:           self.TokenURL,
-		UserInfoURL:        self.UserInfoURL,
-		Scopes:             self.Scopes,
-		GroupsKey:          self.GroupsKey,
+		ClientID:           flag.ClientID,
+		ClientSecret:       flag.ClientSecret,
+		AuthorizationURL:   flag.AuthURL,
+		TokenURL:           flag.TokenURL,
+		UserInfoURL:        flag.UserInfoURL,
+		Scopes:             flag.Scopes,
+		GroupsKey:          flag.GroupsKey,
 		RootCAs:            caCerts,
-		InsecureSkipVerify: self.InsecureSkipVerify,
+		InsecureSkipVerify: flag.InsecureSkipVerify,
 		RedirectURI:        redirectURI,
 	})
 }
@@ -93,10 +92,10 @@ type OAuthTeamFlags struct {
 	Groups []string `json:"groups" long:"group" description:"List of whitelisted OAuth2 groups" value-name:"GROUP_NAME"`
 }
 
-func (self *OAuthTeamFlags) GetUsers() []string {
-	return self.Users
+func (flag *OAuthTeamFlags) GetUsers() []string {
+	return flag.Users
 }
 
-func (self *OAuthTeamFlags) GetGroups() []string {
-	return self.Groups
+func (flag *OAuthTeamFlags) GetGroups() []string {
+	return flag.Groups
 }

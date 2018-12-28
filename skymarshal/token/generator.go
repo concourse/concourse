@@ -15,7 +15,7 @@ type Generator interface {
 	Generate(map[string]interface{}) (*oauth2.Token, error)
 }
 
-func NewGenerator(signingKey *rsa.PrivateKey) *generator {
+func NewGenerator(signingKey *rsa.PrivateKey) Generator {
 	return &generator{
 		SigningKey: signingKey,
 	}
@@ -25,9 +25,9 @@ type generator struct {
 	SigningKey *rsa.PrivateKey
 }
 
-func (self *generator) Generate(claims map[string]interface{}) (*oauth2.Token, error) {
+func (gen *generator) Generate(claims map[string]interface{}) (*oauth2.Token, error) {
 
-	if self.SigningKey == nil {
+	if gen.SigningKey == nil {
 		return nil, errors.New("Invalid signing key")
 	}
 
@@ -37,7 +37,7 @@ func (self *generator) Generate(claims map[string]interface{}) (*oauth2.Token, e
 
 	signerKey := jose.SigningKey{
 		Algorithm: jose.RS256,
-		Key:       self.SigningKey,
+		Key:       gen.SigningKey,
 	}
 
 	options := &jose.SignerOptions{}

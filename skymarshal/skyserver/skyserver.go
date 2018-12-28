@@ -27,13 +27,13 @@ type SkyConfig struct {
 	DexClientSecret string
 	DexRedirectURL  string
 	DexIssuerURL    string
-	DexHttpClient   *http.Client
+	DexHTTPClient   *http.Client
 }
 
 const stateCookieName = "skymarshal_state"
 const authCookieName = "skymarshal_auth"
 
-func NewSkyHandler(server *skyServer) http.Handler {
+func NewSkyHandler(server *SkyServer) http.Handler {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/sky/login", server.Login)
 	handler.HandleFunc("/sky/logout", server.Logout)
@@ -43,56 +43,56 @@ func NewSkyHandler(server *skyServer) http.Handler {
 	return handler
 }
 
-func NewSkyServer(config *SkyConfig) (*skyServer, error) {
-	return &skyServer{config}, nil
+func NewSkyServer(config *SkyConfig) (*SkyServer, error) {
+	return &SkyServer{config}, nil
 }
 
-type skyServer struct {
+type SkyServer struct {
 	config *SkyConfig
 }
 
-func (self *skyServer) Login(w http.ResponseWriter, r *http.Request) {
+func (s *SkyServer) Login(w http.ResponseWriter, r *http.Request) {
 
-	logger := self.config.Logger.Session("login")
+	logger := s.config.Logger.Session("login")
 
 	authCookie, err := r.Cookie(authCookieName)
 	if err != nil {
-		self.NewLogin(w, r)
+		s.NewLogin(w, r)
 		return
 	}
 
-	redirectUri := r.FormValue("redirect_uri")
-	if redirectUri == "" {
-		redirectUri = "/"
+	redirectURI := r.FormValue("redirect_uri")
+	if redirectURI == "" {
+		redirectURI = "/"
 	}
 
 	parts := strings.Split(authCookie.Value, " ")
 
 	if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
 		logger.Info("failed-to-parse-cookie")
-		self.NewLogin(w, r)
+		s.NewLogin(w, r)
 		return
 	}
 
 	parsed, err := jwt.ParseSigned(parts[1])
 	if err != nil {
 		logger.Error("failed-to-parse-cookie-token", err)
-		self.NewLogin(w, r)
+		s.NewLogin(w, r)
 		return
 	}
 
 	var claims jwt.Claims
 	var result map[string]interface{}
 
-	if err = parsed.Claims(&self.config.SigningKey.PublicKey, &claims, &result); err != nil {
+	if err = parsed.Claims(&s.config.SigningKey.PublicKey, &claims, &result); err != nil {
 		logger.Error("failed-to-parse-claims", err)
-		self.NewLogin(w, r)
+		s.NewLogin(w, r)
 		return
 	}
 
 	if err = claims.Validate(jwt.Expected{Time: time.Now()}); err != nil {
 		logger.Error("failed-to-validate-claims", err)
-		self.NewLogin(w, r)
+		s.NewLogin(w, r)
 		return
 	}
 
@@ -106,26 +106,26 @@ func (self *skyServer) Login(w http.ResponseWriter, r *http.Request) {
 		"csrf": result["csrf"],
 	})
 
-	self.Redirect(w, r, token, redirectUri)
+	s.Redirect(w, r, token, redirectURI)
 }
 
-func (self *skyServer) NewLogin(w http.ResponseWriter, r *http.Request) {
+func (s *SkyServer) NewLogin(w http.ResponseWriter, r *http.Request) {
 
-	redirectUri := r.FormValue("redirect_uri")
-	if redirectUri == "" {
-		redirectUri = "/"
+	redirectURI := r.FormValue("redirect_uri")
+	if redirectURI == "" {
+		redirectURI = "/"
 	}
 
 	oauth2Config := &oauth2.Config{
-		ClientID:     self.config.DexClientID,
-		ClientSecret: self.config.DexClientSecret,
-		RedirectURL:  self.config.DexRedirectURL,
-		Endpoint:     self.endpoint(),
+		ClientID:     s.config.DexClientID,
+		ClientSecret: s.config.DexClientSecret,
+		RedirectURL:  s.config.DexRedirectURL,
+		Endpoint:     s.endpoint(),
 		Scopes:       []string{"openid", "profile", "email", "federated:id", "groups"},
 	}
 
 	stateToken := encode(&token.StateToken{
-		RedirectUri: redirectUri,
+		RedirectURI: redirectURI,
 		Entropy:     token.RandomString(),
 	})
 
@@ -134,7 +134,7 @@ func (self *skyServer) NewLogin(w http.ResponseWriter, r *http.Request) {
 		Value:    stateToken,
 		Path:     "/",
 		Expires:  time.Now().Add(time.Hour),
-		Secure:   self.config.SecureCookies,
+		Secure:   s.config.SecureCookies,
 		HttpOnly: true,
 	})
 
@@ -143,9 +143,9 @@ func (self *skyServer) NewLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, authCodeURL, http.StatusTemporaryRedirect)
 }
 
-func (self *skyServer) Callback(w http.ResponseWriter, r *http.Request) {
+func (s *SkyServer) Callback(w http.ResponseWriter, r *http.Request) {
 
-	logger := self.config.Logger.Session("callback")
+	logger := s.config.Logger.Session("callback")
 
 	var (
 		err                  error
@@ -155,10 +155,10 @@ func (self *skyServer) Callback(w http.ResponseWriter, r *http.Request) {
 	)
 
 	oauth2Config := &oauth2.Config{
-		ClientID:     self.config.DexClientID,
-		ClientSecret: self.config.DexClientSecret,
-		RedirectURL:  self.config.DexRedirectURL,
-		Endpoint:     self.endpoint(),
+		ClientID:     s.config.DexClientID,
+		ClientSecret: s.config.DexClientSecret,
+		RedirectURL:  s.config.DexRedirectURL,
+		Endpoint:     s.endpoint(),
 	}
 
 	cookieState, err := r.Cookie(stateCookieName)
@@ -192,7 +192,7 @@ func (self *skyServer) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := oidc.ClientContext(r.Context(), self.config.DexHttpClient)
+	ctx := oidc.ClientContext(r.Context(), s.config.DexHTTPClient)
 
 	if dexToken, err = oauth2Config.Exchange(ctx, authCode); err != nil {
 		logger.Error("failed-to-fetch-dex-token", err)
@@ -206,25 +206,25 @@ func (self *skyServer) Callback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if verifiedClaims, err = self.config.TokenVerifier.Verify(ctx, dexToken); err != nil {
+	if verifiedClaims, err = s.config.TokenVerifier.Verify(ctx, dexToken); err != nil {
 		logger.Error("failed-to-verify-dex-token", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	if skyToken, err = self.config.TokenIssuer.Issue(verifiedClaims); err != nil {
+	if skyToken, err = s.config.TokenIssuer.Issue(verifiedClaims); err != nil {
 		logger.Error("failed-to-issue-concourse-token", err)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	self.Redirect(w, r, skyToken, decode(stateToken).RedirectUri)
+	s.Redirect(w, r, skyToken, decode(stateToken).RedirectURI)
 }
 
-func (self *skyServer) Redirect(w http.ResponseWriter, r *http.Request, token *oauth2.Token, redirectUri string) {
-	logger := self.config.Logger.Session("redirect")
+func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, token *oauth2.Token, redirectURI string) {
+	logger := s.config.Logger.Session("redirect")
 
-	redirectUrl, err := url.Parse(redirectUri)
+	redirectURL, err := url.Parse(redirectURI)
 	if err != nil {
 		logger.Error("failed-to-parse-redirect-url", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -246,21 +246,21 @@ func (self *skyServer) Redirect(w http.ResponseWriter, r *http.Request, token *o
 		Path:     "/",
 		Expires:  token.Expiry,
 		HttpOnly: true,
-		Secure:   self.config.SecureCookies,
+		Secure:   s.config.SecureCookies,
 	})
 
-	params := redirectUrl.Query()
+	params := redirectURL.Query()
 	params.Set("csrf_token", csrfToken)
-	redirectUrl.RawQuery = params.Encode()
+	redirectURL.RawQuery = params.Encode()
 
 	w.Header().Set("X-Csrf-Token", csrfToken)
 
-	http.Redirect(w, r, redirectUrl.String(), http.StatusTemporaryRedirect)
+	http.Redirect(w, r, redirectURL.String(), http.StatusTemporaryRedirect)
 }
 
-func (self *skyServer) Token(w http.ResponseWriter, r *http.Request) {
+func (s *SkyServer) Token(w http.ResponseWriter, r *http.Request) {
 
-	logger := self.config.Logger.Session("token")
+	logger := s.config.Logger.Session("token")
 
 	var (
 		err                error
@@ -287,14 +287,14 @@ func (self *skyServer) Token(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clientId, clientSecret, ok := r.BasicAuth()
+	clientID, clientSecret, ok := r.BasicAuth()
 	if !ok {
 		logger.Error("invalid-basic-auth", nil)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	if clientId != "fly" || clientSecret != "Zmx5" {
+	if clientID != "fly" || clientSecret != "Zmx5" {
 		logger.Error("invalid-client", nil)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -311,13 +311,13 @@ func (self *skyServer) Token(w http.ResponseWriter, r *http.Request) {
 	scope := r.FormValue("scope")
 
 	oauth2Config := &oauth2.Config{
-		ClientID:     self.config.DexClientID,
-		ClientSecret: self.config.DexClientSecret,
-		Endpoint:     self.endpoint(),
+		ClientID:     s.config.DexClientID,
+		ClientSecret: s.config.DexClientSecret,
+		Endpoint:     s.endpoint(),
 		Scopes:       strings.Split(scope, "+"),
 	}
 
-	ctx := oidc.ClientContext(r.Context(), self.config.DexHttpClient)
+	ctx := oidc.ClientContext(r.Context(), s.config.DexHTTPClient)
 
 	if dexToken, err = oauth2Config.PasswordCredentialsToken(ctx, username, password); err != nil {
 		logger.Error("failed-to-fetch-dex-token", err)
@@ -331,13 +331,13 @@ func (self *skyServer) Token(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if verifiedClaims, err = self.config.TokenVerifier.Verify(ctx, dexToken); err != nil {
+	if verifiedClaims, err = s.config.TokenVerifier.Verify(ctx, dexToken); err != nil {
 		logger.Error("failed-to-verify-dex-token", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	if skyToken, err = self.config.TokenIssuer.Issue(verifiedClaims); err != nil {
+	if skyToken, err = s.config.TokenIssuer.Issue(verifiedClaims); err != nil {
 		logger.Error("failed-to-issue-concourse-token", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -348,7 +348,7 @@ func (self *skyServer) Token(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(skyToken)
 }
 
-func (self *skyServer) Logout(w http.ResponseWriter, r *http.Request) {
+func (s *SkyServer) Logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:   authCookieName,
 		Path:   "/",
@@ -356,9 +356,9 @@ func (self *skyServer) Logout(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (self *skyServer) UserInfo(w http.ResponseWriter, r *http.Request) {
+func (s *SkyServer) UserInfo(w http.ResponseWriter, r *http.Request) {
 
-	logger := self.config.Logger.Session("userinfo")
+	logger := s.config.Logger.Session("userinfo")
 
 	parts := strings.Split(r.Header.Get("Authorization"), " ")
 
@@ -377,7 +377,7 @@ func (self *skyServer) UserInfo(w http.ResponseWriter, r *http.Request) {
 	var claims jwt.Claims
 	var result map[string]interface{}
 
-	if err = parsed.Claims(&self.config.SigningKey.PublicKey, &claims, &result); err != nil {
+	if err = parsed.Claims(&s.config.SigningKey.PublicKey, &claims, &result); err != nil {
 		logger.Error("failed-to-parse-claims", err)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -394,10 +394,10 @@ func (self *skyServer) UserInfo(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 }
 
-func (self *skyServer) endpoint() oauth2.Endpoint {
+func (s *SkyServer) endpoint() oauth2.Endpoint {
 	return oauth2.Endpoint{
-		AuthURL:  strings.TrimRight(self.config.DexIssuerURL, "/") + "/auth",
-		TokenURL: strings.TrimRight(self.config.DexIssuerURL, "/") + "/token",
+		AuthURL:  strings.TrimRight(s.config.DexIssuerURL, "/") + "/auth",
+		TokenURL: strings.TrimRight(s.config.DexIssuerURL, "/") + "/token",
 	}
 }
 

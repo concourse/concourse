@@ -24,35 +24,35 @@ type GithubFlags struct {
 	CACert       flag.File `long:"ca-cert" description:"CA certificate of GitHub Enterprise deployment"`
 }
 
-func (self *GithubFlags) Name() string {
+func (flag *GithubFlags) Name() string {
 	return "GitHub"
 }
 
-func (self *GithubFlags) Validate() error {
+func (flag *GithubFlags) Validate() error {
 	var errs *multierror.Error
 
-	if self.ClientID == "" {
+	if flag.ClientID == "" {
 		errs = multierror.Append(errs, errors.New("Missing client-id"))
 	}
 
-	if self.ClientSecret == "" {
+	if flag.ClientSecret == "" {
 		errs = multierror.Append(errs, errors.New("Missing client-secret"))
 	}
 
 	return errs.ErrorOrNil()
 }
 
-func (self *GithubFlags) Serialize(redirectURI string) ([]byte, error) {
-	if err := self.Validate(); err != nil {
+func (flag *GithubFlags) Serialize(redirectURI string) ([]byte, error) {
+	if err := flag.Validate(); err != nil {
 		return nil, err
 	}
 
 	return json.Marshal(github.Config{
-		ClientID:      self.ClientID,
-		ClientSecret:  self.ClientSecret,
+		ClientID:      flag.ClientID,
+		ClientSecret:  flag.ClientSecret,
 		RedirectURI:   redirectURI,
-		HostName:      self.Host,
-		RootCA:        self.CACert.Path(),
+		HostName:      flag.Host,
+		RootCA:        flag.CACert.Path(),
 		TeamNameField: "both",
 		LoadAllGroups: true,
 	})
@@ -64,10 +64,10 @@ type GithubTeamFlags struct {
 	Teams []string `long:"team" description:"List of whitelisted GitHub teams" value-name:"ORG_NAME:TEAM_NAME"`
 }
 
-func (self *GithubTeamFlags) GetUsers() []string {
-	return self.Users
+func (flag *GithubTeamFlags) GetUsers() []string {
+	return flag.Users
 }
 
-func (self *GithubTeamFlags) GetGroups() []string {
-	return append(self.Orgs, self.Teams...)
+func (flag *GithubTeamFlags) GetGroups() []string {
+	return append(flag.Orgs, flag.Teams...)
 }

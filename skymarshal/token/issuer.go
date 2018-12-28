@@ -16,7 +16,7 @@ type Issuer interface {
 	Issue(*VerifiedClaims) (*oauth2.Token, error)
 }
 
-func NewIssuer(teamFactory db.TeamFactory, generator Generator, duration time.Duration) *issuer {
+func NewIssuer(teamFactory db.TeamFactory, generator Generator, duration time.Duration) Issuer {
 	return &issuer{
 		TeamFactory: teamFactory,
 		Generator:   generator,
@@ -30,7 +30,7 @@ type issuer struct {
 	Duration    time.Duration
 }
 
-func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error) {
+func (i *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error) {
 	if verifiedClaims.UserID == "" {
 		return nil, errors.New("Missing user id in verified claims")
 	}
@@ -39,7 +39,7 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 		return nil, errors.New("Missing connector id in verified claims")
 	}
 
-	dbTeams, err := self.TeamFactory.GetTeams()
+	dbTeams, err := i.TeamFactory.GetTeams()
 	if err != nil {
 		return nil, err
 	}
@@ -47,9 +47,9 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 	sub := verifiedClaims.Sub
 	email := verifiedClaims.Email
 	name := verifiedClaims.Name
-	userId := verifiedClaims.UserID
+	userID := verifiedClaims.UserID
 	userName := verifiedClaims.UserName
-	connectorId := verifiedClaims.ConnectorID
+	connectorID := verifiedClaims.ConnectorID
 	claimGroups := verifiedClaims.Groups
 
 	isAdmin := false
@@ -69,12 +69,12 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 			}
 
 			for _, user := range userAuth {
-				if strings.EqualFold(user, connectorId+":"+userId) {
+				if strings.EqualFold(user, connectorID+":"+userID) {
 					teamSet[team.Name()][role] = true
 					isAdmin = isAdmin || (team.Admin() && role == "owner")
 				}
 				if userName != "" {
-					if strings.EqualFold(user, connectorId+":"+userName) {
+					if strings.EqualFold(user, connectorID+":"+userName) {
 						teamSet[team.Name()][role] = true
 						isAdmin = isAdmin || (team.Admin() && role == "owner")
 					}
@@ -88,13 +88,13 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 
 					if len(parts) > 0 {
 						// match the provider plus the org e.g. github:org-name
-						if strings.EqualFold(group, connectorId+":"+parts[0]) {
+						if strings.EqualFold(group, connectorID+":"+parts[0]) {
 							teamSet[team.Name()][role] = true
 							isAdmin = isAdmin || (team.Admin() && role == "owner")
 						}
 
 						// match the provider plus the entire claim group e.g. github:org-name:team-name
-						if strings.EqualFold(group, connectorId+":"+claimGroup) {
+						if strings.EqualFold(group, connectorID+":"+claimGroup) {
 							teamSet[team.Name()][role] = true
 							isAdmin = isAdmin || (team.Admin() && role == "owner")
 						}
@@ -106,7 +106,7 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 
 	teams := map[string][]string{}
 	for team, roles := range teamSet {
-		for role, _ := range roles {
+		for role := range roles {
 			teams[team] = append(teams[team], role)
 		}
 		roleComparator := func(i, j int) bool {
@@ -119,15 +119,15 @@ func (self *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error)
 		return nil, errors.New("user doesn't belong to any team")
 	}
 
-	return self.Generator.Generate(map[string]interface{}{
+	return i.Generator.Generate(map[string]interface{}{
 		"sub":       sub,
 		"email":     email,
 		"name":      name,
-		"user_id":   userId,
+		"user_id":   userID,
 		"user_name": userName,
 		"teams":     teams,
 		"is_admin":  isAdmin,
-		"exp":       time.Now().Add(self.Duration).Unix(),
+		"exp":       time.Now().Add(i.Duration).Unix(),
 		"csrf":      RandomString(),
 	})
 }

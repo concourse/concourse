@@ -47,61 +47,60 @@ type LDAPFlags struct {
 	}
 }
 
-func (self *LDAPFlags) Name() string {
-	if self.DisplayName != "" {
-		return self.DisplayName
-	} else {
-		return "LDAP"
+func (flag *LDAPFlags) Name() string {
+	if flag.DisplayName != "" {
+		return flag.DisplayName
 	}
+	return "LDAP"
 }
 
-func (self *LDAPFlags) Validate() error {
+func (flag *LDAPFlags) Validate() error {
 	var errs *multierror.Error
 
-	if self.Host == "" {
+	if flag.Host == "" {
 		errs = multierror.Append(errs, errors.New("Missing host"))
 	}
 
-	if self.BindDN == "" {
+	if flag.BindDN == "" {
 		errs = multierror.Append(errs, errors.New("Missing bind-dn"))
 	}
 
-	if self.BindPW == "" {
+	if flag.BindPW == "" {
 		errs = multierror.Append(errs, errors.New("Missing bind-pw"))
 	}
 
 	return errs.ErrorOrNil()
 }
 
-func (self *LDAPFlags) Serialize(redirectURI string) ([]byte, error) {
-	if err := self.Validate(); err != nil {
+func (flag *LDAPFlags) Serialize(redirectURI string) ([]byte, error) {
+	if err := flag.Validate(); err != nil {
 		return nil, err
 	}
 
 	ldapConfig := ldap.Config{
-		Host:               self.Host,
-		BindDN:             self.BindDN,
-		BindPW:             self.BindPW,
-		InsecureNoSSL:      self.InsecureNoSSL,
-		InsecureSkipVerify: self.InsecureSkipVerify,
-		StartTLS:           self.StartTLS,
-		RootCA:             self.CACert.Path(),
+		Host:               flag.Host,
+		BindDN:             flag.BindDN,
+		BindPW:             flag.BindPW,
+		InsecureNoSSL:      flag.InsecureNoSSL,
+		InsecureSkipVerify: flag.InsecureSkipVerify,
+		StartTLS:           flag.StartTLS,
+		RootCA:             flag.CACert.Path(),
 	}
 
-	ldapConfig.UserSearch.BaseDN = self.UserSearch.BaseDN
-	ldapConfig.UserSearch.Filter = self.UserSearch.Filter
-	ldapConfig.UserSearch.Username = self.UserSearch.Username
-	ldapConfig.UserSearch.Scope = self.UserSearch.Scope
-	ldapConfig.UserSearch.IDAttr = self.UserSearch.IDAttr
-	ldapConfig.UserSearch.EmailAttr = self.UserSearch.EmailAttr
-	ldapConfig.UserSearch.NameAttr = self.UserSearch.NameAttr
+	ldapConfig.UserSearch.BaseDN = flag.UserSearch.BaseDN
+	ldapConfig.UserSearch.Filter = flag.UserSearch.Filter
+	ldapConfig.UserSearch.Username = flag.UserSearch.Username
+	ldapConfig.UserSearch.Scope = flag.UserSearch.Scope
+	ldapConfig.UserSearch.IDAttr = flag.UserSearch.IDAttr
+	ldapConfig.UserSearch.EmailAttr = flag.UserSearch.EmailAttr
+	ldapConfig.UserSearch.NameAttr = flag.UserSearch.NameAttr
 
-	ldapConfig.GroupSearch.BaseDN = self.GroupSearch.BaseDN
-	ldapConfig.GroupSearch.Filter = self.GroupSearch.Filter
-	ldapConfig.GroupSearch.Scope = self.GroupSearch.Scope
-	ldapConfig.GroupSearch.UserAttr = self.GroupSearch.UserAttr
-	ldapConfig.GroupSearch.GroupAttr = self.GroupSearch.GroupAttr
-	ldapConfig.GroupSearch.NameAttr = self.GroupSearch.NameAttr
+	ldapConfig.GroupSearch.BaseDN = flag.GroupSearch.BaseDN
+	ldapConfig.GroupSearch.Filter = flag.GroupSearch.Filter
+	ldapConfig.GroupSearch.Scope = flag.GroupSearch.Scope
+	ldapConfig.GroupSearch.UserAttr = flag.GroupSearch.UserAttr
+	ldapConfig.GroupSearch.GroupAttr = flag.GroupSearch.GroupAttr
+	ldapConfig.GroupSearch.NameAttr = flag.GroupSearch.NameAttr
 
 	return json.Marshal(ldapConfig)
 }
@@ -111,10 +110,10 @@ type LDAPTeamFlags struct {
 	Groups []string `json:"groups" long:"group" description:"List of whitelisted LDAP groups" value-name:"GROUP_NAME"`
 }
 
-func (self *LDAPTeamFlags) GetUsers() []string {
-	return self.Users
+func (flag *LDAPTeamFlags) GetUsers() []string {
+	return flag.Users
 }
 
-func (self *LDAPTeamFlags) GetGroups() []string {
-	return self.Groups
+func (flag *LDAPTeamFlags) GetGroups() []string {
+	return flag.Groups
 }

@@ -23,7 +23,7 @@ type Verifier interface {
 	Verify(context.Context, *oauth2.Token) (*VerifiedClaims, error)
 }
 
-func NewVerifier(clientID, issuerURL string) *verifier {
+func NewVerifier(clientID, issuerURL string) Verifier {
 	return &verifier{
 		ClientID:  clientID,
 		IssuerURL: issuerURL,

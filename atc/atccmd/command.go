@@ -478,7 +478,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		TeamFactory: teamFactory,
 		Flags:       cmd.Auth.AuthFlags,
 		ExternalURL: cmd.ExternalURL.String(),
-		HttpClient:  httpClient,
+		HTTPClient:  httpClient,
 		Storage:     storage,
 	})
 	if err != nil {

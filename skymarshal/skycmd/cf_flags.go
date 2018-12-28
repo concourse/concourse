@@ -25,44 +25,44 @@ type CFFlags struct {
 	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
 }
 
-func (self *CFFlags) Name() string {
+func (flag *CFFlags) Name() string {
 	return "CloudFoundry"
 }
 
-func (self *CFFlags) Validate() error {
+func (flag *CFFlags) Validate() error {
 	var errs *multierror.Error
 
-	if self.APIURL == "" {
+	if flag.APIURL == "" {
 		errs = multierror.Append(errs, errors.New("Missing api-url"))
 	}
 
-	if self.ClientID == "" {
+	if flag.ClientID == "" {
 		errs = multierror.Append(errs, errors.New("Missing client-id"))
 	}
 
-	if self.ClientSecret == "" {
+	if flag.ClientSecret == "" {
 		errs = multierror.Append(errs, errors.New("Missing client-secret"))
 	}
 
 	return errs.ErrorOrNil()
 }
 
-func (self *CFFlags) Serialize(redirectURI string) ([]byte, error) {
-	if err := self.Validate(); err != nil {
+func (flag *CFFlags) Serialize(redirectURI string) ([]byte, error) {
+	if err := flag.Validate(); err != nil {
 		return nil, err
 	}
 
 	caCerts := []string{}
-	for _, file := range self.CACerts {
+	for _, file := range flag.CACerts {
 		caCerts = append(caCerts, file.Path())
 	}
 
 	return json.Marshal(cf.Config{
-		ClientID:           self.ClientID,
-		ClientSecret:       self.ClientSecret,
-		APIURL:             self.APIURL,
+		ClientID:           flag.ClientID,
+		ClientSecret:       flag.ClientSecret,
+		APIURL:             flag.APIURL,
 		RootCAs:            caCerts,
-		InsecureSkipVerify: self.InsecureSkipVerify,
+		InsecureSkipVerify: flag.InsecureSkipVerify,
 		RedirectURI:        redirectURI,
 	})
 }
@@ -74,14 +74,14 @@ type CFTeamFlags struct {
 	SpaceGuids []string `long:"space-guid" description:"(Deprecated) List of whitelisted CloudFoundry space guids" value-name:"SPACE_GUID"`
 }
 
-func (self *CFTeamFlags) GetUsers() []string {
-	return self.Users
+func (flag *CFTeamFlags) GetUsers() []string {
+	return flag.Users
 }
 
-func (self *CFTeamFlags) GetGroups() []string {
+func (flag *CFTeamFlags) GetGroups() []string {
 	var groups []string
-	groups = append(groups, self.Orgs...)
-	groups = append(groups, self.Spaces...)
-	groups = append(groups, self.SpaceGuids...)
+	groups = append(groups, flag.Orgs...)
+	groups = append(groups, flag.Spaces...)
+	groups = append(groups, flag.SpaceGuids...)
 	return groups
 }

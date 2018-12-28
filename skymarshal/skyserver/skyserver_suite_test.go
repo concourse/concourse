@@ -64,7 +64,7 @@ var _ = BeforeEach(func() {
 		DexClientID:     "dex-client-id",
 		DexClientSecret: "dex-client-secret",
 		DexIssuerURL:    dexIssuerUrl,
-		DexHttpClient:   dexServer.HTTPTestServer.Client(),
+		DexHTTPClient:   dexServer.HTTPTestServer.Client(),
 		SigningKey:      signingKey,
 	}
 

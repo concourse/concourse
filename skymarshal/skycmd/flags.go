@@ -55,14 +55,14 @@ type AuthTeamFlags struct {
 	Config     flag.File `short:"c" long:"config" description:"Configuration file for specifying team params"`
 }
 
-func (self *AuthTeamFlags) Format() (AuthConfig, error) {
+func (flag *AuthTeamFlags) Format() (AuthConfig, error) {
 
-	if path := self.Config.Path(); path != "" {
-		return self.formatFromFile()
+	if path := flag.Config.Path(); path != "" {
+		return flag.formatFromFile()
 
-	} else {
-		return self.formatFromFlags()
 	}
+	return flag.formatFromFlags()
+
 }
 
 // When formatting from a configuration file we iterate over each connector
@@ -74,9 +74,9 @@ func (self *AuthTeamFlags) Format() (AuthConfig, error) {
 // The github connector has configuration for: users, teams, orgs
 // The cf conncetor has configuration for: users, orgs, spaces
 
-func (self *AuthTeamFlags) formatFromFile() (AuthConfig, error) {
+func (flag *AuthTeamFlags) formatFromFile() (AuthConfig, error) {
 
-	content, err := ioutil.ReadFile(self.Config.Path())
+	content, err := ioutil.ReadFile(flag.Config.Path())
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func (self *AuthTeamFlags) formatFromFile() (AuthConfig, error) {
 // TeamConfig has already been populated by the flags library. All we need to
 // do is grab the teamConfig object and extract the users and groups.
 
-func (self *AuthTeamFlags) formatFromFlags() (AuthConfig, error) {
+func (flag *AuthTeamFlags) formatFromFlags() (AuthConfig, error) {
 
 	users := []string{}
 	groups := []string{}
@@ -172,7 +172,7 @@ func (self *AuthTeamFlags) formatFromFlags() (AuthConfig, error) {
 		}
 	}
 
-	for _, user := range self.LocalUsers {
+	for _, user := range flag.LocalUsers {
 		if user != "" {
 			users = append(users, "local:"+strings.ToLower(user))
 		}
@@ -206,26 +206,26 @@ type Connector struct {
 	teamConfig TeamConfig
 }
 
-func (self *Connector) ID() string {
-	return self.id
+func (con *Connector) ID() string {
+	return con.id
 }
 
-func (self *Connector) Name() string {
-	return self.config.Name()
+func (con *Connector) Name() string {
+	return con.config.Name()
 }
 
-func (self *Connector) Serialize(redirectURI string) ([]byte, error) {
-	return self.config.Serialize(redirectURI)
+func (con *Connector) Serialize(redirectURI string) ([]byte, error) {
+	return con.config.Serialize(redirectURI)
 }
 
-func (self *Connector) newTeamConfig() (TeamConfig, error) {
+func (con *Connector) newTeamConfig() (TeamConfig, error) {
 
-	typeof := reflect.TypeOf(self.teamConfig)
+	typeof := reflect.TypeOf(con.teamConfig)
 	if typeof.Kind() == reflect.Ptr {
 		typeof = typeof.Elem()
 	}
 
-	valueof := reflect.ValueOf(self.teamConfig)
+	valueof := reflect.ValueOf(con.teamConfig)
 	if valueof.Kind() == reflect.Ptr {
 		valueof = valueof.Elem()
 	}
