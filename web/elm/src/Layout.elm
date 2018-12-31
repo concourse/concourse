@@ -12,7 +12,7 @@ port module Layout exposing
 import Concourse
 import Favicon
 import Html exposing (Html)
-import Html.Attributes as Attributes exposing (class, id)
+import Html.Attributes as Attributes exposing (class, id, style)
 import Json.Decode
 import Navigation
 import Pipeline
@@ -337,7 +337,10 @@ view model =
             Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
 
         _ ->
-            Html.div [ class "content-frame" ]
+            Html.div
+                [ class "content-frame"
+                , style [ ( "-webkit-font-smoothing", "antialiased" ) ]
+                ]
                 [ Html.map (TopMsg model.navIndex) (TopBar.view model.topModel)
                 , Html.div [ class "bottom" ]
                     [ Html.div [ id "content" ]

@@ -15,11 +15,11 @@ func New(logger lager.Logger) *logrus.Logger {
 		Level:     logrus.DebugLevel,
 	}
 
-	log.Hooks.Add(NewLagerHook(logger))
+	log.Hooks.Add(newLagerHook(logger))
 	return log
 }
 
-func NewLagerHook(logger lager.Logger) *lagerHook {
+func newLagerHook(logger lager.Logger) *lagerHook {
 	return &lagerHook{logger}
 }
 
@@ -27,24 +27,24 @@ type lagerHook struct {
 	lager.Logger
 }
 
-func (self *lagerHook) Levels() []logrus.Level {
+func (lf *lagerHook) Levels() []logrus.Level {
 	return logrus.AllLevels
 }
 
-func (self *lagerHook) Fire(entry *logrus.Entry) error {
+func (lf *lagerHook) Fire(entry *logrus.Entry) error {
 	switch entry.Level {
 	case logrus.DebugLevel:
-		self.Logger.Debug("event", lager.Data{"message": entry.Message, "fields": entry.Data})
+		lf.Logger.Debug("event", lager.Data{"message": entry.Message, "fields": entry.Data})
 	case logrus.InfoLevel:
-		self.Logger.Info("event", lager.Data{"message": entry.Message, "fields": entry.Data})
+		lf.Logger.Info("event", lager.Data{"message": entry.Message, "fields": entry.Data})
 	case logrus.WarnLevel:
-		self.Logger.Info("event", lager.Data{"message": entry.Message, "fields": entry.Data})
+		lf.Logger.Info("event", lager.Data{"message": entry.Message, "fields": entry.Data})
 	case logrus.ErrorLevel:
-		self.Logger.Error("event", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
+		lf.Logger.Error("event", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
 	case logrus.FatalLevel:
-		self.Logger.Fatal("event", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
+		lf.Logger.Fatal("event", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
 	case logrus.PanicLevel:
-		self.Logger.Fatal("event", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
+		lf.Logger.Fatal("event", nil, lager.Data{"message": entry.Message, "fields": entry.Data})
 	}
 
 	return nil

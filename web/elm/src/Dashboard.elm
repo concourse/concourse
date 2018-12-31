@@ -725,7 +725,10 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    Html.div [ class "page" ]
+    Html.div
+        [ class "page"
+        , style [ ( "-webkit-font-smoothing", "antialiased" ) ]
+        ]
         [ NewTopBar.view model
         , dashboardView model
         ]

@@ -29,51 +29,50 @@ type OIDCFlags struct {
 	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
 }
 
-func (self *OIDCFlags) Name() string {
-	if self.DisplayName != "" {
-		return self.DisplayName
-	} else {
-		return "OIDC"
+func (flag *OIDCFlags) Name() string {
+	if flag.DisplayName != "" {
+		return flag.DisplayName
 	}
+	return "OIDC"
 }
 
-func (self *OIDCFlags) Validate() error {
+func (flag *OIDCFlags) Validate() error {
 	var errs *multierror.Error
 
-	if self.Issuer == "" {
+	if flag.Issuer == "" {
 		errs = multierror.Append(errs, errors.New("Missing issuer"))
 	}
 
-	if self.ClientID == "" {
+	if flag.ClientID == "" {
 		errs = multierror.Append(errs, errors.New("Missing client-id"))
 	}
 
-	if self.ClientSecret == "" {
+	if flag.ClientSecret == "" {
 		errs = multierror.Append(errs, errors.New("Missing client-secret"))
 	}
 
 	return errs.ErrorOrNil()
 }
 
-func (self *OIDCFlags) Serialize(redirectURI string) ([]byte, error) {
-	if err := self.Validate(); err != nil {
+func (flag *OIDCFlags) Serialize(redirectURI string) ([]byte, error) {
+	if err := flag.Validate(); err != nil {
 		return nil, err
 	}
 
 	caCerts := []string{}
-	for _, file := range self.CACerts {
+	for _, file := range flag.CACerts {
 		caCerts = append(caCerts, file.Path())
 	}
 
 	return json.Marshal(oidc.Config{
-		Issuer:             self.Issuer,
-		ClientID:           self.ClientID,
-		ClientSecret:       self.ClientSecret,
-		Scopes:             self.Scopes,
-		GroupsKey:          self.GroupsKey,
-		HostedDomains:      self.HostedDomains,
+		Issuer:             flag.Issuer,
+		ClientID:           flag.ClientID,
+		ClientSecret:       flag.ClientSecret,
+		Scopes:             flag.Scopes,
+		GroupsKey:          flag.GroupsKey,
+		HostedDomains:      flag.HostedDomains,
 		RootCAs:            caCerts,
-		InsecureSkipVerify: self.InsecureSkipVerify,
+		InsecureSkipVerify: flag.InsecureSkipVerify,
 		RedirectURI:        redirectURI,
 	})
 }
@@ -83,10 +82,10 @@ type OIDCTeamFlags struct {
 	Groups []string `json:"groups" long:"group" description:"List of whitelisted OIDC groups" value-name:"GROUP_NAME"`
 }
 
-func (self *OIDCTeamFlags) GetUsers() []string {
-	return self.Users
+func (flag *OIDCTeamFlags) GetUsers() []string {
+	return flag.Users
 }
 
-func (self *OIDCTeamFlags) GetGroups() []string {
-	return self.Groups
+func (flag *OIDCTeamFlags) GetGroups() []string {
+	return flag.Groups
 }

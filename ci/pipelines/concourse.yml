@@ -42,6 +42,8 @@ groups:
   - rc
   - build-rc
   - bin-smoke
+  - upgrade
+  - downgrade
 
 - name: k8s
   jobs:
@@ -434,6 +436,189 @@ jobs:
     image: unit-image
     file: concourse/ci/tasks/smoke.yml
     input_mapping: {endpoint-info: outputs}
+
+- name: upgrade
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed:
+      - build-rc
+      trigger: true
+    - get: unit-image
+      passed:
+      - build-rc
+  - task: build-rc-fly
+    file: concourse/ci/tasks/fly-build-linux.yml
+  - task: build-final-release-fly
+    privileged: true
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: golang}
+      run:
+        path: bash
+        args:
+        - -ec
+        - |
+          set -e -x
+          export GOPATH=$PWD/concourse
+          output="$PWD/final-release-fly"
+          ldflags="-X github.com/concourse/fly/version.Version=4.2.2"
+          pushd concourse
+          git fetch && git fetch --tags
+          git checkout v4.2.2
+          git submodule update --init --recursive
+          CGO_ENABLED=0 go build -ldflags "$ldflags" -o $output/fly_linux_amd64 ./src/github.com/concourse/fly/
+          popd
+
+          cp -r concourse final-release-concourse-repo/
+      inputs:
+      - name: concourse
+      outputs:
+      - name: final-release-fly
+      - name: final-release-concourse-repo
+  - task: upgrade-test
+    privileged: true
+    image: unit-image
+    input_mapping: {fly-rc: final-release-fly, rc-fly: fly-linux}
+    config:
+      platform: linux
+      params:
+        PIPELINE_NAME: test-pipeline
+        WEB_IP: localhost
+        WEB_PASSWORD: test
+        WEB_USERNAME: test
+      run:
+        path: bash
+        args:
+        - -ec
+        - |
+          source concourse/ci/tasks/scripts/docker-helpers.sh
+          start_docker
+          docker-compose -f concourse/docker-compose-4.2.2.yml up --build -d
+
+          cp -r fly-rc final-release-concourse-repo/
+          pushd final-release-concourse-repo
+            ./concourse/ci/scripts/create-uber-pipeline
+          popd
+
+          # prepare web content for smoke test.
+          # TODO: remove when docker-compose is fixed for mounting /web
+          pushd concourse
+            git checkout master
+            yarn install && yarn build
+          popd
+
+          docker-compose -f concourse/docker-compose.yml up --build -d
+
+          install rc-fly/fly /usr/local/bin/fly
+          ./concourse/ci/tasks/scripts/verify-uber-pipeline
+
+          # smoke test
+          ./concourse/ci/tasks/scripts/watsjs test/smoke.js
+      inputs:
+      - name: concourse
+      - name: rc-fly
+      - name: fly-rc
+      - name: final-release-concourse-repo
+
+- name: downgrade
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed:
+      - build-rc
+      trigger: true
+    - get: unit-image
+      passed:
+      - build-rc
+  - task: build-rc-fly
+    file: concourse/ci/tasks/fly-build-linux.yml
+  - task: build-final-release-fly
+    privileged: true
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: golang}
+      run:
+        path: bash
+        args:
+        - -ec
+        - |
+          set -e -x
+          export GOPATH=$PWD/concourse
+          output="$PWD/final-release-fly"
+          ldflags="-X github.com/concourse/fly/version.Version=4.2.2"
+          pushd concourse
+            git fetch && git fetch --tags
+            git checkout v4.2.2
+            git submodule update --init --recursive
+            CGO_ENABLED=0 go build -ldflags "$ldflags" -o $output/fly_linux_amd64 ./src/github.com/concourse/fly/
+          popd
+
+          cp -r concourse final-release-concourse-repo/
+      inputs:
+      - name: concourse
+      outputs:
+      - name: final-release-fly
+      - name: final-release-concourse-repo
+  - task: downgrade-test
+    privileged: true
+    image: unit-image
+    input_mapping: {fly-rc: final-release-fly, rc-fly: fly-linux}
+    config:
+      platform: linux
+      params:
+        PIPELINE_NAME: test-pipeline
+        WEB_IP: localhost
+        WEB_PASSWORD: test
+        WEB_USERNAME: test
+      run:
+        path: bash
+        args:
+        - -ec
+        - |
+          set -e -x
+          source concourse/ci/tasks/scripts/docker-helpers.sh
+          start_docker
+          docker-compose -f concourse/docker-compose.yml up -d
+
+          install rc-fly/fly /usr/local/bin/fly
+          ./concourse/ci/tasks/scripts/create-uber-pipeline
+
+          # final-release db migration version
+          downgrade_to=$(docker run -it concourse/concourse:4.2.2 migrate --supported-db-version | tr -d '\r')
+
+          pushd concourse
+            # stop web container
+            docker-compose rm -f -s -v web
+            # use concourse bin in worker container to run down migration
+            docker-compose exec worker concourse migrate --migrate-db-to-version $downgrade_to --postgres-user dev --postgres-password dev --postgres-database concourse --postgres-host db
+            # start final-release atc
+            docker-compose -f docker-compose-4.2.2.yml up --build --remove-orphans -d
+          popd
+
+          # switch to final release concourse
+          cp -r fly-rc final-release-concourse-repo/
+          pushd final-release-concourse-repo
+            ./concourse/ci/scripts/verify-uber-pipeline
+
+            # TODO: 4.2.2 doesn't have smoke so use testflight instead
+            export ATC_USERNAME=test
+            export ATC_PASSWORD=test
+            ./concourse/ci/scripts/testflight
+          popd
+      inputs:
+      - name: concourse
+      - name: rc-fly
+      - name: fly-rc
+      - name: final-release-concourse-repo
 
 - name: bosh-bump
   public: true
