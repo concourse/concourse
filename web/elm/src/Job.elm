@@ -1,5 +1,6 @@
 port module Job exposing
     ( Flags
+    , Hoverable(..)
     , Model
     , Msg(..)
     , changeToJob
@@ -48,7 +49,7 @@ type alias Model =
     , currentPage : Maybe Page
     , now : Time
     , csrfToken : String
-    , triggerButtonHovered : Bool
+    , hovered : Hoverable
     }
 
 
@@ -64,7 +65,13 @@ type Msg
     | PausedToggled (Result Http.Error ())
     | NavTo String
     | SubscriptionTick Time
-    | HoverTrigger Bool
+    | Hover Hoverable
+
+
+type Hoverable
+    = Toggle
+    | Trigger
+    | Neither
 
 
 type alias BuildWithResources =
@@ -110,7 +117,7 @@ init ports flags =
                 , csrfToken = flags.csrfToken
                 , currentPage = flags.paging
                 , ports = ports
-                , triggerButtonHovered = False
+                , hovered = Neither
                 }
     in
     ( model
@@ -308,8 +315,8 @@ update action model =
                 ]
             )
 
-        HoverTrigger state ->
-            ( { model | triggerButtonHovered = state }, Cmd.none )
+        Hover hoverable ->
+            ( { model | hovered = hoverable }, Cmd.none )
 
 
 permalink : List Concourse.Build -> Page
@@ -422,26 +429,38 @@ view model =
                             ]
                         ]
                         -- TODO really?
-                        [ Html.div []
+                        [ Html.div
+                            [ style [ ( "display", "flex" ) ] ]
                             [ Html.button
-                                (List.append
-                                    [ id "job-state"
-                                    , attribute "aria-label" "Toggle Job Paused State"
-                                    , class <|
-                                        "btn-pause btn-large fl "
-                                            ++ getPausedState job model.pausedChanging
-                                    ]
-                                    (if not model.pausedChanging then
-                                        [ onClick TogglePaused ]
+                                [ id "pause-toggle"
+                                , style <| Styles.triggerButton False
+                                , onMouseEnter <| Hover Toggle
+                                , onMouseLeave <| Hover Neither
+                                , onClick TogglePaused
+                                ]
+                                [ Html.div
+                                    [ style
+                                        [ ( "background-image"
+                                          , "url(/public/images/"
+                                                ++ (if job.paused then
+                                                        "ic-play_circle_outline.svg)"
 
-                                     else
-                                        []
-                                    )
-                                )
-                                [ Html.i
-                                    [ class <|
-                                        "fa fa-fw fa-play "
-                                            ++ getPlayPauseLoadIcon job model.pausedChanging
+                                                    else
+                                                        "ic_pause_circle_outline_white.svg)"
+                                                   )
+                                          )
+                                        , ( "background-position", "50% 50%" )
+                                        , ( "background-repeat", "no-repeat" )
+                                        , ( "width", "40px" )
+                                        , ( "height", "40px" )
+                                        , ( "opacity"
+                                          , if model.hovered == Toggle then
+                                                "1"
+
+                                            else
+                                                "0.5"
+                                          )
+                                        ]
                                     ]
                                     []
                                 ]
@@ -452,8 +471,8 @@ view model =
                             , onLeftClick TriggerBuild
                             , attribute "aria-label" "Trigger Build"
                             , attribute "title" "Trigger Build"
-                            , onMouseEnter <| HoverTrigger True
-                            , onMouseLeave <| HoverTrigger False
+                            , onMouseEnter <| Hover Trigger
+                            , onMouseLeave <| Hover Neither
                             , style <|
                                 Styles.triggerButton job.disableManualTrigger
                             ]
@@ -461,14 +480,16 @@ view model =
                             [ Html.div
                                 [ style <|
                                     Styles.triggerIcon <|
-                                        model.triggerButtonHovered
+                                        model.hovered
+                                            == Trigger
                                             && not job.disableManualTrigger
                                 ]
                                 []
                             ]
                                 ++ (if
                                         job.disableManualTrigger
-                                            && model.triggerButtonHovered
+                                            && model.hovered
+                                            == Trigger
                                     then
                                         [ Html.div
                                             [ style Styles.triggerTooltip ]

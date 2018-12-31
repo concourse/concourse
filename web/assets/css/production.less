@@ -31,52 +31,6 @@
   margin-left: 24px;
 }
 
-// BEGIN build actions styles
-
-.build-action {
-  background: transparent;
-  border: none;
-  margin: 10px 10px 0 0;
-  padding: 0;
-  text-align: center;
-  cursor: pointer;
-}
-
-.build-action i {
-  width: 40px;
-  line-height: 40px;
-  border-radius: 50%;
-  font-size: 30px;
-}
-
-.build-action:active,
-.build-action:focus {
-  outline: none;
-}
-
-button.build-action[disabled]:hover::before {
-  position: absolute;
-  content: "manual triggering disabled in job config";
-  right: 50px;
-  padding: 15px;
-  padding-top: 13px;
-  overflow: hidden;
-  display: block;
-  text-align: left;
-  font-family: monospace;
-  color: #ecf0f1;
-}
-
-button.build-action[disabled] {
-  opacity: 0.7;
-}
-
-button.build-action[disabled] i {
-  background: none;
-}
-
-// END build action styles
-
 .cli-downloads {
   margin: 0;
   padding: 0;

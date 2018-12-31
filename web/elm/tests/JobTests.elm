@@ -14,7 +14,15 @@ import RemoteData
 import SubPage
 import Test exposing (..)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (attribute, class, containing, style, text)
+import Test.Html.Selector
+    exposing
+        ( attribute
+        , class
+        , containing
+        , id
+        , style
+        , text
+        )
 
 
 all : Test
@@ -73,225 +81,191 @@ all =
                         , csrfToken = ""
                         }
                         |> Tuple.first
+
+                init : { disabled : Bool, paused : Bool } -> () -> Layout.Model
+                init { disabled, paused } _ =
+                    Layout.init
+                        { turbulenceImgSrc = ""
+                        , notFoundImgSrc = ""
+                        , csrfToken = ""
+                        , authToken = ""
+                        , pipelineRunningKeyframes = ""
+                        }
+                        { href = ""
+                        , host = ""
+                        , hostname = ""
+                        , protocol = ""
+                        , origin = ""
+                        , port_ = ""
+                        , pathname = "/teams/team/pipelines/pipeline/jobs/job"
+                        , search = ""
+                        , hash = ""
+                        , username = ""
+                        , password = ""
+                        }
+                        |> Tuple.first
+                        |> Layout.update
+                            (Layout.SubMsg 1 <|
+                                SubPage.JobMsg <|
+                                    Job.JobFetched <|
+                                        Ok
+                                            { name = "job"
+                                            , pipelineName = "pipeline"
+                                            , teamName = "team"
+                                            , pipeline =
+                                                { pipelineName = "pipeline"
+                                                , teamName = "team"
+                                                }
+                                            , nextBuild = Nothing
+                                            , finishedBuild = Just someBuild
+                                            , transitionBuild = Nothing
+                                            , paused = paused
+                                            , disableManualTrigger = disabled
+                                            , inputs = []
+                                            , outputs = []
+                                            , groups = []
+                                            }
+                            )
+                        |> Tuple.first
             in
             [ test "build header lays out contents horizontally" <|
-                \_ ->
-                    Layout.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = ""
-                        , csrfToken = ""
-                        , authToken = ""
-                        , pipelineRunningKeyframes = ""
-                        }
-                        { href = ""
-                        , host = ""
-                        , hostname = ""
-                        , protocol = ""
-                        , origin = ""
-                        , port_ = ""
-                        , pathname = "/teams/team/pipelines/pipeline/jobs/job"
-                        , search = ""
-                        , hash = ""
-                        , username = ""
-                        , password = ""
-                        }
-                        |> Tuple.first
-                        |> Layout.update
-                            (Layout.SubMsg 1 <|
-                                SubPage.JobMsg <|
-                                    Job.JobFetched <|
-                                        Ok
-                                            { name = "job"
-                                            , pipelineName = "pipeline"
-                                            , teamName = "team"
-                                            , pipeline =
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
-                                            , nextBuild = Nothing
-                                            , finishedBuild = Just someBuild
-                                            , transitionBuild = Nothing
-                                            , paused = False
-                                            , disableManualTrigger = False
-                                            , inputs = []
-                                            , outputs = []
-                                            , groups = []
-                                            }
-                            )
-                        |> Tuple.first
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ class "build-header" ]
-                        |> Query.has
-                            [ style
-                                [ ( "display", "flex" )
-                                , ( "justify-content", "space-between" )
-                                ]
+                init { disabled = False, paused = False }
+                    >> Layout.view
+                    >> Query.fromHtml
+                    >> Query.find [ class "build-header" ]
+                    >> Query.has
+                        [ style
+                            [ ( "display", "flex" )
+                            , ( "justify-content", "space-between" )
                             ]
-            , test "trigger build button has grey background" <|
-                \_ ->
-                    Layout.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = ""
-                        , csrfToken = ""
-                        , authToken = ""
-                        , pipelineRunningKeyframes = ""
-                        }
-                        { href = ""
-                        , host = ""
-                        , hostname = ""
-                        , protocol = ""
-                        , origin = ""
-                        , port_ = ""
-                        , pathname = "/teams/team/pipelines/pipeline/jobs/job"
-                        , search = ""
-                        , hash = ""
-                        , username = ""
-                        , password = ""
-                        }
-                        |> Tuple.first
-                        |> Layout.update
-                            (Layout.SubMsg 1 <|
-                                SubPage.JobMsg <|
-                                    Job.JobFetched <|
-                                        Ok
-                                            { name = "job"
-                                            , pipelineName = "pipeline"
-                                            , teamName = "team"
-                                            , pipeline =
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
-                                            , nextBuild = Nothing
-                                            , finishedBuild = Just someBuild
-                                            , transitionBuild = Nothing
-                                            , paused = False
-                                            , disableManualTrigger = False
-                                            , inputs = []
-                                            , outputs = []
-                                            , groups = []
-                                            }
-                            )
-                        |> Tuple.first
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find
-                            [ attribute <|
-                                Attr.attribute "aria-label" "Trigger Build"
+                        ]
+            , test "header has play/pause button at the left" <|
+                init { disabled = False, paused = False }
+                    >> Layout.view
+                    >> Query.fromHtml
+                    >> Query.find [ class "build-header" ]
+                    >> Query.has [ id "pause-toggle" ]
+            , test "play/pause has grey background" <|
+                init { disabled = False, paused = False }
+                    >> Layout.view
+                    >> Query.fromHtml
+                    >> Query.find [ id "pause-toggle" ]
+                    >> Query.has
+                        [ style
+                            [ ( "padding", "10px" )
+                            , ( "border", "none" )
+                            , ( "background-color", middleGrey )
+                            , ( "outline", "none" )
                             ]
-                        |> Query.has
-                            [ style
-                                [ ( "padding", "10px" )
-                                , ( "border", "none" )
-                                , ( "background-color", middleGrey )
-                                , ( "outline", "none" )
-                                ]
-                            ]
-            , test "trigger build button has 'plus' icon" <|
-                \_ ->
-                    Layout.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = ""
-                        , csrfToken = ""
-                        , authToken = ""
-                        , pipelineRunningKeyframes = ""
-                        }
-                        { href = ""
-                        , host = ""
-                        , hostname = ""
-                        , protocol = ""
-                        , origin = ""
-                        , port_ = ""
-                        , pathname = "/teams/team/pipelines/pipeline/jobs/job"
-                        , search = ""
-                        , hash = ""
-                        , username = ""
-                        , password = ""
-                        }
-                        |> Tuple.first
-                        |> Layout.update
-                            (Layout.SubMsg 1 <|
-                                SubPage.JobMsg <|
-                                    Job.JobFetched <|
-                                        Ok
-                                            { name = "job"
-                                            , pipelineName = "pipeline"
-                                            , teamName = "team"
-                                            , pipeline =
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
-                                            , nextBuild = Nothing
-                                            , finishedBuild = Just someBuild
-                                            , transitionBuild = Nothing
-                                            , paused = False
-                                            , disableManualTrigger = False
-                                            , inputs = []
-                                            , outputs = []
-                                            , groups = []
-                                            }
-                            )
-                        |> Tuple.first
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find
-                            [ attribute <|
-                                Attr.attribute "aria-label" "Trigger Build"
-                            ]
-                        |> Query.children []
-                        |> Query.first
-                        |> Query.has
-                            (iconSelector
+                        ]
+            , defineHoverBehaviour
+                { name = "play/pause button when job is unpaused"
+                , setup =
+                    init { disabled = False, paused = False } ()
+                , query =
+                    Layout.view
+                        >> Query.fromHtml
+                        >> Query.find [ id "pause-toggle" ]
+                , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                , unhoveredSelector =
+                    { description = "grey pause icon"
+                    , selector =
+                        [ style [ ( "opacity", "0.5" ) ] ]
+                            ++ iconSelector
                                 { size = "40px"
-                                , image = "ic_add_circle_outline_white.svg"
+                                , image = "ic_pause_circle_outline_white.svg"
                                 }
-                            )
+                    }
+                , hoveredSelector =
+                    { description = "white pause icon"
+                    , selector =
+                        [ style [ ( "opacity", "1" ) ] ]
+                            ++ iconSelector
+                                { size = "40px"
+                                , image = "ic_pause_circle_outline_white.svg"
+                                }
+                    }
+                , mouseEnterMsg =
+                    Layout.SubMsg 1 <|
+                        SubPage.JobMsg <|
+                            Job.Hover Job.Toggle
+                , mouseLeaveMsg =
+                    Layout.SubMsg 1 <|
+                        SubPage.JobMsg <|
+                            Job.Hover Job.Neither
+                }
+            , defineHoverBehaviour
+                { name = "play/pause button when job is paused"
+                , setup =
+                    init { disabled = False, paused = True } ()
+                , query =
+                    Layout.view
+                        >> Query.fromHtml
+                        >> Query.find [ id "pause-toggle" ]
+                , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                , unhoveredSelector =
+                    { description = "grey play icon"
+                    , selector =
+                        [ style [ ( "opacity", "0.5" ) ] ]
+                            ++ iconSelector
+                                { size = "40px"
+                                , image = "ic-play_circle_outline.svg"
+                                }
+                    }
+                , hoveredSelector =
+                    { description = "white play icon"
+                    , selector =
+                        [ style [ ( "opacity", "1" ) ] ]
+                            ++ iconSelector
+                                { size = "40px"
+                                , image = "ic-play_circle_outline.svg"
+                                }
+                    }
+                , mouseEnterMsg =
+                    Layout.SubMsg 1 <|
+                        SubPage.JobMsg <|
+                            Job.Hover Job.Toggle
+                , mouseLeaveMsg =
+                    Layout.SubMsg 1 <|
+                        SubPage.JobMsg <|
+                            Job.Hover Job.Neither
+                }
+            , test "trigger build button has grey background" <|
+                init { disabled = False, paused = False }
+                    >> Layout.view
+                    >> Query.fromHtml
+                    >> Query.find
+                        [ attribute <|
+                            Attr.attribute "aria-label" "Trigger Build"
+                        ]
+                    >> Query.has
+                        [ style
+                            [ ( "padding", "10px" )
+                            , ( "border", "none" )
+                            , ( "background-color", middleGrey )
+                            , ( "outline", "none" )
+                            ]
+                        ]
+            , test "trigger build button has 'plus' icon" <|
+                init { disabled = False, paused = False }
+                    >> Layout.view
+                    >> Query.fromHtml
+                    >> Query.find
+                        [ attribute <|
+                            Attr.attribute "aria-label" "Trigger Build"
+                        ]
+                    >> Query.children []
+                    >> Query.first
+                    >> Query.has
+                        (iconSelector
+                            { size = "40px"
+                            , image = "ic_add_circle_outline_white.svg"
+                            }
+                        )
             , defineHoverBehaviour
                 { name = "trigger build button"
                 , setup =
-                    Layout.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = ""
-                        , csrfToken = ""
-                        , authToken = ""
-                        , pipelineRunningKeyframes = ""
-                        }
-                        { href = ""
-                        , host = ""
-                        , hostname = ""
-                        , protocol = ""
-                        , origin = ""
-                        , port_ = ""
-                        , pathname = "/teams/team/pipelines/pipeline/jobs/job"
-                        , search = ""
-                        , hash = ""
-                        , username = ""
-                        , password = ""
-                        }
-                        |> Tuple.first
-                        |> Layout.update
-                            (Layout.SubMsg 1 <|
-                                SubPage.JobMsg <|
-                                    Job.JobFetched <|
-                                        Ok
-                                            { name = "job"
-                                            , pipelineName = "pipeline"
-                                            , teamName = "team"
-                                            , pipeline =
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
-                                            , nextBuild = Nothing
-                                            , finishedBuild = Just someBuild
-                                            , transitionBuild = Nothing
-                                            , paused = False
-                                            , disableManualTrigger = False
-                                            , inputs = []
-                                            , outputs = []
-                                            , groups = []
-                                            }
-                            )
-                        |> Tuple.first
+                    init { disabled = False, paused = False } ()
                 , query =
                     Layout.view
                         >> Query.fromHtml
@@ -321,58 +295,16 @@ all =
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.HoverTrigger True
+                            Job.Hover Job.Trigger
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.HoverTrigger False
+                            Job.Hover Job.Neither
                 }
             , defineHoverBehaviour
                 { name = "disabled trigger build button"
                 , setup =
-                    Layout.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = ""
-                        , csrfToken = ""
-                        , authToken = ""
-                        , pipelineRunningKeyframes = ""
-                        }
-                        { href = ""
-                        , host = ""
-                        , hostname = ""
-                        , protocol = ""
-                        , origin = ""
-                        , port_ = ""
-                        , pathname = "/teams/team/pipelines/pipeline/jobs/job"
-                        , search = ""
-                        , hash = ""
-                        , username = ""
-                        , password = ""
-                        }
-                        |> Tuple.first
-                        |> Layout.update
-                            (Layout.SubMsg 1 <|
-                                SubPage.JobMsg <|
-                                    Job.JobFetched <|
-                                        Ok
-                                            { name = "job"
-                                            , pipelineName = "pipeline"
-                                            , teamName = "team"
-                                            , pipeline =
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
-                                            , nextBuild = Nothing
-                                            , finishedBuild = Just someBuild
-                                            , transitionBuild = Nothing
-                                            , paused = False
-                                            , disableManualTrigger = True
-                                            , inputs = []
-                                            , outputs = []
-                                            , groups = []
-                                            }
-                            )
-                        |> Tuple.first
+                    init { disabled = True, paused = False } ()
                 , query =
                     Layout.view
                         >> Query.fromHtml
@@ -423,11 +355,11 @@ all =
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.HoverTrigger True
+                            Job.Hover Job.Trigger
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.HoverTrigger False
+                            Job.Hover Job.Neither
                 }
             , test "JobBuildsFetched" <|
                 \_ ->
