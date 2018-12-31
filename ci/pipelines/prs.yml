@@ -34,6 +34,7 @@ resources:
 jobs:
 - name: unit
   public: true
+  serial: true
   on_failure:
     put: concourse-pr
     params: {path: concourse-pr, status: failure, context: unit}
@@ -57,6 +58,7 @@ jobs:
 
 - name: testflight
   public: true
+  serial: true
   on_failure:
     put: concourse-pr
     params: {path: concourse-pr, status: failure, context: testflight}
@@ -86,6 +88,7 @@ jobs:
 
 - name: watsjs
   public: true
+  serial: true
   on_failure:
     put: concourse-pr
     params: {path: concourse-pr, status: failure, context: watsjs}
