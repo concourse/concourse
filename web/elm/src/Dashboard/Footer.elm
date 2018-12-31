@@ -34,6 +34,7 @@ tick : Model r -> Model r
 tick model =
     if model.hideFooterCounter > 4 then
         { model | hideFooter = True }
+
     else
         { model | hideFooterCounter = model.hideFooterCounter + 1 }
 
@@ -52,8 +53,10 @@ view : Model r -> List (Html Msg)
 view model =
     if model.showHelp then
         [ keyboardHelp ]
+
     else if not model.hideFooter then
         [ infoBar model ]
+
     else
         []
 
@@ -121,6 +124,7 @@ legend :
 legend model =
     if hideLegend model then
         []
+
     else
         [ Html.div
             [ id "legend"
@@ -189,17 +193,18 @@ toggleView highDensity =
         route =
             if highDensity then
                 Routes.dashboardRoute
+
             else
                 Routes.dashboardHdRoute
     in
-        Html.a
-            [ style Styles.highDensityToggle
-            , href route
-            , attribute "aria-label" "Toggle high-density view"
-            ]
-            [ Html.div [ style <| Styles.highDensityIcon highDensity ] []
-            , Html.text "high-density"
-            ]
+    Html.a
+        [ style Styles.highDensityToggle
+        , href route
+        , attribute "aria-label" "Toggle high-density view"
+        ]
+        [ Html.div [ style <| Styles.highDensityIcon highDensity ] []
+        , Html.text "high-density"
+        ]
 
 
 legendSeparator : ScreenSize.ScreenSize -> List (Html Msg)
@@ -222,25 +227,64 @@ legendSeparator screenSize =
 
 
 cliIcon : Cli.Cli -> Maybe Cli.Cli -> Html Msg
-cliIcon cli hoveredCliIcon =
-    let
-        ( cliName, ariaText, icon ) =
-            case cli of
-                Cli.OSX ->
-                    ( "osx", "OS X", "apple" )
+cliIcon cli =
+    case cli of
+        Cli.OSX ->
+            cliIconOSX
 
-                Cli.Windows ->
-                    ( "windows", "Windows", "windows" )
+        Cli.Windows ->
+            cliIconWindows
 
-                Cli.Linux ->
-                    ( "linux", "Linux", "linux" )
-    in
-        Html.a
-            [ href (Cli.downloadUrl "amd64" cliName)
-            , attribute "aria-label" <| "Download " ++ ariaText ++ " CLI"
-            , style <| Styles.infoCliIcon (hoveredCliIcon == Just cli)
-            , id <| "cli-" ++ cliName
-            , onMouseEnter <| CliHover <| Just cli
-            , onMouseLeave <| CliHover Nothing
-            ]
-            [ Html.i [ class <| "fa fa-" ++ icon ] [] ]
+        Cli.Linux ->
+            cliIconLinux
+
+
+cliIconOSX : Maybe Cli.Cli -> Html Msg
+cliIconOSX hoveredCliIcon =
+    Html.a
+        [ href (Cli.downloadUrl "amd64" "osx")
+        , attribute "aria-label" <| "Download OS X CLI"
+        , style <|
+            Styles.infoCliIcon
+                { hovered = hoveredCliIcon == Just Cli.OSX
+                , image = "apple"
+                }
+        , id <| "cli-osx"
+        , onMouseEnter <| CliHover <| Just Cli.OSX
+        , onMouseLeave <| CliHover Nothing
+        ]
+        []
+
+
+cliIconWindows : Maybe Cli.Cli -> Html Msg
+cliIconWindows hoveredCliIcon =
+    Html.a
+        [ href (Cli.downloadUrl "amd64" "windows")
+        , attribute "aria-label" <| "Download Windows CLI"
+        , style <|
+            Styles.infoCliIcon
+                { hovered = hoveredCliIcon == Just Cli.Windows
+                , image = "windows"
+                }
+        , id <| "cli-windows"
+        , onMouseEnter <| CliHover <| Just Cli.Windows
+        , onMouseLeave <| CliHover Nothing
+        ]
+        []
+
+
+cliIconLinux : Maybe Cli.Cli -> Html Msg
+cliIconLinux hoveredCliIcon =
+    Html.a
+        [ href (Cli.downloadUrl "amd64" "linux")
+        , attribute "aria-label" <| "Download Linux CLI"
+        , style <|
+            Styles.infoCliIcon
+                { hovered = hoveredCliIcon == Just Cli.Linux
+                , image = "linux"
+                }
+        , id <| "cli-linux"
+        , onMouseEnter <| CliHover <| Just Cli.Linux
+        , onMouseLeave <| CliHover Nothing
+        ]
+        []

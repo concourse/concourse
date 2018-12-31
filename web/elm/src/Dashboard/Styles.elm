@@ -413,16 +413,21 @@ infoItem =
     ]
 
 
-infoCliIcon : Bool -> List ( String, String )
-infoCliIcon hovered =
+infoCliIcon : { hovered : Bool, image : String } -> List ( String, String )
+infoCliIcon { hovered, image } =
     [ ( "margin-right", "10px" )
-    , ( "font-size", "1.2em" )
-    , ( "color"
+    , ( "width", "20px" )
+    , ( "height", "20px" )
+    , ( "background-image", "url(/public/images/" ++ image ++ "_logo.svg)" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-position", "50% 50%" )
+    , ( "background-size", "contain" )
+    , ( "opacity"
       , if hovered then
-            Colors.cliIconHover
+            "1"
 
         else
-            Colors.bottomBarText
+            "0.5"
       )
     ]
 

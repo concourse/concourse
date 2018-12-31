@@ -2502,16 +2502,11 @@ all =
                                 |> Query.index -1
                                 |> Query.children [ tag "a" ]
                     in
-                    [ test "font size is slightly larger" <|
+                    [ test "icons are grey" <|
                         \_ ->
                             cliIcons
                                 |> Query.each
-                                    (Query.has [ style [ ( "font-size", "1.2em" ) ] ])
-                    , test "icons are grey" <|
-                        \_ ->
-                            cliIcons
-                                |> Query.each
-                                    (Query.has [ style [ ( "color", menuGrey ) ] ])
+                                    (Query.has [ style [ ( "opacity", "0.5" ) ] ])
                     , test "icons have descriptive ARIA labels" <|
                         \_ ->
                             cliIcons
@@ -2551,9 +2546,15 @@ all =
                         , unhoveredSelector =
                             { description = "grey apple icon"
                             , selector =
-                                [ style [ ( "color", menuGrey ) ]
-                                , containing [ tag "i", class "fa-apple" ]
+                                [ style
+                                    [ ( "opacity", "0.5" )
+                                    , ( "background-size", "contain" )
+                                    ]
                                 ]
+                                    ++ iconSelector
+                                        { image = "apple_logo.svg"
+                                        , size = "20px"
+                                        }
                             }
                         , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                         , mouseEnterMsg = Msgs.CliHover <| Just Cli.OSX
@@ -2561,9 +2562,15 @@ all =
                         , hoveredSelector =
                             { description = "white apple icon"
                             , selector =
-                                [ style [ ( "color", white ) ]
-                                , containing [ tag "i", class "fa-apple" ]
+                                [ style
+                                    [ ( "opacity", "1" )
+                                    , ( "background-size", "contain" )
+                                    ]
                                 ]
+                                    ++ iconSelector
+                                        { image = "apple_logo.svg"
+                                        , size = "20px"
+                                        }
                             }
                         }
                     , defineHoverBehaviour
@@ -2578,9 +2585,15 @@ all =
                         , unhoveredSelector =
                             { description = "grey windows icon"
                             , selector =
-                                [ style [ ( "color", menuGrey ) ]
-                                , containing [ tag "i", class "fa-windows" ]
+                                [ style
+                                    [ ( "opacity", "0.5" )
+                                    , ( "background-size", "contain" )
+                                    ]
                                 ]
+                                    ++ iconSelector
+                                        { image = "windows_logo.svg"
+                                        , size = "20px"
+                                        }
                             }
                         , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                         , mouseEnterMsg = Msgs.CliHover <| Just Cli.Windows
@@ -2588,9 +2601,15 @@ all =
                         , hoveredSelector =
                             { description = "white windows icon"
                             , selector =
-                                [ style [ ( "color", white ) ]
-                                , containing [ tag "i", class "fa-windows" ]
+                                [ style
+                                    [ ( "opacity", "1" )
+                                    , ( "background-size", "contain" )
+                                    ]
                                 ]
+                                    ++ iconSelector
+                                        { image = "windows_logo.svg"
+                                        , size = "20px"
+                                        }
                             }
                         }
                     , defineHoverBehaviour
@@ -2605,9 +2624,15 @@ all =
                         , unhoveredSelector =
                             { description = "grey linux icon"
                             , selector =
-                                [ style [ ( "color", menuGrey ) ]
-                                , containing [ tag "i", class "fa-linux" ]
+                                [ style
+                                    [ ( "opacity", "0.5" )
+                                    , ( "background-size", "contain" )
+                                    ]
                                 ]
+                                    ++ iconSelector
+                                        { image = "linux_logo.svg"
+                                        , size = "20px"
+                                        }
                             }
                         , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                         , mouseEnterMsg = Msgs.CliHover <| Just Cli.Linux
@@ -2615,9 +2640,15 @@ all =
                         , hoveredSelector =
                             { description = "white linux icon"
                             , selector =
-                                [ style [ ( "color", white ) ]
-                                , containing [ tag "i", class "fa-linux" ]
+                                [ style
+                                    [ ( "opacity", "1" )
+                                    , ( "background-size", "contain" )
+                                    ]
                                 ]
+                                    ++ iconSelector
+                                        { image = "linux_logo.svg"
+                                        , size = "20px"
+                                        }
                             }
                         }
                     ]
