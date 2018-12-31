@@ -219,38 +219,31 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			Context("get vault health info returns error", func() {
-
 				BeforeEach(func() {
 					credServer.RouteToHandler("GET", "/v1/sys/health", ghttp.RespondWithJSONEncoded(
 						http.StatusInternalServerError,
-						"some error occured",
+						"some error occurred",
 					))
 				})
 
 				It("returns configured creds manager with error", func() {
-					Expect(body).To(MatchJSON(`{
-					"vault": {
-						"url": "` + credServer.URL() + `",
-						"path_prefix": "testpath",
-						"cache": false,
-						"max_lease": 60,
-						"ca_cert": "",
-						"server_name": "server-name",
-						"auth_backend": "backend-server",
-						"auth_max_ttl": 20,
-						"auth_retry_max": 5,
-						"auth_retry_initial": 2,
-						"health": {
-							"error": "Error making API request.\n\nURL: GET ` + credServer.URL() + `/v1/sys/health?drsecondarycode=299\u0026sealedcode=299\u0026standbycode=299\u0026uninitcode=299\nCode: 500. Raw Message:\n\n\"some error occured\"",
-							"method": "/v1/sys/health"
-						}
+					var errorBody struct {
+						Vault struct {
+							Health struct {
+								Error  string `json:"error"`
+								Method string `json:"method"`
+							} `json:"health"`
+						} `json:"vault"`
 					}
-				}`))
+
+					err := json.Unmarshal(body, &errorBody)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(errorBody.Vault.Health.Error).To(ContainSubstring("some error occurred"))
 				})
 			})
 
 			Context("get vault health info", func() {
-
 				BeforeEach(func() {
 					credServer.RouteToHandler("GET", "/v1/sys/health", ghttp.RespondWithJSONEncoded(
 						http.StatusOK,
