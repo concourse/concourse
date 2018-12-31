@@ -9,7 +9,7 @@ import Expect
 import Html.Attributes as Attr
 import Test exposing (..)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (attribute, id, style, text)
+import Test.Html.Selector exposing (attribute, containing, id, style, text)
 
 
 all : Test
@@ -92,6 +92,30 @@ all =
                             , transitionBuild = Nothing
                             , paused = False
                             , disableManualTrigger = False
+                            , inputs = []
+                            , outputs = []
+                            , groups = []
+                            }
+
+            fetchJobDetailsNoTrigger :
+                Build.Model
+                -> ( Build.Model, List Effects.Effect )
+            fetchJobDetailsNoTrigger =
+                Build.update <|
+                    Msgs.BuildJobDetailsFetched <|
+                        Ok
+                            { pipeline =
+                                { teamName = "team"
+                                , pipelineName = "pipeline"
+                                }
+                            , name = "job"
+                            , pipelineName = "pipeline"
+                            , teamName = "team"
+                            , nextBuild = Nothing
+                            , finishedBuild = Nothing
+                            , transitionBuild = Nothing
+                            , paused = False
+                            , disableManualTrigger = True
                             , inputs = []
                             , outputs = []
                             , groups = []
@@ -236,6 +260,27 @@ all =
                             , ( "outline", "none" )
                             ]
                         ]
+        , test
+            ("when manual triggering is disabled, "
+                ++ "trigger build button has default cursor"
+            )
+          <|
+            \_ ->
+                pageLoad
+                    |> Tuple.first
+                    |> fetchBuild
+                    |> Tuple.first
+                    |> fetchHistory
+                    |> Tuple.first
+                    |> fetchJobDetailsNoTrigger
+                    |> Tuple.first
+                    |> Build.view
+                    |> Query.fromHtml
+                    |> Query.find
+                        [ attribute <|
+                            Attr.attribute "aria-label" "Trigger Build"
+                        ]
+                    |> Query.has [ style [ ( "cursor", "default" ) ] ]
         , test "trigger build button has pointer cursor" <|
             \_ ->
                 pageLoad
@@ -313,6 +358,67 @@ all =
                             { size = "40px"
                             , image = "ic_add_circle_outline_white.svg"
                             }
+                }
+            , mouseEnterMsg = Msgs.Hover Msgs.Trigger
+            , mouseLeaveMsg = Msgs.Hover Msgs.Neither
+            }
+        , defineHoverBehaviour
+            { name = "disabled trigger build button"
+            , setup =
+                pageLoad
+                    |> Tuple.first
+                    |> fetchBuild
+                    |> Tuple.first
+                    |> fetchHistory
+                    |> Tuple.first
+                    |> fetchJobDetailsNoTrigger
+                    |> Tuple.first
+            , query =
+                Build.view
+                    >> Query.fromHtml
+                    >> Query.find
+                        [ attribute <|
+                            Attr.attribute "aria-label" "Trigger Build"
+                        ]
+            , updateFunc = \msg -> Build.update msg >> Tuple.first
+            , unhoveredSelector =
+                { description = "grey plus icon"
+                , selector =
+                    [ style [ ( "opacity", "0.5" ) ] ]
+                        ++ iconSelector
+                            { size = "40px"
+                            , image = "ic_add_circle_outline_white.svg"
+                            }
+                }
+            , hoveredSelector =
+                { description = "grey plus icon with tooltip"
+                , selector =
+                    [ style [ ( "position", "relative" ) ]
+                    , containing
+                        [ containing
+                            [ text "manual triggering disabled in job config" ]
+                        , style
+                            [ ( "position", "absolute" )
+                            , ( "right", "100%" )
+                            , ( "top", "15px" )
+                            , ( "width", "300px" )
+                            , ( "color", "#ecf0f1" )
+                            , ( "font-size", "12px" )
+                            , ( "font-family", "Inconsolata,monospace" )
+                            , ( "padding", "10px" )
+                            , ( "text-align", "right" )
+                            ]
+                        ]
+                    , containing <|
+                        [ style
+                            [ ( "opacity", "0.5" )
+                            ]
+                        ]
+                            ++ iconSelector
+                                { size = "40px"
+                                , image = "ic_add_circle_outline_white.svg"
+                                }
+                    ]
                 }
             , mouseEnterMsg = Msgs.Hover Msgs.Trigger
             , mouseLeaveMsg = Msgs.Hover Msgs.Neither

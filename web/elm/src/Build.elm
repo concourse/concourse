@@ -684,7 +684,10 @@ view : Model -> Html Msg
 view model =
     case model.currentBuild |> RemoteData.toMaybe of
         Just currentBuild ->
-            Html.div [ class "with-fixed-header", attribute "data-build-name" currentBuild.build.name ]
+            Html.div
+                [ class "with-fixed-header"
+                , attribute "data-build-name" currentBuild.build.name
+                ]
                 [ viewBuildHeader currentBuild.build model
                 , Html.div [ class "scrollable-body build-body" ] <|
                     [ viewBuildPrep currentBuild.prep
@@ -696,14 +699,62 @@ view model =
                             , ( "hidden", not model.showHelp )
                             ]
                         ]
-                        [ Html.div [ class "help-title" ] [ Html.text "keyboard shortcuts" ]
-                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "h" ], Html.span [ class "key" ] [ Html.text "l" ] ], Html.text "previous/next build" ]
-                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "j" ], Html.span [ class "key" ] [ Html.text "k" ] ], Html.text "scroll down/up" ]
-                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "T" ] ], Html.text "trigger a new build" ]
-                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "A" ] ], Html.text "abort build" ]
-                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "gg" ] ], Html.text "scroll to the top" ]
-                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "G" ] ], Html.text "scroll to the bottom" ]
-                        , Html.div [ class "help-line" ] [ Html.div [ class "keys" ] [ Html.span [ class "key" ] [ Html.text "?" ] ], Html.text "hide/show help" ]
+                        [ Html.div
+                            [ class "help-title" ]
+                            [ Html.text "keyboard shortcuts" ]
+                        , Html.div
+                            [ class "help-line" ]
+                            [ Html.div
+                                [ class "keys" ]
+                                [ Html.span [ class "key" ] [ Html.text "h" ]
+                                , Html.span [ class "key" ] [ Html.text "l" ]
+                                ]
+                            , Html.text "previous/next build"
+                            ]
+                        , Html.div
+                            [ class "help-line" ]
+                            [ Html.div
+                                [ class "keys" ]
+                                [ Html.span [ class "key" ] [ Html.text "j" ]
+                                , Html.span [ class "key" ] [ Html.text "k" ]
+                                ]
+                            , Html.text "scroll down/up"
+                            ]
+                        , Html.div
+                            [ class "help-line" ]
+                            [ Html.div
+                                [ class "keys" ]
+                                [ Html.span [ class "key" ] [ Html.text "T" ] ]
+                            , Html.text "trigger a new build"
+                            ]
+                        , Html.div
+                            [ class "help-line" ]
+                            [ Html.div
+                                [ class "keys" ]
+                                [ Html.span [ class "key" ] [ Html.text "A" ] ]
+                            , Html.text "abort build"
+                            ]
+                        , Html.div
+                            [ class "help-line" ]
+                            [ Html.div
+                                [ class "keys" ]
+                                [ Html.span [ class "key" ] [ Html.text "gg" ] ]
+                            , Html.text "scroll to the top"
+                            ]
+                        , Html.div
+                            [ class "help-line" ]
+                            [ Html.div
+                                [ class "keys" ]
+                                [ Html.span [ class "key" ] [ Html.text "G" ] ]
+                            , Html.text "scroll to the bottom"
+                            ]
+                        , Html.div
+                            [ class "help-line" ]
+                            [ Html.div
+                                [ class "keys" ]
+                                [ Html.span [ class "key" ] [ Html.text "?" ] ]
+                            , Html.text "hide/show help"
+                            ]
                         ]
                     ]
                         ++ (let
@@ -910,10 +961,15 @@ viewBuildHeader build { now, job, history, hoveredButton } =
 
                                 Just job ->
                                     job.disableManualTrigger
+
+                        buttonHovered =
+                            hoveredButton == Trigger
+
+                        buttonHighlight =
+                            buttonHovered && not buttonDisabled
                     in
                     Html.button
-                        [ disabled buttonDisabled
-                        , attribute "role" "button"
+                        [ attribute "role" "button"
                         , attribute "tabindex" "0"
                         , attribute "aria-label" "Trigger Build"
                         , attribute "title" "Trigger Build"
@@ -922,12 +978,25 @@ viewBuildHeader build { now, job, history, hoveredButton } =
                         , onFocus <| Hover Trigger
                         , onMouseLeave <| Hover Neither
                         , onBlur <| Hover Neither
-                        , style Styles.triggerButton
+                        , style <| Styles.triggerButton buttonDisabled
                         ]
+                    <|
                         [ Html.div
-                            [ style <| Styles.triggerIcon <| hoveredButton == Trigger ]
+                            [ style <| Styles.triggerIcon buttonHighlight ]
                             []
                         ]
+                            ++ (if buttonDisabled && buttonHovered then
+                                    [ Html.div
+                                        [ style Styles.triggerTooltip ]
+                                        [ Html.text <|
+                                            "manual triggering disabled "
+                                                ++ "in job config"
+                                        ]
+                                    ]
+
+                                else
+                                    []
+                               )
 
                 _ ->
                     Html.text ""

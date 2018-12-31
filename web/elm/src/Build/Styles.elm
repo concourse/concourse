@@ -1,15 +1,28 @@
-module Build.Styles exposing (abortButton, abortIcon, triggerButton, triggerIcon)
+module Build.Styles exposing
+    ( abortButton
+    , abortIcon
+    , triggerButton
+    , triggerIcon
+    , triggerTooltip
+    )
 
 import Colors
 
 
-triggerButton : List ( String, String )
-triggerButton =
+triggerButton : Bool -> List ( String, String )
+triggerButton buttonDisabled =
     [ ( "background-color", Colors.background )
     , ( "padding", "10px" )
-    , ( "cursor", "pointer" )
+    , ( "cursor"
+      , if buttonDisabled then
+            "default"
+
+        else
+            "pointer"
+      )
     , ( "border", "none" )
     , ( "outline", "none" )
+    , ( "position", "relative" )
     ]
 
 
@@ -29,6 +42,21 @@ triggerIcon hovered =
         else
             "0.5"
       )
+    ]
+
+
+triggerTooltip : List ( String, String )
+triggerTooltip =
+    [ ( "position", "absolute" )
+    , ( "right", "100%" )
+    , ( "top", "15px" )
+    , ( "width", "300px" )
+    , ( "color", "#ecf0f1" )
+    , ( "font-size", "12px" )
+    , ( "font-family", "Inconsolata,monospace" )
+    , ( "padding", "10px" )
+    , ( "text-align", "right" )
+    , ( "pointer-events", "none" )
     ]
 
 
