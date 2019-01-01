@@ -52,26 +52,20 @@ var _ = Describe("CheckHealth", func() {
 
 		BeforeEach(func() {
 			garden.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/ping"),
-					ghttp.RespondWithJSONEncoded(200, map[string]string{}),
-				),
-			)
+				ghttp.RespondWithJSONEncoded(200, map[string]string{}),
+				ghttp.RespondWithJSONEncoded(200, map[string]string{}))
 
 			baggageclaim.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/volumes"),
-					ghttp.RespondWithJSONEncoded(200, []string{}),
-				),
-			)
+				ghttp.RespondWithJSONEncoded(200, map[string]string{}),
+				ghttp.RespondWithJSONEncoded(200, map[string]string{}))
 		})
 
-		It("makes an underlying request to baggageclaim", func() {
-			Expect(baggageclaim.ReceivedRequests()).To(HaveLen(1))
+		It("makes requests to baggageclaim", func() {
+			Expect(baggageclaim.ReceivedRequests()).To(HaveLen(2))
 		})
 
-		It("makes an underlying request to garden", func() {
-			Expect(garden.ReceivedRequests()).To(HaveLen(1))
+		It("makes requests to garden", func() {
+			Expect(garden.ReceivedRequests()).To(HaveLen(2))
 		})
 
 		Context("having a very slow baggaclaim", func() {
