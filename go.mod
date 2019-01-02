@@ -29,7 +29,7 @@ require (
 	github.com/bmatcuk/doublestar v1.1.1 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/caarlos0/env v3.5.0+incompatible
-	github.com/cenkalti/backoff v2.0.0+incompatible
+	github.com/cenkalti/backoff v2.1.0+incompatible
 	github.com/charlievieth/fs v0.0.0-20170613215519-7dc373669fa1 // indirect
 	github.com/circonus-labs/circonus-gometrics v2.2.1+incompatible // indirect
 	github.com/circonus-labs/circonusllhist v0.0.0-20180430145027-5eb751da55c6 // indirect
@@ -37,7 +37,7 @@ require (
 	github.com/cloudfoundry/bosh-utils v0.0.0-20180919212956-15c556314b68 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
-	github.com/concourse/baggageclaim v1.3.0
+	github.com/concourse/baggageclaim v1.3.2
 	github.com/concourse/dex v0.0.0-20181120155244-024cbea7e753
 	github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c
 	github.com/concourse/go-archive v1.0.0
@@ -128,8 +128,8 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/oklog/run v1.0.0 // indirect
-	github.com/onsi/ginkgo v1.6.1-0.20181017070251-aec9277ec956
-	github.com/onsi/gomega v1.4.2
+	github.com/onsi/ginkgo v1.7.0
+	github.com/onsi/gomega v1.4.3
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
