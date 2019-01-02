@@ -23,8 +23,9 @@ type testServer struct {
 	Messages chan string
 }
 
+
 func (s *testServer) listenTCP(insecure bool) net.Listener {
-	cert, err := tls.LoadX509KeyPair("testdata/cert.pem", "testdata/public.pem")
+	cert, err := tls.LoadX509KeyPair("testdata/cert.pem", "testdata/key.pem")
 	Expect(err).NotTo(HaveOccurred())
 
 	var ln net.Listener
@@ -129,7 +130,6 @@ var _ = Describe("Drainer", func() {
 			})
 
 			It("connects to remote server given correct cert", func() {
-
 				testDrainer := syslog.NewDrainer("tls", s.Addr, "test", []string{"testdata/cert.pem"}, fakeBuildFactory)
 
 				err := testDrainer.Run(context.TODO())
@@ -138,7 +138,7 @@ var _ = Describe("Drainer", func() {
 			})
 
 			It("fails connects to remote server given incorrect cert", func() {
-				testDrainer := syslog.NewDrainer("tls", s.Addr, "test", []string{"testdata/client.pem"}, fakeBuildFactory)
+				testDrainer := syslog.NewDrainer("tls", s.Addr, "test", []string{"testdata/incorrect-cert.pem"}, fakeBuildFactory)
 
 				err := testDrainer.Run(context.TODO())
 				Expect(err).To(HaveOccurred())
