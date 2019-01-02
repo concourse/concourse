@@ -790,12 +790,14 @@ jobs:
       - cbd/cluster/operations/web-network-extension.yml
       - cbd/cluster/operations/team-authorized-keys.yml
       - cbd/cluster/operations/untrusted-worker.yml
+      - cbd/cluster/operations/debug-untrusted-worker.yml
       - cbd/cluster/operations/windows-worker.yml
       - cbd/cluster/operations/telegraf-postgres.yml
       - cbd/cluster/operations/syslog_forwarder.yml
       - cbd/cluster/operations/backup-atc.yml
       - cbd/cluster/operations/task-limits.yml
       - cbd/cluster/operations/windows-worker-network.yml
+      - cbd/cluster/operations/debug-concourse.yml
       vars_files:
       - cbd/versions.yml
       vars:
