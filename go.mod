@@ -101,7 +101,7 @@ require (
 	github.com/howeyc/gopass v0.0.0-20170109162249-bf9dde6d0d2c // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
-	github.com/influxdata/influxdb v1.6.1
+	github.com/influxdata/influxdb v1.7.2
 	github.com/jefferai/jsonx v0.0.0-20160721235117-9cc31c3135ee // indirect
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/json-iterator/go v1.1.5 // indirect
