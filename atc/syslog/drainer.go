@@ -52,7 +52,6 @@ func (d *drainer) Run(ctx context.Context) error {
 	if len(builds) > 0 {
 		var certpool *x509.CertPool
 		if d.transport == "tls" {
-
 			certpool, err = x509.SystemCertPool()
 			if err != nil {
 				return err

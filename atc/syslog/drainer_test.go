@@ -4,78 +4,101 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"io/ioutil"
 	"net"
+	"os"
 	"strconv"
-
+	"sync"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/square/certstrap/pkix"
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/syslog"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 type testServer struct {
 	Addr     string
-	Close    chan bool
 	Messages chan string
+
+	ln     net.Listener
+	closed bool
+	wg     *sync.WaitGroup
 }
 
+func newTestServer(cert *tls.Certificate) *testServer {
+	server := &testServer{
+		Messages: make(chan string, 20),
 
-func (s *testServer) listenTCP(insecure bool) net.Listener {
-	cert, err := tls.LoadX509KeyPair("testdata/cert.pem", "testdata/key.pem")
-	Expect(err).NotTo(HaveOccurred())
+		wg: new(sync.WaitGroup),
+	}
 
+	server.ListenTCP(cert)
+
+	server.wg.Add(1)
+	go server.ServeTCP()
+
+	return server
+}
+
+func (server *testServer) ListenTCP(cert *tls.Certificate) net.Listener {
 	var ln net.Listener
-	if !insecure {
+
+	var err error
+	if cert != nil {
 		config := &tls.Config{
-			Certificates: []tls.Certificate{cert},
+			Certificates: []tls.Certificate{*cert},
 		}
-		ln, err = tls.Listen("tcp", "127.0.0.1:0", config)
+		server.ln, err = tls.Listen("tcp", "127.0.0.1:0", config)
 		Expect(err).NotTo(HaveOccurred())
 	} else {
-		ln, err = net.Listen("tcp", "[::]:0")
+		server.ln, err = net.Listen("tcp", "[::]:0")
 		Expect(err).NotTo(HaveOccurred())
 	}
 
 	Expect(err).NotTo(HaveOccurred())
 
-	s.Addr = ln.Addr().String()
+	server.Addr = server.ln.Addr().String()
+
 	return ln
 }
 
-func (s *testServer) serveTCP(ln net.Listener) {
+func (server *testServer) ServeTCP() {
+	defer server.wg.Done()
 	defer GinkgoRecover()
+
 	for {
-		select {
-		case <-s.Close:
-			ln.Close()
+		conn, err := server.ln.Accept()
+		if server.closed {
 			return
-		default:
-			conn, err := ln.Accept()
-			Expect(err).NotTo(HaveOccurred())
-
-			time.Sleep(1 * time.Second)
-
-			buf := make([]byte, 1024)
-			n, _ := conn.Read(buf)
-
-			s.Messages <- string(buf[0:n])
 		}
+
+		Expect(err).NotTo(HaveOccurred())
+
+		time.Sleep(100 * time.Millisecond)
+
+		buf := make([]byte, 1024)
+		n, err := conn.Read(buf)
+
+		// expect bad certificate from 'bad cert' test
+		if err != nil && err.Error() == "remote error: tls: bad certificate" {
+			continue
+		}
+
+		Expect(err).NotTo(HaveOccurred())
+
+		server.Messages <- string(buf[0:n])
 	}
 }
 
-func newTestServer(insecure bool) *testServer {
-	server := testServer{
-		Close:    make(chan bool, 2),
-		Messages: make(chan string, 20),
-	}
-	ln := server.listenTCP(insecure)
-
-	go server.serveTCP(ln)
-	return &server
+func (server *testServer) Close() {
+	server.closed = true
+	server.ln.Close()
+	server.wg.Wait()
 }
 
 func newFakeBuild(id int) db.Build {
@@ -108,59 +131,92 @@ func newFakeBuild(id int) db.Build {
 
 var _ = Describe("Drainer", func() {
 	var fakeBuildFactory *dbfakes.FakeBuildFactory
-	var s *testServer
-	var insecure bool
+	var server *testServer
 
 	BeforeEach(func() {
 		fakeBuildFactory = new(dbfakes.FakeBuildFactory)
 		fakeBuildFactory.GetDrainableBuildsReturns([]db.Build{newFakeBuild(123), newFakeBuild(345)}, nil)
-
 	})
 
 	AfterEach(func() {
-		s.Close <- true
+		server.Close()
 	})
 
 	Context("when there are builds that have not been drained", func() {
-
 		Context("when tls is enabled", func() {
-			JustBeforeEach(func() {
-				insecure = false
-				s = newTestServer(insecure)
+			var caFilePath string
+
+			BeforeEach(func() {
+				key, err := pkix.CreateRSAKey(1024)
+				Expect(err).NotTo(HaveOccurred())
+
+				ca, err := pkix.CreateCertificateAuthority(key, "", time.Now().Add(time.Hour), "Acme Co", "", "", "", "")
+				Expect(err).NotTo(HaveOccurred())
+
+				req, err := pkix.CreateCertificateSigningRequest(key, "", []net.IP{net.IPv4(127, 0, 0, 1)}, nil, "Acme Co", "", "", "", "")
+				Expect(err).NotTo(HaveOccurred())
+
+				cert, err := pkix.CreateCertificateHost(ca, key, req, time.Now().Add(time.Hour))
+				Expect(err).NotTo(HaveOccurred())
+
+				keyPEM, err := key.ExportPrivate()
+				Expect(err).NotTo(HaveOccurred())
+
+				caPEM, err := ca.Export()
+				Expect(err).NotTo(HaveOccurred())
+
+				certPEM, err := cert.Export()
+				Expect(err).NotTo(HaveOccurred())
+
+				tlsCert, err := tls.X509KeyPair(certPEM, keyPEM)
+				Expect(err).NotTo(HaveOccurred())
+
+				caFile, err := ioutil.TempFile("", "ca")
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = caFile.Write(caPEM)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = caFile.Close()
+				Expect(err).NotTo(HaveOccurred())
+
+				caFilePath = caFile.Name()
+
+				server = newTestServer(&tlsCert)
+			})
+
+			AfterEach(func() {
+				err := os.RemoveAll(caFilePath)
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("connects to remote server given correct cert", func() {
-				testDrainer := syslog.NewDrainer("tls", s.Addr, "test", []string{"testdata/cert.pem"}, fakeBuildFactory)
+				testDrainer := syslog.NewDrainer("tls", server.Addr, "test", []string{caFilePath}, fakeBuildFactory)
 
 				err := testDrainer.Run(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
-
 			})
 
 			It("fails connects to remote server given incorrect cert", func() {
-				testDrainer := syslog.NewDrainer("tls", s.Addr, "test", []string{"testdata/incorrect-cert.pem"}, fakeBuildFactory)
+				testDrainer := syslog.NewDrainer("tls", server.Addr, "test", []string{"testdata/incorrect-cert.pem"}, fakeBuildFactory)
 
 				err := testDrainer.Run(context.TODO())
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("x509: certificate signed by unknown authority"))
-
 			})
 		})
 
 		Context("when tls is not set", func() {
-			JustBeforeEach(func() {
-				insecure = true
-				s = newTestServer(insecure)
+			BeforeEach(func() {
+				server = newTestServer(nil)
 			})
 
 			It("drains all build events by tcp", func() {
-
-				defer GinkgoRecover()
-				testDrainer := syslog.NewDrainer("tcp", s.Addr, "test", []string{}, fakeBuildFactory)
+				testDrainer := syslog.NewDrainer("tcp", server.Addr, "test", []string{}, fakeBuildFactory)
 				err := testDrainer.Run(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
-				got := <-s.Messages
+				got := <-server.Messages
 				Expect(got).To(ContainSubstring("build 123 log"))
 				Expect(got).To(ContainSubstring("build 345 log"))
 				Expect(got).NotTo(ContainSubstring("build 123 status"))
