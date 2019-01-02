@@ -191,7 +191,7 @@ jobs:
       passed: [unit, lint, dev-image]
       trigger: true
     - get: unit-image
-      passed: [unit, lint, dev-image]
+      passed: [unit, dev-image]
       trigger: true
     - get: dev-image
       passed: [dev-image]
@@ -214,7 +214,7 @@ jobs:
       passed: [unit, lint, dev-image]
       trigger: true
     - get: unit-image
-      passed: [unit, lint, dev-image]
+      passed: [unit, dev-image]
       trigger: true
     - get: dev-image
       passed: [dev-image]
