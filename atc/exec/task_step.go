@@ -1,8 +1,6 @@
 package exec
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -12,14 +10,14 @@ import (
 	"strconv"
 	"strings"
 
-	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
-
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -66,7 +64,7 @@ type TaskDelegate interface {
 }
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
-// worker.ArtifactRepository and outputs will be added to the worker.ArtifactRepository.
+// artifact.Repository and outputs will be added to the artifact.Repository.
 type TaskStep struct {
 	privileged    Privileged
 	configSource  TaskConfigSource
@@ -134,19 +132,19 @@ func NewTaskStep(
 	}
 }
 
-// Run will first selects the worker based on the TaskConfig's platform, the
-// TaskStep's tags, and prioritized by availability of volumes for the TaskConfig's
+// Run will first select the worker based on the TaskConfig's platform and the
+// TaskStep's tags, and prioritize it by availability of volumes for the TaskConfig's
 // inputs. Inputs that did not have volumes available on the worker will be streamed
 // in to the container.
 //
-// If any inputs are not available in the worker.ArtifactRepository, MissingInputsError
+// If any inputs are not available in the artifact.Repository, MissingInputsError
 // is returned.
 //
 // Once all the inputs are satisfied, the task's script will be executed. If
 // the task is canceled via the context, the script will be interrupted.
 //
 // If the script exits successfully, the outputs specified in the TaskConfig
-// are registered with the worker.ArtifactRepository. If no outputs are specified, the
+// are registered with the artifact.Repository. If no outputs are specified, the
 // task's entire working directory is registered as an ArtifactSource under the
 // name of the task.
 func (action *TaskStep) Run(ctx context.Context, state RunState) error {
@@ -205,7 +203,7 @@ func (action *TaskStep) Run(ctx context.Context, state RunState) error {
 			return err
 		}
 
-		action.succeeded = status == 0
+		action.succeeded = (status == 0)
 
 		err = action.registerOutputs(logger, repository, config, container)
 		if err != nil {
@@ -299,7 +297,7 @@ func (action *TaskStep) Succeeded() bool {
 	return action.succeeded
 }
 
-func (action *TaskStep) imageSpec(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig) (worker.ImageSpec, error) {
+func (action *TaskStep) imageSpec(logger lager.Logger, repository *artifact.Repository, config atc.TaskConfig) (worker.ImageSpec, error) {
 	imageSpec := worker.ImageSpec{
 		Privileged: bool(action.privileged),
 	}
@@ -307,13 +305,12 @@ func (action *TaskStep) imageSpec(logger lager.Logger, repository *worker.Artifa
 	// Determine the source of the container image
 	// a reference to an artifact (get step, task output) ?
 	if action.imageArtifactName != "" {
-		source, found := repository.SourceFor(worker.ArtifactName(action.imageArtifactName))
+		source, found := repository.SourceFor(artifact.Name(action.imageArtifactName))
 		if !found {
 			return worker.ImageSpec{}, MissingTaskImageSourceError{action.imageArtifactName}
 		}
 
 		imageSpec.ImageArtifactSource = source
-		imageSpec.ImageArtifactName = worker.ArtifactName(action.imageArtifactName)
 
 		//an image_resource
 	} else if config.ImageResource != nil {
@@ -331,7 +328,7 @@ func (action *TaskStep) imageSpec(logger lager.Logger, repository *worker.Artifa
 	return imageSpec, nil
 }
 
-func (action *TaskStep) containerInputs(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig) ([]worker.InputSource, error) {
+func (action *TaskStep) containerInputs(logger lager.Logger, repository *artifact.Repository, config atc.TaskConfig) ([]worker.InputSource, error) {
 	inputs := []worker.InputSource{}
 
 	var missingRequiredInputs []string
@@ -341,7 +338,7 @@ func (action *TaskStep) containerInputs(logger lager.Logger, repository *worker.
 			inputName = sourceName
 		}
 
-		source, found := repository.SourceFor(worker.ArtifactName(inputName))
+		source, found := repository.SourceFor(artifact.Name(inputName))
 		if !found {
 			if !input.Optional {
 				missingRequiredInputs = append(missingRequiredInputs, inputName)
@@ -372,7 +369,7 @@ func (action *TaskStep) containerInputs(logger lager.Logger, repository *worker.
 	return inputs, nil
 }
 
-func (action *TaskStep) containerSpec(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig) (worker.ContainerSpec, error) {
+func (action *TaskStep) containerSpec(logger lager.Logger, repository *artifact.Repository, config atc.TaskConfig) (worker.ContainerSpec, error) {
 	imageSpec, err := action.imageSpec(logger, repository, config)
 	if err != nil {
 		return worker.ContainerSpec{}, err
@@ -405,7 +402,7 @@ func (action *TaskStep) containerSpec(logger lager.Logger, repository *worker.Ar
 	return containerSpec, nil
 }
 
-func (action *TaskStep) workerSpec(logger lager.Logger, resourceTypes creds.VersionedResourceTypes, repository *worker.ArtifactRepository, config atc.TaskConfig) (worker.WorkerSpec, error) {
+func (action *TaskStep) workerSpec(logger lager.Logger, resourceTypes creds.VersionedResourceTypes, repository *artifact.Repository, config atc.TaskConfig) (worker.WorkerSpec, error) {
 	workerSpec := worker.WorkerSpec{
 		Platform:      config.Platform,
 		Tags:          action.tags,
@@ -425,7 +422,7 @@ func (action *TaskStep) workerSpec(logger lager.Logger, resourceTypes creds.Vers
 	return workerSpec, nil
 }
 
-func (action *TaskStep) registerOutputs(logger lager.Logger, repository *worker.ArtifactRepository, config atc.TaskConfig, container worker.Container) error {
+func (action *TaskStep) registerOutputs(logger lager.Logger, repository *artifact.Repository, config atc.TaskConfig, container worker.Container) error {
 	volumeMounts := container.VolumeMounts()
 
 	logger.Debug("registering-outputs", lager.Data{"outputs": config.Outputs})
@@ -440,8 +437,13 @@ func (action *TaskStep) registerOutputs(logger lager.Logger, repository *worker.
 
 		for _, mount := range volumeMounts {
 			if filepath.Clean(mount.MountPath) == filepath.Clean(outputPath) {
-				source := newTaskArtifactSource(mount.Volume)
-				repository.RegisterSource(worker.ArtifactName(outputName), source)
+				source := NewTaskArtifactSource(mount.Volume)
+				repository.RegisterSource(artifact.Name(outputName), source)
+
+				_, err := mount.Volume.InitializeArtifact(outputName, action.buildID)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -483,12 +485,8 @@ type taskArtifactSource struct {
 	worker.Volume
 }
 
-func newTaskArtifactSource(
-	volume worker.Volume,
-) *taskArtifactSource {
-	return &taskArtifactSource{
-		volume,
-	}
+func NewTaskArtifactSource(volume worker.Volume) *taskArtifactSource {
+	return &taskArtifactSource{volume}
 }
 
 func (src *taskArtifactSource) StreamTo(logger lager.Logger, destination worker.ArtifactDestination) error {
@@ -497,49 +495,12 @@ func (src *taskArtifactSource) StreamTo(logger lager.Logger, destination worker.
 		"src-worker": src.WorkerName(),
 	})
 
-	logger.Debug("start")
-
-	defer logger.Debug("end")
-
-	out, err := src.StreamOut(".")
-	if err != nil {
-		logger.Error("failed", err)
-		return err
-	}
-
-	defer out.Close()
-
-	err = destination.StreamIn(".", out)
-	if err != nil {
-		logger.Error("failed", err)
-		return err
-	}
-	return nil
+	return streamToHelper(src, logger, destination)
 }
 
 func (src *taskArtifactSource) StreamFile(logger lager.Logger, filename string) (io.ReadCloser, error) {
 	logger.Debug("streaming-file-from-volume")
-	out, err := src.StreamOut(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	gzReader, err := gzip.NewReader(out)
-	if err != nil {
-		return nil, FileNotFoundError{Path: filename}
-	}
-
-	tarReader := tar.NewReader(gzReader)
-
-	_, err = tarReader.Next()
-	if err != nil {
-		return nil, FileNotFoundError{Path: filename}
-	}
-
-	return fileReadCloser{
-		Reader: tarReader,
-		Closer: out,
-	}, nil
+	return streamFileHelper(src, logger, filename)
 }
 
 func (src *taskArtifactSource) VolumeOn(logger lager.Logger, w worker.Worker) (worker.Volume, bool, error) {

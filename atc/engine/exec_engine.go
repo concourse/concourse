@@ -231,10 +231,6 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan) exec.Step 
 		return build.buildUserArtifactStep(logger, plan)
 	}
 
-	if plan.ArtifactOutput != nil {
-		return build.buildArtifactOutputStep(logger, plan)
-	}
-
 	return exec.IdentityStep{}
 }
 

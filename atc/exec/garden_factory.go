@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 
 	"code.cloudfoundry.org/lager"
-
 	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -139,7 +139,7 @@ func (factory *gardenFactory) Task(
 	containerMetadata db.ContainerMetadata,
 	delegate TaskDelegate,
 ) Step {
-	workingDirectory := factory.taskWorkingDirectory(worker.ArtifactName(plan.Task.Name))
+	workingDirectory := factory.taskWorkingDirectory(artifact.Name(plan.Task.Name))
 	containerMetadata.WorkingDirectory = workingDirectory
 
 	credMgrVariables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
@@ -196,7 +196,16 @@ func (factory *gardenFactory) Task(
 	return LogError(taskStep, delegate)
 }
 
-func (factory *gardenFactory) taskWorkingDirectory(sourceName worker.ArtifactName) string {
+func (factory *gardenFactory) ArtifactStep(
+	logger lager.Logger,
+	plan atc.Plan,
+	build db.Build,
+	delegate BuildStepDelegate,
+) Step {
+	return NewArtifactStep(plan, build, factory.workerClient, delegate)
+}
+
+func (factory *gardenFactory) taskWorkingDirectory(sourceName artifact.Name) string {
 	sum := sha1.Sum([]byte(sourceName))
 	return filepath.Join("/tmp", "build", fmt.Sprintf("%x", sum[:4]))
 }

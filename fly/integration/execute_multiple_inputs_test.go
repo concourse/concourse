@@ -9,19 +9,17 @@ import (
 	"net/http"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/vito/go-sse/sse"
-
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/event"
 )
 
 var _ = Describe("Fly CLI", func() {
@@ -34,6 +32,10 @@ var _ = Describe("Fly CLI", func() {
 	var uploadingTwo chan struct{}
 
 	var expectedPlan atc.Plan
+	var workerArtifact = atc.WorkerArtifact{
+		ID:   125,
+		Name: "some-dir",
+	}
 
 	BeforeEach(func() {
 		var err error
@@ -86,10 +88,12 @@ run:
 		expectedPlan = planFactory.NewPlan(atc.DoPlan{
 			planFactory.NewPlan(atc.AggregatePlan{
 				planFactory.NewPlan(atc.UserArtifactPlan{
-					Name: "some-input",
+					ArtifactID: 125,
+					Name:       "some-input",
 				}),
 				planFactory.NewPlan(atc.UserArtifactPlan{
-					Name: "some-other-input",
+					ArtifactID: 125,
+					Name:       "some-other-input",
 				}),
 			}),
 			planFactory.NewPlan(atc.TaskPlan{
@@ -124,6 +128,33 @@ run:
 		uploading = make(chan struct{})
 		uploadingTwo = make(chan struct{})
 
+		atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
+			ghttp.CombineHandlers(
+				func(w http.ResponseWriter, req *http.Request) {
+					gr, err := gzip.NewReader(req.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					tr := tar.NewReader(gr)
+
+					hdr, err := tr.Next()
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(hdr.Name).To(Equal("./"))
+
+					hdr, err = tr.Next()
+					Expect(err).NotTo(HaveOccurred())
+
+					if strings.HasSuffix(hdr.Name, "task.yml") {
+						close(uploading)
+					} else if strings.HasSuffix(hdr.Name, "s3-asset-file") {
+						close(uploadingTwo)
+					}
+
+					Expect(hdr.Name).To(MatchRegexp("(./)?(task.yml|s3-asset-file)$"))
+				},
+				ghttp.RespondWith(201, `{"id":125}`),
+			),
+		)
 		atcServer.RouteToHandler("POST", "/api/v1/teams/main/builds",
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/teams/main/builds"),
@@ -182,33 +213,10 @@ run:
 				},
 			),
 		)
-		atcServer.RouteToHandler("PUT", regexp.MustCompile(`/api/v1/builds/128/plan/.*/input`),
-			ghttp.CombineHandlers(
-				func(w http.ResponseWriter, req *http.Request) {
-					gr, err := gzip.NewReader(req.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					tr := tar.NewReader(gr)
-
-					hdr, err := tr.Next()
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(hdr.Name).To(Equal("./"))
-
-					hdr, err = tr.Next()
-					Expect(err).NotTo(HaveOccurred())
-
-					if strings.HasSuffix(hdr.Name, "task.yml") {
-						close(uploading)
-					} else if strings.HasSuffix(hdr.Name, "s3-asset-file") {
-						close(uploadingTwo)
-					}
-
-					Expect(hdr.Name).To(MatchRegexp("(./)?(task.yml|s3-asset-file)$"))
-				},
-				ghttp.RespondWith(200, ""),
-			),
+		atcServer.RouteToHandler("GET", "/api/v1/builds/128/artifacts",
+			ghttp.RespondWithJSONEncoded(200, []atc.WorkerArtifact{workerArtifact}),
 		)
+
 	})
 
 	It("flies with multiple passengers", func() {

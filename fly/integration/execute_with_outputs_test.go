@@ -10,18 +10,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"time"
 
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/vito/go-sse/sse"
-
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/event"
 )
 
 var _ = Describe("Fly CLI", func() {
@@ -34,6 +32,10 @@ var _ = Describe("Fly CLI", func() {
 	var outputDir string
 
 	var expectedPlan atc.Plan
+	var workerArtifact = atc.WorkerArtifact{
+		ID:   125,
+		Name: "some-dir",
+	}
 
 	BeforeEach(func() {
 		var err error
@@ -91,7 +93,8 @@ run:
 			Step: planFactory.NewPlan(atc.DoPlan{
 				planFactory.NewPlan(atc.AggregatePlan{
 					planFactory.NewPlan(atc.UserArtifactPlan{
-						Name: filepath.Base(buildDir),
+						Name:       filepath.Base(buildDir),
+						ArtifactID: 125,
 					}),
 				}),
 				planFactory.NewPlan(atc.TaskPlan{
@@ -139,6 +142,27 @@ run:
 	})
 
 	JustBeforeEach(func() {
+		atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
+			ghttp.CombineHandlers(
+				func(w http.ResponseWriter, req *http.Request) {
+					gr, err := gzip.NewReader(req.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					tr := tar.NewReader(gr)
+
+					hdr, err := tr.Next()
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(hdr.Name).To(Equal("./"))
+
+					hdr, err = tr.Next()
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(hdr.Name).To(MatchRegexp("(./)?task.yml$"))
+				},
+				ghttp.RespondWithJSONEncoded(201, workerArtifact),
+			),
+		)
 		atcServer.RouteToHandler("POST", "/api/v1/teams/main/builds",
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/teams/main/builds"),
@@ -197,50 +221,11 @@ run:
 				},
 			),
 		)
-		atcServer.RouteToHandler("PUT", regexp.MustCompile(`/api/v1/builds/128/plan/.*/input`),
-			func(w http.ResponseWriter, req *http.Request) {
-				gr, err := gzip.NewReader(req.Body)
-				Expect(err).NotTo(HaveOccurred())
-
-				tr := tar.NewReader(gr)
-
-				hdr, err := tr.Next()
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(hdr.Name).To(Equal("./"))
-
-				hdr, err = tr.Next()
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(hdr.Name).To(MatchRegexp("(./)?task.yml$"))
-
-				w.WriteHeader(http.StatusNoContent)
-			},
+		atcServer.RouteToHandler("GET", "/api/v1/builds/128/artifacts",
+			ghttp.RespondWithJSONEncoded(200, []atc.WorkerArtifact{workerArtifact}),
 		)
-		atcServer.RouteToHandler("GET", regexp.MustCompile(`/api/v1/builds/128/plan/.*/output`),
-			func(w http.ResponseWriter, req *http.Request) {
-				gw := gzip.NewWriter(w)
-				tw := tar.NewWriter(gw)
 
-				tarContents := []byte("tar-contents")
-
-				err := tw.WriteHeader(&tar.Header{
-					Name: "some-file",
-					Mode: 0644,
-					Size: int64(len(tarContents)),
-				})
-				Expect(err).NotTo(HaveOccurred())
-
-				_, err = tw.Write(tarContents)
-				Expect(err).NotTo(HaveOccurred())
-
-				err = tw.Close()
-				Expect(err).NotTo(HaveOccurred())
-
-				err = gw.Close()
-				Expect(err).NotTo(HaveOccurred())
-			},
-		)
+		atcServer.RouteToHandler("GET", "/api/v1/teams/main/artifacts/125", tarHandler)
 	})
 
 	Context("when running with --output", func() {
@@ -288,3 +273,27 @@ run:
 		})
 	})
 })
+
+func tarHandler(w http.ResponseWriter, req *http.Request) {
+	gw := gzip.NewWriter(w)
+	tw := tar.NewWriter(gw)
+
+	tarContents := []byte("tar-contents")
+
+	err := tw.WriteHeader(&tar.Header{
+		Name: "some-file",
+		Mode: 0644,
+		Size: int64(len(tarContents)),
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	_, err = tw.Write(tarContents)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = tw.Close()
+	Expect(err).NotTo(HaveOccurred())
+
+	err = gw.Close()
+	Expect(err).NotTo(HaveOccurred())
+
+}

@@ -1,19 +1,19 @@
-package worker_test
+package artifact_test
 
 import (
-	. "github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
+	. "github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/artifact/artifactfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("ArtifactRepository", func() {
 	var (
-		repo *ArtifactRepository
+		repo *Repository
 	)
 
 	BeforeEach(func() {
-		repo = NewArtifactRepository()
+		repo = NewRepository()
 	})
 
 	It("initially does not contain any sources", func() {
@@ -23,10 +23,10 @@ var _ = Describe("ArtifactRepository", func() {
 	})
 
 	Context("when a source is registered", func() {
-		var firstSource *workerfakes.FakeArtifactSource
+		var firstSource *artifactfakes.FakeRegisterableSource
 
 		BeforeEach(func() {
-			firstSource = new(workerfakes.FakeArtifactSource)
+			firstSource = new(artifactfakes.FakeRegisterableSource)
 			repo.RegisterSource("first-source", firstSource)
 		})
 
@@ -45,10 +45,10 @@ var _ = Describe("ArtifactRepository", func() {
 		})
 
 		Context("when a second source is registered", func() {
-			var secondSource *workerfakes.FakeArtifactSource
+			var secondSource *artifactfakes.FakeRegisterableSource
 
 			BeforeEach(func() {
-				secondSource = new(workerfakes.FakeArtifactSource)
+				secondSource = new(artifactfakes.FakeRegisterableSource)
 				repo.RegisterSource("second-source", secondSource)
 			})
 
@@ -71,7 +71,6 @@ var _ = Describe("ArtifactRepository", func() {
 					Expect(found).To(BeFalse())
 				})
 			})
-
 		})
 	})
 })

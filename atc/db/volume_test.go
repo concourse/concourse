@@ -277,14 +277,14 @@ var _ = Describe("Volume", func() {
 		})
 
 		JustBeforeEach(func() {
-			workerArtifact, err = createdVolume.InitializeArtifact("/some/path", "some-checksum")
+			workerArtifact, err = createdVolume.InitializeArtifact("some-name", 0)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("initialize worker artifact", func() {
+		It("initializes the worker artifact", func() {
 			Expect(workerArtifact.ID()).To(Equal(1))
-			Expect(workerArtifact.Path()).To(Equal("/some/path"))
-			Expect(workerArtifact.Checksum()).To(Equal("some-checksum"))
+			Expect(workerArtifact.Name()).To(Equal("some-name"))
+			Expect(workerArtifact.BuildID()).To(Equal(0))
 			Expect(workerArtifact.CreatedAt()).ToNot(BeNil())
 		})
 

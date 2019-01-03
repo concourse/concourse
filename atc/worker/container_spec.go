@@ -53,7 +53,6 @@ type ImageSpec struct {
 	ImageURL            string
 	ImageResource       *ImageResource
 	ImageArtifactSource ArtifactSource
-	ImageArtifactName   ArtifactName
 	Privileged          bool
 }
 

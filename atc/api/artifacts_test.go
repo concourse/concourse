@@ -120,7 +120,7 @@ var _ = Describe("Artifacts API", func() {
 					BeforeEach(func() {
 						fakeWorkerArtifact = new(dbfakes.FakeWorkerArtifact)
 						fakeWorkerArtifact.IDReturns(0)
-						fakeWorkerArtifact.CreatedAtReturns(time.Now())
+						fakeWorkerArtifact.CreatedAtReturns(time.Unix(42, 0))
 
 						fakeVolume.InitializeArtifactReturns(fakeWorkerArtifact, nil)
 					})
@@ -128,9 +128,9 @@ var _ = Describe("Artifacts API", func() {
 					It("invokes the initialization of an artifact on a volume", func() {
 						Expect(fakeVolume.InitializeArtifactCallCount()).To(Equal(1))
 
-						path, checksum := fakeVolume.InitializeArtifactArgsForCall(0)
-						Expect(path).To(Equal("/"))
-						Expect(checksum).To(Equal(""))
+						name, buildID := fakeVolume.InitializeArtifactArgsForCall(0)
+						Expect(name).To(Equal(""))
+						Expect(buildID).To(Equal(0))
 					})
 
 					Context("when streaming in data to a volume fails", func() {
@@ -179,9 +179,9 @@ var _ = Describe("Artifacts API", func() {
 
 								Expect(body).To(MatchJSON(`{
 									"id": 0,
-									"path": "/",
-									"created_at": 42,
-									"checksum": ""
+									"name": "",
+									"build_id": 0,
+									"created_at": 42
 								}`))
 							})
 						})
@@ -192,7 +192,7 @@ var _ = Describe("Artifacts API", func() {
 
 	})
 
-	FDescribe("GET /api/v1/teams/:team_name/artifacts/:artifact_id", func() {
+	Describe("GET /api/v1/teams/:team_name/artifacts/:artifact_id", func() {
 		var response *http.Response
 
 		BeforeEach(func() {

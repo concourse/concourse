@@ -14,24 +14,24 @@ import (
 
 type WorkerArtifact interface {
 	ID() int
-	Path() string
-	Checksum() string
+	Name() string
+	BuildID() int
 	CreatedAt() time.Time
-	Volume(int) (CreatedVolume, bool, error)
+	Volume(teamID int) (CreatedVolume, bool, error)
 }
 
 type artifact struct {
 	conn Conn
 
 	id        int
-	path      string
-	checksum  string
+	name      string
+	buildID   int
 	createdAt time.Time
 }
 
 func (a *artifact) ID() int              { return a.id }
-func (a *artifact) Path() string         { return a.path }
-func (a *artifact) Checksum() string     { return a.checksum }
+func (a *artifact) Name() string         { return a.name }
+func (a *artifact) BuildID() int         { return a.buildID }
 func (a *artifact) CreatedAt() time.Time { return a.createdAt }
 
 func (a *artifact) Volume(teamID int) (CreatedVolume, bool, error) {
@@ -56,11 +56,16 @@ func saveWorkerArtifact(tx Tx, conn Conn, atcArtifact atc.WorkerArtifact) (Worke
 
 	var artifactID int
 
+	values := map[string]interface{}{
+		"name": atcArtifact.Name,
+	}
+
+	if atcArtifact.BuildID != 0 {
+		values["build_id"] = atcArtifact.BuildID
+	}
+
 	err := psql.Insert("worker_artifacts").
-		SetMap(map[string]interface{}{
-			"path":     atcArtifact.Path,
-			"checksum": atcArtifact.Checksum,
-		}).
+		SetMap(values).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
@@ -84,18 +89,21 @@ func saveWorkerArtifact(tx Tx, conn Conn, atcArtifact atc.WorkerArtifact) (Worke
 }
 
 func getWorkerArtifact(tx Tx, conn Conn, id int) (WorkerArtifact, bool, error) {
-	var createdAtTime pq.NullTime
+	var (
+		createdAtTime pq.NullTime
+		buildID       sql.NullInt64
+	)
 
 	artifact := &artifact{conn: conn}
 
-	err := psql.Select("id", "created_at", "path", "checksum").
+	err := psql.Select("id", "created_at", "name", "build_id").
 		From("worker_artifacts").
 		Where(sq.Eq{
 			"id": id,
 		}).
 		RunWith(tx).
 		QueryRow().
-		Scan(&artifact.id, &createdAtTime, &artifact.path, &artifact.checksum)
+		Scan(&artifact.id, &createdAtTime, &artifact.name, &buildID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -105,5 +113,7 @@ func getWorkerArtifact(tx Tx, conn Conn, id int) (WorkerArtifact, bool, error) {
 	}
 
 	artifact.createdAt = createdAtTime.Time
+	artifact.buildID = int(buildID.Int64)
+
 	return artifact, true, nil
 }

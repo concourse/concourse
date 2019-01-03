@@ -2,70 +2,79 @@ package exec
 
 import (
 	"context"
-	"errors"
-	"io"
+	"fmt"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/worker"
 )
 
-type UserArtifactStep struct {
-	id       atc.PlanID
-	name     worker.ArtifactName
-	delegate BuildStepDelegate
+type ArtifactVolumeNotFoundErr string
+
+func (e ArtifactVolumeNotFoundErr) Error() string {
+	return fmt.Sprintf("volume for worker artifact '%s' not found", e)
 }
 
-func UserArtifact(id atc.PlanID, name worker.ArtifactName, delegate BuildStepDelegate) Step {
-	return &UserArtifactStep{
-		id:       id,
-		name:     name,
-		delegate: delegate,
+type ArtifactStep struct {
+	plan         atc.Plan
+	build        db.Build
+	workerClient worker.Client
+	delegate     BuildStepDelegate
+	succeeded    bool
+}
+
+func NewArtifactStep(plan atc.Plan, build db.Build, workerClient worker.Client, delegate BuildStepDelegate) Step {
+	return &ArtifactStep{
+		plan:         plan,
+		build:        build,
+		workerClient: workerClient,
+		delegate:     delegate,
 	}
 }
 
-func (step *UserArtifactStep) Run(ctx context.Context, state RunState) error {
+func (step *ArtifactStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx).WithData(lager.Data{
-		"plan-id": step.id,
-		"name":    step.name,
+		"plan-id": step.plan.ID,
 	})
 
-	state.Artifacts().RegisterSource(step.name, streamSource{
-		logger,
-		step,
-		state,
+	buildArtifact, err := step.build.Artifact(step.plan.UserArtifact.ArtifactID)
+	if err != nil {
+		return err
+	}
+
+	volume, found, err := buildArtifact.Volume(step.build.TeamID())
+	if err != nil {
+		return err
+	}
+
+	if !found {
+		return ArtifactVolumeNotFoundErr(buildArtifact.Name())
+	}
+
+	workerVolume, found, err := step.workerClient.LookupVolume(logger, volume.Handle())
+	if err != nil {
+		return err
+	}
+
+	if !found {
+		return ArtifactVolumeNotFoundErr(buildArtifact.Name())
+	}
+
+	logger.Info("register-artifact-source", lager.Data{
+		"handle": workerVolume.Handle(),
 	})
+
+	source := NewTaskArtifactSource(workerVolume)
+	state.Artifacts().RegisterSource(artifact.Name(step.plan.UserArtifact.Name), source)
+
+	step.succeeded = true
 
 	return nil
 }
 
-func (step *UserArtifactStep) Succeeded() bool {
-	return true
-}
-
-type streamSource struct {
-	logger lager.Logger
-	step   *UserArtifactStep
-	state  RunState
-}
-
-func (source streamSource) StreamTo(logger lager.Logger, dest worker.ArtifactDestination) error {
-	pb := progress(string(source.step.name)+":", source.step.delegate.Stdout())
-
-	return source.state.ReadUserInput(source.step.id, func(rc io.ReadCloser) error {
-		pb.Start()
-		defer pb.Finish()
-
-		source.logger.Debug("reading-user-input")
-		return dest.StreamIn(".", pb.NewProxyReader(rc))
-	})
-}
-
-func (source streamSource) StreamFile(logger lager.Logger, path string) (io.ReadCloser, error) {
-	return nil, errors.New("cannot stream single file from user artifact")
-}
-
-func (source streamSource) VolumeOn(lager.Logger, worker.Worker) (worker.Volume, bool, error) {
-	return nil, false, nil
+func (step *ArtifactStep) Succeeded() bool {
+	return step.succeeded
 }

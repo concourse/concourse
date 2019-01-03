@@ -40,6 +40,13 @@ type Factory interface {
 		db.ContainerMetadata,
 		TaskDelegate,
 	) Step
+
+	ArtifactStep(
+		lager.Logger,
+		atc.Plan,
+		db.Build,
+		BuildStepDelegate,
+	) Step
 }
 
 // StepMetadata is used to inject metadata to make available to the step when
