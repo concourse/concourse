@@ -25,9 +25,11 @@ inputs:
 - name: concourse
 - name: concourse-release
 - name: credhub-release
+- name: postgres-bbr-compatible-release
 - name: postgres-release
 - name: stemcell
 - name: vault-release
+- name: backup-and-restore-sdk-release
 
 caches:
 - path: gopath
