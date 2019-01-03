@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	jwt "github.com/dgrijalva/jwt-go"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -650,13 +649,5 @@ var _ = Describe("Accessor", func() {
 		Entry("owner :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "owner", true),
 		Entry("member :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "member", true),
 		Entry("viewer :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "viewer", true),
-
-		Entry("owner :: "+atc.SendInputToBuildPlan, atc.SendInputToBuildPlan, "owner", true),
-		Entry("member :: "+atc.SendInputToBuildPlan, atc.SendInputToBuildPlan, "member", true),
-		Entry("viewer :: "+atc.SendInputToBuildPlan, atc.SendInputToBuildPlan, "viewer", false),
-
-		Entry("owner :: "+atc.ReadOutputFromBuildPlan, atc.ReadOutputFromBuildPlan, "owner", true),
-		Entry("member :: "+atc.ReadOutputFromBuildPlan, atc.ReadOutputFromBuildPlan, "member", true),
-		Entry("viewer :: "+atc.ReadOutputFromBuildPlan, atc.ReadOutputFromBuildPlan, "viewer", false),
 	)
 })

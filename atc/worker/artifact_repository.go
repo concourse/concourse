@@ -1,12 +1,7 @@
 package worker
 
 import (
-	"fmt"
-	"io"
-	"strings"
 	"sync"
-
-	"code.cloudfoundry.org/lager"
 )
 
 // ArtifactName is just a string, with its own type to make interfaces using it
@@ -54,62 +49,6 @@ func (repo *ArtifactRepository) SourceFor(name ArtifactName) (ArtifactSource, bo
 	return source, found
 }
 
-// StreamTo will stream all currently registered artifacts to the destination.
-// This is used by the Put step, which currently does not have an explicit set
-// of dependencies, and instead just pulls in everything.
-//
-// Each ArtifactSource will be streamed to a subdirectory matching its
-// ArtifactName.
-func (repo *ArtifactRepository) StreamTo(logger lager.Logger, dest ArtifactDestination) error {
-	sources := map[ArtifactName]ArtifactSource{}
-
-	repo.repoL.RLock()
-	for k, v := range repo.repo {
-		sources[k] = v
-	}
-	repo.repoL.RUnlock()
-
-	for name, src := range sources {
-		err := src.StreamTo(logger, subdirectoryDestination{dest, string(name)})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// StreamFile streams a single file out of the repository, using the first path
-// segment to determine the ArtifactSource to stream out of. For example,
-// StreamFile("a/b.yml") will look up the "a" ArtifactSource and return the
-// result of StreamFile("b.yml") on it.
-//
-// If the ArtifactSource determined by the path is not present,
-// FileNotFoundError will be returned.
-func (repo *ArtifactRepository) StreamFile(logger lager.Logger, path string) (io.ReadCloser, error) {
-	sources := map[ArtifactName]ArtifactSource{}
-
-	repo.repoL.RLock()
-	for k, v := range repo.repo {
-		sources[k] = v
-	}
-	repo.repoL.RUnlock()
-
-	for name, src := range sources {
-		if strings.HasPrefix(path, string(name)+"/") {
-			return src.StreamFile(logger, path[len(name)+1:])
-		}
-	}
-
-	return nil, FileNotFoundError{Path: path}
-}
-
-// VolumeOn returns nothing, as it's impossible for there to be a single volume
-// representing all ArtifactSources.
-func (repo *ArtifactRepository) VolumeOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
-	return nil, false, nil
-}
-
 // AsMap extracts the current contents of the ArtifactRepository into a new map
 // and returns it. Changes to the returned map or the ArtifactRepository will not
 // affect each other.
@@ -123,25 +62,4 @@ func (repo *ArtifactRepository) AsMap() map[ArtifactName]ArtifactSource {
 	repo.repoL.RUnlock()
 
 	return result
-}
-
-type subdirectoryDestination struct {
-	destination  ArtifactDestination
-	subdirectory string
-}
-
-func (dest subdirectoryDestination) StreamIn(dst string, src io.Reader) error {
-	return dest.destination.StreamIn(dest.subdirectory+"/"+dst, src)
-}
-
-// FileNotFoundError is the error to return from StreamFile when the given path
-// does not exist.
-type FileNotFoundError struct {
-	Path string
-}
-
-// Error prints a helpful message including the file path. The user will see
-// this message if e.g. their task config path does not exist.
-func (err FileNotFoundError) Error() string {
-	return fmt.Sprintf("file not found: %s", err.Path)
 }

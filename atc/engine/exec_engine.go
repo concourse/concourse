@@ -3,7 +3,6 @@ package engine
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"strconv"
 	"strings"
 	"sync"
@@ -168,14 +167,6 @@ func (build *execBuild) Resume(logger lager.Logger) {
 			return
 		}
 	}
-}
-
-func (build *execBuild) ReceiveInput(logger lager.Logger, plan atc.PlanID, stream io.ReadCloser) {
-	build.runState().SendUserInput(plan, stream)
-}
-
-func (build *execBuild) SendOutput(logger lager.Logger, plan atc.PlanID, output io.Writer) {
-	build.runState().ReadPlanOutput(plan, output)
 }
 
 func (build *execBuild) runState() exec.RunState {
