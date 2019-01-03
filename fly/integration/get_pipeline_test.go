@@ -122,6 +122,29 @@ var _ = Describe("Fly CLI", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
+				Context("and pipeline is not found", func() {
+					JustBeforeEach(func() {
+						atcServer.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("GET", path),
+								ghttp.RespondWithJSONEncoded(http.StatusNotFound, ""),
+							),
+						)
+					})
+
+					It("should print pipeline not found error", func() {
+						flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline", "--pipeline", "some-pipeline", "-j")
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(1))
+
+						Expect(sess.Err).To(gbytes.Say("error: pipeline not found"))
+					})
+				})
+
 				Context("when atc returns valid config", func() {
 					BeforeEach(func() {
 						atcServer.AppendHandlers(
