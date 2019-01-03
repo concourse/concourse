@@ -508,10 +508,10 @@ func (t *team) SavePipeline(
 		}
 	}
 
-	_, err = tx.Exec(`
-		DELETE FROM jobs
-		WHERE pipeline_id = $1 AND active = false
-		`, pipelineID)
+	_, err = psql.Delete("jobs").
+		Where(sq.Eq{"pipeline_id": pipelineID, "active": false}).
+		RunWith(tx).
+		Exec()
 	if err != nil {
 		return nil, false, err
 	}
@@ -903,76 +903,41 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 }
 
 type UpdateName struct {
-	OldName string
-	NewName string
-	Id      int
+	OldName  string
+	NewName  string
+	TempName int
 }
 
 func (t *team) updateName(tx Tx, jobs []atc.JobConfig, pipelineID int) error {
 	jobsToUpdate := []UpdateName{}
-	jobsToQuery := []string{}
 
-	for _, job := range jobs {
-		jobsToQuery = append(jobsToQuery, job.OldName)
-	}
-
-	jobsToQueryString := fmt.Sprint(`'` + strings.Join(jobsToQuery, `','`) + `'`)
-
-	rows, err := tx.Query(
-		fmt.Sprintf("SELECT id, name FROM jobs "+
-			"WHERE pipeline_id = %d "+
-			"AND name IN (%s)", pipelineID, jobsToQueryString))
-
-	if err != nil {
-		return err
-	}
-
-	defer Close(rows)
-
-	for rows.Next() {
-		var id int
-		var name string
-		var newName string
-
-		err := rows.Scan(&id, &name)
-		if err != nil {
-			return err
+	for counter, job := range jobs {
+		if job.OldName != "" {
+			jobsToUpdate = append(jobsToUpdate, UpdateName{
+				OldName:  job.OldName,
+				NewName:  job.Name,
+				TempName: counter,
+			})
 		}
-
-		for _, job := range jobs {
-			if job.OldName == name {
-				newName = job.Name
-				break
-			}
-		}
-
-		jobsToUpdate = append(jobsToUpdate, UpdateName{
-			OldName: name,
-			NewName: newName,
-			Id:      id,
-		})
-
 	}
 
 	for _, updateName := range jobsToUpdate {
-		_, err = tx.Exec(`
-	       UPDATE jobs
-	       SET name = $1
-	       WHERE id = $1 AND pipeline_id = $2
-	   `, updateName.Id, pipelineID)
-
+		_, err := psql.Update("jobs").
+			Set("name", updateName.TempName).
+			Where(sq.Eq{"name": updateName.OldName, "pipeline_id": pipelineID}).
+			RunWith(tx).
+			Exec()
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, updateName := range jobsToUpdate {
-		_, err = tx.Exec(`
-            UPDATE jobs
-            SET name = $2
-            WHERE id = $1 AND pipeline_id = $3
-        `, updateName.Id, updateName.NewName, pipelineID)
-
+		_, err := psql.Update("jobs").
+			Set("name", updateName.NewName).
+			Where(sq.Eq{"name": updateName.TempName, "pipeline_id": pipelineID}).
+			RunWith(tx).
+			Exec()
 		if err != nil {
 			return err
 		}
