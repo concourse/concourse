@@ -12,12 +12,14 @@ module Colors exposing
     , flySuccessCard
     , flySuccessTokenCopied
     , frame
+    , paginationHover
     , paused
     , pending
     , pinBarTooltip
     , pinIconHover
     , pinned
     , resourceError
+    , secondaryTopBar
     , success
     , successFaded
     , text
@@ -99,6 +101,11 @@ card =
     "#2a2929"
 
 
+secondaryTopBar : String
+secondaryTopBar =
+    "#2a2929"
+
+
 flySuccessCard : String
 flySuccessCard =
     "#323030"
@@ -132,3 +139,8 @@ text =
 asciiArt : String
 asciiArt =
     "#888888"
+
+
+paginationHover : String
+paginationHover =
+    "#504b4b"

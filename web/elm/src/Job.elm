@@ -13,6 +13,7 @@ port module Job exposing
 
 import Build.Styles as Styles
 import BuildDuration
+import Colors
 import Concourse
 import Concourse.Build
 import Concourse.BuildResources exposing (fetch)
@@ -71,7 +72,9 @@ type Msg
 type Hoverable
     = Toggle
     | Trigger
-    | Neither
+    | PreviousPage
+    | NextPage
+    | None
 
 
 type alias BuildWithResources =
@@ -117,7 +120,7 @@ init ports flags =
                 , csrfToken = flags.csrfToken
                 , currentPage = flags.paging
                 , ports = ports
-                , hovered = Neither
+                , hovered = None
                 }
     in
     ( model
@@ -435,7 +438,7 @@ view model =
                                 [ id "pause-toggle"
                                 , style <| Styles.triggerButton False
                                 , onMouseEnter <| Hover Toggle
-                                , onMouseLeave <| Hover Neither
+                                , onMouseLeave <| Hover None
                                 , onClick TogglePaused
                                 ]
                                 [ Html.div
@@ -472,7 +475,7 @@ view model =
                             , attribute "aria-label" "Trigger Build"
                             , attribute "title" "Trigger Build"
                             , onMouseEnter <| Hover Trigger
-                            , onMouseLeave <| Hover Neither
+                            , onMouseLeave <| Hover None
                             , style <|
                                 Styles.triggerButton job.disableManualTrigger
                             ]
@@ -503,9 +506,24 @@ view model =
                                         []
                                    )
                         ]
-                    , Html.div [ class "pagination-header" ]
-                        [ viewPaginationBar model
-                        , Html.h1 [] [ Html.text "builds" ]
+                    , Html.div
+                        [ id "pagination-header"
+                        , style
+                            [ ( "display", "flex" )
+                            , ( "justify-content", "space-between" )
+                            , ( "align-items", "stretch" )
+                            , ( "height", "60px" )
+                            , ( "background-color", Colors.secondaryTopBar )
+                            ]
+                        ]
+                        [ Html.h1
+                            [ style
+                                [ ( "margin", "0 18px" )
+                                , ( "font-weight", "700" )
+                                ]
+                            ]
+                            [ Html.text "builds" ]
+                        , viewPaginationBar model
                         ]
                     ]
         , case model.buildsWithResources.content of
@@ -564,15 +582,67 @@ headerBuildStatusClass finishedBuild =
             Concourse.BuildStatus.show build.status
 
 
+chevronContainer : List ( String, String )
+chevronContainer =
+    [ ( "padding", "5px" )
+    , ( "display", "flex" )
+    , ( "align-items", "center" )
+    , ( "border-left", "1px solid " ++ Colors.background )
+    ]
+
+
+chevron :
+    { direction : String, enabled : Bool, hovered : Bool }
+    -> List ( String, String )
+chevron { direction, enabled, hovered } =
+    [ ( "background-image"
+      , "url(/public/images/baseline-chevron_" ++ direction ++ "-24px.svg)"
+      )
+    , ( "background-position", "50% 50%" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "width", "24px" )
+    , ( "height", "24px" )
+    , ( "padding", "5px" )
+    , ( "opacity"
+      , if enabled then
+            "1"
+
+        else
+            "0.5"
+      )
+    ]
+        ++ (if hovered then
+                [ ( "background-color", Colors.paginationHover )
+                , ( "border-radius", "50%" )
+                ]
+
+            else
+                []
+           )
+
+
 viewPaginationBar : Model -> Html Msg
 viewPaginationBar model =
-    Html.div [ class "pagination fr" ]
+    Html.div
+        [ id "pagination"
+        , style
+            [ ( "display", "flex" )
+            , ( "align-items", "stretch" )
+            ]
+        ]
         [ case model.buildsWithResources.pagination.previousPage of
             Nothing ->
-                Html.div [ class "btn-page-link disabled" ]
-                    [ Html.span [ class "arrow" ]
-                        [ Html.i [ class "fa fa-arrow-left" ] []
+                Html.div
+                    [ style chevronContainer ]
+                    [ Html.div
+                        [ style <|
+                            chevron
+                                { direction = "left"
+                                , enabled = False
+                                , hovered = False
+                                }
                         ]
+                        []
                     ]
 
             Just page ->
@@ -587,22 +657,37 @@ viewPaginationBar model =
                             ++ "?"
                             ++ paginationParam page
                 in
-                Html.div [ class "btn-page-link" ]
+                Html.div
+                    [ style chevronContainer
+                    , onMouseEnter <| Hover PreviousPage
+                    , onMouseLeave <| Hover None
+                    ]
                     [ Html.a
-                        [ class "arrow"
-                        , StrictEvents.onLeftClick <| NavTo jobUrl
+                        [ StrictEvents.onLeftClick <| NavTo jobUrl
                         , href jobUrl
                         , attribute "aria-label" "Previous Page"
+                        , style <|
+                            chevron
+                                { direction = "left"
+                                , enabled = True
+                                , hovered = model.hovered == PreviousPage
+                                }
                         ]
-                        [ Html.i [ class "fa fa-arrow-left" ] []
-                        ]
+                        []
                     ]
         , case model.buildsWithResources.pagination.nextPage of
             Nothing ->
-                Html.div [ class "btn-page-link disabled" ]
-                    [ Html.span [ class "arrow" ]
-                        [ Html.i [ class "fa fa-arrow-right" ] []
+                Html.div
+                    [ style chevronContainer ]
+                    [ Html.div
+                        [ style <|
+                            chevron
+                                { direction = "right"
+                                , enabled = False
+                                , hovered = False
+                                }
                         ]
+                        []
                     ]
 
             Just page ->
@@ -617,15 +702,23 @@ viewPaginationBar model =
                             ++ "?"
                             ++ paginationParam page
                 in
-                Html.div [ class "btn-page-link" ]
+                Html.div
+                    [ style chevronContainer
+                    , onMouseEnter <| Hover NextPage
+                    , onMouseLeave <| Hover None
+                    ]
                     [ Html.a
-                        [ class "arrow"
-                        , StrictEvents.onLeftClick <| NavTo jobUrl
+                        [ StrictEvents.onLeftClick <| NavTo jobUrl
                         , href jobUrl
                         , attribute "aria-label" "Next Page"
+                        , style <|
+                            chevron
+                                { direction = "right"
+                                , enabled = True
+                                , hovered = model.hovered == NextPage
+                                }
                         ]
-                        [ Html.i [ class "fa fa-arrow-right" ] []
-                        ]
+                        []
                     ]
         ]
 
@@ -677,19 +770,43 @@ viewBuildResources model buildWithResources =
                         List.map (viewBuildOutputs model) resources.outputs
     in
     [ Html.div [ class "inputs mrl" ]
-        [ Html.div [ class "resource-title pbs" ]
-            [ Html.i [ class "fa fa-fw fa-arrow-down prs" ] []
+        [ Html.div
+            [ style buildResourceHeader ]
+            [ Html.span [ style <| buildResourceIcon "downward" ] []
             , Html.text "inputs"
             ]
         , inputsTable
         ]
     , Html.div [ class "outputs mrl" ]
-        [ Html.div [ class "resource-title pbs" ]
-            [ Html.i [ class "fa fa-fw fa-arrow-up prs" ] []
+        [ Html.div
+            [ style buildResourceHeader ]
+            [ Html.span [ style <| buildResourceIcon "upward" ] []
             , Html.text "outputs"
             ]
         , outputsTable
         ]
+    ]
+
+
+buildResourceHeader : List ( String, String )
+buildResourceHeader =
+    [ ( "display", "flex" )
+    , ( "align-items", "center" )
+    , ( "padding-bottom", "5px" )
+    ]
+
+
+buildResourceIcon : String -> List ( String, String )
+buildResourceIcon direction =
+    [ ( "background-image"
+      , "url(/public/images/ic_arrow_" ++ direction ++ ".svg)"
+      )
+    , ( "background-position", "50% 50%" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-size", "contain" )
+    , ( "margin-right", "5px" )
+    , ( "width", "12px" )
+    , ( "height", "12px" )
     ]
 
 

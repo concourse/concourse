@@ -2,7 +2,13 @@ module JobTests exposing (all)
 
 import Concourse exposing (Build, BuildId, BuildStatus(..), Job)
 import Concourse.Pagination exposing (Direction(..))
-import DashboardTests exposing (defineHoverBehaviour, iconSelector, middleGrey)
+import DashboardTests
+    exposing
+        ( darkGrey
+        , defineHoverBehaviour
+        , iconSelector
+        , middleGrey
+        )
 import Date
 import Dict
 import Expect exposing (..)
@@ -35,8 +41,7 @@ all =
                     , pipelineName = "some-pipeline"
                     , teamName = "some-team"
                     }
-            in
-            let
+
                 someBuild : Build
                 someBuild =
                     { id = 123
@@ -49,8 +54,7 @@ all =
                         }
                     , reapTime = Just (Date.fromTime 0)
                     }
-            in
-            let
+
                 someJob : Concourse.Job
                 someJob =
                     { name = "some-job"
@@ -192,7 +196,7 @@ all =
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.Hover Job.Neither
+                            Job.Hover Job.None
                 }
             , defineHoverBehaviour
                 { name = "play/pause button when job is paused"
@@ -228,7 +232,7 @@ all =
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.Hover Job.Neither
+                            Job.Hover Job.None
                 }
             , test "trigger build button has grey background" <|
                 init { disabled = False, paused = False }
@@ -299,7 +303,7 @@ all =
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.Hover Job.Neither
+                            Job.Hover Job.None
                 }
             , defineHoverBehaviour
                 { name = "disabled trigger build button"
@@ -359,7 +363,393 @@ all =
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.Hover Job.Neither
+                            Job.Hover Job.None
+                }
+            , test "inputs icon on build" <|
+                init { disabled = False, paused = False }
+                    >> Layout.update
+                        (Layout.SubMsg 1 <|
+                            SubPage.JobMsg <|
+                                Job.JobBuildsFetched <|
+                                    let
+                                        jobId =
+                                            { jobName = "job"
+                                            , pipelineName = "pipeline"
+                                            , teamName = "team"
+                                            }
+
+                                        status =
+                                            BuildStatusSucceeded
+
+                                        builds =
+                                            [ { id = 0
+                                              , name = "0"
+                                              , job = Just jobId
+                                              , status = status
+                                              , duration =
+                                                    { startedAt = Nothing
+                                                    , finishedAt = Nothing
+                                                    }
+                                              , reapTime = Nothing
+                                              }
+                                            ]
+                                    in
+                                    Ok
+                                        { pagination =
+                                            { previousPage = Nothing
+                                            , nextPage = Nothing
+                                            }
+                                        , content = builds
+                                        }
+                        )
+                    >> Tuple.first
+                    >> Layout.view
+                    >> Query.fromHtml
+                    >> Query.find [ class "inputs" ]
+                    >> Query.children []
+                    >> Query.first
+                    >> Expect.all
+                        [ Query.has
+                            [ style
+                                [ ( "display", "flex" )
+                                , ( "align-items", "center" )
+                                , ( "padding-bottom", "5px" )
+                                ]
+                            ]
+                        , Query.children []
+                            >> Query.first
+                            >> Query.has
+                                (iconSelector
+                                    { size = "12px"
+                                    , image = "ic_arrow_downward.svg"
+                                    }
+                                    ++ [ style
+                                            [ ( "background-size"
+                                              , "contain"
+                                              )
+                                            , ( "margin-right", "5px" )
+                                            ]
+                                       ]
+                                )
+                        ]
+            , test "outputs icon on build" <|
+                init { disabled = False, paused = False }
+                    >> Layout.update
+                        (Layout.SubMsg 1 <|
+                            SubPage.JobMsg <|
+                                Job.JobBuildsFetched <|
+                                    let
+                                        jobId =
+                                            { jobName = "job"
+                                            , pipelineName = "pipeline"
+                                            , teamName = "team"
+                                            }
+
+                                        status =
+                                            BuildStatusSucceeded
+
+                                        builds =
+                                            [ { id = 0
+                                              , name = "0"
+                                              , job = Just jobId
+                                              , status = status
+                                              , duration =
+                                                    { startedAt = Nothing
+                                                    , finishedAt = Nothing
+                                                    }
+                                              , reapTime = Nothing
+                                              }
+                                            ]
+                                    in
+                                    Ok
+                                        { pagination =
+                                            { previousPage = Nothing
+                                            , nextPage = Nothing
+                                            }
+                                        , content = builds
+                                        }
+                        )
+                    >> Tuple.first
+                    >> Layout.view
+                    >> Query.fromHtml
+                    >> Query.find [ class "outputs" ]
+                    >> Query.children []
+                    >> Query.first
+                    >> Expect.all
+                        [ Query.has
+                            [ style
+                                [ ( "display", "flex" )
+                                , ( "align-items", "center" )
+                                , ( "padding-bottom", "5px" )
+                                ]
+                            ]
+                        , Query.children []
+                            >> Query.first
+                            >> Query.has
+                                (iconSelector
+                                    { size = "12px"
+                                    , image = "ic_arrow_upward.svg"
+                                    }
+                                    ++ [ style
+                                            [ ( "background-size"
+                                              , "contain"
+                                              )
+                                            , ( "margin-right", "5px" )
+                                            ]
+                                       ]
+                                )
+                        ]
+            , test "pagination header lays out horizontally" <|
+                init { disabled = False, paused = False }
+                    >> Layout.view
+                    >> Query.fromHtml
+                    >> Query.find [ id "pagination-header" ]
+                    >> Query.has
+                        [ style
+                            [ ( "display", "flex" )
+                            , ( "justify-content", "space-between" )
+                            , ( "align-items", "stretch" )
+                            , ( "background-color", darkGrey )
+                            , ( "height", "60px" )
+                            ]
+                        ]
+            , test "the word 'builds' is bold and indented" <|
+                init { disabled = False, paused = False }
+                    >> Layout.view
+                    >> Query.fromHtml
+                    >> Query.find [ id "pagination-header" ]
+                    >> Query.children []
+                    >> Query.first
+                    >> Query.has
+                        [ containing [ text "builds" ]
+                        , style
+                            [ ( "margin", "0 18px" )
+                            , ( "font-weight", "700" )
+                            ]
+                        ]
+            , test "pagination lays out horizontally" <|
+                init { disabled = False, paused = False }
+                    >> Layout.view
+                    >> Query.fromHtml
+                    >> Query.find [ id "pagination" ]
+                    >> Query.has
+                        [ style
+                            [ ( "display", "flex" )
+                            , ( "align-items", "stretch" )
+                            ]
+                        ]
+            , test "pagination chevrons with no pages" <|
+                init { disabled = False, paused = False }
+                    >> Layout.update
+                        (Layout.SubMsg 1 <|
+                            SubPage.JobMsg <|
+                                Job.JobBuildsFetched <|
+                                    let
+                                        jobId =
+                                            { jobName = "job"
+                                            , pipelineName = "pipeline"
+                                            , teamName = "team"
+                                            }
+
+                                        status =
+                                            BuildStatusSucceeded
+
+                                        builds =
+                                            [ { id = 0
+                                              , name = "0"
+                                              , job = Just jobId
+                                              , status = status
+                                              , duration =
+                                                    { startedAt = Nothing
+                                                    , finishedAt = Nothing
+                                                    }
+                                              , reapTime = Nothing
+                                              }
+                                            ]
+                                    in
+                                    Ok
+                                        { pagination =
+                                            { previousPage = Nothing
+                                            , nextPage = Nothing
+                                            }
+                                        , content = builds
+                                        }
+                        )
+                    >> Tuple.first
+                    >> Layout.view
+                    >> Query.fromHtml
+                    >> Query.find [ id "pagination" ]
+                    >> Query.children []
+                    >> Expect.all
+                        [ Query.index 0
+                            >> Query.has
+                                [ style
+                                    [ ( "padding", "5px" )
+                                    , ( "display", "flex" )
+                                    , ( "align-items", "center" )
+                                    , ( "border-left"
+                                      , "1px solid " ++ middleGrey
+                                      )
+                                    ]
+                                , containing
+                                    (iconSelector
+                                        { image =
+                                            "baseline-chevron_left-24px.svg"
+                                        , size = "24px"
+                                        }
+                                        ++ [ style
+                                                [ ( "padding", "5px" )
+                                                , ( "opacity", "0.5" )
+                                                ]
+                                           ]
+                                    )
+                                ]
+                        , Query.index 1
+                            >> Query.has
+                                [ style
+                                    [ ( "padding", "5px" )
+                                    , ( "display", "flex" )
+                                    , ( "align-items", "center" )
+                                    , ( "border-left"
+                                      , "1px solid " ++ middleGrey
+                                      )
+                                    ]
+                                , containing
+                                    (iconSelector
+                                        { image =
+                                            "baseline-chevron_right-24px.svg"
+                                        , size = "24px"
+                                        }
+                                        ++ [ style
+                                                [ ( "padding", "5px" )
+                                                , ( "opacity", "0.5" )
+                                                ]
+                                           ]
+                                    )
+                                ]
+                        ]
+            , defineHoverBehaviour <|
+                let
+                    urlPath =
+                        "/teams/team/pipelines/pipeline/jobs/job?since=1"
+                in
+                { name = "left pagination chevron with previous page"
+                , setup =
+                    let
+                        jobId =
+                            { jobName = "job"
+                            , pipelineName = "pipeline"
+                            , teamName = "team"
+                            }
+
+                        status =
+                            BuildStatusSucceeded
+
+                        builds =
+                            [ { id = 0
+                              , name = "0"
+                              , job = Just jobId
+                              , status = status
+                              , duration =
+                                    { startedAt = Nothing
+                                    , finishedAt = Nothing
+                                    }
+                              , reapTime = Nothing
+                              }
+                            ]
+
+                        prevPage =
+                            { direction = Since 1
+                            , limit = 1
+                            }
+                    in
+                    init { disabled = False, paused = False } ()
+                        |> Layout.update
+                            (Layout.SubMsg 1 <|
+                                SubPage.JobMsg <|
+                                    Job.JobBuildsFetched <|
+                                        Ok
+                                            { pagination =
+                                                { previousPage =
+                                                    Just prevPage
+                                                , nextPage = Nothing
+                                                }
+                                            , content = builds
+                                            }
+                            )
+                        |> Tuple.first
+                , query =
+                    Layout.view
+                        >> Query.fromHtml
+                        >> Query.find [ id "pagination" ]
+                        >> Query.children []
+                        >> Query.index 0
+                , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                , unhoveredSelector =
+                    { description = "white left chevron"
+                    , selector =
+                        [ style
+                            [ ( "padding", "5px" )
+                            , ( "display", "flex" )
+                            , ( "align-items", "center" )
+                            , ( "border-left"
+                              , "1px solid " ++ middleGrey
+                              )
+                            ]
+                        , containing
+                            (iconSelector
+                                { image =
+                                    "baseline-chevron_left-24px.svg"
+                                , size = "24px"
+                                }
+                                ++ [ style
+                                        [ ( "padding", "5px" )
+                                        , ( "opacity", "1" )
+                                        ]
+                                   , attribute <| Attr.href urlPath
+                                   ]
+                            )
+                        ]
+                    }
+                , hoveredSelector =
+                    { description =
+                        "left chevron with light grey circular bg"
+                    , selector =
+                        [ style
+                            [ ( "padding", "5px" )
+                            , ( "display", "flex" )
+                            , ( "align-items", "center" )
+                            , ( "border-left"
+                              , "1px solid " ++ middleGrey
+                              )
+                            ]
+                        , containing
+                            (iconSelector
+                                { image =
+                                    "baseline-chevron_left-24px.svg"
+                                , size = "24px"
+                                }
+                                ++ [ style
+                                        [ ( "padding", "5px" )
+                                        , ( "opacity", "1" )
+                                        , ( "border-radius", "50%" )
+                                        , ( "background-color"
+                                          , "#504b4b"
+                                          )
+                                        ]
+                                   , attribute <| Attr.href urlPath
+                                   ]
+                            )
+                        ]
+                    }
+                , mouseEnterMsg =
+                    Layout.SubMsg 1 <|
+                        SubPage.JobMsg <|
+                            Job.Hover Job.PreviousPage
+                , mouseLeaveMsg =
+                    Layout.SubMsg 1 <|
+                        SubPage.JobMsg <|
+                            Job.Hover Job.None
                 }
             , test "JobBuildsFetched" <|
                 \_ ->
