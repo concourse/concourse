@@ -15,6 +15,7 @@ var _ = Describe("BBR", func() {
 	var atc0URL string
 
 	BeforeEach(func() {
+
 		Deploy(
 			"deployments/concourse.yml",
 			"-o", "operations/bbr.yml",

@@ -2,7 +2,11 @@
   path: /releases/-
   value:
     name: backup-and-restore-sdk
-    version: "1.11.2"
+    version: ((backup_and_restore_sdk_release_version))
+
+- type: replace
+  path: /releases/name=postgres/version
+  value: 31
 
 - type: replace
   path: /instance_groups/name=db/jobs/-
@@ -23,8 +27,3 @@
         role:
           name: atc
           password: dummy-password
-
-- type: replace
-  path: /releases/name=postgres/version
-  value: 31
-

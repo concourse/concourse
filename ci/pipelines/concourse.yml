@@ -666,8 +666,6 @@ jobs:
       trigger: true
     - get: postgres-release
       trigger: true
-    - get: bbr
-      trigger: true
     - get: bpm-release
       trigger: true
     - get: gcp-xenial-stemcell
@@ -713,13 +711,19 @@ jobs:
       trigger: true
     - get: postgres-release
       trigger: true
+    - get: postgres-bbr-compatible-release
+      trigger: true
     - get: bpm-release
+      trigger: true
+    - get: backup-and-restore-sdk-release
       trigger: true
     - get: gcp-xenial-stemcell
       trigger: true
     - get: vault-release
       trigger: true
     - get: credhub-release
+      trigger: true
+    - get: bbr
       trigger: true
   - task: bosh-topgun
     file: concourse/ci/tasks/topgun.yml
@@ -1050,6 +1054,12 @@ resources:
   source:
     repository: cloudfoundry/postgres-release
 
+- name: postgres-bbr-compatible-release
+  type: bosh-io-release
+  source:
+    repository: cloudfoundry/postgres-release
+    regexp: 31
+
 - name: bpm-release
   type: bosh-io-release
   source:
@@ -1069,6 +1079,11 @@ resources:
   type: bosh-io-release
   source:
     repository: pivotal-cf/credhub-release
+
+- name: backup-and-restore-sdk-release
+  type: bosh-io-release
+  source:
+    repository: cloudfoundry-incubator/backup-and-restore-sdk-release
 
 - name: concourse-release-repo
   type: git

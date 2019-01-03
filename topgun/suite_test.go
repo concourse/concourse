@@ -48,6 +48,7 @@ var (
 	concourseReleaseVersion, bpmReleaseVersion, postgresReleaseVersion string
 	vaultReleaseVersion, credhubReleaseVersion                         string
 	stemcellVersion                                                    string
+	backupAndRestoreReleaseVersion                                     string
 
 	pipelineName string
 
@@ -111,6 +112,10 @@ var _ = BeforeEach(func() {
 	if stemcellVersion == "" {
 		stemcellVersion = "latest"
 	}
+	backupAndRestoreReleaseVersion = os.Getenv("BACKUP_AND_RESTORE_SDK_RELEASE_VERSION")
+	if backupAndRestoreReleaseVersion == "" {
+		backupAndRestoreReleaseVersion = "latest"
+	}
 
 	deploymentNumber := GinkgoParallelNode()
 
@@ -172,6 +177,7 @@ func StartDeploy(manifest string, args ...string) *gexec.Session {
 			"-v", "postgres_release_version='" + postgresReleaseVersion + "'",
 			"-v", "vault_release_version='" + vaultReleaseVersion + "'",
 			"-v", "credhub_release_version='" + credhubReleaseVersion + "'",
+			"-v", "backup_and_restore_sdk_release_version='" + backupAndRestoreReleaseVersion + "'",
 			"-v", "stemcell_version='" + stemcellVersion + "'",
 		}, args...)...,
 	)
