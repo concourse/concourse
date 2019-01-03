@@ -17,10 +17,8 @@ var _ = Describe("Skymarshal Handler User", func() {
 			expectedURL := "/sky/userinfo"
 
 			expectedUserInfo = map[string]interface{}{
-				"email": "test@test.com",
-				"teams": map[string][]string{
-					"test_team": []string{"owner", "viewer"},
-				},
+				"email":     "test@test.com",
+				"teams":     map[string][]string{"test_team": {"owner", "viewer"}},
 				"user_id":   "test_user_id",
 				"user_name": "test_user_name",
 				"name":      "test_name",
