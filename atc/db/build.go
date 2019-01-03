@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -92,6 +91,9 @@ type Build interface {
 	Events(uint) (EventSource, error)
 	SaveEvent(event atc.Event) error
 
+	Artifacts() ([]WorkerArtifact, error)
+	Artifact(artifactID int) (WorkerArtifact, error)
+
 	SaveOutput(lager.Logger, string, atc.Source, creds.VersionedResourceTypes, atc.Version, ResourceConfigMetadataFields, string, string) error
 	UseInputs(inputs []BuildInput) error
 
@@ -142,6 +144,7 @@ type build struct {
 
 var ErrBuildDisappeared = errors.New("build disappeared from db")
 var ErrBuildHasNoPipeline = errors.New("build has no pipeline")
+var ErrBuildArtifactNotFound = errors.New("build artifact not found")
 
 type ResourceNotFoundInPipeline struct {
 	Resource string
@@ -782,6 +785,56 @@ func (b *build) SaveEvent(event atc.Event) error {
 	}
 
 	return b.conn.Bus().Notify(buildEventsChannel(b.id))
+}
+
+func (b *build) Artifact(artifactID int) (WorkerArtifact, error) {
+
+	artifact := artifact{
+		conn: b.conn,
+	}
+
+	err := psql.Select("id", "name", "created_at").
+		From("worker_artifacts").
+		Where(sq.Eq{
+			"id": artifactID,
+		}).
+		RunWith(b.conn).
+		Scan(&artifact.id, &artifact.name, &artifact.createdAt)
+
+	return &artifact, err
+}
+
+func (b *build) Artifacts() ([]WorkerArtifact, error) {
+	artifacts := []WorkerArtifact{}
+
+	rows, err := psql.Select("id", "name", "created_at").
+		From("worker_artifacts").
+		Where(sq.Eq{
+			"build_id": b.id,
+		}).
+		RunWith(b.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Close(rows)
+
+	for rows.Next() {
+		wa := artifact{
+			conn:    b.conn,
+			buildID: b.id,
+		}
+
+		err = rows.Scan(&wa.id, &wa.name, &wa.createdAt)
+		if err != nil {
+			return nil, err
+		}
+
+		artifacts = append(artifacts, &wa)
+	}
+
+	return artifacts, nil
 }
 
 func (b *build) SaveOutput(

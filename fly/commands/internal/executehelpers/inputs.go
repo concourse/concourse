@@ -23,24 +23,28 @@ func DetermineInputs(
 	team concourse.Team,
 	taskInputs []atc.TaskInputConfig,
 	localInputMappings []flaghelpers.InputPairFlag,
-	jobInputMappings map[string]string,
+	userInputMappings []flaghelpers.VariablePairFlag,
 	jobInputImage string,
 	inputsFrom flaghelpers.JobFlag,
-) ([]Input, *atc.ImageResource, error) {
+	includeIgnored bool,
+) ([]Input, map[string]string, *atc.ImageResource, error) {
+
+	inputMappings := ConvertInputMappings(userInputMappings)
+
 	err := CheckForUnknownInputMappings(localInputMappings, taskInputs)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = CheckForInputType(localInputMappings)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if len(localInputMappings) == 0 && inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
 		wd, err := os.Getwd()
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		localInputMappings = append(localInputMappings, flaghelpers.InputPairFlag{
@@ -49,14 +53,14 @@ func DetermineInputs(
 		})
 	}
 
-	inputsFromLocal, err := GenerateLocalInputs(fact, localInputMappings)
+	inputsFromLocal, err := GenerateLocalInputs(fact, team, localInputMappings, includeIgnored)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	inputsFromJob, imageResourceFromJob, err := FetchInputsFromJob(fact, team, inputsFrom, jobInputImage)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	inputs := []Input{}
@@ -65,7 +69,7 @@ func DetermineInputs(
 		if !found {
 
 			jobInputName := taskInput.Name
-			if name, ok := jobInputMappings[taskInput.Name]; ok {
+			if name, ok := inputMappings[taskInput.Name]; ok {
 				jobInputName = name
 			}
 
@@ -74,7 +78,7 @@ func DetermineInputs(
 				if taskInput.Optional {
 					continue
 				} else {
-					return nil, nil, fmt.Errorf("missing required input `%s`", taskInput.Name)
+					return nil, nil, nil, fmt.Errorf("missing required input `%s`", taskInput.Name)
 				}
 			}
 		}
@@ -82,10 +86,10 @@ func DetermineInputs(
 		inputs = append(inputs, input)
 	}
 
-	return inputs, imageResourceFromJob, nil
+	return inputs, inputMappings, imageResourceFromJob, nil
 }
 
-func DetermineInputMappings(variables []flaghelpers.VariablePairFlag) map[string]string {
+func ConvertInputMappings(variables []flaghelpers.VariablePairFlag) map[string]string {
 	inputMappings := map[string]string{}
 	for _, flag := range variables {
 		inputMappings[flag.Name] = flag.Value
@@ -127,10 +131,20 @@ func TaskInputsContainsName(inputs []atc.TaskInputConfig, name string) bool {
 	return false
 }
 
-func GenerateLocalInputs(fact atc.PlanFactory, inputMappings []flaghelpers.InputPairFlag) (map[string]Input, error) {
+func GenerateLocalInputs(
+	fact atc.PlanFactory,
+	team concourse.Team,
+	inputMappings []flaghelpers.InputPairFlag,
+	includeIgnored bool) (map[string]Input, error) {
+
 	kvMap := map[string]Input{}
 
 	for _, i := range inputMappings {
+		artifact, err := Upload(team, i.Path, includeIgnored)
+		if err != nil {
+			return nil, err
+		}
+
 		inputName := i.Name
 		absPath := i.Path
 
@@ -138,7 +152,8 @@ func GenerateLocalInputs(fact atc.PlanFactory, inputMappings []flaghelpers.Input
 			Name: inputName,
 			Path: absPath,
 			Plan: fact.NewPlan(atc.UserArtifactPlan{
-				Name: inputName,
+				ArtifactID: artifact.ID,
+				Name:       inputName,
 			}),
 		}
 	}

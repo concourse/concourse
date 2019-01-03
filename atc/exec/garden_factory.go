@@ -6,17 +6,18 @@ import (
 	"path/filepath"
 
 	"code.cloudfoundry.org/lager"
-
 	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
 
 type gardenFactory struct {
 	pool                  worker.Pool
+	client                worker.Client
 	resourceFetcher       resource.Fetcher
 	resourceCacheFactory  db.ResourceCacheFactory
 	resourceConfigFactory db.ResourceConfigFactory
@@ -28,6 +29,7 @@ type gardenFactory struct {
 
 func NewGardenFactory(
 	pool worker.Pool,
+	client worker.Client,
 	resourceFetcher resource.Fetcher,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
@@ -38,6 +40,7 @@ func NewGardenFactory(
 ) Factory {
 	return &gardenFactory{
 		pool:                  pool,
+		client:                client,
 		resourceFetcher:       resourceFetcher,
 		resourceCacheFactory:  resourceCacheFactory,
 		resourceConfigFactory: resourceConfigFactory,
@@ -148,7 +151,7 @@ func (factory *gardenFactory) Task(
 	containerMetadata db.ContainerMetadata,
 	delegate TaskDelegate,
 ) Step {
-	workingDirectory := factory.taskWorkingDirectory(worker.ArtifactName(plan.Task.Name))
+	workingDirectory := factory.taskWorkingDirectory(artifact.Name(plan.Task.Name))
 	containerMetadata.WorkingDirectory = workingDirectory
 
 	credMgrVariables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
@@ -206,7 +209,16 @@ func (factory *gardenFactory) Task(
 	return LogError(taskStep, delegate)
 }
 
-func (factory *gardenFactory) taskWorkingDirectory(sourceName worker.ArtifactName) string {
+func (factory *gardenFactory) ArtifactStep(
+	logger lager.Logger,
+	plan atc.Plan,
+	build db.Build,
+	delegate BuildStepDelegate,
+) Step {
+	return NewArtifactStep(plan, build, factory.client, delegate)
+}
+
+func (factory *gardenFactory) taskWorkingDirectory(sourceName artifact.Name) string {
 	sum := sha1.Sum([]byte(sourceName))
 	return filepath.Join("/tmp", "build", fmt.Sprintf("%x", sum[:4]))
 }

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/baggageclaim"
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -35,7 +35,7 @@ func (s *Server) CreateArtifact(team db.Team) http.Handler {
 		// volume gets created and when the artifact gets initialized
 
 		// Within this timeframe there's a chance that the volume could
-		// get garbage collector out from under us.
+		// get garbage collected out from under us.
 
 		// This happens because CreateVolume returns a 'created' instead
 		// of 'creating' volume.
@@ -47,7 +47,7 @@ func (s *Server) CreateArtifact(team db.Team) http.Handler {
 		// I think leaving the race condition is fine for now. Worst case
 		// is a fly execute will fail and the user will need to rerun it.
 
-		artifact, err := volume.InitializeArtifact("/", "")
+		artifact, err := volume.InitializeArtifact("", 0)
 		if err != nil {
 			hLog.Error("failed-to-initialize-artifact", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -63,11 +63,6 @@ func (s *Server) CreateArtifact(team db.Team) http.Handler {
 
 		w.WriteHeader(http.StatusCreated)
 
-		json.NewEncoder(w).Encode(atc.WorkerArtifact{
-			ID:        artifact.ID(),
-			Checksum:  "",
-			Path:      "/",
-			CreatedAt: artifact.CreatedAt().Unix(),
-		})
+		json.NewEncoder(w).Encode(present.WorkerArtifact(artifact))
 	})
 }

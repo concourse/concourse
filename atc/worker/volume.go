@@ -26,7 +26,7 @@ type Volume interface {
 
 	InitializeResourceCache(db.UsedResourceCache) error
 	InitializeTaskCache(lager.Logger, int, string, string, bool) error
-	InitializeArtifact(string, string) (db.WorkerArtifact, error)
+	InitializeArtifact(name string, buildID int) (db.WorkerArtifact, error)
 
 	CreateChildForContainer(db.CreatingContainer, string) (db.CreatingVolume, error)
 
@@ -113,8 +113,8 @@ func (v *volume) InitializeResourceCache(urc db.UsedResourceCache) error {
 	return v.dbVolume.InitializeResourceCache(urc)
 }
 
-func (v *volume) InitializeArtifact(path string, checksum string) (db.WorkerArtifact, error) {
-	return v.dbVolume.InitializeArtifact(path, checksum)
+func (v *volume) InitializeArtifact(name string, buildID int) (db.WorkerArtifact, error) {
+	return v.dbVolume.InitializeArtifact(name, buildID)
 }
 
 func (v *volume) InitializeTaskCache(

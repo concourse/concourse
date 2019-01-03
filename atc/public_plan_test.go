@@ -1,10 +1,9 @@
 package atc_test
 
 import (
+	"github.com/concourse/concourse/atc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/concourse/concourse/atc"
 )
 
 var _ = Describe("Plan", func() {
@@ -285,7 +284,8 @@ var _ = Describe("Plan", func() {
 					atc.Plan{
 						ID: "31",
 						UserArtifact: &atc.UserArtifactPlan{
-							Name: "some-name",
+							ArtifactID: 17,
+							Name:       "some-name",
 						},
 					},
 
@@ -502,7 +502,8 @@ var _ = Describe("Plan", func() {
 		{
 			"id": "31",
 			"user_artifact": {
-				"name": "some-name"
+				"artifact_id": 17,
+				"name" : "some-name"
 			}
 		},
 		{

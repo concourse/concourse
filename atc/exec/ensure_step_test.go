@@ -4,12 +4,11 @@ import (
 	"context"
 	"errors"
 
+	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/execfakes"
-	"github.com/concourse/concourse/atc/worker"
 )
 
 var _ = Describe("Ensure Step", func() {
@@ -20,7 +19,7 @@ var _ = Describe("Ensure Step", func() {
 		step *execfakes.FakeStep
 		hook *execfakes.FakeStep
 
-		repo  *worker.ArtifactRepository
+		repo  *artifact.Repository
 		state *execfakes.FakeRunState
 
 		ensure exec.Step
@@ -45,7 +44,7 @@ var _ = Describe("Ensure Step", func() {
 			return ctx.Err()
 		}
 
-		repo = worker.NewArtifactRepository()
+		repo = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(repo)
 

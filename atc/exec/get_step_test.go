@@ -18,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
@@ -36,6 +37,7 @@ var _ = Describe("GetStep", func() {
 
 		fakeWorker                *workerfakes.FakeWorker
 		fakePool                  *workerfakes.FakePool
+		fakeClient                *workerfakes.FakeClient
 		fakeStrategy              *workerfakes.FakeContainerPlacementStrategy
 		fakeResourceFactory       *resourcefakes.FakeResourceFactory
 		fakeResourceFetcher       *resourcefakes.FakeFetcher
@@ -50,7 +52,7 @@ var _ = Describe("GetStep", func() {
 		fakeVersionedSource *resourcefakes.FakeVersionedSource
 		resourceTypes       atc.VersionedResourceTypes
 
-		artifactRepository *worker.ArtifactRepository
+		artifactRepository *artifact.Repository
 		state              *execfakes.FakeRunState
 
 		factory exec.Factory
@@ -76,6 +78,7 @@ var _ = Describe("GetStep", func() {
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
 		fakePool = new(workerfakes.FakePool)
+		fakeClient = new(workerfakes.FakeClient)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
@@ -86,7 +89,7 @@ var _ = Describe("GetStep", func() {
 		}
 		fakeVariablesFactory.NewVariablesReturns(variables)
 
-		artifactRepository = worker.NewArtifactRepository()
+		artifactRepository = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(artifactRepository)
 
@@ -119,7 +122,7 @@ var _ = Describe("GetStep", func() {
 			VersionedResourceTypes: resourceTypes,
 		}
 
-		factory = exec.NewGardenFactory(fakePool, fakeResourceFetcher, fakeResourceCacheFactory, fakeResourceConfigFactory, fakeVariablesFactory, atc.ContainerLimits{}, fakeStrategy, fakeResourceFactory)
+		factory = exec.NewGardenFactory(fakePool, fakeClient, fakeResourceFetcher, fakeResourceCacheFactory, fakeResourceConfigFactory, fakeVariablesFactory, atc.ContainerLimits{}, fakeStrategy, fakeResourceFactory)
 
 		fakeDelegate = new(execfakes.FakeGetDelegate)
 	})

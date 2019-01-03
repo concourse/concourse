@@ -1,11 +1,12 @@
 package exec_test
 
 import (
-	"bytes"
 	"context"
+	"errors"
 	"io/ioutil"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
@@ -13,27 +14,33 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("UserArtifactStep", func() {
+var _ = Describe("ArtifactStep", func() {
 	var (
 		ctx    context.Context
 		cancel func()
-		logger *lagertest.TestLogger
+		// logger *lagertest.TestLogger
 
 		state    exec.RunState
 		delegate *execfakes.FakeBuildStepDelegate
 
-		step    exec.Step
-		stepErr error
+		step             exec.Step
+		stepErr          error
+		plan             atc.Plan
+		fakeBuild        *dbfakes.FakeBuild
+		fakeWorkerClient *workerfakes.FakeClient
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
-		logger = lagertest.NewTestLogger("user-artifact-step-test")
+		// logger = lagertest.NewTestLogger("user-artifact-step-test")
 
 		state = exec.NewRunState()
 
 		delegate = new(execfakes.FakeBuildStepDelegate)
 		delegate.StdoutReturns(ioutil.Discard)
+
+		fakeBuild = new(dbfakes.FakeBuild)
+		fakeWorkerClient = new(workerfakes.FakeClient)
 	})
 
 	AfterEach(func() {
@@ -41,35 +48,95 @@ var _ = Describe("UserArtifactStep", func() {
 	})
 
 	JustBeforeEach(func() {
-		step = exec.UserArtifact(
-			"some-plan-id",
-			"some-name",
-			delegate,
-		)
+		plan = atc.Plan{UserArtifact: &atc.UserArtifactPlan{0, "some-name"}}
 
+		step = exec.NewArtifactStep(plan, fakeBuild, fakeWorkerClient, delegate)
 		stepErr = step.Run(ctx, state)
 	})
 
-	It("is successful", func() {
-		Expect(stepErr).ToNot(HaveOccurred())
-		Expect(step.Succeeded()).To(BeTrue())
+	Context("when looking up the build artifact errors", func() {
+		BeforeEach(func() {
+			fakeBuild.ArtifactReturns(nil, errors.New("nope"))
+		})
+		It("returns the error", func() {
+			Expect(stepErr).To(HaveOccurred())
+		})
 	})
 
-	It("registers an artifact which reads from user input", func() {
-		source, found := state.Artifacts().SourceFor("some-name")
-		Expect(found).To(BeTrue())
+	Context("when looking up the build artifact succeeds", func() {
+		var fakeWorkerArtifact *dbfakes.FakeWorkerArtifact
 
-		dest := new(workerfakes.FakeArtifactDestination)
+		BeforeEach(func() {
+			fakeWorkerArtifact = new(dbfakes.FakeWorkerArtifact)
+			fakeBuild.ArtifactReturns(fakeWorkerArtifact, nil)
+		})
 
-		input := ioutil.NopCloser(bytes.NewBufferString("hello"))
-		go state.SendUserInput("some-plan-id", input)
+		Context("when looking up the db volume fails", func() {
+			BeforeEach(func() {
+				fakeWorkerArtifact.VolumeReturns(nil, false, errors.New("nope"))
+			})
+			It("returns the error", func() {
+				Expect(stepErr).To(HaveOccurred())
+			})
+		})
 
-		Expect(dest.StreamInCallCount()).To(Equal(0))
-		Expect(source.StreamTo(logger, dest)).To(Succeed())
-		Expect(dest.StreamInCallCount()).To(Equal(1))
+		Context("when the db volume does not exist", func() {
+			BeforeEach(func() {
+				fakeWorkerArtifact.VolumeReturns(nil, false, nil)
+			})
+			It("returns the error", func() {
+				Expect(stepErr).To(HaveOccurred())
+			})
+		})
 
-		path, stream := dest.StreamInArgsForCall(0)
-		Expect(path).To(Equal("."))
-		Expect(ioutil.ReadAll(stream)).To(Equal([]byte("hello")))
+		Context("when the db volume does exist", func() {
+			var fakeVolume *dbfakes.FakeCreatedVolume
+
+			BeforeEach(func() {
+				fakeVolume = new(dbfakes.FakeCreatedVolume)
+				fakeWorkerArtifact.VolumeReturns(fakeVolume, true, nil)
+			})
+
+			Context("when looking up the worker volume fails", func() {
+				BeforeEach(func() {
+					fakeWorkerClient.FindVolumeReturns(nil, false, errors.New("nope"))
+				})
+				It("returns the error", func() {
+					Expect(stepErr).To(HaveOccurred())
+				})
+			})
+
+			Context("when the worker volume does not exist", func() {
+				BeforeEach(func() {
+					fakeWorkerClient.FindVolumeReturns(nil, false, nil)
+				})
+				It("returns the error", func() {
+					Expect(stepErr).To(HaveOccurred())
+				})
+			})
+
+			Context("when the worker volume does exist", func() {
+				var fakeWorkerVolume *workerfakes.FakeVolume
+
+				BeforeEach(func() {
+					fakeWorkerVolume = new(workerfakes.FakeVolume)
+					fakeWorkerVolume.HandleReturns("handle")
+
+					fakeWorkerClient.FindVolumeReturns(fakeWorkerVolume, true, nil)
+				})
+
+				It("registers the worker volume as an artifact source", func() {
+					source, found := state.Artifacts().SourceFor("some-name")
+
+					Expect(stepErr).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(source).To(Equal(exec.NewTaskArtifactSource(fakeWorkerVolume)))
+				})
+
+				It("succeeds", func() {
+					Expect(step.Succeeded()).To(BeTrue())
+				})
+			})
+		})
 	})
 })

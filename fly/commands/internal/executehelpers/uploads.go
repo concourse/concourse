@@ -3,29 +3,21 @@ package executehelpers
 import (
 	"bufio"
 	"bytes"
-	"fmt"
+	"errors"
 	"io"
 	"os/exec"
 
-	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/concourse/go-archive/tgzfs"
 )
 
-func Upload(client concourse.Client, buildID int, input Input, includeIgnored bool) {
-	path := input.Path
-
-	var files []string
-	var err error
-
-	if includeIgnored {
-		files = []string{"."}
-	} else {
-		files, err = getGitFiles(path)
-		if err != nil {
-			files = []string{"."}
-		}
+func Upload(team concourse.Team, path string, includeIgnored bool) (atc.WorkerArtifact, error) {
+	if path == "" {
+		return atc.WorkerArtifact{}, errors.New("Invalid path")
 	}
+
+	files := getFiles(path, includeIgnored)
 
 	archiveStream, archiveWriter := io.Pipe()
 
@@ -33,15 +25,23 @@ func Upload(client concourse.Client, buildID int, input Input, includeIgnored bo
 		archiveWriter.CloseWithError(tgzfs.Compress(archiveWriter, path, files...))
 	}()
 
-	found, err := client.SendInputToBuildPlan(buildID, input.Plan.ID, archiveStream)
-	if err != nil {
-		fmt.Fprintf(ui.Stderr, "failed to upload input '%s': %s", input.Name, err)
-		return
+	return team.CreateArtifact(archiveStream)
+}
+
+func getFiles(dir string, includeIgnored bool) []string {
+	var files []string
+	var err error
+
+	if includeIgnored {
+		files = []string{"."}
+	} else {
+		files, err = getGitFiles(dir)
+		if err != nil {
+			files = []string{"."}
+		}
 	}
 
-	if !found {
-		fmt.Fprintf(ui.Stderr, "build disappeared while uploading '%s'", input.Name)
-	}
+	return files
 }
 
 func getGitFiles(dir string) ([]string, error) {

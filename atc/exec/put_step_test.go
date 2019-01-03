@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
@@ -48,7 +49,7 @@ var _ = Describe("PutStep", func() {
 
 		resourceTypes creds.VersionedResourceTypes
 
-		repo  *worker.ArtifactRepository
+		repo  *artifact.Repository
 		state *execfakes.FakeRunState
 
 		stdoutBuf *gbytes.Buffer
@@ -87,7 +88,7 @@ var _ = Describe("PutStep", func() {
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 
-		repo = worker.NewArtifactRepository()
+		repo = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(repo)
 

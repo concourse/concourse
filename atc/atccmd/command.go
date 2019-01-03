@@ -552,7 +552,17 @@ func (cmd *RunCommand) constructAPIMembers(
 	buildContainerStrategy := cmd.chooseBuildContainerStrategy()
 	checkContainerStrategy := worker.NewRandomPlacementStrategy()
 
-	engine := cmd.constructEngine(pool, resourceFetcher, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits, buildContainerStrategy, resourceFactory)
+	engine := cmd.constructEngine(
+		pool,
+		workerClient,
+		resourceFetcher,
+		dbResourceCacheFactory,
+		dbResourceConfigFactory,
+		variablesFactory,
+		defaultLimits,
+		buildContainerStrategy,
+		resourceFactory,
+	)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		pool,
@@ -742,6 +752,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	)
 
 	pool := worker.NewPool(workerProvider)
+	workerClient := worker.NewClient(pool, workerProvider)
 
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {
@@ -755,7 +766,18 @@ func (cmd *RunCommand) constructBackendMembers(
 
 	buildContainerStrategy := cmd.chooseBuildContainerStrategy()
 	checkContainerStrategy := worker.NewRandomPlacementStrategy()
-	engine := cmd.constructEngine(pool, resourceFetcher, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits, buildContainerStrategy, resourceFactory)
+
+	engine := cmd.constructEngine(
+		pool,
+		workerClient,
+		resourceFetcher,
+		dbResourceCacheFactory,
+		dbResourceConfigFactory,
+		variablesFactory,
+		defaultLimits,
+		buildContainerStrategy,
+		resourceFactory,
+	)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		pool,
@@ -1208,6 +1230,7 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 
 func (cmd *RunCommand) constructEngine(
 	workerPool worker.Pool,
+	workerClient worker.Client,
 	resourceFetcher resource.Fetcher,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
@@ -1218,6 +1241,7 @@ func (cmd *RunCommand) constructEngine(
 ) engine.Engine {
 	gardenFactory := exec.NewGardenFactory(
 		workerPool,
+		workerClient,
 		resourceFetcher,
 		resourceCacheFactory,
 		resourceConfigFactory,

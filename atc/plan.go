@@ -28,7 +28,8 @@ type Plan struct {
 type PlanID string
 
 type UserArtifactPlan struct {
-	Name string `json:"name"`
+	ArtifactID int    `json:"artifact_id"`
+	Name       string `json:"name"`
 }
 
 type ArtifactOutputPlan struct {

@@ -150,9 +150,11 @@ type CreatedVolume interface {
 	CreateChildForContainer(CreatingContainer, string) (CreatingVolume, error)
 	Destroying() (DestroyingVolume, error)
 	WorkerName() string
+
 	InitializeResourceCache(UsedResourceCache) error
-	InitializeArtifact(string, string) (WorkerArtifact, error)
+	InitializeArtifact(name string, buildID int) (WorkerArtifact, error)
 	InitializeTaskCache(int, string, string) error
+
 	ContainerHandle() string
 	ParentHandle() string
 	ResourceType() (*VolumeResourceType, error)
@@ -390,8 +392,7 @@ func (volume *createdVolume) InitializeResourceCache(resourceCache UsedResourceC
 	return nil
 }
 
-func (volume *createdVolume) InitializeArtifact(path string, checksum string) (WorkerArtifact, error) {
-
+func (volume *createdVolume) InitializeArtifact(name string, buildID int) (WorkerArtifact, error) {
 	tx, err := volume.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -400,8 +401,8 @@ func (volume *createdVolume) InitializeArtifact(path string, checksum string) (W
 	defer Rollback(tx)
 
 	atcWorkerArtifact := atc.WorkerArtifact{
-		Checksum: checksum,
-		Path:     path,
+		Name:    name,
+		BuildID: buildID,
 	}
 
 	workerArtifact, err := saveWorkerArtifact(tx, volume.conn, atcWorkerArtifact)
