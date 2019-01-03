@@ -258,6 +258,18 @@ type FakeClient struct {
 	uRLReturnsOnCall map[int]struct {
 		result1 string
 	}
+	UserInfoStub        func() (map[string]interface{}, error)
+	userInfoMutex       sync.RWMutex
+	userInfoArgsForCall []struct {
+	}
+	userInfoReturns struct {
+		result1 map[string]interface{}
+		result2 error
+	}
+	userInfoReturnsOnCall map[int]struct {
+		result1 map[string]interface{}
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -1416,6 +1428,61 @@ func (fake *FakeClient) URLReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeClient) UserInfo() (map[string]interface{}, error) {
+	fake.userInfoMutex.Lock()
+	ret, specificReturn := fake.userInfoReturnsOnCall[len(fake.userInfoArgsForCall)]
+	fake.userInfoArgsForCall = append(fake.userInfoArgsForCall, struct {
+	}{})
+	fake.recordInvocation("UserInfo", []interface{}{})
+	fake.userInfoMutex.Unlock()
+	if fake.UserInfoStub != nil {
+		return fake.UserInfoStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.userInfoReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeClient) UserInfoCallCount() int {
+	fake.userInfoMutex.RLock()
+	defer fake.userInfoMutex.RUnlock()
+	return len(fake.userInfoArgsForCall)
+}
+
+func (fake *FakeClient) UserInfoCalls(stub func() (map[string]interface{}, error)) {
+	fake.userInfoMutex.Lock()
+	defer fake.userInfoMutex.Unlock()
+	fake.UserInfoStub = stub
+}
+
+func (fake *FakeClient) UserInfoReturns(result1 map[string]interface{}, result2 error) {
+	fake.userInfoMutex.Lock()
+	defer fake.userInfoMutex.Unlock()
+	fake.UserInfoStub = nil
+	fake.userInfoReturns = struct {
+		result1 map[string]interface{}
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) UserInfoReturnsOnCall(i int, result1 map[string]interface{}, result2 error) {
+	fake.userInfoMutex.Lock()
+	defer fake.userInfoMutex.Unlock()
+	fake.UserInfoStub = nil
+	if fake.userInfoReturnsOnCall == nil {
+		fake.userInfoReturnsOnCall = make(map[int]struct {
+			result1 map[string]interface{}
+			result2 error
+		})
+	}
+	fake.userInfoReturnsOnCall[i] = struct {
+		result1 map[string]interface{}
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -1457,6 +1524,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.teamMutex.RUnlock()
 	fake.uRLMutex.RLock()
 	defer fake.uRLMutex.RUnlock()
+	fake.userInfoMutex.RLock()
+	defer fake.userInfoMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
