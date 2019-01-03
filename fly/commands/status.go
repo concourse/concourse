@@ -37,6 +37,12 @@ func (c *StatusCommand) Execute([]string) error {
 			displayhelpers.FailWithErrorf("please login again.\n\ntoken validation failed with error ", err)
 			return nil
 		}
+
+		_, err = target.Client().UserInfo()
+		if err != nil {
+			displayhelpers.FailWithErrorf("please login again.\n\ntoken validation failed with error ", err)
+			return nil
+		}
 	}
 
 	fmt.Println("logged in successfully")
