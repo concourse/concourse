@@ -1,28 +1,19 @@
 package worker_test
 
 import (
-	"bytes"
-	"errors"
-	"io"
-
-	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("ArtifactRepository", func() {
 	var (
-		repo   *ArtifactRepository
-		logger *lagertest.TestLogger
+		repo *ArtifactRepository
 	)
 
 	BeforeEach(func() {
 		repo = NewArtifactRepository()
-		logger = lagertest.NewTestLogger("artifact-repository-test")
 	})
 
 	It("initially does not contain any sources", func() {
@@ -81,108 +72,6 @@ var _ = Describe("ArtifactRepository", func() {
 				})
 			})
 
-			Describe("StreamTo", func() {
-				var fakeDestination *workerfakes.FakeArtifactDestination
-				var streamErr error
-
-				BeforeEach(func() {
-					fakeDestination = new(workerfakes.FakeArtifactDestination)
-				})
-
-				JustBeforeEach(func() {
-					streamErr = repo.StreamTo(logger, fakeDestination)
-				})
-
-				It("succeeds", func() {
-					Expect(streamErr).NotTo(HaveOccurred())
-				})
-
-				It("streams both sources to the destination under subdirectories", func() {
-					someStream := new(bytes.Buffer)
-
-					Expect(firstSource.StreamToCallCount()).To(Equal(1))
-					Expect(secondSource.StreamToCallCount()).To(Equal(1))
-
-					_, firstDestination := firstSource.StreamToArgsForCall(0)
-					_, secondDestination := secondSource.StreamToArgsForCall(0)
-
-					Expect(firstDestination.StreamIn("foo", someStream)).To(Succeed())
-
-					Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
-					destDir, stream := fakeDestination.StreamInArgsForCall(0)
-					Expect(destDir).To(Equal("first-source/foo"))
-					Expect(stream).To(Equal(someStream))
-
-					Expect(secondDestination.StreamIn("foo", someStream)).To(Succeed())
-
-					Expect(fakeDestination.StreamInCallCount()).To(Equal(2))
-					destDir, stream = fakeDestination.StreamInArgsForCall(1)
-					Expect(destDir).To(Equal("second-source/foo"))
-					Expect(stream).To(Equal(someStream))
-				})
-
-				Context("when the any of the sources fails to stream", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						secondSource.StreamToReturns(disaster)
-					})
-
-					It("returns the error", func() {
-						Expect(streamErr).To(Equal(disaster))
-					})
-				})
-			})
-
-			Describe("StreamFile", func() {
-				var path string
-
-				var stream io.Reader
-				var streamErr error
-
-				JustBeforeEach(func() {
-					stream, streamErr = repo.StreamFile(logger, path)
-				})
-
-				Context("from a path not referring to any source", func() {
-					BeforeEach(func() {
-						path = "bogus"
-					})
-
-					It("returns ErrFileNotFound", func() {
-						Expect(streamErr).To(MatchError(FileNotFoundError{Path: "bogus"}))
-					})
-				})
-
-				Context("from a path referring to a source", func() {
-					var outStream io.ReadCloser
-
-					BeforeEach(func() {
-						path = "first-source/foo"
-
-						outStream = gbytes.NewBuffer()
-						firstSource.StreamFileReturns(outStream, nil)
-					})
-
-					It("streams out from the source", func() {
-						Expect(stream).To(Equal(outStream))
-						_, file := firstSource.StreamFileArgsForCall(0)
-						Expect(file).To(Equal("foo"))
-					})
-
-					Context("when streaming out from the source fails", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							firstSource.StreamFileReturns(nil, disaster)
-						})
-
-						It("returns the error", func() {
-							Expect(streamErr).To(Equal(disaster))
-						})
-					})
-				})
-			})
 		})
 	})
 })

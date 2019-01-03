@@ -103,17 +103,6 @@ func NewHandler(
 
 		atc.GetCC: http.HandlerFunc(ccServer.GetCC),
 
-		atc.ListBuilds:              http.HandlerFunc(buildServer.ListBuilds),
-		atc.CreateBuild:             teamHandlerFactory.HandlerFor(buildServer.CreateBuild),
-		atc.GetBuild:                buildHandlerFactory.HandlerFor(buildServer.GetBuild),
-		atc.BuildResources:          buildHandlerFactory.HandlerFor(buildServer.BuildResources),
-		atc.AbortBuild:              buildHandlerFactory.HandlerFor(buildServer.AbortBuild),
-		atc.GetBuildPlan:            buildHandlerFactory.HandlerFor(buildServer.GetBuildPlan),
-		atc.GetBuildPreparation:     buildHandlerFactory.HandlerFor(buildServer.GetBuildPreparation),
-		atc.BuildEvents:             buildHandlerFactory.HandlerFor(buildServer.BuildEvents),
-		atc.SendInputToBuildPlan:    buildHandlerFactory.HandlerFor(buildServer.SendInputToBuildPlan),
-		atc.ReadOutputFromBuildPlan: buildHandlerFactory.HandlerFor(buildServer.ReadOutputFromBuildPlan),
-
 		atc.ListAllJobs:    http.HandlerFunc(jobServer.ListAllJobs),
 		atc.ListJobs:       pipelineHandlerFactory.HandlerFor(jobServer.ListJobs),
 		atc.GetJob:         pipelineHandlerFactory.HandlerFor(jobServer.GetJob),

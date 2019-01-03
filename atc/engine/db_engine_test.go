@@ -1,23 +1,19 @@
 package engine_test
 
 import (
-	"bytes"
 	"errors"
-	"io"
-	"io/ioutil"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/enginefakes"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("DBEngine", func() {
@@ -709,58 +705,6 @@ var _ = Describe("DBEngine", func() {
 					Expect(dbBuild.ReloadCallCount()).To(BeZero())
 					Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
 				})
-			})
-		})
-
-		Describe("ReceiveInput", func() {
-			var (
-				input io.ReadCloser
-
-				realBuild *enginefakes.FakeBuild
-			)
-
-			BeforeEach(func() {
-				input = ioutil.NopCloser(bytes.NewBufferString("some-payload"))
-				dbBuild.EngineReturns("fake-engine-b")
-				realBuild = new(enginefakes.FakeBuild)
-				fakeEngineB.LookupBuildReturns(realBuild, nil)
-			})
-
-			JustBeforeEach(func() {
-				build.ReceiveInput(lagertest.NewTestLogger("test"), "some-plan-id", input)
-			})
-
-			It("delegates to the real build", func() {
-				Expect(realBuild.ReceiveInputCallCount()).To(Equal(1))
-				_, id, in := realBuild.ReceiveInputArgsForCall(0)
-				Expect(id).To(Equal(atc.PlanID("some-plan-id")))
-				Expect(in).To(Equal(input))
-			})
-		})
-
-		Describe("SendOutput", func() {
-			var (
-				output *bytes.Buffer
-
-				realBuild *enginefakes.FakeBuild
-			)
-
-			BeforeEach(func() {
-				output = new(bytes.Buffer)
-				dbBuild.EngineReturns("fake-engine-b")
-				realBuild = new(enginefakes.FakeBuild)
-				fakeEngineB.LookupBuildReturns(realBuild, nil)
-			})
-
-			JustBeforeEach(func() {
-				build.SendOutput(lagertest.NewTestLogger("test"), "some-plan-id", output)
-			})
-
-			It("delegates to the real build", func() {
-				Expect(realBuild.SendOutputCallCount()).To(Equal(1))
-				_, id, out := realBuild.SendOutputArgsForCall(0)
-				Expect(id).To(Equal(atc.PlanID("some-plan-id")))
-				Expect(out).To(Equal(output))
 			})
 		})
 	})
