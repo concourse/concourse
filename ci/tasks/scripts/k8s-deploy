@@ -82,7 +82,7 @@ ensure_variables_are_set() {
 run_helm_deploy() {
   local chart=./charts/stable/concourse
 
-  helm init --wait
+  helm init --upgrade --wait
   helm version
   helm dependency update --debug $chart
   helm upgrade \
