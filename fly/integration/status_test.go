@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/onsi/gomega/ghttp"
 )
 
 var _ = Describe("status Command", func() {
@@ -26,15 +27,40 @@ var _ = Describe("status Command", func() {
 		os.Setenv("HOME", tmpDir)
 		flyrc = filepath.Join(userHomeDir(), ".flyrc")
 
-		flyFixtureFile, err := os.OpenFile("./fixtures/status_fly_rc.yml", os.O_RDONLY, 0600)
-		Expect(err).NotTo(HaveOccurred())
-
-		flyFixtureData, err := ioutil.ReadAll(flyFixtureFile)
-		Expect(err).NotTo(HaveOccurred())
+		flyFixtureData := []byte(`
+targets:
+  another-test:
+    api: ` + atcServer.URL() + `
+    team: test
+    token:
+      type: Bearer
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOiIxNDU4MzUyNDcwIiwiaXNBZG1pbiI6Im5vcGUiLCJ0ZWFtSUQiOjEsInRlYW1OYW1lIjoibWFpbiJ9.v04hbwIFdMNjp6BCpz2jvOYNpAeBY8pio6hlXQizLAM
+  bad-test:
+    api: https://example.com/another-test
+    team: test
+    token:
+      type: Bearer
+      value: bad-token
+  loggedout-test:
+    api: https://example.com/loggedout-test
+    team: test
+    token:
+      type: ""
+      value: ""
+  invalid-test:
+    api: https://example.com/invalid-test
+    team: test
+    token:
+  expired-test:
+    api: https://example.com/expired-test
+    team: test
+    token:
+      type: Bearer
+      value: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjc3JmIjoiNGZlOGM1Y2VhYjFjNWFiMzE5MzMzNmQ2YThkOTE3OTJmZTA0YmEzZjg5Y2IwZDg0MTkzN2I2MzkzYTdhYTg2MyIsImV4cCI6MTUyMTMwODk2MCwiaXNBZG1pbiI6dHJ1ZSwidGVhbU5hbWUiOiJtYWluIn0.oyb-2CPLnXy-7S-9FWWlx106KI5Xpd6B5XIrFOvcG1yyh5nrGpM4NfgaW7ugN4zzi2mSFGawRlkulzgAZ4RxAEdTOnlSXvVZO3vD70sMlrp_LX-lYaqJ7XXVXNKvKE_74YGZY414TYVy2IxL-4Qf7pbb0uGDky03jQFxkWVSUiD5iLwaqpvxpHTEuVNoZc9a8YNiOdETvqnt50drsmxpkblM60DrWuDVPifOfTrooSMxULnl3pYXDsTPZbrc6QVLA_Hpi7wWCNEZbAojTQ3taIwzp7BBAuxUNcVMpJKy3Um5oMHcibe1R0PsZ0J49PbLSclZfhJ7wjHBc7FQEKTZzQ
+`)
 
 		err = ioutil.WriteFile(flyrc, flyFixtureData, 0600)
 		Expect(err).NotTo(HaveOccurred())
-
 	})
 
 	AfterEach(func() {
@@ -62,6 +88,16 @@ var _ = Describe("status Command", func() {
 
 	Context("status with target name", func() {
 		Context("when target is saved with valid token", func() {
+			BeforeEach(func() {
+				atcServer.Reset()
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/sky/userinfo"),
+						ghttp.RespondWithJSONEncoded(200, map[string]interface{}{"team": "test"}),
+					),
+				)
+			})
+
 			It("command exist with 0", func() {
 				flyCmd = exec.Command(flyPath, "-t", "another-test", "status")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -71,6 +107,30 @@ var _ = Describe("status Command", func() {
 				Expect(sess.ExitCode()).To(Equal(0))
 
 				Expect(sess.Out).To(gbytes.Say(`logged in successfully`))
+			})
+		})
+
+		Context("when target is saved with valid token but is unauthorized on server", func() {
+			BeforeEach(func() {
+				atcServer.Reset()
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/sky/userinfo"),
+						ghttp.RespondWith(401, nil),
+					),
+				)
+			})
+
+			It("command exist with 1", func() {
+				flyCmd = exec.Command(flyPath, "-t", "another-test", "status")
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+
+				Expect(sess.Err).To(gbytes.Say(`please login again`))
+				Expect(sess.Err).To(gbytes.Say(`token validation failed with error : not authorized`))
 			})
 		})
 
