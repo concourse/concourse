@@ -158,29 +158,13 @@ func (t *resourceType) SetResourceConfig(logger lager.Logger, source atc.Source,
 		return nil, err
 	}
 
-	results, err := psql.Update("resource_types").
+	_, err = psql.Update("resource_types").
 		Set("resource_config_id", resourceConfig.ID()).
 		Where(sq.Eq{
 			"id": t.id,
 		}).
-		Where(sq.Or{
-			sq.Eq{"resource_config_id": nil},
-			sq.NotEq{"resource_config_id": resourceConfig.ID()},
-		}).
 		RunWith(tx).
 		Exec()
-
-	rowsAffected, err := results.RowsAffected()
-	if err != nil {
-		return nil, err
-	}
-
-	if rowsAffected > 0 {
-		err = bumpCacheIndexForPipelinesUsingResourceConfig(tx, resourceConfig.ID())
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	err = tx.Commit()
 	if err != nil {
