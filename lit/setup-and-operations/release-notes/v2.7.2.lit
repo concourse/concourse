@@ -27,7 +27,7 @@
     The BOSH release has always been configured via discrete properties, rather
     than a single DataSource, and now has a \code{postgresql.ca_cert} property
     among others. Consult
-    \link{bosh.io}{http://bosh.io/jobs/atc?source=github.com/concourse/concourse&version=2.7.1#p=postgresql}
+    \link{bosh.io}{http://bosh.io/jobs/atc?source=github.com/concourse/concourse-bosh-release&version=2.7.1#p=postgresql}
     for more information.
   }
 

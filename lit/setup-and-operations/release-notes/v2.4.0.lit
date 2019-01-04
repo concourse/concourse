@@ -8,7 +8,7 @@
     to the cluster.
 
     Consult \code{web --help} for CLI docs or
-    \link{bosh.io}{http://bosh.io/jobs/tsa?source=github.com/concourse/concourse}
+    \link{bosh.io}{http://bosh.io/jobs/tsa?source=github.com/concourse/concourse-bosh-release}
     for BOSH docs.
   }
 
