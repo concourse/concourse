@@ -1,6 +1,10 @@
 module Build.Styles exposing
-    ( abortButton
+    ( StepHeaderIcon(..)
+    , abortButton
     , abortIcon
+    , stepHeader
+    , stepHeaderIcon
+    , stepStatusIcon
     , triggerButton
     , triggerIcon
     , triggerTooltip
@@ -86,4 +90,55 @@ abortIcon hovered =
         else
             "0.5"
       )
+    ]
+
+
+stepHeader : List ( String, String )
+stepHeader =
+    [ ( "display", "flex" )
+    , ( "justify-content", "space-between" )
+    ]
+
+
+type StepHeaderIcon
+    = ArrowUp
+    | ArrowDown
+    | Terminal
+
+
+stepHeaderIcon : StepHeaderIcon -> List ( String, String )
+stepHeaderIcon icon =
+    let
+        image =
+            case icon of
+                ArrowDown ->
+                    "arrow_downward"
+
+                ArrowUp ->
+                    "arrow_upward"
+
+                Terminal ->
+                    "terminal"
+    in
+    [ ( "height", "28px" )
+    , ( "width", "28px" )
+    , ( "background-image"
+      , "url(/public/images/ic_" ++ image ++ ".svg)"
+      )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-position", "50% 50%" )
+    , ( "background-size", "14px 14px" )
+    ]
+
+
+stepStatusIcon : String -> List ( String, String )
+stepStatusIcon image =
+    [ ( "height", "28px" )
+    , ( "width", "28px" )
+    , ( "background-image"
+      , "url(/public/images/" ++ image ++ ".svg)"
+      )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-position", "50% 50%" )
+    , ( "background-size", "14px 14px" )
     ]

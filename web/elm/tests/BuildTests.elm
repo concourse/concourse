@@ -1,15 +1,32 @@
 module BuildTests exposing (all)
 
+import Array
 import Build
 import Build.Effects as Effects
 import Build.Msgs as Msgs
 import Concourse
-import DashboardTests exposing (defineHoverBehaviour, iconSelector, middleGrey)
+import Concourse.BuildEvents as BuildEvents
+import DashboardTests
+    exposing
+        ( defineHoverBehaviour
+        , iconSelector
+        , middleGrey
+        )
+import Date
+import Dict
 import Expect
 import Html.Attributes as Attr
 import Test exposing (..)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (attribute, containing, id, style, text)
+import Test.Html.Selector
+    exposing
+        ( attribute
+        , class
+        , containing
+        , id
+        , style
+        , text
+        )
 
 
 all : Test
@@ -49,8 +66,8 @@ all =
                 , reapTime = Nothing
                 }
 
-            pendingBuild : Concourse.Build
-            pendingBuild =
+            startedBuild : Concourse.Build
+            startedBuild =
                 { id = 1
                 , name = "1"
                 , job =
@@ -59,7 +76,7 @@ all =
                         , pipelineName = "pipeline"
                         , jobName = "job"
                         }
-                , status = Concourse.BuildStatusPending
+                , status = Concourse.BuildStatusStarted
                 , duration =
                     { startedAt = Nothing
                     , finishedAt = Nothing
@@ -71,9 +88,11 @@ all =
             fetchBuild =
                 Build.update <| Msgs.BuildFetched 1 <| Ok theBuild
 
-            fetchPendingBuild : Build.Model -> ( Build.Model, List Effects.Effect )
-            fetchPendingBuild =
-                Build.update <| Msgs.BuildFetched 1 <| Ok pendingBuild
+            fetchStartedBuild :
+                Build.Model
+                -> ( Build.Model, List Effects.Effect )
+            fetchStartedBuild =
+                Build.update <| Msgs.BuildFetched 1 <| Ok startedBuild
 
             fetchJobDetails : Build.Model -> ( Build.Model, List Effects.Effect )
             fetchJobDetails =
@@ -427,7 +446,7 @@ all =
             \_ ->
                 pageLoad
                     |> Tuple.first
-                    |> fetchPendingBuild
+                    |> fetchStartedBuild
                     |> Tuple.first
                     |> fetchHistory
                     |> Tuple.first
@@ -443,7 +462,7 @@ all =
             \_ ->
                 pageLoad
                     |> Tuple.first
-                    |> fetchPendingBuild
+                    |> fetchStartedBuild
                     |> Tuple.first
                     |> fetchHistory
                     |> Tuple.first
@@ -464,7 +483,7 @@ all =
             \_ ->
                 pageLoad
                     |> Tuple.first
-                    |> fetchPendingBuild
+                    |> fetchStartedBuild
                     |> Tuple.first
                     |> fetchHistory
                     |> Tuple.first
@@ -488,7 +507,7 @@ all =
             \_ ->
                 pageLoad
                     |> Tuple.first
-                    |> fetchPendingBuild
+                    |> fetchStartedBuild
                     |> Tuple.first
                     |> fetchHistory
                     |> Tuple.first
@@ -505,7 +524,7 @@ all =
             \_ ->
                 pageLoad
                     |> Tuple.first
-                    |> fetchPendingBuild
+                    |> fetchStartedBuild
                     |> Tuple.first
                     |> fetchHistory
                     |> Tuple.first
@@ -530,7 +549,7 @@ all =
             , setup =
                 pageLoad
                     |> Tuple.first
-                    |> fetchPendingBuild
+                    |> fetchStartedBuild
                     |> Tuple.first
                     |> fetchHistory
                     |> Tuple.first
@@ -565,4 +584,217 @@ all =
             , mouseEnterMsg = Msgs.Hover Msgs.Abort
             , mouseLeaveMsg = Msgs.Hover Msgs.Neither
             }
+        , describe "step header" <|
+            let
+                setup : () -> Build.Model
+                setup _ =
+                    pageLoad
+                        |> Tuple.first
+                        |> fetchStartedBuild
+                        |> Tuple.first
+                        |> fetchHistory
+                        |> Tuple.first
+                        |> fetchJobDetails
+                        |> Tuple.first
+                        |> Build.update
+                            (Msgs.PlanAndResourcesFetched <|
+                                Ok <|
+                                    ( { id = "plan"
+                                      , step =
+                                            Concourse.BuildStepGet
+                                                "step"
+                                                Nothing
+                                      }
+                                    , { inputs = [], outputs = [] }
+                                    )
+                            )
+                        |> Tuple.first
+            in
+            [ test "build step header lays out horizontally" <|
+                setup
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.find [ class "header" ]
+                    >> Query.has [ style [ ( "display", "flex" ) ] ]
+            , test "has two children spread apart" <|
+                setup
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.find [ class "header" ]
+                    >> Expect.all
+                        [ Query.has
+                            [ style
+                                [ ( "justify-content", "space-between" ) ]
+                            ]
+                        , Query.children [] >> Query.count (Expect.equal 2)
+                        ]
+            , test "first child lays out horizontally" <|
+                setup
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.find [ class "header" ]
+                    >> Query.children []
+                    >> Query.first
+                    >> Query.has [ style [ ( "display", "flex" ) ] ]
+            , test "resource get step shows downward arrow" <|
+                setup
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.has
+                        (iconSelector
+                            { size = "28px"
+                            , image = "ic_arrow_downward.svg"
+                            }
+                            ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                        )
+            , test "task step shows terminal icon" <|
+                \_ ->
+                    pageLoad
+                        |> Tuple.first
+                        |> fetchStartedBuild
+                        |> Tuple.first
+                        |> fetchHistory
+                        |> Tuple.first
+                        |> fetchJobDetails
+                        |> Tuple.first
+                        |> Build.update
+                            (Msgs.PlanAndResourcesFetched <|
+                                Ok <|
+                                    ( { id = "plan"
+                                      , step =
+                                            Concourse.BuildStepTask
+                                                "step"
+                                      }
+                                    , { inputs = [], outputs = [] }
+                                    )
+                            )
+                        |> Tuple.first
+                        |> Build.view
+                        |> Query.fromHtml
+                        |> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic_terminal.svg"
+                                }
+                                ++ [ style
+                                        [ ( "background-size", "14px 14px" ) ]
+                                   ]
+                            )
+            , test "put step shows upward arrow" <|
+                \_ ->
+                    pageLoad
+                        |> Tuple.first
+                        |> fetchStartedBuild
+                        |> Tuple.first
+                        |> fetchHistory
+                        |> Tuple.first
+                        |> fetchJobDetails
+                        |> Tuple.first
+                        |> Build.update
+                            (Msgs.PlanAndResourcesFetched <|
+                                Ok <|
+                                    ( { id = "plan"
+                                      , step = Concourse.BuildStepPut "step"
+                                      }
+                                    , { inputs = [], outputs = [] }
+                                    )
+                            )
+                        |> Tuple.first
+                        |> Build.view
+                        |> Query.fromHtml
+                        |> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic_arrow_upward.svg"
+                                }
+                                ++ [ style
+                                        [ ( "background-size", "14px 14px" ) ]
+                                   ]
+                            )
+            , test "successful step has a checkmark at the far right" <|
+                setup
+                    >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)
+                    >> Tuple.first
+                    >> Build.update
+                        (Msgs.BuildEventsMsg <|
+                            BuildEvents.Events <|
+                                Ok <|
+                                    Array.fromList
+                                        [ BuildEvents.FinishGet
+                                            { source = "stdout", id = "plan" }
+                                            0
+                                            Dict.empty
+                                            []
+                                        ]
+                        )
+                    >> Tuple.first
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.find [ class "header" ]
+                    >> Query.children []
+                    >> Query.index -1
+                    >> Query.has
+                        (iconSelector
+                            { size = "28px"
+                            , image = "ic-success-check.svg"
+                            }
+                            ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                        )
+            , test "failing step has an X at the far right" <|
+                setup
+                    >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)
+                    >> Tuple.first
+                    >> Build.update
+                        (Msgs.BuildEventsMsg <|
+                            BuildEvents.Events <|
+                                Ok <|
+                                    Array.fromList
+                                        [ BuildEvents.FinishGet
+                                            { source = "stdout", id = "plan" }
+                                            1
+                                            Dict.empty
+                                            []
+                                        ]
+                        )
+                    >> Tuple.first
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.find [ class "header" ]
+                    >> Query.children []
+                    >> Query.index -1
+                    >> Query.has
+                        (iconSelector
+                            { size = "28px"
+                            , image = "ic-failure-times.svg"
+                            }
+                            ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                        )
+            , test "erroring step has orange exclamation triangle at right" <|
+                setup
+                    >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)
+                    >> Tuple.first
+                    >> Build.update
+                        (Msgs.BuildEventsMsg <|
+                            BuildEvents.Events <|
+                                Ok <|
+                                    Array.fromList
+                                        [ BuildEvents.Error
+                                            { source = "stderr", id = "plan" }
+                                            "error message"
+                                        ]
+                        )
+                    >> Tuple.first
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.find [ class "header" ]
+                    >> Query.children []
+                    >> Query.index -1
+                    >> Query.has
+                        (iconSelector
+                            { size = "28px"
+                            , image = "ic_exclamation-triangle.svg"
+                            }
+                            ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                        )
+            ]
         ]

@@ -566,7 +566,11 @@ handleBuildFetched browsingIndex build model =
                     ( withBuild, pollUntilStarted browsingIndex build.id )
 
                 else if build.reapTime == Nothing then
-                    case model.currentBuild |> RemoteData.toMaybe |> Maybe.andThen .prep of
+                    case
+                        model.currentBuild
+                            |> RemoteData.toMaybe
+                            |> Maybe.andThen .prep
+                    of
                         Nothing ->
                             initBuildOutput build withBuild
 

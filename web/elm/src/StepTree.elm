@@ -25,6 +25,7 @@ import Ansi.Log
 import Array exposing (Array)
 import Build.Effects exposing (Effect(..))
 import Build.Msgs exposing (Msg(..))
+import Build.Styles as Styles
 import Concourse
 import Date exposing (Date)
 import Date.Format
@@ -33,7 +34,7 @@ import Dict exposing (Dict)
 import DictView
 import Focus exposing ((=>), Focus)
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, classList, href)
+import Html.Attributes exposing (attribute, class, classList, href, style)
 import Html.Events exposing (onClick, onMouseDown)
 import StrictEvents
 
@@ -627,16 +628,16 @@ viewTree : Model -> StepTree -> Html Msg
 viewTree model tree =
     case tree of
         Task step ->
-            viewStep model step "fa-terminal"
+            viewStep model step Styles.Terminal
 
         Get step ->
-            viewStep model step "fa-arrow-down"
+            viewStep model step Styles.ArrowDown
 
         DependentGet step ->
-            viewStep model step "fa-arrow-down"
+            viewStep model step Styles.ArrowDown
 
         Put step ->
-            viewStep model step "fa-arrow-up"
+            viewStep model step Styles.ArrowUp
 
         Try step ->
             viewTree model step
@@ -713,7 +714,7 @@ autoExpanded state =
     isActive state && state /= StepStateSucceeded
 
 
-viewStep : Model -> Step -> String -> Html Msg
+viewStep : Model -> Step -> Styles.StepHeaderIcon -> Html Msg
 viewStep model { id, name, log, state, error, expanded, version, metadata, firstOccurrence, timestamps } icon =
     Html.div
         [ classList
@@ -723,12 +724,17 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
             ]
         , attribute "data-step-name" name
         ]
-        [ Html.div [ class "header", onClick (ToggleStep id) ]
-            [ viewStepState state model.finished
-            , typeIcon icon
-            , viewVersion version
-            , Html.h3 [] [ Html.text name ]
-            , Html.div [ class "clearfix" ] []
+        [ Html.div
+            [ class "header"
+            , style Styles.stepHeader
+            , onClick (ToggleStep id)
+            ]
+            [ Html.div [ style [ ( "display", "flex" ) ] ]
+                [ Html.div [ style <| Styles.stepHeaderIcon icon ] []
+                , Html.h3 [] [ Html.text name ]
+                , viewVersion version
+                ]
+            , viewStepState state model.finished
             ]
         , Html.div
             [ classList
@@ -826,11 +832,6 @@ viewMetadata metadata =
         List.map (\{ name, value } -> ( name, Html.pre [] [ Html.text value ] )) metadata
 
 
-typeIcon : String -> Html Msg
-typeIcon fa =
-    Html.i [ class ("left fa fa-fw " ++ fa) ] []
-
-
 viewStepState : StepState -> Bool -> Html Msg
 viewStepState state finished =
     case state of
@@ -855,21 +856,18 @@ viewStepState state finished =
                 []
 
         StepStateSucceeded ->
-            Html.i
-                [ class "right succeeded fa fa-fw fa-check"
-                ]
+            Html.div
+                [ style <| Styles.stepStatusIcon "ic-success-check" ]
                 []
 
         StepStateFailed ->
-            Html.i
-                [ class "right failed fa fa-fw fa-times"
-                ]
+            Html.div
+                [ style <| Styles.stepStatusIcon "ic-failure-times" ]
                 []
 
         StepStateErrored ->
-            Html.i
-                [ class "right errored fa fa-fw fa-exclamation-triangle"
-                ]
+            Html.div
+                [ style <| Styles.stepStatusIcon "ic_exclamation-triangle" ]
                 []
 
 
