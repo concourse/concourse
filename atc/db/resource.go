@@ -183,6 +183,9 @@ func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, res
 		}).
 		RunWith(tx).
 		Exec()
+	if err != nil {
+		return nil, err
+	}
 
 	rowsAffected, err := results.RowsAffected()
 	if err != nil {
@@ -201,7 +204,7 @@ func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, res
 		return nil, err
 	}
 
-	return resourceConfig, err
+	return resourceConfig, nil
 }
 
 func (r *resource) SetCheckError(cause error) error {

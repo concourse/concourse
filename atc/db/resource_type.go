@@ -165,13 +165,16 @@ func (t *resourceType) SetResourceConfig(logger lager.Logger, source atc.Source,
 		}).
 		RunWith(tx).
 		Exec()
+	if err != nil {
+		return nil, err
+	}
 
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
 
-	return resourceConfig, err
+	return resourceConfig, nil
 }
 
 func (t *resourceType) SetCheckError(cause error) error {
