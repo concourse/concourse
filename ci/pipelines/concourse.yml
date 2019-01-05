@@ -826,7 +826,7 @@ jobs:
         windows_worker_vm_type: worker
         windows_worker_network_name: windows
         syslog_address: logs2.papertrailapp.com
-        syslog_port: 51403
+        syslog_port: '51403'
         syslog_permitted_peer: "*.papertrailapp.com"
         default_task_memory_limit: 5GB
         default_task_cpu_limit: 1024
