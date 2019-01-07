@@ -345,6 +345,31 @@ all =
                                 ]
                             ]
                         ]
+                    , describe "ascii art" <|
+                        let
+                            art : () -> Query.Single Msgs.Msg
+                            art =
+                                subject >> Query.children [] >> Query.index 2
+                        in
+                        [ test "not selectable for all browsers" <|
+                            art
+                                >> Query.has
+                                    [ style
+                                        [ ( "user-select", "none" )
+                                        , ("-ms-user-select", "none")
+                                        , ("-moz-user-select", "none")
+                                        , ("-khtml-user-select", "none")
+                                        , ("-webkit-user-select", "none")
+                                        , ("-webkit-touch-callout", "none")
+                                        ]
+                                    ]
+                        , test "cursor is set to default" <|
+                            art
+                                >> Query.has
+                                [ style
+                                    [ ("cursor", "default") ]
+                                ]
+                        ]
                     ]
             in
             [ describe "when unauthenticated with no teams" <|
