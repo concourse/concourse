@@ -11,4 +11,4 @@ var Version = "0.0.0-dev"
 //
 // New features that are otherwise backwards-compatible should result in a
 // minor version bump.
-var WorkerVersion = "2.1"
+var WorkerVersion = "2.2"
