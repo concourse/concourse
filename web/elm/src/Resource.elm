@@ -28,6 +28,7 @@ import Dict
 import DictView
 import Duration exposing (Duration)
 import Erl
+import Html.Attributes
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes
     exposing
@@ -59,6 +60,7 @@ import Pinned
         , VersionPinState(..)
         )
 import Resource.Styles
+import Spinner
 import StrictEvents
 import Task exposing (Task)
 import Time exposing (Time)
@@ -1102,7 +1104,9 @@ viewEnabledCheckbox :
 viewEnabledCheckbox { enabled, id, pinState } =
     let
         baseAttrs =
-            [ Html.Styled.Attributes.attribute "aria-label" "Toggle Resource Version Enabled"
+            [ Html.Styled.Attributes.attribute
+                "aria-label"
+                "Toggle Resource Version Enabled"
             , css
                 [ Css.marginRight <| Css.px 5
                 , Css.width <| Css.px 25
@@ -1116,10 +1120,14 @@ viewEnabledCheckbox { enabled, id, pinState } =
             ]
                 ++ (case pinState of
                         PinnedStatically _ ->
-                            [ style [ ( "border", "1px solid " ++ Colors.pinned ) ] ]
+                            [ style
+                                [ ( "border", "1px solid " ++ Colors.pinned ) ]
+                            ]
 
                         PinnedDynamically ->
-                            [ style [ ( "border", "1px solid " ++ Colors.pinned ) ] ]
+                            [ style
+                                [ ( "border", "1px solid " ++ Colors.pinned ) ]
+                            ]
 
                         _ ->
                             []
@@ -1129,7 +1137,11 @@ viewEnabledCheckbox { enabled, id, pinState } =
         BoolTransitionable.True ->
             Html.div
                 (baseAttrs
-                    ++ [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ]
+                    ++ [ style
+                            [ ( "background-image"
+                              , "url(/public/images/checkmark-ic.svg)"
+                              )
+                            ]
                        , onClick <| ToggleVersion Disable id
                        ]
                 )
@@ -1137,8 +1149,19 @@ viewEnabledCheckbox { enabled, id, pinState } =
 
         BoolTransitionable.Changing ->
             Html.div
-                (baseAttrs ++ [ style [ ( "display", "flex" ), ( "align-items", "center" ), ( "justify-content", "center" ) ] ])
-                [ Html.i [ class "fa fa-fw fa-spin fa-circle-o-notch" ] [] ]
+                (baseAttrs
+                    ++ [ style
+                            [ ( "display", "flex" )
+                            , ( "align-items", "center" )
+                            , ( "justify-content", "center" )
+                            ]
+                       ]
+                )
+                [ Html.fromUnstyled <|
+                    Spinner.spinner
+                        "12.5px"
+                        [ Html.Attributes.style [ ( "margin", "6.25px" ) ] ]
+                ]
 
         BoolTransitionable.False ->
             Html.div
@@ -1155,7 +1178,9 @@ viewPinButton :
 viewPinButton { versionID, pinState } =
     let
         baseAttrs =
-            [ Html.Styled.Attributes.attribute "aria-label" "Pin Resource Version"
+            [ Html.Styled.Attributes.attribute
+                "aria-label"
+                "Pin Resource Version"
             , css
                 [ Css.position Css.relative
                 , Css.backgroundRepeat Css.noRepeat
@@ -1174,7 +1199,9 @@ viewPinButton { versionID, pinState } =
                     ++ [ style
                             [ ( "background-color", "#1e1d1d" )
                             , ( "cursor", "pointer" )
-                            , ( "background-image", "url(/public/images/pin-ic-white.svg)" )
+                            , ( "background-image"
+                              , "url(/public/images/pin-ic-white.svg)"
+                              )
                             ]
                        , onClick <| PinVersion versionID
                        ]
@@ -1187,7 +1214,9 @@ viewPinButton { versionID, pinState } =
                     ++ [ style
                             [ ( "background-color", "#1e1d1d" )
                             , ( "cursor", "pointer" )
-                            , ( "background-image", "url(/public/images/pin-ic-white.svg)" )
+                            , ( "background-image"
+                              , "url(/public/images/pin-ic-white.svg)"
+                              )
                             , ( "border", "1px solid " ++ Colors.pinned )
                             ]
                        , onClick UnpinVersion
@@ -1201,7 +1230,9 @@ viewPinButton { versionID, pinState } =
                     ++ [ style
                             [ ( "background-color", "#1e1d1d" )
                             , ( "cursor", "default" )
-                            , ( "background-image", "url(/public/images/pin-ic-white.svg)" )
+                            , ( "background-image"
+                              , "url(/public/images/pin-ic-white.svg)"
+                              )
                             , ( "border", "1px solid " ++ Colors.pinned )
                             ]
                        , onMouseOut ToggleVersionTooltip
@@ -1232,7 +1263,9 @@ viewPinButton { versionID, pinState } =
                     ++ [ style
                             [ ( "background-color", "#1e1d1d" )
                             , ( "cursor", "default" )
-                            , ( "background-image", "url(/public/images/pin-ic-white.svg)" )
+                            , ( "background-image"
+                              , "url(/public/images/pin-ic-white.svg)"
+                              )
                             ]
                        ]
                 )
@@ -1250,7 +1283,11 @@ viewPinButton { versionID, pinState } =
                             ]
                        ]
                 )
-                [ Html.i [ class "fa fa-fw fa-spin fa-circle-o-notch" ] [] ]
+                [ Html.fromUnstyled <|
+                    Spinner.spinner
+                        "12.5px"
+                        [ Html.Attributes.style [ ( "margin", "6.25px" ) ] ]
+                ]
 
 
 viewVersionHeader : { a | id : Int, version : Concourse.Version, pinnedState : VersionPinState } -> Html Msg

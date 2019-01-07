@@ -20,7 +20,7 @@ import RemoteData
 import SubPage
 import Test exposing (..)
 import Test.Html.Query as Query
-import Test.Html.Selector
+import Test.Html.Selector as Selector
     exposing
         ( attribute
         , class
@@ -86,7 +86,10 @@ all =
                         }
                         |> Tuple.first
 
-                init : { disabled : Bool, paused : Bool } -> () -> Layout.Model
+                init :
+                    { disabled : Bool, paused : Bool }
+                    -> ()
+                    -> Layout.Model
                 init { disabled, paused } _ =
                     Layout.init
                         { turbulenceImgSrc = ""
@@ -131,8 +134,97 @@ all =
                                             }
                             )
                         |> Tuple.first
+
+                loadingIndicatorSelector : List Selector.Selector
+                loadingIndicatorSelector =
+                    [ style [ ( "display", "flex" ) ]
+                    , containing
+                        [ style
+                            [ ( "animation"
+                              , "container-rotate 1568ms linear infinite"
+                              )
+                            , ( "height", "14px" )
+                            , ( "width", "14px" )
+                            , ( "margin", "7px" )
+                            ]
+                        ]
+                    ]
             in
-            [ test "build header lays out contents horizontally" <|
+            [ describe "while page is loading"
+                [ test "shows two spinners before anything has loaded" <|
+                    \_ ->
+                        Layout.init
+                            { turbulenceImgSrc = ""
+                            , notFoundImgSrc = ""
+                            , csrfToken = ""
+                            , authToken = ""
+                            , pipelineRunningKeyframes = ""
+                            }
+                            { href = ""
+                            , host = ""
+                            , hostname = ""
+                            , protocol = ""
+                            , origin = ""
+                            , port_ = ""
+                            , pathname = "/teams/team/pipelines/pipeline/jobs/job"
+                            , search = ""
+                            , hash = ""
+                            , username = ""
+                            , password = ""
+                            }
+                            |> Tuple.first
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.findAll loadingIndicatorSelector
+                            |> Query.count (Expect.equal 2)
+                , test "loading build has spinners for inputs and outputs" <|
+                    init { disabled = False, paused = False }
+                        >> Layout.update
+                            (Layout.SubMsg 1 <|
+                                SubPage.JobMsg <|
+                                    Job.JobBuildsFetched <|
+                                        let
+                                            jobId =
+                                                { jobName = "job"
+                                                , pipelineName = "pipeline"
+                                                , teamName = "team"
+                                                }
+
+                                            status =
+                                                BuildStatusSucceeded
+
+                                            builds =
+                                                [ { id = 0
+                                                  , name = "0"
+                                                  , job = Just jobId
+                                                  , status = status
+                                                  , duration =
+                                                        { startedAt = Nothing
+                                                        , finishedAt = Nothing
+                                                        }
+                                                  , reapTime = Nothing
+                                                  }
+                                                ]
+                                        in
+                                        Ok
+                                            { pagination =
+                                                { previousPage = Nothing
+                                                , nextPage = Nothing
+                                                }
+                                            , content = builds
+                                            }
+                            )
+                        >> Tuple.first
+                        >> Layout.view
+                        >> Query.fromHtml
+                        >> Expect.all
+                            [ Query.find [ class "inputs" ]
+                                >> Query.has loadingIndicatorSelector
+                            , Query.find [ class "outputs" ]
+                                >> Query.has loadingIndicatorSelector
+                            ]
+                ]
+            , test "build header lays out contents horizontally" <|
                 init { disabled = False, paused = False }
                     >> Layout.view
                     >> Query.fromHtml

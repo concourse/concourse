@@ -49,6 +49,7 @@ import Maybe.Extra
 import RemoteData exposing (WebData)
 import Routes
 import Scroll
+import Spinner
 import StepTree
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
@@ -320,11 +321,6 @@ update action model =
         ToggleStep id ->
             updateOutput
                 (BuildOutput.handleStepTreeMsg <| StepTree.toggleStep id)
-                model
-
-        Finished ->
-            updateOutput
-                (BuildOutput.handleStepTreeMsg <| StepTree.finished)
                 model
 
         SwitchTab id tab ->
@@ -920,9 +916,12 @@ viewBuildPrepLi text status details =
             [ ( "prep-status", True )
             , ( "inactive", status == Concourse.BuildPrepStatusUnknown )
             ]
+        , style
+            [ ( "display", "flex" )
+            , ( "align-items", "center" )
+            ]
         ]
-        [ Html.span [ class "marker" ]
-            [ viewBuildPrepStatus status ]
+        [ viewBuildPrepStatus status
         , Html.span []
             [ Html.text text ]
         , viewBuildPrepDetails details
@@ -933,13 +932,34 @@ viewBuildPrepStatus : Concourse.BuildPrepStatus -> Html Msg
 viewBuildPrepStatus status =
     case status of
         Concourse.BuildPrepStatusUnknown ->
-            Html.i [ class "fa fa-fw fa-circle-o-notch", title "thinking..." ] []
+            Html.i
+                [ class "fa fa-fw fa-circle-o-notch"
+                , title "thinking..."
+                ]
+                []
 
         Concourse.BuildPrepStatusBlocking ->
-            Html.i [ class "fa fa-fw fa-spin fa-circle-o-notch inactive", title "blocking" ] []
+            Spinner.spinner "12px"
+                [ style [ ( "margin-right", "5px" ) ]
+                , title "blocking"
+                ]
 
         Concourse.BuildPrepStatusNotBlocking ->
-            Html.i [ class "fa fa-fw fa-check", title "not blocking" ] []
+            Html.div
+                [ style
+                    [ ( "background-image"
+                      , "url(/public/images/ic-not-blocking-check.svg)"
+                      )
+                    , ( "background-position", "50% 50%" )
+                    , ( "background-repeat", "no-repeat" )
+                    , ( "background-size", "contain" )
+                    , ( "width", "12px" )
+                    , ( "height", "12px" )
+                    , ( "margin-right", "5px" )
+                    ]
+                , title "not blocking"
+                ]
+                []
 
 
 viewBuildHeader : Concourse.Build -> Model -> Html Msg

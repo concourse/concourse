@@ -46,6 +46,7 @@ import Html.Events
         , onMouseLeave
         )
 import Http
+import LoadingIndicator
 import LoginRedirect
 import Navigation
 import RemoteData exposing (WebData)
@@ -438,7 +439,7 @@ view model =
     Html.div [ class "with-fixed-header" ]
         [ case model.job |> RemoteData.toMaybe of
             Nothing ->
-                loadSpinner
+                LoadingIndicator.view
 
             Just job ->
                 Html.div [ class "fixed-header" ]
@@ -548,47 +549,13 @@ view model =
                     ]
         , case model.buildsWithResources.content of
             [] ->
-                loadSpinner
+                LoadingIndicator.view
 
             anyList ->
                 Html.div [ class "scrollable-body job-body" ]
                     [ Html.ul [ class "jobs-builds-list builds-list" ] <|
                         List.map (viewBuildWithResources model) anyList
                     ]
-        ]
-
-
-getPlayPauseLoadIcon : Concourse.Job -> Bool -> String
-getPlayPauseLoadIcon job pausedChanging =
-    if pausedChanging then
-        "fa-circle-o-notch fa-spin"
-
-    else if job.paused then
-        ""
-
-    else
-        "fa-pause"
-
-
-getPausedState : Concourse.Job -> Bool -> String
-getPausedState job pausedChanging =
-    if pausedChanging then
-        "loading"
-
-    else if job.paused then
-        "enabled"
-
-    else
-        "disabled"
-
-
-loadSpinner : Html Msg
-loadSpinner =
-    Html.div [ class "build-step" ]
-        [ Html.div [ class "header" ]
-            [ Html.i [ class "left fa fa-fw fa-spin fa-circle-o-notch" ] []
-            , Html.h3 [] [ Html.text "Loading..." ]
-            ]
         ]
 
 
@@ -735,7 +702,7 @@ viewBuildResources model buildWithResources =
         inputsTable =
             case buildWithResources.resources of
                 Nothing ->
-                    loadSpinner
+                    LoadingIndicator.view
 
                 Just resources ->
                     Html.table [ class "build-resources" ] <|
@@ -744,7 +711,7 @@ viewBuildResources model buildWithResources =
         outputsTable =
             case buildWithResources.resources of
                 Nothing ->
-                    loadSpinner
+                    LoadingIndicator.view
 
                 Just resources ->
                     Html.table [ class "build-resources" ] <|

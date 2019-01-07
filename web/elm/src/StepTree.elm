@@ -36,6 +36,7 @@ import Focus exposing ((=>), Focus)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style)
 import Html.Events exposing (onClick, onMouseDown)
+import Spinner
 import StrictEvents
 
 
@@ -833,12 +834,12 @@ viewMetadata metadata =
 
 
 viewStepState : StepState -> Bool -> Html Msg
-viewStepState state finished =
+viewStepState state buildFinished =
     case state of
         StepStatePending ->
             let
                 icon =
-                    if finished then
+                    if buildFinished then
                         "fa-circle"
 
                     else
@@ -850,10 +851,7 @@ viewStepState state finished =
                 []
 
         StepStateRunning ->
-            Html.i
-                [ class "right fa fa-fw fa-spin fa-circle-o-notch"
-                ]
-                []
+            Spinner.spinner "14px" [ style [ ( "margin", "7px" ) ] ]
 
         StepStateSucceeded ->
             Html.div

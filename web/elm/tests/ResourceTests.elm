@@ -1475,14 +1475,28 @@ pinBarHasPinnedState version =
 
 loadingSpinnerSelector : List Selector
 loadingSpinnerSelector =
-    [ class "fa-circle-o-notch" ]
+    [ style
+        [ ( "animation"
+          , "container-rotate 1568ms linear infinite"
+          )
+        , ( "height", "12.5px" )
+        , ( "width", "12.5px" )
+        , ( "margin", "6.25px" )
+        ]
+    ]
 
 
 checkboxHasTransitionState : Query.Single msg -> Expectation
 checkboxHasTransitionState =
     Expect.all
         [ Query.has loadingSpinnerSelector
-        , Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
+        , Query.hasNot
+            [ style
+                [ ( "background-image"
+                  , "url(/public/images/checkmark-ic.svg)"
+                  )
+                ]
+            ]
         ]
 
 
@@ -1490,7 +1504,13 @@ checkboxHasDisabledState : Query.Single msg -> Expectation
 checkboxHasDisabledState =
     Expect.all
         [ Query.hasNot loadingSpinnerSelector
-        , Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
+        , Query.hasNot
+            [ style
+                [ ( "background-image"
+                  , "url(/public/images/checkmark-ic.svg)"
+                  )
+                ]
+            ]
         ]
 
 

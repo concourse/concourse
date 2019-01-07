@@ -4,7 +4,7 @@ import Array
 import Build
 import Build.Effects as Effects
 import Build.Msgs as Msgs
-import Concourse
+import Concourse exposing (BuildPrepStatus(..))
 import Concourse.BuildEvents as BuildEvents
 import DashboardTests
     exposing
@@ -12,7 +12,6 @@ import DashboardTests
         , iconSelector
         , middleGrey
         )
-import Date
 import Dict
 import Expect
 import Html.Attributes as Attr
@@ -584,6 +583,106 @@ all =
             , mouseEnterMsg = Msgs.Hover Msgs.Abort
             , mouseLeaveMsg = Msgs.Hover Msgs.Neither
             }
+        , describe "build prep section"
+            [ test "when pipeline is not paused, shows a check" <|
+                let
+                    prep =
+                        { pausedPipeline = BuildPrepStatusNotBlocking
+                        , pausedJob = BuildPrepStatusNotBlocking
+                        , maxRunningBuilds = BuildPrepStatusNotBlocking
+                        , inputs = Dict.empty
+                        , inputsSatisfied = BuildPrepStatusNotBlocking
+                        , missingInputReasons = Dict.empty
+                        }
+
+                    icon =
+                        "url(/public/images/ic-not-blocking-check.svg)"
+                in
+                \_ ->
+                    pageLoad
+                        |> Tuple.first
+                        |> fetchStartedBuild
+                        |> Tuple.first
+                        |> fetchHistory
+                        |> Tuple.first
+                        |> fetchJobDetails
+                        |> Tuple.first
+                        |> Build.update (Msgs.BuildPrepFetched 1 <| Ok prep)
+                        |> Tuple.first
+                        |> Build.view
+                        |> Query.fromHtml
+                        |> Query.find [ class "prep-status-list" ]
+                        |> Expect.all
+                            [ Query.children []
+                                >> Query.each
+                                    (Query.has
+                                        [ style
+                                            [ ( "display", "flex" )
+                                            , ( "align-items", "center" )
+                                            ]
+                                        ]
+                                    )
+                            , Query.has
+                                [ style
+                                    [ ( "background-image", icon )
+                                    , ( "background-position", "50% 50%" )
+                                    , ( "background-repeat", "no-repeat" )
+                                    , ( "background-size", "contain" )
+                                    , ( "width", "12px" )
+                                    , ( "height", "12px" )
+                                    , ( "margin-right", "5px" )
+                                    ]
+                                , attribute <| Attr.title "not blocking"
+                                ]
+                            ]
+            , test "when pipeline is paused, shows a spinner" <|
+                let
+                    prep =
+                        { pausedPipeline = BuildPrepStatusBlocking
+                        , pausedJob = BuildPrepStatusNotBlocking
+                        , maxRunningBuilds = BuildPrepStatusNotBlocking
+                        , inputs = Dict.empty
+                        , inputsSatisfied = BuildPrepStatusNotBlocking
+                        , missingInputReasons = Dict.empty
+                        }
+                in
+                \_ ->
+                    pageLoad
+                        |> Tuple.first
+                        |> fetchStartedBuild
+                        |> Tuple.first
+                        |> fetchHistory
+                        |> Tuple.first
+                        |> fetchJobDetails
+                        |> Tuple.first
+                        |> Build.update (Msgs.BuildPrepFetched 1 <| Ok prep)
+                        |> Tuple.first
+                        |> Build.view
+                        |> Query.fromHtml
+                        |> Query.find [ class "prep-status-list" ]
+                        |> Expect.all
+                            [ Query.children []
+                                >> Query.each
+                                    (Query.has
+                                        [ style
+                                            [ ( "display", "flex" )
+                                            , ( "align-items", "center" )
+                                            ]
+                                        ]
+                                    )
+                            , Query.has
+                                [ style
+                                    [ ( "animation"
+                                      , "container-rotate 1568ms linear infinite"
+                                      )
+                                    , ( "height", "12px" )
+                                    , ( "width", "12px" )
+                                    , ( "margin-right", "5px" )
+                                    ]
+                                , attribute <| Attr.title "blocking"
+                                ]
+                            ]
+            ]
         , describe "step header" <|
             let
                 setup : () -> Build.Model
@@ -740,6 +839,52 @@ all =
                             }
                             ++ [ style [ ( "background-size", "14px 14px" ) ] ]
                         )
+            , test "running step has loading spinner at the right" <|
+                \_ ->
+                    pageLoad
+                        |> Tuple.first
+                        |> fetchStartedBuild
+                        |> Tuple.first
+                        |> fetchHistory
+                        |> Tuple.first
+                        |> fetchJobDetails
+                        |> Tuple.first
+                        |> Build.update
+                            (Msgs.PlanAndResourcesFetched <|
+                                Ok <|
+                                    ( { id = "plan"
+                                      , step =
+                                            Concourse.BuildStepTask
+                                                "step"
+                                      }
+                                    , { inputs = [], outputs = [] }
+                                    )
+                            )
+                        |> Tuple.first
+                        |> Build.update
+                            (Msgs.BuildEventsMsg <|
+                                BuildEvents.Events <|
+                                    Ok <|
+                                        Array.fromList
+                                            [ BuildEvents.StartTask
+                                                { source = "stdout"
+                                                , id = "plan"
+                                                }
+                                            ]
+                            )
+                        |> Tuple.first
+                        |> Build.view
+                        |> Query.fromHtml
+                        |> Query.find [ class "header" ]
+                        |> Query.children []
+                        |> Query.index -1
+                        |> Query.has
+                            [ style
+                                [ ( "animation"
+                                  , "container-rotate 1568ms linear infinite"
+                                  )
+                                ]
+                            ]
             , test "failing step has an X at the far right" <|
                 setup
                     >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)

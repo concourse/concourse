@@ -33,7 +33,6 @@ type Msg
     | PlanAndResourcesFetched (Result Http.Error ( Concourse.BuildPlan, Concourse.BuildResources ))
     | BuildEventsMsg Concourse.BuildEvents.Msg
     | ToggleStep String
-    | Finished
     | SwitchTab String Int
     | SetHighlight String Int
     | ExtendHighlight String Int
