@@ -219,8 +219,12 @@ var _ = Describe("Sky Server API", func() {
 				})
 				Expect(cookieJar.Cookies(skyURL)).NotTo(BeEmpty())
 
-				_, err = client.Get(skyServer.URL + "/sky/logout")
+				response, err := client.Get(skyServer.URL + "/sky/logout")
 				Expect(err).NotTo(HaveOccurred())
+
+				cookieResponse := response.Header.Get("Set-Cookie")
+				Expect(strings.Contains(cookieResponse, "HttpOnly")).To(BeTrue())
+				Expect(strings.Contains(cookieResponse, "Secure")).To(Equal(config.SecureCookies))
 
 				Expect(cookieJar.Cookies(skyURL)).To(BeEmpty())
 			})
