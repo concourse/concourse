@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Least Containers Found Placement Strategy", func() {
+var _ = Describe("Least Build Containers Found Placement Strategy", func() {
 	var firstWorkerName string
 	var secondWorkerName string
 	BeforeEach(func() {
@@ -19,7 +19,7 @@ var _ = Describe("Least Containers Found Placement Strategy", func() {
 	})
 
 	Context("when there is a deployment the worker with the least containers is assigned the task to execute", func() {
-		It("ensures the worker with the least containers is assigned the task to execute", func() {
+		It("ensures the worker with the least build containers is assigned the task to execute", func() {
 			By("stopping one worker instance")
 			workers := JobInstances("worker")
 
@@ -62,14 +62,14 @@ var _ = Describe("Least Containers Found Placement Strategy", func() {
 				}
 			}
 
-			fmt.Println("first worker: ", containersOnFirstWorker)
-			fmt.Println("second worker: ", containersOnSecondWorker)
+			fmt.Println("Number of build containers on first worker: ", containersOnFirstWorker)
+			fmt.Println("Number of build containers on second worker: ", containersOnSecondWorker)
 
 			differenceInContainers := math.Abs(float64(containersOnFirstWorker - containersOnSecondWorker))
 			totalContainers := float64(containersOnFirstWorker + containersOnSecondWorker)
 			Expect(totalContainers).ToNot(BeZero())
 			tolerance := differenceInContainers / totalContainers
-			Expect(tolerance <= 0.2).To(BeTrue())
+			Expect(tolerance <= 0.1).To(BeTrue()) // difference of 2 containers between workers
 		})
 
 	})
