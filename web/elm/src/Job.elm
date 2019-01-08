@@ -19,12 +19,32 @@ import Concourse.Build
 import Concourse.BuildResources exposing (fetch)
 import Concourse.BuildStatus
 import Concourse.Job
-import Concourse.Pagination exposing (Page, Paginated, Pagination)
+import Concourse.Pagination
+    exposing
+        ( Page
+        , Paginated
+        , Pagination
+        , chevron
+        , chevronContainer
+        )
 import Dict exposing (Dict)
 import DictView
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, disabled, href, id, style)
-import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Html.Attributes
+    exposing
+        ( attribute
+        , class
+        , disabled
+        , href
+        , id
+        , style
+        )
+import Html.Events
+    exposing
+        ( onClick
+        , onMouseEnter
+        , onMouseLeave
+        )
 import Http
 import LoginRedirect
 import Navigation
@@ -580,45 +600,6 @@ headerBuildStatusClass finishedBuild =
 
         Just build ->
             Concourse.BuildStatus.show build.status
-
-
-chevronContainer : List ( String, String )
-chevronContainer =
-    [ ( "padding", "5px" )
-    , ( "display", "flex" )
-    , ( "align-items", "center" )
-    , ( "border-left", "1px solid " ++ Colors.background )
-    ]
-
-
-chevron :
-    { direction : String, enabled : Bool, hovered : Bool }
-    -> List ( String, String )
-chevron { direction, enabled, hovered } =
-    [ ( "background-image"
-      , "url(/public/images/baseline-chevron_" ++ direction ++ "-24px.svg)"
-      )
-    , ( "background-position", "50% 50%" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "width", "24px" )
-    , ( "height", "24px" )
-    , ( "padding", "5px" )
-    , ( "opacity"
-      , if enabled then
-            "1"
-
-        else
-            "0.5"
-      )
-    ]
-        ++ (if hovered then
-                [ ( "background-color", Colors.paginationHover )
-                , ( "border-radius", "50%" )
-                ]
-
-            else
-                []
-           )
 
 
 viewPaginationBar : Model -> Html Msg
