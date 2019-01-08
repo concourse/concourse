@@ -1144,6 +1144,61 @@ all =
                     Resource.Hover Resource.None
                 }
             ]
+        , test "check status bar lays out horizontally maximing space" <|
+            \_ ->
+                init
+                    |> givenResourceIsNotPinned
+                    |> queryView
+                    |> Query.find [ class "resource-check-status" ]
+                    |> Query.find [ class "header" ]
+                    |> Query.has
+                        [ style
+                            [ ( "display", "flex" )
+                            , ( "justify-content", "space-between" )
+                            ]
+                        ]
+        , test "successful check shows a checkmark on the right" <|
+            \_ ->
+                init
+                    |> givenResourceIsNotPinned
+                    |> queryView
+                    |> Query.find [ class "resource-check-status" ]
+                    |> Query.has
+                        (iconSelector
+                            { size = "28px"
+                            , image = "ic-success-check.svg"
+                            }
+                            ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                        )
+        , test "unsuccessful check shows a warning icon on the right" <|
+            \_ ->
+                init
+                    |> Resource.update
+                        (Resource.ResourceFetched <|
+                            Ok
+                                { teamName = teamName
+                                , pipelineName = pipelineName
+                                , name = resourceName
+                                , failingToCheck = True
+                                , checkError = "some error"
+                                , checkSetupError = ""
+                                , lastChecked = Nothing
+                                , pinnedVersion = Nothing
+                                , pinnedInConfig = False
+                                }
+                        )
+                    |> Tuple.first
+                    |> queryView
+                    |> Query.find [ class "resource-check-status" ]
+                    |> Query.has
+                        (iconSelector
+                            { size = "28px"
+                            , image = "ic_exclamation-triangle.svg"
+                            }
+                            ++ [ style [ ( "background-size", "14px 14px" ) ]
+                               , containing [ text "some error" ]
+                               ]
+                        )
         ]
 
 

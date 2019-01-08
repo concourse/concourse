@@ -694,11 +694,10 @@ view model =
 
     else
         let
-            ( checkStatus, checkMessage, stepBody ) =
+            ( checkMessage, stepBody ) =
                 if model.failingToCheck then
                     if not (String.isEmpty model.checkSetupError) then
-                        ( "fr errored fa fa-fw fa-exclamation-triangle"
-                        , "checking failed"
+                        ( "checking failed"
                         , [ Html.div [ class "step-body" ]
                                 [ Html.pre [] [ Html.text model.checkSetupError ]
                                 ]
@@ -706,8 +705,7 @@ view model =
                         )
 
                     else
-                        ( "fr errored fa fa-fw fa-exclamation-triangle"
-                        , "checking failed"
+                        ( "checking failed"
                         , [ Html.div [ class "step-body" ]
                                 [ Html.pre [] [ Html.text model.checkError ]
                                 ]
@@ -715,7 +713,7 @@ view model =
                         )
 
                 else
-                    ( "fr succeeded fa fa-fw fa-check", "checking successfully", [] )
+                    ( "checking successfully", [] )
 
             previousButtonEvent =
                 case model.versions.pagination.previousPage of
@@ -874,9 +872,20 @@ view model =
                 [ Html.div [ class "resource-check-status" ]
                     [ Html.div [ class "build-step" ]
                         (List.append
-                            [ Html.div [ class "header" ]
+                            [ Html.div
+                                [ class "header"
+                                , style
+                                    [ ( "display", "flex" )
+                                    , ( "justify-content", "space-between" )
+                                    ]
+                                ]
                                 [ Html.h3 [] [ Html.text checkMessage ]
-                                , Html.i [ class <| checkStatus ] []
+                                , Html.div
+                                    [ style <|
+                                        Resource.Styles.checkStatusIcon
+                                            model.failingToCheck
+                                    ]
+                                    []
                                 ]
                             ]
                             stepBody
