@@ -42,6 +42,7 @@ func NewScanRunnerFactory(
 	clock clock.Clock,
 	externalURL string,
 	variables creds.Variables,
+	containerExpiries db.ContainerOwnerExpiries,
 ) ScanRunnerFactory {
 	resourceTypeScanner := NewResourceTypeScanner(
 		clock,
@@ -51,6 +52,7 @@ func NewScanRunnerFactory(
 		dbPipeline,
 		externalURL,
 		variables,
+		containerExpiries,
 	)
 
 	resourceScanner := NewResourceScanner(
@@ -62,6 +64,7 @@ func NewScanRunnerFactory(
 		externalURL,
 		variables,
 		resourceTypeScanner,
+		containerExpiries,
 	)
 	return &scanRunnerFactory{
 		clock:               clock,

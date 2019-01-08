@@ -105,6 +105,7 @@ type RunCommand struct {
 	GlobalResourceCheckTimeout   time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
 	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
 	ResourceTypeCheckingInterval time.Duration `long:"resource-type-checking-interval" default:"1m" description:"Interval on which to check for new versions of resource types."`
+	CheckContainerDuration       time.Duration `long:"check-container-duration" default:"1h" description:"Maximum duration for check container life cycle"`
 
 	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"least-build-containers" description:"Method by which a worker is selected during container placement."`
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
@@ -542,6 +543,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		engine,
+		cmd.CheckContainerDuration,
 	)
 
 	radarScannerFactory := radar.NewScannerFactory(
@@ -551,6 +553,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		cmd.ResourceCheckingInterval,
 		cmd.ExternalURL.String(),
 		variablesFactory,
+		cmd.CheckContainerDuration,
 	)
 
 	drain := make(chan struct{})
@@ -738,6 +741,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		engine,
+		cmd.CheckContainerDuration,
 	)
 	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
 	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(dbConn)

@@ -30,6 +30,7 @@ type radarSchedulerFactory struct {
 	resourceTypeCheckingInterval time.Duration
 	resourceCheckingInterval     time.Duration
 	engine                       engine.Engine
+	containerExpiries            db.ContainerOwnerExpiries
 }
 
 func NewRadarSchedulerFactory(
@@ -38,6 +39,7 @@ func NewRadarSchedulerFactory(
 	resourceTypeCheckingInterval time.Duration,
 	resourceCheckingInterval time.Duration,
 	engine engine.Engine,
+	checkDuration time.Duration,
 ) RadarSchedulerFactory {
 	return &radarSchedulerFactory{
 		resourceFactory:              resourceFactory,
@@ -45,11 +47,12 @@ func NewRadarSchedulerFactory(
 		resourceTypeCheckingInterval: resourceTypeCheckingInterval,
 		resourceCheckingInterval:     resourceCheckingInterval,
 		engine:                       engine,
+		containerExpiries:            db.NewContainerExpiries(checkDuration),
 	}
 }
 
 func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string, variables creds.Variables) radar.ScanRunnerFactory {
-	return radar.NewScanRunnerFactory(rsf.resourceFactory, rsf.resourceConfigFactory, rsf.resourceTypeCheckingInterval, rsf.resourceCheckingInterval, dbPipeline, clock.NewClock(), externalURL, variables)
+	return radar.NewScanRunnerFactory(rsf.resourceFactory, rsf.resourceConfigFactory, rsf.resourceTypeCheckingInterval, rsf.resourceCheckingInterval, dbPipeline, clock.NewClock(), externalURL, variables, rsf.containerExpiries)
 }
 
 func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalURL string, variables creds.Variables) scheduler.BuildScheduler {
@@ -62,6 +65,7 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalU
 		pipeline,
 		externalURL,
 		variables,
+		rsf.containerExpiries,
 	)
 
 	scanner := radar.NewResourceScanner(
@@ -73,6 +77,7 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalU
 		externalURL,
 		variables,
 		resourceTypeScanner,
+		rsf.containerExpiries,
 	)
 
 	inputMapper := inputmapper.NewInputMapper(

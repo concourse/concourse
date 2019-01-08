@@ -28,6 +28,7 @@ type resourceScanner struct {
 	externalURL           string
 	variables             creds.Variables
 	typeScanner           Scanner
+	containerExpiries     db.ContainerOwnerExpiries
 }
 
 func NewResourceScanner(
@@ -39,6 +40,7 @@ func NewResourceScanner(
 	externalURL string,
 	variables creds.Variables,
 	typeScanner Scanner,
+	containerExpiries db.ContainerOwnerExpiries,
 ) Scanner {
 	return &resourceScanner{
 		clock:                 clock,
@@ -49,6 +51,7 @@ func NewResourceScanner(
 		externalURL:           externalURL,
 		variables:             variables,
 		typeScanner:           typeScanner,
+		containerExpiries:     containerExpiries,
 	}
 }
 
@@ -289,7 +292,7 @@ func (scanner *resourceScanner) check(
 	res, err := scanner.resourceFactory.NewResource(
 		context.Background(),
 		logger,
-		db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, ContainerExpiries),
+		db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, scanner.containerExpiries),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},

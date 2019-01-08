@@ -15,7 +15,6 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
-	"github.com/concourse/concourse/atc/radar"
 	"github.com/concourse/concourse/atc/radar/radarfakes"
 	"github.com/concourse/concourse/atc/worker"
 
@@ -49,6 +48,8 @@ var _ = Describe("ResourceScanner", func() {
 
 		fakeLock *lockfakes.FakeLock
 		teamID   = 123
+
+		containerExpiries db.ContainerOwnerExpiries
 	)
 
 	BeforeEach(func() {
@@ -110,6 +111,12 @@ var _ = Describe("ResourceScanner", func() {
 
 		fakeResourceTypeScanner = new(radarfakes.FakeScanner)
 
+		containerExpiries = db.ContainerOwnerExpiries{
+			GraceTime: 2 * time.Minute,
+			Min:       5 * time.Minute,
+			Max:       1 * time.Hour,
+		}
+
 		scanner = NewResourceScanner(
 			fakeClock,
 			fakeResourceFactory,
@@ -119,6 +126,7 @@ var _ = Describe("ResourceScanner", func() {
 			"https://www.example.com",
 			variables,
 			fakeResourceTypeScanner,
+			containerExpiries,
 		)
 	})
 
@@ -175,7 +183,7 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(err).To(BeNil())
 
 				_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
+				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, containerExpiries)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))
@@ -522,7 +530,7 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(err).To(BeNil())
 
 				_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
+				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, containerExpiries)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))

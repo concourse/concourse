@@ -43,6 +43,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		fakeLock *lockfakes.FakeLock
 		teamID   = 123
+
+		containerExpiries db.ContainerOwnerExpiries
 	)
 
 	BeforeEach(func() {
@@ -86,6 +88,12 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
 		fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
 
+		containerExpiries = db.ContainerOwnerExpiries{
+			GraceTime: 2 * time.Minute,
+			Min:       5 * time.Minute,
+			Max:       1 * time.Hour,
+		}
+
 		scanner = NewResourceTypeScanner(
 			fakeClock,
 			fakeResourceFactory,
@@ -94,6 +102,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 			fakeDBPipeline,
 			"https://www.example.com",
 			variables,
+			containerExpiries,
 		)
 	})
 
@@ -145,7 +154,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 				_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
+				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, containerExpiries)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))
@@ -197,7 +206,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 					Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 					_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
+					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, containerExpiries)))
 					Expect(metadata).To(Equal(db.ContainerMetadata{
 						Type: db.ContainerTypeCheck,
 					}))
@@ -409,7 +418,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 				_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
+				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, containerExpiries)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))
@@ -528,7 +537,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 					Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 					_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
-					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
+					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, containerExpiries)))
 					Expect(metadata).To(Equal(db.ContainerMetadata{
 						Type: db.ContainerTypeCheck,
 					}))

@@ -22,6 +22,7 @@ type resourceTypeScanner struct {
 	dbPipeline            db.Pipeline
 	externalURL           string
 	variables             creds.Variables
+	containerExpiries     db.ContainerOwnerExpiries
 }
 
 func NewResourceTypeScanner(
@@ -32,6 +33,7 @@ func NewResourceTypeScanner(
 	dbPipeline db.Pipeline,
 	externalURL string,
 	variables creds.Variables,
+	containerExpiries db.ContainerOwnerExpiries,
 ) Scanner {
 	return &resourceTypeScanner{
 		clock:                 clock,
@@ -41,6 +43,7 @@ func NewResourceTypeScanner(
 		dbPipeline:            dbPipeline,
 		externalURL:           externalURL,
 		variables:             variables,
+		containerExpiries:     containerExpiries,
 	}
 }
 
@@ -226,7 +229,7 @@ func (scanner *resourceTypeScanner) check(
 	res, err := scanner.resourceFactory.NewResource(
 		context.Background(),
 		logger,
-		db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, ContainerExpiries),
+		db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, scanner.containerExpiries),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},

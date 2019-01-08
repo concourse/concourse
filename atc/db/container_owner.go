@@ -146,6 +146,14 @@ type ContainerOwnerExpiries struct {
 	Max       time.Duration
 }
 
+func NewContainerExpiries(duration time.Duration) ContainerOwnerExpiries {
+	return ContainerOwnerExpiries{
+		GraceTime: 2 * time.Minute,
+		Min:       5 * time.Minute,
+		Max:       duration,
+	}
+}
+
 func (c resourceConfigCheckSessionContainerOwner) Find(conn Conn) (sq.Eq, bool, error) {
 	var id int
 	err := psql.Select("id").

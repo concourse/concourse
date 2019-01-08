@@ -25,12 +25,7 @@ type scannerFactory struct {
 	resourceCheckingInterval     time.Duration
 	externalURL                  string
 	variablesFactory             creds.VariablesFactory
-}
-
-var ContainerExpiries = db.ContainerOwnerExpiries{
-	GraceTime: 2 * time.Minute,
-	Min:       5 * time.Minute,
-	Max:       1 * time.Hour,
+	containerExpiries            db.ContainerOwnerExpiries
 }
 
 func NewScannerFactory(
@@ -40,6 +35,7 @@ func NewScannerFactory(
 	resourceCheckingInterval time.Duration,
 	externalURL string,
 	variablesFactory creds.VariablesFactory,
+	checkDuration time.Duration,
 ) ScannerFactory {
 	return &scannerFactory{
 		resourceFactory:              resourceFactory,
@@ -48,6 +44,7 @@ func NewScannerFactory(
 		resourceTypeCheckingInterval: resourceTypeCheckingInterval,
 		externalURL:                  externalURL,
 		variablesFactory:             variablesFactory,
+		containerExpiries:            db.NewContainerExpiries(checkDuration),
 	}
 }
 
@@ -62,6 +59,7 @@ func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
 		dbPipeline,
 		f.externalURL,
 		variables,
+		f.containerExpiries,
 	)
 
 	return NewResourceScanner(
@@ -73,6 +71,7 @@ func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
 		f.externalURL,
 		variables,
 		resourceTypeScanner,
+		f.containerExpiries,
 	)
 }
 
@@ -87,5 +86,6 @@ func (f *scannerFactory) NewResourceTypeScanner(dbPipeline db.Pipeline) Scanner 
 		dbPipeline,
 		f.externalURL,
 		variables,
+		f.containerExpiries,
 	)
 }
