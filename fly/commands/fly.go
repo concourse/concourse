@@ -19,7 +19,7 @@ type FlyCommand struct {
 	Status StatusCommand `command:"status" description:"Login status"`
 	Sync   SyncCommand   `command:"sync"  alias:"s" description:"Download and replace the current fly from the target"`
 
-	Userinfo UserinfoCommand `command:"userinfo" description:"User infomation"`
+	Userinfo UserinfoCommand `command:"userinfo" description:"User information"`
 
 	Teams       TeamsCommand       `command:"teams" alias:"t" description:"List the configured teams"`
 	SetTeam     SetTeamCommand     `command:"set-team"  alias:"st" description:"Create or modify a team to have the given credentials"`
