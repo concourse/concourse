@@ -60,7 +60,7 @@ all =
                             [ Query.index 0
                                 >> Query.has
                                     [ style
-                                        [ ( "background-image", "url(/public/images/apple_logo.svg)" )
+                                        [ ( "background-image", "url(/public/images/apple-logo.svg)" )
                                         , ( "background-position", "50% 50%" )
                                         , ( "background-repeat", "no-repeat" )
                                         , ( "width", "12px" )
@@ -71,7 +71,7 @@ all =
                             , Query.index 1
                                 >> Query.has
                                     [ style
-                                        [ ( "background-image", "url(/public/images/windows_logo.svg)" )
+                                        [ ( "background-image", "url(/public/images/windows-logo.svg)" )
                                         , ( "background-position", "50% 50%" )
                                         , ( "background-repeat", "no-repeat" )
                                         , ( "width", "12px" )
@@ -82,7 +82,7 @@ all =
                             , Query.index 2
                                 >> Query.has
                                     [ style
-                                        [ ( "background-image", "url(/public/images/linux_logo.svg)" )
+                                        [ ( "background-image", "url(/public/images/linux-logo.svg)" )
                                         , ( "background-position", "50% 50%" )
                                         , ( "background-repeat", "no-repeat" )
                                         , ( "width", "12px" )
@@ -187,7 +187,7 @@ all =
                         >> Query.first
                         >> Query.has
                             [ style
-                                [ ( "background-image", "url(/public/images/concourse_logo_white.svg)" )
+                                [ ( "background-image", "url(/public/images/concourse-logo-white.svg)" )
                                 , ( "background-position", "50% 50%" )
                                 , ( "background-repeat", "no-repeat" )
                                 , ( "background-size", "42px 42px" )
@@ -207,7 +207,7 @@ all =
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
-                        >> Query.has [ style [ ( "background-image", "url(/public/images/pin_ic_grey.svg)" ) ] ]
+                        >> Query.has [ style [ ( "background-image", "url(/public/images/pin-ic-grey.svg)" ) ] ]
                 , it "mousing over pin icon does nothing if there are no pinned resources" <|
                     Layout.view
                         >> Query.fromHtml
@@ -246,7 +246,7 @@ all =
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
-                        >> Query.has [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
+                        >> Query.has [ style [ ( "background-image", "url(/public/images/pin-ic-white.svg)" ) ] ]
                 , it "pin icon has pin badge when pipeline has pinned resources" <|
                     givenPinnedResource
                         >> Layout.view
@@ -864,7 +864,7 @@ pinBadgeSelector =
 pipelineBreadcrumbSelector : List Selector.Selector
 pipelineBreadcrumbSelector =
     [ style
-        [ ( "background-image", "url(/public/images/ic_breadcrumb_pipeline.svg)" )
+        [ ( "background-image", "url(/public/images/ic-breadcrumb-pipeline.svg)" )
         , ( "background-repeat", "no-repeat" )
         ]
     ]
@@ -873,7 +873,7 @@ pipelineBreadcrumbSelector =
 jobBreadcrumbSelector : List Selector.Selector
 jobBreadcrumbSelector =
     [ style
-        [ ( "background-image", "url(/public/images/ic_breadcrumb_job.svg)" )
+        [ ( "background-image", "url(/public/images/ic-breadcrumb-job.svg)" )
         , ( "background-repeat", "no-repeat" )
         ]
     ]
@@ -882,7 +882,7 @@ jobBreadcrumbSelector =
 resourceBreadcrumbSelector : List Selector.Selector
 resourceBreadcrumbSelector =
     [ style
-        [ ( "background-image", "url(/public/images/ic_breadcrumb_resource.svg)" )
+        [ ( "background-image", "url(/public/images/ic-breadcrumb-resource.svg)" )
         , ( "background-repeat", "no-repeat" )
         ]
     ]

@@ -867,7 +867,7 @@ viewStepState state finished =
 
         StepStateErrored ->
             Html.div
-                [ style <| Styles.stepStatusIcon "ic_exclamation-triangle" ]
+                [ style <| Styles.stepStatusIcon "ic-exclamation-triangle" ]
                 []
 
 

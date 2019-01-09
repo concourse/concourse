@@ -38,10 +38,10 @@ pinIcon { isPinned, isPinnedDynamically, hover } =
     let
         backgroundImage =
             if isPinned then
-                "url(/public/images/pin_ic_white.svg)"
+                "url(/public/images/pin-ic-white.svg)"
 
             else
-                "url(/public/images/pin_ic_grey.svg)"
+                "url(/public/images/pin-ic-grey.svg)"
 
         cursorType =
             if isPinnedDynamically then
@@ -84,7 +84,7 @@ checkStatusIcon failingToCheck =
     let
         icon =
             if failingToCheck then
-                "url(/public/images/ic_exclamation-triangle.svg)"
+                "url(/public/images/ic-exclamation-triangle.svg)"
 
             else
                 "url(/public/images/ic-success-check.svg)"

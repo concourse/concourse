@@ -1129,7 +1129,7 @@ viewEnabledCheckbox { enabled, id, pinState } =
         BoolTransitionable.True ->
             Html.div
                 (baseAttrs
-                    ++ [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ]
+                    ++ [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ]
                        , onClick <| ToggleVersion Disable id
                        ]
                 )
@@ -1174,7 +1174,7 @@ viewPinButton { versionID, pinState } =
                     ++ [ style
                             [ ( "background-color", "#1e1d1d" )
                             , ( "cursor", "pointer" )
-                            , ( "background-image", "url(/public/images/pin_ic_white.svg)" )
+                            , ( "background-image", "url(/public/images/pin-ic-white.svg)" )
                             ]
                        , onClick <| PinVersion versionID
                        ]
@@ -1187,7 +1187,7 @@ viewPinButton { versionID, pinState } =
                     ++ [ style
                             [ ( "background-color", "#1e1d1d" )
                             , ( "cursor", "pointer" )
-                            , ( "background-image", "url(/public/images/pin_ic_white.svg)" )
+                            , ( "background-image", "url(/public/images/pin-ic-white.svg)" )
                             , ( "border", "1px solid " ++ Colors.pinned )
                             ]
                        , onClick UnpinVersion
@@ -1201,7 +1201,7 @@ viewPinButton { versionID, pinState } =
                     ++ [ style
                             [ ( "background-color", "#1e1d1d" )
                             , ( "cursor", "default" )
-                            , ( "background-image", "url(/public/images/pin_ic_white.svg)" )
+                            , ( "background-image", "url(/public/images/pin-ic-white.svg)" )
                             , ( "border", "1px solid " ++ Colors.pinned )
                             ]
                        , onMouseOut ToggleVersionTooltip
@@ -1232,7 +1232,7 @@ viewPinButton { versionID, pinState } =
                     ++ [ style
                             [ ( "background-color", "#1e1d1d" )
                             , ( "cursor", "default" )
-                            , ( "background-image", "url(/public/images/pin_ic_white.svg)" )
+                            , ( "background-image", "url(/public/images/pin-ic-white.svg)" )
                             ]
                        ]
                 )

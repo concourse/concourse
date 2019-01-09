@@ -1,4 +1,20 @@
-module NewTopBar.Styles exposing (..)
+module NewTopBar.Styles exposing
+    ( concourseLogo
+    , logoutButton
+    , menuButton
+    , menuItem
+    , middleSection
+    , pageHeaderHeight
+    , searchButton
+    , searchClearButton
+    , searchForm
+    , searchInput
+    , searchOption
+    , searchOptionsList
+    , topBar
+    , userInfo
+    , userName
+    )
 
 import Css exposing (..)
 import ScreenSize exposing (ScreenSize(..))
@@ -24,7 +40,7 @@ topBar =
 
 concourseLogo : List Style
 concourseLogo =
-    [ backgroundImage <| url "public/images/concourse_logo_white.svg"
+    [ backgroundImage <| url "public/images/concourse-logo-white.svg"
     , backgroundSize2 (px 42) (px 42)
     , backgroundPosition center
     , backgroundRepeat noRepeat
@@ -46,6 +62,7 @@ middleSection { searchBar, screenSize, highDensity } =
         flexLayout =
             if highDensity then
                 []
+
             else
                 case searchBar of
                     Expanded _ ->
@@ -62,14 +79,14 @@ middleSection { searchBar, screenSize, highDensity } =
                     Collapsed ->
                         [ alignItems flexStart ]
     in
-        [ displayFlex
-        , flexDirection column
-        , flexGrow <| num 1
-        , justifyContent center
-        , padding <| px 12
-        , position relative
-        ]
-            ++ flexLayout
+    [ displayFlex
+    , flexDirection column
+    , flexGrow <| num 1
+    , justifyContent center
+    , padding <| px 12
+    , position relative
+    ]
+        ++ flexLayout
 
 
 searchForm : List Style
@@ -95,22 +112,22 @@ searchInput screenSize =
                 BigDesktop ->
                     [ width <| px 220 ]
     in
-        [ backgroundColor transparent
-        , backgroundImage <| url "public/images/ic_search_white_24px.svg"
-        , backgroundRepeat noRepeat
-        , backgroundPosition2 (px 12) (px 8)
-        , border3 (px 1) solid (hex "504b4b")
-        , color <| hex "fff"
-        , fontSize <| em 1.15
-        , fontFamilies [ "Inconsolata", .value monospace ]
-        , height <| px 30
-        , padding2 zero <| px 42
-        , focus
-            [ border3 (px 1) solid (hex "504b4b")
-            , outline zero
-            ]
+    [ backgroundColor transparent
+    , backgroundImage <| url "public/images/ic-search-white-24px.svg"
+    , backgroundRepeat noRepeat
+    , backgroundPosition2 (px 12) (px 8)
+    , border3 (px 1) solid (hex "504b4b")
+    , color <| hex "fff"
+    , fontSize <| em 1.15
+    , fontFamilies [ "Inconsolata", .value monospace ]
+    , height <| px 30
+    , padding2 zero <| px 42
+    , focus
+        [ border3 (px 1) solid (hex "504b4b")
+        , outline zero
         ]
-            ++ widthStyles
+    ]
+        ++ widthStyles
 
 
 searchClearButton : Bool -> List Style
@@ -119,21 +136,22 @@ searchClearButton active =
         opacityValue =
             if active then
                 1
+
             else
                 0.2
     in
-        [ backgroundImage <| url "public/images/ic_close_white_24px.svg"
-        , backgroundPosition2 (px 10) (px 10)
-        , backgroundRepeat noRepeat
-        , border zero
-        , cursor pointer
-        , color <| hex "504b4b"
-        , cursor pointer
-        , position absolute
-        , right zero
-        , padding <| px 17
-        , opacity <| num opacityValue
-        ]
+    [ backgroundImage <| url "public/images/ic-close-white-24px.svg"
+    , backgroundPosition2 (px 10) (px 10)
+    , backgroundRepeat noRepeat
+    , border zero
+    , cursor pointer
+    , color <| hex "504b4b"
+    , cursor pointer
+    , position absolute
+    , right zero
+    , padding <| px 17
+    , opacity <| num opacityValue
+    ]
 
 
 searchOptionsList : ScreenSize -> List Style
@@ -172,6 +190,7 @@ searchOption { screenSize, active } =
                 [ backgroundColor <| hex "1e1d1d"
                 , color <| hex "fff"
                 ]
+
             else
                 []
 
@@ -191,12 +210,12 @@ searchOption { screenSize, active } =
             , color <| hex "9b9b9b"
             ]
     in
-        layout ++ styling ++ widthStyles ++ activeStyles
+    layout ++ styling ++ widthStyles ++ activeStyles
 
 
 searchButton : List Style
 searchButton =
-    [ backgroundImage (url "public/images/ic_search_white_24px.svg")
+    [ backgroundImage (url "public/images/ic-search-white-24px.svg")
     , backgroundRepeat noRepeat
     , backgroundPosition2 (px 13) (px 9)
     , height (px 32)

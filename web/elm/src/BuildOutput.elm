@@ -12,13 +12,23 @@ import Ansi.Log
 import Array exposing (Array)
 import Build.Effects exposing (Effect(..))
 import Build.Msgs exposing (Msg(..))
+import Build.Styles as Styles
 import Concourse
 import Concourse.BuildEvents
 import Concourse.BuildStatus
 import Date exposing (Date)
 import Dict exposing (Dict)
 import Html exposing (Html)
-import Html.Attributes exposing (action, class, classList, id, method, title)
+import Html.Attributes
+    exposing
+        ( action
+        , class
+        , classList
+        , id
+        , method
+        , style
+        , title
+        )
 import Http
 import LoadingIndicator
 import NotAuthorized
@@ -385,8 +395,16 @@ viewErrors errors =
         Just log ->
             Html.div [ class "build-step" ]
                 [ Html.div [ class "header" ]
-                    [ Html.i [ class "left fa fa-fw fa-exclamation-triangle" ] []
+                    [ Html.div
+                        [ style <|
+                            Styles.stepStatusIcon "ic-exclamation-triangle"
+                        ]
+                        []
                     , Html.h3 [] [ Html.text "error" ]
                     ]
-                , Html.div [ class "step-body build-errors-body" ] [ Ansi.Log.view log ]
+                , Html.div [ class "step-body build-errors-body" ]
+                    [ Html.pre
+                        []
+                        (Array.toList (Array.map Ansi.Log.viewLine log.lines))
+                    ]
                 ]

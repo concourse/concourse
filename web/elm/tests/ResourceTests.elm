@@ -198,10 +198,10 @@ all =
                         |> Expect.all
                             [ Query.find (versionSelector version)
                                 >> Query.find checkboxSelector
-                                >> Query.has [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+                                >> Query.has [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
                             , Query.find (versionSelector otherVersion)
                                 >> Query.find checkboxSelector
-                                >> Query.has [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+                                >> Query.has [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
                             ]
             , test "disabled versions do not have checkmarks" <|
                 \_ ->
@@ -211,7 +211,7 @@ all =
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
                         |> Query.find checkboxSelector
-                        |> Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+                        |> Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
             , test "clicking the checkbox on an enabled version triggers a ToggleVersion msg" <|
                 \_ ->
                     init
@@ -759,7 +759,7 @@ all =
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
-                        |> Query.has [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
+                        |> Query.has [ style [ ( "background-image", "url(/public/images/pin-ic-white.svg)" ) ] ]
             , test "does not show tooltip on the pin button on ToggleVersionTooltip" <|
                 \_ ->
                     init
@@ -783,7 +783,7 @@ all =
                         |> givenResourcePinnedDynamically
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
-                        |> Query.has [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
+                        |> Query.has [ style [ ( "background-image", "url(/public/images/pin-ic-white.svg)" ) ] ]
             , test "all pin buttons have dark background" <|
                 \_ ->
                     init
@@ -1031,7 +1031,7 @@ all =
                                     , containing
                                         (iconSelector
                                             { image =
-                                                "baseline-chevron_left-24px.svg"
+                                                "baseline-chevron-left-24px.svg"
                                             , size = "24px"
                                             }
                                             ++ [ style
@@ -1054,7 +1054,7 @@ all =
                                     , containing
                                         (iconSelector
                                             { image =
-                                                "baseline-chevron_right-24px.svg"
+                                                "baseline-chevron-right-24px.svg"
                                             , size = "24px"
                                             }
                                             ++ [ style
@@ -1095,7 +1095,7 @@ all =
                         , containing
                             (iconSelector
                                 { image =
-                                    "baseline-chevron_left-24px.svg"
+                                    "baseline-chevron-left-24px.svg"
                                 , size = "24px"
                                 }
                                 ++ [ style
@@ -1122,7 +1122,7 @@ all =
                         , containing
                             (iconSelector
                                 { image =
-                                    "baseline-chevron_left-24px.svg"
+                                    "baseline-chevron-left-24px.svg"
                                 , size = "24px"
                                 }
                                 ++ [ style
@@ -1193,7 +1193,7 @@ all =
                     |> Query.has
                         (iconSelector
                             { size = "28px"
-                            , image = "ic_exclamation-triangle.svg"
+                            , image = "ic-exclamation-triangle.svg"
                             }
                             ++ [ style [ ( "background-size", "14px 14px" ) ]
                                , containing [ text "some error" ]
@@ -1439,14 +1439,14 @@ pinButtonHasTransitionState : Query.Single msg -> Expectation
 pinButtonHasTransitionState =
     Expect.all
         [ Query.has loadingSpinnerSelector
-        , Query.hasNot [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
+        , Query.hasNot [ style [ ( "background-image", "url(/public/images/pin-ic-white.svg)" ) ] ]
         ]
 
 
 pinButtonHasUnpinnedState : Query.Single msg -> Expectation
 pinButtonHasUnpinnedState =
     Expect.all
-        [ Query.has [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
+        [ Query.has [ style [ ( "background-image", "url(/public/images/pin-ic-white.svg)" ) ] ]
         , Query.hasNot purpleOutlineSelector
         ]
 
@@ -1456,7 +1456,7 @@ pinBarHasUnpinnedState =
     Query.find [ id "pin-bar" ]
         >> Expect.all
             [ Query.has [ style [ ( "border", "1px solid " ++ lightGreyHex ) ] ]
-            , Query.findAll [ style [ ( "background-image", "url(/public/images/pin_ic_grey.svg)" ) ] ]
+            , Query.findAll [ style [ ( "background-image", "url(/public/images/pin-ic-grey.svg)" ) ] ]
                 >> Query.count (Expect.equal 1)
             , Query.hasNot [ tag "table" ]
             ]
@@ -1468,7 +1468,7 @@ pinBarHasPinnedState version =
         >> Expect.all
             [ Query.has [ style [ ( "border", "1px solid " ++ purpleHex ) ] ]
             , Query.has [ text version ]
-            , Query.findAll [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
+            , Query.findAll [ style [ ( "background-image", "url(/public/images/pin-ic-white.svg)" ) ] ]
                 >> Query.count (Expect.equal 1)
             ]
 
@@ -1482,7 +1482,7 @@ checkboxHasTransitionState : Query.Single msg -> Expectation
 checkboxHasTransitionState =
     Expect.all
         [ Query.has loadingSpinnerSelector
-        , Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+        , Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
         ]
 
 
@@ -1490,7 +1490,7 @@ checkboxHasDisabledState : Query.Single msg -> Expectation
 checkboxHasDisabledState =
     Expect.all
         [ Query.hasNot loadingSpinnerSelector
-        , Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+        , Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
         ]
 
 
@@ -1498,7 +1498,7 @@ checkboxHasEnabledState : Query.Single msg -> Expectation
 checkboxHasEnabledState =
     Expect.all
         [ Query.hasNot loadingSpinnerSelector
-        , Query.has [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+        , Query.has [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
         ]
 
 

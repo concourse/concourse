@@ -175,7 +175,7 @@ visibilityView public =
                     "url(/public/images/baseline-visibility-24px.svg)"
 
                 else
-                    "url(/public/images/baseline-visibility_off-24px.svg)"
+                    "url(/public/images/baseline-visibility-off-24px.svg)"
               )
             , ( "background-position", "50% 50%" )
             , ( "background-repeat", "no-repeat" )
@@ -238,10 +238,10 @@ pauseToggleView pipeline hovered =
             [ ( "background-image"
               , case pipeline.status of
                     PipelineStatus.PipelineStatusPaused ->
-                        "url(/public/images/ic_play_white.svg)"
+                        "url(/public/images/ic-play-white.svg)"
 
                     _ ->
-                        "url(/public/images/ic_pause_white.svg)"
+                        "url(/public/images/ic-pause-white.svg)"
               )
             , ( "background-position", "50% 50%" )
             , ( "background-repeat", "no-repeat" )

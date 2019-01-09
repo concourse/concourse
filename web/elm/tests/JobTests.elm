@@ -177,7 +177,7 @@ all =
                         [ style [ ( "opacity", "0.5" ) ] ]
                             ++ iconSelector
                                 { size = "40px"
-                                , image = "ic_pause_circle_outline_white.svg"
+                                , image = "ic-pause-circle-outline-white.svg"
                                 }
                     }
                 , hoveredSelector =
@@ -186,7 +186,7 @@ all =
                         [ style [ ( "opacity", "1" ) ] ]
                             ++ iconSelector
                                 { size = "40px"
-                                , image = "ic_pause_circle_outline_white.svg"
+                                , image = "ic-pause-circle-outline-white.svg"
                                 }
                     }
                 , mouseEnterMsg =
@@ -213,7 +213,7 @@ all =
                         [ style [ ( "opacity", "0.5" ) ] ]
                             ++ iconSelector
                                 { size = "40px"
-                                , image = "ic-play_circle_outline.svg"
+                                , image = "ic-play-circle-outline.svg"
                                 }
                     }
                 , hoveredSelector =
@@ -222,7 +222,7 @@ all =
                         [ style [ ( "opacity", "1" ) ] ]
                             ++ iconSelector
                                 { size = "40px"
-                                , image = "ic-play_circle_outline.svg"
+                                , image = "ic-play-circle-outline.svg"
                                 }
                     }
                 , mouseEnterMsg =
@@ -263,7 +263,7 @@ all =
                     >> Query.has
                         (iconSelector
                             { size = "40px"
-                            , image = "ic_add_circle_outline_white.svg"
+                            , image = "ic-add-circle-outline-white.svg"
                             }
                         )
             , defineHoverBehaviour
@@ -284,7 +284,7 @@ all =
                         [ style [ ( "opacity", "0.5" ) ] ]
                             ++ iconSelector
                                 { size = "40px"
-                                , image = "ic_add_circle_outline_white.svg"
+                                , image = "ic-add-circle-outline-white.svg"
                                 }
                     }
                 , hoveredSelector =
@@ -293,7 +293,7 @@ all =
                         [ style [ ( "opacity", "1" ) ] ]
                             ++ iconSelector
                                 { size = "40px"
-                                , image = "ic_add_circle_outline_white.svg"
+                                , image = "ic-add-circle-outline-white.svg"
                                 }
                     }
                 , mouseEnterMsg =
@@ -323,7 +323,7 @@ all =
                         [ style [ ( "opacity", "0.5" ) ] ]
                             ++ iconSelector
                                 { size = "40px"
-                                , image = "ic_add_circle_outline_white.svg"
+                                , image = "ic-add-circle-outline-white.svg"
                                 }
                     }
                 , hoveredSelector =
@@ -352,7 +352,7 @@ all =
                             ]
                                 ++ iconSelector
                                     { size = "40px"
-                                    , image = "ic_add_circle_outline_white.svg"
+                                    , image = "ic-add-circle-outline-white.svg"
                                     }
                         ]
                     }
@@ -421,7 +421,7 @@ all =
                             >> Query.has
                                 (iconSelector
                                     { size = "12px"
-                                    , image = "ic_arrow_downward.svg"
+                                    , image = "ic-arrow-downward.svg"
                                     }
                                     ++ [ style
                                             [ ( "background-size"
@@ -488,7 +488,7 @@ all =
                             >> Query.has
                                 (iconSelector
                                     { size = "12px"
-                                    , image = "ic_arrow_upward.svg"
+                                    , image = "ic-arrow-upward.svg"
                                     }
                                     ++ [ style
                                             [ ( "background-size"
@@ -594,7 +594,7 @@ all =
                                 , containing
                                     (iconSelector
                                         { image =
-                                            "baseline-chevron_left-24px.svg"
+                                            "baseline-chevron-left-24px.svg"
                                         , size = "24px"
                                         }
                                         ++ [ style
@@ -617,7 +617,7 @@ all =
                                 , containing
                                     (iconSelector
                                         { image =
-                                            "baseline-chevron_right-24px.svg"
+                                            "baseline-chevron-right-24px.svg"
                                         , size = "24px"
                                         }
                                         ++ [ style
@@ -699,7 +699,7 @@ all =
                         , containing
                             (iconSelector
                                 { image =
-                                    "baseline-chevron_left-24px.svg"
+                                    "baseline-chevron-left-24px.svg"
                                 , size = "24px"
                                 }
                                 ++ [ style
@@ -726,7 +726,7 @@ all =
                         , containing
                             (iconSelector
                                 { image =
-                                    "baseline-chevron_left-24px.svg"
+                                    "baseline-chevron-left-24px.svg"
                                 , size = "24px"
                                 }
                                 ++ [ style

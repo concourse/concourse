@@ -8,7 +8,6 @@ import Concourse.Info
 import Concourse.Job
 import Concourse.Pipeline
 import Concourse.Resource
-import Dashboard.Styles exposing (infoCliIcon)
 import Html exposing (Html)
 import Html.Attributes exposing (class, height, href, id, src, style, width)
 import Html.Attributes.Aria exposing (ariaLabel)
@@ -664,7 +663,7 @@ cliIcon : String -> List ( String, String )
 cliIcon image =
     [ ( "width", "12px" )
     , ( "height", "12px" )
-    , ( "background-image", "url(/public/images/" ++ image ++ "_logo.svg)" )
+    , ( "background-image", "url(/public/images/" ++ image ++ "-logo.svg)" )
     , ( "background-repeat", "no-repeat" )
     , ( "background-position", "50% 50%" )
     , ( "background-size", "contain" )

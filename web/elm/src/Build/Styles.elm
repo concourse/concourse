@@ -36,7 +36,7 @@ triggerIcon hovered =
     , ( "height", "40px" )
     , ( "background-position", "50% 50%" )
     , ( "background-image"
-      , "url(/public/images/ic_add_circle_outline_white.svg)"
+      , "url(/public/images/ic-add-circle-outline-white.svg)"
       )
     , ( "background-repeat", "no-repeat" )
     , ( "opacity"
@@ -80,7 +80,7 @@ abortIcon hovered =
     , ( "height", "40px" )
     , ( "background-position", "50% 50%" )
     , ( "background-image"
-      , "url(/public/images/ic_abort_circle_outline_white.svg)"
+      , "url(/public/images/ic-abort-circle-outline-white.svg)"
       )
     , ( "background-repeat", "no-repeat" )
     , ( "opacity"
@@ -112,10 +112,10 @@ stepHeaderIcon icon =
         image =
             case icon of
                 ArrowDown ->
-                    "arrow_downward"
+                    "arrow-downward"
 
                 ArrowUp ->
-                    "arrow_upward"
+                    "arrow-upward"
 
                 Terminal ->
                     "terminal"
@@ -123,7 +123,7 @@ stepHeaderIcon icon =
     [ ( "height", "28px" )
     , ( "width", "28px" )
     , ( "background-image"
-      , "url(/public/images/ic_" ++ image ++ ".svg)"
+      , "url(/public/images/ic-" ++ image ++ ".svg)"
       )
     , ( "background-repeat", "no-repeat" )
     , ( "background-position", "50% 50%" )

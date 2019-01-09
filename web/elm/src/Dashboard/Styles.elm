@@ -217,9 +217,7 @@ pipelineCardBannerHd { status, pipelineRunningKeyframes } =
         isRunning =
             Concourse.PipelineStatus.isRunning status
     in
-    [ ( "width", "8px" )
-    , ( "background-size", "35px" )
-    ]
+    [ ( "width", "8px" ) ]
         ++ texture pipelineRunningKeyframes isRunning color
 
 
@@ -233,6 +231,7 @@ striped pipelineRunningKeyframes color =
     [ ( "background-image"
       , withStripes color Colors.card
       )
+    , ( "background-size", "106px 114px" )
     , ( "animation"
       , pipelineRunningKeyframes ++ " 3s linear infinite"
       )
@@ -276,22 +275,22 @@ pipelineStatusIcon pipelineStatus =
         image =
             case pipelineStatus of
                 PipelineStatusPaused ->
-                    "ic_pause_blue.svg"
+                    "ic-pause-blue.svg"
 
                 PipelineStatusPending _ ->
-                    "ic_pending_grey.svg"
+                    "ic-pending-grey.svg"
 
                 PipelineStatusSucceeded _ ->
-                    "ic_running_green.svg"
+                    "ic-running-green.svg"
 
                 PipelineStatusFailed _ ->
-                    "ic_failing_red.svg"
+                    "ic-failing-red.svg"
 
                 PipelineStatusAborted _ ->
-                    "ic_aborted_brown.svg"
+                    "ic-aborted-brown.svg"
 
                 PipelineStatusErrored _ ->
-                    "ic_error_orange.svg"
+                    "ic-error-orange.svg"
     in
     [ ( "background-image", "url(/public/images/" ++ image ++ ")" )
     , ( "height", "20px" )
@@ -384,10 +383,10 @@ highDensityIcon : Bool -> List ( String, String )
 highDensityIcon highDensity =
     [ ( "background-image"
       , if highDensity then
-            "url(/public/images/ic_hd_on.svg)"
+            "url(/public/images/ic-hd-on.svg)"
 
         else
-            "url(/public/images/ic_hd_off.svg)"
+            "url(/public/images/ic-hd-off.svg)"
       )
     , ( "background-size", "contain" )
     , ( "height", "20px" )
@@ -418,7 +417,7 @@ infoCliIcon { hovered, image } =
     [ ( "margin-right", "10px" )
     , ( "width", "20px" )
     , ( "height", "20px" )
-    , ( "background-image", "url(/public/images/" ++ image ++ "_logo.svg)" )
+    , ( "background-image", "url(/public/images/" ++ image ++ "-logo.svg)" )
     , ( "background-repeat", "no-repeat" )
     , ( "background-position", "50% 50%" )
     , ( "background-size", "contain" )
@@ -487,7 +486,7 @@ resourceErrorTriangle =
 
 runningLegendItem : List ( String, String )
 runningLegendItem =
-    [ ( "background-image", "url(/public/images/ic_running_legend.svg)" )
+    [ ( "background-image", "url(/public/images/ic-running-legend.svg)" )
     , ( "height", "20px" )
     , ( "width", "20px" )
     , ( "background-repeat", "no-repeat" )

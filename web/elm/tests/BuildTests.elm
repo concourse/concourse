@@ -338,7 +338,7 @@ all =
                     |> Query.has
                         (iconSelector
                             { size = "40px"
-                            , image = "ic_add_circle_outline_white.svg"
+                            , image = "ic-add-circle-outline-white.svg"
                             }
                         )
         , defineHoverBehaviour
@@ -366,7 +366,7 @@ all =
                     [ style [ ( "opacity", "0.5" ) ] ]
                         ++ iconSelector
                             { size = "40px"
-                            , image = "ic_add_circle_outline_white.svg"
+                            , image = "ic-add-circle-outline-white.svg"
                             }
                 }
             , hoveredSelector =
@@ -375,7 +375,7 @@ all =
                     [ style [ ( "opacity", "1" ) ] ]
                         ++ iconSelector
                             { size = "40px"
-                            , image = "ic_add_circle_outline_white.svg"
+                            , image = "ic-add-circle-outline-white.svg"
                             }
                 }
             , mouseEnterMsg = Msgs.Hover Msgs.Trigger
@@ -406,7 +406,7 @@ all =
                     [ style [ ( "opacity", "0.5" ) ] ]
                         ++ iconSelector
                             { size = "40px"
-                            , image = "ic_add_circle_outline_white.svg"
+                            , image = "ic-add-circle-outline-white.svg"
                             }
                 }
             , hoveredSelector =
@@ -435,7 +435,7 @@ all =
                         ]
                             ++ iconSelector
                                 { size = "40px"
-                                , image = "ic_add_circle_outline_white.svg"
+                                , image = "ic-add-circle-outline-white.svg"
                                 }
                     ]
                 }
@@ -541,7 +541,7 @@ all =
                     |> Query.has
                         (iconSelector
                             { size = "40px"
-                            , image = "ic_abort_circle_outline_white.svg"
+                            , image = "ic-abort-circle-outline-white.svg"
                             }
                         )
         , defineHoverBehaviour
@@ -569,7 +569,7 @@ all =
                     [ style [ ( "opacity", "0.5" ) ] ]
                         ++ iconSelector
                             { size = "40px"
-                            , image = "ic_abort_circle_outline_white.svg"
+                            , image = "ic-abort-circle-outline-white.svg"
                             }
                 }
             , hoveredSelector =
@@ -578,7 +578,7 @@ all =
                     [ style [ ( "opacity", "1" ) ] ]
                         ++ iconSelector
                             { size = "40px"
-                            , image = "ic_abort_circle_outline_white.svg"
+                            , image = "ic-abort-circle-outline-white.svg"
                             }
                 }
             , mouseEnterMsg = Msgs.Hover Msgs.Abort
@@ -643,7 +643,7 @@ all =
                     >> Query.has
                         (iconSelector
                             { size = "28px"
-                            , image = "ic_arrow_downward.svg"
+                            , image = "ic-arrow-downward.svg"
                             }
                             ++ [ style [ ( "background-size", "14px 14px" ) ] ]
                         )
@@ -674,7 +674,7 @@ all =
                         |> Query.has
                             (iconSelector
                                 { size = "28px"
-                                , image = "ic_terminal.svg"
+                                , image = "ic-terminal.svg"
                                 }
                                 ++ [ style
                                         [ ( "background-size", "14px 14px" ) ]
@@ -705,7 +705,7 @@ all =
                         |> Query.has
                             (iconSelector
                                 { size = "28px"
-                                , image = "ic_arrow_upward.svg"
+                                , image = "ic-arrow-upward.svg"
                                 }
                                 ++ [ style
                                         [ ( "background-size", "14px 14px" ) ]
@@ -792,7 +792,33 @@ all =
                     >> Query.has
                         (iconSelector
                             { size = "28px"
-                            , image = "ic_exclamation-triangle.svg"
+                            , image = "ic-exclamation-triangle.svg"
+                            }
+                            ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                        )
+            , test "erroring build has orange exclamation triangle at left" <|
+                setup
+                    >> Build.update (Msgs.BuildEventsMsg BuildEvents.Errored)
+                    >> Tuple.first
+                    >> Build.update
+                        (Msgs.BuildEventsMsg <|
+                            BuildEvents.Events <|
+                                Ok <|
+                                    Array.fromList
+                                        [ BuildEvents.BuildError
+                                            "error message"
+                                        ]
+                        )
+                    >> Tuple.first
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.find [ class "header" ]
+                    >> Query.children []
+                    >> Query.first
+                    >> Query.has
+                        (iconSelector
+                            { size = "28px"
+                            , image = "ic-exclamation-triangle.svg"
                             }
                             ++ [ style [ ( "background-size", "14px 14px" ) ] ]
                         )

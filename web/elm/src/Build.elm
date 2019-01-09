@@ -866,7 +866,7 @@ viewBuildPrep prep =
                         ]
                     ]
                     [ Views.icon
-                        { sizePx = 15, image = "ic_cogs.svg" }
+                        { sizePx = 15, image = "ic-cogs.svg" }
                         [ style
                             [ ( "margin", "6.5px" )
                             , ( "margin-right", "0.5px" )

@@ -466,10 +466,10 @@ view model =
                                         [ ( "background-image"
                                           , "url(/public/images/"
                                                 ++ (if job.paused then
-                                                        "ic-play_circle_outline.svg)"
+                                                        "ic-play-circle-outline.svg)"
 
                                                     else
-                                                        "ic_pause_circle_outline_white.svg)"
+                                                        "ic-pause-circle-outline-white.svg)"
                                                    )
                                           )
                                         , ( "background-position", "50% 50%" )
@@ -780,7 +780,7 @@ buildResourceHeader =
 buildResourceIcon : String -> List ( String, String )
 buildResourceIcon direction =
     [ ( "background-image"
-      , "url(/public/images/ic_arrow_" ++ direction ++ ".svg)"
+      , "url(/public/images/ic-arrow-" ++ direction ++ ".svg)"
       )
     , ( "background-position", "50% 50%" )
     , ( "background-repeat", "no-repeat" )

@@ -301,7 +301,7 @@ chevron :
     -> List ( String, String )
 chevron { direction, enabled, hovered } =
     [ ( "background-image"
-      , "url(/public/images/baseline-chevron_" ++ direction ++ "-24px.svg)"
+      , "url(/public/images/baseline-chevron-" ++ direction ++ "-24px.svg)"
       )
     , ( "background-position", "50% 50%" )
     , ( "background-repeat", "no-repeat" )
