@@ -32,7 +32,7 @@ metrics pipeline.
   This reference section lists of all of the metrics that Concourse emits. We
   don't include the warning and critical levels as they will keep changing as
   we optimise the system. To find those, please refer to the source of truth:
-  \link{the code}{https://github.com/concourse/atc/blob/master/metric/metrics.go}.
+  \link{the code}{https://github.com/concourse/concourse/blob/master/atc/metric/metrics.go}.
 
   \define-metric{scheduling: full duration (ms)}{
     This is the time taken (in milliseconds) to schedule an entire pipeline
