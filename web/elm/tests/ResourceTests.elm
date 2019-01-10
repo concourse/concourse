@@ -4,7 +4,8 @@ import Concourse
 import Concourse.Pagination exposing (Direction(..))
 import DashboardTests
     exposing
-        ( darkGrey
+        ( almostBlack
+        , darkGrey
         , defineHoverBehaviour
         , iconSelector
         , middleGrey
@@ -133,9 +134,17 @@ all =
                             (Ok
                                 [ { id = 0
                                   , name = "some-build"
-                                  , job = Just { teamName = teamName, pipelineName = pipelineName, jobName = "some-job" }
+                                  , job =
+                                        Just
+                                            { teamName = teamName
+                                            , pipelineName = pipelineName
+                                            , jobName = "some-job"
+                                            }
                                   , status = Concourse.BuildStatusSucceeded
-                                  , duration = { startedAt = Nothing, finishedAt = Nothing }
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
                                   , reapTime = Nothing
                                   }
                                 ]
@@ -159,9 +168,17 @@ all =
                             (Ok
                                 [ { id = 0
                                   , name = "some-build"
-                                  , job = Just { teamName = teamName, pipelineName = pipelineName, jobName = "some-job" }
+                                  , job =
+                                        Just
+                                            { teamName = teamName
+                                            , pipelineName = pipelineName
+                                            , jobName = "some-job"
+                                            }
                                   , status = Concourse.BuildStatusSucceeded
-                                  , duration = { startedAt = Nothing, finishedAt = Nothing }
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
                                   , reapTime = Nothing
                                   }
                                 ]
@@ -172,7 +189,11 @@ all =
                     |> queryView
                     |> Query.find (versionSelector version)
                     |> Query.has [ text "some-build" ]
-        , describe "checkboxes"
+        , describe "checkboxes" <|
+            let
+                checkIcon =
+                    "url(/public/images/checkmark-ic.svg)"
+            in
             [ test "there is a checkbox for every version" <|
                 \_ ->
                     init
@@ -188,7 +209,10 @@ all =
                         |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.findAll anyVersionSelector
-                        |> Query.each (Query.find checkboxSelector >> Query.has pointerCursor)
+                        |> Query.each
+                            (Query.find checkboxSelector
+                                >> Query.has pointerCursor
+                            )
             , test "enabled versions have checkmarks" <|
                 \_ ->
                     init
@@ -198,10 +222,16 @@ all =
                         |> Expect.all
                             [ Query.find (versionSelector version)
                                 >> Query.find checkboxSelector
-                                >> Query.has [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
+                                >> Query.has
+                                    [ style
+                                        [ ( "background-image", checkIcon ) ]
+                                    ]
                             , Query.find (versionSelector otherVersion)
                                 >> Query.find checkboxSelector
-                                >> Query.has [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
+                                >> Query.has
+                                    [ style
+                                        [ ( "background-image", checkIcon ) ]
+                                    ]
                             ]
             , test "disabled versions do not have checkmarks" <|
                 \_ ->
@@ -211,8 +241,15 @@ all =
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
                         |> Query.find checkboxSelector
-                        |> Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
-            , test "clicking the checkbox on an enabled version triggers a ToggleVersion msg" <|
+                        |> Query.hasNot
+                            [ style
+                                [ ( "background-image", checkIcon ) ]
+                            ]
+            , test
+                ("clicking the checkbox on an enabled version triggers"
+                    ++ " a ToggleVersion msg"
+                )
+              <|
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
@@ -221,7 +258,8 @@ all =
                         |> Query.find (versionSelector version)
                         |> Query.find checkboxSelector
                         |> Event.simulate Event.click
-                        |> Event.expect (Resource.ToggleVersion Resource.Disable versionID)
+                        |> Event.expect
+                            (Resource.ToggleVersion Resource.Disable versionID)
             , test "receiving a (ToggleVersion Disable) msg causes the relevant checkbox to go into a transition state" <|
                 \_ ->
                     init
@@ -1144,61 +1182,144 @@ all =
                     Resource.Hover Resource.None
                 }
             ]
-        , test "check status bar lays out horizontally maximing space" <|
-            \_ ->
-                init
-                    |> givenResourceIsNotPinned
-                    |> queryView
-                    |> Query.find [ class "resource-check-status" ]
-                    |> Query.find [ class "header" ]
-                    |> Query.has
+        , describe "check bar" <|
+            let
+                checkBar =
+                    queryView
+                        >> Query.find [ class "resource-check-status" ]
+                        >> Query.children []
+                        >> Query.first
+            in
+            [ test "lays out horizontally" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> checkBar
+                        |> Query.has [ style [ ( "display", "flex" ) ] ]
+            , test "has two children: check button and status bar" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> checkBar
+                        |> Query.children []
+                        |> Query.count (Expect.equal 2)
+            , defineHoverBehaviour
+                { name = "check button when unauthenticated"
+                , setup = init |> givenResourceIsNotPinned
+                , query = checkBar >> Query.children [] >> Query.first
+                , unhoveredSelector =
+                    { description = "black button with grey refresh icon"
+                    , selector =
                         [ style
-                            [ ( "display", "flex" )
-                            , ( "justify-content", "space-between" )
+                            [ ( "height", "28px" )
+                            , ( "width", "28px" )
+                            , ( "background-color", almostBlack )
+                            , ( "margin-right", "5px" )
                             ]
-                        ]
-        , test "successful check shows a checkmark on the right" <|
-            \_ ->
-                init
-                    |> givenResourceIsNotPinned
-                    |> queryView
-                    |> Query.find [ class "resource-check-status" ]
-                    |> Query.has
-                        (iconSelector
-                            { size = "28px"
-                            , image = "ic-success-check.svg"
-                            }
-                            ++ [ style [ ( "background-size", "14px 14px" ) ] ]
-                        )
-        , test "unsuccessful check shows a warning icon on the right" <|
-            \_ ->
-                init
-                    |> Resource.update
-                        (Resource.ResourceFetched <|
-                            Ok
-                                { teamName = teamName
-                                , pipelineName = pipelineName
-                                , name = resourceName
-                                , failingToCheck = True
-                                , checkError = "some error"
-                                , checkSetupError = ""
-                                , lastChecked = Nothing
-                                , pinnedVersion = Nothing
-                                , pinnedInConfig = False
+                        , containing <|
+                            iconSelector
+                                { size = "20px"
+                                , image = "baseline-refresh-24px.svg"
                                 }
-                        )
-                    |> Tuple.first
-                    |> queryView
-                    |> Query.find [ class "resource-check-status" ]
-                    |> Query.has
-                        (iconSelector
-                            { size = "28px"
-                            , image = "ic-exclamation-triangle.svg"
-                            }
-                            ++ [ style [ ( "background-size", "14px 14px" ) ]
-                               , containing [ text "some error" ]
-                               ]
-                        )
+                                ++ [ style
+                                        [ ( "opacity", "0.5" )
+                                        , ( "margin", "4px" )
+                                        ]
+                                   ]
+                        ]
+                    }
+                , mouseEnterMsg = Resource.Hover Resource.CheckButton
+                , mouseLeaveMsg = Resource.Hover Resource.None
+                , hoveredSelector =
+                    { description = "black button with white refresh icon"
+                    , selector =
+                        [ style
+                            [ ( "height", "28px" )
+                            , ( "width", "28px" )
+                            , ( "background-color", almostBlack )
+                            , ( "margin-right", "5px" )
+                            , ( "cursor", "pointer" )
+                            ]
+                        , containing <|
+                            iconSelector
+                                { size = "20px"
+                                , image = "baseline-refresh-24px.svg"
+                                }
+                                ++ [ style
+                                        [ ( "opacity", "1" )
+                                        , ( "margin", "4px" )
+                                        , ( "background-size", "contain" )
+                                        ]
+                                   ]
+                        ]
+                    }
+                , updateFunc = \msg -> Resource.update msg >> Tuple.first
+                }
+            , test "status bar lays out horizontally maximizing space" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> checkBar
+                        |> Query.children []
+                        |> Query.index -1
+                        |> Query.has
+                            [ style
+                                [ ( "display", "flex" )
+                                , ( "justify-content", "space-between" )
+                                , ( "align-items", "center" )
+                                , ( "flex-grow", "1" )
+                                , ( "height", "28px" )
+                                , ( "background", almostBlack )
+                                , ( "padding-left", "5px" )
+                                ]
+                            ]
+            , test "successful check shows a checkmark on the right" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> checkBar
+                        |> Query.children []
+                        |> Query.index -1
+                        |> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-success-check.svg"
+                                }
+                                ++ [ style
+                                        [ ( "background-size", "14px 14px" ) ]
+                                   ]
+                            )
+            , test "unsuccessful check shows a warning icon on the right" <|
+                \_ ->
+                    init
+                        |> Resource.update
+                            (Resource.ResourceFetched <|
+                                Ok
+                                    { teamName = teamName
+                                    , pipelineName = pipelineName
+                                    , name = resourceName
+                                    , failingToCheck = True
+                                    , checkError = "some error"
+                                    , checkSetupError = ""
+                                    , lastChecked = Nothing
+                                    , pinnedVersion = Nothing
+                                    , pinnedInConfig = False
+                                    }
+                            )
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find [ class "resource-check-status" ]
+                        |> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-exclamation-triangle.svg"
+                                }
+                                ++ [ style
+                                        [ ( "background-size", "14px 14px" ) ]
+                                   , containing [ text "some error" ]
+                                   ]
+                            )
+            ]
         ]
 
 

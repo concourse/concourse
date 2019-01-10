@@ -1,5 +1,6 @@
 module DashboardTests exposing
     ( all
+    , almostBlack
     , apiData
     , darkGrey
     , defineHoverBehaviour

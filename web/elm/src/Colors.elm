@@ -20,6 +20,7 @@ module Colors exposing
     , pinned
     , resourceError
     , secondaryTopBar
+    , sectionHeader
     , success
     , successFaded
     , text
@@ -28,6 +29,11 @@ module Colors exposing
 
 frame : String
 frame =
+    "#1e1d1d"
+
+
+sectionHeader : String
+sectionHeader =
     "#1e1d1d"
 
 

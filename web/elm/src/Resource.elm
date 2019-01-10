@@ -119,6 +119,7 @@ type alias Version =
 type Hoverable
     = PreviousPage
     | NextPage
+    | CheckButton
     | None
 
 
@@ -696,27 +697,6 @@ view model =
 
     else
         let
-            ( checkMessage, stepBody ) =
-                if model.failingToCheck then
-                    if not (String.isEmpty model.checkSetupError) then
-                        ( "checking failed"
-                        , [ Html.div [ class "step-body" ]
-                                [ Html.pre [] [ Html.text model.checkSetupError ]
-                                ]
-                          ]
-                        )
-
-                    else
-                        ( "checking failed"
-                        , [ Html.div [ class "step-body" ]
-                                [ Html.pre [] [ Html.text model.checkError ]
-                                ]
-                          ]
-                        )
-
-                else
-                    ( "checking successfully", [] )
-
             previousButtonEvent =
                 case model.versions.pagination.previousPage of
                     Nothing ->
@@ -871,31 +851,113 @@ view model =
                     [ Css.padding3 (Css.px <| headerHeight + 10) (Css.px 10) (Css.px 10)
                     ]
                 ]
-                [ Html.div [ class "resource-check-status" ]
-                    [ Html.div [ class "build-step" ]
-                        (List.append
-                            [ Html.div
-                                [ class "header"
-                                , style
-                                    [ ( "display", "flex" )
-                                    , ( "justify-content", "space-between" )
-                                    ]
-                                ]
-                                [ Html.h3 [] [ Html.text checkMessage ]
-                                , Html.div
-                                    [ style <|
-                                        Resource.Styles.checkStatusIcon
-                                            model.failingToCheck
-                                    ]
-                                    []
-                                ]
-                            ]
-                            stepBody
-                        )
-                    ]
+                [ checkSection model
                 , viewVersionedResources model
                 ]
             ]
+
+
+checkSection :
+    { a
+        | failingToCheck : Bool
+        , checkSetupError : String
+        , checkError : String
+        , hovered : Hoverable
+    }
+    -> Html Msg
+checkSection { failingToCheck, checkSetupError, checkError, hovered } =
+    let
+        checkMessage =
+            if failingToCheck then
+                "checking failed"
+
+            else
+                "checking successfully"
+
+        stepBody =
+            if failingToCheck then
+                if not (String.isEmpty checkSetupError) then
+                    [ Html.div [ class "step-body" ]
+                        [ Html.pre [] [ Html.text checkSetupError ]
+                        ]
+                    ]
+
+                else
+                    [ Html.div [ class "step-body" ]
+                        [ Html.pre [] [ Html.text checkError ]
+                        ]
+                    ]
+
+            else
+                []
+
+        checkButton =
+            Html.div
+                [ style
+                    [ ( "height", "28px" )
+                    , ( "width", "28px" )
+                    , ( "background-color", Colors.sectionHeader )
+                    , ( "margin-right", "5px" )
+                    , ( "cursor"
+                      , if hovered == CheckButton then
+                            "pointer"
+
+                        else
+                            "default"
+                      )
+                    ]
+                , onMouseEnter <| Hover CheckButton
+                , onMouseLeave <| Hover None
+                ]
+                [ Html.div
+                    [ style
+                        [ ( "height", "20px" )
+                        , ( "width", "20px" )
+                        , ( "margin", "4px" )
+                        , ( "background-image"
+                          , "url(/public/images/baseline-refresh-24px.svg)"
+                          )
+                        , ( "background-position", "50% 50%" )
+                        , ( "background-repeat", "no-repeat" )
+                        , ( "background-size", "contain" )
+                        , ( "opacity"
+                          , if hovered == CheckButton then
+                                "1"
+
+                            else
+                                "0.5"
+                          )
+                        ]
+                    ]
+                    []
+                ]
+
+        statusBar =
+            Html.div
+                [ style
+                    [ ( "display", "flex" )
+                    , ( "justify-content", "space-between" )
+                    , ( "align-items", "center" )
+                    , ( "flex-grow", "1" )
+                    , ( "height", "28px" )
+                    , ( "background", Colors.sectionHeader )
+                    , ( "padding-left", "5px" )
+                    ]
+                ]
+                [ Html.h3 [] [ Html.text checkMessage ]
+                , Html.div
+                    [ style <|
+                        Resource.Styles.checkStatusIcon failingToCheck
+                    ]
+                    []
+                ]
+
+        checkBar =
+            Html.div
+                [ style [ ( "display", "flex" ) ] ]
+                [ checkButton, statusBar ]
+    in
+    Html.div [ class "resource-check-status" ] <| checkBar :: stepBody
 
 
 pinBar :
