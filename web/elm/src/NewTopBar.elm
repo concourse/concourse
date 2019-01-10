@@ -1,16 +1,15 @@
-module NewTopBar
-    exposing
-        ( Model
-        , autocompleteOptions
-        , query
-        , view
-        , logOut
-        , queryStringFromSearch
-        )
+module NewTopBar exposing
+    ( Model
+    , autocompleteOptions
+    , logOut
+    , query
+    , queryStringFromSearch
+    , view
+    )
 
 import Concourse.User
-import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Group as Group
+import Dashboard.Msgs exposing (Msg(..))
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as HA
     exposing
@@ -19,6 +18,7 @@ import Html.Styled.Attributes as HA
         , id
         , placeholder
         , src
+        , style
         , type_
         , value
         )
@@ -98,6 +98,7 @@ viewUserState { userState, userMenuVisible } =
                             ]
                             [ Html.div [] [ Html.text "logout" ] ]
                         ]
+
                     else
                         []
                    )
@@ -129,7 +130,12 @@ searchInput { query, screenSize } =
 
 view : Model r -> Html Msg
 view model =
-    Html.div [ css Styles.topBar ] <|
+    Html.div
+        [ id "top-bar"
+        , style [ ( "font-weight", "700" ) ]
+        , css Styles.topBar
+        ]
+    <|
         viewConcourseLogo
             ++ viewMiddleSection model
             ++ viewUserInfo model
@@ -147,6 +153,7 @@ viewMiddleSection : Model r -> List (Html Msg)
 viewMiddleSection model =
     if hideSearch model then
         []
+
     else
         case model.searchBar of
             Collapsed ->
@@ -175,6 +182,7 @@ viewMiddleSection model =
                                         }
                                     )
                                 ]
+
                             else
                                 []
                            )
@@ -202,20 +210,20 @@ viewAutocomplete r =
         options =
             autocompleteOptions r
     in
-        options
-            |> List.indexedMap
-                (\index option ->
-                    let
-                        active =
-                            r.selectionMade && index == (r.selection - 1) % List.length options
-                    in
-                        Html.li
-                            [ onMouseDown (FilterMsg option)
-                            , onMouseOver (SelectMsg index)
-                            , css <| Styles.searchOption { screenSize = r.screenSize, active = active }
-                            ]
-                            [ Html.text option ]
-                )
+    options
+        |> List.indexedMap
+            (\index option ->
+                let
+                    active =
+                        r.selectionMade && index == (r.selection - 1) % List.length options
+                in
+                Html.li
+                    [ onMouseDown (FilterMsg option)
+                    , onMouseOver (SelectMsg index)
+                    , css <| Styles.searchOption { screenSize = r.screenSize, active = active }
+                    ]
+                    [ Html.text option ]
+            )
 
 
 viewUserInfo : Model r -> List (Html Msg)

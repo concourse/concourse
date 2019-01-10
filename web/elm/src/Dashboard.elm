@@ -727,7 +727,10 @@ view : Model -> Html Msg
 view model =
     Html.div
         [ class "page"
-        , style [ ( "-webkit-font-smoothing", "antialiased" ) ]
+        , style
+            [ ( "-webkit-font-smoothing", "antialiased" )
+            , ( "font-weight", "700" )
+            ]
         ]
         [ NewTopBar.view model
         , dashboardView model

@@ -22,6 +22,7 @@ card =
     , ( "align-items", "center" )
     , ( "text-align", "center" )
     , ( "-webkit-font-smoothing", "antialiased" )
+    , ( "font-weight", "400" )
     ]
 
 
@@ -29,6 +30,7 @@ title : List ( String, String )
 title =
     [ ( "font-size", "18px" )
     , ( "margin", "0" )
+    , ( "font-weight", "700" )
     ]
 
 

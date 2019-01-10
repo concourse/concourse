@@ -138,6 +138,9 @@ all =
                                       )
                                     ]
                                 ]
+                    , test "with non-bold text" <|
+                        subject
+                            >> Query.has [ style [ ( "font-weight", "400" ) ] ]
                     , test "title says 'welcome to concourse!'" <|
                         subject
                             >> Query.children []
@@ -409,6 +412,12 @@ all =
                                 [ style [ ( "line-height", "42px" ) ] ]
                             ]
             ]
+        , test "top bar has bold font" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> queryView
+                    |> Query.find [ id "top-bar" ]
+                    |> Query.has [ style [ ( "font-weight", "700" ) ] ]
         , test "logging out causes pipeline list to reload" <|
             let
                 showsLoadingState : Dashboard.Model -> Expectation

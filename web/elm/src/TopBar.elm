@@ -245,6 +245,7 @@ view model =
             , ( "left", "0" )
             , ( "right", "0" )
             , ( "position", "fixed" )
+            , ( "font-weight", "700" )
             ]
         , id "top-bar-app"
         ]

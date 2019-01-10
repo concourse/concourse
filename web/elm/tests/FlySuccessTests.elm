@@ -187,6 +187,13 @@ type alias Query =
     Layout.Model -> Query.Single Layout.Msg
 
 
+topBar : Query
+topBar =
+    Layout.view
+        >> Query.fromHtml
+        >> Query.find [ id "top-bar-app" ]
+
+
 successCard : Query
 successCard =
     Layout.view
@@ -251,6 +258,16 @@ property query description assertion setup =
 
 
 
+-- top bar
+
+
+topBarProperty : Property
+topBarProperty =
+    property topBar "has bold font" <|
+        Query.has [ style [ ( "font-weight", "700" ) ] ]
+
+
+
 -- card
 
 
@@ -302,9 +319,13 @@ cardLayout =
 
 cardStyle : Property
 cardStyle =
-    property successCard "uses webkit font smoothing" <|
+    property successCard "has smooth, non-bold font" <|
         Query.has
-            [ style [ ( "-webkit-font-smoothing", "antialiased" ) ] ]
+            [ style
+                [ ( "-webkit-font-smoothing", "antialiased" )
+                , ( "font-weight", "400" )
+                ]
+            ]
 
 
 
@@ -319,8 +340,13 @@ titleText =
 
 titleStyle : Property
 titleStyle =
-    property title "has 18px font size" <|
-        Query.has [ style [ ( "font-size", "18px" ) ] ]
+    property title "has bold 18px font" <|
+        Query.has
+            [ style
+                [ ( "font-size", "18px" )
+                , ( "font-weight", "700" )
+                ]
+            ]
 
 
 titleProperties : List Property
@@ -591,7 +617,8 @@ titleTests =
 all : Test
 all =
     describe "Fly login success page"
-        [ describe "card" cardTests
+        [ describe "top bar" <| tests allCases [ topBarProperty ]
+        , describe "card" cardTests
         , describe "title" titleTests
         , describe "body"
             [ describe "style" <|
@@ -639,10 +666,7 @@ all =
                 { name = "copy token button"
                 , setup = steps tokenSendFailed ()
                 , query = button
-                , updateFunc =
-                    \msg ->
-                        Layout.update msg
-                            >> Tuple.first
+                , updateFunc = \msg -> Layout.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description =
                         "same background as card"

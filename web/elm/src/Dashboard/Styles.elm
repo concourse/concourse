@@ -458,6 +458,7 @@ welcomeCard =
     , ( "-webkit-font-smoothing", "antialiased" )
     , ( "position", "relative" )
     , ( "overflow", "hidden" )
+    , ( "font-weight", "400" )
     ]
 
 
