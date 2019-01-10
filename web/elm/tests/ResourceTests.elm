@@ -16,10 +16,22 @@ import Html.Attributes as Attr
 import Html.Styled as HS
 import Http
 import Resource
+import Resource.Models as Models
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (Selector, attribute, class, containing, id, style, tag, text)
+import Test.Html.Selector
+    exposing
+        ( Selector
+        , attribute
+        , class
+        , containing
+        , id
+        , style
+        , tag
+        , text
+        )
+import TopBar
 
 
 teamName : String
@@ -200,6 +212,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> queryView
+                        |> Query.find [ class "resource-versions" ]
                         |> Query.findAll anyVersionSelector
                         |> Query.each hasCheckbox
             , test "there is a pointer cursor for every checkbox" <|
@@ -208,6 +221,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> queryView
+                        |> Query.find [ class "resource-versions" ]
                         |> Query.findAll anyVersionSelector
                         |> Query.each
                             (Query.find checkboxSelector
@@ -259,7 +273,7 @@ all =
                         |> Query.find checkboxSelector
                         |> Event.simulate Event.click
                         |> Event.expect
-                            (Resource.ToggleVersion Resource.Disable versionID)
+                            (Resource.ToggleVersion Models.Disable versionID)
             , test "receiving a (ToggleVersion Disable) msg causes the relevant checkbox to go into a transition state" <|
                 \_ ->
                     init
@@ -287,7 +301,7 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
-                        |> Resource.update (Resource.VersionToggled Resource.Disable versionID (Ok ()))
+                        |> Resource.update (Resource.VersionToggled Models.Disable versionID (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -298,7 +312,7 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
-                        |> Resource.update (Resource.VersionToggled Resource.Disable versionID badResponse)
+                        |> Resource.update (Resource.VersionToggled Models.Disable versionID badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -313,14 +327,14 @@ all =
                         |> Query.find (versionSelector disabledVersion)
                         |> Query.find checkboxSelector
                         |> Event.simulate Event.click
-                        |> Event.expect (Resource.ToggleVersion Resource.Enable disabledVersionID)
+                        |> Event.expect (Resource.ToggleVersion Models.Enable disabledVersionID)
             , test "receiving a (ToggleVersion Enable) msg causes the relevant checkbox to go into a transition state" <|
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> Resource.update
-                            (Resource.ToggleVersion Resource.Enable disabledVersionID)
+                            (Resource.ToggleVersion Models.Enable disabledVersionID)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
@@ -332,9 +346,9 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> Resource.update
-                            (Resource.ToggleVersion Resource.Enable disabledVersionID)
+                            (Resource.ToggleVersion Models.Enable disabledVersionID)
                         |> Tuple.first
-                        |> Resource.update (Resource.VersionToggled Resource.Enable disabledVersionID (Ok ()))
+                        |> Resource.update (Resource.VersionToggled Models.Enable disabledVersionID (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
@@ -346,9 +360,9 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> Resource.update
-                            (Resource.ToggleVersion Resource.Enable disabledVersionID)
+                            (Resource.ToggleVersion Models.Enable disabledVersionID)
                         |> Tuple.first
-                        |> Resource.update (Resource.VersionToggled Resource.Enable disabledVersionID badResponse)
+                        |> Resource.update (Resource.VersionToggled Models.Enable disabledVersionID badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
@@ -428,6 +442,7 @@ all =
                             |> givenResourcePinnedStatically
                             |> givenVersionsWithoutPagination
                             |> queryView
+                            |> Query.find [ class "resource-versions" ]
                             |> Query.findAll anyVersionSelector
                             |> Query.each
                                 (Query.find pinButtonSelector
@@ -624,6 +639,7 @@ all =
                             |> givenResourceIsNotPinned
                             |> givenVersionsWithoutPagination
                             |> queryView
+                            |> Query.find [ class "resource-versions" ]
                             |> Query.findAll anyVersionSelector
                             |> Query.each
                                 (Query.find pinButtonSelector
@@ -828,6 +844,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> queryView
+                        |> Query.find [ class "resource-versions" ]
                         |> Query.findAll anyVersionSelector
                         |> Query.each
                             (Query.find pinButtonSelector
@@ -881,6 +898,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> queryView
+                        |> Query.find [ class "resource-versions" ]
                         |> Query.findAll anyVersionSelector
                         |> Query.each
                             (Query.find pinButtonSelector
@@ -892,6 +910,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> queryView
+                        |> Query.find [ class "resource-versions" ]
                         |> Query.findAll anyVersionSelector
                         |> Query.each
                             (Query.find pinButtonSelector
@@ -1177,9 +1196,9 @@ all =
                         ]
                     }
                 , mouseEnterMsg =
-                    Resource.Hover Resource.PreviousPage
+                    Resource.Hover Models.PreviousPage
                 , mouseLeaveMsg =
-                    Resource.Hover Resource.None
+                    Resource.Hover Models.None
                 }
             ]
         , describe "check bar" <|
@@ -1228,8 +1247,8 @@ all =
                                    ]
                         ]
                     }
-                , mouseEnterMsg = Resource.Hover Resource.CheckButton
-                , mouseLeaveMsg = Resource.Hover Resource.None
+                , mouseEnterMsg = Resource.Hover Models.CheckButton
+                , mouseLeaveMsg = Resource.Hover Models.None
                 , hoveredSelector =
                     { description = "black button with white refresh icon"
                     , selector =
@@ -1249,6 +1268,142 @@ all =
                                         [ ( "opacity", "1" )
                                         , ( "margin", "4px" )
                                         , ( "background-size", "contain" )
+                                        ]
+                                   ]
+                        ]
+                    }
+                , updateFunc = \msg -> Resource.update msg >> Tuple.first
+                }
+            , defineHoverBehaviour
+                { name = "check button when authorized"
+                , setup =
+                    init
+                        |> givenResourceIsNotPinned
+                        |> Resource.update
+                            (Resource.TopBarMsg <|
+                                TopBar.UserFetched <|
+                                    Ok
+                                        { id = "test"
+                                        , userName = "test"
+                                        , name = "test"
+                                        , email = "test"
+                                        , teams =
+                                            Dict.fromList
+                                                [ ( teamName, [ "member" ] )
+                                                ]
+                                        }
+                            )
+                        |> Tuple.first
+                , query = checkBar >> Query.children [] >> Query.first
+                , unhoveredSelector =
+                    { description = "black button with grey refresh icon"
+                    , selector =
+                        [ style
+                            [ ( "height", "28px" )
+                            , ( "width", "28px" )
+                            , ( "background-color", almostBlack )
+                            , ( "margin-right", "5px" )
+                            ]
+                        , containing <|
+                            iconSelector
+                                { size = "20px"
+                                , image = "baseline-refresh-24px.svg"
+                                }
+                                ++ [ style
+                                        [ ( "opacity", "0.5" )
+                                        , ( "margin", "4px" )
+                                        ]
+                                   ]
+                        ]
+                    }
+                , mouseEnterMsg = Resource.Hover Models.CheckButton
+                , mouseLeaveMsg = Resource.Hover Models.None
+                , hoveredSelector =
+                    { description = "black button with white refresh icon"
+                    , selector =
+                        [ style
+                            [ ( "height", "28px" )
+                            , ( "width", "28px" )
+                            , ( "background-color", almostBlack )
+                            , ( "margin-right", "5px" )
+                            , ( "cursor", "pointer" )
+                            ]
+                        , containing <|
+                            iconSelector
+                                { size = "20px"
+                                , image = "baseline-refresh-24px.svg"
+                                }
+                                ++ [ style
+                                        [ ( "opacity", "1" )
+                                        , ( "margin", "4px" )
+                                        , ( "background-size", "contain" )
+                                        ]
+                                   ]
+                        ]
+                    }
+                , updateFunc = \msg -> Resource.update msg >> Tuple.first
+                }
+            , defineHoverBehaviour
+                { name = "check button when unauthorized"
+                , setup =
+                    init
+                        |> givenResourceIsNotPinned
+                        |> Resource.update
+                            (Resource.TopBarMsg <|
+                                TopBar.UserFetched <|
+                                    Ok
+                                        { id = "test"
+                                        , userName = "test"
+                                        , name = "test"
+                                        , email = "test"
+                                        , teams =
+                                            Dict.fromList
+                                                [ ( teamName, [ "viewer" ] )
+                                                ]
+                                        }
+                            )
+                        |> Tuple.first
+                , query = checkBar >> Query.children [] >> Query.first
+                , unhoveredSelector =
+                    { description = "black button with grey refresh icon"
+                    , selector =
+                        [ style
+                            [ ( "height", "28px" )
+                            , ( "width", "28px" )
+                            , ( "background-color", almostBlack )
+                            , ( "margin-right", "5px" )
+                            ]
+                        , containing <|
+                            iconSelector
+                                { size = "20px"
+                                , image = "baseline-refresh-24px.svg"
+                                }
+                                ++ [ style
+                                        [ ( "opacity", "0.5" )
+                                        , ( "margin", "4px" )
+                                        ]
+                                   ]
+                        ]
+                    }
+                , mouseEnterMsg = Resource.Hover Models.CheckButton
+                , mouseLeaveMsg = Resource.Hover Models.None
+                , hoveredSelector =
+                    { description = "black button with grey refresh icon"
+                    , selector =
+                        [ style
+                            [ ( "height", "28px" )
+                            , ( "width", "28px" )
+                            , ( "background-color", almostBlack )
+                            , ( "margin-right", "5px" )
+                            ]
+                        , containing <|
+                            iconSelector
+                                { size = "20px"
+                                , image = "baseline-refresh-24px.svg"
+                                }
+                                ++ [ style
+                                        [ ( "opacity", "0.5" )
+                                        , ( "margin", "4px" )
                                         ]
                                    ]
                         ]
@@ -1426,7 +1581,7 @@ clickToUnpin =
 
 clickToDisable : Int -> Resource.Model -> Resource.Model
 clickToDisable versionID =
-    Resource.update (Resource.ToggleVersion Resource.Disable versionID)
+    Resource.update (Resource.ToggleVersion Models.Disable versionID)
         >> Tuple.first
 
 

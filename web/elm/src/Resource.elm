@@ -1,9 +1,7 @@
 module Resource exposing
     ( Flags
-    , Hoverable(..)
     , Model
     , Msg(..)
-    , VersionToggleAction(..)
     , changeToResource
     , init
     , subscriptions
@@ -59,12 +57,17 @@ import Pinned
         ( ResourcePinState(..)
         , VersionPinState(..)
         )
+import QueryString
+import Resource.Models as Models
 import Resource.Styles
+import Routes
 import Spinner
 import StrictEvents
 import Task exposing (Task)
 import Time exposing (Time)
+import TopBar
 import UpdateMsg exposing (UpdateMsg)
+import UserState exposing (UserState(..))
 
 
 type alias Ports =
@@ -75,11 +78,6 @@ type alias Ports =
 type PageError
     = Empty
     | NotFound
-
-
-type VersionToggleAction
-    = Enable
-    | Disable
 
 
 type alias Model =
@@ -96,11 +94,17 @@ type alias Model =
     , now : Maybe Time.Time
     , resourceIdentifier : Concourse.ResourceIdentifier
     , currentPage : Maybe Page
-    , hovered : Hoverable
+    , hovered : Models.Hoverable
     , versions : Paginated Version
     , csrfToken : String
     , showPinBarTooltip : Bool
     , pinIconHover : Bool
+    , route : Routes.ConcourseRoute
+    , pipeline : Maybe Concourse.Pipeline
+    , userState : UserState
+    , userMenuVisible : Bool
+    , pinnedResources : List ( String, Concourse.Version )
+    , showPinIconDropDown : Bool
     }
 
 
@@ -114,13 +118,6 @@ type alias Version =
     , outputOf : List Concourse.Build
     , showTooltip : Bool
     }
-
-
-type Hoverable
-    = PreviousPage
-    | NextPage
-    | CheckButton
-    | None
 
 
 type Msg
@@ -140,10 +137,11 @@ type Msg
     | UnpinVersion
     | VersionPinned (Result Http.Error ())
     | VersionUnpinned (Result Http.Error ())
-    | ToggleVersion VersionToggleAction Int
-    | VersionToggled VersionToggleAction Int (Result Http.Error ())
+    | ToggleVersion Models.VersionToggleAction Int
+    | VersionToggled Models.VersionToggleAction Int (Result Http.Error ())
     | PinIconHover Bool
-    | Hover Hoverable
+    | Hover Models.Hoverable
+    | TopBarMsg TopBar.Msg
 
 
 type alias Flags =
@@ -172,7 +170,7 @@ init ports flags =
                 , failingToCheck = False
                 , checkError = ""
                 , checkSetupError = ""
-                , hovered = None
+                , hovered = Models.None
                 , lastChecked = Nothing
                 , pinnedVersion = NotPinned
                 , currentPage = Nothing
@@ -188,11 +186,27 @@ init ports flags =
                 , csrfToken = flags.csrfToken
                 , showPinBarTooltip = False
                 , pinIconHover = False
+                , route =
+                    { logical =
+                        Routes.Resource
+                            flags.teamName
+                            flags.pipelineName
+                            flags.resourceName
+                    , queries = QueryString.empty
+                    , page = Nothing
+                    , hash = ""
+                    }
+                , pipeline = Nothing
+                , userState = UserStateUnknown
+                , userMenuVisible = False
+                , pinnedResources = []
+                , showPinIconDropDown = False
                 }
     in
     ( model
     , Cmd.batch
         [ fetchResource model.resourceIdentifier
+        , Cmd.map TopBarMsg TopBar.fetchUser
         , cmd
         ]
     )
@@ -592,7 +606,7 @@ update action model =
             ( updateVersion versionID (\v -> { v | enabled = BoolTransitionable.Changing }) model
             , Task.attempt (VersionToggled action versionID) <|
                 Concourse.Resource.enableDisableVersionedResource
-                    (action == Enable)
+                    (action == Models.Enable)
                     { teamName = model.resourceIdentifier.teamName
                     , pipelineName = model.resourceIdentifier.pipelineName
                     , resourceName = model.resourceIdentifier.resourceName
@@ -606,16 +620,16 @@ update action model =
                 newEnabledState : BoolTransitionable.BoolTransitionable
                 newEnabledState =
                     case ( result, action ) of
-                        ( Ok (), Enable ) ->
+                        ( Ok (), Models.Enable ) ->
                             BoolTransitionable.True
 
-                        ( Ok (), Disable ) ->
+                        ( Ok (), Models.Disable ) ->
                             BoolTransitionable.False
 
-                        ( Err _, Enable ) ->
+                        ( Err _, Models.Enable ) ->
                             BoolTransitionable.False
 
-                        ( Err _, Disable ) ->
+                        ( Err _, Models.Disable ) ->
                             BoolTransitionable.True
             in
             ( updateVersion versionID (\v -> { v | enabled = newEnabledState }) model
@@ -627,6 +641,9 @@ update action model =
 
         Hover hovered ->
             ( { model | hovered = hovered }, Cmd.none )
+
+        TopBarMsg msg ->
+            TopBar.update msg model |> Tuple.mapSecond (Cmd.map TopBarMsg)
 
 
 updateVersion : Int -> (Version -> Version) -> Model -> Model
@@ -692,6 +709,19 @@ paginationRoute rid page =
 
 view : Model -> Html Msg
 view model =
+    Html.div
+        [ style
+            [ ( "-webkit-font-smoothing", "antialiased" )
+            , ( "font-weight", "700" )
+            ]
+        ]
+        [ Html.map TopBarMsg <| Html.fromUnstyled <| TopBar.view model
+        , subpageView model
+        ]
+
+
+subpageView : Model -> Html Msg
+subpageView model =
     if model.pageStatus == Err Empty then
         Html.div [] []
 
@@ -789,8 +819,8 @@ view model =
                             Html.div
                                 [ style chevronContainer
                                 , onClick previousButtonEvent
-                                , onMouseEnter <| Hover PreviousPage
-                                , onMouseLeave <| Hover None
+                                , onMouseEnter <| Hover Models.PreviousPage
+                                , onMouseLeave <| Hover Models.None
                                 ]
                                 [ Html.a
                                     [ href <|
@@ -802,7 +832,7 @@ view model =
                                         chevron
                                             { direction = "left"
                                             , enabled = True
-                                            , hovered = model.hovered == PreviousPage
+                                            , hovered = model.hovered == Models.PreviousPage
                                             }
                                     ]
                                     []
@@ -826,8 +856,8 @@ view model =
                             Html.div
                                 [ style chevronContainer
                                 , onClick nextButtonEvent
-                                , onMouseEnter <| Hover NextPage
-                                , onMouseLeave <| Hover None
+                                , onMouseEnter <| Hover Models.NextPage
+                                , onMouseLeave <| Hover Models.None
                                 ]
                                 [ Html.a
                                     [ href <|
@@ -839,7 +869,7 @@ view model =
                                         chevron
                                             { direction = "right"
                                             , enabled = True
-                                            , hovered = model.hovered == NextPage
+                                            , hovered = model.hovered == Models.NextPage
                                             }
                                     ]
                                     []
@@ -848,7 +878,14 @@ view model =
                 ]
             , Html.div
                 [ css
-                    [ Css.padding3 (Css.px <| headerHeight + 10) (Css.px 10) (Css.px 10)
+                    [ Css.padding3
+                        (Css.px <|
+                            headerHeight
+                                + Styles.pageHeaderHeight
+                                + 10
+                        )
+                        (Css.px 10)
+                        (Css.px 10)
                     ]
                 ]
                 [ checkSection model
@@ -862,10 +899,12 @@ checkSection :
         | failingToCheck : Bool
         , checkSetupError : String
         , checkError : String
-        , hovered : Hoverable
+        , hovered : Models.Hoverable
+        , userState : UserState
+        , teamName : String
     }
     -> Html Msg
-checkSection { failingToCheck, checkSetupError, checkError, hovered } =
+checkSection ({ failingToCheck, checkSetupError, checkError } as model) =
     let
         checkMessage =
             if failingToCheck then
@@ -891,47 +930,6 @@ checkSection { failingToCheck, checkSetupError, checkError, hovered } =
             else
                 []
 
-        checkButton =
-            Html.div
-                [ style
-                    [ ( "height", "28px" )
-                    , ( "width", "28px" )
-                    , ( "background-color", Colors.sectionHeader )
-                    , ( "margin-right", "5px" )
-                    , ( "cursor"
-                      , if hovered == CheckButton then
-                            "pointer"
-
-                        else
-                            "default"
-                      )
-                    ]
-                , onMouseEnter <| Hover CheckButton
-                , onMouseLeave <| Hover None
-                ]
-                [ Html.div
-                    [ style
-                        [ ( "height", "20px" )
-                        , ( "width", "20px" )
-                        , ( "margin", "4px" )
-                        , ( "background-image"
-                          , "url(/public/images/baseline-refresh-24px.svg)"
-                          )
-                        , ( "background-position", "50% 50%" )
-                        , ( "background-repeat", "no-repeat" )
-                        , ( "background-size", "contain" )
-                        , ( "opacity"
-                          , if hovered == CheckButton then
-                                "1"
-
-                            else
-                                "0.5"
-                          )
-                        ]
-                    ]
-                    []
-                ]
-
         statusBar =
             Html.div
                 [ style
@@ -955,9 +953,76 @@ checkSection { failingToCheck, checkSetupError, checkError, hovered } =
         checkBar =
             Html.div
                 [ style [ ( "display", "flex" ) ] ]
-                [ checkButton, statusBar ]
+                [ checkButton model, statusBar ]
     in
     Html.div [ class "resource-check-status" ] <| checkBar :: stepBody
+
+
+checkButton :
+    { a
+        | hovered : Models.Hoverable
+        , userState : UserState
+        , teamName : String
+    }
+    -> Html Msg
+checkButton { hovered, userState, teamName } =
+    let
+        enabled =
+            case userState of
+                UserStateLoggedIn user ->
+                    case Dict.get teamName user.teams of
+                        Just roles ->
+                            List.member "member" roles
+                                || List.member "owner" roles
+
+                        Nothing ->
+                            False
+
+                _ ->
+                    True
+
+        isHovered =
+            enabled && hovered == Models.CheckButton
+    in
+    Html.div
+        [ style
+            [ ( "height", "28px" )
+            , ( "width", "28px" )
+            , ( "background-color", Colors.sectionHeader )
+            , ( "margin-right", "5px" )
+            , ( "cursor"
+              , if isHovered then
+                    "pointer"
+
+                else
+                    "default"
+              )
+            ]
+        , onMouseEnter <| Hover Models.CheckButton
+        , onMouseLeave <| Hover Models.None
+        ]
+        [ Html.div
+            [ style
+                [ ( "height", "20px" )
+                , ( "width", "20px" )
+                , ( "margin", "4px" )
+                , ( "background-image"
+                  , "url(/public/images/baseline-refresh-24px.svg)"
+                  )
+                , ( "background-position", "50% 50%" )
+                , ( "background-repeat", "no-repeat" )
+                , ( "background-size", "contain" )
+                , ( "opacity"
+                  , if isHovered then
+                        "1"
+
+                    else
+                        "0.5"
+                  )
+                ]
+            ]
+            []
+        ]
 
 
 pinBar :
@@ -1204,7 +1269,7 @@ viewEnabledCheckbox { enabled, id, pinState } =
                               , "url(/public/images/checkmark-ic.svg)"
                               )
                             ]
-                       , onClick <| ToggleVersion Disable id
+                       , onClick <| ToggleVersion Models.Disable id
                        ]
                 )
                 []
@@ -1227,7 +1292,7 @@ viewEnabledCheckbox { enabled, id, pinState } =
 
         BoolTransitionable.False ->
             Html.div
-                (baseAttrs ++ [ onClick <| ToggleVersion Enable id ])
+                (baseAttrs ++ [ onClick <| ToggleVersion Models.Enable id ])
                 []
 
 

@@ -55,7 +55,7 @@ port loadToken : () -> Cmd msg
 type alias Model =
     { navIndex : NavIndex
     , subModel : SubPage.Model
-    , topModel : TopBar.Model
+    , topModel : TopBar.Model {}
     , topBarType : TopBarType
     , turbulenceImgSrc : String
     , notFoundImgSrc : String
@@ -334,6 +334,9 @@ view : Model -> Html Msg
 view model =
     case model.subModel of
         SubPage.DashboardModel _ ->
+            Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
+
+        SubPage.ResourceModel _ ->
             Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
 
         _ ->
