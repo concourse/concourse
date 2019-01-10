@@ -141,7 +141,7 @@ func (t *resourceType) Reload() (bool, error) {
 }
 
 func (t *resourceType) SetResourceConfig(logger lager.Logger, source atc.Source, resourceTypes creds.VersionedResourceTypes) (ResourceConfig, error) {
-	resourceConfigDescriptor, err := constructResourceConfigDescriptor(t.type_, source, resourceTypes, nil)
+	resourceConfigDescriptor, err := constructResourceConfigDescriptor(t.type_, source, resourceTypes)
 	if err != nil {
 		return nil, err
 	}

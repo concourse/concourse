@@ -33,9 +33,6 @@ type ResourceConfigDescriptor struct {
 
 	// The resource's source configuration.
 	Source atc.Source
-
-	// The resource which will only be used it has unique version history
-	Resource Resource
 }
 
 //go:generate counterfeiter . ResourceConfig
@@ -359,7 +356,6 @@ func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lock
 
 	var parentID int
 	var parentColumnName string
-	var unique bool
 	if r.CreatedByResourceCache != nil {
 		parentColumnName = "resource_cache_id"
 
@@ -388,10 +384,9 @@ func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lock
 		}
 
 		parentID = rc.CreatedByBaseResourceType().ID
-		unique = rc.CreatedByBaseResourceType().UniqueVersionHistory
 	}
 
-	id, checkError, found, err := r.findWithParentID(tx, parentColumnName, parentID, unique)
+	id, checkError, found, err := r.findWithParentID(tx, parentColumnName, parentID)
 	if err != nil {
 		return nil, err
 	}
@@ -399,35 +394,24 @@ func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lock
 	if !found {
 		hash := mapHash(r.Source)
 
-		var resourceID *int
-		if unique || r.Resource != nil && r.Resource.UniqueVersionHistory() {
-			rid := r.Resource.ID()
-			resourceID = &rid
-		}
-
-		var err error
-		err = psql.Insert("resource_configs").
+		err := psql.Insert("resource_configs").
 			Columns(
 				parentColumnName,
 				"source_hash",
-				"unique_versions_resource_id",
 			).
 			Values(
 				parentID,
 				hash,
-				resourceID,
 			).
 			Suffix(`
-				ON CONFLICT (`+parentColumnName+`, source_hash, unique_versions_resource_id) DO UPDATE SET
+				ON CONFLICT (`+parentColumnName+`, source_hash) DO UPDATE SET
 					`+parentColumnName+` = ?,
-					source_hash = ?,
-					unique_versions_resource_id = ?
+					source_hash = ?
 				RETURNING id
-			`, parentID, hash, resourceID).
+			`, parentID, hash).
 			RunWith(tx).
 			QueryRow().
 			Scan(&id)
-
 		if err != nil {
 			return nil, err
 		}
@@ -447,7 +431,6 @@ func (r *ResourceConfigDescriptor) find(tx Tx, lockFactory lock.LockFactory, con
 
 	var parentID int
 	var parentColumnName string
-	var unique bool
 	if r.CreatedByResourceCache != nil {
 		parentColumnName = "resource_cache_id"
 
@@ -480,10 +463,9 @@ func (r *ResourceConfigDescriptor) find(tx Tx, lockFactory lock.LockFactory, con
 		}
 
 		parentID = rc.createdByBaseResourceType.ID
-		unique = rc.createdByBaseResourceType.UniqueVersionHistory
 	}
 
-	id, checkError, found, err := r.findWithParentID(tx, parentColumnName, parentID, unique)
+	id, checkError, found, err := r.findWithParentID(tx, parentColumnName, parentID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -498,17 +480,9 @@ func (r *ResourceConfigDescriptor) find(tx Tx, lockFactory lock.LockFactory, con
 	return rc, true, nil
 }
 
-func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName string, parentID int, unique bool) (int, error, bool, error) {
+func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName string, parentID int) (int, error, bool, error) {
 	var id int
 	var checkError sql.NullString
-	var whereClause sq.Eq
-
-	// If the base resource type or the resource does not specify a unique version history
-	if unique || r.Resource != nil && r.Resource.UniqueVersionHistory() {
-		whereClause = sq.Eq{"unique_versions_resource_id": r.Resource.ID()}
-	} else {
-		whereClause = sq.Eq{"unique_versions_resource_id": nil}
-	}
 
 	err := psql.Select("id, check_error").
 		From("resource_configs").
@@ -516,7 +490,6 @@ func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName stri
 			parentColumnName: parentID,
 			"source_hash":    mapHash(r.Source),
 		}).
-		Where(whereClause).
 		Suffix("FOR SHARE").
 		RunWith(tx).
 		QueryRow().

@@ -13,8 +13,7 @@ import (
 // It is removed by gc.BaseResourceTypeCollector, once there are no references
 // to it from worker_base_resource_types.
 type BaseResourceType struct {
-	Name                 string // The name of the type, e.g. 'git'.
-	UniqueVersionHistory bool   // If set to true, will create unique version histories for each of the resources using this base resource type
+	Name string // The name of the type, e.g. 'git'.
 }
 
 // UsedBaseResourceType is created whenever a ResourceConfig is used, either
@@ -24,9 +23,8 @@ type BaseResourceType struct {
 // that is in use, this guarantees that the BaseResourceType will not be
 // removed. That is to say that its "Use" is vicarious.
 type UsedBaseResourceType struct {
-	ID                   int // The ID of the BaseResourceType.
-	Name                 string
-	UniqueVersionHistory bool
+	ID   int // The ID of the BaseResourceType.
+	Name string
 }
 
 // FindOrCreate looks for an existing BaseResourceType and creates it if it
@@ -46,14 +44,13 @@ func (brt BaseResourceType) FindOrCreate(tx Tx) (*UsedBaseResourceType, error) {
 
 func (brt BaseResourceType) Find(runner sq.Runner) (*UsedBaseResourceType, bool, error) {
 	var id int
-	var unique bool
-	err := psql.Select("id, unique_version_history").
+	err := psql.Select("id").
 		From("base_resource_types").
 		Where(sq.Eq{"name": brt.Name}).
 		Suffix("FOR SHARE").
 		RunWith(runner).
 		QueryRow().
-		Scan(&id, &unique)
+		Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -62,20 +59,18 @@ func (brt BaseResourceType) Find(runner sq.Runner) (*UsedBaseResourceType, bool,
 		return nil, false, err
 	}
 
-	return &UsedBaseResourceType{ID: id, Name: brt.Name, UniqueVersionHistory: unique}, true, nil
+	return &UsedBaseResourceType{ID: id, Name: brt.Name}, true, nil
 }
 
 func (brt BaseResourceType) create(tx Tx) (*UsedBaseResourceType, error) {
 	var id int
 	err := psql.Insert("base_resource_types").
-		Columns("name", "unique_version_history").
-		Values(brt.Name, brt.UniqueVersionHistory).
+		Columns("name").
+		Values(brt.Name).
 		Suffix(`
-			ON CONFLICT (name) DO UPDATE SET
-				name = EXCLUDED.name,
-				unique_version_history = EXCLUDED.unique_version_history
+			ON CONFLICT (name) DO UPDATE SET name = ?
 			RETURNING id
-		`).
+		`, brt.Name).
 		RunWith(tx).
 		QueryRow().
 		Scan(&id)
@@ -83,5 +78,5 @@ func (brt BaseResourceType) create(tx Tx) (*UsedBaseResourceType, error) {
 		return nil, err
 	}
 
-	return &UsedBaseResourceType{ID: id, Name: brt.Name, UniqueVersionHistory: brt.UniqueVersionHistory}, nil
+	return &UsedBaseResourceType{ID: id, Name: brt.Name}, nil
 }

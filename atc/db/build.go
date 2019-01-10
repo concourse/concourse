@@ -143,14 +143,6 @@ type build struct {
 var ErrBuildDisappeared = errors.New("build disappeared from db")
 var ErrBuildHasNoPipeline = errors.New("build has no pipeline")
 
-type PipelineHasNoResourceError struct {
-	Resource string
-}
-
-func (e PipelineHasNoResourceError) Error() string {
-	return fmt.Sprintf("pipeline does not have the resource: %s", e.Resource)
-}
-
 func (b *build) ID() int                      { return b.id }
 func (b *build) Name() string                 { return b.name }
 func (b *build) JobID() int                   { return b.jobID }
@@ -800,24 +792,6 @@ func (b *build) SaveOutput(
 		return ErrBuildHasNoPipeline
 	}
 
-	pipeline, found, err := b.Pipeline()
-	if err != nil {
-		return err
-	}
-
-	if !found {
-		return ErrBuildHasNoPipeline
-	}
-
-	resource, found, err := pipeline.Resource(resourceName)
-	if err != nil {
-		return err
-	}
-
-	if !found {
-		return PipelineHasNoResourceError{resource.Name()}
-	}
-
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return err
@@ -825,7 +799,7 @@ func (b *build) SaveOutput(
 
 	defer Rollback(tx)
 
-	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceType, source, resourceTypes, resource)
+	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceType, source, resourceTypes)
 	if err != nil {
 		return err
 	}
@@ -859,9 +833,16 @@ func (b *build) SaveOutput(
 		}
 	}
 
+	// Use the Resource Name and the Build's Pipeline ID to find the Resource ID
+	selectResourceID := sq.Select("r.id", strconv.Itoa(b.id), fmt.Sprintf("md5('%s')", versionJSON), fmt.Sprintf("'%s'", outputName)).
+		From("resources r").Where(sq.Eq{
+		"r.pipeline_id": b.pipelineID,
+		"r.name":        resourceName,
+	})
+
 	_, err = psql.Insert("build_resource_config_version_outputs").
 		Columns("resource_id", "build_id", "version_md5", "name").
-		Values(resource.ID(), strconv.Itoa(b.id), sq.Expr(fmt.Sprintf("md5('%s')", versionJSON)), sq.Expr(fmt.Sprintf("'%s'", outputName))).
+		Select(selectResourceID).
 		Suffix("ON CONFLICT DO NOTHING").
 		RunWith(tx).
 		Exec()

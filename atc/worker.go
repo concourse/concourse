@@ -50,11 +50,10 @@ func (w Worker) Validate() error {
 }
 
 type WorkerResourceType struct {
-	Type                 string `json:"type"`
-	Image                string `json:"image"`
-	Version              string `json:"version"`
-	Privileged           bool   `json:"privileged"`
-	UniqueVersionHistory bool   `json:"unique_version_history"`
+	Type       string `json:"type"`
+	Image      string `json:"image"`
+	Version    string `json:"version"`
+	Privileged bool   `json:"privileged"`
 }
 
 type PruneWorkerResponseBody struct {

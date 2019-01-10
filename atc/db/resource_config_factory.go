@@ -79,7 +79,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 	source atc.Source,
 	resourceTypes creds.VersionedResourceTypes,
 ) (ResourceConfig, error) {
-	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceType, source, resourceTypes, nil)
+	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceType, source, resourceTypes)
 	if err != nil {
 		return nil, err
 	}
@@ -110,11 +110,9 @@ func constructResourceConfigDescriptor(
 	resourceTypeName string,
 	source atc.Source,
 	resourceTypes creds.VersionedResourceTypes,
-	resource Resource,
 ) (ResourceConfigDescriptor, error) {
 	resourceConfigDescriptor := ResourceConfigDescriptor{
-		Source:   source,
-		Resource: resource,
+		Source: source,
 	}
 
 	customType, found := resourceTypes.Lookup(resourceTypeName)
@@ -128,7 +126,6 @@ func constructResourceConfigDescriptor(
 			customType.Type,
 			source,
 			resourceTypes.Without(customType.Name),
-			nil,
 		)
 		if err != nil {
 			return ResourceConfigDescriptor{}, err
@@ -229,23 +226,22 @@ func findResourceConfigByID(tx Tx, resourceConfigID int, lockFactory lock.LockFa
 
 	if brtIDString.Valid {
 		var brtName string
-		var unique bool
 		brtID, err := strconv.Atoi(brtIDString.String)
 		if err != nil {
 			return nil, false, err
 		}
 
-		err = psql.Select("name, unique_version_history").
+		err = psql.Select("name").
 			From("base_resource_types").
 			Where(sq.Eq{"id": brtID}).
 			RunWith(tx).
 			QueryRow().
-			Scan(&brtName, &unique)
+			Scan(&brtName)
 		if err != nil {
 			return nil, false, err
 		}
 
-		rc.createdByBaseResourceType = &UsedBaseResourceType{brtID, brtName, unique}
+		rc.createdByBaseResourceType = &UsedBaseResourceType{brtID, brtName}
 
 	} else if cacheIDString.Valid {
 		cacheID, err := strconv.Atoi(cacheIDString.String)

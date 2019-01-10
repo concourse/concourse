@@ -53,7 +53,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 	params atc.Params,
 	resourceTypes creds.VersionedResourceTypes,
 ) (UsedResourceCache, error) {
-	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceTypeName, source, resourceTypes, nil)
+	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceTypeName, source, resourceTypes)
 	if err != nil {
 		return nil, err
 	}

@@ -159,8 +159,7 @@ var _ = Describe("Fly CLI", func() {
                     "type": "resource-1",
                     "image": "/images/resource-1",
                     "version": "",
-                    "privileged": false,
-                    "unique_version_history": false
+                    "privileged": false
                   }
                 ],
                 "platform": "platform2",
@@ -219,15 +218,13 @@ var _ = Describe("Fly CLI", func() {
                     "type": "resource-1",
                     "image": "/images/resource-1",
                     "version": "",
-                    "privileged": false,
-                    "unique_version_history": false
+                    "privileged": false
                   },
                   {
                     "type": "resource-2",
                     "image": "/images/resource-2",
                     "version": "",
-                    "privileged": false,
-                    "unique_version_history": false
+                    "privileged": false
                   }
                 ],
                 "platform": "platform1",
