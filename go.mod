@@ -29,7 +29,7 @@ require (
 	github.com/bmatcuk/doublestar v1.1.1 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/caarlos0/env v3.5.0+incompatible
-	github.com/cenkalti/backoff v2.1.0+incompatible
+	github.com/cenkalti/backoff v2.1.1+incompatible
 	github.com/charlievieth/fs v0.0.0-20170613215519-7dc373669fa1 // indirect
 	github.com/circonus-labs/circonus-gometrics v2.2.1+incompatible // indirect
 	github.com/circonus-labs/circonusllhist v0.0.0-20180430145027-5eb751da55c6 // indirect
@@ -144,7 +144,7 @@ require (
 	github.com/ryanuber/go-glob v0.0.0-20170128012129-256dc444b735 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
-	github.com/sirupsen/logrus v1.2.0
+	github.com/sirupsen/logrus v1.3.0
 	github.com/skratchdot/open-golang v0.0.0-20160302144031-75fb7ed4208c
 	github.com/smartystreets/assertions v0.0.0-20180820201707-7c9eb446e3cf // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
@@ -163,13 +163,10 @@ require (
 	golang.org/x/sync v0.0.0-20181108010431-42b317875d0f // indirect
 	golang.org/x/sys v0.0.0-20181107165924-66b7b1311ac8 // indirect
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
-	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.27
-	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
 	gopkg.in/square/go-jose.v2 v2.1.8
-	gopkg.in/vmihailenco/msgpack.v2 v2.9.1 // indirect
 	gopkg.in/yaml.v2 v2.2.2
 	gotest.tools v2.1.0+incompatible // indirect
 	k8s.io/api v0.0.0-20171027084545-218912509d74
@@ -177,3 +174,5 @@ require (
 	k8s.io/client-go v2.0.0-alpha.0.0.20171101191150-72e1c2a1ef30+incompatible
 	k8s.io/kube-openapi v0.0.0-20180731170545-e3762e86a74c // indirect
 )
+
+replace github.com/hashicorp/go-msgpack => github.com/evandigby/go-msgpack v0.0.0-20180728010727-b3f48f4eda2a

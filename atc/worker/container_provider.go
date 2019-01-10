@@ -65,7 +65,6 @@ type ContainerProvider interface {
 
 type containerProvider struct {
 	gardenClient       garden.Client
-	baggageclaimClient baggageclaim.Client
 	volumeClient       VolumeClient
 	imageFactory       ImageFactory
 	dbVolumeRepository db.VolumeRepository

@@ -44,7 +44,7 @@ func NewRunner(
 				}
 
 				if !acquired {
-					lockLogger.Debug(fmt.Sprintln("failed to acquire a lock for ", taskName))
+					lockLogger.Debug(fmt.Sprintln("failed-to-acquire-a-lock-for-", taskName))
 					break
 				}
 

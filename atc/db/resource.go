@@ -174,7 +174,7 @@ func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, res
 		return nil, err
 	}
 
-	_, err = psql.Update("resources").
+	results, err := psql.Update("resources").
 		Set("resource_config_id", resourceConfig.ID()).
 		Where(sq.Eq{"id": r.id}).
 		Where(sq.Or{
@@ -183,13 +183,28 @@ func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, res
 		}).
 		RunWith(tx).
 		Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	rowsAffected, err := results.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
+	if rowsAffected > 0 {
+		err = bumpCacheIndexForPipelinesUsingResourceConfig(tx, resourceConfig.ID())
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
 
-	return resourceConfig, err
+	return resourceConfig, nil
 }
 
 func (r *resource) SetCheckError(cause error) error {

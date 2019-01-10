@@ -82,7 +82,7 @@ targets:
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(1))
 
-			Expect(sess.Err).To(gbytes.Say(`name for the target must be specified \(--target/-t\)`))
+			Expect(sess.Err).To(gbytes.Say(`no target specified. specify the target with -t`))
 		})
 	})
 

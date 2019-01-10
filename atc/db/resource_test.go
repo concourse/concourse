@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/algorithm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -115,8 +116,9 @@ var _ = Describe("Resource", func() {
 				Expect(resource.Source()).To(Equal(atc.Source{"some": "repository"}))
 			})
 
-			Context("when the resource config id is set on the resource", func() {
+			Context("when the resource config id is set on the resource for the first time", func() {
 				var resourceConfig db.ResourceConfig
+				var versionsDB *algorithm.VersionsDB
 
 				BeforeEach(func() {
 					setupTx, err := dbConn.Begin()
@@ -129,6 +131,9 @@ var _ = Describe("Resource", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 
+					versionsDB, err = pipeline.LoadVersionsDB()
+					Expect(err).ToNot(HaveOccurred())
+
 					resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -139,10 +144,30 @@ var _ = Describe("Resource", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("returns the resource config check error", func() {
+				It("returns the resource config check error and bumps the pipeline cache index", func() {
 					Expect(found).To(BeTrue())
 					Expect(resource.ResourceConfigID()).To(Equal(resourceConfig.ID()))
 					Expect(resource.ResourceConfigCheckError()).To(Equal(errors.New("oops")))
+
+					cachedVersionsDB, err := pipeline.LoadVersionsDB()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(versionsDB != cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be different objects")
+				})
+
+				Context("when the resource config id is already set on the resource", func() {
+					BeforeEach(func() {
+						versionsDB, err = pipeline.LoadVersionsDB()
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("does not bump the cache index", func() {
+						resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+						Expect(err).NotTo(HaveOccurred())
+
+						cachedVersionsDB, err := pipeline.LoadVersionsDB()
+						Expect(err).ToNot(HaveOccurred())
+						Expect(versionsDB == cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be the same")
+					})
 				})
 			})
 
