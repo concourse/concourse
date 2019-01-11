@@ -12,6 +12,7 @@ module Build exposing
     )
 
 import Autoscroll
+import Build.Effects exposing (Effect(..), runEffect)
 import Build.Msgs exposing (HoveredButton(..), Msg(..))
 import Build.Output
 import Build.StepTree as StepTree
@@ -25,7 +26,6 @@ import Date exposing (Date)
 import Date.Format
 import Debug
 import Dict exposing (Dict)
-import Effects exposing (Effect(..), runEffect)
 import Html exposing (Html)
 import Html.Attributes
     exposing

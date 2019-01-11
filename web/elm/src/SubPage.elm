@@ -9,6 +9,7 @@ module SubPage exposing
 
 import Autoscroll
 import Build
+import Build.Effects
 import Build.Msgs
 import Concourse
 import Dashboard
@@ -76,7 +77,7 @@ init flags route =
             superDupleWrap ( BuildModel, BuildMsg ) <|
                 Autoscroll.init
                     Build.getScrollBehavior
-                    << Tuple.mapSecond (Cmd.batch << List.map Effects.runEffect)
+                    << Tuple.mapSecond (Cmd.batch << List.map Build.Effects.runEffect)
                     << Build.init
                         { csrfToken = flags.csrfToken, hash = route.hash }
                 <|
@@ -91,7 +92,7 @@ init flags route =
             superDupleWrap ( BuildModel, BuildMsg ) <|
                 Autoscroll.init
                     Build.getScrollBehavior
-                    << Tuple.mapSecond (Cmd.batch << List.map Effects.runEffect)
+                    << Tuple.mapSecond (Cmd.batch << List.map Build.Effects.runEffect)
                     << Build.init
                         { csrfToken = flags.csrfToken, hash = route.hash }
                 <|
@@ -196,7 +197,7 @@ update turbulence notFound csrfToken msg mdl =
             in
             ( BuildModel { scrollModel | subModel = newBuildModel }
             , buildEffects
-                |> List.map Effects.runEffect
+                |> List.map Build.Effects.runEffect
                 |> Cmd.batch
                 |> Cmd.map (\buildMsg -> BuildMsg (Autoscroll.SubMsg buildMsg))
             )
@@ -306,7 +307,7 @@ urlUpdate route model =
                             }
                         )
                         scrollModel.subModel
-                        |> Tuple.mapSecond (List.map Effects.runEffect)
+                        |> Tuple.mapSecond (List.map Build.Effects.runEffect)
                         |> Tuple.mapSecond Cmd.batch
             in
             ( BuildModel { scrollModel | subModel = submodel }

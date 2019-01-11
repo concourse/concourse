@@ -10,6 +10,7 @@ module Build.Output exposing
 
 import Ansi.Log
 import Array exposing (Array)
+import Build.Effects exposing (Effect(..))
 import Build.Msgs exposing (Msg(..))
 import Build.StepTree as StepTree exposing (StepTree)
 import Build.Styles as Styles
@@ -18,7 +19,6 @@ import Concourse.BuildEvents
 import Concourse.BuildStatus
 import Date exposing (Date)
 import Dict exposing (Dict)
-import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes
     exposing
