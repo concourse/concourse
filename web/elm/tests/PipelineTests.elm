@@ -1,12 +1,12 @@
 module PipelineTests exposing (all)
 
 import Char
-import DashboardTests exposing (iconSelector)
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Json.Encode
 import Layout
-import Pipeline exposing (Msg(..), update)
+import Pipeline exposing (update)
+import Pipeline.Msgs exposing (Msg(..))
 import QueryString
 import Routes
 import SubPage
@@ -41,7 +41,6 @@ all =
                 defaultModel : Pipeline.Model
                 defaultModel =
                     Pipeline.init
-                        { render = \( _, _ ) -> Cmd.none, title = \_ -> Cmd.none }
                         { teamName = "some-team"
                         , pipelineName = "some-pipeline"
                         , turbulenceImgSrc = "some-turbulence-img-src"
@@ -95,16 +94,14 @@ all =
                 \_ ->
                     defaultModel
                         |> update (HideLegendTimerTicked 0)
-                        |> Tuple.first
-                        |> .hideLegendCounter
-                        |> Expect.equal (1 * Time.second)
+                        |> Tuple.mapFirst .hideLegendCounter
+                        |> Expect.equal ( 1 * Time.second, [] )
             , test "HideLegendTimeTicked reaches timeout" <|
                 \_ ->
                     { defaultModel | hideLegendCounter = 10 * Time.second }
                         |> update (HideLegendTimerTicked 0)
-                        |> Tuple.first
-                        |> .hideLegend
-                        |> Expect.equal True
+                        |> Tuple.mapFirst .hideLegend
+                        |> Expect.equal ( True, [] )
             , test "ShowLegend" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
@@ -130,21 +127,21 @@ all =
                 \_ ->
                     { defaultModel | hideLegend = True, hideLegendCounter = 3 * Time.second }
                         |> update ShowLegend
-                        |> Tuple.first
                         |> Expect.all
-                            [ \m -> m.hideLegend |> Expect.equal False
-                            , \m -> m.hideLegendCounter |> Expect.equal 0
+                            [ \( m, _ ) -> m.hideLegend |> Expect.equal False
+                            , \( m, _ ) -> m.hideLegendCounter |> Expect.equal 0
+                            , \( _, e ) -> Expect.equal [] e
                             ]
             , test "KeyPressed" <|
                 \_ ->
                     defaultModel
                         |> update (KeyPressed (Char.toCode 'a'))
-                        |> Expect.equal ( defaultModel, Cmd.none )
+                        |> Expect.equal ( defaultModel, [] )
             , test "KeyPressed f" <|
                 \_ ->
                     defaultModel
                         |> update (KeyPressed (Char.toCode 'f'))
-                        |> Expect.notEqual ( defaultModel, Cmd.none )
+                        |> Expect.notEqual ( defaultModel, [] )
             , rspecStyleDescribe "when on pipeline page"
                 (init "/teams/team/pipelines/pipeline")
                 [ it "shows a pin icon on top bar" <|
@@ -917,7 +914,7 @@ givenPinnedResource =
     Layout.update
         (Layout.SubMsg -1 <|
             SubPage.PipelineMsg <|
-                Pipeline.ResourcesFetched <|
+                ResourcesFetched <|
                     Ok <|
                         Json.Encode.list
                             [ Json.Encode.object
@@ -936,7 +933,7 @@ givenMultiplePinnedResources =
     Layout.update
         (Layout.SubMsg -1 <|
             SubPage.PipelineMsg <|
-                Pipeline.ResourcesFetched <|
+                ResourcesFetched <|
                     Ok <|
                         Json.Encode.list
                             [ Json.Encode.object

@@ -1,13 +1,18 @@
-port module Pipeline exposing (Flags, Model, Msg(..), changeToPipelineAndGroups, init, resetPipelineFocus, subscriptions, update, updateWithMessage, view)
+module Pipeline exposing
+    ( Flags
+    , Model
+    , changeToPipelineAndGroups
+    , init
+    , subscriptions
+    , update
+    , updateWithMessage
+    , view
+    )
 
 import Char
 import Colors
 import Concourse
 import Concourse.Cli
-import Concourse.Info
-import Concourse.Job
-import Concourse.Pipeline
-import Concourse.Resource
 import Html exposing (Html)
 import Html.Attributes exposing (class, height, href, id, src, style, width)
 import Html.Attributes.Aria exposing (ariaLabel)
@@ -15,32 +20,21 @@ import Http
 import Json.Decode
 import Json.Encode
 import Keyboard
-import LoginRedirect
 import Mouse
-import Navigation exposing (Location)
+import Pipeline.Effects exposing (Effect(..))
+import Pipeline.Msgs exposing (Msg(..))
 import QueryString
 import RemoteData exposing (..)
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
-import Task
 import Time exposing (Time)
 import UpdateMsg exposing (UpdateMsg)
 
 
-port resetPipelineFocus : () -> Cmd msg
-
-
-type alias Ports =
-    { render : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd Msg
-    , title : String -> Cmd Msg
-    }
-
-
 type alias Model =
-    { ports : Ports
-    , pipelineLocator : Concourse.PipelineIdentifier
+    { pipelineLocator : Concourse.PipelineIdentifier
     , pipeline : WebData Concourse.Pipeline
     , fetchedJobs : Maybe Json.Encode.Value
     , fetchedResources : Maybe Json.Encode.Value
@@ -64,29 +58,13 @@ type alias Flags =
     }
 
 
-type Msg
-    = Noop
-    | AutoupdateVersionTicked Time
-    | AutoupdateTimerTicked Time
-    | HideLegendTimerTicked Time
-    | ShowLegend
-    | KeyPressed Keyboard.KeyCode
-    | PipelineIdentifierFetched Concourse.PipelineIdentifier
-    | JobsFetched (Result Http.Error Json.Encode.Value)
-    | ResourcesFetched (Result Http.Error Json.Encode.Value)
-    | VersionFetched (Result Http.Error String)
-    | PipelineFetched (Result Http.Error Concourse.Pipeline)
-    | ToggleGroup Concourse.PipelineGroup
-    | SetGroups (List String)
-
-
 queryGroupsForRoute : Routes.ConcourseRoute -> List String
 queryGroupsForRoute route =
     QueryString.all "groups" route.queries
 
 
-init : Ports -> Flags -> ( Model, Cmd Msg )
-init ports flags =
+init : Flags -> ( Model, List Effect )
+init flags =
     let
         pipelineLocator =
             { teamName = flags.teamName
@@ -94,8 +72,7 @@ init ports flags =
             }
 
         model =
-            { ports = ports
-            , concourseVersion = ""
+            { concourseVersion = ""
             , turbulenceImgSrc = flags.turbulenceImgSrc
             , pipelineLocator = pipelineLocator
             , pipeline = RemoteData.NotAsked
@@ -120,39 +97,40 @@ changeToPipelineAndGroups flags model =
             { teamName = flags.teamName
             , pipelineName = flags.pipelineName
             }
+
+        ( newModel, effects ) =
+            if model.pipelineLocator == pid then
+                renderIfNeeded
+                    { model | selectedGroups = queryGroupsForRoute flags.route }
+
+            else
+                init flags
     in
-    if model.pipelineLocator == pid then
-        renderIfNeeded { model | selectedGroups = queryGroupsForRoute flags.route }
-
-    else
-        init model.ports flags
+    ( newModel, Cmd.batch <| List.map Pipeline.Effects.runEffect effects )
 
 
-loadPipeline : Concourse.PipelineIdentifier -> Model -> ( Model, Cmd Msg )
+loadPipeline : Concourse.PipelineIdentifier -> Model -> ( Model, List Effect )
 loadPipeline pipelineLocator model =
-    ( { model
-        | pipelineLocator = pipelineLocator
-      }
-    , Cmd.batch
-        [ fetchPipeline pipelineLocator
-        , fetchVersion
-        , resetPipelineFocus ()
-        ]
+    ( { model | pipelineLocator = pipelineLocator }
+    , [ FetchPipeline pipelineLocator, FetchVersion, ResetPipelineFocus ]
     )
 
 
 updateWithMessage : Msg -> Model -> ( Model, Cmd Msg, Maybe UpdateMsg )
 updateWithMessage message model =
     let
-        ( mdl, msg ) =
+        ( mdl, effects ) =
             update message model
+
+        cmds =
+            Cmd.batch <| List.map Pipeline.Effects.runEffect effects
     in
     case mdl.pipeline of
         RemoteData.Failure _ ->
-            ( mdl, msg, Just UpdateMsg.NotFound )
+            ( mdl, cmds, Just UpdateMsg.NotFound )
 
         _ ->
-            ( mdl, msg, Nothing )
+            ( mdl, cmds, Nothing )
 
 
 timeUntilHidden : Time
@@ -165,72 +143,61 @@ timeUntilHiddenCheckInterval =
     1 * Time.second
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, List Effect )
 update msg model =
     let
         redirectToLoginIfUnauthenticated status =
             if status.code == 401 then
-                LoginRedirect.requestLoginRedirect ""
+                [ RedirectToLogin ]
 
             else
-                Cmd.none
+                []
     in
     case msg of
         Noop ->
-            ( model, Cmd.none )
+            ( model, [] )
 
         HideLegendTimerTicked _ ->
             if model.hideLegendCounter + timeUntilHiddenCheckInterval > timeUntilHidden then
-                ( { model | hideLegend = True }
-                , Cmd.none
-                )
+                ( { model | hideLegend = True }, [] )
 
             else
                 ( { model | hideLegendCounter = model.hideLegendCounter + timeUntilHiddenCheckInterval }
-                , Cmd.none
+                , []
                 )
 
         ShowLegend ->
-            ( { model | hideLegend = False, hideLegendCounter = 0 }
-            , Cmd.none
-            )
+            ( { model | hideLegend = False, hideLegendCounter = 0 }, [] )
 
         KeyPressed keycode ->
             if (Char.fromCode keycode |> Char.toLower) == 'f' then
-                ( model
-                , resetPipelineFocus ()
-                )
+                ( model, [ ResetPipelineFocus ] )
 
             else
-                ( model
-                , Cmd.none
-                )
+                ( model, [] )
 
         AutoupdateTimerTicked timestamp ->
-            ( model
-            , fetchPipeline model.pipelineLocator
-            )
+            ( model, [ FetchPipeline model.pipelineLocator ] )
 
         PipelineIdentifierFetched pipelineIdentifier ->
-            ( model, fetchPipeline pipelineIdentifier )
+            ( model, [ FetchPipeline pipelineIdentifier ] )
 
         AutoupdateVersionTicked _ ->
-            ( model, fetchVersion )
+            ( model, [ FetchVersion ] )
 
         PipelineFetched (Ok pipeline) ->
             ( { model | pipeline = RemoteData.Success pipeline }
-            , Cmd.batch
-                [ fetchJobs model.pipelineLocator
-                , fetchResources model.pipelineLocator
-                , model.ports.title <| pipeline.name ++ " - "
-                ]
+            , [ FetchJobs model.pipelineLocator
+              , FetchResources model.pipelineLocator
+              , SetTitle <| pipeline.name ++ " - "
+              ]
             )
 
         PipelineFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
-                        ( { model | pipeline = RemoteData.Failure err }, Cmd.none )
+                        ( { model | pipeline = RemoteData.Failure err }, [] )
 
                     else
                         ( model, redirectToLoginIfUnauthenticated status )
@@ -261,17 +228,17 @@ update msg model =
                     renderIfNeeded { model | fetchedResources = Nothing, experiencingTurbulence = True }
 
         VersionFetched (Ok version) ->
-            ( { model | concourseVersion = version, experiencingTurbulence = False }, Cmd.none )
+            ( { model | concourseVersion = version, experiencingTurbulence = False }, [] )
 
         VersionFetched (Err err) ->
             flip always (Debug.log "failed to fetch version" err) <|
-                ( { model | experiencingTurbulence = True }, Cmd.none )
+                ( { model | experiencingTurbulence = True }, [] )
 
         ToggleGroup group ->
-            setGroups (toggleGroup group model.selectedGroups model.pipeline) model
+            ( model, [ NewUrl <| getNextUrl (toggleGroup group model.selectedGroups model.pipeline) model ] )
 
         SetGroups groups ->
-            setGroups groups model
+            ( model, [ NewUrl <| getNextUrl groups model ] )
 
 
 subscriptions : Model -> Sub Msg
@@ -488,7 +455,7 @@ activeGroups model =
             groups
 
 
-renderIfNeeded : Model -> ( Model, Cmd Msg )
+renderIfNeeded : Model -> ( Model, List Effect )
 renderIfNeeded model =
     case ( model.fetchedResources, model.fetchedJobs ) of
         ( Just fetchedResources, Just fetchedJobs ) ->
@@ -510,45 +477,22 @@ renderIfNeeded model =
                             | renderedJobs = Just filteredFetchedJobs
                             , renderedResources = Just fetchedResources
                           }
-                        , model.ports.render ( filteredFetchedJobs, fetchedResources )
+                        , [ RenderPipeline filteredFetchedJobs fetchedResources ]
                         )
 
                     else
-                        ( model, Cmd.none )
+                        ( model, [] )
 
                 _ ->
                     ( { model
                         | renderedJobs = Just filteredFetchedJobs
                         , renderedResources = Just fetchedResources
                       }
-                    , model.ports.render ( filteredFetchedJobs, fetchedResources )
+                    , [ RenderPipeline filteredFetchedJobs fetchedResources ]
                     )
 
         _ ->
-            ( model, Cmd.none )
-
-
-fetchResources : Concourse.PipelineIdentifier -> Cmd Msg
-fetchResources pid =
-    Task.attempt ResourcesFetched <| Concourse.Resource.fetchResourcesRaw pid
-
-
-fetchJobs : Concourse.PipelineIdentifier -> Cmd Msg
-fetchJobs pid =
-    Task.attempt JobsFetched <| Concourse.Job.fetchJobsRaw pid
-
-
-fetchVersion : Cmd Msg
-fetchVersion =
-    Concourse.Info.fetch
-        |> Task.map .version
-        |> Task.attempt VersionFetched
-
-
-fetchPipeline : Concourse.PipelineIdentifier -> Cmd Msg
-fetchPipeline pipelineIdentifier =
-    Task.attempt PipelineFetched <|
-        Concourse.Pipeline.fetchPipeline pipelineIdentifier
+            ( model, [] )
 
 
 anyIntersect : List a -> List a -> Bool
@@ -601,14 +545,10 @@ getDefaultSelectedGroups pipeline =
             []
 
 
-setGroups : List String -> Model -> ( Model, Cmd Msg )
-setGroups newGroups model =
-    let
-        newUrl =
-            pidToUrl (pipelineIdentifierFromModel model) <|
-                setGroupsInLocation model.route newGroups
-    in
-    ( model, Navigation.newUrl newUrl )
+getNextUrl : List String -> Model -> String
+getNextUrl newGroups model =
+    pidToUrl (pipelineIdentifierFromModel model) <|
+        setGroupsInLocation model.route newGroups
 
 
 setGroupsInLocation : Routes.ConcourseRoute -> List String -> Routes.ConcourseRoute

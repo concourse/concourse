@@ -1,4 +1,14 @@
-port module TopBar exposing (Model, Msg(..), fetchUser, init, subscriptions, update, urlUpdate, userDisplayName, view)
+port module TopBar exposing
+    ( Model
+    , Msg(..)
+    , fetchUser
+    , init
+    , subscriptions
+    , update
+    , urlUpdate
+    , userDisplayName
+    , view
+    )
 
 import Colors
 import Concourse
@@ -12,6 +22,7 @@ import Http
 import LoginRedirect
 import Navigation exposing (Location)
 import Pipeline
+import Pipeline.Effects
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Task
@@ -131,7 +142,7 @@ update msg model =
                 ( model, Cmd.none )
 
         ResetToPipeline url ->
-            ( model, Cmd.batch [ Navigation.newUrl url, Pipeline.resetPipelineFocus () ] )
+            ( model, Cmd.batch [ Navigation.newUrl url, Pipeline.Effects.resetPipelineFocus () ] )
 
         ToggleUserMenu ->
             ( { model | userMenuVisible = not model.userMenuVisible }, Cmd.none )

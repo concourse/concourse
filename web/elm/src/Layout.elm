@@ -16,6 +16,7 @@ import Html.Attributes as Attributes exposing (class, id, style)
 import Json.Decode
 import Navigation
 import Pipeline
+import Pipeline.Msgs
 import Routes
 import SubPage
 import Task exposing (Task)
@@ -194,7 +195,7 @@ update msg model =
                 ]
             )
 
-        SubMsg navIndex (SubPage.PipelineMsg (Pipeline.ResourcesFetched (Ok fetchedResources))) ->
+        SubMsg navIndex (SubPage.PipelineMsg (Pipeline.Msgs.ResourcesFetched (Ok fetchedResources))) ->
             let
                 resources : Result String (List Concourse.Resource)
                 resources =
@@ -228,7 +229,7 @@ update msg model =
                             model.turbulenceImgSrc
                             model.notFoundImgSrc
                             model.csrfToken
-                            (SubPage.PipelineMsg (Pipeline.ResourcesFetched (Ok fetchedResources)))
+                            (SubPage.PipelineMsg (Pipeline.Msgs.ResourcesFetched (Ok fetchedResources)))
                             model.subModel
                 in
                 ( { model
