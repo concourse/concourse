@@ -6,6 +6,7 @@ import FlySuccess.Msgs as Msgs
 import Html.Attributes as Attr
 import Layout
 import SubPage
+import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -137,7 +138,7 @@ tokenSendSuccess =
         (steps whenOnFlySuccessPage
             >> Layout.update
                 (Layout.SubMsg 1 <|
-                    SubPage.FlySuccessMsg <|
+                    SubPage.Msgs.FlySuccessMsg <|
                         Msgs.TokenSentToFly True
                 )
             >> Tuple.first
@@ -150,7 +151,7 @@ tokenSendFailed =
         (steps whenOnFlySuccessPage
             >> Layout.update
                 (Layout.SubMsg 1 <|
-                    SubPage.FlySuccessMsg <|
+                    SubPage.Msgs.FlySuccessMsg <|
                         Msgs.TokenSentToFly False
                 )
             >> Tuple.first
@@ -163,7 +164,7 @@ tokenCopied =
         (steps tokenSendFailed
             >> Layout.update
                 (Layout.SubMsg 1 <|
-                    SubPage.FlySuccessMsg <|
+                    SubPage.Msgs.FlySuccessMsg <|
                         Msgs.CopyToken
                 )
             >> Tuple.first
@@ -571,7 +572,7 @@ buttonClickHandler =
         Event.simulate Event.click
             >> Event.expect
                 (Layout.SubMsg 1 <|
-                    SubPage.FlySuccessMsg <|
+                    SubPage.Msgs.FlySuccessMsg <|
                         Msgs.CopyToken
                 )
 
@@ -674,12 +675,12 @@ all =
                     }
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.FlySuccessMsg <|
+                        SubPage.Msgs.FlySuccessMsg <|
                             Msgs.CopyTokenButtonHover
                                 True
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.FlySuccessMsg <|
+                        SubPage.Msgs.FlySuccessMsg <|
                             Msgs.CopyTokenButtonHover
                                 False
                 , hoveredSelector =

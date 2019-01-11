@@ -10,6 +10,7 @@ import Pipeline.Msgs exposing (Msg(..))
 import QueryString
 import Routes
 import SubPage
+import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -913,7 +914,7 @@ givenPinnedResource : Layout.Model -> Layout.Model
 givenPinnedResource =
     Layout.update
         (Layout.SubMsg -1 <|
-            SubPage.PipelineMsg <|
+            SubPage.Msgs.PipelineMsg <|
                 ResourcesFetched <|
                     Ok <|
                         Json.Encode.list
@@ -932,7 +933,7 @@ givenMultiplePinnedResources : Layout.Model -> Layout.Model
 givenMultiplePinnedResources =
     Layout.update
         (Layout.SubMsg -1 <|
-            SubPage.PipelineMsg <|
+            SubPage.Msgs.PipelineMsg <|
                 ResourcesFetched <|
                     Ok <|
                         Json.Encode.list

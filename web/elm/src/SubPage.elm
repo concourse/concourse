@@ -1,6 +1,5 @@
 module SubPage exposing
     ( Model(..)
-    , Msg(..)
     , init
     , subscriptions
     , update
@@ -14,28 +13,24 @@ import Build.Msgs
 import Concourse
 import Dashboard
 import Dashboard.Effects
-import Dashboard.Msgs
 import Effects
 import FlySuccess
 import FlySuccess.Effects
-import FlySuccess.Msgs
 import Html exposing (Html)
 import Html.Styled as HS
-import Http
 import Job
 import Job.Effects
-import Job.Msgs
 import NotFound
 import Pipeline
 import Pipeline.Effects
-import Pipeline.Msgs
 import QueryString
 import Resource
 import Resource.Effects
-import Resource.Msgs
 import Resource.Models
+import Resource.Msgs
 import Routes
 import String
+import SubPage.Msgs exposing (Msg(..))
 import UpdateMsg exposing (UpdateMsg)
 
 
@@ -48,17 +43,6 @@ type Model
     | NotFoundModel NotFound.Model
     | DashboardModel Dashboard.Model
     | FlySuccessModel FlySuccess.Model
-
-
-type Msg
-    = BuildMsg (Autoscroll.Msg Build.Msgs.Msg)
-    | JobMsg Job.Msgs.Msg
-    | ResourceMsg Resource.Msgs.Msg
-    | PipelineMsg Pipeline.Msgs.Msg
-    | NewCSRFToken String
-    | DashboardPipelinesFetched (Result Http.Error (List Concourse.Pipeline))
-    | DashboardMsg Dashboard.Msgs.Msg
-    | FlySuccessMsg FlySuccess.Msgs.Msg
 
 
 type alias Flags =

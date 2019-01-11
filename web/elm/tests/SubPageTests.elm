@@ -15,6 +15,7 @@ import Resource
 import Resource.Msgs
 import Routes
 import SubPage exposing (..)
+import SubPage.Msgs exposing (Msg(..))
 import Test exposing (..)
 
 

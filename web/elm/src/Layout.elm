@@ -18,6 +18,7 @@ import Navigation
 import Pipeline.Msgs
 import Routes
 import SubPage
+import SubPage.Msgs
 import Task exposing (Task)
 import TopBar
 
@@ -74,7 +75,7 @@ type TopBarType
 type Msg
     = Noop
     | RouteChanged Routes.ConcourseRoute
-    | SubMsg NavIndex SubPage.Msg
+    | SubMsg NavIndex SubPage.Msgs.Msg
     | TopMsg NavIndex TopBar.Msg
     | NewUrl String
     | ModifyUrl String
@@ -183,7 +184,7 @@ update msg model =
         TokenReceived (Just tokenValue) ->
             let
                 ( newSubModel, subCmd ) =
-                    SubPage.update model.turbulenceImgSrc model.notFoundImgSrc tokenValue (SubPage.NewCSRFToken tokenValue) model.subModel
+                    SubPage.update model.turbulenceImgSrc model.notFoundImgSrc tokenValue (SubPage.Msgs.NewCSRFToken tokenValue) model.subModel
             in
             ( { model
                 | csrfToken = tokenValue
@@ -194,7 +195,7 @@ update msg model =
                 ]
             )
 
-        SubMsg navIndex (SubPage.PipelineMsg (Pipeline.Msgs.ResourcesFetched (Ok fetchedResources))) ->
+        SubMsg navIndex (SubPage.Msgs.PipelineMsg (Pipeline.Msgs.ResourcesFetched (Ok fetchedResources))) ->
             let
                 resources : Result String (List Concourse.Resource)
                 resources =
@@ -228,7 +229,7 @@ update msg model =
                             model.turbulenceImgSrc
                             model.notFoundImgSrc
                             model.csrfToken
-                            (SubPage.PipelineMsg (Pipeline.Msgs.ResourcesFetched (Ok fetchedResources)))
+                            (SubPage.Msgs.PipelineMsg (Pipeline.Msgs.ResourcesFetched (Ok fetchedResources)))
                             model.subModel
                 in
                 ( { model

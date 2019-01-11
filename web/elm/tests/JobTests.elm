@@ -19,6 +19,7 @@ import Job.Msgs exposing (Msg(..))
 import Layout
 import RemoteData
 import SubPage
+import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
@@ -113,7 +114,7 @@ all =
                         |> Tuple.first
                         |> Layout.update
                             (Layout.SubMsg 1 <|
-                                SubPage.JobMsg <|
+                                SubPage.Msgs.JobMsg <|
                                     JobFetched <|
                                         Ok
                                             { name = "job"
@@ -181,7 +182,7 @@ all =
                     init { disabled = False, paused = False }
                         >> Layout.update
                             (Layout.SubMsg 1 <|
-                                SubPage.JobMsg <|
+                                SubPage.Msgs.JobMsg <|
                                     JobBuildsFetched <|
                                         let
                                             jobId =
@@ -283,11 +284,11 @@ all =
                     }
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
+                        SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.Toggle
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
+                        SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.None
                 }
             , defineHoverBehaviour
@@ -319,11 +320,11 @@ all =
                     }
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
+                        SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.Toggle
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
+                        SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.None
                 }
             , test "trigger build button has grey background" <|
@@ -390,11 +391,11 @@ all =
                     }
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
+                        SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.Trigger
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
+                        SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.None
                 }
             , defineHoverBehaviour
@@ -450,18 +451,18 @@ all =
                     }
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
+                        SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.Trigger
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
+                        SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.None
                 }
             , test "inputs icon on build" <|
                 init { disabled = False, paused = False }
                     >> Layout.update
                         (Layout.SubMsg 1 <|
-                            SubPage.JobMsg <|
+                            SubPage.Msgs.JobMsg <|
                                 JobBuildsFetched <|
                                     let
                                         jobId =
@@ -528,7 +529,7 @@ all =
                 init { disabled = False, paused = False }
                     >> Layout.update
                         (Layout.SubMsg 1 <|
-                            SubPage.JobMsg <|
+                            SubPage.Msgs.JobMsg <|
                                 JobBuildsFetched <|
                                     let
                                         jobId =
@@ -634,7 +635,7 @@ all =
                 init { disabled = False, paused = False }
                     >> Layout.update
                         (Layout.SubMsg 1 <|
-                            SubPage.JobMsg <|
+                            SubPage.Msgs.JobMsg <|
                                 JobBuildsFetched <|
                                     let
                                         jobId =
@@ -758,7 +759,7 @@ all =
                     init { disabled = False, paused = False } ()
                         |> Layout.update
                             (Layout.SubMsg 1 <|
-                                SubPage.JobMsg <|
+                                SubPage.Msgs.JobMsg <|
                                     JobBuildsFetched <|
                                         Ok
                                             { pagination =
@@ -836,11 +837,11 @@ all =
                     }
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
+                        SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.PreviousPage
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
+                        SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.None
                 }
             , test "JobBuildsFetched" <|
