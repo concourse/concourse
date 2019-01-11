@@ -2,7 +2,7 @@ module FlySuccessTests exposing (all)
 
 import DashboardTests exposing (defineHoverBehaviour, iconSelector)
 import Expect exposing (Expectation)
-import FlySuccess
+import FlySuccess.Msgs as Msgs
 import Html.Attributes as Attr
 import Layout
 import SubPage
@@ -138,7 +138,7 @@ tokenSendSuccess =
             >> Layout.update
                 (Layout.SubMsg 1 <|
                     SubPage.FlySuccessMsg <|
-                        FlySuccess.TokenSentToFly True
+                        Msgs.TokenSentToFly True
                 )
             >> Tuple.first
         )
@@ -151,7 +151,7 @@ tokenSendFailed =
             >> Layout.update
                 (Layout.SubMsg 1 <|
                     SubPage.FlySuccessMsg <|
-                        FlySuccess.TokenSentToFly False
+                        Msgs.TokenSentToFly False
                 )
             >> Tuple.first
         )
@@ -164,7 +164,7 @@ tokenCopied =
             >> Layout.update
                 (Layout.SubMsg 1 <|
                     SubPage.FlySuccessMsg <|
-                        FlySuccess.CopyToken
+                        Msgs.CopyToken
                 )
             >> Tuple.first
         )
@@ -572,7 +572,7 @@ buttonClickHandler =
             >> Event.expect
                 (Layout.SubMsg 1 <|
                     SubPage.FlySuccessMsg <|
-                        FlySuccess.CopyToken
+                        Msgs.CopyToken
                 )
 
 
@@ -675,12 +675,12 @@ all =
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
                         SubPage.FlySuccessMsg <|
-                            FlySuccess.CopyTokenButtonHover
+                            Msgs.CopyTokenButtonHover
                                 True
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
                         SubPage.FlySuccessMsg <|
-                            FlySuccess.CopyTokenButtonHover
+                            Msgs.CopyTokenButtonHover
                                 False
                 , hoveredSelector =
                     { description = "darker background"

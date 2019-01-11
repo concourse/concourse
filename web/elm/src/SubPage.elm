@@ -17,6 +17,8 @@ import Dashboard
 import Dashboard.Msgs
 import Effects
 import FlySuccess
+import FlySuccess.Effects
+import FlySuccess.Msgs
 import Html exposing (Html)
 import Html.Styled as HS
 import Http
@@ -56,7 +58,7 @@ type Msg
     | NewCSRFToken String
     | DashboardPipelinesFetched (Result Http.Error (List Concourse.Pipeline))
     | DashboardMsg Dashboard.Msgs.Msg
-    | FlySuccessMsg FlySuccess.Msg
+    | FlySuccessMsg FlySuccess.Msgs.Msg
 
 
 type alias Flags =
@@ -175,11 +177,14 @@ init flags route =
                     }
 
         Routes.FlySuccess ->
-            superDupleWrap ( FlySuccessModel, FlySuccessMsg ) <|
-                FlySuccess.init
+            superDupleWrap ( FlySuccessModel, FlySuccessMsg )
+                (FlySuccess.init
                     { authToken = flags.authToken
                     , flyPort = QueryString.one QueryString.int "fly_port" route.queries
                     }
+                    |> Tuple.mapSecond
+                        (List.map FlySuccess.Effects.runEffect >> Cmd.batch)
+                )
 
 
 handleNotFound : String -> ( a -> Model, c -> Msg ) -> ( a, Cmd c, Maybe UpdateMsg ) -> ( Model, Cmd Msg )
@@ -247,7 +252,11 @@ update turbulence notFound csrfToken msg mdl =
                 |> superDupleWrap ( DashboardModel, DashboardMsg )
 
         ( FlySuccessMsg message, FlySuccessModel model ) ->
-            superDupleWrap ( FlySuccessModel, FlySuccessMsg ) <| FlySuccess.update message model
+            superDupleWrap ( FlySuccessModel, FlySuccessMsg )
+                (FlySuccess.update message model
+                    |> Tuple.mapSecond
+                        (List.map FlySuccess.Effects.runEffect >> Cmd.batch)
+                )
 
         ( NewCSRFToken _, _ ) ->
             ( mdl, Cmd.none )
