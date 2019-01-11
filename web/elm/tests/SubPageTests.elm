@@ -4,10 +4,10 @@ import Autoscroll
 import Build
 import Build.Msgs
 import Dict exposing (Dict)
+import Effects exposing (Callback(..))
 import Expect
 import Http
 import Job exposing (..)
-import Job.Msgs
 import Pipeline
 import Pipeline.Msgs
 import QueryString
@@ -45,7 +45,7 @@ all =
                 \_ ->
                     let
                         msg =
-                            Job.Msgs.JobFetched <| Err <| Http.BadStatus notFoundStatus
+                            Effects.JobFetched <| Err <| Http.BadStatus notFoundStatus
 
                         ( model, _ ) =
                             Job.init
@@ -56,7 +56,7 @@ all =
                                 , csrfToken = csrfToken
                                 }
                     in
-                    Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg" }) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (JobMsg msg) (JobModel model)
+                    Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg" }) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (Callback msg) (JobModel model)
             , test "Resource not found" <|
                 \_ ->
                     let

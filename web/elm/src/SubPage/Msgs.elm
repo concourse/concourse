@@ -4,6 +4,7 @@ import Autoscroll
 import Build.Msgs
 import Concourse
 import Dashboard.Msgs
+import Effects
 import FlySuccess.Msgs
 import Http
 import Job.Msgs
@@ -20,3 +21,4 @@ type Msg
     | DashboardPipelinesFetched (Result Http.Error (List Concourse.Pipeline))
     | DashboardMsg Dashboard.Msgs.Msg
     | FlySuccessMsg FlySuccess.Msgs.Msg
+    | Callback Effects.Callback

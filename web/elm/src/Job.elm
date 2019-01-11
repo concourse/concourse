@@ -2,6 +2,8 @@ port module Job exposing
     ( Flags
     , Model
     , changeToJob
+    , handleCallback
+    , handleCallbackWithMessage
     , init
     , subscriptions
     , update
@@ -24,6 +26,7 @@ import Concourse.Pagination
         )
 import Dict exposing (Dict)
 import DictView
+import Effects exposing (Callback(..), Effect(..))
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -41,7 +44,6 @@ import Html.Events
         , onMouseLeave
         )
 import Http
-import Job.Effects as Effects exposing (Effect(..))
 import Job.Msgs exposing (Hoverable(..), Msg(..))
 import LoadingIndicator
 import RemoteData exposing (WebData)
@@ -133,11 +135,11 @@ changeToJob flags model =
     )
 
 
-updateWithMessage : Msg -> Model -> ( Model, Cmd Msg, Maybe UpdateMsg )
-updateWithMessage message model =
+handleCallbackWithMessage : Callback -> Model -> ( Model, Cmd Callback, Maybe UpdateMsg )
+handleCallbackWithMessage callback model =
     let
         ( mdl, effects ) =
-            update message model
+            handleCallback callback model
 
         cmd =
             List.map Effects.runEffect effects |> Cmd.batch
@@ -150,15 +152,9 @@ updateWithMessage message model =
             ( mdl, cmd, Nothing )
 
 
-update : Msg -> Model -> ( Model, List Effect )
-update action model =
-    case action of
-        Noop ->
-            ( model, [] )
-
-        TriggerBuild ->
-            ( model, [ DoTriggerBuild model.jobIdentifier model.csrfToken ] )
-
+handleCallback : Effects.Callback -> Model -> ( Model, List Effect )
+handleCallback callback model =
+    case callback of
         BuildTriggered (Ok build) ->
             ( model
             , case build.job of
@@ -239,8 +235,41 @@ update action model =
         BuildResourcesFetched _ (Err err) ->
             ( model, [] )
 
-        ClockTick now ->
+        PausedToggled (Ok ()) ->
+            ( { model | pausedChanging = False }, [] )
+
+        PausedToggled (Err err) ->
+            ( model, redirectToLoginIfNecessary err )
+
+        GotCurrentTime now ->
             ( { model | now = now }, [] )
+
+
+updateWithMessage : Msg -> Model -> ( Model, Cmd Callback, Maybe UpdateMsg )
+updateWithMessage message model =
+    let
+        ( mdl, effects ) =
+            update message model
+
+        cmd =
+            List.map Effects.runEffect effects |> Cmd.batch
+    in
+    case mdl.job of
+        RemoteData.Failure _ ->
+            ( mdl, cmd, Just UpdateMsg.NotFound )
+
+        _ ->
+            ( mdl, cmd, Nothing )
+
+
+update : Msg -> Model -> ( Model, List Effect )
+update action model =
+    case action of
+        Noop ->
+            ( model, [] )
+
+        TriggerBuild ->
+            ( model, [ DoTriggerBuild model.jobIdentifier model.csrfToken ] )
 
         TogglePaused ->
             case model.job |> RemoteData.toMaybe of
@@ -260,12 +289,6 @@ update action model =
                       ]
                     )
 
-        PausedToggled (Ok ()) ->
-            ( { model | pausedChanging = False }, [] )
-
-        PausedToggled (Err err) ->
-            ( model, redirectToLoginIfNecessary err )
-
         NavTo url ->
             ( model, [ NavigateTo url ] )
 
@@ -278,6 +301,9 @@ update action model =
 
         Hover hoverable ->
             ( { model | hovered = hoverable }, [] )
+
+        ClockTick now ->
+            ( { model | now = now }, [] )
 
 
 redirectToLoginIfNecessary : Http.Error -> List Effect

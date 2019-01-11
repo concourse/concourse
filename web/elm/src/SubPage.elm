@@ -20,7 +20,6 @@ import FlySuccess.Effects
 import Html exposing (Html)
 import Html.Styled as HS
 import Job
-import Job.Effects
 import NotFound
 import Pipeline
 import Pipeline.Effects
@@ -113,7 +112,7 @@ init flags route =
                 )
 
         Routes.Job teamName pipelineName jobName ->
-            superDupleWrap ( JobModel, JobMsg )
+            superDupleWrap ( JobModel, Callback )
                 (Job.init
                     { jobName = jobName
                     , teamName = teamName
@@ -122,7 +121,7 @@ init flags route =
                     , csrfToken = flags.csrfToken
                     }
                     |> Tuple.mapSecond
-                        (List.map Job.Effects.runEffect >> Cmd.batch)
+                        (List.map Effects.runEffect >> Cmd.batch)
                 )
 
         Routes.Pipeline teamName pipelineName ->
@@ -216,7 +215,10 @@ update turbulence notFound csrfToken msg mdl =
             ( JobModel { model | csrfToken = c }, Cmd.none )
 
         ( JobMsg message, JobModel model ) ->
-            handleNotFound notFound ( JobModel, JobMsg ) (Job.updateWithMessage message { model | csrfToken = csrfToken })
+            handleNotFound notFound ( JobModel, Callback ) (Job.updateWithMessage message { model | csrfToken = csrfToken })
+
+        ( Callback callback, JobModel model ) ->
+            handleNotFound notFound ( JobModel, Callback ) (Job.handleCallbackWithMessage callback { model | csrfToken = csrfToken })
 
         ( PipelineMsg message, PipelineModel model ) ->
             handleNotFound
@@ -282,7 +284,7 @@ urlUpdate route model =
                 )
 
         ( Routes.Job teamName pipelineName jobName, JobModel mdl ) ->
-            superDupleWrap ( JobModel, JobMsg )
+            superDupleWrap ( JobModel, Callback )
                 (Job.changeToJob
                     { teamName = teamName
                     , pipelineName = pipelineName
@@ -292,7 +294,7 @@ urlUpdate route model =
                     }
                     mdl
                     |> Tuple.mapSecond
-                        (List.map Job.Effects.runEffect >> Cmd.batch)
+                        (List.map Effects.runEffect >> Cmd.batch)
                 )
 
         ( Routes.Build teamName pipelineName jobName buildName, BuildModel scrollModel ) ->

@@ -11,6 +11,7 @@ import DashboardTests
         )
 import Date
 import Dict
+import Effects exposing (Callback(..))
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Http
@@ -18,7 +19,6 @@ import Job exposing (update)
 import Job.Msgs exposing (Msg(..))
 import Layout
 import RemoteData
-import SubPage
 import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Query as Query
@@ -114,7 +114,7 @@ all =
                         |> Tuple.first
                         |> Layout.update
                             (Layout.SubMsg 1 <|
-                                SubPage.Msgs.JobMsg <|
+                                SubPage.Msgs.Callback <|
                                     JobFetched <|
                                         Ok
                                             { name = "job"
@@ -182,7 +182,7 @@ all =
                     init { disabled = False, paused = False }
                         >> Layout.update
                             (Layout.SubMsg 1 <|
-                                SubPage.Msgs.JobMsg <|
+                                SubPage.Msgs.Callback <|
                                     JobBuildsFetched <|
                                         let
                                             jobId =
@@ -462,7 +462,7 @@ all =
                 init { disabled = False, paused = False }
                     >> Layout.update
                         (Layout.SubMsg 1 <|
-                            SubPage.Msgs.JobMsg <|
+                            SubPage.Msgs.Callback <|
                                 JobBuildsFetched <|
                                     let
                                         jobId =
@@ -529,7 +529,7 @@ all =
                 init { disabled = False, paused = False }
                     >> Layout.update
                         (Layout.SubMsg 1 <|
-                            SubPage.Msgs.JobMsg <|
+                            SubPage.Msgs.Callback <|
                                 JobBuildsFetched <|
                                     let
                                         jobId =
@@ -635,7 +635,7 @@ all =
                 init { disabled = False, paused = False }
                     >> Layout.update
                         (Layout.SubMsg 1 <|
-                            SubPage.Msgs.JobMsg <|
+                            SubPage.Msgs.Callback <|
                                 JobBuildsFetched <|
                                     let
                                         jobId =
@@ -759,7 +759,7 @@ all =
                     init { disabled = False, paused = False } ()
                         |> Layout.update
                             (Layout.SubMsg 1 <|
-                                SubPage.Msgs.JobMsg <|
+                                SubPage.Msgs.Callback <|
                                     JobBuildsFetched <|
                                         Ok
                                             { pagination =
@@ -868,7 +868,7 @@ all =
                         }
                     <|
                         Tuple.first <|
-                            update
+                            Job.handleCallback
                                 (JobBuildsFetched <|
                                     Ok
                                         { content = [ someBuild ]
@@ -885,7 +885,7 @@ all =
                         defaultModel
                     <|
                         Tuple.first <|
-                            update
+                            Job.handleCallback
                                 (JobBuildsFetched <| Err Http.NetworkError)
                                 defaultModel
             , test "JobFetched" <|
@@ -896,14 +896,14 @@ all =
                         }
                     <|
                         Tuple.first <|
-                            update (JobFetched <| Ok someJob) defaultModel
+                            Job.handleCallback (JobFetched <| Ok someJob) defaultModel
             , test "JobFetched error" <|
                 \_ ->
                     Expect.equal
                         defaultModel
                     <|
                         Tuple.first <|
-                            update
+                            Job.handleCallback
                                 (JobFetched <| Err Http.NetworkError)
                                 defaultModel
             , test "BuildResourcesFetched" <|
@@ -930,7 +930,7 @@ all =
                         defaultModel
                     <|
                         Tuple.first <|
-                            update (BuildResourcesFetched 1 (Ok buildResources))
+                            Job.handleCallback (BuildResourcesFetched 1 (Ok buildResources))
                                 defaultModel
             , test "BuildResourcesFetched error" <|
                 \_ ->
@@ -938,7 +938,7 @@ all =
                         defaultModel
                     <|
                         Tuple.first <|
-                            update
+                            Job.handleCallback
                                 (BuildResourcesFetched 1 (Err Http.NetworkError))
                                 defaultModel
             , test "TogglePaused" <|
@@ -962,7 +962,7 @@ all =
                         }
                     <|
                         Tuple.first <|
-                            update
+                            Job.handleCallback
                                 (PausedToggled <| Ok ())
                                 { defaultModel | job = RemoteData.Success someJob }
             , test "PausedToggled error" <|
@@ -971,7 +971,7 @@ all =
                         { defaultModel | job = RemoteData.Success someJob }
                     <|
                         Tuple.first <|
-                            update
+                            Job.handleCallback
                                 (PausedToggled <| Err Http.NetworkError)
                                 { defaultModel | job = RemoteData.Success someJob }
             , test "PausedToggled unauthorized" <|
@@ -980,7 +980,7 @@ all =
                         { defaultModel | job = RemoteData.Success someJob }
                     <|
                         Tuple.first <|
-                            update
+                            Job.handleCallback
                                 (PausedToggled <|
                                     Err <|
                                         Http.BadStatus
