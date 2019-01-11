@@ -51,14 +51,15 @@ func (groups GroupConfigs) Lookup(name string) (GroupConfig, int, bool) {
 }
 
 type ResourceConfig struct {
-	Name         string  `yaml:"name" json:"name" mapstructure:"name"`
-	WebhookToken string  `yaml:"webhook_token,omitempty" json:"webhook_token" mapstructure:"webhook_token"`
-	Type         string  `yaml:"type" json:"type" mapstructure:"type"`
-	Source       Source  `yaml:"source" json:"source" mapstructure:"source"`
-	CheckEvery   string  `yaml:"check_every,omitempty" json:"check_every" mapstructure:"check_every"`
-	CheckTimeout string  `yaml:"check_timeout,omitempty" json:"check_timeout" mapstructure:"check_timeout"`
-	Tags         Tags    `yaml:"tags,omitempty" json:"tags" mapstructure:"tags"`
-	Version      Version `yaml:"version,omitempty" json:"version" mapstructure:"version"`
+	Name                 string  `yaml:"name" json:"name" mapstructure:"name"`
+	WebhookToken         string  `yaml:"webhook_token,omitempty" json:"webhook_token" mapstructure:"webhook_token"`
+	Type                 string  `yaml:"type" json:"type" mapstructure:"type"`
+	Source               Source  `yaml:"source" json:"source" mapstructure:"source"`
+	CheckEvery           string  `yaml:"check_every,omitempty" json:"check_every" mapstructure:"check_every"`
+	CheckTimeout         string  `yaml:"check_timeout,omitempty" json:"check_timeout" mapstructure:"check_timeout"`
+	Tags                 Tags    `yaml:"tags,omitempty" json:"tags" mapstructure:"tags"`
+	Version              Version `yaml:"version,omitempty" json:"version" mapstructure:"version"`
+	UniqueVersionHistory bool    `yaml:"unique_version_history,omitempty" json:"unique_version_history" mapstructure:"unique_version_history"`
 }
 
 type ResourceType struct {

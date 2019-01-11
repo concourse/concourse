@@ -402,6 +402,7 @@ var _ = Describe("Pipeline", func() {
 
 			otherDBPipeline, _, err = team.SavePipeline("other-pipeline-name", otherPipelineConfig, 0, db.PipelineUnpaused)
 			Expect(err).ToNot(HaveOccurred())
+
 			resource, _, err = dbPipeline.Resource(resourceName)
 			Expect(err).ToNot(HaveOccurred())
 
