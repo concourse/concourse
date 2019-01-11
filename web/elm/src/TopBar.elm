@@ -21,7 +21,6 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave, onMouseOut, on
 import Http
 import LoginRedirect
 import Navigation exposing (Location)
-import Pipeline
 import Pipeline.Effects
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)

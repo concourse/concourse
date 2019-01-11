@@ -14,7 +14,8 @@ import Dict
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Http
-import Job exposing (Msg(..), update)
+import Job exposing (update)
+import Job.Msgs exposing (Msg(..))
 import Layout
 import RemoteData
 import SubPage
@@ -77,7 +78,6 @@ all =
                 defaultModel : Job.Model
                 defaultModel =
                     Job.init
-                        { title = \_ -> Cmd.none }
                         { jobName = "some-job"
                         , teamName = "some-team"
                         , pipelineName = "some-pipeline"
@@ -114,7 +114,7 @@ all =
                         |> Layout.update
                             (Layout.SubMsg 1 <|
                                 SubPage.JobMsg <|
-                                    Job.JobFetched <|
+                                    JobFetched <|
                                         Ok
                                             { name = "job"
                                             , pipelineName = "pipeline"
@@ -182,7 +182,7 @@ all =
                         >> Layout.update
                             (Layout.SubMsg 1 <|
                                 SubPage.JobMsg <|
-                                    Job.JobBuildsFetched <|
+                                    JobBuildsFetched <|
                                         let
                                             jobId =
                                                 { jobName = "job"
@@ -284,11 +284,11 @@ all =
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.Hover Job.Toggle
+                            Job.Msgs.Hover Job.Msgs.Toggle
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.Hover Job.None
+                            Job.Msgs.Hover Job.Msgs.None
                 }
             , defineHoverBehaviour
                 { name = "play/pause button when job is paused"
@@ -320,11 +320,11 @@ all =
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.Hover Job.Toggle
+                            Job.Msgs.Hover Job.Msgs.Toggle
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.Hover Job.None
+                            Job.Msgs.Hover Job.Msgs.None
                 }
             , test "trigger build button has grey background" <|
                 init { disabled = False, paused = False }
@@ -391,11 +391,11 @@ all =
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.Hover Job.Trigger
+                            Job.Msgs.Hover Job.Msgs.Trigger
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.Hover Job.None
+                            Job.Msgs.Hover Job.Msgs.None
                 }
             , defineHoverBehaviour
                 { name = "disabled trigger build button"
@@ -451,18 +451,18 @@ all =
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.Hover Job.Trigger
+                            Job.Msgs.Hover Job.Msgs.Trigger
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.Hover Job.None
+                            Job.Msgs.Hover Job.Msgs.None
                 }
             , test "inputs icon on build" <|
                 init { disabled = False, paused = False }
                     >> Layout.update
                         (Layout.SubMsg 1 <|
                             SubPage.JobMsg <|
-                                Job.JobBuildsFetched <|
+                                JobBuildsFetched <|
                                     let
                                         jobId =
                                             { jobName = "job"
@@ -529,7 +529,7 @@ all =
                     >> Layout.update
                         (Layout.SubMsg 1 <|
                             SubPage.JobMsg <|
-                                Job.JobBuildsFetched <|
+                                JobBuildsFetched <|
                                     let
                                         jobId =
                                             { jobName = "job"
@@ -635,7 +635,7 @@ all =
                     >> Layout.update
                         (Layout.SubMsg 1 <|
                             SubPage.JobMsg <|
-                                Job.JobBuildsFetched <|
+                                JobBuildsFetched <|
                                     let
                                         jobId =
                                             { jobName = "job"
@@ -759,7 +759,7 @@ all =
                         |> Layout.update
                             (Layout.SubMsg 1 <|
                                 SubPage.JobMsg <|
-                                    Job.JobBuildsFetched <|
+                                    JobBuildsFetched <|
                                         Ok
                                             { pagination =
                                                 { previousPage =
@@ -837,11 +837,11 @@ all =
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.Hover Job.PreviousPage
+                            Job.Msgs.Hover Job.Msgs.PreviousPage
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
                         SubPage.JobMsg <|
-                            Job.Hover Job.None
+                            Job.Msgs.Hover Job.Msgs.None
                 }
             , test "JobBuildsFetched" <|
                 \_ ->

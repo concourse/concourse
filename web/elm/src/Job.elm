@@ -1,8 +1,6 @@
 port module Job exposing
     ( Flags
-    , Hoverable(..)
     , Model
-    , Msg(..)
     , changeToJob
     , init
     , subscriptions
@@ -15,10 +13,7 @@ import Build.Styles as Styles
 import BuildDuration
 import Colors
 import Concourse
-import Concourse.Build
-import Concourse.BuildResources exposing (fetch)
 import Concourse.BuildStatus
-import Concourse.Job
 import Concourse.Pagination
     exposing
         ( Page
@@ -46,25 +41,18 @@ import Html.Events
         , onMouseLeave
         )
 import Http
+import Job.Effects as Effects exposing (Effect(..))
+import Job.Msgs exposing (Hoverable(..), Msg(..))
 import LoadingIndicator
-import LoginRedirect
-import Navigation
 import RemoteData exposing (WebData)
 import Routes
 import StrictEvents exposing (onLeftClick)
-import Task
 import Time exposing (Time)
 import UpdateMsg exposing (UpdateMsg)
 
 
-type alias Ports =
-    { title : String -> Cmd Msg
-    }
-
-
 type alias Model =
-    { ports : Ports
-    , jobIdentifier : Concourse.JobIdentifier
+    { jobIdentifier : Concourse.JobIdentifier
     , job : WebData Concourse.Job
     , pausedChanging : Bool
     , buildsWithResources : Paginated BuildWithResources
@@ -73,29 +61,6 @@ type alias Model =
     , csrfToken : String
     , hovered : Hoverable
     }
-
-
-type Msg
-    = Noop
-    | BuildTriggered (Result Http.Error Concourse.Build)
-    | TriggerBuild
-    | JobBuildsFetched (Result Http.Error (Paginated Concourse.Build))
-    | JobFetched (Result Http.Error Concourse.Job)
-    | BuildResourcesFetched Int (Result Http.Error Concourse.BuildResources)
-    | ClockTick Time
-    | TogglePaused
-    | PausedToggled (Result Http.Error ())
-    | NavTo String
-    | SubscriptionTick Time
-    | Hover Hoverable
-
-
-type Hoverable
-    = Toggle
-    | Trigger
-    | PreviousPage
-    | NextPage
-    | None
 
 
 type alias BuildWithResources =
@@ -118,42 +83,41 @@ type alias Flags =
     }
 
 
-init : Ports -> Flags -> ( Model, Cmd Msg )
-init ports flags =
+init : Flags -> ( Model, List Effect )
+init flags =
     let
-        ( model, cmd ) =
-            changeToJob flags
-                { jobIdentifier =
-                    { jobName = flags.jobName
-                    , teamName = flags.teamName
-                    , pipelineName = flags.pipelineName
+        jobId =
+            { jobName = flags.jobName
+            , teamName = flags.teamName
+            , pipelineName = flags.pipelineName
+            }
+
+        model =
+            { jobIdentifier = jobId
+            , job = RemoteData.NotAsked
+            , pausedChanging = False
+            , buildsWithResources =
+                { content = []
+                , pagination =
+                    { previousPage = Nothing
+                    , nextPage = Nothing
                     }
-                , job = RemoteData.NotAsked
-                , pausedChanging = False
-                , buildsWithResources =
-                    { content = []
-                    , pagination =
-                        { previousPage = Nothing
-                        , nextPage = Nothing
-                        }
-                    }
-                , now = 0
-                , csrfToken = flags.csrfToken
-                , currentPage = flags.paging
-                , ports = ports
-                , hovered = None
                 }
+            , now = 0
+            , csrfToken = flags.csrfToken
+            , currentPage = flags.paging
+            , hovered = None
+            }
     in
     ( model
-    , Cmd.batch
-        [ fetchJob model.jobIdentifier
-        , cmd
-        , getCurrentTime
-        ]
+    , [ FetchJob jobId
+      , FetchJobBuilds jobId flags.paging
+      , GetCurrentTime
+      ]
     )
 
 
-changeToJob : Flags -> Model -> ( Model, Cmd Msg )
+changeToJob : Flags -> Model -> ( Model, List Effect )
 changeToJob flags model =
     ( { model
         | currentPage = flags.paging
@@ -165,41 +129,44 @@ changeToJob flags model =
                 }
             }
       }
-    , fetchJobBuilds model.jobIdentifier flags.paging
+    , [ FetchJobBuilds model.jobIdentifier flags.paging ]
     )
 
 
 updateWithMessage : Msg -> Model -> ( Model, Cmd Msg, Maybe UpdateMsg )
 updateWithMessage message model =
     let
-        ( mdl, msg ) =
+        ( mdl, effects ) =
             update message model
+
+        cmd =
+            List.map Effects.runEffect effects |> Cmd.batch
     in
     case mdl.job of
         RemoteData.Failure _ ->
-            ( mdl, msg, Just UpdateMsg.NotFound )
+            ( mdl, cmd, Just UpdateMsg.NotFound )
 
         _ ->
-            ( mdl, msg, Nothing )
+            ( mdl, cmd, Nothing )
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, List Effect )
 update action model =
     case action of
         Noop ->
-            ( model, Cmd.none )
+            ( model, [] )
 
         TriggerBuild ->
-            ( model, triggerBuild model.jobIdentifier model.csrfToken )
+            ( model, [ DoTriggerBuild model.jobIdentifier model.csrfToken ] )
 
         BuildTriggered (Ok build) ->
             ( model
             , case build.job of
                 Nothing ->
-                    Cmd.none
+                    []
 
                 Just job ->
-                    Navigation.newUrl <|
+                    [ NavigateTo <|
                         "/teams/"
                             ++ job.teamName
                             ++ "/pipelines/"
@@ -208,75 +175,54 @@ update action model =
                             ++ job.jobName
                             ++ "/builds/"
                             ++ build.name
+                    ]
             )
 
         BuildTriggered (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
-
-                    else
-                        ( model, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
+            ( model, redirectToLoginIfNecessary err )
 
         JobBuildsFetched (Ok builds) ->
             handleJobBuildsFetched builds model
 
         JobBuildsFetched (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
-
-                    else
-                        ( model, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
+            ( model, redirectToLoginIfNecessary err )
 
         JobFetched (Ok job) ->
             ( { model | job = RemoteData.Success job }
-            , model.ports.title <| job.name ++ " - "
+            , [ SetTitle <| job.name ++ " - " ]
             )
 
         JobFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
-
-                    else if status.code == 404 then
-                        ( { model | job = RemoteData.Failure err }, Cmd.none )
+                    if status.code == 404 then
+                        ( { model | job = RemoteData.Failure err }, [] )
 
                     else
-                        ( model, Cmd.none )
+                        ( model, redirectToLoginIfNecessary err )
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( model, [] )
 
         BuildResourcesFetched id (Ok buildResources) ->
             case model.buildsWithResources.content of
                 [] ->
-                    ( model, Cmd.none )
+                    ( model, [] )
 
                 anyList ->
                     let
-                        transformer =
-                            \bwr ->
-                                let
-                                    bwrb =
-                                        bwr.build
-                                in
-                                if bwr.build.id == id then
-                                    { bwr
-                                        | resources = Just buildResources
-                                    }
+                        transformer bwr =
+                            let
+                                bwrb =
+                                    bwr.build
+                            in
+                            if bwr.build.id == id then
+                                { bwr
+                                    | resources = Just buildResources
+                                }
 
-                                else
-                                    bwr
+                            else
+                                bwr
 
                         bwrs =
                             model.buildsWithResources
@@ -287,60 +233,65 @@ update action model =
                                 | content = List.map transformer anyList
                             }
                       }
-                    , Cmd.none
+                    , []
                     )
 
         BuildResourcesFetched _ (Err err) ->
-            ( model, Cmd.none )
+            ( model, [] )
 
         ClockTick now ->
-            ( { model | now = now }, Cmd.none )
+            ( { model | now = now }, [] )
 
         TogglePaused ->
             case model.job |> RemoteData.toMaybe of
                 Nothing ->
-                    ( model, Cmd.none )
+                    ( model, [] )
 
                 Just j ->
                     ( { model
                         | pausedChanging = True
                         , job = RemoteData.Success { j | paused = not j.paused }
                       }
-                    , if j.paused then
-                        unpauseJob model.jobIdentifier model.csrfToken
+                    , [ if j.paused then
+                            UnpauseJob model.jobIdentifier model.csrfToken
 
-                      else
-                        pauseJob model.jobIdentifier model.csrfToken
+                        else
+                            PauseJob model.jobIdentifier model.csrfToken
+                      ]
                     )
 
         PausedToggled (Ok ()) ->
-            ( { model | pausedChanging = False }, Cmd.none )
+            ( { model | pausedChanging = False }, [] )
 
         PausedToggled (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
-
-                    else
-                        ( model, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
+            ( model, redirectToLoginIfNecessary err )
 
         NavTo url ->
-            ( model, Navigation.newUrl url )
+            ( model, [ NavigateTo url ] )
 
         SubscriptionTick time ->
             ( model
-            , Cmd.batch
-                [ fetchJobBuilds model.jobIdentifier model.currentPage
-                , fetchJob model.jobIdentifier
-                ]
+            , [ FetchJobBuilds model.jobIdentifier model.currentPage
+              , FetchJob model.jobIdentifier
+              ]
             )
 
         Hover hoverable ->
-            ( { model | hovered = hoverable }, Cmd.none )
+            ( { model | hovered = hoverable }, [] )
+
+
+redirectToLoginIfNecessary : Http.Error -> List Effect
+redirectToLoginIfNecessary err =
+    case err of
+        Http.BadStatus { status } ->
+            if status.code == 401 then
+                [ RedirectToLogin ]
+
+            else
+                []
+
+        _ ->
+            []
 
 
 permalink : List Concourse.Build -> Page
@@ -402,17 +353,17 @@ setExistingResources paginatedBuilds model =
     paginatedMap (promoteBuild model) paginatedBuilds
 
 
-updateResourcesIfNeeded : BuildWithResources -> Maybe (Cmd Msg)
+updateResourcesIfNeeded : BuildWithResources -> Maybe Effect
 updateResourcesIfNeeded bwr =
     case ( bwr.resources, isRunning bwr.build ) of
         ( Just resources, False ) ->
             Nothing
 
         _ ->
-            Just <| fetchBuildResources bwr.build.id
+            Just <| FetchBuildResources bwr.build.id
 
 
-handleJobBuildsFetched : Paginated Concourse.Build -> Model -> ( Model, Cmd Msg )
+handleJobBuildsFetched : Paginated Concourse.Build -> Model -> ( Model, List Effect )
 handleJobBuildsFetched paginatedBuilds model =
     let
         newPage =
@@ -425,7 +376,7 @@ handleJobBuildsFetched paginatedBuilds model =
         | buildsWithResources = newBWRs
         , currentPage = Just newPage
       }
-    , Cmd.batch <| List.filterMap updateResourcesIfNeeded newBWRs.content
+    , List.filterMap updateResourcesIfNeeded newBWRs.content
     )
 
 
@@ -790,30 +741,6 @@ viewVersion version =
         version
 
 
-triggerBuild : Concourse.JobIdentifier -> Concourse.CSRFToken -> Cmd Msg
-triggerBuild job csrfToken =
-    Task.attempt BuildTriggered <|
-        Concourse.Job.triggerBuild job csrfToken
-
-
-fetchJobBuilds : Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Msg
-fetchJobBuilds jobIdentifier page =
-    Task.attempt JobBuildsFetched <|
-        Concourse.Build.fetchJobBuilds jobIdentifier page
-
-
-fetchJob : Concourse.JobIdentifier -> Cmd Msg
-fetchJob jobIdentifier =
-    Task.attempt JobFetched <|
-        Concourse.Job.fetchJob jobIdentifier
-
-
-fetchBuildResources : Concourse.BuildId -> Cmd Msg
-fetchBuildResources buildIdentifier =
-    Task.attempt (BuildResourcesFetched buildIdentifier) <|
-        Concourse.BuildResources.fetch buildIdentifier
-
-
 paginationParam : Page -> String
 paginationParam page =
     case page.direction of
@@ -828,23 +755,6 @@ paginationParam page =
 
         Concourse.Pagination.To i ->
             "to=" ++ toString i
-
-
-pauseJob : Concourse.JobIdentifier -> Concourse.CSRFToken -> Cmd Msg
-pauseJob jobIdentifier csrfToken =
-    Task.attempt PausedToggled <|
-        Concourse.Job.pause jobIdentifier csrfToken
-
-
-unpauseJob : Concourse.JobIdentifier -> Concourse.CSRFToken -> Cmd Msg
-unpauseJob jobIdentifier csrfToken =
-    Task.attempt PausedToggled <|
-        Concourse.Job.unpause jobIdentifier csrfToken
-
-
-getCurrentTime : Cmd Msg
-getCurrentTime =
-    Task.perform ClockTick Time.now
 
 
 subscriptions : Model -> Sub Msg

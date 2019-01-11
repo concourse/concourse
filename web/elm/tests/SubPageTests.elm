@@ -7,6 +7,7 @@ import Dict exposing (Dict)
 import Expect
 import Http
 import Job exposing (..)
+import Job.Msgs
 import Pipeline
 import Pipeline.Msgs
 import QueryString
@@ -43,11 +44,10 @@ all =
                 \_ ->
                     let
                         msg =
-                            Job.JobFetched <| Err <| Http.BadStatus notFoundStatus
+                            Job.Msgs.JobFetched <| Err <| Http.BadStatus notFoundStatus
 
                         ( model, _ ) =
                             Job.init
-                                { title = \_ -> Cmd.none }
                                 { jobName = "some-job"
                                 , teamName = "some-team"
                                 , pipelineName = "some-pipeline"
