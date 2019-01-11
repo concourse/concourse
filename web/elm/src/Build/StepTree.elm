@@ -1,4 +1,4 @@
-module StepTree exposing
+module Build.StepTree exposing
     ( Highlight(..)
     , HookedStep
     , Model

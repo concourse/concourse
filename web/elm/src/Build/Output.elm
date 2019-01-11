@@ -1,4 +1,4 @@
-module BuildOutput exposing
+module Build.Output exposing
     ( Model
     , OutMsg(..)
     , handleEventsMsg
@@ -12,6 +12,7 @@ import Ansi.Log
 import Array exposing (Array)
 import Build.Effects exposing (Effect(..))
 import Build.Msgs exposing (Msg(..))
+import Build.StepTree as StepTree exposing (StepTree)
 import Build.Styles as Styles
 import Concourse
 import Concourse.BuildEvents
@@ -32,7 +33,6 @@ import Html.Attributes
 import Http
 import LoadingIndicator
 import NotAuthorized
-import StepTree exposing (StepTree)
 
 
 type alias Model =

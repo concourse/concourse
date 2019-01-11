@@ -14,9 +14,10 @@ module Build exposing
 import Autoscroll
 import Build.Effects exposing (Effect(..), toCmd)
 import Build.Msgs exposing (HoveredButton(..), Msg(..))
+import Build.Output
+import Build.StepTree as StepTree
 import Build.Styles as Styles
 import BuildDuration
-import BuildOutput
 import Char
 import Concourse
 import Concourse.BuildStatus
@@ -50,7 +51,6 @@ import RemoteData exposing (WebData)
 import Routes
 import Scroll
 import Spinner
-import StepTree
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
 import Time exposing (Time)
@@ -86,7 +86,7 @@ initJobBuildPage teamName pipelineName jobName buildName =
 type alias CurrentBuild =
     { build : Concourse.Build
     , prep : Maybe Concourse.BuildPrep
-    , output : Maybe BuildOutput.Model
+    , output : Maybe Build.Output.Model
     }
 
 
@@ -313,29 +313,29 @@ update action model =
                 ( model, [] )
 
         PlanAndResourcesFetched result ->
-            updateOutput (BuildOutput.planAndResourcesFetched result) model
+            updateOutput (Build.Output.planAndResourcesFetched result) model
 
         BuildEventsMsg action ->
-            updateOutput (BuildOutput.handleEventsMsg action) model
+            updateOutput (Build.Output.handleEventsMsg action) model
 
         ToggleStep id ->
             updateOutput
-                (BuildOutput.handleStepTreeMsg <| StepTree.toggleStep id)
+                (Build.Output.handleStepTreeMsg <| StepTree.toggleStep id)
                 model
 
         SwitchTab id tab ->
             updateOutput
-                (BuildOutput.handleStepTreeMsg <| StepTree.switchTab id tab)
+                (Build.Output.handleStepTreeMsg <| StepTree.switchTab id tab)
                 model
 
         SetHighlight id line ->
             updateOutput
-                (BuildOutput.handleStepTreeMsg <| StepTree.setHighlight id line)
+                (Build.Output.handleStepTreeMsg <| StepTree.setHighlight id line)
                 model
 
         ExtendHighlight id line ->
             updateOutput
-                (BuildOutput.handleStepTreeMsg <| StepTree.extendHighlight id line)
+                (Build.Output.handleStepTreeMsg <| StepTree.extendHighlight id line)
                 model
 
         BuildHistoryFetched (Err err) ->
@@ -391,8 +391,8 @@ update action model =
 
 
 updateOutput :
-    (BuildOutput.Model
-     -> ( BuildOutput.Model, List Effect, BuildOutput.OutMsg )
+    (Build.Output.Model
+     -> ( Build.Output.Model, List Effect, Build.Output.OutMsg )
     )
     -> Model
     -> ( Model, List Effect )
@@ -610,7 +610,7 @@ initBuildOutput : Concourse.Build -> Model -> ( Model, List Effect )
 initBuildOutput build model =
     let
         ( output, outputCmd ) =
-            BuildOutput.init { hash = model.hash } build
+            Build.Output.init { hash = model.hash } build
     in
     ( { model
         | currentBuild =
@@ -839,11 +839,11 @@ mmDDYY d =
     Date.Format.format "%m/%d/" d ++ String.right 2 (Date.Format.format "%Y" d)
 
 
-viewBuildOutput : Int -> Maybe BuildOutput.Model -> Html Msg
+viewBuildOutput : Int -> Maybe Build.Output.Model -> Html Msg
 viewBuildOutput browsingIndex output =
     case output of
         Just o ->
-            BuildOutput.view o
+            Build.Output.view o
 
         Nothing ->
             Html.div [] []
@@ -1149,13 +1149,13 @@ getScrollBehavior model =
                     Autoscroll.ScrollWindow
 
 
-handleOutMsg : BuildOutput.OutMsg -> Model -> ( Model, List Effect )
+handleOutMsg : Build.Output.OutMsg -> Model -> ( Model, List Effect )
 handleOutMsg outMsg model =
     case outMsg of
-        BuildOutput.OutNoop ->
+        Build.Output.OutNoop ->
             ( model, [] )
 
-        BuildOutput.OutBuildStatus status date ->
+        Build.Output.OutBuildStatus status date ->
             case model.currentBuild |> RemoteData.toMaybe of
                 Nothing ->
                     ( model, [] )

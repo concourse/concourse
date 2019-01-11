@@ -1,15 +1,13 @@
-module StepTreeTests exposing (..)
+module StepTreeTests exposing (all)
 
+import Ansi.Log
 import Array
+import Build.StepTree as StepTree
+import Concourse exposing (BuildStep(..), HookedPlan)
 import Dict
-import Test exposing (..)
 import Expect exposing (..)
 import Focus
-import Regex
-import String
-import Ansi.Log
-import Concourse exposing (BuildStep(..), HookedPlan)
-import StepTree
+import Test exposing (..)
 
 
 all : Test

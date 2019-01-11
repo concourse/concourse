@@ -1,4 +1,4 @@
-module PipelineTests exposing (all, givenMultiplePinnedResources, givenPinnedResource, init, it, jobBreadcrumbSelector, pinBadgeSelector, pipelineBreadcrumbSelector, resourceBreadcrumbSelector, rspecStyleDescribe)
+module PipelineTests exposing (all)
 
 import Char
 import DashboardTests exposing (iconSelector)
