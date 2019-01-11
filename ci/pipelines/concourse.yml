@@ -37,6 +37,7 @@ groups:
   - unit
   - lint
   - dev-image
+  - rc-image
   - testflight
   - watsjs
   - rc
@@ -234,17 +235,17 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [watsjs, testflight]
+      passed: [rc-image]
       trigger: true
     - get: k8s-dev-image
       passed: [k8s-dev-image]
       trigger: true
-    - get: dev-image
-      passed: [watsjs, testflight]
+    - get: rc-image
+      trigger: true
+      passed: [rc-image]
       params: {format: oci}
     - get: unit-image
-      passed: [watsjs, testflight]
-      trigger: true
+      passed: [rc-image]
     - get: charts
       trigger: true
   - task: terraform-k8s-smoke
@@ -259,8 +260,8 @@ jobs:
     params:
      KUBE_CONFIG: ((kube_config))
      RELEASE_NAME: concourse-smoke
-     CONCOURSE_IMAGE: concourse/dev
-    input_mapping: {endpoint-info: outputs, image-info: dev-image}
+     CONCOURSE_IMAGE: concourse/concourse-rc
+    input_mapping: {endpoint-info: outputs, image-info: rc-image}
     image: k8s-dev-image
   - task: smoke
     image: unit-image
@@ -296,10 +297,13 @@ jobs:
     - get: concourse
       passed: [k8s-smoke]
       trigger: true
-    - get: dev-image
+    - get: rc-image
       passed: [k8s-smoke]
+      trigger: true
       params: {format: oci}
     - get: k8s-dev-image
+      passed: [k8s-smoke]
+      trigger: true
     - get: charts
       trigger: true
       passed: [k8s-smoke]
@@ -308,7 +312,7 @@ jobs:
     image: k8s-dev-image
     params:
      KUBE_CONFIG: ((kube_config))
-     CONCOURSE_IMAGE_NAME: concourse/dev
+     CONCOURSE_IMAGE_NAME: concourse/concourse-rc
 
 - name: k8s-dev-image
   public: true
@@ -407,6 +411,28 @@ jobs:
     - put: darwin-rc
       params: {file: concourse-darwin/concourse-*.tgz}
       inputs: [concourse-darwin]
+
+- name: rc-image
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: linux-rc
+      trigger: true
+      passed: [ build-rc ]
+    - get: unit-image
+      passed: [ build-rc ]
+    - get: concourse
+      passed: [ build-rc ]
+    - get: builder
+  - task: build
+    image: builder
+    privileged: true
+    file: concourse/ci/tasks/rc-image.yml
+  - put: rc-image
+    params: {image: image/image.tar}
+    get_params: {format: oci}
+
 
 - name: bin-smoke
   public: true
@@ -931,6 +957,13 @@ resources:
   type: registry-image
   source:
     repository: concourse/dev
+    username: ((docker.username))
+    password: ((docker.password))
+
+- name: rc-image
+  type: registry-image
+  source:
+    repository: concourse/concourse-rc
     username: ((docker.username))
     password: ((docker.password))
 

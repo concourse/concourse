@@ -1,0 +1,27 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: concourse/builder}
+
+inputs:
+- name: concourse
+- name: linux-rc
+  path: rc
+
+outputs:
+- name: image
+
+params:
+  DOCKERFILE: concourse/ci/dockerfiles/rc/Dockerfile
+  REPOSITORY: concourse/concourse-rc
+  CONTEXT: .
+
+run:
+  path: /bin/bash
+  args:
+    - -ce
+    - |
+      tar xzf ./rc/concourse-*.tgz --strip-components=1 --directory=rc
+      build
