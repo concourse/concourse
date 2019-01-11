@@ -167,6 +167,14 @@ timeUntilHiddenCheckInterval =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        redirectToLoginIfUnauthenticated status =
+            if status.code == 401 then
+                LoginRedirect.requestLoginRedirect ""
+
+            else
+                Cmd.none
+    in
     case msg of
         Noop ->
             ( model, Cmd.none )
@@ -221,14 +229,11 @@ update msg model =
         PipelineFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
-
-                    else if status.code == 404 then
+                    if status.code == 404 then
                         ( { model | pipeline = RemoteData.Failure err }, Cmd.none )
 
                     else
-                        ( model, Cmd.none )
+                        ( model, redirectToLoginIfUnauthenticated status )
 
                 _ ->
                     renderIfNeeded { model | experiencingTurbulence = True }
@@ -239,11 +244,7 @@ update msg model =
         JobsFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
-
-                    else
-                        ( model, Cmd.none )
+                    ( model, redirectToLoginIfUnauthenticated status )
 
                 _ ->
                     renderIfNeeded { model | fetchedJobs = Nothing, experiencingTurbulence = True }
@@ -254,11 +255,7 @@ update msg model =
         ResourcesFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
-
-                    else
-                        ( model, Cmd.none )
+                    ( model, redirectToLoginIfUnauthenticated status )
 
                 _ ->
                     renderIfNeeded { model | fetchedResources = Nothing, experiencingTurbulence = True }
@@ -295,32 +292,10 @@ view model =
     Html.div [ class "pipeline-view" ]
         [ Html.nav
             [ class "groups-bar" ]
-            [ let
-                groupList =
-                    case model.pipeline of
-                        RemoteData.Success pipeline ->
-                            List.map
-                                (viewGroup (getSelectedGroupsForRoute model) (Routes.pipelineRoute pipeline))
-                                pipeline.groups
-
-                        _ ->
-                            []
-              in
-              Html.ul
-                [ class
-                    (if List.isEmpty groupList then
-                        "hidden"
-
-                     else
-                        "groups"
-                    )
-                ]
-                groupList
-            ]
+            [ viewGroupsBar model ]
         , Html.div [ class "pipeline-content" ]
             [ Svg.svg
-                [ SvgAttributes.class "pipeline-graph test"
-                ]
+                [ SvgAttributes.class "pipeline-graph test" ]
                 []
             , Html.div
                 [ if model.experiencingTurbulence then
@@ -419,6 +394,29 @@ view model =
                 ]
             ]
         ]
+
+
+viewGroupsBar : Model -> Html Msg
+viewGroupsBar model =
+    let
+        groupList =
+            case model.pipeline of
+                RemoteData.Success pipeline ->
+                    List.map
+                        (viewGroup (getSelectedGroupsForRoute model) (Routes.pipelineRoute pipeline))
+                        pipeline.groups
+
+                _ ->
+                    []
+
+        groupClass =
+            if List.isEmpty groupList then
+                "hidden"
+
+            else
+                "groups"
+    in
+    Html.ul [ class groupClass ] groupList
 
 
 viewGroup : List String -> String -> Concourse.PipelineGroup -> Html Msg
@@ -626,9 +624,7 @@ setGroupsInLocation loc groups =
                     QueryString.empty
                     groups
     in
-    { loc
-        | queries = updatedUrl
-    }
+    { loc | queries = updatedUrl }
 
 
 pidToUrl : Maybe Concourse.PipelineIdentifier -> Routes.ConcourseRoute -> String
