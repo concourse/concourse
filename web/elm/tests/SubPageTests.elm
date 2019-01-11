@@ -80,7 +80,6 @@ all =
 
                         ( subModel, _ ) =
                             Build.init
-                                { title = \_ -> Cmd.none }
                                 { csrfToken = csrfToken
                                 , hash = ""
                                 }

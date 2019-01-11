@@ -2,7 +2,6 @@ module BuildTests exposing (all)
 
 import Array
 import Build
-import Build.Effects as Effects
 import Build.Msgs as Msgs
 import Concourse exposing (BuildPrepStatus(..))
 import Concourse.BuildEvents as BuildEvents
@@ -13,6 +12,7 @@ import DashboardTests
         , middleGrey
         )
 import Dict
+import Effects
 import Expect
 import Html.Attributes as Attr
 import Test exposing (..)
@@ -34,8 +34,6 @@ all =
         let
             pageLoad =
                 Build.init
-                    { title = always Cmd.none
-                    }
                     { csrfToken = ""
                     , hash = ""
                     }

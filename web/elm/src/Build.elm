@@ -12,7 +12,6 @@ module Build exposing
     )
 
 import Autoscroll
-import Build.Effects exposing (Effect(..), toCmd)
 import Build.Msgs exposing (HoveredButton(..), Msg(..))
 import Build.Output
 import Build.StepTree as StepTree
@@ -26,6 +25,7 @@ import Date exposing (Date)
 import Date.Format
 import Debug
 import Dict exposing (Dict)
+import Effects exposing (Effect(..), runEffect)
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -56,11 +56,6 @@ import String
 import Time exposing (Time)
 import UpdateMsg exposing (UpdateMsg)
 import Views
-
-
-type alias Ports =
-    { title : String -> Cmd Msg
-    }
 
 
 type Page
@@ -98,7 +93,6 @@ type alias Model =
     , currentBuild : WebData CurrentBuild
     , browsingIndex : Int
     , autoScroll : Bool
-    , ports : Ports
     , csrfToken : String
     , previousKeyPress : Maybe Char
     , previousTriggerBuildByKey : Bool
@@ -121,8 +115,8 @@ type alias Flags =
     }
 
 
-init : Ports -> Flags -> Page -> ( Model, List Effect )
-init ports flags page =
+init : Flags -> Page -> ( Model, List Effect )
+init flags page =
     let
         ( model, effects ) =
             changeToBuild
@@ -134,7 +128,6 @@ init ports flags page =
                 , currentBuild = RemoteData.NotAsked
                 , browsingIndex = 0
                 , autoScroll = True
-                , ports = ports
                 , csrfToken = flags.csrfToken
                 , previousKeyPress = Nothing
                 , previousTriggerBuildByKey = False
@@ -222,10 +215,10 @@ updateWithMessage message model =
     in
     case mdl.currentBuild of
         RemoteData.Failure _ ->
-            ( mdl, Cmd.batch (List.map toCmd effects), Just UpdateMsg.NotFound )
+            ( mdl, Cmd.batch (List.map runEffect effects), Just UpdateMsg.NotFound )
 
         _ ->
-            ( mdl, Cmd.batch (List.map toCmd effects), Nothing )
+            ( mdl, Cmd.batch (List.map runEffect effects), Nothing )
 
 
 update : Msg -> Model -> ( Model, List Effect )
@@ -590,7 +583,7 @@ handleBuildFetched browsingIndex build model =
         ( newModel
         , cmd
             ++ [ SetFavIcon build.status
-               , SetTitle model.ports.title (extractTitle newModel)
+               , SetTitle (extractTitle newModel)
                ]
             ++ fetchJobAndHistory
         )
@@ -629,7 +622,7 @@ handleBuildJobFetched job model =
             { model | job = Just job }
     in
     ( withJobDetails
-    , [ SetTitle model.ports.title (extractTitle withJobDetails) ]
+    , [ SetTitle (extractTitle withJobDetails) ]
     )
 
 
