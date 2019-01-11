@@ -15,7 +15,6 @@ import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id, style)
 import Json.Decode
 import Navigation
-import Pipeline
 import Pipeline.Msgs
 import Routes
 import SubPage

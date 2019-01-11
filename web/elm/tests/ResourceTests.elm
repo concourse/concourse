@@ -274,8 +274,7 @@ all =
                         |> Query.find (versionSelector version)
                         |> Query.find checkboxSelector
                         |> Event.simulate Event.click
-                        |> Event.expect
-                            (Msgs.ToggleVersion Models.Disable versionID)
+                        |> Event.expect (Msgs.ToggleVersion Models.Disable versionID)
             , test "receiving a (ToggleVersion Disable) msg causes the relevant checkbox to go into a transition state" <|
                 \_ ->
                     init

@@ -30,8 +30,8 @@ import Pipeline.Msgs
 import QueryString
 import Resource
 import Resource.Effects
-import Resource.Models
 import Resource.Msgs
+import Resource.Models
 import Routes
 import String
 import UpdateMsg exposing (UpdateMsg)
@@ -280,7 +280,8 @@ urlUpdate route model =
                     , csrfToken = mdl.csrfToken
                     }
                     mdl
-                    |> Tuple.mapSecond Resource.Effects.runEffect
+                    |> Tuple.mapSecond
+                        (List.map Resource.Effects.runEffect >> Cmd.batch)
                 )
 
         ( Routes.Job teamName pipelineName jobName, JobModel mdl ) ->

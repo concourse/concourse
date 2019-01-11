@@ -61,7 +61,7 @@ import Pinned
         , VersionPinState(..)
         )
 import QueryString
-import Resource.Effects as Effects exposing (Effect(..))
+import Resource.Effects exposing (Effect(..), runEffect)
 import Resource.Models as Models exposing (Model)
 import Resource.Msgs exposing (Msg(..))
 import Resource.Styles
@@ -86,61 +86,62 @@ type alias Flags =
 init : Flags -> ( Model, List Effect )
 init flags =
     let
-        ( model, effect ) =
-            changeToResource flags
-                { resourceIdentifier =
-                    { teamName = flags.teamName
-                    , pipelineName = flags.pipelineName
-                    , resourceName = flags.resourceName
+        resourceId =
+            { teamName = flags.teamName
+            , pipelineName = flags.pipelineName
+            , resourceName = flags.resourceName
+            }
+
+        model =
+            { resourceIdentifier = resourceId
+            , pageStatus = Err Models.Empty
+            , teamName = flags.teamName
+            , pipelineName = flags.pipelineName
+            , name = flags.resourceName
+            , checkStatus = Models.CheckingSuccessfully
+            , checkError = ""
+            , checkSetupError = ""
+            , hovered = Models.None
+            , lastChecked = Nothing
+            , pinnedVersion = NotPinned
+            , currentPage = Nothing
+            , versions =
+                { content = []
+                , pagination =
+                    { previousPage = Nothing
+                    , nextPage = Nothing
                     }
-                , pageStatus = Err Models.Empty
-                , teamName = flags.teamName
-                , pipelineName = flags.pipelineName
-                , name = flags.resourceName
-                , checkStatus = Models.CheckingSuccessfully
-                , checkError = ""
-                , checkSetupError = ""
-                , hovered = Models.None
-                , lastChecked = Nothing
-                , pinnedVersion = NotPinned
-                , currentPage = Nothing
-                , versions =
-                    { content = []
-                    , pagination =
-                        { previousPage = Nothing
-                        , nextPage = Nothing
-                        }
-                    }
-                , now = Nothing
-                , csrfToken = flags.csrfToken
-                , showPinBarTooltip = False
-                , pinIconHover = False
-                , route =
-                    { logical =
-                        Routes.Resource
-                            flags.teamName
-                            flags.pipelineName
-                            flags.resourceName
-                    , queries = QueryString.empty
-                    , page = Nothing
-                    , hash = ""
-                    }
-                , pipeline = Nothing
-                , userState = UserStateUnknown
-                , userMenuVisible = False
-                , pinnedResources = []
-                , showPinIconDropDown = False
                 }
+            , now = Nothing
+            , csrfToken = flags.csrfToken
+            , showPinBarTooltip = False
+            , pinIconHover = False
+            , route =
+                { logical =
+                    Routes.Resource
+                        flags.teamName
+                        flags.pipelineName
+                        flags.resourceName
+                , queries = QueryString.empty
+                , page = Nothing
+                , hash = ""
+                }
+            , pipeline = Nothing
+            , userState = UserStateUnknown
+            , userMenuVisible = False
+            , pinnedResources = []
+            , showPinIconDropDown = False
+            }
     in
     ( model
     , [ FetchResource model.resourceIdentifier
       , DoTopBarUpdate (TopBar.FetchUser 0) model
-      , effect
+      , FetchVersionedResources resourceId flags.paging
       ]
     )
 
 
-changeToResource : Flags -> Model -> ( Model, Effect )
+changeToResource : Flags -> Model -> ( Model, List Effect )
 changeToResource flags model =
     ( { model
         | currentPage = flags.paging
@@ -152,7 +153,7 @@ changeToResource flags model =
                 }
             }
       }
-    , FetchVersionedResources model.resourceIdentifier flags.paging
+    , [ FetchVersionedResources model.resourceIdentifier flags.paging ]
     )
 
 
@@ -163,7 +164,7 @@ updateWithMessage message model =
             update message model
 
         cmd =
-            Cmd.batch <| List.map Effects.runEffect effects
+            List.map runEffect effects |> Cmd.batch
     in
     if mdl.pageStatus == Err Models.NotFound then
         ( mdl, cmd, Just UpdateMsg.NotFound )
@@ -347,7 +348,7 @@ update action model =
                 | currentPage = Just page
               }
             , [ FetchVersionedResources model.resourceIdentifier <| Just page
-              , NewUrl <| paginationRoute model.resourceIdentifier page
+              , NavigateTo <| paginationRoute model.resourceIdentifier page
               ]
             )
 
@@ -422,7 +423,7 @@ update action model =
             )
 
         NavTo url ->
-            ( model, [ NewUrl url ] )
+            ( model, [ NavigateTo url ] )
 
         TogglePinBarTooltip ->
             ( { model
@@ -487,17 +488,16 @@ update action model =
 
         UnpinVersion ->
             let
-                cmd : List Effect
+                cmd : Effect
                 cmd =
-                    [ DoUnpinVersion
+                    DoUnpinVersion
                         { teamName = model.resourceIdentifier.teamName
                         , pipelineName = model.resourceIdentifier.pipelineName
                         , resourceName = model.resourceIdentifier.resourceName
                         }
                         model.csrfToken
-                    ]
             in
-            ( { model | pinnedVersion = Pinned.startUnpinning model.pinnedVersion }, cmd )
+            ( { model | pinnedVersion = Pinned.startUnpinning model.pinnedVersion }, [ cmd ] )
 
         VersionPinned (Ok ()) ->
             let
@@ -1560,7 +1560,7 @@ updateExpandedProperties model =
                 model.versions.content
     in
     List.concatMap
-        (Effects.fetchInputAndOutputs model)
+        (Resource.Effects.fetchInputAndOutputs model)
         filteredList
 
 

@@ -3,11 +3,11 @@ module Resource.Effects exposing (Effect(..), fetchInputAndOutputs, runEffect)
 import Concourse
 import Concourse.Pagination exposing (Page)
 import Concourse.Resource
-import Effects
+import Effects exposing (setTitle)
 import LoginRedirect
 import Navigation
 import Resource.Models as Models
-import Resource.Msgs as Msgs
+import Resource.Msgs exposing (Msg(..))
 import Task
 import TopBar
 
@@ -17,7 +17,7 @@ type Effect
     | FetchVersionedResources Concourse.ResourceIdentifier (Maybe Page)
     | SetTitle String
     | RedirectToLogin
-    | NewUrl String
+    | NavigateTo String
     | DoPinVersion Concourse.VersionedResourceIdentifier Concourse.CSRFToken
     | DoUnpinVersion Concourse.ResourceIdentifier Concourse.CSRFToken
     | FetchInputTo Concourse.VersionedResourceIdentifier
@@ -27,7 +27,7 @@ type Effect
     | DoCheck Concourse.ResourceIdentifier Concourse.CSRFToken
 
 
-runEffect : Effect -> Cmd Msgs.Msg
+runEffect : Effect -> Cmd Msg
 runEffect effect =
     case effect of
         FetchResource rid ->
@@ -42,25 +42,25 @@ runEffect effect =
         RedirectToLogin ->
             LoginRedirect.requestLoginRedirect ""
 
-        NewUrl newUrl ->
+        NavigateTo newUrl ->
             Navigation.newUrl newUrl
 
-        DoPinVersion vrid csrfToken ->
-            Task.attempt Msgs.VersionPinned <|
-                Concourse.Resource.pinVersion vrid csrfToken
+        DoPinVersion version csrfToken ->
+            Task.attempt VersionPinned <|
+                Concourse.Resource.pinVersion version csrfToken
 
-        DoUnpinVersion rid csrfToken ->
-            Task.attempt Msgs.VersionUnpinned <|
-                Concourse.Resource.unpinVersion rid csrfToken
+        DoUnpinVersion id csrfToken ->
+            Task.attempt VersionUnpinned <|
+                Concourse.Resource.unpinVersion id csrfToken
 
-        FetchInputTo vrid ->
-            fetchInputTo vrid
+        FetchInputTo id ->
+            fetchInputTo id
 
-        FetchOutputOf vrid ->
-            fetchOutputOf vrid
+        FetchOutputOf id ->
+            fetchOutputOf id
 
         DoToggleVersion action vrid csrfToken ->
-            Task.attempt (Msgs.VersionToggled action vrid.versionID) <|
+            Task.attempt (VersionToggled action vrid.versionID) <|
                 Concourse.Resource.enableDisableVersionedResource
                     (action == Models.Enable)
                     vrid
@@ -69,11 +69,35 @@ runEffect effect =
         DoTopBarUpdate msg model ->
             TopBar.update msg model
                 |> Tuple.second
-                |> Cmd.map Msgs.TopBarMsg
+                |> Cmd.map TopBarMsg
 
         DoCheck rid csrfToken ->
-            Task.attempt Msgs.Checked <|
+            Task.attempt Checked <|
                 Concourse.Resource.check rid csrfToken
+
+
+fetchResource : Concourse.ResourceIdentifier -> Cmd Msg
+fetchResource resourceIdentifier =
+    Task.attempt ResourceFetched <|
+        Concourse.Resource.fetchResource resourceIdentifier
+
+
+fetchVersionedResources : Concourse.ResourceIdentifier -> Maybe Page -> Cmd Msg
+fetchVersionedResources resourceIdentifier page =
+    Task.attempt (VersionedResourcesFetched page) <|
+        Concourse.Resource.fetchVersionedResources resourceIdentifier page
+
+
+fetchInputTo : Concourse.VersionedResourceIdentifier -> Cmd Msg
+fetchInputTo versionedResourceIdentifier =
+    Task.attempt (InputToFetched versionedResourceIdentifier.versionID) <|
+        Concourse.Resource.fetchInputTo versionedResourceIdentifier
+
+
+fetchOutputOf : Concourse.VersionedResourceIdentifier -> Cmd Msg
+fetchOutputOf versionedResourceIdentifier =
+    Task.attempt (OutputOfFetched versionedResourceIdentifier.versionID) <|
+        Concourse.Resource.fetchOutputOf versionedResourceIdentifier
 
 
 fetchInputAndOutputs : Models.Model -> Models.Version -> List Effect
@@ -89,30 +113,3 @@ fetchInputAndOutputs model version =
     [ FetchInputTo identifier
     , FetchOutputOf identifier
     ]
-
-
-fetchResource : Concourse.ResourceIdentifier -> Cmd Msgs.Msg
-fetchResource resourceIdentifier =
-    Task.attempt Msgs.ResourceFetched <|
-        Concourse.Resource.fetchResource resourceIdentifier
-
-
-fetchVersionedResources :
-    Concourse.ResourceIdentifier
-    -> Maybe Page
-    -> Cmd Msgs.Msg
-fetchVersionedResources resourceIdentifier page =
-    Task.attempt (Msgs.VersionedResourcesFetched page) <|
-        Concourse.Resource.fetchVersionedResources resourceIdentifier page
-
-
-fetchInputTo : Concourse.VersionedResourceIdentifier -> Cmd Msgs.Msg
-fetchInputTo versionedResourceIdentifier =
-    Task.attempt (Msgs.InputToFetched versionedResourceIdentifier.versionID) <|
-        Concourse.Resource.fetchInputTo versionedResourceIdentifier
-
-
-fetchOutputOf : Concourse.VersionedResourceIdentifier -> Cmd Msgs.Msg
-fetchOutputOf versionedResourceIdentifier =
-    Task.attempt (Msgs.OutputOfFetched versionedResourceIdentifier.versionID) <|
-        Concourse.Resource.fetchOutputOf versionedResourceIdentifier
