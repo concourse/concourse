@@ -1,6 +1,7 @@
 module NewTopBarTests exposing (all)
 
 import Dashboard
+import Dashboard.Effects as Effects
 import Dashboard.Msgs as Msgs
 import DashboardTests exposing (apiData, givenDataAndUser, givenDataUnauthenticated)
 import Dict
@@ -24,8 +25,6 @@ import Test.Html.Selector as THS
 init : { highDensity : Bool, query : String } -> Dashboard.Model
 init { highDensity, query } =
     Dashboard.init
-        { title = always Cmd.none
-        }
         { csrfToken = ""
         , turbulencePath = ""
         , search = query
@@ -38,26 +37,23 @@ init { highDensity, query } =
 
 smallScreen : Dashboard.Model -> Dashboard.Model
 smallScreen =
-    updateModel
-        << Msgs.ScreenResized
-    <|
-        { width = 300, height = 800 }
+    updateModel <|
+        Msgs.ScreenResized <|
+            { width = 300, height = 800 }
 
 
 bigScreen : Dashboard.Model -> Dashboard.Model
 bigScreen =
-    updateModel
-        << Msgs.ScreenResized
-    <|
-        { width = 1200, height = 900 }
+    updateModel <|
+        Msgs.ScreenResized <|
+            { width = 1200, height = 900 }
 
 
 extraBigScreen : Dashboard.Model -> Dashboard.Model
 extraBigScreen =
-    updateModel
-        << Msgs.ScreenResized
-    <|
-        { width = 1500, height = 900 }
+    updateModel <|
+        Msgs.ScreenResized <|
+            { width = 1500, height = 900 }
 
 
 userName : String
@@ -264,14 +260,14 @@ all =
                                 |> Dashboard.update
                                     (Msgs.LoggedOut (Ok ()))
                                 |> Tuple.second
-                                |> Expect.equal [ Dashboard.NewUrl "/", Dashboard.FetchData ]
+                                |> Expect.equal [ Effects.NewUrl "/", Effects.FetchData ]
                     , test "redirects to high-density view on high-density view" <|
                         \_ ->
                             init { highDensity = True, query = "" }
                                 |> Dashboard.update
                                     (Msgs.LoggedOut (Ok ()))
                                 |> Tuple.second
-                                |> Expect.equal [ Dashboard.NewUrl "/hd", Dashboard.FetchData ]
+                                |> Expect.equal [ Effects.NewUrl "/hd", Effects.FetchData ]
                     ]
                 ]
             , test "shows no search input" <|

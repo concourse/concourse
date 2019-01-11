@@ -17,6 +17,7 @@ import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard
 import Dashboard.APIData as APIData
+import Dashboard.Effects as Effects
 import Dashboard.Group as Group
 import Dashboard.Msgs as Msgs
 import Date exposing (Date)
@@ -466,7 +467,7 @@ all =
                         )
                     |> Expect.all
                         [ Tuple.second
-                            >> Expect.equal [ Dashboard.ModifyUrl "/" ]
+                            >> Expect.equal [ Effects.ModifyUrl "/" ]
                         , Tuple.first
                             >> Dashboard.update
                                 (Msgs.APIDataFetched <|
@@ -510,7 +511,7 @@ all =
                         )
                     |> Expect.all
                         [ Tuple.second
-                            >> Expect.equal [ Dashboard.ModifyUrl "/" ]
+                            >> Expect.equal [ Effects.ModifyUrl "/" ]
                         , Tuple.first
                             >> queryView
                             >> Query.has [ text "welcome to concourse!" ]
@@ -2780,8 +2781,6 @@ iconSelector { size, image } =
 whenOnDashboard : { highDensity : Bool } -> Dashboard.Model
 whenOnDashboard { highDensity } =
     Dashboard.init
-        { title = always Cmd.none
-        }
         { csrfToken = ""
         , turbulencePath = ""
         , search = ""

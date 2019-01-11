@@ -14,6 +14,7 @@ import Build.Effects
 import Build.Msgs
 import Concourse
 import Dashboard
+import Dashboard.Effects
 import Dashboard.Msgs
 import Effects
 import FlySuccess
@@ -155,26 +156,30 @@ init flags route =
                 )
 
         Routes.Dashboard ->
-            superDupleWrap ( DashboardModel, DashboardMsg ) <|
-                Dashboard.init
-                    { title = Effects.setTitle }
+            superDupleWrap ( DashboardModel, DashboardMsg )
+                (Dashboard.init
                     { turbulencePath = flags.turbulencePath
                     , csrfToken = flags.csrfToken
                     , search = querySearchForRoute route
                     , highDensity = False
                     , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
                     }
+                    |> Tuple.mapSecond
+                        (List.map Dashboard.Effects.runEffect >> Cmd.batch)
+                )
 
         Routes.DashboardHd ->
-            superDupleWrap ( DashboardModel, DashboardMsg ) <|
-                Dashboard.init
-                    { title = Effects.setTitle }
+            superDupleWrap ( DashboardModel, DashboardMsg )
+                (Dashboard.init
                     { turbulencePath = flags.turbulencePath
                     , csrfToken = flags.csrfToken
                     , search = querySearchForRoute route
                     , highDensity = True
                     , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
                     }
+                    |> Tuple.mapSecond
+                        (List.map Dashboard.Effects.runEffect >> Cmd.batch)
+                )
 
         Routes.FlySuccess ->
             superDupleWrap ( FlySuccessModel, FlySuccessMsg )
@@ -248,7 +253,8 @@ update turbulence notFound csrfToken msg mdl =
 
         ( DashboardMsg message, DashboardModel model ) ->
             Dashboard.update message model
-                |> Tuple.mapSecond (List.map Dashboard.toCmd >> Cmd.batch)
+                |> Tuple.mapSecond
+                    (List.map Dashboard.Effects.runEffect >> Cmd.batch)
                 |> superDupleWrap ( DashboardModel, DashboardMsg )
 
         ( FlySuccessMsg message, FlySuccessModel model ) ->

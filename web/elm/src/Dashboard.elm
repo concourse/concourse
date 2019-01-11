@@ -1,9 +1,7 @@
-port module Dashboard exposing
-    ( Effect(..)
-    , Model
+module Dashboard exposing
+    ( Model
     , init
     , subscriptions
-    , toCmd
     , update
     , view
     )
@@ -12,11 +10,11 @@ import Array
 import Char
 import Concourse
 import Concourse.Cli as Cli
-import Concourse.Pipeline
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Concourse.User
 import Dashboard.APIData as APIData
 import Dashboard.Details as Details
+import Dashboard.Effects exposing (Effect(..))
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
 import Dashboard.Models as Models
@@ -24,7 +22,6 @@ import Dashboard.Msgs as Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
 import Dashboard.SubState as SubState
 import Dashboard.Text as Text
-import Dom
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes
     exposing
@@ -41,13 +38,11 @@ import Html.Styled.Attributes
 import Html.Styled.Events exposing (onMouseEnter, onMouseLeave)
 import Http
 import Keyboard
-import LoginRedirect
 import Monocle.Common exposing ((<|>), (=>))
 import Monocle.Lens
 import Monocle.Optional
 import MonocleHelpers exposing (..)
 import Mouse
-import Navigation
 import NewTopBar
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
@@ -59,17 +54,6 @@ import Task
 import Time exposing (Time)
 import UserState
 import Window
-
-
-type alias Ports =
-    { title : String -> Cmd Msg
-    }
-
-
-port tooltip : ( String, String ) -> Cmd msg
-
-
-port tooltipHd : ( String, String ) -> Cmd msg
 
 
 type alias Flags =
@@ -107,60 +91,13 @@ type alias Model =
     }
 
 
-type Effect
-    = FetchData
-    | FocusSearchInput
-    | ModifyUrl String
-    | NewUrl String
-    | SendTogglePipelineRequest { pipeline : Models.Pipeline, csrfToken : Concourse.CSRFToken }
-    | ShowTooltip ( String, String )
-    | ShowTooltipHd ( String, String )
-    | SendOrderPipelinesRequest String (List Models.Pipeline) Concourse.CSRFToken
-    | RedirectToLogin String
-    | SendLogOutRequest
-
-
-toCmd : Effect -> Cmd Msg
-toCmd effect =
-    case effect of
-        FetchData ->
-            fetchData
-
-        FocusSearchInput ->
-            Task.attempt (always Noop) (Dom.focus "search-input-field")
-
-        ModifyUrl url ->
-            Navigation.modifyUrl url
-
-        NewUrl url ->
-            Navigation.newUrl url
-
-        SendTogglePipelineRequest { pipeline, csrfToken } ->
-            togglePipelinePaused { pipeline = pipeline, csrfToken = csrfToken }
-
-        ShowTooltip ( teamName, pipelineName ) ->
-            tooltip ( teamName, pipelineName )
-
-        ShowTooltipHd ( teamName, pipelineName ) ->
-            tooltipHd ( teamName, pipelineName )
-
-        SendOrderPipelinesRequest teamName pipelines csrfToken ->
-            orderPipelines teamName pipelines csrfToken
-
-        RedirectToLogin s ->
-            LoginRedirect.requestLoginRedirect s
-
-        SendLogOutRequest ->
-            NewTopBar.logOut
-
-
 substateOptional : Monocle.Optional.Optional Model SubState.SubState
 substateOptional =
     Monocle.Optional.Optional (.state >> Result.toMaybe) (\s m -> { m | state = Ok s })
 
 
-init : Ports -> Flags -> ( Model, Cmd Msg )
-init ports flags =
+init : Flags -> ( Model, List Effect )
+init flags =
     let
         searchBar =
             Expanded
@@ -188,12 +125,11 @@ init ports flags =
       , showHelp = False
       , searchBar = searchBar
       }
-    , Cmd.batch
-        [ fetchData
-        , Group.pinTeamNames Group.stickyHeaderConfig
-        , ports.title <| "Dashboard" ++ " - "
-        , Task.perform ScreenResized Window.size
-        ]
+    , [ FetchData
+      , PinTeamNames Group.stickyHeaderConfig
+      , SetTitle <| "Dashboard" ++ " - "
+      , GetScreenSize
+      ]
     )
 
 
@@ -687,29 +623,6 @@ update msg model =
             )
 
 
-orderPipelines : String -> List Models.Pipeline -> Concourse.CSRFToken -> Cmd Msg
-orderPipelines teamName pipelines csrfToken =
-    Task.attempt (always Noop) <|
-        Concourse.Pipeline.order
-            teamName
-            (List.map .name pipelines)
-            csrfToken
-
-
-
--- TODO this seems obsessed with pipelines. shouldn't be the dashboard's business
-
-
-togglePipelinePaused : { pipeline : Models.Pipeline, csrfToken : Concourse.CSRFToken } -> Cmd Msg
-togglePipelinePaused { pipeline, csrfToken } =
-    Task.attempt (always Noop) <|
-        if pipeline.status == PipelineStatus.PipelineStatusPaused then
-            Concourse.Pipeline.unpause pipeline.teamName pipeline.name csrfToken
-
-        else
-            Concourse.Pipeline.pause pipeline.teamName pipeline.name csrfToken
-
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
@@ -996,14 +909,6 @@ handleKeyPressed key model =
 
         _ ->
             ( Footer.showFooter model, [] )
-
-
-fetchData : Cmd Msg
-fetchData =
-    APIData.remoteData
-        |> Task.map2 (,) Time.now
-        |> RemoteData.asCmd
-        |> Cmd.map APIDataFetched
 
 
 remoteUser : APIData.APIData -> Task.Task Http.Error ( APIData.APIData, Maybe Concourse.User )
