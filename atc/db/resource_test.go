@@ -193,6 +193,258 @@ var _ = Describe("Resource", func() {
 		})
 	})
 
+	Describe("SetResourceConfig", func() {
+		var pipeline db.Pipeline
+
+		BeforeEach(func() {
+			var created bool
+			var err error
+			pipeline, created, err = defaultTeam.SavePipeline(
+				"pipeline-with-same-resources",
+				atc.Config{
+					Resources: atc.ResourceConfigs{
+						{
+							Name:   "some-resource",
+							Type:   "time",
+							Source: atc.Source{"some": "repository"},
+						},
+						{
+							Name:   "some-other-resource",
+							Type:   "time",
+							Source: atc.Source{"some": "repository"},
+						},
+						{
+							Name:                 "pipeline-resource",
+							Type:                 "time",
+							Source:               atc.Source{"some": "repository"},
+							UniqueVersionHistory: true,
+						},
+						{
+							Name:                 "other-pipeline-resource",
+							Type:                 "time",
+							Source:               atc.Source{"some": "repository"},
+							UniqueVersionHistory: true,
+						},
+					},
+				},
+				0,
+				db.PipelineUnpaused,
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(created).To(BeTrue())
+		})
+
+		Context("when the resource uses a base resource type with shared version history", func() {
+			var (
+				resourceConfig1 db.ResourceConfig
+				resourceConfig2 db.ResourceConfig
+				resource1       db.Resource
+				resource2       db.Resource
+			)
+
+			BeforeEach(func() {
+				var found bool
+				var err error
+				resource1, found, err = pipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				setupTx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+
+				brt := db.BaseResourceType{
+					Name: "time",
+				}
+				_, err = brt.FindOrCreate(setupTx)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(setupTx.Commit()).To(Succeed())
+
+				resourceConfig1, err = resource1.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+				Expect(err).NotTo(HaveOccurred())
+
+				found, err = resource1.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("has the resource config id set on the resource", func() {
+				Expect(resource1.ResourceConfigID()).To(Equal(resourceConfig1.ID()))
+				Expect(resource1.UniqueVersionHistory()).To(BeFalse())
+			})
+
+			Context("when another resource uses the same resource config", func() {
+				BeforeEach(func() {
+					var found bool
+					var err error
+					resource2, found, err = pipeline.Resource("some-other-resource")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					resourceConfig2, err = resource2.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+					Expect(err).NotTo(HaveOccurred())
+
+					found, err = resource2.Reload()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+				})
+
+				It("has the same resource config id as the first resource", func() {
+					Expect(resource2.ResourceConfigID()).To(Equal(resourceConfig2.ID()))
+					Expect(resource2.UniqueVersionHistory()).To(BeFalse())
+					Expect(resource1.ResourceConfigID()).To(Equal(resource2.ResourceConfigID()))
+				})
+			})
+		})
+
+		Context("when the resource uses a base resource type that has unique version history", func() {
+			var (
+				resourceConfig1 db.ResourceConfig
+				resourceConfig2 db.ResourceConfig
+				resource1       db.Resource
+				resource2       db.Resource
+			)
+
+			BeforeEach(func() {
+				var found bool
+				var err error
+				resource1, found, err = pipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				setupTx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+
+				brt := db.BaseResourceType{
+					Name:                 "time",
+					UniqueVersionHistory: true,
+				}
+				_, err = brt.FindOrCreate(setupTx)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(setupTx.Commit()).To(Succeed())
+
+				resourceConfig1, err = resource1.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+				Expect(err).NotTo(HaveOccurred())
+
+				found, err = resource1.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("has the resource config id set on the resource", func() {
+				Expect(resource1.ResourceConfigID()).To(Equal(resourceConfig1.ID()))
+				Expect(resource1.UniqueVersionHistory()).To(BeFalse())
+			})
+
+			Context("when another resource uses the same resource config", func() {
+				BeforeEach(func() {
+					var found bool
+					var err error
+					resource2, found, err = pipeline.Resource("some-other-resource")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					resourceConfig2, err = resource2.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+					Expect(err).NotTo(HaveOccurred())
+
+					found, err = resource2.Reload()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+				})
+
+				It("has a different resource config id than the first resource", func() {
+					Expect(resource2.ResourceConfigID()).To(Equal(resourceConfig2.ID()))
+					Expect(resource2.UniqueVersionHistory()).To(BeFalse())
+					Expect(resource1.ResourceConfigID()).ToNot(Equal(resource2.ResourceConfigID()))
+				})
+			})
+		})
+
+		Context("when the resource specified a unique version history in the pipeline config", func() {
+			var (
+				resourceConfig1 db.ResourceConfig
+				resourceConfig2 db.ResourceConfig
+				resource1       db.Resource
+				resource2       db.Resource
+			)
+
+			BeforeEach(func() {
+				var found bool
+				var err error
+				resource1, found, err = pipeline.Resource("pipeline-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				setupTx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+
+				brt := db.BaseResourceType{
+					Name: "time",
+				}
+				_, err = brt.FindOrCreate(setupTx)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(setupTx.Commit()).To(Succeed())
+
+				resourceConfig1, err = resource1.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+				Expect(err).NotTo(HaveOccurred())
+
+				found, err = resource1.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("has the resource config id set on the resource", func() {
+				Expect(resource1.ResourceConfigID()).To(Equal(resourceConfig1.ID()))
+				Expect(resource1.UniqueVersionHistory()).To(BeTrue())
+			})
+
+			Context("when another resource uses the same resource config", func() {
+				BeforeEach(func() {
+					var found bool
+					var err error
+					resource2, found, err = pipeline.Resource("other-pipeline-resource")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					resourceConfig2, err = resource2.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+					Expect(err).NotTo(HaveOccurred())
+
+					found, err = resource2.Reload()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+				})
+
+				It("has a different resource config id than the first resource", func() {
+					Expect(resource2.ResourceConfigID()).To(Equal(resourceConfig2.ID()))
+					Expect(resource2.UniqueVersionHistory()).To(BeTrue())
+					Expect(resource1.ResourceConfigID()).ToNot(Equal(resource2.ResourceConfigID()))
+				})
+			})
+
+			Context("when another resource uses the same resource config but is not unique", func() {
+				BeforeEach(func() {
+					var found bool
+					var err error
+					resource2, found, err = pipeline.Resource("some-resource")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					resourceConfig2, err = resource2.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+					Expect(err).NotTo(HaveOccurred())
+
+					found, err = resource2.Reload()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+				})
+
+				It("has a different resource config id than the first resource", func() {
+					Expect(resource2.ResourceConfigID()).To(Equal(resourceConfig2.ID()))
+					Expect(resource2.UniqueVersionHistory()).To(BeFalse())
+					Expect(resource1.ResourceConfigID()).ToNot(Equal(resource2.ResourceConfigID()))
+				})
+			})
+		})
+	})
+
 	Describe("SetCheckError", func() {
 		var resource db.Resource
 

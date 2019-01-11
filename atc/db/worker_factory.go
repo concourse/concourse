@@ -532,7 +532,8 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			Image:   resourceType.Image,
 			Version: resourceType.Version,
 			BaseResourceType: &BaseResourceType{
-				Name: resourceType.Type,
+				Name:                 resourceType.Type,
+				UniqueVersionHistory: resourceType.UniqueVersionHistory,
 			},
 		}
 

@@ -37,6 +37,7 @@ type Resource interface {
 	PinComment() string
 	ResourceConfigCheckError() error
 	ResourceConfigID() int
+	UniqueVersionHistory() bool
 
 	CurrentPinnedVersion() atc.Version
 
@@ -81,6 +82,7 @@ type resource struct {
 	pinComment               string
 	resourceConfigCheckError error
 	resourceConfigID         int
+	uniqueVersionHistory     bool
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -142,6 +144,7 @@ func (r *resource) APIPinnedVersion() atc.Version    { return r.apiPinnedVersion
 func (r *resource) PinComment() string               { return r.pinComment }
 func (r *resource) ResourceConfigCheckError() error  { return r.resourceConfigCheckError }
 func (r *resource) ResourceConfigID() int            { return r.resourceConfigID }
+func (r *resource) UniqueVersionHistory() bool       { return r.uniqueVersionHistory }
 
 func (r *resource) Reload() (bool, error) {
 	row := resourcesQuery.Where(sq.Eq{"r.id": r.id}).
@@ -160,7 +163,7 @@ func (r *resource) Reload() (bool, error) {
 }
 
 func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, resourceTypes creds.VersionedResourceTypes) (ResourceConfig, error) {
-	resourceConfigDescriptor, err := constructResourceConfigDescriptor(r.type_, source, resourceTypes)
+	resourceConfigDescriptor, err := constructResourceConfigDescriptor(r.type_, source, resourceTypes, r)
 	if err != nil {
 		return nil, err
 	}
@@ -560,6 +563,7 @@ func scanResource(r *resource, row scannable) error {
 	r.tags = config.Tags
 	r.webhookToken = config.WebhookToken
 	r.configPinnedVersion = config.Version
+	r.uniqueVersionHistory = config.UniqueVersionHistory
 
 	if apiPinnedVersion.Valid {
 		err = json.Unmarshal([]byte(apiPinnedVersion.String), &r.apiPinnedVersion)
