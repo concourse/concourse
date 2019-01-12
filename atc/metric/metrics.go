@@ -431,7 +431,6 @@ var lockTypeNames = map[int]string{
 
 type LockAcquired struct {
 	LockType string
-	ObjectID int
 }
 
 func (event LockAcquired) Emit(logger lager.Logger) {
@@ -442,8 +441,7 @@ func (event LockAcquired) Emit(logger lager.Logger) {
 			Value: 1,
 			State: EventStateOK,
 			Attributes: map[string]string{
-				"type":      event.LockType,
-				"object_id": strconv.Itoa(event.ObjectID),
+				"type": event.LockType,
 			},
 		},
 	)
@@ -451,7 +449,6 @@ func (event LockAcquired) Emit(logger lager.Logger) {
 
 type LockReleased struct {
 	LockType string
-	ObjectID int
 }
 
 func (event LockReleased) Emit(logger lager.Logger) {
@@ -462,8 +459,7 @@ func (event LockReleased) Emit(logger lager.Logger) {
 			Value: 0,
 			State: EventStateOK,
 			Attributes: map[string]string{
-				"type":      event.LockType,
-				"object_id": strconv.Itoa(event.ObjectID),
+				"type": event.LockType,
 			},
 		},
 	)
@@ -472,35 +468,24 @@ func (event LockReleased) Emit(logger lager.Logger) {
 func LogLockAcquired(logger lager.Logger, lockID lock.LockID) {
 	logger.Debug("acquired")
 
-	if len(lockID) > 0 {
-		if lockType, ok := lockTypeNames[lockID[0]]; ok {
-			var objectID int
-			if len(lockID) > 1 {
-				objectID = lockID[1]
-			}
+	if len(lockID) == 0 {
+		return
+	}
 
-			LockAcquired{
-				LockType: lockType,
-				ObjectID: objectID,
-			}.Emit(logger)
-		}
+	if lockType, ok := lockTypeNames[lockID[0]]; ok {
+		LockAcquired{LockType: lockType}.Emit(logger)
 	}
 }
 
 func LogLockReleased(logger lager.Logger, lockID lock.LockID) {
 	logger.Debug("released")
 
-	if len(lockID) > 0 {
-		if lockType, ok := lockTypeNames[lockID[0]]; ok {
-			var objectID int
-			if len(lockID) > 1 {
-				objectID = lockID[1]
-			}
-			LockReleased{
-				LockType: lockType,
-				ObjectID: objectID,
-			}.Emit(logger)
-		}
+	if len(lockID) == 0 {
+		return
+	}
+
+	if lockType, ok := lockTypeNames[lockID[0]]; ok {
+		LockReleased{LockType: lockType}.Emit(logger)
 	}
 }
 

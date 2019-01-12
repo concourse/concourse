@@ -64,14 +64,13 @@ func (config *PrometheusConfig) bind() string {
 }
 
 func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
-
 	// lock metrics
 	locksHeld := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "concourse",
 		Subsystem: "locks",
-		Name:      "state",
+		Name:      "held",
 		Help:      "Database locks held",
-	}, []string{"lockType", "objectId"})
+	}, []string{"type"})
 	prometheus.MustRegister(locksHeld)
 
 	// build metrics
@@ -344,16 +343,10 @@ func (emitter *PrometheusEmitter) lock(logger lager.Logger, event metric.Event) 
 		return
 	}
 
-	objectID, exists := event.Attributes["object_id"]
-	if !exists {
-		logger.Error("failed-to-find-object-id-in-event", fmt.Errorf("expected object_id to exist in event.Attributes"))
-		return
-	}
-
 	if event.Value == 1 {
-		emitter.locksHeld.WithLabelValues(lockType, objectID).Inc()
+		emitter.locksHeld.WithLabelValues(lockType).Inc()
 	} else {
-		emitter.locksHeld.WithLabelValues(lockType, objectID).Dec()
+		emitter.locksHeld.WithLabelValues(lockType).Dec()
 	}
 }
 
