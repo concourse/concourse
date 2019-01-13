@@ -41,9 +41,9 @@ type PrometheusEmitter struct {
 	schedulingFullDuration    *prometheus.CounterVec
 	schedulingLoadingDuration *prometheus.CounterVec
 
-	workerContainers *prometheus.GaugeVec
-	workerInfo       *prometheus.GaugeVec
-	workerVolumes    *prometheus.GaugeVec
+	workerContainers  *prometheus.GaugeVec
+	workerVolumes     *prometheus.GaugeVec
+	workersRegistered *prometheus.GaugeVec
 
 	workerLastSeen map[string]time.Time
 	mu             sync.Mutex
@@ -182,16 +182,16 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	)
 	prometheus.MustRegister(workerVolumes)
 
-	workerInfo := prometheus.NewGaugeVec(
+	workersRegistered := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "concourse",
 			Subsystem: "workers",
-			Name:      "info",
-			Help:      "Per-worker information",
+			Name:      "registered",
+			Help:      "Number of workers per state as seen by the database",
 		},
-		[]string{"worker", "state"},
+		[]string{"state"},
 	)
-	prometheus.MustRegister(workerInfo)
+	prometheus.MustRegister(workersRegistered)
 
 	// http metrics
 	httpRequestsDuration := prometheus.NewHistogramVec(
@@ -303,7 +303,6 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		schedulingLoadingDuration: schedulingLoadingDuration,
 
 		workerContainers: workerContainers,
-		workerInfo:       workerInfo,
 		workerLastSeen:   map[string]time.Time{},
 		workerVolumes:    workerVolumes,
 	}
@@ -335,7 +334,7 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	case "worker volumes":
 		emitter.workerVolumesMetric(logger, event)
 	case "worker state":
-		emitter.workerInfoMetric(logger, event)
+		emitter.workersRegisteredMetric(logger, event)
 	case "http response time":
 		emitter.httpResponseTimeMetrics(logger, event)
 	case "scheduling: full duration (ms)":
@@ -458,20 +457,20 @@ func (emitter *PrometheusEmitter) workerContainersMetric(logger lager.Logger, ev
 	emitter.workerContainers.WithLabelValues(worker, platform).Set(float64(containers))
 }
 
-func (emitter *PrometheusEmitter) workerInfoMetric(logger lager.Logger, event metric.Event) {
-	worker, exists := event.Attributes["worker"]
+func (emitter *PrometheusEmitter) workersRegisteredMetric(logger lager.Logger, event metric.Event) {
+	state, exists := event.Attributes["state"]
 	if !exists {
-		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
+		logger.Error("failed-to-find-state-in-event", fmt.Errorf("expected state to exist in event.Attributes"))
 		return
 	}
 
-	state, exists := event.Attributes["worker_state"]
-	if !exists {
-		logger.Error("failed-to-find-worker-state-in-event", fmt.Errorf("expected worker_state to exist in event.Attributes"))
+	count, ok := event.Value.(int)
+	if !ok {
+		logger.Error("workers-count-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
 		return
 	}
 
-	emitter.workerInfo.WithLabelValues(worker, state).Set(float64(1))
+	emitter.workersRegistered.WithLabelValues(state).Set(float64(count))
 }
 
 func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event metric.Event) {
