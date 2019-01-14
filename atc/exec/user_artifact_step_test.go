@@ -18,7 +18,6 @@ var _ = Describe("ArtifactStep", func() {
 	var (
 		ctx    context.Context
 		cancel func()
-		// logger *lagertest.TestLogger
 
 		state    exec.RunState
 		delegate *execfakes.FakeBuildStepDelegate
@@ -32,7 +31,6 @@ var _ = Describe("ArtifactStep", func() {
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
-		// logger = lagertest.NewTestLogger("user-artifact-step-test")
 
 		state = exec.NewRunState()
 

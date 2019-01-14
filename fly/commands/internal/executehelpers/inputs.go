@@ -135,7 +135,8 @@ func GenerateLocalInputs(
 	fact atc.PlanFactory,
 	team concourse.Team,
 	inputMappings []flaghelpers.InputPairFlag,
-	includeIgnored bool) (map[string]Input, error) {
+	includeIgnored bool,
+) (map[string]Input, error) {
 
 	kvMap := map[string]Input{}
 
