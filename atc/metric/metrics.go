@@ -2,6 +2,7 @@ package metric
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/concourse/concourse/atc/db/lock"
@@ -115,6 +116,8 @@ type WorkerContainers struct {
 	WorkerName string
 	Platform   string
 	Containers int
+	Team       string
+	Tags       []string
 }
 
 func (event WorkerContainers) Emit(logger lager.Logger) {
@@ -127,6 +130,8 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 			Attributes: map[string]string{
 				"worker":   event.WorkerName,
 				"platform": event.Platform,
+				"team":     event.Team,
+				"tags":     strings.Join(event.Tags[:], " "),
 			},
 		},
 	)
@@ -136,6 +141,8 @@ type WorkerVolumes struct {
 	WorkerName string
 	Platform   string
 	Volumes    int
+	Team       string
+	Tags       []string
 }
 
 func (event WorkerVolumes) Emit(logger lager.Logger) {
@@ -148,6 +155,8 @@ func (event WorkerVolumes) Emit(logger lager.Logger) {
 			Attributes: map[string]string{
 				"worker":   event.WorkerName,
 				"platform": event.Platform,
+				"team":     event.Team,
+				"tags":     strings.Join(event.Tags[:], " "),
 			},
 		},
 	)
