@@ -243,6 +243,8 @@ github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf/go.mod h
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/influxdata/influxdb v1.6.1 h1:OseoBlzI5ftNI/bczyxSWq6PKRCNEeiXvyWP/wS5fB0=
 github.com/influxdata/influxdb v1.6.1/go.mod h1:qZna6X/4elxqT3yI9iZYdZrWWdeFOOprn86kgg4+IzY=
+github.com/influxdata/influxdb v1.7.3 h1:9BaicfUiqcYtQfquxpKX8BBlaluDqx7BG1LfMCRsleg=
+github.com/influxdata/influxdb v1.7.3/go.mod h1:qZna6X/4elxqT3yI9iZYdZrWWdeFOOprn86kgg4+IzY=
 github.com/jefferai/jsonx v0.0.0-20160721235117-9cc31c3135ee h1:AQ/QmCk6x8ECPpf2pkPtA4lyncEEBbs8VFnVXPYKhIs=
 github.com/jefferai/jsonx v0.0.0-20160721235117-9cc31c3135ee/go.mod h1:N0t2vlmpe8nyZB5ouIbJQPDSR+mH6oe7xHB9VZHSUzM=
 github.com/jessevdk/go-flags v1.4.0 h1:4IU2WS7AumrZ/40jfhf4QVDMsQwqA7VEHozFRrGARJA=
