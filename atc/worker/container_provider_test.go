@@ -339,6 +339,20 @@ var _ = Describe("ContainerProvider", func() {
 					})
 				})
 			})
+
+			Context("when failing to acquire the lock", func() {
+				BeforeEach(func() {
+					fakeLock := new(lockfakes.FakeLock)
+
+					fakeLockFactory.AcquireReturnsOnCall(0, nil, false, nil)
+					fakeLockFactory.AcquireReturnsOnCall(1, fakeLock, true, nil)
+				})
+
+				// another ATC may have created the container already
+				It("rechecks for created and creating container", func() {
+					Expect(fakeDBWorker.FindContainerOnWorkerCallCount()).To(Equal(2))
+				})
+			})
 		})
 
 		Context("when container exists in database in created state", func() {
