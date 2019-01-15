@@ -803,6 +803,7 @@ jobs:
       - cbd/cluster/operations/windows-worker-network.yml
       - cbd/cluster/operations/debug-concourse.yml
       - cbd/cluster/operations/syslog-drainer.yml
+      - cbd/cluster/operations/container-placement-strategy.yml
       - cbd/cluster/operations/worker-rebalancing.yml
       vars_files:
       - cbd/versions.yml

@@ -855,17 +855,22 @@ viewStepState state buildFinished =
 
         StepStateSucceeded ->
             Html.div
-                [ style <| Styles.stepStatusIcon "ic-success-check" ]
+                [ attribute "data-step-state" "succeeded"
+                , style <| Styles.stepStatusIcon "ic-success-check"
+                ]
                 []
 
         StepStateFailed ->
             Html.div
-                [ style <| Styles.stepStatusIcon "ic-failure-times" ]
+                [ attribute "data-step-state" "failed"
+                , style <| Styles.stepStatusIcon "ic-failure-times" ]
                 []
 
         StepStateErrored ->
             Html.div
-                [ style <| Styles.stepStatusIcon "ic-exclamation-triangle" ]
+                [ attribute "data-step-state" "errored"
+                , style <| Styles.stepStatusIcon "ic-exclamation-triangle"
+                ]
                 []
 
 
