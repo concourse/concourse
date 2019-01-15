@@ -2,7 +2,8 @@ port module SubPage exposing (Model(..), Msg(..), init, subscriptions, update, u
 
 import Autoscroll
 import Build
-import Build
+import Build.Effects as Effects
+import Build.Msgs
 import Concourse
 import Dashboard
 import Dashboard.Msgs
@@ -16,10 +17,10 @@ import NotFound
 import Pipeline
 import QueryString
 import Resource
-import Resource
 import Routes
 import String
 import UpdateMsg exposing (UpdateMsg)
+
 
 
 -- TODO: move ports somewhere else
@@ -43,7 +44,7 @@ type Model
 
 
 type Msg
-    = BuildMsg (Autoscroll.Msg Build.Msg)
+    = BuildMsg (Autoscroll.Msg Build.Msgs.Msg)
     | JobMsg Job.Msg
     | ResourceMsg Resource.Msg
     | PipelineMsg Pipeline.Msg
@@ -84,6 +85,7 @@ init flags route =
             superDupleWrap ( BuildModel, BuildMsg ) <|
                 Autoscroll.init
                     Build.getScrollBehavior
+                    << Tuple.mapSecond (Cmd.batch << List.map Effects.toCmd)
                     << Build.init
                         { title = setTitle }
                         { csrfToken = flags.csrfToken, hash = route.hash }
@@ -99,6 +101,7 @@ init flags route =
             superDupleWrap ( BuildModel, BuildMsg ) <|
                 Autoscroll.init
                     Build.getScrollBehavior
+                    << Tuple.mapSecond (Cmd.batch << List.map Effects.toCmd)
                     << Build.init
                         { title = setTitle }
                         { csrfToken = flags.csrfToken, hash = route.hash }
@@ -188,10 +191,15 @@ update turbulence notFound csrfToken msg mdl =
                 buildModel =
                     scrollModel.subModel
 
-                ( newBuildModel, buildCmd ) =
-                    Build.update (Build.NewCSRFToken c) buildModel
+                ( newBuildModel, buildEffects ) =
+                    Build.update (Build.Msgs.NewCSRFToken c) buildModel
             in
-                ( BuildModel { scrollModel | subModel = newBuildModel }, buildCmd |> Cmd.map (\buildMsg -> BuildMsg (Autoscroll.SubMsg buildMsg)) )
+            ( BuildModel { scrollModel | subModel = newBuildModel }
+            , buildEffects
+                |> List.map Effects.toCmd
+                |> Cmd.batch
+                |> Cmd.map (\buildMsg -> BuildMsg (Autoscroll.SubMsg buildMsg))
+            )
 
         ( BuildMsg message, BuildModel scrollModel ) ->
             let
@@ -201,7 +209,7 @@ update turbulence notFound csrfToken msg mdl =
                 model =
                     { scrollModel | subModel = { subModel | csrfToken = csrfToken } }
             in
-                handleNotFound notFound ( BuildModel, BuildMsg ) (Autoscroll.update Build.updateWithMessage message model)
+            handleNotFound notFound ( BuildModel, BuildMsg ) (Autoscroll.update Build.updateWithMessage message model)
 
         ( NewCSRFToken c, JobModel model ) ->
             ( JobModel { model | csrfToken = c }, Cmd.none )
@@ -233,7 +241,7 @@ update turbulence notFound csrfToken msg mdl =
             ( mdl, Cmd.none )
 
         unknown ->
-            flip always (Debug.log ("impossible combination") unknown) <|
+            flip always (Debug.log "impossible combination" unknown) <|
                 ( mdl, Cmd.none )
 
 
@@ -284,10 +292,12 @@ urlUpdate route model =
                             }
                         )
                         scrollModel.subModel
+                        |> Tuple.mapSecond (List.map Effects.toCmd)
+                        |> Tuple.mapSecond Cmd.batch
             in
-                ( BuildModel { scrollModel | subModel = submodel }
-                , Cmd.map BuildMsg (Cmd.map Autoscroll.SubMsg subcmd)
-                )
+            ( BuildModel { scrollModel | subModel = submodel }
+            , Cmd.map BuildMsg (Cmd.map Autoscroll.SubMsg subcmd)
+            )
 
         _ ->
             ( model, Cmd.none )

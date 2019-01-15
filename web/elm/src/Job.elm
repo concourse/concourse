@@ -1,26 +1,60 @@
-port module Job exposing (Flags, Model, changeToJob, subscriptions, init, update, updateWithMessage, view, Msg(..))
+port module Job exposing
+    ( Flags
+    , Hoverable(..)
+    , Model
+    , Msg(..)
+    , changeToJob
+    , init
+    , subscriptions
+    , update
+    , updateWithMessage
+    , view
+    )
 
-import Dict exposing (Dict)
-import Html exposing (Html)
-import Html.Attributes exposing (class, href, id, disabled, attribute)
-import Html.Events exposing (onClick)
-import Http
-import Task
-import Time exposing (Time)
+import Build.Styles as Styles
+import BuildDuration
+import Colors
 import Concourse
 import Concourse.Build
-import Concourse.Job
-import Concourse.BuildStatus
-import Concourse.Pagination exposing (Pagination, Paginated, Page)
 import Concourse.BuildResources exposing (fetch)
-import BuildDuration
+import Concourse.BuildStatus
+import Concourse.Job
+import Concourse.Pagination
+    exposing
+        ( Page
+        , Paginated
+        , Pagination
+        , chevron
+        , chevronContainer
+        )
+import Dict exposing (Dict)
 import DictView
-import Navigation
-import StrictEvents exposing (onLeftClick)
+import Html exposing (Html)
+import Html.Attributes
+    exposing
+        ( attribute
+        , class
+        , disabled
+        , href
+        , id
+        , style
+        )
+import Html.Events
+    exposing
+        ( onClick
+        , onMouseEnter
+        , onMouseLeave
+        )
+import Http
+import LoadingIndicator
 import LoginRedirect
+import Navigation
 import RemoteData exposing (WebData)
-import UpdateMsg exposing (UpdateMsg)
 import Routes
+import StrictEvents exposing (onLeftClick)
+import Task
+import Time exposing (Time)
+import UpdateMsg exposing (UpdateMsg)
 
 
 type alias Ports =
@@ -37,6 +71,7 @@ type alias Model =
     , currentPage : Maybe Page
     , now : Time
     , csrfToken : String
+    , hovered : Hoverable
     }
 
 
@@ -52,6 +87,15 @@ type Msg
     | PausedToggled (Result Http.Error ())
     | NavTo String
     | SubscriptionTick Time
+    | Hover Hoverable
+
+
+type Hoverable
+    = Toggle
+    | Trigger
+    | PreviousPage
+    | NextPage
+    | None
 
 
 type alias BuildWithResources =
@@ -97,15 +141,16 @@ init ports flags =
                 , csrfToken = flags.csrfToken
                 , currentPage = flags.paging
                 , ports = ports
+                , hovered = None
                 }
     in
-        ( model
-        , Cmd.batch
-            [ fetchJob model.jobIdentifier
-            , cmd
-            , getCurrentTime
-            ]
-        )
+    ( model
+    , Cmd.batch
+        [ fetchJob model.jobIdentifier
+        , cmd
+        , getCurrentTime
+        ]
+    )
 
 
 changeToJob : Flags -> Model -> ( Model, Cmd Msg )
@@ -130,12 +175,12 @@ updateWithMessage message model =
         ( mdl, msg ) =
             update message model
     in
-        case mdl.job of
-            RemoteData.Failure _ ->
-                ( mdl, msg, Just UpdateMsg.NotFound )
+    case mdl.job of
+        RemoteData.Failure _ ->
+            ( mdl, msg, Just UpdateMsg.NotFound )
 
-            _ ->
-                ( mdl, msg, Nothing )
+        _ ->
+            ( mdl, msg, Nothing )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -170,6 +215,7 @@ update action model =
                 Http.BadStatus { status } ->
                     if status.code == 401 then
                         ( model, LoginRedirect.requestLoginRedirect "" )
+
                     else
                         ( model, Cmd.none )
 
@@ -184,6 +230,7 @@ update action model =
                 Http.BadStatus { status } ->
                     if status.code == 401 then
                         ( model, LoginRedirect.requestLoginRedirect "" )
+
                     else
                         ( model, Cmd.none )
 
@@ -200,8 +247,10 @@ update action model =
                 Http.BadStatus { status } ->
                     if status.code == 401 then
                         ( model, LoginRedirect.requestLoginRedirect "" )
+
                     else if status.code == 404 then
                         ( { model | job = RemoteData.Failure err }, Cmd.none )
+
                     else
                         ( model, Cmd.none )
 
@@ -221,24 +270,25 @@ update action model =
                                     bwrb =
                                         bwr.build
                                 in
-                                    if bwr.build.id == id then
-                                        { bwr
-                                            | resources = Just buildResources
-                                        }
-                                    else
-                                        bwr
+                                if bwr.build.id == id then
+                                    { bwr
+                                        | resources = Just buildResources
+                                    }
+
+                                else
+                                    bwr
 
                         bwrs =
                             model.buildsWithResources
                     in
-                        ( { model
-                            | buildsWithResources =
-                                { bwrs
-                                    | content = List.map transformer anyList
-                                }
-                          }
-                        , Cmd.none
-                        )
+                    ( { model
+                        | buildsWithResources =
+                            { bwrs
+                                | content = List.map transformer anyList
+                            }
+                      }
+                    , Cmd.none
+                    )
 
         BuildResourcesFetched _ (Err err) ->
             ( model, Cmd.none )
@@ -258,6 +308,7 @@ update action model =
                       }
                     , if j.paused then
                         unpauseJob model.jobIdentifier model.csrfToken
+
                       else
                         pauseJob model.jobIdentifier model.csrfToken
                     )
@@ -270,6 +321,7 @@ update action model =
                 Http.BadStatus { status } ->
                     if status.code == 401 then
                         ( model, LoginRedirect.requestLoginRedirect "" )
+
                     else
                         ( model, Cmd.none )
 
@@ -286,6 +338,9 @@ update action model =
                 , fetchJob model.jobIdentifier
                 ]
             )
+
+        Hover hoverable ->
+            ( { model | hovered = hoverable }, Cmd.none )
 
 
 permalink : List Concourse.Build -> Page
@@ -339,7 +394,7 @@ promoteBuild model build =
             List.head
                 (List.filter (existingBuild build) model.buildsWithResources.content)
     in
-        setResourcesToOld existingBuildWithResource newBwr
+    setResourcesToOld existingBuildWithResource newBwr
 
 
 setExistingResources : Paginated Concourse.Build -> Model -> Paginated BuildWithResources
@@ -366,12 +421,12 @@ handleJobBuildsFetched paginatedBuilds model =
         newBWRs =
             setExistingResources paginatedBuilds model
     in
-        ( { model
-            | buildsWithResources = newBWRs
-            , currentPage = Just newPage
-          }
-        , Cmd.batch <| List.filterMap updateResourcesIfNeeded newBWRs.content
-        )
+    ( { model
+        | buildsWithResources = newBWRs
+        , currentPage = Just newPage
+      }
+    , Cmd.batch <| List.filterMap updateResourcesIfNeeded newBWRs.content
+    )
 
 
 isRunning : Concourse.Build -> Bool
@@ -384,92 +439,123 @@ view model =
     Html.div [ class "with-fixed-header" ]
         [ case model.job |> RemoteData.toMaybe of
             Nothing ->
-                loadSpinner
+                LoadingIndicator.view
 
             Just job ->
                 Html.div [ class "fixed-header" ]
-                    [ Html.div [ class ("build-header " ++ headerBuildStatusClass job.finishedBuild) ]
+                    [ Html.div
+                        [ class <|
+                            "build-header "
+                                ++ headerBuildStatusClass job.finishedBuild
+                        , style
+                            [ ( "display", "flex" )
+                            , ( "justify-content", "space-between" )
+                            ]
+                        ]
                         -- TODO really?
-                        [ Html.button
-                            (List.append
-                                [ id "job-state"
-                                , attribute "aria-label" "Toggle Job Paused State"
-                                , class <|
-                                    "btn-pause btn-large fl "
-                                        ++ (getPausedState job model.pausedChanging)
+                        [ Html.div
+                            [ style [ ( "display", "flex" ) ] ]
+                            [ Html.button
+                                [ id "pause-toggle"
+                                , style <| Styles.triggerButton False
+                                , onMouseEnter <| Hover Toggle
+                                , onMouseLeave <| Hover None
+                                , onClick TogglePaused
                                 ]
-                                (if not model.pausedChanging then
-                                    [ onClick TogglePaused ]
-                                 else
+                                [ Html.div
+                                    [ style
+                                        [ ( "background-image"
+                                          , "url(/public/images/"
+                                                ++ (if job.paused then
+                                                        "ic-play-circle-outline.svg)"
+
+                                                    else
+                                                        "ic-pause-circle-outline-white.svg)"
+                                                   )
+                                          )
+                                        , ( "background-position", "50% 50%" )
+                                        , ( "background-repeat", "no-repeat" )
+                                        , ( "width", "40px" )
+                                        , ( "height", "40px" )
+                                        , ( "opacity"
+                                          , if model.hovered == Toggle then
+                                                "1"
+
+                                            else
+                                                "0.5"
+                                          )
+                                        ]
+                                    ]
                                     []
-                                )
-                            )
-                            [ Html.i
-                                [ class <|
-                                    "fa fa-fw fa-play "
-                                        ++ (getPlayPauseLoadIcon job model.pausedChanging)
+                                ]
+                            , Html.h1 [] [ Html.span [ class "build-name" ] [ Html.text job.name ] ]
+                            ]
+                        , Html.button
+                            [ class "trigger-build"
+                            , onLeftClick TriggerBuild
+                            , attribute "aria-label" "Trigger Build"
+                            , attribute "title" "Trigger Build"
+                            , onMouseEnter <| Hover Trigger
+                            , onMouseLeave <| Hover None
+                            , style <|
+                                Styles.triggerButton job.disableManualTrigger
+                            ]
+                          <|
+                            [ Html.div
+                                [ style <|
+                                    Styles.triggerIcon <|
+                                        model.hovered
+                                            == Trigger
+                                            && not job.disableManualTrigger
                                 ]
                                 []
                             ]
-                        , Html.form
-                            [ class "trigger-build"
-                            , onLeftClick TriggerBuild
-                            ]
-                            [ Html.button
-                                [ class "build-action fr"
-                                , disabled job.disableManualTrigger
-                                , attribute "aria-label" "Trigger Build"
-                                , attribute "title" "Trigger Build"
-                                ]
-                                [ Html.i [ class "fa fa-plus-circle" ] []
-                                ]
-                            ]
-                        , Html.h1 [] [ Html.span [ class "build-name" ] [ Html.text job.name ] ]
+                                ++ (if
+                                        job.disableManualTrigger
+                                            && model.hovered
+                                            == Trigger
+                                    then
+                                        [ Html.div
+                                            [ style Styles.triggerTooltip ]
+                                            [ Html.text <|
+                                                "manual triggering disabled "
+                                                    ++ "in job config"
+                                            ]
+                                        ]
+
+                                    else
+                                        []
+                                   )
                         ]
-                    , Html.div [ class "pagination-header" ]
-                        [ viewPaginationBar model
-                        , Html.h1 [] [ Html.text ("builds") ]
+                    , Html.div
+                        [ id "pagination-header"
+                        , style
+                            [ ( "display", "flex" )
+                            , ( "justify-content", "space-between" )
+                            , ( "align-items", "stretch" )
+                            , ( "height", "60px" )
+                            , ( "background-color", Colors.secondaryTopBar )
+                            ]
+                        ]
+                        [ Html.h1
+                            [ style
+                                [ ( "margin", "0 18px" )
+                                , ( "font-weight", "700" )
+                                ]
+                            ]
+                            [ Html.text "builds" ]
+                        , viewPaginationBar model
                         ]
                     ]
         , case model.buildsWithResources.content of
             [] ->
-                loadSpinner
+                LoadingIndicator.view
 
             anyList ->
                 Html.div [ class "scrollable-body job-body" ]
                     [ Html.ul [ class "jobs-builds-list builds-list" ] <|
                         List.map (viewBuildWithResources model) anyList
                     ]
-        ]
-
-
-getPlayPauseLoadIcon : Concourse.Job -> Bool -> String
-getPlayPauseLoadIcon job pausedChanging =
-    if pausedChanging then
-        "fa-circle-o-notch fa-spin"
-    else if job.paused then
-        ""
-    else
-        "fa-pause"
-
-
-getPausedState : Concourse.Job -> Bool -> String
-getPausedState job pausedChanging =
-    if pausedChanging then
-        "loading"
-    else if job.paused then
-        "enabled"
-    else
-        "disabled"
-
-
-loadSpinner : Html Msg
-loadSpinner =
-    Html.div [ class "build-step" ]
-        [ Html.div [ class "header" ]
-            [ Html.i [ class "left fa fa-fw fa-spin fa-circle-o-notch" ] []
-            , Html.h3 [] [ Html.text "Loading..." ]
-            ]
         ]
 
 
@@ -485,13 +571,26 @@ headerBuildStatusClass finishedBuild =
 
 viewPaginationBar : Model -> Html Msg
 viewPaginationBar model =
-    Html.div [ class "pagination fr" ]
+    Html.div
+        [ id "pagination"
+        , style
+            [ ( "display", "flex" )
+            , ( "align-items", "stretch" )
+            ]
+        ]
         [ case model.buildsWithResources.pagination.previousPage of
             Nothing ->
-                Html.div [ class "btn-page-link disabled" ]
-                    [ Html.span [ class "arrow" ]
-                        [ Html.i [ class "fa fa-arrow-left" ] []
+                Html.div
+                    [ style chevronContainer ]
+                    [ Html.div
+                        [ style <|
+                            chevron
+                                { direction = "left"
+                                , enabled = False
+                                , hovered = False
+                                }
                         ]
+                        []
                     ]
 
             Just page ->
@@ -506,22 +605,37 @@ viewPaginationBar model =
                             ++ "?"
                             ++ paginationParam page
                 in
-                    Html.div [ class "btn-page-link" ]
-                        [ Html.a
-                            [ class "arrow"
-                            , StrictEvents.onLeftClick <| NavTo jobUrl
-                            , href jobUrl
-                            , attribute "aria-label" "Previous Page"
-                            ]
-                            [ Html.i [ class "fa fa-arrow-left" ] []
-                            ]
+                Html.div
+                    [ style chevronContainer
+                    , onMouseEnter <| Hover PreviousPage
+                    , onMouseLeave <| Hover None
+                    ]
+                    [ Html.a
+                        [ StrictEvents.onLeftClick <| NavTo jobUrl
+                        , href jobUrl
+                        , attribute "aria-label" "Previous Page"
+                        , style <|
+                            chevron
+                                { direction = "left"
+                                , enabled = True
+                                , hovered = model.hovered == PreviousPage
+                                }
                         ]
+                        []
+                    ]
         , case model.buildsWithResources.pagination.nextPage of
             Nothing ->
-                Html.div [ class "btn-page-link disabled" ]
-                    [ Html.span [ class "arrow" ]
-                        [ Html.i [ class "fa fa-arrow-right" ] []
+                Html.div
+                    [ style chevronContainer ]
+                    [ Html.div
+                        [ style <|
+                            chevron
+                                { direction = "right"
+                                , enabled = False
+                                , hovered = False
+                                }
                         ]
+                        []
                     ]
 
             Just page ->
@@ -536,16 +650,24 @@ viewPaginationBar model =
                             ++ "?"
                             ++ paginationParam page
                 in
-                    Html.div [ class "btn-page-link" ]
-                        [ Html.a
-                            [ class "arrow"
-                            , StrictEvents.onLeftClick <| NavTo jobUrl
-                            , href jobUrl
-                            , attribute "aria-label" "Next Page"
-                            ]
-                            [ Html.i [ class "fa fa-arrow-right" ] []
-                            ]
+                Html.div
+                    [ style chevronContainer
+                    , onMouseEnter <| Hover NextPage
+                    , onMouseLeave <| Hover None
+                    ]
+                    [ Html.a
+                        [ StrictEvents.onLeftClick <| NavTo jobUrl
+                        , href jobUrl
+                        , attribute "aria-label" "Next Page"
+                        , style <|
+                            chevron
+                                { direction = "right"
+                                , enabled = True
+                                , hovered = model.hovered == NextPage
+                                }
                         ]
+                        []
+                    ]
         ]
 
 
@@ -556,11 +678,11 @@ viewBuildWithResources model bwr =
             buildResourcesView =
                 viewBuildResources model bwr
         in
-            [ viewBuildHeader model bwr.build
-            , Html.div [ class "pam clearfix" ] <|
-                (BuildDuration.view bwr.build.duration model.now)
-                    :: buildResourcesView
-            ]
+        [ viewBuildHeader model bwr.build
+        , Html.div [ class "pam clearfix" ] <|
+            BuildDuration.view bwr.build.duration model.now
+                :: buildResourcesView
+        ]
 
 
 viewBuildHeader : Model -> Concourse.Build -> Html Msg
@@ -580,7 +702,7 @@ viewBuildResources model buildWithResources =
         inputsTable =
             case buildWithResources.resources of
                 Nothing ->
-                    loadSpinner
+                    LoadingIndicator.view
 
                 Just resources ->
                     Html.table [ class "build-resources" ] <|
@@ -589,34 +711,58 @@ viewBuildResources model buildWithResources =
         outputsTable =
             case buildWithResources.resources of
                 Nothing ->
-                    loadSpinner
+                    LoadingIndicator.view
 
                 Just resources ->
                     Html.table [ class "build-resources" ] <|
                         List.map (viewBuildOutputs model) resources.outputs
     in
-        [ Html.div [ class "inputs mrl" ]
-            [ Html.div [ class "resource-title pbs" ]
-                [ Html.i [ class "fa fa-fw fa-arrow-down prs" ] []
-                , Html.text ("inputs")
-                ]
-            , inputsTable
+    [ Html.div [ class "inputs mrl" ]
+        [ Html.div
+            [ style buildResourceHeader ]
+            [ Html.span [ style <| buildResourceIcon "downward" ] []
+            , Html.text "inputs"
             ]
-        , Html.div [ class "outputs mrl" ]
-            [ Html.div [ class "resource-title pbs" ]
-                [ Html.i [ class "fa fa-fw fa-arrow-up prs" ] []
-                , Html.text ("outputs")
-                ]
-            , outputsTable
-            ]
+        , inputsTable
         ]
+    , Html.div [ class "outputs mrl" ]
+        [ Html.div
+            [ style buildResourceHeader ]
+            [ Html.span [ style <| buildResourceIcon "upward" ] []
+            , Html.text "outputs"
+            ]
+        , outputsTable
+        ]
+    ]
+
+
+buildResourceHeader : List ( String, String )
+buildResourceHeader =
+    [ ( "display", "flex" )
+    , ( "align-items", "center" )
+    , ( "padding-bottom", "5px" )
+    ]
+
+
+buildResourceIcon : String -> List ( String, String )
+buildResourceIcon direction =
+    [ ( "background-image"
+      , "url(/public/images/ic-arrow-" ++ direction ++ ".svg)"
+      )
+    , ( "background-position", "50% 50%" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-size", "contain" )
+    , ( "margin-right", "5px" )
+    , ( "width", "12px" )
+    , ( "height", "12px" )
+    ]
 
 
 viewBuildInputs : Model -> Concourse.BuildResourcesInput -> Html Msg
 viewBuildInputs model bi =
     Html.tr [ class "mbs pas resource fl clearfix" ]
         [ Html.td [ class "resource-name mrm" ]
-            [ Html.text (bi.name)
+            [ Html.text bi.name
             ]
         , Html.td [ class "resource-version" ]
             [ viewVersion bi.version
@@ -628,7 +774,7 @@ viewBuildOutputs : Model -> Concourse.BuildResourcesOutput -> Html Msg
 viewBuildOutputs model bo =
     Html.tr [ class "mbs pas resource fl clearfix" ]
         [ Html.td [ class "resource-name mrm" ]
-            [ Html.text (bo.name)
+            [ Html.text bo.name
             ]
         , Html.td [ class "resource-version" ]
             [ viewVersion bo.version

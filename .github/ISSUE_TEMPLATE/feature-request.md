@@ -1,6 +1,10 @@
 ---
 name: Feature Request
 about: Help us understand your use case and expand Concourse's functionality
+title: ''
+labels: enhancement, triage
+assignees: ''
+
 ---
 
 > Please remove all lines starting with '>' before submitting!

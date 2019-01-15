@@ -1,13 +1,13 @@
-port module TopBar exposing (Model, Msg(..), fetchUser, init, subscriptions, update, urlUpdate, view, userDisplayName)
+port module TopBar exposing (Model, Msg(..), fetchUser, init, subscriptions, update, urlUpdate, userDisplayName, view)
 
+import Colors
 import Concourse
 import Concourse.Pipeline
 import Concourse.User
-import Colors
 import Dict
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, disabled, href, id, style)
-import Html.Events exposing (onClick, onMouseOver, onMouseOut, onMouseEnter, onMouseLeave)
+import Html.Events exposing (onClick, onMouseEnter, onMouseLeave, onMouseOut, onMouseOver)
 import Http
 import LoginRedirect
 import Navigation exposing (Location)
@@ -55,20 +55,20 @@ init route =
         pid =
             extractPidFromRoute route.logical
     in
-        ( { route = route
-          , pipeline = Nothing
-          , userState = UserStateUnknown
-          , userMenuVisible = False
-          , pinnedResources = []
-          , showPinIconDropDown = False
-          }
-        , case pid of
-            Nothing ->
-                fetchUser
+    ( { route = route
+      , pipeline = Nothing
+      , userState = UserStateUnknown
+      , userMenuVisible = False
+      , pinnedResources = []
+      , showPinIconDropDown = False
+      }
+    , case pid of
+        Nothing ->
+            fetchUser
 
-            Just pid ->
-                Cmd.batch [ fetchPipeline pid, fetchUser ]
-        )
+        Just pid ->
+            Cmd.batch [ fetchPipeline pid, fetchUser ]
+    )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -105,6 +105,7 @@ update msg model =
                 Http.BadStatus { status } ->
                     if status.code == 401 then
                         ( model, LoginRedirect.requestLoginRedirect "" )
+
                     else
                         ( model, Cmd.none )
 
@@ -147,7 +148,7 @@ update msg model =
                 url =
                     Routes.toString model.route.logical
             in
-                ( model, Navigation.newUrl (url ++ "/resources/" ++ resourceName) )
+            ( model, Navigation.newUrl (url ++ "/resources/" ++ resourceName) )
 
 
 subscriptions : Model -> Sub Msg
@@ -212,16 +213,16 @@ urlUpdate route model =
         pipelineIdentifier =
             pipelineIdentifierFromRouteOrModel route model
     in
-        ( { model
-            | route = route
-          }
-        , case pipelineIdentifier of
-            Nothing ->
-                fetchUser
+    ( { model
+        | route = route
+      }
+    , case pipelineIdentifier of
+        Nothing ->
+            fetchUser
 
-            Just pid ->
-                Cmd.batch [ fetchPipeline pid, fetchUser ]
-        )
+        Just pid ->
+            Cmd.batch [ fetchPipeline pid, fetchUser ]
+    )
 
 
 view : Model -> Html Msg
@@ -233,6 +234,7 @@ view model =
             , ( "background-color"
               , if isPaused model.pipeline then
                     "#3498db"
+
                 else
                     "#1e1d1d"
               )
@@ -243,6 +245,7 @@ view model =
             , ( "left", "0" )
             , ( "right", "0" )
             , ( "position", "fixed" )
+            , ( "font-weight", "700" )
             ]
         , id "top-bar-app"
         ]
@@ -251,7 +254,7 @@ view model =
             [ Html.a [ href "/" ]
                 [ Html.div
                     [ style
-                        [ ( "background-image", "url(/public/images/concourse_logo_white.svg)" )
+                        [ ( "background-image", "url(/public/images/concourse-logo-white.svg)" )
                         , ( "background-position", "50% 50%" )
                         , ( "background-repeat", "no-repeat" )
                         , ( "background-size", "42px 42px" )
@@ -286,36 +289,38 @@ view model =
                                         , ( "border-radius", "50%" )
                                         ]
                                     ]
+
                                 else
                                     []
                                )
                         )
                         [ Html.div
                             ([ style
-                                ([ ( "background-image"
-                                   , if List.length model.pinnedResources > 0 then
-                                        "url(/public/images/pin_ic_white.svg)"
-                                     else
-                                        "url(/public/images/pin_ic_grey.svg)"
-                                   )
-                                 , ( "width", "40px" )
-                                 , ( "height", "40px" )
-                                 , ( "background-repeat", "no-repeat" )
-                                 , ( "background-position", "50% 50%" )
-                                 , ( "position", "relative" )
-                                 ]
-                                )
+                                [ ( "background-image"
+                                  , if List.length model.pinnedResources > 0 then
+                                        "url(/public/images/pin-ic-white.svg)"
+
+                                    else
+                                        "url(/public/images/pin-ic-grey.svg)"
+                                  )
+                                , ( "width", "40px" )
+                                , ( "height", "40px" )
+                                , ( "background-repeat", "no-repeat" )
+                                , ( "background-position", "50% 50%" )
+                                , ( "position", "relative" )
+                                ]
                              ]
                                 ++ (if List.length model.pinnedResources > 0 then
                                         [ onMouseEnter TogglePinIconDropdown
                                         , onMouseLeave TogglePinIconDropdown
                                         ]
+
                                     else
                                         []
                                    )
                             )
                             (if List.length model.pinnedResources > 0 then
-                                ([ Html.div
+                                [ Html.div
                                     [ style
                                         [ ( "background-color", Colors.pinned )
                                         , ( "border-radius", "50%" )
@@ -332,7 +337,7 @@ view model =
                                     ]
                                     [ Html.div [] [ Html.text <| toString <| List.length model.pinnedResources ]
                                     ]
-                                 ]
+                                ]
                                     ++ (if model.showPinIconDropDown then
                                             [ Html.ul
                                                 [ style
@@ -388,10 +393,11 @@ view model =
                                                 ]
                                                 []
                                             ]
+
                                         else
                                             []
                                        )
-                                )
+
                              else
                                 []
                             )
@@ -441,7 +447,7 @@ viewBreadcrumbsComponent : String -> String -> List (Html Msg)
 viewBreadcrumbsComponent componentType name =
     [ Html.div
         [ style <|
-            [ ( "background-image", "url(/public/images/ic_breadcrumb_" ++ componentType ++ ".svg)" )
+            [ ( "background-image", "url(/public/images/ic-breadcrumb-" ++ componentType ++ ".svg)" )
             , ( "background-repeat", "no-repeat" )
             , ( "background-size", "contain" )
             , ( "display", "inline-block" )
@@ -467,14 +473,14 @@ viewBreadcrumbPipeline pipelineName route =
         url =
             Routes.toString route
     in
-        Html.li [ style cssBreadcrumbContainer ]
-            [ Html.a
-                [ StrictEvents.onLeftClick <| ResetToPipeline url
-                , href url
-                ]
-              <|
-                viewBreadcrumbsComponent "pipeline" pipelineName
+    Html.li [ style cssBreadcrumbContainer ]
+        [ Html.a
+            [ StrictEvents.onLeftClick <| ResetToPipeline url
+            , href url
             ]
+          <|
+            viewBreadcrumbsComponent "pipeline" pipelineName
+        ]
 
 
 viewBreadcrumbJob : String -> Html Msg
@@ -553,7 +559,7 @@ viewUserState userState userMenuVisible =
                     , onClick ToggleUserMenu
                     ]
                     [ Html.text (userDisplayName user)
-                    , (if userMenuVisible then
+                    , if userMenuVisible then
                         Html.div
                             [ attribute "aria-label" "Log Out"
                             , style
@@ -573,9 +579,9 @@ viewUserState userState userMenuVisible =
                             , id "logout-button"
                             ]
                             [ Html.div [] [ Html.text "logout" ] ]
-                       else
+
+                      else
                         Html.text ""
-                      )
                     ]
                 ]
             ]

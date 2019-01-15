@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="30px" height="30px" viewBox="0 0 30 30" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 51.2 (57519) - http://www.bohemiancoding.com/sketch -->
+    <title>baseline-play_circle_outline-24px</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Artboard-3-Copy" transform="translate(-834.000000, -14.000000)" fill="#FFFFFF" fill-rule="nonzero">
+            <g id="baseline-play_circle_outline-24px" transform="translate(834.000000, 14.000000)">
+                <path d="M12,21.75 L21,15 L12,8.25 L12,21.75 Z M15,0 C6.72,0 0,6.72 0,15 C0,23.28 6.72,30 15,30 C23.28,30 30,23.28 30,15 C30,6.72 23.28,0 15,0 Z M15,27 C8.385,27 3,21.615 3,15 C3,8.385 8.385,3 15,3 C21.615,3 27,8.385 27,15 C27,21.615 21.615,27 15,27 Z" id="Shape"></path>
+            </g>
+        </g>
+    </g>
+</svg>

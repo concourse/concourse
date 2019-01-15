@@ -1,4 +1,9 @@
-module Resource.Styles exposing (..)
+module Resource.Styles exposing
+    ( checkStatusIcon
+    , pinBar
+    , pinBarTooltip
+    , pinIcon
+    )
 
 import Colors
 
@@ -9,17 +14,18 @@ pinBar { isPinned } =
         borderColor =
             if isPinned then
                 Colors.pinned
+
             else
                 "#3d3c3c"
     in
-        [ ( "flex-grow", "1" )
-        , ( "margin", "10px" )
-        , ( "padding-left", "7px" )
-        , ( "display", "flex" )
-        , ( "align-items", "center" )
-        , ( "position", "relative" )
-        , ( "border", "1px solid " ++ borderColor )
-        ]
+    [ ( "flex-grow", "1" )
+    , ( "margin", "10px" )
+    , ( "padding-left", "7px" )
+    , ( "display", "flex" )
+    , ( "align-items", "center" )
+    , ( "position", "relative" )
+    , ( "border", "1px solid " ++ borderColor )
+    ]
 
 
 pinIcon :
@@ -32,31 +38,34 @@ pinIcon { isPinned, isPinnedDynamically, hover } =
     let
         backgroundImage =
             if isPinned then
-                "url(/public/images/pin_ic_white.svg)"
+                "url(/public/images/pin-ic-white.svg)"
+
             else
-                "url(/public/images/pin_ic_grey.svg)"
+                "url(/public/images/pin-ic-grey.svg)"
 
         cursorType =
             if isPinnedDynamically then
                 "pointer"
+
             else
                 "default"
 
         backgroundColor =
             if hover then
                 Colors.pinIconHover
+
             else
                 "transparent"
     in
-        [ ( "background-repeat", "no-repeat" )
-        , ( "background-position", "50% 50%" )
-        , ( "height", "25px" )
-        , ( "width", "25px" )
-        , ( "margin-right", "10px" )
-        , ( "background-image", backgroundImage )
-        , ( "cursor", cursorType )
-        , ( "background-color", backgroundColor )
-        ]
+    [ ( "background-repeat", "no-repeat" )
+    , ( "background-position", "50% 50%" )
+    , ( "height", "25px" )
+    , ( "width", "25px" )
+    , ( "margin-right", "10px" )
+    , ( "background-image", backgroundImage )
+    , ( "cursor", cursorType )
+    , ( "background-color", backgroundColor )
+    ]
 
 
 pinBarTooltip : List ( String, String )
@@ -67,4 +76,23 @@ pinBarTooltip =
     , ( "background-color", Colors.pinBarTooltip )
     , ( "padding", "5px" )
     , ( "z-index", "2" )
+    ]
+
+
+checkStatusIcon : Bool -> List ( String, String )
+checkStatusIcon failingToCheck =
+    let
+        icon =
+            if failingToCheck then
+                "url(/public/images/ic-exclamation-triangle.svg)"
+
+            else
+                "url(/public/images/ic-success-check.svg)"
+    in
+    [ ( "background-image", icon )
+    , ( "background-position", "50% 50%" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "width", "28px" )
+    , ( "height", "28px" )
+    , ( "background-size", "14px 14px" )
     ]

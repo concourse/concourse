@@ -162,7 +162,7 @@ cardFooter =
 
 previewPlaceholder : List ( String, String )
 previewPlaceholder =
-    [ ( "background-color", Colors.dashboardBackground )
+    [ ( "background-color", Colors.background )
     , ( "flex-grow", "1" )
     ]
 
@@ -217,9 +217,7 @@ pipelineCardBannerHd { status, pipelineRunningKeyframes } =
         isRunning =
             Concourse.PipelineStatus.isRunning status
     in
-    [ ( "width", "8px" )
-    , ( "background-size", "35px" )
-    ]
+    [ ( "width", "8px" ) ]
         ++ texture pipelineRunningKeyframes isRunning color
 
 
@@ -233,6 +231,7 @@ striped pipelineRunningKeyframes color =
     [ ( "background-image"
       , withStripes color Colors.card
       )
+    , ( "background-size", "106px 114px" )
     , ( "animation"
       , pipelineRunningKeyframes ++ " 3s linear infinite"
       )
@@ -276,24 +275,24 @@ pipelineStatusIcon pipelineStatus =
         image =
             case pipelineStatus of
                 PipelineStatusPaused ->
-                    "ic_pause_blue.svg"
+                    "ic-pause-blue.svg"
 
                 PipelineStatusPending _ ->
-                    "ic_pending_grey.svg"
+                    "ic-pending-grey.svg"
 
                 PipelineStatusSucceeded _ ->
-                    "ic_running_green.svg"
+                    "ic-running-green.svg"
 
                 PipelineStatusFailed _ ->
-                    "ic_failing_red.svg"
+                    "ic-failing-red.svg"
 
                 PipelineStatusAborted _ ->
-                    "ic_aborted_brown.svg"
+                    "ic-aborted-brown.svg"
 
                 PipelineStatusErrored _ ->
-                    "ic_error_orange.svg"
+                    "ic-error-orange.svg"
     in
-    [ ( "background-image", "url(public/images/" ++ image ++ ")" )
+    [ ( "background-image", "url(/public/images/" ++ image ++ ")" )
     , ( "height", "20px" )
     , ( "width", "20px" )
     , ( "background-position", "50% 50%" )
@@ -384,10 +383,10 @@ highDensityIcon : Bool -> List ( String, String )
 highDensityIcon highDensity =
     [ ( "background-image"
       , if highDensity then
-            "url(public/images/ic_hd_on.svg)"
+            "url(/public/images/ic-hd-on.svg)"
 
         else
-            "url(public/images/ic_hd_off.svg)"
+            "url(/public/images/ic-hd-off.svg)"
       )
     , ( "background-size", "contain" )
     , ( "height", "20px" )
@@ -413,16 +412,21 @@ infoItem =
     ]
 
 
-infoCliIcon : Bool -> List ( String, String )
-infoCliIcon hovered =
+infoCliIcon : { hovered : Bool, image : String } -> List ( String, String )
+infoCliIcon { hovered, image } =
     [ ( "margin-right", "10px" )
-    , ( "font-size", "1.2em" )
-    , ( "color"
+    , ( "width", "20px" )
+    , ( "height", "20px" )
+    , ( "background-image", "url(/public/images/" ++ image ++ "-logo.svg)" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-position", "50% 50%" )
+    , ( "background-size", "contain" )
+    , ( "opacity"
       , if hovered then
-            Colors.cliIconHover
+            "1"
 
         else
-            Colors.bottomBarText
+            "0.5"
       )
     ]
 
@@ -436,7 +440,7 @@ topCliIcon { hovered, image } =
         else
             "0.5"
       )
-    , ( "background-image", "url(public/images/" ++ image ++ ")" )
+    , ( "background-image", "url(/public/images/" ++ image ++ ")" )
     , ( "background-position", "50% 50%" )
     , ( "background-repeat", "no-repeat" )
     , ( "width", "32px" )
@@ -454,6 +458,7 @@ welcomeCard =
     , ( "-webkit-font-smoothing", "antialiased" )
     , ( "position", "relative" )
     , ( "overflow", "hidden" )
+    , ( "font-weight", "400" )
     ]
 
 
@@ -482,7 +487,7 @@ resourceErrorTriangle =
 
 runningLegendItem : List ( String, String )
 runningLegendItem =
-    [ ( "background-image", "url(public/images/ic_running_legend.svg)" )
+    [ ( "background-image", "url(/public/images/ic-running-legend.svg)" )
     , ( "height", "20px" )
     , ( "width", "20px" )
     , ( "background-repeat", "no-repeat" )

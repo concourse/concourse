@@ -1,16 +1,24 @@
-module ResourceTests exposing (..)
+module ResourceTests exposing (all)
 
 import Concourse
+import Concourse.Pagination exposing (Direction(..))
+import DashboardTests
+    exposing
+        ( darkGrey
+        , defineHoverBehaviour
+        , iconSelector
+        , middleGrey
+        )
 import Dict
 import Expect exposing (..)
-import Html.Styled as HS
 import Html.Attributes as Attr
+import Html.Styled as HS
 import Http
 import Resource
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (Selector, attribute, containing, class, id, tag, style, text)
+import Test.Html.Selector exposing (Selector, attribute, class, containing, id, style, tag, text)
 
 
 teamName : String
@@ -104,11 +112,11 @@ all =
             \_ ->
                 init
                     |> givenResourceIsNotPinned
-                    |> givenVersions
+                    |> givenVersionsWithoutPagination
                     |> Resource.update
                         (Resource.ExpandVersionedResource versionID)
                     |> Tuple.first
-                    |> givenVersions
+                    |> givenVersionsWithoutPagination
                     |> queryView
                     |> Query.find (versionSelector version)
                     |> Query.has [ text "metadata" ]
@@ -116,7 +124,7 @@ all =
             \_ ->
                 init
                     |> givenResourceIsNotPinned
-                    |> givenVersions
+                    |> givenVersionsWithoutPagination
                     |> Resource.update
                         (Resource.ExpandVersionedResource versionID)
                     |> Tuple.first
@@ -134,7 +142,7 @@ all =
                             )
                         )
                     |> Tuple.first
-                    |> givenVersions
+                    |> givenVersionsWithoutPagination
                     |> queryView
                     |> Query.find (versionSelector version)
                     |> Query.has [ text "some-build" ]
@@ -142,7 +150,7 @@ all =
             \_ ->
                 init
                     |> givenResourceIsNotPinned
-                    |> givenVersions
+                    |> givenVersionsWithoutPagination
                     |> Resource.update
                         (Resource.ExpandVersionedResource versionID)
                     |> Tuple.first
@@ -160,7 +168,7 @@ all =
                             )
                         )
                     |> Tuple.first
-                    |> givenVersions
+                    |> givenVersionsWithoutPagination
                     |> queryView
                     |> Query.find (versionSelector version)
                     |> Query.has [ text "some-build" ]
@@ -169,46 +177,46 @@ all =
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
-                        |> Query.findAll (anyVersionSelector)
+                        |> Query.findAll anyVersionSelector
                         |> Query.each hasCheckbox
             , test "there is a pointer cursor for every checkbox" <|
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
-                        |> Query.findAll (anyVersionSelector)
+                        |> Query.findAll anyVersionSelector
                         |> Query.each (Query.find checkboxSelector >> Query.has pointerCursor)
             , test "enabled versions have checkmarks" <|
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Expect.all
                             [ Query.find (versionSelector version)
                                 >> Query.find checkboxSelector
-                                >> Query.has [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+                                >> Query.has [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
                             , Query.find (versionSelector otherVersion)
                                 >> Query.find checkboxSelector
-                                >> Query.has [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+                                >> Query.has [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
                             ]
             , test "disabled versions do not have checkmarks" <|
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
                         |> Query.find checkboxSelector
-                        |> Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+                        |> Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
             , test "clicking the checkbox on an enabled version triggers a ToggleVersion msg" <|
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.find checkboxSelector
@@ -218,7 +226,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -228,9 +236,9 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.find checkboxSelector
@@ -239,7 +247,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
                         |> Resource.update (Resource.VersionToggled Resource.Disable versionID (Ok ()))
                         |> Tuple.first
@@ -250,9 +258,9 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
-                        |> Resource.update (Resource.VersionToggled Resource.Disable versionID (badResponse))
+                        |> Resource.update (Resource.VersionToggled Resource.Disable versionID badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -262,7 +270,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
                         |> Query.find checkboxSelector
@@ -272,7 +280,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> Resource.update
                             (Resource.ToggleVersion Resource.Enable disabledVersionID)
                         |> Tuple.first
@@ -284,7 +292,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> Resource.update
                             (Resource.ToggleVersion Resource.Enable disabledVersionID)
                         |> Tuple.first
@@ -298,7 +306,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> Resource.update
                             (Resource.ToggleVersion Resource.Enable disabledVersionID)
                         |> Tuple.first
@@ -362,7 +370,7 @@ all =
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> givenVersions
+                            |> givenVersionsWithoutPagination
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> Query.find pinButtonSelector
@@ -371,7 +379,7 @@ all =
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> givenVersions
+                            |> givenVersionsWithoutPagination
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> Query.find checkboxSelector
@@ -380,7 +388,7 @@ all =
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> givenVersions
+                            |> givenVersionsWithoutPagination
                             |> queryView
                             |> Query.findAll anyVersionSelector
                             |> Query.each
@@ -391,7 +399,7 @@ all =
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> givenVersions
+                            |> givenVersionsWithoutPagination
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> findLast [ tag "div", containing [ text version ] ]
@@ -483,7 +491,7 @@ all =
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> givenVersions
+                            |> givenVersionsWithoutPagination
                             |> queryView
                             |> Query.find (versionSelector otherVersion)
                             |> Query.has [ style [ ( "opacity", "0.5" ) ] ]
@@ -491,7 +499,7 @@ all =
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> givenVersions
+                            |> givenVersionsWithoutPagination
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> Query.find pinButtonSelector
@@ -501,7 +509,7 @@ all =
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> givenVersions
+                            |> givenVersionsWithoutPagination
                             |> queryView
                             |> Query.find (versionSelector otherVersion)
                             |> Query.find pinButtonSelector
@@ -512,7 +520,7 @@ all =
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> givenVersions
+                            |> givenVersionsWithoutPagination
                             |> toggleVersionTooltip
                             |> queryView
                             |> Query.find (versionSelector version)
@@ -521,9 +529,9 @@ all =
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> givenVersions
+                            |> givenVersionsWithoutPagination
                             |> toggleVersionTooltip
-                            |> givenVersions
+                            |> givenVersionsWithoutPagination
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> Query.has versionTooltipSelector
@@ -531,7 +539,7 @@ all =
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> givenVersions
+                            |> givenVersionsWithoutPagination
                             |> toggleVersionTooltip
                             |> queryView
                             |> Query.find (versionSelector version)
@@ -542,7 +550,7 @@ all =
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> givenVersions
+                            |> givenVersionsWithoutPagination
                             |> toggleVersionTooltip
                             |> queryView
                             |> Query.find (versionSelector otherVersion)
@@ -554,7 +562,7 @@ all =
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> givenVersions
+                            |> givenVersionsWithoutPagination
                             |> toggleVersionTooltip
                             |> toggleVersionTooltip
                             |> queryView
@@ -564,7 +572,7 @@ all =
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> givenVersions
+                            |> givenVersionsWithoutPagination
                             |> clickToUnpin
                             |> queryView
                             |> Query.find (versionSelector version)
@@ -576,7 +584,7 @@ all =
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> givenVersions
+                            |> givenVersionsWithoutPagination
                             |> queryView
                             |> Query.findAll anyVersionSelector
                             |> Query.each
@@ -651,7 +659,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
@@ -660,7 +668,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.find checkboxSelector
@@ -669,7 +677,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
@@ -678,7 +686,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.find (versionSelector otherVersion)
                         |> Query.find pinButtonSelector
@@ -687,7 +695,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
@@ -697,7 +705,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> clickToUnpin
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -707,7 +715,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> clickToUnpin
                         |> givenResourcePinnedDynamically
                         |> queryView
@@ -718,7 +726,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> clickToUnpin
                         |> Resource.update (Resource.VersionUnpinned (Ok ()))
                         |> Tuple.first
@@ -728,7 +736,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> clickToUnpin
                         |> Resource.update (Resource.VersionUnpinned badResponse)
                         |> Tuple.first
@@ -738,7 +746,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> findLast [ tag "div", containing [ text version ] ]
@@ -747,16 +755,16 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
-                        |> Query.has [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
+                        |> Query.has [ style [ ( "background-image", "url(/public/images/pin-ic-white.svg)" ) ] ]
             , test "does not show tooltip on the pin button on ToggleVersionTooltip" <|
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> toggleVersionTooltip
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -765,7 +773,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.find (versionSelector otherVersion)
                         |> Query.has [ style [ ( "opacity", "0.5" ) ] ]
@@ -775,12 +783,12 @@ all =
                         |> givenResourcePinnedDynamically
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
-                        |> Query.has [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
+                        |> Query.has [ style [ ( "background-image", "url(/public/images/pin-ic-white.svg)" ) ] ]
             , test "all pin buttons have dark background" <|
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.findAll anyVersionSelector
                         |> Query.each
@@ -824,7 +832,7 @@ all =
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> toggleVersionTooltip
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -833,7 +841,7 @@ all =
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.findAll anyVersionSelector
                         |> Query.each
@@ -844,7 +852,7 @@ all =
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.findAll anyVersionSelector
                         |> Query.each
@@ -855,7 +863,7 @@ all =
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
@@ -865,7 +873,7 @@ all =
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> clickToPin versionID
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -875,7 +883,7 @@ all =
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> clickToPin versionID
                         |> queryView
                         |> Query.find (versionSelector otherVersion)
@@ -887,7 +895,7 @@ all =
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> clickToPin versionID
                         |> queryView
                         |> pinBarHasUnpinnedState
@@ -895,7 +903,7 @@ all =
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> clickToPin versionID
                         |> givenResourceIsNotPinned
                         |> queryView
@@ -906,7 +914,7 @@ all =
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> clickToPin versionID
                         |> Resource.update (Resource.VersionPinned (Ok ()))
                         |> Tuple.first
@@ -916,7 +924,7 @@ all =
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> clickToPin versionID
                         |> Resource.update (Resource.VersionPinned badResponse)
                         |> Tuple.first
@@ -926,7 +934,7 @@ all =
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> clickToPin versionID
                         |> Resource.update (Resource.VersionPinned badResponse)
                         |> Tuple.first
@@ -994,12 +1002,203 @@ all =
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> givenVersions
+                        |> givenVersionsWithoutPagination
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.findAll pinButtonSelector
                         |> Query.count (Expect.equal 1)
             ]
+        , describe "pagination chevrons"
+            [ test "with no pages" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> givenVersionsWithoutPagination
+                        |> queryView
+                        |> Query.find [ id "pagination" ]
+                        |> Query.children []
+                        |> Expect.all
+                            [ Query.index 0
+                                >> Query.has
+                                    [ style
+                                        [ ( "padding", "5px" )
+                                        , ( "display", "flex" )
+                                        , ( "align-items", "center" )
+                                        , ( "border-left"
+                                          , "1px solid " ++ middleGrey
+                                          )
+                                        ]
+                                    , containing
+                                        (iconSelector
+                                            { image =
+                                                "baseline-chevron-left-24px.svg"
+                                            , size = "24px"
+                                            }
+                                            ++ [ style
+                                                    [ ( "padding", "5px" )
+                                                    , ( "opacity", "0.5" )
+                                                    ]
+                                               ]
+                                        )
+                                    ]
+                            , Query.index 1
+                                >> Query.has
+                                    [ style
+                                        [ ( "padding", "5px" )
+                                        , ( "display", "flex" )
+                                        , ( "align-items", "center" )
+                                        , ( "border-left"
+                                          , "1px solid " ++ middleGrey
+                                          )
+                                        ]
+                                    , containing
+                                        (iconSelector
+                                            { image =
+                                                "baseline-chevron-right-24px.svg"
+                                            , size = "24px"
+                                            }
+                                            ++ [ style
+                                                    [ ( "padding", "5px" )
+                                                    , ( "opacity", "0.5" )
+                                                    ]
+                                               ]
+                                        )
+                                    ]
+                            ]
+            , defineHoverBehaviour <|
+                let
+                    urlPath =
+                        "/teams/some-team/pipelines/some-pipeline/resources/some-resource?limit=1&since=1"
+                in
+                { name = "left pagination chevron with previous page"
+                , setup =
+                    init
+                        |> givenResourceIsNotPinned
+                        |> givenVersionsWithPagination
+                , query =
+                    queryView
+                        >> Query.find [ id "pagination" ]
+                        >> Query.children []
+                        >> Query.index 0
+                , updateFunc = \msg -> Resource.update msg >> Tuple.first
+                , unhoveredSelector =
+                    { description = "white left chevron"
+                    , selector =
+                        [ style
+                            [ ( "padding", "5px" )
+                            , ( "display", "flex" )
+                            , ( "align-items", "center" )
+                            , ( "border-left"
+                              , "1px solid " ++ middleGrey
+                              )
+                            ]
+                        , containing
+                            (iconSelector
+                                { image =
+                                    "baseline-chevron-left-24px.svg"
+                                , size = "24px"
+                                }
+                                ++ [ style
+                                        [ ( "padding", "5px" )
+                                        , ( "opacity", "1" )
+                                        ]
+                                   , attribute <| Attr.href urlPath
+                                   ]
+                            )
+                        ]
+                    }
+                , hoveredSelector =
+                    { description =
+                        "left chevron with light grey circular bg"
+                    , selector =
+                        [ style
+                            [ ( "padding", "5px" )
+                            , ( "display", "flex" )
+                            , ( "align-items", "center" )
+                            , ( "border-left"
+                              , "1px solid " ++ middleGrey
+                              )
+                            ]
+                        , containing
+                            (iconSelector
+                                { image =
+                                    "baseline-chevron-left-24px.svg"
+                                , size = "24px"
+                                }
+                                ++ [ style
+                                        [ ( "padding", "5px" )
+                                        , ( "opacity", "1" )
+                                        , ( "border-radius", "50%" )
+                                        , ( "background-color"
+                                          , "#504b4b"
+                                          )
+                                        ]
+                                   , attribute <| Attr.href urlPath
+                                   ]
+                            )
+                        ]
+                    }
+                , mouseEnterMsg =
+                    Resource.Hover Resource.PreviousPage
+                , mouseLeaveMsg =
+                    Resource.Hover Resource.None
+                }
+            ]
+        , test "check status bar lays out horizontally maximing space" <|
+            \_ ->
+                init
+                    |> givenResourceIsNotPinned
+                    |> queryView
+                    |> Query.find [ class "resource-check-status" ]
+                    |> Query.find [ class "header" ]
+                    |> Query.has
+                        [ style
+                            [ ( "display", "flex" )
+                            , ( "justify-content", "space-between" )
+                            ]
+                        ]
+        , test "successful check shows a checkmark on the right" <|
+            \_ ->
+                init
+                    |> givenResourceIsNotPinned
+                    |> queryView
+                    |> Query.find [ class "resource-check-status" ]
+                    |> Query.has
+                        (iconSelector
+                            { size = "28px"
+                            , image = "ic-success-check.svg"
+                            }
+                            ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                        )
+        , test "unsuccessful check shows a warning icon on the right" <|
+            \_ ->
+                init
+                    |> Resource.update
+                        (Resource.ResourceFetched <|
+                            Ok
+                                { teamName = teamName
+                                , pipelineName = pipelineName
+                                , name = resourceName
+                                , failingToCheck = True
+                                , checkError = "some error"
+                                , checkSetupError = ""
+                                , lastChecked = Nothing
+                                , pinnedVersion = Nothing
+                                , pinnedInConfig = False
+                                }
+                        )
+                    |> Tuple.first
+                    |> queryView
+                    |> Query.find [ class "resource-check-status" ]
+                    |> Query.has
+                        (iconSelector
+                            { size = "28px"
+                            , image = "ic-exclamation-triangle.svg"
+                            }
+                            ++ [ style [ ( "background-size", "14px 14px" ) ]
+                               , containing [ text "some error" ]
+                               ]
+                        )
         ]
 
 
@@ -1110,8 +1309,8 @@ clickToDisable versionID =
         >> Tuple.first
 
 
-givenVersions : Resource.Model -> Resource.Model
-givenVersions =
+givenVersionsWithoutPagination : Resource.Model -> Resource.Model
+givenVersionsWithoutPagination =
     Resource.update
         (Resource.VersionedResourcesFetched Nothing <|
             Ok
@@ -1135,6 +1334,45 @@ givenVersions =
                 , pagination =
                     { previousPage = Nothing
                     , nextPage = Nothing
+                    }
+                }
+        )
+        >> Tuple.first
+
+
+givenVersionsWithPagination : Resource.Model -> Resource.Model
+givenVersionsWithPagination =
+    Resource.update
+        (Resource.VersionedResourcesFetched Nothing <|
+            Ok
+                { content =
+                    [ { id = versionID
+                      , version = Dict.fromList [ ( "version", version ) ]
+                      , metadata = []
+                      , enabled = True
+                      }
+                    , { id = otherVersionID
+                      , version = Dict.fromList [ ( "version", otherVersion ) ]
+                      , metadata = []
+                      , enabled = True
+                      }
+                    , { id = disabledVersionID
+                      , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                      , metadata = []
+                      , enabled = False
+                      }
+                    ]
+                , pagination =
+                    { previousPage =
+                        Just
+                            { direction = Since 1
+                            , limit = 1
+                            }
+                    , nextPage =
+                        Just
+                            { direction = Since 100
+                            , limit = 1
+                            }
                     }
                 }
         )
@@ -1201,14 +1439,14 @@ pinButtonHasTransitionState : Query.Single msg -> Expectation
 pinButtonHasTransitionState =
     Expect.all
         [ Query.has loadingSpinnerSelector
-        , Query.hasNot [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
+        , Query.hasNot [ style [ ( "background-image", "url(/public/images/pin-ic-white.svg)" ) ] ]
         ]
 
 
 pinButtonHasUnpinnedState : Query.Single msg -> Expectation
 pinButtonHasUnpinnedState =
     Expect.all
-        [ Query.has [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
+        [ Query.has [ style [ ( "background-image", "url(/public/images/pin-ic-white.svg)" ) ] ]
         , Query.hasNot purpleOutlineSelector
         ]
 
@@ -1218,7 +1456,7 @@ pinBarHasUnpinnedState =
     Query.find [ id "pin-bar" ]
         >> Expect.all
             [ Query.has [ style [ ( "border", "1px solid " ++ lightGreyHex ) ] ]
-            , Query.findAll [ style [ ( "background-image", "url(/public/images/pin_ic_grey.svg)" ) ] ]
+            , Query.findAll [ style [ ( "background-image", "url(/public/images/pin-ic-grey.svg)" ) ] ]
                 >> Query.count (Expect.equal 1)
             , Query.hasNot [ tag "table" ]
             ]
@@ -1230,21 +1468,35 @@ pinBarHasPinnedState version =
         >> Expect.all
             [ Query.has [ style [ ( "border", "1px solid " ++ purpleHex ) ] ]
             , Query.has [ text version ]
-            , Query.findAll [ style [ ( "background-image", "url(/public/images/pin_ic_white.svg)" ) ] ]
+            , Query.findAll [ style [ ( "background-image", "url(/public/images/pin-ic-white.svg)" ) ] ]
                 >> Query.count (Expect.equal 1)
             ]
 
 
 loadingSpinnerSelector : List Selector
 loadingSpinnerSelector =
-    [ class "fa-circle-o-notch" ]
+    [ style
+        [ ( "animation"
+          , "container-rotate 1568ms linear infinite"
+          )
+        , ( "height", "12.5px" )
+        , ( "width", "12.5px" )
+        , ( "margin", "6.25px" )
+        ]
+    ]
 
 
 checkboxHasTransitionState : Query.Single msg -> Expectation
 checkboxHasTransitionState =
     Expect.all
         [ Query.has loadingSpinnerSelector
-        , Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+        , Query.hasNot
+            [ style
+                [ ( "background-image"
+                  , "url(/public/images/checkmark-ic.svg)"
+                  )
+                ]
+            ]
         ]
 
 
@@ -1252,7 +1504,13 @@ checkboxHasDisabledState : Query.Single msg -> Expectation
 checkboxHasDisabledState =
     Expect.all
         [ Query.hasNot loadingSpinnerSelector
-        , Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+        , Query.hasNot
+            [ style
+                [ ( "background-image"
+                  , "url(/public/images/checkmark-ic.svg)"
+                  )
+                ]
+            ]
         ]
 
 
@@ -1260,7 +1518,7 @@ checkboxHasEnabledState : Query.Single msg -> Expectation
 checkboxHasEnabledState =
     Expect.all
         [ Query.hasNot loadingSpinnerSelector
-        , Query.has [ style [ ( "background-image", "url(/public/images/checkmark_ic.svg)" ) ] ]
+        , Query.has [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
         ]
 
 

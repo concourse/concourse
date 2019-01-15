@@ -803,6 +803,7 @@ jobs:
       - cbd/cluster/operations/windows-worker-network.yml
       - cbd/cluster/operations/debug-concourse.yml
       - cbd/cluster/operations/syslog-drainer.yml
+      - cbd/cluster/operations/container-placement-strategy.yml
       vars_files:
       - cbd/versions.yml
       vars:
@@ -830,6 +831,8 @@ jobs:
         syslog_permitted_peer: "*.papertrailapp.com"
         default_task_memory_limit: 5GB
         default_task_cpu_limit: 1024
+        container_placement_strategy: "least-build-containers"
+
 
 - name: push-docs
   public: true

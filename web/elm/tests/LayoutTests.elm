@@ -9,7 +9,7 @@ import Test.Html.Selector exposing (style)
 all : Test
 all =
     describe "top-level layout"
-        [ test "antialiasing on dashboard" <|
+        [ test "bold and antialiasing on dashboard" <|
             \_ ->
                 Layout.init
                     { turbulenceImgSrc = ""
@@ -36,9 +36,10 @@ all =
                     |> Query.has
                         [ style
                             [ ( "-webkit-font-smoothing", "antialiased" )
+                            , ( "font-weight", "700" )
                             ]
                         ]
-        , test "antialiasing everywhere else" <|
+        , test "bold and antialiasing everywhere else" <|
             \_ ->
                 Layout.init
                     { turbulenceImgSrc = ""
@@ -65,6 +66,7 @@ all =
                     |> Query.has
                         [ style
                             [ ( "-webkit-font-smoothing", "antialiased" )
+                            , ( "font-weight", "700" )
                             ]
                         ]
         ]

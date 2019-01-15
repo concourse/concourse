@@ -6,6 +6,7 @@ module DashboardTests exposing
     , givenDataAndUser
     , givenDataUnauthenticated
     , iconSelector
+    , middleGrey
     , white
     )
 
@@ -137,6 +138,9 @@ all =
                                       )
                                     ]
                                 ]
+                    , test "with non-bold text" <|
+                        subject
+                            >> Query.has [ style [ ( "font-weight", "400" ) ] ]
                     , test "title says 'welcome to concourse!'" <|
                         subject
                             >> Query.children []
@@ -266,7 +270,7 @@ all =
                                                 , ( "margin", "5px" )
                                                 ]
                                             ]
-                                                ++ iconSelector { size = "32px", image = "apple_logo.svg" }
+                                                ++ iconSelector { size = "32px", image = "apple-logo.svg" }
                                         }
                                     , mouseEnterMsg = Msgs.TopCliHover <| Just Cli.OSX
                                     , mouseLeaveMsg = Msgs.TopCliHover Nothing
@@ -278,7 +282,7 @@ all =
                                                 , ( "margin", "5px" )
                                                 ]
                                             ]
-                                                ++ iconSelector { size = "32px", image = "apple_logo.svg" }
+                                                ++ iconSelector { size = "32px", image = "apple-logo.svg" }
                                         }
                                     }
                                 , defineHoverBehaviour
@@ -294,7 +298,7 @@ all =
                                                 , ( "margin", "5px" )
                                                 ]
                                             ]
-                                                ++ iconSelector { size = "32px", image = "windows_logo.svg" }
+                                                ++ iconSelector { size = "32px", image = "windows-logo.svg" }
                                         }
                                     , mouseEnterMsg = Msgs.TopCliHover <| Just Cli.Windows
                                     , mouseLeaveMsg = Msgs.TopCliHover Nothing
@@ -306,7 +310,7 @@ all =
                                                 , ( "margin", "5px" )
                                                 ]
                                             ]
-                                                ++ iconSelector { size = "32px", image = "windows_logo.svg" }
+                                                ++ iconSelector { size = "32px", image = "windows-logo.svg" }
                                         }
                                     }
                                 , defineHoverBehaviour
@@ -322,7 +326,7 @@ all =
                                                 , ( "margin", "5px" )
                                                 ]
                                             ]
-                                                ++ iconSelector { size = "32px", image = "linux_logo.svg" }
+                                                ++ iconSelector { size = "32px", image = "linux-logo.svg" }
                                         }
                                     , mouseEnterMsg = Msgs.TopCliHover <| Just Cli.Linux
                                     , mouseLeaveMsg = Msgs.TopCliHover Nothing
@@ -334,7 +338,7 @@ all =
                                                 , ( "margin", "5px" )
                                                 ]
                                             ]
-                                                ++ iconSelector { size = "32px", image = "linux_logo.svg" }
+                                                ++ iconSelector { size = "32px", image = "linux-logo.svg" }
                                         }
                                     }
                                 ]
@@ -376,13 +380,13 @@ all =
                                 (userWithRoles [])
                     )
             , test "no login instruction when logged in" <|
-                   \_ -> 
-                        whenOnDashboard { highDensity = False }
-                            |> givenDataAndUser
-                                (apiData [ ( "team", [] ) ])
-                                (userWithRoles [])
-                            |> queryView
-                            |> Query.hasNot [ id "login-instruction" ]
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (apiData [ ( "team", [] ) ])
+                            (userWithRoles [])
+                        |> queryView
+                        |> Query.hasNot [ id "login-instruction" ]
             , test "has login instruction when unauthenticated" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
@@ -408,6 +412,12 @@ all =
                                 [ style [ ( "line-height", "42px" ) ] ]
                             ]
             ]
+        , test "top bar has bold font" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> queryView
+                    |> Query.find [ id "top-bar" ]
+                    |> Query.has [ style [ ( "font-weight", "700" ) ] ]
         , test "logging out causes pipeline list to reload" <|
             let
                 showsLoadingState : Dashboard.Model -> Expectation
@@ -949,6 +959,7 @@ all =
                                         ++ color
                                         ++ " 16px)"
                                   )
+                                , ( "background-size", "106px 114px" )
                                 , ( "animation"
                                   , pipelineRunningKeyframes ++ " 3s linear infinite"
                                   )
@@ -970,10 +981,10 @@ all =
                                         ++ color
                                         ++ " 16px)"
                                   )
+                                , ( "background-size", "106px 114px" )
                                 , ( "animation"
                                   , pipelineRunningKeyframes ++ " 3s linear infinite"
                                   )
-                                , ( "background-size", "35px" )
                                 ]
                             ]
                 in
@@ -1686,7 +1697,7 @@ all =
                                     |> Query.has
                                         (iconSelector
                                             { size = "20px"
-                                            , image = "ic_pause_blue.svg"
+                                            , image = "ic-pause-blue.svg"
                                             }
                                             ++ [ style
                                                     [ ( "background-size", "contain" ) ]
@@ -1736,7 +1747,7 @@ all =
                                     |> Query.has
                                         (iconSelector
                                             { size = "20px"
-                                            , image = "ic_pending_grey.svg"
+                                            , image = "ic-pending-grey.svg"
                                             }
                                             ++ [ style [ ( "background-size", "contain" ) ] ]
                                         )
@@ -1779,7 +1790,7 @@ all =
                                     |> Query.has
                                         (iconSelector
                                             { size = "20px"
-                                            , image = "ic_running_green.svg"
+                                            , image = "ic-running-green.svg"
                                             }
                                             ++ [ style [ ( "background-size", "contain" ) ] ]
                                         )
@@ -1839,7 +1850,7 @@ all =
                                     |> Query.has
                                         (iconSelector
                                             { size = "20px"
-                                            , image = "ic_failing_red.svg"
+                                            , image = "ic-failing-red.svg"
                                             }
                                             ++ [ style [ ( "background-size", "contain" ) ] ]
                                         )
@@ -1863,7 +1874,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = "ic_aborted_brown.svg"
+                                        , image = "ic-aborted-brown.svg"
                                         }
                                         ++ [ style [ ( "background-size", "contain" ) ] ]
                                     )
@@ -1877,7 +1888,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = "ic_error_orange.svg"
+                                        , image = "ic-error-orange.svg"
                                         }
                                         ++ [ style [ ( "background-size", "contain" ) ] ]
                                     )
@@ -1925,7 +1936,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = "baseline-visibility_off-24px.svg"
+                                        , image = "baseline-visibility-off-24px.svg"
                                         }
                                         ++ [ style [ ( "background-size", "contain" ) ] ]
                                     )
@@ -1959,7 +1970,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = "ic_pause_white.svg"
+                                        , image = "ic-pause-white.svg"
                                         }
                                     )
                     , test "pause button has pointer cursor" <|
@@ -1973,7 +1984,7 @@ all =
                                 |> Query.find
                                     (iconSelector
                                         { size = "20px"
-                                        , image = "ic_pause_white.svg"
+                                        , image = "ic-pause-white.svg"
                                         }
                                     )
                                 |> Query.has [ style [ ( "cursor", "pointer" ) ] ]
@@ -1988,7 +1999,7 @@ all =
                                 |> Query.find
                                     (iconSelector
                                         { size = "20px"
-                                        , image = "ic_pause_white.svg"
+                                        , image = "ic-pause-white.svg"
                                         }
                                     )
                                 |> Query.has [ style [ ( "opacity", "0.5" ) ] ]
@@ -2014,7 +2025,7 @@ all =
                             , selector =
                                 iconSelector
                                     { size = "20px"
-                                    , image = "ic_pause_white.svg"
+                                    , image = "ic-pause-white.svg"
                                     }
                                     ++ [ style
                                             [ ( "cursor", "pointer" )
@@ -2039,7 +2050,7 @@ all =
                             , selector =
                                 iconSelector
                                     { size = "20px"
-                                    , image = "ic_pause_white.svg"
+                                    , image = "ic-pause-white.svg"
                                     }
                                     ++ [ style
                                             [ ( "cursor", "pointer" )
@@ -2070,7 +2081,7 @@ all =
                             , selector =
                                 iconSelector
                                     { size = "20px"
-                                    , image = "ic_play_white.svg"
+                                    , image = "ic-play-white.svg"
                                     }
                                     ++ [ style
                                             [ ( "cursor", "pointer" )
@@ -2095,7 +2106,7 @@ all =
                             , selector =
                                 iconSelector
                                     { size = "20px"
-                                    , image = "ic_play_white.svg"
+                                    , image = "ic-play-white.svg"
                                     }
                                     ++ [ style
                                             [ ( "cursor", "pointer" )
@@ -2197,7 +2208,7 @@ all =
                                             >> Query.has
                                                 (iconSelector
                                                     { size = "20px"
-                                                    , image = "ic_pending_grey.svg"
+                                                    , image = "ic-pending-grey.svg"
                                                     }
                                                 )
                                         , Query.index 1
@@ -2216,7 +2227,7 @@ all =
                                             >> Query.has
                                                 (iconSelector
                                                     { size = "20px"
-                                                    , image = "ic_pause_blue.svg"
+                                                    , image = "ic-pause-blue.svg"
                                                     }
                                                 )
                                         , Query.index 1
@@ -2321,7 +2332,7 @@ all =
                                             >> Query.has
                                                 (iconSelector
                                                     { size = "20px"
-                                                    , image = "ic_running_legend.svg"
+                                                    , image = "ic-running-legend.svg"
                                                     }
                                                 )
                                         , Query.index 1
@@ -2390,7 +2401,9 @@ all =
                                 |> Query.index 0
                                 |> Query.has
                                     [ style
-                                        [ ( "background-image", "url(public/images/ic_hd_off.svg)" )
+                                        [ ( "background-image"
+                                          , "url(/public/images/ic-hd-off.svg)"
+                                          )
                                         , ( "background-size", "contain" )
                                         , ( "height", "20px" )
                                         , ( "width", "35px" )
@@ -2408,14 +2421,19 @@ all =
                     [ test "displays the on state" <|
                         \_ ->
                             whenOnDashboard { highDensity = True }
-                                |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                                |> givenDataUnauthenticated
+                                    (apiData
+                                        [ ( "team", [ "pipeline" ] ) ]
+                                    )
                                 |> queryView
                                 |> findHDToggle
                                 |> Query.children []
                                 |> Query.index 0
                                 |> Query.has
                                     [ style
-                                        [ ( "background-image", "url(public/images/ic_hd_on.svg)" )
+                                        [ ( "background-image"
+                                          , "url(/public/images/ic-hd-on.svg)"
+                                          )
                                         , ( "background-size", "contain" )
                                         , ( "height", "20px" )
                                         , ( "width", "35px" )
@@ -2424,7 +2442,10 @@ all =
                     , test "will not shrink on resizing" <|
                         \_ ->
                             whenOnDashboard { highDensity = True }
-                                |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                                |> givenDataUnauthenticated
+                                    (apiData
+                                        [ ( "team", [ "pipeline" ] ) ]
+                                    )
                                 |> queryView
                                 |> findHDToggle
                                 |> Query.children []
@@ -2491,16 +2512,11 @@ all =
                                 |> Query.index -1
                                 |> Query.children [ tag "a" ]
                     in
-                    [ test "font size is slightly larger" <|
+                    [ test "icons are grey" <|
                         \_ ->
                             cliIcons
                                 |> Query.each
-                                    (Query.has [ style [ ( "font-size", "1.2em" ) ] ])
-                    , test "icons are grey" <|
-                        \_ ->
-                            cliIcons
-                                |> Query.each
-                                    (Query.has [ style [ ( "color", menuGrey ) ] ])
+                                    (Query.has [ style [ ( "opacity", "0.5" ) ] ])
                     , test "icons have descriptive ARIA labels" <|
                         \_ ->
                             cliIcons
@@ -2540,9 +2556,15 @@ all =
                         , unhoveredSelector =
                             { description = "grey apple icon"
                             , selector =
-                                [ style [ ( "color", menuGrey ) ]
-                                , containing [ tag "i", class "fa-apple" ]
+                                [ style
+                                    [ ( "opacity", "0.5" )
+                                    , ( "background-size", "contain" )
+                                    ]
                                 ]
+                                    ++ iconSelector
+                                        { image = "apple-logo.svg"
+                                        , size = "20px"
+                                        }
                             }
                         , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                         , mouseEnterMsg = Msgs.CliHover <| Just Cli.OSX
@@ -2550,9 +2572,15 @@ all =
                         , hoveredSelector =
                             { description = "white apple icon"
                             , selector =
-                                [ style [ ( "color", white ) ]
-                                , containing [ tag "i", class "fa-apple" ]
+                                [ style
+                                    [ ( "opacity", "1" )
+                                    , ( "background-size", "contain" )
+                                    ]
                                 ]
+                                    ++ iconSelector
+                                        { image = "apple-logo.svg"
+                                        , size = "20px"
+                                        }
                             }
                         }
                     , defineHoverBehaviour
@@ -2567,9 +2595,15 @@ all =
                         , unhoveredSelector =
                             { description = "grey windows icon"
                             , selector =
-                                [ style [ ( "color", menuGrey ) ]
-                                , containing [ tag "i", class "fa-windows" ]
+                                [ style
+                                    [ ( "opacity", "0.5" )
+                                    , ( "background-size", "contain" )
+                                    ]
                                 ]
+                                    ++ iconSelector
+                                        { image = "windows-logo.svg"
+                                        , size = "20px"
+                                        }
                             }
                         , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                         , mouseEnterMsg = Msgs.CliHover <| Just Cli.Windows
@@ -2577,9 +2611,15 @@ all =
                         , hoveredSelector =
                             { description = "white windows icon"
                             , selector =
-                                [ style [ ( "color", white ) ]
-                                , containing [ tag "i", class "fa-windows" ]
+                                [ style
+                                    [ ( "opacity", "1" )
+                                    , ( "background-size", "contain" )
+                                    ]
                                 ]
+                                    ++ iconSelector
+                                        { image = "windows-logo.svg"
+                                        , size = "20px"
+                                        }
                             }
                         }
                     , defineHoverBehaviour
@@ -2594,9 +2634,15 @@ all =
                         , unhoveredSelector =
                             { description = "grey linux icon"
                             , selector =
-                                [ style [ ( "color", menuGrey ) ]
-                                , containing [ tag "i", class "fa-linux" ]
+                                [ style
+                                    [ ( "opacity", "0.5" )
+                                    , ( "background-size", "contain" )
+                                    ]
                                 ]
+                                    ++ iconSelector
+                                        { image = "linux-logo.svg"
+                                        , size = "20px"
+                                        }
                             }
                         , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
                         , mouseEnterMsg = Msgs.CliHover <| Just Cli.Linux
@@ -2604,9 +2650,15 @@ all =
                         , hoveredSelector =
                             { description = "white linux icon"
                             , selector =
-                                [ style [ ( "color", white ) ]
-                                , containing [ tag "i", class "fa-linux" ]
+                                [ style
+                                    [ ( "opacity", "1" )
+                                    , ( "background-size", "contain" )
+                                    ]
                                 ]
+                                    ++ iconSelector
+                                        { image = "linux-logo.svg"
+                                        , size = "20px"
+                                        }
                             }
                         }
                     ]
@@ -2715,7 +2767,7 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mou
 iconSelector : { size : String, image : String } -> List Selector
 iconSelector { size, image } =
     [ style
-        [ ( "background-image", "url(public/images/" ++ image ++ ")" )
+        [ ( "background-image", "url(/public/images/" ++ image ++ ")" )
         , ( "background-position", "50% 50%" )
         , ( "background-repeat", "no-repeat" )
         , ( "width", size )

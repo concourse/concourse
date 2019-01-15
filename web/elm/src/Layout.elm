@@ -339,13 +339,19 @@ view model =
         _ ->
             Html.div
                 [ class "content-frame"
-                , style [ ( "-webkit-font-smoothing", "antialiased" ) ]
+                , style
+                    [ ( "-webkit-font-smoothing", "antialiased" )
+                    , ( "font-weight", "700" )
+                    ]
                 ]
                 [ Html.map (TopMsg model.navIndex) (TopBar.view model.topModel)
                 , Html.div [ class "bottom" ]
                     [ Html.div [ id "content" ]
                         [ Html.div [ id "subpage" ]
-                            [ Html.map (SubMsg model.navIndex) (SubPage.view model.subModel) ]
+                            [ Html.map
+                                (SubMsg model.navIndex)
+                                (SubPage.view model.subModel)
+                            ]
                         ]
                     ]
                 ]
@@ -358,15 +364,18 @@ subscriptions model =
             Sub.batch
                 [ newUrl NewUrl
                 , tokenReceived TokenReceived
-                , Sub.map (SubMsg model.navIndex) <| SubPage.subscriptions model.subModel
+                , Sub.map (SubMsg model.navIndex) <|
+                    SubPage.subscriptions model.subModel
                 ]
 
         Normal ->
             Sub.batch
                 [ newUrl NewUrl
                 , tokenReceived TokenReceived
-                , Sub.map (TopMsg model.navIndex) <| TopBar.subscriptions model.topModel
-                , Sub.map (SubMsg model.navIndex) <| SubPage.subscriptions model.subModel
+                , Sub.map (TopMsg model.navIndex) <|
+                    TopBar.subscriptions model.topModel
+                , Sub.map (SubMsg model.navIndex) <|
+                    SubPage.subscriptions model.subModel
                 ]
 
 

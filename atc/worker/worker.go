@@ -51,11 +51,11 @@ type Worker interface {
 type gardenWorker struct {
 	gardenClient      garden.Client
 	volumeClient      VolumeClient
+	imageFactory      ImageFactory
 	containerProvider ContainerProvider
 	dbWorker          db.Worker
 	buildContainers   int
 }
-
 
 // NewGardenWorker constructs a Worker using the gardenWorker runtime implementation and allows container and volume
 // creation on a specific Garden worker.
@@ -64,6 +64,7 @@ func NewGardenWorker(
 	gardenClient garden.Client,
 	containerProvider ContainerProvider,
 	volumeClient VolumeClient,
+	imageFactory ImageFactory,
 	dbWorker db.Worker,
 	numBuildContainers int,
 	// TODO: numBuildContainers is only needed for placement strategy but this
@@ -73,6 +74,7 @@ func NewGardenWorker(
 	return &gardenWorker{
 		gardenClient:      gardenClient,
 		volumeClient:      volumeClient,
+		imageFactory:      imageFactory,
 		containerProvider: containerProvider,
 		dbWorker:          dbWorker,
 		buildContainers:   numBuildContainers,
@@ -152,6 +154,18 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	resourceTypes creds.VersionedResourceTypes,
 ) (Container, error) {
 
+	image, err := worker.imageFactory.GetImage(
+		logger,
+		worker,
+		worker.volumeClient,
+		containerSpec.ImageSpec,
+		containerSpec.TeamID,
+		delegate,
+		resourceTypes,
+	)
+	if err != nil {
+		return nil, err
+	}
 	return worker.containerProvider.FindOrCreateContainer(
 		ctx,
 		logger,
@@ -161,6 +175,7 @@ func (worker *gardenWorker) FindOrCreateContainer(
 		containerSpec,
 		workerSpec,
 		resourceTypes,
+		image,
 	)
 }
 

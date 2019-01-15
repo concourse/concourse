@@ -60,12 +60,17 @@ type ContainerProvider interface {
 		containerSpec ContainerSpec,
 		workerSpec WorkerSpec,
 		resourceTypes creds.VersionedResourceTypes,
+		image Image,
 	) (Container, error)
 }
 
+// TODO: Remove the ImageFactory from the containerProvider.
+// Currently, the imageFactory is only needed to create a garden
+// worker in createGardenContainer. Creating a garden worker here
+// is cyclical because the garden worker contains a containerProvider.
+// There is an ongoing refactor that is attempting to fix this.
 type containerProvider struct {
 	gardenClient       garden.Client
-	baggageclaimClient baggageclaim.Client
 	volumeClient       VolumeClient
 	imageFactory       ImageFactory
 	dbVolumeRepository db.VolumeRepository
@@ -79,6 +84,12 @@ type containerProvider struct {
 	noProxy       string
 }
 
+// If a created container exists, a garden.Container must also exist
+// so this method will find it, create the corresponding worker.Container
+// and return it.
+// If no created container exists, FindOrCreateContainer will go through
+// the container creation flow i.e. find or create a CreatingContainer,
+// create the garden.Container and then the CreatedContainer
 func (p *containerProvider) FindOrCreateContainer(
 	ctx context.Context,
 	logger lager.Logger,
@@ -88,11 +99,17 @@ func (p *containerProvider) FindOrCreateContainer(
 	containerSpec ContainerSpec,
 	workerSpec WorkerSpec,
 	resourceTypes creds.VersionedResourceTypes,
+	image Image,
 ) (Container, error) {
-	for {
-		var gardenContainer garden.Container
+	var (
+		gardenContainer   garden.Container
+		createdContainer  db.CreatedContainer
+		creatingContainer db.CreatingContainer
+		err               error
+	)
 
-		creatingContainer, createdContainer, err := p.worker.FindContainerOnWorker(
+	for {
+		creatingContainer, createdContainer, err = p.worker.FindContainerOnWorker(
 			owner,
 		)
 		if err != nil {
@@ -118,64 +135,35 @@ func (p *containerProvider) FindOrCreateContainer(
 			)
 		}
 
-		if creatingContainer != nil {
-			logger = logger.WithData(lager.Data{"container": creatingContainer.Handle()})
+		if creatingContainer == nil {
+			logger.Debug("creating-container-in-db")
 
-			logger.Debug("found-creating-container-in-db")
-
-			gardenContainer, err = p.gardenClient.Lookup(creatingContainer.Handle())
-			if err != nil {
-				if _, ok := err.(garden.ContainerNotFoundError); !ok {
-					logger.Error("failed-to-lookup-creating-container-in-garden", err)
-					return nil, err
-				}
-			}
-		}
-
-		if gardenContainer != nil {
-			logger.Debug("found-created-container-in-garden")
-		} else {
-			// TODO: Refactor: gardenWorker calls ContainerProvider.FindOrCreateContainer,
-			// we shouldn't need to create a new garden worker in here.
-			worker := NewGardenWorker(
-				p.gardenClient,
-				p,
-				p.volumeClient,
-				p.worker,
-				0,
-			)
-
-			image, err := p.imageFactory.GetImage(
-				logger,
-				worker,
-				p.volumeClient,
-				containerSpec.ImageSpec,
-				containerSpec.TeamID,
-				delegate,
-				resourceTypes,
+			creatingContainer, err = p.worker.CreateContainer(
+				owner,
+				metadata,
 			)
 			if err != nil {
+				logger.Error("failed-to-create-container-in-db", err)
 				return nil, err
 			}
 
-			if creatingContainer == nil {
-				logger.Debug("creating-container-in-db")
+			logger = logger.WithData(lager.Data{"container": creatingContainer.Handle()})
+			logger.Debug("created-creating-container-in-db")
+		} else {
+			logger = logger.WithData(lager.Data{"container": creatingContainer.Handle()})
+			logger.Debug("found-creating-container-in-db")
+		}
 
-				creatingContainer, err = p.worker.CreateContainer(
-					owner,
-					metadata,
-				)
-				if err != nil {
-					logger.Error("failed-to-create-container-in-db", err)
-					return nil, err
-				}
-
-				logger = logger.WithData(lager.Data{"container": creatingContainer.Handle()})
-
-				logger.Debug("created-creating-container-in-db")
+		gardenContainer, err = p.gardenClient.Lookup(creatingContainer.Handle())
+		if err != nil {
+			if _, ok := err.(garden.ContainerNotFoundError); !ok {
+				logger.Error("failed-to-lookup-creating-container-in-garden", err)
+				return nil, err
 			}
+		}
 
-			lock, acquired, err := p.lockFactory.Acquire(logger, lock.NewContainerCreatingLockID(creatingContainer.ID()))
+		if gardenContainer == nil {
+			containerLock, acquired, err := p.lockFactory.Acquire(logger, lock.NewContainerCreatingLockID(creatingContainer.ID()))
 			if err != nil {
 				logger.Error("failed-to-acquire-container-creating-lock", err)
 				return nil, err
@@ -186,7 +174,7 @@ func (p *containerProvider) FindOrCreateContainer(
 				continue
 			}
 
-			defer lock.Release()
+			defer containerLock.Release()
 
 			logger.Debug("fetching-image")
 
@@ -219,6 +207,8 @@ func (p *containerProvider) FindOrCreateContainer(
 			metric.ContainersCreated.Inc()
 
 			logger.Debug("created-container-in-garden")
+		} else {
+			logger.Debug("found-created-container-in-garden")
 		}
 
 		createdContainer, err = creatingContainer.Created()
@@ -367,6 +357,7 @@ func (p *containerProvider) createGardenContainer(
 		p.gardenClient,
 		p,
 		p.volumeClient,
+		p.imageFactory,
 		p.worker,
 		0,
 	)

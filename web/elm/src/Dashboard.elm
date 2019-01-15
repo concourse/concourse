@@ -727,7 +727,10 @@ view : Model -> Html Msg
 view model =
     Html.div
         [ class "page"
-        , style [ ( "-webkit-font-smoothing", "antialiased" ) ]
+        , style
+            [ ( "-webkit-font-smoothing", "antialiased" )
+            , ( "font-weight", "700" )
+            ]
         ]
         [ NewTopBar.view model
         , dashboardView model
@@ -804,7 +807,7 @@ welcomeCard { hoveredTopCliIcon, groups, userState } =
                 , style <|
                     Styles.topCliIcon
                         { hovered = hoveredTopCliIcon == Just cli
-                        , image = icon ++ "_logo.svg"
+                        , image = icon ++ "-logo.svg"
                         }
                 , id <| "top-cli-" ++ cliName
                 , onMouseEnter <| TopCliHover <| Just cli

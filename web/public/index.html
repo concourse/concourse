@@ -22,6 +22,52 @@
           0% { background-position-x: -53.5px; }
           100% { background-position-x: 0; }
         }
+        @-webkit-keyframes container-rotate {
+          to { -webkit-transform: rotate(360deg) }
+        }
+        @keyframes container-rotate {
+          to { transform: rotate(360deg) }
+        }
+        @-webkit-keyframes fill-unfill-rotate {
+          12.5% { -webkit-transform: rotate(135deg);  } /* 0.5 * ARCSIZE */
+          25%   { -webkit-transform: rotate(270deg);  } /* 1   * ARCSIZE */
+          37.5% { -webkit-transform: rotate(405deg);  } /* 1.5 * ARCSIZE */
+          50%   { -webkit-transform: rotate(540deg);  } /* 2   * ARCSIZE */
+          62.5% { -webkit-transform: rotate(675deg);  } /* 2.5 * ARCSIZE */
+          75%   { -webkit-transform: rotate(810deg);  } /* 3   * ARCSIZE */
+          87.5% { -webkit-transform: rotate(945deg);  } /* 3.5 * ARCSIZE */
+          to    { -webkit-transform: rotate(1080deg); } /* 4   * ARCSIZE */
+        }
+        @keyframes fill-unfill-rotate {
+          12.5% { transform: rotate(135deg);  } /* 0.5 * ARCSIZE */
+          25%   { transform: rotate(270deg);  } /* 1   * ARCSIZE */
+          37.5% { transform: rotate(405deg);  } /* 1.5 * ARCSIZE */
+          50%   { transform: rotate(540deg);  } /* 2   * ARCSIZE */
+          62.5% { transform: rotate(675deg);  } /* 2.5 * ARCSIZE */
+          75%   { transform: rotate(810deg);  } /* 3   * ARCSIZE */
+          87.5% { transform: rotate(945deg);  } /* 3.5 * ARCSIZE */
+          to    { transform: rotate(1080deg); } /* 4   * ARCSIZE */
+        }
+        @-webkit-keyframes left-spin {
+          from { -webkit-transform: rotate(130deg); }
+          50% { -webkit-transform: rotate(-5deg); }
+          to { -webkit-transform: rotate(130deg); }
+        }
+        @keyframes left-spin {
+          from { transform: rotate(130deg); }
+          50% { transform: rotate(-5deg); }
+          to { transform: rotate(130deg); }
+        }
+        @-webkit-keyframes right-spin {
+          from { -webkit-transform: rotate(-130deg); }
+          50% { -webkit-transform: rotate(5deg); }
+          to { -webkit-transform: rotate(-130deg); }
+        }
+        @keyframes right-spin {
+          from { transform: rotate(-130deg); }
+          50% { transform: rotate(5deg); }
+          to { transform: rotate(-130deg); }
+        }
     </style>
   </head>
   <body>
@@ -32,7 +78,7 @@
 
       var app = Elm.Main.embed(node, {
         turbulenceImgSrc: {{asset "images/buckleup.svg"}},
-        notFoundImgSrc: {{asset "images/parachute_error_404.svg"}},
+        notFoundImgSrc: {{asset "images/parachute-error-404.svg"}},
         csrfToken: {{ .CSRFToken }},
         authToken: {{ .AuthToken }},
         pipelineRunningKeyframes: "pipeline-running"

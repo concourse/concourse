@@ -1,4 +1,4 @@
-port module Pipeline exposing (Model, Msg(..), Flags, init, update, updateWithMessage, view, subscriptions, changeToPipelineAndGroups, resetPipelineFocus)
+port module Pipeline exposing (Flags, Model, Msg(..), changeToPipelineAndGroups, init, resetPipelineFocus, subscriptions, update, updateWithMessage, view)
 
 import Char
 import Colors
@@ -9,7 +9,7 @@ import Concourse.Job
 import Concourse.Pipeline
 import Concourse.Resource
 import Html exposing (Html)
-import Html.Attributes exposing (class, href, id, style, src, width, height)
+import Html.Attributes exposing (class, height, href, id, src, style, width)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Json.Decode
@@ -110,7 +110,7 @@ init ports flags =
             , hideLegendCounter = 0
             }
     in
-        loadPipeline pipelineLocator model
+    loadPipeline pipelineLocator model
 
 
 changeToPipelineAndGroups : Flags -> Model -> ( Model, Cmd Msg )
@@ -121,10 +121,11 @@ changeToPipelineAndGroups flags model =
             , pipelineName = flags.pipelineName
             }
     in
-        if model.pipelineLocator == pid then
-            renderIfNeeded { model | selectedGroups = queryGroupsForRoute flags.route }
-        else
-            init model.ports flags
+    if model.pipelineLocator == pid then
+        renderIfNeeded { model | selectedGroups = queryGroupsForRoute flags.route }
+
+    else
+        init model.ports flags
 
 
 loadPipeline : Concourse.PipelineIdentifier -> Model -> ( Model, Cmd Msg )
@@ -146,12 +147,12 @@ updateWithMessage message model =
         ( mdl, msg ) =
             update message model
     in
-        case mdl.pipeline of
-            RemoteData.Failure _ ->
-                ( mdl, msg, Just UpdateMsg.NotFound )
+    case mdl.pipeline of
+        RemoteData.Failure _ ->
+            ( mdl, msg, Just UpdateMsg.NotFound )
 
-            _ ->
-                ( mdl, msg, Nothing )
+        _ ->
+            ( mdl, msg, Nothing )
 
 
 timeUntilHidden : Time
@@ -175,6 +176,7 @@ update msg model =
                 ( { model | hideLegend = True }
                 , Cmd.none
                 )
+
             else
                 ( { model | hideLegendCounter = model.hideLegendCounter + timeUntilHiddenCheckInterval }
                 , Cmd.none
@@ -190,6 +192,7 @@ update msg model =
                 ( model
                 , resetPipelineFocus ()
                 )
+
             else
                 ( model
                 , Cmd.none
@@ -220,8 +223,10 @@ update msg model =
                 Http.BadStatus { status } ->
                     if status.code == 401 then
                         ( model, LoginRedirect.requestLoginRedirect "" )
+
                     else if status.code == 404 then
                         ( { model | pipeline = RemoteData.Failure err }, Cmd.none )
+
                     else
                         ( model, Cmd.none )
 
@@ -236,6 +241,7 @@ update msg model =
                 Http.BadStatus { status } ->
                     if status.code == 401 then
                         ( model, LoginRedirect.requestLoginRedirect "" )
+
                     else
                         ( model, Cmd.none )
 
@@ -250,6 +256,7 @@ update msg model =
                 Http.BadStatus { status } ->
                     if status.code == 401 then
                         ( model, LoginRedirect.requestLoginRedirect "" )
+
                     else
                         ( model, Cmd.none )
 
@@ -260,7 +267,7 @@ update msg model =
             ( { model | concourseVersion = version, experiencingTurbulence = False }, Cmd.none )
 
         VersionFetched (Err err) ->
-            flip always (Debug.log ("failed to fetch version") (err)) <|
+            flip always (Debug.log "failed to fetch version" err) <|
                 ( { model | experiencingTurbulence = True }, Cmd.none )
 
         ToggleGroup group ->
@@ -275,7 +282,7 @@ subscriptions model =
     Sub.batch
         [ autoupdateVersionTimer
         , Time.every (5 * Time.second) AutoupdateTimerTicked
-        , Time.every (timeUntilHiddenCheckInterval) HideLegendTimerTicked
+        , Time.every timeUntilHiddenCheckInterval HideLegendTimerTicked
         , Mouse.moves (\_ -> ShowLegend)
         , Keyboard.presses (\_ -> ShowLegend)
         , Mouse.clicks (\_ -> ShowLegend)
@@ -299,15 +306,16 @@ view model =
                         _ ->
                             []
               in
-                Html.ul
-                    [ class
-                        (if List.isEmpty groupList then
-                            "hidden"
-                         else
-                            "groups"
-                        )
-                    ]
-                    groupList
+              Html.ul
+                [ class
+                    (if List.isEmpty groupList then
+                        "hidden"
+
+                     else
+                        "groups"
+                    )
+                ]
+                groupList
             ]
         , Html.div [ class "pipeline-content" ]
             [ Svg.svg
@@ -317,6 +325,7 @@ view model =
             , Html.div
                 [ if model.experiencingTurbulence then
                     class "error-message"
+
                   else
                     class "error-message hidden"
                 ]
@@ -329,6 +338,7 @@ view model =
             , Html.dl
                 [ if model.hideLegend then
                     class "legend hidden"
+
                   else
                     class "legend"
                 ]
@@ -360,18 +370,39 @@ view model =
                         [ Html.ul [ class "cli-downloads" ]
                             [ Html.li []
                                 [ Html.a
-                                    [ href (Concourse.Cli.downloadUrl "amd64" "darwin"), ariaLabel "Download OS X CLI" ]
-                                    [ Html.i [ class "fa fa-apple" ] [] ]
+                                    [ href <|
+                                        Concourse.Cli.downloadUrl
+                                            "amd64"
+                                            "darwin"
+                                    , ariaLabel "Download OS X CLI"
+                                    , Html.Attributes.style <|
+                                        cliIcon "apple"
+                                    ]
+                                    []
                                 ]
                             , Html.li []
                                 [ Html.a
-                                    [ href (Concourse.Cli.downloadUrl "amd64" "windows"), ariaLabel "Download Windows CLI" ]
-                                    [ Html.i [ class "fa fa-windows" ] [] ]
+                                    [ href <|
+                                        Concourse.Cli.downloadUrl
+                                            "amd64"
+                                            "windows"
+                                    , ariaLabel "Download Windows CLI"
+                                    , Html.Attributes.style <|
+                                        cliIcon "windows"
+                                    ]
+                                    []
                                 ]
                             , Html.li []
                                 [ Html.a
-                                    [ href (Concourse.Cli.downloadUrl "amd64" "linux"), ariaLabel "Download Linux CLI" ]
-                                    [ Html.i [ class "fa fa-linux" ] [] ]
+                                    [ href <|
+                                        Concourse.Cli.downloadUrl
+                                            "amd64"
+                                            "linux"
+                                    , ariaLabel "Download Linux CLI"
+                                    , Html.Attributes.style <|
+                                        cliIcon "linux"
+                                    ]
+                                    []
                                 ]
                             ]
                         ]
@@ -395,6 +426,7 @@ viewGroup selectedGroups url grp =
     Html.li
         [ if List.member grp.name selectedGroups then
             class "main active"
+
           else
             class "main"
         ]
@@ -417,13 +449,13 @@ jobAppearsInGroups groupNames pi jobJson =
         concourseJob =
             Json.Decode.decodeValue (Concourse.decodeJob pi) jobJson
     in
-        case concourseJob of
-            Ok cj ->
-                anyIntersect cj.groups groupNames
+    case concourseJob of
+        Ok cj ->
+            anyIntersect cj.groups groupNames
 
-            Err err ->
-                flip always (Debug.log ("failed to check if job is in group") (err)) <|
-                    False
+        Err err ->
+            flip always (Debug.log "failed to check if job is in group" err) <|
+                False
 
 
 expandJsonList : Json.Encode.Value -> List Json.Decode.Value
@@ -432,12 +464,12 @@ expandJsonList flatList =
         result =
             Json.Decode.decodeValue (Json.Decode.list Json.Decode.value) flatList
     in
-        case result of
-            Ok res ->
-                res
+    case result of
+        Ok res ->
+            res
 
-            Err err ->
-                []
+        Err err ->
+            []
 
 
 filterJobs : Model -> Json.Encode.Value -> Json.Encode.Value
@@ -466,31 +498,33 @@ renderIfNeeded model =
                 filteredFetchedJobs =
                     if List.isEmpty (activeGroups model) then
                         fetchedJobs
+
                     else
                         filterJobs model fetchedJobs
             in
-                case ( model.renderedResources, model.renderedJobs ) of
-                    ( Just renderedResources, Just renderedJobs ) ->
-                        if
-                            (expandJsonList renderedJobs /= expandJsonList filteredFetchedJobs)
-                                || (expandJsonList renderedResources /= expandJsonList fetchedResources)
-                        then
-                            ( { model
-                                | renderedJobs = Just filteredFetchedJobs
-                                , renderedResources = Just fetchedResources
-                              }
-                            , model.ports.render ( filteredFetchedJobs, fetchedResources )
-                            )
-                        else
-                            ( model, Cmd.none )
-
-                    _ ->
+            case ( model.renderedResources, model.renderedJobs ) of
+                ( Just renderedResources, Just renderedJobs ) ->
+                    if
+                        (expandJsonList renderedJobs /= expandJsonList filteredFetchedJobs)
+                            || (expandJsonList renderedResources /= expandJsonList fetchedResources)
+                    then
                         ( { model
                             | renderedJobs = Just filteredFetchedJobs
                             , renderedResources = Just fetchedResources
                           }
                         , model.ports.render ( filteredFetchedJobs, fetchedResources )
                         )
+
+                    else
+                        ( model, Cmd.none )
+
+                _ ->
+                    ( { model
+                        | renderedJobs = Just filteredFetchedJobs
+                        , renderedResources = Just fetchedResources
+                      }
+                    , model.ports.render ( filteredFetchedJobs, fetchedResources )
+                    )
 
         _ ->
             ( model, Cmd.none )
@@ -509,7 +543,7 @@ fetchJobs pid =
 fetchVersion : Cmd Msg
 fetchVersion =
     Concourse.Info.fetch
-        |> Task.map (.version)
+        |> Task.map .version
         |> Task.attempt VersionFetched
 
 
@@ -528,6 +562,7 @@ anyIntersect list1 list2 =
         first :: rest ->
             if List.member first list2 then
                 True
+
             else
                 anyIntersect rest list2
 
@@ -536,8 +571,10 @@ toggleGroup : Concourse.PipelineGroup -> List String -> WebData Concourse.Pipeli
 toggleGroup grp names mpipeline =
     if List.member grp.name names then
         List.filter ((/=) grp.name) names
+
     else if List.isEmpty names then
         grp.name :: getDefaultSelectedGroups mpipeline
+
     else
         grp.name :: names
 
@@ -546,6 +583,7 @@ getSelectedGroupsForRoute : Model -> List String
 getSelectedGroupsForRoute model =
     if List.isEmpty model.selectedGroups then
         getDefaultSelectedGroups model.pipeline
+
     else
         model.selectedGroups
 
@@ -572,7 +610,7 @@ setGroups newGroups model =
             pidToUrl (pipelineIdentifierFromModel model) <|
                 setGroupsInLocation model.route newGroups
     in
-        ( model, Navigation.newUrl newUrl )
+    ( model, Navigation.newUrl newUrl )
 
 
 setGroupsInLocation : Routes.ConcourseRoute -> List String -> Routes.ConcourseRoute
@@ -581,15 +619,16 @@ setGroupsInLocation loc groups =
         updatedUrl =
             if List.isEmpty groups then
                 QueryString.remove "groups" loc.queries
+
             else
                 List.foldr
                     (QueryString.add "groups")
                     QueryString.empty
                     groups
     in
-        { loc
-            | queries = updatedUrl
-        }
+    { loc
+        | queries = updatedUrl
+    }
 
 
 pidToUrl : Maybe Concourse.PipelineIdentifier -> Routes.ConcourseRoute -> String
@@ -618,3 +657,15 @@ pipelineIdentifierFromModel model =
 
         _ ->
             Nothing
+
+
+cliIcon : String -> List ( String, String )
+cliIcon image =
+    [ ( "width", "12px" )
+    , ( "height", "12px" )
+    , ( "background-image", "url(/public/images/" ++ image ++ "-logo.svg)" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-position", "50% 50%" )
+    , ( "background-size", "contain" )
+    , ( "display", "inline-block" )
+    ]

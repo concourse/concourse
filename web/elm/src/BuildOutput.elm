@@ -1,21 +1,38 @@
-module BuildOutput exposing (init, update, view, Model, Msg, OutMsg(..))
+module BuildOutput exposing
+    ( Model
+    , OutMsg(..)
+    , handleEventsMsg
+    , handleStepTreeMsg
+    , init
+    , planAndResourcesFetched
+    , view
+    )
 
 import Ansi.Log
 import Array exposing (Array)
-import Dict exposing (Dict)
-import Date exposing (Date)
-import Html exposing (Html)
-import Html.Attributes exposing (action, class, classList, id, method, title)
-import Http
-import Task exposing (Task)
+import Build.Effects exposing (Effect(..))
+import Build.Msgs exposing (Msg(..))
+import Build.Styles as Styles
 import Concourse
-import Concourse.BuildPlan
 import Concourse.BuildEvents
 import Concourse.BuildStatus
-import Concourse.BuildResources exposing (empty, fetch)
+import Date exposing (Date)
+import Dict exposing (Dict)
+import Html exposing (Html)
+import Html.Attributes
+    exposing
+        ( action
+        , class
+        , classList
+        , id
+        , method
+        , style
+        , title
+        )
+import Http
 import LoadingIndicator
-import StepTree exposing (StepTree)
 import NotAuthorized
+import StepTree exposing (StepTree)
 
 
 type alias Model =
@@ -36,13 +53,6 @@ type OutputState
     | NotAuthorized
 
 
-type Msg
-    = Noop
-    | PlanAndResourcesFetched (Result Http.Error ( Concourse.BuildPlan, Concourse.BuildResources ))
-    | BuildEventsMsg Concourse.BuildEvents.Msg
-    | StepTreeMsg StepTree.Msg
-
-
 type OutMsg
     = OutNoop
     | OutBuildStatus Concourse.BuildStatus Date
@@ -52,12 +62,13 @@ type alias Flags =
     { hash : String }
 
 
-init : Flags -> Concourse.Build -> ( Model, Cmd Msg )
+init : Flags -> Concourse.Build -> ( Model, List Effect )
 init flags build =
     let
         outputState =
             if Concourse.BuildStatus.isRunning build.status then
                 StepsLiveUpdating
+
             else
                 StepsLoading
 
@@ -73,153 +84,167 @@ init flags build =
 
         fetch =
             if build.job /= Nothing then
-                fetchBuildPlanAndResources model.build.id
+                [ FetchBuildPlanAndResources model.build.id ]
+
             else
-                fetchBuildPlan model.build.id
+                [ FetchBuildPlan model.build.id ]
     in
-        ( model, fetch )
+    ( model, fetch )
 
 
-update : Msg -> Model -> ( Model, Cmd Msg, OutMsg )
-update action model =
-    case action of
-        Noop ->
-            ( model, Cmd.none, OutNoop )
+handleStepTreeMsg :
+    (StepTree.Model -> ( StepTree.Model, List Effect ))
+    -> Model
+    -> ( Model, List Effect, OutMsg )
+handleStepTreeMsg action model =
+    case model.steps of
+        Just st ->
+            let
+                ( newModel, effects ) =
+                    action st
+            in
+            ( { model | steps = Just newModel }, effects, OutNoop )
 
-        PlanAndResourcesFetched (Err err) ->
+        _ ->
+            ( model, [], OutNoop )
+
+
+planAndResourcesFetched :
+    Result Http.Error ( Concourse.BuildPlan, Concourse.BuildResources )
+    -> Model
+    -> ( Model, List Effect, OutMsg )
+planAndResourcesFetched result model =
+    case result of
+        Err err ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
                         ( { model | events = subscribeToEvents model.build.id }
-                        , Cmd.none
+                        , []
                         , OutNoop
                         )
+
                     else
-                        ( model, Cmd.none, OutNoop )
+                        ( model, [], OutNoop )
 
                 _ ->
-                    flip always (Debug.log ("failed to fetch plan") (err)) <|
-                        ( model, Cmd.none, OutNoop )
+                    flip always (Debug.log "failed to fetch plan" err) <|
+                        ( model, [], OutNoop )
 
-        PlanAndResourcesFetched (Ok ( plan, resources )) ->
+        Ok ( plan, resources ) ->
             ( { model
                 | steps = Just (StepTree.init model.highlight resources plan)
                 , events = subscribeToEvents model.build.id
               }
-            , Cmd.none
+            , []
             , OutNoop
             )
 
-        BuildEventsMsg action ->
-            handleEventsMsg action model
 
-        StepTreeMsg action ->
-            case model.steps of
-                Just st ->
-                    let
-                        ( newModel, newMsg ) =
-                            StepTree.update action st
-                    in
-                        ( { model | steps = Just newModel }, Cmd.map StepTreeMsg newMsg, OutNoop )
-
-                _ ->
-                    ( model, Cmd.none, OutNoop )
-
-
-handleEventsMsg : Concourse.BuildEvents.Msg -> Model -> ( Model, Cmd Msg, OutMsg )
+handleEventsMsg :
+    Concourse.BuildEvents.Msg
+    -> Model
+    -> ( Model, List Effect, OutMsg )
 handleEventsMsg action model =
     case action of
         Concourse.BuildEvents.Opened ->
-            ( { model | eventSourceOpened = True }, Cmd.none, OutNoop )
+            ( { model | eventSourceOpened = True }, [], OutNoop )
 
         Concourse.BuildEvents.Errored ->
             if model.eventSourceOpened then
                 -- connection could have dropped out of the blue; just let the browser
                 -- handle reconnecting
-                ( model, Cmd.none, OutNoop )
+                ( model, [], OutNoop )
+
             else
                 -- assume request was rejected because auth is required; no way to
                 -- really tell
-                ( { model | state = NotAuthorized }, Cmd.none, OutNoop )
+                ( { model | state = NotAuthorized }, [], OutNoop )
 
         Concourse.BuildEvents.Events (Ok events) ->
-            Array.foldl handleEvent_ ( model, Cmd.none, OutNoop ) events
+            Array.foldl handleEvent_ ( model, [], OutNoop ) events
 
         Concourse.BuildEvents.Events (Err err) ->
-            flip always (Debug.log ("failed to get event") (err)) <|
-                ( model, Cmd.none, OutNoop )
+            flip always (Debug.log "failed to get event" err) <|
+                ( model, [], OutNoop )
 
 
-handleEvent_ : Concourse.BuildEvents.BuildEvent -> ( Model, Cmd Msg, OutMsg ) -> ( Model, Cmd Msg, OutMsg )
+handleEvent_ :
+    Concourse.BuildEvents.BuildEvent
+    -> ( Model, List Effect, OutMsg )
+    -> ( Model, List Effect, OutMsg )
 handleEvent_ ev ( m, msgpassedin, outmsgpassedin ) =
     let
         ( m1, msgfromhandleevent, outmsgfromhandleevent ) =
             handleEvent ev m
     in
-        ( m1
-        , case ( msgpassedin == Cmd.none, msgfromhandleevent == Cmd.none ) of
-            ( True, True ) ->
-                Cmd.none
+    ( m1
+    , case ( msgpassedin == [], msgfromhandleevent == [] ) of
+        ( True, True ) ->
+            []
 
-            ( False, True ) ->
-                msgpassedin
+        ( False, True ) ->
+            msgpassedin
 
-            otherwise ->
-                msgfromhandleevent
-        , case ( outmsgpassedin == OutNoop, outmsgfromhandleevent == OutNoop ) of
-            ( True, True ) ->
-                OutNoop
+        otherwise ->
+            msgfromhandleevent
+    , case ( outmsgpassedin == OutNoop, outmsgfromhandleevent == OutNoop ) of
+        ( True, True ) ->
+            OutNoop
 
-            ( False, True ) ->
-                outmsgpassedin
+        ( False, True ) ->
+            outmsgpassedin
 
-            otherwise ->
-                outmsgfromhandleevent
-        )
+        otherwise ->
+            outmsgfromhandleevent
+    )
 
 
-handleEvent : Concourse.BuildEvents.BuildEvent -> Model -> ( Model, Cmd Msg, OutMsg )
+handleEvent :
+    Concourse.BuildEvents.BuildEvent
+    -> Model
+    -> ( Model, List Effect, OutMsg )
 handleEvent event model =
     case event of
         Concourse.BuildEvents.Log origin output time ->
             ( updateStep origin.id (setRunning << appendStepLog output time) model
-            , Cmd.none
+            , []
             , OutNoop
             )
 
         Concourse.BuildEvents.Error origin message ->
             ( updateStep origin.id (setStepError message) model
-            , Cmd.none
+            , []
             , OutNoop
             )
 
         Concourse.BuildEvents.Initialize origin ->
             ( updateStep origin.id setRunning model
-            , Cmd.none
+            , []
             , OutNoop
             )
 
         Concourse.BuildEvents.StartTask origin ->
             ( updateStep origin.id setRunning model
-            , Cmd.none
+            , []
             , OutNoop
             )
 
         Concourse.BuildEvents.FinishTask origin exitStatus ->
             ( updateStep origin.id (finishStep exitStatus) model
-            , Cmd.none
+            , []
             , OutNoop
             )
 
         Concourse.BuildEvents.FinishGet origin exitStatus version metadata ->
             ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
-            , Cmd.none
+            , []
             , OutNoop
             )
 
         Concourse.BuildEvents.FinishPut origin exitStatus version metadata ->
             ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
-            , Cmd.none
+            , []
             , OutNoop
             )
 
@@ -227,16 +252,17 @@ handleEvent event model =
             case model.steps of
                 Just st ->
                     let
-                        ( newSt, newMsg ) =
+                        ( newSt, effects ) =
                             if not <| Concourse.BuildStatus.isRunning status then
-                                StepTree.update StepTree.Finished st
+                                ( { st | finished = True }, [] )
+
                             else
-                                ( st, Cmd.none )
+                                ( st, [] )
                     in
-                        ( { model | steps = Just newSt }, Cmd.map StepTreeMsg newMsg, OutBuildStatus status date )
+                    ( { model | steps = Just newSt }, effects, OutBuildStatus status date )
 
                 Nothing ->
-                    ( model, Cmd.none, OutBuildStatus status date )
+                    ( model, [], OutBuildStatus status date )
 
         Concourse.BuildEvents.BuildError message ->
             ( { model
@@ -245,12 +271,12 @@ handleEvent event model =
                         Ansi.Log.update message <|
                             Maybe.withDefault (Ansi.Log.init Ansi.Log.Cooked) model.errors
               }
-            , Cmd.none
+            , []
             , OutNoop
             )
 
         Concourse.BuildEvents.End ->
-            ( { model | state = StepsComplete, events = Sub.none }, Cmd.none, OutNoop )
+            ( { model | state = StepsComplete, events = Sub.none }, [], OutNoop )
 
 
 updateStep : StepTree.StepID -> (StepTree -> StepTree) -> Model -> Model
@@ -272,7 +298,7 @@ appendStepLog output mtime tree =
                     Ansi.Log.update output (Ansi.Log.init Ansi.Log.Cooked) |> .lines |> Array.length
 
                 logLineCount =
-                    max ((Array.length step.log.lines) - 1) 0
+                    max (Array.length step.log.lines - 1) 0
 
                 setLineTimestamp line timestamps =
                     Dict.update line (\mval -> mtime) timestamps
@@ -286,7 +312,7 @@ appendStepLog output mtime tree =
                 newLog =
                     Ansi.Log.update output step.log
             in
-                { step | log = newLog, timestamps = newTimestamps }
+            { step | log = newLog, timestamps = newTimestamps }
 
 
 setStepError : String -> StepTree -> StepTree
@@ -307,10 +333,11 @@ finishStep exitStatus tree =
         stepState =
             if exitStatus == 0 then
                 StepTree.StepStateSucceeded
+
             else
                 StepTree.StepStateFailed
     in
-        setStepState stepState tree
+    setStepState stepState tree
 
 
 setResourceInfo : Concourse.Version -> Concourse.Metadata -> StepTree -> StepTree
@@ -321,18 +348,6 @@ setResourceInfo version metadata tree =
 setStepState : StepTree.StepState -> StepTree -> StepTree
 setStepState state tree =
     StepTree.map (\step -> { step | state = state }) tree
-
-
-fetchBuildPlanAndResources : Int -> Cmd Msg
-fetchBuildPlanAndResources buildId =
-    Task.attempt PlanAndResourcesFetched <|
-        Task.map2 (,) (Concourse.BuildPlan.fetch buildId) (Concourse.BuildResources.fetch buildId)
-
-
-fetchBuildPlan : Int -> Cmd Msg
-fetchBuildPlan buildId =
-    Task.attempt PlanAndResourcesFetched <|
-        Task.map (flip (,) Concourse.BuildResources.empty) (Concourse.BuildPlan.fetch buildId)
 
 
 subscribeToEvents : Int -> Sub Msg
@@ -348,7 +363,11 @@ view { build, steps, errors, state } =
         ]
 
 
-viewStepTree : Concourse.Build -> Maybe StepTree.Model -> OutputState -> Html Msg
+viewStepTree :
+    Concourse.Build
+    -> Maybe StepTree.Model
+    -> OutputState
+    -> Html Msg
 viewStepTree build steps state =
     case ( state, steps ) of
         ( StepsLoading, _ ) ->
@@ -358,10 +377,10 @@ viewStepTree build steps state =
             NotAuthorized.view
 
         ( StepsLiveUpdating, Just root ) ->
-            Html.map StepTreeMsg (StepTree.view root)
+            StepTree.view root
 
         ( StepsComplete, Just root ) ->
-            Html.map StepTreeMsg (StepTree.view root)
+            StepTree.view root
 
         ( _, Nothing ) ->
             Html.div [] []
@@ -376,8 +395,16 @@ viewErrors errors =
         Just log ->
             Html.div [ class "build-step" ]
                 [ Html.div [ class "header" ]
-                    [ Html.i [ class "left fa fa-fw fa-exclamation-triangle" ] []
+                    [ Html.div
+                        [ style <|
+                            Styles.stepStatusIcon "ic-exclamation-triangle"
+                        ]
+                        []
                     , Html.h3 [] [ Html.text "error" ]
                     ]
-                , Html.div [ class "step-body build-errors-body" ] [ Ansi.Log.view log ]
+                , Html.div [ class "step-body build-errors-body" ]
+                    [ Html.pre
+                        []
+                        (Array.toList (Array.map Ansi.Log.viewLine log.lines))
+                    ]
                 ]

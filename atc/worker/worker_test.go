@@ -20,20 +20,22 @@ import (
 
 var _ = Describe("Worker", func() {
 	var (
-		logger                 *lagertest.TestLogger
-		fakeVolumeClient       *wfakes.FakeVolumeClient
-		fakeContainerProvider  *wfakes.FakeContainerProvider
-		activeContainers       int
-		resourceTypes          []atc.WorkerResourceType
-		platform               string
-		tags                   atc.Tags
-		teamID                 int
-		ephemeral              bool
-		workerName             string
-		workerStartTime        int64
-		gardenWorker           Worker
-		workerVersion          string
-		fakeGardenClient       *gardenfakes.FakeClient
+		logger                *lagertest.TestLogger
+		fakeVolumeClient      *wfakes.FakeVolumeClient
+		fakeContainerProvider *wfakes.FakeContainerProvider
+		activeContainers      int
+		resourceTypes         []atc.WorkerResourceType
+		platform              string
+		tags                  atc.Tags
+		teamID                int
+		ephemeral             bool
+		workerName            string
+		workerStartTime       int64
+		gardenWorker          Worker
+		workerVersion         string
+		fakeGardenClient      *gardenfakes.FakeClient
+		fakeImageFactory      *wfakes.FakeImageFactory
+		fakeImage             *wfakes.FakeImage
 	)
 
 	BeforeEach(func() {
@@ -57,6 +59,9 @@ var _ = Describe("Worker", func() {
 
 		fakeContainerProvider = new(wfakes.FakeContainerProvider)
 		fakeGardenClient = new(gardenfakes.FakeClient)
+		fakeImageFactory = new(wfakes.FakeImageFactory)
+		fakeImage = new(wfakes.FakeImage)
+		fakeImageFactory.GetImageReturns(fakeImage, nil)
 	})
 
 	JustBeforeEach(func() {
@@ -75,6 +80,7 @@ var _ = Describe("Worker", func() {
 			fakeGardenClient,
 			fakeContainerProvider,
 			fakeVolumeClient,
+			fakeImageFactory,
 			dbWorker,
 			0,
 		)
