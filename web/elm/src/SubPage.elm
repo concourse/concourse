@@ -7,6 +7,7 @@ import Build.Msgs
 import Concourse
 import Dashboard
 import Dashboard.Msgs
+import Effects exposing (setTitle)
 import FlySuccess
 import Html exposing (Html)
 import Html.Styled as HS
@@ -17,6 +18,9 @@ import NotFound
 import Pipeline
 import QueryString
 import Resource
+import Resource.Effects
+import Resource.Models
+import Resource.Msgs
 import Routes
 import String
 import UpdateMsg exposing (UpdateMsg)
@@ -29,14 +33,11 @@ import UpdateMsg exposing (UpdateMsg)
 port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
 
 
-port setTitle : String -> Cmd msg
-
-
 type Model
     = WaitingModel Routes.ConcourseRoute
     | BuildModel (Autoscroll.Model Build.Model)
     | JobModel Job.Model
-    | ResourceModel Resource.Model
+    | ResourceModel Resource.Models.Model
     | PipelineModel Pipeline.Model
     | NotFoundModel NotFound.Model
     | DashboardModel Dashboard.Model
@@ -46,7 +47,7 @@ type Model
 type Msg
     = BuildMsg (Autoscroll.Msg Build.Msgs.Msg)
     | JobMsg Job.Msg
-    | ResourceMsg Resource.Msg
+    | ResourceMsg Resource.Msgs.Msg
     | PipelineMsg Pipeline.Msg
     | NewCSRFToken String
     | DashboardPipelinesFetched (Result Http.Error (List Concourse.Pipeline))
@@ -110,15 +111,17 @@ init flags route =
                         Result.withDefault 0 (String.toInt buildId)
 
         Routes.Resource teamName pipelineName resourceName ->
-            superDupleWrap ( ResourceModel, ResourceMsg ) <|
-                Resource.init
-                    { title = setTitle }
+            superDupleWrap ( ResourceModel, ResourceMsg )
+                (Resource.init
                     { resourceName = resourceName
                     , teamName = teamName
                     , pipelineName = pipelineName
                     , paging = route.page
                     , csrfToken = flags.csrfToken
                     }
+                    |> Tuple.mapSecond
+                        (List.map Resource.Effects.runEffect >> Cmd.batch)
+                )
 
         Routes.Job teamName pipelineName jobName ->
             superDupleWrap ( JobModel, JobMsg ) <|
@@ -259,8 +262,8 @@ urlUpdate route model =
                     mdl
 
         ( Routes.Resource teamName pipelineName resourceName, ResourceModel mdl ) ->
-            superDupleWrap ( ResourceModel, ResourceMsg ) <|
-                Resource.changeToResource
+            superDupleWrap ( ResourceModel, ResourceMsg )
+                (Resource.changeToResource
                     { teamName = teamName
                     , pipelineName = pipelineName
                     , resourceName = resourceName
@@ -268,6 +271,8 @@ urlUpdate route model =
                     , csrfToken = mdl.csrfToken
                     }
                     mdl
+                    |> Tuple.mapSecond Resource.Effects.runEffect
+                )
 
         ( Routes.Job teamName pipelineName jobName, JobModel mdl ) ->
             superDupleWrap ( JobModel, JobMsg ) <|

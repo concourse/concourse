@@ -3,15 +3,14 @@ module SubPageTests exposing (all)
 import Autoscroll
 import Build
 import Build.Msgs
-import Concourse.Pagination exposing (Paginated)
 import Dict exposing (Dict)
 import Expect
 import Http
 import Job exposing (..)
 import Pipeline
 import QueryString
-import RemoteData exposing (WebData)
 import Resource
+import Resource.Msgs
 import Routes
 import SubPage exposing (..)
 import Test exposing (..)
@@ -60,11 +59,10 @@ all =
                 \_ ->
                     let
                         msg =
-                            Resource.ResourceFetched <| Err <| Http.BadStatus notFoundStatus
+                            Resource.Msgs.ResourceFetched <| Err <| Http.BadStatus notFoundStatus
 
                         ( model, _ ) =
                             Resource.init
-                                { title = \_ -> Cmd.none }
                                 { teamName = ""
                                 , pipelineName = ""
                                 , resourceName = ""
