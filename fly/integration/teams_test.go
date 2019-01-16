@@ -163,7 +163,7 @@ var _ = Describe("Fly CLI", func() {
 					flyCmd.Args = append(flyCmd.Args, "--details")
 				})
 
-				It("lists them to the user, ordered by roles level and name", func() {
+				It("lists them to the user, ordered by name", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
@@ -174,12 +174,12 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "auth", Color: color.New(color.Bold)},
 						},
 						Data: []ui.TableRow{
-							{{Contents: "main/owner"}, {Contents: "all"}, {Contents: "none"}},
 							{{Contents: "a-team/owner"}, {Contents: "none"}, {Contents: "github:github-org"}},
-							{{Contents: "c-team/owner"}, {Contents: "github:github-user"}, {Contents: "github:github-org"}},
 							{{Contents: "b-team/member"}, {Contents: "github:github-user"}, {Contents: "none"}},
 							{{Contents: "c-team/member"}, {Contents: "github:github-user"}, {Contents: "github:github-org"}},
+							{{Contents: "c-team/owner"}, {Contents: "github:github-user"}, {Contents: "github:github-org"}},
 							{{Contents: "c-team/viewer"}, {Contents: "github:github-user"}, {Contents: "github:github-org"}},
+							{{Contents: "main/owner"}, {Contents: "all"}, {Contents: "none"}},
 						},
 					}))
 				})

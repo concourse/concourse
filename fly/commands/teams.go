@@ -7,7 +7,6 @@ import (
 
 	"strings"
 
-	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
@@ -98,21 +97,7 @@ func (command *TeamsCommand) Execute([]string) error {
 		}
 	}
 
-	if command.Details {
-		roleComparator := func(i, j int) bool {
-			role1 := getRoleFromTableRow(table.Data[i])
-			role2 := getRoleFromTableRow(table.Data[j])
-			return !accessor.CompareRoles(role2, role1)
-		}
-
-		sort.SliceStable(table.Data, roleComparator)
-	} else {
-		sort.Sort(table.Data)
-	}
+	sort.Sort(table.Data)
 
 	return table.Render(os.Stdout, Fly.PrintTableHeaders)
-}
-
-func getRoleFromTableRow(row ui.TableRow) string {
-	return strings.Split(row[0].Contents, "/")[1]
 }
