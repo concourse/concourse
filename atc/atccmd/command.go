@@ -122,8 +122,9 @@ type RunCommand struct {
 	} `group:"Static Worker (optional)" namespace:"worker"`
 
 	Metrics struct {
-		HostName   string            `long:"metrics-host-name"   description:"Host string to attach to emitted metrics."`
-		Attributes map[string]string `long:"metrics-attribute"   description:"A key-value attribute to attach to emitted metrics. Can be specified multiple times." value-name:"NAME:VALUE"`
+		HostName            string            `long:"metrics-host-name" description:"Host string to attach to emitted metrics."`
+		Attributes          map[string]string `long:"metrics-attribute" description:"A key-value attribute to attach to emitted metrics. Can be specified multiple times." value-name:"NAME:VALUE"`
+		CaptureErrorMetrics bool              `long:"capture-error-metrics" description:"Enable capturing of error log metrics"`
 	} `group:"Metrics & Diagnostics"`
 
 	Server struct {
@@ -351,6 +352,12 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
 	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres.ConnectionString(), retryingDriverName)
+
+	// Register the sink that collects error metrics
+	if cmd.Metrics.CaptureErrorMetrics {
+		errorSinkCollector := metric.NewErrorSinkCollector(logger)
+		logger.RegisterSink(&errorSinkCollector)
+	}
 
 	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
 		for _, stack := range db.GlobalConnectionTracker.Current() {

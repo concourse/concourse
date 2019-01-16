@@ -4,7 +4,8 @@ import Concourse
 import Concourse.Pagination exposing (Direction(..))
 import DashboardTests
     exposing
-        ( darkGrey
+        ( almostBlack
+        , darkGrey
         , defineHoverBehaviour
         , iconSelector
         , middleGrey
@@ -15,10 +16,24 @@ import Html.Attributes as Attr
 import Html.Styled as HS
 import Http
 import Resource
+import Resource.Effects as Effects
+import Resource.Models as Models
+import Resource.Msgs as Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (Selector, attribute, class, containing, id, style, tag, text)
+import Test.Html.Selector
+    exposing
+        ( Selector
+        , attribute
+        , class
+        , containing
+        , id
+        , style
+        , tag
+        , text
+        )
+import TopBar
 
 
 teamName : String
@@ -114,7 +129,7 @@ all =
                     |> givenResourceIsNotPinned
                     |> givenVersionsWithoutPagination
                     |> Resource.update
-                        (Resource.ExpandVersionedResource versionID)
+                        (Msgs.ExpandVersionedResource versionID)
                     |> Tuple.first
                     |> givenVersionsWithoutPagination
                     |> queryView
@@ -126,16 +141,24 @@ all =
                     |> givenResourceIsNotPinned
                     |> givenVersionsWithoutPagination
                     |> Resource.update
-                        (Resource.ExpandVersionedResource versionID)
+                        (Msgs.ExpandVersionedResource versionID)
                     |> Tuple.first
                     |> Resource.update
-                        (Resource.InputToFetched versionID
+                        (Msgs.InputToFetched versionID
                             (Ok
                                 [ { id = 0
                                   , name = "some-build"
-                                  , job = Just { teamName = teamName, pipelineName = pipelineName, jobName = "some-job" }
+                                  , job =
+                                        Just
+                                            { teamName = teamName
+                                            , pipelineName = pipelineName
+                                            , jobName = "some-job"
+                                            }
                                   , status = Concourse.BuildStatusSucceeded
-                                  , duration = { startedAt = Nothing, finishedAt = Nothing }
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
                                   , reapTime = Nothing
                                   }
                                 ]
@@ -152,16 +175,24 @@ all =
                     |> givenResourceIsNotPinned
                     |> givenVersionsWithoutPagination
                     |> Resource.update
-                        (Resource.ExpandVersionedResource versionID)
+                        (Msgs.ExpandVersionedResource versionID)
                     |> Tuple.first
                     |> Resource.update
-                        (Resource.OutputOfFetched versionID
+                        (Msgs.OutputOfFetched versionID
                             (Ok
                                 [ { id = 0
                                   , name = "some-build"
-                                  , job = Just { teamName = teamName, pipelineName = pipelineName, jobName = "some-job" }
+                                  , job =
+                                        Just
+                                            { teamName = teamName
+                                            , pipelineName = pipelineName
+                                            , jobName = "some-job"
+                                            }
                                   , status = Concourse.BuildStatusSucceeded
-                                  , duration = { startedAt = Nothing, finishedAt = Nothing }
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
                                   , reapTime = Nothing
                                   }
                                 ]
@@ -172,13 +203,18 @@ all =
                     |> queryView
                     |> Query.find (versionSelector version)
                     |> Query.has [ text "some-build" ]
-        , describe "checkboxes"
+        , describe "checkboxes" <|
+            let
+                checkIcon =
+                    "url(/public/images/checkmark-ic.svg)"
+            in
             [ test "there is a checkbox for every version" <|
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> queryView
+                        |> Query.find [ class "resource-versions" ]
                         |> Query.findAll anyVersionSelector
                         |> Query.each hasCheckbox
             , test "there is a pointer cursor for every checkbox" <|
@@ -187,8 +223,12 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> queryView
+                        |> Query.find [ class "resource-versions" ]
                         |> Query.findAll anyVersionSelector
-                        |> Query.each (Query.find checkboxSelector >> Query.has pointerCursor)
+                        |> Query.each
+                            (Query.find checkboxSelector
+                                >> Query.has pointerCursor
+                            )
             , test "enabled versions have checkmarks" <|
                 \_ ->
                     init
@@ -198,10 +238,16 @@ all =
                         |> Expect.all
                             [ Query.find (versionSelector version)
                                 >> Query.find checkboxSelector
-                                >> Query.has [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
+                                >> Query.has
+                                    [ style
+                                        [ ( "background-image", checkIcon ) ]
+                                    ]
                             , Query.find (versionSelector otherVersion)
                                 >> Query.find checkboxSelector
-                                >> Query.has [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
+                                >> Query.has
+                                    [ style
+                                        [ ( "background-image", checkIcon ) ]
+                                    ]
                             ]
             , test "disabled versions do not have checkmarks" <|
                 \_ ->
@@ -211,8 +257,15 @@ all =
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
                         |> Query.find checkboxSelector
-                        |> Query.hasNot [ style [ ( "background-image", "url(/public/images/checkmark-ic.svg)" ) ] ]
-            , test "clicking the checkbox on an enabled version triggers a ToggleVersion msg" <|
+                        |> Query.hasNot
+                            [ style
+                                [ ( "background-image", checkIcon ) ]
+                            ]
+            , test
+                ("clicking the checkbox on an enabled version triggers"
+                    ++ " a ToggleVersion msg"
+                )
+              <|
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
@@ -221,7 +274,8 @@ all =
                         |> Query.find (versionSelector version)
                         |> Query.find checkboxSelector
                         |> Event.simulate Event.click
-                        |> Event.expect (Resource.ToggleVersion Resource.Disable versionID)
+                        |> Event.expect
+                            (Msgs.ToggleVersion Models.Disable versionID)
             , test "receiving a (ToggleVersion Disable) msg causes the relevant checkbox to go into a transition state" <|
                 \_ ->
                     init
@@ -249,7 +303,7 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
-                        |> Resource.update (Resource.VersionToggled Resource.Disable versionID (Ok ()))
+                        |> Resource.update (Msgs.VersionToggled Models.Disable versionID (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -260,7 +314,7 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
-                        |> Resource.update (Resource.VersionToggled Resource.Disable versionID badResponse)
+                        |> Resource.update (Msgs.VersionToggled Models.Disable versionID badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -275,14 +329,14 @@ all =
                         |> Query.find (versionSelector disabledVersion)
                         |> Query.find checkboxSelector
                         |> Event.simulate Event.click
-                        |> Event.expect (Resource.ToggleVersion Resource.Enable disabledVersionID)
+                        |> Event.expect (Msgs.ToggleVersion Models.Enable disabledVersionID)
             , test "receiving a (ToggleVersion Enable) msg causes the relevant checkbox to go into a transition state" <|
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> Resource.update
-                            (Resource.ToggleVersion Resource.Enable disabledVersionID)
+                            (Msgs.ToggleVersion Models.Enable disabledVersionID)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
@@ -294,9 +348,9 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> Resource.update
-                            (Resource.ToggleVersion Resource.Enable disabledVersionID)
+                            (Msgs.ToggleVersion Models.Enable disabledVersionID)
                         |> Tuple.first
-                        |> Resource.update (Resource.VersionToggled Resource.Enable disabledVersionID (Ok ()))
+                        |> Resource.update (Msgs.VersionToggled Models.Enable disabledVersionID (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
@@ -308,9 +362,9 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> Resource.update
-                            (Resource.ToggleVersion Resource.Enable disabledVersionID)
+                            (Msgs.ToggleVersion Models.Enable disabledVersionID)
                         |> Tuple.first
-                        |> Resource.update (Resource.VersionToggled Resource.Enable disabledVersionID badResponse)
+                        |> Resource.update (Msgs.VersionToggled Models.Enable disabledVersionID badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
@@ -390,6 +444,7 @@ all =
                             |> givenResourcePinnedStatically
                             |> givenVersionsWithoutPagination
                             |> queryView
+                            |> Query.find [ class "resource-versions" ]
                             |> Query.findAll anyVersionSelector
                             |> Query.each
                                 (Query.find pinButtonSelector
@@ -411,7 +466,7 @@ all =
                             |> queryView
                             |> Query.find [ id "pin-bar" ]
                             |> Event.simulate Event.mouseEnter
-                            |> Event.expect Resource.TogglePinBarTooltip
+                            |> Event.expect Msgs.TogglePinBarTooltip
                 , test "TogglePinBarTooltip causes tooltip to appear" <|
                     \_ ->
                         init
@@ -476,7 +531,7 @@ all =
                             |> queryView
                             |> Query.find [ id "pin-bar" ]
                             |> Event.simulate Event.mouseLeave
-                            |> Event.expect Resource.TogglePinBarTooltip
+                            |> Event.expect Msgs.TogglePinBarTooltip
                 , test "when mousing off pin bar, tooltip disappears" <|
                     \_ ->
                         init
@@ -504,7 +559,7 @@ all =
                             |> Query.find (versionSelector version)
                             |> Query.find pinButtonSelector
                             |> Event.simulate Event.mouseOver
-                            |> Event.expect Resource.ToggleVersionTooltip
+                            |> Event.expect Msgs.ToggleVersionTooltip
                 , test "mousing over an unpinned version's pin button doesn't send any msg" <|
                     \_ ->
                         init
@@ -545,7 +600,7 @@ all =
                             |> Query.find (versionSelector version)
                             |> Query.find pinButtonSelector
                             |> Event.simulate Event.mouseOut
-                            |> Event.expect Resource.ToggleVersionTooltip
+                            |> Event.expect Msgs.ToggleVersionTooltip
                 , test "mousing off an unpinned version's pin button doesn't send any msg" <|
                     \_ ->
                         init
@@ -586,6 +641,7 @@ all =
                             |> givenResourceIsNotPinned
                             |> givenVersionsWithoutPagination
                             |> queryView
+                            |> Query.find [ class "resource-versions" ]
                             |> Query.findAll anyVersionSelector
                             |> Query.each
                                 (Query.find pinButtonSelector
@@ -598,7 +654,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> Resource.update Resource.TogglePinBarTooltip
+                        |> Resource.update Msgs.TogglePinBarTooltip
                         |> Tuple.first
                         |> queryView
                         |> Query.hasNot pinBarTooltipSelector
@@ -616,7 +672,7 @@ all =
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
                         |> Event.simulate Event.click
-                        |> Event.expect Resource.UnpinVersion
+                        |> Event.expect Msgs.UnpinVersion
             , test "mousing over pin icon triggers PinIconHover msg" <|
                 \_ ->
                     init
@@ -624,12 +680,12 @@ all =
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
                         |> Event.simulate Event.mouseEnter
-                        |> Event.expect (Resource.PinIconHover True)
+                        |> Event.expect (Msgs.PinIconHover True)
             , test "TogglePinIconHover msg causes pin icon to have dark background" <|
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> Resource.update (Resource.PinIconHover True)
+                        |> Resource.update (Msgs.PinIconHover True)
                         |> Tuple.first
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
@@ -638,19 +694,19 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> Resource.update (Resource.PinIconHover True)
+                        |> Resource.update (Msgs.PinIconHover True)
                         |> Tuple.first
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
                         |> Event.simulate Event.mouseLeave
-                        |> Event.expect (Resource.PinIconHover False)
+                        |> Event.expect (Msgs.PinIconHover False)
             , test "second TogglePinIconHover msg causes pin icon to have transparent background color" <|
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> Resource.update (Resource.PinIconHover True)
+                        |> Resource.update (Msgs.PinIconHover True)
                         |> Tuple.first
-                        |> Resource.update (Resource.PinIconHover False)
+                        |> Resource.update (Msgs.PinIconHover False)
                         |> Tuple.first
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
@@ -700,7 +756,7 @@ all =
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
                         |> Event.simulate Event.click
-                        |> Event.expect Resource.UnpinVersion
+                        |> Event.expect Msgs.UnpinVersion
             , test "pin button on pinned version shows transition state when (UnpinVersion) is received" <|
                 \_ ->
                     init
@@ -728,7 +784,7 @@ all =
                         |> givenResourcePinnedDynamically
                         |> givenVersionsWithoutPagination
                         |> clickToUnpin
-                        |> Resource.update (Resource.VersionUnpinned (Ok ()))
+                        |> Resource.update (Msgs.VersionUnpinned (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasUnpinnedState
@@ -738,7 +794,7 @@ all =
                         |> givenResourcePinnedDynamically
                         |> givenVersionsWithoutPagination
                         |> clickToUnpin
-                        |> Resource.update (Resource.VersionUnpinned badResponse)
+                        |> Resource.update (Msgs.VersionUnpinned badResponse)
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasPinnedState version
@@ -790,6 +846,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> queryView
+                        |> Query.find [ class "resource-versions" ]
                         |> Query.findAll anyVersionSelector
                         |> Query.each
                             (Query.find pinButtonSelector
@@ -843,6 +900,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> queryView
+                        |> Query.find [ class "resource-versions" ]
                         |> Query.findAll anyVersionSelector
                         |> Query.each
                             (Query.find pinButtonSelector
@@ -854,6 +912,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> queryView
+                        |> Query.find [ class "resource-versions" ]
                         |> Query.findAll anyVersionSelector
                         |> Query.each
                             (Query.find pinButtonSelector
@@ -868,7 +927,7 @@ all =
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
                         |> Event.simulate Event.click
-                        |> Event.expect (Resource.PinVersion versionID)
+                        |> Event.expect (Msgs.PinVersion versionID)
             , test "pin button on 'v1' shows transition state when (PinVersion v1) is received" <|
                 \_ ->
                     init
@@ -916,7 +975,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> clickToPin versionID
-                        |> Resource.update (Resource.VersionPinned (Ok ()))
+                        |> Resource.update (Msgs.VersionPinned (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasPinnedState version
@@ -926,7 +985,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> clickToPin versionID
-                        |> Resource.update (Resource.VersionPinned badResponse)
+                        |> Resource.update (Msgs.VersionPinned badResponse)
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasUnpinnedState
@@ -936,7 +995,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> clickToPin versionID
-                        |> Resource.update (Resource.VersionPinned badResponse)
+                        |> Resource.update (Msgs.VersionPinned badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -1139,86 +1198,606 @@ all =
                         ]
                     }
                 , mouseEnterMsg =
-                    Resource.Hover Resource.PreviousPage
+                    Msgs.Hover Models.PreviousPage
                 , mouseLeaveMsg =
-                    Resource.Hover Resource.None
+                    Msgs.Hover Models.None
                 }
             ]
-        , test "check status bar lays out horizontally maximing space" <|
-            \_ ->
-                init
-                    |> givenResourceIsNotPinned
-                    |> queryView
-                    |> Query.find [ class "resource-check-status" ]
-                    |> Query.find [ class "header" ]
-                    |> Query.has
-                        [ style
-                            [ ( "display", "flex" )
-                            , ( "justify-content", "space-between" )
+        , describe "check bar" <|
+            let
+                checkBar =
+                    queryView
+                        >> Query.find [ class "resource-check-status" ]
+                        >> Query.children []
+                        >> Query.first
+            in
+            [ test "lays out horizontally" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> checkBar
+                        |> Query.has [ style [ ( "display", "flex" ) ] ]
+            , test "has two children: check button and status bar" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> checkBar
+                        |> Query.children []
+                        |> Query.count (Expect.equal 2)
+            , describe "when unauthenticated"
+                [ defineHoverBehaviour
+                    { name = "check button"
+                    , setup = init |> givenResourceIsNotPinned
+                    , query = checkBar >> Query.children [] >> Query.first
+                    , unhoveredSelector =
+                        { description = "black button with grey refresh icon"
+                        , selector =
+                            [ style
+                                [ ( "height", "28px" )
+                                , ( "width", "28px" )
+                                , ( "background-color", almostBlack )
+                                , ( "margin-right", "5px" )
+                                ]
+                            , containing <|
+                                iconSelector
+                                    { size = "20px"
+                                    , image = "baseline-refresh-24px.svg"
+                                    }
+                                    ++ [ style
+                                            [ ( "opacity", "0.5" )
+                                            , ( "margin", "4px" )
+                                            ]
+                                       ]
                             ]
-                        ]
-        , test "successful check shows a checkmark on the right" <|
-            \_ ->
-                init
-                    |> givenResourceIsNotPinned
-                    |> queryView
-                    |> Query.find [ class "resource-check-status" ]
-                    |> Query.has
-                        (iconSelector
-                            { size = "28px"
-                            , image = "ic-success-check.svg"
+                        }
+                    , mouseEnterMsg = Msgs.Hover Models.CheckButton
+                    , mouseLeaveMsg = Msgs.Hover Models.None
+                    , hoveredSelector =
+                        { description = "black button with white refresh icon"
+                        , selector =
+                            [ style
+                                [ ( "height", "28px" )
+                                , ( "width", "28px" )
+                                , ( "background-color", almostBlack )
+                                , ( "margin-right", "5px" )
+                                , ( "cursor", "pointer" )
+                                ]
+                            , containing <|
+                                iconSelector
+                                    { size = "20px"
+                                    , image = "baseline-refresh-24px.svg"
+                                    }
+                                    ++ [ style
+                                            [ ( "opacity", "1" )
+                                            , ( "margin", "4px" )
+                                            , ( "background-size", "contain" )
+                                            ]
+                                       ]
+                            ]
+                        }
+                    , updateFunc = \msg -> Resource.update msg >> Tuple.first
+                    }
+                , test "clicking check button sends Check msg" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> checkBar
+                            |> Query.children []
+                            |> Query.first
+                            |> Event.simulate Event.click
+                            |> Event.expect Msgs.Check
+                , test "Check msg redirects to login" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> Resource.update Msgs.Check
+                            |> Tuple.second
+                            |> Expect.equal [ Effects.RedirectToLogin ]
+                , test "check bar text does not change" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> Resource.update Msgs.Check
+                            |> Tuple.first
+                            |> checkBar
+                            |> Query.find [ tag "h3" ]
+                            |> Query.has [ text "checking successfully" ]
+                ]
+            , describe "when authorized" <|
+                let
+                    givenUserIsAuthorized : Models.Model -> Models.Model
+                    givenUserIsAuthorized =
+                        Resource.update
+                            (Msgs.TopBarMsg <|
+                                TopBar.UserFetched <|
+                                    Ok
+                                        { id = "test"
+                                        , userName = "test"
+                                        , name = "test"
+                                        , email = "test"
+                                        , teams =
+                                            Dict.fromList
+                                                [ ( teamName, [ "member" ] )
+                                                ]
+                                        }
+                            )
+                            >> Tuple.first
+                in
+                [ defineHoverBehaviour
+                    { name = "check button when authorized"
+                    , setup =
+                        init
+                            |> givenResourceIsNotPinned
+                            |> givenUserIsAuthorized
+                    , query = checkBar >> Query.children [] >> Query.first
+                    , unhoveredSelector =
+                        { description = "black button with grey refresh icon"
+                        , selector =
+                            [ style
+                                [ ( "height", "28px" )
+                                , ( "width", "28px" )
+                                , ( "background-color", almostBlack )
+                                , ( "margin-right", "5px" )
+                                ]
+                            , containing <|
+                                iconSelector
+                                    { size = "20px"
+                                    , image = "baseline-refresh-24px.svg"
+                                    }
+                                    ++ [ style
+                                            [ ( "opacity", "0.5" )
+                                            , ( "margin", "4px" )
+                                            ]
+                                       ]
+                            ]
+                        }
+                    , mouseEnterMsg = Msgs.Hover Models.CheckButton
+                    , mouseLeaveMsg = Msgs.Hover Models.None
+                    , hoveredSelector =
+                        { description = "black button with white refresh icon"
+                        , selector =
+                            [ style
+                                [ ( "height", "28px" )
+                                , ( "width", "28px" )
+                                , ( "background-color", almostBlack )
+                                , ( "margin-right", "5px" )
+                                , ( "cursor", "pointer" )
+                                ]
+                            , containing <|
+                                iconSelector
+                                    { size = "20px"
+                                    , image = "baseline-refresh-24px.svg"
+                                    }
+                                    ++ [ style
+                                            [ ( "opacity", "1" )
+                                            , ( "margin", "4px" )
+                                            , ( "background-size", "contain" )
+                                            ]
+                                       ]
+                            ]
+                        }
+                    , updateFunc = \msg -> Resource.update msg >> Tuple.first
+                    }
+                , test "clicking check button sends Check msg" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> givenUserIsAuthorized
+                            |> checkBar
+                            |> Query.children []
+                            |> Query.first
+                            |> Event.simulate Event.click
+                            |> Event.expect Msgs.Check
+                , test "Check msg has CheckResource side effect" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> givenUserIsAuthorized
+                            |> Resource.update Msgs.Check
+                            |> Tuple.second
+                            |> Expect.equal
+                                [ Effects.DoCheck
+                                    { resourceName = resourceName
+                                    , pipelineName = pipelineName
+                                    , teamName = teamName
+                                    }
+                                    "csrf_token"
+                                ]
+                , describe "while check in progress" <|
+                    let
+                        givenCheckInProgress : Models.Model -> Models.Model
+                        givenCheckInProgress =
+                            givenResourceIsNotPinned
+                                >> givenUserIsAuthorized
+                                >> Resource.update Msgs.Check
+                                >> Tuple.first
+                    in
+                    [ test "check bar text says 'currently checking'" <|
+                        \_ ->
+                            init
+                                |> givenCheckInProgress
+                                |> checkBar
+                                |> Query.find [ tag "h3" ]
+                                |> Query.has [ text "currently checking" ]
+                    , test "status icon is spinner" <|
+                        \_ ->
+                            init
+                                |> givenCheckInProgress
+                                |> checkBar
+                                |> Query.children []
+                                |> Query.index -1
+                                |> Query.has
+                                    [ style [ ( "display", "flex" ) ]
+                                    , containing
+                                        [ style
+                                            [ ( "animation"
+                                              , "container-rotate 1568ms "
+                                                    ++ "linear infinite"
+                                              )
+                                            , ( "height", "14px" )
+                                            , ( "width", "14px" )
+                                            , ( "margin", "7px" )
+                                            ]
+                                        ]
+                                    ]
+                    , defineHoverBehaviour
+                        { name = "check button"
+                        , setup = init |> givenCheckInProgress
+                        , query = checkBar >> Query.children [] >> Query.first
+                        , unhoveredSelector =
+                            { description = "black button with white refresh icon"
+                            , selector =
+                                [ style
+                                    [ ( "height", "28px" )
+                                    , ( "width", "28px" )
+                                    , ( "background-color", almostBlack )
+                                    , ( "margin-right", "5px" )
+                                    , ( "cursor", "default" )
+                                    ]
+                                , containing <|
+                                    iconSelector
+                                        { size = "20px"
+                                        , image = "baseline-refresh-24px.svg"
+                                        }
+                                        ++ [ style
+                                                [ ( "opacity", "1" )
+                                                , ( "margin", "4px" )
+                                                ]
+                                           ]
+                                ]
                             }
-                            ++ [ style [ ( "background-size", "14px 14px" ) ] ]
-                        )
-        , test "unsuccessful check shows a warning icon on the right" <|
-            \_ ->
-                init
-                    |> Resource.update
-                        (Resource.ResourceFetched <|
-                            Ok
-                                { teamName = teamName
-                                , pipelineName = pipelineName
-                                , name = resourceName
-                                , failingToCheck = True
-                                , checkError = "some error"
-                                , checkSetupError = ""
-                                , lastChecked = Nothing
-                                , pinnedVersion = Nothing
-                                , pinnedInConfig = False
+                        , mouseEnterMsg = Msgs.Hover Models.CheckButton
+                        , mouseLeaveMsg = Msgs.Hover Models.None
+                        , hoveredSelector =
+                            { description = "black button with white refresh icon"
+                            , selector =
+                                [ style
+                                    [ ( "height", "28px" )
+                                    , ( "width", "28px" )
+                                    , ( "background-color", almostBlack )
+                                    , ( "margin-right", "5px" )
+                                    , ( "cursor", "default" )
+                                    ]
+                                , containing <|
+                                    iconSelector
+                                        { size = "20px"
+                                        , image = "baseline-refresh-24px.svg"
+                                        }
+                                        ++ [ style
+                                                [ ( "opacity", "1" )
+                                                , ( "margin", "4px" )
+                                                ]
+                                           ]
+                                ]
+                            }
+                        , updateFunc = \msg -> Resource.update msg >> Tuple.first
+                        }
+                    ]
+                , test "when check resolves successfully, status is check" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> givenUserIsAuthorized
+                            |> Resource.update Msgs.Check
+                            |> Tuple.first
+                            |> Resource.update (Msgs.Checked <| Ok ())
+                            |> Tuple.first
+                            |> checkBar
+                            |> Query.children []
+                            |> Query.index -1
+                            |> Query.has
+                                (iconSelector
+                                    { size = "28px"
+                                    , image = "ic-success-check.svg"
+                                    }
+                                    ++ [ style
+                                            [ ( "background-size"
+                                              , "14px 14px"
+                                              )
+                                            ]
+                                       ]
+                                )
+                , test
+                    ("when check resolves successfully, resource "
+                        ++ "and versions refresh"
+                    )
+                  <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> givenUserIsAuthorized
+                            |> Resource.update Msgs.Check
+                            |> Tuple.first
+                            |> Resource.update (Msgs.Checked <| Ok ())
+                            |> Tuple.second
+                            |> Expect.equal
+                                [ Effects.FetchResource
+                                    { resourceName = resourceName
+                                    , pipelineName = pipelineName
+                                    , teamName = teamName
+                                    }
+                                , Effects.FetchVersionedResources
+                                    { resourceName = resourceName
+                                    , pipelineName = pipelineName
+                                    , teamName = teamName
+                                    }
+                                    Nothing
+                                ]
+                , test "when check resolves unsuccessfully, status is error" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> givenUserIsAuthorized
+                            |> Resource.update Msgs.Check
+                            |> Tuple.first
+                            |> Resource.update
+                                (Msgs.Checked <|
+                                    Err <|
+                                        Http.BadStatus
+                                            { url = ""
+                                            , status =
+                                                { code = 400
+                                                , message = "bad request"
+                                                }
+                                            , headers = Dict.empty
+                                            , body = ""
+                                            }
+                                )
+                            |> Tuple.first
+                            |> checkBar
+                            |> Query.children []
+                            |> Query.index -1
+                            |> Query.has
+                                (iconSelector
+                                    { size = "28px"
+                                    , image = "ic-exclamation-triangle.svg"
+                                    }
+                                    ++ [ style
+                                            [ ( "background-size"
+                                              , "14px 14px"
+                                              )
+                                            ]
+                                       ]
+                                )
+                , test "when check resolves unsuccessfully, resource refreshes" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> givenUserIsAuthorized
+                            |> Resource.update Msgs.Check
+                            |> Tuple.first
+                            |> Resource.update
+                                (Msgs.Checked <|
+                                    Err <|
+                                        Http.BadStatus
+                                            { url = ""
+                                            , status =
+                                                { code = 400
+                                                , message = "bad request"
+                                                }
+                                            , headers = Dict.empty
+                                            , body = ""
+                                            }
+                                )
+                            |> Tuple.second
+                            |> Expect.equal
+                                [ Effects.FetchResource
+                                    { resourceName = resourceName
+                                    , pipelineName = pipelineName
+                                    , teamName = teamName
+                                    }
+                                ]
+                , test "when check returns 401, redirects to login" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> givenUserIsAuthorized
+                            |> Resource.update Msgs.Check
+                            |> Tuple.first
+                            |> Resource.update
+                                (Msgs.Checked <|
+                                    Err <|
+                                        Http.BadStatus
+                                            { url = ""
+                                            , status =
+                                                { code = 401
+                                                , message = "unauthorized"
+                                                }
+                                            , headers = Dict.empty
+                                            , body = ""
+                                            }
+                                )
+                            |> Tuple.second
+                            |> Expect.equal [ Effects.RedirectToLogin ]
+                ]
+            , describe "when unauthorized" <|
+                let
+                    givenUserIsUnauthorized : Models.Model -> Models.Model
+                    givenUserIsUnauthorized =
+                        Resource.update
+                            (Msgs.TopBarMsg <|
+                                TopBar.UserFetched <|
+                                    Ok
+                                        { id = "test"
+                                        , userName = "test"
+                                        , name = "test"
+                                        , email = "test"
+                                        , teams =
+                                            Dict.fromList
+                                                [ ( teamName, [ "viewer" ] ) ]
+                                        }
+                            )
+                            >> Tuple.first
+                in
+                [ defineHoverBehaviour
+                    { name = "check button"
+                    , setup =
+                        init
+                            |> givenResourceIsNotPinned
+                            |> givenUserIsUnauthorized
+                    , query = checkBar >> Query.children [] >> Query.first
+                    , unhoveredSelector =
+                        { description = "black button with grey refresh icon"
+                        , selector =
+                            [ style
+                                [ ( "height", "28px" )
+                                , ( "width", "28px" )
+                                , ( "background-color", almostBlack )
+                                , ( "margin-right", "5px" )
+                                ]
+                            , containing <|
+                                iconSelector
+                                    { size = "20px"
+                                    , image = "baseline-refresh-24px.svg"
+                                    }
+                                    ++ [ style
+                                            [ ( "opacity", "0.5" )
+                                            , ( "margin", "4px" )
+                                            ]
+                                       ]
+                            ]
+                        }
+                    , mouseEnterMsg = Msgs.Hover Models.CheckButton
+                    , mouseLeaveMsg = Msgs.Hover Models.None
+                    , hoveredSelector =
+                        { description = "black button with grey refresh icon"
+                        , selector =
+                            [ style
+                                [ ( "height", "28px" )
+                                , ( "width", "28px" )
+                                , ( "background-color", almostBlack )
+                                , ( "margin-right", "5px" )
+                                ]
+                            , containing <|
+                                iconSelector
+                                    { size = "20px"
+                                    , image = "baseline-refresh-24px.svg"
+                                    }
+                                    ++ [ style
+                                            [ ( "opacity", "0.5" )
+                                            , ( "margin", "4px" )
+                                            ]
+                                       ]
+                            ]
+                        }
+                    , updateFunc = \msg -> Resource.update msg >> Tuple.first
+                    }
+                , test "clicking check button does nothing" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> givenUserIsUnauthorized
+                            |> checkBar
+                            |> Query.children []
+                            |> Query.first
+                            |> Event.simulate Event.click
+                            |> Event.toResult
+                            |> Expect.err
+                ]
+            , test "status bar lays out horizontally maximizing space" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> checkBar
+                        |> Query.children []
+                        |> Query.index -1
+                        |> Query.has
+                            [ style
+                                [ ( "display", "flex" )
+                                , ( "justify-content", "space-between" )
+                                , ( "align-items", "center" )
+                                , ( "flex-grow", "1" )
+                                , ( "height", "28px" )
+                                , ( "background", almostBlack )
+                                , ( "padding-left", "5px" )
+                                ]
+                            ]
+            , test "successful check shows a checkmark on the right" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> checkBar
+                        |> Query.children []
+                        |> Query.index -1
+                        |> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-success-check.svg"
                                 }
-                        )
-                    |> Tuple.first
-                    |> queryView
-                    |> Query.find [ class "resource-check-status" ]
-                    |> Query.has
-                        (iconSelector
-                            { size = "28px"
-                            , image = "ic-exclamation-triangle.svg"
-                            }
-                            ++ [ style [ ( "background-size", "14px 14px" ) ]
-                               , containing [ text "some error" ]
-                               ]
-                        )
+                                ++ [ style
+                                        [ ( "background-size", "14px 14px" ) ]
+                                   ]
+                            )
+            , test "unsuccessful check shows a warning icon on the right" <|
+                \_ ->
+                    init
+                        |> Resource.update
+                            (Msgs.ResourceFetched <|
+                                Ok
+                                    { teamName = teamName
+                                    , pipelineName = pipelineName
+                                    , name = resourceName
+                                    , failingToCheck = True
+                                    , checkError = "some error"
+                                    , checkSetupError = ""
+                                    , lastChecked = Nothing
+                                    , pinnedVersion = Nothing
+                                    , pinnedInConfig = False
+                                    }
+                            )
+                        |> Tuple.first
+                        |> queryView
+                        |> Query.find [ class "resource-check-status" ]
+                        |> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-exclamation-triangle.svg"
+                                }
+                                ++ [ style
+                                        [ ( "background-size", "14px 14px" ) ]
+                                   , containing [ text "some error" ]
+                                   ]
+                            )
+            ]
         ]
 
 
-init : Resource.Model
+init : Models.Model
 init =
     Resource.init
-        { title = always Cmd.none }
         { teamName = teamName
         , pipelineName = pipelineName
         , resourceName = resourceName
         , paging = Nothing
-        , csrfToken = ""
+        , csrfToken = "csrf_token"
         }
         |> Tuple.first
 
 
-givenResourcePinnedStatically : Resource.Model -> Resource.Model
+givenResourcePinnedStatically : Models.Model -> Models.Model
 givenResourcePinnedStatically =
     Resource.update
-        (Resource.ResourceFetched <|
+        (Msgs.ResourceFetched <|
             Ok
                 { teamName = teamName
                 , pipelineName = pipelineName
@@ -1234,10 +1813,10 @@ givenResourcePinnedStatically =
         >> Tuple.first
 
 
-givenResourcePinnedDynamically : Resource.Model -> Resource.Model
+givenResourcePinnedDynamically : Models.Model -> Models.Model
 givenResourcePinnedDynamically =
     Resource.update
-        (Resource.ResourceFetched <|
+        (Msgs.ResourceFetched <|
             Ok
                 { teamName = teamName
                 , pipelineName = pipelineName
@@ -1253,10 +1832,10 @@ givenResourcePinnedDynamically =
         >> Tuple.first
 
 
-givenResourceIsNotPinned : Resource.Model -> Resource.Model
+givenResourceIsNotPinned : Models.Model -> Models.Model
 givenResourceIsNotPinned =
     Resource.update
-        (Resource.ResourceFetched <|
+        (Msgs.ResourceFetched <|
             Ok
                 { teamName = teamName
                 , pipelineName = pipelineName
@@ -1272,47 +1851,47 @@ givenResourceIsNotPinned =
         >> Tuple.first
 
 
-queryView : Resource.Model -> Query.Single Resource.Msg
+queryView : Models.Model -> Query.Single Msgs.Msg
 queryView =
     Resource.view
         >> HS.toUnstyled
         >> Query.fromHtml
 
 
-togglePinBarTooltip : Resource.Model -> Resource.Model
+togglePinBarTooltip : Models.Model -> Models.Model
 togglePinBarTooltip =
-    Resource.update Resource.TogglePinBarTooltip
+    Resource.update Msgs.TogglePinBarTooltip
         >> Tuple.first
 
 
-toggleVersionTooltip : Resource.Model -> Resource.Model
+toggleVersionTooltip : Models.Model -> Models.Model
 toggleVersionTooltip =
-    Resource.update Resource.ToggleVersionTooltip
+    Resource.update Msgs.ToggleVersionTooltip
         >> Tuple.first
 
 
-clickToPin : Int -> Resource.Model -> Resource.Model
+clickToPin : Int -> Models.Model -> Models.Model
 clickToPin versionID =
-    Resource.update (Resource.PinVersion versionID)
+    Resource.update (Msgs.PinVersion versionID)
         >> Tuple.first
 
 
-clickToUnpin : Resource.Model -> Resource.Model
+clickToUnpin : Models.Model -> Models.Model
 clickToUnpin =
-    Resource.update Resource.UnpinVersion
+    Resource.update Msgs.UnpinVersion
         >> Tuple.first
 
 
-clickToDisable : Int -> Resource.Model -> Resource.Model
+clickToDisable : Int -> Models.Model -> Models.Model
 clickToDisable versionID =
-    Resource.update (Resource.ToggleVersion Resource.Disable versionID)
+    Resource.update (Msgs.ToggleVersion Models.Disable versionID)
         >> Tuple.first
 
 
-givenVersionsWithoutPagination : Resource.Model -> Resource.Model
+givenVersionsWithoutPagination : Models.Model -> Models.Model
 givenVersionsWithoutPagination =
     Resource.update
-        (Resource.VersionedResourcesFetched Nothing <|
+        (Msgs.VersionedResourcesFetched Nothing <|
             Ok
                 { content =
                     [ { id = versionID
@@ -1340,10 +1919,10 @@ givenVersionsWithoutPagination =
         >> Tuple.first
 
 
-givenVersionsWithPagination : Resource.Model -> Resource.Model
+givenVersionsWithPagination : Models.Model -> Models.Model
 givenVersionsWithPagination =
     Resource.update
-        (Resource.VersionedResourcesFetched Nothing <|
+        (Msgs.VersionedResourcesFetched Nothing <|
             Ok
                 { content =
                     [ { id = versionID

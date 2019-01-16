@@ -119,7 +119,7 @@ require (
 	github.com/mattn/go-isatty v0.0.4
 	github.com/mattn/go-runewidth v0.0.3 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
-	github.com/miekg/dns v1.1.1
+	github.com/miekg/dns v1.1.3
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.0.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
@@ -139,6 +139,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/peterhellberg/link v1.0.0
+	github.com/pkg/errors v0.8.0
 	github.com/pkg/term v0.0.0-20180730021639-bffc007b7fd5
 	github.com/prometheus/client_golang v0.9.0-pre1
 	github.com/ryanuber/go-glob v0.0.0-20170128012129-256dc444b735 // indirect
