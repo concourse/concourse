@@ -362,12 +362,11 @@ var _ = Describe("Token Issuer", func() {
 						})
 					})
 
-					It("calls generate with expected team claims, with roles in descending order", func() {
+					It("calls generate with expected team claims", func() {
 						AssertIssueToken()
 						claims := fakeGenerator.GenerateArgsForCall(0)
-						teams := claims["teams"].(map[string][]string)
-						Expect(teams["fake-team-1"]).To(Equal([]string{"owner", "member", "viewer"}))
 						Expect(claims["is_admin"]).To(BeFalse())
+						Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-1", ConsistOf("owner", "member", "viewer")))
 					})
 
 					AssertTokenClaims()
