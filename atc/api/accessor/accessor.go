@@ -39,21 +39,17 @@ func (a *access) IsAuthorized(team string) bool {
 	return false
 }
 
-func CompareRoles(role1, role2 string) bool {
-	switch role1 {
+func (a *access) HasPermission(role string) bool {
+	switch requiredRoles[a.action] {
 	case "owner":
-		return true
+		return role == "owner"
 	case "member":
-		return role2 != "owner"
+		return role == "owner" || role == "member"
 	case "viewer":
-		return role2 == "viewer"
+		return role == "owner" || role == "member" || role == "viewer"
 	default:
 		return false
 	}
-}
-
-func (a *access) HasPermission(role string) bool {
-	return CompareRoles(role, requiredRoles[a.action])
 }
 
 func (a *access) IsAdmin() bool {
