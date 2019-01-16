@@ -174,12 +174,12 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "auth", Color: color.New(color.Bold)},
 						},
 						Data: []ui.TableRow{
+							{{Contents: "main/owner"}, {Contents: "all"}, {Contents: "none"}},
 							{{Contents: "a-team/owner"}, {Contents: "none"}, {Contents: "github:github-org"}},
-							{{Contents: "b-team/member"}, {Contents: "github:github-user"}, {Contents: "none"}},
 							{{Contents: "c-team/owner"}, {Contents: "github:github-user"}, {Contents: "github:github-org"}},
+							{{Contents: "b-team/member"}, {Contents: "github:github-user"}, {Contents: "none"}},
 							{{Contents: "c-team/member"}, {Contents: "github:github-user"}, {Contents: "github:github-org"}},
 							{{Contents: "c-team/viewer"}, {Contents: "github:github-user"}, {Contents: "github:github-org"}},
-							{{Contents: "main/owner"}, {Contents: "all"}, {Contents: "none"}},
 						},
 					}))
 				})
