@@ -2,7 +2,6 @@ package keyvault
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
@@ -91,11 +90,11 @@ func (manager *KeyVaultManager) Validate() error {
 	}
 
 	if manager.KeyVaultURL == "" {
-		return errors.New("must provide the key vault URL")
+		return fmt.Errorf("must provide the key vault URL")
 	}
 
 	if manager.TenantID == "" {
-		return errors.New("must provide the tenant ID")
+		return fmt.Errorf("must provide the tenant ID")
 	}
 
 	return nil

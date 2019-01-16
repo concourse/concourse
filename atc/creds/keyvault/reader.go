@@ -88,30 +88,24 @@ func isKeyVault404(err error) bool {
 	return e.Response.StatusCode == http.StatusNotFound
 }
 
-// fakeReader is a SecretReader implementation for testing. If Error is set, it
-// will be returned. If Found is false, it will return false for the found bool
-// with Get. Otherwise the arbitrary Value will be returned for Get and the
-// ValueList will be returned for List.
+// fakeReader is a wrapper that implements the SecretReader interface for
+// testing. Each function can be set independently depending on the needs of
+// the test
 type fakeReader struct {
-	Value     string
-	ValueList []string
-	Found     bool
-	Err       error
+	GetFunc  func(string) (string, bool, error)
+	ListFunc func(string) ([]string, error)
 }
 
-func (f *fakeReader) Get(_ string) (string, bool, error) {
-	if f.Err != nil {
-		return "", false, f.Err
-	}
-	if !f.Found {
+func (f *fakeReader) Get(name string) (string, bool, error) {
+	if f.GetFunc == nil {
 		return "", false, nil
 	}
-	return f.Value, true, nil
+	return f.GetFunc(name)
 }
 
-func (f *fakeReader) List(_ string) ([]string, error) {
-	if f.Err != nil {
-		return nil, f.Err
+func (f *fakeReader) List(prefix string) ([]string, error) {
+	if f.ListFunc == nil {
+		return nil, nil
 	}
-	return f.ValueList, nil
+	return f.ListFunc(prefix)
 }
