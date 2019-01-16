@@ -457,6 +457,7 @@ func (r *resource) PinVersion(rcvID int) error {
 func (r *resource) UnpinVersion() error {
 	results, err := psql.Update("resources").
 		Set("api_pinned_version", sq.Expr("NULL")).
+		Set("pin_comment", sq.Expr("NULL")).
 		Where(sq.Eq{"resources.id": r.id}).
 		RunWith(r.conn).
 		Exec()
