@@ -101,6 +101,7 @@ type alias Model =
     , csrfToken : String
     , showPinBarTooltip : Bool
     , pinIconHover : Bool
+    , pinComment : Maybe String
     }
 
 
@@ -187,6 +188,7 @@ init ports flags =
                 , csrfToken = flags.csrfToken
                 , showPinBarTooltip = False
                 , pinIconHover = False
+                , pinComment = Nothing
                 }
     in
     ( model
@@ -292,6 +294,7 @@ update action model =
                 , checkError = resource.checkError
                 , checkSetupError = resource.checkSetupError
                 , lastChecked = resource.lastChecked
+                , pinComment = resource.pinComment
               }
                 |> updatePinnedVersion resource
             , model.ports.title <| resource.name ++ " - "
@@ -577,7 +580,7 @@ update action model =
             ( { model
                 | pinnedVersion = NotPinned
               }
-            , Cmd.none
+            , fetchResource model.resourceIdentifier
             )
 
         VersionUnpinned (Err _) ->
@@ -868,7 +871,21 @@ view model =
                 ]
             , Html.div
                 [ css
-                    [ Css.padding3 (Css.px <| headerHeight + 10) (Css.px 10) (Css.px 10)
+                    [ Css.padding3
+                        (Css.px <| headerHeight + 10)
+                        (Css.px 10)
+                        (Css.px 10)
+                    ]
+                , id "body"
+                , style
+                    [ ( "padding-bottom"
+                      , case model.pinComment of
+                            Just _ ->
+                                "300px"
+
+                            Nothing ->
+                                ""
+                      )
                     ]
                 ]
                 [ Html.div [ class "resource-check-status" ]
@@ -895,7 +912,48 @@ view model =
                     ]
                 , viewVersionedResources model
                 ]
+            , commentBar model
             ]
+
+
+commentBar :
+    { a
+        | pinComment : Maybe String
+        , pinnedVersion : ResourcePinState Concourse.Version Int
+    }
+    -> Html Msg
+commentBar { pinComment, pinnedVersion } =
+    let
+        version =
+            case Pinned.stable pinnedVersion of
+                Just v ->
+                    viewVersion v
+
+                Nothing ->
+                    Html.text ""
+    in
+    case pinComment of
+        Nothing ->
+            Html.text ""
+
+        Just text ->
+            Html.div
+                [ id "comment-bar", style Resource.Styles.commentBar ]
+                [ Html.div
+                    [ style Resource.Styles.commentBarContent ]
+                    [ Html.div
+                        [ style Resource.Styles.commentBarHeader ]
+                        [ Html.div
+                            [ style Resource.Styles.commentBarMessageIcon ]
+                            []
+                        , Html.div
+                            [ style Resource.Styles.commentBarPinIcon ]
+                            []
+                        , version
+                        ]
+                    , Html.pre [] [ Html.text text ]
+                    ]
+                ]
 
 
 pinBar :

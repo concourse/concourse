@@ -1,5 +1,10 @@
 module Resource.Styles exposing
     ( checkStatusIcon
+    , commentBar
+    , commentBarContent
+    , commentBarHeader
+    , commentBarMessageIcon
+    , commentBarPinIcon
     , pinBar
     , pinBarTooltip
     , pinIcon
@@ -95,4 +100,58 @@ checkStatusIcon failingToCheck =
     , ( "width", "28px" )
     , ( "height", "28px" )
     , ( "background-size", "14px 14px" )
+    ]
+
+
+commentBar : List ( String, String )
+commentBar =
+    [ ( "background-color", Colors.frame )
+    , ( "position", "fixed" )
+    , ( "bottom", "0" )
+    , ( "width", "100%" )
+    , ( "height", "300px" )
+    ]
+
+
+commentBarContent : List ( String, String )
+commentBarContent =
+    [ ( "width", "700px" )
+    , ( "margin", "auto" )
+    , ( "padding", "20px" )
+    ]
+
+
+commentBarHeader : List ( String, String )
+commentBarHeader =
+    [ ( "display", "flex" )
+    , ( "align-items", "center" )
+    ]
+
+
+commentBarMessageIcon : List ( String, String )
+commentBarMessageIcon =
+    let
+        messageIconUrl =
+            "url(/public/images/baseline-message.svg)"
+    in
+    [ ( "background-image", messageIconUrl )
+    , ( "background-size", "contain" )
+    , ( "width", "24px" )
+    , ( "height", "24px" )
+    , ( "margin-right", "10px" )
+    ]
+
+
+commentBarPinIcon : List ( String, String )
+commentBarPinIcon =
+    let
+        pinIconUrl =
+            "url(/public/images/pin-ic-white.svg)"
+    in
+    [ ( "background-image", pinIconUrl )
+    , ( "background-position", "50% 50%" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "width", "20px" )
+    , ( "height", "20px" )
+    , ( "margin-right", "10px" )
     ]
