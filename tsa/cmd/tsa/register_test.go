@@ -131,21 +131,28 @@ var _ = Describe("Register", func() {
 	})
 
 	itSuccessfullyRegistersAndHeartbeats := func() {
+		makeFakeContainer := func() garden.Container {
+			fakeContainer := new(gfakes.FakeContainer)
+			fakeContainer.PropertyReturns("task", nil)
+			fakeContainer.PropertiesReturns(garden.Properties{"type": "task"}, nil)
+			return fakeContainer
+		}
+
 		BeforeEach(func() {
 			gardenStubs := make(chan func() ([]garden.Container, error), 4)
 
 			gardenStubs <- func() ([]garden.Container, error) {
 				return []garden.Container{
-					new(gfakes.FakeContainer),
-					new(gfakes.FakeContainer),
-					new(gfakes.FakeContainer),
+					makeFakeContainer(),
+					makeFakeContainer(),
+					makeFakeContainer(),
 				}, nil
 			}
 
 			gardenStubs <- func() ([]garden.Container, error) {
 				return []garden.Container{
-					new(gfakes.FakeContainer),
-					new(gfakes.FakeContainer),
+					makeFakeContainer(),
+					makeFakeContainer(),
 				}, nil
 			}
 
@@ -155,7 +162,7 @@ var _ = Describe("Register", func() {
 
 			gardenStubs <- func() ([]garden.Container, error) {
 				return []garden.Container{
-					new(gfakes.FakeContainer),
+					makeFakeContainer(),
 				}, nil
 			}
 
@@ -169,6 +176,7 @@ var _ = Describe("Register", func() {
 
 				return nil, errors.New("not stubbed enough")
 			}
+			fakeBackend.LookupReturns(makeFakeContainer(), nil)
 
 			baggageclaimStubs := make(chan func() ([]baggageclaim.VolumeResponse, error), 4)
 
@@ -230,7 +238,7 @@ var _ = Describe("Register", func() {
 
 			gClient := gclient.New(gconn.New("tcp", addr))
 
-			fakeBackend.CreateReturns(new(gfakes.FakeContainer), nil)
+			fakeBackend.CreateReturns(makeFakeContainer(), nil)
 
 			_, err := gClient.Create(garden.ContainerSpec{})
 			Expect(err).NotTo(HaveOccurred())
@@ -254,6 +262,8 @@ var _ = Describe("Register", func() {
 			expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
 			expectedWorkerPayload.ActiveContainers = 3
 			expectedWorkerPayload.ActiveVolumes = 2
+			expectedWorkerPayload.BuildContainers = 3
+			expectedWorkerPayload.CheckContainers = 0
 
 			By("registering a forwarded garden address")
 			host, port, err := net.SplitHostPort(registration.worker.GardenAddr)
@@ -278,6 +288,8 @@ var _ = Describe("Register", func() {
 			expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
 			expectedWorkerPayload.ActiveContainers = 2
 			expectedWorkerPayload.ActiveVolumes = 1
+			expectedWorkerPayload.BuildContainers = 2
+			expectedWorkerPayload.CheckContainers = 0
 			Expect(registration.worker).To(Equal(expectedWorkerPayload))
 
 			By("heartbeating a forwarded garden address")
@@ -309,6 +321,8 @@ var _ = Describe("Register", func() {
 			expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
 			expectedWorkerPayload.ActiveContainers = 1
 			expectedWorkerPayload.ActiveVolumes = 0
+			expectedWorkerPayload.BuildContainers = 1
+			expectedWorkerPayload.CheckContainers = 0
 			Expect(registration.worker).To(Equal(expectedWorkerPayload))
 
 			By("having heartbeated after another interval passed")

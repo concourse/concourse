@@ -184,48 +184,30 @@ var _ = Describe("Heartbeater", func() {
 			containers := make(chan []garden.Container, 4)
 			volumes := make(chan []baggageclaim.Volume, 4)
 
-			containers <- []garden.Container{
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
+			setupOneTimeInterval := func(numContainers, numBuildContainers, numActiveContainers, numVolumes int) {
+				containersToReport := make([]garden.Container, numContainers)
+				for i := range containersToReport {
+					fakeContainer := new(gardenfakes.FakeContainer)
+					if i < numBuildContainers {
+						fakeContainer.PropertyReturns("task", nil)
+					} else if i < numBuildContainers+numActiveContainers {
+						fakeContainer.PropertyReturns("check", nil)
+					}
+					containersToReport[i] = fakeContainer
+				}
+				containers <- containersToReport
+
+				volumesToReport := make([]baggageclaim.Volume, numVolumes)
+				for i := range volumesToReport {
+					volumesToReport[i] = new(baggageclaimfakes.FakeVolume)
+				}
+				volumes <- volumesToReport
 			}
 
-			volumes <- []baggageclaim.Volume{
-				new(baggageclaimfakes.FakeVolume),
-				new(baggageclaimfakes.FakeVolume),
-				new(baggageclaimfakes.FakeVolume),
-			}
-
-			containers <- []garden.Container{
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
-			}
-
-			volumes <- []baggageclaim.Volume{
-				new(baggageclaimfakes.FakeVolume),
-				new(baggageclaimfakes.FakeVolume),
-			}
-
-			containers <- []garden.Container{
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
-			}
-
-			volumes <- []baggageclaim.Volume{
-				new(baggageclaimfakes.FakeVolume),
-			}
-
-			containers <- []garden.Container{
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
-			}
-
-			volumes <- []baggageclaim.Volume{}
+			setupOneTimeInterval(2, 1, 1, 3)
+			setupOneTimeInterval(5, 3, 2, 2)
+			setupOneTimeInterval(4, 3, 1, 1)
+			setupOneTimeInterval(3, 0, 3, 0)
 
 			close(containers)
 			close(volumes)
@@ -248,6 +230,8 @@ var _ = Describe("Heartbeater", func() {
 
 				It("immediately registers", func() {
 					expectedWorker.ActiveContainers = 2
+					expectedWorker.BuildContainers = 1
+					expectedWorker.CheckContainers = 1
 					expectedWorker.ActiveVolumes = 3
 					Eventually(registrations).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 				})
@@ -257,6 +241,8 @@ var _ = Describe("Heartbeater", func() {
 
 					fakeClock.WaitForWatcherAndIncrement(interval)
 					expectedWorker.ActiveContainers = 5
+					expectedWorker.BuildContainers = 3
+					expectedWorker.CheckContainers = 2
 					expectedWorker.ActiveVolumes = 2
 					Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 				})
@@ -333,6 +319,8 @@ var _ = Describe("Heartbeater", func() {
 
 				fakeClock.WaitForWatcherAndIncrement(cprInterval)
 				expectedWorker.ActiveContainers = 4
+				expectedWorker.BuildContainers = 3
+				expectedWorker.CheckContainers = 1
 				expectedWorker.ActiveVolumes = 1
 				Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})
@@ -351,6 +339,8 @@ var _ = Describe("Heartbeater", func() {
 
 				fakeClock.WaitForWatcherAndIncrement(interval - cprInterval)
 				expectedWorker.ActiveContainers = 3
+				expectedWorker.BuildContainers = 0
+				expectedWorker.CheckContainers = 3
 				expectedWorker.ActiveVolumes = 0
 				Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})

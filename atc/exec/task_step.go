@@ -179,6 +179,8 @@ func (action *TaskStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
+	containerSpec.Type = action.containerMetadata.Type
+
 	workerSpec, err := action.workerSpec(logger, action.resourceTypes, repository, config)
 	if err != nil {
 		return err

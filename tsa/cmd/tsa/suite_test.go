@@ -174,8 +174,10 @@ var _ = BeforeEach(func() {
 		Worker: atc.Worker{
 			Name: "some-worker",
 
-			Platform: "linux",
-			Tags:     []string{"some", "tags"},
+			Platform:        "linux",
+			Tags:            []string{"some", "tags"},
+			BuildContainers: 0,
+			CheckContainers: 0,
 
 			ResourceTypes: []atc.WorkerResourceType{
 				{Type: "resource-type-a", Image: "resource-image-a"},

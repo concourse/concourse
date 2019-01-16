@@ -42,9 +42,11 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 	registration.Name = workerName
 
 	metric.WorkerContainers{
-		WorkerName: registration.Name,
-		Containers: registration.ActiveContainers,
-		Platform:   registration.Platform,
+		WorkerName:       registration.Name,
+		ActiveContainers: registration.ActiveContainers,
+		BuildContainers:  registration.BuildContainers,
+		CheckContainers:  registration.CheckContainers,
+		Platform:         registration.Platform,
 	}.Emit(s.logger)
 
 	metric.WorkerVolumes{

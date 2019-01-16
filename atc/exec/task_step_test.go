@@ -191,6 +191,7 @@ var _ = Describe("TaskStep", func() {
 					Platform: "some-platform",
 					Tags:     []string{"step", "tags"},
 					TeamID:   teamID,
+					Type:     "task",
 					ImageSpec: worker.ImageSpec{
 						ImageResource: &worker.ImageResource{
 							Type:    "docker",
@@ -262,6 +263,7 @@ var _ = Describe("TaskStep", func() {
 						Platform: "some-platform",
 						Tags:     []string{"step", "tags"},
 						TeamID:   teamID,
+						Type:     "task",
 						ImageSpec: worker.ImageSpec{
 							ImageResource: &worker.ImageResource{
 								Type:    "docker",

@@ -18,6 +18,8 @@ type Worker struct {
 
 	ActiveContainers int `json:"active_containers"`
 	ActiveVolumes    int `json:"active_volumes"`
+	BuildContainers  int `json:"build_containers"`
+	CheckContainers  int `json:"check_containers"`
 
 	ResourceTypes []WorkerResourceType `json:"resource_types"`
 

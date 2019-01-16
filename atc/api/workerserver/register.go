@@ -64,9 +64,11 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 	}
 
 	metric.WorkerContainers{
-		WorkerName: registration.Name,
-		Containers: registration.ActiveContainers,
-		Platform:   registration.Platform,
+		WorkerName:       registration.Name,
+		ActiveContainers: registration.ActiveContainers,
+		CheckContainers:  registration.CheckContainers,
+		BuildContainers:  registration.BuildContainers,
+		Platform:         registration.Platform,
 	}.Emit(s.logger)
 
 	metric.WorkerVolumes{

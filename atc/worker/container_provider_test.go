@@ -207,6 +207,7 @@ var _ = Describe("ContainerProvider", func() {
 		containerSpec = ContainerSpec{
 			TeamID: 73410,
 
+			Type: "task",
 			ImageSpec: ImageSpec{
 				ImageResource: &ImageResource{
 					Type:   "registry-image",
@@ -407,7 +408,7 @@ var _ = Describe("ContainerProvider", func() {
 				Expect(actualSpec).To(Equal(garden.ContainerSpec{
 					Handle:     "some-handle",
 					RootFSPath: "some-image-url",
-					Properties: garden.Properties{"user": "some-user"},
+					Properties: garden.Properties{"type": "task", "user": "some-user"},
 					BindMounts: []garden.BindMount{
 						{
 							SrcPath: "some/source",
@@ -513,7 +514,7 @@ var _ = Describe("ContainerProvider", func() {
 						Expect(actualSpec).To(Equal(garden.ContainerSpec{
 							Handle:     "some-handle",
 							RootFSPath: "some-image-url",
-							Properties: garden.Properties{"user": "some-user"},
+							Properties: garden.Properties{"type": "task", "user": "some-user"},
 							BindMounts: []garden.BindMount{
 								{
 									SrcPath: "some/source",
@@ -572,7 +573,7 @@ var _ = Describe("ContainerProvider", func() {
 						Expect(actualSpec).To(Equal(garden.ContainerSpec{
 							Handle:     "some-handle",
 							RootFSPath: "some-image-url",
-							Properties: garden.Properties{"user": "some-user"},
+							Properties: garden.Properties{"type": "task", "user": "some-user"},
 							BindMounts: []garden.BindMount{
 								{
 									SrcPath: "some/source",
@@ -631,7 +632,7 @@ var _ = Describe("ContainerProvider", func() {
 						Expect(actualSpec).To(Equal(garden.ContainerSpec{
 							Handle:     "some-handle",
 							RootFSPath: "some-image-url",
-							Properties: garden.Properties{"user": "some-user"},
+							Properties: garden.Properties{"type": "task", "user": "some-user"},
 							BindMounts: []garden.BindMount{
 								{
 									SrcPath: "some/source",
@@ -691,7 +692,7 @@ var _ = Describe("ContainerProvider", func() {
 						Expect(actualSpec).To(Equal(garden.ContainerSpec{
 							Handle:     "some-handle",
 							RootFSPath: "some-image-url",
-							Properties: garden.Properties{"user": "some-user"},
+							Properties: garden.Properties{"type": "task", "user": "some-user"},
 							BindMounts: []garden.BindMount{
 								{
 									SrcPath: "some/source",
@@ -752,7 +753,7 @@ var _ = Describe("ContainerProvider", func() {
 						Expect(actualSpec).To(Equal(garden.ContainerSpec{
 							Handle:     "some-handle",
 							RootFSPath: "some-image-url",
-							Properties: garden.Properties{"user": "some-user"},
+							Properties: garden.Properties{"type": "task", "user": "some-user"},
 							BindMounts: []garden.BindMount{
 								{
 									SrcPath: "some/source",

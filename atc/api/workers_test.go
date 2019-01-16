@@ -775,8 +775,7 @@ var _ = Describe("Workers API", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			worker = atc.Worker{
-				Name:             workerName,
-				ActiveContainers: 2,
+				Name: workerName,
 			}
 			fakeaccess.IsAuthenticatedReturns(true)
 			dbWorkerFactory.HeartbeatWorkerReturns(fakeWorker, nil)
@@ -812,6 +811,8 @@ var _ = Describe("Workers API", func() {
 				"baggageclaim_url": "",
 				"active_containers": 2,
 				"active_volumes": 10,
+				"build_containers": 0,
+				"check_containers": 0,
 				"resource_types": null,
 				"platform": "penguin",
 				"ephemeral": true,

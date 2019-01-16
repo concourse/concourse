@@ -25,6 +25,9 @@ type ContainerSpec struct {
 	ImageSpec ImageSpec
 	Env       []string
 
+	// whether it's a check container or task container
+	Type db.ContainerType
+
 	// Working directory for processes run in the container.
 	Dir string
 

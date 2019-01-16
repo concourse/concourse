@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -271,6 +272,26 @@ func (heartbeater *Heartbeater) pingWorker(logger lager.Logger) (atc.Worker, boo
 		healthy = false
 	}
 
+	buildContainers := 0
+	checkContainers := 0
+	for _, container := range containers {
+		containerType, err := container.Property("type")
+		if err != nil {
+			logger.Error("got-container-without-properties", err)
+			healthy = false
+		}
+
+		switch containerType {
+		case "task", "get", "put":
+			buildContainers++
+		case "check":
+			checkContainers++
+		default:
+			logger.Error(fmt.Sprintf("found-container-of-unknown-type %s", containerType), err)
+			healthy = false
+		}
+	}
+
 	afterGarden := time.Now()
 
 	beforeBaggageclaim := time.Now()
@@ -297,6 +318,8 @@ func (heartbeater *Heartbeater) pingWorker(logger lager.Logger) (atc.Worker, boo
 
 	registration.ActiveContainers = len(containers)
 	registration.ActiveVolumes = len(volumes)
+	registration.BuildContainers = buildContainers
+	registration.CheckContainers = checkContainers
 
 	return registration, true
 }

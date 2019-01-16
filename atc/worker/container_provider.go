@@ -468,7 +468,7 @@ func (p *containerProvider) createGardenContainer(
 		})
 	}
 
-	gardenProperties := garden.Properties{}
+	gardenProperties := garden.Properties{"type": string(spec.Type)}
 
 	if spec.User != "" {
 		gardenProperties[userPropertyName] = spec.User

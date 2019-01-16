@@ -119,7 +119,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 					"resource": resource.ResourcesDir("get"),
 				},
 			},
-			resource.Session{},
+			resource.Session{Metadata: db.ContainerMetadata{Type: "get"}},
 			fakeDelegate,
 		)
 	})
@@ -207,10 +207,11 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 				_, logger, delegate, owner, metadata, containerSpec, types := fakeWorker.FindOrCreateContainerArgsForCall(0)
 				Expect(delegate).To(Equal(fakeDelegate))
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"), 42)))
-				Expect(metadata).To(BeZero())
+				Expect(metadata).To(Equal(db.ContainerMetadata{Type: "get"}))
 				Expect(containerSpec).To(Equal(worker.ContainerSpec{
 					TeamID: 42,
 					Tags:   []string{},
+					Type:   "get",
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "fake-resource-type",
 					},
