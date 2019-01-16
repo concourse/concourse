@@ -41,8 +41,7 @@ func (manager *KeyVaultManager) MarshalJSON() ([]byte, error) {
 
 // Init creates and configures the proper Key Vault client
 func (manager *KeyVaultManager) Init(log lager.Logger) error {
-	// TODO: Create the needed key vault client
-
+	// Create the keyvault client with the proper credentials
 	conf := auth.NewClientCredentialsConfig(manager.ServicePrincipalID, manager.ServicePrincipalKey, manager.TenantID)
 	kv := keyvault.New()
 	authz, err := conf.Authorizer()
@@ -62,7 +61,13 @@ func (manager *KeyVaultManager) Health() (*creds.HealthResponse, error) {
 		Method: "GetParameter",
 	}
 
-	// TODO: Figure out a health check for the connection
+	// Try to fetch a non-existent secret. It should not return an error for a
+	// non-existent secret, so if it does, we know something is up
+	_, _, err := manager.reader.Get("i_should_never_exist")
+	if err != nil {
+		health.Error = err.Error()
+		return health, nil
+	}
 
 	health.Response = map[string]string{
 		"status": "UP",
@@ -99,6 +104,5 @@ func (manager *KeyVaultManager) Validate() error {
 // NewVariablesFactory implements the manager interface and returns a
 // VariablesFactory implementation for Azure Key Vault
 func (manager *KeyVaultManager) NewVariablesFactory(log lager.Logger) (creds.VariablesFactory, error) {
-	// TODO: Pass the right client when I figure it out
-	return NewKeyVaultFactory(log, manager.KeyPrefix), nil
+	return NewKeyVaultFactory(log, manager.reader, manager.KeyPrefix), nil
 }
