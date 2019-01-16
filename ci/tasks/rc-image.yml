@@ -19,9 +19,4 @@ params:
   CONTEXT: .
 
 run:
-  path: /bin/bash
-  args:
-    - -ce
-    - |
-      tar xzf ./rc/concourse-*.tgz --strip-components=1 --directory=rc
-      build
+  path: build
