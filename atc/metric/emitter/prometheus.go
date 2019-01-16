@@ -16,31 +16,34 @@ import (
 )
 
 type PrometheusEmitter struct {
-	locksHeld *prometheus.GaugeVec
-
-	buildsStarted     prometheus.Counter
-	buildsFinished    prometheus.Counter
-	buildsSucceeded   prometheus.Counter
+	buildDurationsVec *prometheus.HistogramVec
+	buildsAborted     prometheus.Counter
 	buildsErrored     prometheus.Counter
 	buildsFailed      prometheus.Counter
-	buildsAborted     prometheus.Counter
+	buildsFinished    prometheus.Counter
 	buildsFinishedVec *prometheus.CounterVec
-	buildDurationsVec *prometheus.HistogramVec
+	buildsStarted     prometheus.Counter
+	buildsSucceeded   prometheus.Counter
 
-	workerContainers *prometheus.GaugeVec
-	workerVolumes    *prometheus.GaugeVec
-	workerInfo       *prometheus.GaugeVec
+	dbConnections  *prometheus.GaugeVec
+	dbQueriesTotal prometheus.Counter
+
+	errorLogs *prometheus.CounterVec
 
 	httpRequestsDuration *prometheus.HistogramVec
 
-	schedulingFullDuration    *prometheus.CounterVec
-	schedulingLoadingDuration *prometheus.CounterVec
-	pipelineScheduled         *prometheus.CounterVec
+	locksHeld *prometheus.GaugeVec
 
-	dbQueriesTotal prometheus.Counter
-	dbConnections  *prometheus.GaugeVec
+	pipelineScheduled *prometheus.CounterVec
 
 	resourceChecksVec *prometheus.CounterVec
+
+	schedulingFullDuration    *prometheus.CounterVec
+	schedulingLoadingDuration *prometheus.CounterVec
+
+	workerContainers *prometheus.GaugeVec
+	workerInfo       *prometheus.GaugeVec
+	workerVolumes    *prometheus.GaugeVec
 
 	workerLastSeen map[string]time.Time
 	mu             sync.Mutex
@@ -64,6 +67,16 @@ func (config *PrometheusConfig) bind() string {
 }
 
 func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
+	// error log metrics
+	errorLogs := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "concourse",
+			Subsystem: "error",
+			Name:      "logs",
+			Help:      "Number of error logged",
+		}, []string{"message"},
+	)
+	prometheus.MustRegister(errorLogs)
 
 	// lock metrics
 	locksHeld := prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -264,32 +277,35 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	go http.Serve(listener, promhttp.Handler())
 
 	emitter := &PrometheusEmitter{
-		locksHeld:         locksHeld,
-		buildsStarted:     buildsStarted,
-		buildsFinished:    buildsFinished,
-		buildsFinishedVec: buildsFinishedVec,
 		buildDurationsVec: buildDurationsVec,
-		buildsSucceeded:   buildsSucceeded,
+		buildsAborted:     buildsAborted,
 		buildsErrored:     buildsErrored,
 		buildsFailed:      buildsFailed,
-		buildsAborted:     buildsAborted,
+		buildsFinished:    buildsFinished,
+		buildsFinishedVec: buildsFinishedVec,
+		buildsStarted:     buildsStarted,
+		buildsSucceeded:   buildsSucceeded,
 
-		workerContainers: workerContainers,
-		workerVolumes:    workerVolumes,
-		workerInfo:       workerInfo,
+		dbConnections:  dbConnections,
+		dbQueriesTotal: dbQueriesTotal,
+
+		errorLogs: errorLogs,
 
 		httpRequestsDuration: httpRequestsDuration,
 
-		schedulingFullDuration:    schedulingFullDuration,
-		schedulingLoadingDuration: schedulingLoadingDuration,
-		pipelineScheduled:         pipelineScheduled,
+		locksHeld: locksHeld,
 
-		dbQueriesTotal: dbQueriesTotal,
-		dbConnections:  dbConnections,
+		pipelineScheduled: pipelineScheduled,
 
 		resourceChecksVec: resourceChecksVec,
 
-		workerLastSeen: map[string]time.Time{},
+		schedulingFullDuration:    schedulingFullDuration,
+		schedulingLoadingDuration: schedulingLoadingDuration,
+
+		workerContainers: workerContainers,
+		workerInfo:       workerInfo,
+		workerLastSeen:   map[string]time.Time{},
+		workerVolumes:    workerVolumes,
 	}
 	go emitter.periodicMetricGC()
 
@@ -306,6 +322,8 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	emitter.updateLastSeen(event)
 
 	switch event.Name {
+	case "error log":
+		emitter.errorLogsMetric(logger, event)
 	case "lock held":
 		emitter.lock(logger, event)
 	case "build started":
@@ -355,6 +373,17 @@ func (emitter *PrometheusEmitter) lock(logger lager.Logger, event metric.Event) 
 	} else {
 		emitter.locksHeld.WithLabelValues(lockType, objectID).Dec()
 	}
+}
+
+func (emitter *PrometheusEmitter) errorLogsMetric(logger lager.Logger, event metric.Event) {
+	message, exists := event.Attributes["message"]
+	if !exists {
+		logger.Error("failed-to-find-message-in-event",
+			fmt.Errorf("expected team_name to exist in event.Attributes"))
+		return
+	}
+
+	emitter.errorLogs.WithLabelValues(message).Inc()
 }
 
 func (emitter *PrometheusEmitter) buildFinishedMetrics(logger lager.Logger, event metric.Event) {

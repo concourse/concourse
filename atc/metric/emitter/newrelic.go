@@ -10,6 +10,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/pkg/errors"
 )
 
 type (
@@ -102,7 +103,8 @@ func (emitter *NewRelicEmitter) emitPayload(logger lager.Logger, payload fullPay
 	resp, err := emitter.client.Do(req)
 
 	if err != nil {
-		logger.Error("failed-to-send-request", err)
+		logger.Error("failed-to-send-request",
+			errors.Wrap(metric.ErrFailedToEmit, err.Error()))
 		return
 	}
 
