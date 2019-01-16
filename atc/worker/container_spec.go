@@ -7,6 +7,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type WorkerSpec struct {

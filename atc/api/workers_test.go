@@ -759,8 +759,8 @@ var _ = Describe("Workers API", func() {
 		)
 
 		BeforeEach(func() {
-			fakeWorker = new(dbfakes.FakeWorker)
 			workerName = "some-name"
+			fakeWorker = new(dbfakes.FakeWorker)
 			fakeWorker.NameReturns(workerName)
 			fakeWorker.ActiveContainersReturns(2)
 			fakeWorker.ActiveVolumesReturns(10)
