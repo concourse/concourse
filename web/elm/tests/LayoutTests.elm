@@ -39,6 +39,36 @@ all =
                             , ( "font-weight", "700" )
                             ]
                         ]
+        , test "bold and antialiasing on resource page" <|
+            \_ ->
+                Layout.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = ""
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { href = ""
+                    , host = ""
+                    , hostname = ""
+                    , protocol = ""
+                    , origin = ""
+                    , port_ = ""
+                    , pathname = "/teams/t/pipelines/p/resources/r"
+                    , search = ""
+                    , hash = ""
+                    , username = ""
+                    , password = ""
+                    }
+                    |> Tuple.first
+                    |> Layout.view
+                    |> Query.fromHtml
+                    |> Query.has
+                        [ style
+                            [ ( "-webkit-font-smoothing", "antialiased" )
+                            , ( "font-weight", "700" )
+                            ]
+                        ]
         , test "bold and antialiasing everywhere else" <|
             \_ ->
                 Layout.init

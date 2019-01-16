@@ -335,6 +335,10 @@ var _ = Describe("Accessor", func() {
 
 			Expect(access.IsAuthorized("some-team")).To(Equal(authorized))
 		},
+		Entry("owner :: table has no entry", "some-role", "owner", false),
+		Entry("member :: table has no entry", "some-role", "member", false),
+		Entry("viewer :: table has no entry", "some-role", "viewer", false),
+
 		Entry("owner :: "+atc.SaveConfig, atc.SaveConfig, "owner", true),
 		Entry("member :: "+atc.SaveConfig, atc.SaveConfig, "member", true),
 		Entry("viewer :: "+atc.SaveConfig, atc.SaveConfig, "viewer", false),

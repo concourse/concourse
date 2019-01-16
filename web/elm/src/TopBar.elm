@@ -16,22 +16,18 @@ import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Task
 import Time
+import UserState exposing (UserState(..))
 
 
-type alias Model =
-    { route : Routes.ConcourseRoute
-    , pipeline : Maybe Concourse.Pipeline
-    , userState : UserState
-    , userMenuVisible : Bool
-    , pinnedResources : List ( String, Concourse.Version )
-    , showPinIconDropDown : Bool
+type alias Model r =
+    { r
+        | route : Routes.ConcourseRoute
+        , pipeline : Maybe Concourse.Pipeline
+        , userState : UserState
+        , userMenuVisible : Bool
+        , pinnedResources : List ( String, Concourse.Version )
+        , showPinIconDropDown : Bool
     }
-
-
-type UserState
-    = UserStateLoggedIn Concourse.User
-    | UserStateLoggedOut
-    | UserStateUnknown
 
 
 type Msg
@@ -49,7 +45,7 @@ type Msg
     | GoToPinnedResource String
 
 
-init : Routes.ConcourseRoute -> ( Model, Cmd Msg )
+init : Routes.ConcourseRoute -> ( Model {}, Cmd Msg )
 init route =
     let
         pid =
@@ -71,7 +67,7 @@ init route =
     )
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model r -> ( Model r, Cmd Msg )
 update msg model =
     case msg of
         Noop ->
@@ -151,7 +147,7 @@ update msg model =
             ( model, Navigation.newUrl (url ++ "/resources/" ++ resourceName) )
 
 
-subscriptions : Model -> Sub Msg
+subscriptions : Model r -> Sub Msg
 subscriptions model =
     Sub.batch
         [ case pipelineIdentifierFromRouteOrModel model.route model of
@@ -164,7 +160,7 @@ subscriptions model =
         ]
 
 
-pipelineIdentifierFromRouteOrModel : Routes.ConcourseRoute -> Model -> Maybe Concourse.PipelineIdentifier
+pipelineIdentifierFromRouteOrModel : Routes.ConcourseRoute -> Model r -> Maybe Concourse.PipelineIdentifier
 pipelineIdentifierFromRouteOrModel route model =
     case extractPidFromRoute route.logical of
         Nothing ->
@@ -207,7 +203,7 @@ extractPidFromRoute route =
             Nothing
 
 
-urlUpdate : Routes.ConcourseRoute -> Model -> ( Model, Cmd Msg )
+urlUpdate : Routes.ConcourseRoute -> Model r -> ( Model r, Cmd Msg )
 urlUpdate route model =
     let
         pipelineIdentifier =
@@ -225,7 +221,7 @@ urlUpdate route model =
     )
 
 
-view : Model -> Html Msg
+view : Model r -> Html Msg
 view model =
     Html.div
         [ id "top-bar-app"
@@ -412,7 +408,7 @@ view model =
         ]
 
 
-viewBreadcrumbs : Model -> List (Html Msg)
+viewBreadcrumbs : Model r -> List (Html Msg)
 viewBreadcrumbs model =
     List.intersperse viewBreadcrumbSeparator <|
         case model.route.logical of

@@ -1,9 +1,5 @@
 module Resource exposing
     ( Flags
-    , Hoverable(..)
-    , Model
-    , Msg(..)
-    , VersionToggleAction(..)
     , changeToResource
     , init
     , subscriptions
@@ -19,8 +15,15 @@ import BoolTransitionable
 import Colors
 import Concourse
 import Concourse.BuildStatus
-import Concourse.Pagination exposing (Page, Paginated, Pagination, chevron, chevronContainer, equal)
-import Concourse.Resource
+import Concourse.Pagination
+    exposing
+        ( Page
+        , Paginated
+        , Pagination
+        , chevron
+        , chevronContainer
+        , equal
+        )
 import Css
 import Date exposing (Date)
 import Date.Format
@@ -50,100 +53,25 @@ import Html.Styled.Events
         )
 import Http
 import List.Extra
-import LoginRedirect
 import Maybe.Extra as ME
-import Navigation
 import NewTopBar.Styles as Styles
 import Pinned
     exposing
         ( ResourcePinState(..)
         , VersionPinState(..)
         )
+import QueryString
+import Resource.Effects as Effects exposing (Effect(..))
+import Resource.Models as Models exposing (Model)
+import Resource.Msgs exposing (Msg(..))
 import Resource.Styles
+import Routes
 import Spinner
 import StrictEvents
-import Task exposing (Task)
 import Time exposing (Time)
+import TopBar
 import UpdateMsg exposing (UpdateMsg)
-
-
-type alias Ports =
-    { title : String -> Cmd Msg
-    }
-
-
-type PageError
-    = Empty
-    | NotFound
-
-
-type VersionToggleAction
-    = Enable
-    | Disable
-
-
-type alias Model =
-    { ports : Ports
-    , pageStatus : Result PageError ()
-    , teamName : String
-    , pipelineName : String
-    , name : String
-    , failingToCheck : Bool
-    , checkError : String
-    , checkSetupError : String
-    , lastChecked : Maybe Date
-    , pinnedVersion : ResourcePinState Concourse.Version Int
-    , now : Maybe Time.Time
-    , resourceIdentifier : Concourse.ResourceIdentifier
-    , currentPage : Maybe Page
-    , hovered : Hoverable
-    , versions : Paginated Version
-    , csrfToken : String
-    , showPinBarTooltip : Bool
-    , pinIconHover : Bool
-    , pinComment : Maybe String
-    }
-
-
-type alias Version =
-    { id : Int
-    , version : Concourse.Version
-    , metadata : Concourse.Metadata
-    , enabled : BoolTransitionable.BoolTransitionable
-    , expanded : Bool
-    , inputTo : List Concourse.Build
-    , outputOf : List Concourse.Build
-    , showTooltip : Bool
-    }
-
-
-type Hoverable
-    = PreviousPage
-    | NextPage
-    | None
-
-
-type Msg
-    = Noop
-    | AutoupdateTimerTicked Time
-    | ResourceFetched (Result Http.Error Concourse.Resource)
-    | VersionedResourcesFetched (Maybe Page) (Result Http.Error (Paginated Concourse.VersionedResource))
-    | LoadPage Page
-    | ClockTick Time.Time
-    | ExpandVersionedResource Int
-    | InputToFetched Int (Result Http.Error (List Concourse.Build))
-    | OutputOfFetched Int (Result Http.Error (List Concourse.Build))
-    | NavTo String
-    | TogglePinBarTooltip
-    | ToggleVersionTooltip
-    | PinVersion Int
-    | UnpinVersion
-    | VersionPinned (Result Http.Error ())
-    | VersionUnpinned (Result Http.Error ())
-    | ToggleVersion VersionToggleAction Int
-    | VersionToggled VersionToggleAction Int (Result Http.Error ())
-    | PinIconHover Bool
-    | Hover Hoverable
+import UserState exposing (UserState(..))
 
 
 type alias Flags =
@@ -155,24 +83,24 @@ type alias Flags =
     }
 
 
-init : Ports -> Flags -> ( Model, Cmd Msg )
-init ports flags =
+init : Flags -> ( Model, List Effect )
+init flags =
     let
-        ( model, cmd ) =
+        ( model, effect ) =
             changeToResource flags
                 { resourceIdentifier =
                     { teamName = flags.teamName
                     , pipelineName = flags.pipelineName
                     , resourceName = flags.resourceName
                     }
-                , pageStatus = Err Empty
+                , pageStatus = Err Models.Empty
                 , teamName = flags.teamName
                 , pipelineName = flags.pipelineName
                 , name = flags.resourceName
-                , failingToCheck = False
+                , checkStatus = Models.CheckingSuccessfully
                 , checkError = ""
                 , checkSetupError = ""
-                , hovered = None
+                , hovered = Models.None
                 , lastChecked = Nothing
                 , pinnedVersion = NotPinned
                 , currentPage = Nothing
@@ -183,23 +111,37 @@ init ports flags =
                         , nextPage = Nothing
                         }
                     }
-                , ports = ports
                 , now = Nothing
                 , csrfToken = flags.csrfToken
                 , showPinBarTooltip = False
                 , pinIconHover = False
                 , pinComment = Nothing
+                , route =
+                    { logical =
+                        Routes.Resource
+                            flags.teamName
+                            flags.pipelineName
+                            flags.resourceName
+                    , queries = QueryString.empty
+                    , page = Nothing
+                    , hash = ""
+                    }
+                , pipeline = Nothing
+                , userState = UserStateUnknown
+                , userMenuVisible = False
+                , pinnedResources = []
+                , showPinIconDropDown = False
                 }
     in
     ( model
-    , Cmd.batch
-        [ fetchResource model.resourceIdentifier
-        , cmd
-        ]
+    , [ FetchResource model.resourceIdentifier
+      , DoTopBarUpdate (TopBar.FetchUser 0) model
+      , effect
+      ]
     )
 
 
-changeToResource : Flags -> Model -> ( Model, Cmd Msg )
+changeToResource : Flags -> Model -> ( Model, Effect )
 changeToResource flags model =
     ( { model
         | currentPage = flags.paging
@@ -211,21 +153,24 @@ changeToResource flags model =
                 }
             }
       }
-    , fetchVersionedResources model.resourceIdentifier flags.paging
+    , FetchVersionedResources model.resourceIdentifier flags.paging
     )
 
 
 updateWithMessage : Msg -> Model -> ( Model, Cmd Msg, Maybe UpdateMsg )
 updateWithMessage message model =
     let
-        ( mdl, msg ) =
+        ( mdl, effects ) =
             update message model
+
+        cmd =
+            Cmd.batch <| List.map Effects.runEffect effects
     in
-    if mdl.pageStatus == Err NotFound then
-        ( mdl, msg, Just UpdateMsg.NotFound )
+    if mdl.pageStatus == Err Models.NotFound then
+        ( mdl, cmd, Just UpdateMsg.NotFound )
 
     else
-        ( mdl, msg, Nothing )
+        ( mdl, cmd, Nothing )
 
 
 updatePinnedVersion : Concourse.Resource -> Model -> Model
@@ -267,21 +212,18 @@ hasPinnedVersion model v =
             False
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, List Effect )
 update action model =
     case action of
         Noop ->
-            ( model, Cmd.none )
+            ( model, [] )
 
         AutoupdateTimerTicked timestamp ->
             ( model
-            , Cmd.batch <|
-                List.append
-                    [ fetchResource model.resourceIdentifier
-                    , fetchVersionedResources model.resourceIdentifier model.currentPage
-                    ]
-                <|
-                    updateExpandedProperties model
+            , [ FetchResource model.resourceIdentifier
+              , FetchVersionedResources model.resourceIdentifier model.currentPage
+              ]
+                ++ updateExpandedProperties model
             )
 
         ResourceFetched (Ok resource) ->
@@ -290,30 +232,35 @@ update action model =
                 , teamName = resource.teamName
                 , pipelineName = resource.pipelineName
                 , name = resource.name
-                , failingToCheck = resource.failingToCheck
+                , checkStatus =
+                    if resource.failingToCheck then
+                        Models.FailingToCheck
+
+                    else
+                        Models.CheckingSuccessfully
                 , checkError = resource.checkError
                 , checkSetupError = resource.checkSetupError
                 , lastChecked = resource.lastChecked
                 , pinComment = resource.pinComment
               }
                 |> updatePinnedVersion resource
-            , model.ports.title <| resource.name ++ " - "
+            , [ SetTitle <| resource.name ++ " - " ]
             )
 
         ResourceFetched (Err err) ->
             case Debug.log "failed to fetch resource" err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
+                        ( model, [ RedirectToLogin ] )
 
                     else if status.code == 404 then
-                        ( { model | pageStatus = Err NotFound }, Cmd.none )
+                        ( { model | pageStatus = Err Models.NotFound }, [] )
 
                     else
-                        ( model, Cmd.none )
+                        ( model, [] )
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( model, [] )
 
         VersionedResourcesFetched requestedPage (Ok paginated) ->
             let
@@ -327,7 +274,7 @@ update action model =
                             |> List.map
                                 (\vr ->
                                     let
-                                        existingVersion : Maybe Version
+                                        existingVersion : Maybe Models.Version
                                         existingVersion =
                                             model.versions.content
                                                 |> List.Extra.find (\v -> v.id == vr.id)
@@ -386,25 +333,24 @@ update action model =
             in
             case requestedPage of
                 Nothing ->
-                    ( newModel (Just fetchedPage), Cmd.none )
+                    ( newModel (Just fetchedPage), [] )
 
                 Just requestedPageUnwrapped ->
                     ( chosenModelWith requestedPageUnwrapped
-                    , Cmd.none
+                    , []
                     )
 
         VersionedResourcesFetched _ (Err err) ->
             flip always (Debug.log "failed to fetch versioned resources" err) <|
-                ( model, Cmd.none )
+                ( model, [] )
 
         LoadPage page ->
             ( { model
                 | currentPage = Just page
               }
-            , Cmd.batch
-                [ fetchVersionedResources model.resourceIdentifier <| Just page
-                , Navigation.newUrl <| paginationRoute model.resourceIdentifier page
-                ]
+            , [ FetchVersionedResources model.resourceIdentifier <| Just page
+              , NewUrl <| paginationRoute model.resourceIdentifier page
+              ]
             )
 
         ExpandVersionedResource versionID ->
@@ -416,7 +362,7 @@ update action model =
                     , versionID = versionID
                     }
 
-                version : Maybe Version
+                version : Maybe Models.Version
                 version =
                     model.versions.content
                         |> List.Extra.find (.id >> (==) versionID)
@@ -432,54 +378,53 @@ update action model =
             in
             ( updateVersion versionID (\v -> { v | expanded = newExpandedState }) model
             , if newExpandedState then
-                Cmd.batch
-                    [ fetchInputTo versionedResourceIdentifier
-                    , fetchOutputOf versionedResourceIdentifier
-                    ]
+                [ FetchInputTo versionedResourceIdentifier
+                , FetchOutputOf versionedResourceIdentifier
+                ]
 
               else
-                Cmd.none
+                []
             )
 
         InputToFetched _ (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
+                        ( model, [ RedirectToLogin ] )
 
                     else
-                        ( model, Cmd.none )
+                        ( model, [] )
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( model, [] )
 
         InputToFetched versionID (Ok builds) ->
             ( updateVersion versionID (\v -> { v | inputTo = builds }) model
-            , Cmd.none
+            , []
             )
 
         OutputOfFetched _ (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
+                        ( model, [ RedirectToLogin ] )
 
                     else
-                        ( model, Cmd.none )
+                        ( model, [] )
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( model, [] )
 
         ClockTick now ->
-            ( { model | now = Just now }, Cmd.none )
+            ( { model | now = Just now }, [] )
 
         OutputOfFetched versionID (Ok builds) ->
             ( updateVersion versionID (\v -> { v | outputOf = builds }) model
-            , Cmd.none
+            , []
             )
 
         NavTo url ->
-            ( model, Navigation.newUrl url )
+            ( model, [ NewUrl url ] )
 
         TogglePinBarTooltip ->
             ( { model
@@ -491,7 +436,7 @@ update action model =
                         _ ->
                             False
               }
-            , Cmd.none
+            , []
             )
 
         ToggleVersionTooltip ->
@@ -510,30 +455,30 @@ update action model =
                         _ ->
                             model
             in
-            ( newModel, Cmd.none )
+            ( newModel, [] )
 
         PinVersion versionID ->
             let
-                version : Maybe Version
+                version : Maybe Models.Version
                 version =
                     model.versions.content
                         |> List.Extra.find (\v -> v.id == versionID)
 
-                cmd : Cmd Msg
+                cmd : List Effect
                 cmd =
                     case version of
                         Just v ->
-                            Task.attempt VersionPinned <|
-                                Concourse.Resource.pinVersion
-                                    { teamName = model.resourceIdentifier.teamName
-                                    , pipelineName = model.resourceIdentifier.pipelineName
-                                    , resourceName = model.resourceIdentifier.resourceName
-                                    , versionID = v.id
-                                    }
-                                    model.csrfToken
+                            [ DoPinVersion
+                                { teamName = model.resourceIdentifier.teamName
+                                , pipelineName = model.resourceIdentifier.pipelineName
+                                , resourceName = model.resourceIdentifier.resourceName
+                                , versionID = v.id
+                                }
+                                model.csrfToken
+                            ]
 
                         Nothing ->
-                            Cmd.none
+                            []
 
                 newModel =
                     { model | pinnedVersion = Pinned.startPinningTo versionID model.pinnedVersion }
@@ -544,15 +489,15 @@ update action model =
 
         UnpinVersion ->
             let
-                cmd : Cmd Msg
+                cmd : List Effect
                 cmd =
-                    Task.attempt VersionUnpinned <|
-                        Concourse.Resource.unpinVersion
-                            { teamName = model.resourceIdentifier.teamName
-                            , pipelineName = model.resourceIdentifier.pipelineName
-                            , resourceName = model.resourceIdentifier.resourceName
-                            }
-                            model.csrfToken
+                    [ DoUnpinVersion
+                        { teamName = model.resourceIdentifier.teamName
+                        , pipelineName = model.resourceIdentifier.pipelineName
+                        , resourceName = model.resourceIdentifier.resourceName
+                        }
+                        model.csrfToken
+                    ]
             in
             ( { model | pinnedVersion = Pinned.startUnpinning model.pinnedVersion }, cmd )
 
@@ -567,40 +512,39 @@ update action model =
                         )
                         model.pinnedVersion
             in
-            ( { model | pinnedVersion = newPinnedVersion }, Cmd.none )
+            ( { model | pinnedVersion = newPinnedVersion }, [] )
 
         VersionPinned (Err _) ->
             ( { model
                 | pinnedVersion = NotPinned
               }
-            , Cmd.none
+            , []
             )
 
         VersionUnpinned (Ok ()) ->
             ( { model
                 | pinnedVersion = NotPinned
               }
-            , fetchResource model.resourceIdentifier
+            , [ FetchResource model.resourceIdentifier ]
             )
 
         VersionUnpinned (Err _) ->
             ( { model
                 | pinnedVersion = Pinned.quitUnpinning model.pinnedVersion
               }
-            , Cmd.none
+            , []
             )
 
         ToggleVersion action versionID ->
             ( updateVersion versionID (\v -> { v | enabled = BoolTransitionable.Changing }) model
-            , Task.attempt (VersionToggled action versionID) <|
-                Concourse.Resource.enableDisableVersionedResource
-                    (action == Enable)
+            , [ DoToggleVersion action
                     { teamName = model.resourceIdentifier.teamName
                     , pipelineName = model.resourceIdentifier.pipelineName
                     , resourceName = model.resourceIdentifier.resourceName
                     , versionID = versionID
                     }
                     model.csrfToken
+              ]
             )
 
         VersionToggled action versionID result ->
@@ -608,38 +552,78 @@ update action model =
                 newEnabledState : BoolTransitionable.BoolTransitionable
                 newEnabledState =
                     case ( result, action ) of
-                        ( Ok (), Enable ) ->
+                        ( Ok (), Models.Enable ) ->
                             BoolTransitionable.True
 
-                        ( Ok (), Disable ) ->
+                        ( Ok (), Models.Disable ) ->
                             BoolTransitionable.False
 
-                        ( Err _, Enable ) ->
+                        ( Err _, Models.Enable ) ->
                             BoolTransitionable.False
 
-                        ( Err _, Disable ) ->
+                        ( Err _, Models.Disable ) ->
                             BoolTransitionable.True
             in
             ( updateVersion versionID (\v -> { v | enabled = newEnabledState }) model
-            , Cmd.none
+            , []
             )
 
         PinIconHover state ->
-            ( { model | pinIconHover = state }, Cmd.none )
+            ( { model | pinIconHover = state }, [] )
 
         Hover hovered ->
-            ( { model | hovered = hovered }, Cmd.none )
+            ( { model | hovered = hovered }, [] )
+
+        TopBarMsg msg ->
+            ( TopBar.update msg model |> Tuple.first
+            , [ DoTopBarUpdate msg model ]
+            )
+
+        Check ->
+            case model.userState of
+                UserStateLoggedIn _ ->
+                    ( { model | checkStatus = Models.CurrentlyChecking }
+                    , [ DoCheck model.resourceIdentifier model.csrfToken ]
+                    )
+
+                _ ->
+                    ( model, [ RedirectToLogin ] )
+
+        Checked result ->
+            case result of
+                Ok () ->
+                    ( { model | checkStatus = Models.CheckingSuccessfully }
+                    , [ FetchResource model.resourceIdentifier
+                      , FetchVersionedResources
+                            model.resourceIdentifier
+                            model.currentPage
+                      ]
+                    )
+
+                Err err ->
+                    ( { model | checkStatus = Models.FailingToCheck }
+                    , case err of
+                        Http.BadStatus { status } ->
+                            if status.code == 401 then
+                                [ RedirectToLogin ]
+
+                            else
+                                [ FetchResource model.resourceIdentifier ]
+
+                        _ ->
+                            []
+                    )
 
 
-updateVersion : Int -> (Version -> Version) -> Model -> Model
+updateVersion : Int -> (Models.Version -> Models.Version) -> Model -> Model
 updateVersion versionID updateFunc model =
     let
-        newVersionsContent : List Version
+        newVersionsContent : List Models.Version
         newVersionsContent =
             model.versions.content
                 |> List.Extra.updateIf (.id >> (==) versionID) updateFunc
 
-        versions : Paginated Version
+        versions : Paginated Models.Version
         versions =
             model.versions
     in
@@ -694,32 +678,25 @@ paginationRoute rid page =
 
 view : Model -> Html Msg
 view model =
-    if model.pageStatus == Err Empty then
+    Html.div
+        [ style
+            [ ( "-webkit-font-smoothing", "antialiased" )
+            , ( "font-weight", "700" )
+            ]
+        ]
+        [ Html.map TopBarMsg <| Html.fromUnstyled <| TopBar.view model
+        , subpageView model
+        , commentBar model
+        ]
+
+
+subpageView : Model -> Html Msg
+subpageView model =
+    if model.pageStatus == Err Models.Empty then
         Html.div [] []
 
     else
         let
-            ( checkMessage, stepBody ) =
-                if model.failingToCheck then
-                    if not (String.isEmpty model.checkSetupError) then
-                        ( "checking failed"
-                        , [ Html.div [ class "step-body" ]
-                                [ Html.pre [] [ Html.text model.checkSetupError ]
-                                ]
-                          ]
-                        )
-
-                    else
-                        ( "checking failed"
-                        , [ Html.div [ class "step-body" ]
-                                [ Html.pre [] [ Html.text model.checkError ]
-                                ]
-                          ]
-                        )
-
-                else
-                    ( "checking successfully", [] )
-
             previousButtonEvent =
                 case model.versions.pagination.previousPage of
                     Nothing ->
@@ -812,8 +789,8 @@ view model =
                             Html.div
                                 [ style chevronContainer
                                 , onClick previousButtonEvent
-                                , onMouseEnter <| Hover PreviousPage
-                                , onMouseLeave <| Hover None
+                                , onMouseEnter <| Hover Models.PreviousPage
+                                , onMouseLeave <| Hover Models.None
                                 ]
                                 [ Html.a
                                     [ href <|
@@ -825,7 +802,7 @@ view model =
                                         chevron
                                             { direction = "left"
                                             , enabled = True
-                                            , hovered = model.hovered == PreviousPage
+                                            , hovered = model.hovered == Models.PreviousPage
                                             }
                                     ]
                                     []
@@ -849,8 +826,8 @@ view model =
                             Html.div
                                 [ style chevronContainer
                                 , onClick nextButtonEvent
-                                , onMouseEnter <| Hover NextPage
-                                , onMouseLeave <| Hover None
+                                , onMouseEnter <| Hover Models.NextPage
+                                , onMouseLeave <| Hover Models.None
                                 ]
                                 [ Html.a
                                     [ href <|
@@ -862,7 +839,7 @@ view model =
                                         chevron
                                             { direction = "right"
                                             , enabled = True
-                                            , hovered = model.hovered == NextPage
+                                            , hovered = model.hovered == Models.NextPage
                                             }
                                     ]
                                     []
@@ -872,7 +849,11 @@ view model =
             , Html.div
                 [ css
                     [ Css.padding3
-                        (Css.px <| headerHeight + 10)
+                        (Css.px <|
+                            headerHeight
+                                + Styles.pageHeaderHeight
+                                + 10
+                        )
                         (Css.px 10)
                         (Css.px 10)
                     ]
@@ -888,32 +869,171 @@ view model =
                       )
                     ]
                 ]
-                [ Html.div [ class "resource-check-status" ]
-                    [ Html.div [ class "build-step" ]
-                        (List.append
-                            [ Html.div
-                                [ class "header"
-                                , style
-                                    [ ( "display", "flex" )
-                                    , ( "justify-content", "space-between" )
-                                    ]
-                                ]
-                                [ Html.h3 [] [ Html.text checkMessage ]
-                                , Html.div
-                                    [ style <|
-                                        Resource.Styles.checkStatusIcon
-                                            model.failingToCheck
-                                    ]
-                                    []
-                                ]
-                            ]
-                            stepBody
-                        )
-                    ]
+                [ checkSection model
                 , viewVersionedResources model
                 ]
-            , commentBar model
             ]
+
+
+checkSection :
+    { a
+        | checkStatus : Models.CheckStatus
+        , checkSetupError : String
+        , checkError : String
+        , hovered : Models.Hoverable
+        , userState : UserState
+        , teamName : String
+    }
+    -> Html Msg
+checkSection ({ checkStatus, checkSetupError, checkError } as model) =
+    let
+        failingToCheck =
+            checkStatus == Models.FailingToCheck
+
+        checkMessage =
+            case checkStatus of
+                Models.FailingToCheck ->
+                    "checking failed"
+
+                Models.CurrentlyChecking ->
+                    "currently checking"
+
+                Models.CheckingSuccessfully ->
+                    "checking successfully"
+
+        stepBody =
+            if failingToCheck then
+                if not (String.isEmpty checkSetupError) then
+                    [ Html.div [ class "step-body" ]
+                        [ Html.pre [] [ Html.text checkSetupError ]
+                        ]
+                    ]
+
+                else
+                    [ Html.div [ class "step-body" ]
+                        [ Html.pre [] [ Html.text checkError ]
+                        ]
+                    ]
+
+            else
+                []
+
+        statusIcon =
+            case checkStatus of
+                Models.CurrentlyChecking ->
+                    Html.fromUnstyled <|
+                        Spinner.spinner "14px"
+                            [ Html.Attributes.style
+                                [ ( "margin", "7px" )
+                                ]
+                            ]
+
+                _ ->
+                    Html.div
+                        [ style <|
+                            Resource.Styles.checkStatusIcon failingToCheck
+                        ]
+                        []
+
+        statusBar =
+            Html.div
+                [ style
+                    [ ( "display", "flex" )
+                    , ( "justify-content", "space-between" )
+                    , ( "align-items", "center" )
+                    , ( "flex-grow", "1" )
+                    , ( "height", "28px" )
+                    , ( "background", Colors.sectionHeader )
+                    , ( "padding-left", "5px" )
+                    ]
+                ]
+                [ Html.h3 [] [ Html.text checkMessage ]
+                , statusIcon
+                ]
+
+        checkBar =
+            Html.div
+                [ style [ ( "display", "flex" ) ] ]
+                [ checkButton model, statusBar ]
+    in
+    Html.div [ class "resource-check-status" ] <| checkBar :: stepBody
+
+
+checkButton :
+    { a
+        | hovered : Models.Hoverable
+        , userState : UserState
+        , teamName : String
+        , checkStatus : Models.CheckStatus
+    }
+    -> Html Msg
+checkButton { hovered, userState, teamName, checkStatus } =
+    let
+        enabled =
+            case userState of
+                UserStateLoggedIn user ->
+                    case Dict.get teamName user.teams of
+                        Just roles ->
+                            List.member "member" roles
+                                || List.member "owner" roles
+
+                        Nothing ->
+                            False
+
+                _ ->
+                    True
+
+        isHovered =
+            checkStatus
+                == Models.CurrentlyChecking
+                || (enabled && hovered == Models.CheckButton)
+    in
+    Html.div
+        ([ style
+            [ ( "height", "28px" )
+            , ( "width", "28px" )
+            , ( "background-color", Colors.sectionHeader )
+            , ( "margin-right", "5px" )
+            , ( "cursor"
+              , if isHovered && checkStatus /= Models.CurrentlyChecking then
+                    "pointer"
+
+                else
+                    "default"
+              )
+            ]
+         , onMouseEnter <| Hover Models.CheckButton
+         , onMouseLeave <| Hover Models.None
+         ]
+            ++ (if enabled then
+                    [ onClick Check ]
+
+                else
+                    []
+               )
+        )
+        [ Html.div
+            [ style
+                [ ( "height", "20px" )
+                , ( "width", "20px" )
+                , ( "margin", "4px" )
+                , ( "background-image"
+                  , "url(/public/images/baseline-refresh-24px.svg)"
+                  )
+                , ( "background-position", "50% 50%" )
+                , ( "background-repeat", "no-repeat" )
+                , ( "background-size", "contain" )
+                , ( "opacity"
+                  , if isHovered then
+                        "1"
+
+                    else
+                        "0.5"
+                  )
+                ]
+            ]
+            []
+        ]
 
 
 commentBar :
@@ -1042,7 +1162,7 @@ checkForVersionID versionID versionedResource =
 
 viewVersionedResources :
     { a
-        | versions : Paginated Version
+        | versions : Paginated Models.Version
         , pinnedVersion : ResourcePinState Concourse.Version Int
     }
     -> Html Msg
@@ -1059,7 +1179,7 @@ viewVersionedResources { versions, pinnedVersion } =
 
 
 viewVersionedResource :
-    { version : Version
+    { version : Models.Version
     , pinnedVersion : ResourcePinState Concourse.Version Int
     }
     -> Html Msg
@@ -1200,7 +1320,7 @@ viewEnabledCheckbox { enabled, id, pinState } =
                               , "url(/public/images/checkmark-ic.svg)"
                               )
                             ]
-                       , onClick <| ToggleVersion Disable id
+                       , onClick <| ToggleVersion Models.Disable id
                        ]
                 )
                 []
@@ -1223,7 +1343,7 @@ viewEnabledCheckbox { enabled, id, pinState } =
 
         BoolTransitionable.False ->
             Html.div
-                (baseAttrs ++ [ onClick <| ToggleVersion Enable id ])
+                (baseAttrs ++ [ onClick <| ToggleVersion Models.Enable id ])
                 []
 
 
@@ -1485,7 +1605,7 @@ viewBuildsByJob buildDict jobName =
     ]
 
 
-updateExpandedProperties : Model -> List (Cmd Msg)
+updateExpandedProperties : Model -> List Effect
 updateExpandedProperties model =
     let
         filteredList =
@@ -1494,55 +1614,16 @@ updateExpandedProperties model =
                 model.versions.content
     in
     List.concatMap
-        (fetchInputAndOutputs model)
+        (Effects.fetchInputAndOutputs model)
         filteredList
 
 
-isExpanded : List Version -> Version -> Bool
+isExpanded : List Models.Version -> Models.Version -> Bool
 isExpanded versions version =
     versions
         |> List.Extra.find (.id >> (==) version.id)
         |> Maybe.map .expanded
         |> Maybe.withDefault False
-
-
-fetchInputAndOutputs : Model -> Version -> List (Cmd Msg)
-fetchInputAndOutputs model version =
-    let
-        identifier =
-            { teamName = model.resourceIdentifier.teamName
-            , pipelineName = model.resourceIdentifier.pipelineName
-            , resourceName = model.resourceIdentifier.resourceName
-            , versionID = version.id
-            }
-    in
-    [ fetchInputTo identifier
-    , fetchOutputOf identifier
-    ]
-
-
-fetchResource : Concourse.ResourceIdentifier -> Cmd Msg
-fetchResource resourceIdentifier =
-    Task.attempt ResourceFetched <|
-        Concourse.Resource.fetchResource resourceIdentifier
-
-
-fetchVersionedResources : Concourse.ResourceIdentifier -> Maybe Page -> Cmd Msg
-fetchVersionedResources resourceIdentifier page =
-    Task.attempt (VersionedResourcesFetched page) <|
-        Concourse.Resource.fetchVersionedResources resourceIdentifier page
-
-
-fetchInputTo : Concourse.VersionedResourceIdentifier -> Cmd Msg
-fetchInputTo versionedResourceIdentifier =
-    Task.attempt (InputToFetched versionedResourceIdentifier.versionID) <|
-        Concourse.Resource.fetchInputTo versionedResourceIdentifier
-
-
-fetchOutputOf : Concourse.VersionedResourceIdentifier -> Cmd Msg
-fetchOutputOf versionedResourceIdentifier =
-    Task.attempt (OutputOfFetched versionedResourceIdentifier.versionID) <|
-        Concourse.Resource.fetchOutputOf versionedResourceIdentifier
 
 
 subscriptions : Model -> Sub Msg
