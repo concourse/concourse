@@ -15,4 +15,5 @@ type Resource struct {
 
 	PinnedVersion  Version `json:"pinned_version,omitempty"`
 	PinnedInConfig bool    `json:"pinned_in_config,omitempty"`
+	PinComment     string  `json:"pin_comment,omitempty"`
 }

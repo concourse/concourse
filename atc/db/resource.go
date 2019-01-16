@@ -34,6 +34,7 @@ type Resource interface {
 	WebhookToken() string
 	ConfigPinnedVersion() atc.Version
 	APIPinnedVersion() atc.Version
+	PinComment() string
 	ResourceConfigCheckError() error
 	ResourceConfigID() int
 
@@ -54,7 +55,7 @@ type Resource interface {
 	Reload() (bool, error)
 }
 
-var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, c.last_checked, r.pipeline_id, r.nonce, r.resource_config_id, p.name, t.name, c.check_error, r.api_pinned_version").
+var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, c.last_checked, r.pipeline_id, r.nonce, r.resource_config_id, p.name, t.name, c.check_error, r.api_pinned_version, r.pin_comment").
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
@@ -77,6 +78,7 @@ type resource struct {
 	webhookToken             string
 	configPinnedVersion      atc.Version
 	apiPinnedVersion         atc.Version
+	pinComment               string
 	resourceConfigCheckError error
 	resourceConfigID         int
 
@@ -137,6 +139,7 @@ func (r *resource) CheckError() error                { return r.checkError }
 func (r *resource) WebhookToken() string             { return r.webhookToken }
 func (r *resource) ConfigPinnedVersion() atc.Version { return r.configPinnedVersion }
 func (r *resource) APIPinnedVersion() atc.Version    { return r.apiPinnedVersion }
+func (r *resource) PinComment() string               { return r.pinComment }
 func (r *resource) ResourceConfigCheckError() error  { return r.resourceConfigCheckError }
 func (r *resource) ResourceConfigID() int            { return r.resourceConfigID }
 
@@ -519,12 +522,12 @@ func (r *resource) toggleVersion(rcvID int, enable bool) error {
 
 func scanResource(r *resource, row scannable) error {
 	var (
-		configBlob                                          []byte
-		checkErr, rcCheckErr, nonce, rcID, apiPinnedVersion sql.NullString
-		lastChecked                                         pq.NullTime
+		configBlob                                                      []byte
+		checkErr, rcCheckErr, nonce, rcID, apiPinnedVersion, pinComment sql.NullString
+		lastChecked                                                     pq.NullTime
 	)
 
-	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &lastChecked, &r.pipelineID, &nonce, &rcID, &r.pipelineName, &r.teamName, &rcCheckErr, &apiPinnedVersion)
+	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &lastChecked, &r.pipelineID, &nonce, &rcID, &r.pipelineName, &r.teamName, &rcCheckErr, &apiPinnedVersion, &pinComment)
 	if err != nil {
 		return err
 	}
@@ -564,6 +567,12 @@ func scanResource(r *resource, row scannable) error {
 		}
 	} else {
 		r.apiPinnedVersion = nil
+	}
+
+	if pinComment.Valid {
+		r.pinComment = pinComment.String
+	} else {
+		r.pinComment = ""
 	}
 
 	if checkErr.Valid {

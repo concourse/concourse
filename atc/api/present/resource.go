@@ -29,6 +29,7 @@ func Resource(resource db.Resource, showCheckError bool, teamName string) atc.Re
 		FailingToCheck:  failingToCheck,
 		CheckSetupError: checkErrString,
 		CheckError:      rcCheckErrString,
+		PinComment:      resource.PinComment(),
 	}
 
 	if !resource.LastChecked().IsZero() {

@@ -948,6 +948,35 @@ var _ = Describe("Resources API", func() {
 							}`))
 					})
 				})
+
+				Context("when the resource has a pin comment", func() {
+					BeforeEach(func() {
+						resource1 := new(dbfakes.FakeResource)
+						resource1.PipelineNameReturns("a-pipeline")
+						resource1.NameReturns("resource-1")
+						resource1.TypeReturns("type-1")
+						resource1.LastCheckedReturns(time.Unix(1513364881, 0))
+						resource1.APIPinnedVersionReturns(atc.Version{"version": "v1"})
+						resource1.PinCommentReturns("a pin comment")
+						fakePipeline.ResourceReturns(resource1, true, nil)
+					})
+
+					It("returns the pin comment in the response json", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`
+							{
+								"name": "resource-1",
+								"pipeline_name": "a-pipeline",
+								"team_name": "a-team",
+								"type": "type-1",
+								"last_checked": 1513364881,
+								"pinned_version": {"version": "v1"},
+								"pin_comment": "a pin comment"
+							}`))
+					})
+				})
 			})
 		})
 
