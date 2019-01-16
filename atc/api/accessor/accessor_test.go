@@ -649,5 +649,17 @@ var _ = Describe("Accessor", func() {
 		Entry("owner :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "owner", true),
 		Entry("member :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "member", true),
 		Entry("viewer :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "viewer", true),
+
+		Entry("owner :: "+atc.CreateArtifact, atc.CreateArtifact, "owner", true),
+		Entry("member :: "+atc.CreateArtifact, atc.CreateArtifact, "member", true),
+		Entry("viewer :: "+atc.CreateArtifact, atc.CreateArtifact, "viewer", false),
+
+		Entry("owner :: "+atc.GetArtifact, atc.GetArtifact, "owner", true),
+		Entry("member :: "+atc.GetArtifact, atc.GetArtifact, "member", true),
+		Entry("viewer :: "+atc.GetArtifact, atc.GetArtifact, "viewer", true),
+
+		Entry("owner :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "owner", true),
+		Entry("member :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "member", true),
+		Entry("viewer :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "viewer", true),
 	)
 })
