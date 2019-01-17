@@ -15,13 +15,13 @@ import Concourse
 import Concourse.Pipeline
 import Concourse.User
 import Dict
+import Effects
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, disabled, href, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave, onMouseOut, onMouseOver)
 import Http
 import LoginRedirect
 import Navigation exposing (Location)
-import Pipeline.Effects
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Task
@@ -141,7 +141,7 @@ update msg model =
                 ( model, Cmd.none )
 
         ResetToPipeline url ->
-            ( model, Cmd.batch [ Navigation.newUrl url, Pipeline.Effects.resetPipelineFocus () ] )
+            ( model, Cmd.batch [ Navigation.newUrl url, Effects.resetPipelineFocus () ] )
 
         ToggleUserMenu ->
             ( { model | userMenuVisible = not model.userMenuVisible }, Cmd.none )

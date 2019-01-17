@@ -9,7 +9,6 @@ import Expect
 import Http
 import Job exposing (..)
 import Pipeline
-import Pipeline.Msgs
 import QueryString
 import Resource
 import Resource.Msgs
@@ -95,9 +94,9 @@ all =
             , test "Pipeline not found" <|
                 \_ ->
                     let
-                        msg : Pipeline.Msgs.Msg
+                        msg : Effects.Callback
                         msg =
-                            Pipeline.Msgs.PipelineFetched <| Err <| Http.BadStatus notFoundStatus
+                            Effects.PipelineFetched <| Err <| Http.BadStatus notFoundStatus
 
                         pipelineLocator =
                             { teamName = ""
@@ -117,6 +116,6 @@ all =
                                 , turbulenceImgSrc = turbulenceAsset
                                 }
                     in
-                    Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg" }) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (PipelineMsg msg) (PipelineModel model)
+                    Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg" }) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (Callback msg) (PipelineModel model)
             ]
         ]

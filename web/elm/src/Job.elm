@@ -244,6 +244,9 @@ handleCallback callback model =
         GotCurrentTime now ->
             ( { model | now = now }, [] )
 
+        _ ->
+            ( model, [] )
+
 
 updateWithMessage : Msg -> Model -> ( Model, Cmd Callback, Maybe UpdateMsg )
 updateWithMessage message model =

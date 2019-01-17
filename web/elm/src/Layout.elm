@@ -10,12 +10,12 @@ port module Layout exposing
     )
 
 import Concourse
+import Effects
 import Favicon
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id, style)
 import Json.Decode
 import Navigation
-import Pipeline.Msgs
 import Routes
 import SubPage
 import SubPage.Msgs
@@ -195,7 +195,7 @@ update msg model =
                 ]
             )
 
-        SubMsg navIndex (SubPage.Msgs.PipelineMsg (Pipeline.Msgs.ResourcesFetched (Ok fetchedResources))) ->
+        SubMsg navIndex (SubPage.Msgs.Callback (Effects.ResourcesFetched (Ok fetchedResources))) ->
             let
                 resources : Result String (List Concourse.Resource)
                 resources =
@@ -229,7 +229,7 @@ update msg model =
                             model.turbulenceImgSrc
                             model.notFoundImgSrc
                             model.csrfToken
-                            (SubPage.Msgs.PipelineMsg (Pipeline.Msgs.ResourcesFetched (Ok fetchedResources)))
+                            (SubPage.Msgs.Callback (Effects.ResourcesFetched (Ok fetchedResources)))
                             model.subModel
                 in
                 ( { model

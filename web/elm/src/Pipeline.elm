@@ -2,6 +2,7 @@ module Pipeline exposing
     ( Flags
     , Model
     , changeToPipelineAndGroups
+    , handleCallbackWithMessage
     , init
     , subscriptions
     , update
@@ -13,6 +14,7 @@ import Char
 import Colors
 import Concourse
 import Concourse.Cli
+import Effects exposing (Callback(..), Effect(..))
 import Html exposing (Html)
 import Html.Attributes exposing (class, height, href, id, src, style, width)
 import Html.Attributes.Aria exposing (ariaLabel)
@@ -21,7 +23,6 @@ import Json.Decode
 import Json.Encode
 import Keyboard
 import Mouse
-import Pipeline.Effects exposing (Effect(..))
 import Pipeline.Msgs exposing (Msg(..))
 import QueryString
 import RemoteData exposing (..)
@@ -90,7 +91,7 @@ init flags =
     loadPipeline pipelineLocator model
 
 
-changeToPipelineAndGroups : Flags -> Model -> ( Model, Cmd Msg )
+changeToPipelineAndGroups : Flags -> Model -> ( Model, Cmd Callback )
 changeToPipelineAndGroups flags model =
     let
         pid =
@@ -106,7 +107,7 @@ changeToPipelineAndGroups flags model =
             else
                 init flags
     in
-    ( newModel, Cmd.batch <| List.map Pipeline.Effects.runEffect effects )
+    ( newModel, Cmd.batch <| List.map Effects.runEffect effects )
 
 
 loadPipeline : Concourse.PipelineIdentifier -> Model -> ( Model, List Effect )
@@ -114,23 +115,6 @@ loadPipeline pipelineLocator model =
     ( { model | pipelineLocator = pipelineLocator }
     , [ FetchPipeline pipelineLocator, FetchVersion, ResetPipelineFocus ]
     )
-
-
-updateWithMessage : Msg -> Model -> ( Model, Cmd Msg, Maybe UpdateMsg )
-updateWithMessage message model =
-    let
-        ( mdl, effects ) =
-            update message model
-
-        cmds =
-            Cmd.batch <| List.map Pipeline.Effects.runEffect effects
-    in
-    case mdl.pipeline of
-        RemoteData.Failure _ ->
-            ( mdl, cmds, Just UpdateMsg.NotFound )
-
-        _ ->
-            ( mdl, cmds, Nothing )
 
 
 timeUntilHidden : Time
@@ -143,8 +127,25 @@ timeUntilHiddenCheckInterval =
     1 * Time.second
 
 
-update : Msg -> Model -> ( Model, List Effect )
-update msg model =
+handleCallbackWithMessage : Callback -> Model -> ( Model, Cmd Callback, Maybe UpdateMsg )
+handleCallbackWithMessage message model =
+    let
+        ( mdl, effects ) =
+            handleCallback message model
+
+        cmds =
+            Cmd.batch <| List.map Effects.runEffect effects
+    in
+    case mdl.pipeline of
+        RemoteData.Failure _ ->
+            ( mdl, cmds, Just UpdateMsg.NotFound )
+
+        _ ->
+            ( mdl, cmds, Nothing )
+
+
+handleCallback : Callback -> Model -> ( Model, List Effect )
+handleCallback callback model =
     let
         redirectToLoginIfUnauthenticated status =
             if status.code == 401 then
@@ -153,38 +154,7 @@ update msg model =
             else
                 []
     in
-    case msg of
-        Noop ->
-            ( model, [] )
-
-        HideLegendTimerTicked _ ->
-            if model.hideLegendCounter + timeUntilHiddenCheckInterval > timeUntilHidden then
-                ( { model | hideLegend = True }, [] )
-
-            else
-                ( { model | hideLegendCounter = model.hideLegendCounter + timeUntilHiddenCheckInterval }
-                , []
-                )
-
-        ShowLegend ->
-            ( { model | hideLegend = False, hideLegendCounter = 0 }, [] )
-
-        KeyPressed keycode ->
-            if (Char.fromCode keycode |> Char.toLower) == 'f' then
-                ( model, [ ResetPipelineFocus ] )
-
-            else
-                ( model, [] )
-
-        AutoupdateTimerTicked timestamp ->
-            ( model, [ FetchPipeline model.pipelineLocator ] )
-
-        PipelineIdentifierFetched pipelineIdentifier ->
-            ( model, [ FetchPipeline pipelineIdentifier ] )
-
-        AutoupdateVersionTicked _ ->
-            ( model, [ FetchVersion ] )
-
+    case callback of
         PipelineFetched (Ok pipeline) ->
             ( { model | pipeline = RemoteData.Success pipeline }
             , [ FetchJobs model.pipelineLocator
@@ -233,6 +203,69 @@ update msg model =
         VersionFetched (Err err) ->
             flip always (Debug.log "failed to fetch version" err) <|
                 ( { model | experiencingTurbulence = True }, [] )
+
+        _ ->
+            ( model, [] )
+
+
+updateWithMessage : Msg -> Model -> ( Model, Cmd Callback, Maybe UpdateMsg )
+updateWithMessage message model =
+    let
+        ( mdl, effects ) =
+            update message model
+
+        cmds =
+            Cmd.batch <| List.map Effects.runEffect effects
+    in
+    case mdl.pipeline of
+        RemoteData.Failure _ ->
+            ( mdl, cmds, Just UpdateMsg.NotFound )
+
+        _ ->
+            ( mdl, cmds, Nothing )
+
+
+update : Msg -> Model -> ( Model, List Effect )
+update msg model =
+    let
+        redirectToLoginIfUnauthenticated status =
+            if status.code == 401 then
+                [ RedirectToLogin ]
+
+            else
+                []
+    in
+    case msg of
+        Noop ->
+            ( model, [] )
+
+        HideLegendTimerTicked _ ->
+            if model.hideLegendCounter + timeUntilHiddenCheckInterval > timeUntilHidden then
+                ( { model | hideLegend = True }, [] )
+
+            else
+                ( { model | hideLegendCounter = model.hideLegendCounter + timeUntilHiddenCheckInterval }
+                , []
+                )
+
+        ShowLegend ->
+            ( { model | hideLegend = False, hideLegendCounter = 0 }, [] )
+
+        KeyPressed keycode ->
+            if (Char.fromCode keycode |> Char.toLower) == 'f' then
+                ( model, [ ResetPipelineFocus ] )
+
+            else
+                ( model, [] )
+
+        AutoupdateTimerTicked timestamp ->
+            ( model, [ FetchPipeline model.pipelineLocator ] )
+
+        PipelineIdentifierFetched pipelineIdentifier ->
+            ( model, [ FetchPipeline pipelineIdentifier ] )
+
+        AutoupdateVersionTicked _ ->
+            ( model, [ FetchVersion ] )
 
         ToggleGroup group ->
             ( model, [ NewUrl <| getNextUrl (toggleGroup group model.selectedGroups model.pipeline) model ] )
