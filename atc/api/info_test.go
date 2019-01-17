@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/creds/credhub"
+	"github.com/concourse/concourse/atc/creds/keyvault"
 	"github.com/concourse/concourse/atc/creds/secretsmanager"
 	"github.com/concourse/concourse/atc/creds/ssm"
 	"github.com/concourse/concourse/atc/creds/vault"
@@ -450,7 +451,7 @@ var _ = Describe("Pipelines API", func() {
 						}
 					})
 
-					It("include sthe secretsmanager info in json response", func() {
+					It("includes the secretsmanager info in json response", func() {
 						Expect(body).To(MatchJSON(`{
 					"secretsmanager": {
 						"aws_region": "blah",
@@ -468,6 +469,86 @@ var _ = Describe("Pipelines API", func() {
 				})
 			})
 
+		})
+
+		Context("key vault", func() {
+			Context("get key vault health info returns error", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAuthenticatedReturns(true)
+					fakeaccess.IsAdminReturns(true)
+
+					kv := &keyvault.KeyVaultManager{
+						ServicePrincipalID: "foo",
+						TenantID:           "bar",
+						KeyVaultURL:        "https://baz.vault.azure.net",
+						KeyPrefix:          "concourse",
+						Environment:        "AzurePublicCloud",
+
+						Reader: &keyvault.FakeReader{
+							GetFunc: func(_ string) (string, bool, error) {
+								return "", false, errors.New("couldn't do stuff")
+							},
+						},
+					}
+					credsManagers["keyvault"] = kv
+				})
+
+				It("returns configured creds manager with error", func() {
+					Expect(body).To(MatchJSON(`{
+						"keyvault": {
+							"service_principal_id": "foo",
+							"tenant_id": "bar",
+							"key_vault_url": "https://baz.vault.azure.net",
+							"key_prefix": "concourse",
+							"environment": "AzurePublicCloud",
+							"health": {
+								"error": "couldn't do stuff",
+								"method": "/health"
+							}
+						}
+					}`))
+				})
+			})
+
+			Context("get key vault health info", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAuthenticatedReturns(true)
+					fakeaccess.IsAdminReturns(true)
+
+					kv := &keyvault.KeyVaultManager{
+						ServicePrincipalID: "foo",
+						TenantID:           "bar",
+						KeyVaultURL:        "https://baz.vault.azure.net",
+						KeyPrefix:          "concourse",
+						Environment:        "AzurePublicCloud",
+
+						Reader: &keyvault.FakeReader{
+							GetFunc: func(_ string) (string, bool, error) {
+								return "", false, nil
+							},
+						},
+					}
+					credsManagers["keyvault"] = kv
+				})
+
+				It("returns configured creds manager with health info", func() {
+					Expect(body).To(MatchJSON(`{
+						"keyvault": {
+							"service_principal_id": "foo",
+							"tenant_id": "bar",
+							"key_vault_url": "https://baz.vault.azure.net",
+							"key_prefix": "concourse",
+							"environment": "AzurePublicCloud",
+							"health": {
+								"response": {
+									"status": "UP"
+								},
+								"method": "/health"
+							}
+						}
+					}`))
+				})
+			})
 		})
 	})
 })

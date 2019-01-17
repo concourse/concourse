@@ -11,7 +11,7 @@ func TestGet(t *testing.T) {
 	t.Run("valid secret name should return the secret value", func(t *testing.T) {
 		expected := "section31"
 		var calledName string
-		fake := &fakeReader{}
+		fake := &FakeReader{}
 		kv := &keyVault{
 			PathPrefix:   "ufp",
 			TeamName:     "ussenterprise",
@@ -68,7 +68,7 @@ func TestGet(t *testing.T) {
 	})
 	t.Run("not found secret should return a false found value", func(t *testing.T) {
 		var callCount int
-		fake := &fakeReader{
+		fake := &FakeReader{
 			GetFunc: func(name string) (string, bool, error) {
 				callCount++
 				return "", false, nil
@@ -98,7 +98,7 @@ func TestGet(t *testing.T) {
 		}
 	})
 	t.Run("an error while fetching the secret should return an error", func(t *testing.T) {
-		fake := &fakeReader{
+		fake := &FakeReader{
 			GetFunc: func(name string) (string, bool, error) {
 				return "", false, fmt.Errorf("fake error")
 			},
@@ -126,7 +126,7 @@ func TestGet(t *testing.T) {
 func TestList(t *testing.T) {
 	t.Run("a valid list of secret names should be returned", func(t *testing.T) {
 		var calledPrefix string
-		fake := &fakeReader{
+		fake := &FakeReader{
 			ListFunc: func(prefix string) ([]string, error) {
 				calledPrefix = prefix
 				return []string{"bird", "of", "prey"}, nil
@@ -155,7 +155,7 @@ func TestList(t *testing.T) {
 		}
 	})
 	t.Run("a error should be returned if unable to list secrets", func(t *testing.T) {
-		fake := &fakeReader{
+		fake := &FakeReader{
 			ListFunc: func(prefix string) ([]string, error) {
 				return nil, fmt.Errorf("fake error")
 			},

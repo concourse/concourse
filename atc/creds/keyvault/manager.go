@@ -22,7 +22,7 @@ type KeyVaultManager struct {
 	KeyPrefix           string `long:"key-prefix" default:"concourse" description:"Value under which to prefix key names."`
 	Environment         string `long:"environment" default:"AzurePublicCloud" description:"The Azure environment to use. If you need to change this from the default, you'll know it"`
 
-	reader SecretReader
+	Reader SecretReader
 }
 
 // MarshalJSON is the custom JSON marshalling function for this manager
@@ -35,8 +35,9 @@ func (manager *KeyVaultManager) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&map[string]interface{}{
 		"service_principal_id": manager.ServicePrincipalID,
 		"tenant_id":            manager.TenantID,
-		"key_vault_name":       manager.KeyVaultURL,
+		"key_vault_url":        manager.KeyVaultURL,
 		"key_prefix":           manager.KeyPrefix,
+		"environment":          manager.Environment,
 		"health":               health,
 	})
 }
@@ -63,7 +64,7 @@ func (manager *KeyVaultManager) Init(log lager.Logger) error {
 	}
 	kv.Authorizer = authz
 
-	manager.reader = NewKeyVaultReader(kv, manager.KeyVaultURL)
+	manager.Reader = NewKeyVaultReader(kv, manager.KeyVaultURL)
 
 	return nil
 }
@@ -71,12 +72,12 @@ func (manager *KeyVaultManager) Init(log lager.Logger) error {
 // Health checks if the manager can properly access the Key Vault
 func (manager *KeyVaultManager) Health() (*creds.HealthResponse, error) {
 	health := &creds.HealthResponse{
-		Method: "GetParameter",
+		Method: "/health",
 	}
 
 	// Try to fetch a non-existent secret. It should not return an error for a
 	// non-existent secret, so if it does, we know something is up
-	_, _, err := manager.reader.Get("i_should_never_exist")
+	_, _, err := manager.Reader.Get("i_should_never_exist")
 	if err != nil {
 		health.Error = err.Error()
 		return health, nil
@@ -117,5 +118,5 @@ func (manager *KeyVaultManager) Validate() error {
 // NewVariablesFactory implements the manager interface and returns a
 // VariablesFactory implementation for Azure Key Vault
 func (manager *KeyVaultManager) NewVariablesFactory(log lager.Logger) (creds.VariablesFactory, error) {
-	return NewKeyVaultFactory(log, manager.reader, manager.KeyPrefix), nil
+	return NewKeyVaultFactory(log, manager.Reader, manager.KeyPrefix), nil
 }

@@ -8,13 +8,13 @@ import (
 
 func TestHealth(t *testing.T) {
 	t.Run("a working client should return good health", func(t *testing.T) {
-		fake := &fakeReader{
+		fake := &FakeReader{
 			GetFunc: func(_ string) (string, bool, error) {
 				return "", false, nil
 			},
 		}
 		manager := &KeyVaultManager{
-			reader: fake,
+			Reader: fake,
 		}
 
 		resp, err := manager.Health()
@@ -32,13 +32,13 @@ func TestHealth(t *testing.T) {
 		}
 	})
 	t.Run("a non-functioning client should return an error", func(t *testing.T) {
-		fake := &fakeReader{
+		fake := &FakeReader{
 			GetFunc: func(_ string) (string, bool, error) {
 				return "", false, fmt.Errorf("nope")
 			},
 		}
 		manager := &KeyVaultManager{
-			reader: fake,
+			Reader: fake,
 		}
 
 		resp, err := manager.Health()

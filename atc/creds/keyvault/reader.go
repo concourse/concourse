@@ -88,22 +88,22 @@ func isKeyVault404(err error) bool {
 	return e.Response.StatusCode == http.StatusNotFound
 }
 
-// fakeReader is a wrapper that implements the SecretReader interface for
+// FakeReader is a wrapper that implements the SecretReader interface for
 // testing. Each function can be set independently depending on the needs of
 // the test
-type fakeReader struct {
+type FakeReader struct {
 	GetFunc  func(string) (string, bool, error)
 	ListFunc func(string) ([]string, error)
 }
 
-func (f *fakeReader) Get(name string) (string, bool, error) {
+func (f *FakeReader) Get(name string) (string, bool, error) {
 	if f.GetFunc == nil {
 		return "", false, nil
 	}
 	return f.GetFunc(name)
 }
 
-func (f *fakeReader) List(prefix string) ([]string, error) {
+func (f *FakeReader) List(prefix string) ([]string, error) {
 	if f.ListFunc == nil {
 		return nil, nil
 	}
