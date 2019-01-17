@@ -1,0 +1,10 @@
+daysUntilClose: 14
+
+responseRequiredLabel: needs-more-information
+
+closeComment: >
+  This issue has been automatically closed because there has been no response
+  to our request for more information from the original author.
+
+  It will be re-opened when the original author replies. Otherwise, a new issue
+  should be created to continue the conversation. Thank you!
