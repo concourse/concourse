@@ -3,9 +3,11 @@ package keyvault
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault"
+	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/concourse/concourse/atc/creds"
 )
@@ -18,6 +20,7 @@ type KeyVaultManager struct {
 	TenantID            string `long:"tenant-id" description:"The ID of the Azure AD tenant your service principal is part of"`
 	KeyVaultURL         string `long:"key-vault-url" description:"The URL of the Key Vault you wish to use"`
 	KeyPrefix           string `long:"key-prefix" default:"concourse" description:"Value under which to prefix key names."`
+	Environment         string `long:"environment" default:"AzurePublicCloud" description:"The Azure environment to use. If you need to change this from the default, you'll know it"`
 
 	reader SecretReader
 }
@@ -42,6 +45,17 @@ func (manager *KeyVaultManager) MarshalJSON() ([]byte, error) {
 func (manager *KeyVaultManager) Init(log lager.Logger) error {
 	// Create the keyvault client with the proper credentials
 	conf := auth.NewClientCredentialsConfig(manager.ServicePrincipalID, manager.ServicePrincipalKey, manager.TenantID)
+
+	// Grab the proper endpoint configs and set them
+	env, err := azure.EnvironmentFromName(manager.Environment)
+	if err != nil {
+		return err
+	}
+	conf.AADEndpoint = env.ActiveDirectoryEndpoint
+	// The default endpoints sometimes have a trailing slash, which messes
+	// things up, so remove it
+	conf.Resource = strings.TrimSuffix(env.KeyVaultEndpoint, "/")
+
 	kv := keyvault.New()
 	authz, err := conf.Authorizer()
 	if err != nil {
