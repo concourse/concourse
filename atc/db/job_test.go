@@ -685,13 +685,13 @@ var _ = Describe("Job", func() {
 
 	Describe("GetIndependentBuildInputs", func() {
 		var (
-			pipeline2      db.Pipeline
-			versions       []atc.ResourceVersion
-			job            db.Job
-			job2           db.Job
-			resourceConfig db.ResourceConfig
-			resource       db.Resource
-			resource2      db.Resource
+			pipeline2           db.Pipeline
+			versions            []atc.ResourceVersion
+			job                 db.Job
+			job2                db.Job
+			resourceConfigScope db.ResourceConfigScope
+			resource            db.Resource
+			resource2           db.Resource
 		)
 
 		BeforeEach(func() {
@@ -714,10 +714,10 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{}, creds.VersionedResourceTypes{})
+			resourceConfigScope, err = resource.SetResourceConfig(logger, atc.Source{}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfig.SaveVersions([]atc.Version{
+			err = resourceConfigScope.SaveVersions([]atc.Version{
 				{"version": "v1"},
 				{"version": "v2"},
 				{"version": "v3"},
@@ -725,12 +725,12 @@ var _ = Describe("Job", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// save metadata for v1
-			_, err = resourceConfig.SaveUncheckedVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
+			_, err = resource.SaveUncheckedVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
 				db.ResourceConfigMetadataField{
 					Name:  "name1",
 					Value: "value1",
 				},
-			})
+			}, resourceConfigScope.ResourceConfig(), creds.VersionedResourceTypes{})
 			Expect(err).NotTo(HaveOccurred())
 
 			reversions, _, found, err := resource.Versions(db.Page{Limit: 3})
@@ -864,13 +864,13 @@ var _ = Describe("Job", func() {
 
 	Describe("GetNextBuildInputs", func() {
 		var (
-			pipeline2      db.Pipeline
-			versions       []atc.ResourceVersion
-			job            db.Job
-			job2           db.Job
-			resourceConfig db.ResourceConfig
-			resource       db.Resource
-			resource2      db.Resource
+			pipeline2           db.Pipeline
+			versions            []atc.ResourceVersion
+			job                 db.Job
+			job2                db.Job
+			resourceConfigScope db.ResourceConfigScope
+			resource            db.Resource
+			resource2           db.Resource
 		)
 
 		BeforeEach(func() {
@@ -893,10 +893,10 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{}, creds.VersionedResourceTypes{})
+			resourceConfigScope, err = resource.SetResourceConfig(logger, atc.Source{}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfig.SaveVersions([]atc.Version{
+			err = resourceConfigScope.SaveVersions([]atc.Version{
 				{"version": "v1"},
 				{"version": "v2"},
 				{"version": "v3"},
@@ -904,12 +904,12 @@ var _ = Describe("Job", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// save metadata for v1
-			_, err = resourceConfig.SaveUncheckedVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
+			_, err = resource.SaveUncheckedVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
 				db.ResourceConfigMetadataField{
 					Name:  "name1",
 					Value: "value1",
 				},
-			})
+			}, resourceConfigScope.ResourceConfig(), creds.VersionedResourceTypes{})
 			Expect(err).NotTo(HaveOccurred())
 
 			reversions, _, found, err := resource.Versions(db.Page{Limit: 3})

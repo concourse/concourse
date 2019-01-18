@@ -2,15 +2,14 @@ package db
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"time"
+	"strconv"
 
 	"code.cloudfoundry.org/lager"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
@@ -33,9 +32,6 @@ type ResourceConfigDescriptor struct {
 
 	// The resource's source configuration.
 	Source atc.Source
-
-	// The resource which will only be used it has unique version history
-	Resource Resource
 }
 
 //go:generate counterfeiter . ResourceConfig
@@ -47,16 +43,7 @@ type ResourceConfig interface {
 	CreatedByBaseResourceType() *UsedBaseResourceType
 	OriginBaseResourceType() *UsedBaseResourceType
 
-	AcquireResourceConfigCheckingLockWithIntervalCheck(
-		logger lager.Logger,
-		interval time.Duration,
-		immediate bool,
-	) (lock.Lock, bool, error)
-
-	SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error)
-	SaveVersions(versions []atc.Version) error
-	FindVersion(atc.Version) (ResourceConfigVersion, bool, error)
-	LatestVersion() (ResourceConfigVersion, bool, error)
+	FindResourceConfigScopeByID(int, Resource) (ResourceConfigScope, bool, error)
 
 	SetCheckError(error) error
 }
@@ -84,167 +71,6 @@ func (r *resourceConfig) OriginBaseResourceType() *UsedBaseResourceType {
 	return r.createdByResourceCache.ResourceConfig().OriginBaseResourceType()
 }
 
-func (r *resourceConfig) AcquireResourceConfigCheckingLockWithIntervalCheck(
-	logger lager.Logger,
-	interval time.Duration,
-	immediate bool,
-) (lock.Lock, bool, error) {
-	lock, acquired, err := r.lockFactory.Acquire(
-		logger,
-		lock.NewResourceConfigCheckingLockID(r.id),
-	)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !acquired {
-		return nil, false, nil
-	}
-
-	intervalUpdated, err := r.checkIfResourceConfigIntervalUpdated(interval, immediate)
-	if err != nil {
-		lockErr := lock.Release()
-		if lockErr != nil {
-			logger.Fatal("failed-to-release-lock", lockErr)
-		}
-		return nil, false, err
-	}
-
-	if !intervalUpdated {
-		logger.Debug("failed-to-update-interval", lager.Data{
-			"interval":  interval,
-			"immediate": immediate,
-		})
-
-		lockErr := lock.Release()
-		if lockErr != nil {
-			logger.Fatal("failed-to-release-lock", lockErr)
-		}
-		return nil, false, nil
-	}
-
-	return lock, true, nil
-}
-
-func (r *resourceConfig) LatestVersion() (ResourceConfigVersion, bool, error) {
-	rcv := &resourceConfigVersion{
-		conn:           r.conn,
-		resourceConfig: r,
-	}
-
-	row := resourceConfigVersionQuery.
-		Where(sq.Eq{"v.resource_config_id": r.id}).
-		OrderBy("v.check_order DESC").
-		Limit(1).
-		RunWith(r.conn).
-		QueryRow()
-
-	err := scanResourceConfigVersion(rcv, row)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, false, nil
-		}
-		return nil, false, err
-	}
-
-	return rcv, true, nil
-}
-
-// SaveUncheckedVersion is used by the "get" and "put" step to find or create of a
-// resource config version. We want to do an upsert because there will be cases
-// where resource config versions can become outdated while the versions
-// associated to it are still valid. This will be special case where we save
-// the version with a check order of 0 in order to avoid using this version
-// until we do a proper check. Note that this method will not bump the cache
-// index for the pipeline because we want to ignore these versions until the
-// check orders get updated. The bumping of the index will be done in
-// SaveOutput for the put step.
-func (r *resourceConfig) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
-	tx, err := r.conn.Begin()
-	if err != nil {
-		return false, err
-	}
-
-	defer Rollback(tx)
-
-	newVersion, err := saveResourceConfigVersion(tx, r, version, metadata)
-	if err != nil {
-		return false, err
-	}
-
-	return newVersion, tx.Commit()
-}
-
-// SaveVersions stores a list of version in the db for a resource config
-// Each version will also have its check order field updated and the
-// Cache index for pipelines using the resource config will be bumped.
-//
-// In the case of a check resource from an older version, the versions
-// that already exist in the DB will be re-ordered using
-// incrementCheckOrderWhenNewerVersion to input the correct check order
-func (r *resourceConfig) SaveVersions(versions []atc.Version) error {
-	tx, err := r.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer Rollback(tx)
-
-	for _, version := range versions {
-		_, err = saveResourceConfigVersion(tx, r, version, nil)
-		if err != nil {
-			return err
-		}
-
-		versionJSON, err := json.Marshal(version)
-		if err != nil {
-			return err
-		}
-
-		err = incrementCheckOrder(tx, r, string(versionJSON))
-		if err != nil {
-			return err
-		}
-	}
-
-	err = bumpCacheIndexForPipelinesUsingResourceConfig(tx, r.id)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
-func (r *resourceConfig) FindVersion(v atc.Version) (ResourceConfigVersion, bool, error) {
-	rcv := &resourceConfigVersion{
-		resourceConfig: r,
-		conn:           r.conn,
-	}
-
-	versionByte, err := json.Marshal(v)
-	if err != nil {
-		return nil, false, err
-	}
-
-	row := resourceConfigVersionQuery.
-		Where(sq.Eq{
-			"v.resource_config_id": r.id,
-		}).
-		Where(sq.Expr(fmt.Sprintf("v.version_md5 = md5('%s')", versionByte))).
-		RunWith(r.conn).
-		QueryRow()
-
-	err = scanResourceConfigVersion(rcv, row)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, false, nil
-		}
-		return nil, false, err
-	}
-
-	return rcv, true, nil
-}
-
 func (r *resourceConfig) SetCheckError(cause error) error {
 	var err error
 
@@ -265,90 +91,43 @@ func (r *resourceConfig) SetCheckError(cause error) error {
 	return err
 }
 
-// increment the check order if the version's check order is less than the
-// current max. This will fix the case of a check from an old version causing
-// the desired order to change; existing versions will be re-ordered since
-// we add them in the desired order.
-func incrementCheckOrder(tx Tx, r ResourceConfig, version string) error {
-	_, err := tx.Exec(`
-		WITH max_checkorder AS (
-			SELECT max(check_order) co
-			FROM resource_config_versions
-			WHERE resource_config_id = $1
-		)
+func (r *resourceConfig) FindResourceConfigScopeByID(resourceConfigScopeID int, resource Resource) (ResourceConfigScope, bool, error) {
+	var (
+		id   int
+		rcID int
+		rID  sql.NullString
+	)
 
-		UPDATE resource_config_versions
-		SET check_order = mc.co + 1
-		FROM max_checkorder mc
-		WHERE resource_config_id = $1
-		AND version = $2
-		AND check_order <= mc.co;`, r.ID(), version)
-	return err
-}
-
-func (r *resourceConfig) checkIfResourceConfigIntervalUpdated(
-	interval time.Duration,
-	immediate bool,
-) (bool, error) {
-	tx, err := r.conn.Begin()
+	err := psql.Select("id, resource_id, resource_config_id").
+		From("resource_config_scopes").
+		Where(sq.Eq{
+			"id":                 resourceConfigScopeID,
+			"resource_config_id": r.id,
+		}).
+		RunWith(r.conn).
+		QueryRow().
+		Scan(&id, &rID, &rcID)
 	if err != nil {
-		return false, err
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, err
 	}
 
-	defer Rollback(tx)
+	var uniqueResource Resource
+	if rID.Valid {
+		var resourceID int
+		resourceID, err = strconv.Atoi(rID.String)
+		if err != nil {
+			return nil, false, err
+		}
 
-	params := []interface{}{r.id}
-
-	condition := ""
-	if !immediate {
-		condition = "AND now() - last_checked > ($2 || ' SECONDS')::INTERVAL"
-		params = append(params, interval.Seconds())
+		if resource.ID() == resourceID {
+			uniqueResource = resource
+		}
 	}
 
-	updated, err := checkIfRowsUpdated(tx, `
-			UPDATE resource_configs
-			SET last_checked = now()
-			WHERE id = $1
-		`+condition, params...)
-	if err != nil {
-		return false, err
-	}
-
-	if !updated {
-		return false, nil
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
-func saveResourceConfigVersion(tx Tx, r ResourceConfig, version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
-	versionJSON, err := json.Marshal(version)
-	if err != nil {
-		return false, err
-	}
-
-	metadataJSON, err := json.Marshal(metadata)
-	if err != nil {
-		return false, err
-	}
-
-	var checkOrder int
-	err = tx.QueryRow(`
-		INSERT INTO resource_config_versions (resource_config_id, version, version_md5, metadata)
-		SELECT $1, $2, md5($3), $4
-		ON CONFLICT (resource_config_id, version_md5) DO UPDATE SET metadata = $4
-		RETURNING check_order
-		`, r.ID(), string(versionJSON), string(versionJSON), string(metadataJSON)).Scan(&checkOrder)
-	if err != nil {
-		return false, err
-	}
-
-	return checkOrder == 0, nil
+	return &resourceConfigScope{id, uniqueResource, r, r.conn, r.lockFactory}, true, nil
 }
 
 func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, conn Conn) (ResourceConfig, error) {
@@ -359,7 +138,6 @@ func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lock
 
 	var parentID int
 	var parentColumnName string
-	var unique bool
 	if r.CreatedByResourceCache != nil {
 		parentColumnName = "resource_cache_id"
 
@@ -388,10 +166,9 @@ func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lock
 		}
 
 		parentID = rc.CreatedByBaseResourceType().ID
-		unique = rc.CreatedByBaseResourceType().UniqueVersionHistory
 	}
 
-	id, checkError, found, err := r.findWithParentID(tx, parentColumnName, parentID, unique)
+	id, checkError, found, err := r.findWithParentID(tx, parentColumnName, parentID)
 	if err != nil {
 		return nil, err
 	}
@@ -399,31 +176,22 @@ func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lock
 	if !found {
 		hash := mapHash(r.Source)
 
-		var resourceID *int
-		if unique || r.Resource != nil && r.Resource.UniqueVersionHistory() {
-			rid := r.Resource.ID()
-			resourceID = &rid
-		}
-
 		var err error
 		err = psql.Insert("resource_configs").
 			Columns(
 				parentColumnName,
 				"source_hash",
-				"unique_versions_resource_id",
 			).
 			Values(
 				parentID,
 				hash,
-				resourceID,
 			).
 			Suffix(`
-				ON CONFLICT (`+parentColumnName+`, source_hash, unique_versions_resource_id) DO UPDATE SET
+				ON CONFLICT (`+parentColumnName+`, source_hash) DO UPDATE SET
 					`+parentColumnName+` = ?,
-					source_hash = ?,
-					unique_versions_resource_id = ?
+					source_hash = ?
 				RETURNING id
-			`, parentID, hash, resourceID).
+			`, parentID, hash).
 			RunWith(tx).
 			QueryRow().
 			Scan(&id)
@@ -447,7 +215,6 @@ func (r *ResourceConfigDescriptor) find(tx Tx, lockFactory lock.LockFactory, con
 
 	var parentID int
 	var parentColumnName string
-	var unique bool
 	if r.CreatedByResourceCache != nil {
 		parentColumnName = "resource_cache_id"
 
@@ -480,10 +247,9 @@ func (r *ResourceConfigDescriptor) find(tx Tx, lockFactory lock.LockFactory, con
 		}
 
 		parentID = rc.createdByBaseResourceType.ID
-		unique = rc.createdByBaseResourceType.UniqueVersionHistory
 	}
 
-	id, checkError, found, err := r.findWithParentID(tx, parentColumnName, parentID, unique)
+	id, checkError, found, err := r.findWithParentID(tx, parentColumnName, parentID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -498,17 +264,10 @@ func (r *ResourceConfigDescriptor) find(tx Tx, lockFactory lock.LockFactory, con
 	return rc, true, nil
 }
 
-func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName string, parentID int, unique bool) (int, error, bool, error) {
+func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName string, parentID int) (int, error, bool, error) {
 	var id int
 	var checkError sql.NullString
 	var whereClause sq.Eq
-
-	// If the base resource type or the resource does not specify a unique version history
-	if unique || r.Resource != nil && r.Resource.UniqueVersionHistory() {
-		whereClause = sq.Eq{"unique_versions_resource_id": r.Resource.ID()}
-	} else {
-		whereClause = sq.Eq{"unique_versions_resource_id": nil}
-	}
 
 	err := psql.Select("id, check_error").
 		From("resource_configs").
@@ -537,17 +296,100 @@ func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName stri
 	return id, chkErr, true, nil
 }
 
-func bumpCacheIndexForPipelinesUsingResourceConfig(tx Tx, rcID int) error {
-	_, err := tx.Exec(`
-		UPDATE pipelines p
-		SET cache_index = cache_index + 1
-		FROM resources r
-		WHERE r.pipeline_id = p.id
-		AND r.resource_config_id = $1
-	`, rcID)
-	if err != nil {
-		return err
+func findOrCreateResourceConfigScope(tx Tx, conn Conn, lockFactory lock.LockFactory, resourceConfig ResourceConfig, resource Resource, resourceTypes creds.VersionedResourceTypes) (ResourceConfigScope, error) {
+	var unique bool
+	var uniqueResource Resource
+	var resourceID *int
+	if resource != nil {
+		customType, found := resourceTypes.Lookup(resource.Type())
+		if found {
+			unique = customType.UniqueVersionHistory
+		} else {
+			unique = resourceConfig.CreatedByBaseResourceType().UniqueVersionHistory
+		}
+
+		if unique {
+			id := resource.ID()
+
+			resourceID = &id
+			uniqueResource = resource
+		}
 	}
 
-	return nil
+	var scopeID int
+	rows, err := psql.Select("id").
+		From("resource_config_scopes").
+		Where(sq.Eq{
+			"resource_id":        resourceID,
+			"resource_config_id": resourceConfig.ID(),
+		}).
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	if rows.Next() {
+		err = rows.Scan(&scopeID)
+		if err != nil {
+			return nil, err
+		}
+
+		err = rows.Close()
+		if err != nil {
+			return nil, err
+		}
+	} else if unique && resource != nil {
+		// delete outdated scopes for resource
+		_, err := psql.Delete("resource_config_scopes").
+			Where(sq.And{
+				sq.Eq{
+					"resource_id": resource.ID(),
+				},
+			}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return nil, err
+		}
+
+		err = psql.Insert("resource_config_scopes").
+			Columns("resource_id", "resource_config_id").
+			Values(resource.ID(), resourceConfig.ID()).
+			Suffix(`
+				ON CONFLICT (resource_id, resource_config_id) WHERE resource_id IS NOT NULL DO UPDATE SET
+					resource_id = ?,
+					resource_config_id = ?
+				RETURNING id
+			`, resource.ID(), resourceConfig.ID()).
+			RunWith(tx).
+			QueryRow().
+			Scan(&scopeID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err = psql.Insert("resource_config_scopes").
+			Columns("resource_id", "resource_config_id").
+			Values(nil, resourceConfig.ID()).
+			Suffix(`
+				ON CONFLICT (resource_config_id) WHERE resource_id IS NULL DO UPDATE SET
+					resource_config_id = ?
+				RETURNING id
+			`, resourceConfig.ID()).
+			RunWith(tx).
+			QueryRow().
+			Scan(&scopeID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &resourceConfigScope{
+		id:             scopeID,
+		resource:       uniqueResource,
+		resourceConfig: resourceConfig,
+		conn:           conn,
+		lockFactory:    lockFactory,
+	}, nil
 }

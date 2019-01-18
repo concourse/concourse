@@ -35,6 +35,12 @@ type Pipeline struct {
 	TeamName string `json:"team_name"`
 }
 
+type Version struct {
+	ID      int               `json:"id"`
+	Version map[string]string `json:"version"`
+	Enabled bool              `json:"enabled"`
+}
+
 func (f *Fly) Login(user, password, endpoint string) {
 	Eventually(func() *gexec.Session {
 		sess := f.Start(
@@ -86,6 +92,19 @@ func (f *Fly) GetPipelines() []Pipeline {
 	Expect(err).ToNot(HaveOccurred())
 
 	return pipelines
+}
+
+func (f *Fly) GetVersions(pipeline string, resource string) []Version {
+	var versions = []Version{}
+
+	sess := f.Start("resource-versions", "-r", pipeline+"/"+resource, "--json")
+	<-sess.Exited
+	Expect(sess.ExitCode()).To(BeZero())
+
+	err := json.Unmarshal(sess.Out.Contents(), &versions)
+	Expect(err).ToNot(HaveOccurred())
+
+	return versions
 }
 
 func BuildBinary() string {

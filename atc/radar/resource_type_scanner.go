@@ -121,7 +121,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 		return 0, err
 	}
 
-	resourceConfig, err := savedResourceType.SetResourceConfig(
+	resourceConfigScope, err := savedResourceType.SetResourceConfig(
 		logger,
 		source,
 		versionedResourceTypes.Without(savedResourceType.Name()),
@@ -138,7 +138,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 	reattempt := true
 	for reattempt {
 		reattempt = mustComplete
-		lock, acquired, err := resourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheck(
+		lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(
 			logger,
 			interval,
 			mustComplete,
@@ -146,7 +146,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 		if err != nil {
 			lockLogger.Error("failed-to-get-lock", err, lager.Data{
 				"resource-type":      resourceTypeName,
-				"resource-config-id": resourceConfig.ID(),
+				"resource-config-id": resourceConfigScope.ResourceConfig().ID(),
 			})
 			return interval, ErrFailedToAcquireLock
 		}
@@ -167,7 +167,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 	}
 
 	if fromVersion == nil {
-		rcv, found, err := resourceConfig.LatestVersion()
+		rcv, found, err := resourceConfigScope.LatestVersion()
 		if err != nil {
 			logger.Error("failed-to-get-current-version", err)
 			return interval, err
@@ -181,7 +181,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 	return interval, scanner.check(
 		logger,
 		savedResourceType,
-		resourceConfig,
+		resourceConfigScope,
 		fromVersion,
 		versionedResourceTypes,
 		source,
@@ -192,7 +192,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 func (scanner *resourceTypeScanner) check(
 	logger lager.Logger,
 	savedResourceType db.ResourceType,
-	resourceConfig db.ResourceConfig,
+	resourceConfigScope db.ResourceConfigScope,
 	fromVersion atc.Version,
 	versionedResourceTypes creds.VersionedResourceTypes,
 	source atc.Source,
@@ -226,7 +226,7 @@ func (scanner *resourceTypeScanner) check(
 	res, err := scanner.resourceFactory.NewResource(
 		context.Background(),
 		logger,
-		db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, ContainerExpiries),
+		db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},
@@ -242,7 +242,7 @@ func (scanner *resourceTypeScanner) check(
 			err = atc.ErrNoWorkers
 		}
 
-		chkErr := resourceConfig.SetCheckError(err)
+		chkErr := resourceConfigScope.ResourceConfig().SetCheckError(err)
 		if chkErr != nil {
 			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
 		}
@@ -251,7 +251,7 @@ func (scanner *resourceTypeScanner) check(
 	}
 
 	newVersions, err := res.Check(context.TODO(), source, fromVersion)
-	resourceConfig.SetCheckError(err)
+	resourceConfigScope.ResourceConfig().SetCheckError(err)
 	if err != nil {
 		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {
 			logger.Info("check-failed", lager.Data{"exit-status": rErr.ExitStatus})
@@ -272,7 +272,7 @@ func (scanner *resourceTypeScanner) check(
 		"total":    len(newVersions),
 	})
 
-	err = resourceConfig.SaveVersions(newVersions)
+	err = resourceConfigScope.SaveVersions(newVersions)
 	if err != nil {
 		logger.Error("failed-to-save-resource-config-versions", err, lager.Data{
 			"versions": newVersions,
