@@ -24,9 +24,6 @@ ENV CONCOURSE_WORKER_GARDEN_DNS_PROXY_ENABLE  true
 ENV CONCOURSE_WORK_DIR                /worker-state
 ENV CONCOURSE_WORKER_WORK_DIR         /worker-state
 
-# location for base resource types
-ENV CONCOURSE_RESOURCE_TYPES          /usr/local/concourse/resource-types
-
 # volume for non-aufs/etc. mount for baggageclaim's driver
 VOLUME /worker-state
 
