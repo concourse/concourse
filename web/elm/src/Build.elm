@@ -26,7 +26,7 @@ import Date exposing (Date)
 import Date.Format
 import Debug
 import Dict exposing (Dict)
-import Effects exposing (Callback(..), Effect(..), runEffect)
+import Effects exposing (Callback(..), Effect(..), ScrollDirection(..), runEffect)
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -350,14 +350,14 @@ update action model =
                 model
 
         RevealCurrentBuildInHistory ->
-            ( model, [ ScrollToCurrentBuildInHistory ] )
+            ( model, [ Scroll ToCurrentBuild ] )
 
         ScrollBuilds event ->
             if event.deltaX == 0 then
-                ( model, [ DoScrollBuilds event.deltaY ] )
+                ( model, [ Scroll (Builds event.deltaY) ] )
 
             else
-                ( model, [ DoScrollBuilds -event.deltaX ] )
+                ( model, [ Scroll (Builds -event.deltaX) ] )
 
         ClockTick now ->
             ( { model | now = Just now }, [] )
@@ -452,10 +452,10 @@ handleKeyPressed key model =
                     ( newModel, [] )
 
         'j' ->
-            ( newModel, [ ScrollDown ] )
+            ( newModel, [ Scroll Down ] )
 
         'k' ->
-            ( newModel, [ ScrollUp ] )
+            ( newModel, [ Scroll Up ] )
 
         'T' ->
             if not model.previousTriggerBuildByKey then
@@ -480,13 +480,13 @@ handleKeyPressed key model =
 
         'g' ->
             if model.previousKeyPress == Just 'g' then
-                ( { newModel | autoScroll = False }, [ ScrollToWindowTop ] )
+                ( { newModel | autoScroll = False }, [ Scroll ToWindowTop ] )
 
             else
                 ( newModel, [] )
 
         'G' ->
-            ( { newModel | autoScroll = True }, [ ScrollToWindowBottom ] )
+            ( { newModel | autoScroll = True }, [ Scroll ToWindowBottom ] )
 
         '?' ->
             ( { model | showHelp = not model.showHelp }, [] )

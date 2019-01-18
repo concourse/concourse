@@ -1,6 +1,7 @@
 port module Effects exposing
     ( Callback(..)
     , Effect(..)
+    , ScrollDirection(..)
     , renderPipeline
     , runEffect
     , setTitle
@@ -100,14 +101,18 @@ type Effect
     | SendLogOutRequest
     | GetScreenSize
     | PinTeamNames Dashboard.Group.StickyHeaderConfig
-    | ScrollToCurrentBuildInHistory
-    | DoScrollBuilds Float
-    | ScrollToWindowTop
-    | ScrollDown
-    | ScrollUp
-    | ScrollToBottom String
-    | ScrollToWindowBottom
+    | Scroll ScrollDirection
     | SetFavIcon Concourse.BuildStatus
+
+
+type ScrollDirection
+    = ToWindowTop
+    | Down
+    | Up
+    | ToBottomOf String
+    | ToWindowBottom
+    | Builds Float
+    | ToCurrentBuild
 
 
 type Callback
@@ -182,7 +187,7 @@ runEffect effect =
             fetchData
 
         GetCurrentTime ->
-            getCurrentTime
+            Task.perform GotCurrentTime Time.now
 
         DoTriggerBuild id csrf ->
             triggerBuild id csrf
@@ -221,10 +226,7 @@ runEffect effect =
 
         DoToggleVersion action id csrfToken ->
             Task.attempt (VersionToggled action id.versionID) <|
-                Concourse.Resource.enableDisableVersionedResource
-                    (action == Enable)
-                    id
-                    csrfToken
+                Concourse.Resource.enableDisableVersionedResource (action == Enable) id csrfToken
 
         DoCheck rid csrfToken ->
             Task.attempt Checked <|
@@ -257,7 +259,7 @@ runEffect effect =
             orderPipelines teamName pipelines csrfToken
 
         SendLogOutRequest ->
-            logOut
+            Task.attempt LoggedOut Concourse.User.logOut
 
         GetScreenSize ->
             Task.perform ScreenResized Window.size
@@ -292,32 +294,11 @@ runEffect effect =
         DoAbortBuild buildId csrfToken ->
             abortBuild buildId csrfToken
 
-        ScrollToCurrentBuildInHistory ->
-            scrollToCurrentBuildInHistory
-
-        DoScrollBuilds delta ->
-            scrollBuilds delta
-
-        ScrollToWindowTop ->
-            Task.perform (always EmptyCallback) Scroll.toWindowTop
-
-        ScrollDown ->
-            Task.perform (always EmptyCallback) Scroll.scrollDown
-
-        ScrollUp ->
-            Task.perform (always EmptyCallback) Scroll.scrollUp
-
-        ScrollToBottom ele ->
-            Task.perform (always EmptyCallback) (Scroll.toBottom ele)
-
-        ScrollToWindowBottom ->
-            Task.perform (always EmptyCallback) Scroll.toWindowBottom
+        Scroll dir ->
+            Task.perform (always EmptyCallback) (scrollInDirection dir)
 
 
-fetchJobBuilds :
-    Concourse.JobIdentifier
-    -> Maybe Concourse.Pagination.Page
-    -> Cmd Callback
+fetchJobBuilds : Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Callback
 fetchJobBuilds jobIdentifier page =
     Task.attempt JobBuildsFetched <|
         Concourse.Build.fetchJobBuilds jobIdentifier page
@@ -382,11 +363,6 @@ fetchOutputOf versionedResourceIdentifier =
         Concourse.Resource.fetchOutputOf versionedResourceIdentifier
 
 
-getCurrentTime : Cmd Callback
-getCurrentTime =
-    Task.perform GotCurrentTime Time.now
-
-
 triggerBuild : Concourse.JobIdentifier -> Concourse.CSRFToken -> Cmd Callback
 triggerBuild job csrfToken =
     Task.attempt BuildTriggered <|
@@ -446,15 +422,7 @@ togglePipelinePaused { pipeline, csrfToken } =
 orderPipelines : String -> List Dashboard.Models.Pipeline -> Concourse.CSRFToken -> Cmd Callback
 orderPipelines teamName pipelines csrfToken =
     Task.attempt (always EmptyCallback) <|
-        Concourse.Pipeline.order
-            teamName
-            (List.map .name pipelines)
-            csrfToken
-
-
-logOut : Cmd Callback
-logOut =
-    Task.attempt LoggedOut Concourse.User.logOut
+        Concourse.Pipeline.order teamName (List.map .name pipelines) csrfToken
 
 
 fetchBuildJobDetails : Concourse.JobIdentifier -> Cmd Callback
@@ -477,10 +445,7 @@ fetchJobBuild browsingIndex jbi =
         Concourse.Build.fetchJobBuild jbi
 
 
-fetchBuildHistory :
-    Concourse.JobIdentifier
-    -> Maybe Concourse.Pagination.Page
-    -> Cmd Callback
+fetchBuildHistory : Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Callback
 fetchBuildHistory job page =
     Task.attempt BuildHistoryFetched <|
         Concourse.Build.fetchJobBuilds job page
@@ -488,10 +453,9 @@ fetchBuildHistory job page =
 
 fetchBuildPrep : Time -> Int -> Int -> Cmd Callback
 fetchBuildPrep delay browsingIndex buildId =
-    Task.attempt (BuildPrepFetched browsingIndex)
-        (Process.sleep delay
-            |> Task.andThen (always <| Concourse.BuildPrep.fetch buildId)
-        )
+    Process.sleep delay
+        |> Task.andThen (always <| Concourse.BuildPrep.fetch buildId)
+        |> Task.attempt (BuildPrepFetched browsingIndex)
 
 
 fetchBuildPlanAndResources : Int -> Cmd Callback
@@ -514,17 +478,30 @@ setFavicon status =
 
 abortBuild : Int -> Concourse.CSRFToken -> Cmd Callback
 abortBuild buildId csrfToken =
-    Task.attempt BuildAborted <|
-        Concourse.Build.abort buildId csrfToken
+    Concourse.Build.abort buildId csrfToken
+        |> Task.attempt BuildAborted
 
 
-scrollToCurrentBuildInHistory : Cmd Callback
-scrollToCurrentBuildInHistory =
-    Task.perform (always EmptyCallback) <|
-        Scroll.scrollIntoView "#builds .current"
+scrollInDirection : ScrollDirection -> Task.Task x ()
+scrollInDirection dir =
+    case dir of
+        ToWindowTop ->
+            Scroll.toWindowTop
 
+        Down ->
+            Scroll.scrollDown
 
-scrollBuilds : Float -> Cmd Callback
-scrollBuilds delta =
-    Task.perform (always EmptyCallback) <|
-        Scroll.scroll "builds" delta
+        Up ->
+            Scroll.scrollUp
+
+        ToBottomOf ele ->
+            Scroll.toBottom ele
+
+        ToWindowBottom ->
+            Scroll.toWindowBottom
+
+        Builds delta ->
+            Scroll.scroll "builds" delta
+
+        ToCurrentBuild ->
+            Scroll.scrollIntoView "#builds .current"

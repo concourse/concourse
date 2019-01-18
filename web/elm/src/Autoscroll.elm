@@ -57,10 +57,10 @@ update subUpdate action model =
             ( model
             , case model.scrollBehaviorFunc model.subModel of
                 ScrollElement ele ->
-                    [ Effects.ScrollToBottom ele ]
+                    [ Effects.Scroll (Effects.ToBottomOf ele) ]
 
                 ScrollWindow ->
-                    [ Effects.ScrollToWindowBottom ]
+                    [ Effects.Scroll Effects.ToWindowBottom ]
 
                 NoScroll ->
                     []
