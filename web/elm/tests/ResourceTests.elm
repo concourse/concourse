@@ -11,12 +11,12 @@ import DashboardTests
         , middleGrey
         )
 import Dict
+import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Html.Styled as HS
 import Http
 import Resource
-import Resource.Effects as Effects
 import Resource.Models as Models
 import Resource.Msgs as Msgs
 import Test exposing (..)
@@ -143,8 +143,8 @@ all =
                     |> Resource.update
                         (Msgs.ExpandVersionedResource versionID)
                     |> Tuple.first
-                    |> Resource.update
-                        (Msgs.InputToFetched versionID
+                    |> Resource.handleCallback
+                        (Effects.InputToFetched versionID
                             (Ok
                                 [ { id = 0
                                   , name = "some-build"
@@ -177,8 +177,8 @@ all =
                     |> Resource.update
                         (Msgs.ExpandVersionedResource versionID)
                     |> Tuple.first
-                    |> Resource.update
-                        (Msgs.OutputOfFetched versionID
+                    |> Resource.handleCallback
+                        (Effects.OutputOfFetched versionID
                             (Ok
                                 [ { id = 0
                                   , name = "some-build"
@@ -302,7 +302,7 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
-                        |> Resource.update (Msgs.VersionToggled Models.Disable versionID (Ok ()))
+                        |> Resource.handleCallback (Effects.VersionToggled Models.Disable versionID (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -313,7 +313,7 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
-                        |> Resource.update (Msgs.VersionToggled Models.Disable versionID badResponse)
+                        |> Resource.handleCallback (Effects.VersionToggled Models.Disable versionID badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -349,7 +349,7 @@ all =
                         |> Resource.update
                             (Msgs.ToggleVersion Models.Enable disabledVersionID)
                         |> Tuple.first
-                        |> Resource.update (Msgs.VersionToggled Models.Enable disabledVersionID (Ok ()))
+                        |> Resource.handleCallback (Effects.VersionToggled Models.Enable disabledVersionID (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
@@ -363,7 +363,7 @@ all =
                         |> Resource.update
                             (Msgs.ToggleVersion Models.Enable disabledVersionID)
                         |> Tuple.first
-                        |> Resource.update (Msgs.VersionToggled Models.Enable disabledVersionID badResponse)
+                        |> Resource.handleCallback (Effects.VersionToggled Models.Enable disabledVersionID badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
@@ -783,7 +783,7 @@ all =
                         |> givenResourcePinnedDynamically
                         |> givenVersionsWithoutPagination
                         |> clickToUnpin
-                        |> Resource.update (Msgs.VersionUnpinned (Ok ()))
+                        |> Resource.handleCallback (Effects.VersionUnpinned (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasUnpinnedState
@@ -793,7 +793,7 @@ all =
                         |> givenResourcePinnedDynamically
                         |> givenVersionsWithoutPagination
                         |> clickToUnpin
-                        |> Resource.update (Msgs.VersionUnpinned badResponse)
+                        |> Resource.handleCallback (Effects.VersionUnpinned badResponse)
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasPinnedState version
@@ -974,7 +974,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> clickToPin versionID
-                        |> Resource.update (Msgs.VersionPinned (Ok ()))
+                        |> Resource.handleCallback (Effects.VersionPinned (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasPinnedState version
@@ -984,7 +984,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> clickToPin versionID
-                        |> Resource.update (Msgs.VersionPinned badResponse)
+                        |> Resource.handleCallback (Effects.VersionPinned badResponse)
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasUnpinnedState
@@ -994,7 +994,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> clickToPin versionID
-                        |> Resource.update (Msgs.VersionPinned badResponse)
+                        |> Resource.handleCallback (Effects.VersionPinned badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -1499,7 +1499,7 @@ all =
                             |> givenUserIsAuthorized
                             |> Resource.update Msgs.Check
                             |> Tuple.first
-                            |> Resource.update (Msgs.Checked <| Ok ())
+                            |> Resource.handleCallback (Effects.Checked <| Ok ())
                             |> Tuple.first
                             |> checkBar
                             |> Query.children []
@@ -1527,7 +1527,7 @@ all =
                             |> givenUserIsAuthorized
                             |> Resource.update Msgs.Check
                             |> Tuple.first
-                            |> Resource.update (Msgs.Checked <| Ok ())
+                            |> Resource.handleCallback (Effects.Checked <| Ok ())
                             |> Tuple.second
                             |> Expect.equal
                                 [ Effects.FetchResource
@@ -1549,8 +1549,8 @@ all =
                             |> givenUserIsAuthorized
                             |> Resource.update Msgs.Check
                             |> Tuple.first
-                            |> Resource.update
-                                (Msgs.Checked <|
+                            |> Resource.handleCallback
+                                (Effects.Checked <|
                                     Err <|
                                         Http.BadStatus
                                             { url = ""
@@ -1585,8 +1585,8 @@ all =
                             |> givenUserIsAuthorized
                             |> Resource.update Msgs.Check
                             |> Tuple.first
-                            |> Resource.update
-                                (Msgs.Checked <|
+                            |> Resource.handleCallback
+                                (Effects.Checked <|
                                     Err <|
                                         Http.BadStatus
                                             { url = ""
@@ -1613,8 +1613,8 @@ all =
                             |> givenUserIsAuthorized
                             |> Resource.update Msgs.Check
                             |> Tuple.first
-                            |> Resource.update
-                                (Msgs.Checked <|
+                            |> Resource.handleCallback
+                                (Effects.Checked <|
                                     Err <|
                                         Http.BadStatus
                                             { url = ""
@@ -1750,8 +1750,8 @@ all =
             , test "unsuccessful check shows a warning icon on the right" <|
                 \_ ->
                     init
-                        |> Resource.update
-                            (Msgs.ResourceFetched <|
+                        |> Resource.handleCallback
+                            (Effects.ResourceFetched <|
                                 Ok
                                     { teamName = teamName
                                     , pipelineName = pipelineName
@@ -1795,8 +1795,8 @@ init =
 
 givenResourcePinnedStatically : Models.Model -> Models.Model
 givenResourcePinnedStatically =
-    Resource.update
-        (Msgs.ResourceFetched <|
+    Resource.handleCallback
+        (Effects.ResourceFetched <|
             Ok
                 { teamName = teamName
                 , pipelineName = pipelineName
@@ -1814,8 +1814,8 @@ givenResourcePinnedStatically =
 
 givenResourcePinnedDynamically : Models.Model -> Models.Model
 givenResourcePinnedDynamically =
-    Resource.update
-        (Msgs.ResourceFetched <|
+    Resource.handleCallback
+        (Effects.ResourceFetched <|
             Ok
                 { teamName = teamName
                 , pipelineName = pipelineName
@@ -1833,8 +1833,8 @@ givenResourcePinnedDynamically =
 
 givenResourceIsNotPinned : Models.Model -> Models.Model
 givenResourceIsNotPinned =
-    Resource.update
-        (Msgs.ResourceFetched <|
+    Resource.handleCallback
+        (Effects.ResourceFetched <|
             Ok
                 { teamName = teamName
                 , pipelineName = pipelineName
@@ -1889,8 +1889,8 @@ clickToDisable versionID =
 
 givenVersionsWithoutPagination : Models.Model -> Models.Model
 givenVersionsWithoutPagination =
-    Resource.update
-        (Msgs.VersionedResourcesFetched Nothing <|
+    Resource.handleCallback
+        (Effects.VersionedResourcesFetched Nothing <|
             Ok
                 { content =
                     [ { id = versionID
@@ -1920,8 +1920,8 @@ givenVersionsWithoutPagination =
 
 givenVersionsWithPagination : Models.Model -> Models.Model
 givenVersionsWithPagination =
-    Resource.update
-        (Msgs.VersionedResourcesFetched Nothing <|
+    Resource.handleCallback
+        (Effects.VersionedResourcesFetched Nothing <|
             Ok
                 { content =
                     [ { id = versionID

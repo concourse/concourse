@@ -3,6 +3,7 @@ port module TopBar exposing
     , Msg(..)
     , fetchUser
     , init
+    , resetPipelineFocus
     , subscriptions
     , update
     , urlUpdate
@@ -15,7 +16,6 @@ import Concourse
 import Concourse.Pipeline
 import Concourse.User
 import Dict
-import Effects
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, disabled, href, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave, onMouseOut, onMouseOver)
@@ -27,6 +27,9 @@ import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Task
 import Time
 import UserState exposing (UserState(..))
+
+
+port resetPipelineFocus : () -> Cmd msg
 
 
 type alias Model r =
@@ -141,7 +144,7 @@ update msg model =
                 ( model, Cmd.none )
 
         ResetToPipeline url ->
-            ( model, Cmd.batch [ Navigation.newUrl url, Effects.resetPipelineFocus () ] )
+            ( model, Cmd.batch [ Navigation.newUrl url, resetPipelineFocus () ] )
 
         ToggleUserMenu ->
             ( { model | userMenuVisible = not model.userMenuVisible }, Cmd.none )

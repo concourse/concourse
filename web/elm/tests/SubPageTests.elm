@@ -11,7 +11,6 @@ import Job exposing (..)
 import Pipeline
 import QueryString
 import Resource
-import Resource.Msgs
 import Routes
 import SubPage exposing (..)
 import SubPage.Msgs exposing (Msg(..))
@@ -60,7 +59,7 @@ all =
                 \_ ->
                     let
                         msg =
-                            Resource.Msgs.ResourceFetched <| Err <| Http.BadStatus notFoundStatus
+                            ResourceFetched <| Err <| Http.BadStatus notFoundStatus
 
                         ( model, _ ) =
                             Resource.init
@@ -71,7 +70,7 @@ all =
                                 , csrfToken = csrfToken
                                 }
                     in
-                    Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg" }) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (ResourceMsg msg) (ResourceModel model)
+                    Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg" }) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (Callback msg) (ResourceModel model)
             , test "Build not found" <|
                 \_ ->
                     let

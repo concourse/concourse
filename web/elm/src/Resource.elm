@@ -1,6 +1,8 @@
 module Resource exposing
     ( Flags
     , changeToResource
+    , handleCallback
+    , handleCallbackWithMessage
     , init
     , subscriptions
     , update
@@ -30,6 +32,7 @@ import Date.Format
 import Dict
 import DictView
 import Duration exposing (Duration)
+import Effects exposing (Callback(..), Effect(..), runEffect, setTitle)
 import Erl
 import Html.Attributes
 import Html.Styled as Html exposing (Html)
@@ -61,7 +64,6 @@ import Pinned
         , VersionPinState(..)
         )
 import QueryString
-import Resource.Effects exposing (Effect(..), runEffect)
 import Resource.Models as Models exposing (Model)
 import Resource.Msgs exposing (Msg(..))
 import Resource.Styles
@@ -157,22 +159,6 @@ changeToResource flags model =
     )
 
 
-updateWithMessage : Msg -> Model -> ( Model, Cmd Msg, Maybe UpdateMsg )
-updateWithMessage message model =
-    let
-        ( mdl, effects ) =
-            update message model
-
-        cmd =
-            List.map runEffect effects |> Cmd.batch
-    in
-    if mdl.pageStatus == Err Models.NotFound then
-        ( mdl, cmd, Just UpdateMsg.NotFound )
-
-    else
-        ( mdl, cmd, Nothing )
-
-
 updatePinnedVersion : Concourse.Resource -> Model -> Model
 updatePinnedVersion resource model =
     case ( resource.pinnedVersion, resource.pinnedInConfig ) of
@@ -212,20 +198,27 @@ hasPinnedVersion model v =
             False
 
 
-update : Msg -> Model -> ( Model, List Effect )
-update action model =
+handleCallbackWithMessage : Callback -> Model -> ( Model, Cmd Callback, Maybe UpdateMsg )
+handleCallbackWithMessage message model =
+    let
+        ( mdl, effects ) =
+            handleCallback
+                message
+                model
+
+        cmd =
+            List.map runEffect effects |> Cmd.batch
+    in
+    if mdl.pageStatus == Err Models.NotFound then
+        ( mdl, cmd, Just UpdateMsg.NotFound )
+
+    else
+        ( mdl, cmd, Nothing )
+
+
+handleCallback : Callback -> Model -> ( Model, List Effect )
+handleCallback action model =
     case action of
-        Noop ->
-            ( model, [] )
-
-        AutoupdateTimerTicked timestamp ->
-            ( model
-            , [ FetchResource model.resourceIdentifier
-              , FetchVersionedResources model.resourceIdentifier model.currentPage
-              ]
-                ++ updateExpandedProperties model
-            )
-
         ResourceFetched (Ok resource) ->
             ( { model
                 | pageStatus = Ok ()
@@ -343,6 +336,152 @@ update action model =
             flip always (Debug.log "failed to fetch versioned resources" err) <|
                 ( model, [] )
 
+        InputToFetched _ (Err err) ->
+            case err of
+                Http.BadStatus { status } ->
+                    if status.code == 401 then
+                        ( model, [ RedirectToLogin ] )
+
+                    else
+                        ( model, [] )
+
+                _ ->
+                    ( model, [] )
+
+        InputToFetched versionID (Ok builds) ->
+            ( updateVersion versionID (\v -> { v | inputTo = builds }) model
+            , []
+            )
+
+        OutputOfFetched _ (Err err) ->
+            case err of
+                Http.BadStatus { status } ->
+                    if status.code == 401 then
+                        ( model, [ RedirectToLogin ] )
+
+                    else
+                        ( model, [] )
+
+                _ ->
+                    ( model, [] )
+
+        OutputOfFetched versionID (Ok builds) ->
+            ( updateVersion versionID (\v -> { v | outputOf = builds }) model
+            , []
+            )
+
+        VersionPinned (Ok ()) ->
+            let
+                newPinnedVersion =
+                    Pinned.finishPinning
+                        (\pinningTo ->
+                            model.versions.content
+                                |> List.Extra.find (\v -> v.id == pinningTo)
+                                |> Maybe.map .version
+                        )
+                        model.pinnedVersion
+            in
+            ( { model | pinnedVersion = newPinnedVersion }, [] )
+
+        VersionPinned (Err _) ->
+            ( { model
+                | pinnedVersion = NotPinned
+              }
+            , []
+            )
+
+        VersionUnpinned (Ok ()) ->
+            ( { model
+                | pinnedVersion = NotPinned
+              }
+            , []
+            )
+
+        VersionUnpinned (Err _) ->
+            ( { model
+                | pinnedVersion = Pinned.quitUnpinning model.pinnedVersion
+              }
+            , []
+            )
+
+        VersionToggled action versionID result ->
+            let
+                newEnabledState : BoolTransitionable.BoolTransitionable
+                newEnabledState =
+                    case ( result, action ) of
+                        ( Ok (), Models.Enable ) ->
+                            BoolTransitionable.True
+
+                        ( Ok (), Models.Disable ) ->
+                            BoolTransitionable.False
+
+                        ( Err _, Models.Enable ) ->
+                            BoolTransitionable.False
+
+                        ( Err _, Models.Disable ) ->
+                            BoolTransitionable.True
+            in
+            ( updateVersion versionID (\v -> { v | enabled = newEnabledState }) model
+            , []
+            )
+
+        Checked (Ok ()) ->
+            ( { model | checkStatus = Models.CheckingSuccessfully }
+            , [ FetchResource model.resourceIdentifier
+              , FetchVersionedResources
+                    model.resourceIdentifier
+                    model.currentPage
+              ]
+            )
+
+        Checked (Err err) ->
+            ( { model | checkStatus = Models.FailingToCheck }
+            , case err of
+                Http.BadStatus { status } ->
+                    if status.code == 401 then
+                        [ RedirectToLogin ]
+
+                    else
+                        [ FetchResource model.resourceIdentifier ]
+
+                _ ->
+                    []
+            )
+
+        _ ->
+            ( model, [] )
+
+
+updateWithMessage : Msg -> Model -> ( Model, Cmd Callback, Maybe UpdateMsg )
+updateWithMessage message model =
+    let
+        ( mdl, effects ) =
+            update message model
+
+        cmd =
+            List.map runEffect effects |> Cmd.batch
+    in
+    if mdl.pageStatus == Err Models.NotFound then
+        ( mdl, cmd, Just UpdateMsg.NotFound )
+
+    else
+        ( mdl, cmd, Nothing )
+
+
+update : Msg -> Model -> ( Model, List Effect )
+update action model =
+    case action of
+        Noop ->
+            ( model, [] )
+
+        AutoupdateTimerTicked timestamp ->
+            ( model
+            , [ FetchResource model.resourceIdentifier
+              , FetchVersionedResources model.resourceIdentifier model.currentPage
+              ]
+                ++ updateExpandedProperties model
+            )
+
         LoadPage page ->
             ( { model
                 | currentPage = Just page
@@ -385,42 +524,8 @@ update action model =
                 []
             )
 
-        InputToFetched _ (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, [ RedirectToLogin ] )
-
-                    else
-                        ( model, [] )
-
-                _ ->
-                    ( model, [] )
-
-        InputToFetched versionID (Ok builds) ->
-            ( updateVersion versionID (\v -> { v | inputTo = builds }) model
-            , []
-            )
-
-        OutputOfFetched _ (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, [ RedirectToLogin ] )
-
-                    else
-                        ( model, [] )
-
-                _ ->
-                    ( model, [] )
-
         ClockTick now ->
             ( { model | now = Just now }, [] )
-
-        OutputOfFetched versionID (Ok builds) ->
-            ( updateVersion versionID (\v -> { v | outputOf = builds }) model
-            , []
-            )
 
         NavTo url ->
             ( model, [ NavigateTo url ] )
@@ -499,40 +604,6 @@ update action model =
             in
             ( { model | pinnedVersion = Pinned.startUnpinning model.pinnedVersion }, [ cmd ] )
 
-        VersionPinned (Ok ()) ->
-            let
-                newPinnedVersion =
-                    Pinned.finishPinning
-                        (\pinningTo ->
-                            model.versions.content
-                                |> List.Extra.find (\v -> v.id == pinningTo)
-                                |> Maybe.map .version
-                        )
-                        model.pinnedVersion
-            in
-            ( { model | pinnedVersion = newPinnedVersion }, [] )
-
-        VersionPinned (Err _) ->
-            ( { model
-                | pinnedVersion = NotPinned
-              }
-            , []
-            )
-
-        VersionUnpinned (Ok ()) ->
-            ( { model
-                | pinnedVersion = NotPinned
-              }
-            , []
-            )
-
-        VersionUnpinned (Err _) ->
-            ( { model
-                | pinnedVersion = Pinned.quitUnpinning model.pinnedVersion
-              }
-            , []
-            )
-
         ToggleVersion action versionID ->
             ( updateVersion versionID (\v -> { v | enabled = BoolTransitionable.Changing }) model
             , [ DoToggleVersion action
@@ -545,37 +616,11 @@ update action model =
               ]
             )
 
-        VersionToggled action versionID result ->
-            let
-                newEnabledState : BoolTransitionable.BoolTransitionable
-                newEnabledState =
-                    case ( result, action ) of
-                        ( Ok (), Models.Enable ) ->
-                            BoolTransitionable.True
-
-                        ( Ok (), Models.Disable ) ->
-                            BoolTransitionable.False
-
-                        ( Err _, Models.Enable ) ->
-                            BoolTransitionable.False
-
-                        ( Err _, Models.Disable ) ->
-                            BoolTransitionable.True
-            in
-            ( updateVersion versionID (\v -> { v | enabled = newEnabledState }) model
-            , []
-            )
-
         PinIconHover state ->
             ( { model | pinIconHover = state }, [] )
 
         Hover hovered ->
             ( { model | hovered = hovered }, [] )
-
-        TopBarMsg msg ->
-            ( TopBar.update msg model |> Tuple.first
-            , [ DoTopBarUpdate msg model ]
-            )
 
         Check ->
             case model.userState of
@@ -587,30 +632,10 @@ update action model =
                 _ ->
                     ( model, [ RedirectToLogin ] )
 
-        Checked result ->
-            case result of
-                Ok () ->
-                    ( { model | checkStatus = Models.CheckingSuccessfully }
-                    , [ FetchResource model.resourceIdentifier
-                      , FetchVersionedResources
-                            model.resourceIdentifier
-                            model.currentPage
-                      ]
-                    )
-
-                Err err ->
-                    ( { model | checkStatus = Models.FailingToCheck }
-                    , case err of
-                        Http.BadStatus { status } ->
-                            if status.code == 401 then
-                                [ RedirectToLogin ]
-
-                            else
-                                [ FetchResource model.resourceIdentifier ]
-
-                        _ ->
-                            []
-                    )
+        TopBarMsg msg ->
+            ( TopBar.update msg model |> Tuple.first
+            , [ DoTopBarUpdate msg model ]
+            )
 
 
 updateVersion : Int -> (Models.Version -> Models.Version) -> Model -> Model
@@ -1560,7 +1585,7 @@ updateExpandedProperties model =
                 model.versions.content
     in
     List.concatMap
-        (Resource.Effects.fetchInputAndOutputs model)
+        (fetchInputAndOutputs model)
         filteredList
 
 
@@ -1578,3 +1603,18 @@ subscriptions model =
         [ Time.every (5 * Time.second) AutoupdateTimerTicked
         , Time.every Time.second ClockTick
         ]
+
+
+fetchInputAndOutputs : Models.Model -> Models.Version -> List Effect
+fetchInputAndOutputs model version =
+    let
+        identifier =
+            { teamName = model.resourceIdentifier.teamName
+            , pipelineName = model.resourceIdentifier.pipelineName
+            , resourceName = model.resourceIdentifier.resourceName
+            , versionID = version.id
+            }
+    in
+    [ FetchInputTo identifier
+    , FetchOutputOf identifier
+    ]
