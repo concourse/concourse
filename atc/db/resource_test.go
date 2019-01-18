@@ -286,8 +286,6 @@ var _ = Describe("Resource", func() {
 				})
 
 				It("has the resource config id and resource config scope id set on the resource", func() {
-					Expect(resourceScope2.CheckError()).To(Equal(errors.New("oops")))
-
 					Expect(resourceScope1.Resource()).To(BeNil())
 					Expect(resource1.ResourceConfigID()).To(Equal(resourceScope1.ResourceConfig().ID()))
 					Expect(resource1.ResourceConfigScopeID()).To(Equal(resourceScope1.ID()))
@@ -310,6 +308,8 @@ var _ = Describe("Resource", func() {
 					})
 
 					It("has the same resource config id and resource config scope id as the first resource", func() {
+						Expect(resourceScope2.CheckError()).To(Equal(errors.New("oops")))
+
 						Expect(resource2.ResourceConfigID()).To(Equal(resourceScope2.ResourceConfig().ID()))
 						Expect(resource2.ResourceConfigScopeID()).To(Equal(resourceScope2.ID()))
 						Expect(resource1.ResourceConfigID()).To(Equal(resource2.ResourceConfigID()))

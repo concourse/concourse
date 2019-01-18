@@ -1277,7 +1277,7 @@ var _ = Describe("Resources API", func() {
 							})
 
 							It("does not scan from version", func() {
-								Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(0))
+								Consistently(fakeScanner.ScanFromVersionCallCount).Should(Equal(0))
 							})
 						})
 					})
@@ -1288,7 +1288,7 @@ var _ = Describe("Resources API", func() {
 						})
 
 						It("tries to scan", func() {
-							Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+							Eventually(fakeScanner.ScanFromVersionCallCount).Should(Equal(1))
 						})
 					})
 				})
@@ -1299,7 +1299,7 @@ var _ = Describe("Resources API", func() {
 					})
 
 					It("tries to scan", func() {
-						Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+						Eventually(fakeScanner.ScanFromVersionCallCount).Should(Equal(1))
 					})
 				})
 			})
