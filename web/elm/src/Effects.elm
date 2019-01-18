@@ -105,6 +105,7 @@ type Effect
     | ScrollToWindowTop
     | ScrollDown
     | ScrollUp
+    | ScrollToBottom String
     | ScrollToWindowBottom
     | SetFavIcon Concourse.BuildStatus
 
@@ -305,6 +306,9 @@ runEffect effect =
 
         ScrollUp ->
             Task.perform (always EmptyCallback) Scroll.scrollUp
+
+        ScrollToBottom ele ->
+            Task.perform (always EmptyCallback) (Scroll.toBottom ele)
 
         ScrollToWindowBottom ->
             Task.perform (always EmptyCallback) Scroll.toWindowBottom

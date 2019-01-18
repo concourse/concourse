@@ -2,11 +2,11 @@ module Pipeline exposing
     ( Flags
     , Model
     , changeToPipelineAndGroups
-    , handleCallbackWithMessage
+    , getUpdateMessage
+    , handleCallback
     , init
     , subscriptions
     , update
-    , updateWithMessage
     , view
     )
 
@@ -127,21 +127,14 @@ timeUntilHiddenCheckInterval =
     1 * Time.second
 
 
-handleCallbackWithMessage : Callback -> Model -> ( Model, Cmd Callback, Maybe UpdateMsg )
-handleCallbackWithMessage message model =
-    let
-        ( mdl, effects ) =
-            handleCallback message model
-
-        cmds =
-            Cmd.batch <| List.map Effects.runEffect effects
-    in
-    case mdl.pipeline of
+getUpdateMessage : Model -> UpdateMsg
+getUpdateMessage model =
+    case model.pipeline of
         RemoteData.Failure _ ->
-            ( mdl, cmds, Just UpdateMsg.NotFound )
+            UpdateMsg.NotFound
 
         _ ->
-            ( mdl, cmds, Nothing )
+            UpdateMsg.AOK
 
 
 handleCallback : Callback -> Model -> ( Model, List Effect )
@@ -206,23 +199,6 @@ handleCallback callback model =
 
         _ ->
             ( model, [] )
-
-
-updateWithMessage : Msg -> Model -> ( Model, Cmd Callback, Maybe UpdateMsg )
-updateWithMessage message model =
-    let
-        ( mdl, effects ) =
-            update message model
-
-        cmds =
-            Cmd.batch <| List.map Effects.runEffect effects
-    in
-    case mdl.pipeline of
-        RemoteData.Failure _ ->
-            ( mdl, cmds, Just UpdateMsg.NotFound )
-
-        _ ->
-            ( mdl, cmds, Nothing )
 
 
 update : Msg -> Model -> ( Model, List Effect )

@@ -2,12 +2,11 @@ port module Job exposing
     ( Flags
     , Model
     , changeToJob
+    , getUpdateMessage
     , handleCallback
-    , handleCallbackWithMessage
     , init
     , subscriptions
     , update
-    , updateWithMessage
     , view
     )
 
@@ -135,21 +134,14 @@ changeToJob flags model =
     )
 
 
-handleCallbackWithMessage : Callback -> Model -> ( Model, Cmd Callback, Maybe UpdateMsg )
-handleCallbackWithMessage callback model =
-    let
-        ( mdl, effects ) =
-            handleCallback callback model
-
-        cmd =
-            List.map Effects.runEffect effects |> Cmd.batch
-    in
-    case mdl.job of
+getUpdateMessage : Model -> UpdateMsg
+getUpdateMessage model =
+    case model.job of
         RemoteData.Failure _ ->
-            ( mdl, cmd, Just UpdateMsg.NotFound )
+            UpdateMsg.NotFound
 
         _ ->
-            ( mdl, cmd, Nothing )
+            UpdateMsg.AOK
 
 
 handleCallback : Effects.Callback -> Model -> ( Model, List Effect )
@@ -246,23 +238,6 @@ handleCallback callback model =
 
         _ ->
             ( model, [] )
-
-
-updateWithMessage : Msg -> Model -> ( Model, Cmd Callback, Maybe UpdateMsg )
-updateWithMessage message model =
-    let
-        ( mdl, effects ) =
-            update message model
-
-        cmd =
-            List.map Effects.runEffect effects |> Cmd.batch
-    in
-    case mdl.job of
-        RemoteData.Failure _ ->
-            ( mdl, cmd, Just UpdateMsg.NotFound )
-
-        _ ->
-            ( mdl, cmd, Nothing )
 
 
 update : Msg -> Model -> ( Model, List Effect )

@@ -152,14 +152,33 @@ init flags route =
                 |> Tuple.mapSecond effectsToCmd
 
 
-handleNotFound : String -> ( a -> Model, c -> Msg ) -> ( a, Cmd c, Maybe UpdateMsg ) -> ( Model, Cmd Msg )
-handleNotFound notFound ( mdlFunc, msgFunc ) ( mdl, msg, outMessage ) =
-    case outMessage of
-        Just UpdateMsg.NotFound ->
-            ( NotFoundModel { notFoundImgSrc = notFound }, Effects.setTitle "Not Found " )
+handleNotFound : String -> ( Model, List Effects.Effect ) -> ( Model, List Effects.Effect )
+handleNotFound notFound ( model, effects ) =
+    case getUpdateMessage model of
+        UpdateMsg.NotFound ->
+            ( NotFoundModel { notFoundImgSrc = notFound }, [ Effects.SetTitle "Not Found " ] )
 
-        Nothing ->
-            ( mdlFunc mdl, Cmd.map msgFunc msg )
+        UpdateMsg.AOK ->
+            ( model, effects )
+
+
+getUpdateMessage : Model -> UpdateMsg
+getUpdateMessage model =
+    case model of
+        BuildModel mdl ->
+            Build.getUpdateMessage mdl.subModel
+
+        JobModel mdl ->
+            Job.getUpdateMessage mdl
+
+        ResourceModel mdl ->
+            Resource.getUpdateMessage mdl
+
+        PipelineModel mdl ->
+            Pipeline.getUpdateMessage mdl
+
+        _ ->
+            UpdateMsg.AOK
 
 
 update : String -> String -> Concourse.CSRFToken -> Msg -> Model -> ( Model, Cmd Msg )
@@ -178,7 +197,10 @@ update turbulence notFound csrfToken msg mdl =
                 model =
                     { scrollModel | subModel = { subModel | csrfToken = csrfToken } }
             in
-            handleNotFound notFound ( BuildModel, CallbackAutoScroll ) (Autoscroll.update Build.updateWithMessage message model)
+            Autoscroll.update Build.update message model
+                |> Tuple.mapFirst BuildModel
+                |> handleNotFound notFound
+                |> Tuple.mapSecond effectsToAutoscrollingCmd
 
         ( CallbackAutoScroll callback, BuildModel scrollModel ) ->
             let
@@ -188,31 +210,52 @@ update turbulence notFound csrfToken msg mdl =
                 model =
                     { scrollModel | subModel = { subModel | csrfToken = csrfToken } }
             in
-            handleNotFound notFound ( BuildModel, CallbackAutoScroll ) (Autoscroll.update Build.handleCallbackWithMessage callback model)
+            Autoscroll.update Build.handleCallback callback model
+                |> Tuple.mapFirst BuildModel
+                |> handleNotFound notFound
+                |> Tuple.mapSecond effectsToAutoscrollingCmd
 
         ( NewCSRFToken c, JobModel model ) ->
             ( JobModel { model | csrfToken = c }, Cmd.none )
 
         ( JobMsg message, JobModel model ) ->
-            handleNotFound notFound ( JobModel, Callback ) (Job.updateWithMessage message { model | csrfToken = csrfToken })
+            Job.update message { model | csrfToken = csrfToken }
+                |> Tuple.mapFirst JobModel
+                |> handleNotFound notFound
+                |> Tuple.mapSecond effectsToCmd
 
         ( Callback callback, JobModel model ) ->
-            handleNotFound notFound ( JobModel, Callback ) (Job.handleCallbackWithMessage callback { model | csrfToken = csrfToken })
+            Job.handleCallback callback { model | csrfToken = csrfToken }
+                |> Tuple.mapFirst JobModel
+                |> handleNotFound notFound
+                |> Tuple.mapSecond effectsToCmd
 
         ( PipelineMsg message, PipelineModel model ) ->
-            handleNotFound notFound ( PipelineModel, Callback ) (Pipeline.updateWithMessage message model)
+            Pipeline.update message model
+                |> Tuple.mapFirst PipelineModel
+                |> handleNotFound notFound
+                |> Tuple.mapSecond effectsToCmd
 
         ( Callback callback, PipelineModel model ) ->
-            handleNotFound notFound ( PipelineModel, Callback ) (Pipeline.handleCallbackWithMessage callback model)
+            Pipeline.handleCallback callback model
+                |> Tuple.mapFirst PipelineModel
+                |> handleNotFound notFound
+                |> Tuple.mapSecond effectsToCmd
 
         ( NewCSRFToken c, ResourceModel model ) ->
             ( ResourceModel { model | csrfToken = c }, Cmd.none )
 
         ( ResourceMsg message, ResourceModel model ) ->
-            handleNotFound notFound ( ResourceModel, Callback ) (Resource.updateWithMessage message { model | csrfToken = csrfToken })
+            Resource.update message { model | csrfToken = csrfToken }
+                |> Tuple.mapFirst ResourceModel
+                |> handleNotFound notFound
+                |> Tuple.mapSecond effectsToCmd
 
         ( Callback callback, ResourceModel model ) ->
-            handleNotFound notFound ( ResourceModel, Callback ) (Resource.handleCallbackWithMessage callback { model | csrfToken = csrfToken })
+            Resource.handleCallback callback { model | csrfToken = csrfToken }
+                |> Tuple.mapFirst ResourceModel
+                |> handleNotFound notFound
+                |> Tuple.mapSecond effectsToCmd
 
         ( NewCSRFToken c, DashboardModel model ) ->
             ( DashboardModel { model | csrfToken = c }, Cmd.none )

@@ -3,13 +3,12 @@ module Build exposing
     , Page(..)
     , changeToBuild
     , getScrollBehavior
+    , getUpdateMessage
     , handleCallback
-    , handleCallbackWithMessage
     , init
     , initJobBuildPage
     , subscriptions
     , update
-    , updateWithMessage
     , view
     )
 
@@ -209,18 +208,14 @@ extractTitle model =
             ""
 
 
-handleCallbackWithMessage : Callback -> Model -> ( Model, Cmd Callback, Maybe UpdateMsg )
-handleCallbackWithMessage message model =
-    let
-        ( mdl, effects ) =
-            handleCallback message model
-    in
-    case mdl.currentBuild of
+getUpdateMessage : Model -> UpdateMsg
+getUpdateMessage model =
+    case model.currentBuild of
         RemoteData.Failure _ ->
-            ( mdl, Cmd.batch (List.map runEffect effects), Just UpdateMsg.NotFound )
+            UpdateMsg.NotFound
 
         _ ->
-            ( mdl, Cmd.batch (List.map runEffect effects), Nothing )
+            UpdateMsg.AOK
 
 
 handleCallback : Callback -> Model -> ( Model, List Effect )
@@ -306,20 +301,6 @@ handleCallback action model =
 
         _ ->
             ( model, [] )
-
-
-updateWithMessage : Msg -> Model -> ( Model, Cmd Callback, Maybe UpdateMsg )
-updateWithMessage message model =
-    let
-        ( mdl, effects ) =
-            update message model
-    in
-    case mdl.currentBuild of
-        RemoteData.Failure _ ->
-            ( mdl, Cmd.batch (List.map runEffect effects), Just UpdateMsg.NotFound )
-
-        _ ->
-            ( mdl, Cmd.batch (List.map runEffect effects), Nothing )
 
 
 update : Msg -> Model -> ( Model, List Effect )

@@ -9,10 +9,8 @@ module Autoscroll exposing
     )
 
 import AnimationFrame
+import Effects
 import Html exposing (Html)
-import Scroll
-import Task
-import UpdateMsg exposing (UpdateMsg)
 
 
 type alias Model subModel =
@@ -30,7 +28,6 @@ type ScrollBehavior
 type Msg subMsg
     = SubMsg subMsg
     | ScrollDown
-    | ScrolledDown
 
 
 
@@ -43,35 +40,31 @@ init toScrollMsg ( mdl, msg ) =
 
 
 update :
-    (subMsg -> subModel -> ( subModel, Cmd callback, Maybe UpdateMsg ))
+    (subMsg -> subModel -> ( subModel, List Effects.Effect ))
     -> Msg subMsg
     -> Model subModel
-    -> ( Model subModel, Cmd (Msg callback), Maybe UpdateMsg )
+    -> ( Model subModel, List Effects.Effect )
 update subUpdate action model =
     case action of
         SubMsg subMsg ->
             let
-                ( subModel, subCmd, subUpdateMsg ) =
+                ( subModel, subCmd ) =
                     subUpdate subMsg model.subModel
             in
-            ( { model | subModel = subModel }, Cmd.map SubMsg subCmd, subUpdateMsg )
+            ( { model | subModel = subModel }, subCmd )
 
         ScrollDown ->
             ( model
             , case model.scrollBehaviorFunc model.subModel of
                 ScrollElement ele ->
-                    scrollToBottom ele
+                    [ Effects.ScrollToBottom ele ]
 
                 ScrollWindow ->
-                    scrollToWindowBottom
+                    [ Effects.ScrollToWindowBottom ]
 
                 NoScroll ->
-                    Cmd.none
-            , Nothing
+                    []
             )
-
-        ScrolledDown ->
-            ( model, Cmd.none, Nothing )
 
 
 urlUpdate : (pageResult -> subModel -> ( subModel, Cmd subMsg )) -> pageResult -> Model subModel -> ( Model subModel, Cmd (Msg subMsg) )
@@ -102,13 +95,3 @@ subscriptions subSubscriptions model =
 
     else
         subSubs
-
-
-scrollToBottom : String -> Cmd (Msg x)
-scrollToBottom ele =
-    Task.perform (always ScrolledDown) (Scroll.toBottom ele)
-
-
-scrollToWindowBottom : Cmd (Msg x)
-scrollToWindowBottom =
-    Task.perform (always ScrolledDown) Scroll.toWindowBottom
