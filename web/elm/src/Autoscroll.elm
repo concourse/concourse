@@ -2,7 +2,6 @@ module Autoscroll exposing
     ( Model
     , Msg(SubMsg)
     , ScrollBehavior(..)
-    , init
     , subscriptions
     , update
     , urlUpdate
@@ -17,8 +16,8 @@ import UpdateMsg exposing (UpdateMsg)
 
 
 type alias Model subModel =
-    { subModel : subModel
-    , scrollBehaviorFunc : subModel -> ScrollBehavior
+    { scrollBehaviorFunc : subModel -> ScrollBehavior
+    , subModel : subModel
     }
 
 
@@ -34,9 +33,13 @@ type Msg subMsg
     | ScrolledDown
 
 
+
+-- Init is never actually used
+
+
 init : (subModel -> ScrollBehavior) -> ( subModel, Cmd subMsg ) -> ( Model subModel, Cmd (Msg subMsg) )
-init toScrollMsg ( subModel, subCmd ) =
-    ( Model subModel toScrollMsg, Cmd.map SubMsg subCmd )
+init toScrollMsg ( mdl, msg ) =
+    ( Model toScrollMsg mdl, Cmd.map SubMsg msg )
 
 
 update :
