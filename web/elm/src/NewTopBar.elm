@@ -1,7 +1,6 @@
 module NewTopBar exposing
     ( Model
     , autocompleteOptions
-    , logOut
     , query
     , queryStringFromSearch
     , view
@@ -258,8 +257,3 @@ autocompleteOptions { query, groups } =
 
         _ ->
             []
-
-
-logOut : Cmd Msg
-logOut =
-    Task.attempt LoggedOut Concourse.User.logOut

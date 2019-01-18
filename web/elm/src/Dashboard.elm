@@ -1,5 +1,6 @@
 module Dashboard exposing
     ( Model
+    , handleCallback
     , init
     , subscriptions
     , update
@@ -14,7 +15,6 @@ import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Concourse.User
 import Dashboard.APIData as APIData
 import Dashboard.Details as Details
-import Dashboard.Effects exposing (Effect(..))
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
 import Dashboard.Models as Models
@@ -22,6 +22,7 @@ import Dashboard.Msgs as Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
 import Dashboard.SubState as SubState
 import Dashboard.Text as Text
+import Effects exposing (Callback(..), Effect(..))
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes
     exposing
@@ -133,78 +134,115 @@ init flags =
     )
 
 
+handleCallback : Callback -> Model -> ( Model, List Effect )
+handleCallback msg model =
+    case msg of
+        APIDataFetched RemoteData.NotAsked ->
+            ( { model | state = Err NotAsked }, [] )
+
+        APIDataFetched RemoteData.Loading ->
+            ( { model | state = Err NotAsked }, [] )
+
+        APIDataFetched (RemoteData.Failure _) ->
+            ( { model | state = Err (Turbulence model.turbulencePath) }, [] )
+
+        APIDataFetched (RemoteData.Success ( now, apiData )) ->
+            let
+                groups =
+                    Group.groups apiData
+
+                noPipelines =
+                    List.isEmpty <| List.concatMap .pipelines groups
+
+                newModel =
+                    case model.state of
+                        Ok substate ->
+                            { model
+                                | state =
+                                    Ok (SubState.tick now substate)
+                            }
+
+                        _ ->
+                            { model
+                                | state =
+                                    Ok
+                                        { now = now
+                                        , dragState = Group.NotDragging
+                                        , dropState = Group.NotDropping
+                                        }
+                            }
+
+                userState =
+                    case apiData.user of
+                        Just u ->
+                            UserState.UserStateLoggedIn u
+
+                        Nothing ->
+                            UserState.UserStateLoggedOut
+            in
+            if model.highDensity && noPipelines then
+                ( { newModel
+                    | highDensity = False
+                    , groups = groups
+                    , version = apiData.version
+                    , userState = userState
+                  }
+                , [ ModifyUrl Routes.dashboardRoute ]
+                )
+
+            else
+                ( { newModel
+                    | groups = groups
+                    , version = apiData.version
+                    , userState = userState
+                  }
+                , []
+                )
+
+        LoggedOut (Ok ()) ->
+            let
+                redirectUrl =
+                    if model.highDensity then
+                        Routes.dashboardHdRoute
+
+                    else
+                        Routes.dashboardRoute
+            in
+            ( { model
+                | userState = UserState.UserStateLoggedOut
+                , userMenuVisible = False
+              }
+            , [ NewUrl redirectUrl, FetchData ]
+            )
+
+        LoggedOut (Err err) ->
+            flip always (Debug.log "failed to log out" err) <|
+                ( model, [] )
+
+        ScreenResized size ->
+            let
+                newSize =
+                    ScreenSize.fromWindowSize size
+            in
+            ( { model
+                | screenSize = newSize
+                , searchBar =
+                    SearchBar.screenSizeChanged
+                        { oldSize = model.screenSize
+                        , newSize = newSize
+                        }
+                        model.searchBar
+              }
+            , []
+            )
+
+        _ ->
+            ( model, [] )
+
+
 update : Msg -> Model -> ( Model, List Effect )
 update msg model =
     case msg of
-        Noop ->
-            ( model, [] )
-
-        APIDataFetched remoteData ->
-            case remoteData of
-                RemoteData.NotAsked ->
-                    ( { model | state = Err NotAsked }, [] )
-
-                RemoteData.Loading ->
-                    ( { model | state = Err NotAsked }, [] )
-
-                RemoteData.Failure _ ->
-                    ( { model | state = Err (Turbulence model.turbulencePath) }
-                    , []
-                    )
-
-                RemoteData.Success ( now, apiData ) ->
-                    let
-                        groups =
-                            Group.groups apiData
-
-                        noPipelines =
-                            List.isEmpty <| List.concatMap .pipelines groups
-
-                        newModel =
-                            case model.state of
-                                Ok substate ->
-                                    { model
-                                        | state =
-                                            Ok (SubState.tick now substate)
-                                    }
-
-                                _ ->
-                                    { model
-                                        | state =
-                                            Ok
-                                                { now = now
-                                                , dragState = Group.NotDragging
-                                                , dropState = Group.NotDropping
-                                                }
-                                    }
-
-                        userState =
-                            case apiData.user of
-                                Just u ->
-                                    UserState.UserStateLoggedIn u
-
-                                Nothing ->
-                                    UserState.UserStateLoggedOut
-                    in
-                    if model.highDensity && noPipelines then
-                        ( { newModel
-                            | highDensity = False
-                            , groups = groups
-                            , version = apiData.version
-                            , userState = userState
-                          }
-                        , [ ModifyUrl Routes.dashboardRoute ]
-                        )
-
-                    else
-                        ( { newModel
-                            | groups = groups
-                            , version = apiData.version
-                            , userState = userState
-                          }
-                        , []
-                        )
-
         ClockTick now ->
             ( let
                 newModel =
@@ -372,30 +410,10 @@ update msg model =
             )
 
         LogIn ->
-            ( model, [ RedirectToLogin "" ] )
+            ( model, [ RedirectToLogin ] )
 
         LogOut ->
             ( { model | state = Err NotAsked }, [ SendLogOutRequest ] )
-
-        LoggedOut (Ok ()) ->
-            let
-                redirectUrl =
-                    if model.highDensity then
-                        Routes.dashboardHdRoute
-
-                    else
-                        Routes.dashboardRoute
-            in
-            ( { model
-                | userState = UserState.UserStateLoggedOut
-                , userMenuVisible = False
-              }
-            , [ NewUrl redirectUrl, FetchData ]
-            )
-
-        LoggedOut (Err err) ->
-            flip always (Debug.log "failed to log out" err) <|
-                ( model, [] )
 
         ToggleUserMenu ->
             ( { model | userMenuVisible = not model.userMenuVisible }, [] )
@@ -605,7 +623,7 @@ update msg model =
                 _ ->
                     ( model, [] )
 
-        ScreenResized size ->
+        ResizeScreen size ->
             let
                 newSize =
                     ScreenSize.fromWindowSize size
@@ -632,7 +650,7 @@ subscriptions model =
         , Mouse.clicks (\_ -> ShowFooter)
         , Keyboard.presses KeyPressed
         , Keyboard.downs KeyDowns
-        , Window.resizes Msgs.ScreenResized
+        , Window.resizes Msgs.ResizeScreen
         ]
 
 

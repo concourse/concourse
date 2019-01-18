@@ -13,22 +13,39 @@ import Concourse.Info
 import Concourse.Job
 import Concourse.Pagination exposing (Page, Paginated)
 import Concourse.Pipeline
+import Concourse.PipelineStatus
 import Concourse.Resource
+import Concourse.User
+import Dashboard.APIData
+import Dashboard.Group
+import Dashboard.Models
+import Dom
 import Http
 import Json.Encode
 import LoginRedirect
 import Navigation
 import QueryString
+import RemoteData
 import Resource.Models exposing (VersionToggleAction(..))
 import Task
 import Time exposing (Time)
 import TopBar exposing (resetPipelineFocus)
+import Window
 
 
 port setTitle : String -> Cmd msg
 
 
 port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
+
+
+port pinTeamNames : Dashboard.Group.StickyHeaderConfig -> Cmd msg
+
+
+port tooltip : ( String, String ) -> Cmd msg
+
+
+port tooltipHd : ( String, String ) -> Cmd msg
 
 
 type Effect
@@ -43,6 +60,8 @@ type Effect
     | FetchVersion
     | FetchInputTo Concourse.VersionedResourceIdentifier
     | FetchOutputOf Concourse.VersionedResourceIdentifier
+    | FetchData
+    | FocusSearchInput
     | GetCurrentTime
     | DoTriggerBuild Concourse.JobIdentifier String
     | PauseJob Concourse.JobIdentifier String
@@ -53,12 +72,20 @@ type Effect
     | NavigateTo String
     | SetTitle String
     | NewUrl String
+    | ModifyUrl String
     | DoPinVersion Concourse.VersionedResourceIdentifier Concourse.CSRFToken
     | DoUnpinVersion Concourse.ResourceIdentifier Concourse.CSRFToken
     | DoToggleVersion VersionToggleAction Concourse.VersionedResourceIdentifier Concourse.CSRFToken
     | DoCheck Concourse.ResourceIdentifier Concourse.CSRFToken
     | DoTopBarUpdate TopBar.Msg Resource.Models.Model
     | SendTokenToFly String Int
+    | SendTogglePipelineRequest { pipeline : Dashboard.Models.Pipeline, csrfToken : Concourse.CSRFToken }
+    | ShowTooltip ( String, String )
+    | ShowTooltipHd ( String, String )
+    | SendOrderPipelinesRequest String (List Dashboard.Models.Pipeline) Concourse.CSRFToken
+    | SendLogOutRequest
+    | GetScreenSize
+    | PinTeamNames Dashboard.Group.StickyHeaderConfig
 
 
 type Callback
@@ -82,6 +109,9 @@ type Callback
     | VersionToggled VersionToggleAction Int (Result Http.Error ())
     | Checked (Result Http.Error ())
     | TokenSentToFly Bool
+    | APIDataFetched (RemoteData.WebData ( Time.Time, Dashboard.APIData.APIData ))
+    | LoggedOut (Result Http.Error ())
+    | ScreenResized Window.Size
 
 
 runEffect : Effect -> Cmd Callback
@@ -119,6 +149,9 @@ runEffect effect =
 
         FetchOutputOf id ->
             fetchOutputOf id
+
+        FetchData ->
+            fetchData
 
         GetCurrentTime ->
             getCurrentTime
@@ -176,6 +209,33 @@ runEffect effect =
 
         SendTokenToFly authToken flyPort ->
             sendTokenToFly authToken flyPort
+
+        FocusSearchInput ->
+            Task.attempt (always EmptyCallback) (Dom.focus "search-input-field")
+
+        ModifyUrl url ->
+            Navigation.modifyUrl url
+
+        SendTogglePipelineRequest { pipeline, csrfToken } ->
+            togglePipelinePaused { pipeline = pipeline, csrfToken = csrfToken }
+
+        ShowTooltip ( teamName, pipelineName ) ->
+            tooltip ( teamName, pipelineName )
+
+        ShowTooltipHd ( teamName, pipelineName ) ->
+            tooltipHd ( teamName, pipelineName )
+
+        SendOrderPipelinesRequest teamName pipelines csrfToken ->
+            orderPipelines teamName pipelines csrfToken
+
+        SendLogOutRequest ->
+            logOut
+
+        GetScreenSize ->
+            Task.perform ScreenResized Window.size
+
+        PinTeamNames stickyHeaderConfig ->
+            pinTeamNames stickyHeaderConfig
 
 
 fetchJobBuilds :
@@ -287,3 +347,35 @@ sendTokenToFly authToken flyPort =
         , withCredentials = False
         }
         |> Http.send (\r -> TokenSentToFly (r == Ok ()))
+
+
+fetchData : Cmd Callback
+fetchData =
+    Dashboard.APIData.remoteData
+        |> Task.map2 (,) Time.now
+        |> RemoteData.asCmd
+        |> Cmd.map APIDataFetched
+
+
+togglePipelinePaused : { pipeline : Dashboard.Models.Pipeline, csrfToken : Concourse.CSRFToken } -> Cmd Callback
+togglePipelinePaused { pipeline, csrfToken } =
+    Task.attempt (always EmptyCallback) <|
+        if pipeline.status == Concourse.PipelineStatus.PipelineStatusPaused then
+            Concourse.Pipeline.unpause pipeline.teamName pipeline.name csrfToken
+
+        else
+            Concourse.Pipeline.pause pipeline.teamName pipeline.name csrfToken
+
+
+orderPipelines : String -> List Dashboard.Models.Pipeline -> Concourse.CSRFToken -> Cmd Callback
+orderPipelines teamName pipelines csrfToken =
+    Task.attempt (always EmptyCallback) <|
+        Concourse.Pipeline.order
+            teamName
+            (List.map .name pipelines)
+            csrfToken
+
+
+logOut : Cmd Callback
+logOut =
+    Task.attempt LoggedOut Concourse.User.logOut

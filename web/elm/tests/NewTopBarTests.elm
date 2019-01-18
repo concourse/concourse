@@ -1,10 +1,10 @@
 module NewTopBarTests exposing (all)
 
 import Dashboard
-import Dashboard.Effects as Effects
 import Dashboard.Msgs as Msgs
 import DashboardTests exposing (apiData, givenDataAndUser, givenDataUnauthenticated)
 import Dict
+import Effects
 import Expect
 import Html.Attributes as Attributes
 import Html.Styled as HS
@@ -38,21 +38,21 @@ init { highDensity, query } =
 smallScreen : Dashboard.Model -> Dashboard.Model
 smallScreen =
     updateModel <|
-        Msgs.ScreenResized <|
+        Msgs.ResizeScreen <|
             { width = 300, height = 800 }
 
 
 bigScreen : Dashboard.Model -> Dashboard.Model
 bigScreen =
     updateModel <|
-        Msgs.ScreenResized <|
+        Msgs.ResizeScreen <|
             { width = 1200, height = 900 }
 
 
 extraBigScreen : Dashboard.Model -> Dashboard.Model
 extraBigScreen =
     updateModel <|
-        Msgs.ScreenResized <|
+        Msgs.ResizeScreen <|
             { width = 1500, height = 900 }
 
 
@@ -257,15 +257,15 @@ all =
                     [ test "redirects to dashboard on normal dashboard" <|
                         \_ ->
                             init { highDensity = False, query = "" }
-                                |> Dashboard.update
-                                    (Msgs.LoggedOut (Ok ()))
+                                |> Dashboard.handleCallback
+                                    (Effects.LoggedOut (Ok ()))
                                 |> Tuple.second
                                 |> Expect.equal [ Effects.NewUrl "/", Effects.FetchData ]
                     , test "redirects to high-density view on high-density view" <|
                         \_ ->
                             init { highDensity = True, query = "" }
-                                |> Dashboard.update
-                                    (Msgs.LoggedOut (Ok ()))
+                                |> Dashboard.handleCallback
+                                    (Effects.LoggedOut (Ok ()))
                                 |> Tuple.second
                                 |> Expect.equal [ Effects.NewUrl "/hd", Effects.FetchData ]
                     ]
@@ -282,7 +282,7 @@ all =
                     init { highDensity = False, query = "" }
                         |> smallScreen
                         |> updateModel
-                            (Msgs.ScreenResized
+                            (Msgs.ResizeScreen
                                 { width = 1200, height = 900 }
                             )
                         |> queryView
