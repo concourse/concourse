@@ -12,10 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/concourse/concourse/skymarshal/token"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/onsi/gomega/ghttp"
 	"golang.org/x/oauth2"
 )
@@ -28,10 +27,11 @@ var _ = Describe("Sky Server API", func() {
 			var response *http.Response
 			var cookies []*http.Cookie
 			var cookieValue string
+			var defaultRedirect = "/teams"
 
 			BeforeEach(func() {
 				params = url.Values{}
-				params.Add("redirect_uri", "http://example.com")
+				params.Add("redirect_uri", defaultRedirect)
 			})
 
 			ExpectNewLogin := func() {
@@ -56,7 +56,7 @@ var _ = Describe("Sky Server API", func() {
 
 				Context("when redirect_uri is provided", func() {
 					BeforeEach(func() {
-						params.Add("redirect_uri", "http://example.com")
+						params.Add("redirect_uri", defaultRedirect)
 					})
 
 					It("stores redirect_uri in the state token cookie", func() {
@@ -65,7 +65,7 @@ var _ = Describe("Sky Server API", func() {
 
 						var state map[string]string
 						json.Unmarshal(data, &state)
-						Expect(state["redirect_uri"]).To(Equal("http://example.com"))
+						Expect(state["redirect_uri"]).To(Equal(defaultRedirect))
 					})
 				})
 
@@ -89,7 +89,10 @@ var _ = Describe("Sky Server API", func() {
 				It("redirects the request to the provided redirect_uri", func() {
 					redirectURL, err := response.Location()
 					Expect(err).NotTo(HaveOccurred())
-					Expect(redirectURL.Host).To(Equal("example.com"))
+
+					atcURL, err := url.Parse(skyServer.URL)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(redirectURL.Host).To(Equal(atcURL.Host))
 
 					redirectValues := redirectURL.Query()
 					Expect(redirectValues.Get("token")).To(Equal(""))
@@ -110,7 +113,7 @@ var _ = Describe("Sky Server API", func() {
 							ghttp.VerifyRequest("GET", "/sky/issuer/auth"),
 							ghttp.VerifyFormKV("scope", "openid profile email federated:id groups"),
 							ghttp.RespondWith(http.StatusTemporaryRedirect, nil, http.Header{
-								"Location": {"http://example.com"},
+								"Location": {defaultRedirect},
 							}),
 						),
 					)
@@ -362,7 +365,7 @@ var _ = Describe("Sky Server API", func() {
 					})
 				})
 
-				Context("the request succeeds", func() {
+				Context("the request fails when NOT redirecting to the ATC", func() {
 					BeforeEach(func() {
 						fakeVerifiedClaims = &token.VerifiedClaims{}
 
@@ -386,6 +389,35 @@ var _ = Describe("Sky Server API", func() {
 						reqPath = "/sky/callback?code=some-code&state=" + stateToken
 					})
 
+					It("errors", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+				})
+
+				Context("the request succeeds when redirecting to the ATC", func() {
+					BeforeEach(func() {
+						fakeVerifiedClaims = &token.VerifiedClaims{}
+
+						fakeOAuthToken = (&oauth2.Token{
+							TokenType:   "some-type",
+							AccessToken: "some-token",
+							Expiry:      time.Now().Add(time.Minute),
+						}).WithExtra(map[string]interface{}{
+							"csrf": "some-csrf",
+						})
+
+						fakeTokenVerifier.VerifyReturns(fakeVerifiedClaims, nil)
+						fakeTokenIssuer.IssueReturns(fakeOAuthToken, nil)
+
+						state, _ := json.Marshal(map[string]string{
+							"redirect_uri": "/teams/my-team",
+						})
+
+						stateToken := base64.StdEncoding.EncodeToString(state)
+						stateCookie = &http.Cookie{Name: "skymarshal_state", Value: stateToken}
+						reqPath = "/sky/callback?code=some-code&state=" + stateToken
+					})
+
 					It("only has one cookie containing the auth token (state cookie is gone)", func() {
 						serverURL, err := url.Parse(skyServer.URL)
 						Expect(err).NotTo(HaveOccurred())
@@ -398,14 +430,14 @@ var _ = Describe("Sky Server API", func() {
 						Expect(authCookie.Value).To(Equal("some-type some-token"))
 					})
 
-					It("redirects to redirect_uri provided in the stateToken", func() {
+					It("redirects to redirect_uri from state token with only the csrf_token", func() {
 						redirectResponse := response.Request.Response
 						Expect(redirectResponse).NotTo(BeNil())
 						Expect(redirectResponse.StatusCode).To(Equal(http.StatusTemporaryRedirect))
 
 						locationURL, err := redirectResponse.Location()
 						Expect(err).NotTo(HaveOccurred())
-						Expect(locationURL.String()).To(Equal("http://example.com?csrf_token=some-csrf"))
+						Expect(locationURL.String()).To(Equal(skyServer.URL + "/teams/my-team?csrf_token=some-csrf"))
 					})
 				})
 			})
