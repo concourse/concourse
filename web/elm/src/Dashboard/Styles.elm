@@ -2,6 +2,7 @@ module Dashboard.Styles exposing
     ( asciiArt
     , cardBody
     , cardFooter
+    , disableInteraction
     , highDensityIcon
     , highDensityToggle
     , info
@@ -459,12 +460,15 @@ welcomeCard =
     , ( "position", "relative" )
     , ( "overflow", "hidden" )
     , ( "font-weight", "400" )
+    , ( "display", "flex" )
+    , ( "flex-direction", "column" )
     ]
 
 
 welcomeCardBody : List ( String, String )
 welcomeCardBody =
     [ ( "font-size", "16px" )
+    , ( "z-index", "2" )
     ]
 
 
@@ -505,4 +509,16 @@ asciiArt =
     , ( "margin", "0" )
     , ( "white-space", "pre" )
     , ( "color", Colors.asciiArt )
+    , ( "z-index", "1" )
+    ]
+
+disableInteraction: List ( String, String )
+disableInteraction =
+    [ ("cursor", "default")
+    , ("user-select", "none")
+    , ("-ms-user-select", "none")
+    , ("-moz-user-select", "none")
+    , ("-khtml-user-select", "none")
+    , ("-webkit-user-select", "none")
+    , ("-webkit-touch-callout", "none")
     ]
