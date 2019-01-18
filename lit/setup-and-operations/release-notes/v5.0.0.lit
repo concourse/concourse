@@ -1,0 +1,55 @@
+\use-plugin{concourse-docs}
+
+\release{2019-1-99}{5.0.0}{1.17.2}{
+  \note{feature,breaking}{
+    We have jettisoned all core resource types from the core Concourse
+    distribution, and all resource types are now independently versioned
+    on Docker Hub and in GitHub releases instead.
+
+    This is super backwards-incompatible, and we're sorry for not doing it
+    sooner. Your pipelines will have to change to bring them in via
+    \reference{resource_types}.
+
+    There are many motivations for this:
+
+    \list{
+      familiarize users with the concept of \code{resource_types} early so it
+      doesn't feel second-class
+    }{
+      make pipelines more self-contained - now they can pin to the version of
+      each resource type they need
+    }{
+      allow users to pull in new versions of these resource types without
+      waiting for a new Concourse release
+    }{
+      set an example for other resource authors on how to publish and version
+      resource types
+    }{
+      make the Concourse distribution itself much smaller
+    }
+
+    For any core \code{foo} resource, you'll add a resource type using the new
+    \resource{registry-image} pulling it from the \code{concourse/foo-resource}
+    repository on Docker Hub like so:
+
+    \codeblock{yaml}{{{
+    resource_types:
+    - name: git
+      type: registry-image
+      source:
+        repository: concourse/git-resource
+        tag: 1
+
+    - name: docker-image
+      type: registry-image
+      source:
+        repository: concourse/docker-image-resource
+        tag: 1
+    }}}
+
+    Note that the \code{tag: 1} should keep any newly released versions of
+    these resources from breaking your pipelines - we're starting all resource
+    versions as 1.x and will bump the major version if anything changes
+    backwards-incompatibly.
+  }
+}
