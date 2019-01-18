@@ -8,7 +8,10 @@ port module Effects exposing
 
 import Concourse
 import Concourse.Build
+import Concourse.BuildPlan
+import Concourse.BuildPrep
 import Concourse.BuildResources
+import Concourse.BuildStatus
 import Concourse.Info
 import Concourse.Job
 import Concourse.Pagination exposing (Page, Paginated)
@@ -20,13 +23,16 @@ import Dashboard.APIData
 import Dashboard.Group
 import Dashboard.Models
 import Dom
+import Favicon
 import Http
 import Json.Encode
 import LoginRedirect
 import Navigation
+import Process
 import QueryString
 import RemoteData
 import Resource.Models exposing (VersionToggleAction(..))
+import Scroll
 import Task
 import Time exposing (Time)
 import TopBar exposing (resetPipelineFocus)
@@ -61,9 +67,17 @@ type Effect
     | FetchInputTo Concourse.VersionedResourceIdentifier
     | FetchOutputOf Concourse.VersionedResourceIdentifier
     | FetchData
+    | FetchBuild Time Int Int
+    | FetchJobBuild Int Concourse.JobBuildIdentifier
+    | FetchBuildJobDetails Concourse.JobIdentifier
+    | FetchBuildHistory Concourse.JobIdentifier (Maybe Page)
+    | FetchBuildPrep Time Int Int
+    | FetchBuildPlan Int
+    | FetchBuildPlanAndResources Int
     | FocusSearchInput
     | GetCurrentTime
     | DoTriggerBuild Concourse.JobIdentifier String
+    | DoAbortBuild Int Concourse.CSRFToken
     | PauseJob Concourse.JobIdentifier String
     | UnpauseJob Concourse.JobIdentifier String
     | ResetPipelineFocus
@@ -86,6 +100,13 @@ type Effect
     | SendLogOutRequest
     | GetScreenSize
     | PinTeamNames Dashboard.Group.StickyHeaderConfig
+    | ScrollToCurrentBuildInHistory
+    | DoScrollBuilds Float
+    | ScrollToWindowTop
+    | ScrollDown
+    | ScrollUp
+    | ScrollToWindowBottom
+    | SetFavIcon Concourse.BuildStatus
 
 
 type Callback
@@ -112,6 +133,12 @@ type Callback
     | APIDataFetched (RemoteData.WebData ( Time.Time, Dashboard.APIData.APIData ))
     | LoggedOut (Result Http.Error ())
     | ScreenResized Window.Size
+    | BuildJobDetailsFetched (Result Http.Error Concourse.Job)
+    | BuildFetched Int (Result Http.Error Concourse.Build)
+    | BuildPrepFetched Int (Result Http.Error Concourse.BuildPrep)
+    | BuildHistoryFetched (Result Http.Error (Paginated Concourse.Build))
+    | PlanAndResourcesFetched (Result Http.Error ( Concourse.BuildPlan, Concourse.BuildResources ))
+    | BuildAborted (Result Http.Error ())
 
 
 runEffect : Effect -> Cmd Callback
@@ -236,6 +263,51 @@ runEffect effect =
 
         PinTeamNames stickyHeaderConfig ->
             pinTeamNames stickyHeaderConfig
+
+        FetchBuild delay browsingIndex buildId ->
+            fetchBuild delay browsingIndex buildId
+
+        FetchJobBuild browsingIndex jbi ->
+            fetchJobBuild browsingIndex jbi
+
+        FetchBuildJobDetails buildJob ->
+            fetchBuildJobDetails buildJob
+
+        FetchBuildHistory job page ->
+            fetchBuildHistory job page
+
+        FetchBuildPrep delay browsingIndex buildId ->
+            fetchBuildPrep delay browsingIndex buildId
+
+        FetchBuildPlanAndResources buildId ->
+            fetchBuildPlanAndResources buildId
+
+        FetchBuildPlan buildId ->
+            fetchBuildPlan buildId
+
+        SetFavIcon status ->
+            setFavicon status
+
+        DoAbortBuild buildId csrfToken ->
+            abortBuild buildId csrfToken
+
+        ScrollToCurrentBuildInHistory ->
+            scrollToCurrentBuildInHistory
+
+        DoScrollBuilds delta ->
+            scrollBuilds delta
+
+        ScrollToWindowTop ->
+            Task.perform (always EmptyCallback) Scroll.toWindowTop
+
+        ScrollDown ->
+            Task.perform (always EmptyCallback) Scroll.scrollDown
+
+        ScrollUp ->
+            Task.perform (always EmptyCallback) Scroll.scrollUp
+
+        ScrollToWindowBottom ->
+            Task.perform (always EmptyCallback) Scroll.toWindowBottom
 
 
 fetchJobBuilds :
@@ -379,3 +451,76 @@ orderPipelines teamName pipelines csrfToken =
 logOut : Cmd Callback
 logOut =
     Task.attempt LoggedOut Concourse.User.logOut
+
+
+fetchBuildJobDetails : Concourse.JobIdentifier -> Cmd Callback
+fetchBuildJobDetails buildJob =
+    Task.attempt BuildJobDetailsFetched <|
+        Concourse.Job.fetchJob buildJob
+
+
+fetchBuild : Time -> Int -> Int -> Cmd Callback
+fetchBuild delay browsingIndex buildId =
+    Task.attempt (BuildFetched browsingIndex)
+        (Process.sleep delay
+            |> Task.andThen (always <| Concourse.Build.fetch buildId)
+        )
+
+
+fetchJobBuild : Int -> Concourse.JobBuildIdentifier -> Cmd Callback
+fetchJobBuild browsingIndex jbi =
+    Task.attempt (BuildFetched browsingIndex) <|
+        Concourse.Build.fetchJobBuild jbi
+
+
+fetchBuildHistory :
+    Concourse.JobIdentifier
+    -> Maybe Concourse.Pagination.Page
+    -> Cmd Callback
+fetchBuildHistory job page =
+    Task.attempt BuildHistoryFetched <|
+        Concourse.Build.fetchJobBuilds job page
+
+
+fetchBuildPrep : Time -> Int -> Int -> Cmd Callback
+fetchBuildPrep delay browsingIndex buildId =
+    Task.attempt (BuildPrepFetched browsingIndex)
+        (Process.sleep delay
+            |> Task.andThen (always <| Concourse.BuildPrep.fetch buildId)
+        )
+
+
+fetchBuildPlanAndResources : Int -> Cmd Callback
+fetchBuildPlanAndResources buildId =
+    Task.attempt PlanAndResourcesFetched <|
+        Task.map2 (,) (Concourse.BuildPlan.fetch buildId) (Concourse.BuildResources.fetch buildId)
+
+
+fetchBuildPlan : Int -> Cmd Callback
+fetchBuildPlan buildId =
+    Task.attempt PlanAndResourcesFetched <|
+        Task.map (flip (,) Concourse.BuildResources.empty) (Concourse.BuildPlan.fetch buildId)
+
+
+setFavicon : Concourse.BuildStatus -> Cmd Callback
+setFavicon status =
+    Task.perform (always EmptyCallback) <|
+        Favicon.set ("/public/images/favicon-" ++ Concourse.BuildStatus.show status ++ ".png")
+
+
+abortBuild : Int -> Concourse.CSRFToken -> Cmd Callback
+abortBuild buildId csrfToken =
+    Task.attempt BuildAborted <|
+        Concourse.Build.abort buildId csrfToken
+
+
+scrollToCurrentBuildInHistory : Cmd Callback
+scrollToCurrentBuildInHistory =
+    Task.perform (always EmptyCallback) <|
+        Scroll.scrollIntoView "#builds .current"
+
+
+scrollBuilds : Float -> Cmd Callback
+scrollBuilds delta =
+    Task.perform (always EmptyCallback) <|
+        Scroll.scroll "builds" delta

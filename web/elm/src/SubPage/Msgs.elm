@@ -22,3 +22,4 @@ type Msg
     | DashboardMsg Dashboard.Msgs.Msg
     | FlySuccessMsg FlySuccess.Msgs.Msg
     | Callback Effects.Callback
+    | CallbackAutoScroll (Autoscroll.Msg Effects.Callback)

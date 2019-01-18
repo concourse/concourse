@@ -75,7 +75,7 @@ all =
                 \_ ->
                     let
                         msg =
-                            Build.Msgs.BuildFetched 1 <| Err <| Http.BadStatus notFoundStatus
+                            BuildFetched 1 <| Err <| Http.BadStatus notFoundStatus
 
                         ( subModel, _ ) =
                             Build.init
@@ -89,7 +89,7 @@ all =
                             , scrollBehaviorFunc = \_ -> Autoscroll.NoScroll
                             }
                     in
-                    Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg" }) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (BuildMsg <| Autoscroll.SubMsg msg) (BuildModel model)
+                    Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg" }) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (CallbackAutoScroll <| Autoscroll.SubMsg msg) (BuildModel model)
             , test "Pipeline not found" <|
                 \_ ->
                     let

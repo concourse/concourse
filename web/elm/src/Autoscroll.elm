@@ -1,19 +1,18 @@
-module Autoscroll
-    exposing
-        ( init
-        , update
-        , urlUpdate
-        , view
-        , subscriptions
-        , ScrollBehavior(..)
-        , Msg(SubMsg)
-        , Model
-        )
+module Autoscroll exposing
+    ( Model
+    , Msg(SubMsg)
+    , ScrollBehavior(..)
+    , init
+    , subscriptions
+    , update
+    , urlUpdate
+    , view
+    )
 
 import AnimationFrame
 import Html exposing (Html)
-import Task
 import Scroll
+import Task
 import UpdateMsg exposing (UpdateMsg)
 
 
@@ -40,7 +39,11 @@ init toScrollMsg ( subModel, subCmd ) =
     ( Model subModel toScrollMsg, Cmd.map SubMsg subCmd )
 
 
-update : (subMsg -> subModel -> ( subModel, Cmd subMsg, Maybe UpdateMsg )) -> Msg subMsg -> Model subModel -> ( Model subModel, Cmd (Msg subMsg), Maybe UpdateMsg )
+update :
+    (subMsg -> subModel -> ( subModel, Cmd callback, Maybe UpdateMsg ))
+    -> Msg subMsg
+    -> Model subModel
+    -> ( Model subModel, Cmd (Msg callback), Maybe UpdateMsg )
 update subUpdate action model =
     case action of
         SubMsg subMsg ->
@@ -48,7 +51,7 @@ update subUpdate action model =
                 ( subModel, subCmd, subUpdateMsg ) =
                     subUpdate subMsg model.subModel
             in
-                ( { model | subModel = subModel }, Cmd.map SubMsg subCmd, subUpdateMsg )
+            ( { model | subModel = subModel }, Cmd.map SubMsg subCmd, subUpdateMsg )
 
         ScrollDown ->
             ( model
@@ -74,7 +77,7 @@ urlUpdate subUrlUpdate pageResult model =
         ( newSubModel, subMsg ) =
             subUrlUpdate pageResult model.subModel
     in
-        ( { model | subModel = newSubModel }, Cmd.map SubMsg subMsg )
+    ( { model | subModel = newSubModel }, Cmd.map SubMsg subMsg )
 
 
 view : (subModel -> Html subMsg) -> Model subModel -> Html (Msg subMsg)
@@ -88,13 +91,14 @@ subscriptions subSubscriptions model =
         subSubs =
             Sub.map SubMsg (subSubscriptions model.subModel)
     in
-        if model.scrollBehaviorFunc model.subModel /= NoScroll then
-            Sub.batch
-                [ AnimationFrame.times (always ScrollDown)
-                , subSubs
-                ]
-        else
-            subSubs
+    if model.scrollBehaviorFunc model.subModel /= NoScroll then
+        Sub.batch
+            [ AnimationFrame.times (always ScrollDown)
+            , subSubs
+            ]
+
+    else
+        subSubs
 
 
 scrollToBottom : String -> Cmd (Msg x)
@@ -104,4 +108,4 @@ scrollToBottom ele =
 
 scrollToWindowBottom : Cmd (Msg x)
 scrollToWindowBottom =
-    Task.perform (always ScrolledDown) (Scroll.toWindowBottom)
+    Task.perform (always ScrolledDown) Scroll.toWindowBottom

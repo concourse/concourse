@@ -3,6 +3,8 @@ module Build exposing
     , Page(..)
     , changeToBuild
     , getScrollBehavior
+    , handleCallback
+    , handleCallbackWithMessage
     , init
     , initJobBuildPage
     , subscriptions
@@ -12,7 +14,6 @@ module Build exposing
     )
 
 import Autoscroll
-import Build.Effects exposing (Effect(..), runEffect)
 import Build.Msgs exposing (HoveredButton(..), Msg(..))
 import Build.Output
 import Build.StepTree as StepTree
@@ -26,6 +27,7 @@ import Date exposing (Date)
 import Date.Format
 import Debug
 import Dict exposing (Dict)
+import Effects exposing (Callback(..), Effect(..), runEffect)
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -53,7 +55,6 @@ import Scroll
 import Spinner
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
-import SubPage.Msgs
 import Time exposing (Time)
 import UpdateMsg exposing (UpdateMsg)
 import Views
@@ -208,7 +209,106 @@ extractTitle model =
             ""
 
 
-updateWithMessage : Msg -> Model -> ( Model, Cmd Msg, Maybe UpdateMsg )
+handleCallbackWithMessage : Callback -> Model -> ( Model, Cmd Callback, Maybe UpdateMsg )
+handleCallbackWithMessage message model =
+    let
+        ( mdl, effects ) =
+            handleCallback message model
+    in
+    case mdl.currentBuild of
+        RemoteData.Failure _ ->
+            ( mdl, Cmd.batch (List.map runEffect effects), Just UpdateMsg.NotFound )
+
+        _ ->
+            ( mdl, Cmd.batch (List.map runEffect effects), Nothing )
+
+
+handleCallback : Callback -> Model -> ( Model, List Effect )
+handleCallback action model =
+    case action of
+        BuildTriggered (Ok build) ->
+            update
+                (SwitchToBuild build)
+                { model
+                    | history = build :: model.history
+                }
+
+        BuildTriggered (Err err) ->
+            case err of
+                Http.BadStatus { status } ->
+                    if status.code == 401 then
+                        ( model, [ RedirectToLogin ] )
+
+                    else
+                        ( model, [] )
+
+                _ ->
+                    ( model, [] )
+
+        BuildFetched browsingIndex (Ok build) ->
+            handleBuildFetched browsingIndex build model
+
+        BuildFetched _ (Err err) ->
+            case err of
+                Http.BadStatus { status } ->
+                    if status.code == 401 then
+                        ( model, [ RedirectToLogin ] )
+
+                    else if status.code == 404 then
+                        ( { model | currentBuild = RemoteData.Failure err }
+                        , []
+                        )
+
+                    else
+                        ( model, [] )
+
+                _ ->
+                    ( model, [] )
+
+        BuildAborted (Ok ()) ->
+            ( model, [] )
+
+        BuildAborted (Err err) ->
+            case err of
+                Http.BadStatus { status } ->
+                    if status.code == 401 then
+                        ( model, [ RedirectToLogin ] )
+
+                    else
+                        ( model, [] )
+
+                _ ->
+                    ( model, [] )
+
+        BuildPrepFetched browsingIndex (Ok buildPrep) ->
+            handleBuildPrepFetched browsingIndex buildPrep model
+
+        BuildPrepFetched _ (Err err) ->
+            flip always (Debug.log "failed to fetch build preparation" err) <|
+                ( model, [] )
+
+        PlanAndResourcesFetched result ->
+            updateOutput (Build.Output.planAndResourcesFetched result) model
+
+        BuildHistoryFetched (Err err) ->
+            flip always (Debug.log "failed to fetch build history" err) <|
+                ( model, [] )
+
+        BuildHistoryFetched (Ok history) ->
+            handleHistoryFetched history model
+
+        BuildJobDetailsFetched (Ok job) ->
+            handleBuildJobFetched job model
+
+        BuildJobDetailsFetched (Err err) ->
+            flip always (Debug.log "failed to fetch build job details" err) <|
+                ( model, [] )
+
+        _ ->
+            ( model, [] )
+
+
+updateWithMessage : Msg -> Model -> ( Model, Cmd Callback, Maybe UpdateMsg )
 updateWithMessage message model =
     let
         ( mdl, effects ) =
@@ -242,72 +342,8 @@ update action model =
                 Just someJob ->
                     ( model, [ DoTriggerBuild someJob model.csrfToken ] )
 
-        BuildTriggered (Ok build) ->
-            update
-                (SwitchToBuild build)
-                { model
-                    | history = build :: model.history
-                }
-
-        BuildTriggered (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, [ RedirectToLogin "" ] )
-
-                    else
-                        ( model, [] )
-
-                _ ->
-                    ( model, [] )
-
-        BuildFetched browsingIndex (Ok build) ->
-            handleBuildFetched browsingIndex build model
-
-        BuildFetched _ (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, [ RedirectToLogin "" ] )
-
-                    else if status.code == 404 then
-                        ( { model | currentBuild = RemoteData.Failure err }
-                        , []
-                        )
-
-                    else
-                        ( model, [] )
-
-                _ ->
-                    ( model, [] )
-
         AbortBuild buildId ->
             ( model, [ DoAbortBuild buildId model.csrfToken ] )
-
-        BuildAborted (Ok ()) ->
-            ( model, [] )
-
-        BuildAborted (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, [ RedirectToLogin "" ] )
-
-                    else
-                        ( model, [] )
-
-                _ ->
-                    ( model, [] )
-
-        BuildPrepFetched browsingIndex (Ok buildPrep) ->
-            handleBuildPrepFetched browsingIndex buildPrep model
-
-        BuildPrepFetched _ (Err err) ->
-            flip always (Debug.log "failed to fetch build preparation" err) <|
-                ( model, [] )
-
-        PlanAndResourcesFetched result ->
-            updateOutput (Build.Output.planAndResourcesFetched result) model
 
         BuildEventsMsg action ->
             updateOutput (Build.Output.handleEventsMsg action) model
@@ -331,20 +367,6 @@ update action model =
             updateOutput
                 (Build.Output.handleStepTreeMsg <| StepTree.extendHighlight id line)
                 model
-
-        BuildHistoryFetched (Err err) ->
-            flip always (Debug.log "failed to fetch build history" err) <|
-                ( model, [] )
-
-        BuildHistoryFetched (Ok history) ->
-            handleHistoryFetched history model
-
-        BuildJobDetailsFetched (Ok job) ->
-            handleBuildJobFetched job model
-
-        BuildJobDetailsFetched (Err err) ->
-            flip always (Debug.log "failed to fetch build job details" err) <|
-                ( model, [] )
 
         RevealCurrentBuildInHistory ->
             ( model, [ ScrollToCurrentBuildInHistory ] )
