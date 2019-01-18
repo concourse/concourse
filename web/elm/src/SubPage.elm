@@ -16,7 +16,6 @@ import Dashboard
 import Dashboard.Effects
 import Effects
 import FlySuccess
-import FlySuccess.Effects
 import Html exposing (Html)
 import Html.Styled as HS
 import Job
@@ -161,13 +160,13 @@ init flags route =
                 )
 
         Routes.FlySuccess ->
-            superDupleWrap ( FlySuccessModel, FlySuccessMsg )
+            superDupleWrap ( FlySuccessModel, Callback )
                 (FlySuccess.init
                     { authToken = flags.authToken
                     , flyPort = QueryString.one QueryString.int "fly_port" route.queries
                     }
                     |> Tuple.mapSecond
-                        (List.map FlySuccess.Effects.runEffect >> Cmd.batch)
+                        (List.map Effects.runEffect >> Cmd.batch)
                 )
 
 
@@ -243,10 +242,17 @@ update turbulence notFound csrfToken msg mdl =
                 |> superDupleWrap ( DashboardModel, DashboardMsg )
 
         ( FlySuccessMsg message, FlySuccessModel model ) ->
-            superDupleWrap ( FlySuccessModel, FlySuccessMsg )
+            superDupleWrap ( FlySuccessModel, Callback )
                 (FlySuccess.update message model
                     |> Tuple.mapSecond
-                        (List.map FlySuccess.Effects.runEffect >> Cmd.batch)
+                        (List.map Effects.runEffect >> Cmd.batch)
+                )
+
+        ( Callback callback, FlySuccessModel model ) ->
+            superDupleWrap ( FlySuccessModel, Callback )
+                (FlySuccess.handleCallback callback model
+                    |> Tuple.mapSecond
+                        (List.map Effects.runEffect >> Cmd.batch)
                 )
 
         ( NewCSRFToken _, _ ) ->

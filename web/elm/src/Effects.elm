@@ -18,6 +18,7 @@ import Http
 import Json.Encode
 import LoginRedirect
 import Navigation
+import QueryString
 import Resource.Models exposing (VersionToggleAction(..))
 import Task
 import Time exposing (Time)
@@ -57,6 +58,7 @@ type Effect
     | DoToggleVersion VersionToggleAction Concourse.VersionedResourceIdentifier Concourse.CSRFToken
     | DoCheck Concourse.ResourceIdentifier Concourse.CSRFToken
     | DoTopBarUpdate TopBar.Msg Resource.Models.Model
+    | SendTokenToFly String Int
 
 
 type Callback
@@ -79,6 +81,7 @@ type Callback
     | VersionUnpinned (Result Http.Error ())
     | VersionToggled VersionToggleAction Int (Result Http.Error ())
     | Checked (Result Http.Error ())
+    | TokenSentToFly Bool
 
 
 runEffect : Effect -> Cmd Callback
@@ -171,6 +174,9 @@ runEffect effect =
                 |> Tuple.second
                 |> Cmd.map (always EmptyCallback)
 
+        SendTokenToFly authToken flyPort ->
+            sendTokenToFly authToken flyPort
+
 
 fetchJobBuilds :
     Concourse.JobIdentifier
@@ -261,3 +267,23 @@ unpauseJob : Concourse.JobIdentifier -> Concourse.CSRFToken -> Cmd Callback
 unpauseJob jobIdentifier csrfToken =
     Task.attempt PausedToggled <|
         Concourse.Job.unpause jobIdentifier csrfToken
+
+
+sendTokenToFly : String -> Int -> Cmd Callback
+sendTokenToFly authToken flyPort =
+    let
+        queryString =
+            QueryString.empty
+                |> QueryString.add "token" authToken
+                |> QueryString.render
+    in
+    Http.request
+        { method = "GET"
+        , headers = []
+        , url = "http://127.0.0.1:" ++ toString flyPort ++ queryString
+        , body = Http.emptyBody
+        , expect = Http.expectStringResponse (\_ -> Ok ())
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send (\r -> TokenSentToFly (r == Ok ()))

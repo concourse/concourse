@@ -1,11 +1,11 @@
 module FlySuccessTests exposing (all)
 
 import DashboardTests exposing (defineHoverBehaviour, iconSelector)
+import Effects exposing (Callback(..))
 import Expect exposing (Expectation)
 import FlySuccess.Msgs as Msgs
 import Html.Attributes as Attr
 import Layout
-import SubPage
 import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -138,8 +138,8 @@ tokenSendSuccess =
         (steps whenOnFlySuccessPage
             >> Layout.update
                 (Layout.SubMsg 1 <|
-                    SubPage.Msgs.FlySuccessMsg <|
-                        Msgs.TokenSentToFly True
+                    SubPage.Msgs.Callback <|
+                        TokenSentToFly True
                 )
             >> Tuple.first
         )
@@ -151,8 +151,8 @@ tokenSendFailed =
         (steps whenOnFlySuccessPage
             >> Layout.update
                 (Layout.SubMsg 1 <|
-                    SubPage.Msgs.FlySuccessMsg <|
-                        Msgs.TokenSentToFly False
+                    SubPage.Msgs.Callback <|
+                        TokenSentToFly False
                 )
             >> Tuple.first
         )

@@ -1,6 +1,12 @@
-module FlySuccess exposing (Model, init, update, view)
+module FlySuccess exposing
+    ( Model
+    , handleCallback
+    , init
+    , update
+    , view
+    )
 
-import FlySuccess.Effects exposing (Effect(..))
+import Effects exposing (Callback(..), Effect(..))
 import FlySuccess.Models
     exposing
         ( ButtonState(..)
@@ -46,6 +52,16 @@ init { authToken, flyPort } =
     )
 
 
+handleCallback : Callback -> Model -> ( Model, List Effect )
+handleCallback msg model =
+    case msg of
+        TokenSentToFly success ->
+            ( { model | tokenTransfer = Just <| Ok success }, [] )
+
+        _ ->
+            ( model, [] )
+
+
 update : Msg -> Model -> ( Model, List Effect )
 update msg model =
     case msg of
@@ -56,9 +72,6 @@ update msg model =
 
         CopyToken ->
             ( { model | buttonState = Clicked }, [] )
-
-        TokenSentToFly success ->
-            ( { model | tokenTransfer = Just <| Ok success }, [] )
 
 
 view : Model -> Html Msg
