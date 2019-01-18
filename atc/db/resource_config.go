@@ -280,11 +280,15 @@ func findOrCreateResourceConfigScope(tx Tx, conn Conn, lockFactory lock.LockFact
 	var uniqueResource Resource
 	var resourceID *int
 	if resource != nil {
-		customType, found := resourceTypes.Lookup(resource.Type())
-		if found {
-			unique = customType.UniqueVersionHistory
+		if !atc.EnableGlobalResources {
+			unique = true
 		} else {
-			unique = resourceConfig.CreatedByBaseResourceType().UniqueVersionHistory
+			customType, found := resourceTypes.Lookup(resource.Type())
+			if found {
+				unique = customType.UniqueVersionHistory
+			} else {
+				unique = resourceConfig.CreatedByBaseResourceType().UniqueVersionHistory
+			}
 		}
 
 		if unique {

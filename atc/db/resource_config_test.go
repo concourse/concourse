@@ -15,6 +15,8 @@ var _ = Describe("ResourceConfig", func() {
 		var resourceTypes creds.VersionedResourceTypes
 
 		BeforeEach(func() {
+			atc.EnableGlobalResources = true
+
 			config := atc.Config{
 				Resources: atc.ResourceConfigs{
 					{

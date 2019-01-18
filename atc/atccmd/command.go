@@ -102,6 +102,8 @@ type RunCommand struct {
 
 	InterceptIdleTimeout time.Duration `long:"intercept-idle-timeout" default:"0m" description:"Length of time for a intercepted session to be idle before terminating."`
 
+	EnableGlobalResources bool `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
+
 	GlobalResourceCheckTimeout   time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
 	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
 	ResourceTypeCheckingInterval time.Duration `long:"resource-type-checking-interval" default:"1m" description:"Interval on which to check for new versions of resource types."`
@@ -347,6 +349,8 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	defer commandSession.Info("finish", lager.Data{
 		"duration": time.Now().Sub(startTime),
 	})
+
+	atc.EnableGlobalResources = cmd.EnableGlobalResources
 
 	radar.GlobalResourceCheckTimeout = cmd.GlobalResourceCheckTimeout
 	//FIXME: These only need to run once for the entire binary. At the moment,
