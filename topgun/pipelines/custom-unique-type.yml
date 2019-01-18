@@ -1,0 +1,17 @@
+resource_types:
+- name: some-type
+  type: registry-image
+  unique_version_history: true
+  source:
+    repository: concourse/mock-resource
+
+resources:
+- name: some-resource
+  type: some-type
+  source:
+    no_initial_version: true
+
+jobs:
+- name: simple-job
+  plan:
+  - get: some-resource

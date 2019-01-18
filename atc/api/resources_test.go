@@ -667,6 +667,7 @@ var _ = Describe("Resources API", func() {
 					"privileged": false,
 					"params": {"param-key-1": "param-value-1"},
 					"source": {"source-key-1": "source-value-1"},
+					"unique_version_history": false,
 					"version": {
 						"version-key-1": "version-value-1",
 						"version-key-2": "version-value-2"
@@ -680,6 +681,7 @@ var _ = Describe("Resources API", func() {
 					"check_every": "10ms",
 					"params": {"param-key-2": "param-value-2"},
 					"source": {"source-key-2": "source-value-2"},
+					"unique_version_history": false,
 					"version": {
 						"version-key-2": "version-value-2"
 					}
@@ -715,6 +717,7 @@ var _ = Describe("Resources API", func() {
 				"privileged": false,
 				"params": {"param-key-1": "param-value-1"},
 				"source": {"source-key-1": "source-value-1"},
+				"unique_version_history": false,
 				"version": {
 					"version-key-1": "version-value-1",
 					"version-key-2": "version-value-2"
@@ -728,6 +731,7 @@ var _ = Describe("Resources API", func() {
 				"check_every": "10ms",
 				"params": {"param-key-2": "param-value-2"},
 				"source": {"source-key-2": "source-value-2"},
+				"unique_version_history": false,
 				"version": {
 					"version-key-2": "version-value-2"
 				},
@@ -1145,6 +1149,7 @@ var _ = Describe("Resources API", func() {
 			fakeResource              *dbfakes.FakeResource
 			fakeResourceConfig        *dbfakes.FakeResourceConfig
 			fakeResourceConfigVersion *dbfakes.FakeResourceConfigVersion
+			fakeResourceConfigScope   *dbfakes.FakeResourceConfigScope
 		)
 
 		BeforeEach(func() {
@@ -1156,6 +1161,7 @@ var _ = Describe("Resources API", func() {
 			fakeResource.NameReturns("resource-name")
 			fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 			fakeResourceConfigVersion = new(dbfakes.FakeResourceConfigVersion)
+			fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
 		})
 
 		JustBeforeEach(func() {
@@ -1180,6 +1186,7 @@ var _ = Describe("Resources API", func() {
 				fakeResource.WebhookTokenReturns(token)
 				fakePipeline.ResourceReturns(fakeResource, true, nil)
 				fakeResource.ResourceConfigIDReturns(1)
+				fakeResource.ResourceConfigScopeIDReturns(2)
 			})
 
 			It("injects the proper pipelineDB", func() {
@@ -1208,56 +1215,80 @@ var _ = Describe("Resources API", func() {
 						dbResourceConfigFactory.FindResourceConfigByIDReturns(fakeResourceConfig, true, nil)
 					})
 
-					Context("when the latest version is found", func() {
+					It("tries to find the resource config scope using the resource config scope id", func() {
+						Eventually(fakeResourceConfig.FindResourceConfigScopeByIDCallCount).Should(Equal(1))
+						resourceConfigScopeID, resource := fakeResourceConfig.FindResourceConfigScopeByIDArgsForCall(0)
+						Expect(resourceConfigScopeID).To(Equal(2))
+						Expect(resource).To(Equal(fakeResource))
+					})
+
+					Context("when finding the resource config scope succeeds", func() {
+
 						BeforeEach(func() {
-							fakeResourceConfigVersion.IDReturns(4)
-							fakeResourceConfigVersion.VersionReturns(db.Version{"some": "version"})
-							fakeResourceConfigVersion.MetadataReturns([]db.ResourceConfigMetadataField{
-								{
-									Name:  "some",
-									Value: "metadata",
-								},
+							fakeResourceConfig.FindResourceConfigScopeByIDReturns(fakeResourceConfigScope, true, nil)
+						})
+
+						Context("when the latest version is found", func() {
+							BeforeEach(func() {
+								fakeResourceConfigVersion.IDReturns(4)
+								fakeResourceConfigVersion.VersionReturns(db.Version{"some": "version"})
+								fakeResourceConfigVersion.MetadataReturns([]db.ResourceConfigMetadataField{
+									{
+										Name:  "some",
+										Value: "metadata",
+									},
+								})
+
+								fakeResourceConfigScope.LatestVersionReturns(fakeResourceConfigVersion, true, nil)
 							})
 
-							fakeResourceConfig.LatestVersionReturns(fakeResourceConfigVersion, true, nil)
+							It("tries to scan with the latest version", func() {
+								Eventually(fakeScanner.ScanFromVersionCallCount).Should(Equal(1))
+								_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+								Expect(actualResourceName).To(Equal("resource-name"))
+								Expect(actualFromVersion).To(Equal(atc.Version{"some": "version"}))
+							})
+
+							It("returns 200", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							})
 						})
 
-						It("tries to scan with the latest version", func() {
-							Eventually(fakeScanner.ScanFromVersionCallCount).Should(Equal(1))
-							_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
-							Expect(actualResourceName).To(Equal("resource-name"))
-							Expect(actualFromVersion).To(Equal(atc.Version{"some": "version"}))
+						Context("when the latest version is not found", func() {
+							BeforeEach(func() {
+								fakeResourceConfigScope.LatestVersionReturns(nil, false, nil)
+							})
+
+							It("tries to scan with no version specified", func() {
+								Eventually(fakeScanner.ScanFromVersionCallCount).Should(Equal(1))
+								_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+								Expect(actualResourceName).To(Equal("resource-name"))
+								Expect(actualFromVersion).To(BeNil())
+							})
+
+							It("returns 200", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							})
 						})
 
-						It("returns 200", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						Context("when failing to get latest version for resource", func() {
+							BeforeEach(func() {
+								fakeResourceConfigScope.LatestVersionReturns(nil, false, errors.New("disaster"))
+							})
+
+							It("does not scan from version", func() {
+								Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(0))
+							})
 						})
 					})
 
-					Context("when the latest version is not found", func() {
+					Context("when the resource config scope is not found", func() {
 						BeforeEach(func() {
-							fakeResourceConfig.LatestVersionReturns(nil, false, nil)
+							fakeResourceConfig.FindResourceConfigScopeByIDReturns(nil, false, nil)
 						})
 
-						It("tries to scan with no version specified", func() {
-							Eventually(fakeScanner.ScanFromVersionCallCount).Should(Equal(1))
-							_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
-							Expect(actualResourceName).To(Equal("resource-name"))
-							Expect(actualFromVersion).To(BeNil())
-						})
-
-						It("returns 200", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
-						})
-					})
-
-					Context("when failing to get latest version for resource", func() {
-						BeforeEach(func() {
-							fakeResourceConfig.LatestVersionReturns(nil, false, errors.New("disaster"))
-						})
-
-						It("does not scan from version", func() {
-							Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(0))
+						It("tries to scan", func() {
+							Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
 						})
 					})
 				})

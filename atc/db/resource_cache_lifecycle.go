@@ -77,7 +77,8 @@ func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error
 		Select("r_cache.id").
 		From("next_build_inputs nbi").
 		Join("resource_config_versions rcv ON rcv.id = nbi.resource_config_version_id").
-		Join("resource_caches r_cache ON r_cache.resource_config_id = rcv.resource_config_id AND r_cache.version = rcv.version").
+		Join("resource_config_scopes rs ON rs.id = rcv.resource_config_scope_id").
+		Join("resource_caches r_cache ON r_cache.resource_config_id = rs.resource_config_id AND r_cache.version = rcv.version").
 		Join("jobs j ON nbi.job_id = j.id").
 		Join("pipelines p ON j.pipeline_id = p.id").
 		Where(sq.Expr("p.paused = false")).

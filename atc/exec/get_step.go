@@ -16,13 +16,20 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 )
 
-type ErrResourceConfigVersionNotFound struct {
-	ResourceName string
-	Version      atc.Version
+type ErrPipelineNotFound struct {
+	PipelineName string
 }
 
-func (e ErrResourceConfigVersionNotFound) Error() string {
-	return fmt.Sprintf("resource '%s' version '%v' not found", e.ResourceName, e.Version)
+func (e ErrPipelineNotFound) Error() string {
+	return fmt.Sprintf("pipeline '%s' not found", e.PipelineName)
+}
+
+type ErrResourceNotFound struct {
+	ResourceName string
+}
+
+func (e ErrResourceNotFound) Error() string {
+	return fmt.Sprintf("resource '%s' not found", e.ResourceName)
 }
 
 //go:generate counterfeiter . GetDelegate
@@ -204,10 +211,32 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	})
 
 	if step.resource != "" {
+		pipeline, found, err := step.build.Pipeline()
+		if err != nil {
+			logger.Error("failed-to-find-pipeline", err, lager.Data{"name": step.name, "pipeline-name": step.build.PipelineName(), "pipeline-id": step.build.PipelineID()})
+			return err
+		}
+
+		if !found {
+			logger.Debug("pipeline-not-found", lager.Data{"name": step.name, "pipeline-name": step.build.PipelineName(), "pipeline-id": step.build.PipelineID()})
+			return ErrPipelineNotFound{step.build.PipelineName()}
+		}
+
+		resource, found, err := pipeline.Resource(step.resource)
+		if err != nil {
+			logger.Error("failed-to-find-resource", err, lager.Data{"name": step.name, "pipeline-name": step.build.PipelineName(), "resource": step.resource})
+			return err
+		}
+
+		if !found {
+			logger.Debug("resource-not-found", lager.Data{"name": step.name, "pipeline-name": step.build.PipelineName(), "resource": step.resource})
+			return ErrResourceNotFound{step.resource}
+		}
+
 		// Find or Save* the version used in the get step, and update the Metadata
 		// *saving will occur when the resource's config has changed, but it hasn't
 		// checked yet, so the resource config versions don't exist
-		_, err := resourceCache.ResourceConfig().SaveUncheckedVersion(versionedSource.Version(), db.NewResourceConfigMetadataFields(versionedSource.Metadata()))
+		_, err = resource.SaveUncheckedVersion(versionedSource.Version(), db.NewResourceConfigMetadataFields(versionedSource.Metadata()), resourceCache.ResourceConfig(), step.resourceTypes)
 		if err != nil {
 			logger.Error("failed-to-save-resource-config-version", err, lager.Data{"name": step.name, "resource": step.resource, "version": versionedSource.Version()})
 			return err

@@ -37,12 +37,13 @@ type Resource interface {
 	PinComment() string
 	ResourceConfigCheckError() error
 	ResourceConfigID() int
-	UniqueVersionHistory() bool
+	ResourceConfigScopeID() int
 
 	CurrentPinnedVersion() atc.Version
 
 	ResourceConfigVersionID(atc.Version) (int, bool, error)
 	Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error)
+	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig, creds.VersionedResourceTypes) (bool, error)
 
 	EnableVersion(rcvID int) error
 	DisableVersion(rcvID int) error
@@ -50,16 +51,17 @@ type Resource interface {
 	PinVersion(rcvID int) error
 	UnpinVersion() error
 
-	SetResourceConfig(lager.Logger, atc.Source, creds.VersionedResourceTypes) (ResourceConfig, error)
+	SetResourceConfig(lager.Logger, atc.Source, creds.VersionedResourceTypes) (ResourceConfigScope, error)
 	SetCheckError(error) error
 
 	Reload() (bool, error)
 }
 
-var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, c.last_checked, r.pipeline_id, r.nonce, r.resource_config_id, p.name, t.name, c.check_error, r.api_pinned_version, r.pin_comment").
+var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, rs.last_checked, r.pipeline_id, r.nonce, r.resource_config_id, r.resource_config_scope_id, p.name, t.name, c.check_error, r.api_pinned_version, r.pin_comment").
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
+	LeftJoin("resource_config_scopes rs ON r.resource_config_scope_id = rs.id").
 	LeftJoin("resource_configs c ON r.resource_config_id = c.id").
 	Where(sq.Eq{"r.active": true})
 
@@ -82,7 +84,7 @@ type resource struct {
 	pinComment               string
 	resourceConfigCheckError error
 	resourceConfigID         int
-	uniqueVersionHistory     bool
+	resourceConfigScopeID    int
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -144,7 +146,7 @@ func (r *resource) APIPinnedVersion() atc.Version    { return r.apiPinnedVersion
 func (r *resource) PinComment() string               { return r.pinComment }
 func (r *resource) ResourceConfigCheckError() error  { return r.resourceConfigCheckError }
 func (r *resource) ResourceConfigID() int            { return r.resourceConfigID }
-func (r *resource) UniqueVersionHistory() bool       { return r.uniqueVersionHistory }
+func (r *resource) ResourceConfigScopeID() int       { return r.resourceConfigScopeID }
 
 func (r *resource) Reload() (bool, error) {
 	row := resourcesQuery.Where(sq.Eq{"r.id": r.id}).
@@ -162,8 +164,8 @@ func (r *resource) Reload() (bool, error) {
 	return true, nil
 }
 
-func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, resourceTypes creds.VersionedResourceTypes) (ResourceConfig, error) {
-	resourceConfigDescriptor, err := constructResourceConfigDescriptor(r.type_, source, resourceTypes, r)
+func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, resourceTypes creds.VersionedResourceTypes) (ResourceConfigScope, error) {
+	resourceConfigDescriptor, err := constructResourceConfigDescriptor(r.type_, source, resourceTypes)
 	if err != nil {
 		return nil, err
 	}
@@ -180,12 +182,30 @@ func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, res
 		return nil, err
 	}
 
-	results, err := psql.Update("resources").
+	_, err = psql.Update("resources").
 		Set("resource_config_id", resourceConfig.ID()).
 		Where(sq.Eq{"id": r.id}).
 		Where(sq.Or{
 			sq.Eq{"resource_config_id": nil},
 			sq.NotEq{"resource_config_id": resourceConfig.ID()},
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r, resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	results, err := psql.Update("resources").
+		Set("resource_config_scope_id", resourceConfigScope.ID()).
+		Where(sq.Eq{"id": r.id}).
+		Where(sq.Or{
+			sq.Eq{"resource_config_scope_id": nil},
+			sq.NotEq{"resource_config_scope_id": resourceConfigScope.ID()},
 		}).
 		RunWith(tx).
 		Exec()
@@ -199,7 +219,7 @@ func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, res
 	}
 
 	if rowsAffected > 0 {
-		err = bumpCacheIndexForPipelinesUsingResourceConfig(tx, resourceConfig.ID())
+		err = bumpCacheIndexForPipelinesUsingResourceConfigScope(tx, resourceConfigScope)
 		if err != nil {
 			return nil, err
 		}
@@ -210,7 +230,7 @@ func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, res
 		return nil, err
 	}
 
-	return resourceConfig, nil
+	return resourceConfigScope, nil
 }
 
 func (r *resource) SetCheckError(cause error) error {
@@ -233,6 +253,36 @@ func (r *resource) SetCheckError(cause error) error {
 	return err
 }
 
+// SaveUncheckedVersion is used by the "get" and "put" step to find or create of a
+// resource config version. We want to do an upsert because there will be cases
+// where resource config versions can become outdated while the versions
+// associated to it are still valid. This will be special case where we save
+// the version with a check order of 0 in order to avoid using this version
+// until we do a proper check. Note that this method will not bump the cache
+// index for the pipeline because we want to ignore these versions until the
+// check orders get updated. The bumping of the index will be done in
+// SaveOutput for the put step.
+func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields, resourceConfig ResourceConfig, resourceTypes creds.VersionedResourceTypes) (bool, error) {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	defer Rollback(tx)
+
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r, resourceTypes)
+	if err != nil {
+		return false, err
+	}
+
+	newVersion, err := saveResourceVersion(tx, resourceConfigScope, version, metadata)
+	if err != nil {
+		return false, err
+	}
+
+	return newVersion, tx.Commit()
+}
+
 func (r *resource) ResourceConfigVersionID(version atc.Version) (int, bool, error) {
 	requestedVersion, err := json.Marshal(version)
 	if err != nil {
@@ -242,8 +292,7 @@ func (r *resource) ResourceConfigVersionID(version atc.Version) (int, bool, erro
 	var id int
 	err = psql.Select("rcv.id").
 		From("resource_config_versions rcv").
-		Join("resource_configs rc ON rc.id = resource_config_id").
-		Join("resources r ON rc.id = r.resource_config_id").
+		Join("resources r ON rcv.resource_config_scope_id = r.resource_config_scope_id").
 		Where(sq.Eq{"r.id": r.ID(), "version": requestedVersion}).
 		Where(sq.NotEq{"rcv.check_order": 0}).
 		RunWith(r.conn).
@@ -275,11 +324,11 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 				SELECT 1
 				FROM resource_disabled_versions d
 				WHERE v.version_md5 = d.version_md5
-				AND r.resource_config_id = v.resource_config_id
+				AND r.resource_config_scope_id = v.resource_config_scope_id
 				AND r.id = d.resource_id
 			)
 		FROM resource_config_versions v, resources r
-		WHERE r.id = $1 AND r.resource_config_id = v.resource_config_id AND v.check_order != 0
+		WHERE r.id = $1 AND r.resource_config_scope_id = v.resource_config_scope_id AND v.check_order != 0
 	`
 
 	var rows *sql.Rows
@@ -397,7 +446,7 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 		SELECT COALESCE(MAX(v.check_order), 0) as maxCheckOrder,
 			COALESCE(MIN(v.check_order), 0) as minCheckOrder
 		FROM resource_config_versions v, resources r
-		WHERE r.id = $1 AND v.resource_config_id = r.resource_config_id
+		WHERE r.id = $1 AND v.resource_config_scope_id = r.resource_config_scope_id
 	`, r.id).Scan(&maxCheckOrder, &minCheckOrder)
 	if err != nil {
 		return nil, Pagination{}, false, err
@@ -526,12 +575,12 @@ func (r *resource) toggleVersion(rcvID int, enable bool) error {
 
 func scanResource(r *resource, row scannable) error {
 	var (
-		configBlob                                                      []byte
-		checkErr, rcCheckErr, nonce, rcID, apiPinnedVersion, pinComment sql.NullString
-		lastChecked                                                     pq.NullTime
+		configBlob                                                                 []byte
+		checkErr, rcCheckErr, nonce, rcID, rcScopeID, apiPinnedVersion, pinComment sql.NullString
+		lastChecked                                                                pq.NullTime
 	)
 
-	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &lastChecked, &r.pipelineID, &nonce, &rcID, &r.pipelineName, &r.teamName, &rcCheckErr, &apiPinnedVersion, &pinComment)
+	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &lastChecked, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamName, &rcCheckErr, &apiPinnedVersion, &pinComment)
 	if err != nil {
 		return err
 	}
@@ -563,7 +612,6 @@ func scanResource(r *resource, row scannable) error {
 	r.tags = config.Tags
 	r.webhookToken = config.WebhookToken
 	r.configPinnedVersion = config.Version
-	r.uniqueVersionHistory = config.UniqueVersionHistory
 
 	if apiPinnedVersion.Valid {
 		err = json.Unmarshal([]byte(apiPinnedVersion.String), &r.apiPinnedVersion)
@@ -594,6 +642,13 @@ func scanResource(r *resource, row scannable) error {
 
 	if rcID.Valid {
 		r.resourceConfigID, err = strconv.Atoi(rcID.String)
+		if err != nil {
+			return err
+		}
+	}
+
+	if rcScopeID.Valid {
+		r.resourceConfigScopeID, err = strconv.Atoi(rcScopeID.String)
 		if err != nil {
 			return err
 		}

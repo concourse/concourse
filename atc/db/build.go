@@ -143,12 +143,13 @@ type build struct {
 var ErrBuildDisappeared = errors.New("build disappeared from db")
 var ErrBuildHasNoPipeline = errors.New("build has no pipeline")
 
-type PipelineHasNoResourceError struct {
+type ResourceNotFoundInPipeline struct {
 	Resource string
+	Pipeline string
 }
 
-func (e PipelineHasNoResourceError) Error() string {
-	return fmt.Sprintf("pipeline does not have the resource: %s", e.Resource)
+func (r ResourceNotFoundInPipeline) Error() string {
+	return fmt.Sprintf("resource %s not found in pipeline %s", r.Resource, r.Pipeline)
 }
 
 func (b *build) ID() int                      { return b.id }
@@ -815,7 +816,7 @@ func (b *build) SaveOutput(
 	}
 
 	if !found {
-		return PipelineHasNoResourceError{resource.Name()}
+		return ResourceNotFoundInPipeline{resource.Name(), b.pipelineName}
 	}
 
 	tx, err := b.conn.Begin()
@@ -825,7 +826,7 @@ func (b *build) SaveOutput(
 
 	defer Rollback(tx)
 
-	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceType, source, resourceTypes, resource)
+	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceType, source, resourceTypes)
 	if err != nil {
 		return err
 	}
@@ -835,7 +836,12 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	newVersion, err := saveResourceConfigVersion(tx, resourceConfig, version, metadata)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, resourceConfig, resource, resourceTypes)
+	if err != nil {
+		return err
+	}
+
+	newVersion, err := saveResourceVersion(tx, resourceConfigScope, version, metadata)
 	if err != nil {
 		return err
 	}
@@ -848,12 +854,12 @@ func (b *build) SaveOutput(
 	versionJSON := string(versionBytes)
 
 	if newVersion {
-		err = incrementCheckOrder(tx, resourceConfig, versionJSON)
+		err = incrementCheckOrder(tx, resourceConfigScope, versionJSON)
 		if err != nil {
 			return err
 		}
 
-		err = bumpCacheIndexForPipelinesUsingResourceConfig(tx, resourceConfig.ID())
+		err = bumpCacheIndexForPipelinesUsingResourceConfigScope(tx, resourceConfigScope)
 		if err != nil {
 			return err
 		}
@@ -920,7 +926,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			SELECT 1
 			FROM build_resource_config_version_inputs i, builds b
 			WHERE versions.version_md5 = i.version_md5
-			AND resources.resource_config_id = versions.resource_config_id
+			AND resources.resource_config_scope_id = versions.resource_config_scope_id
 			AND resources.id = i.resource_id
 			AND b.job_id = builds.job_id
 			AND i.build_id = b.id
@@ -933,13 +939,13 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		Where(sq.NotEq{"versions.check_order": 0}).
 		Where(sq.Expr("inputs.build_id = builds.id")).
 		Where(sq.Expr("inputs.version_md5 = versions.version_md5")).
-		Where(sq.Expr("resources.resource_config_id = versions.resource_config_id")).
+		Where(sq.Expr("resources.resource_config_scope_id = versions.resource_config_scope_id")).
 		Where(sq.Expr("resources.id = inputs.resource_id")).
 		Where(sq.Expr(`NOT EXISTS (
 			SELECT 1
 			FROM build_resource_config_version_outputs outputs
 			WHERE outputs.version_md5 = versions.version_md5
-			AND versions.resource_config_id = resources.resource_config_id
+			AND versions.resource_config_scope_id = resources.resource_config_scope_id
 			AND outputs.resource_id = resources.id
 			AND outputs.build_id = inputs.build_id
 		)`)).
@@ -985,7 +991,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		Where(sq.Expr("outputs.build_id = builds.id")).
 		Where(sq.Expr("outputs.version_md5 = versions.version_md5")).
 		Where(sq.Expr("outputs.resource_id = resources.id")).
-		Where(sq.Expr("resources.resource_config_id = versions.resource_config_id")).
+		Where(sq.Expr("resources.resource_config_scope_id = versions.resource_config_scope_id")).
 		RunWith(b.conn).
 		Query()
 
