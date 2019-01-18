@@ -788,6 +788,21 @@ all =
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasUnpinnedState
+            , test "resource refreshes on successful VersionUnpinned msg" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> givenVersionsWithoutPagination
+                        |> clickToUnpin
+                        |> Resource.update (Msgs.VersionUnpinned (Ok ()))
+                        |> Tuple.second
+                        |> Expect.equal
+                            [ Effects.FetchResource
+                                { resourceName = resourceName
+                                , pipelineName = pipelineName
+                                , teamName = teamName
+                                }
+                            ]
             , test "pin bar shows unpinned state upon receiving failing (VersionUnpinned) msg" <|
                 \_ ->
                     init
@@ -853,8 +868,149 @@ all =
                                 >> Query.has [ style [ ( "background-color", "#1e1d1d" ) ] ]
                             )
             ]
+        , describe "given resource is pinned with a comment"
+            [ test "pin comment bar is visible" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedWithComment
+                        |> queryView
+                        |> Query.has [ id "comment-bar" ]
+            , test "body has padding to accomodate pin comment bar" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedWithComment
+                        |> queryView
+                        |> Query.find [ id "body" ]
+                        |> Query.has
+                            [ style [ ( "padding-bottom", "300px" ) ] ]
+            , describe "pin comment bar" <|
+                let
+                    commentBar : () -> Query.Single Msgs.Msg
+                    commentBar _ =
+                        init
+                            |> givenResourcePinnedWithComment
+                            |> queryView
+                            |> Query.find [ id "comment-bar" ]
+                in
+                [ test "pin comment bar has dark background" <|
+                    commentBar
+                        >> Query.has
+                            [ style
+                                [ ( "background-color", almostBlack ) ]
+                            ]
+                , test "pin comment bar is fixed to viewport bottom" <|
+                    commentBar
+                        >> Query.has
+                            [ style
+                                [ ( "position", "fixed" )
+                                , ( "bottom", "0" )
+                                ]
+                            ]
+                , test "pin comment bar is as wide as the viewport" <|
+                    commentBar
+                        >> Query.has [ style [ ( "width", "100%" ) ] ]
+                , test "pin comment bar is 300px tall" <|
+                    commentBar
+                        >> Query.has [ style [ ( "height", "300px" ) ] ]
+                , describe "contents" <|
+                    let
+                        contents : () -> Query.Single Msgs.Msg
+                        contents =
+                            commentBar >> Query.children [] >> Query.first
+                    in
+                    [ test "is 700px wide" <|
+                        contents
+                            >> Query.has [ style [ ( "width", "700px" ) ] ]
+                    , test "is horizontally centered" <|
+                        contents
+                            >> Query.has [ style [ ( "margin", "auto" ) ] ]
+                    , test "has padding" <|
+                        contents
+                            >> Query.has [ style [ ( "padding", "20px" ) ] ]
+                    , describe "header" <|
+                        let
+                            header : () -> Query.Single Msgs.Msg
+                            header =
+                                contents >> Query.children [] >> Query.first
+                        in
+                        [ test "lays out horizontally" <|
+                            header
+                                >> Query.has
+                                    [ style [ ( "display", "flex" ) ] ]
+                        , test "centers contents vertically" <|
+                            header
+                                >> Query.has
+                                    [ style [ ( "align-items", "center" ) ] ]
+                        , test "has message icon at the left" <|
+                            let
+                                messageIcon =
+                                    "baseline-message.svg"
+                            in
+                            header
+                                >> Query.children []
+                                >> Query.first
+                                >> Query.has
+                                    [ style
+                                        [ ( "background-image"
+                                          , "url(/public/images/"
+                                                ++ messageIcon
+                                                ++ ")"
+                                          )
+                                        , ( "background-size", "contain" )
+                                        , ( "width", "24px" )
+                                        , ( "height", "24px" )
+                                        , ( "margin-right", "10px" )
+                                        ]
+                                    ]
+                        , test "second item is pin icon" <|
+                            let
+                                pinIcon =
+                                    "pin-ic-white.svg"
+                            in
+                            header
+                                >> Query.children []
+                                >> Query.index 1
+                                >> Query.has
+                                    (iconSelector
+                                        { image = pinIcon
+                                        , size = "20px"
+                                        }
+                                        ++ [ style
+                                                [ ( "margin-right", "10px" ) ]
+                                           ]
+                                    )
+                        , test "third item is the pinned version" <|
+                            header
+                                >> Query.children []
+                                >> Query.index 2
+                                >> Query.has [ text version ]
+                        ]
+                    , test "contains a pre" <|
+                        commentBar
+                            >> Query.has [ tag "pre" ]
+                    , test "pre contains the comment" <|
+                        commentBar
+                            >> Query.find [ tag "pre" ]
+                            >> Query.has [ text "some pin comment" ]
+                    ]
+                ]
+            ]
         , describe "given resource is not pinned"
-            [ test "then nothing has purple border" <|
+            [ test "pin comment bar is not visible" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.hasNot [ id "comment-bar" ]
+            , test "body does not have padding to accomodate comment bar" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.find [ id "body" ]
+                        |> Query.hasNot
+                            [ style [ ( "padding-bottom", "300px" ) ] ]
+            , test "then nothing has purple border" <|
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
@@ -1714,40 +1870,6 @@ all =
                             |> Event.toResult
                             |> Expect.err
                 ]
-            , test "status bar lays out horizontally maximizing space" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> checkBar
-                        |> Query.children []
-                        |> Query.index -1
-                        |> Query.has
-                            [ style
-                                [ ( "display", "flex" )
-                                , ( "justify-content", "space-between" )
-                                , ( "align-items", "center" )
-                                , ( "flex-grow", "1" )
-                                , ( "height", "28px" )
-                                , ( "background", almostBlack )
-                                , ( "padding-left", "5px" )
-                                ]
-                            ]
-            , test "successful check shows a checkmark on the right" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> checkBar
-                        |> Query.children []
-                        |> Query.index -1
-                        |> Query.has
-                            (iconSelector
-                                { size = "28px"
-                                , image = "ic-success-check.svg"
-                                }
-                                ++ [ style
-                                        [ ( "background-size", "14px 14px" ) ]
-                                   ]
-                            )
             , test "unsuccessful check shows a warning icon on the right" <|
                 \_ ->
                     init
@@ -1763,6 +1885,7 @@ all =
                                     , lastChecked = Nothing
                                     , pinnedVersion = Nothing
                                     , pinnedInConfig = False
+                                    , pinComment = Nothing
                                     }
                             )
                         |> Tuple.first
@@ -1808,6 +1931,7 @@ givenResourcePinnedStatically =
                 , lastChecked = Nothing
                 , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                 , pinnedInConfig = True
+                , pinComment = Nothing
                 }
         )
         >> Tuple.first
@@ -1827,6 +1951,28 @@ givenResourcePinnedDynamically =
                 , lastChecked = Nothing
                 , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                 , pinnedInConfig = False
+                , pinComment = Nothing
+                }
+        )
+        >> Tuple.first
+
+
+givenResourcePinnedWithComment : Models.Model -> Models.Model
+givenResourcePinnedWithComment =
+    Resource.update
+        (Msgs.ResourceFetched <|
+            Ok
+                { teamName = teamName
+                , pipelineName = pipelineName
+                , name = resourceName
+                , failingToCheck = False
+                , checkError = ""
+                , checkSetupError = ""
+                , lastChecked = Nothing
+                , pinnedVersion =
+                    Just (Dict.fromList [ ( "version", version ) ])
+                , pinnedInConfig = False
+                , pinComment = Just "some pin comment"
                 }
         )
         >> Tuple.first
@@ -1846,6 +1992,7 @@ givenResourceIsNotPinned =
                 , lastChecked = Nothing
                 , pinnedVersion = Nothing
                 , pinnedInConfig = False
+                , pinComment = Nothing
                 }
         )
         >> Tuple.first

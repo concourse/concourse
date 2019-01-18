@@ -115,6 +115,7 @@ init flags =
                 , csrfToken = flags.csrfToken
                 , showPinBarTooltip = False
                 , pinIconHover = False
+                , pinComment = Nothing
                 , route =
                     { logical =
                         Routes.Resource
@@ -240,6 +241,7 @@ update action model =
                 , checkError = resource.checkError
                 , checkSetupError = resource.checkSetupError
                 , lastChecked = resource.lastChecked
+                , pinComment = resource.pinComment
               }
                 |> updatePinnedVersion resource
             , [ SetTitle <| resource.name ++ " - " ]
@@ -523,7 +525,7 @@ update action model =
             ( { model
                 | pinnedVersion = NotPinned
               }
-            , []
+            , [ FetchResource model.resourceIdentifier ]
             )
 
         VersionUnpinned (Err _) ->
@@ -684,6 +686,7 @@ view model =
         ]
         [ Html.map TopBarMsg <| Html.fromUnstyled <| TopBar.view model
         , subpageView model
+        , commentBar model
         ]
 
 
@@ -854,6 +857,17 @@ subpageView model =
                         (Css.px 10)
                         (Css.px 10)
                     ]
+                , id "body"
+                , style
+                    [ ( "padding-bottom"
+                      , case model.pinComment of
+                            Just _ ->
+                                "300px"
+
+                            Nothing ->
+                                ""
+                      )
+                    ]
                 ]
                 [ checkSection model
                 , viewVersionedResources model
@@ -1020,6 +1034,46 @@ checkButton { hovered, userState, teamName, checkStatus } =
             ]
             []
         ]
+
+
+commentBar :
+    { a
+        | pinComment : Maybe String
+        , pinnedVersion : ResourcePinState Concourse.Version Int
+    }
+    -> Html Msg
+commentBar { pinComment, pinnedVersion } =
+    let
+        version =
+            case Pinned.stable pinnedVersion of
+                Just v ->
+                    viewVersion v
+
+                Nothing ->
+                    Html.text ""
+    in
+    case pinComment of
+        Nothing ->
+            Html.text ""
+
+        Just text ->
+            Html.div
+                [ id "comment-bar", style Resource.Styles.commentBar ]
+                [ Html.div
+                    [ style Resource.Styles.commentBarContent ]
+                    [ Html.div
+                        [ style Resource.Styles.commentBarHeader ]
+                        [ Html.div
+                            [ style Resource.Styles.commentBarMessageIcon ]
+                            []
+                        , Html.div
+                            [ style Resource.Styles.commentBarPinIcon ]
+                            []
+                        , version
+                        ]
+                    , Html.pre [] [ Html.text text ]
+                    ]
+                ]
 
 
 pinBar :

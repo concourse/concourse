@@ -1501,6 +1501,7 @@ all =
                                               , lastChecked = Nothing
                                               , pinnedVersion = Nothing
                                               , pinnedInConfig = False
+                                              , pinComment = Nothing
                                               }
                                             ]
                                         , version = ""

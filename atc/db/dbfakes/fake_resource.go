@@ -124,6 +124,16 @@ type FakeResource struct {
 	nameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	PinCommentStub        func() string
+	pinCommentMutex       sync.RWMutex
+	pinCommentArgsForCall []struct {
+	}
+	pinCommentReturns struct {
+		result1 string
+	}
+	pinCommentReturnsOnCall map[int]struct {
+		result1 string
+	}
 	PinVersionStub        func(int) error
 	pinVersionMutex       sync.RWMutex
 	pinVersionArgsForCall []struct {
@@ -893,6 +903,58 @@ func (fake *FakeResource) NameReturnsOnCall(i int, result1 string) {
 		})
 	}
 	fake.nameReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeResource) PinComment() string {
+	fake.pinCommentMutex.Lock()
+	ret, specificReturn := fake.pinCommentReturnsOnCall[len(fake.pinCommentArgsForCall)]
+	fake.pinCommentArgsForCall = append(fake.pinCommentArgsForCall, struct {
+	}{})
+	fake.recordInvocation("PinComment", []interface{}{})
+	fake.pinCommentMutex.Unlock()
+	if fake.PinCommentStub != nil {
+		return fake.PinCommentStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.pinCommentReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) PinCommentCallCount() int {
+	fake.pinCommentMutex.RLock()
+	defer fake.pinCommentMutex.RUnlock()
+	return len(fake.pinCommentArgsForCall)
+}
+
+func (fake *FakeResource) PinCommentCalls(stub func() string) {
+	fake.pinCommentMutex.Lock()
+	defer fake.pinCommentMutex.Unlock()
+	fake.PinCommentStub = stub
+}
+
+func (fake *FakeResource) PinCommentReturns(result1 string) {
+	fake.pinCommentMutex.Lock()
+	defer fake.pinCommentMutex.Unlock()
+	fake.PinCommentStub = nil
+	fake.pinCommentReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeResource) PinCommentReturnsOnCall(i int, result1 string) {
+	fake.pinCommentMutex.Lock()
+	defer fake.pinCommentMutex.Unlock()
+	fake.PinCommentStub = nil
+	if fake.pinCommentReturnsOnCall == nil {
+		fake.pinCommentReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.pinCommentReturnsOnCall[i] = struct {
 		result1 string
 	}{result1}
 }
@@ -1817,6 +1879,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.lastCheckedMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
+	fake.pinCommentMutex.RLock()
+	defer fake.pinCommentMutex.RUnlock()
 	fake.pinVersionMutex.RLock()
 	defer fake.pinVersionMutex.RUnlock()
 	fake.pipelineIDMutex.RLock()
