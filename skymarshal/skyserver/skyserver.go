@@ -274,21 +274,9 @@ func (s *SkyServer) Token(w http.ResponseWriter, r *http.Request) {
 		verifiedClaims     *token.VerifiedClaims
 	)
 
-	if r.Method != "POST" && r.Method != "GET" {
+	if r.Method != "POST" {
 		logger.Error("invalid-method", nil)
 		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if r.Method == "GET" {
-		cookie, err := r.Cookie(authCookieName)
-		if err != nil {
-			logger.Error("auth-cookie-not-found", err)
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		w.Write([]byte(cookie.Value))
 		return
 	}
 
