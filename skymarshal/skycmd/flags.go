@@ -51,7 +51,7 @@ type AuthFlags struct {
 }
 
 type AuthTeamFlags struct {
-	LocalUsers []string  `long:"local-user" description:"List of whitelisted local concourse users. These are the users you've added at atc startup with the --add-local-user flag." value-name:"USERNAME"`
+	LocalUsers []string  `long:"local-user" description:"List of whitelisted local concourse users. These are the users you've added at web startup with the --add-local-user flag." value-name:"USERNAME"`
 	Config     flag.File `short:"c" long:"config" description:"Configuration file for specifying team params"`
 }
 
