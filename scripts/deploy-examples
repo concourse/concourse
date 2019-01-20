@@ -32,15 +32,4 @@ deploy () {
   done
 }
 
-LPASS_DOCKERHUB_ID="$1"
-
-if [ -z $LPASS_DOCKERHUB_ID ]; then
-  echo "Please provide a the Dockerhub entry ID";
-  exit 1;
-else
-  DOCKERHUB_EMAIL=$(lpass show --notes $LPASS_DOCKERHUB_ID)
-  DOCKERHUB_USERNAME=$(lpass show --field=nw_password $LPASS_DOCKERHUB_ID)
-  DOCKERHUB_PASSWORD=$(lpass show --field=nw_username $LPASS_DOCKERHUB_ID)
-
-  deploy
-fi
+deploy
