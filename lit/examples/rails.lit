@@ -43,6 +43,7 @@ task-config: &task-config
         cd rails-contributors-git
         git clone --mirror https://github.com/rails/rails
         echo "=== Installing Gems..."
+        gem install -N bundler
         bundle install
         echo "=== Running Tests..."
         bundle exec rails db:setup
@@ -56,10 +57,10 @@ jobs:
         trigger: true
       - task: run-tests
         config:
-          << : *task-config
           image_resource:
             type: registry-image
-            source: { repository: ruby, tag: 2.5.1 }
+            source: { repository: ruby, tag: 2.5.3 }
+          << : *task-config
 	}}}
 }
 
