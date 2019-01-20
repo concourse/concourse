@@ -141,7 +141,7 @@ require (
 	github.com/peterhellberg/link v1.0.0
 	github.com/pkg/errors v0.8.0
 	github.com/pkg/term v0.0.0-20180730021639-bffc007b7fd5
-	github.com/prometheus/client_golang v0.9.0-pre1
+	github.com/prometheus/client_golang v0.9.2
 	github.com/ryanuber/go-glob v0.0.0-20170128012129-256dc444b735 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
