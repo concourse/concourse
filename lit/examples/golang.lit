@@ -20,6 +20,24 @@ resources:
     source:
       uri: https://github.com/golang/mock.git
 
+  - name: golang-1.11.x-image
+    type: registry-image
+    source:
+      repository: golang
+      tag: 1.11-stretch
+
+  - name: golang-1.10.x-image
+    type: registry-image
+    source:
+      repository: golang
+      tag: 1.10-stretch
+
+  - name: golang-1.9.x-image
+    type: registry-image
+    source:
+      repository: golang
+      tag: 1.9-stretch
+
 task-config: &task-config
   platform: linux
   inputs:
@@ -42,34 +60,34 @@ jobs:
     plan:
       - get: golang-mock-git
         trigger: true
+      - get: golang-1.11.x-image
+        trigger: true
       - task: run-tests
+        image: golang-1.11.x-image
         config:
           << : *task-config
-          image_resource:
-            type: registry-image
-            source: { repository: golang, tag: 1.11-stretch }
   - name: golang-1.10
     public: true
     plan:
       - get: golang-mock-git
         trigger: true
+      - get: golang-1.10.x-image
+        trigger: true
       - task: run-tests
+        image: golang-1.10.x-image
         config:
           << : *task-config
-          image_resource:
-            type: registry-image
-            source: { repository: golang, tag: 1.10-stretch }
   - name: golang-1.9
     public: true
     plan:
       - get: golang-mock-git
         trigger: true
+      - get: golang-1.9.x-image
+        trigger: true
       - task: run-tests
+        image: golang-1.9.x-image
         config:
           << : *task-config
-          image_resource:
-            type: registry-image
-            source: { repository: golang, tag: 1.9-stretch }
 	}}}
 }
 
