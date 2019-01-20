@@ -32,4 +32,19 @@ deploy () {
   done
 }
 
+update_readme () {
+	local badges=""
+
+  local examples=$(ls ${DIR}/../lit/examples/*.lit)
+  for path in $examples
+  do
+    name=$(basename -s '.lit' $path)
+  	badges="${badges}- ${name} [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/${name}/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/${name})\n";
+	done
+
+	awk -v badges="$badges" '/^#\ Examples/{f=1;print;print "";print badges}/^# Building/{f=0}!f;' README.md > tmp
+	mv tmp README.md
+}
+
 deploy
+update_readme
