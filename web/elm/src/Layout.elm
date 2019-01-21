@@ -14,6 +14,7 @@ import Concourse
 import Effects exposing (Callback(..), Effect(..), LayoutDispatch(..))
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id, style)
+import Http
 import Json.Decode
 import Navigation
 import Routes
@@ -216,6 +217,24 @@ handleCallback disp callback model =
                     else
                         ( model, [] )
 
+                BuildTriggered (Err err) ->
+                    ( model, redirectToLoginIfNecessary err navIndex )
+
+                BuildAborted (Err err) ->
+                    ( model, redirectToLoginIfNecessary err navIndex )
+
+                PausedToggled (Err err) ->
+                    ( model, redirectToLoginIfNecessary err navIndex )
+
+                JobBuildsFetched (Err err) ->
+                    ( model, redirectToLoginIfNecessary err navIndex )
+
+                InputToFetched (Err err) ->
+                    ( model, redirectToLoginIfNecessary err navIndex )
+
+                OutputOfFetched (Err err) ->
+                    ( model, redirectToLoginIfNecessary err navIndex )
+
                 -- otherwise, pass down
                 _ ->
                     let
@@ -292,6 +311,20 @@ update msg model =
 
         Noop ->
             ( model, [] )
+
+
+redirectToLoginIfNecessary : Http.Error -> NavIndex -> List ( LayoutDispatch, Effect )
+redirectToLoginIfNecessary err navIndex =
+    case err of
+        Http.BadStatus { status } ->
+            if status.code == 401 then
+                [ ( SubPage navIndex, RedirectToLogin ) ]
+
+            else
+                []
+
+        _ ->
+            []
 
 
 validNavIndex : NavIndex -> NavIndex -> Bool

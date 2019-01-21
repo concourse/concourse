@@ -200,14 +200,6 @@ handleCallback callback model =
 
 update : Msg -> Model -> ( Model, List Effect )
 update msg model =
-    let
-        redirectToLoginIfUnauthenticated status =
-            if status.code == 401 then
-                [ RedirectToLogin ]
-
-            else
-                []
-    in
     case msg of
         Noop ->
             ( model, [] )

@@ -166,14 +166,8 @@ handleCallback callback model =
                     ]
             )
 
-        BuildTriggered (Err err) ->
-            ( model, redirectToLoginIfNecessary err )
-
         JobBuildsFetched (Ok builds) ->
             handleJobBuildsFetched builds model
-
-        JobBuildsFetched (Err err) ->
-            ( model, redirectToLoginIfNecessary err )
 
         JobFetched (Ok job) ->
             ( { model | job = RemoteData.Success job }
@@ -229,9 +223,6 @@ handleCallback callback model =
 
         PausedToggled (Ok ()) ->
             ( { model | pausedChanging = False }, [] )
-
-        PausedToggled (Err err) ->
-            ( model, redirectToLoginIfNecessary err )
 
         GotCurrentTime now ->
             ( { model | now = now }, [] )

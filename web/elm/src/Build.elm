@@ -228,18 +228,6 @@ handleCallback action model =
                     | history = build :: model.history
                 }
 
-        BuildTriggered (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, [ RedirectToLogin ] )
-
-                    else
-                        ( model, [] )
-
-                _ ->
-                    ( model, [] )
-
         BuildFetched (Ok ( browsingIndex, build )) ->
             handleBuildFetched browsingIndex build model
 
@@ -262,18 +250,6 @@ handleCallback action model =
 
         BuildAborted (Ok ()) ->
             ( model, [] )
-
-        BuildAborted (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, [ RedirectToLogin ] )
-
-                    else
-                        ( model, [] )
-
-                _ ->
-                    ( model, [] )
 
         BuildPrepFetched (Ok ( browsingIndex, buildPrep )) ->
             handleBuildPrepFetched browsingIndex buildPrep model

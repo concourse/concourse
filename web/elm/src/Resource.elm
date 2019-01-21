@@ -329,34 +329,10 @@ handleCallback action model =
             flip always (Debug.log "failed to fetch versioned resources" err) <|
                 ( model, [] )
 
-        InputToFetched (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, [ RedirectToLogin ] )
-
-                    else
-                        ( model, [] )
-
-                _ ->
-                    ( model, [] )
-
         InputToFetched (Ok ( versionID, builds )) ->
             ( updateVersion versionID (\v -> { v | inputTo = builds }) model
             , []
             )
-
-        OutputOfFetched (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, [ RedirectToLogin ] )
-
-                    else
-                        ( model, [] )
-
-                _ ->
-                    ( model, [] )
 
         OutputOfFetched (Ok ( versionID, builds )) ->
             ( updateVersion versionID (\v -> { v | outputOf = builds }) model
