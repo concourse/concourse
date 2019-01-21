@@ -310,7 +310,7 @@ update action model =
             ( model, [] )
 
         SwitchToBuild build ->
-            ( model, [ NewUrl <| Routes.buildRoute build ] )
+            ( model, [ NavigateTo <| Routes.buildRoute build ] )
 
         Hover state ->
             ( { model | hoveredButton = state }, [] )
@@ -370,7 +370,7 @@ update action model =
                 ( { model | autoScroll = False }, [] )
 
         NavTo url ->
-            ( model, [ NewUrl url ] )
+            ( model, [ NavigateTo url ] )
 
         NewCSRFToken token ->
             ( { model | csrfToken = token }, [] )

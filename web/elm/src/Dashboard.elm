@@ -212,7 +212,7 @@ handleCallback msg model =
                 | userState = UserState.UserStateLoggedOut
                 , userMenuVisible = False
               }
-            , [ NewUrl redirectUrl, FetchData ]
+            , [ NavigateTo redirectUrl, FetchData ]
             )
 
         LoggedOut (Err err) ->

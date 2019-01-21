@@ -244,10 +244,10 @@ update msg model =
             ( model, [ FetchVersion ] )
 
         ToggleGroup group ->
-            ( model, [ NewUrl <| getNextUrl (toggleGroup group model.selectedGroups model.pipeline) model ] )
+            ( model, [ NavigateTo <| getNextUrl (toggleGroup group model.selectedGroups model.pipeline) model ] )
 
         SetGroups groups ->
-            ( model, [ NewUrl <| getNextUrl groups model ] )
+            ( model, [ NavigateTo <| getNextUrl groups model ] )
 
 
 subscriptions : Model -> Sub Msg

@@ -86,7 +86,6 @@ type Effect
     | RedirectToLogin
     | NavigateTo String
     | SetTitle String
-    | NewUrl String
     | ModifyUrl String
     | DoPinVersion Concourse.VersionedResourceIdentifier Concourse.CSRFToken
     | DoUnpinVersion Concourse.ResourceIdentifier Concourse.CSRFToken
@@ -209,9 +208,6 @@ runEffect effect =
 
         RenderPipeline jobs resources ->
             renderPipeline ( jobs, resources )
-
-        NewUrl newUrl ->
-            Navigation.newUrl newUrl
 
         SetTitle newTitle ->
             setTitle newTitle

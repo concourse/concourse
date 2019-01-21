@@ -260,14 +260,14 @@ all =
                                 |> Dashboard.handleCallback
                                     (Effects.LoggedOut (Ok ()))
                                 |> Tuple.second
-                                |> Expect.equal [ Effects.NewUrl "/", Effects.FetchData ]
+                                |> Expect.equal [ Effects.NavigateTo "/", Effects.FetchData ]
                     , test "redirects to high-density view on high-density view" <|
                         \_ ->
                             init { highDensity = True, query = "" }
                                 |> Dashboard.handleCallback
                                     (Effects.LoggedOut (Ok ()))
                                 |> Tuple.second
-                                |> Expect.equal [ Effects.NewUrl "/hd", Effects.FetchData ]
+                                |> Expect.equal [ Effects.NavigateTo "/hd", Effects.FetchData ]
                     ]
                 ]
             , test "shows no search input" <|
