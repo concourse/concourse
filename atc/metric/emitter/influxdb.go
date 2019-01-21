@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/pkg/errors"
 
-	influxclient "github.com/influxdata/influxdb/client/v2"
+	influxclient "github.com/influxdata/influxdb1-client/v2"
 )
 
 type InfluxDBEmitter struct {
