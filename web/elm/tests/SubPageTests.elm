@@ -2,7 +2,6 @@ module SubPageTests exposing (all)
 
 import Autoscroll
 import Build
-import Build.Msgs
 import Dict exposing (Dict)
 import Effects exposing (Callback(..))
 import Expect
@@ -13,7 +12,6 @@ import QueryString
 import Resource
 import Routes
 import SubPage exposing (..)
-import SubPage.Msgs exposing (Msg(..))
 import Test exposing (..)
 
 
@@ -42,7 +40,7 @@ all =
             [ test "JobNotFound" <|
                 \_ ->
                     let
-                        msg =
+                        callback =
                             Effects.JobFetched <| Err <| Http.BadStatus notFoundStatus
 
                         ( model, _ ) =
@@ -54,11 +52,18 @@ all =
                                 , csrfToken = csrfToken
                                 }
                     in
-                    Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg" }) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (Callback msg) (JobModel model)
+                    SubPage.handleCallback
+                        notfoundAsset
+                        csrfToken
+                        callback
+                        (JobModel model)
+                        |> Tuple.first
+                        |> Expect.equal
+                            (NotFoundModel { notFoundImgSrc = "notfound.svg" })
             , test "Resource not found" <|
                 \_ ->
                     let
-                        msg =
+                        callback =
                             ResourceFetched <| Err <| Http.BadStatus notFoundStatus
 
                         ( model, _ ) =
@@ -70,11 +75,18 @@ all =
                                 , csrfToken = csrfToken
                                 }
                     in
-                    Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg" }) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (Callback msg) (ResourceModel model)
+                    SubPage.handleCallback
+                        notfoundAsset
+                        csrfToken
+                        callback
+                        (ResourceModel model)
+                        |> Tuple.first
+                        |> Expect.equal
+                            (NotFoundModel { notFoundImgSrc = "notfound.svg" })
             , test "Build not found" <|
                 \_ ->
                     let
-                        msg =
+                        callback =
                             BuildFetched 1 <| Err <| Http.BadStatus notFoundStatus
 
                         ( subModel, _ ) =
@@ -89,12 +101,19 @@ all =
                             , scrollBehaviorFunc = \_ -> Autoscroll.NoScroll
                             }
                     in
-                    Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg" }) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (CallbackAutoScroll <| Autoscroll.SubMsg msg) (BuildModel model)
+                    SubPage.handleCallback
+                        notfoundAsset
+                        csrfToken
+                        callback
+                        (BuildModel model)
+                        |> Tuple.first
+                        |> Expect.equal
+                            (NotFoundModel { notFoundImgSrc = "notfound.svg" })
             , test "Pipeline not found" <|
                 \_ ->
                     let
-                        msg : Effects.Callback
-                        msg =
+                        callback : Effects.Callback
+                        callback =
                             Effects.PipelineFetched <| Err <| Http.BadStatus notFoundStatus
 
                         pipelineLocator =
@@ -115,6 +134,13 @@ all =
                                 , turbulenceImgSrc = turbulenceAsset
                                 }
                     in
-                    Expect.equal (NotFoundModel { notFoundImgSrc = "notfound.svg" }) <| Tuple.first <| SubPage.update turbulenceAsset notfoundAsset csrfToken (Callback msg) (PipelineModel model)
+                    SubPage.handleCallback
+                        notfoundAsset
+                        csrfToken
+                        callback
+                        (PipelineModel model)
+                        |> Tuple.first
+                        |> Expect.equal
+                            (NotFoundModel { notFoundImgSrc = "notfound.svg" })
             ]
         ]

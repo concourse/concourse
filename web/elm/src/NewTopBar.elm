@@ -6,7 +6,6 @@ module NewTopBar exposing
     , view
     )
 
-import Concourse.User
 import Dashboard.Group as Group
 import Dashboard.Msgs exposing (Msg(..))
 import Html.Styled as Html exposing (Html)
@@ -26,7 +25,6 @@ import NewTopBar.Styles as Styles
 import QueryString
 import ScreenSize exposing (ScreenSize(..))
 import SearchBar exposing (SearchBar(..))
-import Task
 import TopBar exposing (userDisplayName)
 import UserState exposing (UserState(..))
 

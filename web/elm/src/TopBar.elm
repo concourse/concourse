@@ -1,9 +1,8 @@
 port module TopBar exposing
     ( Model
     , Msg(..)
-    , fetchUser
+    , handleCallback
     , init
-    , resetPipelineFocus
     , subscriptions
     , update
     , urlUpdate
@@ -13,23 +12,16 @@ port module TopBar exposing
 
 import Colors
 import Concourse
-import Concourse.Pipeline
-import Concourse.User
 import Dict
+import Effects exposing (Callback(..), Effect(..))
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, disabled, href, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave, onMouseOut, onMouseOver)
 import Http
-import LoginRedirect
-import Navigation exposing (Location)
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
-import Task
 import Time
 import UserState exposing (UserState(..))
-
-
-port resetPipelineFocus : () -> Cmd msg
 
 
 type alias Model r =
@@ -45,20 +37,17 @@ type alias Model r =
 
 type Msg
     = Noop
-    | PipelineFetched (Result Http.Error Concourse.Pipeline)
-    | UserFetched (Result Http.Error Concourse.User)
     | FetchUser Time.Time
     | FetchPipeline Concourse.PipelineIdentifier
     | LogOut
     | LogIn
     | ResetToPipeline String
-    | LoggedOut (Result Http.Error ())
     | ToggleUserMenu
     | TogglePinIconDropdown
     | GoToPinnedResource String
 
 
-init : Routes.ConcourseRoute -> ( Model {}, Cmd Msg )
+init : Routes.ConcourseRoute -> ( Model {}, List Effect )
 init route =
     let
         pid =
@@ -73,91 +62,86 @@ init route =
       }
     , case pid of
         Nothing ->
-            fetchUser
+            [ Effects.FetchUser ]
 
         Just pid ->
-            Cmd.batch [ fetchPipeline pid, fetchUser ]
+            [ Effects.FetchPipeline pid, Effects.FetchUser ]
     )
 
 
-update : Msg -> Model r -> ( Model r, Cmd Msg )
-update msg model =
-    case msg of
-        Noop ->
-            ( model, Cmd.none )
-
-        FetchPipeline pid ->
-            ( model, fetchPipeline pid )
-
-        FetchUser _ ->
-            ( model, fetchUser )
-
+handleCallback : Callback -> Model r -> ( Model r, List Effect )
+handleCallback callback model =
+    case callback of
         UserFetched (Ok user) ->
-            ( { model | userState = UserStateLoggedIn user }
-            , Cmd.none
-            )
+            ( { model | userState = UserStateLoggedIn user }, [] )
 
         UserFetched (Err _) ->
-            ( { model | userState = UserStateLoggedOut }
-            , Cmd.none
-            )
+            ( { model | userState = UserStateLoggedOut }, [] )
 
         PipelineFetched (Ok pipeline) ->
-            ( { model
-                | pipeline = Just pipeline
-              }
-            , Cmd.none
-            )
+            ( { model | pipeline = Just pipeline }, [] )
 
         PipelineFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
-                        ( model, LoginRedirect.requestLoginRedirect "" )
+                        ( model, [ RedirectToLogin ] )
 
                     else
-                        ( model, Cmd.none )
+                        ( model, [] )
 
                 _ ->
-                    ( model, Cmd.none )
-
-        LogIn ->
-            ( { model
-                | pipeline = Nothing
-              }
-            , LoginRedirect.requestLoginRedirect ""
-            )
-
-        LogOut ->
-            ( model, logOut )
+                    ( model, [] )
 
         LoggedOut (Ok _) ->
             ( { model
                 | userState = UserStateLoggedOut
                 , pipeline = Nothing
               }
-            , Navigation.newUrl "/"
+            , [ NavigateTo "/" ]
             )
 
         LoggedOut (Err err) ->
             flip always (Debug.log "failed to log out" err) <|
-                ( model, Cmd.none )
+                ( model, [] )
+
+        _ ->
+            ( model, [] )
+
+
+update : Msg -> Model r -> ( Model r, List Effect )
+update msg model =
+    case msg of
+        Noop ->
+            ( model, [] )
+
+        FetchPipeline pid ->
+            ( model, [ Effects.FetchPipeline pid ] )
+
+        FetchUser _ ->
+            ( model, [ Effects.FetchUser ] )
+
+        LogIn ->
+            ( { model | pipeline = Nothing }, [ RedirectToLogin ] )
+
+        LogOut ->
+            ( model, [ SendLogOutRequest ] )
 
         ResetToPipeline url ->
-            ( model, Cmd.batch [ Navigation.newUrl url, resetPipelineFocus () ] )
+            ( model, [ NavigateTo url, ResetPipelineFocus ] )
 
         ToggleUserMenu ->
-            ( { model | userMenuVisible = not model.userMenuVisible }, Cmd.none )
+            ( { model | userMenuVisible = not model.userMenuVisible }, [] )
 
         TogglePinIconDropdown ->
-            ( { model | showPinIconDropDown = not model.showPinIconDropDown }, Cmd.none )
+            ( { model | showPinIconDropDown = not model.showPinIconDropDown }, [] )
 
         GoToPinnedResource resourceName ->
             let
                 url =
                     Routes.toString model.route.logical
             in
-            ( model, Navigation.newUrl (url ++ "/resources/" ++ resourceName) )
+            ( model, [ NavigateTo (url ++ "/resources/" ++ resourceName) ] )
 
 
 subscriptions : Model r -> Sub Msg
@@ -216,7 +200,7 @@ extractPidFromRoute route =
             Nothing
 
 
-urlUpdate : Routes.ConcourseRoute -> Model r -> ( Model r, Cmd Msg )
+urlUpdate : Routes.ConcourseRoute -> Model r -> ( Model r, List Effect )
 urlUpdate route model =
     let
         pipelineIdentifier =
@@ -227,10 +211,10 @@ urlUpdate route model =
       }
     , case pipelineIdentifier of
         Nothing ->
-            fetchUser
+            [ Effects.FetchUser ]
 
         Just pid ->
-            Cmd.batch [ fetchPipeline pid, fetchUser ]
+            [ Effects.FetchPipeline pid, Effects.FetchUser ]
     )
 
 
@@ -601,19 +585,3 @@ userDisplayName user =
     Maybe.withDefault user.id <|
         List.head <|
             List.filter (not << String.isEmpty) [ user.userName, user.name, user.email ]
-
-
-fetchPipeline : Concourse.PipelineIdentifier -> Cmd Msg
-fetchPipeline pipelineIdentifier =
-    Task.attempt PipelineFetched <|
-        Concourse.Pipeline.fetchPipeline pipelineIdentifier
-
-
-fetchUser : Cmd Msg
-fetchUser =
-    Task.attempt UserFetched Concourse.User.fetchUser
-
-
-logOut : Cmd Msg
-logOut =
-    Task.attempt LoggedOut Concourse.User.logOut

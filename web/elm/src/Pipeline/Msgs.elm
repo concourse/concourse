@@ -1,8 +1,6 @@
 module Pipeline.Msgs exposing (Msg(..))
 
 import Concourse
-import Http
-import Json.Encode
 import Keyboard
 import Time exposing (Time)
 

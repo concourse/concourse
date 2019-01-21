@@ -91,23 +91,20 @@ init flags =
     loadPipeline pipelineLocator model
 
 
-changeToPipelineAndGroups : Flags -> Model -> ( Model, Cmd Callback )
+changeToPipelineAndGroups : Flags -> Model -> ( Model, List Effect )
 changeToPipelineAndGroups flags model =
     let
         pid =
             { teamName = flags.teamName
             , pipelineName = flags.pipelineName
             }
-
-        ( newModel, effects ) =
-            if model.pipelineLocator == pid then
-                renderIfNeeded
-                    { model | selectedGroups = queryGroupsForRoute flags.route }
-
-            else
-                init flags
     in
-    ( newModel, Cmd.batch <| List.map Effects.runEffect effects )
+    if model.pipelineLocator == pid then
+        renderIfNeeded
+            { model | selectedGroups = queryGroupsForRoute flags.route }
+
+    else
+        init flags
 
 
 loadPipeline : Concourse.PipelineIdentifier -> Model -> ( Model, List Effect )

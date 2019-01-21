@@ -2,12 +2,12 @@ module TopBarTests exposing (all, userWithEmail, userWithId, userWithName, userW
 
 import Concourse
 import Dict
+import Effects
 import Expect exposing (..)
-import Test exposing (..)
-import TopBar exposing (userDisplayName)
-import Navigation
 import QueryString
 import Routes
+import Test exposing (..)
+import TopBar exposing (userDisplayName)
 
 
 userWithId : Concourse.User
@@ -55,7 +55,7 @@ all =
                         |> Tuple.first
                         |> TopBar.update (TopBar.GoToPinnedResource "resource")
                         |> Tuple.second
-                        |> Expect.equal (Navigation.newUrl "/teams/team/pipelines/pipeline/resources/resource")
+                        |> Expect.equal [ Effects.NavigateTo "/teams/team/pipelines/pipeline/resources/resource" ]
             , test "displays id if no userName, name or email present" <|
                 \_ ->
                     Expect.equal

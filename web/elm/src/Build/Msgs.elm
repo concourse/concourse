@@ -2,7 +2,6 @@ module Build.Msgs exposing (HoveredButton(..), Msg(..))
 
 import Concourse
 import Concourse.BuildEvents
-import Http
 import Keyboard
 import Scroll
 import StrictEvents

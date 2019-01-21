@@ -1,7 +1,9 @@
 port module Effects exposing
     ( Callback(..)
     , Effect(..)
+    , LayoutDispatch(..)
     , ScrollDirection(..)
+    , SubpageDispatch(..)
     , renderPipeline
     , runEffect
     , setTitle
@@ -36,7 +38,6 @@ import Resource.Models exposing (VersionToggleAction(..))
 import Scroll
 import Task
 import Time exposing (Time)
-import TopBar exposing (resetPipelineFocus)
 import Window
 
 
@@ -55,6 +56,26 @@ port tooltip : ( String, String ) -> Cmd msg
 port tooltipHd : ( String, String ) -> Cmd msg
 
 
+port resetPipelineFocus : () -> Cmd msg
+
+
+port loadToken : () -> Cmd msg
+
+
+port saveToken : String -> Cmd msg
+
+
+type LayoutDispatch
+    = TopBar Int
+    | SubPage Int SubpageDispatch
+    | Layout
+
+
+type SubpageDispatch
+    = Normal
+    | Autoscroll
+
+
 type Effect
     = FetchJob Concourse.JobIdentifier
     | FetchJobs Concourse.PipelineIdentifier
@@ -68,6 +89,7 @@ type Effect
     | FetchInputTo Concourse.VersionedResourceIdentifier
     | FetchOutputOf Concourse.VersionedResourceIdentifier
     | FetchData
+    | FetchUser
     | FetchBuild Time Int Int
     | FetchJobBuild Int Concourse.JobBuildIdentifier
     | FetchBuildJobDetails Concourse.JobIdentifier
@@ -91,7 +113,6 @@ type Effect
     | DoUnpinVersion Concourse.ResourceIdentifier Concourse.CSRFToken
     | DoToggleVersion VersionToggleAction Concourse.VersionedResourceIdentifier Concourse.CSRFToken
     | DoCheck Concourse.ResourceIdentifier Concourse.CSRFToken
-    | DoTopBarUpdate TopBar.Msg Resource.Models.Model
     | SendTokenToFly String Int
     | SendTogglePipelineRequest { pipeline : Dashboard.Models.Pipeline, csrfToken : Concourse.CSRFToken }
     | ShowTooltip ( String, String )
@@ -101,7 +122,10 @@ type Effect
     | GetScreenSize
     | PinTeamNames Dashboard.Group.StickyHeaderConfig
     | Scroll ScrollDirection
+    | ResetFavicon
     | SetFavIcon Concourse.BuildStatus
+    | SaveToken String
+    | LoadToken
 
 
 type ScrollDirection
@@ -122,6 +146,7 @@ type Callback
     | JobFetched (Result Http.Error Concourse.Job)
     | JobsFetched (Result Http.Error Json.Encode.Value)
     | PipelineFetched (Result Http.Error Concourse.Pipeline)
+    | UserFetched (Result Http.Error Concourse.User)
     | ResourcesFetched (Result Http.Error Json.Encode.Value)
     | BuildResourcesFetched Int (Result Http.Error Concourse.BuildResources)
     | ResourceFetched (Result Http.Error Concourse.Resource)
@@ -228,11 +253,6 @@ runEffect effect =
             Task.attempt Checked <|
                 Concourse.Resource.check rid csrfToken
 
-        DoTopBarUpdate msg model ->
-            TopBar.update msg model
-                |> Tuple.second
-                |> Cmd.map (always EmptyCallback)
-
         SendTokenToFly authToken flyPort ->
             sendTokenToFly authToken flyPort
 
@@ -284,6 +304,12 @@ runEffect effect =
         FetchBuildPlan buildId ->
             fetchBuildPlan buildId
 
+        FetchUser ->
+            fetchUser
+
+        ResetFavicon ->
+            resetFavicon
+
         SetFavIcon status ->
             setFavicon status
 
@@ -292,6 +318,12 @@ runEffect effect =
 
         Scroll dir ->
             Task.perform (always EmptyCallback) (scrollInDirection dir)
+
+        SaveToken tokenValue ->
+            saveToken tokenValue
+
+        LoadToken ->
+            loadToken ()
 
 
 fetchJobBuilds : Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Callback
@@ -332,6 +364,11 @@ fetchResources pid =
 fetchJobs : Concourse.PipelineIdentifier -> Cmd Callback
 fetchJobs pid =
     Task.attempt JobsFetched <| Concourse.Job.fetchJobsRaw pid
+
+
+fetchUser : Cmd Callback
+fetchUser =
+    Task.attempt UserFetched Concourse.User.fetchUser
 
 
 fetchVersion : Cmd Callback
@@ -464,6 +501,12 @@ fetchBuildPlan : Int -> Cmd Callback
 fetchBuildPlan buildId =
     Task.attempt PlanAndResourcesFetched <|
         Task.map (flip (,) Concourse.BuildResources.empty) (Concourse.BuildPlan.fetch buildId)
+
+
+resetFavicon : Cmd Callback
+resetFavicon =
+    Task.perform (always EmptyCallback) <|
+        Favicon.set "/public/images/favicon.png"
 
 
 setFavicon : Concourse.BuildStatus -> Cmd Callback

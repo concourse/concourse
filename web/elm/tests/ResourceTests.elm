@@ -33,7 +33,6 @@ import Test.Html.Selector
         , tag
         , text
         )
-import TopBar
 
 
 teamName : String
@@ -1306,19 +1305,18 @@ all =
                 let
                     givenUserIsAuthorized : Models.Model -> Models.Model
                     givenUserIsAuthorized =
-                        Resource.update
-                            (Msgs.TopBarMsg <|
-                                TopBar.UserFetched <|
-                                    Ok
-                                        { id = "test"
-                                        , userName = "test"
-                                        , name = "test"
-                                        , email = "test"
-                                        , teams =
-                                            Dict.fromList
-                                                [ ( teamName, [ "member" ] )
-                                                ]
-                                        }
+                        Resource.handleCallback
+                            (Effects.UserFetched <|
+                                Ok
+                                    { id = "test"
+                                    , userName = "test"
+                                    , name = "test"
+                                    , email = "test"
+                                    , teams =
+                                        Dict.fromList
+                                            [ ( teamName, [ "member" ] )
+                                            ]
+                                    }
                             )
                             >> Tuple.first
                 in
@@ -1633,18 +1631,17 @@ all =
                 let
                     givenUserIsUnauthorized : Models.Model -> Models.Model
                     givenUserIsUnauthorized =
-                        Resource.update
-                            (Msgs.TopBarMsg <|
-                                TopBar.UserFetched <|
-                                    Ok
-                                        { id = "test"
-                                        , userName = "test"
-                                        , name = "test"
-                                        , email = "test"
-                                        , teams =
-                                            Dict.fromList
-                                                [ ( teamName, [ "viewer" ] ) ]
-                                        }
+                        Resource.handleCallback
+                            (Effects.UserFetched <|
+                                Ok
+                                    { id = "test"
+                                    , userName = "test"
+                                    , name = "test"
+                                    , email = "test"
+                                    , teams =
+                                        Dict.fromList
+                                            [ ( teamName, [ "viewer" ] ) ]
+                                    }
                             )
                             >> Tuple.first
                 in

@@ -10,7 +10,6 @@ import Pipeline exposing (update)
 import Pipeline.Msgs exposing (Msg(..))
 import QueryString
 import Routes
-import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -656,18 +655,17 @@ all =
             , test "top nav bar is blue when pipeline is paused" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Layout.update
-                            (Layout.TopMsg 1
-                                (TopBar.PipelineFetched
-                                    (Ok
-                                        { id = 0
-                                        , name = "pipeline"
-                                        , paused = True
-                                        , public = True
-                                        , teamName = "team"
-                                        , groups = []
-                                        }
-                                    )
+                        |> Layout.handleCallback
+                            (Effects.TopBar 1)
+                            (Effects.PipelineFetched
+                                (Ok
+                                    { id = 0
+                                    , name = "pipeline"
+                                    , paused = True
+                                    , public = True
+                                    , teamName = "team"
+                                    , groups = []
+                                    }
                                 )
                             )
                         |> Tuple.first
@@ -912,43 +910,41 @@ init path =
 
 givenPinnedResource : Layout.Model -> Layout.Model
 givenPinnedResource =
-    Layout.update
-        (Layout.SubMsg -1 <|
-            SubPage.Msgs.Callback <|
-                Effects.ResourcesFetched <|
-                    Ok <|
-                        Json.Encode.list
-                            [ Json.Encode.object
-                                [ ( "team_name", Json.Encode.string "team" )
-                                , ( "pipeline_name", Json.Encode.string "pipeline" )
-                                , ( "name", Json.Encode.string "resource" )
-                                , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v1" ) ] )
-                                ]
-                            ]
+    Layout.handleCallback
+        (Effects.SubPage -1 Effects.Normal)
+        (Effects.ResourcesFetched <|
+            Ok <|
+                Json.Encode.list
+                    [ Json.Encode.object
+                        [ ( "team_name", Json.Encode.string "team" )
+                        , ( "pipeline_name", Json.Encode.string "pipeline" )
+                        , ( "name", Json.Encode.string "resource" )
+                        , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v1" ) ] )
+                        ]
+                    ]
         )
         >> Tuple.first
 
 
 givenMultiplePinnedResources : Layout.Model -> Layout.Model
 givenMultiplePinnedResources =
-    Layout.update
-        (Layout.SubMsg -1 <|
-            SubPage.Msgs.Callback <|
-                Effects.ResourcesFetched <|
-                    Ok <|
-                        Json.Encode.list
-                            [ Json.Encode.object
-                                [ ( "team_name", Json.Encode.string "team" )
-                                , ( "pipeline_name", Json.Encode.string "pipeline" )
-                                , ( "name", Json.Encode.string "resource" )
-                                , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v1" ) ] )
-                                ]
-                            , Json.Encode.object
-                                [ ( "team_name", Json.Encode.string "team" )
-                                , ( "pipeline_name", Json.Encode.string "pipeline" )
-                                , ( "name", Json.Encode.string "other-resource" )
-                                , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v2" ) ] )
-                                ]
-                            ]
+    Layout.handleCallback
+        (Effects.SubPage -1 Effects.Normal)
+        (Effects.ResourcesFetched <|
+            Ok <|
+                Json.Encode.list
+                    [ Json.Encode.object
+                        [ ( "team_name", Json.Encode.string "team" )
+                        , ( "pipeline_name", Json.Encode.string "pipeline" )
+                        , ( "name", Json.Encode.string "resource" )
+                        , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v1" ) ] )
+                        ]
+                    , Json.Encode.object
+                        [ ( "team_name", Json.Encode.string "team" )
+                        , ( "pipeline_name", Json.Encode.string "pipeline" )
+                        , ( "name", Json.Encode.string "other-resource" )
+                        , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v2" ) ] )
+                        ]
+                    ]
         )
         >> Tuple.first

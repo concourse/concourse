@@ -136,7 +136,7 @@ init flags =
     in
     ( model
     , [ FetchResource model.resourceIdentifier
-      , DoTopBarUpdate (TopBar.FetchUser 0) model
+      , FetchUser
       , FetchVersionedResources resourceId flags.paging
       ]
     )
@@ -438,6 +438,12 @@ handleCallback action model =
                     []
             )
 
+        UserFetched (Ok user) ->
+            ( { model | userState = UserStateLoggedIn user }, [] )
+
+        UserFetched (Err _) ->
+            ( { model | userState = UserStateLoggedOut }, [] )
+
         _ ->
             ( model, [] )
 
@@ -607,9 +613,7 @@ update action model =
                     ( model, [ RedirectToLogin ] )
 
         TopBarMsg msg ->
-            ( TopBar.update msg model |> Tuple.first
-            , [ DoTopBarUpdate msg model ]
-            )
+            TopBar.update msg model
 
 
 updateVersion : Int -> (Models.Version -> Models.Version) -> Model -> Model

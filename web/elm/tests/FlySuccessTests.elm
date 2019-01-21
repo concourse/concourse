@@ -136,11 +136,9 @@ tokenSendSuccess : Setup
 tokenSendSuccess =
     setup "when token successfully sent to fly"
         (steps whenOnFlySuccessPage
-            >> Layout.update
-                (Layout.SubMsg 1 <|
-                    SubPage.Msgs.Callback <|
-                        TokenSentToFly True
-                )
+            >> Layout.handleCallback
+                (Effects.SubPage 1 Effects.Normal)
+                (TokenSentToFly True)
             >> Tuple.first
         )
 
@@ -149,11 +147,9 @@ tokenSendFailed : Setup
 tokenSendFailed =
     setup "when token failed to send to fly"
         (steps whenOnFlySuccessPage
-            >> Layout.update
-                (Layout.SubMsg 1 <|
-                    SubPage.Msgs.Callback <|
-                        TokenSentToFly False
-                )
+            >> Layout.handleCallback
+                (Effects.SubPage 1 Effects.Normal)
+                (TokenSentToFly False)
             >> Tuple.first
         )
 
