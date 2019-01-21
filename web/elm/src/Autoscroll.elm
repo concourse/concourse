@@ -4,7 +4,6 @@ module Autoscroll exposing
     , ScrollBehavior(..)
     , subscriptions
     , update
-    , urlUpdate
     , view
     )
 
@@ -28,15 +27,6 @@ type ScrollBehavior
 type Msg subMsg
     = SubMsg subMsg
     | ScrollDown
-
-
-
--- Init is never actually used
-
-
-init : (subModel -> ScrollBehavior) -> ( subModel, Cmd subMsg ) -> ( Model subModel, Cmd (Msg subMsg) )
-init toScrollMsg ( mdl, msg ) =
-    ( Model toScrollMsg mdl, Cmd.map SubMsg msg )
 
 
 update :
@@ -65,15 +55,6 @@ update subUpdate action model =
                 NoScroll ->
                     []
             )
-
-
-urlUpdate : (pageResult -> subModel -> ( subModel, Cmd subMsg )) -> pageResult -> Model subModel -> ( Model subModel, Cmd (Msg subMsg) )
-urlUpdate subUrlUpdate pageResult model =
-    let
-        ( newSubModel, subMsg ) =
-            subUrlUpdate pageResult model.subModel
-    in
-    ( { model | subModel = newSubModel }, Cmd.map SubMsg subMsg )
 
 
 view : (subModel -> Html subMsg) -> Model subModel -> Html (Msg subMsg)

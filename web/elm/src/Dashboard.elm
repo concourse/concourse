@@ -936,11 +936,6 @@ remoteUser d =
         |> Task.onError (always <| Task.succeed <| ( d, Nothing ))
 
 
-getCurrentTime : Cmd Msg
-getCurrentTime =
-    Task.perform ClockTick Time.now
-
-
 filterTerms : String -> List String
 filterTerms =
     replace All (regex "team:\\s*") (\_ -> "team:")

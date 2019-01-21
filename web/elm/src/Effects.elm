@@ -28,7 +28,6 @@ import Dom
 import Favicon
 import Http
 import Json.Encode
-import LoginRedirect
 import Navigation
 import Process
 import QueryString
@@ -62,6 +61,9 @@ port loadToken : () -> Cmd msg
 
 
 port saveToken : String -> Cmd msg
+
+
+port requestLoginRedirect : String -> Cmd msg
 
 
 type LayoutDispatch
@@ -217,7 +219,7 @@ runEffect effect =
             unpauseJob id csrf
 
         RedirectToLogin ->
-            LoginRedirect.requestLoginRedirect ""
+            requestLoginRedirect ""
 
         NavigateTo newUrl ->
             Navigation.newUrl newUrl
