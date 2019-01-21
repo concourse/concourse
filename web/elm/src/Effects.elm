@@ -118,8 +118,7 @@ type Effect
     | GetScreenSize
     | PinTeamNames Dashboard.Group.StickyHeaderConfig
     | Scroll ScrollDirection
-    | ResetFavicon
-    | SetFavIcon Concourse.BuildStatus
+    | SetFavIcon (Maybe Concourse.BuildStatus)
     | SaveToken String
     | LoadToken
 
@@ -144,13 +143,13 @@ type Callback
     | PipelineFetched (Result Http.Error Concourse.Pipeline)
     | UserFetched (Result Http.Error Concourse.User)
     | ResourcesFetched (Result Http.Error Json.Encode.Value)
-    | BuildResourcesFetched Int (Result Http.Error Concourse.BuildResources)
+    | BuildResourcesFetched (Result Http.Error ( Int, Concourse.BuildResources ))
     | ResourceFetched (Result Http.Error Concourse.Resource)
-    | VersionedResourcesFetched (Maybe Page) (Result Http.Error (Paginated Concourse.VersionedResource))
+    | VersionedResourcesFetched (Result Http.Error ( Maybe Page, Paginated Concourse.VersionedResource ))
     | VersionFetched (Result Http.Error String)
     | PausedToggled (Result Http.Error ())
-    | InputToFetched Int (Result Http.Error (List Concourse.Build))
-    | OutputOfFetched Int (Result Http.Error (List Concourse.Build))
+    | InputToFetched (Result Http.Error ( Int, List Concourse.Build ))
+    | OutputOfFetched (Result Http.Error ( Int, List Concourse.Build ))
     | VersionPinned (Result Http.Error ())
     | VersionUnpinned (Result Http.Error ())
     | VersionToggled VersionToggleAction Int (Result Http.Error ())
@@ -160,8 +159,8 @@ type Callback
     | LoggedOut (Result Http.Error ())
     | ScreenResized Window.Size
     | BuildJobDetailsFetched (Result Http.Error Concourse.Job)
-    | BuildFetched Int (Result Http.Error Concourse.Build)
-    | BuildPrepFetched Int (Result Http.Error Concourse.BuildPrep)
+    | BuildFetched (Result Http.Error ( Int, Concourse.Build ))
+    | BuildPrepFetched (Result Http.Error ( Int, Concourse.BuildPrep ))
     | BuildHistoryFetched (Result Http.Error (Paginated Concourse.Build))
     | PlanAndResourcesFetched (Result Http.Error ( Concourse.BuildPlan, Concourse.BuildResources ))
     | BuildAborted (Result Http.Error ())
@@ -242,8 +241,11 @@ runEffect effect =
                 Concourse.Resource.unpinVersion id csrfToken
 
         DoToggleVersion action id csrfToken ->
-            Task.attempt (VersionToggled action id.versionID) <|
-                Concourse.Resource.enableDisableVersionedResource (action == Enable) id csrfToken
+            Concourse.Resource.enableDisableVersionedResource
+                (action == Enable)
+                id
+                csrfToken
+                |> Task.attempt (VersionToggled action id.versionID)
 
         DoCheck rid csrfToken ->
             Task.attempt Checked <|
@@ -303,9 +305,6 @@ runEffect effect =
         FetchUser ->
             fetchUser
 
-        ResetFavicon ->
-            resetFavicon
-
         SetFavIcon status ->
             setFavicon status
 
@@ -342,14 +341,16 @@ fetchResource resourceIdentifier =
 
 fetchVersionedResources : Concourse.ResourceIdentifier -> Maybe Page -> Cmd Callback
 fetchVersionedResources resourceIdentifier page =
-    Task.attempt (VersionedResourcesFetched page) <|
-        Concourse.Resource.fetchVersionedResources resourceIdentifier page
+    Concourse.Resource.fetchVersionedResources resourceIdentifier page
+        |> Task.map ((,) page)
+        |> Task.attempt VersionedResourcesFetched
 
 
 fetchBuildResources : Concourse.BuildId -> Cmd Callback
 fetchBuildResources buildIdentifier =
-    Task.attempt (BuildResourcesFetched buildIdentifier) <|
-        Concourse.BuildResources.fetch buildIdentifier
+    Concourse.BuildResources.fetch buildIdentifier
+        |> Task.map ((,) buildIdentifier)
+        |> Task.attempt BuildResourcesFetched
 
 
 fetchResources : Concourse.PipelineIdentifier -> Cmd Callback
@@ -382,14 +383,16 @@ fetchPipeline pipelineIdentifier =
 
 fetchInputTo : Concourse.VersionedResourceIdentifier -> Cmd Callback
 fetchInputTo versionedResourceIdentifier =
-    Task.attempt (InputToFetched versionedResourceIdentifier.versionID) <|
-        Concourse.Resource.fetchInputTo versionedResourceIdentifier
+    Concourse.Resource.fetchInputTo versionedResourceIdentifier
+        |> Task.map ((,) versionedResourceIdentifier.versionID)
+        |> Task.attempt InputToFetched
 
 
 fetchOutputOf : Concourse.VersionedResourceIdentifier -> Cmd Callback
 fetchOutputOf versionedResourceIdentifier =
-    Task.attempt (OutputOfFetched versionedResourceIdentifier.versionID) <|
-        Concourse.Resource.fetchOutputOf versionedResourceIdentifier
+    Concourse.Resource.fetchOutputOf versionedResourceIdentifier
+        |> Task.map ((,) versionedResourceIdentifier.versionID)
+        |> Task.attempt OutputOfFetched
 
 
 triggerBuild : Concourse.JobIdentifier -> Concourse.CSRFToken -> Cmd Callback
@@ -462,16 +465,17 @@ fetchBuildJobDetails buildJob =
 
 fetchBuild : Time -> Int -> Int -> Cmd Callback
 fetchBuild delay browsingIndex buildId =
-    Task.attempt (BuildFetched browsingIndex)
-        (Process.sleep delay
-            |> Task.andThen (always <| Concourse.Build.fetch buildId)
-        )
+    Process.sleep delay
+        |> Task.andThen (always <| Concourse.Build.fetch buildId)
+        |> Task.map ((,) browsingIndex)
+        |> Task.attempt BuildFetched
 
 
 fetchJobBuild : Int -> Concourse.JobBuildIdentifier -> Cmd Callback
 fetchJobBuild browsingIndex jbi =
-    Task.attempt (BuildFetched browsingIndex) <|
-        Concourse.Build.fetchJobBuild jbi
+    Concourse.Build.fetchJobBuild jbi
+        |> Task.map ((,) browsingIndex)
+        |> Task.attempt BuildFetched
 
 
 fetchBuildHistory : Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Callback
@@ -484,7 +488,8 @@ fetchBuildPrep : Time -> Int -> Int -> Cmd Callback
 fetchBuildPrep delay browsingIndex buildId =
     Process.sleep delay
         |> Task.andThen (always <| Concourse.BuildPrep.fetch buildId)
-        |> Task.attempt (BuildPrepFetched browsingIndex)
+        |> Task.map ((,) browsingIndex)
+        |> Task.attempt BuildPrepFetched
 
 
 fetchBuildPlanAndResources : Int -> Cmd Callback
@@ -499,16 +504,19 @@ fetchBuildPlan buildId =
         Task.map (flip (,) Concourse.BuildResources.empty) (Concourse.BuildPlan.fetch buildId)
 
 
-resetFavicon : Cmd Callback
-resetFavicon =
-    Task.perform (always EmptyCallback) <|
-        Favicon.set "/public/images/favicon.png"
-
-
-setFavicon : Concourse.BuildStatus -> Cmd Callback
+setFavicon : Maybe Concourse.BuildStatus -> Cmd Callback
 setFavicon status =
-    Task.perform (always EmptyCallback) <|
-        Favicon.set ("/public/images/favicon-" ++ Concourse.BuildStatus.show status ++ ".png")
+    let
+        iconName =
+            case status of
+                Just status ->
+                    "/public/images/favicon-" ++ Concourse.BuildStatus.show status ++ ".png"
+
+                Nothing ->
+                    "/public/images/favicon.png"
+    in
+    Favicon.set iconName
+        |> Task.perform (always EmptyCallback)
 
 
 abortBuild : Int -> Concourse.CSRFToken -> Cmd Callback

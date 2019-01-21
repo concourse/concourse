@@ -247,7 +247,7 @@ handleCallback action model =
                 _ ->
                     ( model, [] )
 
-        VersionedResourcesFetched requestedPage (Ok paginated) ->
+        VersionedResourcesFetched (Ok ( requestedPage, paginated )) ->
             let
                 fetchedPage =
                     permalink paginated.content
@@ -325,11 +325,11 @@ handleCallback action model =
                     , []
                     )
 
-        VersionedResourcesFetched _ (Err err) ->
+        VersionedResourcesFetched (Err err) ->
             flip always (Debug.log "failed to fetch versioned resources" err) <|
                 ( model, [] )
 
-        InputToFetched _ (Err err) ->
+        InputToFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
@@ -341,12 +341,12 @@ handleCallback action model =
                 _ ->
                     ( model, [] )
 
-        InputToFetched versionID (Ok builds) ->
+        InputToFetched (Ok ( versionID, builds )) ->
             ( updateVersion versionID (\v -> { v | inputTo = builds }) model
             , []
             )
 
-        OutputOfFetched _ (Err err) ->
+        OutputOfFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
@@ -358,7 +358,7 @@ handleCallback action model =
                 _ ->
                     ( model, [] )
 
-        OutputOfFetched versionID (Ok builds) ->
+        OutputOfFetched (Ok ( versionID, builds )) ->
             ( updateVersion versionID (\v -> { v | outputOf = builds }) model
             , []
             )

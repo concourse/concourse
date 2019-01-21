@@ -70,7 +70,7 @@ all =
                 init "/builds/1"
                     >> Layout.handleCallback
                         (Effects.SubPage 0)
-                        (Effects.BuildFetched 1 notFoundResult)
+                        (Effects.BuildFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal

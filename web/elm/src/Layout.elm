@@ -344,7 +344,7 @@ urlUpdate route model =
       }
     , List.map (\ef -> ( SubPage navIndex, ef )) subEffects
         ++ List.map (\ef -> ( TopBar navIndex, ef )) topEffects
-        ++ [ ( Layout, ResetFavicon ) ]
+        ++ [ ( Layout, SetFavIcon Nothing ) ]
     )
 
 

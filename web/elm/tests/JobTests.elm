@@ -924,7 +924,7 @@ all =
                         defaultModel
                     <|
                         Tuple.first <|
-                            Job.handleCallback (BuildResourcesFetched 1 (Ok buildResources))
+                            Job.handleCallback (BuildResourcesFetched (Ok ( 1, buildResources )))
                                 defaultModel
             , test "BuildResourcesFetched error" <|
                 \_ ->
@@ -933,7 +933,7 @@ all =
                     <|
                         Tuple.first <|
                             Job.handleCallback
-                                (BuildResourcesFetched 1 (Err Http.NetworkError))
+                                (BuildResourcesFetched (Err Http.NetworkError))
                                 defaultModel
             , test "TogglePaused" <|
                 \_ ->

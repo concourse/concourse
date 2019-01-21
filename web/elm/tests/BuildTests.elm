@@ -83,13 +83,13 @@ all =
 
             fetchBuild : Build.Model -> ( Build.Model, List Effects.Effect )
             fetchBuild =
-                Build.handleCallback <| Effects.BuildFetched 1 <| Ok theBuild
+                Build.handleCallback <| Effects.BuildFetched <| Ok ( 1, theBuild )
 
             fetchStartedBuild :
                 Build.Model
                 -> ( Build.Model, List Effects.Effect )
             fetchStartedBuild =
-                Build.handleCallback <| Effects.BuildFetched 1 <| Ok startedBuild
+                Build.handleCallback <| Effects.BuildFetched <| Ok ( 1, startedBuild )
 
             fetchJobDetails : Build.Model -> ( Build.Model, List Effects.Effect )
             fetchJobDetails =
@@ -605,7 +605,7 @@ all =
                         |> Tuple.first
                         |> fetchJobDetails
                         |> Tuple.first
-                        |> Build.handleCallback (Effects.BuildPrepFetched 1 <| Ok prep)
+                        |> Build.handleCallback (Effects.BuildPrepFetched <| Ok ( 1, prep ))
                         |> Tuple.first
                         |> Build.view
                         |> Query.fromHtml
@@ -653,7 +653,7 @@ all =
                         |> Tuple.first
                         |> fetchJobDetails
                         |> Tuple.first
-                        |> Build.handleCallback (Effects.BuildPrepFetched 1 <| Ok prep)
+                        |> Build.handleCallback (Effects.BuildPrepFetched <| Ok ( 1, prep ))
                         |> Tuple.first
                         |> Build.view
                         |> Query.fromHtml

@@ -143,24 +143,26 @@ all =
                         (Msgs.ExpandVersionedResource versionID)
                     |> Tuple.first
                     |> Resource.handleCallback
-                        (Effects.InputToFetched versionID
+                        (Effects.InputToFetched
                             (Ok
-                                [ { id = 0
-                                  , name = "some-build"
-                                  , job =
+                                ( versionID
+                                , [ { id = 0
+                                    , name = "some-build"
+                                    , job =
                                         Just
                                             { teamName = teamName
                                             , pipelineName = pipelineName
                                             , jobName = "some-job"
                                             }
-                                  , status = Concourse.BuildStatusSucceeded
-                                  , duration =
+                                    , status = Concourse.BuildStatusSucceeded
+                                    , duration =
                                         { startedAt = Nothing
                                         , finishedAt = Nothing
                                         }
-                                  , reapTime = Nothing
-                                  }
-                                ]
+                                    , reapTime = Nothing
+                                    }
+                                  ]
+                                )
                             )
                         )
                     |> Tuple.first
@@ -177,24 +179,26 @@ all =
                         (Msgs.ExpandVersionedResource versionID)
                     |> Tuple.first
                     |> Resource.handleCallback
-                        (Effects.OutputOfFetched versionID
+                        (Effects.OutputOfFetched
                             (Ok
-                                [ { id = 0
-                                  , name = "some-build"
-                                  , job =
+                                ( versionID
+                                , [ { id = 0
+                                    , name = "some-build"
+                                    , job =
                                         Just
                                             { teamName = teamName
                                             , pipelineName = pipelineName
                                             , jobName = "some-job"
                                             }
-                                  , status = Concourse.BuildStatusSucceeded
-                                  , duration =
+                                    , status = Concourse.BuildStatusSucceeded
+                                    , duration =
                                         { startedAt = Nothing
                                         , finishedAt = Nothing
                                         }
-                                  , reapTime = Nothing
-                                  }
-                                ]
+                                    , reapTime = Nothing
+                                    }
+                                  ]
+                                )
                             )
                         )
                     |> Tuple.first
@@ -2034,30 +2038,32 @@ clickToDisable versionID =
 givenVersionsWithoutPagination : Models.Model -> Models.Model
 givenVersionsWithoutPagination =
     Resource.handleCallback
-        (Effects.VersionedResourcesFetched Nothing <|
+        (Effects.VersionedResourcesFetched <|
             Ok
-                { content =
-                    [ { id = versionID
-                      , version = Dict.fromList [ ( "version", version ) ]
-                      , metadata = []
-                      , enabled = True
-                      }
-                    , { id = otherVersionID
-                      , version = Dict.fromList [ ( "version", otherVersion ) ]
-                      , metadata = []
-                      , enabled = True
-                      }
-                    , { id = disabledVersionID
-                      , version = Dict.fromList [ ( "version", disabledVersion ) ]
-                      , metadata = []
-                      , enabled = False
-                      }
-                    ]
-                , pagination =
-                    { previousPage = Nothing
-                    , nextPage = Nothing
-                    }
-                }
+                ( Nothing
+                , { content =
+                        [ { id = versionID
+                          , version = Dict.fromList [ ( "version", version ) ]
+                          , metadata = []
+                          , enabled = True
+                          }
+                        , { id = otherVersionID
+                          , version = Dict.fromList [ ( "version", otherVersion ) ]
+                          , metadata = []
+                          , enabled = True
+                          }
+                        , { id = disabledVersionID
+                          , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                          , metadata = []
+                          , enabled = False
+                          }
+                        ]
+                  , pagination =
+                        { previousPage = Nothing
+                        , nextPage = Nothing
+                        }
+                  }
+                )
         )
         >> Tuple.first
 
@@ -2065,38 +2071,40 @@ givenVersionsWithoutPagination =
 givenVersionsWithPagination : Models.Model -> Models.Model
 givenVersionsWithPagination =
     Resource.handleCallback
-        (Effects.VersionedResourcesFetched Nothing <|
+        (Effects.VersionedResourcesFetched <|
             Ok
-                { content =
-                    [ { id = versionID
-                      , version = Dict.fromList [ ( "version", version ) ]
-                      , metadata = []
-                      , enabled = True
-                      }
-                    , { id = otherVersionID
-                      , version = Dict.fromList [ ( "version", otherVersion ) ]
-                      , metadata = []
-                      , enabled = True
-                      }
-                    , { id = disabledVersionID
-                      , version = Dict.fromList [ ( "version", disabledVersion ) ]
-                      , metadata = []
-                      , enabled = False
-                      }
-                    ]
-                , pagination =
-                    { previousPage =
-                        Just
-                            { direction = Since 1
-                            , limit = 1
-                            }
-                    , nextPage =
-                        Just
-                            { direction = Since 100
-                            , limit = 1
-                            }
-                    }
-                }
+                ( Nothing
+                , { content =
+                        [ { id = versionID
+                          , version = Dict.fromList [ ( "version", version ) ]
+                          , metadata = []
+                          , enabled = True
+                          }
+                        , { id = otherVersionID
+                          , version = Dict.fromList [ ( "version", otherVersion ) ]
+                          , metadata = []
+                          , enabled = True
+                          }
+                        , { id = disabledVersionID
+                          , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                          , metadata = []
+                          , enabled = False
+                          }
+                        ]
+                  , pagination =
+                        { previousPage =
+                            Just
+                                { direction = Since 1
+                                , limit = 1
+                                }
+                        , nextPage =
+                            Just
+                                { direction = Since 100
+                                , limit = 1
+                                }
+                        }
+                  }
+                )
         )
         >> Tuple.first
 

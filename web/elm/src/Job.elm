@@ -192,7 +192,7 @@ handleCallback callback model =
                 _ ->
                     ( model, [] )
 
-        BuildResourcesFetched id (Ok buildResources) ->
+        BuildResourcesFetched (Ok ( id, buildResources )) ->
             case model.buildsWithResources.content of
                 [] ->
                     ( model, [] )
@@ -224,7 +224,7 @@ handleCallback callback model =
                     , []
                     )
 
-        BuildResourcesFetched _ (Err err) ->
+        BuildResourcesFetched (Err err) ->
             ( model, [] )
 
         PausedToggled (Ok ()) ->

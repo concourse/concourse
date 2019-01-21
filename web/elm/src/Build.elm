@@ -240,10 +240,10 @@ handleCallback action model =
                 _ ->
                     ( model, [] )
 
-        BuildFetched browsingIndex (Ok build) ->
+        BuildFetched (Ok ( browsingIndex, build )) ->
             handleBuildFetched browsingIndex build model
 
-        BuildFetched _ (Err err) ->
+        BuildFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
@@ -275,10 +275,10 @@ handleCallback action model =
                 _ ->
                     ( model, [] )
 
-        BuildPrepFetched browsingIndex (Ok buildPrep) ->
+        BuildPrepFetched (Ok ( browsingIndex, buildPrep )) ->
             handleBuildPrepFetched browsingIndex buildPrep model
 
-        BuildPrepFetched _ (Err err) ->
+        BuildPrepFetched (Err err) ->
             flip always (Debug.log "failed to fetch build preparation" err) <|
                 ( model, [] )
 
@@ -586,7 +586,7 @@ handleBuildFetched browsingIndex build model =
         in
         ( newModel
         , cmd
-            ++ [ SetFavIcon build.status
+            ++ [ SetFavIcon (Just build.status)
                , SetTitle (extractTitle newModel)
                ]
             ++ fetchJobAndHistory
@@ -1187,7 +1187,7 @@ handleOutMsg outMsg model =
                         , currentBuild = RemoteData.Success { currentBuild | build = newBuild }
                       }
                     , if Concourse.BuildStatus.isRunning build.status then
-                        [ SetFavIcon status ]
+                        [ SetFavIcon (Just status) ]
 
                       else
                         []
