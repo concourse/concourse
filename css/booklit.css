@@ -969,3 +969,15 @@ h2, h3 {
 label.quickstart-label::before {
   color: #fb8c00;
 }
+
+#section_user-roles tr:first-child {
+  font-weight: bold;
+  background: grey;
+}
+#section_user-roles th, #section_user-roles td {
+  text-align: center;
+  padding-left: 10px;
+  padding-right:10px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
