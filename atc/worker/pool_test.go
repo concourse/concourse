@@ -127,8 +127,7 @@ var _ = Describe("Pool", func() {
 
 				It("returns a NoCompatibleWorkersError", func() {
 					Expect(satisfyingErr).To(Equal(NoCompatibleWorkersError{
-						Spec:    spec,
-						Workers: []Worker{workerA, workerB, workerC},
+						Spec: spec,
 					}))
 				})
 			})
@@ -396,8 +395,7 @@ var _ = Describe("Pool", func() {
 
 					It("returns a NoCompatibleWorkersError", func() {
 						Expect(createErr).To(Equal(NoCompatibleWorkersError{
-							Spec:    workerSpec,
-							Workers: []Worker{workerA, workerB, workerC},
+							Spec: workerSpec,
 						}))
 					})
 				})
@@ -497,8 +495,7 @@ var _ = Describe("Pool", func() {
 
 				It("returns NoCompatibleWorkersError", func() {
 					Expect(createErr).To(Equal(NoCompatibleWorkersError{
-						Spec:    workerSpec,
-						Workers: []Worker{incompatibleWorker},
+						Spec: workerSpec,
 					}))
 				})
 			})

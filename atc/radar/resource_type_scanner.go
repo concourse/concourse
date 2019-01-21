@@ -221,6 +221,7 @@ func (scanner *resourceTypeScanner) check(
 		ResourceType:  savedResourceType.Type(),
 		Tags:          savedResourceType.Tags(),
 		ResourceTypes: versionedResourceTypes.Without(savedResourceType.Name()),
+		TeamID:        scanner.dbPipeline.TeamID(),
 	}
 
 	res, err := scanner.resourceFactory.NewResource(

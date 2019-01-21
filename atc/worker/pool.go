@@ -44,21 +44,11 @@ var (
 )
 
 type NoCompatibleWorkersError struct {
-	Spec    WorkerSpec
-	Workers []Worker
+	Spec WorkerSpec
 }
 
 func (err NoCompatibleWorkersError) Error() string {
-	availableWorkers := ""
-	for _, worker := range err.Workers {
-		availableWorkers += "\n  - " + worker.Description()
-	}
-
-	return fmt.Sprintf(
-		"no workers satisfying: %s\n\navailable workers: %s",
-		err.Spec.Description(),
-		availableWorkers,
-	)
+	return fmt.Sprintf("no workers satisfying: %s", err.Spec.Description())
 }
 
 type pool struct {
@@ -108,8 +98,7 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 	}
 
 	return nil, NoCompatibleWorkersError{
-		Spec:    spec,
-		Workers: workers,
+		Spec: spec,
 	}
 }
 

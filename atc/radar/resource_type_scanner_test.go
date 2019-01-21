@@ -164,6 +164,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					ResourceType:  "registry-image",
 					Tags:          []string{"some-tag"},
 					ResourceTypes: creds.VersionedResourceTypes{},
+					TeamID:        123,
 				}))
 				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
 			})
@@ -214,6 +215,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(workerSpec).To(Equal(worker.WorkerSpec{
 						ResourceType:  "registry-image",
 						ResourceTypes: creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{versionedResourceType}),
+						TeamID:        123,
 					}))
 					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 						versionedResourceType,
@@ -428,6 +430,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					ResourceType:  "registry-image",
 					Tags:          []string{"some-tag"},
 					ResourceTypes: creds.VersionedResourceTypes{},
+					TeamID:        123,
 				}))
 				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
 			})
@@ -545,6 +548,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(workerSpec).To(Equal(worker.WorkerSpec{
 						ResourceType:  "registry-image",
 						ResourceTypes: creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{versionedResourceType}),
+						TeamID:        123,
 					}))
 					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 						versionedResourceType,
