@@ -140,7 +140,7 @@ init flags location =
     ( model
     , [ handleTokenEffect ]
         ++ stripCSRFTokenParamCmd
-        ++ List.map (Tuple.mapFirst (SubPage navIndex)) subEffects
+        ++ List.map (\ef -> ( SubPage navIndex, ef )) subEffects
         ++ List.map (\ef -> ( TopBar navIndex, ef )) topEffects
     )
 
@@ -150,7 +150,11 @@ locationMsg =
     RouteChanged << Routes.parsePath
 
 
-handleCallback : LayoutDispatch -> Callback -> Model -> ( Model, List ( LayoutDispatch, Effect ) )
+handleCallback :
+    LayoutDispatch
+    -> Callback
+    -> Model
+    -> ( Model, List ( LayoutDispatch, Effect ) )
 handleCallback disp callback model =
     case disp of
         TopBar navIndex ->
@@ -162,7 +166,7 @@ handleCallback disp callback model =
             , List.map (\ef -> ( TopBar navIndex, ef )) effects
             )
 
-        SubPage navIndex subDisp ->
+        SubPage navIndex ->
             case callback of
                 Effects.ResourcesFetched (Ok fetchedResources) ->
                     let
@@ -197,16 +201,16 @@ handleCallback disp callback model =
                         let
                             ( subModel, subEffects ) =
                                 SubPage.handleCallback
-                                    model.notFoundImgSrc
                                     model.csrfToken
                                     (Effects.ResourcesFetched (Ok fetchedResources))
                                     model.subModel
+                                    |> SubPage.handleNotFound model.notFoundImgSrc
                         in
                         ( { model
                             | subModel = subModel
                             , topModel = { topBar | pinnedResources = pinnedResources }
                           }
-                        , List.map (Tuple.mapFirst (SubPage navIndex)) subEffects
+                        , List.map (\ef -> ( SubPage navIndex, ef )) subEffects
                         )
 
                     else
@@ -217,13 +221,13 @@ handleCallback disp callback model =
                     let
                         ( subModel, effects ) =
                             SubPage.handleCallback
-                                model.notFoundImgSrc
                                 model.csrfToken
                                 callback
                                 model.subModel
+                                |> SubPage.handleNotFound model.notFoundImgSrc
                     in
                     ( { model | subModel = subModel }
-                    , List.map (Tuple.mapFirst (SubPage navIndex)) effects
+                    , List.map (\ef -> ( SubPage navIndex, ef )) effects
                     )
 
         Layout ->
@@ -249,7 +253,7 @@ update msg model =
                         SubPage.update model.turbulenceImgSrc model.notFoundImgSrc model.csrfToken m model.subModel
                 in
                 ( { model | subModel = subModel }
-                , List.map (Tuple.mapFirst (SubPage navIndex)) subEffects
+                , List.map (\ef -> ( SubPage navIndex, ef )) subEffects
                 )
 
             else
@@ -280,7 +284,7 @@ update msg model =
                 | csrfToken = tokenValue
                 , subModel = newSubModel
               }
-            , List.map (Tuple.mapFirst (SubPage anyNavIndex)) subCmd
+            , List.map (\ef -> ( SubPage anyNavIndex, ef )) subCmd
             )
 
         Callback dispatch callback ->
@@ -338,7 +342,7 @@ urlUpdate route model =
         , topModel = newTopModel
         , route = route
       }
-    , List.map (Tuple.mapFirst (SubPage navIndex)) subEffects
+    , List.map (\ef -> ( SubPage navIndex, ef )) subEffects
         ++ List.map (\ef -> ( TopBar navIndex, ef )) topEffects
         ++ [ ( Layout, ResetFavicon ) ]
     )

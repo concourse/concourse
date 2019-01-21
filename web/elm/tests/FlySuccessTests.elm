@@ -137,7 +137,7 @@ tokenSendSuccess =
     setup "when token successfully sent to fly"
         (steps whenOnFlySuccessPage
             >> Layout.handleCallback
-                (Effects.SubPage 1 Effects.Normal)
+                (Effects.SubPage 1)
                 (TokenSentToFly True)
             >> Tuple.first
         )
@@ -148,7 +148,7 @@ tokenSendFailed =
     setup "when token failed to send to fly"
         (steps whenOnFlySuccessPage
             >> Layout.handleCallback
-                (Effects.SubPage 1 Effects.Normal)
+                (Effects.SubPage 1)
                 (TokenSentToFly False)
             >> Tuple.first
         )

@@ -3,7 +3,6 @@ port module Effects exposing
     , Effect(..)
     , LayoutDispatch(..)
     , ScrollDirection(..)
-    , SubpageDispatch(..)
     , renderPipeline
     , runEffect
     , setTitle
@@ -67,13 +66,8 @@ port saveToken : String -> Cmd msg
 
 type LayoutDispatch
     = TopBar Int
-    | SubPage Int SubpageDispatch
+    | SubPage Int
     | Layout
-
-
-type SubpageDispatch
-    = Normal
-    | Autoscroll
 
 
 type Effect

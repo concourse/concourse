@@ -1,6 +1,7 @@
 module SubPage exposing
     ( Model(..)
     , handleCallback
+    , handleNotFound
     , init
     , subscriptions
     , update
@@ -13,7 +14,7 @@ import Build
 import Build.Msgs
 import Concourse
 import Dashboard
-import Effects exposing (Callback, Effect, SubpageDispatch(..))
+import Effects exposing (Callback, Effect)
 import FlySuccess
 import Html exposing (Html)
 import Html.Styled as HS
@@ -48,16 +49,6 @@ type alias Flags =
     }
 
 
-effectsToCmd : List Effects.Effect -> List ( SubpageDispatch, Effect )
-effectsToCmd =
-    List.map <| (,) Normal
-
-
-effectsToAutoscrollingCmd : List Effects.Effect -> List ( SubpageDispatch, Effect )
-effectsToAutoscrollingCmd =
-    List.map <| (,) Autoscroll
-
-
 queryGroupsForRoute : Routes.ConcourseRoute -> List String
 queryGroupsForRoute route =
     QueryString.all "groups" route.queries
@@ -69,7 +60,7 @@ querySearchForRoute route =
         |> Maybe.withDefault ""
 
 
-init : Flags -> Routes.ConcourseRoute -> ( Model, List ( SubpageDispatch, Effect ) )
+init : Flags -> Routes.ConcourseRoute -> ( Model, List Effect )
 init flags route =
     case route.logical of
         Routes.Build teamName pipelineName jobName buildName ->
@@ -81,13 +72,11 @@ init flags route =
                 }
                 |> Build.init { csrfToken = flags.csrfToken, hash = route.hash }
                 |> Tuple.mapFirst (Autoscroll.Model Build.getScrollBehavior >> BuildModel)
-                |> Tuple.mapSecond effectsToAutoscrollingCmd
 
         Routes.OneOffBuild buildId ->
             Build.BuildPage (Result.withDefault 0 (String.toInt buildId))
                 |> Build.init { csrfToken = flags.csrfToken, hash = route.hash }
                 |> Tuple.mapFirst (Autoscroll.Model Build.getScrollBehavior >> BuildModel)
-                |> Tuple.mapSecond effectsToAutoscrollingCmd
 
         Routes.Resource teamName pipelineName resourceName ->
             Resource.init
@@ -98,7 +87,6 @@ init flags route =
                 , csrfToken = flags.csrfToken
                 }
                 |> Tuple.mapFirst ResourceModel
-                |> Tuple.mapSecond effectsToCmd
 
         Routes.Job teamName pipelineName jobName ->
             Job.init
@@ -109,7 +97,6 @@ init flags route =
                 , csrfToken = flags.csrfToken
                 }
                 |> Tuple.mapFirst JobModel
-                |> Tuple.mapSecond effectsToCmd
 
         Routes.Pipeline teamName pipelineName ->
             Pipeline.init
@@ -119,7 +106,6 @@ init flags route =
                 , route = route
                 }
                 |> Tuple.mapFirst PipelineModel
-                |> Tuple.mapSecond effectsToCmd
 
         Routes.Dashboard ->
             Dashboard.init
@@ -130,7 +116,6 @@ init flags route =
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
                 }
                 |> Tuple.mapFirst DashboardModel
-                |> Tuple.mapSecond effectsToCmd
 
         Routes.DashboardHd ->
             Dashboard.init
@@ -141,7 +126,6 @@ init flags route =
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
                 }
                 |> Tuple.mapFirst DashboardModel
-                |> Tuple.mapSecond effectsToCmd
 
         Routes.FlySuccess ->
             FlySuccess.init
@@ -149,10 +133,9 @@ init flags route =
                 , flyPort = QueryString.one QueryString.int "fly_port" route.queries
                 }
                 |> Tuple.mapFirst FlySuccessModel
-                |> Tuple.mapSecond effectsToCmd
 
 
-handleNotFound : String -> ( Model, List Effects.Effect ) -> ( Model, List Effects.Effect )
+handleNotFound : String -> ( Model, List Effect ) -> ( Model, List Effect )
 handleNotFound notFound ( model, effects ) =
     case getUpdateMessage model of
         UpdateMsg.NotFound ->
@@ -182,12 +165,11 @@ getUpdateMessage model =
 
 
 handleCallback :
-    String
-    -> Concourse.CSRFToken
+    Concourse.CSRFToken
     -> Callback
     -> Model
-    -> ( Model, List ( SubpageDispatch, Effect ) )
-handleCallback notFound csrfToken callback model =
+    -> ( Model, List Effect )
+handleCallback csrfToken callback model =
     case model of
         BuildModel scrollModel ->
             let
@@ -197,36 +179,26 @@ handleCallback notFound csrfToken callback model =
             Build.handleCallback callback { subModel | csrfToken = csrfToken }
                 |> Tuple.mapFirst (\m -> { scrollModel | subModel = m })
                 |> Tuple.mapFirst BuildModel
-                |> handleNotFound notFound
-                |> Tuple.mapSecond effectsToAutoscrollingCmd
 
         JobModel model ->
             Job.handleCallback callback { model | csrfToken = csrfToken }
                 |> Tuple.mapFirst JobModel
-                |> handleNotFound notFound
-                |> Tuple.mapSecond effectsToCmd
 
         PipelineModel model ->
             Pipeline.handleCallback callback model
                 |> Tuple.mapFirst PipelineModel
-                |> handleNotFound notFound
-                |> Tuple.mapSecond effectsToCmd
 
         ResourceModel model ->
             Resource.handleCallback callback { model | csrfToken = csrfToken }
                 |> Tuple.mapFirst ResourceModel
-                |> handleNotFound notFound
-                |> Tuple.mapSecond effectsToCmd
 
         DashboardModel model ->
             Dashboard.handleCallback callback model
                 |> Tuple.mapFirst DashboardModel
-                |> Tuple.mapSecond effectsToCmd
 
         FlySuccessModel model ->
             FlySuccess.handleCallback callback model
                 |> Tuple.mapFirst FlySuccessModel
-                |> Tuple.mapSecond effectsToCmd
 
         _ ->
             ( model, [] )
@@ -238,13 +210,12 @@ update :
     -> Concourse.CSRFToken
     -> Msg
     -> Model
-    -> ( Model, List ( SubpageDispatch, Effect ) )
+    -> ( Model, List Effect )
 update turbulence notFound csrfToken msg mdl =
     case ( msg, mdl ) of
         ( NewCSRFToken c, BuildModel scrollModel ) ->
             Build.update (Build.Msgs.NewCSRFToken c) scrollModel.subModel
                 |> Tuple.mapFirst (\newBuildModel -> BuildModel { scrollModel | subModel = newBuildModel })
-                |> Tuple.mapSecond effectsToAutoscrollingCmd
 
         ( BuildMsg message, BuildModel scrollModel ) ->
             let
@@ -257,7 +228,6 @@ update turbulence notFound csrfToken msg mdl =
             Autoscroll.update Build.update message model
                 |> Tuple.mapFirst BuildModel
                 |> handleNotFound notFound
-                |> Tuple.mapSecond effectsToAutoscrollingCmd
 
         ( NewCSRFToken c, JobModel model ) ->
             ( JobModel { model | csrfToken = c }, [] )
@@ -266,13 +236,11 @@ update turbulence notFound csrfToken msg mdl =
             Job.update message { model | csrfToken = csrfToken }
                 |> Tuple.mapFirst JobModel
                 |> handleNotFound notFound
-                |> Tuple.mapSecond effectsToCmd
 
         ( PipelineMsg message, PipelineModel model ) ->
             Pipeline.update message model
                 |> Tuple.mapFirst PipelineModel
                 |> handleNotFound notFound
-                |> Tuple.mapSecond effectsToCmd
 
         ( NewCSRFToken c, ResourceModel model ) ->
             ( ResourceModel { model | csrfToken = c }, [] )
@@ -281,7 +249,6 @@ update turbulence notFound csrfToken msg mdl =
             Resource.update message { model | csrfToken = csrfToken }
                 |> Tuple.mapFirst ResourceModel
                 |> handleNotFound notFound
-                |> Tuple.mapSecond effectsToCmd
 
         ( NewCSRFToken c, DashboardModel model ) ->
             ( DashboardModel { model | csrfToken = c }, [] )
@@ -289,12 +256,10 @@ update turbulence notFound csrfToken msg mdl =
         ( DashboardMsg message, DashboardModel model ) ->
             Dashboard.update message model
                 |> Tuple.mapFirst DashboardModel
-                |> Tuple.mapSecond effectsToCmd
 
         ( FlySuccessMsg message, FlySuccessModel model ) ->
             FlySuccess.update message model
                 |> Tuple.mapFirst FlySuccessModel
-                |> Tuple.mapSecond effectsToCmd
 
         ( NewCSRFToken _, mdl ) ->
             ( mdl, [] )
@@ -304,7 +269,7 @@ update turbulence notFound csrfToken msg mdl =
                 ( mdl, [] )
 
 
-urlUpdate : Routes.ConcourseRoute -> Model -> ( Model, List ( SubpageDispatch, Effect ) )
+urlUpdate : Routes.ConcourseRoute -> Model -> ( Model, List Effect )
 urlUpdate route model =
     case ( route.logical, model ) of
         ( Routes.Pipeline team pipeline, PipelineModel mdl ) ->
@@ -316,7 +281,6 @@ urlUpdate route model =
                 }
                 mdl
                 |> Tuple.mapFirst PipelineModel
-                |> Tuple.mapSecond effectsToCmd
 
         ( Routes.Resource teamName pipelineName resourceName, ResourceModel mdl ) ->
             Resource.changeToResource
@@ -328,7 +292,6 @@ urlUpdate route model =
                 }
                 mdl
                 |> Tuple.mapFirst ResourceModel
-                |> Tuple.mapSecond effectsToCmd
 
         ( Routes.Job teamName pipelineName jobName, JobModel mdl ) ->
             Job.changeToJob
@@ -340,7 +303,6 @@ urlUpdate route model =
                 }
                 mdl
                 |> Tuple.mapFirst JobModel
-                |> Tuple.mapSecond effectsToCmd
 
         ( Routes.Build teamName pipelineName jobName buildName, BuildModel scrollModel ) ->
             let
@@ -354,7 +316,6 @@ urlUpdate route model =
                             }
                         )
                         scrollModel.subModel
-                        |> Tuple.mapSecond effectsToAutoscrollingCmd
             in
             ( BuildModel { scrollModel | subModel = submodel }, cmd )
 

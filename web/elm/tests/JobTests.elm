@@ -113,7 +113,7 @@ all =
                         }
                         |> Tuple.first
                         |> Layout.handleCallback
-                            (Effects.SubPage 1 Effects.Normal)
+                            (Effects.SubPage 1)
                             (JobFetched <|
                                 Ok
                                     { name = "job"
@@ -180,7 +180,7 @@ all =
                 , test "loading build has spinners for inputs and outputs" <|
                     init { disabled = False, paused = False }
                         >> Layout.handleCallback
-                            (Effects.SubPage 1 Effects.Normal)
+                            (Effects.SubPage 1)
                             (JobBuildsFetched <|
                                 let
                                     jobId =
@@ -459,7 +459,7 @@ all =
             , test "inputs icon on build" <|
                 init { disabled = False, paused = False }
                     >> Layout.handleCallback
-                        (Effects.SubPage 1 Effects.Normal)
+                        (Effects.SubPage 1)
                         (JobBuildsFetched <|
                             let
                                 jobId =
@@ -525,7 +525,7 @@ all =
             , test "outputs icon on build" <|
                 init { disabled = False, paused = False }
                     >> Layout.handleCallback
-                        (Effects.SubPage 1 Effects.Normal)
+                        (Effects.SubPage 1)
                         (JobBuildsFetched <|
                             let
                                 jobId =
@@ -630,7 +630,7 @@ all =
             , test "pagination chevrons with no pages" <|
                 init { disabled = False, paused = False }
                     >> Layout.handleCallback
-                        (Effects.SubPage 1 Effects.Normal)
+                        (Effects.SubPage 1)
                         (JobBuildsFetched <|
                             let
                                 jobId =
@@ -753,7 +753,7 @@ all =
                     in
                     init { disabled = False, paused = False } ()
                         |> Layout.handleCallback
-                            (Effects.SubPage 1 Effects.Normal)
+                            (Effects.SubPage 1)
                             (JobBuildsFetched <|
                                 Ok
                                     { pagination =

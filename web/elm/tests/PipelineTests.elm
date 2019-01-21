@@ -911,7 +911,7 @@ init path =
 givenPinnedResource : Layout.Model -> Layout.Model
 givenPinnedResource =
     Layout.handleCallback
-        (Effects.SubPage -1 Effects.Normal)
+        (Effects.SubPage -1)
         (Effects.ResourcesFetched <|
             Ok <|
                 Json.Encode.list
@@ -929,7 +929,7 @@ givenPinnedResource =
 givenMultiplePinnedResources : Layout.Model -> Layout.Model
 givenMultiplePinnedResources =
     Layout.handleCallback
-        (Effects.SubPage -1 Effects.Normal)
+        (Effects.SubPage -1)
         (Effects.ResourcesFetched <|
             Ok <|
                 Json.Encode.list
