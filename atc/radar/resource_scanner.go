@@ -52,7 +52,7 @@ func NewResourceScanner(
 	}
 }
 
-var ErrFailedToAcquireLock = errors.New("failed-to-acquire-lock")
+var ErrFailedToAcquireLock = errors.New("failed to acquire lock")
 
 func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (time.Duration, error) {
 	interval, err := scanner.scan(logger.Session("tick"), resourceName, nil, false, false)
@@ -284,6 +284,7 @@ func (scanner *resourceScanner) check(
 		ResourceType:  savedResource.Type(),
 		Tags:          savedResource.Tags(),
 		ResourceTypes: resourceTypes,
+		TeamID:        scanner.dbPipeline.TeamID(),
 	}
 
 	res, err := scanner.resourceFactory.NewResource(
