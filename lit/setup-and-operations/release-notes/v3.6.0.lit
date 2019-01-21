@@ -23,11 +23,12 @@
 
   \note{feature,breaking}{
     The \reference{fly-validate-pipeline} will now validate the
-    \reference{config} field on embedded tasks.
+    \reference{task-step-config} field on embedded tasks.
 
     As part of this change, we have removed support for configuring both
-    \reference{config} and \reference{file}, which was deprecated about a
-    billion years ago and has been emitting shouty warnings all this time.
+    \reference{task-step-config} and \reference{task-step-file}, which was
+    deprecated about a billion years ago and has been emitting shouty warnings
+    all this time.
   }
 
   \note{feature}{

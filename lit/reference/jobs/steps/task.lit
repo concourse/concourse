@@ -58,11 +58,11 @@ of a task.
 
 \define-attribute{config: object}{
   \italic{Required.} The \reference{tasks}{task config} to execute. An
-  alternative to \reference{file}.
-}
+  alternative to \reference{task-step-file}.
+}{task-step-config}
 
 \define-attribute{file: string}{
-  \italic{Required.} A dynamic alternative to \reference{config}.
+  \italic{Required.} A dynamic alternative to \reference{task-step-config}.
 
   \code{file} points at a \code{.yml} file containing the
   \reference{tasks}{task config}, which allows this to be tracked with your
@@ -80,7 +80,7 @@ of a task.
 
   And the \code{something} resource provided a \code{unit.yml} file, you
   would set \code{file: something/unit.yml}.
-}
+}{task-step-file}
 
 \define-attribute{privileged: boolean}{
   \italic{Optional. Default \code{false}.} If set to \code{true}, the task will

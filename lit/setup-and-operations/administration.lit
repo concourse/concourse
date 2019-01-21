@@ -31,6 +31,17 @@
 }
 
 \section{
+  \title{\code{fly land-worker}}{fly-land-worker}
+
+  To initiate landing of a worker and eventually (after draining) cause it to
+  exit, run:
+
+  \codeblock{bash}{{
+  $ fly -t example land-worker --worker worker-name
+  }}
+}
+
+\section{
   \title{\code{fly containers}}{fly-containers}
 
   To list the active containers across all your workers, run:

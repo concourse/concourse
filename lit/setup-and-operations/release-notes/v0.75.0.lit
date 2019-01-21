@@ -11,10 +11,9 @@
   }
 
   \note{deprecation,feature}{
-    Specifying both \reference{file}{\code{file}} and
-    \reference{config}{\code{config}} on a task step is now deprecated. You
-    should receive warnings when running \reference{fly-set-pipeline} and when
-    running a task that specifies both.
+    Specifying both \reference{task-step-file} and \reference{task-step-config}
+    on a task step is now deprecated. You should receive warnings when running
+    \reference{fly-set-pipeline} and when running a task that specifies both.
 
     Instead, you should be specifying \reference{task-step-params},
     \reference{input_mapping}, and \reference{output_mapping}.

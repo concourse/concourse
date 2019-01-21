@@ -61,6 +61,11 @@ available under whatever name \code{put} specifies, just like as with
   configured in \reference{pipeline-resources}.
 }{put-step-resource}
 
+\define-attribute{inputs: [string]}{
+  \italic{Optional.} If specified, only the listed artifacts will be provided
+  to the container. If not specified, all artifacts will be provided.
+}{put-step-inputs}
+
 \define-attribute{params: object}{
   \italic{Optional.} A map of arbitrary configuration to forward to the
   resource. Refer to the resource type's documentation to see what it
