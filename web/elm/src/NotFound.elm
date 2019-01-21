@@ -1,7 +1,7 @@
-port module NotFound exposing (Model, view)
+module NotFound exposing (Model, view)
 
 import Html exposing (Html)
-import Html.Attributes exposing (class, src, href)
+import Html.Attributes exposing (class, href, src)
 
 
 type alias Model =

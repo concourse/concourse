@@ -1,4 +1,4 @@
-port module Dashboard.Group exposing
+module Dashboard.Group exposing
     ( DragState(..)
     , DropState(..)
     , Group

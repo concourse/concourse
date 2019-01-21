@@ -1,4 +1,4 @@
-port module TopBar exposing
+module TopBar exposing
     ( Model
     , Msg(..)
     , handleCallback

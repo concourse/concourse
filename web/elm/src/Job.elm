@@ -1,4 +1,4 @@
-port module Job exposing
+module Job exposing
     ( Flags
     , Model
     , changeToJob
