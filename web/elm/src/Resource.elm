@@ -93,46 +93,48 @@ init flags =
             , resourceName = flags.resourceName
             }
 
-        model =
-            { resourceIdentifier = resourceId
-            , pageStatus = Err Models.Empty
-            , teamName = flags.teamName
-            , pipelineName = flags.pipelineName
-            , name = flags.resourceName
-            , checkStatus = Models.CheckingSuccessfully
-            , checkError = ""
-            , checkSetupError = ""
-            , hovered = Models.None
-            , lastChecked = Nothing
-            , pinnedVersion = NotPinned
-            , currentPage = Nothing
-            , versions =
-                { content = []
-                , pagination =
-                    { previousPage = Nothing
-                    , nextPage = Nothing
+        ( model, effect ) =
+            changeToResource flags
+                { resourceIdentifier = resourceId
+                , pageStatus = Err Models.Empty
+                , teamName = flags.teamName
+                , pipelineName = flags.pipelineName
+                , name = flags.resourceName
+                , checkStatus = Models.CheckingSuccessfully
+                , checkError = ""
+                , checkSetupError = ""
+                , hovered = Models.None
+                , lastChecked = Nothing
+                , pinnedVersion = NotPinned
+                , currentPage = Nothing
+                , versions =
+                    { content = []
+                    , pagination =
+                        { previousPage = Nothing
+                        , nextPage = Nothing
+                        }
                     }
+                , now = Nothing
+                , csrfToken = flags.csrfToken
+                , showPinBarTooltip = False
+                , pinIconHover = False
+                , pinComment = Nothing
+                , route =
+                    { logical =
+                        Routes.Resource
+                            flags.teamName
+                            flags.pipelineName
+                            flags.resourceName
+                    , queries = QueryString.empty
+                    , page = Nothing
+                    , hash = ""
+                    }
+                , pipeline = Nothing
+                , userState = UserStateUnknown
+                , userMenuVisible = False
+                , pinnedResources = []
+                , showPinIconDropDown = False
                 }
-            , now = Nothing
-            , csrfToken = flags.csrfToken
-            , showPinBarTooltip = False
-            , pinIconHover = False
-            , route =
-                { logical =
-                    Routes.Resource
-                        flags.teamName
-                        flags.pipelineName
-                        flags.resourceName
-                , queries = QueryString.empty
-                , page = Nothing
-                , hash = ""
-                }
-            , pipeline = Nothing
-            , userState = UserStateUnknown
-            , userMenuVisible = False
-            , pinnedResources = []
-            , showPinIconDropDown = False
-            }
     in
     ( model
     , [ FetchResource model.resourceIdentifier
@@ -224,6 +226,7 @@ handleCallback action model =
                 , checkError = resource.checkError
                 , checkSetupError = resource.checkSetupError
                 , lastChecked = resource.lastChecked
+                , pinComment = resource.pinComment
               }
                 |> updatePinnedVersion resource
             , [ SetTitle <| resource.name ++ " - " ]
@@ -384,7 +387,7 @@ handleCallback action model =
             ( { model
                 | pinnedVersion = NotPinned
               }
-            , []
+            , [ FetchResource model.resourceIdentifier ]
             )
 
         VersionUnpinned (Err _) ->
@@ -534,7 +537,10 @@ update action model =
                 newModel =
                     case ( model.pinnedVersion, pinnedVersionID ) of
                         ( PinnedStaticallyTo _, Just id ) ->
-                            updateVersion id (\v -> { v | showTooltip = not v.showTooltip }) model
+                            updateVersion
+                                id
+                                (\v -> { v | showTooltip = not v.showTooltip })
+                                model
 
                         _ ->
                             model
@@ -548,8 +554,8 @@ update action model =
                     model.versions.content
                         |> List.Extra.find (\v -> v.id == versionID)
 
-                cmd : List Effect
-                cmd =
+                effects : List Effect
+                effects =
                     case version of
                         Just v ->
                             [ DoPinVersion
@@ -563,12 +569,14 @@ update action model =
 
                         Nothing ->
                             []
-
-                newModel =
-                    { model | pinnedVersion = Pinned.startPinningTo versionID model.pinnedVersion }
             in
-            ( newModel
-            , cmd
+            ( { model
+                | pinnedVersion =
+                    Pinned.startPinningTo
+                        versionID
+                        model.pinnedVersion
+              }
+            , effects
             )
 
         UnpinVersion ->
@@ -576,16 +584,21 @@ update action model =
                 cmd : Effect
                 cmd =
                     DoUnpinVersion
-                        { teamName = model.resourceIdentifier.teamName
-                        , pipelineName = model.resourceIdentifier.pipelineName
-                        , resourceName = model.resourceIdentifier.resourceName
-                        }
+                        model.resourceIdentifier
                         model.csrfToken
             in
-            ( { model | pinnedVersion = Pinned.startUnpinning model.pinnedVersion }, [ cmd ] )
+            ( { model
+                | pinnedVersion = Pinned.startUnpinning model.pinnedVersion
+              }
+            , [ cmd ]
+            )
 
         ToggleVersion action versionID ->
-            ( updateVersion versionID (\v -> { v | enabled = BoolTransitionable.Changing }) model
+            ( updateVersion versionID
+                (\v ->
+                    { v | enabled = BoolTransitionable.Changing }
+                )
+                model
             , [ DoToggleVersion action
                     { teamName = model.resourceIdentifier.teamName
                     , pipelineName = model.resourceIdentifier.pipelineName
@@ -687,6 +700,7 @@ view model =
         ]
         [ Html.map TopBarMsg <| Html.fromUnstyled <| TopBar.view model
         , subpageView model
+        , commentBar model
         ]
 
 
@@ -857,6 +871,17 @@ subpageView model =
                         (Css.px 10)
                         (Css.px 10)
                     ]
+                , id "body"
+                , style
+                    [ ( "padding-bottom"
+                      , case model.pinComment of
+                            Just _ ->
+                                "300px"
+
+                            Nothing ->
+                                ""
+                      )
+                    ]
                 ]
                 [ checkSection model
                 , viewVersionedResources model
@@ -1023,6 +1048,46 @@ checkButton { hovered, userState, teamName, checkStatus } =
             ]
             []
         ]
+
+
+commentBar :
+    { a
+        | pinComment : Maybe String
+        , pinnedVersion : ResourcePinState Concourse.Version Int
+    }
+    -> Html Msg
+commentBar { pinComment, pinnedVersion } =
+    let
+        version =
+            case Pinned.stable pinnedVersion of
+                Just v ->
+                    viewVersion v
+
+                Nothing ->
+                    Html.text ""
+    in
+    case pinComment of
+        Nothing ->
+            Html.text ""
+
+        Just text ->
+            Html.div
+                [ id "comment-bar", style Resource.Styles.commentBar ]
+                [ Html.div
+                    [ style Resource.Styles.commentBarContent ]
+                    [ Html.div
+                        [ style Resource.Styles.commentBarHeader ]
+                        [ Html.div
+                            [ style Resource.Styles.commentBarMessageIcon ]
+                            []
+                        , Html.div
+                            [ style Resource.Styles.commentBarPinIcon ]
+                            []
+                        , version
+                        ]
+                    , Html.pre [] [ Html.text text ]
+                    ]
+                ]
 
 
 pinBar :

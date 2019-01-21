@@ -775,7 +775,7 @@ welcomeCard { hoveredTopCliIcon, groups, userState } =
                     [ Html.text Text.setPipelineInstructions ]
                 ]
                     ++ loginInstruction userState
-            , Html.pre [ style Styles.asciiArt ] [ Html.text Text.asciiArt ]
+            , Html.pre [ style (Styles.asciiArt ++ Styles.disableInteraction) ] [ Html.text Text.asciiArt ]
             ]
         ]
 

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -249,11 +250,15 @@ func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, token *oaut
 		Secure:   s.config.SecureCookies,
 	})
 
+	if redirectURL.Host != "" {
+		logger.Error("invalid-redirect", fmt.Errorf("Unsupported redirect uri: %s", redirectURI))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	params := redirectURL.Query()
 	params.Set("csrf_token", csrfToken)
 	redirectURL.RawQuery = params.Encode()
-
-	w.Header().Set("X-Csrf-Token", csrfToken)
 
 	http.Redirect(w, r, redirectURL.String(), http.StatusTemporaryRedirect)
 }
@@ -269,21 +274,9 @@ func (s *SkyServer) Token(w http.ResponseWriter, r *http.Request) {
 		verifiedClaims     *token.VerifiedClaims
 	)
 
-	if r.Method != "POST" && r.Method != "GET" {
+	if r.Method != "POST" {
 		logger.Error("invalid-method", nil)
 		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if r.Method == "GET" {
-		cookie, err := r.Cookie(authCookieName)
-		if err != nil {
-			logger.Error("auth-cookie-not-found", err)
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		w.Write([]byte(cookie.Value))
 		return
 	}
 

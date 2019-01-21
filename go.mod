@@ -76,7 +76,6 @@ require (
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
 	github.com/google/jsonapi v0.0.0-20180618021926-5d047c6bc66b
 	github.com/googleapis/gnostic v0.2.0 // indirect
-	github.com/gopherjs/gopherjs v0.0.0-20180825215210-0210a2f0f73c // indirect
 	github.com/gorilla/websocket v1.4.0
 	github.com/gotestyourself/gotestyourself v2.1.0+incompatible // indirect
 	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7 // indirect
@@ -101,11 +100,10 @@ require (
 	github.com/howeyc/gopass v0.0.0-20170109162249-bf9dde6d0d2c // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
-	github.com/influxdata/influxdb v1.6.1
+	github.com/influxdata/influxdb1-client v0.0.0-20190118215656-f8cdb5d5f175
 	github.com/jefferai/jsonx v0.0.0-20160721235117-9cc31c3135ee // indirect
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/json-iterator/go v1.1.5 // indirect
-	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/juju/ratelimit v1.0.1 // indirect
 	github.com/keybase/go-crypto v0.0.0-20180920171116-0b2a91ace448 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
@@ -141,14 +139,12 @@ require (
 	github.com/peterhellberg/link v1.0.0
 	github.com/pkg/errors v0.8.0
 	github.com/pkg/term v0.0.0-20180730021639-bffc007b7fd5
-	github.com/prometheus/client_golang v0.9.0-pre1
+	github.com/prometheus/client_golang v0.9.2
 	github.com/ryanuber/go-glob v0.0.0-20170128012129-256dc444b735 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/sirupsen/logrus v1.3.0
 	github.com/skratchdot/open-golang v0.0.0-20160302144031-75fb7ed4208c
-	github.com/smartystreets/assertions v0.0.0-20180820201707-7c9eb446e3cf // indirect
-	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/square/certstrap v1.1.1
 	github.com/tedsuo/ifrit v0.0.0-20180802180643-bea94bb476cc

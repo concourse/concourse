@@ -30,6 +30,5 @@ docker run \
   --privileged \
   --rm \
   --tty \
-  --mount type=bind,source="$(pwd)",target=/src \
   dlv \
-  dlv attach $trace_pid
+  attach $trace_pid
