@@ -718,29 +718,17 @@ welcomeCard { hoveredTopCliIcon, groups, userState } =
         noPipelines =
             List.isEmpty (groups |> List.concatMap .pipelines)
 
-        cliIcon : Cli.Cli -> Maybe Cli.Cli -> Html Msg
-        cliIcon cli hoveredTopCliIcon =
-            let
-                ( cliName, ariaText, icon ) =
-                    case cli of
-                        Cli.OSX ->
-                            ( "osx", "OS X", "apple" )
-
-                        Cli.Windows ->
-                            ( "windows", "Windows", "windows" )
-
-                        Cli.Linux ->
-                            ( "linux", "Linux", "linux" )
-            in
+        cliIcon : Maybe Cli.Cli -> Cli.Cli -> Html Msg
+        cliIcon hoveredTopCliIcon cli =
             Html.a
-                [ href (Cli.downloadUrl "amd64" cliName)
-                , attribute "aria-label" <| "Download " ++ ariaText ++ " CLI"
+                [ href (Cli.downloadUrl cli)
+                , attribute "aria-label" <| Cli.label cli
                 , style <|
                     Styles.topCliIcon
                         { hovered = hoveredTopCliIcon == Just cli
-                        , image = icon ++ "-logo.svg"
+                        , cli = cli
                         }
-                , id <| "top-cli-" ++ cliName
+                , id <| "top-cli-" ++ Cli.id cli
                 , onMouseEnter <| TopCliHover <| Just cli
                 , onMouseLeave <| TopCliHover Nothing
                 ]
@@ -763,13 +751,12 @@ welcomeCard { hoveredTopCliIcon, groups, userState } =
                         , ( "align-items", "center" )
                         ]
                     ]
+                  <|
                     [ Html.div
                         [ style [ ( "margin-right", "10px" ) ] ]
                         [ Html.text Text.cliInstructions ]
-                    , cliIcon Cli.OSX hoveredTopCliIcon
-                    , cliIcon Cli.Windows hoveredTopCliIcon
-                    , cliIcon Cli.Linux hoveredTopCliIcon
                     ]
+                        ++ List.map (cliIcon hoveredTopCliIcon) Cli.clis
                 , Html.div
                     []
                     [ Html.text Text.setPipelineInstructions ]

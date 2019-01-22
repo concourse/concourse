@@ -13,7 +13,7 @@ module Pipeline exposing
 import Char
 import Colors
 import Concourse
-import Concourse.Cli
+import Concourse.Cli as Cli
 import Effects exposing (Callback(..), Effect(..))
 import Html exposing (Html)
 import Html.Attributes exposing (class, height, href, id, src, style, width)
@@ -307,44 +307,19 @@ view model =
                 [ Html.tr []
                     [ Html.td [ class "label" ] [ Html.text "cli:" ]
                     , Html.td []
-                        [ Html.ul [ class "cli-downloads" ]
-                            [ Html.li []
-                                [ Html.a
-                                    [ href <|
-                                        Concourse.Cli.downloadUrl
-                                            "amd64"
-                                            "darwin"
-                                    , ariaLabel "Download OS X CLI"
-                                    , Html.Attributes.style <|
-                                        cliIcon "apple"
-                                    ]
-                                    []
-                                ]
-                            , Html.li []
-                                [ Html.a
-                                    [ href <|
-                                        Concourse.Cli.downloadUrl
-                                            "amd64"
-                                            "windows"
-                                    , ariaLabel "Download Windows CLI"
-                                    , Html.Attributes.style <|
-                                        cliIcon "windows"
-                                    ]
-                                    []
-                                ]
-                            , Html.li []
-                                [ Html.a
-                                    [ href <|
-                                        Concourse.Cli.downloadUrl
-                                            "amd64"
-                                            "linux"
-                                    , ariaLabel "Download Linux CLI"
-                                    , Html.Attributes.style <|
-                                        cliIcon "linux"
-                                    ]
-                                    []
-                                ]
-                            ]
+                        [ Html.ul [ class "cli-downloads" ] <|
+                            List.map
+                                (\cli ->
+                                    Html.li []
+                                        [ Html.a
+                                            [ href <| Cli.downloadUrl cli
+                                            , ariaLabel <| Cli.label cli
+                                            , Html.Attributes.style <| cliIcon cli
+                                            ]
+                                            []
+                                        ]
+                                )
+                                Cli.clis
                         ]
                     ]
                 , Html.tr []
@@ -593,11 +568,11 @@ pipelineIdentifierFromModel model =
             Nothing
 
 
-cliIcon : String -> List ( String, String )
-cliIcon image =
+cliIcon : Cli.Cli -> List ( String, String )
+cliIcon cli =
     [ ( "width", "12px" )
     , ( "height", "12px" )
-    , ( "background-image", "url(/public/images/" ++ image ++ "-logo.svg)" )
+    , ( "background-image", Cli.iconUrl cli )
     , ( "background-repeat", "no-repeat" )
     , ( "background-position", "50% 50%" )
     , ( "background-size", "contain" )
