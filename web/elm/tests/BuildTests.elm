@@ -808,6 +808,52 @@ all =
                                         [ ( "background-size", "14px 14px" ) ]
                                    ]
                             )
+            , test "get step on first occurrence shows yellow downward arrow" <|
+                \_ ->
+                    pageLoad
+                        |> Tuple.first
+                        |> fetchStartedBuild
+                        |> Tuple.first
+                        |> fetchHistory
+                        |> Tuple.first
+                        |> fetchJobDetails
+                        |> Tuple.first
+                        |> Build.handleCallback
+                            (Effects.PlanAndResourcesFetched <|
+                                let
+                                    version =
+                                        Dict.fromList
+                                            [ ( "ref", "abc123" ) ]
+                                in
+                                Ok <|
+                                    ( { id = "plan"
+                                      , step =
+                                            Concourse.BuildStepGet
+                                                "step"
+                                                (Just version)
+                                      }
+                                    , { inputs =
+                                            [ { name = "step"
+                                              , version = version
+                                              , firstOccurrence = True
+                                              }
+                                            ]
+                                      , outputs = []
+                                      }
+                                    )
+                            )
+                        |> Tuple.first
+                        |> Build.view
+                        |> Query.fromHtml
+                        |> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-arrow-downward-yellow.svg"
+                                }
+                                ++ [ style
+                                        [ ( "background-size", "14px 14px" ) ]
+                                   ]
+                            )
             , test "successful step has a checkmark at the far right" <|
                 setup
                     >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)

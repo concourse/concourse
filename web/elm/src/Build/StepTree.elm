@@ -52,7 +52,7 @@ type StepTree
     | OnAbort HookedStep
     | Ensure HookedStep
     | Try StepTree
-    | Retry StepID (Array StepTree) Int TabFocus
+    | Retry StepID Int TabFocus (Array StepTree)
     | Timeout StepTree
 
 
@@ -141,42 +141,13 @@ init hl resources plan =
             initBottom hl DependentGet plan.id name
 
         Concourse.BuildStepAggregate plans ->
-            let
-                inited =
-                    Array.map (init hl resources) plans
-
-                trees =
-                    Array.map .tree inited
-
-                subFoci =
-                    Array.map .foci inited
-
-                wrappedSubFoci =
-                    Array.indexedMap wrapMultiStep subFoci
-
-                foci =
-                    Array.foldr Dict.union Dict.empty wrappedSubFoci
-            in
-            Model (Aggregate trees) foci False hl
+            initMultiStep hl resources plan.id Aggregate plans
 
         Concourse.BuildStepDo plans ->
-            let
-                inited =
-                    Array.map (init hl resources) plans
+            initMultiStep hl resources plan.id Do plans
 
-                trees =
-                    Array.map .tree inited
-
-                subFoci =
-                    Array.map .foci inited
-
-                wrappedSubFoci =
-                    Array.indexedMap wrapMultiStep subFoci
-
-                foci =
-                    Array.foldr Dict.union Dict.empty wrappedSubFoci
-            in
-            Model (Do trees) foci False hl
+        Concourse.BuildStepRetry plans ->
+            initMultiStep hl resources plan.id (Retry plan.id 1 Auto) plans
 
         Concourse.BuildStepOnSuccess hookedPlan ->
             initHookedStep hl resources OnSuccess hookedPlan
@@ -193,30 +164,35 @@ init hl resources plan =
         Concourse.BuildStepTry plan ->
             initWrappedStep hl resources Try plan
 
-        Concourse.BuildStepRetry plans ->
-            let
-                inited =
-                    Array.map (init hl resources) plans
-
-                trees =
-                    Array.map .tree inited
-
-                subFoci =
-                    Array.map .foci inited
-
-                wrappedSubFoci =
-                    Array.indexedMap wrapMultiStep subFoci
-
-                selfFoci =
-                    Dict.singleton plan.id (Focus.create identity identity)
-
-                foci =
-                    Array.foldr Dict.union selfFoci wrappedSubFoci
-            in
-            Model (Retry plan.id trees 1 Auto) foci False hl
-
         Concourse.BuildStepTimeout plan ->
             initWrappedStep hl resources Timeout plan
+
+
+initMultiStep :
+    Highlight
+    -> Concourse.BuildResources
+    -> String
+    -> (Array StepTree -> StepTree)
+    -> Array Concourse.BuildPlan
+    -> Model
+initMultiStep hl resources planId constructor plans =
+    let
+        inited =
+            Array.map (init hl resources) plans
+
+        trees =
+            Array.map .tree inited
+
+        selfFoci =
+            Dict.singleton planId (Focus.create identity identity)
+
+        foci =
+            inited
+                |> Array.map .foci
+                |> Array.indexedMap wrapMultiStep
+                |> Array.foldr Dict.union selfFoci
+    in
+    Model (constructor trees) foci False hl
 
 
 treeIsActive : StepTree -> Bool
@@ -246,7 +222,7 @@ treeIsActive tree =
         Timeout tree ->
             treeIsActive tree
 
-        Retry _ trees _ _ ->
+        Retry _ _ _ trees ->
             List.any treeIsActive (Array.toList trees)
 
         Task step ->
@@ -359,8 +335,8 @@ toggleExpanded { expanded, state } =
 focusRetry : Int -> StepTree -> StepTree
 focusRetry tab tree =
     case tree of
-        Retry id steps _ focus ->
-            Retry id steps tab User
+        Retry id _ _ steps ->
+            Retry id tab User steps
 
         _ ->
             Debug.crash "impossible (non-retry tab focus)"
@@ -581,7 +557,7 @@ getMultiStepIndex idx tree =
                 Do trees ->
                     trees
 
-                Retry _ trees _ _ ->
+                Retry _ _ _ trees ->
                     trees
 
                 _ ->
@@ -604,17 +580,17 @@ setMultiStepIndex idx update tree =
         Do trees ->
             Do (Array.set idx (update (getMultiStepIndex idx tree)) trees)
 
-        Retry id trees tab focus ->
+        Retry id tab focus trees ->
             let
                 updatedSteps =
                     Array.set idx (update (getMultiStepIndex idx tree)) trees
             in
             case focus of
                 Auto ->
-                    Retry id updatedSteps (idx + 1) Auto
+                    Retry id (idx + 1) Auto updatedSteps
 
                 User ->
-                    Retry id updatedSteps tab User
+                    Retry id tab User updatedSteps
 
         _ ->
             Debug.crash "impossible"
@@ -632,7 +608,11 @@ viewTree model tree =
             viewStep model step Styles.Terminal
 
         Get step ->
-            viewStep model step Styles.ArrowDown
+            if step.firstOccurrence then
+                viewStep model step Styles.ArrowDownYellow
+
+            else
+                viewStep model step Styles.ArrowDown
 
         DependentGet step ->
             viewStep model step Styles.ArrowDown
@@ -643,7 +623,7 @@ viewTree model tree =
         Try step ->
             viewTree model step
 
-        Retry id steps tab _ ->
+        Retry id tab _ steps ->
             Html.div [ class "retry" ]
                 [ Html.ul [ class "retry-tabs" ]
                     (Array.toList <| Array.indexedMap (viewTab id tab) steps)
@@ -721,7 +701,6 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
         [ classList
             [ ( "build-step", True )
             , ( "inactive", not <| isActive state )
-            , ( "first-occurrence", firstOccurrence )
             ]
         , attribute "data-step-name" name
         ]
@@ -863,7 +842,8 @@ viewStepState state buildFinished =
         StepStateFailed ->
             Html.div
                 [ attribute "data-step-state" "failed"
-                , style <| Styles.stepStatusIcon "ic-failure-times" ]
+                , style <| Styles.stepStatusIcon "ic-failure-times"
+                ]
                 []
 
         StepStateErrored ->

@@ -103,6 +103,7 @@ stepHeader =
 type StepHeaderIcon
     = ArrowUp
     | ArrowDown
+    | ArrowDownYellow
     | Terminal
 
 
@@ -113,6 +114,9 @@ stepHeaderIcon icon =
             case icon of
                 ArrowDown ->
                     "arrow-downward"
+
+                ArrowDownYellow ->
+                    "arrow-downward-yellow"
 
                 ArrowUp ->
                     "arrow-upward"
