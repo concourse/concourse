@@ -725,14 +725,14 @@ all =
                             ]
                         , Query.children [] >> Query.count (Expect.equal 2)
                         ]
-            , test "first child lays out horizontally" <|
+            , test "both children lay out horizontally" <|
                 setup
                     >> Build.view
                     >> Query.fromHtml
                     >> Query.find [ class "header" ]
                     >> Query.children []
-                    >> Query.first
-                    >> Query.has [ style [ ( "display", "flex" ) ] ]
+                    >> Query.each
+                        (Query.has [ style [ ( "display", "flex" ) ] ])
             , test "resource get step shows downward arrow" <|
                 setup
                     >> Build.view
@@ -837,6 +837,29 @@ all =
                             }
                             ++ [ style [ ( "background-size", "14px 14px" ) ] ]
                         )
+            , test "get step lists resource version on the right" <|
+                setup
+                    >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)
+                    >> Tuple.first
+                    >> Build.update
+                        (Msgs.BuildEventsMsg <|
+                            BuildEvents.Events <|
+                                Ok <|
+                                    Array.fromList
+                                        [ BuildEvents.FinishGet
+                                            { source = "stdout", id = "plan" }
+                                            0
+                                            (Dict.fromList [ ( "version", "v3.1.4" ) ])
+                                            []
+                                        ]
+                        )
+                    >> Tuple.first
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.find [ class "header" ]
+                    >> Query.children []
+                    >> Query.index -1
+                    >> Query.has [ text "v3.1.4" ]
             , test "running step has loading spinner at the right" <|
                 \_ ->
                     pageLoad

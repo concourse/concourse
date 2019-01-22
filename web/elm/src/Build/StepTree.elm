@@ -730,12 +730,16 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
             , style Styles.stepHeader
             , onClick (ToggleStep id)
             ]
-            [ Html.div [ style [ ( "display", "flex" ) ] ]
+            [ Html.div
+                [ style [ ( "display", "flex" ) ] ]
                 [ Html.div [ style <| Styles.stepHeaderIcon icon ] []
                 , Html.h3 [] [ Html.text name ]
-                , viewVersion version
                 ]
-            , viewStepState state model.finished
+            , Html.div
+                [ style [ ( "display", "flex" ) ] ]
+                [ viewVersion version
+                , viewStepState state model.finished
+                ]
             ]
         , Html.div
             [ classList
@@ -819,10 +823,9 @@ viewTimestamp hl id ( line, date ) =
 
 viewVersion : Maybe Version -> Html Msg
 viewVersion version =
-    DictView.view
-        << Dict.map (\_ s -> Html.text s)
-    <|
-        Maybe.withDefault Dict.empty version
+    Maybe.withDefault Dict.empty version
+        |> Dict.map (always Html.text)
+        |> DictView.view
 
 
 viewMetadata : List MetadataField -> Html Msg
@@ -863,7 +866,8 @@ viewStepState state buildFinished =
         StepStateFailed ->
             Html.div
                 [ attribute "data-step-state" "failed"
-                , style <| Styles.stepStatusIcon "ic-failure-times" ]
+                , style <| Styles.stepStatusIcon "ic-failure-times"
+                ]
                 []
 
         StepStateErrored ->
