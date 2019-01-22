@@ -7,8 +7,16 @@ import Html.Attributes exposing (class, href, src)
 view : Html msg
 view =
     Html.div [ class "not-authorized" ]
-        [ Html.img [] []
-        , Html.div [ class "title" ] [ Html.text "401 Unauthorized" ]
-        , Html.div [ class "reason" ] [ Html.text "You are not authorized to view" ]
-        , Html.div [ class "reason" ] [ Html.text "the details of this pipeline" ]
+        [ Html.img
+            [ src "/public/images/passport-officer-ic.svg" ]
+            []
+        , Html.div
+            [ class "title" ]
+            [ Html.text "401 Unauthorized" ]
+        , Html.div
+            [ class "reason" ]
+            [ Html.text "You are not authorized to view" ]
+        , Html.div
+            [ class "reason" ]
+            [ Html.text "the details of this pipeline" ]
         ]
