@@ -84,7 +84,7 @@ require (
 	github.com/hashicorp/go-hclog v0.0.0-20180910232447-e45cbeb79f04 // indirect
 	github.com/hashicorp/go-immutable-radix v1.0.0 // indirect
 	github.com/hashicorp/go-memdb v0.0.0-20180223233045-1289e7fffe71 // indirect
-	github.com/hashicorp/go-msgpack v0.0.0-20150518234257-fa3f63826f7c // indirect
+	github.com/hashicorp/go-msgpack v0.5.3 // indirect
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/go-plugin v0.0.0-20180814222501-a4620f9913d1 // indirect
 	github.com/hashicorp/go-retryablehttp v0.0.0-20180718195005-e651d75abec6 // indirect
@@ -157,7 +157,6 @@ require (
 	golang.org/x/crypto v0.0.0-20181112202954-3d3f9f413869
 	golang.org/x/net v0.0.0-20181217023233-e147a9138326 // indirect
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
-	golang.org/x/sync v0.0.0-20181108010431-42b317875d0f // indirect
 	golang.org/x/sys v0.0.0-20181107165924-66b7b1311ac8 // indirect
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
@@ -171,5 +170,3 @@ require (
 	k8s.io/client-go v2.0.0-alpha.0.0.20171101191150-72e1c2a1ef30+incompatible
 	k8s.io/kube-openapi v0.0.0-20180731170545-e3762e86a74c // indirect
 )
-
-replace github.com/hashicorp/go-msgpack => github.com/evandigby/go-msgpack v0.0.0-20180728010727-b3f48f4eda2a
