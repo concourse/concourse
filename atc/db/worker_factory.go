@@ -20,7 +20,7 @@ type WorkerFactory interface {
 	Workers() ([]Worker, error)
 	VisibleWorkers([]string) ([]Worker, error)
 
-	FindWorkerForContainerByOwner(ContainerOwner) (Worker, bool, error)
+	FindWorkerForContainerByOwner(ContainerOwner, int) (Worker, bool, error)
 	BuildContainersCountPerWorker() (map[string]int, error)
 }
 
@@ -321,7 +321,20 @@ func (f *workerFactory) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Wor
 	return savedWorker, nil
 }
 
-func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner) (Worker, bool, error) {
+func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner, teamID int) (Worker, bool, error) {
+	var teamWorkers int
+
+	err := psql.Select("COUNT (1)").
+		From("workers").
+		Where(sq.Eq{
+			"team_id": teamID,
+		}).
+		RunWith(f.conn).
+		Scan(&teamWorkers)
+	if err != nil {
+		return nil, false, err
+	}
+
 	ownerQuery, found, err := owner.Find(f.conn)
 	if err != nil {
 		return nil, false, err
@@ -332,6 +345,10 @@ func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner) (Wor
 	}
 
 	ownerEq := sq.Eq{}
+	if teamWorkers > 0 {
+		ownerEq["t.id"] = teamID
+	}
+
 	for k, v := range ownerQuery {
 		ownerEq["c."+k] = v
 	}

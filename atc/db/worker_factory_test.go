@@ -5,6 +5,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 
@@ -587,6 +588,60 @@ var _ = Describe("WorkerFactory", func() {
 			}, nil)
 		})
 
+		Context("when there is a container on the global worker but the team has a team worker", func() {
+			var owner db.ContainerOwner
+			var otherTeam db.Team
+			var err error
+
+			ownerExpiries := db.ContainerOwnerExpiries{
+				GraceTime: 1 * time.Minute,
+				Min:       5 * time.Minute,
+				Max:       5 * time.Minute,
+			}
+
+			BeforeEach(func() {
+				otherTeam, err = teamFactory.CreateTeam(atc.Team{Name: "other-team"})
+				Expect(err).NotTo(HaveOccurred())
+
+				atcTeamWorker := atc.Worker{
+					GardenAddr:       "some-garden-addr",
+					BaggageclaimURL:  "some-bc-url",
+					HTTPProxyURL:     "some-http-proxy-url",
+					HTTPSProxyURL:    "some-https-proxy-url",
+					NoProxy:          "some-no-proxy",
+					ActiveContainers: 140,
+					ActiveVolumes:    550,
+					Platform:         "some-platform",
+					Name:             "some-other-name",
+					StartTime:        55,
+					Team:             "other-team",
+				}
+
+				var err error
+				_, err = otherTeam.SaveWorker(atcTeamWorker, 5*time.Minute)
+				Expect(err).NotTo(HaveOccurred())
+
+				containerMetadata = db.ContainerMetadata{
+					Type: "check",
+				}
+
+				rcs, err := defaultResource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
+				Expect(err).NotTo(HaveOccurred())
+
+				owner = db.NewResourceConfigCheckSessionContainerOwner(rcs.ResourceConfig(), ownerExpiries)
+
+				_, err = defaultWorker.CreateContainer(owner, containerMetadata)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("does not find the container on the global worker", func() {
+				worker, found, err := workerFactory.FindWorkerForContainerByOwner(owner, otherTeam.ID())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+				Expect(worker).To(BeNil())
+			})
+		})
+
 		Context("when there is a creating container", func() {
 			BeforeEach(func() {
 				_, err := defaultWorker.CreateContainer(fakeOwner, containerMetadata)
@@ -594,7 +649,7 @@ var _ = Describe("WorkerFactory", func() {
 			})
 
 			It("returns it", func() {
-				worker, found, err := workerFactory.FindWorkerForContainerByOwner(fakeOwner)
+				worker, found, err := workerFactory.FindWorkerForContainerByOwner(fakeOwner, defaultTeam.ID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(worker).ToNot(BeNil())
@@ -602,7 +657,7 @@ var _ = Describe("WorkerFactory", func() {
 			})
 
 			It("does not find container for another team", func() {
-				worker, found, err := workerFactory.FindWorkerForContainerByOwner(otherFakeOwner)
+				worker, found, err := workerFactory.FindWorkerForContainerByOwner(otherFakeOwner, defaultTeam.ID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(worker).To(BeNil())
@@ -619,7 +674,7 @@ var _ = Describe("WorkerFactory", func() {
 			})
 
 			It("returns it", func() {
-				worker, found, err := workerFactory.FindWorkerForContainerByOwner(fakeOwner)
+				worker, found, err := workerFactory.FindWorkerForContainerByOwner(fakeOwner, defaultTeam.ID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(worker).ToNot(BeNil())
@@ -627,7 +682,7 @@ var _ = Describe("WorkerFactory", func() {
 			})
 
 			It("does not find container for another team", func() {
-				worker, found, err := workerFactory.FindWorkerForContainerByOwner(otherFakeOwner)
+				worker, found, err := workerFactory.FindWorkerForContainerByOwner(otherFakeOwner, defaultTeam.ID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(worker).To(BeNil())
@@ -648,7 +703,7 @@ var _ = Describe("WorkerFactory", func() {
 					"team_id":  1,
 				}, nil)
 
-				worker, found, err := workerFactory.FindWorkerForContainerByOwner(bogusOwner)
+				worker, found, err := workerFactory.FindWorkerForContainerByOwner(bogusOwner, defaultTeam.ID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(worker).To(BeNil())

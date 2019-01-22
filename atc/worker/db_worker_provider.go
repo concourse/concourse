@@ -104,7 +104,7 @@ func (provider *dbWorkerProvider) FindWorkerForContainerByOwner(
 	owner db.ContainerOwner,
 ) (Worker, bool, error) {
 	logger = logger.Session("worker-for-container")
-	dbWorker, found, err := provider.dbWorkerFactory.FindWorkerForContainerByOwner(owner)
+	dbWorker, found, err := provider.dbWorkerFactory.FindWorkerForContainerByOwner(owner, teamID)
 	if err != nil {
 		return nil, false, err
 	}
