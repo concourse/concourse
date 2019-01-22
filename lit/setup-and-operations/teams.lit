@@ -160,7 +160,55 @@ against the teams that have granted them access.
 
       \bold{Web UI}
       \table{
-        \table-row{Command}{Anon}{Admin}{Owner}{Member}{Viewer}
+        \table-row{Page}{Action}{Owner}{Member}{Viewer}
+      }{
+        \table-row{Home (HD/Dashboard)}{View}{✓}{✓}{✓}
+      }{
+        \table-row{}{Login}{✘}{✘}{✘}
+      }{
+        \table-row{}{Logout}{✓}{✓}{✓}
+      }{
+        \table-row{}{Download \reference{fly}}{✓}{✓}{✓}
+      }{
+        \table-row{}{Pause Pipeline}{✓}{✓}{✘}
+      }{
+        \table-row{}{Resume Pipeline}{✓}{✓}{✘}
+      }{
+        \table-row{}{Reorder Pipeline}{✓}{✓}{✘}
+      }{
+        \table-row{Pipeline Page}{View}{✓}{✓}{✓}
+      }{
+        \table-row{}{Click to Resource}{✓}{✓}{✓}
+      }{
+        \table-row{}{Click to Build}{✓}{✓}{✓}
+      }{
+        \table-row{}{Click on Group}{✓}{✓}{✓}
+      }{
+        \table-row{Resource Page}{View Resource}{✓}{✓}{✓}
+      }{
+        \table-row{}{Pause Resource}{✓}{✓}{✘}
+      }{
+        \table-row{}{View Version Details}{✓}{✓}{✓}
+      }{
+        \table-row{}{Pin Version}{✓}{✓}{✘}
+      }{
+        \table-row{}{Paginate (<- ->)}{✓}{✓}{✓}
+      }{
+        \table-row{Build Page}{Trigger new Build}{✓}{✓}{✘}
+      }{
+        \table-row{}{View Build}{✓}{✓}{✓}
+      }{
+        \table-row{}{Build Details}{✓}{✓}{✓}
+      }{
+        \table-row{Job Page}{View Job Page}{✓}{✓}{✓}
+      }{
+        \table-row{}{Pause Job}{✓}{✓}{✘}
+      }{
+        \table-row{}{Trigger new Build}{✓}{✓}{✘}
+      }{
+        \table-row{}{Build History}{✓}{✓}{✓}
+      }{
+        \table-row{}{Paginate (<- ->)}{✓}{✓}{✓}
       }
 
   }

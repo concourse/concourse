@@ -972,8 +972,9 @@ label.quickstart-label::before {
 
 #section_user-roles tr:first-child {
   font-weight: bold;
-  background: grey;
+  border-bottom: 2px solid black;
 }
+
 #section_user-roles th, #section_user-roles td {
   text-align: center;
   padding-left: 10px;
