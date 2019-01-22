@@ -30,12 +30,12 @@ type Resource interface {
 	CheckTimeout() string
 	LastChecked() time.Time
 	Tags() atc.Tags
+	CheckSetupError() error
 	CheckError() error
 	WebhookToken() string
 	ConfigPinnedVersion() atc.Version
 	APIPinnedVersion() atc.Version
 	PinComment() string
-	ResourceConfigCheckError() error
 	ResourceConfigID() int
 	ResourceConfigScopeID() int
 
@@ -52,39 +52,38 @@ type Resource interface {
 	UnpinVersion() error
 
 	SetResourceConfig(lager.Logger, atc.Source, creds.VersionedResourceTypes) (ResourceConfigScope, error)
-	SetCheckError(error) error
+	SetCheckSetupError(error) error
 
 	Reload() (bool, error)
 }
 
-var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, rs.last_checked, r.pipeline_id, r.nonce, r.resource_config_id, r.resource_config_scope_id, p.name, t.name, c.check_error, r.api_pinned_version, r.pin_comment").
+var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, rs.last_checked, r.pipeline_id, r.nonce, r.resource_config_id, r.resource_config_scope_id, p.name, t.name, rs.check_error, r.api_pinned_version, r.pin_comment").
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
 	LeftJoin("resource_config_scopes rs ON r.resource_config_scope_id = rs.id").
-	LeftJoin("resource_configs c ON r.resource_config_id = c.id").
 	Where(sq.Eq{"r.active": true})
 
 type resource struct {
-	id                       int
-	name                     string
-	pipelineID               int
-	pipelineName             string
-	teamName                 string
-	type_                    string
-	source                   atc.Source
-	checkEvery               string
-	checkTimeout             string
-	lastChecked              time.Time
-	tags                     atc.Tags
-	checkError               error
-	webhookToken             string
-	configPinnedVersion      atc.Version
-	apiPinnedVersion         atc.Version
-	pinComment               string
-	resourceConfigCheckError error
-	resourceConfigID         int
-	resourceConfigScopeID    int
+	id                    int
+	name                  string
+	pipelineID            int
+	pipelineName          string
+	teamName              string
+	type_                 string
+	source                atc.Source
+	checkEvery            string
+	checkTimeout          string
+	lastChecked           time.Time
+	tags                  atc.Tags
+	checkSetupError       error
+	checkError            error
+	webhookToken          string
+	configPinnedVersion   atc.Version
+	apiPinnedVersion      atc.Version
+	pinComment            string
+	resourceConfigID      int
+	resourceConfigScopeID int
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -139,12 +138,12 @@ func (r *resource) CheckEvery() string               { return r.checkEvery }
 func (r *resource) CheckTimeout() string             { return r.checkTimeout }
 func (r *resource) LastChecked() time.Time           { return r.lastChecked }
 func (r *resource) Tags() atc.Tags                   { return r.tags }
+func (r *resource) CheckSetupError() error           { return r.checkSetupError }
 func (r *resource) CheckError() error                { return r.checkError }
 func (r *resource) WebhookToken() string             { return r.webhookToken }
 func (r *resource) ConfigPinnedVersion() atc.Version { return r.configPinnedVersion }
 func (r *resource) APIPinnedVersion() atc.Version    { return r.apiPinnedVersion }
 func (r *resource) PinComment() string               { return r.pinComment }
-func (r *resource) ResourceConfigCheckError() error  { return r.resourceConfigCheckError }
 func (r *resource) ResourceConfigID() int            { return r.resourceConfigID }
 func (r *resource) ResourceConfigScopeID() int       { return r.resourceConfigScopeID }
 
@@ -233,7 +232,7 @@ func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, res
 	return resourceConfigScope, nil
 }
 
-func (r *resource) SetCheckError(cause error) error {
+func (r *resource) SetCheckSetupError(cause error) error {
 	var err error
 
 	if cause == nil {
@@ -575,12 +574,12 @@ func (r *resource) toggleVersion(rcvID int, enable bool) error {
 
 func scanResource(r *resource, row scannable) error {
 	var (
-		configBlob                                                                 []byte
-		checkErr, rcCheckErr, nonce, rcID, rcScopeID, apiPinnedVersion, pinComment sql.NullString
-		lastChecked                                                                pq.NullTime
+		configBlob                                                                  []byte
+		checkErr, rcsCheckErr, nonce, rcID, rcScopeID, apiPinnedVersion, pinComment sql.NullString
+		lastChecked                                                                 pq.NullTime
 	)
 
-	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &lastChecked, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamName, &rcCheckErr, &apiPinnedVersion, &pinComment)
+	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &lastChecked, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamName, &rcsCheckErr, &apiPinnedVersion, &pinComment)
 	if err != nil {
 		return err
 	}
@@ -629,15 +628,15 @@ func scanResource(r *resource, row scannable) error {
 	}
 
 	if checkErr.Valid {
-		r.checkError = errors.New(checkErr.String)
+		r.checkSetupError = errors.New(checkErr.String)
 	} else {
-		r.checkError = nil
+		r.checkSetupError = nil
 	}
 
-	if rcCheckErr.Valid {
-		r.resourceConfigCheckError = errors.New(rcCheckErr.String)
+	if rcsCheckErr.Valid {
+		r.checkError = errors.New(rcsCheckErr.String)
 	} else {
-		r.resourceConfigCheckError = nil
+		r.checkError = nil
 	}
 
 	if rcID.Valid {

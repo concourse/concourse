@@ -428,6 +428,7 @@ var _ = Describe("Pipeline", func() {
 		It("returns correct resource", func() {
 			Expect(resource.Name()).To(Equal("some-resource"))
 			Expect(resource.PipelineName()).To(Equal("pipeline-name"))
+			Expect(resource.CheckSetupError()).To(BeNil())
 			Expect(resource.CheckError()).To(BeNil())
 			Expect(resource.Type()).To(Equal("some-type"))
 			Expect(resource.Source()).To(Equal(atc.Source{"source-config": "some-value"}))

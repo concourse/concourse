@@ -55,8 +55,8 @@ var _ = Describe("Resources API", func() {
 			BeforeEach(func() {
 				resource1 = new(dbfakes.FakeResource)
 				resource1.IDReturns(1)
+				resource1.CheckSetupErrorReturns(nil)
 				resource1.CheckErrorReturns(nil)
-				resource1.ResourceConfigCheckErrorReturns(nil)
 				resource1.PipelineNameReturns("a-pipeline")
 				resource1.TeamNameReturns("some-team")
 				resource1.NameReturns("resource-1")
@@ -65,8 +65,8 @@ var _ = Describe("Resources API", func() {
 
 				resource2 := new(dbfakes.FakeResource)
 				resource2.IDReturns(2)
-				resource2.ResourceConfigCheckErrorReturns(errors.New("sup"))
-				resource2.CheckErrorReturns(nil)
+				resource2.CheckErrorReturns(errors.New("sup"))
+				resource2.CheckSetupErrorReturns(nil)
 				resource2.PipelineNameReturns("a-pipeline")
 				resource2.TeamNameReturns("other-team")
 				resource2.NameReturns("resource-2")
@@ -74,8 +74,8 @@ var _ = Describe("Resources API", func() {
 
 				resource3 := new(dbfakes.FakeResource)
 				resource3.IDReturns(3)
-				resource3.CheckErrorReturns(errors.New("sup"))
-				resource3.ResourceConfigCheckErrorReturns(nil)
+				resource3.CheckSetupErrorReturns(errors.New("sup"))
+				resource3.CheckErrorReturns(nil)
 				resource3.PipelineNameReturns("a-pipeline")
 				resource3.TeamNameReturns("another-team")
 				resource3.NameReturns("resource-3")
@@ -182,8 +182,8 @@ var _ = Describe("Resources API", func() {
 			BeforeEach(func() {
 				resource1 = new(dbfakes.FakeResource)
 				resource1.IDReturns(1)
+				resource1.CheckSetupErrorReturns(nil)
 				resource1.CheckErrorReturns(nil)
-				resource1.ResourceConfigCheckErrorReturns(nil)
 				resource1.PipelineNameReturns("a-pipeline")
 				resource1.NameReturns("resource-1")
 				resource1.TypeReturns("type-1")
@@ -191,16 +191,16 @@ var _ = Describe("Resources API", func() {
 
 				resource2 := new(dbfakes.FakeResource)
 				resource2.IDReturns(2)
-				resource2.ResourceConfigCheckErrorReturns(errors.New("sup"))
-				resource2.CheckErrorReturns(nil)
+				resource2.CheckErrorReturns(errors.New("sup"))
+				resource2.CheckSetupErrorReturns(nil)
 				resource2.PipelineNameReturns("a-pipeline")
 				resource2.NameReturns("resource-2")
 				resource2.TypeReturns("type-2")
 
 				resource3 := new(dbfakes.FakeResource)
 				resource3.IDReturns(3)
-				resource3.ResourceConfigCheckErrorReturns(nil)
-				resource3.CheckErrorReturns(errors.New("sup"))
+				resource3.CheckErrorReturns(nil)
+				resource3.CheckSetupErrorReturns(errors.New("sup"))
 				resource3.PipelineNameReturns("a-pipeline")
 				resource3.NameReturns("resource-3")
 				resource3.TypeReturns("type-3")
@@ -603,8 +603,8 @@ var _ = Describe("Resources API", func() {
 					"version-key-1": "version-value-1",
 					"version-key-2": "version-value-2",
 				})
-				resourceType1.ResourceConfigCheckErrorReturns(nil)
 				resourceType1.CheckErrorReturns(nil)
+				resourceType1.CheckSetupErrorReturns(nil)
 
 				resourceType2 := new(dbfakes.FakeResourceType)
 				resourceType2.IDReturns(2)
@@ -618,8 +618,8 @@ var _ = Describe("Resources API", func() {
 				resourceType2.VersionReturns(map[string]string{
 					"version-key-2": "version-value-2",
 				})
-				resourceType2.ResourceConfigCheckErrorReturns(errors.New("sup"))
 				resourceType2.CheckErrorReturns(errors.New("sup"))
+				resourceType2.CheckSetupErrorReturns(errors.New("sup"))
 
 				fakePipeline.ResourceTypesReturns(db.ResourceTypes{
 					resourceType1, resourceType2,
@@ -809,8 +809,8 @@ var _ = Describe("Resources API", func() {
 					resourceName = "resource-1"
 
 					resource1 := new(dbfakes.FakeResource)
+					resource1.CheckSetupErrorReturns(errors.New("sup"))
 					resource1.CheckErrorReturns(errors.New("sup"))
-					resource1.ResourceConfigCheckErrorReturns(errors.New("sup"))
 					resource1.PipelineNameReturns("a-pipeline")
 					resource1.NameReturns("resource-1")
 					resource1.TypeReturns("type-1")
@@ -879,8 +879,8 @@ var _ = Describe("Resources API", func() {
 				Context("when the resource version is pinned via pipeline config", func() {
 					BeforeEach(func() {
 						resource1 := new(dbfakes.FakeResource)
+						resource1.CheckSetupErrorReturns(errors.New("sup"))
 						resource1.CheckErrorReturns(errors.New("sup"))
-						resource1.ResourceConfigCheckErrorReturns(errors.New("sup"))
 						resource1.PipelineNameReturns("a-pipeline")
 						resource1.NameReturns("resource-1")
 						resource1.TypeReturns("type-1")
@@ -1006,7 +1006,7 @@ var _ = Describe("Resources API", func() {
 					resourceName = "resource-1"
 
 					resource1 := new(dbfakes.FakeResource)
-					resource1.CheckErrorReturns(errors.New("sup"))
+					resource1.CheckSetupErrorReturns(errors.New("sup"))
 					resource1.PipelineNameReturns("a-pipeline")
 					resource1.NameReturns("resource-1")
 					resource1.TypeReturns("type-1")

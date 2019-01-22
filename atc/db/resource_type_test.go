@@ -143,7 +143,7 @@ var _ = Describe("ResourceType", func() {
 
 		Context("when the resource is first created", func() {
 			It("is not errored", func() {
-				Expect(resourceType.CheckError()).To(BeNil())
+				Expect(resourceType.CheckSetupError()).To(BeNil())
 			})
 		})
 
@@ -151,13 +151,13 @@ var _ = Describe("ResourceType", func() {
 			It("is then marked as errored", func() {
 				originalCause := errors.New("on fire")
 
-				err := resourceType.SetCheckError(originalCause)
+				err := resourceType.SetCheckSetupError(originalCause)
 				Expect(err).ToNot(HaveOccurred())
 
 				returnedResourceType, _, err := pipeline.ResourceType("some-type")
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(returnedResourceType.CheckError()).To(Equal(originalCause))
+				Expect(returnedResourceType.CheckSetupError()).To(Equal(originalCause))
 			})
 		})
 
@@ -165,16 +165,16 @@ var _ = Describe("ResourceType", func() {
 			It("is not marked as errored again", func() {
 				originalCause := errors.New("on fire")
 
-				err := resourceType.SetCheckError(originalCause)
+				err := resourceType.SetCheckSetupError(originalCause)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = resourceType.SetCheckError(nil)
+				err = resourceType.SetCheckSetupError(nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				returnedResourceType, _, err := pipeline.ResourceType("some-type")
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(returnedResourceType.CheckError()).To(BeNil())
+				Expect(returnedResourceType.CheckSetupError()).To(BeNil())
 			})
 		})
 	})

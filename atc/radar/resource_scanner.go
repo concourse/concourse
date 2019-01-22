@@ -165,7 +165,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 
 		if err != nil {
 			logger.Error("failed-to-find-pinned-version-on-resource", err, lager.Data{"pinned-version": currentVersion})
-			chkErr := resourceConfigScope.ResourceConfig().SetCheckError(err)
+			chkErr := resourceConfigScope.SetCheckError(err)
 			if chkErr != nil {
 				logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
 			}
@@ -306,7 +306,7 @@ func (scanner *resourceScanner) check(
 			err = atc.ErrNoWorkers
 		}
 
-		chkErr := resourceConfigScope.ResourceConfig().SetCheckError(err)
+		chkErr := resourceConfigScope.SetCheckError(err)
 		if chkErr != nil {
 			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
 		}
@@ -326,7 +326,7 @@ func (scanner *resourceScanner) check(
 		err = fmt.Errorf("Timed out after %v while checking for new versions - perhaps increase your resource check timeout?", timeout)
 	}
 
-	resourceConfigScope.ResourceConfig().SetCheckError(err)
+	resourceConfigScope.SetCheckError(err)
 	metric.ResourceCheck{
 		PipelineName: scanner.dbPipeline.Name(),
 		ResourceName: savedResource.Name(),
@@ -400,7 +400,7 @@ func (scanner *resourceScanner) checkInterval(checkEvery string) (time.Duration,
 }
 
 func (scanner *resourceScanner) setResourceCheckError(logger lager.Logger, savedResource db.Resource, err error) {
-	setErr := savedResource.SetCheckError(err)
+	setErr := savedResource.SetCheckSetupError(err)
 	if setErr != nil {
 		logger.Error("failed-to-set-check-error", err)
 	}

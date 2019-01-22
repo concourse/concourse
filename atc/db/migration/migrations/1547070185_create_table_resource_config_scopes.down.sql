@@ -13,6 +13,7 @@ BEGIN;
   ALTER TABLE resource_configs
     ADD COLUMN last_checked timestamp with time zone NOT NULL DEFAULT '1970-01-01 00:00:00',
     ADD COLUMN unique_versions_resource_id integer,
+    ADD COLUMN check_error text,
     ADD CONSTRAINT resource_configs_unique_versions_resource_id_fkey FOREIGN KEY (unique_versions_resource_id) REFERENCES resources(id) ON DELETE CASCADE,
     DROP CONSTRAINT resource_configs_resource_cache_id_so_key,
     DROP CONSTRAINT resource_configs_base_resource_type_id_so_key,
