@@ -234,7 +234,7 @@ against the teams that have granted them access.
       --local-user foo
     }}}
 
-    There are many different ways to configure auth; see
+    There are many different ways to configure team auth; see
     \reference{authentication} for more information.
 
     Once the team has been created, you can use \reference{fly-login} to log in:
@@ -252,6 +252,30 @@ against the teams that have granted them access.
     Newly configured pipelines are hidden by default, meaning other teams and
     unauthorized visitors cannot view them. To make them publicly viewable, see
     \reference{exposing}.
+
+    \section{
+
+      \title{Adding User Roles}{adding-roles}
+
+      The \code{-c} flag can be used on \reference{fly-set-team} to supply
+      \reference{user-roles} on the team. The \code{-c} flag expects a
+      \code{.yml} file with \code{roles} and \code{users}. You can find a sample
+      configuration for adding \code{Local Auth} users with roles below:
+
+      \codeblock{bash}{{{
+        roles:
+        - name: owner
+          local:
+            users: ["Zordon"]
+        - name: member
+          local:
+            users: ["RedRanger", "BlueRanger", "GreenRanger"]
+        - name: viewer
+          local:
+            users: ["Alpha"]
+      }}}
+
+    }
   }
 }
 
