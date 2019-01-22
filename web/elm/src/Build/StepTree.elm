@@ -1,4 +1,4 @@
-module StepTree exposing
+module Build.StepTree exposing
     ( Highlight(..)
     , HookedStep
     , Model
@@ -23,7 +23,6 @@ module StepTree exposing
 
 import Ansi.Log
 import Array exposing (Array)
-import Build.Effects exposing (Effect(..))
 import Build.Msgs exposing (Msg(..))
 import Build.Styles as Styles
 import Concourse
@@ -32,6 +31,7 @@ import Date.Format
 import Debug
 import Dict exposing (Dict)
 import DictView
+import Effects exposing (Effect(..))
 import Focus exposing ((=>), Focus)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style)

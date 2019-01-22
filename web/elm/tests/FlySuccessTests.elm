@@ -1,11 +1,12 @@
 module FlySuccessTests exposing (all)
 
 import DashboardTests exposing (defineHoverBehaviour, iconSelector)
+import Effects exposing (Callback(..))
 import Expect exposing (Expectation)
-import FlySuccess
+import FlySuccess.Msgs as Msgs
 import Html.Attributes as Attr
 import Layout
-import SubPage
+import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -135,11 +136,9 @@ tokenSendSuccess : Setup
 tokenSendSuccess =
     setup "when token successfully sent to fly"
         (steps whenOnFlySuccessPage
-            >> Layout.update
-                (Layout.SubMsg 1 <|
-                    SubPage.FlySuccessMsg <|
-                        FlySuccess.TokenSentToFly True
-                )
+            >> Layout.handleCallback
+                (Effects.SubPage 1)
+                (TokenSentToFly True)
             >> Tuple.first
         )
 
@@ -148,11 +147,9 @@ tokenSendFailed : Setup
 tokenSendFailed =
     setup "when token failed to send to fly"
         (steps whenOnFlySuccessPage
-            >> Layout.update
-                (Layout.SubMsg 1 <|
-                    SubPage.FlySuccessMsg <|
-                        FlySuccess.TokenSentToFly False
-                )
+            >> Layout.handleCallback
+                (Effects.SubPage 1)
+                (TokenSentToFly False)
             >> Tuple.first
         )
 
@@ -163,8 +160,8 @@ tokenCopied =
         (steps tokenSendFailed
             >> Layout.update
                 (Layout.SubMsg 1 <|
-                    SubPage.FlySuccessMsg <|
-                        FlySuccess.CopyToken
+                    SubPage.Msgs.FlySuccessMsg <|
+                        Msgs.CopyToken
                 )
             >> Tuple.first
         )
@@ -571,8 +568,8 @@ buttonClickHandler =
         Event.simulate Event.click
             >> Event.expect
                 (Layout.SubMsg 1 <|
-                    SubPage.FlySuccessMsg <|
-                        FlySuccess.CopyToken
+                    SubPage.Msgs.FlySuccessMsg <|
+                        Msgs.CopyToken
                 )
 
 
@@ -674,13 +671,13 @@ all =
                     }
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.FlySuccessMsg <|
-                            FlySuccess.CopyTokenButtonHover
+                        SubPage.Msgs.FlySuccessMsg <|
+                            Msgs.CopyTokenButtonHover
                                 True
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.FlySuccessMsg <|
-                            FlySuccess.CopyTokenButtonHover
+                        SubPage.Msgs.FlySuccessMsg <|
+                            Msgs.CopyTokenButtonHover
                                 False
                 , hoveredSelector =
                     { description = "darker background"

@@ -1,4 +1,15 @@
-module Routes exposing (ConcourseRoute, Route(..), customToString, navigateTo, parsePath, pipelineRoute, jobRoute, buildRoute, dashboardRoute, dashboardHdRoute, toString)
+module Routes exposing
+    ( ConcourseRoute
+    , Route(..)
+    , buildRoute
+    , customToString
+    , dashboardHdRoute
+    , dashboardRoute
+    , jobRoute
+    , parsePath
+    , pipelineRoute
+    , toString
+    )
 
 import Concourse
 import Concourse.Pagination as Pagination
@@ -78,20 +89,20 @@ buildRoute : Concourse.Build -> String
 buildRoute build =
     case build.job of
         Just j ->
-            (Build j.teamName j.pipelineName j.jobName build.name) |> toString
+            Build j.teamName j.pipelineName j.jobName build.name |> toString
 
         Nothing ->
-            (OneOffBuild (Basics.toString build.id)) |> toString
+            OneOffBuild (Basics.toString build.id) |> toString
 
 
 jobRoute : Concourse.Job -> String
 jobRoute j =
-    (Job j.teamName j.pipelineName j.name) |> toString
+    Job j.teamName j.pipelineName j.name |> toString
 
 
 pipelineRoute : { a | name : String, teamName : String } -> String
 pipelineRoute p =
-    (Pipeline p.teamName p.name) |> toString
+    Pipeline p.teamName p.name |> toString
 
 
 dashboardRoute : String
@@ -171,6 +182,7 @@ parsePath location =
                     (\c ->
                         if c == '+' then
                             ' '
+
                         else
                             c
                     )
@@ -185,20 +197,22 @@ parsePath location =
                         |> QueryString.remove "search"
                         |> QueryString.add "search" search
     in
-        { logical = match <| location.pathname
-        , queries = cleanedQueries
-        , page = createPageFromSearch location.search
-        , hash = location.hash
-        }
+    { logical = match <| location.pathname
+    , queries = cleanedQueries
+    , page = createPageFromSearch location.search
+    , hash = location.hash
+    }
 
 
 customToString : ConcourseRoute -> String
 customToString route =
     toString route.logical
-        ++ if route.queries == QueryString.empty then
-            ""
-           else
-            QueryString.render route.queries
+        ++ (if route.queries == QueryString.empty then
+                ""
+
+            else
+                QueryString.render route.queries
+           )
 
 
 createPageFromSearch : String -> Maybe Pagination.Page
@@ -216,23 +230,18 @@ createPageFromSearch search =
         limit =
             Maybe.withDefault 100 <| QueryString.one QueryString.int "limit" q
     in
-        case ( since, until ) of
-            ( Nothing, Just u ) ->
-                Just
-                    { direction = Pagination.Until u
-                    , limit = limit
-                    }
+    case ( since, until ) of
+        ( Nothing, Just u ) ->
+            Just
+                { direction = Pagination.Until u
+                , limit = limit
+                }
 
-            ( Just s, Nothing ) ->
-                Just
-                    { direction = Pagination.Since s
-                    , limit = limit
-                    }
+        ( Just s, Nothing ) ->
+            Just
+                { direction = Pagination.Since s
+                , limit = limit
+                }
 
-            _ ->
-                Nothing
-
-
-navigateTo : Route -> Cmd msg
-navigateTo =
-    toString >> Navigation.newUrl
+        _ ->
+            Nothing

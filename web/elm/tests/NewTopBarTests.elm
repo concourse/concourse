@@ -4,6 +4,7 @@ import Dashboard
 import Dashboard.Msgs as Msgs
 import DashboardTests exposing (apiData, givenDataAndUser, givenDataUnauthenticated)
 import Dict
+import Effects
 import Expect
 import Html.Attributes as Attributes
 import Html.Styled as HS
@@ -24,8 +25,6 @@ import Test.Html.Selector as THS
 init : { highDensity : Bool, query : String } -> Dashboard.Model
 init { highDensity, query } =
     Dashboard.init
-        { title = always Cmd.none
-        }
         { csrfToken = ""
         , turbulencePath = ""
         , search = query
@@ -38,26 +37,23 @@ init { highDensity, query } =
 
 smallScreen : Dashboard.Model -> Dashboard.Model
 smallScreen =
-    updateModel
-        << Msgs.ScreenResized
-    <|
-        { width = 300, height = 800 }
+    updateModel <|
+        Msgs.ResizeScreen <|
+            { width = 300, height = 800 }
 
 
 bigScreen : Dashboard.Model -> Dashboard.Model
 bigScreen =
-    updateModel
-        << Msgs.ScreenResized
-    <|
-        { width = 1200, height = 900 }
+    updateModel <|
+        Msgs.ResizeScreen <|
+            { width = 1200, height = 900 }
 
 
 extraBigScreen : Dashboard.Model -> Dashboard.Model
 extraBigScreen =
-    updateModel
-        << Msgs.ScreenResized
-    <|
-        { width = 1500, height = 900 }
+    updateModel <|
+        Msgs.ResizeScreen <|
+            { width = 1500, height = 900 }
 
 
 userName : String
@@ -261,17 +257,17 @@ all =
                     [ test "redirects to dashboard on normal dashboard" <|
                         \_ ->
                             init { highDensity = False, query = "" }
-                                |> Dashboard.update
-                                    (Msgs.LoggedOut (Ok ()))
+                                |> Dashboard.handleCallback
+                                    (Effects.LoggedOut (Ok ()))
                                 |> Tuple.second
-                                |> Expect.equal [ Dashboard.NewUrl "/", Dashboard.FetchData ]
+                                |> Expect.equal [ Effects.NavigateTo "/", Effects.FetchData ]
                     , test "redirects to high-density view on high-density view" <|
                         \_ ->
                             init { highDensity = True, query = "" }
-                                |> Dashboard.update
-                                    (Msgs.LoggedOut (Ok ()))
+                                |> Dashboard.handleCallback
+                                    (Effects.LoggedOut (Ok ()))
                                 |> Tuple.second
-                                |> Expect.equal [ Dashboard.NewUrl "/hd", Dashboard.FetchData ]
+                                |> Expect.equal [ Effects.NavigateTo "/hd", Effects.FetchData ]
                     ]
                 ]
             , test "shows no search input" <|
@@ -286,7 +282,7 @@ all =
                     init { highDensity = False, query = "" }
                         |> smallScreen
                         |> updateModel
-                            (Msgs.ScreenResized
+                            (Msgs.ResizeScreen
                                 { width = 1200, height = 900 }
                             )
                         |> queryView

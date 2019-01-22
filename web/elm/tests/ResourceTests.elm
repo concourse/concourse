@@ -11,12 +11,12 @@ import DashboardTests
         , middleGrey
         )
 import Dict
+import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Html.Styled as HS
 import Http
 import Resource
-import Resource.Effects as Effects
 import Resource.Models as Models
 import Resource.Msgs as Msgs
 import Test exposing (..)
@@ -33,7 +33,6 @@ import Test.Html.Selector
         , tag
         , text
         )
-import TopBar
 
 
 teamName : String
@@ -123,7 +122,41 @@ badResponse =
 all : Test
 all =
     describe "resource page"
-        [ test "autorefresh respects expanded state" <|
+        [ describe "when logging out" <|
+            let
+                loggingOut : () -> ( Models.Model, List Effects.Effect )
+                loggingOut _ =
+                    init
+                        |> Resource.handleCallback
+                            (Effects.UserFetched <|
+                                Ok
+                                    { id = "test"
+                                    , userName = "test"
+                                    , name = "test"
+                                    , email = "test"
+                                    , teams =
+                                        Dict.fromList
+                                            [ ( teamName, [ "member" ] )
+                                            ]
+                                    }
+                            )
+                        |> Tuple.first
+                        |> Resource.handleCallback (Effects.LoggedOut (Ok ()))
+            in
+            [ test "updates top bar state" <|
+                loggingOut
+                    >> Tuple.first
+                    >> queryView
+                    >> Query.find [ id "top-bar-app" ]
+                    >> Query.children []
+                    >> Query.index -1
+                    >> Query.has [ text "login" ]
+            , test "redirects to dashboard" <|
+                loggingOut
+                    >> Tuple.second
+                    >> Expect.equal [ Effects.NavigateTo "/" ]
+            ]
+        , test "autorefresh respects expanded state" <|
             \_ ->
                 init
                     |> givenResourceIsNotPinned
@@ -143,25 +176,27 @@ all =
                     |> Resource.update
                         (Msgs.ExpandVersionedResource versionID)
                     |> Tuple.first
-                    |> Resource.update
-                        (Msgs.InputToFetched versionID
+                    |> Resource.handleCallback
+                        (Effects.InputToFetched
                             (Ok
-                                [ { id = 0
-                                  , name = "some-build"
-                                  , job =
+                                ( versionID
+                                , [ { id = 0
+                                    , name = "some-build"
+                                    , job =
                                         Just
                                             { teamName = teamName
                                             , pipelineName = pipelineName
                                             , jobName = "some-job"
                                             }
-                                  , status = Concourse.BuildStatusSucceeded
-                                  , duration =
+                                    , status = Concourse.BuildStatusSucceeded
+                                    , duration =
                                         { startedAt = Nothing
                                         , finishedAt = Nothing
                                         }
-                                  , reapTime = Nothing
-                                  }
-                                ]
+                                    , reapTime = Nothing
+                                    }
+                                  ]
+                                )
                             )
                         )
                     |> Tuple.first
@@ -177,25 +212,27 @@ all =
                     |> Resource.update
                         (Msgs.ExpandVersionedResource versionID)
                     |> Tuple.first
-                    |> Resource.update
-                        (Msgs.OutputOfFetched versionID
+                    |> Resource.handleCallback
+                        (Effects.OutputOfFetched
                             (Ok
-                                [ { id = 0
-                                  , name = "some-build"
-                                  , job =
+                                ( versionID
+                                , [ { id = 0
+                                    , name = "some-build"
+                                    , job =
                                         Just
                                             { teamName = teamName
                                             , pipelineName = pipelineName
                                             , jobName = "some-job"
                                             }
-                                  , status = Concourse.BuildStatusSucceeded
-                                  , duration =
+                                    , status = Concourse.BuildStatusSucceeded
+                                    , duration =
                                         { startedAt = Nothing
                                         , finishedAt = Nothing
                                         }
-                                  , reapTime = Nothing
-                                  }
-                                ]
+                                    , reapTime = Nothing
+                                    }
+                                  ]
+                                )
                             )
                         )
                     |> Tuple.first
@@ -274,8 +311,7 @@ all =
                         |> Query.find (versionSelector version)
                         |> Query.find checkboxSelector
                         |> Event.simulate Event.click
-                        |> Event.expect
-                            (Msgs.ToggleVersion Models.Disable versionID)
+                        |> Event.expect (Msgs.ToggleVersion Models.Disable versionID)
             , test "receiving a (ToggleVersion Disable) msg causes the relevant checkbox to go into a transition state" <|
                 \_ ->
                     init
@@ -303,7 +339,7 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
-                        |> Resource.update (Msgs.VersionToggled Models.Disable versionID (Ok ()))
+                        |> Resource.handleCallback (Effects.VersionToggled Models.Disable versionID (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -314,7 +350,7 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
-                        |> Resource.update (Msgs.VersionToggled Models.Disable versionID badResponse)
+                        |> Resource.handleCallback (Effects.VersionToggled Models.Disable versionID badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -350,7 +386,7 @@ all =
                         |> Resource.update
                             (Msgs.ToggleVersion Models.Enable disabledVersionID)
                         |> Tuple.first
-                        |> Resource.update (Msgs.VersionToggled Models.Enable disabledVersionID (Ok ()))
+                        |> Resource.handleCallback (Effects.VersionToggled Models.Enable disabledVersionID (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
@@ -364,7 +400,7 @@ all =
                         |> Resource.update
                             (Msgs.ToggleVersion Models.Enable disabledVersionID)
                         |> Tuple.first
-                        |> Resource.update (Msgs.VersionToggled Models.Enable disabledVersionID badResponse)
+                        |> Resource.handleCallback (Effects.VersionToggled Models.Enable disabledVersionID badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
@@ -784,7 +820,7 @@ all =
                         |> givenResourcePinnedDynamically
                         |> givenVersionsWithoutPagination
                         |> clickToUnpin
-                        |> Resource.update (Msgs.VersionUnpinned (Ok ()))
+                        |> Resource.handleCallback (Effects.VersionUnpinned (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasUnpinnedState
@@ -794,7 +830,7 @@ all =
                         |> givenResourcePinnedDynamically
                         |> givenVersionsWithoutPagination
                         |> clickToUnpin
-                        |> Resource.update (Msgs.VersionUnpinned (Ok ()))
+                        |> Resource.handleCallback (Effects.VersionUnpinned (Ok ()))
                         |> Tuple.second
                         |> Expect.equal
                             [ Effects.FetchResource
@@ -809,7 +845,7 @@ all =
                         |> givenResourcePinnedDynamically
                         |> givenVersionsWithoutPagination
                         |> clickToUnpin
-                        |> Resource.update (Msgs.VersionUnpinned badResponse)
+                        |> Resource.handleCallback (Effects.VersionUnpinned badResponse)
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasPinnedState version
@@ -1131,7 +1167,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> clickToPin versionID
-                        |> Resource.update (Msgs.VersionPinned (Ok ()))
+                        |> Resource.handleCallback (Effects.VersionPinned (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasPinnedState version
@@ -1141,7 +1177,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> clickToPin versionID
-                        |> Resource.update (Msgs.VersionPinned badResponse)
+                        |> Resource.handleCallback (Effects.VersionPinned badResponse)
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasUnpinnedState
@@ -1151,7 +1187,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> clickToPin versionID
-                        |> Resource.update (Msgs.VersionPinned badResponse)
+                        |> Resource.handleCallback (Effects.VersionPinned badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -1463,19 +1499,18 @@ all =
                 let
                     givenUserIsAuthorized : Models.Model -> Models.Model
                     givenUserIsAuthorized =
-                        Resource.update
-                            (Msgs.TopBarMsg <|
-                                TopBar.UserFetched <|
-                                    Ok
-                                        { id = "test"
-                                        , userName = "test"
-                                        , name = "test"
-                                        , email = "test"
-                                        , teams =
-                                            Dict.fromList
-                                                [ ( teamName, [ "member" ] )
-                                                ]
-                                        }
+                        Resource.handleCallback
+                            (Effects.UserFetched <|
+                                Ok
+                                    { id = "test"
+                                    , userName = "test"
+                                    , name = "test"
+                                    , email = "test"
+                                    , teams =
+                                        Dict.fromList
+                                            [ ( teamName, [ "member" ] )
+                                            ]
+                                    }
                             )
                             >> Tuple.first
                 in
@@ -1656,7 +1691,7 @@ all =
                             |> givenUserIsAuthorized
                             |> Resource.update Msgs.Check
                             |> Tuple.first
-                            |> Resource.update (Msgs.Checked <| Ok ())
+                            |> Resource.handleCallback (Effects.Checked <| Ok ())
                             |> Tuple.first
                             |> checkBar
                             |> Query.children []
@@ -1684,7 +1719,7 @@ all =
                             |> givenUserIsAuthorized
                             |> Resource.update Msgs.Check
                             |> Tuple.first
-                            |> Resource.update (Msgs.Checked <| Ok ())
+                            |> Resource.handleCallback (Effects.Checked <| Ok ())
                             |> Tuple.second
                             |> Expect.equal
                                 [ Effects.FetchResource
@@ -1706,8 +1741,8 @@ all =
                             |> givenUserIsAuthorized
                             |> Resource.update Msgs.Check
                             |> Tuple.first
-                            |> Resource.update
-                                (Msgs.Checked <|
+                            |> Resource.handleCallback
+                                (Effects.Checked <|
                                     Err <|
                                         Http.BadStatus
                                             { url = ""
@@ -1742,8 +1777,8 @@ all =
                             |> givenUserIsAuthorized
                             |> Resource.update Msgs.Check
                             |> Tuple.first
-                            |> Resource.update
-                                (Msgs.Checked <|
+                            |> Resource.handleCallback
+                                (Effects.Checked <|
                                     Err <|
                                         Http.BadStatus
                                             { url = ""
@@ -1770,8 +1805,8 @@ all =
                             |> givenUserIsAuthorized
                             |> Resource.update Msgs.Check
                             |> Tuple.first
-                            |> Resource.update
-                                (Msgs.Checked <|
+                            |> Resource.handleCallback
+                                (Effects.Checked <|
                                     Err <|
                                         Http.BadStatus
                                             { url = ""
@@ -1790,18 +1825,17 @@ all =
                 let
                     givenUserIsUnauthorized : Models.Model -> Models.Model
                     givenUserIsUnauthorized =
-                        Resource.update
-                            (Msgs.TopBarMsg <|
-                                TopBar.UserFetched <|
-                                    Ok
-                                        { id = "test"
-                                        , userName = "test"
-                                        , name = "test"
-                                        , email = "test"
-                                        , teams =
-                                            Dict.fromList
-                                                [ ( teamName, [ "viewer" ] ) ]
-                                        }
+                        Resource.handleCallback
+                            (Effects.UserFetched <|
+                                Ok
+                                    { id = "test"
+                                    , userName = "test"
+                                    , name = "test"
+                                    , email = "test"
+                                    , teams =
+                                        Dict.fromList
+                                            [ ( teamName, [ "viewer" ] ) ]
+                                    }
                             )
                             >> Tuple.first
                 in
@@ -1873,8 +1907,8 @@ all =
             , test "unsuccessful check shows a warning icon on the right" <|
                 \_ ->
                     init
-                        |> Resource.update
-                            (Msgs.ResourceFetched <|
+                        |> Resource.handleCallback
+                            (Effects.ResourceFetched <|
                                 Ok
                                     { teamName = teamName
                                     , pipelineName = pipelineName
@@ -1919,8 +1953,8 @@ init =
 
 givenResourcePinnedStatically : Models.Model -> Models.Model
 givenResourcePinnedStatically =
-    Resource.update
-        (Msgs.ResourceFetched <|
+    Resource.handleCallback
+        (Effects.ResourceFetched <|
             Ok
                 { teamName = teamName
                 , pipelineName = pipelineName
@@ -1939,8 +1973,8 @@ givenResourcePinnedStatically =
 
 givenResourcePinnedDynamically : Models.Model -> Models.Model
 givenResourcePinnedDynamically =
-    Resource.update
-        (Msgs.ResourceFetched <|
+    Resource.handleCallback
+        (Effects.ResourceFetched <|
             Ok
                 { teamName = teamName
                 , pipelineName = pipelineName
@@ -1959,8 +1993,8 @@ givenResourcePinnedDynamically =
 
 givenResourcePinnedWithComment : Models.Model -> Models.Model
 givenResourcePinnedWithComment =
-    Resource.update
-        (Msgs.ResourceFetched <|
+    Resource.handleCallback
+        (Effects.ResourceFetched <|
             Ok
                 { teamName = teamName
                 , pipelineName = pipelineName
@@ -1980,8 +2014,8 @@ givenResourcePinnedWithComment =
 
 givenResourceIsNotPinned : Models.Model -> Models.Model
 givenResourceIsNotPinned =
-    Resource.update
-        (Msgs.ResourceFetched <|
+    Resource.handleCallback
+        (Effects.ResourceFetched <|
             Ok
                 { teamName = teamName
                 , pipelineName = pipelineName
@@ -2037,70 +2071,74 @@ clickToDisable versionID =
 
 givenVersionsWithoutPagination : Models.Model -> Models.Model
 givenVersionsWithoutPagination =
-    Resource.update
-        (Msgs.VersionedResourcesFetched Nothing <|
+    Resource.handleCallback
+        (Effects.VersionedResourcesFetched <|
             Ok
-                { content =
-                    [ { id = versionID
-                      , version = Dict.fromList [ ( "version", version ) ]
-                      , metadata = []
-                      , enabled = True
-                      }
-                    , { id = otherVersionID
-                      , version = Dict.fromList [ ( "version", otherVersion ) ]
-                      , metadata = []
-                      , enabled = True
-                      }
-                    , { id = disabledVersionID
-                      , version = Dict.fromList [ ( "version", disabledVersion ) ]
-                      , metadata = []
-                      , enabled = False
-                      }
-                    ]
-                , pagination =
-                    { previousPage = Nothing
-                    , nextPage = Nothing
-                    }
-                }
+                ( Nothing
+                , { content =
+                        [ { id = versionID
+                          , version = Dict.fromList [ ( "version", version ) ]
+                          , metadata = []
+                          , enabled = True
+                          }
+                        , { id = otherVersionID
+                          , version = Dict.fromList [ ( "version", otherVersion ) ]
+                          , metadata = []
+                          , enabled = True
+                          }
+                        , { id = disabledVersionID
+                          , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                          , metadata = []
+                          , enabled = False
+                          }
+                        ]
+                  , pagination =
+                        { previousPage = Nothing
+                        , nextPage = Nothing
+                        }
+                  }
+                )
         )
         >> Tuple.first
 
 
 givenVersionsWithPagination : Models.Model -> Models.Model
 givenVersionsWithPagination =
-    Resource.update
-        (Msgs.VersionedResourcesFetched Nothing <|
+    Resource.handleCallback
+        (Effects.VersionedResourcesFetched <|
             Ok
-                { content =
-                    [ { id = versionID
-                      , version = Dict.fromList [ ( "version", version ) ]
-                      , metadata = []
-                      , enabled = True
-                      }
-                    , { id = otherVersionID
-                      , version = Dict.fromList [ ( "version", otherVersion ) ]
-                      , metadata = []
-                      , enabled = True
-                      }
-                    , { id = disabledVersionID
-                      , version = Dict.fromList [ ( "version", disabledVersion ) ]
-                      , metadata = []
-                      , enabled = False
-                      }
-                    ]
-                , pagination =
-                    { previousPage =
-                        Just
-                            { direction = Since 1
-                            , limit = 1
-                            }
-                    , nextPage =
-                        Just
-                            { direction = Since 100
-                            , limit = 1
-                            }
-                    }
-                }
+                ( Nothing
+                , { content =
+                        [ { id = versionID
+                          , version = Dict.fromList [ ( "version", version ) ]
+                          , metadata = []
+                          , enabled = True
+                          }
+                        , { id = otherVersionID
+                          , version = Dict.fromList [ ( "version", otherVersion ) ]
+                          , metadata = []
+                          , enabled = True
+                          }
+                        , { id = disabledVersionID
+                          , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                          , metadata = []
+                          , enabled = False
+                          }
+                        ]
+                  , pagination =
+                        { previousPage =
+                            Just
+                                { direction = Since 1
+                                , limit = 1
+                                }
+                        , nextPage =
+                            Just
+                                { direction = Since 100
+                                , limit = 1
+                                }
+                        }
+                  }
+                )
         )
         >> Tuple.first
 

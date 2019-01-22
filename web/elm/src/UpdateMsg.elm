@@ -1,5 +1,6 @@
-module UpdateMsg exposing (UpdateMsg, UpdateMsg(..))
+module UpdateMsg exposing (UpdateMsg(..))
 
 
 type UpdateMsg
     = NotFound
+    | AOK

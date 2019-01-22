@@ -1,15 +1,15 @@
-module PipelineTests exposing (all, givenMultiplePinnedResources, givenPinnedResource, init, it, jobBreadcrumbSelector, pinBadgeSelector, pipelineBreadcrumbSelector, resourceBreadcrumbSelector, rspecStyleDescribe)
+module PipelineTests exposing (all)
 
 import Char
-import DashboardTests exposing (iconSelector)
+import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Json.Encode
 import Layout
-import Pipeline exposing (Msg(..), update)
+import Pipeline exposing (update)
+import Pipeline.Msgs exposing (Msg(..))
 import QueryString
 import Routes
-import SubPage
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -41,7 +41,6 @@ all =
                 defaultModel : Pipeline.Model
                 defaultModel =
                     Pipeline.init
-                        { render = \( _, _ ) -> Cmd.none, title = \_ -> Cmd.none }
                         { teamName = "some-team"
                         , pipelineName = "some-pipeline"
                         , turbulenceImgSrc = "some-turbulence-img-src"
@@ -95,16 +94,14 @@ all =
                 \_ ->
                     defaultModel
                         |> update (HideLegendTimerTicked 0)
-                        |> Tuple.first
-                        |> .hideLegendCounter
-                        |> Expect.equal (1 * Time.second)
+                        |> Tuple.mapFirst .hideLegendCounter
+                        |> Expect.equal ( 1 * Time.second, [] )
             , test "HideLegendTimeTicked reaches timeout" <|
                 \_ ->
                     { defaultModel | hideLegendCounter = 10 * Time.second }
                         |> update (HideLegendTimerTicked 0)
-                        |> Tuple.first
-                        |> .hideLegend
-                        |> Expect.equal True
+                        |> Tuple.mapFirst .hideLegend
+                        |> Expect.equal ( True, [] )
             , test "ShowLegend" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
@@ -130,21 +127,21 @@ all =
                 \_ ->
                     { defaultModel | hideLegend = True, hideLegendCounter = 3 * Time.second }
                         |> update ShowLegend
-                        |> Tuple.first
                         |> Expect.all
-                            [ \m -> m.hideLegend |> Expect.equal False
-                            , \m -> m.hideLegendCounter |> Expect.equal 0
+                            [ \( m, _ ) -> m.hideLegend |> Expect.equal False
+                            , \( m, _ ) -> m.hideLegendCounter |> Expect.equal 0
+                            , \( _, e ) -> Expect.equal [] e
                             ]
             , test "KeyPressed" <|
                 \_ ->
                     defaultModel
                         |> update (KeyPressed (Char.toCode 'a'))
-                        |> Expect.equal ( defaultModel, Cmd.none )
+                        |> Expect.equal ( defaultModel, [] )
             , test "KeyPressed f" <|
                 \_ ->
                     defaultModel
                         |> update (KeyPressed (Char.toCode 'f'))
-                        |> Expect.notEqual ( defaultModel, Cmd.none )
+                        |> Expect.notEqual ( defaultModel, [] )
             , rspecStyleDescribe "when on pipeline page"
                 (init "/teams/team/pipelines/pipeline")
                 [ it "shows a pin icon on top bar" <|
@@ -658,18 +655,17 @@ all =
             , test "top nav bar is blue when pipeline is paused" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Layout.update
-                            (Layout.TopMsg 1
-                                (TopBar.PipelineFetched
-                                    (Ok
-                                        { id = 0
-                                        , name = "pipeline"
-                                        , paused = True
-                                        , public = True
-                                        , teamName = "team"
-                                        , groups = []
-                                        }
-                                    )
+                        |> Layout.handleCallback
+                            (Effects.TopBar 1)
+                            (Effects.PipelineFetched
+                                (Ok
+                                    { id = 0
+                                    , name = "pipeline"
+                                    , paused = True
+                                    , public = True
+                                    , teamName = "team"
+                                    , groups = []
+                                    }
                                 )
                             )
                         |> Tuple.first
@@ -914,43 +910,41 @@ init path =
 
 givenPinnedResource : Layout.Model -> Layout.Model
 givenPinnedResource =
-    Layout.update
-        (Layout.SubMsg -1 <|
-            SubPage.PipelineMsg <|
-                Pipeline.ResourcesFetched <|
-                    Ok <|
-                        Json.Encode.list
-                            [ Json.Encode.object
-                                [ ( "team_name", Json.Encode.string "team" )
-                                , ( "pipeline_name", Json.Encode.string "pipeline" )
-                                , ( "name", Json.Encode.string "resource" )
-                                , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v1" ) ] )
-                                ]
-                            ]
+    Layout.handleCallback
+        (Effects.SubPage -1)
+        (Effects.ResourcesFetched <|
+            Ok <|
+                Json.Encode.list
+                    [ Json.Encode.object
+                        [ ( "team_name", Json.Encode.string "team" )
+                        , ( "pipeline_name", Json.Encode.string "pipeline" )
+                        , ( "name", Json.Encode.string "resource" )
+                        , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v1" ) ] )
+                        ]
+                    ]
         )
         >> Tuple.first
 
 
 givenMultiplePinnedResources : Layout.Model -> Layout.Model
 givenMultiplePinnedResources =
-    Layout.update
-        (Layout.SubMsg -1 <|
-            SubPage.PipelineMsg <|
-                Pipeline.ResourcesFetched <|
-                    Ok <|
-                        Json.Encode.list
-                            [ Json.Encode.object
-                                [ ( "team_name", Json.Encode.string "team" )
-                                , ( "pipeline_name", Json.Encode.string "pipeline" )
-                                , ( "name", Json.Encode.string "resource" )
-                                , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v1" ) ] )
-                                ]
-                            , Json.Encode.object
-                                [ ( "team_name", Json.Encode.string "team" )
-                                , ( "pipeline_name", Json.Encode.string "pipeline" )
-                                , ( "name", Json.Encode.string "other-resource" )
-                                , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v2" ) ] )
-                                ]
-                            ]
+    Layout.handleCallback
+        (Effects.SubPage -1)
+        (Effects.ResourcesFetched <|
+            Ok <|
+                Json.Encode.list
+                    [ Json.Encode.object
+                        [ ( "team_name", Json.Encode.string "team" )
+                        , ( "pipeline_name", Json.Encode.string "pipeline" )
+                        , ( "name", Json.Encode.string "resource" )
+                        , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v1" ) ] )
+                        ]
+                    , Json.Encode.object
+                        [ ( "team_name", Json.Encode.string "team" )
+                        , ( "pipeline_name", Json.Encode.string "pipeline" )
+                        , ( "name", Json.Encode.string "other-resource" )
+                        , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v2" ) ] )
+                        ]
+                    ]
         )
         >> Tuple.first

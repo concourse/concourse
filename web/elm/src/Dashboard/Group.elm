@@ -1,4 +1,4 @@
-port module Dashboard.Group exposing
+module Dashboard.Group exposing
     ( DragState(..)
     , DropState(..)
     , Group
@@ -16,7 +16,6 @@ port module Dashboard.Group exposing
     , hdView
     , jobStatus
     , ordering
-    , pinTeamNames
     , pipelineDropAreaView
     , pipelineNotSetView
     , pipelineStatus
@@ -75,9 +74,6 @@ type alias StickyHeaderConfig =
     , sectionClass : String
     , sectionBodyClass : String
     }
-
-
-port pinTeamNames : StickyHeaderConfig -> Cmd msg
 
 
 stickyHeaderConfig : StickyHeaderConfig

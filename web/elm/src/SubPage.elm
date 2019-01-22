@@ -1,36 +1,33 @@
-port module SubPage exposing (Model(..), Msg(..), init, subscriptions, update, urlUpdate, view)
+module SubPage exposing
+    ( Model(..)
+    , handleCallback
+    , handleNotFound
+    , init
+    , subscriptions
+    , update
+    , urlUpdate
+    , view
+    )
 
 import Autoscroll
 import Build
-import Build.Effects as Effects
 import Build.Msgs
 import Concourse
 import Dashboard
-import Dashboard.Msgs
-import Effects exposing (setTitle)
+import Effects exposing (Callback, Effect)
 import FlySuccess
 import Html exposing (Html)
 import Html.Styled as HS
-import Http
 import Job
-import Json.Encode
 import NotFound
 import Pipeline
 import QueryString
 import Resource
-import Resource.Effects
 import Resource.Models
-import Resource.Msgs
 import Routes
 import String
+import SubPage.Msgs exposing (Msg(..))
 import UpdateMsg exposing (UpdateMsg)
-
-
-
--- TODO: move ports somewhere else
-
-
-port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
 
 
 type Model
@@ -44,28 +41,12 @@ type Model
     | FlySuccessModel FlySuccess.Model
 
 
-type Msg
-    = BuildMsg (Autoscroll.Msg Build.Msgs.Msg)
-    | JobMsg Job.Msg
-    | ResourceMsg Resource.Msgs.Msg
-    | PipelineMsg Pipeline.Msg
-    | NewCSRFToken String
-    | DashboardPipelinesFetched (Result Http.Error (List Concourse.Pipeline))
-    | DashboardMsg Dashboard.Msgs.Msg
-    | FlySuccessMsg FlySuccess.Msg
-
-
 type alias Flags =
     { csrfToken : String
     , authToken : String
     , turbulencePath : String
     , pipelineRunningKeyframes : String
     }
-
-
-superDupleWrap : ( a -> b, c -> d ) -> ( a, Cmd c ) -> ( b, Cmd d )
-superDupleWrap ( modelFunc, msgFunc ) ( model, msg ) =
-    ( modelFunc model, Cmd.map msgFunc msg )
 
 
 queryGroupsForRoute : Routes.ConcourseRoute -> List String
@@ -79,130 +60,162 @@ querySearchForRoute route =
         |> Maybe.withDefault ""
 
 
-init : Flags -> Routes.ConcourseRoute -> ( Model, Cmd Msg )
+init : Flags -> Routes.ConcourseRoute -> ( Model, List Effect )
 init flags route =
     case route.logical of
         Routes.Build teamName pipelineName jobName buildName ->
-            superDupleWrap ( BuildModel, BuildMsg ) <|
-                Autoscroll.init
-                    Build.getScrollBehavior
-                    << Tuple.mapSecond (Cmd.batch << List.map Effects.toCmd)
-                    << Build.init
-                        { title = setTitle }
-                        { csrfToken = flags.csrfToken, hash = route.hash }
-                <|
-                    Build.JobBuildPage
-                        { teamName = teamName
-                        , pipelineName = pipelineName
-                        , jobName = jobName
-                        , buildName = buildName
-                        }
+            Build.JobBuildPage
+                { teamName = teamName
+                , pipelineName = pipelineName
+                , jobName = jobName
+                , buildName = buildName
+                }
+                |> Build.init { csrfToken = flags.csrfToken, hash = route.hash }
+                |> Tuple.mapFirst (Autoscroll.Model Build.getScrollBehavior >> BuildModel)
 
         Routes.OneOffBuild buildId ->
-            superDupleWrap ( BuildModel, BuildMsg ) <|
-                Autoscroll.init
-                    Build.getScrollBehavior
-                    << Tuple.mapSecond (Cmd.batch << List.map Effects.toCmd)
-                    << Build.init
-                        { title = setTitle }
-                        { csrfToken = flags.csrfToken, hash = route.hash }
-                <|
-                    Build.BuildPage <|
-                        Result.withDefault 0 (String.toInt buildId)
+            Build.BuildPage (Result.withDefault 0 (String.toInt buildId))
+                |> Build.init { csrfToken = flags.csrfToken, hash = route.hash }
+                |> Tuple.mapFirst (Autoscroll.Model Build.getScrollBehavior >> BuildModel)
 
         Routes.Resource teamName pipelineName resourceName ->
-            superDupleWrap ( ResourceModel, ResourceMsg )
-                (Resource.init
-                    { resourceName = resourceName
-                    , teamName = teamName
-                    , pipelineName = pipelineName
-                    , paging = route.page
-                    , csrfToken = flags.csrfToken
-                    }
-                    |> Tuple.mapSecond
-                        (List.map Resource.Effects.runEffect >> Cmd.batch)
-                )
+            Resource.init
+                { resourceName = resourceName
+                , teamName = teamName
+                , pipelineName = pipelineName
+                , paging = route.page
+                , csrfToken = flags.csrfToken
+                }
+                |> Tuple.mapFirst ResourceModel
 
         Routes.Job teamName pipelineName jobName ->
-            superDupleWrap ( JobModel, JobMsg ) <|
-                Job.init
-                    { title = setTitle }
-                    { jobName = jobName
-                    , teamName = teamName
-                    , pipelineName = pipelineName
-                    , paging = route.page
-                    , csrfToken = flags.csrfToken
-                    }
+            Job.init
+                { jobName = jobName
+                , teamName = teamName
+                , pipelineName = pipelineName
+                , paging = route.page
+                , csrfToken = flags.csrfToken
+                }
+                |> Tuple.mapFirst JobModel
 
         Routes.Pipeline teamName pipelineName ->
-            superDupleWrap ( PipelineModel, PipelineMsg ) <|
-                Pipeline.init
-                    { render = renderPipeline
-                    , title = setTitle
-                    }
-                    { teamName = teamName
-                    , pipelineName = pipelineName
-                    , turbulenceImgSrc = flags.turbulencePath
-                    , route = route
-                    }
+            Pipeline.init
+                { teamName = teamName
+                , pipelineName = pipelineName
+                , turbulenceImgSrc = flags.turbulencePath
+                , route = route
+                }
+                |> Tuple.mapFirst PipelineModel
 
         Routes.Dashboard ->
-            superDupleWrap ( DashboardModel, DashboardMsg ) <|
-                Dashboard.init
-                    { title = setTitle }
-                    { turbulencePath = flags.turbulencePath
-                    , csrfToken = flags.csrfToken
-                    , search = querySearchForRoute route
-                    , highDensity = False
-                    , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
-                    }
+            Dashboard.init
+                { turbulencePath = flags.turbulencePath
+                , csrfToken = flags.csrfToken
+                , search = querySearchForRoute route
+                , highDensity = False
+                , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+                }
+                |> Tuple.mapFirst DashboardModel
 
         Routes.DashboardHd ->
-            superDupleWrap ( DashboardModel, DashboardMsg ) <|
-                Dashboard.init
-                    { title = setTitle }
-                    { turbulencePath = flags.turbulencePath
-                    , csrfToken = flags.csrfToken
-                    , search = querySearchForRoute route
-                    , highDensity = True
-                    , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
-                    }
+            Dashboard.init
+                { turbulencePath = flags.turbulencePath
+                , csrfToken = flags.csrfToken
+                , search = querySearchForRoute route
+                , highDensity = True
+                , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+                }
+                |> Tuple.mapFirst DashboardModel
 
         Routes.FlySuccess ->
-            superDupleWrap ( FlySuccessModel, FlySuccessMsg ) <|
-                FlySuccess.init
-                    { authToken = flags.authToken
-                    , flyPort = QueryString.one QueryString.int "fly_port" route.queries
-                    }
+            FlySuccess.init
+                { authToken = flags.authToken
+                , flyPort = QueryString.one QueryString.int "fly_port" route.queries
+                }
+                |> Tuple.mapFirst FlySuccessModel
 
 
-handleNotFound : String -> ( a -> Model, c -> Msg ) -> ( a, Cmd c, Maybe UpdateMsg ) -> ( Model, Cmd Msg )
-handleNotFound notFound ( mdlFunc, msgFunc ) ( mdl, msg, outMessage ) =
-    case outMessage of
-        Just UpdateMsg.NotFound ->
-            ( NotFoundModel { notFoundImgSrc = notFound }, setTitle "Not Found " )
+handleNotFound : String -> ( Model, List Effect ) -> ( Model, List Effect )
+handleNotFound notFound ( model, effects ) =
+    case getUpdateMessage model of
+        UpdateMsg.NotFound ->
+            ( NotFoundModel { notFoundImgSrc = notFound }, [ Effects.SetTitle "Not Found " ] )
 
-        Nothing ->
-            superDupleWrap ( mdlFunc, msgFunc ) <| ( mdl, msg )
+        UpdateMsg.AOK ->
+            ( model, effects )
 
 
-update : String -> String -> Concourse.CSRFToken -> Msg -> Model -> ( Model, Cmd Msg )
+getUpdateMessage : Model -> UpdateMsg
+getUpdateMessage model =
+    case model of
+        BuildModel mdl ->
+            Build.getUpdateMessage mdl.subModel
+
+        JobModel mdl ->
+            Job.getUpdateMessage mdl
+
+        ResourceModel mdl ->
+            Resource.getUpdateMessage mdl
+
+        PipelineModel mdl ->
+            Pipeline.getUpdateMessage mdl
+
+        _ ->
+            UpdateMsg.AOK
+
+
+handleCallback :
+    Concourse.CSRFToken
+    -> Callback
+    -> Model
+    -> ( Model, List Effect )
+handleCallback csrfToken callback model =
+    case model of
+        BuildModel scrollModel ->
+            let
+                subModel =
+                    scrollModel.subModel
+            in
+            Build.handleCallback callback { subModel | csrfToken = csrfToken }
+                |> Tuple.mapFirst (\m -> { scrollModel | subModel = m })
+                |> Tuple.mapFirst BuildModel
+
+        JobModel model ->
+            Job.handleCallback callback { model | csrfToken = csrfToken }
+                |> Tuple.mapFirst JobModel
+
+        PipelineModel model ->
+            Pipeline.handleCallback callback model
+                |> Tuple.mapFirst PipelineModel
+
+        ResourceModel model ->
+            Resource.handleCallback callback { model | csrfToken = csrfToken }
+                |> Tuple.mapFirst ResourceModel
+
+        DashboardModel model ->
+            Dashboard.handleCallback callback model
+                |> Tuple.mapFirst DashboardModel
+
+        FlySuccessModel model ->
+            FlySuccess.handleCallback callback model
+                |> Tuple.mapFirst FlySuccessModel
+
+        _ ->
+            ( model, [] )
+
+
+update :
+    String
+    -> String
+    -> Concourse.CSRFToken
+    -> Msg
+    -> Model
+    -> ( Model, List Effect )
 update turbulence notFound csrfToken msg mdl =
     case ( msg, mdl ) of
         ( NewCSRFToken c, BuildModel scrollModel ) ->
-            let
-                buildModel =
-                    scrollModel.subModel
-
-                ( newBuildModel, buildEffects ) =
-                    Build.update (Build.Msgs.NewCSRFToken c) buildModel
-            in
-            ( BuildModel { scrollModel | subModel = newBuildModel }
-            , buildEffects
-                |> List.map Effects.toCmd
-                |> Cmd.batch
-                |> Cmd.map (\buildMsg -> BuildMsg (Autoscroll.SubMsg buildMsg))
-            )
+            Build.update (Build.Msgs.NewCSRFToken c) scrollModel.subModel
+                |> Tuple.mapFirst (\newBuildModel -> BuildModel { scrollModel | subModel = newBuildModel })
 
         ( BuildMsg message, BuildModel scrollModel ) ->
             let
@@ -212,82 +225,88 @@ update turbulence notFound csrfToken msg mdl =
                 model =
                     { scrollModel | subModel = { subModel | csrfToken = csrfToken } }
             in
-            handleNotFound notFound ( BuildModel, BuildMsg ) (Autoscroll.update Build.updateWithMessage message model)
+            Autoscroll.update Build.update message model
+                |> Tuple.mapFirst BuildModel
+                |> handleNotFound notFound
 
         ( NewCSRFToken c, JobModel model ) ->
-            ( JobModel { model | csrfToken = c }, Cmd.none )
+            ( JobModel { model | csrfToken = c }, [] )
 
         ( JobMsg message, JobModel model ) ->
-            handleNotFound notFound ( JobModel, JobMsg ) (Job.updateWithMessage message { model | csrfToken = csrfToken })
+            Job.update message { model | csrfToken = csrfToken }
+                |> Tuple.mapFirst JobModel
+                |> handleNotFound notFound
 
         ( PipelineMsg message, PipelineModel model ) ->
-            handleNotFound notFound ( PipelineModel, PipelineMsg ) (Pipeline.updateWithMessage message model)
+            Pipeline.update message model
+                |> Tuple.mapFirst PipelineModel
+                |> handleNotFound notFound
 
         ( NewCSRFToken c, ResourceModel model ) ->
-            ( ResourceModel { model | csrfToken = c }, Cmd.none )
+            ( ResourceModel { model | csrfToken = c }, [] )
 
         ( ResourceMsg message, ResourceModel model ) ->
-            handleNotFound notFound ( ResourceModel, ResourceMsg ) (Resource.updateWithMessage message { model | csrfToken = csrfToken })
+            Resource.update message { model | csrfToken = csrfToken }
+                |> Tuple.mapFirst ResourceModel
+                |> handleNotFound notFound
 
         ( NewCSRFToken c, DashboardModel model ) ->
-            ( DashboardModel { model | csrfToken = c }, Cmd.none )
+            ( DashboardModel { model | csrfToken = c }, [] )
 
         ( DashboardMsg message, DashboardModel model ) ->
             Dashboard.update message model
-                |> Tuple.mapSecond (List.map Dashboard.toCmd >> Cmd.batch)
-                |> superDupleWrap ( DashboardModel, DashboardMsg )
+                |> Tuple.mapFirst DashboardModel
 
         ( FlySuccessMsg message, FlySuccessModel model ) ->
-            superDupleWrap ( FlySuccessModel, FlySuccessMsg ) <| FlySuccess.update message model
+            FlySuccess.update message model
+                |> Tuple.mapFirst FlySuccessModel
 
-        ( NewCSRFToken _, _ ) ->
-            ( mdl, Cmd.none )
+        ( NewCSRFToken _, mdl ) ->
+            ( mdl, [] )
 
         unknown ->
             flip always (Debug.log "impossible combination" unknown) <|
-                ( mdl, Cmd.none )
+                ( mdl, [] )
 
 
-urlUpdate : Routes.ConcourseRoute -> Model -> ( Model, Cmd Msg )
+urlUpdate : Routes.ConcourseRoute -> Model -> ( Model, List Effect )
 urlUpdate route model =
     case ( route.logical, model ) of
         ( Routes.Pipeline team pipeline, PipelineModel mdl ) ->
-            superDupleWrap ( PipelineModel, PipelineMsg ) <|
-                Pipeline.changeToPipelineAndGroups
-                    { teamName = team
-                    , pipelineName = pipeline
-                    , turbulenceImgSrc = mdl.turbulenceImgSrc
-                    , route = route
-                    }
-                    mdl
+            Pipeline.changeToPipelineAndGroups
+                { teamName = team
+                , pipelineName = pipeline
+                , turbulenceImgSrc = mdl.turbulenceImgSrc
+                , route = route
+                }
+                mdl
+                |> Tuple.mapFirst PipelineModel
 
         ( Routes.Resource teamName pipelineName resourceName, ResourceModel mdl ) ->
-            superDupleWrap ( ResourceModel, ResourceMsg )
-                (Resource.changeToResource
-                    { teamName = teamName
-                    , pipelineName = pipelineName
-                    , resourceName = resourceName
-                    , paging = route.page
-                    , csrfToken = mdl.csrfToken
-                    }
-                    mdl
-                    |> Tuple.mapSecond Resource.Effects.runEffect
-                )
+            Resource.changeToResource
+                { teamName = teamName
+                , pipelineName = pipelineName
+                , resourceName = resourceName
+                , paging = route.page
+                , csrfToken = mdl.csrfToken
+                }
+                mdl
+                |> Tuple.mapFirst ResourceModel
 
         ( Routes.Job teamName pipelineName jobName, JobModel mdl ) ->
-            superDupleWrap ( JobModel, JobMsg ) <|
-                Job.changeToJob
-                    { teamName = teamName
-                    , pipelineName = pipelineName
-                    , jobName = jobName
-                    , paging = route.page
-                    , csrfToken = mdl.csrfToken
-                    }
-                    mdl
+            Job.changeToJob
+                { teamName = teamName
+                , pipelineName = pipelineName
+                , jobName = jobName
+                , paging = route.page
+                , csrfToken = mdl.csrfToken
+                }
+                mdl
+                |> Tuple.mapFirst JobModel
 
         ( Routes.Build teamName pipelineName jobName buildName, BuildModel scrollModel ) ->
             let
-                ( submodel, subcmd ) =
+                ( submodel, cmd ) =
                     Build.changeToBuild
                         (Build.JobBuildPage
                             { teamName = teamName
@@ -297,15 +316,11 @@ urlUpdate route model =
                             }
                         )
                         scrollModel.subModel
-                        |> Tuple.mapSecond (List.map Effects.toCmd)
-                        |> Tuple.mapSecond Cmd.batch
             in
-            ( BuildModel { scrollModel | subModel = submodel }
-            , Cmd.map BuildMsg (Cmd.map Autoscroll.SubMsg subcmd)
-            )
+            ( BuildModel { scrollModel | subModel = submodel }, cmd )
 
         _ ->
-            ( model, Cmd.none )
+            ( model, [] )
 
 
 view : Model -> Html Msg

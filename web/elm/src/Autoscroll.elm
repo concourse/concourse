@@ -1,25 +1,20 @@
-module Autoscroll
-    exposing
-        ( init
-        , update
-        , urlUpdate
-        , view
-        , subscriptions
-        , ScrollBehavior(..)
-        , Msg(SubMsg)
-        , Model
-        )
+module Autoscroll exposing
+    ( Model
+    , Msg(SubMsg)
+    , ScrollBehavior(..)
+    , subscriptions
+    , update
+    , view
+    )
 
 import AnimationFrame
+import Effects
 import Html exposing (Html)
-import Task
-import Scroll
-import UpdateMsg exposing (UpdateMsg)
 
 
 type alias Model subModel =
-    { subModel : subModel
-    , scrollBehaviorFunc : subModel -> ScrollBehavior
+    { scrollBehaviorFunc : subModel -> ScrollBehavior
+    , subModel : subModel
     }
 
 
@@ -32,49 +27,34 @@ type ScrollBehavior
 type Msg subMsg
     = SubMsg subMsg
     | ScrollDown
-    | ScrolledDown
 
 
-init : (subModel -> ScrollBehavior) -> ( subModel, Cmd subMsg ) -> ( Model subModel, Cmd (Msg subMsg) )
-init toScrollMsg ( subModel, subCmd ) =
-    ( Model subModel toScrollMsg, Cmd.map SubMsg subCmd )
-
-
-update : (subMsg -> subModel -> ( subModel, Cmd subMsg, Maybe UpdateMsg )) -> Msg subMsg -> Model subModel -> ( Model subModel, Cmd (Msg subMsg), Maybe UpdateMsg )
+update :
+    (subMsg -> subModel -> ( subModel, List Effects.Effect ))
+    -> Msg subMsg
+    -> Model subModel
+    -> ( Model subModel, List Effects.Effect )
 update subUpdate action model =
     case action of
         SubMsg subMsg ->
             let
-                ( subModel, subCmd, subUpdateMsg ) =
+                ( subModel, subCmd ) =
                     subUpdate subMsg model.subModel
             in
-                ( { model | subModel = subModel }, Cmd.map SubMsg subCmd, subUpdateMsg )
+            ( { model | subModel = subModel }, subCmd )
 
         ScrollDown ->
             ( model
             , case model.scrollBehaviorFunc model.subModel of
                 ScrollElement ele ->
-                    scrollToBottom ele
+                    [ Effects.Scroll (Effects.ToBottomOf ele) ]
 
                 ScrollWindow ->
-                    scrollToWindowBottom
+                    [ Effects.Scroll Effects.ToWindowBottom ]
 
                 NoScroll ->
-                    Cmd.none
-            , Nothing
+                    []
             )
-
-        ScrolledDown ->
-            ( model, Cmd.none, Nothing )
-
-
-urlUpdate : (pageResult -> subModel -> ( subModel, Cmd subMsg )) -> pageResult -> Model subModel -> ( Model subModel, Cmd (Msg subMsg) )
-urlUpdate subUrlUpdate pageResult model =
-    let
-        ( newSubModel, subMsg ) =
-            subUrlUpdate pageResult model.subModel
-    in
-        ( { model | subModel = newSubModel }, Cmd.map SubMsg subMsg )
 
 
 view : (subModel -> Html subMsg) -> Model subModel -> Html (Msg subMsg)
@@ -88,20 +68,11 @@ subscriptions subSubscriptions model =
         subSubs =
             Sub.map SubMsg (subSubscriptions model.subModel)
     in
-        if model.scrollBehaviorFunc model.subModel /= NoScroll then
-            Sub.batch
-                [ AnimationFrame.times (always ScrollDown)
-                , subSubs
-                ]
-        else
-            subSubs
+    if model.scrollBehaviorFunc model.subModel /= NoScroll then
+        Sub.batch
+            [ AnimationFrame.times (always ScrollDown)
+            , subSubs
+            ]
 
-
-scrollToBottom : String -> Cmd (Msg x)
-scrollToBottom ele =
-    Task.perform (always ScrolledDown) (Scroll.toBottom ele)
-
-
-scrollToWindowBottom : Cmd (Msg x)
-scrollToWindowBottom =
-    Task.perform (always ScrolledDown) (Scroll.toWindowBottom)
+    else
+        subSubs

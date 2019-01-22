@@ -1,19 +1,14 @@
 module Dashboard.Msgs exposing (Msg(..))
 
 import Concourse.Cli as Cli
-import Dashboard.APIData as APIData
 import Dashboard.Models as Models
-import Http
 import Keyboard
-import RemoteData
 import Time
 import Window
 
 
 type Msg
-    = Noop
-    | APIDataFetched (RemoteData.WebData ( Time.Time, APIData.APIData ))
-    | ClockTick Time.Time
+    = ClockTick Time.Time
     | AutoRefresh Time.Time
     | ShowFooter
     | KeyPressed Keyboard.KeyCode
@@ -27,10 +22,9 @@ type Msg
     | PipelineButtonHover (Maybe Models.Pipeline)
     | CliHover (Maybe Cli.Cli)
     | TopCliHover (Maybe Cli.Cli)
-    | ScreenResized Window.Size
+    | ResizeScreen Window.Size
     | LogIn
     | LogOut
-    | LoggedOut (Result Http.Error ())
     | FilterMsg String
     | FocusMsg
     | BlurMsg

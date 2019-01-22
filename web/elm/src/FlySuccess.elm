@@ -1,5 +1,12 @@
-module FlySuccess exposing (Model, Msg(..), init, update, view)
+module FlySuccess exposing
+    ( Model
+    , handleCallback
+    , init
+    , update
+    , view
+    )
 
+import Effects exposing (Callback(..), Effect(..))
 import FlySuccess.Models
     exposing
         ( ButtonState(..)
@@ -9,19 +16,12 @@ import FlySuccess.Models
         , isClicked
         , isPending
         )
+import FlySuccess.Msgs exposing (Msg(..))
 import FlySuccess.Styles as Styles
 import FlySuccess.Text as Text
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
-import Http
-import QueryString
-
-
-type Msg
-    = CopyTokenButtonHover Bool
-    | CopyToken
-    | TokenSentToFly Bool
 
 
 type alias Model =
@@ -31,8 +31,8 @@ type alias Model =
     }
 
 
-init : { authToken : String, flyPort : Maybe Int } -> ( Model, Cmd Msg )
-init ({ authToken, flyPort } as params) =
+init : { authToken : String, flyPort : Maybe Int } -> ( Model, List Effect )
+init { authToken, flyPort } =
     ( { buttonState = Unhovered
       , authToken = authToken
       , tokenTransfer =
@@ -43,48 +43,35 @@ init ({ authToken, flyPort } as params) =
                 Nothing ->
                     Just <| Err ()
       }
-    , sendTokenToFly params
+    , case flyPort of
+        Just fp ->
+            [ SendTokenToFly authToken fp ]
+
+        Nothing ->
+            []
     )
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+handleCallback : Callback -> Model -> ( Model, List Effect )
+handleCallback msg model =
+    case msg of
+        TokenSentToFly success ->
+            ( { model | tokenTransfer = Just <| Ok success }, [] )
+
+        _ ->
+            ( model, [] )
+
+
+update : Msg -> Model -> ( Model, List Effect )
 update msg model =
     case msg of
         CopyTokenButtonHover hovered ->
             ( { model | buttonState = hover hovered model.buttonState }
-            , Cmd.none
+            , []
             )
 
         CopyToken ->
-            ( { model | buttonState = Clicked }, Cmd.none )
-
-        TokenSentToFly success ->
-            ( { model | tokenTransfer = Just <| Ok success }, Cmd.none )
-
-
-sendTokenToFly : { authToken : String, flyPort : Maybe Int } -> Cmd Msg
-sendTokenToFly { authToken, flyPort } =
-    case flyPort of
-        Nothing ->
-            Cmd.none
-
-        Just fp ->
-            let
-                queryString =
-                    QueryString.empty
-                        |> QueryString.add "token" authToken
-                        |> QueryString.render
-            in
-            Http.request
-                { method = "GET"
-                , headers = []
-                , url = "http://127.0.0.1:" ++ toString fp ++ queryString
-                , body = Http.emptyBody
-                , expect = Http.expectStringResponse (\_ -> Ok ())
-                , timeout = Nothing
-                , withCredentials = False
-                }
-                |> Http.send (\r -> TokenSentToFly (r == Ok ()))
+            ( { model | buttonState = Clicked }, [] )
 
 
 view : Model -> Html Msg

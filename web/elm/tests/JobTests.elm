@@ -11,13 +11,15 @@ import DashboardTests
         )
 import Date
 import Dict
+import Effects exposing (Callback(..))
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Http
-import Job exposing (Msg(..), update)
+import Job exposing (update)
+import Job.Msgs exposing (Msg(..))
 import Layout
 import RemoteData
-import SubPage
+import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
@@ -77,7 +79,6 @@ all =
                 defaultModel : Job.Model
                 defaultModel =
                     Job.init
-                        { title = \_ -> Cmd.none }
                         { jobName = "some-job"
                         , teamName = "some-team"
                         , pipelineName = "some-pipeline"
@@ -111,27 +112,26 @@ all =
                         , password = ""
                         }
                         |> Tuple.first
-                        |> Layout.update
-                            (Layout.SubMsg 1 <|
-                                SubPage.JobMsg <|
-                                    Job.JobFetched <|
-                                        Ok
-                                            { name = "job"
-                                            , pipelineName = "pipeline"
-                                            , teamName = "team"
-                                            , pipeline =
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
-                                            , nextBuild = Nothing
-                                            , finishedBuild = Just someBuild
-                                            , transitionBuild = Nothing
-                                            , paused = paused
-                                            , disableManualTrigger = disabled
-                                            , inputs = []
-                                            , outputs = []
-                                            , groups = []
-                                            }
+                        |> Layout.handleCallback
+                            (Effects.SubPage 1)
+                            (JobFetched <|
+                                Ok
+                                    { name = "job"
+                                    , pipelineName = "pipeline"
+                                    , teamName = "team"
+                                    , pipeline =
+                                        { pipelineName = "pipeline"
+                                        , teamName = "team"
+                                        }
+                                    , nextBuild = Nothing
+                                    , finishedBuild = Just someBuild
+                                    , transitionBuild = Nothing
+                                    , paused = paused
+                                    , disableManualTrigger = disabled
+                                    , inputs = []
+                                    , outputs = []
+                                    , groups = []
+                                    }
                             )
                         |> Tuple.first
 
@@ -179,40 +179,39 @@ all =
                             |> Query.count (Expect.equal 2)
                 , test "loading build has spinners for inputs and outputs" <|
                     init { disabled = False, paused = False }
-                        >> Layout.update
-                            (Layout.SubMsg 1 <|
-                                SubPage.JobMsg <|
-                                    Job.JobBuildsFetched <|
-                                        let
-                                            jobId =
-                                                { jobName = "job"
-                                                , pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
+                        >> Layout.handleCallback
+                            (Effects.SubPage 1)
+                            (JobBuildsFetched <|
+                                let
+                                    jobId =
+                                        { jobName = "job"
+                                        , pipelineName = "pipeline"
+                                        , teamName = "team"
+                                        }
 
-                                            status =
-                                                BuildStatusSucceeded
+                                    status =
+                                        BuildStatusSucceeded
 
-                                            builds =
-                                                [ { id = 0
-                                                  , name = "0"
-                                                  , job = Just jobId
-                                                  , status = status
-                                                  , duration =
-                                                        { startedAt = Nothing
-                                                        , finishedAt = Nothing
-                                                        }
-                                                  , reapTime = Nothing
-                                                  }
-                                                ]
-                                        in
-                                        Ok
-                                            { pagination =
-                                                { previousPage = Nothing
-                                                , nextPage = Nothing
+                                    builds =
+                                        [ { id = 0
+                                          , name = "0"
+                                          , job = Just jobId
+                                          , status = status
+                                          , duration =
+                                                { startedAt = Nothing
+                                                , finishedAt = Nothing
                                                 }
-                                            , content = builds
-                                            }
+                                          , reapTime = Nothing
+                                          }
+                                        ]
+                                in
+                                Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage = Nothing
+                                        }
+                                    , content = builds
+                                    }
                             )
                         >> Tuple.first
                         >> Layout.view
@@ -283,12 +282,12 @@ all =
                     }
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
-                            Job.Hover Job.Toggle
+                        SubPage.Msgs.JobMsg <|
+                            Job.Msgs.Hover Job.Msgs.Toggle
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
-                            Job.Hover Job.None
+                        SubPage.Msgs.JobMsg <|
+                            Job.Msgs.Hover Job.Msgs.None
                 }
             , defineHoverBehaviour
                 { name = "play/pause button when job is paused"
@@ -319,12 +318,12 @@ all =
                     }
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
-                            Job.Hover Job.Toggle
+                        SubPage.Msgs.JobMsg <|
+                            Job.Msgs.Hover Job.Msgs.Toggle
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
-                            Job.Hover Job.None
+                        SubPage.Msgs.JobMsg <|
+                            Job.Msgs.Hover Job.Msgs.None
                 }
             , test "trigger build button has grey background" <|
                 init { disabled = False, paused = False }
@@ -390,12 +389,12 @@ all =
                     }
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
-                            Job.Hover Job.Trigger
+                        SubPage.Msgs.JobMsg <|
+                            Job.Msgs.Hover Job.Msgs.Trigger
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
-                            Job.Hover Job.None
+                        SubPage.Msgs.JobMsg <|
+                            Job.Msgs.Hover Job.Msgs.None
                 }
             , defineHoverBehaviour
                 { name = "disabled trigger build button"
@@ -450,49 +449,48 @@ all =
                     }
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
-                            Job.Hover Job.Trigger
+                        SubPage.Msgs.JobMsg <|
+                            Job.Msgs.Hover Job.Msgs.Trigger
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
-                            Job.Hover Job.None
+                        SubPage.Msgs.JobMsg <|
+                            Job.Msgs.Hover Job.Msgs.None
                 }
             , test "inputs icon on build" <|
                 init { disabled = False, paused = False }
-                    >> Layout.update
-                        (Layout.SubMsg 1 <|
-                            SubPage.JobMsg <|
-                                Job.JobBuildsFetched <|
-                                    let
-                                        jobId =
-                                            { jobName = "job"
-                                            , pipelineName = "pipeline"
-                                            , teamName = "team"
-                                            }
+                    >> Layout.handleCallback
+                        (Effects.SubPage 1)
+                        (JobBuildsFetched <|
+                            let
+                                jobId =
+                                    { jobName = "job"
+                                    , pipelineName = "pipeline"
+                                    , teamName = "team"
+                                    }
 
-                                        status =
-                                            BuildStatusSucceeded
+                                status =
+                                    BuildStatusSucceeded
 
-                                        builds =
-                                            [ { id = 0
-                                              , name = "0"
-                                              , job = Just jobId
-                                              , status = status
-                                              , duration =
-                                                    { startedAt = Nothing
-                                                    , finishedAt = Nothing
-                                                    }
-                                              , reapTime = Nothing
-                                              }
-                                            ]
-                                    in
-                                    Ok
-                                        { pagination =
-                                            { previousPage = Nothing
-                                            , nextPage = Nothing
+                                builds =
+                                    [ { id = 0
+                                      , name = "0"
+                                      , job = Just jobId
+                                      , status = status
+                                      , duration =
+                                            { startedAt = Nothing
+                                            , finishedAt = Nothing
                                             }
-                                        , content = builds
-                                        }
+                                      , reapTime = Nothing
+                                      }
+                                    ]
+                            in
+                            Ok
+                                { pagination =
+                                    { previousPage = Nothing
+                                    , nextPage = Nothing
+                                    }
+                                , content = builds
+                                }
                         )
                     >> Tuple.first
                     >> Layout.view
@@ -526,40 +524,39 @@ all =
                         ]
             , test "outputs icon on build" <|
                 init { disabled = False, paused = False }
-                    >> Layout.update
-                        (Layout.SubMsg 1 <|
-                            SubPage.JobMsg <|
-                                Job.JobBuildsFetched <|
-                                    let
-                                        jobId =
-                                            { jobName = "job"
-                                            , pipelineName = "pipeline"
-                                            , teamName = "team"
-                                            }
+                    >> Layout.handleCallback
+                        (Effects.SubPage 1)
+                        (JobBuildsFetched <|
+                            let
+                                jobId =
+                                    { jobName = "job"
+                                    , pipelineName = "pipeline"
+                                    , teamName = "team"
+                                    }
 
-                                        status =
-                                            BuildStatusSucceeded
+                                status =
+                                    BuildStatusSucceeded
 
-                                        builds =
-                                            [ { id = 0
-                                              , name = "0"
-                                              , job = Just jobId
-                                              , status = status
-                                              , duration =
-                                                    { startedAt = Nothing
-                                                    , finishedAt = Nothing
-                                                    }
-                                              , reapTime = Nothing
-                                              }
-                                            ]
-                                    in
-                                    Ok
-                                        { pagination =
-                                            { previousPage = Nothing
-                                            , nextPage = Nothing
+                                builds =
+                                    [ { id = 0
+                                      , name = "0"
+                                      , job = Just jobId
+                                      , status = status
+                                      , duration =
+                                            { startedAt = Nothing
+                                            , finishedAt = Nothing
                                             }
-                                        , content = builds
-                                        }
+                                      , reapTime = Nothing
+                                      }
+                                    ]
+                            in
+                            Ok
+                                { pagination =
+                                    { previousPage = Nothing
+                                    , nextPage = Nothing
+                                    }
+                                , content = builds
+                                }
                         )
                     >> Tuple.first
                     >> Layout.view
@@ -632,40 +629,39 @@ all =
                         ]
             , test "pagination chevrons with no pages" <|
                 init { disabled = False, paused = False }
-                    >> Layout.update
-                        (Layout.SubMsg 1 <|
-                            SubPage.JobMsg <|
-                                Job.JobBuildsFetched <|
-                                    let
-                                        jobId =
-                                            { jobName = "job"
-                                            , pipelineName = "pipeline"
-                                            , teamName = "team"
-                                            }
+                    >> Layout.handleCallback
+                        (Effects.SubPage 1)
+                        (JobBuildsFetched <|
+                            let
+                                jobId =
+                                    { jobName = "job"
+                                    , pipelineName = "pipeline"
+                                    , teamName = "team"
+                                    }
 
-                                        status =
-                                            BuildStatusSucceeded
+                                status =
+                                    BuildStatusSucceeded
 
-                                        builds =
-                                            [ { id = 0
-                                              , name = "0"
-                                              , job = Just jobId
-                                              , status = status
-                                              , duration =
-                                                    { startedAt = Nothing
-                                                    , finishedAt = Nothing
-                                                    }
-                                              , reapTime = Nothing
-                                              }
-                                            ]
-                                    in
-                                    Ok
-                                        { pagination =
-                                            { previousPage = Nothing
-                                            , nextPage = Nothing
+                                builds =
+                                    [ { id = 0
+                                      , name = "0"
+                                      , job = Just jobId
+                                      , status = status
+                                      , duration =
+                                            { startedAt = Nothing
+                                            , finishedAt = Nothing
                                             }
-                                        , content = builds
-                                        }
+                                      , reapTime = Nothing
+                                      }
+                                    ]
+                            in
+                            Ok
+                                { pagination =
+                                    { previousPage = Nothing
+                                    , nextPage = Nothing
+                                    }
+                                , content = builds
+                                }
                         )
                     >> Tuple.first
                     >> Layout.view
@@ -756,18 +752,17 @@ all =
                             }
                     in
                     init { disabled = False, paused = False } ()
-                        |> Layout.update
-                            (Layout.SubMsg 1 <|
-                                SubPage.JobMsg <|
-                                    Job.JobBuildsFetched <|
-                                        Ok
-                                            { pagination =
-                                                { previousPage =
-                                                    Just prevPage
-                                                , nextPage = Nothing
-                                                }
-                                            , content = builds
-                                            }
+                        |> Layout.handleCallback
+                            (Effects.SubPage 1)
+                            (JobBuildsFetched <|
+                                Ok
+                                    { pagination =
+                                        { previousPage =
+                                            Just prevPage
+                                        , nextPage = Nothing
+                                        }
+                                    , content = builds
+                                    }
                             )
                         |> Tuple.first
                 , query =
@@ -836,12 +831,12 @@ all =
                     }
                 , mouseEnterMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
-                            Job.Hover Job.PreviousPage
+                        SubPage.Msgs.JobMsg <|
+                            Job.Msgs.Hover Job.Msgs.PreviousPage
                 , mouseLeaveMsg =
                     Layout.SubMsg 1 <|
-                        SubPage.JobMsg <|
-                            Job.Hover Job.None
+                        SubPage.Msgs.JobMsg <|
+                            Job.Msgs.Hover Job.Msgs.None
                 }
             , test "JobBuildsFetched" <|
                 \_ ->
@@ -867,7 +862,7 @@ all =
                         }
                     <|
                         Tuple.first <|
-                            update
+                            Job.handleCallback
                                 (JobBuildsFetched <|
                                     Ok
                                         { content = [ someBuild ]
@@ -884,7 +879,7 @@ all =
                         defaultModel
                     <|
                         Tuple.first <|
-                            update
+                            Job.handleCallback
                                 (JobBuildsFetched <| Err Http.NetworkError)
                                 defaultModel
             , test "JobFetched" <|
@@ -895,14 +890,14 @@ all =
                         }
                     <|
                         Tuple.first <|
-                            update (JobFetched <| Ok someJob) defaultModel
+                            Job.handleCallback (JobFetched <| Ok someJob) defaultModel
             , test "JobFetched error" <|
                 \_ ->
                     Expect.equal
                         defaultModel
                     <|
                         Tuple.first <|
-                            update
+                            Job.handleCallback
                                 (JobFetched <| Err Http.NetworkError)
                                 defaultModel
             , test "BuildResourcesFetched" <|
@@ -929,7 +924,7 @@ all =
                         defaultModel
                     <|
                         Tuple.first <|
-                            update (BuildResourcesFetched 1 (Ok buildResources))
+                            Job.handleCallback (BuildResourcesFetched (Ok ( 1, buildResources )))
                                 defaultModel
             , test "BuildResourcesFetched error" <|
                 \_ ->
@@ -937,8 +932,8 @@ all =
                         defaultModel
                     <|
                         Tuple.first <|
-                            update
-                                (BuildResourcesFetched 1 (Err Http.NetworkError))
+                            Job.handleCallback
+                                (BuildResourcesFetched (Err Http.NetworkError))
                                 defaultModel
             , test "TogglePaused" <|
                 \_ ->
@@ -961,7 +956,7 @@ all =
                         }
                     <|
                         Tuple.first <|
-                            update
+                            Job.handleCallback
                                 (PausedToggled <| Ok ())
                                 { defaultModel | job = RemoteData.Success someJob }
             , test "PausedToggled error" <|
@@ -970,7 +965,7 @@ all =
                         { defaultModel | job = RemoteData.Success someJob }
                     <|
                         Tuple.first <|
-                            update
+                            Job.handleCallback
                                 (PausedToggled <| Err Http.NetworkError)
                                 { defaultModel | job = RemoteData.Success someJob }
             , test "PausedToggled unauthorized" <|
@@ -979,7 +974,7 @@ all =
                         { defaultModel | job = RemoteData.Success someJob }
                     <|
                         Tuple.first <|
-                            update
+                            Job.handleCallback
                                 (PausedToggled <|
                                     Err <|
                                         Http.BadStatus

@@ -3,20 +3,21 @@ module Build exposing
     , Page(..)
     , changeToBuild
     , getScrollBehavior
+    , getUpdateMessage
+    , handleCallback
     , init
     , initJobBuildPage
     , subscriptions
     , update
-    , updateWithMessage
     , view
     )
 
 import Autoscroll
-import Build.Effects exposing (Effect(..), toCmd)
 import Build.Msgs exposing (HoveredButton(..), Msg(..))
+import Build.Output
+import Build.StepTree as StepTree
 import Build.Styles as Styles
 import BuildDuration
-import BuildOutput
 import Char
 import Concourse
 import Concourse.BuildStatus
@@ -25,6 +26,7 @@ import Date exposing (Date)
 import Date.Format
 import Debug
 import Dict exposing (Dict)
+import Effects exposing (Callback(..), Effect(..), ScrollDirection(..), runEffect)
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -50,17 +52,11 @@ import RemoteData exposing (WebData)
 import Routes
 import Scroll
 import Spinner
-import StepTree
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
 import Time exposing (Time)
 import UpdateMsg exposing (UpdateMsg)
 import Views
-
-
-type alias Ports =
-    { title : String -> Cmd Msg
-    }
 
 
 type Page
@@ -86,7 +82,7 @@ initJobBuildPage teamName pipelineName jobName buildName =
 type alias CurrentBuild =
     { build : Concourse.Build
     , prep : Maybe Concourse.BuildPrep
-    , output : Maybe BuildOutput.Model
+    , output : Maybe Build.Output.Model
     }
 
 
@@ -98,7 +94,6 @@ type alias Model =
     , currentBuild : WebData CurrentBuild
     , browsingIndex : Int
     , autoScroll : Bool
-    , ports : Ports
     , csrfToken : String
     , previousKeyPress : Maybe Char
     , previousTriggerBuildByKey : Bool
@@ -121,8 +116,8 @@ type alias Flags =
     }
 
 
-init : Ports -> Flags -> Page -> ( Model, List Effect )
-init ports flags page =
+init : Flags -> Page -> ( Model, List Effect )
+init flags page =
     let
         ( model, effects ) =
             changeToBuild
@@ -134,7 +129,6 @@ init ports flags page =
                 , currentBuild = RemoteData.NotAsked
                 , browsingIndex = 0
                 , autoScroll = True
-                , ports = ports
                 , csrfToken = flags.csrfToken
                 , previousKeyPress = Nothing
                 , previousTriggerBuildByKey = False
@@ -214,40 +208,19 @@ extractTitle model =
             ""
 
 
-updateWithMessage : Msg -> Model -> ( Model, Cmd Msg, Maybe UpdateMsg )
-updateWithMessage message model =
-    let
-        ( mdl, effects ) =
-            update message model
-    in
-    case mdl.currentBuild of
+getUpdateMessage : Model -> UpdateMsg
+getUpdateMessage model =
+    case model.currentBuild of
         RemoteData.Failure _ ->
-            ( mdl, Cmd.batch (List.map toCmd effects), Just UpdateMsg.NotFound )
+            UpdateMsg.NotFound
 
         _ ->
-            ( mdl, Cmd.batch (List.map toCmd effects), Nothing )
+            UpdateMsg.AOK
 
 
-update : Msg -> Model -> ( Model, List Effect )
-update action model =
+handleCallback : Callback -> Model -> ( Model, List Effect )
+handleCallback action model =
     case action of
-        Noop ->
-            ( model, [] )
-
-        SwitchToBuild build ->
-            ( model, [ NewUrl <| Routes.buildRoute build ] )
-
-        Hover state ->
-            ( { model | hoveredButton = state }, [] )
-
-        TriggerBuild job ->
-            case job of
-                Nothing ->
-                    ( model, [] )
-
-                Just someJob ->
-                    ( model, [ DoTriggerBuild someJob model.csrfToken ] )
-
         BuildTriggered (Ok build) ->
             update
                 (SwitchToBuild build)
@@ -255,26 +228,14 @@ update action model =
                     | history = build :: model.history
                 }
 
-        BuildTriggered (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, [ RedirectToLogin "" ] )
-
-                    else
-                        ( model, [] )
-
-                _ ->
-                    ( model, [] )
-
-        BuildFetched browsingIndex (Ok build) ->
+        BuildFetched (Ok ( browsingIndex, build )) ->
             handleBuildFetched browsingIndex build model
 
-        BuildFetched _ (Err err) ->
+        BuildFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
-                        ( model, [ RedirectToLogin "" ] )
+                        ( model, [ RedirectToLogin ] )
 
                     else if status.code == 404 then
                         ( { model | currentBuild = RemoteData.Failure err }
@@ -287,56 +248,18 @@ update action model =
                 _ ->
                     ( model, [] )
 
-        AbortBuild buildId ->
-            ( model, [ DoAbortBuild buildId model.csrfToken ] )
-
         BuildAborted (Ok ()) ->
             ( model, [] )
 
-        BuildAborted (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        ( model, [ RedirectToLogin "" ] )
-
-                    else
-                        ( model, [] )
-
-                _ ->
-                    ( model, [] )
-
-        BuildPrepFetched browsingIndex (Ok buildPrep) ->
+        BuildPrepFetched (Ok ( browsingIndex, buildPrep )) ->
             handleBuildPrepFetched browsingIndex buildPrep model
 
-        BuildPrepFetched _ (Err err) ->
+        BuildPrepFetched (Err err) ->
             flip always (Debug.log "failed to fetch build preparation" err) <|
                 ( model, [] )
 
         PlanAndResourcesFetched result ->
-            updateOutput (BuildOutput.planAndResourcesFetched result) model
-
-        BuildEventsMsg action ->
-            updateOutput (BuildOutput.handleEventsMsg action) model
-
-        ToggleStep id ->
-            updateOutput
-                (BuildOutput.handleStepTreeMsg <| StepTree.toggleStep id)
-                model
-
-        SwitchTab id tab ->
-            updateOutput
-                (BuildOutput.handleStepTreeMsg <| StepTree.switchTab id tab)
-                model
-
-        SetHighlight id line ->
-            updateOutput
-                (BuildOutput.handleStepTreeMsg <| StepTree.setHighlight id line)
-                model
-
-        ExtendHighlight id line ->
-            updateOutput
-                (BuildOutput.handleStepTreeMsg <| StepTree.extendHighlight id line)
-                model
+            updateOutput (Build.Output.planAndResourcesFetched result) model
 
         BuildHistoryFetched (Err err) ->
             flip always (Debug.log "failed to fetch build history" err) <|
@@ -352,15 +275,65 @@ update action model =
             flip always (Debug.log "failed to fetch build job details" err) <|
                 ( model, [] )
 
+        _ ->
+            ( model, [] )
+
+
+update : Msg -> Model -> ( Model, List Effect )
+update action model =
+    case action of
+        Noop ->
+            ( model, [] )
+
+        SwitchToBuild build ->
+            ( model, [ NavigateTo <| Routes.buildRoute build ] )
+
+        Hover state ->
+            ( { model | hoveredButton = state }, [] )
+
+        TriggerBuild job ->
+            case job of
+                Nothing ->
+                    ( model, [] )
+
+                Just someJob ->
+                    ( model, [ DoTriggerBuild someJob model.csrfToken ] )
+
+        AbortBuild buildId ->
+            ( model, [ DoAbortBuild buildId model.csrfToken ] )
+
+        BuildEventsMsg action ->
+            updateOutput (Build.Output.handleEventsMsg action) model
+
+        ToggleStep id ->
+            updateOutput
+                (Build.Output.handleStepTreeMsg <| StepTree.toggleStep id)
+                model
+
+        SwitchTab id tab ->
+            updateOutput
+                (Build.Output.handleStepTreeMsg <| StepTree.switchTab id tab)
+                model
+
+        SetHighlight id line ->
+            updateOutput
+                (Build.Output.handleStepTreeMsg <| StepTree.setHighlight id line)
+                model
+
+        ExtendHighlight id line ->
+            updateOutput
+                (Build.Output.handleStepTreeMsg <| StepTree.extendHighlight id line)
+                model
+
         RevealCurrentBuildInHistory ->
-            ( model, [ ScrollToCurrentBuildInHistory ] )
+            ( model, [ Scroll ToCurrentBuild ] )
 
         ScrollBuilds event ->
             if event.deltaX == 0 then
-                ( model, [ DoScrollBuilds event.deltaY ] )
+                ( model, [ Scroll (Builds event.deltaY) ] )
 
             else
-                ( model, [ DoScrollBuilds -event.deltaX ] )
+                ( model, [ Scroll (Builds -event.deltaX) ] )
 
         ClockTick now ->
             ( { model | now = Just now }, [] )
@@ -373,7 +346,7 @@ update action model =
                 ( { model | autoScroll = False }, [] )
 
         NavTo url ->
-            ( model, [ NewUrl url ] )
+            ( model, [ NavigateTo url ] )
 
         NewCSRFToken token ->
             ( { model | csrfToken = token }, [] )
@@ -391,8 +364,8 @@ update action model =
 
 
 updateOutput :
-    (BuildOutput.Model
-     -> ( BuildOutput.Model, List Effect, BuildOutput.OutMsg )
+    (Build.Output.Model
+     -> ( Build.Output.Model, List Effect, Build.Output.OutMsg )
     )
     -> Model
     -> ( Model, List Effect )
@@ -455,10 +428,10 @@ handleKeyPressed key model =
                     ( newModel, [] )
 
         'j' ->
-            ( newModel, [ ScrollDown ] )
+            ( newModel, [ Scroll Down ] )
 
         'k' ->
-            ( newModel, [ ScrollUp ] )
+            ( newModel, [ Scroll Up ] )
 
         'T' ->
             if not model.previousTriggerBuildByKey then
@@ -483,13 +456,13 @@ handleKeyPressed key model =
 
         'g' ->
             if model.previousKeyPress == Just 'g' then
-                ( { newModel | autoScroll = False }, [ ScrollToWindowTop ] )
+                ( { newModel | autoScroll = False }, [ Scroll ToWindowTop ] )
 
             else
                 ( newModel, [] )
 
         'G' ->
-            ( { newModel | autoScroll = True }, [ ScrollToWindowBottom ] )
+            ( { newModel | autoScroll = True }, [ Scroll ToWindowBottom ] )
 
         '?' ->
             ( { model | showHelp = not model.showHelp }, [] )
@@ -589,8 +562,8 @@ handleBuildFetched browsingIndex build model =
         in
         ( newModel
         , cmd
-            ++ [ SetFavIcon build.status
-               , SetTitle model.ports.title (extractTitle newModel)
+            ++ [ SetFavIcon (Just build.status)
+               , SetTitle (extractTitle newModel)
                ]
             ++ fetchJobAndHistory
         )
@@ -610,7 +583,7 @@ initBuildOutput : Concourse.Build -> Model -> ( Model, List Effect )
 initBuildOutput build model =
     let
         ( output, outputCmd ) =
-            BuildOutput.init { hash = model.hash } build
+            Build.Output.init { hash = model.hash } build
     in
     ( { model
         | currentBuild =
@@ -629,7 +602,7 @@ handleBuildJobFetched job model =
             { model | job = Just job }
     in
     ( withJobDetails
-    , [ SetTitle model.ports.title (extractTitle withJobDetails) ]
+    , [ SetTitle (extractTitle withJobDetails) ]
     )
 
 
@@ -839,11 +812,11 @@ mmDDYY d =
     Date.Format.format "%m/%d/" d ++ String.right 2 (Date.Format.format "%Y" d)
 
 
-viewBuildOutput : Int -> Maybe BuildOutput.Model -> Html Msg
+viewBuildOutput : Int -> Maybe Build.Output.Model -> Html Msg
 viewBuildOutput browsingIndex output =
     case output of
         Just o ->
-            BuildOutput.view o
+            Build.Output.view o
 
         Nothing ->
             Html.div [] []
@@ -1149,13 +1122,13 @@ getScrollBehavior model =
                     Autoscroll.ScrollWindow
 
 
-handleOutMsg : BuildOutput.OutMsg -> Model -> ( Model, List Effect )
+handleOutMsg : Build.Output.OutMsg -> Model -> ( Model, List Effect )
 handleOutMsg outMsg model =
     case outMsg of
-        BuildOutput.OutNoop ->
+        Build.Output.OutNoop ->
             ( model, [] )
 
-        BuildOutput.OutBuildStatus status date ->
+        Build.Output.OutBuildStatus status date ->
             case model.currentBuild |> RemoteData.toMaybe of
                 Nothing ->
                     ( model, [] )
@@ -1190,7 +1163,7 @@ handleOutMsg outMsg model =
                         , currentBuild = RemoteData.Success { currentBuild | build = newBuild }
                       }
                     , if Concourse.BuildStatus.isRunning build.status then
-                        [ SetFavIcon status ]
+                        [ SetFavIcon (Just status) ]
 
                       else
                         []

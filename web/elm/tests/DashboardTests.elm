@@ -21,6 +21,7 @@ import Dashboard.Group as Group
 import Dashboard.Msgs as Msgs
 import Date exposing (Date)
 import Dict
+import Effects
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Html.Styled as HS
@@ -482,8 +483,8 @@ all =
         , test "HD view redirects to normal view when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = True }
-                    |> Dashboard.update
-                        (Msgs.APIDataFetched <|
+                    |> Dashboard.handleCallback
+                        (Effects.APIDataFetched <|
                             RemoteData.Success
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
@@ -491,10 +492,10 @@ all =
                         )
                     |> Expect.all
                         [ Tuple.second
-                            >> Expect.equal [ Dashboard.ModifyUrl "/" ]
+                            >> Expect.equal [ Effects.ModifyUrl "/" ]
                         , Tuple.first
-                            >> Dashboard.update
-                                (Msgs.APIDataFetched <|
+                            >> Dashboard.handleCallback
+                                (Effects.APIDataFetched <|
                                     RemoteData.Success
                                         ( 0
                                         , apiData
@@ -518,16 +519,16 @@ all =
         , test "HD view redirects to no pipelines view when pipelines disappear" <|
             \_ ->
                 whenOnDashboard { highDensity = True }
-                    |> Dashboard.update
-                        (Msgs.APIDataFetched <|
+                    |> Dashboard.handleCallback
+                        (Effects.APIDataFetched <|
                             RemoteData.Success
                                 ( 0
                                 , apiData [ ( "team", [ "pipeline" ] ) ] Nothing
                                 )
                         )
                     |> Tuple.first
-                    |> Dashboard.update
-                        (Msgs.APIDataFetched <|
+                    |> Dashboard.handleCallback
+                        (Effects.APIDataFetched <|
                             RemoteData.Success
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
@@ -535,7 +536,7 @@ all =
                         )
                     |> Expect.all
                         [ Tuple.second
-                            >> Expect.equal [ Dashboard.ModifyUrl "/" ]
+                            >> Expect.equal [ Effects.ModifyUrl "/" ]
                         , Tuple.first
                             >> queryView
                             >> Query.has [ text "welcome to concourse!" ]
@@ -543,8 +544,8 @@ all =
         , test "no search bar when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Dashboard.update
-                        (Msgs.APIDataFetched <|
+                    |> Dashboard.handleCallback
+                        (Effects.APIDataFetched <|
                             RemoteData.Success
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
@@ -556,8 +557,8 @@ all =
         , test "bottom bar appears when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Dashboard.update
-                        (Msgs.APIDataFetched <|
+                    |> Dashboard.handleCallback
+                        (Effects.APIDataFetched <|
                             RemoteData.Success
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
@@ -569,8 +570,8 @@ all =
         , test "bottom bar has no legend when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Dashboard.update
-                        (Msgs.APIDataFetched <|
+                    |> Dashboard.handleCallback
+                        (Effects.APIDataFetched <|
                             RemoteData.Success
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
@@ -582,8 +583,8 @@ all =
         , test "concourse info is right-justified when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Dashboard.update
-                        (Msgs.APIDataFetched <|
+                    |> Dashboard.handleCallback
+                        (Effects.APIDataFetched <|
                             RemoteData.Success
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
@@ -596,8 +597,8 @@ all =
         , test "pressing '?' does nothing when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Dashboard.update
-                        (Msgs.APIDataFetched <|
+                    |> Dashboard.handleCallback
+                        (Effects.APIDataFetched <|
                             RemoteData.Success
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
@@ -2197,7 +2198,7 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                        |> Dashboard.update (Msgs.ScreenResized { width = 1229, height = 300 })
+                        |> Dashboard.update (Msgs.ResizeScreen { width = 1229, height = 300 })
                         |> Tuple.first
                         |> queryView
                         |> Query.find [ id "dashboard-info" ]
@@ -2288,7 +2289,7 @@ all =
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> Dashboard.update (Msgs.ScreenResized { width = 800, height = 300 })
+                            |> Dashboard.update (Msgs.ResizeScreen { width = 800, height = 300 })
                             |> Tuple.first
                             |> queryView
                             |> Query.find [ id "legend" ]
@@ -2300,7 +2301,7 @@ all =
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> Dashboard.update (Msgs.ScreenResized { width = 800, height = 300 })
+                            |> Dashboard.update (Msgs.ResizeScreen { width = 800, height = 300 })
                             |> Tuple.first
                             |> queryView
                             |> Query.find [ id "legend" ]
@@ -2806,8 +2807,6 @@ iconSelector { size, image } =
 whenOnDashboard : { highDensity : Bool } -> Dashboard.Model
 whenOnDashboard { highDensity } =
     Dashboard.init
-        { title = always Cmd.none
-        }
         { csrfToken = ""
         , turbulencePath = ""
         , search = ""
@@ -2826,8 +2825,8 @@ queryView =
 
 givenDataAndUser : (Maybe Concourse.User -> APIData.APIData) -> Concourse.User -> Dashboard.Model -> Dashboard.Model
 givenDataAndUser data user =
-    Dashboard.update
-        (Msgs.APIDataFetched <|
+    Dashboard.handleCallback
+        (Effects.APIDataFetched <|
             RemoteData.Success ( 0, data <| Just user )
         )
         >> Tuple.first
@@ -2846,8 +2845,8 @@ userWithRoles roles =
 
 givenDataUnauthenticated : (Maybe Concourse.User -> APIData.APIData) -> Dashboard.Model -> Dashboard.Model
 givenDataUnauthenticated data =
-    Dashboard.update
-        (Msgs.APIDataFetched <|
+    Dashboard.handleCallback
+        (Effects.APIDataFetched <|
             RemoteData.Success ( 0, data Nothing )
         )
         >> Tuple.first

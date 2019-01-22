@@ -1,9 +1,8 @@
-port module Dashboard exposing
-    ( Effect(..)
-    , Model
+module Dashboard exposing
+    ( Model
+    , handleCallback
     , init
     , subscriptions
-    , toCmd
     , update
     , view
     )
@@ -12,7 +11,6 @@ import Array
 import Char
 import Concourse
 import Concourse.Cli as Cli
-import Concourse.Pipeline
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Concourse.User
 import Dashboard.APIData as APIData
@@ -24,7 +22,7 @@ import Dashboard.Msgs as Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
 import Dashboard.SubState as SubState
 import Dashboard.Text as Text
-import Dom
+import Effects exposing (Callback(..), Effect(..))
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes
     exposing
@@ -41,13 +39,11 @@ import Html.Styled.Attributes
 import Html.Styled.Events exposing (onMouseEnter, onMouseLeave)
 import Http
 import Keyboard
-import LoginRedirect
 import Monocle.Common exposing ((<|>), (=>))
 import Monocle.Lens
 import Monocle.Optional
 import MonocleHelpers exposing (..)
 import Mouse
-import Navigation
 import NewTopBar
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
@@ -59,17 +55,6 @@ import Task
 import Time exposing (Time)
 import UserState
 import Window
-
-
-type alias Ports =
-    { title : String -> Cmd Msg
-    }
-
-
-port tooltip : ( String, String ) -> Cmd msg
-
-
-port tooltipHd : ( String, String ) -> Cmd msg
 
 
 type alias Flags =
@@ -107,60 +92,13 @@ type alias Model =
     }
 
 
-type Effect
-    = FetchData
-    | FocusSearchInput
-    | ModifyUrl String
-    | NewUrl String
-    | SendTogglePipelineRequest { pipeline : Models.Pipeline, csrfToken : Concourse.CSRFToken }
-    | ShowTooltip ( String, String )
-    | ShowTooltipHd ( String, String )
-    | SendOrderPipelinesRequest String (List Models.Pipeline) Concourse.CSRFToken
-    | RedirectToLogin String
-    | SendLogOutRequest
-
-
-toCmd : Effect -> Cmd Msg
-toCmd effect =
-    case effect of
-        FetchData ->
-            fetchData
-
-        FocusSearchInput ->
-            Task.attempt (always Noop) (Dom.focus "search-input-field")
-
-        ModifyUrl url ->
-            Navigation.modifyUrl url
-
-        NewUrl url ->
-            Navigation.newUrl url
-
-        SendTogglePipelineRequest { pipeline, csrfToken } ->
-            togglePipelinePaused { pipeline = pipeline, csrfToken = csrfToken }
-
-        ShowTooltip ( teamName, pipelineName ) ->
-            tooltip ( teamName, pipelineName )
-
-        ShowTooltipHd ( teamName, pipelineName ) ->
-            tooltipHd ( teamName, pipelineName )
-
-        SendOrderPipelinesRequest teamName pipelines csrfToken ->
-            orderPipelines teamName pipelines csrfToken
-
-        RedirectToLogin s ->
-            LoginRedirect.requestLoginRedirect s
-
-        SendLogOutRequest ->
-            NewTopBar.logOut
-
-
 substateOptional : Monocle.Optional.Optional Model SubState.SubState
 substateOptional =
     Monocle.Optional.Optional (.state >> Result.toMaybe) (\s m -> { m | state = Ok s })
 
 
-init : Ports -> Flags -> ( Model, Cmd Msg )
-init ports flags =
+init : Flags -> ( Model, List Effect )
+init flags =
     let
         searchBar =
             Expanded
@@ -188,87 +126,123 @@ init ports flags =
       , showHelp = False
       , searchBar = searchBar
       }
-    , Cmd.batch
-        [ fetchData
-        , Group.pinTeamNames Group.stickyHeaderConfig
-        , ports.title <| "Dashboard" ++ " - "
-        , Task.perform ScreenResized Window.size
-        ]
+    , [ FetchData
+      , PinTeamNames Group.stickyHeaderConfig
+      , SetTitle <| "Dashboard" ++ " - "
+      , GetScreenSize
+      ]
     )
+
+
+handleCallback : Callback -> Model -> ( Model, List Effect )
+handleCallback msg model =
+    case msg of
+        APIDataFetched RemoteData.NotAsked ->
+            ( { model | state = Err NotAsked }, [] )
+
+        APIDataFetched RemoteData.Loading ->
+            ( { model | state = Err NotAsked }, [] )
+
+        APIDataFetched (RemoteData.Failure _) ->
+            ( { model | state = Err (Turbulence model.turbulencePath) }, [] )
+
+        APIDataFetched (RemoteData.Success ( now, apiData )) ->
+            let
+                groups =
+                    Group.groups apiData
+
+                noPipelines =
+                    List.isEmpty <| List.concatMap .pipelines groups
+
+                newModel =
+                    case model.state of
+                        Ok substate ->
+                            { model
+                                | state =
+                                    Ok (SubState.tick now substate)
+                            }
+
+                        _ ->
+                            { model
+                                | state =
+                                    Ok
+                                        { now = now
+                                        , dragState = Group.NotDragging
+                                        , dropState = Group.NotDropping
+                                        }
+                            }
+
+                userState =
+                    case apiData.user of
+                        Just u ->
+                            UserState.UserStateLoggedIn u
+
+                        Nothing ->
+                            UserState.UserStateLoggedOut
+            in
+            if model.highDensity && noPipelines then
+                ( { newModel
+                    | highDensity = False
+                    , groups = groups
+                    , version = apiData.version
+                    , userState = userState
+                  }
+                , [ ModifyUrl Routes.dashboardRoute ]
+                )
+
+            else
+                ( { newModel
+                    | groups = groups
+                    , version = apiData.version
+                    , userState = userState
+                  }
+                , []
+                )
+
+        LoggedOut (Ok ()) ->
+            let
+                redirectUrl =
+                    if model.highDensity then
+                        Routes.dashboardHdRoute
+
+                    else
+                        Routes.dashboardRoute
+            in
+            ( { model
+                | userState = UserState.UserStateLoggedOut
+                , userMenuVisible = False
+              }
+            , [ NavigateTo redirectUrl, FetchData ]
+            )
+
+        LoggedOut (Err err) ->
+            flip always (Debug.log "failed to log out" err) <|
+                ( model, [] )
+
+        ScreenResized size ->
+            let
+                newSize =
+                    ScreenSize.fromWindowSize size
+            in
+            ( { model
+                | screenSize = newSize
+                , searchBar =
+                    SearchBar.screenSizeChanged
+                        { oldSize = model.screenSize
+                        , newSize = newSize
+                        }
+                        model.searchBar
+              }
+            , []
+            )
+
+        _ ->
+            ( model, [] )
 
 
 update : Msg -> Model -> ( Model, List Effect )
 update msg model =
     case msg of
-        Noop ->
-            ( model, [] )
-
-        APIDataFetched remoteData ->
-            case remoteData of
-                RemoteData.NotAsked ->
-                    ( { model | state = Err NotAsked }, [] )
-
-                RemoteData.Loading ->
-                    ( { model | state = Err NotAsked }, [] )
-
-                RemoteData.Failure _ ->
-                    ( { model | state = Err (Turbulence model.turbulencePath) }
-                    , []
-                    )
-
-                RemoteData.Success ( now, apiData ) ->
-                    let
-                        groups =
-                            Group.groups apiData
-
-                        noPipelines =
-                            List.isEmpty <| List.concatMap .pipelines groups
-
-                        newModel =
-                            case model.state of
-                                Ok substate ->
-                                    { model
-                                        | state =
-                                            Ok (SubState.tick now substate)
-                                    }
-
-                                _ ->
-                                    { model
-                                        | state =
-                                            Ok
-                                                { now = now
-                                                , dragState = Group.NotDragging
-                                                , dropState = Group.NotDropping
-                                                }
-                                    }
-
-                        userState =
-                            case apiData.user of
-                                Just u ->
-                                    UserState.UserStateLoggedIn u
-
-                                Nothing ->
-                                    UserState.UserStateLoggedOut
-                    in
-                    if model.highDensity && noPipelines then
-                        ( { newModel
-                            | highDensity = False
-                            , groups = groups
-                            , version = apiData.version
-                            , userState = userState
-                          }
-                        , [ ModifyUrl Routes.dashboardRoute ]
-                        )
-
-                    else
-                        ( { newModel
-                            | groups = groups
-                            , version = apiData.version
-                            , userState = userState
-                          }
-                        , []
-                        )
-
         ClockTick now ->
             ( let
                 newModel =
@@ -436,30 +410,10 @@ update msg model =
             )
 
         LogIn ->
-            ( model, [ RedirectToLogin "" ] )
+            ( model, [ RedirectToLogin ] )
 
         LogOut ->
             ( { model | state = Err NotAsked }, [ SendLogOutRequest ] )
-
-        LoggedOut (Ok ()) ->
-            let
-                redirectUrl =
-                    if model.highDensity then
-                        Routes.dashboardHdRoute
-
-                    else
-                        Routes.dashboardRoute
-            in
-            ( { model
-                | userState = UserState.UserStateLoggedOut
-                , userMenuVisible = False
-              }
-            , [ NewUrl redirectUrl, FetchData ]
-            )
-
-        LoggedOut (Err err) ->
-            flip always (Debug.log "failed to log out" err) <|
-                ( model, [] )
 
         ToggleUserMenu ->
             ( { model | userMenuVisible = not model.userMenuVisible }, [] )
@@ -669,7 +623,7 @@ update msg model =
                 _ ->
                     ( model, [] )
 
-        ScreenResized size ->
+        ResizeScreen size ->
             let
                 newSize =
                     ScreenSize.fromWindowSize size
@@ -687,29 +641,6 @@ update msg model =
             )
 
 
-orderPipelines : String -> List Models.Pipeline -> Concourse.CSRFToken -> Cmd Msg
-orderPipelines teamName pipelines csrfToken =
-    Task.attempt (always Noop) <|
-        Concourse.Pipeline.order
-            teamName
-            (List.map .name pipelines)
-            csrfToken
-
-
-
--- TODO this seems obsessed with pipelines. shouldn't be the dashboard's business
-
-
-togglePipelinePaused : { pipeline : Models.Pipeline, csrfToken : Concourse.CSRFToken } -> Cmd Msg
-togglePipelinePaused { pipeline, csrfToken } =
-    Task.attempt (always Noop) <|
-        if pipeline.status == PipelineStatus.PipelineStatusPaused then
-            Concourse.Pipeline.unpause pipeline.teamName pipeline.name csrfToken
-
-        else
-            Concourse.Pipeline.pause pipeline.teamName pipeline.name csrfToken
-
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
@@ -719,7 +650,7 @@ subscriptions model =
         , Mouse.clicks (\_ -> ShowFooter)
         , Keyboard.presses KeyPressed
         , Keyboard.downs KeyDowns
-        , Window.resizes Msgs.ScreenResized
+        , Window.resizes Msgs.ResizeScreen
         ]
 
 
@@ -998,24 +929,11 @@ handleKeyPressed key model =
             ( Footer.showFooter model, [] )
 
 
-fetchData : Cmd Msg
-fetchData =
-    APIData.remoteData
-        |> Task.map2 (,) Time.now
-        |> RemoteData.asCmd
-        |> Cmd.map APIDataFetched
-
-
 remoteUser : APIData.APIData -> Task.Task Http.Error ( APIData.APIData, Maybe Concourse.User )
 remoteUser d =
     Concourse.User.fetchUser
         |> Task.map ((,) d << Just)
         |> Task.onError (always <| Task.succeed <| ( d, Nothing ))
-
-
-getCurrentTime : Cmd Msg
-getCurrentTime =
-    Task.perform ClockTick Time.now
 
 
 filterTerms : String -> List String

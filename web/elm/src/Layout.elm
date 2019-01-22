@@ -2,6 +2,7 @@ port module Layout exposing
     ( Flags
     , Model
     , Msg(..)
+    , handleCallback
     , init
     , locationMsg
     , subscriptions
@@ -10,19 +11,22 @@ port module Layout exposing
     )
 
 import Concourse
-import Favicon
+import Effects exposing (Callback(..), Effect(..), LayoutDispatch(..))
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id, style)
+import Http
 import Json.Decode
 import Navigation
-import Pipeline
 import Routes
 import SubPage
-import Task exposing (Task)
+import SubPage.Msgs
 import TopBar
 
 
 port newUrl : (String -> msg) -> Sub msg
+
+
+port tokenReceived : (Maybe String -> msg) -> Sub msg
 
 
 type alias Flags =
@@ -41,15 +45,6 @@ type alias NavIndex =
 anyNavIndex : NavIndex
 anyNavIndex =
     -1
-
-
-port saveToken : String -> Cmd msg
-
-
-port tokenReceived : (Maybe String -> msg) -> Sub msg
-
-
-port loadToken : () -> Cmd msg
 
 
 type alias Model =
@@ -74,16 +69,15 @@ type TopBarType
 type Msg
     = Noop
     | RouteChanged Routes.ConcourseRoute
-    | SubMsg NavIndex SubPage.Msg
+    | SubMsg NavIndex SubPage.Msgs.Msg
     | TopMsg NavIndex TopBar.Msg
     | NewUrl String
     | ModifyUrl String
-    | SaveToken String
-    | LoadToken
     | TokenReceived (Maybe String)
+    | Callback Effects.LayoutDispatch Effects.Callback
 
 
-init : Flags -> Navigation.Location -> ( Model, Cmd Msg )
+init : Flags -> Navigation.Location -> ( Model, List ( LayoutDispatch, Effect ) )
 init flags location =
     let
         route =
@@ -100,7 +94,7 @@ init flags location =
                 _ ->
                     Normal
 
-        ( subModel, subCmd ) =
+        ( subModel, subEffects ) =
             SubPage.init
                 { turbulencePath = flags.turbulenceImgSrc
                 , csrfToken = flags.csrfToken
@@ -109,7 +103,7 @@ init flags location =
                 }
                 route
 
-        ( topModel, topCmd ) =
+        ( topModel, topEffects ) =
             TopBar.init route
 
         navIndex =
@@ -128,29 +122,27 @@ init flags location =
             , route = route
             }
 
-        handleTokenCmd =
+        handleTokenEffect =
             -- We've refreshed on the page and we're not
             -- getting it from query params
             if flags.csrfToken == "" then
-                loadToken ()
+                ( Layout, LoadToken )
 
             else
-                saveToken flags.csrfToken
+                ( Layout, SaveToken flags.csrfToken )
 
         stripCSRFTokenParamCmd =
             if flags.csrfToken == "" then
-                Cmd.none
+                []
 
             else
-                Navigation.modifyUrl (Routes.customToString route)
+                [ ( Layout, Effects.ModifyUrl (Routes.customToString route) ) ]
     in
     ( model
-    , Cmd.batch
-        [ handleTokenCmd
-        , stripCSRFTokenParamCmd
-        , Cmd.map (SubMsg navIndex) subCmd
-        , Cmd.map (TopMsg navIndex) topCmd
-        ]
+    , [ handleTokenEffect ]
+        ++ stripCSRFTokenParamCmd
+        ++ List.map (\ef -> ( SubPage navIndex, ef )) subEffects
+        ++ List.map (\ef -> ( TopBar navIndex, ef )) topEffects
     )
 
 
@@ -159,113 +151,180 @@ locationMsg =
     RouteChanged << Routes.parsePath
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+handleCallback :
+    LayoutDispatch
+    -> Callback
+    -> Model
+    -> ( Model, List ( LayoutDispatch, Effect ) )
+handleCallback disp callback model =
+    case disp of
+        TopBar navIndex ->
+            let
+                ( topModel, effects ) =
+                    TopBar.handleCallback callback model.topModel
+            in
+            ( { model | topModel = topModel }
+            , List.map (\ef -> ( TopBar navIndex, ef )) effects
+            )
+
+        SubPage navIndex ->
+            case callback of
+                Effects.ResourcesFetched (Ok fetchedResources) ->
+                    let
+                        resources : Result String (List Concourse.Resource)
+                        resources =
+                            Json.Decode.decodeValue
+                                (Json.Decode.list Concourse.decodeResource)
+                                fetchedResources
+
+                        pinnedResources : List ( String, Concourse.Version )
+                        pinnedResources =
+                            case resources of
+                                Ok rs ->
+                                    rs
+                                        |> List.filterMap
+                                            (\resource ->
+                                                case resource.pinnedVersion of
+                                                    Just v ->
+                                                        Just ( resource.name, v )
+
+                                                    Nothing ->
+                                                        Nothing
+                                            )
+
+                                Err _ ->
+                                    []
+
+                        topBar =
+                            model.topModel
+                    in
+                    if validNavIndex model.navIndex navIndex then
+                        let
+                            ( subModel, subEffects ) =
+                                SubPage.handleCallback
+                                    model.csrfToken
+                                    (Effects.ResourcesFetched (Ok fetchedResources))
+                                    model.subModel
+                                    |> SubPage.handleNotFound model.notFoundImgSrc
+                        in
+                        ( { model
+                            | subModel = subModel
+                            , topModel = { topBar | pinnedResources = pinnedResources }
+                          }
+                        , List.map (\ef -> ( SubPage navIndex, ef )) subEffects
+                        )
+
+                    else
+                        ( model, [] )
+
+                BuildTriggered (Err err) ->
+                    ( model, redirectToLoginIfNecessary err navIndex )
+
+                BuildAborted (Err err) ->
+                    ( model, redirectToLoginIfNecessary err navIndex )
+
+                PausedToggled (Err err) ->
+                    ( model, redirectToLoginIfNecessary err navIndex )
+
+                JobBuildsFetched (Err err) ->
+                    ( model, redirectToLoginIfNecessary err navIndex )
+
+                InputToFetched (Err err) ->
+                    ( model, redirectToLoginIfNecessary err navIndex )
+
+                OutputOfFetched (Err err) ->
+                    ( model, redirectToLoginIfNecessary err navIndex )
+
+                -- otherwise, pass down
+                _ ->
+                    let
+                        ( subModel, effects ) =
+                            SubPage.handleCallback
+                                model.csrfToken
+                                callback
+                                model.subModel
+                                |> SubPage.handleNotFound model.notFoundImgSrc
+                    in
+                    ( { model | subModel = subModel }
+                    , List.map (\ef -> ( SubPage navIndex, ef )) effects
+                    )
+
+        Layout ->
+            ( model, [] )
+
+
+update : Msg -> Model -> ( Model, List ( LayoutDispatch, Effect ) )
 update msg model =
     case msg of
         NewUrl url ->
-            ( model, Navigation.newUrl url )
+            ( model, [ ( Layout, NavigateTo url ) ] )
 
         ModifyUrl url ->
-            ( model, Navigation.modifyUrl url )
+            ( model, [ ( Layout, Effects.ModifyUrl url ) ] )
 
         RouteChanged route ->
             urlUpdate route model
 
-        SaveToken tokenValue ->
-            ( model, saveToken tokenValue )
+        SubMsg navIndex m ->
+            if validNavIndex model.navIndex navIndex then
+                let
+                    ( subModel, subEffects ) =
+                        SubPage.update model.turbulenceImgSrc model.notFoundImgSrc model.csrfToken m model.subModel
+                in
+                ( { model | subModel = subModel }
+                , List.map (\ef -> ( SubPage navIndex, ef )) subEffects
+                )
 
-        LoadToken ->
-            ( model, loadToken () )
+            else
+                ( model, [] )
+
+        TopMsg navIndex m ->
+            if validNavIndex model.navIndex navIndex then
+                let
+                    ( topModel, topEffects ) =
+                        TopBar.update m model.topModel
+                in
+                ( { model | topModel = topModel }
+                , List.map (\ef -> ( TopBar navIndex, ef )) topEffects
+                )
+
+            else
+                ( model, [] )
 
         TokenReceived Nothing ->
-            ( model, Cmd.none )
+            ( model, [] )
 
         TokenReceived (Just tokenValue) ->
             let
                 ( newSubModel, subCmd ) =
-                    SubPage.update model.turbulenceImgSrc model.notFoundImgSrc tokenValue (SubPage.NewCSRFToken tokenValue) model.subModel
+                    SubPage.update model.turbulenceImgSrc model.notFoundImgSrc tokenValue (SubPage.Msgs.NewCSRFToken tokenValue) model.subModel
             in
             ( { model
                 | csrfToken = tokenValue
                 , subModel = newSubModel
               }
-            , Cmd.batch
-                [ Cmd.map (SubMsg anyNavIndex) subCmd
-                ]
+            , List.map (\ef -> ( SubPage anyNavIndex, ef )) subCmd
             )
 
-        SubMsg navIndex (SubPage.PipelineMsg (Pipeline.ResourcesFetched (Ok fetchedResources))) ->
-            let
-                resources : Result String (List Concourse.Resource)
-                resources =
-                    Json.Decode.decodeValue (Json.Decode.list Concourse.decodeResource) fetchedResources
-
-                pinnedResources : List ( String, Concourse.Version )
-                pinnedResources =
-                    case resources of
-                        Ok rs ->
-                            rs
-                                |> List.filterMap
-                                    (\resource ->
-                                        case resource.pinnedVersion of
-                                            Just v ->
-                                                Just ( resource.name, v )
-
-                                            Nothing ->
-                                                Nothing
-                                    )
-
-                        Err _ ->
-                            []
-
-                topBar =
-                    model.topModel
-            in
-            if validNavIndex model.navIndex navIndex then
-                let
-                    ( subModel, subCmd ) =
-                        SubPage.update
-                            model.turbulenceImgSrc
-                            model.notFoundImgSrc
-                            model.csrfToken
-                            (SubPage.PipelineMsg (Pipeline.ResourcesFetched (Ok fetchedResources)))
-                            model.subModel
-                in
-                ( { model
-                    | subModel = subModel
-                    , topModel = { topBar | pinnedResources = pinnedResources }
-                  }
-                , Cmd.map (SubMsg navIndex) subCmd
-                )
-
-            else
-                ( model, Cmd.none )
-
-        -- otherwise, pass down
-        SubMsg navIndex m ->
-            if validNavIndex model.navIndex navIndex then
-                let
-                    ( subModel, subCmd ) =
-                        SubPage.update model.turbulenceImgSrc model.notFoundImgSrc model.csrfToken m model.subModel
-                in
-                ( { model | subModel = subModel }, Cmd.map (SubMsg navIndex) subCmd )
-
-            else
-                ( model, Cmd.none )
-
-        TopMsg navIndex m ->
-            if validNavIndex model.navIndex navIndex then
-                let
-                    ( topModel, topCmd ) =
-                        TopBar.update m model.topModel
-                in
-                ( { model | topModel = topModel }, Cmd.map (TopMsg navIndex) topCmd )
-
-            else
-                ( model, Cmd.none )
+        Callback dispatch callback ->
+            handleCallback dispatch callback model
 
         Noop ->
-            ( model, Cmd.none )
+            ( model, [] )
+
+
+redirectToLoginIfNecessary : Http.Error -> NavIndex -> List ( LayoutDispatch, Effect )
+redirectToLoginIfNecessary err navIndex =
+    case err of
+        Http.BadStatus { status } ->
+            if status.code == 401 then
+                [ ( SubPage navIndex, RedirectToLogin ) ]
+
+            else
+                []
+
+        _ ->
+            []
 
 
 validNavIndex : NavIndex -> NavIndex -> Bool
@@ -277,7 +336,7 @@ validNavIndex modelNavIndex navIndex =
         navIndex == modelNavIndex
 
 
-urlUpdate : Routes.ConcourseRoute -> Model -> ( Model, Cmd Msg )
+urlUpdate : Routes.ConcourseRoute -> Model -> ( Model, List ( LayoutDispatch, Effect ) )
 urlUpdate route model =
     let
         navIndex =
@@ -287,9 +346,9 @@ urlUpdate route model =
             else
                 model.navIndex + 1
 
-        ( newSubmodel, cmd ) =
+        ( newSubmodel, subEffects ) =
             if route == model.route then
-                ( model.subModel, Cmd.none )
+                ( model.subModel, [] )
 
             else if routeMatchesModel route model then
                 SubPage.urlUpdate route model.subModel
@@ -303,9 +362,9 @@ urlUpdate route model =
                     }
                     route
 
-        ( newTopModel, tCmd ) =
+        ( newTopModel, topEffects ) =
             if route == model.route then
-                ( model.topModel, Cmd.none )
+                ( model.topModel, [] )
 
             else
                 TopBar.urlUpdate route model.topModel
@@ -316,18 +375,10 @@ urlUpdate route model =
         , topModel = newTopModel
         , route = route
       }
-    , Cmd.batch
-        [ Cmd.map (SubMsg navIndex) cmd
-        , Cmd.map (TopMsg navIndex) tCmd
-        , resetFavicon
-        ]
+    , List.map (\ef -> ( SubPage navIndex, ef )) subEffects
+        ++ List.map (\ef -> ( TopBar navIndex, ef )) topEffects
+        ++ [ ( Layout, SetFavIcon Nothing ) ]
     )
-
-
-resetFavicon : Cmd Msg
-resetFavicon =
-    Task.perform (always Noop) <|
-        Favicon.set "/public/images/favicon.png"
 
 
 view : Model -> Html Msg
