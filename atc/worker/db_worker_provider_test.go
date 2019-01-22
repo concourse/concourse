@@ -653,8 +653,9 @@ var _ = Describe("DBProvider", func() {
 			})
 
 			It("found the worker for the right owner", func() {
-				owner := fakeDBWorkerFactory.FindWorkerForContainerByOwnerArgsForCall(0)
+				owner, teamID := fakeDBWorkerFactory.FindWorkerForContainerByOwnerArgsForCall(0)
 				Expect(owner).To(Equal(fakeOwner))
+				Expect(teamID).To(Equal(345278))
 			})
 
 			Context("when the worker version is outdated", func() {
