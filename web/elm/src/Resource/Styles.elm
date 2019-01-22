@@ -5,12 +5,17 @@ module Resource.Styles exposing
     , commentBarHeader
     , commentBarMessageIcon
     , commentBarPinIcon
+    , enabledCheckbox
     , pinBar
     , pinBarTooltip
+    , pinButton
     , pinIcon
+    , versionHeader
     )
 
 import Colors
+import Pinned
+import Resource.Models as Models
 
 
 pinBar : { isPinned : Bool } -> List ( String, String )
@@ -78,7 +83,7 @@ pinBarTooltip =
     [ ( "position", "absolute" )
     , ( "top", "-10px" )
     , ( "left", "30px" )
-    , ( "background-color", Colors.pinBarTooltip )
+    , ( "background-color", Colors.pinTooltip )
     , ( "padding", "5px" )
     , ( "z-index", "2" )
     ]
@@ -101,6 +106,98 @@ checkStatusIcon failingToCheck =
     , ( "height", "28px" )
     , ( "background-size", "14px 14px" )
     ]
+
+
+enabledCheckbox :
+    { a
+        | enabled : Models.VersionEnabledState
+        , pinState : Pinned.VersionPinState
+    }
+    -> List ( String, String )
+enabledCheckbox { enabled, pinState } =
+    [ ( "margin-right", "5px" )
+    , ( "width", "25px" )
+    , ( "height", "25px" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-position", "50% 50%" )
+    , ( "cursor", "pointer" )
+    , ( "border", "1px solid " ++ borderColor pinState )
+    , ( "background-color", Colors.sectionHeader )
+    , ( "background-image"
+      , case enabled of
+            Models.Enabled ->
+                "url(/public/images/checkmark-ic.svg)"
+
+            Models.Changing ->
+                "none"
+
+            Models.Disabled ->
+                "none"
+      )
+    ]
+
+
+pinButton : Pinned.VersionPinState -> List ( String, String )
+pinButton pinState =
+    [ ( "background-color", Colors.sectionHeader )
+    , ( "border", "1px solid " ++ borderColor pinState )
+    , ( "margin-right", "5px" )
+    , ( "width", "25px" )
+    , ( "height", "25px" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-position", "50% 50%" )
+    , ( "position", "relative" )
+    , ( "cursor"
+      , case pinState of
+            Pinned.Enabled ->
+                "pointer"
+
+            Pinned.PinnedDynamically ->
+                "pointer"
+
+            Pinned.PinnedStatically _ ->
+                "default"
+
+            Pinned.Disabled ->
+                "default"
+
+            Pinned.InTransition ->
+                "default"
+      )
+    , ( "background-image"
+      , case pinState of
+            Pinned.InTransition ->
+                "none"
+
+            _ ->
+                "url(/public/images/pin-ic-white.svg)"
+      )
+    ]
+
+
+versionHeader : Pinned.VersionPinState -> List ( String, String )
+versionHeader pinnedState =
+    [ ( "background-color", Colors.sectionHeader )
+    , ( "border", "1px solid " ++ borderColor pinnedState )
+    , ( "padding-left", "10px" )
+    , ( "cursor", "pointer" )
+    , ( "flex-grow", "1" )
+    , ( "display", "flex" )
+    , ( "align-items", "center" )
+    ]
+
+
+borderColor : Pinned.VersionPinState -> String
+borderColor pinnedState =
+    case pinnedState of
+        Pinned.PinnedStatically _ ->
+            Colors.pinned
+
+        Pinned.PinnedDynamically ->
+            Colors.pinned
+
+        _ ->
+            Colors.sectionHeader
 
 
 commentBar : List ( String, String )

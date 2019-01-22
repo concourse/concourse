@@ -1052,6 +1052,125 @@ all =
                         |> givenResourceIsNotPinned
                         |> queryView
                         |> Query.hasNot purpleOutlineSelector
+            , describe "version headers" <|
+                let
+                    allVersions : () -> Query.Multiple Msgs.Msg
+                    allVersions _ =
+                        init
+                            |> givenResourceIsNotPinned
+                            |> givenVersionsWithoutPagination
+                            |> queryView
+                            |> Query.find [ class "resource-versions" ]
+                            |> Query.findAll anyVersionSelector
+                in
+                [ test "contain elements that are black with a black border" <|
+                    allVersions
+                        >> Query.each
+                            (Query.children []
+                                >> Query.first
+                                >> Query.children []
+                                >> Query.each
+                                    (Query.has
+                                        [ style
+                                            [ ( "border"
+                                              , "1px solid " ++ almostBlack
+                                              )
+                                            , ( "background-color"
+                                              , almostBlack
+                                              )
+                                            ]
+                                        ]
+                                    )
+                            )
+                , test "checkboxes are 25px x 25px with icon-type backgrounds" <|
+                    allVersions
+                        >> Query.each
+                            (Query.children []
+                                >> Query.first
+                                >> Query.children []
+                                >> Query.first
+                                >> Query.has
+                                    [ style
+                                        [ ( "margin-right", "5px" )
+                                        , ( "width", "25px" )
+                                        , ( "height", "25px" )
+                                        , ( "background-repeat", "no-repeat" )
+                                        , ( "background-position", "50% 50%" )
+                                        ]
+                                    ]
+                            )
+                , test "pin buttons are 25px x 25px with icon-type backgrounds" <|
+                    allVersions
+                        >> Query.each
+                            (Query.children []
+                                >> Query.first
+                                >> Query.children []
+                                >> Query.index 1
+                                >> Query.has
+                                    [ style
+                                        [ ( "margin-right", "5px" )
+                                        , ( "width", "25px" )
+                                        , ( "height", "25px" )
+                                        , ( "background-repeat", "no-repeat" )
+                                        , ( "background-position", "50% 50%" )
+                                        ]
+                                    ]
+                            )
+                , test "pin buttons are positioned to anchor their tooltips" <|
+                    allVersions
+                        >> Query.each
+                            (Query.children []
+                                >> Query.first
+                                >> Query.children []
+                                >> Query.index 1
+                                >> Query.has
+                                    [ style [ ( "position", "relative" ) ] ]
+                            )
+                , test "version headers lay out horizontally, centering" <|
+                    allVersions
+                        >> Query.each
+                            (Query.children []
+                                >> Query.first
+                                >> Query.children []
+                                >> Query.index 2
+                                >> Query.has
+                                    [ style
+                                        [ ( "display", "flex" )
+                                        , ( "align-items", "center" )
+                                        ]
+                                    ]
+                            )
+                , test "version headers fill horizontal space" <|
+                    allVersions
+                        >> Query.each
+                            (Query.children []
+                                >> Query.first
+                                >> Query.children []
+                                >> Query.index 2
+                                >> Query.has
+                                    [ style [ ( "flex-grow", "1" ) ] ]
+                            )
+                , test "version headers have pointer cursor" <|
+                    allVersions
+                        >> Query.each
+                            (Query.children []
+                                >> Query.first
+                                >> Query.children []
+                                >> Query.index 2
+                                >> Query.has
+                                    [ style [ ( "cursor", "pointer" ) ] ]
+                            )
+                , test "version headers have contents offset from the left" <|
+                    allVersions
+                        >> Query.each
+                            (Query.children []
+                                >> Query.first
+                                >> Query.children []
+                                >> Query.index 2
+                                >> Query.has
+                                    [ style [ ( "padding-left", "10px" ) ] ]
+                            )
+                ]
             , test "pin icon on pin bar has default cursor" <|
                 \_ ->
                     init
@@ -2196,7 +2315,16 @@ pinBarTooltipSelector =
 
 versionTooltipSelector : List Selector
 versionTooltipSelector =
-    [ text "enable via pipeline config" ]
+    [ style
+        [ ( "position", "absolute" )
+        , ( "bottom", "25px" )
+        , ( "background-color", tooltipGreyHex )
+        , ( "z-index", "2" )
+        , ( "padding", "5px" )
+        , ( "width", "170px" )
+        ]
+    , containing [ text "enable via pipeline config" ]
+    ]
 
 
 pinButtonHasTransitionState : Query.Single msg -> Expectation

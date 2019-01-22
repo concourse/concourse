@@ -15,8 +15,8 @@ module Colors exposing
     , paginationHover
     , paused
     , pending
-    , pinBarTooltip
     , pinIconHover
+    , pinTooltip
     , pinned
     , resourceError
     , secondaryTopBar
@@ -52,8 +52,8 @@ pinned =
     "#5C3BD1"
 
 
-pinBarTooltip : String
-pinBarTooltip =
+pinTooltip : String
+pinTooltip =
     "#9b9b9b"
 
 
