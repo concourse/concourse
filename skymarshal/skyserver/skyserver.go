@@ -182,9 +182,11 @@ func (s *SkyServer) Callback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:   stateCookieName,
-		Path:   "/",
-		MaxAge: -1,
+		Name:     stateCookieName,
+		Path:     "/",
+		MaxAge:   -1,
+		Secure:   s.config.SecureCookies,
+		HttpOnly: true,
 	})
 
 	if authCode = r.FormValue("code"); authCode == "" {
@@ -343,9 +345,11 @@ func (s *SkyServer) Token(w http.ResponseWriter, r *http.Request) {
 
 func (s *SkyServer) Logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
-		Name:   authCookieName,
-		Path:   "/",
-		MaxAge: -1,
+		Name:     authCookieName,
+		Path:     "/",
+		MaxAge:   -1,
+		Secure:   s.config.SecureCookies,
+		HttpOnly: true,
 	})
 }
 
