@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"strconv"
 
@@ -198,14 +197,14 @@ func (f *resourceConfigFactory) CleanUnreferencedConfigs() error {
 }
 
 func findResourceConfigByID(tx Tx, resourceConfigID int, lockFactory lock.LockFactory, conn Conn) (ResourceConfig, bool, error) {
-	var brtIDString, cacheIDString, chkErr sql.NullString
+	var brtIDString, cacheIDString sql.NullString
 
-	err := psql.Select("base_resource_type_id", "resource_cache_id", "check_error").
+	err := psql.Select("base_resource_type_id", "resource_cache_id").
 		From("resource_configs").
 		Where(sq.Eq{"id": resourceConfigID}).
 		RunWith(tx).
 		QueryRow().
-		Scan(&brtIDString, &cacheIDString, &chkErr)
+		Scan(&brtIDString, &cacheIDString)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -213,14 +212,8 @@ func findResourceConfigByID(tx Tx, resourceConfigID int, lockFactory lock.LockFa
 		return nil, false, err
 	}
 
-	var checkErr error
-	if chkErr.Valid {
-		checkErr = errors.New(chkErr.String)
-	}
-
 	rc := &resourceConfig{
 		id:          resourceConfigID,
-		checkError:  checkErr,
 		lockFactory: lockFactory,
 		conn:        conn,
 	}

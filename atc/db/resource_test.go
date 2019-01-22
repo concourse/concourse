@@ -138,7 +138,7 @@ var _ = Describe("Resource", func() {
 					resourceScope, err = resource.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
 
-					err = resourceScope.ResourceConfig().SetCheckError(errors.New("oops"))
+					err = resourceScope.SetCheckError(errors.New("oops"))
 					Expect(err).NotTo(HaveOccurred())
 
 					found, err = resource.Reload()
@@ -148,7 +148,7 @@ var _ = Describe("Resource", func() {
 				It("returns the resource config check error and bumps the pipeline cache index", func() {
 					Expect(found).To(BeTrue())
 					Expect(resource.ResourceConfigID()).To(Equal(resourceScope.ResourceConfig().ID()))
-					Expect(resource.ResourceConfigCheckError()).To(Equal(errors.New("oops")))
+					Expect(resource.CheckError()).To(Equal(errors.New("oops")))
 
 					cachedVersionsDB, err := pipeline.LoadVersionsDB()
 					Expect(err).ToNot(HaveOccurred())
@@ -176,7 +176,7 @@ var _ = Describe("Resource", func() {
 				It("returns nil for the resource config check error", func() {
 					Expect(found).To(BeTrue())
 					Expect(resource.ResourceConfigID()).To(Equal(0))
-					Expect(resource.ResourceConfigCheckError()).To(BeNil())
+					Expect(resource.CheckError()).To(BeNil())
 				})
 			})
 		})
@@ -272,6 +272,9 @@ var _ = Describe("Resource", func() {
 				resourceScope1, err = resource1.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
 				Expect(err).NotTo(HaveOccurred())
 
+				err = resourceScope1.SetCheckError(errors.New("oops"))
+				Expect(err).NotTo(HaveOccurred())
+
 				found, err = resource1.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
@@ -300,6 +303,8 @@ var _ = Describe("Resource", func() {
 				})
 
 				It("has the same resource config id and resource config scope id as the first resource", func() {
+					Expect(resourceScope2.CheckError()).To(Equal(errors.New("oops")))
+
 					Expect(resource2.ResourceConfigID()).To(Equal(resourceScope2.ResourceConfig().ID()))
 					Expect(resource2.ResourceConfigScopeID()).To(Equal(resourceScope2.ID()))
 					Expect(resource1.ResourceConfigID()).To(Equal(resource2.ResourceConfigID()))
@@ -507,7 +512,7 @@ var _ = Describe("Resource", func() {
 		})
 	})
 
-	Describe("SetCheckError", func() {
+	Describe("SetCheckSetupError", func() {
 		var resource db.Resource
 
 		BeforeEach(func() {
@@ -518,7 +523,7 @@ var _ = Describe("Resource", func() {
 
 		Context("when the resource is first created", func() {
 			It("is not errored", func() {
-				Expect(resource.CheckError()).To(BeNil())
+				Expect(resource.CheckSetupError()).To(BeNil())
 			})
 		})
 
@@ -526,13 +531,13 @@ var _ = Describe("Resource", func() {
 			It("is then marked as errored", func() {
 				originalCause := errors.New("on fire")
 
-				err := resource.SetCheckError(originalCause)
+				err := resource.SetCheckSetupError(originalCause)
 				Expect(err).ToNot(HaveOccurred())
 
 				returnedResource, _, err := pipeline.Resource("some-resource")
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(returnedResource.CheckError()).To(Equal(originalCause))
+				Expect(returnedResource.CheckSetupError()).To(Equal(originalCause))
 			})
 		})
 
@@ -540,16 +545,16 @@ var _ = Describe("Resource", func() {
 			It("is not marked as errored again", func() {
 				originalCause := errors.New("on fire")
 
-				err := resource.SetCheckError(originalCause)
+				err := resource.SetCheckSetupError(originalCause)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = resource.SetCheckError(nil)
+				err = resource.SetCheckSetupError(nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				returnedResource, _, err := pipeline.Resource("some-resource")
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(returnedResource.CheckError()).To(BeNil())
+				Expect(returnedResource.CheckSetupError()).To(BeNil())
 			})
 		})
 	})

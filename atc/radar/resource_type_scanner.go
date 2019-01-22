@@ -242,7 +242,7 @@ func (scanner *resourceTypeScanner) check(
 			err = atc.ErrNoWorkers
 		}
 
-		chkErr := resourceConfigScope.ResourceConfig().SetCheckError(err)
+		chkErr := resourceConfigScope.SetCheckError(err)
 		if chkErr != nil {
 			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
 		}
@@ -251,7 +251,7 @@ func (scanner *resourceTypeScanner) check(
 	}
 
 	newVersions, err := res.Check(context.TODO(), source, fromVersion)
-	resourceConfigScope.ResourceConfig().SetCheckError(err)
+	resourceConfigScope.SetCheckError(err)
 	if err != nil {
 		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {
 			logger.Info("check-failed", lager.Data{"exit-status": rErr.ExitStatus})
@@ -298,7 +298,7 @@ func (scanner *resourceTypeScanner) checkInterval(checkEvery string) (time.Durat
 }
 
 func (scanner *resourceTypeScanner) setCheckError(logger lager.Logger, savedResourceType db.ResourceType, err error) {
-	setErr := savedResourceType.SetCheckError(err)
+	setErr := savedResourceType.SetCheckSetupError(err)
 	if setErr != nil {
 		logger.Error("failed-to-set-check-error", err)
 	}

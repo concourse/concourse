@@ -4,7 +4,8 @@ BEGIN;
     "id" serial NOT NULL PRIMARY KEY,
     "resource_config_id" integer NOT NULL REFERENCES resource_configs (id) ON DELETE CASCADE,
     "resource_id" integer REFERENCES resources (id) ON DELETE CASCADE,
-    "last_checked" timestamp with time zone NOT NULL DEFAULT '1970-01-01 00:00:00'
+    "last_checked" timestamp with time zone NOT NULL DEFAULT '1970-01-01 00:00:00',
+    "check_error" text
   );
 
   CREATE UNIQUE INDEX resource_config_scopes_resource_id_resource_config_id_uniq
@@ -17,7 +18,8 @@ BEGIN;
 
   ALTER TABLE resource_configs
     DROP COLUMN unique_versions_resource_id,
-    DROP COLUMN last_checked;
+    DROP COLUMN last_checked,
+    DROP COLUMN check_error;
 
   CREATE UNIQUE INDEX resource_configs_resource_cache_id_so_key
   ON resource_configs (resource_cache_id, source_hash);

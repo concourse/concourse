@@ -38,19 +38,15 @@ type ResourceConfigDescriptor struct {
 
 type ResourceConfig interface {
 	ID() int
-	CheckError() error
 	CreatedByResourceCache() UsedResourceCache
 	CreatedByBaseResourceType() *UsedBaseResourceType
 	OriginBaseResourceType() *UsedBaseResourceType
 
 	FindResourceConfigScopeByID(int, Resource) (ResourceConfigScope, bool, error)
-
-	SetCheckError(error) error
 }
 
 type resourceConfig struct {
 	id                        int
-	checkError                error
 	createdByResourceCache    UsedResourceCache
 	createdByBaseResourceType *UsedBaseResourceType
 	lockFactory               lock.LockFactory
@@ -58,7 +54,6 @@ type resourceConfig struct {
 }
 
 func (r *resourceConfig) ID() int                                   { return r.id }
-func (r *resourceConfig) CheckError() error                         { return r.checkError }
 func (r *resourceConfig) CreatedByResourceCache() UsedResourceCache { return r.createdByResourceCache }
 func (r *resourceConfig) CreatedByBaseResourceType() *UsedBaseResourceType {
 	return r.createdByBaseResourceType
@@ -71,34 +66,15 @@ func (r *resourceConfig) OriginBaseResourceType() *UsedBaseResourceType {
 	return r.createdByResourceCache.ResourceConfig().OriginBaseResourceType()
 }
 
-func (r *resourceConfig) SetCheckError(cause error) error {
-	var err error
-
-	if cause == nil {
-		_, err = psql.Update("resource_configs").
-			Set("check_error", nil).
-			Where(sq.Eq{"id": r.id}).
-			RunWith(r.conn).
-			Exec()
-	} else {
-		_, err = psql.Update("resource_configs").
-			Set("check_error", cause.Error()).
-			Where(sq.Eq{"id": r.id}).
-			RunWith(r.conn).
-			Exec()
-	}
-
-	return err
-}
-
 func (r *resourceConfig) FindResourceConfigScopeByID(resourceConfigScopeID int, resource Resource) (ResourceConfigScope, bool, error) {
 	var (
-		id   int
-		rcID int
-		rID  sql.NullString
+		id           int
+		rcID         int
+		rID          sql.NullString
+		checkErrBlob sql.NullString
 	)
 
-	err := psql.Select("id, resource_id, resource_config_id").
+	err := psql.Select("id, resource_id, resource_config_id, check_error").
 		From("resource_config_scopes").
 		Where(sq.Eq{
 			"id":                 resourceConfigScopeID,
@@ -106,7 +82,7 @@ func (r *resourceConfig) FindResourceConfigScopeByID(resourceConfigScopeID int, 
 		}).
 		RunWith(r.conn).
 		QueryRow().
-		Scan(&id, &rID, &rcID)
+		Scan(&id, &rID, &rcID, &checkErrBlob)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -127,7 +103,18 @@ func (r *resourceConfig) FindResourceConfigScopeByID(resourceConfigScopeID int, 
 		}
 	}
 
-	return &resourceConfigScope{id, uniqueResource, r, r.conn, r.lockFactory}, true, nil
+	var checkErr error
+	if checkErrBlob.Valid {
+		checkErr = errors.New(checkErrBlob.String)
+	}
+
+	return &resourceConfigScope{
+		id:             id,
+		resource:       uniqueResource,
+		resourceConfig: r,
+		checkError:     checkErr,
+		conn:           r.conn,
+		lockFactory:    r.lockFactory}, true, nil
 }
 
 func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, conn Conn) (ResourceConfig, error) {
@@ -168,7 +155,7 @@ func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lock
 		parentID = rc.CreatedByBaseResourceType().ID
 	}
 
-	id, checkError, found, err := r.findWithParentID(tx, parentColumnName, parentID)
+	id, found, err := r.findWithParentID(tx, parentColumnName, parentID)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +189,6 @@ func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lock
 	}
 
 	rc.id = id
-	rc.checkError = checkError
 
 	return rc, nil
 }
@@ -249,7 +235,7 @@ func (r *ResourceConfigDescriptor) find(tx Tx, lockFactory lock.LockFactory, con
 		parentID = rc.createdByBaseResourceType.ID
 	}
 
-	id, checkError, found, err := r.findWithParentID(tx, parentColumnName, parentID)
+	id, found, err := r.findWithParentID(tx, parentColumnName, parentID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -259,17 +245,15 @@ func (r *ResourceConfigDescriptor) find(tx Tx, lockFactory lock.LockFactory, con
 	}
 
 	rc.id = id
-	rc.checkError = checkError
 
 	return rc, true, nil
 }
 
-func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName string, parentID int) (int, error, bool, error) {
+func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName string, parentID int) (int, bool, error) {
 	var id int
-	var checkError sql.NullString
 	var whereClause sq.Eq
 
-	err := psql.Select("id, check_error").
+	err := psql.Select("id").
 		From("resource_configs").
 		Where(sq.Eq{
 			parentColumnName: parentID,
@@ -279,21 +263,16 @@ func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName stri
 		Suffix("FOR SHARE").
 		RunWith(tx).
 		QueryRow().
-		Scan(&id, &checkError)
+		Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, nil, false, nil
+			return 0, false, nil
 		}
 
-		return 0, nil, false, err
+		return 0, false, err
 	}
 
-	var chkErr error
-	if checkError.Valid {
-		chkErr = errors.New(checkError.String)
-	}
-
-	return id, chkErr, true, nil
+	return id, true, nil
 }
 
 func findOrCreateResourceConfigScope(tx Tx, conn Conn, lockFactory lock.LockFactory, resourceConfig ResourceConfig, resource Resource, resourceTypes creds.VersionedResourceTypes) (ResourceConfigScope, error) {
@@ -317,7 +296,9 @@ func findOrCreateResourceConfigScope(tx Tx, conn Conn, lockFactory lock.LockFact
 	}
 
 	var scopeID int
-	rows, err := psql.Select("id").
+	var checkErr error
+
+	rows, err := psql.Select("id, check_error").
 		From("resource_config_scopes").
 		Where(sq.Eq{
 			"resource_id":        resourceID,
@@ -330,9 +311,15 @@ func findOrCreateResourceConfigScope(tx Tx, conn Conn, lockFactory lock.LockFact
 	}
 
 	if rows.Next() {
-		err = rows.Scan(&scopeID)
+		var checkErrBlob sql.NullString
+
+		err = rows.Scan(&scopeID, &checkErrBlob)
 		if err != nil {
 			return nil, err
+		}
+
+		if checkErrBlob.Valid {
+			checkErr = errors.New(checkErrBlob.String)
 		}
 
 		err = rows.Close()
@@ -389,6 +376,7 @@ func findOrCreateResourceConfigScope(tx Tx, conn Conn, lockFactory lock.LockFact
 		id:             scopeID,
 		resource:       uniqueResource,
 		resourceConfig: resourceConfig,
+		checkError:     checkErr,
 		conn:           conn,
 		lockFactory:    lockFactory,
 	}, nil

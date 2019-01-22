@@ -174,8 +174,8 @@ var _ = Describe("ResourceScanner", func() {
 					versionedResourceType,
 				})))
 
-				Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
-				err := fakeDBResource.SetCheckErrorArgsForCall(0)
+				Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
+				err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 				Expect(err).To(BeNil())
 
 				_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
@@ -232,9 +232,9 @@ var _ = Describe("ResourceScanner", func() {
 					})
 
 					It("sets the check error", func() {
-						Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
+						Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 
-						resourceErr := fakeDBResource.SetCheckErrorArgsForCall(0)
+						resourceErr := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
 					})
 
@@ -501,9 +501,9 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("saves the error to check_error on resource row in db", func() {
-					Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 
-					err := fakeDBResource.SetCheckErrorArgsForCall(0)
+					err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(Equal("some-resource-type-error"))
 				})
@@ -521,8 +521,8 @@ var _ = Describe("ResourceScanner", func() {
 					versionedResourceType,
 				})))
 
-				Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
-				err := fakeDBResource.SetCheckErrorArgsForCall(0)
+				Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
+				err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 				Expect(err).To(BeNil())
 
 				_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
@@ -569,9 +569,9 @@ var _ = Describe("ResourceScanner", func() {
 
 				It("sets the check error and returns the error", func() {
 					Expect(scanErr).To(HaveOccurred())
-					Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 
-					resourceErr := fakeDBResource.SetCheckErrorArgsForCall(0)
+					resourceErr := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 					Expect(resourceErr).To(MatchError("catastrophe"))
 				})
 			})
@@ -583,9 +583,9 @@ var _ = Describe("ResourceScanner", func() {
 
 				It("sets the check error and returns the error", func() {
 					Expect(scanErr).To(HaveOccurred())
-					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
 
-					resourceErr := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+					resourceErr := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
 					Expect(resourceErr).To(MatchError("catastrophe"))
 				})
 			})
@@ -597,9 +597,9 @@ var _ = Describe("ResourceScanner", func() {
 
 				It("sets the check error and returns no workers error", func() {
 					Expect(scanErr).To(HaveOccurred())
-					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
 
-					resourceErr := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+					resourceErr := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
 					Expect(resourceErr).To(Equal(atc.ErrNoWorkers))
 				})
 			})
@@ -628,9 +628,9 @@ var _ = Describe("ResourceScanner", func() {
 
 					It("sets the check error and returns the error", func() {
 						Expect(scanErr).To(HaveOccurred())
-						Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
+						Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 
-						resourceErr := fakeDBResource.SetCheckErrorArgsForCall(0)
+						resourceErr := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
 					})
 				})
@@ -657,9 +657,9 @@ var _ = Describe("ResourceScanner", func() {
 
 					It("fails to parse the timeout and returns the error", func() {
 						Expect(scanErr).To(HaveOccurred())
-						Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
+						Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 
-						resourceErr := fakeDBResource.SetCheckErrorArgsForCall(0)
+						resourceErr := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
 					})
 				})
@@ -705,9 +705,9 @@ var _ = Describe("ResourceScanner", func() {
 					})
 
 					It("sets the check error on the resource config", func() {
-						Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+						Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
 
-						err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+						err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
 						Expect(err).To(Equal(errors.New("ah")))
 					})
 				})
@@ -753,9 +753,9 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("clears the resource's check error", func() {
-				Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+				Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
 
-				err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+				err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
 				Expect(err).To(BeNil())
 			})
 
@@ -869,9 +869,9 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("sets the resource's check error", func() {
-					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
 
-					err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+					err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
 					Expect(err).To(Equal(disaster))
 				})
 			})
@@ -888,9 +888,9 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("sets the resource's check error", func() {
-					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
 
-					err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+					err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
 					Expect(err).To(Equal(scriptFail))
 				})
 			})

@@ -32,12 +32,12 @@ type ResourceType interface {
 	Params() atc.Params
 	Tags() atc.Tags
 	CheckEvery() string
+	CheckSetupError() error
 	CheckError() error
-	ResourceConfigCheckError() error
 	UniqueVersionHistory() bool
 
 	SetResourceConfig(lager.Logger, atc.Source, creds.VersionedResourceTypes) (ResourceConfigScope, error)
-	SetCheckError(error) error
+	SetCheckSetupError(error) error
 
 	Version() atc.Version
 
@@ -87,7 +87,7 @@ func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
 	return configs
 }
 
-var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, rcv.version, r.nonce, r.check_error, c.check_error").
+var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, rcv.version, r.nonce, r.check_error, ro.check_error").
 	From("resource_types r").
 	LeftJoin("resource_configs c ON c.id = r.resource_config_id").
 	LeftJoin("resource_config_scopes ro ON ro.resource_config_id = c.id").
@@ -101,34 +101,34 @@ var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, rcv.versio
 	Where(sq.Eq{"r.active": true})
 
 type resourceType struct {
-	id                       int
-	name                     string
-	type_                    string
-	privileged               bool
-	source                   atc.Source
-	params                   atc.Params
-	tags                     atc.Tags
-	version                  atc.Version
-	checkEvery               string
-	checkError               error
-	resourceConfigCheckError error
-	uniqueVersionHistory     bool
+	id                   int
+	name                 string
+	type_                string
+	privileged           bool
+	source               atc.Source
+	params               atc.Params
+	tags                 atc.Tags
+	version              atc.Version
+	checkEvery           string
+	checkSetupError      error
+	checkError           error
+	uniqueVersionHistory bool
 
 	conn        Conn
 	lockFactory lock.LockFactory
 }
 
-func (t *resourceType) ID() int                         { return t.id }
-func (t *resourceType) Name() string                    { return t.name }
-func (t *resourceType) Type() string                    { return t.type_ }
-func (t *resourceType) Privileged() bool                { return t.privileged }
-func (t *resourceType) CheckEvery() string              { return t.checkEvery }
-func (t *resourceType) Source() atc.Source              { return t.source }
-func (t *resourceType) Params() atc.Params              { return t.params }
-func (t *resourceType) Tags() atc.Tags                  { return t.tags }
-func (t *resourceType) CheckError() error               { return t.checkError }
-func (t *resourceType) ResourceConfigCheckError() error { return t.resourceConfigCheckError }
-func (t *resourceType) UniqueVersionHistory() bool      { return t.uniqueVersionHistory }
+func (t *resourceType) ID() int                    { return t.id }
+func (t *resourceType) Name() string               { return t.name }
+func (t *resourceType) Type() string               { return t.type_ }
+func (t *resourceType) Privileged() bool           { return t.privileged }
+func (t *resourceType) CheckEvery() string         { return t.checkEvery }
+func (t *resourceType) Source() atc.Source         { return t.source }
+func (t *resourceType) Params() atc.Params         { return t.params }
+func (t *resourceType) Tags() atc.Tags             { return t.tags }
+func (t *resourceType) CheckSetupError() error     { return t.checkSetupError }
+func (t *resourceType) CheckError() error          { return t.checkError }
+func (t *resourceType) UniqueVersionHistory() bool { return t.uniqueVersionHistory }
 
 func (t *resourceType) Version() atc.Version { return t.version }
 
@@ -189,7 +189,7 @@ func (t *resourceType) SetResourceConfig(logger lager.Logger, source atc.Source,
 	return resourceConfigScope, nil
 }
 
-func (t *resourceType) SetCheckError(cause error) error {
+func (t *resourceType) SetCheckSetupError(cause error) error {
 	var err error
 
 	if cause == nil {
@@ -211,11 +211,11 @@ func (t *resourceType) SetCheckError(cause error) error {
 
 func scanResourceType(t *resourceType, row scannable) error {
 	var (
-		configJSON                           []byte
-		checkErr, rcCheckErr, version, nonce sql.NullString
+		configJSON                            []byte
+		checkErr, rcsCheckErr, version, nonce sql.NullString
 	)
 
-	err := row.Scan(&t.id, &t.name, &t.type_, &configJSON, &version, &nonce, &checkErr, &rcCheckErr)
+	err := row.Scan(&t.id, &t.name, &t.type_, &configJSON, &version, &nonce, &checkErr, &rcsCheckErr)
 	if err != nil {
 		return err
 	}
@@ -253,11 +253,11 @@ func scanResourceType(t *resourceType, row scannable) error {
 	t.uniqueVersionHistory = config.UniqueVersionHistory
 
 	if checkErr.Valid {
-		t.checkError = errors.New(checkErr.String)
+		t.checkSetupError = errors.New(checkErr.String)
 	}
 
-	if rcCheckErr.Valid {
-		t.resourceConfigCheckError = errors.New(rcCheckErr.String)
+	if rcsCheckErr.Valid {
+		t.checkError = errors.New(rcsCheckErr.String)
 	}
 
 	return nil
