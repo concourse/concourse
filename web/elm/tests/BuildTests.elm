@@ -252,7 +252,7 @@ all =
                         [ attribute <|
                             Attr.attribute "aria-label" "Trigger Build"
                         ]
-        , test "trigger build button has dark grey background" <|
+        , test "trigger build button is styled as a plain grey box" <|
             \_ ->
                 pageLoad
                     |> Tuple.first
@@ -274,6 +274,7 @@ all =
                             , ( "border", "none" )
                             , ( "background-color", middleGrey )
                             , ( "outline", "none" )
+                            , ( "margin", "0" )
                             ]
                         ]
         , test
@@ -476,7 +477,7 @@ all =
                         [ attribute <|
                             Attr.attribute "aria-label" "Abort Build"
                         ]
-        , test "abort build button has dark grey background" <|
+        , test "abort build button is styled as a plain grey box" <|
             \_ ->
                 pageLoad
                     |> Tuple.first
@@ -498,6 +499,7 @@ all =
                             , ( "border", "none" )
                             , ( "background-color", middleGrey )
                             , ( "outline", "none" )
+                            , ( "margin", "0" )
                             ]
                         ]
         , test "abort build button has pointer cursor" <|

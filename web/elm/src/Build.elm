@@ -995,7 +995,7 @@ viewBuildHeader build { now, job, history, hoveredButton } =
                                     []
                                )
 
-                _ ->
+                Nothing ->
                     Html.text ""
 
         abortButton =
