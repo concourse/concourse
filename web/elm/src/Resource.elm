@@ -423,6 +423,14 @@ handleCallback action model =
         UserFetched (Err _) ->
             ( { model | userState = UserStateLoggedOut }, [] )
 
+        LoggedOut (Ok _) ->
+            ( { model
+                | userState = UserStateLoggedOut
+                , pipeline = Nothing
+              }
+            , [ NavigateTo "/" ]
+            )
+
         _ ->
             ( model, [] )
 

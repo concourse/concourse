@@ -122,7 +122,41 @@ badResponse =
 all : Test
 all =
     describe "resource page"
-        [ test "autorefresh respects expanded state" <|
+        [ describe "when logging out" <|
+            let
+                loggingOut : () -> ( Models.Model, List Effects.Effect )
+                loggingOut _ =
+                    init
+                        |> Resource.handleCallback
+                            (Effects.UserFetched <|
+                                Ok
+                                    { id = "test"
+                                    , userName = "test"
+                                    , name = "test"
+                                    , email = "test"
+                                    , teams =
+                                        Dict.fromList
+                                            [ ( teamName, [ "member" ] )
+                                            ]
+                                    }
+                            )
+                        |> Tuple.first
+                        |> Resource.handleCallback (Effects.LoggedOut (Ok ()))
+            in
+            [ test "updates top bar state" <|
+                loggingOut
+                    >> Tuple.first
+                    >> queryView
+                    >> Query.find [ id "top-bar-app" ]
+                    >> Query.children []
+                    >> Query.index -1
+                    >> Query.has [ text "login" ]
+            , test "redirects to dashboard" <|
+                loggingOut
+                    >> Tuple.second
+                    >> Expect.equal [ Effects.NavigateTo "/" ]
+            ]
+        , test "autorefresh respects expanded state" <|
             \_ ->
                 init
                     |> givenResourceIsNotPinned
