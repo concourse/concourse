@@ -257,24 +257,29 @@ against the teams that have granted them access.
 
       \title{Adding User Roles}{adding-roles}
 
-      The \code{-c} flag can be used on \reference{fly-set-team} to supply
+      The \code{-c} flag can be used on \reference{fly-set-team} to specify
       \reference{user-roles} on the team. The \code{-c} flag expects a
-      \code{.yml} file with \code{roles} and \code{users}. You can find a sample
-      configuration for adding \code{Local Auth} users with roles below:
+      \code{.yml} file with \code{roles}. Some of the attributes in the
+      configuration will vary by provider; the details of which can be found in
+      \reference{authentication}
+
+      A sample configuration for adding users from different providers with different
+      roles:
 
       \codeblock{bash}{{{
         roles:
         - name: owner
-          local:
-            users: ["Zordon"]
+          github:
+            users: ["admin"]
         - name: member
-          local:
-            users: ["RedRanger", "BlueRanger", "GreenRanger"]
+          github:
+            teams: ["org:team"]
         - name: viewer
+          github:
+            orgs: ["org"]
           local:
-            users: ["Alpha"]
+            users: ["visitor"]
       }}}
-
     }
   }
 }
@@ -305,7 +310,7 @@ against the teams that have granted them access.
   }
 
   \section{
-    \title{\code{rename-team}\aux{: Renaming Teams}}{fly-rename-team}
+    \title{\code{fly rename-team}}{fly-rename-team}
 
     To rename a team, run:
 
