@@ -329,7 +329,6 @@ type BuildStep
     = BuildStepTask StepName
     | BuildStepGet StepName (Maybe Version)
     | BuildStepPut StepName
-    | BuildStepDependentGet StepName
     | BuildStepAggregate (Array BuildPlan)
     | BuildStepDo (Array BuildPlan)
     | BuildStepOnSuccess HookedPlan
@@ -362,7 +361,7 @@ decodeBuildPlan_ =
             [ Json.Decode.field "task" <| lazy (\_ -> decodeBuildStepTask)
             , Json.Decode.field "get" <| lazy (\_ -> decodeBuildStepGet)
             , Json.Decode.field "put" <| lazy (\_ -> decodeBuildStepPut)
-            , Json.Decode.field "dependent_get" <| lazy (\_ -> decodeBuildStepDependentGet)
+            , Json.Decode.field "dependent_get" <| lazy (\_ -> decodeBuildStepGet)
             , Json.Decode.field "aggregate" <| lazy (\_ -> decodeBuildStepAggregate)
             , Json.Decode.field "do" <| lazy (\_ -> decodeBuildStepDo)
             , Json.Decode.field "on_success" <| lazy (\_ -> decodeBuildStepOnSuccess)
@@ -391,12 +390,6 @@ decodeBuildStepGet =
 decodeBuildStepPut : Json.Decode.Decoder BuildStep
 decodeBuildStepPut =
     Json.Decode.succeed BuildStepPut
-        |: Json.Decode.field "name" Json.Decode.string
-
-
-decodeBuildStepDependentGet : Json.Decode.Decoder BuildStep
-decodeBuildStepDependentGet =
-    Json.Decode.succeed BuildStepDependentGet
         |: Json.Decode.field "name" Json.Decode.string
 
 

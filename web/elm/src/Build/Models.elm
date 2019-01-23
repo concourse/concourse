@@ -106,7 +106,6 @@ type StepTree
     = Task Step
     | Get Step
     | Put Step
-    | DependentGet Step
     | Aggregate (Array StepTree)
     | Do (Array StepTree)
     | OnSuccess HookedStep

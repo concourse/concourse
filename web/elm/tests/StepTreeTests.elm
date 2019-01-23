@@ -2,7 +2,6 @@ module StepTreeTests exposing
     ( all
     , initAggregate
     , initAggregateNested
-    , initDependentGet
     , initEnsure
     , initGet
     , initOnFailure
@@ -31,7 +30,6 @@ all =
         [ initTask
         , initGet
         , initPut
-        , initDependentGet
         , initAggregate
         , initAggregateNested
         , initOnSuccess
@@ -145,32 +143,6 @@ initPut =
                     tree
                     (\s -> { s | state = Models.StepStateSucceeded })
                     (Models.Put (someStep "some-id" "some-name" Models.StepStateSucceeded))
-        ]
-
-
-initDependentGet : Test
-initDependentGet =
-    let
-        { tree, foci, finished } =
-            StepTree.init Models.HighlightNothing
-                emptyResources
-                { id = "some-id"
-                , step = BuildStepDependentGet "some-name"
-                }
-    in
-    describe "init with DependentGet"
-        [ test "the tree" <|
-            \_ ->
-                Expect.equal
-                    (Models.DependentGet (someStep "some-id" "some-name" Models.StepStatePending))
-                    tree
-        , test "using the focus" <|
-            \_ ->
-                assertFocus "some-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.DependentGet (someStep "some-id" "some-name" Models.StepStateSucceeded))
         ]
 
 
@@ -503,9 +475,6 @@ updateStep f tree =
 
         Models.Put step ->
             Models.Put (f step)
-
-        Models.DependentGet step ->
-            Models.DependentGet (f step)
 
         _ ->
             tree

@@ -65,9 +65,6 @@ init hl resources plan =
         Concourse.BuildStepPut name ->
             initBottom hl Put plan.id name
 
-        Concourse.BuildStepDependentGet name ->
-            initBottom hl DependentGet plan.id name
-
         Concourse.BuildStepAggregate plans ->
             initMultiStep hl resources plan.id Aggregate plans
 
@@ -252,9 +249,6 @@ treeIsActive tree =
         Put step ->
             stepIsActive step
 
-        DependentGet step ->
-            stepIsActive step
-
 
 stepIsActive : Step -> Bool
 stepIsActive =
@@ -395,9 +389,6 @@ map f tree =
 
         Put step ->
             Put (f step)
-
-        DependentGet step ->
-            DependentGet (f step)
 
         _ ->
             tree
@@ -569,9 +560,6 @@ viewTree model tree =
 
         Get step ->
             viewStep model step (StepHeaderGet step.firstOccurrence)
-
-        DependentGet step ->
-            viewStep model step (StepHeaderGet False)
 
         Put step ->
             viewStep model step StepHeaderPut
