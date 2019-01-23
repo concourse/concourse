@@ -12,6 +12,7 @@ module Resource exposing
     , viewVersionHeader
     )
 
+import Callback exposing (Callback(..))
 import Colors
 import Concourse
 import Concourse.BuildStatus
@@ -30,7 +31,7 @@ import Date.Format
 import Dict
 import DictView
 import Duration exposing (Duration)
-import Effects exposing (Callback(..), Effect(..), runEffect, setTitle)
+import Effects exposing (Effect(..), runEffect, setTitle)
 import Erl
 import Html.Attributes
 import Html.Styled as Html exposing (Html)

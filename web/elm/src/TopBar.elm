@@ -10,10 +10,11 @@ module TopBar exposing
     , view
     )
 
+import Callback exposing (Callback(..))
 import Colors
 import Concourse
 import Dict
-import Effects exposing (Callback(..), Effect(..))
+import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, disabled, href, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave, onMouseOut, onMouseOver)

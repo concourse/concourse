@@ -1,5 +1,6 @@
 module NewTopBarTests exposing (all)
 
+import Callback
 import Dashboard
 import Dashboard.Msgs as Msgs
 import DashboardTests exposing (apiData, givenDataAndUser, givenDataUnauthenticated)
@@ -258,14 +259,14 @@ all =
                         \_ ->
                             init { highDensity = False, query = "" }
                                 |> Dashboard.handleCallback
-                                    (Effects.LoggedOut (Ok ()))
+                                    (Callback.LoggedOut (Ok ()))
                                 |> Tuple.second
                                 |> Expect.equal [ Effects.NavigateTo "/", Effects.FetchData ]
                     , test "redirects to high-density view on high-density view" <|
                         \_ ->
                             init { highDensity = True, query = "" }
                                 |> Dashboard.handleCallback
-                                    (Effects.LoggedOut (Ok ()))
+                                    (Callback.LoggedOut (Ok ()))
                                 |> Tuple.second
                                 |> Expect.equal [ Effects.NavigateTo "/hd", Effects.FetchData ]
                     ]

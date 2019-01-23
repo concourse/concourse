@@ -10,8 +10,9 @@ port module Layout exposing
     , view
     )
 
+import Callback exposing (Callback(..))
 import Concourse
-import Effects exposing (Callback(..), Effect(..), LayoutDispatch(..))
+import Effects exposing (Effect(..), LayoutDispatch(..))
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id, style)
 import Http
@@ -74,7 +75,7 @@ type Msg
     | NewUrl String
     | ModifyUrl String
     | TokenReceived (Maybe String)
-    | Callback Effects.LayoutDispatch Effects.Callback
+    | Callback Effects.LayoutDispatch Callback
 
 
 init : Flags -> Navigation.Location -> ( Model, List ( LayoutDispatch, Effect ) )
@@ -169,7 +170,7 @@ handleCallback disp callback model =
 
         SubPage navIndex ->
             case callback of
-                Effects.ResourcesFetched (Ok fetchedResources) ->
+                ResourcesFetched (Ok fetchedResources) ->
                     let
                         resources : Result String (List Concourse.Resource)
                         resources =
@@ -203,7 +204,7 @@ handleCallback disp callback model =
                             ( subModel, subEffects ) =
                                 SubPage.handleCallback
                                     model.csrfToken
-                                    (Effects.ResourcesFetched (Ok fetchedResources))
+                                    (ResourcesFetched (Ok fetchedResources))
                                     model.subModel
                                     |> SubPage.handleNotFound model.notFoundImgSrc
                         in

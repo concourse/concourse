@@ -10,11 +10,12 @@ module Pipeline exposing
     , view
     )
 
+import Callback exposing (Callback(..))
 import Char
 import Colors
 import Concourse
 import Concourse.Cli as Cli
-import Effects exposing (Callback(..), Effect(..))
+import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes exposing (class, height, href, id, src, style, width)
 import Html.Attributes.Aria exposing (ariaLabel)

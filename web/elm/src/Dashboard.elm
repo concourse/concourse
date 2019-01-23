@@ -8,6 +8,7 @@ module Dashboard exposing
     )
 
 import Array
+import Callback exposing (Callback(..))
 import Char
 import Concourse
 import Concourse.Cli as Cli
@@ -22,7 +23,7 @@ import Dashboard.Msgs as Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
 import Dashboard.SubState as SubState
 import Dashboard.Text as Text
-import Effects exposing (Callback(..), Effect(..))
+import Effects exposing (Effect(..))
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes
     exposing

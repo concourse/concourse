@@ -1,5 +1,6 @@
 module PipelineTests exposing (all)
 
+import Callback
 import Char
 import Effects
 import Expect exposing (..)
@@ -657,7 +658,7 @@ all =
                     init "/teams/team/pipelines/pipeline"
                         |> Layout.handleCallback
                             (Effects.TopBar 1)
-                            (Effects.PipelineFetched
+                            (Callback.PipelineFetched
                                 (Ok
                                     { id = 0
                                     , name = "pipeline"
@@ -912,7 +913,7 @@ givenPinnedResource : Layout.Model -> Layout.Model
 givenPinnedResource =
     Layout.handleCallback
         (Effects.SubPage -1)
-        (Effects.ResourcesFetched <|
+        (Callback.ResourcesFetched <|
             Ok <|
                 Json.Encode.list
                     [ Json.Encode.object
@@ -930,7 +931,7 @@ givenMultiplePinnedResources : Layout.Model -> Layout.Model
 givenMultiplePinnedResources =
     Layout.handleCallback
         (Effects.SubPage -1)
-        (Effects.ResourcesFetched <|
+        (Callback.ResourcesFetched <|
             Ok <|
                 Json.Encode.list
                     [ Json.Encode.object

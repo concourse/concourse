@@ -11,6 +11,7 @@ module DashboardTests exposing
     , white
     )
 
+import Callback
 import Char
 import Concourse
 import Concourse.Cli as Cli
@@ -485,7 +486,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = True }
                     |> Dashboard.handleCallback
-                        (Effects.APIDataFetched <|
+                        (Callback.APIDataFetched <|
                             RemoteData.Success
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
@@ -496,7 +497,7 @@ all =
                             >> Expect.equal [ Effects.ModifyUrl "/" ]
                         , Tuple.first
                             >> Dashboard.handleCallback
-                                (Effects.APIDataFetched <|
+                                (Callback.APIDataFetched <|
                                     RemoteData.Success
                                         ( 0
                                         , apiData
@@ -521,7 +522,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = True }
                     |> Dashboard.handleCallback
-                        (Effects.APIDataFetched <|
+                        (Callback.APIDataFetched <|
                             RemoteData.Success
                                 ( 0
                                 , apiData [ ( "team", [ "pipeline" ] ) ] Nothing
@@ -529,7 +530,7 @@ all =
                         )
                     |> Tuple.first
                     |> Dashboard.handleCallback
-                        (Effects.APIDataFetched <|
+                        (Callback.APIDataFetched <|
                             RemoteData.Success
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
@@ -546,7 +547,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> Dashboard.handleCallback
-                        (Effects.APIDataFetched <|
+                        (Callback.APIDataFetched <|
                             RemoteData.Success
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
@@ -559,7 +560,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> Dashboard.handleCallback
-                        (Effects.APIDataFetched <|
+                        (Callback.APIDataFetched <|
                             RemoteData.Success
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
@@ -572,7 +573,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> Dashboard.handleCallback
-                        (Effects.APIDataFetched <|
+                        (Callback.APIDataFetched <|
                             RemoteData.Success
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
@@ -585,7 +586,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> Dashboard.handleCallback
-                        (Effects.APIDataFetched <|
+                        (Callback.APIDataFetched <|
                             RemoteData.Success
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
@@ -599,7 +600,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> Dashboard.handleCallback
-                        (Effects.APIDataFetched <|
+                        (Callback.APIDataFetched <|
                             RemoteData.Success
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
@@ -2827,7 +2828,7 @@ queryView =
 givenDataAndUser : (Maybe Concourse.User -> APIData.APIData) -> Concourse.User -> Dashboard.Model -> Dashboard.Model
 givenDataAndUser data user =
     Dashboard.handleCallback
-        (Effects.APIDataFetched <|
+        (Callback.APIDataFetched <|
             RemoteData.Success ( 0, data <| Just user )
         )
         >> Tuple.first
@@ -2847,7 +2848,7 @@ userWithRoles roles =
 givenDataUnauthenticated : (Maybe Concourse.User -> APIData.APIData) -> Dashboard.Model -> Dashboard.Model
 givenDataUnauthenticated data =
     Dashboard.handleCallback
-        (Effects.APIDataFetched <|
+        (Callback.APIDataFetched <|
             RemoteData.Success ( 0, data Nothing )
         )
         >> Tuple.first

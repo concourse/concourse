@@ -11,9 +11,10 @@ module SubPage exposing
 
 import Build
 import Build.Msgs
+import Callback exposing (Callback)
 import Concourse
 import Dashboard
-import Effects exposing (Callback, Effect)
+import Effects exposing (Effect)
 import FlySuccess
 import Html exposing (Html)
 import Html.Styled as HS
