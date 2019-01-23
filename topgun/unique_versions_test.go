@@ -8,7 +8,8 @@ import (
 
 var _ = Describe("Unique Version History", func() {
 	BeforeEach(func() {
-		Deploy("deployments/concourse.yml")
+		Deploy("deployments/concourse.yml",
+			"-o", "operations/enable-global-resources.yml")
 		_ = waitForRunningWorker()
 	})
 
