@@ -1491,7 +1491,8 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			err = resource.PinVersion(rcv.ID())
+			found, err = resource.PinVersion(rcv.ID())
+			Expect(found).To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
 
 			reloaded, err := resource.Reload()
@@ -1544,7 +1545,8 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			err = resource.PinVersion(rcv.ID())
+			found, err = resource.PinVersion(rcv.ID())
+			Expect(found).To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
 
 			reloaded, err := resource.Reload()

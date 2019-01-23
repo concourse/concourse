@@ -2,13 +2,13 @@
 package dbfakes
 
 import (
-	sync "sync"
-	time "time"
+	"sync"
+	"time"
 
-	lager "code.cloudfoundry.org/lager"
-	atc "github.com/concourse/concourse/atc"
-	creds "github.com/concourse/concourse/atc/creds"
-	db "github.com/concourse/concourse/atc/db"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type FakeResource struct {
@@ -134,16 +134,18 @@ type FakeResource struct {
 	pinCommentReturnsOnCall map[int]struct {
 		result1 string
 	}
-	PinVersionStub        func(int) error
+	PinVersionStub        func(int) (bool, error)
 	pinVersionMutex       sync.RWMutex
 	pinVersionArgsForCall []struct {
 		arg1 int
 	}
 	pinVersionReturns struct {
-		result1 error
+		result1 bool
+		result2 error
 	}
 	pinVersionReturnsOnCall map[int]struct {
-		result1 error
+		result1 bool
+		result2 error
 	}
 	PipelineIDStub        func() int
 	pipelineIDMutex       sync.RWMutex
@@ -959,7 +961,7 @@ func (fake *FakeResource) PinCommentReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResource) PinVersion(arg1 int) error {
+func (fake *FakeResource) PinVersion(arg1 int) (bool, error) {
 	fake.pinVersionMutex.Lock()
 	ret, specificReturn := fake.pinVersionReturnsOnCall[len(fake.pinVersionArgsForCall)]
 	fake.pinVersionArgsForCall = append(fake.pinVersionArgsForCall, struct {
@@ -971,10 +973,10 @@ func (fake *FakeResource) PinVersion(arg1 int) error {
 		return fake.PinVersionStub(arg1)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
 	fakeReturns := fake.pinVersionReturns
-	return fakeReturns.result1
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeResource) PinVersionCallCount() int {
@@ -983,7 +985,7 @@ func (fake *FakeResource) PinVersionCallCount() int {
 	return len(fake.pinVersionArgsForCall)
 }
 
-func (fake *FakeResource) PinVersionCalls(stub func(int) error) {
+func (fake *FakeResource) PinVersionCalls(stub func(int) (bool, error)) {
 	fake.pinVersionMutex.Lock()
 	defer fake.pinVersionMutex.Unlock()
 	fake.PinVersionStub = stub
@@ -996,27 +998,30 @@ func (fake *FakeResource) PinVersionArgsForCall(i int) int {
 	return argsForCall.arg1
 }
 
-func (fake *FakeResource) PinVersionReturns(result1 error) {
+func (fake *FakeResource) PinVersionReturns(result1 bool, result2 error) {
 	fake.pinVersionMutex.Lock()
 	defer fake.pinVersionMutex.Unlock()
 	fake.PinVersionStub = nil
 	fake.pinVersionReturns = struct {
-		result1 error
-	}{result1}
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeResource) PinVersionReturnsOnCall(i int, result1 error) {
+func (fake *FakeResource) PinVersionReturnsOnCall(i int, result1 bool, result2 error) {
 	fake.pinVersionMutex.Lock()
 	defer fake.pinVersionMutex.Unlock()
 	fake.PinVersionStub = nil
 	if fake.pinVersionReturnsOnCall == nil {
 		fake.pinVersionReturnsOnCall = make(map[int]struct {
-			result1 error
+			result1 bool
+			result2 error
 		})
 	}
 	fake.pinVersionReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeResource) PipelineID() int {

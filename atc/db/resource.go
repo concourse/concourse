@@ -46,7 +46,7 @@ type Resource interface {
 	EnableVersion(rcvID int) error
 	DisableVersion(rcvID int) error
 
-	PinVersion(rcvID int) error
+	PinVersion(rcvID int) (bool, error)
 	UnpinVersion() error
 
 	SetResourceConfig(lager.Logger, atc.Source, creds.VersionedResourceTypes) (ResourceConfig, error)
@@ -430,28 +430,29 @@ func (r *resource) DisableVersion(rcvID int) error {
 	return r.toggleVersion(rcvID, false)
 }
 
-func (r *resource) PinVersion(rcvID int) error {
+func (r *resource) PinVersion(rcvID int) (bool, error) {
 	results, err := r.conn.Exec(`
-			UPDATE resources SET (api_pinned_version) =
-			( SELECT rcv.version
-				FROM resource_config_versions rcv
-				WHERE rcv.id = $1 )
+			UPDATE resources SET api_pinned_version = rcv.version
+			FROM (
+				SELECT v.version
+				FROM resource_config_versions v
+				WHERE v.id = $1 ) AS rcv
 			WHERE resources.id = $2
 			`, rcvID, r.id)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	rowsAffected, err := results.RowsAffected()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
+		return false, nil
 	}
 
-	return nil
+	return true, nil
 }
 
 func (r *resource) UnpinVersion() error {
