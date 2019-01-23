@@ -30,26 +30,30 @@ resources:
   type: registry-image
   source: {repository: postgres}
 
-
 jobs:
 - name: unit
   public: true
-  serial: true
+  max_in_flight: 3
   on_failure:
     put: concourse-pr
     params: {path: concourse-pr, status: failure, context: unit}
+    tags: [pr]
   on_success:
     put: concourse-pr
     params: {path: concourse-pr, status: success, context: unit}
+    tags: [pr]
   plan:
   - get: concourse-pr
     trigger: true
     version: every
+    tags: [pr]
   - put: concourse-pr
     params: {path: concourse-pr, status: pending, context: unit}
+    tags: [pr]
   - task: yarn-test
     file: concourse-pr/ci/tasks/yarn-test.yml
     input_mapping: {concourse: concourse-pr}
+    tags: [pr]
   - task: unit
     timeout: 1h
     file: concourse-pr/ci/tasks/unit.yml
@@ -58,27 +62,33 @@ jobs:
 
 - name: testflight
   public: true
-  serial: true
+  max_in_flight: 3
   on_failure:
     put: concourse-pr
     params: {path: concourse-pr, status: failure, context: testflight}
+    tags: [pr]
   on_success:
     put: concourse-pr
     params: {path: concourse-pr, status: success, context: testflight}
+    tags: [pr]
   plan:
   - aggregate:
     - get: concourse-pr
       trigger: true
       version: every
+      tags: [pr]
     - get: dev-image
       params: {format: oci}
+      tags: [pr]
     - get: postgres-image
       params: {format: oci}
+      tags: [pr]
   - put: concourse-pr
     params: {path: concourse-pr, status: pending, context: testflight}
   - task: yarn-build
     file: concourse-pr/ci/tasks/yarn-build.yml
     input_mapping: {concourse: concourse-pr}
+    tags: [pr]
   - task: testflight
     timeout: 1h
     privileged: true
@@ -88,27 +98,34 @@ jobs:
 
 - name: watsjs
   public: true
-  serial: true
+  max_in_flight: 3
   on_failure:
     put: concourse-pr
     params: {path: concourse-pr, status: failure, context: watsjs}
+    tags: [pr]
   on_success:
     put: concourse-pr
     params: {path: concourse-pr, status: success, context: watsjs}
+    tags: [pr]
   plan:
   - aggregate:
     - get: concourse-pr
       trigger: true
       version: every
+      tags: [pr]
     - get: dev-image
       params: {format: oci}
+      tags: [pr]
     - get: postgres-image
       params: {format: oci}
+      tags: [pr]
   - put: concourse-pr
     params: {path: concourse-pr, status: pending, context: watsjs}
+    tags: [pr]
   - task: yarn-build
     file: concourse-pr/ci/tasks/yarn-build.yml
     input_mapping: {concourse: concourse-pr}
+    tags: [pr]
   - task: watsjs
     timeout: 1h
     privileged: true
@@ -121,15 +138,19 @@ jobs:
   on_failure:
     put: baggageclaim-pr
     params: {path: baggageclaim-pr, status: failure, context: baggageclaim}
+    tags: [pr]
   on_success:
     put: baggageclaim-pr
     params: {path: baggageclaim-pr, status: success, context: baggageclaim}
+    tags: [pr]
   plan:
   - get: baggageclaim-pr
     trigger: true
     version: every
+    tags: [pr]
   - put: baggageclaim-pr
     params: {path: baggageclaim-pr, status: pending, context: baggageclaim}
+    tags: [pr]
   - task: unit-linux
     privileged: true
     timeout: 1h
