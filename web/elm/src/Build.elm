@@ -2,7 +2,6 @@ module Build exposing
     ( Model
     , Page(..)
     , changeToBuild
-    , getScrollBehavior
     , getUpdateMessage
     , handleCallback
     , init
@@ -12,7 +11,7 @@ module Build exposing
     , view
     )
 
-import Autoscroll
+import AnimationFrame
 import Build.Msgs exposing (HoveredButton(..), Msg(..))
 import Build.Output
 import Build.StepTree as StepTree
@@ -116,6 +115,11 @@ type alias Flags =
     }
 
 
+type ScrollBehavior
+    = ScrollWindow
+    | NoScroll
+
+
 init : Flags -> Page -> ( Model, List Effect )
 init flags page =
     let
@@ -157,6 +161,11 @@ subscriptions model =
                 buildOutput.events
         , Keyboard.presses KeyPressed
         , Keyboard.ups KeyUped
+        , if getScrollBehavior model /= NoScroll then
+            AnimationFrame.times (always ScrollDown)
+
+          else
+            Sub.none
         ]
 
 
@@ -361,6 +370,38 @@ update action model =
 
                 _ ->
                     ( model, [] )
+
+        ScrollDown ->
+            ( model
+            , case getScrollBehavior model of
+                ScrollWindow ->
+                    [ Effects.Scroll Effects.ToWindowBottom ]
+
+                NoScroll ->
+                    []
+            )
+
+
+getScrollBehavior : Model -> ScrollBehavior
+getScrollBehavior model =
+    if model.autoScroll then
+        case model.currentBuild |> RemoteData.toMaybe of
+            Nothing ->
+                NoScroll
+
+            Just cb ->
+                case cb.build.status of
+                    Concourse.BuildStatusSucceeded ->
+                        NoScroll
+
+                    Concourse.BuildStatusPending ->
+                        NoScroll
+
+                    _ ->
+                        ScrollWindow
+
+    else
+        NoScroll
 
 
 updateOutput :
@@ -1099,27 +1140,6 @@ viewHistoryItem currentBuild build =
 durationTitle : Date -> List (Html Msg) -> Html Msg
 durationTitle date content =
     Html.div [ title (Date.Format.format "%b" date) ] content
-
-
-getScrollBehavior : Model -> Autoscroll.ScrollBehavior
-getScrollBehavior model =
-    case ( model.autoScroll, model.currentBuild |> RemoteData.toMaybe ) of
-        ( False, _ ) ->
-            Autoscroll.NoScroll
-
-        ( True, Nothing ) ->
-            Autoscroll.NoScroll
-
-        ( True, Just cb ) ->
-            case cb.build.status of
-                Concourse.BuildStatusSucceeded ->
-                    Autoscroll.NoScroll
-
-                Concourse.BuildStatusPending ->
-                    Autoscroll.NoScroll
-
-                _ ->
-                    Autoscroll.ScrollWindow
 
 
 handleOutMsg : Build.Output.OutMsg -> Model -> ( Model, List Effect )
