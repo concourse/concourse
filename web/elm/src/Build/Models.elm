@@ -9,7 +9,6 @@ module Build.Models exposing
     , Step
     , StepFocus
     , StepHeaderType(..)
-    , StepID
     , StepName
     , StepState(..)
     , StepTree(..)
@@ -20,7 +19,7 @@ module Build.Models exposing
 
 import Ansi.Log
 import Array exposing (Array)
-import Build.Msgs exposing (HoveredButton, Msg)
+import Build.Msgs exposing (HoveredButton, Msg, StepID)
 import Concourse
 import Date exposing (Date)
 import Dict exposing (Dict)
@@ -99,7 +98,7 @@ type alias StepTreeModel =
     , foci : Dict StepID StepFocus
     , finished : Bool
     , highlight : Highlight
-    , tooltip : Bool
+    , tooltip : Maybe StepID
     }
 
 
@@ -144,10 +143,6 @@ type alias Step =
 
 
 type alias StepName =
-    String
-
-
-type alias StepID =
     String
 
 

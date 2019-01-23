@@ -174,14 +174,40 @@ all =
                             Ok <|
                                 ( { id = "plan"
                                   , step =
-                                        Concourse.BuildStepGet
-                                            "step"
-                                            (Just version)
+                                        Concourse.BuildStepDo <|
+                                            Array.fromList
+                                                [ { id = "foo"
+                                                  , step =
+                                                        Concourse.BuildStepGet
+                                                            "step"
+                                                            (Just version)
+                                                  }
+                                                , { id = "bar"
+                                                  , step =
+                                                        Concourse.BuildStepGet
+                                                            "step2"
+                                                            (Just version)
+                                                  }
+                                                , { id = "baz"
+                                                  , step =
+                                                        Concourse.BuildStepGet
+                                                            "step3"
+                                                            (Just version)
+                                                  }
+                                                ]
                                   }
                                 , { inputs =
                                         [ { name = "step"
                                           , version = version
                                           , firstOccurrence = True
+                                          }
+                                        , { name = "step2"
+                                          , version = version
+                                          , firstOccurrence = True
+                                          }
+                                        , { name = "step3"
+                                          , version = version
+                                          , firstOccurrence = False
                                           }
                                         ]
                                   , outputs = []
@@ -883,12 +909,13 @@ all =
                 , query =
                     Build.view
                         >> Query.fromHtml
-                        >> Query.find
+                        >> Query.findAll
                             (iconSelector
                                 { size = "28px"
                                 , image = "ic-arrow-downward-yellow.svg"
                                 }
                             )
+                        >> Query.first
                 , updateFunc = \msg -> Build.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "no tooltip", selector = [] }
@@ -911,9 +938,18 @@ all =
                             ]
                         ]
                     }
-                , mouseEnterMsg = Msgs.Hover Msgs.FirstOccurrence
+                , mouseEnterMsg = Msgs.Hover (Msgs.FirstOccurrence "foo")
                 , mouseLeaveMsg = Msgs.Hover Msgs.Neither
                 }
+            , test "hovering one resource of several produces only a single tooltip" <|
+                \_ ->
+                    setupWithResourceFirstOccurrence
+                        |> Build.update (Msgs.Hover (Msgs.FirstOccurrence "foo"))
+                        |> Tuple.first
+                        |> Build.view
+                        |> Query.fromHtml
+                        |> Query.findAll [ text "new version" ]
+                        |> Query.count (Expect.equal 1)
             , test "successful step has a checkmark at the far right" <|
                 setup
                     >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)

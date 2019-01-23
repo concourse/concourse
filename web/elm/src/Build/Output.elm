@@ -13,12 +13,11 @@ import Build.Models
     exposing
         ( OutputModel
         , OutputState(..)
-        , StepID
         , StepState(..)
         , StepTree
         , StepTreeModel
         )
-import Build.Msgs exposing (Msg(..))
+import Build.Msgs exposing (Msg(..), StepID)
 import Build.StepTree as StepTree
 import Build.Styles as Styles
 import Concourse

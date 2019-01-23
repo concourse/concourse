@@ -22,7 +22,6 @@ import Build.Models
         , Step
         , StepFocus
         , StepHeaderType(..)
-        , StepID
         , StepName
         , StepState(..)
         , StepTree(..)
@@ -30,7 +29,7 @@ import Build.Models
         , TabFocus(..)
         , Version
         )
-import Build.Msgs exposing (HoveredButton(..), Msg(..))
+import Build.Msgs exposing (HoveredButton(..), Msg(..), StepID)
 import Build.Styles as Styles
 import Concourse
 import Date exposing (Date)
@@ -121,7 +120,7 @@ initMultiStep hl resources planId constructor plans =
                 |> Array.indexedMap wrapMultiStep
                 |> Array.foldr Dict.union selfFoci
     in
-    StepTreeModel (constructor trees) foci False hl False
+    StepTreeModel (constructor trees) foci False hl Nothing
 
 
 initBottom :
@@ -166,7 +165,7 @@ initBottom hl create id name =
     , foci = Dict.singleton id (Focus.create identity identity)
     , finished = False
     , highlight = hl
-    , tooltip = False
+    , tooltip = Nothing
     }
 
 
@@ -185,7 +184,7 @@ initWrappedStep hl resources create plan =
     , foci = Dict.map wrapStep foci
     , finished = False
     , highlight = hl
-    , tooltip = False
+    , tooltip = Nothing
     }
 
 
@@ -210,7 +209,7 @@ initHookedStep hl resources create hookedPlan =
             (Dict.map wrapHook hookModel.foci)
     , finished = stepModel.finished
     , highlight = hl
-    , tooltip = False
+    , tooltip = Nothing
     }
 
 
@@ -351,9 +350,18 @@ toggleExpanded { expanded, state } =
     Just <| not <| Maybe.withDefault (autoExpanded state) expanded
 
 
-setHovering : Bool -> StepTreeModel -> ( StepTreeModel, List Effect )
-setHovering tooltip model =
-    ( { model | tooltip = tooltip }, [] )
+setHovering : HoveredButton -> StepTreeModel -> ( StepTreeModel, List Effect )
+setHovering hovered model =
+    let
+        newTooltip =
+            case hovered of
+                FirstOccurrence id ->
+                    Just id
+
+                _ ->
+                    Nothing
+    in
+    ( { model | tooltip = newTooltip }, [] )
 
 
 focusRetry : Int -> StepTree -> StepTree
@@ -659,7 +667,7 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
             ]
             [ Html.div
                 [ style [ ( "display", "flex" ) ] ]
-                [ viewStepHeaderIcon headerType model.tooltip
+                [ viewStepHeaderIcon headerType (model.tooltip == Just id) id
                 , Html.h3 [] [ Html.text name ]
                 ]
             , Html.div
@@ -805,13 +813,13 @@ viewStepState state buildFinished =
                 []
 
 
-viewStepHeaderIcon : StepHeaderType -> Bool -> Html Msg
-viewStepHeaderIcon headerType tooltip =
+viewStepHeaderIcon : StepHeaderType -> Bool -> StepID -> Html Msg
+viewStepHeaderIcon headerType tooltip id =
     let
         eventHandlers =
             if headerType == StepHeaderGet True then
                 [ onMouseLeave <| Hover Neither
-                , onMouseEnter <| Hover FirstOccurrence
+                , onMouseEnter <| Hover (FirstOccurrence id)
                 ]
 
             else

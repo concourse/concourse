@@ -277,7 +277,7 @@ update action model =
 
         Hover state ->
             updateOutput
-                (Build.Output.handleStepTreeMsg (StepTree.setHovering (state == FirstOccurrence)))
+                (Build.Output.handleStepTreeMsg (StepTree.setHovering state))
                 { model | hoveredButton = state }
 
         TriggerBuild job ->
