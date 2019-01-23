@@ -1,10 +1,10 @@
-module Concourse.Pipeline exposing (fetchPipeline, fetchPipelines, pause, unpause, order)
+module Concourse.Pipeline exposing (fetchPipeline, fetchPipelines, order, pause, unpause)
 
-import Http
-import Json.Encode
-import Json.Decode
-import Task exposing (Task)
 import Concourse
+import Http
+import Json.Decode
+import Json.Encode
+import Task exposing (Task)
 
 
 order : String -> List String -> Concourse.CSRFToken -> Task Http.Error ()

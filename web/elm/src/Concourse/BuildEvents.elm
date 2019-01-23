@@ -1,12 +1,12 @@
-module Concourse.BuildEvents exposing (..)
+module Concourse.BuildEvents exposing (BuildEvent(..), Msg(..), Origin, dateFromSeconds, decodeBuildEvent, decodeBuildEventEnvelope, decodeErrorEvent, decodeFinishResource, decodeOrigin, parseEvent, parseEvents, parseEventsFromIndex, parseMsg, subscribe)
 
 import Array exposing (Array)
+import Concourse
 import Date exposing (Date)
 import Dict exposing (Dict)
-import Json.Decode
-import Concourse
 import EventSource
 import EventSource.LowLevel as ES
+import Json.Decode
 
 
 type BuildEvent
@@ -112,21 +112,21 @@ parseEventsFromIndex evs acc i =
         elem =
             Array.get i evs
     in
-        case elem of
-            Nothing ->
-                Ok acc
+    case elem of
+        Nothing ->
+            Ok acc
 
-            Just ev ->
-                let
-                    parsed =
-                        parseEvent ev
-                in
-                    case parsed of
-                        Ok ev ->
-                            parseEventsFromIndex evs (Array.set i ev acc) (i + 1)
+        Just ev ->
+            let
+                parsed =
+                    parseEvent ev
+            in
+            case parsed of
+                Ok ev ->
+                    parseEventsFromIndex evs (Array.set i ev acc) (i + 1)
 
-                        Err err ->
-                            Err err
+                Err err ->
+                    Err err
 
 
 parseMsg : EventSource.Msg -> Msg
@@ -157,7 +157,7 @@ parseEvent event =
 
 dateFromSeconds : Float -> Date
 dateFromSeconds =
-    Date.fromTime << ((*) 1000)
+    Date.fromTime << (*) 1000
 
 
 decodeFinishResource : (Origin -> Int -> Concourse.Version -> Concourse.Metadata -> a) -> Json.Decode.Decoder a

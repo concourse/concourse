@@ -1,4 +1,4 @@
-module Dashboard.SubState exposing (..)
+module Dashboard.SubState exposing (SubState, tick)
 
 import Dashboard.Group as Group
 import Time exposing (Time)

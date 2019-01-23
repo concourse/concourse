@@ -26,12 +26,14 @@ screenSizeChanged { oldSize, newSize } searchBar =
                 ScreenSize.Desktop ->
                     if String.isEmpty r.query then
                         Collapsed
+
                     else
                         Expanded r
 
                 ScreenSize.BigDesktop ->
                     if String.isEmpty r.query then
                         Collapsed
+
                     else
                         Expanded r
 

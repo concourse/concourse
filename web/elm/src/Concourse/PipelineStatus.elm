@@ -1,4 +1,4 @@
-module Concourse.PipelineStatus exposing (..)
+module Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..), isRunning, show)
 
 import Time exposing (Time)
 

@@ -1,4 +1,4 @@
-module Pinned exposing (..)
+module Pinned exposing (ResourcePinState(..), VersionPinState(..), finishPinning, pinState, quitUnpinning, stable, startPinningTo, startUnpinning)
 
 
 type ResourcePinState version id
@@ -76,6 +76,7 @@ pinState version id resourcePinState =
         PinnedStaticallyTo v ->
             if v == version then
                 PinnedStatically { showTooltip = False }
+
             else
                 Disabled
 
@@ -85,17 +86,20 @@ pinState version id resourcePinState =
         PinningTo destination ->
             if destination == id then
                 InTransition
+
             else
                 Disabled
 
         PinnedDynamicallyTo v ->
             if v == version then
                 PinnedDynamically
+
             else
                 Disabled
 
         UnpinningFrom v ->
             if v == version then
                 InTransition
+
             else
                 Disabled

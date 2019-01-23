@@ -1,15 +1,13 @@
-effect module EventSource
-    where { subscription = MySub }
-    exposing
-        ( listen
-        , Msg(..)
-        )
+effect module EventSource where { subscription = MySub } exposing
+    ( Msg(..)
+    , listen
+    )
 
 import Array exposing (Array)
 import Dict exposing (Dict)
+import EventSource.LowLevel as ES
 import Process
 import Task exposing (Task)
-import EventSource.LowLevel as ES
 
 
 type alias URL =
@@ -86,7 +84,7 @@ onEffects router subs state =
         desiredSubs =
             List.foldl insertSub Dict.empty subs
     in
-        Dict.merge (createSource router) updateSourceSubs closeSource desiredSubs state (Task.succeed Dict.empty)
+    Dict.merge (createSource router) updateSourceSubs closeSource desiredSubs state (Task.succeed Dict.empty)
 
 
 createSource : Platform.Router msg SelfMsg -> SubscriberKey -> List (MySub msg) -> Task Never (State msg) -> Task Never (State msg)

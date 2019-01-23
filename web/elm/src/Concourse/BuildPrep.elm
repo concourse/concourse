@@ -1,8 +1,8 @@
-module Concourse.BuildPrep exposing (..)
+module Concourse.BuildPrep exposing (fetch)
 
+import Concourse
 import Http
 import Task exposing (Task)
-import Concourse
 
 
 fetch : Concourse.BuildId -> Task Http.Error Concourse.BuildPrep

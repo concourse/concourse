@@ -38,6 +38,7 @@ view isHd tag =
              ]
                 ++ (if isHd then
                         [ ( "margin-bottom", "1em" ) ]
+
                     else
                         [ ( "margin-bottom", "" ) ]
                    )
