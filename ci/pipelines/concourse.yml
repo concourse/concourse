@@ -821,6 +821,7 @@ jobs:
       - cbd/cluster/operations/team-authorized-keys.yml
       - cbd/cluster/operations/untrusted-worker.yml
       - cbd/cluster/operations/debug-untrusted-worker.yml
+      - cbd/cluster/operations/scale-untrusted-worker.yml
       - cbd/cluster/operations/windows-worker.yml
       - cbd/cluster/operations/telegraf-postgres.yml
       - cbd/cluster/operations/syslog_forwarder.yml
@@ -849,6 +850,7 @@ jobs:
         web_network_vm_extension: concourse-web-target-pool
         untrusted_worker_deny_networks: [10.0.0.0/16]
         untrusted_worker_tags: [pr]
+        untrusted_worker_instances: 3
         windows_worker_tsa_host: ci.concourse-ci.org:2222
         windows_worker_os: windows2016
         windows_worker_vm_type: worker
