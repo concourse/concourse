@@ -34,3 +34,4 @@ type HoveredButton
     = Neither
     | Abort
     | Trigger
+    | FirstOccurrence

@@ -2,6 +2,7 @@ module BuildTests exposing (all)
 
 import Array
 import Build
+import Build.Models as Models
 import Build.Msgs as Msgs
 import Concourse exposing (BuildPrepStatus(..))
 import Concourse.BuildEvents as BuildEvents
@@ -16,6 +17,7 @@ import Effects
 import Expect
 import Html.Attributes as Attr
 import Test exposing (..)
+import Test.Html.Event as Event
 import Test.Html.Query as Query
 import Test.Html.Selector
     exposing
@@ -38,7 +40,7 @@ all =
                     { csrfToken = ""
                     , hash = ""
                     }
-                    (Build.JobBuildPage
+                    (Models.JobBuildPage
                         { teamName = "team"
                         , pipelineName = "pipeline"
                         , jobName = "job"
@@ -82,17 +84,17 @@ all =
                 , reapTime = Nothing
                 }
 
-            fetchBuild : Build.Model -> ( Build.Model, List Effects.Effect )
+            fetchBuild : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchBuild =
                 Build.handleCallback <| Effects.BuildFetched <| Ok ( 1, theBuild )
 
             fetchStartedBuild :
-                Build.Model
-                -> ( Build.Model, List Effects.Effect )
+                Models.Model
+                -> ( Models.Model, List Effects.Effect )
             fetchStartedBuild =
                 Build.handleCallback <| Effects.BuildFetched <| Ok ( 1, startedBuild )
 
-            fetchJobDetails : Build.Model -> ( Build.Model, List Effects.Effect )
+            fetchJobDetails : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchJobDetails =
                 Build.handleCallback <|
                     Effects.BuildJobDetailsFetched <|
@@ -115,8 +117,8 @@ all =
                             }
 
             fetchJobDetailsNoTrigger :
-                Build.Model
-                -> ( Build.Model, List Effects.Effect )
+                Models.Model
+                -> ( Models.Model, List Effects.Effect )
             fetchJobDetailsNoTrigger =
                 Build.handleCallback <|
                     Effects.BuildJobDetailsFetched <|
@@ -138,7 +140,7 @@ all =
                             , groups = []
                             }
 
-            fetchHistory : Build.Model -> ( Build.Model, List Effects.Effect )
+            fetchHistory : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchHistory =
                 Build.handleCallback
                     (Effects.BuildHistoryFetched
@@ -151,6 +153,42 @@ all =
                             }
                         )
                     )
+
+            setupWithResourceFirstOccurrence : Models.Model
+            setupWithResourceFirstOccurrence =
+                pageLoad
+                    |> Tuple.first
+                    |> fetchStartedBuild
+                    |> Tuple.first
+                    |> fetchHistory
+                    |> Tuple.first
+                    |> fetchJobDetails
+                    |> Tuple.first
+                    |> Build.handleCallback
+                        (Effects.PlanAndResourcesFetched <|
+                            let
+                                version =
+                                    Dict.fromList
+                                        [ ( "ref", "abc123" ) ]
+                            in
+                            Ok <|
+                                ( { id = "plan"
+                                  , step =
+                                        Concourse.BuildStepGet
+                                            "step"
+                                            (Just version)
+                                  }
+                                , { inputs =
+                                        [ { name = "step"
+                                          , version = version
+                                          , firstOccurrence = True
+                                          }
+                                        ]
+                                  , outputs = []
+                                  }
+                                )
+                        )
+                    |> Tuple.first
         in
         [ test "says loading on page load" <|
             \_ ->
@@ -686,7 +724,7 @@ all =
             ]
         , describe "step header" <|
             let
-                setup : () -> Build.Model
+                setup : () -> Models.Model
                 setup _ =
                     pageLoad
                         |> Tuple.first
@@ -813,39 +851,7 @@ all =
                             )
             , test "get step on first occurrence shows yellow downward arrow" <|
                 \_ ->
-                    pageLoad
-                        |> Tuple.first
-                        |> fetchStartedBuild
-                        |> Tuple.first
-                        |> fetchHistory
-                        |> Tuple.first
-                        |> fetchJobDetails
-                        |> Tuple.first
-                        |> Build.handleCallback
-                            (Effects.PlanAndResourcesFetched <|
-                                let
-                                    version =
-                                        Dict.fromList
-                                            [ ( "ref", "abc123" ) ]
-                                in
-                                Ok <|
-                                    ( { id = "plan"
-                                      , step =
-                                            Concourse.BuildStepGet
-                                                "step"
-                                                (Just version)
-                                      }
-                                    , { inputs =
-                                            [ { name = "step"
-                                              , version = version
-                                              , firstOccurrence = True
-                                              }
-                                            ]
-                                      , outputs = []
-                                      }
-                                    )
-                            )
-                        |> Tuple.first
+                    setupWithResourceFirstOccurrence
                         |> Build.view
                         |> Query.fromHtml
                         |> Query.has
@@ -857,6 +863,57 @@ all =
                                         [ ( "background-size", "14px 14px" ) ]
                                    ]
                             )
+            , test "hovering over a grey down arrow does nothing" <|
+                setup
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.find
+                        (iconSelector
+                            { size = "28px"
+                            , image = "ic-arrow-downward.svg"
+                            }
+                        )
+                    >> Event.simulate Event.mouseEnter
+                    >> Event.toResult
+                    >> Expect.err
+            , defineHoverBehaviour
+                { name = "yellow resource down arrow"
+                , setup =
+                    setupWithResourceFirstOccurrence
+                , query =
+                    Build.view
+                        >> Query.fromHtml
+                        >> Query.find
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-arrow-downward-yellow.svg"
+                                }
+                            )
+                , updateFunc = \msg -> Build.update msg >> Tuple.first
+                , unhoveredSelector =
+                    { description = "no tooltip", selector = [] }
+                , hoveredSelector =
+                    { description = "grey plus icon with tooltip"
+                    , selector =
+                        [ style [ ( "position", "relative" ) ]
+                        , containing
+                            [ containing
+                                [ text "new version" ]
+                            , style
+                                [ ( "position", "absolute" )
+                                , ( "left", "100%" )
+                                , ( "bottom", "50%" )
+                                , ( "background-color", tooltipGreyHex )
+                                , ( "padding", "10px" )
+                                , ( "z-index", "100" )
+                                , ( "width", "6em" )
+                                ]
+                            ]
+                        ]
+                    }
+                , mouseEnterMsg = Msgs.Hover Msgs.FirstOccurrence
+                , mouseLeaveMsg = Msgs.Hover Msgs.Neither
+                }
             , test "successful step has a checkmark at the far right" <|
                 setup
                     >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)
@@ -1013,7 +1070,7 @@ all =
                         )
             , describe "erroring build" <|
                 let
-                    erroringBuild : () -> Build.Model
+                    erroringBuild : () -> Models.Model
                     erroringBuild =
                         setup
                             >> Build.update
@@ -1058,3 +1115,8 @@ all =
                 ]
             ]
         ]
+
+
+tooltipGreyHex : String
+tooltipGreyHex =
+    "#9b9b9b"

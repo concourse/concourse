@@ -1,7 +1,6 @@
 module Build exposing
-    ( Model
-    , Page(..)
-    , changeToBuild
+    ( changeToBuild
+    , getScrollBehavior
     , getUpdateMessage
     , handleCallback
     , init
@@ -12,6 +11,7 @@ module Build exposing
     )
 
 import AnimationFrame
+import Build.Models exposing (Model, OutputModel, Page(..))
 import Build.Msgs exposing (HoveredButton(..), Msg(..))
 import Build.Output
 import Build.StepTree as StepTree
@@ -58,11 +58,6 @@ import UpdateMsg exposing (UpdateMsg)
 import Views
 
 
-type Page
-    = BuildPage Int
-    | JobBuildPage Concourse.JobBuildIdentifier
-
-
 initJobBuildPage :
     Concourse.TeamName
     -> Concourse.PipelineName
@@ -81,24 +76,7 @@ initJobBuildPage teamName pipelineName jobName buildName =
 type alias CurrentBuild =
     { build : Concourse.Build
     , prep : Maybe Concourse.BuildPrep
-    , output : Maybe Build.Output.Model
-    }
-
-
-type alias Model =
-    { page : Page
-    , now : Maybe Time.Time
-    , job : Maybe Concourse.Job
-    , history : List Concourse.Build
-    , currentBuild : WebData CurrentBuild
-    , browsingIndex : Int
-    , autoScroll : Bool
-    , csrfToken : String
-    , previousKeyPress : Maybe Char
-    , previousTriggerBuildByKey : Bool
-    , showHelp : Bool
-    , hash : String
-    , hoveredButton : HoveredButton
+    , output : Maybe OutputModel
     }
 
 
@@ -298,7 +276,9 @@ update action model =
             ( model, [ NavigateTo <| Routes.buildRoute build ] )
 
         Hover state ->
-            ( { model | hoveredButton = state }, [] )
+            updateOutput
+                (Build.Output.handleStepTreeMsg (StepTree.setHovering (state == FirstOccurrence)))
+                { model | hoveredButton = state }
 
         TriggerBuild job ->
             case job of
@@ -405,9 +385,7 @@ getScrollBehavior model =
 
 
 updateOutput :
-    (Build.Output.Model
-     -> ( Build.Output.Model, List Effect, Build.Output.OutMsg )
-    )
+    (OutputModel -> ( OutputModel, List Effect, Build.Output.OutMsg ))
     -> Model
     -> ( Model, List Effect )
 updateOutput updater model =
@@ -853,7 +831,7 @@ mmDDYY d =
     Date.Format.format "%m/%d/" d ++ String.right 2 (Date.Format.format "%Y" d)
 
 
-viewBuildOutput : Int -> Maybe Build.Output.Model -> Html Msg
+viewBuildOutput : Int -> Maybe OutputModel -> Html Msg
 viewBuildOutput browsingIndex output =
     case output of
         Just o ->

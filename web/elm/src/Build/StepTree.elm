@@ -1,20 +1,11 @@
 module Build.StepTree exposing
-    ( Highlight(..)
-    , HookedStep
-    , Model
-    , Step
-    , StepFocus
-    , StepID
-    , StepName
-    , StepState(..)
-    , StepTree(..)
-    , Version
-    , extendHighlight
+    ( extendHighlight
     , finished
     , init
     , map
     , parseHighlight
     , setHighlight
+    , setHovering
     , switchTab
     , toggleStep
     , updateAt
@@ -23,7 +14,23 @@ module Build.StepTree exposing
 
 import Ansi.Log
 import Array exposing (Array)
-import Build.Msgs exposing (Msg(..))
+import Build.Models
+    exposing
+        ( Highlight(..)
+        , HookedStep
+        , MetadataField
+        , Step
+        , StepFocus
+        , StepHeaderType(..)
+        , StepID
+        , StepName
+        , StepState(..)
+        , StepTree(..)
+        , StepTreeModel
+        , TabFocus(..)
+        , Version
+        )
+import Build.Msgs exposing (HoveredButton(..), Msg(..))
 import Build.Styles as Styles
 import Concourse
 import Date exposing (Date)
@@ -35,104 +42,26 @@ import Effects exposing (Effect(..))
 import Focus exposing ((=>), Focus)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style)
-import Html.Events exposing (onClick, onMouseDown)
+import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
 import Spinner
 import StrictEvents
 
 
-type StepTree
-    = Task Step
-    | Get Step
-    | Put Step
-    | DependentGet Step
-    | Aggregate (Array StepTree)
-    | Do (Array StepTree)
-    | OnSuccess HookedStep
-    | OnFailure HookedStep
-    | OnAbort HookedStep
-    | Ensure HookedStep
-    | Try StepTree
-    | Retry StepID Int TabFocus (Array StepTree)
-    | Timeout StepTree
-
-
-type TabFocus
-    = Auto
-    | User
-
-
-type alias HookedStep =
-    { step : StepTree
-    , hook : StepTree
-    }
-
-
-type alias Step =
-    { id : StepID
-    , name : StepName
-    , state : StepState
-    , log : Ansi.Log.Model
-    , error : Maybe String
-    , expanded : Maybe Bool
-    , version : Maybe Version
-    , metadata : List MetadataField
-    , firstOccurrence : Bool
-    , timestamps : Dict Int Date
-    }
-
-
-type alias StepName =
-    String
-
-
-type alias StepID =
-    String
-
-
-type StepState
-    = StepStatePending
-    | StepStateRunning
-    | StepStateSucceeded
-    | StepStateFailed
-    | StepStateErrored
-
-
-type alias StepFocus =
-    Focus StepTree StepTree
-
-
-type alias Model =
-    { tree : StepTree
-    , foci : Dict StepID StepFocus
-    , finished : Bool
-    , highlight : Highlight
-    }
-
-
-type alias Version =
-    Dict String String
-
-
-type alias MetadataField =
-    { name : String
-    , value : String
-    }
-
-
-type Highlight
-    = HighlightNothing
-    | HighlightLine StepID Int
-    | HighlightRange StepID Int Int
-
-
-init : Highlight -> Concourse.BuildResources -> Concourse.BuildPlan -> Model
+init :
+    Highlight
+    -> Concourse.BuildResources
+    -> Concourse.BuildPlan
+    -> StepTreeModel
 init hl resources plan =
     case plan.step of
         Concourse.BuildStepTask name ->
             initBottom hl Task plan.id name
 
         Concourse.BuildStepGet name version ->
-            initBottom hl (Get << setupGetStep resources name version) plan.id name
+            initBottom hl
+                (Get << setupGetStep resources name version)
+                plan.id
+                name
 
         Concourse.BuildStepPut name ->
             initBottom hl Put plan.id name
@@ -174,7 +103,7 @@ initMultiStep :
     -> String
     -> (Array StepTree -> StepTree)
     -> Array Concourse.BuildPlan
-    -> Model
+    -> StepTreeModel
 initMultiStep hl resources planId constructor plans =
     let
         inited =
@@ -192,7 +121,97 @@ initMultiStep hl resources planId constructor plans =
                 |> Array.indexedMap wrapMultiStep
                 |> Array.foldr Dict.union selfFoci
     in
-    Model (constructor trees) foci False hl
+    StepTreeModel (constructor trees) foci False hl False
+
+
+initBottom :
+    Highlight
+    -> (Step -> StepTree)
+    -> StepID
+    -> StepName
+    -> StepTreeModel
+initBottom hl create id name =
+    let
+        step =
+            { id = id
+            , name = name
+            , state = StepStatePending
+            , log = Ansi.Log.init Ansi.Log.Cooked
+            , error = Nothing
+            , expanded =
+                case hl of
+                    HighlightNothing ->
+                        Nothing
+
+                    HighlightLine stepID _ ->
+                        if id == stepID then
+                            Just True
+
+                        else
+                            Nothing
+
+                    HighlightRange stepID _ _ ->
+                        if id == stepID then
+                            Just True
+
+                        else
+                            Nothing
+            , version = Nothing
+            , metadata = []
+            , firstOccurrence = False
+            , timestamps = Dict.empty
+            }
+    in
+    { tree = create step
+    , foci = Dict.singleton id (Focus.create identity identity)
+    , finished = False
+    , highlight = hl
+    , tooltip = False
+    }
+
+
+initWrappedStep :
+    Highlight
+    -> Concourse.BuildResources
+    -> (StepTree -> StepTree)
+    -> Concourse.BuildPlan
+    -> StepTreeModel
+initWrappedStep hl resources create plan =
+    let
+        { tree, foci } =
+            init hl resources plan
+    in
+    { tree = create tree
+    , foci = Dict.map wrapStep foci
+    , finished = False
+    , highlight = hl
+    , tooltip = False
+    }
+
+
+initHookedStep :
+    Highlight
+    -> Concourse.BuildResources
+    -> (HookedStep -> StepTree)
+    -> Concourse.HookedPlan
+    -> StepTreeModel
+initHookedStep hl resources create hookedPlan =
+    let
+        stepModel =
+            init hl resources hookedPlan.step
+
+        hookModel =
+            init hl resources hookedPlan.hook
+    in
+    { tree = create { step = stepModel.tree, hook = hookModel.tree }
+    , foci =
+        Dict.union
+            (Dict.map wrapStep stepModel.foci)
+            (Dict.map wrapHook hookModel.foci)
+    , finished = stepModel.finished
+    , highlight = hl
+    , tooltip = False
+    }
 
 
 treeIsActive : StepTree -> Bool
@@ -265,7 +284,7 @@ isFirstOccurrence resources step =
                 isFirstOccurrence rest step
 
 
-toggleStep : StepID -> Model -> ( Model, List Effect )
+toggleStep : StepID -> StepTreeModel -> ( StepTreeModel, List Effect )
 toggleStep id root =
     ( updateAt
         id
@@ -275,17 +294,17 @@ toggleStep id root =
     )
 
 
-finished : Model -> ( Model, List Effect )
+finished : StepTreeModel -> ( StepTreeModel, List Effect )
 finished root =
     ( { root | finished = True }, [] )
 
 
-switchTab : StepID -> Int -> Model -> ( Model, List Effect )
+switchTab : StepID -> Int -> StepTreeModel -> ( StepTreeModel, List Effect )
 switchTab id tab root =
     ( updateAt id (focusRetry tab) root, [] )
 
 
-setHighlight : StepID -> Int -> Model -> ( Model, List Effect )
+setHighlight : StepID -> Int -> StepTreeModel -> ( StepTreeModel, List Effect )
 setHighlight id line root =
     let
         hl =
@@ -294,7 +313,7 @@ setHighlight id line root =
     ( { root | highlight = hl }, [ ModifyUrl (showHighlight hl) ] )
 
 
-extendHighlight : StepID -> Int -> Model -> ( Model, List Effect )
+extendHighlight : StepID -> Int -> StepTreeModel -> ( StepTreeModel, List Effect )
 extendHighlight id line root =
     let
         hl =
@@ -332,6 +351,11 @@ toggleExpanded { expanded, state } =
     Just <| not <| Maybe.withDefault (autoExpanded state) expanded
 
 
+setHovering : Bool -> StepTreeModel -> ( StepTreeModel, List Effect )
+setHovering tooltip model =
+    ( { model | tooltip = tooltip }, [] )
+
+
 focusRetry : Int -> StepTree -> StepTree
 focusRetry tab tree =
     case tree of
@@ -342,7 +366,7 @@ focusRetry tab tree =
             Debug.crash "impossible (non-retry tab focus)"
 
 
-updateAt : StepID -> (StepTree -> StepTree) -> Model -> Model
+updateAt : StepID -> (StepTree -> StepTree) -> StepTreeModel -> StepTreeModel
 updateAt id update root =
     case Dict.get id root.foci of
         Nothing ->
@@ -369,78 +393,6 @@ map f tree =
 
         _ ->
             tree
-
-
-initBottom : Highlight -> (Step -> StepTree) -> StepID -> StepName -> Model
-initBottom hl create id name =
-    let
-        step =
-            { id = id
-            , name = name
-            , state = StepStatePending
-            , log = Ansi.Log.init Ansi.Log.Cooked
-            , error = Nothing
-            , expanded =
-                case hl of
-                    HighlightNothing ->
-                        Nothing
-
-                    HighlightLine stepID _ ->
-                        if id == stepID then
-                            Just True
-
-                        else
-                            Nothing
-
-                    HighlightRange stepID _ _ ->
-                        if id == stepID then
-                            Just True
-
-                        else
-                            Nothing
-            , version = Nothing
-            , metadata = []
-            , firstOccurrence = False
-            , timestamps = Dict.empty
-            }
-    in
-    { tree = create step
-    , foci = Dict.singleton id (Focus.create identity identity)
-    , finished = False
-    , highlight = hl
-    }
-
-
-initWrappedStep : Highlight -> Concourse.BuildResources -> (StepTree -> StepTree) -> Concourse.BuildPlan -> Model
-initWrappedStep hl resources create plan =
-    let
-        { tree, foci } =
-            init hl resources plan
-    in
-    { tree = create tree
-    , foci = Dict.map wrapStep foci
-    , finished = False
-    , highlight = hl
-    }
-
-
-initHookedStep : Highlight -> Concourse.BuildResources -> (HookedStep -> StepTree) -> Concourse.HookedPlan -> Model
-initHookedStep hl resources create hookedPlan =
-    let
-        stepModel =
-            init hl resources hookedPlan.step
-
-        hookModel =
-            init hl resources hookedPlan.hook
-    in
-    { tree = create { step = stepModel.tree, hook = hookModel.tree }
-    , foci =
-        Dict.union
-            (Dict.map wrapStep stepModel.foci)
-            (Dict.map wrapHook hookModel.foci)
-    , finished = stepModel.finished
-    , highlight = hl
-    }
 
 
 wrapMultiStep : Int -> Dict StepID StepFocus -> Dict StepID StepFocus
@@ -596,29 +548,25 @@ setMultiStepIndex idx update tree =
             Debug.crash "impossible"
 
 
-view : Model -> Html Msg
+view : StepTreeModel -> Html Msg
 view model =
     viewTree model model.tree
 
 
-viewTree : Model -> StepTree -> Html Msg
+viewTree : StepTreeModel -> StepTree -> Html Msg
 viewTree model tree =
     case tree of
         Task step ->
-            viewStep model step Styles.Terminal
+            viewStep model step StepHeaderTask
 
         Get step ->
-            if step.firstOccurrence then
-                viewStep model step Styles.ArrowDownYellow
-
-            else
-                viewStep model step Styles.ArrowDown
+            viewStep model step (StepHeaderGet step.firstOccurrence)
 
         DependentGet step ->
-            viewStep model step Styles.ArrowDown
+            viewStep model step (StepHeaderGet False)
 
         Put step ->
-            viewStep model step Styles.ArrowUp
+            viewStep model step StepHeaderPut
 
         Try step ->
             viewTree model step
@@ -670,12 +618,12 @@ viewTab id currentTab idx step =
         [ Html.a [ onClick (SwitchTab id tab) ] [ Html.text (toString tab) ] ]
 
 
-viewSeq : Model -> StepTree -> Html Msg
+viewSeq : StepTreeModel -> StepTree -> Html Msg
 viewSeq model tree =
     Html.div [ class "seq" ] [ viewTree model tree ]
 
 
-viewHooked : String -> Model -> StepTree -> StepTree -> Html Msg
+viewHooked : String -> StepTreeModel -> StepTree -> StepTree -> Html Msg
 viewHooked name model step hook =
     Html.div [ class "hooked" ]
         [ Html.div [ class "step" ] [ viewTree model step ]
@@ -695,8 +643,8 @@ autoExpanded state =
     isActive state && state /= StepStateSucceeded
 
 
-viewStep : Model -> Step -> Styles.StepHeaderIcon -> Html Msg
-viewStep model { id, name, log, state, error, expanded, version, metadata, firstOccurrence, timestamps } icon =
+viewStep : StepTreeModel -> Step -> StepHeaderType -> Html Msg
+viewStep model { id, name, log, state, error, expanded, version, metadata, firstOccurrence, timestamps } headerType =
     Html.div
         [ classList
             [ ( "build-step", True )
@@ -711,7 +659,7 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
             ]
             [ Html.div
                 [ style [ ( "display", "flex" ) ] ]
-                [ Html.div [ style <| Styles.stepHeaderIcon icon ] []
+                [ viewStepHeaderIcon headerType model.tooltip
                 , Html.h3 [] [ Html.text name ]
                 ]
             , Html.div
@@ -855,6 +803,31 @@ viewStepState state buildFinished =
                 , style <| Styles.stepStatusIcon "ic-exclamation-triangle"
                 ]
                 []
+
+
+viewStepHeaderIcon : StepHeaderType -> Bool -> Html Msg
+viewStepHeaderIcon headerType tooltip =
+    let
+        eventHandlers =
+            if headerType == StepHeaderGet True then
+                [ onMouseLeave <| Hover Neither
+                , onMouseEnter <| Hover FirstOccurrence
+                ]
+
+            else
+                []
+    in
+    Html.div
+        ([ style <| Styles.stepHeaderIcon headerType ] ++ eventHandlers)
+        (if tooltip then
+            [ Html.div
+                [ style Styles.firstOccurrenceTooltip ]
+                [ Html.text "new version" ]
+            ]
+
+         else
+            []
+        )
 
 
 showHighlight : Highlight -> String

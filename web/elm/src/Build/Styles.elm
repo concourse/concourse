@@ -1,7 +1,7 @@
 module Build.Styles exposing
-    ( StepHeaderIcon(..)
-    , abortButton
+    ( abortButton
     , abortIcon
+    , firstOccurrenceTooltip
     , stepHeader
     , stepHeaderIcon
     , stepStatusIcon
@@ -10,6 +10,7 @@ module Build.Styles exposing
     , triggerTooltip
     )
 
+import Build.Models exposing (StepHeaderType(..))
 import Colors
 
 
@@ -102,28 +103,21 @@ stepHeader =
     ]
 
 
-type StepHeaderIcon
-    = ArrowUp
-    | ArrowDown
-    | ArrowDownYellow
-    | Terminal
-
-
-stepHeaderIcon : StepHeaderIcon -> List ( String, String )
+stepHeaderIcon : StepHeaderType -> List ( String, String )
 stepHeaderIcon icon =
     let
         image =
             case icon of
-                ArrowDown ->
+                StepHeaderGet False ->
                     "arrow-downward"
 
-                ArrowDownYellow ->
+                StepHeaderGet True ->
                     "arrow-downward-yellow"
 
-                ArrowUp ->
+                StepHeaderPut ->
                     "arrow-upward"
 
-                Terminal ->
+                StepHeaderTask ->
                     "terminal"
     in
     [ ( "height", "28px" )
@@ -134,6 +128,7 @@ stepHeaderIcon icon =
     , ( "background-repeat", "no-repeat" )
     , ( "background-position", "50% 50%" )
     , ( "background-size", "14px 14px" )
+    , ( "position", "relative" )
     ]
 
 
@@ -147,4 +142,16 @@ stepStatusIcon image =
     , ( "background-repeat", "no-repeat" )
     , ( "background-position", "50% 50%" )
     , ( "background-size", "14px 14px" )
+    ]
+
+
+firstOccurrenceTooltip : List ( String, String )
+firstOccurrenceTooltip =
+    [ ( "position", "absolute" )
+    , ( "left", "100%" )
+    , ( "bottom", "50%" )
+    , ( "background-color", Colors.tooltipBackground )
+    , ( "padding", "10px" )
+    , ( "z-index", "100" )
+    , ( "width", "6em" )
     ]
