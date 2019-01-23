@@ -2,10 +2,10 @@
 package concoursefakes
 
 import (
-	sync "sync"
+	"sync"
 
-	atc "github.com/concourse/concourse/atc"
-	concourse "github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type FakeTeam struct {
@@ -441,6 +441,21 @@ type FakeTeam struct {
 		result1 bool
 		result2 error
 	}
+	PinResourceVersionStub        func(string, string, int) (bool, error)
+	pinResourceVersionMutex       sync.RWMutex
+	pinResourceVersionArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 int
+	}
+	pinResourceVersionReturns struct {
+		result1 bool
+		result2 error
+	}
+	pinResourceVersionReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	PipelineStub        func(string) (atc.Pipeline, bool, error)
 	pipelineMutex       sync.RWMutex
 	pipelineArgsForCall []struct {
@@ -580,6 +595,20 @@ type FakeTeam struct {
 		result2 error
 	}
 	unpausePipelineReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
+	UnpinResourceStub        func(string, string) (bool, error)
+	unpinResourceMutex       sync.RWMutex
+	unpinResourceArgsForCall []struct {
+		arg1 string
+		arg2 string
+	}
+	unpinResourceReturns struct {
+		result1 bool
+		result2 error
+	}
+	unpinResourceReturnsOnCall map[int]struct {
 		result1 bool
 		result2 error
 	}
@@ -2532,6 +2561,71 @@ func (fake *FakeTeam) PausePipelineReturnsOnCall(i int, result1 bool, result2 er
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) PinResourceVersion(arg1 string, arg2 string, arg3 int) (bool, error) {
+	fake.pinResourceVersionMutex.Lock()
+	ret, specificReturn := fake.pinResourceVersionReturnsOnCall[len(fake.pinResourceVersionArgsForCall)]
+	fake.pinResourceVersionArgsForCall = append(fake.pinResourceVersionArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 int
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("PinResourceVersion", []interface{}{arg1, arg2, arg3})
+	fake.pinResourceVersionMutex.Unlock()
+	if fake.PinResourceVersionStub != nil {
+		return fake.PinResourceVersionStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.pinResourceVersionReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) PinResourceVersionCallCount() int {
+	fake.pinResourceVersionMutex.RLock()
+	defer fake.pinResourceVersionMutex.RUnlock()
+	return len(fake.pinResourceVersionArgsForCall)
+}
+
+func (fake *FakeTeam) PinResourceVersionCalls(stub func(string, string, int) (bool, error)) {
+	fake.pinResourceVersionMutex.Lock()
+	defer fake.pinResourceVersionMutex.Unlock()
+	fake.PinResourceVersionStub = stub
+}
+
+func (fake *FakeTeam) PinResourceVersionArgsForCall(i int) (string, string, int) {
+	fake.pinResourceVersionMutex.RLock()
+	defer fake.pinResourceVersionMutex.RUnlock()
+	argsForCall := fake.pinResourceVersionArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeTeam) PinResourceVersionReturns(result1 bool, result2 error) {
+	fake.pinResourceVersionMutex.Lock()
+	defer fake.pinResourceVersionMutex.Unlock()
+	fake.PinResourceVersionStub = nil
+	fake.pinResourceVersionReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) PinResourceVersionReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.pinResourceVersionMutex.Lock()
+	defer fake.pinResourceVersionMutex.Unlock()
+	fake.PinResourceVersionStub = nil
+	if fake.pinResourceVersionReturnsOnCall == nil {
+		fake.pinResourceVersionReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.pinResourceVersionReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) Pipeline(arg1 string) (atc.Pipeline, bool, error) {
 	fake.pipelineMutex.Lock()
 	ret, specificReturn := fake.pipelineReturnsOnCall[len(fake.pipelineArgsForCall)]
@@ -3133,6 +3227,70 @@ func (fake *FakeTeam) UnpausePipelineReturnsOnCall(i int, result1 bool, result2 
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) UnpinResource(arg1 string, arg2 string) (bool, error) {
+	fake.unpinResourceMutex.Lock()
+	ret, specificReturn := fake.unpinResourceReturnsOnCall[len(fake.unpinResourceArgsForCall)]
+	fake.unpinResourceArgsForCall = append(fake.unpinResourceArgsForCall, struct {
+		arg1 string
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("UnpinResource", []interface{}{arg1, arg2})
+	fake.unpinResourceMutex.Unlock()
+	if fake.UnpinResourceStub != nil {
+		return fake.UnpinResourceStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.unpinResourceReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) UnpinResourceCallCount() int {
+	fake.unpinResourceMutex.RLock()
+	defer fake.unpinResourceMutex.RUnlock()
+	return len(fake.unpinResourceArgsForCall)
+}
+
+func (fake *FakeTeam) UnpinResourceCalls(stub func(string, string) (bool, error)) {
+	fake.unpinResourceMutex.Lock()
+	defer fake.unpinResourceMutex.Unlock()
+	fake.UnpinResourceStub = stub
+}
+
+func (fake *FakeTeam) UnpinResourceArgsForCall(i int) (string, string) {
+	fake.unpinResourceMutex.RLock()
+	defer fake.unpinResourceMutex.RUnlock()
+	argsForCall := fake.unpinResourceArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeTeam) UnpinResourceReturns(result1 bool, result2 error) {
+	fake.unpinResourceMutex.Lock()
+	defer fake.unpinResourceMutex.Unlock()
+	fake.UnpinResourceStub = nil
+	fake.unpinResourceReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) UnpinResourceReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.unpinResourceMutex.Lock()
+	defer fake.unpinResourceMutex.Unlock()
+	fake.UnpinResourceStub = nil
+	if fake.unpinResourceReturnsOnCall == nil {
+		fake.unpinResourceReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.unpinResourceReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) VersionedResourceTypes(arg1 string) (atc.VersionedResourceTypes, bool, error) {
 	fake.versionedResourceTypesMutex.Lock()
 	ret, specificReturn := fake.versionedResourceTypesReturnsOnCall[len(fake.versionedResourceTypesArgsForCall)]
@@ -3262,6 +3420,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.pauseJobMutex.RUnlock()
 	fake.pausePipelineMutex.RLock()
 	defer fake.pausePipelineMutex.RUnlock()
+	fake.pinResourceVersionMutex.RLock()
+	defer fake.pinResourceVersionMutex.RUnlock()
 	fake.pipelineMutex.RLock()
 	defer fake.pipelineMutex.RUnlock()
 	fake.pipelineBuildsMutex.RLock()
@@ -3280,6 +3440,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.unpauseJobMutex.RUnlock()
 	fake.unpausePipelineMutex.RLock()
 	defer fake.unpausePipelineMutex.RUnlock()
+	fake.unpinResourceMutex.RLock()
+	defer fake.unpinResourceMutex.RUnlock()
 	fake.versionedResourceTypesMutex.RLock()
 	defer fake.versionedResourceTypesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

@@ -94,7 +94,7 @@ var _ = Describe("Fly CLI", func() {
 							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 							Expect(err).NotTo(HaveOccurred())
 
-							Eventually(sess.Err).Should(gbytes.Say(fmt.Sprintf("could not pin %s at version %s, make sure the resource and version exists",
+							Eventually(sess.Err).Should(gbytes.Say(fmt.Sprintf("could not pin '%s' at version %s, make sure the resource and version exists",
 								pipelineResource, resourceVersionID)))
 
 							<-sess.Exited
