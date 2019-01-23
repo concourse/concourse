@@ -645,7 +645,7 @@
       \title{Task Containers}
 
       \italic{Task containers} are created when a \reference{task-step} is
-      exectuted in a build plan. They are based on the image produced by the
+      executed in a build plan. They are based on the image produced by the
       configured \reference{image_resource} or \reference{task-step-image}.
     }
 
@@ -654,19 +654,39 @@
 
       \italic{Resource Check Containers} are created from the resource type's
       image and are used to check for new versions of a resource.  There will
-      be one per \reference{resource_configs-table}{resource config}
+      be one per \reference{resource_configs-table}{resource config}.
     }
 
     \section{
       \title{Resource Get Container}
 
       \italic{Resource Get Container} are created when a \reference{get-step}
-      is exectuted in a build plan. They are based on the resource type's image
+      is executed in a build plan. They are based on the resource type's image
       and are used to download the bits for a given version of resource.
 
       There will be one per \reference{resource_configs-table}{resource
-      config}
+      config}.
     }
+  }
+
+
+  \section{
+    \title{Container Placement Strategies}{container-placement-strategies}
+    As explained above, each step of a build plan is executed inside a container. ATC will distribute containers across the worker cluster depending on the configured strategy. \bold{Default:} \code{volume-locality}
+
+    \define-table{volume-locality}{
+       When using \code{volume-locality}, the ATC places \code{get}, \code{put} and \code{task} containers on workers where a majority of their inputs (required resources) are present. This alleviates the need to stream resources cached on other workers to the chosen worker. This is advantageous for workloads that are invoked often. e.g. builds invoked by a short time-resource interval.
+     }
+
+     \define-table{random}{
+       With the \code{random} strategy, the ATC places \code{get}, \code{put} and \code{task} containers on any worker, ignoring any affinity.
+      }
+
+     \define-table{least-build-containers}{
+       If using the \code{least-build-containers} strategy, the ATC places \code{get}, \code{put} and \code{task} containers on a worker which has the least containers. This ensures build containers are distributed equally across workers.
+     }
+
+     Refer to \reference{configuring-placement-strategies} for information on how to specify a particular strategy.
   }
 }
 

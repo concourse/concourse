@@ -454,6 +454,21 @@ page.
 }
 
 \section{
+	\title{Configuring Container Placement}{configuring-placement-strategies}
+
+	By default, the container placement strategy used is \code{volume-locality}. To set a different container placement strategy, pass the selected option to the \code{--container-placement-strategy} flag.
+
+	\codeblock{bash}{{{
+		concourse web \
+		  ... \
+		  --container-placement-strategy=least-build-containers
+	}}}
+
+	Options include \code{volume-locality}, \code{random} and \code{least-build-containers}.
+  Refer to \reference{container-placement-strategies} for a complete list of options and their descriptions.
+}
+
+\section{
   \title{Multi-node Cluster}{cluster}
 
   Beyond \code{quickstart}, the Concourse binary includes separate commands for
