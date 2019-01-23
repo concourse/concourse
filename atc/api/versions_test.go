@@ -531,7 +531,7 @@ var _ = Describe("Versions API", func() {
 
 					Context("when pinning the resource succeeds", func() {
 						BeforeEach(func() {
-							fakeResource.PinVersionReturns(nil)
+							fakeResource.PinVersionReturns(true, nil)
 						})
 
 						It("returns 200", func() {
@@ -541,11 +541,21 @@ var _ = Describe("Versions API", func() {
 
 					Context("when pinning the resource fails", func() {
 						BeforeEach(func() {
-							fakeResource.PinVersionReturns(errors.New("welp"))
+							fakeResource.PinVersionReturns(false, errors.New("welp"))
 						})
 
 						It("returns 500", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+
+					Context("when the resource version id doesn't exist", func() {
+						BeforeEach(func() {
+							fakeResource.PinVersionReturns(false, nil)
+						})
+
+						It("returns not found", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 						})
 					})
 				})
