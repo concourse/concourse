@@ -24,6 +24,7 @@ import Test.Html.Selector
         , containing
         , id
         , style
+        , tag
         , text
         )
 
@@ -939,31 +940,50 @@ all =
                             }
                             ++ [ style [ ( "background-size", "14px 14px" ) ] ]
                         )
-            , test "erroring build has orange exclamation triangle at left" <|
-                setup
-                    >> Build.update (Msgs.BuildEventsMsg BuildEvents.Errored)
-                    >> Tuple.first
-                    >> Build.update
-                        (Msgs.BuildEventsMsg <|
-                            BuildEvents.Events <|
-                                Ok <|
-                                    Array.fromList
-                                        [ BuildEvents.BuildError
-                                            "error message"
-                                        ]
-                        )
-                    >> Tuple.first
-                    >> Build.view
-                    >> Query.fromHtml
-                    >> Query.find [ class "header" ]
-                    >> Query.children []
-                    >> Query.first
-                    >> Query.has
-                        (iconSelector
-                            { size = "28px"
-                            , image = "ic-exclamation-triangle.svg"
-                            }
-                            ++ [ style [ ( "background-size", "14px 14px" ) ] ]
-                        )
+            , describe "erroring build" <|
+                let
+                    erroringBuild : () -> Build.Model
+                    erroringBuild =
+                        setup
+                            >> Build.update
+                                (Msgs.BuildEventsMsg BuildEvents.Errored)
+                            >> Tuple.first
+                in
+                [ test "has orange exclamation triangle at left" <|
+                    erroringBuild
+                        >> Build.update
+                            (Msgs.BuildEventsMsg <|
+                                BuildEvents.Events <|
+                                    Ok <|
+                                        Array.fromList
+                                            [ BuildEvents.BuildError
+                                                "error message"
+                                            ]
+                            )
+                        >> Tuple.first
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.first
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-exclamation-triangle.svg"
+                                }
+                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                            )
+                , test "has passport officer icon" <|
+                    let
+                        url =
+                            "/public/images/passport-officer-ic.svg"
+                    in
+                    erroringBuild
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.find [ class "not-authorized" ]
+                        >> Query.find [ tag "img" ]
+                        >> Query.has [ attribute <| Attr.src url ]
+                ]
             ]
         ]

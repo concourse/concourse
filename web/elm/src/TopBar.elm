@@ -440,7 +440,9 @@ viewBreadcrumbsComponent : String -> String -> List (Html Msg)
 viewBreadcrumbsComponent componentType name =
     [ Html.div
         [ style <|
-            [ ( "background-image", "url(/public/images/ic-breadcrumb-" ++ componentType ++ ".svg)" )
+            [ ( "background-image"
+              , "url(/public/images/ic-breadcrumb-" ++ componentType ++ ".svg)"
+              )
             , ( "background-repeat", "no-repeat" )
             , ( "background-size", "contain" )
             , ( "display", "inline-block" )
