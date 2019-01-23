@@ -4,10 +4,10 @@ module Resource.Models exposing
     , Model
     , PageError(..)
     , Version
+    , VersionEnabledState(..)
     , VersionToggleAction(..)
     )
 
-import BoolTransitionable
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Date exposing (Date)
@@ -68,11 +68,17 @@ type alias Model =
     }
 
 
+type VersionEnabledState
+    = Enabled
+    | Changing
+    | Disabled
+
+
 type alias Version =
     { id : Int
     , version : Concourse.Version
     , metadata : Concourse.Metadata
-    , enabled : BoolTransitionable.BoolTransitionable
+    , enabled : VersionEnabledState
     , expanded : Bool
     , inputTo : List Concourse.Build
     , outputOf : List Concourse.Build

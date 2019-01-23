@@ -12,7 +12,6 @@ module Resource exposing
     , viewVersionHeader
     )
 
-import BoolTransitionable
 import Colors
 import Concourse
 import Concourse.BuildStatus
@@ -264,20 +263,20 @@ handleCallback action model =
                                             model.versions.content
                                                 |> List.Extra.find (\v -> v.id == vr.id)
 
-                                        enabledStateAccordingToServer : BoolTransitionable.BoolTransitionable
+                                        enabledStateAccordingToServer : Models.VersionEnabledState
                                         enabledStateAccordingToServer =
                                             if vr.enabled then
-                                                BoolTransitionable.True
+                                                Models.Enabled
 
                                             else
-                                                BoolTransitionable.False
+                                                Models.Disabled
                                     in
                                     case existingVersion of
                                         Just ev ->
                                             { ev
                                                 | enabled =
-                                                    if ev.enabled == BoolTransitionable.Changing then
-                                                        BoolTransitionable.Changing
+                                                    if ev.enabled == Models.Changing then
+                                                        Models.Changing
 
                                                     else
                                                         enabledStateAccordingToServer
@@ -375,20 +374,20 @@ handleCallback action model =
 
         VersionToggled action versionID result ->
             let
-                newEnabledState : BoolTransitionable.BoolTransitionable
+                newEnabledState : Models.VersionEnabledState
                 newEnabledState =
                     case ( result, action ) of
                         ( Ok (), Models.Enable ) ->
-                            BoolTransitionable.True
+                            Models.Enabled
 
                         ( Ok (), Models.Disable ) ->
-                            BoolTransitionable.False
+                            Models.Disabled
 
                         ( Err _, Models.Enable ) ->
-                            BoolTransitionable.False
+                            Models.Disabled
 
                         ( Err _, Models.Disable ) ->
-                            BoolTransitionable.True
+                            Models.Enabled
             in
             ( updateVersion versionID (\v -> { v | enabled = newEnabledState }) model
             , []
@@ -580,7 +579,7 @@ update action model =
         ToggleVersion action versionID ->
             ( updateVersion versionID
                 (\v ->
-                    { v | enabled = BoolTransitionable.Changing }
+                    { v | enabled = Models.Changing }
                 )
                 model
             , [ DoToggleVersion action
@@ -1196,7 +1195,7 @@ viewVersionedResource { version, pinnedVersion } =
             ( Disabled, _ ) ->
                 [ style [ ( "opacity", "0.5" ) ] ]
 
-            ( _, BoolTransitionable.False ) ->
+            ( _, Models.Disabled ) ->
                 [ style [ ( "opacity", "0.5" ) ] ]
 
             _ ->
@@ -1272,77 +1271,46 @@ viewVersionBody { inputTo, outputOf, metadata } =
 
 viewEnabledCheckbox :
     { a
-        | enabled : BoolTransitionable.BoolTransitionable
+        | enabled : Models.VersionEnabledState
         , id : Int
         , pinState : VersionPinState
     }
     -> Html Msg
-viewEnabledCheckbox { enabled, id, pinState } =
+viewEnabledCheckbox ({ enabled, id, pinState } as params) =
     let
-        baseAttrs =
-            [ Html.Styled.Attributes.attribute
-                "aria-label"
-                "Toggle Resource Version Enabled"
-            , css
-                [ Css.marginRight <| Css.px 5
-                , Css.width <| Css.px 25
-                , Css.height <| Css.px 25
-                , Css.float Css.left
-                , Css.backgroundColor <| Css.hex "#1e1d1d"
-                , Css.backgroundRepeat Css.noRepeat
-                , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
-                ]
-            , style [ ( "cursor", "pointer" ) ]
-            ]
-                ++ (case pinState of
-                        PinnedStatically _ ->
-                            [ style
-                                [ ( "border", "1px solid " ++ Colors.pinned ) ]
-                            ]
+        clickHandler =
+            case enabled of
+                Models.Enabled ->
+                    [ onClick <| ToggleVersion Models.Disable id ]
 
-                        PinnedDynamically ->
-                            [ style
-                                [ ( "border", "1px solid " ++ Colors.pinned ) ]
-                            ]
+                Models.Changing ->
+                    []
 
-                        _ ->
-                            []
-                   )
+                Models.Disabled ->
+                    [ onClick <| ToggleVersion Models.Enable id ]
     in
-    case enabled of
-        BoolTransitionable.True ->
-            Html.div
-                (baseAttrs
-                    ++ [ style
-                            [ ( "background-image"
-                              , "url(/public/images/checkmark-ic.svg)"
-                              )
-                            ]
-                       , onClick <| ToggleVersion Models.Disable id
-                       ]
-                )
+    Html.div
+        ([ Html.Styled.Attributes.attribute
+            "aria-label"
+            "Toggle Resource Version Enabled"
+         , style <| Resource.Styles.enabledCheckbox params
+         ]
+            ++ clickHandler
+        )
+        (case enabled of
+            Models.Enabled ->
                 []
 
-        BoolTransitionable.Changing ->
-            Html.div
-                (baseAttrs
-                    ++ [ style
-                            [ ( "display", "flex" )
-                            , ( "align-items", "center" )
-                            , ( "justify-content", "center" )
-                            ]
-                       ]
-                )
+            Models.Changing ->
                 [ Html.fromUnstyled <|
                     Spinner.spinner
                         "12.5px"
                         [ Html.Attributes.style [ ( "margin", "6.25px" ) ] ]
                 ]
 
-        BoolTransitionable.False ->
-            Html.div
-                (baseAttrs ++ [ onClick <| ToggleVersion Models.Enable id ])
+            Models.Disabled ->
                 []
+        )
 
 
 viewPinButton :
@@ -1353,153 +1321,86 @@ viewPinButton :
     -> Html Msg
 viewPinButton { versionID, pinState } =
     let
-        baseAttrs =
-            [ Html.Styled.Attributes.attribute
-                "aria-label"
-                "Pin Resource Version"
-            , css
-                [ Css.position Css.relative
-                , Css.backgroundRepeat Css.noRepeat
-                , Css.backgroundPosition2 (Css.pct 50) (Css.pct 50)
-                , Css.marginRight (Css.px 5)
-                , Css.width (Css.px 25)
-                , Css.height (Css.px 25)
-                , Css.float Css.left
-                ]
-            ]
+        eventHandlers =
+            case pinState of
+                Enabled ->
+                    [ onClick <| PinVersion versionID ]
+
+                PinnedDynamically ->
+                    [ onClick UnpinVersion ]
+
+                PinnedStatically _ ->
+                    [ onMouseOut ToggleVersionTooltip
+                    , onMouseOver ToggleVersionTooltip
+                    ]
+
+                Disabled ->
+                    []
+
+                InTransition ->
+                    []
     in
-    case pinState of
-        Enabled ->
-            Html.div
-                (baseAttrs
-                    ++ [ style
-                            [ ( "background-color", "#1e1d1d" )
-                            , ( "cursor", "pointer" )
-                            , ( "background-image"
-                              , "url(/public/images/pin-ic-white.svg)"
-                              )
-                            ]
-                       , onClick <| PinVersion versionID
-                       ]
-                )
-                []
-
-        PinnedDynamically ->
-            Html.div
-                (baseAttrs
-                    ++ [ style
-                            [ ( "background-color", "#1e1d1d" )
-                            , ( "cursor", "pointer" )
-                            , ( "background-image"
-                              , "url(/public/images/pin-ic-white.svg)"
-                              )
-                            , ( "border", "1px solid " ++ Colors.pinned )
-                            ]
-                       , onClick UnpinVersion
-                       ]
-                )
-                []
-
-        PinnedStatically { showTooltip } ->
-            Html.div
-                (baseAttrs
-                    ++ [ style
-                            [ ( "background-color", "#1e1d1d" )
-                            , ( "cursor", "default" )
-                            , ( "background-image"
-                              , "url(/public/images/pin-ic-white.svg)"
-                              )
-                            , ( "border", "1px solid " ++ Colors.pinned )
-                            ]
-                       , onMouseOut ToggleVersionTooltip
-                       , onMouseOver ToggleVersionTooltip
-                       ]
-                )
-                (if showTooltip then
+    Html.div
+        ([ Html.Styled.Attributes.attribute
+            "aria-label"
+            "Pin Resource Version"
+         , style <| Resource.Styles.pinButton pinState
+         ]
+            ++ eventHandlers
+        )
+        (case pinState of
+            PinnedStatically { showTooltip } ->
+                if showTooltip then
                     [ Html.div
-                        [ css
-                            [ Css.position Css.absolute
-                            , Css.bottom <| Css.px 25
-                            , Css.backgroundColor <| Css.hex "9b9b9b"
-                            , Css.zIndex <| Css.int 2
-                            , Css.padding <| Css.px 5
-                            , Css.width <| Css.px 170
+                        [ style
+                            [ ( "position", "absolute" )
+                            , ( "bottom", "25px" )
+                            , ( "background-color", Colors.pinTooltip )
+                            , ( "z-index", "2" )
+                            , ( "padding", "5px" )
+                            , ( "width", "170px" )
                             ]
                         ]
                         [ Html.text "enable via pipeline config" ]
                     ]
 
-                 else
+                else
                     []
-                )
 
-        Disabled ->
-            Html.div
-                (baseAttrs
-                    ++ [ style
-                            [ ( "background-color", "#1e1d1d" )
-                            , ( "cursor", "default" )
-                            , ( "background-image"
-                              , "url(/public/images/pin-ic-white.svg)"
-                              )
-                            ]
-                       ]
-                )
-                []
-
-        InTransition ->
-            Html.div
-                (baseAttrs
-                    ++ [ style
-                            [ ( "background-color", "#1e1d1d" )
-                            , ( "cursor", "default" )
-                            , ( "display", "flex" )
-                            , ( "align-items", "center" )
-                            , ( "justify-content", "center" )
-                            ]
-                       ]
-                )
+            InTransition ->
                 [ Html.fromUnstyled <|
                     Spinner.spinner
                         "12.5px"
                         [ Html.Attributes.style [ ( "margin", "6.25px" ) ] ]
                 ]
 
+            _ ->
+                []
+        )
 
-viewVersionHeader : { a | id : Int, version : Concourse.Version, pinnedState : VersionPinState } -> Html Msg
+
+viewVersionHeader :
+    { a
+        | id : Int
+        , version : Concourse.Version
+        , pinnedState : VersionPinState
+    }
+    -> Html Msg
 viewVersionHeader { id, version, pinnedState } =
     Html.div
-        ([ css
-            [ Css.flexGrow <| Css.num 1
-            , Css.backgroundColor <| Css.hex "1e1d1d"
-            , Css.cursor Css.pointer
-            , Css.displayFlex
-            , Css.alignItems Css.center
-            , Css.paddingLeft <| Css.px 10
-            , Css.color <| Css.hex <| "e6e7e8"
-            ]
-         , onClick <| ExpandVersionedResource id
-         ]
-            ++ (case pinnedState of
-                    PinnedStatically _ ->
-                        [ style [ ( "border", "1px solid " ++ Colors.pinned ) ] ]
-
-                    PinnedDynamically ->
-                        [ style [ ( "border", "1px solid " ++ Colors.pinned ) ] ]
-
-                    _ ->
-                        []
-               )
-        )
+        [ onClick <| ExpandVersionedResource id
+        , style <| Resource.Styles.versionHeader pinnedState
+        ]
         [ viewVersion version ]
 
 
 viewVersion : Concourse.Version -> Html Msg
 viewVersion version =
-    (Html.fromUnstyled << DictView.view)
-        << Dict.map (\_ s -> Html.toUnstyled (Html.text s))
-    <|
-        version
+    version
+        |> Dict.map (always Html.text)
+        |> Dict.map (always Html.toUnstyled)
+        |> DictView.view
+        |> Html.fromUnstyled
 
 
 viewMetadata : Concourse.Metadata -> Html Msg
