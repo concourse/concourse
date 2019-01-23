@@ -73,13 +73,6 @@ initJobBuildPage teamName pipelineName jobName buildName =
         }
 
 
-type alias CurrentBuild =
-    { build : Concourse.Build
-    , prep : Maybe Concourse.BuildPrep
-    , output : Maybe OutputModel
-    }
-
-
 type StepRenderingState
     = StepsLoading
     | StepsLiveUpdating
@@ -245,8 +238,8 @@ handleCallback action model =
             flip always (Debug.log "failed to fetch build preparation" err) <|
                 ( model, [] )
 
-        PlanAndResourcesFetched result ->
-            updateOutput (Build.Output.planAndResourcesFetched result) model
+        PlanAndResourcesFetched buildId result ->
+            updateOutput (Build.Output.planAndResourcesFetched buildId result) model
 
         BuildHistoryFetched (Err err) ->
             flip always (Debug.log "failed to fetch build history" err) <|
@@ -683,7 +676,7 @@ view model =
                 [ viewBuildHeader currentBuild.build model
                 , Html.div [ class "scrollable-body build-body" ] <|
                     [ viewBuildPrep currentBuild.prep
-                    , Html.Lazy.lazy2 viewBuildOutput model.browsingIndex <|
+                    , Html.Lazy.lazy2 viewBuildOutput currentBuild.build <|
                         currentBuild.output
                     , Html.div
                         [ classList
@@ -831,11 +824,11 @@ mmDDYY d =
     Date.Format.format "%m/%d/" d ++ String.right 2 (Date.Format.format "%Y" d)
 
 
-viewBuildOutput : Int -> Maybe OutputModel -> Html Msg
-viewBuildOutput browsingIndex output =
+viewBuildOutput : Concourse.Build -> Maybe OutputModel -> Html Msg
+viewBuildOutput build output =
     case output of
         Just o ->
-            Build.Output.view o
+            Build.Output.view build o
 
         Nothing ->
             Html.div [] []

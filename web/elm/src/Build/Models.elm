@@ -72,8 +72,7 @@ type StepHeaderType
 
 
 type alias OutputModel =
-    { build : Concourse.Build
-    , steps : Maybe StepTreeModel
+    { steps : Maybe StepTreeModel
     , errors : Maybe Ansi.Log.Model
     , state : OutputState
     , eventSourceOpened : Bool

@@ -165,7 +165,7 @@ all =
                     |> fetchJobDetails
                     |> Tuple.first
                     |> Build.handleCallback
-                        (Effects.PlanAndResourcesFetched <|
+                        (Effects.PlanAndResourcesFetched 307 <|
                             let
                                 version =
                                     Dict.fromList
@@ -761,7 +761,7 @@ all =
                         |> fetchJobDetails
                         |> Tuple.first
                         |> Build.handleCallback
-                            (Effects.PlanAndResourcesFetched <|
+                            (Effects.PlanAndResourcesFetched 307 <|
                                 Ok <|
                                     ( { id = "plan"
                                       , step =
@@ -822,7 +822,7 @@ all =
                         |> fetchJobDetails
                         |> Tuple.first
                         |> Build.handleCallback
-                            (Effects.PlanAndResourcesFetched <|
+                            (Effects.PlanAndResourcesFetched 307 <|
                                 Ok <|
                                     ( { id = "plan"
                                       , step =
@@ -855,7 +855,7 @@ all =
                         |> fetchJobDetails
                         |> Tuple.first
                         |> Build.handleCallback
-                            (Effects.PlanAndResourcesFetched <|
+                            (Effects.PlanAndResourcesFetched 307 <|
                                 Ok <|
                                     ( { id = "plan"
                                       , step = Concourse.BuildStepPut "step"
@@ -1013,7 +1013,7 @@ all =
                         |> fetchJobDetails
                         |> Tuple.first
                         |> Build.handleCallback
-                            (Effects.PlanAndResourcesFetched <|
+                            (Effects.PlanAndResourcesFetched 307 <|
                                 Ok <|
                                     ( { id = "plan"
                                       , step =

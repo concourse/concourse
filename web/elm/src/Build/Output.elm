@@ -62,8 +62,7 @@ init flags build =
                 StepsLoading
 
         model =
-            { build = build
-            , steps = Nothing
+            { steps = Nothing
             , errors = Nothing
             , state = outputState
             , events = Sub.none
@@ -73,10 +72,10 @@ init flags build =
 
         fetch =
             if build.job /= Nothing then
-                [ FetchBuildPlanAndResources model.build.id ]
+                [ FetchBuildPlanAndResources build.id ]
 
             else
-                [ FetchBuildPlan model.build.id ]
+                [ FetchBuildPlan build.id ]
     in
     ( model, fetch )
 
@@ -99,35 +98,33 @@ handleStepTreeMsg action model =
 
 
 planAndResourcesFetched :
-    Result Http.Error ( Concourse.BuildPlan, Concourse.BuildResources )
+    Concourse.BuildId
+    -> Result Http.Error ( Concourse.BuildPlan, Concourse.BuildResources )
     -> OutputModel
     -> ( OutputModel, List Effect, OutMsg )
-planAndResourcesFetched result model =
-    case result of
+planAndResourcesFetched buildId result model =
+    ( case result of
         Err err ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
-                        ( { model | events = subscribeToEvents model.build.id }
-                        , []
-                        , OutNoop
-                        )
+                        { model | events = subscribeToEvents buildId }
 
                     else
-                        ( model, [], OutNoop )
+                        model
 
                 _ ->
                     flip always (Debug.log "failed to fetch plan" err) <|
-                        ( model, [], OutNoop )
+                        model
 
         Ok ( plan, resources ) ->
-            ( { model
+            { model
                 | steps = Just (StepTree.init model.highlight resources plan)
-                , events = subscribeToEvents model.build.id
-              }
-            , []
-            , OutNoop
-            )
+                , events = subscribeToEvents buildId
+            }
+    , []
+    , OutNoop
+    )
 
 
 handleEventsMsg :
@@ -168,18 +165,16 @@ handleEvent_ ev ( m, msgpassedin, outmsgpassedin ) =
             handleEvent ev m
     in
     ( m1
-    , case msgfromhandleevent == [] of
-        True ->
-            msgpassedin
+    , if msgfromhandleevent == [] then
+        msgpassedin
 
-        False ->
-            msgfromhandleevent
-    , case outmsgfromhandleevent == OutNoop of
-        True ->
-            outmsgpassedin
+      else
+        msgfromhandleevent
+    , if outmsgfromhandleevent == OutNoop then
+        outmsgpassedin
 
-        False ->
-            outmsgfromhandleevent
+      else
+        outmsgfromhandleevent
     )
 
 
@@ -338,8 +333,8 @@ subscribeToEvents buildId =
     Sub.map BuildEventsMsg (Concourse.BuildEvents.subscribe buildId)
 
 
-view : OutputModel -> Html Msg
-view { build, steps, errors, state } =
+view : Concourse.Build -> OutputModel -> Html Msg
+view build { steps, errors, state } =
     Html.div [ class "steps" ]
         [ viewErrors errors
         , viewStepTree build steps state
