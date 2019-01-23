@@ -60,6 +60,8 @@ To build and run a Concourse cluster from source, run the following in the root
 of this repo:
 
 ```sh
+$ yarn install
+$ yarn build
 $ docker-compose up
 ```
 
