@@ -352,7 +352,13 @@ against the teams that have granted them access.
 
   The authentication methods for teams are determined by flags passed to
   \reference{fly-set-team}, except for the \reference{main-team}, which is
-  configured as part of the deployment.
+  configured as part of the deployment. Alternatively, you can externalize the
+  user configuration into a \code{yml} file and use it as an input to the \code{-c}
+  flag on \reference{fly-set-team}.
+
+  All users and groups added to a team are assigned the Team Member role by default.
+  \reference{user-roles} on teams can only be specified through the \code{--configuration}
+  or \code{-c} flag and will override the previous configuration.
 
   Any number of the following providers can be enabled at any one time. Users
   will be given a choice when logging in as to which one they would like to
@@ -376,6 +382,16 @@ against the teams that have granted them access.
     $ fly set-team -n my-team \
         --local-user some_username
     }}}
+
+    or with \code{-c}:
+
+    \codeblock{bash}{{{
+    roles:
+    - name: member
+      local:
+        users: ["some_username"]
+    }}}
+
   }
 
   \section{
