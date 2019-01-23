@@ -15,18 +15,30 @@ import Colors
 
 triggerButton : Bool -> List ( String, String )
 triggerButton buttonDisabled =
-    [ ( "background-color", Colors.background )
-    , ( "padding", "10px" )
-    , ( "cursor"
+    [ ( "cursor"
       , if buttonDisabled then
             "default"
 
         else
             "pointer"
       )
+    , ( "position", "relative" )
+    ]
+        ++ button
+
+
+abortButton : List ( String, String )
+abortButton =
+    ( "cursor", "pointer" ) :: button
+
+
+button : List ( String, String )
+button =
+    [ ( "background-color", Colors.background )
+    , ( "padding", "10px" )
     , ( "border", "none" )
     , ( "outline", "none" )
-    , ( "position", "relative" )
+    , ( "margin", "0" )
     ]
 
 
@@ -61,16 +73,6 @@ triggerTooltip =
     , ( "padding", "10px" )
     , ( "text-align", "right" )
     , ( "pointer-events", "none" )
-    ]
-
-
-abortButton : List ( String, String )
-abortButton =
-    [ ( "background-color", Colors.background )
-    , ( "padding", "10px" )
-    , ( "cursor", "pointer" )
-    , ( "border", "none" )
-    , ( "outline", "none" )
     ]
 
 
