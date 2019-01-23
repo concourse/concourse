@@ -36,6 +36,7 @@ module Dashboard.Styles exposing
     )
 
 import Colors
+import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import ScreenSize
 
@@ -413,12 +414,12 @@ infoItem =
     ]
 
 
-infoCliIcon : { hovered : Bool, image : String } -> List ( String, String )
-infoCliIcon { hovered, image } =
+infoCliIcon : { hovered : Bool, cli : Cli.Cli } -> List ( String, String )
+infoCliIcon { hovered, cli } =
     [ ( "margin-right", "10px" )
     , ( "width", "20px" )
     , ( "height", "20px" )
-    , ( "background-image", "url(/public/images/" ++ image ++ "-logo.svg)" )
+    , ( "background-image", Cli.iconUrl cli )
     , ( "background-repeat", "no-repeat" )
     , ( "background-position", "50% 50%" )
     , ( "background-size", "contain" )
@@ -432,8 +433,8 @@ infoCliIcon { hovered, image } =
     ]
 
 
-topCliIcon : { hovered : Bool, image : String } -> List ( String, String )
-topCliIcon { hovered, image } =
+topCliIcon : { hovered : Bool, cli : Cli.Cli } -> List ( String, String )
+topCliIcon { hovered, cli } =
     [ ( "opacity"
       , if hovered then
             "1"
@@ -441,7 +442,7 @@ topCliIcon { hovered, image } =
         else
             "0.5"
       )
-    , ( "background-image", "url(/public/images/" ++ image ++ ")" )
+    , ( "background-image", Cli.iconUrl cli )
     , ( "background-position", "50% 50%" )
     , ( "background-repeat", "no-repeat" )
     , ( "width", "32px" )
@@ -512,13 +513,14 @@ asciiArt =
     , ( "z-index", "1" )
     ]
 
-disableInteraction: List ( String, String )
+
+disableInteraction : List ( String, String )
 disableInteraction =
-    [ ("cursor", "default")
-    , ("user-select", "none")
-    , ("-ms-user-select", "none")
-    , ("-moz-user-select", "none")
-    , ("-khtml-user-select", "none")
-    , ("-webkit-user-select", "none")
-    , ("-webkit-touch-callout", "none")
+    [ ( "cursor", "default" )
+    , ( "user-select", "none" )
+    , ( "-ms-user-select", "none" )
+    , ( "-moz-user-select", "none" )
+    , ( "-khtml-user-select", "none" )
+    , ( "-webkit-user-select", "none" )
+    , ( "-webkit-touch-callout", "none" )
     ]

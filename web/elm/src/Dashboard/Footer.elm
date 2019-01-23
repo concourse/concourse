@@ -159,14 +159,12 @@ concourseInfo { version, hoveredCliIcon } =
     [ Html.div [ id "concourse-info", style Styles.info ]
         [ Html.div [ style Styles.infoItem ]
             [ Html.text <| "version: v" ++ version ]
-        , Html.div [ style Styles.infoItem ]
+        , Html.div [ style Styles.infoItem ] <|
             [ Html.span
                 [ style [ ( "margin-right", "10px" ) ] ]
                 [ Html.text "cli: " ]
-            , cliIcon Cli.OSX hoveredCliIcon
-            , cliIcon Cli.Windows hoveredCliIcon
-            , cliIcon Cli.Linux hoveredCliIcon
             ]
+                ++ List.map (cliIcon hoveredCliIcon) Cli.clis
         ]
     ]
 
@@ -226,65 +224,18 @@ legendSeparator screenSize =
             ]
 
 
-cliIcon : Cli.Cli -> Maybe Cli.Cli -> Html Msg
-cliIcon cli =
-    case cli of
-        Cli.OSX ->
-            cliIconOSX
-
-        Cli.Windows ->
-            cliIconWindows
-
-        Cli.Linux ->
-            cliIconLinux
-
-
-cliIconOSX : Maybe Cli.Cli -> Html Msg
-cliIconOSX hoveredCliIcon =
+cliIcon : Maybe Cli.Cli -> Cli.Cli -> Html Msg
+cliIcon hoveredCliIcon cli =
     Html.a
-        [ href (Cli.downloadUrl "amd64" "osx")
-        , attribute "aria-label" <| "Download OS X CLI"
+        [ href (Cli.downloadUrl cli)
+        , attribute "aria-label" <| Cli.label cli
         , style <|
             Styles.infoCliIcon
-                { hovered = hoveredCliIcon == Just Cli.OSX
-                , image = "apple"
+                { hovered = hoveredCliIcon == Just cli
+                , cli = cli
                 }
-        , id <| "cli-osx"
-        , onMouseEnter <| CliHover <| Just Cli.OSX
-        , onMouseLeave <| CliHover Nothing
-        ]
-        []
-
-
-cliIconWindows : Maybe Cli.Cli -> Html Msg
-cliIconWindows hoveredCliIcon =
-    Html.a
-        [ href (Cli.downloadUrl "amd64" "windows")
-        , attribute "aria-label" <| "Download Windows CLI"
-        , style <|
-            Styles.infoCliIcon
-                { hovered = hoveredCliIcon == Just Cli.Windows
-                , image = "windows"
-                }
-        , id <| "cli-windows"
-        , onMouseEnter <| CliHover <| Just Cli.Windows
-        , onMouseLeave <| CliHover Nothing
-        ]
-        []
-
-
-cliIconLinux : Maybe Cli.Cli -> Html Msg
-cliIconLinux hoveredCliIcon =
-    Html.a
-        [ href (Cli.downloadUrl "amd64" "linux")
-        , attribute "aria-label" <| "Download Linux CLI"
-        , style <|
-            Styles.infoCliIcon
-                { hovered = hoveredCliIcon == Just Cli.Linux
-                , image = "linux"
-                }
-        , id <| "cli-linux"
-        , onMouseEnter <| CliHover <| Just Cli.Linux
+        , id <| "cli-" ++ Cli.id cli
+        , onMouseEnter <| CliHover <| Just cli
         , onMouseLeave <| CliHover Nothing
         ]
         []

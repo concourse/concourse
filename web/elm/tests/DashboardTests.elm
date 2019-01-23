@@ -25,6 +25,7 @@ import Effects
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Html.Styled as HS
+import List.Extra
 import RemoteData
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -274,7 +275,7 @@ all =
                                             ]
                                                 ++ iconSelector { size = "32px", image = "apple-logo.svg" }
                                         }
-                                    , mouseEnterMsg = Msgs.TopCliHover <| Just Cli.OSX
+                                    , mouseEnterMsg = Msgs.TopCliHover <| List.Extra.getAt 0 Cli.clis
                                     , mouseLeaveMsg = Msgs.TopCliHover Nothing
                                     , hoveredSelector =
                                         { description = "white apple icon"
@@ -302,7 +303,7 @@ all =
                                             ]
                                                 ++ iconSelector { size = "32px", image = "windows-logo.svg" }
                                         }
-                                    , mouseEnterMsg = Msgs.TopCliHover <| Just Cli.Windows
+                                    , mouseEnterMsg = Msgs.TopCliHover <| List.Extra.getAt 1 Cli.clis
                                     , mouseLeaveMsg = Msgs.TopCliHover Nothing
                                     , hoveredSelector =
                                         { description = "white windows icon"
@@ -330,7 +331,7 @@ all =
                                             ]
                                                 ++ iconSelector { size = "32px", image = "linux-logo.svg" }
                                         }
-                                    , mouseEnterMsg = Msgs.TopCliHover <| Just Cli.Linux
+                                    , mouseEnterMsg = Msgs.TopCliHover <| List.Extra.getAt 2 Cli.clis
                                     , mouseLeaveMsg = Msgs.TopCliHover Nothing
                                     , hoveredSelector =
                                         { description = "white linux icon"
@@ -357,19 +358,19 @@ all =
                                 >> Query.has
                                     [ style
                                         [ ( "user-select", "none" )
-                                        , ("-ms-user-select", "none")
-                                        , ("-moz-user-select", "none")
-                                        , ("-khtml-user-select", "none")
-                                        , ("-webkit-user-select", "none")
-                                        , ("-webkit-touch-callout", "none")
+                                        , ( "-ms-user-select", "none" )
+                                        , ( "-moz-user-select", "none" )
+                                        , ( "-khtml-user-select", "none" )
+                                        , ( "-webkit-user-select", "none" )
+                                        , ( "-webkit-touch-callout", "none" )
                                         ]
                                     ]
                         , test "cursor is set to default" <|
                             art
                                 >> Query.has
-                                [ style
-                                    [ ("cursor", "default") ]
-                                ]
+                                    [ style
+                                        [ ( "cursor", "default" ) ]
+                                    ]
                         ]
                     ]
             in
@@ -2595,7 +2596,7 @@ all =
                                         }
                             }
                         , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
-                        , mouseEnterMsg = Msgs.CliHover <| Just Cli.OSX
+                        , mouseEnterMsg = Msgs.CliHover <| List.Extra.getAt 0 Cli.clis
                         , mouseLeaveMsg = Msgs.CliHover Nothing
                         , hoveredSelector =
                             { description = "white apple icon"
@@ -2634,7 +2635,7 @@ all =
                                         }
                             }
                         , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
-                        , mouseEnterMsg = Msgs.CliHover <| Just Cli.Windows
+                        , mouseEnterMsg = Msgs.CliHover <| List.Extra.getAt 1 Cli.clis
                         , mouseLeaveMsg = Msgs.CliHover Nothing
                         , hoveredSelector =
                             { description = "white windows icon"
@@ -2673,7 +2674,7 @@ all =
                                         }
                             }
                         , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
-                        , mouseEnterMsg = Msgs.CliHover <| Just Cli.Linux
+                        , mouseEnterMsg = Msgs.CliHover <| List.Extra.getAt 2 Cli.clis
                         , mouseLeaveMsg = Msgs.CliHover Nothing
                         , hoveredSelector =
                             { description = "white linux icon"
