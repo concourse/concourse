@@ -27,6 +27,7 @@ type Msg
     | SwitchTab String Int
     | SetHighlight String Int
     | ExtendHighlight String Int
+    | ScrollDown
 
 
 type HoveredButton

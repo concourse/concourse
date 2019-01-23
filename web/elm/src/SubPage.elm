@@ -9,7 +9,6 @@ module SubPage exposing
     , view
     )
 
-import Autoscroll
 import Build
 import Build.Msgs
 import Concourse
@@ -32,7 +31,7 @@ import UpdateMsg exposing (UpdateMsg)
 
 type Model
     = WaitingModel Routes.ConcourseRoute
-    | BuildModel (Autoscroll.Model Build.Model)
+    | BuildModel Build.Model
     | JobModel Job.Model
     | ResourceModel Resource.Models.Model
     | PipelineModel Pipeline.Model
@@ -71,12 +70,12 @@ init flags route =
                 , buildName = buildName
                 }
                 |> Build.init { csrfToken = flags.csrfToken, hash = route.hash }
-                |> Tuple.mapFirst (Autoscroll.Model Build.getScrollBehavior >> BuildModel)
+                |> Tuple.mapFirst BuildModel
 
         Routes.OneOffBuild buildId ->
             Build.BuildPage (Result.withDefault 0 (String.toInt buildId))
                 |> Build.init { csrfToken = flags.csrfToken, hash = route.hash }
-                |> Tuple.mapFirst (Autoscroll.Model Build.getScrollBehavior >> BuildModel)
+                |> Tuple.mapFirst BuildModel
 
         Routes.Resource teamName pipelineName resourceName ->
             Resource.init
@@ -149,7 +148,7 @@ getUpdateMessage : Model -> UpdateMsg
 getUpdateMessage model =
     case model of
         BuildModel mdl ->
-            Build.getUpdateMessage mdl.subModel
+            Build.getUpdateMessage mdl
 
         JobModel mdl ->
             Job.getUpdateMessage mdl
@@ -171,13 +170,8 @@ handleCallback :
     -> ( Model, List Effect )
 handleCallback csrfToken callback model =
     case model of
-        BuildModel scrollModel ->
-            let
-                subModel =
-                    scrollModel.subModel
-            in
-            Build.handleCallback callback { subModel | csrfToken = csrfToken }
-                |> Tuple.mapFirst (\m -> { scrollModel | subModel = m })
+        BuildModel buildModel ->
+            Build.handleCallback callback { buildModel | csrfToken = csrfToken }
                 |> Tuple.mapFirst BuildModel
 
         JobModel model ->
@@ -213,19 +207,16 @@ update :
     -> ( Model, List Effect )
 update turbulence notFound csrfToken msg mdl =
     case ( msg, mdl ) of
-        ( NewCSRFToken c, BuildModel scrollModel ) ->
-            Build.update (Build.Msgs.NewCSRFToken c) scrollModel.subModel
-                |> Tuple.mapFirst (\newBuildModel -> BuildModel { scrollModel | subModel = newBuildModel })
+        ( NewCSRFToken c, BuildModel buildModel ) ->
+            Build.update (Build.Msgs.NewCSRFToken c) buildModel
+                |> Tuple.mapFirst BuildModel
 
-        ( BuildMsg message, BuildModel scrollModel ) ->
+        ( BuildMsg msg, BuildModel buildModel ) ->
             let
-                subModel =
-                    scrollModel.subModel
-
                 model =
-                    { scrollModel | subModel = { subModel | csrfToken = csrfToken } }
+                    { buildModel | csrfToken = csrfToken }
             in
-            Autoscroll.update Build.update message model
+            Build.update msg model
                 |> Tuple.mapFirst BuildModel
                 |> handleNotFound notFound
 
@@ -304,20 +295,17 @@ urlUpdate route model =
                 mdl
                 |> Tuple.mapFirst JobModel
 
-        ( Routes.Build teamName pipelineName jobName buildName, BuildModel scrollModel ) ->
-            let
-                ( submodel, cmd ) =
-                    Build.changeToBuild
-                        (Build.JobBuildPage
-                            { teamName = teamName
-                            , pipelineName = pipelineName
-                            , jobName = jobName
-                            , buildName = buildName
-                            }
-                        )
-                        scrollModel.subModel
-            in
-            ( BuildModel { scrollModel | subModel = submodel }, cmd )
+        ( Routes.Build teamName pipelineName jobName buildName, BuildModel buildModel ) ->
+            Build.changeToBuild
+                (Build.JobBuildPage
+                    { teamName = teamName
+                    , pipelineName = pipelineName
+                    , jobName = jobName
+                    , buildName = buildName
+                    }
+                )
+                buildModel
+                |> Tuple.mapFirst BuildModel
 
         _ ->
             ( model, [] )
@@ -327,19 +315,26 @@ view : Model -> Html Msg
 view mdl =
     case mdl of
         BuildModel model ->
-            Html.map BuildMsg <| Autoscroll.view Build.view model
+            Build.view model
+                |> Html.map BuildMsg
 
         JobModel model ->
-            Html.map JobMsg <| Job.view model
+            Job.view model
+                |> Html.map JobMsg
 
         PipelineModel model ->
-            Html.map PipelineMsg <| Pipeline.view model
+            Pipeline.view model
+                |> Html.map PipelineMsg
 
         ResourceModel model ->
-            Html.map ResourceMsg <| (HS.toUnstyled << Resource.view) model
+            Resource.view model
+                |> HS.toUnstyled
+                |> Html.map ResourceMsg
 
         DashboardModel model ->
-            (Html.map DashboardMsg << HS.toUnstyled) <| Dashboard.view model
+            Dashboard.view model
+                |> HS.toUnstyled
+                |> Html.map DashboardMsg
 
         WaitingModel _ ->
             Html.div [] []
@@ -348,26 +343,32 @@ view mdl =
             NotFound.view model
 
         FlySuccessModel model ->
-            Html.map FlySuccessMsg <| FlySuccess.view model
+            FlySuccess.view model
+                |> Html.map FlySuccessMsg
 
 
 subscriptions : Model -> Sub Msg
 subscriptions mdl =
     case mdl of
         BuildModel model ->
-            Sub.map BuildMsg <| Autoscroll.subscriptions Build.subscriptions model
+            Build.subscriptions model
+                |> Sub.map BuildMsg
 
         JobModel model ->
-            Sub.map JobMsg <| Job.subscriptions model
+            Job.subscriptions model
+                |> Sub.map JobMsg
 
         PipelineModel model ->
-            Sub.map PipelineMsg <| Pipeline.subscriptions model
+            Pipeline.subscriptions model
+                |> Sub.map PipelineMsg
 
         ResourceModel model ->
-            Sub.map ResourceMsg <| Resource.subscriptions model
+            Resource.subscriptions model
+                |> Sub.map ResourceMsg
 
         DashboardModel model ->
-            Sub.map DashboardMsg <| Dashboard.subscriptions model
+            Dashboard.subscriptions model
+                |> Sub.map DashboardMsg
 
         WaitingModel _ ->
             Sub.none

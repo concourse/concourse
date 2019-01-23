@@ -1,6 +1,5 @@
 module SubPage.Msgs exposing (Msg(..))
 
-import Autoscroll
 import Build.Msgs
 import Concourse
 import Dashboard.Msgs
@@ -12,7 +11,7 @@ import Resource.Msgs
 
 
 type Msg
-    = BuildMsg (Autoscroll.Msg Build.Msgs.Msg)
+    = BuildMsg Build.Msgs.Msg
     | JobMsg Job.Msgs.Msg
     | ResourceMsg Resource.Msgs.Msg
     | PipelineMsg Pipeline.Msgs.Msg

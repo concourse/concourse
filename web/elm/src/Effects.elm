@@ -127,7 +127,6 @@ type ScrollDirection
     = ToWindowTop
     | Down
     | Up
-    | ToBottomOf String
     | ToWindowBottom
     | Builds Float
     | ToCurrentBuild
@@ -536,9 +535,6 @@ scrollInDirection dir =
 
         Up ->
             Scroll.scrollUp
-
-        ToBottomOf ele ->
-            Scroll.toBottom ele
 
         ToWindowBottom ->
             Scroll.toWindowBottom
