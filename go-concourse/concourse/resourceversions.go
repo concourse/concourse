@@ -50,6 +50,32 @@ func (team *team) EnableResourceVersion(pipelineName string, resourceName string
 	return team.sendResourceVersion(pipelineName, resourceName, resourceVersionID, atc.EnableResourceVersion)
 }
 
+func (team *team) PinResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error) {
+	return team.sendResourceVersion(pipelineName, resourceName, resourceVersionID, atc.PinResourceVersion)
+}
+
+func (team *team) UnpinResource(pipelineName string, resourceName string) (bool, error) {
+	params := rata.Params{
+		"pipeline_name": pipelineName,
+		"resource_name": resourceName,
+		"team_name":     team.name,
+	}
+
+	err := team.connection.Send(internal.Request{
+		RequestName: atc.UnpinResource,
+		Params:      params,
+	}, nil)
+
+	switch err.(type) {
+	case nil:
+		return true, nil
+	case internal.ResourceNotFoundError:
+		return false, nil
+	default:
+		return false, err
+	}
+}
+
 func (team *team) sendResourceVersion(pipelineName string, resourceName string, resourceVersionID int, resourceVersionReq string) (bool, error) {
 	params := rata.Params{
 		"pipeline_name":              pipelineName,

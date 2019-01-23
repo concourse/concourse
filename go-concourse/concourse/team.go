@@ -53,6 +53,9 @@ type Team interface {
 	DisableResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error)
 	EnableResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error)
 
+	PinResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error)
+	UnpinResource(pipelineName string, resourceName string) (bool, error)
+
 	BuildsWithVersionAsInput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)
 	BuildsWithVersionAsOutput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)
 

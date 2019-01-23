@@ -30,7 +30,11 @@ func (s *Server) PinResourceVersion(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		err = resource.PinVersion(resourceConfigVersionID)
+		found, err = resource.PinVersion(resourceConfigVersionID)
+		if !found {
+			logger.Debug("resource-version-id-not-found", lager.Data{"resource_config_version_id": resourceConfigVersionID})
+			w.WriteHeader(http.StatusNotFound)
+		}
 		if err != nil {
 			logger.Error("failed-to-pin-resource-version", err)
 			w.WriteHeader(http.StatusInternalServerError)

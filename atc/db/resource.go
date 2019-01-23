@@ -52,7 +52,7 @@ type Resource interface {
 	EnableVersion(rcvID int) error
 	DisableVersion(rcvID int) error
 
-	PinVersion(rcvID int) error
+	PinVersion(rcvID int) (bool, error)
 	UnpinVersion() error
 
 	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
@@ -563,7 +563,7 @@ func (r *resource) DisableVersion(rcvID int) error {
 	return r.toggleVersion(rcvID, false)
 }
 
-func (r *resource) PinVersion(rcvID int) error {
+func (r *resource) PinVersion(rcvID int) (bool, error) {
 	results, err := r.conn.Exec(`
 	    INSERT INTO resource_pins(resource_id, version, comment_text)
 			VALUES ($1,
@@ -572,19 +572,19 @@ func (r *resource) PinVersion(rcvID int) error {
 				WHERE rcv.id = $2 ),
 				'')`, r.id, rcvID)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	rowsAffected, err := results.RowsAffected()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
+		return false, nil
 	}
 
-	return nil
+	return true, nil
 }
 
 func (r *resource) UnpinVersion() error {
