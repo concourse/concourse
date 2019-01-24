@@ -1,9 +1,9 @@
-module DurationTests exposing (..)
+module DurationTests exposing (all, start)
 
-import Test exposing (..)
-import Expect exposing (..)
-import Time exposing (Time)
 import Duration exposing (Duration)
+import Expect exposing (..)
+import Test exposing (..)
+import Time exposing (Time)
 
 
 start : Time

@@ -1,12 +1,12 @@
-module BuildDuration exposing (view, show)
+module BuildDuration exposing (show, view)
 
+import Concourse
 import Date exposing (Date)
 import Date.Format
 import Duration exposing (Duration)
 import Html exposing (Html)
 import Html.Attributes exposing (class, title)
 import Time exposing (Time)
-import Concourse
 
 
 view : Concourse.BuildDuration -> Time.Time -> Html a
@@ -28,10 +28,10 @@ view duration now =
                         -- https://github.com/elm-lang/elm-compiler/issues/1223
                         Duration.between (Date.toTime startedAt) (Date.toTime finishedAt)
                 in
-                    [ labeledRelativeDate "started" now startedAt
-                    , labeledRelativeDate "finished" now finishedAt
-                    , labeledDuration "duration" durationElmIssue
-                    ]
+                [ labeledRelativeDate "started" now startedAt
+                , labeledRelativeDate "finished" now finishedAt
+                , labeledDuration "duration" durationElmIssue
+                ]
 
 
 show : Time.Time -> Concourse.BuildDuration -> String
@@ -45,12 +45,12 @@ labeledRelativeDate label now date =
         ago =
             Duration.between (Date.toTime date) now
     in
-        Html.tr []
-            [ Html.td [ class "dict-key" ] [ Html.text label ]
-            , Html.td
-                [ title (Date.Format.format "%b %d %Y %I:%M:%S %p" date), class "dict-value" ]
-                [ Html.span [] [ Html.text (Duration.format ago ++ " ago") ] ]
-            ]
+    Html.tr []
+        [ Html.td [ class "dict-key" ] [ Html.text label ]
+        , Html.td
+            [ title (Date.Format.format "%b %d %Y %I:%M:%S %p" date), class "dict-value" ]
+            [ Html.span [] [ Html.text (Duration.format ago ++ " ago") ] ]
+        ]
 
 
 labeledDuration : String -> Duration -> Html a

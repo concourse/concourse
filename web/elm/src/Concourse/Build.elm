@@ -1,9 +1,9 @@
-module Concourse.Build exposing (..)
+module Concourse.Build exposing (abort, fetch, fetchJobBuild, fetchJobBuilds)
 
+import Concourse
+import Concourse.Pagination exposing (Page, Paginated)
 import Http
 import Task exposing (Task)
-import Concourse
-import Concourse.Pagination exposing (Paginated, Page)
 
 
 fetch : Concourse.BuildId -> Task Http.Error Concourse.Build
@@ -17,7 +17,7 @@ fetchJobBuild jbi =
         url =
             "/api/v1/teams/" ++ jbi.teamName ++ "/pipelines/" ++ jbi.pipelineName ++ "/jobs/" ++ jbi.jobName ++ "/builds/" ++ jbi.buildName
     in
-        Http.toTask <| Http.get url Concourse.decodeBuild
+    Http.toTask <| Http.get url Concourse.decodeBuild
 
 
 abort : Concourse.BuildId -> Concourse.CSRFToken -> Task Http.Error ()
@@ -40,4 +40,4 @@ fetchJobBuilds job page =
         url =
             "/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName ++ "/builds"
     in
-        Concourse.Pagination.fetch Concourse.decodeBuild url page
+    Concourse.Pagination.fetch Concourse.decodeBuild url page

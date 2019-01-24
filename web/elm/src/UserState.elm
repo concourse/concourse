@@ -1,4 +1,4 @@
-module UserState exposing (..)
+module UserState exposing (UserState(..), map, user)
 
 import Concourse
 

@@ -1,10 +1,7 @@
-module Favicon
-    exposing
-        ( set
-        )
+module Favicon exposing (set)
 
-import Task exposing (Task)
 import Native.Favicon
+import Task exposing (Task)
 
 
 set : String -> Task x ()

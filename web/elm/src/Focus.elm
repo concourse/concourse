@@ -1,19 +1,24 @@
-module Focus exposing (Focus, get, set, update, (=>), create)
+module Focus exposing
+    ( Focus
+    , get, set, update
+    , (=>)
+    , create
+    )
 
 {-| Our goal is to update a field deep inside some nested records. For example,
 if we want to add one to `object.physics.velocity.x` or set it to zero, we would
 be writing code like this:
-update (physics => velocity => x) (\x -> x + 1) object
+update (physics => velocity => x) (\\x -> x + 1) object
 set (physics => velocity => x) 0 object
 This means you could avoid writing record update syntax which would be messier.
 **Warning!** It is possible that the concept of a `Focus` is harmful to code
 quality in that it can help you to be lax with abstraction boundaries.
 By making it easy to look deep inside of data structures, it encourages you to
 stop thinking about how to make these substructures modular, perhaps leading
-to messier architecture *and* some extra conceptual complexity. It may also
+to messier architecture _and_ some extra conceptual complexity. It may also
 make your code slower by encouraging you to take many passes over data,
 creating lots of intermediate data structures for no particular reason.
-*Use with these risk in mind!*
+_Use with these risk in mind!_
 
 
 # Focus
@@ -109,7 +114,7 @@ physics : Focus { record | physics : a } a
 velocity : Focus { record | velocity : a } a
 x : Focus { record | x : a } a
 y : Focus { record | y : a } a
-update (physics => velocity => x) (\x -> x + 1) object
+update (physics => velocity => x) (\\x -> x + 1) object
 set (physics => velocity => x) 0 object
 This would be a lot messier with typical record update syntax! This is what
 makes this library worthwhile, but also what makes it dangerous. You will be
@@ -130,4 +135,4 @@ record updates so that this can be done in one pass.
         update f big =
             largerFocus.update (smallerFocus.update f) big
     in
-        Focus { get = get, update = update }
+    Focus { get = get, update = update }

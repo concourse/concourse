@@ -1,8 +1,8 @@
 module Concourse.BuildResources exposing (empty, fetch)
 
+import Concourse
 import Http
 import Task exposing (Task)
-import Concourse
 
 
 empty : Concourse.BuildResources

@@ -1,4 +1,4 @@
-module Dashboard.Details exposing (..)
+module Dashboard.Details exposing (Details, dragStateLens, dropStateLens, nowLens)
 
 import Dashboard.Group as Group
 import Monocle.Lens
