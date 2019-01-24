@@ -347,6 +347,10 @@ var _ = Describe("Accessor", func() {
 		Entry("member :: "+atc.GetConfig, atc.GetConfig, "member", true),
 		Entry("viewer :: "+atc.GetConfig, atc.GetConfig, "viewer", true),
 
+		Entry("owner :: "+atc.GetCC, atc.GetCC, "owner", true),
+		Entry("member :: "+atc.GetCC, atc.GetCC, "member", true),
+		Entry("viewer :: "+atc.GetCC, atc.GetCC, "viewer", true),
+
 		Entry("owner :: "+atc.GetBuild, atc.GetBuild, "owner", true),
 		Entry("member :: "+atc.GetBuild, atc.GetBuild, "member", true),
 		Entry("viewer :: "+atc.GetBuild, atc.GetBuild, "viewer", true),
