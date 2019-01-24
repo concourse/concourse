@@ -606,8 +606,13 @@ values are not present, the action will error.
 \section{
   \title{Common Configuration Parameters}
 
-  If credential manager is not available and Concourse thinks it's an intermittent error, it will attempt to
-  retry resolving a parameter before failing a task or a resource. This behavior can be controlled by specifying
-  variables \code{--secret-retry-attempts} (how many times to retry) and \code{--secret-retry-interval} (how much
-  to wait between retries).
+  When a request to the credential manager fails due to an intermittent error
+  (e.g. a timeout or \code{connection refused}), Concourse will automatically
+  try the request again up to 5 times before giving up. After all attempts
+  fail, the error will be surfaced in the UI for the resource check or build
+  step that initiated the request.
+
+  The retry logic can be configured by specifying the flags
+  \code{--secret-retry-attempts} (how many times to try) and
+  \code{--secret-retry-interval} (how long to wait between attempts).
 }
