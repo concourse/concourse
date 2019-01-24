@@ -602,3 +602,12 @@ values are not present, the action will error.
     \code{--aws-secretsmanager-team-secret-template} variables.
   }
 }
+
+\section{
+  \title{Common Configuration Parameters}
+
+  If credential manager is not available and Concourse thinks it's an intermittent error, it will attempt to
+  retry resolving a parameter before failing a task or a resource. This behavior can be controlled by specifying
+  variables \code{--secret-retry-attempts} (how many times to retry) and \code{--secret-retry-interval} (how much
+  to wait between retries).
+}
