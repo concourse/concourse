@@ -411,7 +411,7 @@ var _ = Describe("Team", func() {
 			fakeVariablesFactory   *credsfakes.FakeVariablesFactory
 			variables              creds.Variables
 			resourceContainer      db.CreatingContainer
-			resourceConfigScope      db.ResourceConfigScope
+			resourceConfigScope    db.ResourceConfigScope
 			firstContainerCreating db.CreatingContainer
 		)
 

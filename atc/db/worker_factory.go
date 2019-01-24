@@ -20,7 +20,7 @@ type WorkerFactory interface {
 	Workers() ([]Worker, error)
 	VisibleWorkers([]string) ([]Worker, error)
 
-	FindWorkerForContainerByOwner(ContainerOwner, int) (Worker, bool, error)
+	FindWorkerForContainerByOwner(ContainerOwner, int, atc.Tags) (Worker, bool, error)
 	BuildContainersCountPerWorker() (map[string]int, error)
 }
 
@@ -321,7 +321,7 @@ func (f *workerFactory) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Wor
 	return savedWorker, nil
 }
 
-func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner, teamID int) (Worker, bool, error) {
+func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner, teamID int, tags atc.Tags) (Worker, bool, error) {
 	var teamWorkers int
 
 	err := psql.Select("COUNT (1)").
@@ -353,9 +353,20 @@ func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner, team
 		ownerEq["c."+k] = v
 	}
 
-	return getWorker(f.conn, workersQuery.Join("containers c ON c.worker_name = w.name").Where(sq.And{
+	workers, err := getWorkers(f.conn, workersQuery.Join("containers c ON c.worker_name = w.name").Where(sq.And{
 		ownerEq,
 	}))
+	if err != nil {
+		return nil, false, err
+	}
+
+	for _, w := range workers {
+		if tagsMatch(w.Tags(), tags) {
+			return w, true, nil
+		}
+	}
+
+	return nil, false, nil
 }
 
 func (f *workerFactory) BuildContainersCountPerWorker() (map[string]int, error) {
@@ -610,4 +621,23 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 	}
 
 	return savedWorker, nil
+}
+
+func tagsMatch(workerTags []string, tags []string) bool {
+	if len(workerTags) > 0 && len(tags) == 0 {
+		return false
+	}
+
+insert_coin:
+	for _, stag := range tags {
+		for _, wtag := range workerTags {
+			if stag == wtag {
+				continue insert_coin
+			}
+		}
+
+		return false
+	}
+
+	return true
 }

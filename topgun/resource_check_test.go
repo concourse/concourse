@@ -11,8 +11,9 @@ import (
 var _ = Describe("Resource checking", func() {
 	Context("with tags on the resource", func() {
 		BeforeEach(func() {
-			Deploy("deployments/concourse.yml", "-o", "operations/tagged-worker.yml")
-			_ = waitForRunningWorker()
+			Deploy("deployments/concourse.yml",
+				"-o", "operations/add-other-worker.yml",
+				"-o", "operations/tagged-worker.yml")
 
 			By("setting a pipeline that has a tagged resource")
 			fly.Run("set-pipeline", "-n", "-c", "pipelines/tagged-resource.yml", "-p", "tagged-resource")
@@ -21,7 +22,7 @@ var _ = Describe("Resource checking", func() {
 			fly.Run("unpause-pipeline", "-p", "tagged-resource")
 		})
 
-		It("places the checking container on the tagged worker", func() {
+		It("places and finds the checking container on the tagged worker", func() {
 			By("running the check")
 			fly.Run("check-resource", "-r", "tagged-resource/some-resource")
 
@@ -37,6 +38,15 @@ var _ = Describe("Resource checking", func() {
 
 			By("checking that the container is on the tagged worker")
 			containerTable := flyTable("containers")
+			Expect(containerTable).To(HaveLen(1))
+			Expect(containerTable[0]["type"]).To(Equal("check"))
+			Expect(containerTable[0]["worker"]).To(Equal(taggedWorkerName))
+
+			By("running the check")
+			fly.Run("check-resource", "-r", "tagged-resource/some-resource")
+
+			By("checking that the container is on the tagged worker")
+			containerTable = flyTable("containers")
 			Expect(containerTable).To(HaveLen(1))
 			Expect(containerTable[0]["type"]).To(Equal("check"))
 			Expect(containerTable[0]["worker"]).To(Equal(taggedWorkerName))

@@ -290,6 +290,7 @@ var _ = Describe("Pool", func() {
 			workerSpec = WorkerSpec{
 				ResourceType:  "some-type",
 				TeamID:        4567,
+				Tags:          atc.Tags{"some-tag"},
 				ResourceTypes: resourceTypes,
 			}
 
@@ -336,8 +337,9 @@ var _ = Describe("Pool", func() {
 			It("'find-or-create's on the particular worker", func() {
 				Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
 
-				_, actualTeamID, actualOwner := fakeProvider.FindWorkerForContainerByOwnerArgsForCall(0)
+				_, actualTeamID, actualTags, actualOwner := fakeProvider.FindWorkerForContainerByOwnerArgsForCall(0)
 				Expect(actualTeamID).To(Equal(4567))
+				Expect(actualTags).To(Equal(atc.Tags{"some-tag"}))
 				Expect(actualOwner).To(Equal(fakeOwner))
 			})
 		})

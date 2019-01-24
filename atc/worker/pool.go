@@ -28,6 +28,7 @@ type WorkerProvider interface {
 	FindWorkerForContainerByOwner(
 		logger lager.Logger,
 		teamID int,
+		workerTags atc.Tags,
 		owner db.ContainerOwner,
 	) (Worker, bool, error)
 
@@ -124,6 +125,7 @@ func (pool *pool) FindOrCreateContainer(
 	worker, found, err := pool.provider.FindWorkerForContainerByOwner(
 		logger.Session("find-worker"),
 		workerSpec.TeamID,
+		workerSpec.Tags,
 		owner,
 	)
 	if err != nil {

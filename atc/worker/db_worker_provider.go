@@ -8,6 +8,7 @@ import (
 	gclient "code.cloudfoundry.org/garden/client"
 	"code.cloudfoundry.org/lager"
 	bclient "github.com/concourse/baggageclaim/client"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/worker/transport"
 	"github.com/concourse/retryhttp"
@@ -101,10 +102,11 @@ func (provider *dbWorkerProvider) RunningWorkers(logger lager.Logger) ([]Worker,
 func (provider *dbWorkerProvider) FindWorkerForContainerByOwner(
 	logger lager.Logger,
 	teamID int,
+	workerTags atc.Tags,
 	owner db.ContainerOwner,
 ) (Worker, bool, error) {
 	logger = logger.Session("worker-for-container")
-	dbWorker, found, err := provider.dbWorkerFactory.FindWorkerForContainerByOwner(owner, teamID)
+	dbWorker, found, err := provider.dbWorkerFactory.FindWorkerForContainerByOwner(owner, teamID, workerTags)
 	if err != nil {
 		return nil, false, err
 	}
