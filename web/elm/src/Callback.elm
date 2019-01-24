@@ -6,7 +6,7 @@ import Dashboard.APIData
 import Http
 import Json.Encode
 import RemoteData
-import Resource.Models exposing (VersionToggleAction)
+import Resource.Models exposing (VersionId, VersionToggleAction)
 import Time exposing (Time)
 import Window
 
@@ -26,11 +26,11 @@ type Callback
     | VersionedResourcesFetched (Result Http.Error ( Maybe Page, Paginated Concourse.VersionedResource ))
     | VersionFetched (Result Http.Error String)
     | PausedToggled (Result Http.Error ())
-    | InputToFetched (Result Http.Error ( Int, List Concourse.Build ))
-    | OutputOfFetched (Result Http.Error ( Int, List Concourse.Build ))
+    | InputToFetched (Result Http.Error ( VersionId, List Concourse.Build ))
+    | OutputOfFetched (Result Http.Error ( VersionId, List Concourse.Build ))
     | VersionPinned (Result Http.Error ())
     | VersionUnpinned (Result Http.Error ())
-    | VersionToggled VersionToggleAction Int (Result Http.Error ())
+    | VersionToggled VersionToggleAction VersionId (Result Http.Error ())
     | Checked (Result Http.Error ())
     | TokenSentToFly Bool
     | APIDataFetched (RemoteData.WebData ( Time.Time, Dashboard.APIData.APIData ))

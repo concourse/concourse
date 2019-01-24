@@ -51,19 +51,31 @@ resourceName =
     "some-resource"
 
 
-versionID : Int
+versionID : Models.VersionId
 versionID =
-    1
+    { teamName = teamName
+    , pipelineName = pipelineName
+    , resourceName = resourceName
+    , versionID = 1
+    }
 
 
-otherVersionID : Int
+otherVersionID : Models.VersionId
 otherVersionID =
-    2
+    { teamName = teamName
+    , pipelineName = pipelineName
+    , resourceName = resourceName
+    , versionID = 2
+    }
 
 
-disabledVersionID : Int
+disabledVersionID : Models.VersionId
 disabledVersionID =
-    3
+    { teamName = teamName
+    , pipelineName = pipelineName
+    , resourceName = resourceName
+    , versionID = 3
+    }
 
 
 version : String
@@ -1730,6 +1742,16 @@ all =
                                 |> checkBar
                                 |> Query.find [ tag "h3" ]
                                 |> Query.has [ text "currently checking" ]
+                    , test "clicking check button does nothing" <|
+                        \_ ->
+                            init
+                                |> givenCheckInProgress
+                                |> checkBar
+                                |> Query.children []
+                                |> Query.first
+                                |> Event.simulate Event.click
+                                |> Event.toResult
+                                |> Expect.err
                     , test "status icon is spinner" <|
                         \_ ->
                             init
@@ -2171,7 +2193,7 @@ toggleVersionTooltip =
         >> Tuple.first
 
 
-clickToPin : Int -> Models.Model -> Models.Model
+clickToPin : Models.VersionId -> Models.Model -> Models.Model
 clickToPin versionID =
     Resource.update (Msgs.PinVersion versionID)
         >> Tuple.first
@@ -2183,7 +2205,7 @@ clickToUnpin =
         >> Tuple.first
 
 
-clickToDisable : Int -> Models.Model -> Models.Model
+clickToDisable : Models.VersionId -> Models.Model -> Models.Model
 clickToDisable versionID =
     Resource.update (Msgs.ToggleVersion Models.Disable versionID)
         >> Tuple.first
@@ -2196,17 +2218,17 @@ givenVersionsWithoutPagination =
             Ok
                 ( Nothing
                 , { content =
-                        [ { id = versionID
+                        [ { id = versionID.versionID
                           , version = Dict.fromList [ ( "version", version ) ]
                           , metadata = []
                           , enabled = True
                           }
-                        , { id = otherVersionID
+                        , { id = otherVersionID.versionID
                           , version = Dict.fromList [ ( "version", otherVersion ) ]
                           , metadata = []
                           , enabled = True
                           }
-                        , { id = disabledVersionID
+                        , { id = disabledVersionID.versionID
                           , version = Dict.fromList [ ( "version", disabledVersion ) ]
                           , metadata = []
                           , enabled = False
@@ -2229,17 +2251,17 @@ givenVersionsWithPagination =
             Ok
                 ( Nothing
                 , { content =
-                        [ { id = versionID
+                        [ { id = versionID.versionID
                           , version = Dict.fromList [ ( "version", version ) ]
                           , metadata = []
                           , enabled = True
                           }
-                        , { id = otherVersionID
+                        , { id = otherVersionID.versionID
                           , version = Dict.fromList [ ( "version", otherVersion ) ]
                           , metadata = []
                           , enabled = True
                           }
-                        , { id = disabledVersionID
+                        , { id = disabledVersionID.versionID
                           , version = Dict.fromList [ ( "version", disabledVersion ) ]
                           , metadata = []
                           , enabled = False

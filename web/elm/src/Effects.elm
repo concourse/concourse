@@ -32,7 +32,7 @@ import Navigation
 import Process
 import QueryString
 import RemoteData
-import Resource.Models exposing (VersionToggleAction(..))
+import Resource.Models exposing (VersionId, VersionToggleAction(..))
 import Scroll
 import Task
 import Time exposing (Time)
@@ -107,7 +107,7 @@ type Effect
     | ModifyUrl String
     | DoPinVersion Concourse.VersionedResourceIdentifier Concourse.CSRFToken
     | DoUnpinVersion Concourse.ResourceIdentifier Concourse.CSRFToken
-    | DoToggleVersion VersionToggleAction Concourse.VersionedResourceIdentifier Concourse.CSRFToken
+    | DoToggleVersion VersionToggleAction VersionId Concourse.CSRFToken
     | DoCheck Concourse.ResourceIdentifier Concourse.CSRFToken
     | SendTokenToFly String Int
     | SendTogglePipelineRequest { pipeline : Dashboard.Models.Pipeline, csrfToken : Concourse.CSRFToken }
@@ -211,7 +211,7 @@ runEffect effect =
                 (action == Enable)
                 id
                 csrfToken
-                |> Task.attempt (VersionToggled action id.versionID)
+                |> Task.attempt (VersionToggled action id)
 
         DoCheck rid csrfToken ->
             Task.attempt Checked <|
@@ -347,17 +347,17 @@ fetchPipeline pipelineIdentifier =
         Concourse.Pipeline.fetchPipeline pipelineIdentifier
 
 
-fetchInputTo : Concourse.VersionedResourceIdentifier -> Cmd Callback
-fetchInputTo versionedResourceIdentifier =
-    Concourse.Resource.fetchInputTo versionedResourceIdentifier
-        |> Task.map ((,) versionedResourceIdentifier.versionID)
+fetchInputTo : VersionId -> Cmd Callback
+fetchInputTo versionId =
+    Concourse.Resource.fetchInputTo versionId
+        |> Task.map ((,) versionId)
         |> Task.attempt InputToFetched
 
 
-fetchOutputOf : Concourse.VersionedResourceIdentifier -> Cmd Callback
-fetchOutputOf versionedResourceIdentifier =
-    Concourse.Resource.fetchOutputOf versionedResourceIdentifier
-        |> Task.map ((,) versionedResourceIdentifier.versionID)
+fetchOutputOf : VersionId -> Cmd Callback
+fetchOutputOf versionId =
+    Concourse.Resource.fetchOutputOf versionId
+        |> Task.map ((,) versionId)
         |> Task.attempt OutputOfFetched
 
 

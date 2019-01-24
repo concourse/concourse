@@ -57,11 +57,7 @@ import Http
 import List.Extra
 import Maybe.Extra as ME
 import NewTopBar.Styles as Styles
-import Pinned
-    exposing
-        ( ResourcePinState(..)
-        , VersionPinState(..)
-        )
+import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import QueryString
 import Resource.Models as Models exposing (Model)
 import Resource.Msgs exposing (Msg(..))
@@ -262,7 +258,10 @@ handleCallback action model =
                                         existingVersion : Maybe Models.Version
                                         existingVersion =
                                             model.versions.content
-                                                |> List.Extra.find (\v -> v.id == vr.id)
+                                                |> List.Extra.find
+                                                    (\v ->
+                                                        v.id.versionID == vr.id
+                                                    )
 
                                         enabledStateAccordingToServer : Models.VersionEnabledState
                                         enabledStateAccordingToServer =
@@ -284,7 +283,13 @@ handleCallback action model =
                                             }
 
                                         Nothing ->
-                                            { id = vr.id
+                                            { id =
+                                                { teamName = model.teamName
+                                                , pipelineName =
+                                                    model.pipelineName
+                                                , resourceName = model.name
+                                                , versionID = vr.id
+                                                }
                                             , version = vr.version
                                             , metadata = vr.metadata
                                             , enabled = enabledStateAccordingToServer
@@ -446,7 +451,7 @@ update action model =
             , [ FetchResource model.resourceIdentifier
               , FetchVersionedResources model.resourceIdentifier model.currentPage
               ]
-                ++ updateExpandedProperties model
+                ++ fetchDataForExpandedVersions model
             )
 
         LoadPage page ->
@@ -460,13 +465,6 @@ update action model =
 
         ExpandVersionedResource versionID ->
             let
-                versionedResourceIdentifier =
-                    { teamName = model.resourceIdentifier.teamName
-                    , pipelineName = model.resourceIdentifier.pipelineName
-                    , resourceName = model.resourceIdentifier.resourceName
-                    , versionID = versionID
-                    }
-
                 version : Maybe Models.Version
                 version =
                     model.versions.content
@@ -481,10 +479,15 @@ update action model =
                         Nothing ->
                             False
             in
-            ( updateVersion versionID (\v -> { v | expanded = newExpandedState }) model
+            ( updateVersion
+                versionID
+                (\v ->
+                    { v | expanded = newExpandedState }
+                )
+                model
             , if newExpandedState then
-                [ FetchInputTo versionedResourceIdentifier
-                , FetchOutputOf versionedResourceIdentifier
+                [ FetchInputTo versionID
+                , FetchOutputOf versionID
                 ]
 
               else
@@ -512,7 +515,7 @@ update action model =
 
         ToggleVersionTooltip ->
             let
-                pinnedVersionID : Maybe Int
+                pinnedVersionID : Maybe Models.VersionId
                 pinnedVersionID =
                     model.versions.content
                         |> List.Extra.find (.version >> hasPinnedVersion model)
@@ -543,11 +546,7 @@ update action model =
                     case version of
                         Just v ->
                             [ DoPinVersion
-                                { teamName = model.resourceIdentifier.teamName
-                                , pipelineName = model.resourceIdentifier.pipelineName
-                                , resourceName = model.resourceIdentifier.resourceName
-                                , versionID = v.id
-                                }
+                                versionID
                                 model.csrfToken
                             ]
 
@@ -584,11 +583,7 @@ update action model =
                 )
                 model
             , [ DoToggleVersion action
-                    { teamName = model.resourceIdentifier.teamName
-                    , pipelineName = model.resourceIdentifier.pipelineName
-                    , resourceName = model.resourceIdentifier.resourceName
-                    , versionID = versionID
-                    }
+                    versionID
                     model.csrfToken
               ]
             )
@@ -613,7 +608,11 @@ update action model =
             TopBar.update msg model
 
 
-updateVersion : Int -> (Models.Version -> Models.Version) -> Model -> Model
+updateVersion :
+    Models.VersionId
+    -> (Models.Version -> Models.Version)
+    -> Model
+    -> Model
 updateVersion versionID updateFunc model =
     let
         newVersionsContent : List Models.Version
@@ -694,183 +693,209 @@ subpageView model =
         Html.div [] []
 
     else
-        let
-            previousButtonEvent =
-                case model.versions.pagination.previousPage of
-                    Nothing ->
-                        Noop
-
-                    Just pp ->
-                        LoadPage pp
-
-            nextButtonEvent =
-                case model.versions.pagination.nextPage of
-                    Nothing ->
-                        Noop
-
-                    Just np ->
-                        let
-                            updatedPage =
-                                { np
-                                    | limit = 100
-                                }
-                        in
-                        LoadPage updatedPage
-
-            lastCheckedView =
-                case ( model.now, model.lastChecked ) of
-                    ( Just now, Just date ) ->
-                        viewLastChecked now date
-
-                    ( _, _ ) ->
-                        Html.text ""
-
-            headerHeight =
-                60
-        in
         Html.div []
-            [ Html.div
-                [ css
-                    [ Css.height <| Css.px headerHeight
-                    , Css.position Css.fixed
-                    , Css.top <| Css.px Styles.pageHeaderHeight
-                    , Css.displayFlex
-                    , Css.alignItems Css.stretch
-                    , Css.width <| Css.pct 100
-                    , Css.zIndex <| Css.int 1
-                    , Css.backgroundColor <| Css.hex "2a2929"
-                    ]
-                ]
-                [ Html.h1
-                    [ css
-                        [ Css.fontWeight <| Css.int 700
-                        , Css.marginLeft <| Css.px 18
-                        , Css.displayFlex
-                        , Css.alignItems Css.center
-                        , Css.justifyContent Css.center
-                        ]
-                    ]
-                    [ Html.text model.name ]
-                , Html.div
-                    [ css
-                        [ Css.displayFlex
-                        , Css.alignItems Css.center
-                        , Css.justifyContent Css.center
-                        , Css.marginLeft (Css.px 24)
-                        ]
-                    ]
-                    [ lastCheckedView ]
-                , pinBar model
-                , Html.div
-                    [ id "pagination"
-                    , style
-                        [ ( "display", "flex" )
-                        , ( "align-items", "stretch" )
-                        ]
-                    ]
-                    [ case model.versions.pagination.previousPage of
-                        Nothing ->
-                            Html.div
-                                [ style chevronContainer ]
-                                [ Html.div
-                                    [ style <|
-                                        chevron
-                                            { direction = "left"
-                                            , enabled = False
-                                            , hovered = False
-                                            }
-                                    ]
-                                    []
-                                ]
+            [ header model
+            , body model
+            ]
 
-                        Just page ->
-                            Html.div
-                                [ style chevronContainer
-                                , onClick previousButtonEvent
-                                , onMouseEnter <| Hover Models.PreviousPage
-                                , onMouseLeave <| Hover Models.None
-                                ]
-                                [ Html.a
-                                    [ href <|
-                                        paginationRoute
-                                            model.resourceIdentifier
-                                            page
-                                    , attribute "aria-label" "Previous Page"
-                                    , style <|
-                                        chevron
-                                            { direction = "left"
-                                            , enabled = True
-                                            , hovered = model.hovered == Models.PreviousPage
-                                            }
-                                    ]
-                                    []
-                                ]
-                    , case model.versions.pagination.nextPage of
-                        Nothing ->
-                            Html.div
-                                [ style chevronContainer ]
-                                [ Html.div
-                                    [ style <|
-                                        chevron
-                                            { direction = "right"
-                                            , enabled = False
-                                            , hovered = False
-                                            }
-                                    ]
-                                    []
-                                ]
 
-                        Just page ->
-                            Html.div
-                                [ style chevronContainer
-                                , onClick nextButtonEvent
-                                , onMouseEnter <| Hover Models.NextPage
-                                , onMouseLeave <| Hover Models.None
-                                ]
-                                [ Html.a
-                                    [ href <|
-                                        paginationRoute
-                                            model.resourceIdentifier
-                                            page
-                                    , attribute "aria-label" "Next Page"
-                                    , style <|
-                                        chevron
-                                            { direction = "right"
-                                            , enabled = True
-                                            , hovered = model.hovered == Models.NextPage
-                                            }
-                                    ]
-                                    []
-                                ]
-                    ]
-                ]
-            , Html.div
-                [ css
-                    [ Css.padding3
-                        (Css.px <|
-                            headerHeight
-                                + Styles.pageHeaderHeight
-                                + 10
-                        )
-                        (Css.px 10)
-                        (Css.px 10)
-                    ]
-                , id "body"
-                , style
-                    [ ( "padding-bottom"
-                      , case model.pinComment of
-                            Just _ ->
-                                "300px"
+header : Model -> Html Msg
+header model =
+    let
+        lastCheckedView =
+            case ( model.now, model.lastChecked ) of
+                ( Just now, Just date ) ->
+                    viewLastChecked now date
 
-                            Nothing ->
-                                ""
-                      )
-                    ]
-                ]
-                [ checkSection model
-                , viewVersionedResources model
+                ( _, _ ) ->
+                    Html.text ""
+
+        headerHeight =
+            60
+    in
+    Html.div
+        [ css
+            [ Css.height <| Css.px headerHeight
+            , Css.position Css.fixed
+            , Css.top <| Css.px Styles.pageHeaderHeight
+            , Css.displayFlex
+            , Css.alignItems Css.stretch
+            , Css.width <| Css.pct 100
+            , Css.zIndex <| Css.int 1
+            , Css.backgroundColor <| Css.hex "2a2929"
+            ]
+        ]
+        [ Html.h1
+            [ css
+                [ Css.fontWeight <| Css.int 700
+                , Css.marginLeft <| Css.px 18
+                , Css.displayFlex
+                , Css.alignItems Css.center
+                , Css.justifyContent Css.center
                 ]
             ]
+            [ Html.text model.name ]
+        , Html.div
+            [ css
+                [ Css.displayFlex
+                , Css.alignItems Css.center
+                , Css.justifyContent Css.center
+                , Css.marginLeft (Css.px 24)
+                ]
+            ]
+            [ lastCheckedView ]
+        , pinBar model
+        , paginationMenu model
+        ]
+
+
+body : Model -> Html Msg
+body model =
+    let
+        headerHeight =
+            60
+    in
+    Html.div
+        [ css
+            [ Css.padding3
+                (Css.px <|
+                    headerHeight
+                        + Styles.pageHeaderHeight
+                        + 10
+                )
+                (Css.px 10)
+                (Css.px 10)
+            ]
+        , id "body"
+        , style
+            [ ( "padding-bottom"
+              , case model.pinComment of
+                    Just _ ->
+                        "300px"
+
+                    Nothing ->
+                        ""
+              )
+            ]
+        ]
+        [ checkSection model
+        , viewVersionedResources model
+        ]
+
+
+paginationMenu :
+    { a
+        | versions : Paginated Models.Version
+        , resourceIdentifier : Concourse.ResourceIdentifier
+        , hovered : Models.Hoverable
+    }
+    -> Html Msg
+paginationMenu { versions, resourceIdentifier, hovered } =
+    let
+        previousButtonEvent =
+            case versions.pagination.previousPage of
+                Nothing ->
+                    Noop
+
+                Just pp ->
+                    LoadPage pp
+
+        nextButtonEvent =
+            case versions.pagination.nextPage of
+                Nothing ->
+                    Noop
+
+                Just np ->
+                    let
+                        updatedPage =
+                            { np
+                                | limit = 100
+                            }
+                    in
+                    LoadPage updatedPage
+    in
+    Html.div
+        [ id "pagination"
+        , style
+            [ ( "display", "flex" )
+            , ( "align-items", "stretch" )
+            ]
+        ]
+        [ case versions.pagination.previousPage of
+            Nothing ->
+                Html.div
+                    [ style chevronContainer ]
+                    [ Html.div
+                        [ style <|
+                            chevron
+                                { direction = "left"
+                                , enabled = False
+                                , hovered = False
+                                }
+                        ]
+                        []
+                    ]
+
+            Just page ->
+                Html.div
+                    [ style chevronContainer
+                    , onClick previousButtonEvent
+                    , onMouseEnter <| Hover Models.PreviousPage
+                    , onMouseLeave <| Hover Models.None
+                    ]
+                    [ Html.a
+                        [ href <|
+                            paginationRoute
+                                resourceIdentifier
+                                page
+                        , attribute "aria-label" "Previous Page"
+                        , style <|
+                            chevron
+                                { direction = "left"
+                                , enabled = True
+                                , hovered = hovered == Models.PreviousPage
+                                }
+                        ]
+                        []
+                    ]
+        , case versions.pagination.nextPage of
+            Nothing ->
+                Html.div
+                    [ style chevronContainer ]
+                    [ Html.div
+                        [ style <|
+                            chevron
+                                { direction = "right"
+                                , enabled = False
+                                , hovered = False
+                                }
+                        ]
+                        []
+                    ]
+
+            Just page ->
+                Html.div
+                    [ style chevronContainer
+                    , onClick nextButtonEvent
+                    , onMouseEnter <| Hover Models.NextPage
+                    , onMouseLeave <| Hover Models.None
+                    ]
+                    [ Html.a
+                        [ href <|
+                            paginationRoute
+                                resourceIdentifier
+                                page
+                        , attribute "aria-label" "Next Page"
+                        , style <|
+                            chevron
+                                { direction = "right"
+                                , enabled = True
+                                , hovered = hovered == Models.NextPage
+                                }
+                        ]
+                        []
+                    ]
+        ]
 
 
 checkSection :
@@ -967,24 +992,28 @@ checkButton :
     -> Html Msg
 checkButton { hovered, userState, teamName, checkStatus } =
     let
-        enabled =
-            case userState of
-                UserStateLoggedIn user ->
-                    case Dict.get teamName user.teams of
-                        Just roles ->
-                            List.member "member" roles
-                                || List.member "owner" roles
+        isHovered =
+            hovered == Models.CheckButton
 
-                        Nothing ->
-                            False
+        isCurrentlyChecking =
+            checkStatus == Models.CurrentlyChecking
+
+        isUnauthenticated =
+            case userState of
+                UserStateLoggedIn _ ->
+                    False
 
                 _ ->
                     True
 
-        isHovered =
-            checkStatus
-                == Models.CurrentlyChecking
-                || (enabled && hovered == Models.CheckButton)
+        isAuthorized =
+            isAuthorizedToTriggerResourceChecks teamName userState
+
+        isClickable =
+            (isUnauthenticated || isAuthorized) && not isCurrentlyChecking
+
+        isHighlighted =
+            (isClickable && isHovered) || isCurrentlyChecking
     in
     Html.div
         ([ style
@@ -993,7 +1022,7 @@ checkButton { hovered, userState, teamName, checkStatus } =
             , ( "background-color", Colors.sectionHeader )
             , ( "margin-right", "5px" )
             , ( "cursor"
-              , if isHovered && checkStatus /= Models.CurrentlyChecking then
+              , if isClickable then
                     "pointer"
 
                 else
@@ -1003,7 +1032,7 @@ checkButton { hovered, userState, teamName, checkStatus } =
          , onMouseEnter <| Hover Models.CheckButton
          , onMouseLeave <| Hover Models.None
          ]
-            ++ (if enabled then
+            ++ (if isClickable then
                     [ onClick Check ]
 
                 else
@@ -1022,7 +1051,7 @@ checkButton { hovered, userState, teamName, checkStatus } =
                 , ( "background-repeat", "no-repeat" )
                 , ( "background-size", "contain" )
                 , ( "opacity"
-                  , if isHovered then
+                  , if isHighlighted then
                         "1"
 
                     else
@@ -1034,10 +1063,26 @@ checkButton { hovered, userState, teamName, checkStatus } =
         ]
 
 
+isAuthorizedToTriggerResourceChecks : String -> UserState -> Bool
+isAuthorizedToTriggerResourceChecks teamName userState =
+    case userState of
+        UserStateLoggedIn user ->
+            case Dict.get teamName user.teams of
+                Just roles ->
+                    List.member "member" roles
+                        || List.member "owner" roles
+
+                Nothing ->
+                    False
+
+        _ ->
+            False
+
+
 commentBar :
     { a
         | pinComment : Maybe String
-        , pinnedVersion : ResourcePinState Concourse.Version Int
+        , pinnedVersion : Models.PinnedVersion
     }
     -> Html Msg
 commentBar { pinComment, pinnedVersion } =
@@ -1076,7 +1121,7 @@ commentBar { pinComment, pinnedVersion } =
 
 pinBar :
     { a
-        | pinnedVersion : ResourcePinState Concourse.Version Int
+        | pinnedVersion : Models.PinnedVersion
         , showPinBarTooltip : Bool
         , pinIconHover : Bool
     }
@@ -1153,15 +1198,10 @@ pinBar { pinnedVersion, showPinBarTooltip, pinIconHover } =
         )
 
 
-checkForVersionID : Int -> Concourse.VersionedResource -> Bool
-checkForVersionID versionID versionedResource =
-    versionID == versionedResource.id
-
-
 viewVersionedResources :
     { a
         | versions : Paginated Models.Version
-        , pinnedVersion : ResourcePinState Concourse.Version Int
+        , pinnedVersion : Models.PinnedVersion
     }
     -> Html Msg
 viewVersionedResources { versions, pinnedVersion } =
@@ -1178,7 +1218,7 @@ viewVersionedResources { versions, pinnedVersion } =
 
 viewVersionedResource :
     { version : Models.Version
-    , pinnedVersion : ResourcePinState Concourse.Version Int
+    , pinnedVersion : Models.PinnedVersion
     }
     -> Html Msg
 viewVersionedResource { version, pinnedVersion } =
@@ -1273,7 +1313,7 @@ viewVersionBody { inputTo, outputOf, metadata } =
 viewEnabledCheckbox :
     { a
         | enabled : Models.VersionEnabledState
-        , id : Int
+        , id : Models.VersionId
         , pinState : VersionPinState
     }
     -> Html Msg
@@ -1315,7 +1355,7 @@ viewEnabledCheckbox ({ enabled, id, pinState } as params) =
 
 
 viewPinButton :
-    { versionID : Int
+    { versionID : Models.VersionId
     , pinState : VersionPinState
     , showTooltip : Bool
     }
@@ -1382,7 +1422,7 @@ viewPinButton { versionID, pinState } =
 
 viewVersionHeader :
     { a
-        | id : Int
+        | id : Models.VersionId
         , version : Concourse.Version
         , pinnedState : VersionPinState
     }
@@ -1505,25 +1545,11 @@ viewBuildsByJob buildDict jobName =
     ]
 
 
-updateExpandedProperties : Model -> List Effect
-updateExpandedProperties model =
-    let
-        filteredList =
-            List.filter
-                (isExpanded model.versions.content)
-                model.versions.content
-    in
-    List.concatMap
-        (fetchInputAndOutputs model)
-        filteredList
-
-
-isExpanded : List Models.Version -> Models.Version -> Bool
-isExpanded versions version =
-    versions
-        |> List.Extra.find (.id >> (==) version.id)
-        |> Maybe.map .expanded
-        |> Maybe.withDefault False
+fetchDataForExpandedVersions : Model -> List Effect
+fetchDataForExpandedVersions model =
+    model.versions.content
+        |> List.filter .expanded
+        |> List.concatMap (\v -> [ FetchInputTo v.id, FetchOutputOf v.id ])
 
 
 subscriptions : Model -> Sub Msg
@@ -1532,18 +1558,3 @@ subscriptions model =
         [ Time.every (5 * Time.second) AutoupdateTimerTicked
         , Time.every Time.second ClockTick
         ]
-
-
-fetchInputAndOutputs : Models.Model -> Models.Version -> List Effect
-fetchInputAndOutputs model version =
-    let
-        identifier =
-            { teamName = model.resourceIdentifier.teamName
-            , pipelineName = model.resourceIdentifier.pipelineName
-            , resourceName = model.resourceIdentifier.resourceName
-            , versionID = version.id
-            }
-    in
-    [ FetchInputTo identifier
-    , FetchOutputOf identifier
-    ]
