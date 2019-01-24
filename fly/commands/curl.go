@@ -74,20 +74,11 @@ func (command *CurlCommand) makeArgsList(token *rc.TargetToken, url string, opti
 }
 
 func printableCommand(args []string) string {
-	/*
-	Annoyance. If we execute
-		fly -t team curl /api/v1/teams/team/pipelines/foo  -- -H 'yay: hazzah'
-	And we simply
-		strings.join(args, " ")
-	The single quotes are lost.
-
-	We would like to see
-		curl -H 'Authorization: Bearer token' -H 'yay: hazzah' url/api/v1/teams/team/pipelines/foo
-	But instead it gives us
-		curl -H Authorization: Bearer token -H yay: hazzah url/api/v1/teams/team/pipelines/foo
-
-	Thus making the printableCommand non copy-pasteable.
-	*/
+	for i,_ := range args {
+		if strings.Contains(args[i], " ") {
+			args[i] = fmt.Sprintf(`"%s"`, args[i])
+		}
+	}
 
 	return strings.Join(args, " ")
 }
