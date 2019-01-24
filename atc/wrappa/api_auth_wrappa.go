@@ -127,6 +127,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.UnpinResource,
 			atc.SetPinCommentOnResource,
 			atc.GetConfig,
+			atc.GetCC,
 			atc.GetVersionsDB,
 			atc.ListJobInputs,
 			atc.OrderPipelines,

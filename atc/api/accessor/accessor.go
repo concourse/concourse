@@ -118,6 +118,7 @@ func (a *access) CSRFToken() string {
 var requiredRoles = map[string]string{
 	atc.SaveConfig:                    "member",
 	atc.GetConfig:                     "viewer",
+	atc.GetCC:                         "viewer",
 	atc.GetBuild:                      "viewer",
 	atc.GetBuildPlan:                  "viewer",
 	atc.CreateBuild:                   "member",

@@ -9,6 +9,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/buildserver"
+	"github.com/concourse/concourse/atc/api/ccserver"
 	"github.com/concourse/concourse/atc/api/cliserver"
 	"github.com/concourse/concourse/atc/api/configserver"
 	"github.com/concourse/concourse/atc/api/containerserver"
@@ -86,6 +87,7 @@ func NewHandler(
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL, engine)
 	configServer := configserver.NewServer(logger, dbTeamFactory, variablesFactory)
+	ccServer := ccserver.NewServer(logger, dbTeamFactory, externalURL)
 	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory, workerProvider)
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
@@ -97,6 +99,8 @@ func NewHandler(
 	handlers := map[string]http.Handler{
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
 		atc.SaveConfig: http.HandlerFunc(configServer.SaveConfig),
+
+		atc.GetCC: http.HandlerFunc(ccServer.GetCC),
 
 		atc.ListBuilds:              http.HandlerFunc(buildServer.ListBuilds),
 		atc.CreateBuild:             teamHandlerFactory.HandlerFor(buildServer.CreateBuild),
