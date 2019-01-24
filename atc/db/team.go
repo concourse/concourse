@@ -849,18 +849,28 @@ func (t *team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) 
 		return err
 	}
 
-	clearVerQ := ""
-	if resource.Version != nil {
-		clearVerQ = ", api_pinned_version = NULL"
-	}
-
-	updated, err := checkIfRowsUpdated(tx, fmt.Sprintf(`
+	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE resources
-		SET config = $3, active = true, nonce = $4 %s
+		SET config = $3, active = true, nonce = $4
 		WHERE name = $1 AND pipeline_id = $2
-	`, clearVerQ), resource.Name, pipelineID, encryptedPayload, nonce)
+	`, resource.Name, pipelineID, encryptedPayload, nonce)
 	if err != nil {
 		return err
+	}
+
+	if resource.Version != nil {
+		resourceIDQuery := `
+				resource_pins.resource_id =
+					(SELECT id FROM resources WHERE name = ? AND pipeline_id = ?)`
+
+		_, err = psql.Delete("resource_pins").
+			Where(resourceIDQuery, resource.Name, pipelineID).
+			RunWith(tx).
+			Exec()
+
+		if err != nil {
+			return err
+		}
 	}
 
 	if updated {

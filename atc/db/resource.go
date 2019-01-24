@@ -56,10 +56,11 @@ type Resource interface {
 	Reload() (bool, error)
 }
 
-var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, c.last_checked, r.pipeline_id, r.nonce, r.resource_config_id, p.name, t.name, c.check_error, r.api_pinned_version, r.pin_comment").
+var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, c.last_checked, r.pipeline_id, r.nonce, r.resource_config_id, p.name, t.name, c.check_error, rp.version, rp.comment_text").
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
+	LeftJoin("resource_pins rp ON rp.resource_id = r.id").
 	LeftJoin("resource_configs c ON r.resource_config_id = c.id").
 	Where(sq.Eq{"r.active": true})
 
@@ -258,9 +259,9 @@ func (r *resource) ResourceConfigVersionID(version atc.Version) (int, bool, erro
 }
 
 func (r *resource) SetPinComment(comment string) error {
-	_, err := psql.Update("resources").
-		Set("pin_comment", comment).
-		Where(sq.Eq{"id": r.ID()}).
+	_, err := psql.Update("resource_pins").
+		Set("comment_text", comment).
+		Where(sq.Eq{"resource_id": r.ID()}).
 		RunWith(r.conn).
 		Exec()
 
@@ -443,12 +444,12 @@ func (r *resource) DisableVersion(rcvID int) error {
 
 func (r *resource) PinVersion(rcvID int) error {
 	results, err := r.conn.Exec(`
-			UPDATE resources SET (api_pinned_version) =
-			( SELECT rcv.version
+	    INSERT INTO resource_pins(resource_id, version, comment_text)
+			VALUES ($1,
+				( SELECT rcv.version
 				FROM resource_config_versions rcv
-				WHERE rcv.id = $1 )
-			WHERE resources.id = $2
-			`, rcvID, r.id)
+				WHERE rcv.id = $2 ),
+				'')`, r.id, rcvID)
 	if err != nil {
 		return err
 	}
@@ -466,10 +467,8 @@ func (r *resource) PinVersion(rcvID int) error {
 }
 
 func (r *resource) UnpinVersion() error {
-	results, err := psql.Update("resources").
-		Set("api_pinned_version", sq.Expr("NULL")).
-		Set("pin_comment", sq.Expr("NULL")).
-		Where(sq.Eq{"resources.id": r.id}).
+	results, err := psql.Delete("resource_pins").
+		Where(sq.Eq{"resource_pins.resource_id": r.id}).
 		RunWith(r.conn).
 		Exec()
 	if err != nil {
