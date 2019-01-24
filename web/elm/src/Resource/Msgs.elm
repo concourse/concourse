@@ -11,13 +11,13 @@ type Msg
     | AutoupdateTimerTicked Time
     | LoadPage Page
     | ClockTick Time.Time
-    | ExpandVersionedResource Int
+    | ExpandVersionedResource Models.VersionId
     | NavTo String
     | TogglePinBarTooltip
     | ToggleVersionTooltip
-    | PinVersion Int
+    | PinVersion Models.VersionId
     | UnpinVersion
-    | ToggleVersion Models.VersionToggleAction Int
+    | ToggleVersion Models.VersionToggleAction Models.VersionId
     | PinIconHover Bool
     | Hover Models.Hoverable
     | Check

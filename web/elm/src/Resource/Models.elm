@@ -3,8 +3,10 @@ module Resource.Models exposing
     , Hoverable(..)
     , Model
     , PageError(..)
+    , PinnedVersion
     , Version
     , VersionEnabledState(..)
+    , VersionId
     , VersionToggleAction(..)
     )
 
@@ -49,7 +51,7 @@ type alias Model =
     , checkError : String
     , checkSetupError : String
     , lastChecked : Maybe Date
-    , pinnedVersion : ResourcePinState Concourse.Version Int
+    , pinnedVersion : PinnedVersion
     , now : Maybe Time.Time
     , resourceIdentifier : Concourse.ResourceIdentifier
     , currentPage : Maybe Page
@@ -68,14 +70,22 @@ type alias Model =
     }
 
 
+type alias PinnedVersion =
+    ResourcePinState Concourse.Version VersionId
+
+
 type VersionEnabledState
     = Enabled
     | Changing
     | Disabled
 
 
+type alias VersionId =
+    Concourse.VersionedResourceIdentifier
+
+
 type alias Version =
-    { id : Int
+    { id : VersionId
     , version : Concourse.Version
     , metadata : Concourse.Metadata
     , enabled : VersionEnabledState

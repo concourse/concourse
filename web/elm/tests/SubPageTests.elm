@@ -1,7 +1,8 @@
 module SubPageTests exposing (all)
 
+import Callback exposing (Callback(..))
 import Dict exposing (Dict)
-import Effects exposing (Callback(..))
+import Effects
 import Expect
 import Http
 import Layout
@@ -52,7 +53,7 @@ all =
                 init "/teams/t/pipelines/p/jobs/j"
                     >> Layout.handleCallback
                         (Effects.SubPage 1)
-                        (Effects.JobFetched notFoundResult)
+                        (JobFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
@@ -61,7 +62,7 @@ all =
                 init "/teams/t/pipelines/p/resources/r"
                     >> Layout.handleCallback
                         (Effects.SubPage 1)
-                        (Effects.ResourceFetched notFoundResult)
+                        (ResourceFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
@@ -70,7 +71,7 @@ all =
                 init "/builds/1"
                     >> Layout.handleCallback
                         (Effects.SubPage 0)
-                        (Effects.BuildFetched notFoundResult)
+                        (BuildFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
@@ -79,7 +80,7 @@ all =
                 init "/teams/t/pipelines/p"
                     >> Layout.handleCallback
                         (Effects.SubPage 1)
-                        (Effects.PipelineFetched notFoundResult)
+                        (PipelineFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal

@@ -3,6 +3,7 @@ module BuildTests exposing (all)
 import Array
 import Build
 import Build.Msgs as Msgs
+import Callback
 import Concourse exposing (BuildPrepStatus(..))
 import Concourse.BuildEvents as BuildEvents
 import DashboardTests
@@ -84,18 +85,18 @@ all =
 
             fetchBuild : Build.Model -> ( Build.Model, List Effects.Effect )
             fetchBuild =
-                Build.handleCallback <| Effects.BuildFetched <| Ok ( 1, theBuild )
+                Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, theBuild )
 
             fetchStartedBuild :
                 Build.Model
                 -> ( Build.Model, List Effects.Effect )
             fetchStartedBuild =
-                Build.handleCallback <| Effects.BuildFetched <| Ok ( 1, startedBuild )
+                Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, startedBuild )
 
             fetchJobDetails : Build.Model -> ( Build.Model, List Effects.Effect )
             fetchJobDetails =
                 Build.handleCallback <|
-                    Effects.BuildJobDetailsFetched <|
+                    Callback.BuildJobDetailsFetched <|
                         Ok
                             { pipeline =
                                 { teamName = "team"
@@ -119,7 +120,7 @@ all =
                 -> ( Build.Model, List Effects.Effect )
             fetchJobDetailsNoTrigger =
                 Build.handleCallback <|
-                    Effects.BuildJobDetailsFetched <|
+                    Callback.BuildJobDetailsFetched <|
                         Ok
                             { pipeline =
                                 { teamName = "team"
@@ -141,7 +142,7 @@ all =
             fetchHistory : Build.Model -> ( Build.Model, List Effects.Effect )
             fetchHistory =
                 Build.handleCallback
-                    (Effects.BuildHistoryFetched
+                    (Callback.BuildHistoryFetched
                         (Ok
                             { pagination =
                                 { previousPage = Nothing
@@ -608,7 +609,7 @@ all =
                         |> Tuple.first
                         |> fetchJobDetails
                         |> Tuple.first
-                        |> Build.handleCallback (Effects.BuildPrepFetched <| Ok ( 1, prep ))
+                        |> Build.handleCallback (Callback.BuildPrepFetched <| Ok ( 1, prep ))
                         |> Tuple.first
                         |> Build.view
                         |> Query.fromHtml
@@ -656,7 +657,7 @@ all =
                         |> Tuple.first
                         |> fetchJobDetails
                         |> Tuple.first
-                        |> Build.handleCallback (Effects.BuildPrepFetched <| Ok ( 1, prep ))
+                        |> Build.handleCallback (Callback.BuildPrepFetched <| Ok ( 1, prep ))
                         |> Tuple.first
                         |> Build.view
                         |> Query.fromHtml
@@ -697,7 +698,7 @@ all =
                         |> fetchJobDetails
                         |> Tuple.first
                         |> Build.handleCallback
-                            (Effects.PlanAndResourcesFetched <|
+                            (Callback.PlanAndResourcesFetched <|
                                 Ok <|
                                     ( { id = "plan"
                                       , step =
@@ -758,7 +759,7 @@ all =
                         |> fetchJobDetails
                         |> Tuple.first
                         |> Build.handleCallback
-                            (Effects.PlanAndResourcesFetched <|
+                            (Callback.PlanAndResourcesFetched <|
                                 Ok <|
                                     ( { id = "plan"
                                       , step =
@@ -791,7 +792,7 @@ all =
                         |> fetchJobDetails
                         |> Tuple.first
                         |> Build.handleCallback
-                            (Effects.PlanAndResourcesFetched <|
+                            (Callback.PlanAndResourcesFetched <|
                                 Ok <|
                                     ( { id = "plan"
                                       , step = Concourse.BuildStepPut "step"
@@ -822,7 +823,7 @@ all =
                         |> fetchJobDetails
                         |> Tuple.first
                         |> Build.handleCallback
-                            (Effects.PlanAndResourcesFetched <|
+                            (Callback.PlanAndResourcesFetched <|
                                 let
                                     version =
                                         Dict.fromList
@@ -920,7 +921,7 @@ all =
                         |> fetchJobDetails
                         |> Tuple.first
                         |> Build.handleCallback
-                            (Effects.PlanAndResourcesFetched <|
+                            (Callback.PlanAndResourcesFetched <|
                                 Ok <|
                                     ( { id = "plan"
                                       , step =

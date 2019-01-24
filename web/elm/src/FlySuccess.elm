@@ -6,7 +6,8 @@ module FlySuccess exposing
     , view
     )
 
-import Effects exposing (Callback(..), Effect(..))
+import Callback exposing (Callback(..))
+import Effects exposing (Effect(..))
 import FlySuccess.Models
     exposing
         ( ButtonState(..)
