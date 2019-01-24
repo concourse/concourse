@@ -1,7 +1,8 @@
 module FlySuccessTests exposing (all)
 
+import Callback exposing (Callback(..))
 import DashboardTests exposing (defineHoverBehaviour, iconSelector)
-import Effects exposing (Callback(..))
+import Effects
 import Expect exposing (Expectation)
 import FlySuccess.Msgs as Msgs
 import Html.Attributes as Attr

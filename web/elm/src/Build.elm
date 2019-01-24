@@ -17,6 +17,7 @@ import Build.Output
 import Build.StepTree as StepTree
 import Build.Styles as Styles
 import BuildDuration
+import Callback exposing (Callback(..))
 import Char
 import Concourse
 import Concourse.BuildStatus
@@ -25,7 +26,7 @@ import Date exposing (Date)
 import Date.Format
 import Debug
 import Dict exposing (Dict)
-import Effects exposing (Callback(..), Effect(..), ScrollDirection(..), runEffect)
+import Effects exposing (Effect(..), ScrollDirection(..), runEffect)
 import Html exposing (Html)
 import Html.Attributes
     exposing

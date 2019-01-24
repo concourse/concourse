@@ -1,6 +1,5 @@
 port module Effects exposing
-    ( Callback(..)
-    , Effect(..)
+    ( Effect(..)
     , LayoutDispatch(..)
     , ScrollDirection(..)
     , renderPipeline
@@ -8,6 +7,7 @@ port module Effects exposing
     , setTitle
     )
 
+import Callback exposing (Callback(..))
 import Concourse
 import Concourse.Build
 import Concourse.BuildPlan
@@ -32,7 +32,7 @@ import Navigation
 import Process
 import QueryString
 import RemoteData
-import Resource.Models exposing (VersionToggleAction(..))
+import Resource.Models exposing (VersionId, VersionToggleAction(..))
 import Scroll
 import Task
 import Time exposing (Time)
@@ -107,7 +107,7 @@ type Effect
     | ModifyUrl String
     | DoPinVersion Concourse.VersionedResourceIdentifier Concourse.CSRFToken
     | DoUnpinVersion Concourse.ResourceIdentifier Concourse.CSRFToken
-    | DoToggleVersion VersionToggleAction Concourse.VersionedResourceIdentifier Concourse.CSRFToken
+    | DoToggleVersion VersionToggleAction VersionId Concourse.CSRFToken
     | DoCheck Concourse.ResourceIdentifier Concourse.CSRFToken
     | SendTokenToFly String Int
     | SendTogglePipelineRequest { pipeline : Dashboard.Models.Pipeline, csrfToken : Concourse.CSRFToken }
@@ -130,39 +130,6 @@ type ScrollDirection
     | ToWindowBottom
     | Builds Float
     | ToCurrentBuild
-
-
-type Callback
-    = EmptyCallback
-    | GotCurrentTime Time
-    | BuildTriggered (Result Http.Error Concourse.Build)
-    | JobBuildsFetched (Result Http.Error (Paginated Concourse.Build))
-    | JobFetched (Result Http.Error Concourse.Job)
-    | JobsFetched (Result Http.Error Json.Encode.Value)
-    | PipelineFetched (Result Http.Error Concourse.Pipeline)
-    | UserFetched (Result Http.Error Concourse.User)
-    | ResourcesFetched (Result Http.Error Json.Encode.Value)
-    | BuildResourcesFetched (Result Http.Error ( Int, Concourse.BuildResources ))
-    | ResourceFetched (Result Http.Error Concourse.Resource)
-    | VersionedResourcesFetched (Result Http.Error ( Maybe Page, Paginated Concourse.VersionedResource ))
-    | VersionFetched (Result Http.Error String)
-    | PausedToggled (Result Http.Error ())
-    | InputToFetched (Result Http.Error ( Int, List Concourse.Build ))
-    | OutputOfFetched (Result Http.Error ( Int, List Concourse.Build ))
-    | VersionPinned (Result Http.Error ())
-    | VersionUnpinned (Result Http.Error ())
-    | VersionToggled VersionToggleAction Int (Result Http.Error ())
-    | Checked (Result Http.Error ())
-    | TokenSentToFly Bool
-    | APIDataFetched (RemoteData.WebData ( Time.Time, Dashboard.APIData.APIData ))
-    | LoggedOut (Result Http.Error ())
-    | ScreenResized Window.Size
-    | BuildJobDetailsFetched (Result Http.Error Concourse.Job)
-    | BuildFetched (Result Http.Error ( Int, Concourse.Build ))
-    | BuildPrepFetched (Result Http.Error ( Int, Concourse.BuildPrep ))
-    | BuildHistoryFetched (Result Http.Error (Paginated Concourse.Build))
-    | PlanAndResourcesFetched Int (Result Http.Error ( Concourse.BuildPlan, Concourse.BuildResources ))
-    | BuildAborted (Result Http.Error ())
 
 
 runEffect : Effect -> Cmd Callback
@@ -244,7 +211,7 @@ runEffect effect =
                 (action == Enable)
                 id
                 csrfToken
-                |> Task.attempt (VersionToggled action id.versionID)
+                |> Task.attempt (VersionToggled action id)
 
         DoCheck rid csrfToken ->
             Task.attempt Checked <|
@@ -380,17 +347,17 @@ fetchPipeline pipelineIdentifier =
         Concourse.Pipeline.fetchPipeline pipelineIdentifier
 
 
-fetchInputTo : Concourse.VersionedResourceIdentifier -> Cmd Callback
-fetchInputTo versionedResourceIdentifier =
-    Concourse.Resource.fetchInputTo versionedResourceIdentifier
-        |> Task.map ((,) versionedResourceIdentifier.versionID)
+fetchInputTo : VersionId -> Cmd Callback
+fetchInputTo versionId =
+    Concourse.Resource.fetchInputTo versionId
+        |> Task.map ((,) versionId)
         |> Task.attempt InputToFetched
 
 
-fetchOutputOf : Concourse.VersionedResourceIdentifier -> Cmd Callback
-fetchOutputOf versionedResourceIdentifier =
-    Concourse.Resource.fetchOutputOf versionedResourceIdentifier
-        |> Task.map ((,) versionedResourceIdentifier.versionID)
+fetchOutputOf : VersionId -> Cmd Callback
+fetchOutputOf versionId =
+    Concourse.Resource.fetchOutputOf versionId
+        |> Task.map ((,) versionId)
         |> Task.attempt OutputOfFetched
 
 

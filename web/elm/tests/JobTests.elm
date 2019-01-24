@@ -1,5 +1,6 @@
 module JobTests exposing (all)
 
+import Callback exposing (Callback(..))
 import Concourse exposing (Build, BuildId, BuildStatus(..), Job)
 import Concourse.Pagination exposing (Direction(..))
 import DashboardTests
@@ -11,7 +12,7 @@ import DashboardTests
         )
 import Date
 import Dict
-import Effects exposing (Callback(..))
+import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Http

@@ -4,6 +4,7 @@ import Array
 import Build
 import Build.Models as Models
 import Build.Msgs as Msgs
+import Callback
 import Concourse exposing (BuildPrepStatus(..))
 import Concourse.BuildEvents as BuildEvents
 import DashboardTests
@@ -86,18 +87,18 @@ all =
 
             fetchBuild : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchBuild =
-                Build.handleCallback <| Effects.BuildFetched <| Ok ( 1, theBuild )
+                Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, theBuild )
 
             fetchStartedBuild :
                 Models.Model
                 -> ( Models.Model, List Effects.Effect )
             fetchStartedBuild =
-                Build.handleCallback <| Effects.BuildFetched <| Ok ( 1, startedBuild )
+                Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, startedBuild )
 
             fetchJobDetails : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchJobDetails =
                 Build.handleCallback <|
-                    Effects.BuildJobDetailsFetched <|
+                    Callback.BuildJobDetailsFetched <|
                         Ok
                             { pipeline =
                                 { teamName = "team"
@@ -121,7 +122,7 @@ all =
                 -> ( Models.Model, List Effects.Effect )
             fetchJobDetailsNoTrigger =
                 Build.handleCallback <|
-                    Effects.BuildJobDetailsFetched <|
+                    Callback.BuildJobDetailsFetched <|
                         Ok
                             { pipeline =
                                 { teamName = "team"
@@ -143,7 +144,7 @@ all =
             fetchHistory : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchHistory =
                 Build.handleCallback
-                    (Effects.BuildHistoryFetched
+                    (Callback.BuildHistoryFetched
                         (Ok
                             { pagination =
                                 { previousPage = Nothing
@@ -534,7 +535,7 @@ all =
                     in
                     givenBuildStarted
                         >> Tuple.first
-                        >> Build.handleCallback (Effects.BuildPrepFetched <| Ok ( 1, prep ))
+                        >> Build.handleCallback (Callback.BuildPrepFetched <| Ok ( 1, prep ))
                         >> Tuple.first
                         >> Build.view
                         >> Query.fromHtml
@@ -575,7 +576,7 @@ all =
                     in
                     givenBuildStarted
                         >> Tuple.first
-                        >> Build.handleCallback (Effects.BuildPrepFetched <| Ok ( 1, prep ))
+                        >> Build.handleCallback (Callback.BuildPrepFetched <| Ok ( 1, prep ))
                         >> Tuple.first
                         >> Build.view
                         >> Query.fromHtml
@@ -610,7 +611,7 @@ all =
                         givenBuildStarted
                             >> Tuple.first
                             >> Build.handleCallback
-                                (Effects.PlanAndResourcesFetched 307 <|
+                                (Callback.PlanAndResourcesFetched 307 <|
                                     Ok <|
                                         ( { id = "plan"
                                           , step =
@@ -628,7 +629,7 @@ all =
                         givenBuildStarted
                             >> Tuple.first
                             >> Build.handleCallback
-                                (Effects.PlanAndResourcesFetched 307 <|
+                                (Callback.PlanAndResourcesFetched 307 <|
                                     Ok <|
                                         ( { id = "plan"
                                           , step =
@@ -645,7 +646,7 @@ all =
                         givenBuildStarted
                             >> Tuple.first
                             >> Build.handleCallback
-                                (Effects.PlanAndResourcesFetched 307 <|
+                                (Callback.PlanAndResourcesFetched 307 <|
                                     Ok <|
                                         ( { id = "plan"
                                           , step =
@@ -662,7 +663,7 @@ all =
                         givenBuildStarted
                             >> Tuple.first
                             >> Build.handleCallback
-                                (Effects.PlanAndResourcesFetched 307 <|
+                                (Callback.PlanAndResourcesFetched 307 <|
                                     let
                                         version =
                                             Dict.fromList

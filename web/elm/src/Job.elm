@@ -12,6 +12,7 @@ module Job exposing
 
 import Build.Styles as Styles
 import BuildDuration
+import Callback exposing (Callback(..))
 import Colors
 import Concourse
 import Concourse.BuildStatus
@@ -25,7 +26,7 @@ import Concourse.Pagination
         )
 import Dict exposing (Dict)
 import DictView
-import Effects exposing (Callback(..), Effect(..))
+import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -144,7 +145,7 @@ getUpdateMessage model =
             UpdateMsg.AOK
 
 
-handleCallback : Effects.Callback -> Model -> ( Model, List Effect )
+handleCallback : Callback -> Model -> ( Model, List Effect )
 handleCallback callback model =
     case callback of
         BuildTriggered (Ok build) ->
