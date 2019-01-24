@@ -209,6 +209,11 @@ local publish_job(bump) = {
       name: "github-release",
       type: "registry-image",
       source: {repository: "concourse/github-release-resource"}
+    },
+    {
+      name: "s3",
+      type: "registry-image",
+      source: {repository: "concourse/s3-resource"}
     }
   ],
   resources: [
