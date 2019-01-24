@@ -223,6 +223,17 @@ type FakeResource struct {
 	setCheckErrorReturnsOnCall map[int]struct {
 		result1 error
 	}
+	SetPinCommentStub        func(string) error
+	setPinCommentMutex       sync.RWMutex
+	setPinCommentArgsForCall []struct {
+		arg1 string
+	}
+	setPinCommentReturns struct {
+		result1 error
+	}
+	setPinCommentReturnsOnCall map[int]struct {
+		result1 error
+	}
 	SetResourceConfigStub        func(lager.Logger, atc.Source, creds.VersionedResourceTypes) (db.ResourceConfig, error)
 	setResourceConfigMutex       sync.RWMutex
 	setResourceConfigArgsForCall []struct {
@@ -1408,6 +1419,66 @@ func (fake *FakeResource) SetCheckErrorReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeResource) SetPinComment(arg1 string) error {
+	fake.setPinCommentMutex.Lock()
+	ret, specificReturn := fake.setPinCommentReturnsOnCall[len(fake.setPinCommentArgsForCall)]
+	fake.setPinCommentArgsForCall = append(fake.setPinCommentArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("SetPinComment", []interface{}{arg1})
+	fake.setPinCommentMutex.Unlock()
+	if fake.SetPinCommentStub != nil {
+		return fake.SetPinCommentStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.setPinCommentReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) SetPinCommentCallCount() int {
+	fake.setPinCommentMutex.RLock()
+	defer fake.setPinCommentMutex.RUnlock()
+	return len(fake.setPinCommentArgsForCall)
+}
+
+func (fake *FakeResource) SetPinCommentCalls(stub func(string) error) {
+	fake.setPinCommentMutex.Lock()
+	defer fake.setPinCommentMutex.Unlock()
+	fake.SetPinCommentStub = stub
+}
+
+func (fake *FakeResource) SetPinCommentArgsForCall(i int) string {
+	fake.setPinCommentMutex.RLock()
+	defer fake.setPinCommentMutex.RUnlock()
+	argsForCall := fake.setPinCommentArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeResource) SetPinCommentReturns(result1 error) {
+	fake.setPinCommentMutex.Lock()
+	defer fake.setPinCommentMutex.Unlock()
+	fake.SetPinCommentStub = nil
+	fake.setPinCommentReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResource) SetPinCommentReturnsOnCall(i int, result1 error) {
+	fake.setPinCommentMutex.Lock()
+	defer fake.setPinCommentMutex.Unlock()
+	fake.SetPinCommentStub = nil
+	if fake.setPinCommentReturnsOnCall == nil {
+		fake.setPinCommentReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setPinCommentReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResource) SetResourceConfig(arg1 lager.Logger, arg2 atc.Source, arg3 creds.VersionedResourceTypes) (db.ResourceConfig, error) {
 	fake.setResourceConfigMutex.Lock()
 	ret, specificReturn := fake.setResourceConfigReturnsOnCall[len(fake.setResourceConfigArgsForCall)]
@@ -1897,6 +1968,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.resourceConfigVersionIDMutex.RUnlock()
 	fake.setCheckErrorMutex.RLock()
 	defer fake.setCheckErrorMutex.RUnlock()
+	fake.setPinCommentMutex.RLock()
+	defer fake.setPinCommentMutex.RUnlock()
 	fake.setResourceConfigMutex.RLock()
 	defer fake.setResourceConfigMutex.RUnlock()
 	fake.sourceMutex.RLock()

@@ -35,6 +35,7 @@ type Resource interface {
 	ConfigPinnedVersion() atc.Version
 	APIPinnedVersion() atc.Version
 	PinComment() string
+	SetPinComment(string) error
 	ResourceConfigCheckError() error
 	ResourceConfigID() int
 
@@ -254,6 +255,16 @@ func (r *resource) ResourceConfigVersionID(version atc.Version) (int, bool, erro
 	}
 
 	return id, true, nil
+}
+
+func (r *resource) SetPinComment(comment string) error {
+	_, err := psql.Update("resources").
+		Set("pin_comment", comment).
+		Where(sq.Eq{"id": r.ID()}).
+		RunWith(r.conn).
+		Exec()
+
+	return err
 }
 
 func (r *resource) CurrentPinnedVersion() atc.Version {

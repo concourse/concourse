@@ -708,13 +708,6 @@ var _ = Describe("Resource", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 			resID = resConf.ID()
-
-			//TODO: when a method is added to the Resource interface
-			//for setting the pin comment, use it here. this is a stopgap
-			_, err = dbConn.Exec(`
-			UPDATE resources SET pin_comment = 'foo' WHERE id = $1
-			`, resource.ID())
-			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("when we pin a resource to a version", func() {
@@ -732,23 +725,36 @@ var _ = Describe("Resource", func() {
 				Expect(resource.CurrentPinnedVersion()).To(Equal(resource.APIPinnedVersion()))
 			})
 
-			Context("when we unpin a resource to a version", func() {
+			Context("when we set the pin comment on a resource", func() {
 				BeforeEach(func() {
-					err := resource.UnpinVersion()
+					err := resource.SetPinComment("foo")
 					Expect(err).ToNot(HaveOccurred())
-
-					found, err := resource.Reload()
-					Expect(found).To(BeTrue())
+					resource, _, err = pipeline.Resource("some-other-resource")
 					Expect(err).ToNot(HaveOccurred())
 				})
 
-				It("sets the api pinned version to nil", func() {
-					Expect(resource.APIPinnedVersion()).To(BeNil())
-					Expect(resource.CurrentPinnedVersion()).To(BeNil())
+				It("should set the pin comment", func() {
+					Expect(resource.PinComment()).To(Equal("foo"))
 				})
 
-				It("unsets the pin comment", func() {
-					Expect(resource.PinComment()).To(BeEmpty())
+				Context("when we unpin a resource to a version", func() {
+					BeforeEach(func() {
+						err := resource.UnpinVersion()
+						Expect(err).ToNot(HaveOccurred())
+
+						found, err := resource.Reload()
+						Expect(found).To(BeTrue())
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("sets the api pinned version to nil", func() {
+						Expect(resource.APIPinnedVersion()).To(BeNil())
+						Expect(resource.CurrentPinnedVersion()).To(BeNil())
+					})
+
+					It("unsets the pin comment", func() {
+						Expect(resource.PinComment()).To(BeEmpty())
+					})
 				})
 			})
 		})

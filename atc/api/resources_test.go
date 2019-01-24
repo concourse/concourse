@@ -438,6 +438,118 @@ var _ = Describe("Resources API", func() {
 		})
 	})
 
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/pin_comment", func() {
+		var response *http.Response
+		var pinCommentRequestBody atc.SetPinCommentRequestBody
+		var fakeResource *dbfakes.FakeResource
+
+		BeforeEach(func() {
+			pinCommentRequestBody = atc.SetPinCommentRequestBody{}
+		})
+
+		JustBeforeEach(func() {
+			reqPayload, err := json.Marshal(pinCommentRequestBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/pin_comment", bytes.NewBuffer(reqPayload))
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		Context("when authenticated ", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(true)
+			})
+
+			Context("when authorized", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAuthorizedReturns(true)
+				})
+
+				It("tries to find the resource", func() {
+					resourceName := fakePipeline.ResourceArgsForCall(0)
+					Expect(resourceName).To(Equal("resource-name"))
+				})
+
+				Context("when finding the resource succeeds", func() {
+					BeforeEach(func() {
+						fakeResource = new(dbfakes.FakeResource)
+						fakeResource.IDReturns(1)
+						fakePipeline.ResourceReturns(fakeResource, true, nil)
+						pinCommentRequestBody.PinComment = "I am a pin comment"
+					})
+
+					It("Tries to set the pin comment", func() {
+						Expect(fakeResource.SetPinCommentCallCount()).To(Equal(1))
+						comment := fakeResource.SetPinCommentArgsForCall(0)
+						Expect(comment).To(Equal("I am a pin comment"))
+					})
+
+					Context("when setting the pin comment succeeds", func() {
+						BeforeEach(func() {
+							fakeResource.SetPinCommentReturns(nil)
+						})
+
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+					})
+
+					Context("when setting the pin comment fails", func() {
+						BeforeEach(func() {
+							fakeResource.SetPinCommentReturns(errors.New("welp"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+				})
+
+				Context("when it fails to find the resource", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceReturns(nil, false, errors.New("welp"))
+					})
+
+					It("returns Internal Server Error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when the resource is not found", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceReturns(nil, false, nil)
+					})
+
+					It("returns not found", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+			})
+			Context("when not authorized", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAuthorizedReturns(false)
+				})
+
+				It("returns Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+			})
+		})
+	})
+
 	Describe("POST /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/check", func() {
 		var fakeScanner *radarfakes.FakeScanner
 		var checkRequestBody atc.CheckRequestBody
