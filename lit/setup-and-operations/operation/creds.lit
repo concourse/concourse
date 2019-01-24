@@ -26,20 +26,12 @@ values are not present, the action will error.
   The following configurations can be parameterized with a credential manager:
 
   \list{
-    \reference{resource-source} under \reference{resources} in a pipeline
+    \reference{resources} - \reference{resource-source} and \reference{resource-webhook-token} in a pipeline
   }{
-    \reference{resource-type-source} under \reference{resource-types} in a
-    pipeline
+    \reference{resource-types} - \reference{resource-type-source} in a pipeline
   }{
-    \reference{resource-webhook-token} under \reference{resources} in a
-    pipeline
-  }{
-    \reference{image-resource-source} under \reference{image_resource} in a
-    task config
-  }{
-    \reference{task-step-params} in a pipeline
-  }{
-    \reference{task-params} in a task config
+    \reference{tasks} - whether they are declared via \reference{file}{\code{file}} or
+    \reference{config}{\code{config}}
   }
 
   Where these values are looked up and how the credential manager is configured
