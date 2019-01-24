@@ -103,6 +103,11 @@ fadedBlackHex =
     "#1e1d1d80"
 
 
+almostWhiteHex : String
+almostWhiteHex =
+    "#e6e7e8"
+
+
 lightGreyHex : String
 lightGreyHex =
     "#3d3c3c"
@@ -934,113 +939,291 @@ all =
                             [ style [ ( "padding-bottom", "300px" ) ] ]
             , describe "pin comment bar" <|
                 let
-                    commentBar : () -> Query.Single Msgs.Msg
-                    commentBar _ =
-                        init
-                            |> givenResourcePinnedWithComment
-                            |> queryView
-                            |> Query.find [ id "comment-bar" ]
+                    commentBar : Models.Model -> Query.Single Msgs.Msg
+                    commentBar =
+                        queryView
+                            >> Query.find [ id "comment-bar" ]
                 in
                 [ test "pin comment bar has dark background" <|
-                    commentBar
-                        >> Query.has
-                            [ style
-                                [ ( "background-color", almostBlack ) ]
-                            ]
-                , test "pin comment bar is fixed to viewport bottom" <|
-                    commentBar
-                        >> Query.has
-                            [ style
-                                [ ( "position", "fixed" )
-                                , ( "bottom", "0" )
+                    \_ ->
+                        init
+                            |> givenResourcePinnedWithComment
+                            |> commentBar
+                            |> Query.has
+                                [ style
+                                    [ ( "background-color", almostBlack ) ]
                                 ]
-                            ]
+                , test "pin comment bar is fixed to viewport bottom" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedWithComment
+                            |> commentBar
+                            |> Query.has
+                                [ style
+                                    [ ( "position", "fixed" )
+                                    , ( "bottom", "0" )
+                                    ]
+                                ]
                 , test "pin comment bar is as wide as the viewport" <|
-                    commentBar
-                        >> Query.has [ style [ ( "width", "100%" ) ] ]
+                    \_ ->
+                        init
+                            |> givenResourcePinnedWithComment
+                            |> commentBar
+                            |> Query.has [ style [ ( "width", "100%" ) ] ]
                 , test "pin comment bar is 300px tall" <|
-                    commentBar
-                        >> Query.has [ style [ ( "height", "300px" ) ] ]
+                    \_ ->
+                        init
+                            |> givenResourcePinnedWithComment
+                            |> commentBar
+                            |> Query.has [ style [ ( "height", "300px" ) ] ]
+                , test "pin comment bar centers contents horizontally" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedWithComment
+                            |> commentBar
+                            |> Query.has
+                                [ style
+                                    [ ( "display", "flex" )
+                                    , ( "justify-content", "center" )
+                                    ]
+                                ]
                 , describe "contents" <|
                     let
-                        contents : () -> Query.Single Msgs.Msg
+                        contents : Models.Model -> Query.Single Msgs.Msg
                         contents =
                             commentBar >> Query.children [] >> Query.first
                     in
                     [ test "is 700px wide" <|
-                        contents
-                            >> Query.has [ style [ ( "width", "700px" ) ] ]
-                    , test "is horizontally centered" <|
-                        contents
-                            >> Query.has [ style [ ( "margin", "auto" ) ] ]
-                    , test "has padding" <|
-                        contents
-                            >> Query.has [ style [ ( "padding", "20px" ) ] ]
+                        \_ ->
+                            init
+                                |> givenResourcePinnedWithComment
+                                |> contents
+                                |> Query.has [ style [ ( "width", "700px" ) ] ]
+                    , test "has vertical padding" <|
+                        \_ ->
+                            init
+                                |> givenResourcePinnedWithComment
+                                |> contents
+                                |> Query.has
+                                    [ style [ ( "padding", "20px 0" ) ] ]
+                    , test "lays out vertically and left-aligned" <|
+                        \_ ->
+                            init
+                                |> givenResourcePinnedWithComment
+                                |> contents
+                                |> Query.has
+                                    [ style
+                                        [ ( "display", "flex" )
+                                        , ( "flex-direction", "column" )
+                                        ]
+                                    ]
                     , describe "header" <|
                         let
-                            header : () -> Query.Single Msgs.Msg
+                            header : Models.Model -> Query.Single Msgs.Msg
                             header =
                                 contents >> Query.children [] >> Query.first
                         in
                         [ test "lays out horizontally" <|
-                            header
-                                >> Query.has
-                                    [ style [ ( "display", "flex" ) ] ]
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> header
+                                    |> Query.has
+                                        [ style [ ( "display", "flex" ) ] ]
                         , test "centers contents vertically" <|
-                            header
-                                >> Query.has
-                                    [ style [ ( "align-items", "center" ) ] ]
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> header
+                                    |> Query.has
+                                        [ style
+                                            [ ( "align-items", "center" ) ]
+                                        ]
                         , test "has message icon at the left" <|
                             let
                                 messageIcon =
                                     "baseline-message.svg"
                             in
-                            header
-                                >> Query.children []
-                                >> Query.first
-                                >> Query.has
-                                    [ style
-                                        [ ( "background-image"
-                                          , "url(/public/images/"
-                                                ++ messageIcon
-                                                ++ ")"
-                                          )
-                                        , ( "background-size", "contain" )
-                                        , ( "width", "24px" )
-                                        , ( "height", "24px" )
-                                        , ( "margin-right", "10px" )
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> header
+                                    |> Query.children []
+                                    |> Query.first
+                                    |> Query.has
+                                        [ style
+                                            [ ( "background-image"
+                                              , "url(/public/images/"
+                                                    ++ messageIcon
+                                                    ++ ")"
+                                              )
+                                            , ( "background-size", "contain" )
+                                            , ( "width", "24px" )
+                                            , ( "height", "24px" )
+                                            , ( "margin-right", "10px" )
+                                            ]
                                         ]
-                                    ]
                         , test "second item is pin icon" <|
                             let
                                 pinIcon =
                                     "pin-ic-white.svg"
                             in
-                            header
-                                >> Query.children []
-                                >> Query.index 1
-                                >> Query.has
-                                    (iconSelector
-                                        { image = pinIcon
-                                        , size = "20px"
-                                        }
-                                        ++ [ style
-                                                [ ( "margin-right", "10px" ) ]
-                                           ]
-                                    )
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> header
+                                    |> Query.children []
+                                    |> Query.index 1
+                                    |> Query.has
+                                        (iconSelector
+                                            { image = pinIcon
+                                            , size = "20px"
+                                            }
+                                            ++ [ style
+                                                    [ ( "margin-right"
+                                                      , "10px"
+                                                      )
+                                                    ]
+                                               ]
+                                        )
                         , test "third item is the pinned version" <|
-                            header
-                                >> Query.children []
-                                >> Query.index 2
-                                >> Query.has [ text version ]
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> header
+                                    |> Query.children []
+                                    |> Query.index 2
+                                    |> Query.has [ text version ]
                         ]
-                    , test "contains a pre" <|
-                        commentBar
-                            >> Query.has [ tag "pre" ]
-                    , test "pre contains the comment" <|
-                        commentBar
-                            >> Query.find [ tag "pre" ]
-                            >> Query.has [ text "some pin comment" ]
+                    , describe "when unauthenticated"
+                        [ test "contains a pre" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.has [ tag "pre" ]
+                        , test "pre contains the comment" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "pre" ]
+                                    |> Query.has [ text "some pin comment" ]
+                        ]
+                    , describe "when authorized"
+                        [ test "contains a textarea" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.has [ tag "textarea" ]
+                        , test "textarea has 10px vertical margin, stretches vertically" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "textarea" ]
+                                    |> Query.has
+                                        [ style
+                                            [ ( "margin", "10px 0" )
+                                            , ( "flex-grow", "1" )
+                                            ]
+                                        ]
+                        , test "textarea has no resize handle" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "textarea" ]
+                                    |> Query.has
+                                        [ style [ ( "resize", "none" ) ] ]
+                        , test "textarea matches app font" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "textarea" ]
+                                    |> Query.has
+                                        [ style
+                                            [ ( "font-size", "12px" )
+                                            , ( "font-family", "Inconsolata, monospace" )
+                                            , ( "font-weight", "700" )
+                                            ]
+                                        ]
+                        , test "textarea has same color scheme as comment bar" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "textarea" ]
+                                    |> Query.has
+                                        [ style
+                                            [ ( "background-color", "transparent" )
+                                            , ( "color", almostWhiteHex )
+                                            , ( "outline", "none" )
+                                            , ( "border", "1px solid " ++ lightGreyHex )
+                                            ]
+                                        ]
+                        , test "contains a button" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.has [ tag "button" ]
+                        , test "button has text 'save'" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "button" ]
+                                    |> Query.has [ text "save" ]
+                        , test "button is flat and black" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "button" ]
+                                    |> Query.has
+                                        [ style
+                                            [ ( "border", "1px solid " ++ lightGreyHex )
+                                            , ( "background-color", "transparent" )
+                                            , ( "color", almostWhiteHex )
+                                            , ( "padding", "5px 10px" )
+                                            , ( "outline", "none" )
+                                            ]
+                                        ]
+                        , test "button matches app font" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "button" ]
+                                    |> Query.has
+                                        [ style
+                                            [ ( "font-size", "12px" )
+                                            , ( "font-family", "Inconsolata, monospace" )
+                                            , ( "font-weight", "700" )
+                                            ]
+                                        ]
+                        , test "button aligns to the right" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "button" ]
+                                    |> Query.has
+                                        [ style [ ( "align-self", "flex-end" ) ] ]
+                        ]
                     ]
                 ]
             ]
@@ -1627,25 +1810,7 @@ all =
                             |> Query.find [ tag "h3" ]
                             |> Query.has [ text "checking successfully" ]
                 ]
-            , describe "when authorized" <|
-                let
-                    givenUserIsAuthorized : Models.Model -> Models.Model
-                    givenUserIsAuthorized =
-                        Resource.handleCallback
-                            (Callback.UserFetched <|
-                                Ok
-                                    { id = "test"
-                                    , userName = "test"
-                                    , name = "test"
-                                    , email = "test"
-                                    , teams =
-                                        Dict.fromList
-                                            [ ( teamName, [ "member" ] )
-                                            ]
-                                    }
-                            )
-                            >> Tuple.first
-                in
+            , describe "when authorized"
                 [ defineHoverBehaviour
                     { name = "check button when authorized"
                     , setup =
@@ -2091,6 +2256,24 @@ init =
         , csrfToken = "csrf_token"
         }
         |> Tuple.first
+
+
+givenUserIsAuthorized : Models.Model -> Models.Model
+givenUserIsAuthorized =
+    Resource.handleCallback
+        (Callback.UserFetched <|
+            Ok
+                { id = "test"
+                , userName = "test"
+                , name = "test"
+                , email = "test"
+                , teams =
+                    Dict.fromList
+                        [ ( teamName, [ "member" ] )
+                        ]
+                }
+        )
+        >> Tuple.first
 
 
 givenResourcePinnedStatically : Models.Model -> Models.Model

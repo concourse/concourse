@@ -990,7 +990,7 @@ checkButton :
         , checkStatus : Models.CheckStatus
     }
     -> Html Msg
-checkButton { hovered, userState, teamName, checkStatus } =
+checkButton ({ hovered, userState, teamName, checkStatus } as params) =
     let
         isHovered =
             hovered == Models.CheckButton
@@ -1006,11 +1006,9 @@ checkButton { hovered, userState, teamName, checkStatus } =
                 _ ->
                     True
 
-        isAuthorized =
-            isAuthorizedToTriggerResourceChecks teamName userState
-
         isClickable =
-            (isUnauthenticated || isAuthorized) && not isCurrentlyChecking
+            (isUnauthenticated || isAuthorized params)
+                && not isCurrentlyChecking
 
         isHighlighted =
             (isClickable && isHovered) || isCurrentlyChecking
@@ -1063,8 +1061,8 @@ checkButton { hovered, userState, teamName, checkStatus } =
         ]
 
 
-isAuthorizedToTriggerResourceChecks : String -> UserState -> Bool
-isAuthorizedToTriggerResourceChecks teamName userState =
+isAuthorized : { a | teamName : String, userState : UserState } -> Bool
+isAuthorized { teamName, userState } =
     case userState of
         UserStateLoggedIn user ->
             case Dict.get teamName user.teams of
@@ -1083,9 +1081,11 @@ commentBar :
     { a
         | pinComment : Maybe String
         , pinnedVersion : Models.PinnedVersion
+        , teamName : String
+        , userState : UserState
     }
     -> Html Msg
-commentBar { pinComment, pinnedVersion } =
+commentBar ({ pinComment, pinnedVersion } as params) =
     let
         version =
             case Pinned.stable pinnedVersion of
@@ -1104,18 +1104,36 @@ commentBar { pinComment, pinnedVersion } =
                 [ id "comment-bar", style Resource.Styles.commentBar ]
                 [ Html.div
                     [ style Resource.Styles.commentBarContent ]
-                    [ Html.div
-                        [ style Resource.Styles.commentBarHeader ]
-                        [ Html.div
-                            [ style Resource.Styles.commentBarMessageIcon ]
-                            []
-                        , Html.div
-                            [ style Resource.Styles.commentBarPinIcon ]
-                            []
-                        , version
+                  <|
+                    let
+                        header =
+                            Html.div
+                                [ style Resource.Styles.commentBarHeader ]
+                                [ Html.div
+                                    [ style Resource.Styles.commentBarMessageIcon ]
+                                    []
+                                , Html.div
+                                    [ style Resource.Styles.commentBarPinIcon ]
+                                    []
+                                , version
+                                ]
+                    in
+                    if isAuthorized params then
+                        [ header
+                        , Html.textarea
+                            [ style Resource.Styles.commentTextArea ]
+                            [ Html.text text ]
+                        , Html.button
+                            [ style Resource.Styles.commentSaveButton ]
+                            [ Html.text "save" ]
                         ]
-                    , Html.pre [] [ Html.text text ]
-                    ]
+
+                    else
+                        [ header
+                        , Html.pre
+                            [ style Resource.Styles.commentText ]
+                            [ Html.text text ]
+                        ]
                 ]
 
 

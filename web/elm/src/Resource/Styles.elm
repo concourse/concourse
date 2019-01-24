@@ -5,6 +5,9 @@ module Resource.Styles exposing
     , commentBarHeader
     , commentBarMessageIcon
     , commentBarPinIcon
+    , commentSaveButton
+    , commentText
+    , commentTextArea
     , enabledCheckbox
     , pinBar
     , pinBarTooltip
@@ -207,14 +210,17 @@ commentBar =
     , ( "bottom", "0" )
     , ( "width", "100%" )
     , ( "height", "300px" )
+    , ( "display", "flex" )
+    , ( "justify-content", "center" )
     ]
 
 
 commentBarContent : List ( String, String )
 commentBarContent =
     [ ( "width", "700px" )
-    , ( "margin", "auto" )
-    , ( "padding", "20px" )
+    , ( "padding", "20px 0" )
+    , ( "display", "flex" )
+    , ( "flex-direction", "column" )
     ]
 
 
@@ -251,4 +257,38 @@ commentBarPinIcon =
     , ( "width", "20px" )
     , ( "height", "20px" )
     , ( "margin-right", "10px" )
+    ]
+
+
+commentTextArea : List ( String, String )
+commentTextArea =
+    [ ( "background-color", "transparent" )
+    , ( "color", Colors.text )
+    , ( "outline", "none" )
+    , ( "border", "1px solid " ++ Colors.background )
+    , ( "font-size", "12px" )
+    , ( "font-family", "Inconsolata, monospace" )
+    , ( "font-weight", "700" )
+    , ( "resize", "none" )
+    , ( "margin", "10px 0" )
+    , ( "flex-grow", "1" )
+    ]
+
+
+commentText : List ( String, String )
+commentText =
+    []
+
+
+commentSaveButton : List ( String, String )
+commentSaveButton =
+    [ ( "font-size", "12px" )
+    , ( "font-family", "Inconsolata, monospace" )
+    , ( "font-weight", "700" )
+    , ( "border", "1px solid " ++ Colors.background )
+    , ( "background-color", "transparent" )
+    , ( "color", Colors.text )
+    , ( "padding", "5px 10px" )
+    , ( "align-self", "flex-end" )
+    , ( "outline", "none" )
     ]

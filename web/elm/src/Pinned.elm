@@ -1,4 +1,13 @@
-module Pinned exposing (ResourcePinState(..), VersionPinState(..), finishPinning, pinState, quitUnpinning, stable, startPinningTo, startUnpinning)
+module Pinned exposing
+    ( ResourcePinState(..)
+    , VersionPinState(..)
+    , finishPinning
+    , pinState
+    , quitUnpinning
+    , stable
+    , startPinningTo
+    , startUnpinning
+    )
 
 
 type ResourcePinState version id
