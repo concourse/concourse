@@ -219,8 +219,7 @@ A task's configuration specifies the following:
   \italic{Optional.} A key-value mapping of values that are exposed to the
   task via environment variables.
 
-  Use this to provide things like credentials, not to set up the task's
-  Bash environment (they do not support interpolation).
+  Use this to provide things like credentials to a task.
 }{task-params}
 
 \split-sections
@@ -250,6 +249,13 @@ A task's configuration specifies the following:
     working directory name will be used as the input name. If they do not match,
     you must specify \code{-i name=.} instead, where \code{name} is the input
     name from the task configuration.
+
+    You can also specify task template parameter values with \code{-v}, \code{-y}
+    and \code{-l}, like you would do in \reference{fly-set-pipeline}:
+
+    \codeblock{bash}{{
+    $ fly -t example execute --config tests.yml -l vars.yml -v text="Hello World!"
+    }}
 
     Fly will automatically capture \code{SIGINT} and \code{SIGTERM} and abort the
     build when received. This allows it to be transparently composed with other
@@ -610,14 +616,11 @@ A task's configuration specifies the following:
   }
 
   \example{Private Docker Registry}{
-    The following task uses an image from a private registry. Assuming the CA
+    The following external task uses an image from a private registry. Assuming the CA
     is configured properly on the workers, SSL should Just Work™.
 
-    Note that, at present, credentials must be inlined when using
-    \reference{image_resource}. We recognize that this kind of sucks, since
-    tasks are often checked in. Until we fix this, you can use
-    \reference{task-step-image} in your pipeline instead. (However this will
-    prevent \reference{fly-execute} from having an image available. Bummer.)
+    External tasks are now fully interpolated using \reference{creds}{credential manager variables} and
+    \reference{task-step-vars}, so you can use template variables in an external task:
 
     \codeblock{yaml}{{{
       ---
@@ -627,15 +630,15 @@ A task's configuration specifies the following:
         type: docker-image
         source:
           repository: my.local.registry:8080/my/image
-          username: myuser
-          password: mypass
-          email: x@x.com
+          username: ((myuser))
+          password: ((mypass))
 
       inputs:
       - name: my-app
 
       run:
         path: my-app/scripts/test
+        args: ["Hello, world!", "((myparam))"]
     }}}
   }
 }
