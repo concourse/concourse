@@ -334,9 +334,11 @@ func (m *migrator) runMigration(migration migration) error {
 		}
 		err = tx.Commit()
 	case SQLNoTransaction:
-		_, err = m.db.Exec(migration.Statements[0])
-		if err != nil {
-			return m.recordMigrationFailure(migration, err, true)
+		for _, statement := range migration.Statements {
+			_, err = m.db.Exec(statement)
+			if err != nil {
+				return m.recordMigrationFailure(migration, err, true)
+			}
 		}
 	}
 

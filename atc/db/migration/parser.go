@@ -62,7 +62,11 @@ func (p *Parser) ParseFileToMigration(migrationName string) (migration, error) {
 	case GoMigration:
 		migration.Name = goMigrationFuncName.FindString(migrationContents)
 	case SQLNoTransaction:
-		migration.Statements = []string{migrationContents}
+		// this used to be []string{migrationContents}, as though we explicitly
+		// wanted there to be only one statement but we can't remember why.
+		// Making it one statement breaks things if your migration has more than
+		// one statement so we're changing it for now.
+		migration.Statements = splitStatements(migrationContents)
 		migration.Name = migrationName
 	case SQLTransaction:
 		migration.Statements = splitStatements(migrationContents)
