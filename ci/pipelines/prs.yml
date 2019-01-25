@@ -36,10 +36,12 @@ jobs:
   max_in_flight: 3
   on_failure:
     put: concourse-pr
+    inputs: [concourse-pr]
     params: {path: concourse-pr, status: failure, context: unit}
     tags: [pr]
   on_success:
     put: concourse-pr
+    inputs: [concourse-pr]
     params: {path: concourse-pr, status: success, context: unit}
     tags: [pr]
   plan:
@@ -48,6 +50,7 @@ jobs:
     version: every
     tags: [pr]
   - put: concourse-pr
+    inputs: [concourse-pr]
     params: {path: concourse-pr, status: pending, context: unit}
     tags: [pr]
   - task: yarn-test
@@ -65,10 +68,12 @@ jobs:
   max_in_flight: 3
   on_failure:
     put: concourse-pr
+    inputs: [concourse-pr]
     params: {path: concourse-pr, status: failure, context: testflight}
     tags: [pr]
   on_success:
     put: concourse-pr
+    inputs: [concourse-pr]
     params: {path: concourse-pr, status: success, context: testflight}
     tags: [pr]
   plan:
@@ -84,6 +89,7 @@ jobs:
       params: {format: oci}
       tags: [pr]
   - put: concourse-pr
+    inputs: [concourse-pr]
     params: {path: concourse-pr, status: pending, context: testflight}
   - task: yarn-build
     file: concourse-pr/ci/tasks/yarn-build.yml
@@ -101,10 +107,12 @@ jobs:
   max_in_flight: 3
   on_failure:
     put: concourse-pr
+    inputs: [concourse-pr]
     params: {path: concourse-pr, status: failure, context: watsjs}
     tags: [pr]
   on_success:
     put: concourse-pr
+    inputs: [concourse-pr]
     params: {path: concourse-pr, status: success, context: watsjs}
     tags: [pr]
   plan:
@@ -120,6 +128,7 @@ jobs:
       params: {format: oci}
       tags: [pr]
   - put: concourse-pr
+    inputs: [concourse-pr]
     params: {path: concourse-pr, status: pending, context: watsjs}
     tags: [pr]
   - task: yarn-build
@@ -137,10 +146,12 @@ jobs:
   public: true
   on_failure:
     put: baggageclaim-pr
+    inputs: [concourse-pr]
     params: {path: baggageclaim-pr, status: failure, context: baggageclaim}
     tags: [pr]
   on_success:
     put: baggageclaim-pr
+    inputs: [concourse-pr]
     params: {path: baggageclaim-pr, status: success, context: baggageclaim}
     tags: [pr]
   plan:
@@ -149,6 +160,7 @@ jobs:
     version: every
     tags: [pr]
   - put: baggageclaim-pr
+    inputs: [concourse-pr]
     params: {path: baggageclaim-pr, status: pending, context: baggageclaim}
     tags: [pr]
   - task: unit-linux
