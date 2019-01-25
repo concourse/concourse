@@ -196,14 +196,8 @@ handleCallback callback model =
                 anyList ->
                     let
                         transformer bwr =
-                            let
-                                bwrb =
-                                    bwr.build
-                            in
                             if bwr.build.id == id then
-                                { bwr
-                                    | resources = Just buildResources
-                                }
+                                { bwr | resources = Just buildResources }
 
                             else
                                 bwr

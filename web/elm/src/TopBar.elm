@@ -458,7 +458,12 @@ viewBreadcrumbsComponent componentType name =
 
 cssBreadcrumbContainer : List ( String, String )
 cssBreadcrumbContainer =
-    [ ( "display", "inline-block" ), ( "vertical-align", "middle" ), ( "font-size", "18px" ), ( "padding", "0 10px" ), ( "line-height", "54px" ) ]
+    [ ( "display", "inline-block" )
+    , ( "vertical-align", "middle" )
+    , ( "font-size", "18px" )
+    , ( "padding", "0 10px" )
+    , ( "line-height", "54px" )
+    ]
 
 
 viewBreadcrumbPipeline : String -> Routes.Route -> Html Msg
