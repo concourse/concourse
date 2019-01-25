@@ -7,8 +7,7 @@ import TopBar.Msgs
 
 
 type Msg
-    = Noop
-    | AutoupdateTimerTicked Time
+    = AutoupdateTimerTicked Time
     | LoadPage Page
     | ClockTick Time.Time
     | ExpandVersionedResource Models.VersionId

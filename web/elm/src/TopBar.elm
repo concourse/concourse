@@ -102,9 +102,6 @@ handleCallback callback model =
 update : Msg -> Model r -> ( Model r, List Effect )
 update msg model =
     case msg of
-        Noop ->
-            ( model, [] )
-
         Msgs.FetchPipeline pid ->
             ( model, [ Effects.FetchPipeline pid ] )
 

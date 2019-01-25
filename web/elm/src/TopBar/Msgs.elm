@@ -5,8 +5,7 @@ import Time
 
 
 type Msg
-    = Noop
-    | FetchUser Time.Time
+    = FetchUser Time.Time
     | FetchPipeline Concourse.PipelineIdentifier
     | LogOut
     | LogIn

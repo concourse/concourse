@@ -201,9 +201,6 @@ handleCallback callback model =
 update : Msg -> Model -> ( Model, List Effect )
 update msg model =
     case msg of
-        Noop ->
-            ( model, [] )
-
         HideLegendTimerTicked _ ->
             if model.hideLegendCounter + timeUntilHiddenCheckInterval > timeUntilHidden then
                 ( { model | hideLegend = True }, [] )

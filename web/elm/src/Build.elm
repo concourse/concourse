@@ -282,9 +282,6 @@ handleCallback action model =
 update : Msg -> Model -> ( Model, List Effect )
 update action model =
     case action of
-        Noop ->
-            ( model, [] )
-
         SwitchToBuild build ->
             ( model, [ NavigateTo <| Routes.buildRoute build ] )
 

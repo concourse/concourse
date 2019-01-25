@@ -1,7 +1,6 @@
 module Layout exposing
     ( Flags
     , Model
-    , Msg(..)
     , handleCallback
     , init
     , locationMsg
@@ -17,13 +16,13 @@ import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id, style)
 import Http
 import Json.Decode
+import Msgs exposing (Msg(..), NavIndex)
 import Navigation
 import Routes
 import SubPage
 import SubPage.Msgs
 import Subscription exposing (Subscription(..))
 import TopBar
-import TopBar.Msgs
 
 
 type alias Flags =
@@ -33,10 +32,6 @@ type alias Flags =
     , authToken : String
     , pipelineRunningKeyframes : String
     }
-
-
-type alias NavIndex =
-    Int
 
 
 anyNavIndex : NavIndex
@@ -61,17 +56,6 @@ type alias Model =
 type TopBarType
     = Dashboard
     | Normal
-
-
-type Msg
-    = Noop
-    | RouteChanged Routes.ConcourseRoute
-    | SubMsg NavIndex SubPage.Msgs.Msg
-    | TopMsg NavIndex TopBar.Msgs.Msg
-    | NewUrl String
-    | ModifyUrl String
-    | TokenReceived (Maybe String)
-    | Callback Effects.LayoutDispatch Callback
 
 
 init : Flags -> Navigation.Location -> ( Model, List ( LayoutDispatch, Effect ) )
@@ -256,7 +240,7 @@ update msg model =
         NewUrl url ->
             ( model, [ ( Layout, NavigateTo url ) ] )
 
-        ModifyUrl url ->
+        Msgs.ModifyUrl url ->
             ( model, [ ( Layout, Effects.ModifyUrl url ) ] )
 
         RouteChanged route ->
@@ -305,9 +289,6 @@ update msg model =
 
         Callback dispatch callback ->
             handleCallback dispatch callback model
-
-        Noop ->
-            ( model, [] )
 
 
 redirectToLoginIfNecessary : Http.Error -> NavIndex -> List ( LayoutDispatch, Effect )

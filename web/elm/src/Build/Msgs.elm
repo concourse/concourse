@@ -9,8 +9,7 @@ import Time
 
 
 type Msg
-    = Noop
-    | SwitchToBuild Concourse.Build
+    = SwitchToBuild Concourse.Build
     | Hover HoveredButton
     | TriggerBuild (Maybe Concourse.JobIdentifier)
     | AbortBuild Int

@@ -444,9 +444,6 @@ handleCallback action model =
 update : Msg -> Model -> ( Model, List Effect )
 update action model =
     case action of
-        Noop ->
-            ( model, [] )
-
         AutoupdateTimerTicked timestamp ->
             ( model
             , [ FetchResource model.resourceIdentifier
@@ -793,27 +790,25 @@ paginationMenu :
     -> Html Msg
 paginationMenu { versions, resourceIdentifier, hovered } =
     let
-        previousButtonEvent =
+        previousButtonEventHandler =
             case versions.pagination.previousPage of
                 Nothing ->
-                    Noop
+                    []
 
                 Just pp ->
-                    LoadPage pp
+                    [ onClick <| LoadPage pp ]
 
-        nextButtonEvent =
+        nextButtonEventHandler =
             case versions.pagination.nextPage of
                 Nothing ->
-                    Noop
+                    []
 
                 Just np ->
                     let
                         updatedPage =
-                            { np
-                                | limit = 100
-                            }
+                            { np | limit = 100 }
                     in
-                    LoadPage updatedPage
+                    [ onClick <| LoadPage updatedPage ]
     in
     Html.div
         [ id "pagination"
@@ -839,11 +834,12 @@ paginationMenu { versions, resourceIdentifier, hovered } =
 
             Just page ->
                 Html.div
-                    [ style chevronContainer
-                    , onClick previousButtonEvent
-                    , onMouseEnter <| Hover Models.PreviousPage
-                    , onMouseLeave <| Hover Models.None
-                    ]
+                    ([ style chevronContainer
+                     , onMouseEnter <| Hover Models.PreviousPage
+                     , onMouseLeave <| Hover Models.None
+                     ]
+                        ++ previousButtonEventHandler
+                    )
                     [ Html.a
                         [ href <|
                             paginationRoute
@@ -876,11 +872,12 @@ paginationMenu { versions, resourceIdentifier, hovered } =
 
             Just page ->
                 Html.div
-                    [ style chevronContainer
-                    , onClick nextButtonEvent
-                    , onMouseEnter <| Hover Models.NextPage
-                    , onMouseLeave <| Hover Models.None
-                    ]
+                    ([ style chevronContainer
+                     , onMouseEnter <| Hover Models.NextPage
+                     , onMouseLeave <| Hover Models.None
+                     ]
+                        ++ nextButtonEventHandler
+                    )
                     [ Html.a
                         [ href <|
                             paginationRoute

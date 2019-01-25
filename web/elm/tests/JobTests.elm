@@ -19,6 +19,7 @@ import Http
 import Job exposing (update)
 import Job.Msgs exposing (Msg(..))
 import Layout
+import Msgs
 import RemoteData
 import SubPage.Msgs
 import Test exposing (..)
@@ -282,11 +283,11 @@ all =
                                 }
                     }
                 , mouseEnterMsg =
-                    Layout.SubMsg 1 <|
+                    Msgs.SubMsg 1 <|
                         SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.Toggle
                 , mouseLeaveMsg =
-                    Layout.SubMsg 1 <|
+                    Msgs.SubMsg 1 <|
                         SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.None
                 }
@@ -318,11 +319,11 @@ all =
                                 }
                     }
                 , mouseEnterMsg =
-                    Layout.SubMsg 1 <|
+                    Msgs.SubMsg 1 <|
                         SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.Toggle
                 , mouseLeaveMsg =
-                    Layout.SubMsg 1 <|
+                    Msgs.SubMsg 1 <|
                         SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.None
                 }
@@ -389,11 +390,11 @@ all =
                                 }
                     }
                 , mouseEnterMsg =
-                    Layout.SubMsg 1 <|
+                    Msgs.SubMsg 1 <|
                         SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.Trigger
                 , mouseLeaveMsg =
-                    Layout.SubMsg 1 <|
+                    Msgs.SubMsg 1 <|
                         SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.None
                 }
@@ -449,11 +450,11 @@ all =
                         ]
                     }
                 , mouseEnterMsg =
-                    Layout.SubMsg 1 <|
+                    Msgs.SubMsg 1 <|
                         SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.Trigger
                 , mouseLeaveMsg =
-                    Layout.SubMsg 1 <|
+                    Msgs.SubMsg 1 <|
                         SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.None
                 }
@@ -831,11 +832,11 @@ all =
                         ]
                     }
                 , mouseEnterMsg =
-                    Layout.SubMsg 1 <|
+                    Msgs.SubMsg 1 <|
                         SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.PreviousPage
                 , mouseLeaveMsg =
-                    Layout.SubMsg 1 <|
+                    Msgs.SubMsg 1 <|
                         SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.None
                 }
