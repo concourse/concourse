@@ -1,6 +1,5 @@
 module TopBar exposing
     ( Model
-    , Msg(..)
     , handleCallback
     , init
     , subscriptions
@@ -23,6 +22,7 @@ import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Subscription exposing (Subscription(..))
 import Time
+import TopBar.Msgs as Msgs exposing (Msg(..))
 import UserState exposing (UserState(..))
 
 
@@ -35,18 +35,6 @@ type alias Model r =
         , pinnedResources : List ( String, Concourse.Version )
         , showPinIconDropDown : Bool
     }
-
-
-type Msg
-    = Noop
-    | FetchUser Time.Time
-    | FetchPipeline Concourse.PipelineIdentifier
-    | LogOut
-    | LogIn
-    | ResetToPipeline String
-    | ToggleUserMenu
-    | TogglePinIconDropdown
-    | GoToPinnedResource String
 
 
 init : Routes.ConcourseRoute -> ( Model {}, List Effect )
@@ -117,10 +105,10 @@ update msg model =
         Noop ->
             ( model, [] )
 
-        FetchPipeline pid ->
+        Msgs.FetchPipeline pid ->
             ( model, [ Effects.FetchPipeline pid ] )
 
-        FetchUser _ ->
+        Msgs.FetchUser _ ->
             ( model, [ Effects.FetchUser ] )
 
         LogIn ->
@@ -148,9 +136,9 @@ update msg model =
 
 subscriptions : Model r -> List (Subscription Msg)
 subscriptions model =
-    [ OnClockTick (5 * Time.second) FetchUser
+    [ OnClockTick (5 * Time.second) Msgs.FetchUser
     , pipelineIdentifierFromRouteOrModel model.route model
-        |> Maybe.map (always << FetchPipeline)
+        |> Maybe.map (always << Msgs.FetchPipeline)
         |> Maybe.map (OnClockTick (5 * Time.second))
         |> WhenPresent
     ]

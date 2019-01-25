@@ -3,7 +3,7 @@ module Resource.Msgs exposing (Msg(..))
 import Concourse.Pagination exposing (Page, Paginated)
 import Resource.Models as Models
 import Time exposing (Time)
-import TopBar
+import TopBar.Msgs
 
 
 type Msg
@@ -21,4 +21,4 @@ type Msg
     | PinIconHover Bool
     | Hover Models.Hoverable
     | Check
-    | TopBarMsg TopBar.Msg
+    | TopBarMsg TopBar.Msgs.Msg

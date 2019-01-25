@@ -23,6 +23,7 @@ import SubPage
 import SubPage.Msgs
 import Subscription exposing (Subscription(..))
 import TopBar
+import TopBar.Msgs
 
 
 type alias Flags =
@@ -66,7 +67,7 @@ type Msg
     = Noop
     | RouteChanged Routes.ConcourseRoute
     | SubMsg NavIndex SubPage.Msgs.Msg
-    | TopMsg NavIndex TopBar.Msg
+    | TopMsg NavIndex TopBar.Msgs.Msg
     | NewUrl String
     | ModifyUrl String
     | TokenReceived (Maybe String)
