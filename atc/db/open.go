@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
+	"github.com/concourse/flag"
 	"github.com/lib/pq"
 
 	multierror "github.com/hashicorp/go-multierror"
@@ -55,7 +56,7 @@ type Tx interface {
 	Stmt(stmt *sql.Stmt) *sql.Stmt
 }
 
-func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *encryption.Key, oldKey *encryption.Key, connectionName string, lockFactory lock.LockFactory) (Conn, error) {
+func Open(logger lager.Logger, sqlDriver string, pgConfig flag.PostgresConfig, newKey *encryption.Key, oldKey *encryption.Key, connectionName string, lockFactory lock.LockFactory) (Conn, error) {
 	for {
 		var strategy encryption.Strategy
 		if newKey != nil {
@@ -64,7 +65,7 @@ func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *e
 			strategy = encryption.NewNoEncryption()
 		}
 
-		sqlDb, err := migration.NewOpenHelper(sqlDriver, sqlDataSource, lockFactory, strategy).Open()
+		sqlDb, err := migration.NewOpenHelper(sqlDriver, pgConfig.ConnectionString(), lockFactory, strategy).Open()
 		if err != nil {
 			if shouldRetry(err) {
 				logger.Error("failed-to-open-db-retrying", err)
@@ -92,7 +93,11 @@ func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *e
 			}
 		}
 
-		listener := pq.NewListener(sqlDataSource, time.Second, time.Minute, nil)
+		listener := pq.NewDialListener(
+			timeoutDialer{
+				readTimeout:  pgConfig.ReadTimeout,
+				writeTimeout: pgConfig.WriteTimeout,
+			}, pgConfig.ConnectionString(), time.Second, time.Minute, nil)
 
 		return &db{
 			DB: sqlDb,

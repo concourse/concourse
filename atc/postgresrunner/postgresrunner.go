@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/migration"
+	"github.com/concourse/flag"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -151,7 +152,13 @@ func (runner *Runner) OpenConn() db.Conn {
 	dbConn, err := db.Open(
 		lagertest.NewTestLogger("postgres-runner"),
 		"postgres",
-		runner.DataSourceName(),
+		flag.PostgresConfig{
+			Host:     "/tmp",
+			User:     "postgres",
+			Database: "testdb",
+			SSLMode:  "disable",
+			Port:     uint16(runner.Port),
+		},
 		nil,
 		nil,
 		"postgresrunner",
