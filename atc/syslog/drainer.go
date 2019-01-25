@@ -2,16 +2,13 @@ package syslog
 
 import (
 	"context"
-	"crypto/x509"
 	"encoding/json"
-	"errors"
-	"io/ioutil"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
-	sl "github.com/papertrail/remote_syslog2/syslog"
+	//sl "github.com/papertrail/remote_syslog2/syslog"
 )
 
 const ServerPollingInterval = 5 * time.Second
@@ -50,39 +47,12 @@ func (d *drainer) Run(ctx context.Context) error {
 	}
 
 	if len(builds) > 0 {
-		var certpool *x509.CertPool
-		if d.transport == "tls" {
-			certpool, err = x509.SystemCertPool()
-			if err != nil {
-				return err
-			}
-
-			for _, cert := range d.caCerts {
-				content, err := ioutil.ReadFile(cert)
-				if err != nil {
-					return err
-				}
-
-				ok := certpool.AppendCertsFromPEM(content)
-				if !ok {
-					return errors.New("syslog drainer certificate error")
-				}
-			}
-		}
-
-		syslog, err := sl.Dial(
-			d.hostname,
-			d.transport,
-			d.address,
-			certpool,
-			30*time.Second,
-			30*time.Second,
-			99990,
-		)
+		syslog, err := Dial(d.transport, d.address, d.caCerts)
 		if err != nil {
 			logger.Error("Syslog drainer connecting to server error.", err)
 			return err
 		}
+		defer syslog.Close()
 
 		for _, build := range builds {
 			events, err := build.Events(0)
@@ -113,21 +83,10 @@ func (d *drainer) Run(ctx context.Context) error {
 					payload := log.Payload
 					tag := build.TeamName() + "/" + build.PipelineName() + "/" + build.JobName() + "/" + build.Name() + "/" + string(log.Origin.ID)
 
-					syslog.Packets <- sl.Packet{
-						Severity: sl.SevInfo,
-						Facility: sl.LogUser,
-						Hostname: d.hostname,
-						Tag:      tag,
-						Time:     time.Unix(log.Time, 0),
-						Message:  payload,
-					}
-
-					select {
-					case err := <-syslog.Errors:
+					err = syslog.Write(d.hostname, tag, time.Unix(log.Time, 0), payload)
+					if err != nil {
 						logger.Error("Syslog drainer sending to server error.", err)
 						return err
-					default:
-						continue
 					}
 				}
 			}

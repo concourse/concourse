@@ -132,7 +132,6 @@ require (
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/ory/dockertest v3.3.2+incompatible // indirect
-	github.com/papertrail/remote_syslog2 v0.0.0-20170912230402-5bae4a1ac1c2
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
@@ -140,6 +139,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/pkg/term v0.0.0-20180730021639-bffc007b7fd5
 	github.com/prometheus/client_golang v0.9.2
+	github.com/racksec/srslog v0.0.0-20180709174129-a4725f04ec91
 	github.com/ryanuber/go-glob v0.0.0-20170128012129-256dc444b735 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
