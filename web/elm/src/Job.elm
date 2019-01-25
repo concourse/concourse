@@ -49,6 +49,7 @@ import LoadingIndicator
 import RemoteData exposing (WebData)
 import Routes
 import StrictEvents exposing (onLeftClick)
+import Subscription exposing (Subscription(..))
 import Time exposing (Time)
 import UpdateMsg exposing (UpdateMsg)
 
@@ -753,9 +754,8 @@ paginationParam page =
             "to=" ++ toString i
 
 
-subscriptions : Model -> Sub Msg
+subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
-    Sub.batch
-        [ Time.every (5 * Time.second) SubscriptionTick
-        , Time.every (1 * Time.second) ClockTick
-        ]
+    [ OnClockTick (5 * Time.second) SubscriptionTick
+    , OnClockTick (1 * Time.second) ClockTick
+    ]

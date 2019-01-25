@@ -33,6 +33,7 @@ import Html.Attributes
 import Http
 import LoadingIndicator
 import NotAuthorized
+import Subscription exposing (Subscription(..))
 
 
 type alias Model =
@@ -41,7 +42,7 @@ type alias Model =
     , errors : Maybe Ansi.Log.Model
     , state : OutputState
     , eventSourceOpened : Bool
-    , events : Sub Msg
+    , events : Maybe (Subscription Msg)
     , highlight : StepTree.Highlight
     }
 
@@ -77,7 +78,7 @@ init flags build =
             , steps = Nothing
             , errors = Nothing
             , state = outputState
-            , events = Sub.none
+            , events = Nothing
             , eventSourceOpened = False
             , highlight = StepTree.parseHighlight flags.hash
             }
@@ -119,7 +120,7 @@ planAndResourcesFetched result model =
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
-                        ( { model | events = subscribeToEvents model.build.id }
+                        ( { model | events = Just (subscribeToEvents model.build.id) }
                         , []
                         , OutNoop
                         )
@@ -134,7 +135,7 @@ planAndResourcesFetched result model =
         Ok ( plan, resources ) ->
             ( { model
                 | steps = Just (StepTree.init model.highlight resources plan)
-                , events = subscribeToEvents model.build.id
+                , events = Just (subscribeToEvents model.build.id)
               }
             , []
             , OutNoop
@@ -276,7 +277,7 @@ handleEvent event model =
             )
 
         Concourse.BuildEvents.End ->
-            ( { model | state = StepsComplete, events = Sub.none }, [], OutNoop )
+            ( { model | state = StepsComplete, events = Nothing }, [], OutNoop )
 
 
 updateStep : StepTree.StepID -> (StepTree -> StepTree) -> Model -> Model
@@ -350,9 +351,9 @@ setStepState state tree =
     StepTree.map (\step -> { step | state = state }) tree
 
 
-subscribeToEvents : Int -> Sub Msg
+subscribeToEvents : Int -> Subscription Msg
 subscribeToEvents buildId =
-    Sub.map BuildEventsMsg (Concourse.BuildEvents.subscribe buildId)
+    Subscription.map BuildEventsMsg (Concourse.BuildEvents.subscribe buildId)
 
 
 view : Model -> Html Msg

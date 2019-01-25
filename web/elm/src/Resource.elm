@@ -65,6 +65,7 @@ import Resource.Styles
 import Routes
 import Spinner
 import StrictEvents
+import Subscription exposing (Subscription(..))
 import Time exposing (Time)
 import TopBar
 import UpdateMsg exposing (UpdateMsg)
@@ -1552,9 +1553,8 @@ fetchDataForExpandedVersions model =
         |> List.concatMap (\v -> [ FetchInputTo v.id, FetchOutputOf v.id ])
 
 
-subscriptions : Model -> Sub Msg
+subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
-    Sub.batch
-        [ Time.every (5 * Time.second) AutoupdateTimerTicked
-        , Time.every Time.second ClockTick
-        ]
+    [ OnClockTick (5 * Time.second) AutoupdateTimerTicked
+    , OnClockTick Time.second ClockTick
+    ]

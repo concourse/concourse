@@ -21,6 +21,7 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave, onMouseOut, on
 import Http
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
+import Subscription exposing (Subscription(..))
 import Time
 import UserState exposing (UserState(..))
 
@@ -145,17 +146,14 @@ update msg model =
             ( model, [ NavigateTo (url ++ "/resources/" ++ resourceName) ] )
 
 
-subscriptions : Model r -> Sub Msg
+subscriptions : Model r -> List (Subscription Msg)
 subscriptions model =
-    Sub.batch
-        [ case pipelineIdentifierFromRouteOrModel model.route model of
-            Nothing ->
-                Sub.none
-
-            Just pid ->
-                Time.every (5 * Time.second) (always (FetchPipeline pid))
-        , Time.every (5 * Time.second) FetchUser
-        ]
+    [ OnClockTick (5 * Time.second) FetchUser
+    , pipelineIdentifierFromRouteOrModel model.route model
+        |> Maybe.map (always << FetchPipeline)
+        |> Maybe.map (OnClockTick (5 * Time.second))
+        |> WhenPresent
+    ]
 
 
 pipelineIdentifierFromRouteOrModel : Routes.ConcourseRoute -> Model r -> Maybe Concourse.PipelineIdentifier

@@ -1,8 +1,9 @@
-port module Main exposing (main)
+module Main exposing (main)
 
 import Effects
 import Layout
 import Navigation
+import Subscription
 
 
 main : Program Layout.Flags Layout.Model Layout.Msg
@@ -11,7 +12,7 @@ main =
         { init = \flags -> Layout.init flags >> Tuple.mapSecond effectsToCmd
         , update = \msg -> Layout.update msg >> Tuple.mapSecond effectsToCmd
         , view = Layout.view
-        , subscriptions = Layout.subscriptions
+        , subscriptions = Layout.subscriptions >> subscriptionsToSub
         }
 
 
@@ -23,3 +24,8 @@ effectsToCmd =
 effectToCmd : ( Effects.LayoutDispatch, Effects.Effect ) -> Cmd Layout.Msg
 effectToCmd ( disp, eff ) =
     Effects.runEffect eff |> Cmd.map (Layout.Callback disp)
+
+
+subscriptionsToSub : List (Subscription.Subscription m) -> Sub m
+subscriptionsToSub =
+    List.map Subscription.runSubscription >> Sub.batch

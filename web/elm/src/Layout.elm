@@ -1,4 +1,4 @@
-port module Layout exposing
+module Layout exposing
     ( Flags
     , Model
     , Msg(..)
@@ -21,13 +21,8 @@ import Navigation
 import Routes
 import SubPage
 import SubPage.Msgs
+import Subscription exposing (Subscription(..))
 import TopBar
-
-
-port newUrl : (String -> msg) -> Sub msg
-
-
-port tokenReceived : (Maybe String -> msg) -> Sub msg
 
 
 type alias Flags =
@@ -412,26 +407,18 @@ view model =
                 ]
 
 
-subscriptions : Model -> Sub Msg
+subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
-    case model.topBarType of
-        Dashboard ->
-            Sub.batch
-                [ newUrl NewUrl
-                , tokenReceived TokenReceived
-                , Sub.map (SubMsg model.navIndex) <|
-                    SubPage.subscriptions model.subModel
-                ]
-
-        Normal ->
-            Sub.batch
-                [ newUrl NewUrl
-                , tokenReceived TokenReceived
-                , Sub.map (TopMsg model.navIndex) <|
-                    TopBar.subscriptions model.topModel
-                , Sub.map (SubMsg model.navIndex) <|
-                    SubPage.subscriptions model.subModel
-                ]
+    [ OnNewUrl NewUrl
+    , OnTokenReceived TokenReceived
+    ]
+        ++ (SubPage.subscriptions model.subModel
+                |> List.map (Subscription.map (SubMsg model.navIndex))
+           )
+        ++ (TopBar.subscriptions model.topModel
+                |> List.map (Subscription.map (TopMsg model.navIndex))
+                |> List.map (Conditionally (model.topBarType == Normal))
+           )
 
 
 routeMatchesModel : Routes.ConcourseRoute -> Model -> Bool
