@@ -8,10 +8,7 @@ import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
-	//sl "github.com/papertrail/remote_syslog2/syslog"
 )
-
-const ServerPollingInterval = 5 * time.Second
 
 //go:generate counterfeiter . Drainer
 
