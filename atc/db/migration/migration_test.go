@@ -341,6 +341,68 @@ var _ = Describe("Migration", func() {
 
 					ExpectMigrationToHaveFailed(db, 1510262031, true)
 				})
+
+				It("successfully runs a non-transactional migration", func() {
+					bindata.AssetNamesReturns(
+						[]string{
+							"30000_no_transaction_migration.up.sql",
+						},
+					)
+					bindata.AssetReturnsOnCall(1, []byte(`
+							-- NO_TRANSACTION
+							CREATE TYPE enum_type AS ENUM ('blue_type', 'green_type');
+							ALTER TYPE enum_type ADD VALUE 'some_type';
+					`), nil)
+					startTime := time.Now()
+					migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
+					err = migrator.Up()
+					Expect(err).NotTo(HaveOccurred())
+
+					var (
+						version   int
+						isDirty   bool
+						timeStamp pq.NullTime
+						status    string
+						direction string
+					)
+					err = db.QueryRow("SELECT * from migrations_history ORDER BY tstamp DESC").Scan(&version, &timeStamp, &direction, &status, &isDirty)
+					Expect(version).To(Equal(30000))
+					Expect(isDirty).To(BeFalse())
+					Expect(timeStamp.Time.After(startTime)).To(Equal(true))
+					Expect(direction).To(Equal("up"))
+					Expect(status).To(Equal("passed"))
+				})
+
+				It("gracefully fails on a failing non-transactional migration", func() {
+					bindata.AssetNamesReturns(
+						[]string{
+							"50000_failing_no_transaction_migration.up.sql",
+						},
+					)
+					bindata.AssetReturns([]byte(`
+							-- NO_TRANSACTION
+							CREATE TYPE enum_type AS ENUM ('blue_type', 'green_type');
+							ALTER TYPE nonexistent_enum_type ADD VALUE 'some_type';
+					`), nil)
+					startTime := time.Now()
+					migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
+					err = migrator.Up()
+					Expect(err).To(HaveOccurred())
+
+					var (
+						version   int
+						isDirty   bool
+						timeStamp pq.NullTime
+						status    string
+						direction string
+					)
+					err = db.QueryRow("SELECT * from migrations_history ORDER BY tstamp DESC").Scan(&version, &timeStamp, &direction, &status, &isDirty)
+					Expect(version).To(Equal(50000))
+					Expect(isDirty).To(BeTrue())
+					Expect(timeStamp.Time.After(startTime)).To(Equal(true))
+					Expect(direction).To(Equal("up"))
+					Expect(status).To(Equal("failed"))
+				})
 			})
 
 			It("Doesn't fail if there are no migrations to run", func() {
