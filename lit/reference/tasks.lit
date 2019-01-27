@@ -250,13 +250,6 @@ A task's configuration specifies the following:
     you must specify \code{-i name=.} instead, where \code{name} is the input
     name from the task configuration.
 
-    You can also specify task template parameter values with \code{-v}, \code{-y}
-    and \code{-l}, like you would do in \reference{fly-set-pipeline}:
-
-    \codeblock{bash}{{
-    $ fly -t example execute --config tests.yml -l vars.yml -v text="Hello World!"
-    }}
-
     Fly will automatically capture \code{SIGINT} and \code{SIGTERM} and abort the
     build when received. This allows it to be transparently composed with other
     toolchains.
@@ -381,6 +374,29 @@ A task's configuration specifies the following:
 
       The task would then run with \code{BAR} as \code{"hello"}, and \code{FOO}
       as \code{"fizzbuzz"} (its default value).
+    }
+
+    \section{
+      \title{Providing values for \code{((vars))}}
+
+      Task config files, as well as \reference{pipeline-params}{pipelines}, can
+      contain template variables in the form of \code{((foo-bar))}.
+
+      These vars can be set during \code{fly execute} by using the \code{-v},
+      \code{-y} and \code{-l} flags, the same as \reference{fly-set-pipeline}:
+
+      \codeblock{bash}{{
+        fly -t example execute --config tests.yml \\
+          -l vars.yml \\
+          -v some_string="Hello World!" \\
+          -y some_bool=true
+      }}
+
+      Any variables not satisfied via the above flags will be deferred to the
+      configured \reference{creds}{credential manager}.
+
+      To satisfy these vars when running the task in a pipeline, see
+      \reference{task-step-vars}.
     }
 
     \section{

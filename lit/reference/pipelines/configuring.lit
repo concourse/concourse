@@ -27,7 +27,8 @@ Pipelines are configured entirely via the \reference{fly-cli}. There is no GUI.
 
     The pipeline configuration can contain template variables in the form of
     \code{((foo-bar))}. They will be replaced with YAML values populated by
-    repeated \code{--var} or \code{--load-vars-from} flags.
+    repeated \code{--var} or \code{--load-vars-from} flags, or at runtime via a
+    \reference{creds}{credential manager}.
 
     This allows for credentials to be extracted from a pipeline config, making it
     safe to check in to a public repository or pass around.

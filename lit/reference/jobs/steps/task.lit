@@ -80,6 +80,10 @@ of a task.
 
   And the \code{something} resource provided a \code{unit.yml} file, you
   would set \code{file: something/unit.yml}.
+
+  The content of the config file may contain template \code{((vars))}, which
+  will be filled in using \reference{task-step-vars} or a configured
+  \reference{creds}{credential manager}.
 }{task-step-file}
 
 \define-attribute{privileged: boolean}{
@@ -140,8 +144,9 @@ of a task.
       args: ["((text))"]
   }}}
 
-  This will resolve \code{((text))} to \code{{"Hello World!"}}, while \code{((myuser))} and \code{((mypass))}  will
-  be resolved in runtime via a \reference{creds}{credential manager}, if it has been configured.
+  This will resolve \code{"((text))"} to \code{{"Hello World!"}}, while
+  \code{((myuser))} and \code{((mypass))}  will be resolved in runtime via a
+  \reference{creds}{credential manager}, if it has been configured.
 }{task-step-vars}
 
 \define-attribute{params: object}{
