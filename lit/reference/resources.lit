@@ -45,6 +45,12 @@ Each configured resource consists of the following attributes:
   \italic{Optional.} A version to pin the resource to across the pipeline. This
   has the same effect as setting \reference{get-step-version} on every
   \reference{get-step} referencing the resource.
+
+  Resources can also be temporarily pinned to a version via the API and web UI.
+  However this functionality is disabled if the resource is pinned via
+  configuration, and if a pipeline is configured to have a version pinned while
+  also pinned in the web UI, the configuration takes precedence and will clear
+  out the temporary pin.
 }{resource-version}
 
 \define-attribute{check_every: string}{

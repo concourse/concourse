@@ -28,27 +28,3 @@
   \italic{bosh-io-release} resource might use \code{version:11.2} in place of
   \code{ref:abcdef}.
 }
-
-\section{
-  \title{\code{fly pause-resource}}{fly-pause-resource}
-
-  To pause the periodic checking of a resource, run:
-
-  \codeblock{bash}{{
-  $ fly -t example pause-resource --resource my-pipeline/my-resource
-  }}
-
-  This will stop the resource from detecting new versions.
-}
-
-\section{
-  \title{\code{fly unpause-resource}}{fly-unpause-resource}
-
-  To unpause a resource, run:
-
-  \codeblock{bash}{{
-  $ fly -t example unpause-resource --resource my-pipeline/my-resource
-  }}
-
-  This will resume resource version detection.
-}

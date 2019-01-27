@@ -119,8 +119,6 @@ against the teams that have granted them access.
       }{
         \table-row{pause-pipeline}{✘}{}{✓}{✓}{✘}
       }{
-        \table-row{pause-resource}{✘}{}{✓}{✓}{✘}
-      }{
         \table-row{pipelines}{✓}{}{✓}{✓}{✓}
       }{
         \table-row{prune-worker}{✘}{}{✓}{✓}{✘}
@@ -146,8 +144,6 @@ against the teams that have granted them access.
         \table-row{unpause-job}{✘}{}{✓}{✓}{✘}
       }{
         \table-row{unpause-pipeline}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{unpause-resource}{✘}{}{✓}{✓}{✘}
       }{
         \table-row{validate-pipeline}{✓}{}{✓}{✓}{✓}
       }{
@@ -185,8 +181,6 @@ against the teams that have granted them access.
         \table-row{}{Click on Group}{✓}{✓}{✓}
       }{
         \table-row{Resource Page}{View Resource}{✓}{✓}{✓}
-      }{
-        \table-row{}{Pause Resource}{✓}{✓}{✘}
       }{
         \table-row{}{View Version Details}{✓}{✓}{✓}
       }{
