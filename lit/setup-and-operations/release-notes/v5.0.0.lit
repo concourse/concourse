@@ -110,8 +110,28 @@
   }
 
   \note{feature}{
-    task params (TODO: flesh out along with
-    https://github.com/concourse/docs/pull/131)
+    Task \code{((vars))} received a bit of an overhaul, thanks to a PR by
+    \ghuser{ralekseenkov}!
+
+    \list{
+      Values for task \code{((vars))} can now be provided during
+      \reference{fly-execute-vars}{\code{fly execute}}!
+    }{
+      In addition, values may be provided to a task step in a pipeline via
+      \reference{task-step-vars}.
+    }{
+      Tasks can now have \code{((vars))} pretty much anywhere in their config,
+      not just in \reference{image_resource}.
+    }
+
+    In all cases, vars can also be satisifed via a \reference{creds}{credential
+    manager}, the same as before.
+
+    Admittedly, there is now some cause for confusion with
+    \reference{task-step-params}. This may see clarification with
+    \link{reusable tasks}{https://github.com/concourse/rfcs/issues/7}. In
+    addition, pipeline \code{((params))} will now be referred to as pipeline
+    \code{((vars))} instead, for consistency.
   }
 
   \note{feature}{

@@ -101,7 +101,7 @@ of a task.
 
 \define-attribute{vars: object}{
   \italic{Optional.} A map of template variables to pass to an external task.
-  Only works with external tasks defined in \code{file}.
+  Only works with external tasks defined in \reference{task-step-file}.
 
   For example:
 
@@ -115,7 +115,7 @@ of a task.
   }}
 
   This is often used in combination with
-  \reference{pipeline-params}{\code{((parameters))}} in the pipeline.
+  \reference{pipeline-vars}{\code{((vars))}} in the pipeline.
 
   \codeblock{yaml}{{
   plan:
@@ -153,9 +153,11 @@ of a task.
   \italic{Optional.} A map of task parameters to set, overriding those
   configured in \code{config} or \code{file}.
 
-  The difference between \reference{task-step-params} and \reference{task-step-vars} is that \reference{task-step-vars}
-  allows you to interpolate any template variable in an external task, while \reference{task-step-params} can be
-  used to overwrite task parameters (i.e. env variables) specifically. Also, \reference{task-step-params} can have
+  The difference between \reference{task-step-params} and
+  \reference{task-step-vars} is that \reference{task-step-vars} allows you to
+  interpolate any template variable in an external task, while
+  \reference{task-step-params} can be used to overwrite task parameters (i.e.
+  env variables) specifically. Also, \reference{task-step-params} can have
   default values declared in the task.
 
   For example:
@@ -172,7 +174,7 @@ of a task.
   }}
 
   This is often used in combination with
-  \reference{pipeline-params}{\code{((parameters))}} in the pipeline.
+  \reference{pipeline-vars}{\code{((vars))}} in the pipeline.
 
   For example:
 

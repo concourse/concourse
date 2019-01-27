@@ -14,11 +14,11 @@ Currently, the only supported credential managers are
 \link{Amazon SSM}{https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-paramstore.html}, and
 \link{Amazon Secrets Manager}{https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html}.
 
-Credential management works by replacing the credentials with
-\reference{pipeline-params} in your pipeline or task config. When the ATC is
-about to run the step or \code{check} that is configured with the parameters,
-it will resolve them by fetching the values from the credential manager. If the
-values are not present, the action will error.
+Credential management works by replacing the credentials with \code{((vars))}
+in your pipeline or task config. When the Concourse is about to run the step or
+\code{check} that is configured with vars, it will resolve them by fetching the
+values from the credential manager. If the values are not present, the action
+will error.
 
 \section{
   \title{What can be parameterized?}
