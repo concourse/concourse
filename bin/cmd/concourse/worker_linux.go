@@ -16,7 +16,7 @@ import (
 	"code.cloudfoundry.org/localip"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/flag"
-	"github.com/jessevdk/go-flags"
+	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 )
@@ -26,6 +26,8 @@ type Certs struct {
 }
 
 type GardenBackend struct {
+	UseHoudini bool `long:"use-houdini" description:"Use the insecure Houdini Garden backend."`
+
 	GDN          string    `long:"bin"    default:"gdn" description:"Path to 'gdn' executable (or leave as 'gdn' to find it in $PATH)."`
 	GardenConfig flag.File `long:"config"               description:"Path to a config file to use for Garden. You can also specify Garden flags as env vars, e.g. 'CONCOURSE_GARDEN_FOO_BAR=a,b' for '--foo-bar a --foo-bar b'."`
 
@@ -43,11 +45,42 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 		return atc.Worker{}, nil, err
 	}
 
+	worker := cmd.Worker.Worker()
+	worker.Platform = "linux"
+
+	if cmd.Certs.Dir != "" {
+		worker.CertsPath = &cmd.Certs.Dir
+	}
+
+	worker.ResourceTypes, err = cmd.loadResources(logger.Session("load-resources"))
+	if err != nil {
+		return atc.Worker{}, nil, err
+	}
+
+	worker.Name, err = cmd.workerName()
+	if err != nil {
+		return atc.Worker{}, nil, err
+	}
+
+	var runner ifrit.Runner
+	if cmd.Garden.UseHoudini {
+		runner, err = cmd.houdiniRunner(logger)
+	} else {
+		runner, err = cmd.gdnRunner(logger)
+	}
+	if err != nil {
+		return atc.Worker{}, nil, err
+	}
+
+	return worker, runner, nil
+}
+
+func (cmd *WorkerCommand) gdnRunner(logger lager.Logger) (ifrit.Runner, error) {
 	if binDir := discoverAsset("bin"); binDir != "" {
 		// ensure packaged 'gdn' executable is available in $PATH
 		err := os.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
 		if err != nil {
-			return atc.Worker{}, nil, err
+			return nil, err
 		}
 	}
 
@@ -55,10 +88,12 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 
 	// must be readable by other users so unprivileged containers can run their
 	// own `initc' process
-	err = os.MkdirAll(depotDir, 0755)
+	err := os.MkdirAll(depotDir, 0755)
 	if err != nil {
-		return atc.Worker{}, nil, err
+		return nil, err
 	}
+
+	members := grouper.Members{}
 
 	gdnFlags := []string{}
 
@@ -80,31 +115,15 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 
 	gdnServerFlags = append(gdnServerFlags, detectGardenFlags(logger)...)
 
-	worker := cmd.Worker.Worker()
-	worker.Platform = "linux"
-	worker.CertsPath = &cmd.Certs.Dir
-
-	worker.ResourceTypes, err = cmd.loadResources(logger.Session("load-resources"))
-	if err != nil {
-		return atc.Worker{}, nil, err
-	}
-
-	worker.Name, err = cmd.workerName()
-	if err != nil {
-		return atc.Worker{}, nil, err
-	}
-
-	members := grouper.Members{}
-
 	if cmd.Garden.DNS.Enable {
 		dnsProxyRunner, err := cmd.dnsProxyRunner(logger.Session("dns-proxy"))
 		if err != nil {
-			return atc.Worker{}, nil, err
+			return nil, err
 		}
 
 		lip, err := localip.LocalIP()
 		if err != nil {
-			return atc.Worker{}, nil, err
+			return nil, err
 		}
 
 		members = append(members, grouper.Member{
@@ -138,7 +157,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 		),
 	})
 
-	return worker, grouper.NewParallel(os.Interrupt, members), nil
+	return grouper.NewParallel(os.Interrupt, members), nil
 }
 
 var ErrNotRoot = errors.New("worker must be run as root")
