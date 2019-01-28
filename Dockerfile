@@ -27,15 +27,6 @@ COPY go.mod .
 COPY go.sum .
 RUN go mod download
 
-# download yarn packages separately to enable caching
-COPY package.json .
-COPY yarn.lock .
-RUN yarn install
-
-# build web UI separately so we only build if necessary
-COPY web web
-RUN yarn build
-
 # build Concourse
 COPY . .
 RUN go build -gcflags=all="-N -l" -o /usr/local/bin/concourse github.com/concourse/concourse/bin/cmd/concourse
