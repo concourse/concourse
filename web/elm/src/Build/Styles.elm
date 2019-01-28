@@ -1,7 +1,8 @@
 module Build.Styles exposing
-    ( StepHeaderIcon(..)
-    , abortButton
+    ( abortButton
     , abortIcon
+    , firstOccurrenceTooltip
+    , firstOccurrenceTooltipArrow
     , stepHeader
     , stepHeaderIcon
     , stepStatusIcon
@@ -10,7 +11,9 @@ module Build.Styles exposing
     , triggerTooltip
     )
 
+import Build.Models exposing (StepHeaderType(..))
 import Colors
+import Styles
 
 
 triggerButton : Bool -> List ( String, String )
@@ -102,28 +105,21 @@ stepHeader =
     ]
 
 
-type StepHeaderIcon
-    = ArrowUp
-    | ArrowDown
-    | ArrowDownYellow
-    | Terminal
-
-
-stepHeaderIcon : StepHeaderIcon -> List ( String, String )
+stepHeaderIcon : StepHeaderType -> List ( String, String )
 stepHeaderIcon icon =
     let
         image =
             case icon of
-                ArrowDown ->
+                StepHeaderGet False ->
                     "arrow-downward"
 
-                ArrowDownYellow ->
+                StepHeaderGet True ->
                     "arrow-downward-yellow"
 
-                ArrowUp ->
+                StepHeaderPut ->
                     "arrow-upward"
 
-                Terminal ->
+                StepHeaderTask ->
                     "terminal"
     in
     [ ( "height", "28px" )
@@ -134,6 +130,7 @@ stepHeaderIcon icon =
     , ( "background-repeat", "no-repeat" )
     , ( "background-position", "50% 50%" )
     , ( "background-size", "14px 14px" )
+    , ( "position", "relative" )
     ]
 
 
@@ -147,4 +144,31 @@ stepStatusIcon image =
     , ( "background-repeat", "no-repeat" )
     , ( "background-position", "50% 50%" )
     , ( "background-size", "14px 14px" )
+    ]
+
+
+firstOccurrenceTooltip : List ( String, String )
+firstOccurrenceTooltip =
+    [ ( "position", "absolute" )
+    , ( "left", "0" )
+    , ( "bottom", "100%" )
+    , ( "background-color", Colors.tooltipBackground )
+    , ( "padding", "5px" )
+    , ( "z-index", "100" )
+    , ( "width", "6em" )
+    , ( "pointer-events", "none" )
+    ]
+        ++ Styles.disableInteraction
+
+
+firstOccurrenceTooltipArrow : List ( String, String )
+firstOccurrenceTooltipArrow =
+    [ ( "width", "0" )
+    , ( "height", "0" )
+    , ( "left", "50%" )
+    , ( "margin-left", "-5px" )
+    , ( "border-top", "5px solid " ++ Colors.tooltipBackground )
+    , ( "border-left", "5px solid transparent" )
+    , ( "border-right", "5px solid transparent" )
+    , ( "position", "absolute" )
     ]

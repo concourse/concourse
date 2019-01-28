@@ -1396,7 +1396,7 @@ viewPinButton { versionID, pinState } =
                         [ style
                             [ ( "position", "absolute" )
                             , ( "bottom", "25px" )
-                            , ( "background-color", Colors.pinTooltip )
+                            , ( "background-color", Colors.tooltipBackground )
                             , ( "z-index", "2" )
                             , ( "padding", "5px" )
                             , ( "width", "170px" )
