@@ -347,6 +347,8 @@ func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner, team
 	ownerEq := sq.Eq{}
 	if teamWorkers > 0 {
 		ownerEq["t.id"] = teamID
+	} else {
+		ownerEq["t.id"] = nil
 	}
 
 	for k, v := range ownerQuery {
