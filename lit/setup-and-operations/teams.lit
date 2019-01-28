@@ -255,7 +255,7 @@ against the teams that have granted them access.
       \reference{user-roles} on the team. The \code{-c} flag expects a
       \code{.yml} file with \code{roles}. Some of the attributes in the
       configuration will vary by provider; the details of which can be found in
-      \reference{authentication}
+      \reference{authentication}.
 
       A sample configuration for adding users from different providers with different
       roles:
@@ -418,6 +418,17 @@ against the teams that have granted them access.
         --github-org my-org \
         --github-team my-other-org:my-team
     }}}
+
+    or with \code{-c}:
+
+    \codeblock{bash}{{{
+    roles:
+    - name: member
+      github:
+        users: ["my-github-login"]
+        orgs: ["my-org"]
+        teams: ["my-other-org:my-team"]
+    }}}
   }
 
     \section{
@@ -445,6 +456,18 @@ against the teams that have granted them access.
         --gitlab-user my-gitlab-user \
         --gitlab-team my-team
     }}}
+
+    or with \code{-c}:
+
+    \codeblock{bash}{{{
+    roles:
+    - name: member
+      gitlab:
+        users: ["my-gitlab-login"]
+        orgs: ["my-org"]
+        teams: ["my-other-org:my-team"]
+    }}}
+
   }
 
   \section{
@@ -475,6 +498,17 @@ against the teams that have granted them access.
         --cf-org my-org \
         --cf-space my-other-org:my-space
     }}}
+
+    or with \code{-c}:
+
+    \codeblock{bash}{{{
+    roles:
+    - name: member
+      cf:
+        users: ["my-username"]
+        orgs: ["my-org"]
+        spaces: ["my-other-org:my-space"]
+    }}}
   }
 
   \section{
@@ -503,6 +537,16 @@ against the teams that have granted them access.
     $ fly set-team -n my-team \
         --oauth-user my-username \
         --oauth-group my-group
+    }}}
+
+    or with \code{-c}:
+
+    \codeblock{bash}{{{
+    roles:
+    - name: member
+      oauth:
+        users: ["my-username"]
+        groups: ["my-group"]
     }}}
   }
 
@@ -535,6 +579,16 @@ against the teams that have granted them access.
     $ fly set-team -n my-team \
         --oidc-user my-username \
         --oidc-group my-group
+    }}}
+
+    or with \code{-c}:
+
+    \codeblock{bash}{{{
+    roles:
+    - name: member
+      oidc:
+        users: ["my-username"]
+        groups: ["my-groups"]
     }}}
   }
 
