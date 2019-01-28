@@ -20,6 +20,7 @@ type Callback
     | JobsFetched (Result Http.Error Json.Encode.Value)
     | PipelineFetched (Result Http.Error Concourse.Pipeline)
     | UserFetched (Result Http.Error Concourse.User)
+    | TeamsFetched (Result Http.Error (List Concourse.Team))
     | ResourcesFetched (Result Http.Error Json.Encode.Value)
     | BuildResourcesFetched (Result Http.Error ( Int, Concourse.BuildResources ))
     | ResourceFetched (Result Http.Error Concourse.Resource)

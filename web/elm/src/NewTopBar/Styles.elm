@@ -1,5 +1,8 @@
 module NewTopBar.Styles exposing
-    ( concourseLogo
+    ( breadcrumbComponentCSS
+    , breadcrumbContainerCSS
+    , concourseLogo
+    , concourseLogoCSS
     , logoutButton
     , menuButton
     , menuItem
@@ -12,6 +15,7 @@ module NewTopBar.Styles exposing
     , searchOption
     , searchOptionsList
     , topBar
+    , topBarCSS
     , userInfo
     , userName
     )
@@ -19,8 +23,6 @@ module NewTopBar.Styles exposing
 import Css exposing (..)
 import ScreenSize exposing (ScreenSize(..))
 import SearchBar exposing (SearchBar(..))
-import Http
-import Html
 
 
 pageHeaderHeight : Float
@@ -42,7 +44,14 @@ topBar =
 
 topBarCSS : List ( String, String )
 topBarCSS =
-    [ ( "position", "fixed" ), ( "top", "0" ), ( "width", "100%" ), ( "z-index", "999" ), ( "display", "flex" ), ( "justify-content", "space-between" ), ( "background-color", "#1e1d1d" ) ]
+    [ ( "position", "fixed" )
+    , ( "top", "0" )
+    , ( "width", "100%" )
+    , ( "z-index", "999" )
+    , ( "display", "flex" )
+    , ( "justify-content", "space-between" )
+    , ( "background-color", "#1e1d1d" )
+    ]
 
 
 concourseLogo : List Style

@@ -1,19 +1,16 @@
-module NewestTopBar
-    exposing
-        ( Model
-        , Msg(..)
-        , fetchUser
-        , init
-        , query
-        , update
-        , view
-        )
+module NewestTopBar exposing
+    ( Model
+    , Msg(..)
+    , init
+    , query
+    , update
+    , view
+    )
 
 import Array
+import Callback exposing (Callback(..))
 import Concourse
-import Concourse.Team
-import Concourse.User
-import Dom
+import Effects exposing (Effect(..))
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as HA
     exposing
@@ -23,25 +20,23 @@ import Html.Styled.Attributes as HA
         , id
         , placeholder
         , src
+        , style
         , type_
         , value
-        , style
         )
 import Html.Styled.Events exposing (..)
 import Http
 import Keyboard
-import LoginRedirect
-import Navigation
 import NewTopBar.Styles as Styles
 import QueryString
 import RemoteData exposing (RemoteData)
 import Routes
 import ScreenSize exposing (ScreenSize(..))
 import SearchBar exposing (SearchBar(..))
-import Task
 import TopBar exposing (userDisplayName)
 import UserState exposing (UserState(..))
 import Window
+
 
 
 -- import StrictEvents exposing (onLeftClickOrShiftLeftClick)
@@ -53,6 +48,8 @@ type alias Model =
     , searchBar : SearchBar
     , teams : RemoteData.WebData (List Concourse.Team)
     , route : Routes.ConcourseRoute
+    , screenSize : ScreenSize
+    , highDensity : Bool
     }
 
 
@@ -62,17 +59,13 @@ query model =
         Expanded r ->
             r.query
 
-        _ ->
+        Collapsed ->
             ""
 
 
 type Msg
-    = Noop
-    | UserFetched (RemoteData.WebData Concourse.User)
-    | TeamsFetched (RemoteData.WebData (List Concourse.Team))
-    | LogIn
+    = LogIn
     | LogOut
-    | LoggedOut (Result Http.Error ())
     | FilterMsg String
     | FocusMsg
     | BlurMsg
@@ -80,7 +73,6 @@ type Msg
     | KeyDown Keyboard.KeyCode
     | ToggleUserMenu
     | ShowSearchInput
-    | ScreenResized Window.Size
 
 
 querySearchForRoute : Routes.ConcourseRoute -> String
@@ -89,7 +81,7 @@ querySearchForRoute route =
         |> Maybe.withDefault ""
 
 
-init : Routes.ConcourseRoute -> ( Model, Cmd Msg )
+init : Routes.ConcourseRoute -> ( Model, List Effect )
 init route =
     let
         showSearch =
@@ -102,29 +94,28 @@ init route =
                     , selectionMade = False
                     , showAutocomplete = False
                     , selection = 0
-                    , screenSize = Desktop
                     }
+
             else
-                Invisible
+                Collapsed
     in
-        ( { userState = UserStateUnknown
-          , userMenuVisible = False
-          , searchBar = searchBar
-          , teams = RemoteData.Loading
-          , route = route
-          }
-        , Cmd.batch
-            [ fetchUser
-            , fetchTeams
-            , Task.perform ScreenResized Window.size
-            ]
-        )
+    ( { userState = UserStateUnknown
+      , userMenuVisible = False
+      , searchBar = searchBar
+      , teams = RemoteData.Loading
+      , route = route
+      , screenSize = Desktop
+      , highDensity = False
+      }
+    , [ FetchUser, FetchTeams, GetScreenSize ]
+    )
 
 
 getScreenSize : Window.Size -> ScreenSize
 getScreenSize size =
     if size.width < 812 then
         Mobile
+
     else
         Desktop
 
@@ -140,12 +131,84 @@ queryStringFromSearch query =
                 QueryString.add "search" query QueryString.empty
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+handleCallback : Callback -> Model -> ( Model, List Effect )
+handleCallback callback model =
+    case callback of
+        UserFetched (Ok user) ->
+            ( { model | userState = UserStateLoggedIn user }, [] )
+
+        UserFetched (Err err) ->
+            ( { model | userState = UserStateLoggedOut }, [] )
+
+        LoggedOut (Ok ()) ->
+            let
+                redirectUrl =
+                    case model.searchBar of
+                        Collapsed ->
+                            Routes.dashboardHdRoute
+
+                        Expanded _ ->
+                            Routes.dashboardRoute
+            in
+            ( { model
+                | userState = UserStateLoggedOut
+                , userMenuVisible = False
+                , teams = RemoteData.Loading
+              }
+            , [ NavigateTo redirectUrl ]
+            )
+
+        LoggedOut (Err err) ->
+            flip always (Debug.log "failed to log out" err) <|
+                ( model, [] )
+
+        TeamsFetched (Ok teams) ->
+            ( { model | teams = RemoteData.Success teams }, [] )
+
+        TeamsFetched (Err err) ->
+            ( { model | teams = RemoteData.Failure err }, [] )
+
+        ScreenResized size ->
+            let
+                newSize =
+                    getScreenSize size
+
+                newSizedModel =
+                    { model | screenSize = newSize }
+
+                newModel =
+                    case model.searchBar of
+                        Expanded r ->
+                            if newSize == Mobile && model.screenSize == Desktop && String.isEmpty r.query then
+                                { newSizedModel | searchBar = Collapsed }
+
+                            else
+                                newSizedModel
+
+                        Collapsed ->
+                            if newSize == Desktop then
+                                { newSizedModel
+                                    | searchBar =
+                                        Expanded
+                                            { query = ""
+                                            , selectionMade = False
+                                            , showAutocomplete = False
+                                            , selection = 0
+                                            }
+                                }
+
+                            else
+                                newSizedModel
+            in
+            ( newModel, [] )
+
+        _ ->
+            ( model, [] )
+
+
+update : Msg -> Model -> ( Model, List Effect )
 update msg model =
     case msg of
-        Noop ->
-            ( model, Cmd.none )
-
         FilterMsg query ->
             let
                 newModel =
@@ -156,58 +219,20 @@ update msg model =
                         _ ->
                             model
             in
-                ( newModel
-                , Cmd.batch
-                    [ Task.attempt (always Noop) (Dom.focus "search-input-field")
-                    , Navigation.modifyUrl (queryStringFromSearch query)
-                    ]
-                )
-
-        UserFetched user ->
-            case user of
-                RemoteData.Success user ->
-                    ( { model | userState = UserStateLoggedIn user }, Cmd.none )
-
-                _ ->
-                    ( { model | userState = UserStateLoggedOut }
-                    , Cmd.none
-                    )
-
-        LogIn ->
-            ( model
-            , LoginRedirect.requestLoginRedirect ""
+            ( newModel
+            , [ ForceFocus "search-input-field"
+              , ModifyUrl (queryStringFromSearch query)
+              ]
             )
 
+        LogIn ->
+            ( model, [ RedirectToLogin ] )
+
         LogOut ->
-            ( model, logOut )
-
-        LoggedOut (Ok ()) ->
-            let
-                redirectUrl =
-                    case model.searchBar of
-                        Invisible ->
-                            Routes.dashboardHdRoute
-
-                        _ ->
-                            Routes.dashboardRoute
-            in
-                ( { model
-                    | userState = UserStateLoggedOut
-                    , userMenuVisible = False
-                    , teams = RemoteData.Loading
-                  }
-                , Navigation.newUrl redirectUrl
-                )
-
-        LoggedOut (Err err) ->
-            flip always (Debug.log "failed to log out" err) <|
-                ( model, Cmd.none )
+            ( model, [ SendLogOutRequest ] )
 
         ToggleUserMenu ->
-            ( { model | userMenuVisible = not model.userMenuVisible }, Cmd.none )
-
-        TeamsFetched response ->
-            ( { model | teams = response }, Cmd.none )
+            ( { model | userMenuVisible = not model.userMenuVisible }, [] )
 
         FocusMsg ->
             let
@@ -216,30 +241,26 @@ update msg model =
                         Expanded r ->
                             { model | searchBar = Expanded { r | showAutocomplete = True } }
 
-                        _ ->
+                        Collapsed ->
                             model
             in
-                ( newModel, Cmd.none )
+            ( newModel, [] )
 
         BlurMsg ->
             let
                 newModel =
                     case model.searchBar of
                         Expanded r ->
-                            case r.screenSize of
-                                Mobile ->
-                                    if String.isEmpty r.query then
-                                        { model | searchBar = Collapsed }
-                                    else
-                                        { model | searchBar = Expanded { r | showAutocomplete = False, selectionMade = False, selection = 0 } }
+                            if model.screenSize == Mobile && String.isEmpty r.query then
+                                { model | searchBar = Collapsed }
 
-                                Desktop ->
-                                    { model | searchBar = Expanded { r | showAutocomplete = False, selectionMade = False, selection = 0 } }
+                            else
+                                { model | searchBar = Expanded { r | showAutocomplete = False, selectionMade = False, selection = 0 } }
 
-                        _ ->
+                        Collapsed ->
                             model
             in
-                ( newModel, Cmd.none )
+            ( newModel, [] )
 
         SelectMsg index ->
             let
@@ -248,22 +269,24 @@ update msg model =
                         Expanded r ->
                             { model | searchBar = Expanded { r | selectionMade = True, selection = index + 1 } }
 
-                        _ ->
+                        Collapsed ->
                             model
             in
-                ( newModel, Cmd.none )
+            ( newModel, [] )
 
         KeyDown keycode ->
             case model.searchBar of
                 Expanded r ->
                     if not r.showAutocomplete then
-                        ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0 } }, Cmd.none )
+                        ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0 } }, [] )
+
                     else
                         case keycode of
                             -- enter key
                             13 ->
                                 if not r.selectionMade then
-                                    ( model, Cmd.none )
+                                    ( model, [] )
+
                                 else
                                     let
                                         options =
@@ -280,88 +303,51 @@ update msg model =
                                                 Just item ->
                                                     item
                                     in
-                                        ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0, query = selectedItem } }
-                                        , Cmd.none
-                                        )
+                                    ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0, query = selectedItem } }, [] )
 
                             -- up arrow
                             38 ->
-                                ( { model | searchBar = Expanded { r | selectionMade = True, selection = r.selection - 1 } }, Cmd.none )
+                                ( { model | searchBar = Expanded { r | selectionMade = True, selection = r.selection - 1 } }, [] )
 
                             -- down arrow
                             40 ->
-                                ( { model | searchBar = Expanded { r | selectionMade = True, selection = r.selection + 1 } }, Cmd.none )
+                                ( { model | searchBar = Expanded { r | selectionMade = True, selection = r.selection + 1 } }, [] )
 
                             -- escape key
                             27 ->
-                                ( model, Task.attempt (always Noop) (Dom.blur "search-input-field") )
+                                ( model, [ ForceFocus "search-input-field" ] )
 
                             _ ->
-                                ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0 } }, Cmd.none )
+                                ( { model | searchBar = Expanded { r | selectionMade = False, selection = 0 } }, [] )
 
-                _ ->
-                    ( model, Cmd.none )
+                Collapsed ->
+                    ( model, [] )
 
         ShowSearchInput ->
             showSearchInput model
 
-        ScreenResized size ->
-            let
-                newSize =
-                    getScreenSize size
 
-                newModel =
-                    case ( model.searchBar, newSize ) of
-                        ( Expanded r, _ ) ->
-                            case ( r.screenSize, newSize ) of
-                                ( Desktop, Mobile ) ->
-                                    if String.isEmpty r.query then
-                                        { model | searchBar = Collapsed }
-                                    else
-                                        { model | searchBar = Expanded { r | screenSize = newSize } }
-
-                                _ ->
-                                    { model | searchBar = Expanded { r | screenSize = newSize } }
-
-                        ( Collapsed, Desktop ) ->
-                            { model
-                                | searchBar =
-                                    Expanded
-                                        { query = ""
-                                        , selectionMade = False
-                                        , showAutocomplete = False
-                                        , selection = 0
-                                        , screenSize = Desktop
-                                        }
-                            }
-
-                        _ ->
-                            model
-            in
-                ( newModel, Cmd.none )
-
-
-showSearchInput : Model -> ( Model, Cmd Msg )
+showSearchInput : Model -> ( Model, List Effect )
 showSearchInput model =
     let
         newModel =
             { model
-                | searchBar =
+                | screenSize = Mobile
+                , searchBar =
                     Expanded
                         { query = ""
                         , selectionMade = False
                         , showAutocomplete = False
                         , selection = 0
-                        , screenSize = Mobile
                         }
             }
     in
-        case model.searchBar of
-            Collapsed ->
-                ( newModel, Task.attempt (always Noop) (Dom.focus "search-input-field") )
+    case model.searchBar of
+        Collapsed ->
+            ( newModel, [ ForceFocus "search-input-field" ] )
 
-            _ ->
-                ( model, Cmd.none )
+        Expanded _ ->
+            ( model, [] )
 
 
 viewUserState : { a | userState : UserState, userMenuVisible : Bool } -> List (Html Msg)
@@ -398,6 +384,7 @@ viewUserState { userState, userMenuVisible } =
                             ]
                             [ Html.div [] [ Html.text "logout" ] ]
                         ]
+
                     else
                         []
                    )
@@ -431,26 +418,25 @@ view : Model -> Html Msg
 view model =
     Html.div [ id "top-bar-app", style Styles.topBarCSS ] <|
         viewConcourseLogo
-            ++ (List.intersperse viewBreadcrumbSeparator
-                    (case model.route.logical of
-                        Routes.Pipeline teamName pipelineName ->
-                            viewPipelineBreadcrumb (Routes.toString model.route.logical) pipelineName
+            ++ List.intersperse viewBreadcrumbSeparator
+                (case model.route.logical of
+                    Routes.Pipeline teamName pipelineName ->
+                        viewPipelineBreadcrumb (Routes.toString model.route.logical) pipelineName
 
-                        Routes.Build teamName pipelineName jobName buildNumber ->
-                            viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName)) pipelineName
-                                ++ viewJobBreadcrumb (Routes.toString (Routes.Job teamName pipelineName jobName))
+                    Routes.Build teamName pipelineName jobName buildNumber ->
+                        viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName)) pipelineName
+                            ++ viewJobBreadcrumb (Routes.toString (Routes.Job teamName pipelineName jobName))
 
-                        Routes.Resource teamName pipelineName resourceName ->
-                            viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName)) pipelineName
-                                ++ (viewResourceBreadcrumb resourceName)
+                    Routes.Resource teamName pipelineName resourceName ->
+                        viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName)) pipelineName
+                            ++ viewResourceBreadcrumb resourceName
 
-                        Routes.Job teamName pipelineName jobName ->
-                            viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName)) pipelineName
+                    Routes.Job teamName pipelineName jobName ->
+                        viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName)) pipelineName
 
-                        _ ->
-                            []
-                    )
-               )
+                    _ ->
+                        []
+                )
 
 
 viewConcourseLogo : List (Html Msg)
@@ -504,11 +490,8 @@ decodeName name =
 viewMiddleSection : Model -> List (Html Msg)
 viewMiddleSection model =
     case model.searchBar of
-        Invisible ->
-            []
-
         Collapsed ->
-            [ Html.div [ css <| Styles.middleSection model.searchBar ]
+            [ Html.div [ css <| Styles.middleSection model ]
                 [ Html.a
                     [ id "search-button"
                     , onClick ShowSearchInput
@@ -519,20 +502,21 @@ viewMiddleSection model =
             ]
 
         Expanded r ->
-            [ Html.div [ css <| Styles.middleSection model.searchBar ] <|
-                (searchInput r
+            [ Html.div [ css <| Styles.middleSection model ] <|
+                (searchInput { query = r.query, screenSize = model.screenSize }
                     ++ (if r.showAutocomplete then
                             [ Html.ul
-                                [ css <| Styles.searchOptionsList r.screenSize ]
+                                [ css <| Styles.searchOptionsList model.screenSize ]
                                 (viewAutocomplete
                                     { query = r.query
                                     , teams = model.teams
                                     , selectionMade = r.selectionMade
                                     , selection = r.selection
-                                    , screenSize = r.screenSize
+                                    , screenSize = model.screenSize
                                     }
                                 )
                             ]
+
                         else
                             []
                        )
@@ -559,47 +543,38 @@ viewAutocomplete r =
         options =
             autocompleteOptions r
     in
-        options
-            |> List.indexedMap
-                (\index option ->
-                    let
-                        active =
-                            r.selectionMade && index == (r.selection - 1) % List.length options
-                    in
-                        Html.li
-                            [ onMouseDown (FilterMsg option)
-                            , onMouseOver (SelectMsg index)
-                            , css <| Styles.searchOption { screenSize = r.screenSize, active = active }
-                            ]
-                            [ Html.text option ]
-                )
+    options
+        |> List.indexedMap
+            (\index option ->
+                let
+                    active =
+                        r.selectionMade && index == (r.selection - 1) % List.length options
+                in
+                Html.li
+                    [ onMouseDown (FilterMsg option)
+                    , onMouseOver (SelectMsg index)
+                    , css <| Styles.searchOption { screenSize = r.screenSize, active = active }
+                    ]
+                    [ Html.text option ]
+            )
 
 
 viewUserInfo : Model -> List (Html Msg)
 viewUserInfo model =
     case model.searchBar of
         Expanded r ->
-            case r.screenSize of
+            case model.screenSize of
                 Mobile ->
                     []
 
                 Desktop ->
                     [ Html.div [ css Styles.userInfo ] (viewUserState model) ]
 
-        _ ->
+                BigDesktop ->
+                    [ Html.div [ css Styles.userInfo ] (viewUserState model) ]
+
+        Collapsed ->
             [ Html.div [ css Styles.userInfo ] (viewUserState model) ]
-
-
-fetchUser : Cmd Msg
-fetchUser =
-    Cmd.map UserFetched <|
-        RemoteData.asCmd Concourse.User.fetchUser
-
-
-fetchTeams : Cmd Msg
-fetchTeams =
-    Cmd.map TeamsFetched <|
-        RemoteData.asCmd Concourse.Team.fetchTeams
 
 
 autocompleteOptions : { a | query : String, teams : RemoteData.WebData (List Concourse.Team) } -> List String
@@ -621,8 +596,3 @@ autocompleteOptions { query, teams } =
 
         _ ->
             []
-
-
-logOut : Cmd Msg
-logOut =
-    Task.attempt LoggedOut Concourse.User.logOut
