@@ -25,7 +25,7 @@ WORKDIR /src
 # download go modules separately to enable caching
 COPY go.mod .
 COPY go.sum .
-RUN go mod download
+RUN grep '^replace' go.mod || go mod download
 
 # download yarn packages separately to enable caching
 COPY package.json .
