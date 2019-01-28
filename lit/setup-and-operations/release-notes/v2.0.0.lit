@@ -105,8 +105,8 @@
   }
 
   \note{feature}{
-    \reference{fly-cli}{Fly} learned the \reference{fly-pause-resource} and
-    \reference{fly-unpause-resource} commands, thanks to pull requests from
+    \reference{fly-cli}{Fly} learned the \code{fly-pause-resource} and
+    \code{fly-unpause-resource} commands, thanks to pull requests from
     \ghuser{gregarcara}!
   }
 
