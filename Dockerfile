@@ -25,16 +25,7 @@ WORKDIR /src
 # download go modules separately to enable caching
 COPY go.mod .
 COPY go.sum .
-RUN go mod download
-
-# download yarn packages separately to enable caching
-COPY package.json .
-COPY yarn.lock .
-RUN yarn install
-
-# build web UI separately so we only build if necessary
-COPY web web
-RUN yarn build
+RUN grep '^replace' go.mod || go mod download
 
 # build Concourse
 COPY . .

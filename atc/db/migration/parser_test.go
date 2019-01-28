@@ -91,7 +91,10 @@ var _ = Describe("Parser", func() {
 
 				migration, err := parser.ParseFileToMigration("3000_some_no_transaction_migration.up.sql")
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(migration.Statements)).To(Equal(1))
+				// this used to test for the length being 1 but forcing it to be one statement
+				// breaks non-transaction migrations that have more than one statement so
+				// this is now being changed.
+				Expect(len(migration.Statements)).To(Equal(2))
 			})
 		})
 	})

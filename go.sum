@@ -117,7 +117,6 @@ github.com/elazarl/go-bindata-assetfs v1.0.0 h1:G/bYguwHIzWq9ZoyUQqrjTmJbbYn3j3C
 github.com/elazarl/go-bindata-assetfs v1.0.0/go.mod h1:v+YaWX3bdea5J/mo8dSETolEo7R71Vk1u8bnjau5yw4=
 github.com/emicklei/go-restful v2.8.0+incompatible h1:wN8GCRDPGHguIynsnBartv5GUgGUg1LAU7+xnSn1j7Q=
 github.com/emicklei/go-restful v2.8.0+incompatible/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
-github.com/evandigby/go-msgpack v0.0.0-20180728010727-b3f48f4eda2a/go.mod h1:NMtcr9ZZILO5qKl54Ny2dWuXzQXs4OEhSH+nK4lY7Yg=
 github.com/fatih/color v1.7.0 h1:DkWD4oS2D8LGGgTQ6IvwJJXSL5Vp2ffcQg58nFV38Ys=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/fatih/structs v1.0.0 h1:BrX964Rv5uQ3wwS+KRUAJCBBw5PQmgJfJ6v4yly5QwU=
@@ -200,7 +199,6 @@ github.com/hashicorp/go-immutable-radix v1.0.0 h1:AKDB1HM5PWEA7i4nhcpwOrO2byshxB
 github.com/hashicorp/go-immutable-radix v1.0.0/go.mod h1:0y9vanUI8NX6FsYoO3zeMjhV/C5i9g4Q3DwcSNZ4P60=
 github.com/hashicorp/go-memdb v0.0.0-20180223233045-1289e7fffe71 h1:yxxFgVz31vFoKKTtRUNbXLNe4GFnbLKqg+0N7yG42L8=
 github.com/hashicorp/go-memdb v0.0.0-20180223233045-1289e7fffe71/go.mod h1:kbfItVoBJwCfKXDXN4YoAXjxcFVZ7MRrJzyTX6H4giE=
-github.com/hashicorp/go-msgpack v0.0.0-20150518234257-fa3f63826f7c/go.mod h1:ahLV/dePpqEmjfWmKiqvPkv/twdG7iPBM1vqhUKIvfM=
 github.com/hashicorp/go-msgpack v0.5.3 h1:zKjpN5BK/P5lMYrLmBHdBULWbJ0XpYR+7NGzqkZzoD4=
 github.com/hashicorp/go-msgpack v0.5.3/go.mod h1:ahLV/dePpqEmjfWmKiqvPkv/twdG7iPBM1vqhUKIvfM=
 github.com/hashicorp/go-multierror v1.0.0 h1:iVjPR7a6H0tWELX5NxNe7bYopibicUzc7uPribsnS6o=
@@ -324,8 +322,6 @@ github.com/opencontainers/runc v0.1.1 h1:GlxAyO6x8rfZYN9Tt0Kti5a/cP41iuiO2yYT0IJ
 github.com/opencontainers/runc v0.1.1/go.mod h1:qT5XzbpPznkRYVz/mWwUaVBUv2rmF59PVA73FjuZG0U=
 github.com/ory/dockertest v3.3.2+incompatible h1:uO+NcwH6GuFof/Uz8yzjNi1g0sGT5SLAJbdBvD8bUYc=
 github.com/ory/dockertest v3.3.2+incompatible/go.mod h1:1vX4m9wsvi00u5bseYwXaSnhNrne+V0E6LAcBILJdPs=
-github.com/papertrail/remote_syslog2 v0.0.0-20170912230402-5bae4a1ac1c2 h1:jyEKV+Fvg1mgmvjp10Ybcia7Odslj+r7MTcZgl+/LNw=
-github.com/papertrail/remote_syslog2 v0.0.0-20170912230402-5bae4a1ac1c2/go.mod h1:bKQTGf39M2hRwOZCSh/I+LoV6PUW857XAAwzYQKqeBw=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c h1:Lgl0gzECD8GnQ5QCWA8o6BtfL6mDH5rQgM4/fX3avOs=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaRUnok+kx1WdO15EQc=
@@ -360,6 +356,8 @@ github.com/prometheus/procfs v0.0.0-20170216223256-a1dba9ce8bae h1:nbLP9B5vU3a/0
 github.com/prometheus/procfs v0.0.0-20170216223256-a1dba9ce8bae/go.mod h1:c3At6R/oaqEKCNdg8wHV1ftS6bRYblBhIjjI8uT2IGk=
 github.com/prometheus/procfs v0.0.0-20181204211112-1dc9a6cbc91a h1:9a8MnZMP0X2nLJdBg+pBmGgkJlSaKC2KaQmTCk1XDtE=
 github.com/prometheus/procfs v0.0.0-20181204211112-1dc9a6cbc91a/go.mod h1:c3At6R/oaqEKCNdg8wHV1ftS6bRYblBhIjjI8uT2IGk=
+github.com/racksec/srslog v0.0.0-20180709174129-a4725f04ec91 h1:3hihQaxFTzBL1t5bTYaPhEwL4rxD3zjSgu4afGzgQqI=
+github.com/racksec/srslog v0.0.0-20180709174129-a4725f04ec91/go.mod h1:eTUUVgGNb+mCsEJeJnwl/Kaaem9IXKa1ZZL5zN4fTag=
 github.com/russellhaering/goxmldsig v0.0.0-20170324122954-eaac44c63fe0 h1:jhWWGMYDGjj/PmvsUkFkhlvBhOR0y8ZJW7OY/21F8FY=
 github.com/russellhaering/goxmldsig v0.0.0-20170324122954-eaac44c63fe0/go.mod h1:Oz4y6ImuOQZxynhbSXk7btjEfNBtGlj2dcaOvXl2FSM=
 github.com/ryanuber/go-glob v0.0.0-20170128012129-256dc444b735 h1:7YvPJVmEeFHR1Tj9sZEYsmarJEQfMVYpd/Vyy/A8dqE=

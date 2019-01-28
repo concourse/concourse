@@ -8,16 +8,15 @@ This doc will go over the basics of developing Concourse and testing your
 changes.
 
 If you run into any trouble, feel free to hang out and ask for help in in
-[Discord](https://discord.gg/MeRxXKW)! We'll grant you the `@contributors` role
-on request (just ask in `#introductions`), which will allow you to chat in the
-`#contributors` channel where you can ask for help or get feedback on something
-you're working on.
+[Discord][discord]! We'll grant you the `@contributors` role on request (just
+ask in `#introductions`), which will allow you to chat in the `#contributors`
+channel where you can ask for help or get feedback on something you're working
+on.
 
 
 ## Contribution process
 
-* [Fork this repo](https://help.github.com/articles/fork-a-repo/) into your
-  GitHub account.
+* [Fork this repo][how-to-fork] into your GitHub account.
 
 * Install the [development dependencies](#development-dependencies) and follow
   the instructions below for [running](#running-concourse) and
@@ -29,15 +28,12 @@ you're working on.
     merged. For instruction on writing and running the various test suites, see
     [Testing your changes](#testing-your-changes).
 
-  * All commits must have a signature certifying agreement to the [Developer
-    Certificate of Origin](https://developercertificate.org). For more
-    information, see [Signing your work](#signing-your-work).
+  * All commits must have a signature certifying agreement to the [DCO][dco].
+    For more information, see [Signing your work](#signing-your-work).
 
-  * *Optional: check out our [Go style
-    guide](https://github.com/concourse/concourse/wiki/Concourse-Go-Style-Guide)!*
+  * *Optional: check out our [Go style guide][style-guide]!*
 
-* When you're ready, [submit a pull
-  request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/)!
+* When you're ready, [submit a pull request][how-to-pr]!
 
 
 ## Development dependencies
@@ -56,15 +52,16 @@ development:
 
 ## Running Concourse
 
-To build and run a Concourse cluster from source, run the following in the root
-of this repo:
+To build and run Concourse from source, run the following in the root of this
+repo:
 
 ```sh
+$ yarn install
+$ yarn build
 $ docker-compose up
 ```
 
-Concourse will be running and reachable at
-[localhost:8080](http://localhost:8080).
+Concourse will be running at [localhost:8080](http://localhost:8080).
 
 ### Building `fly` and targeting your local Concourse
 
@@ -135,23 +132,14 @@ command is still running.
 Concourse is written in Go, but the web UI is written in
 [Elm](https://elm-lang.org) and [Less](http://lesscss.org/).
 
-To build the web UI, first install the dependencies:
-
-```sh
-$ yarn install
-```
-
-Then, run the following to compile everything for the first time:
+After making changes to `web/`, run the following to rebuild the web UI assets:
 
 ```sh
 $ yarn build
 ```
 
-These steps are automatically run during `docker-compose up`. When new assets
-are built locally, they will automatically propagate to the `web` container
-without requiring a restart or rebuild. This works by using a Docker shared
-volume and having the dev binary read assets from disk instead of embedding
-them.
+When new assets are built locally, they will automatically propagate to the
+`web` container without requiring a restart.
 
 For a quicker feedback cycle, you'll probably want to use `watch` instead of
 `build`:
@@ -386,3 +374,9 @@ Date:   Tue Dec 18 12:06:07 2018 -0500
 If you forgot to add the signature, you can run `git commit --amend -s`. Note
 that you will have to force-push (`push -f`) after amending if you've already
 pushed commits without the signature.
+
+[discord]: https://discord.gg/MeRxXKW
+[dco]: https://developercertificate.org
+[style-guide]: https://github.com/concourse/concourse/wiki/Concourse-Go-Style-Guide
+[how-to-fork]: https://help.github.com/articles/fork-a-repo/
+[how-to-pr]: https://help.github.com/articles/creating-a-pull-request-from-a-fork/
