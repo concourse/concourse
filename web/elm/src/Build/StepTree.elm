@@ -5,10 +5,10 @@ module Build.StepTree exposing
     , map
     , parseHighlight
     , setHighlight
-    , setHovering
     , switchTab
     , toggleStep
     , updateAt
+    , updateTooltip
     , view
     )
 
@@ -29,7 +29,7 @@ import Build.Models
         , TabFocus(..)
         , Version
         )
-import Build.Msgs exposing (HoveredButton(..), Msg(..), StepID)
+import Build.Msgs exposing (Hoverable(..), Msg(..), StepID)
 import Build.Styles as Styles
 import Concourse
 import Date exposing (Date)
@@ -344,13 +344,23 @@ toggleExpanded { expanded, state } =
     Just <| not <| Maybe.withDefault (autoExpanded state) expanded
 
 
-setHovering : HoveredButton -> StepTreeModel -> ( StepTreeModel, List Effect )
-setHovering hovered model =
+updateTooltip :
+    { a
+        | hoveredElement : Maybe Hoverable
+        , hoveredCounter : Int
+    }
+    -> StepTreeModel
+    -> ( StepTreeModel, List Effect )
+updateTooltip { hoveredElement, hoveredCounter } model =
     let
         newTooltip =
-            case hovered of
-                FirstOccurrence id ->
-                    Just id
+            case hoveredElement of
+                Just (FirstOccurrence id) ->
+                    if hoveredCounter > 0 then
+                        Just id
+
+                    else
+                        Nothing
 
                 _ ->
                     Nothing
@@ -806,8 +816,8 @@ viewStepHeaderIcon headerType tooltip id =
     let
         eventHandlers =
             if headerType == StepHeaderGet True then
-                [ onMouseLeave <| Hover Neither
-                , onMouseEnter <| Hover (FirstOccurrence id)
+                [ onMouseLeave <| Hover Nothing
+                , onMouseEnter <| Hover (Just (FirstOccurrence id))
                 ]
 
             else
@@ -819,6 +829,9 @@ viewStepHeaderIcon headerType tooltip id =
             [ Html.div
                 [ style Styles.firstOccurrenceTooltip ]
                 [ Html.text "new version" ]
+            , Html.div
+                [ style Styles.firstOccurrenceTooltipArrow ]
+                []
             ]
 
          else

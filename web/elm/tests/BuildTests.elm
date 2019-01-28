@@ -326,8 +326,8 @@ all =
                                     , image = "ic-add-circle-outline-white.svg"
                                     }
                         }
-                    , mouseEnterMsg = Msgs.Hover Msgs.Trigger
-                    , mouseLeaveMsg = Msgs.Hover Msgs.Neither
+                    , mouseEnterMsg = Msgs.Hover <| Just Msgs.Trigger
+                    , mouseLeaveMsg = Msgs.Hover Nothing
                     }
                 ]
             , describe "when history and details witche dwith maual triggering disabled" <|
@@ -400,8 +400,8 @@ all =
                                         }
                             ]
                         }
-                    , mouseEnterMsg = Msgs.Hover Msgs.Trigger
-                    , mouseLeaveMsg = Msgs.Hover Msgs.Neither
+                    , mouseEnterMsg = Msgs.Hover <| Just Msgs.Trigger
+                    , mouseLeaveMsg = Msgs.Hover Nothing
                     }
                 ]
             ]
@@ -515,8 +515,8 @@ all =
                                 , image = "ic-abort-circle-outline-white.svg"
                                 }
                     }
-                , mouseEnterMsg = Msgs.Hover Msgs.Abort
-                , mouseLeaveMsg = Msgs.Hover Msgs.Neither
+                , mouseEnterMsg = Msgs.Hover <| Just Msgs.Abort
+                , mouseLeaveMsg = Msgs.Hover Nothing
                 }
             , describe "build prep section"
                 [ test "when pipeline is not paused, shows a check" <|
@@ -800,12 +800,10 @@ all =
                         >> Event.simulate Event.mouseEnter
                         >> Event.toResult
                         >> Expect.err
-                , defineHoverBehaviour
-                    { name = "yellow resource down arrow"
-                    , setup =
-                        fetchPlanWithGetStepWithFirstOccurrence ()
-                    , query =
-                        Build.view
+                , describe "yellow resource down arrow hover behaviour"
+                    [ test "yellow resource down arrow has no tooltip" <|
+                        fetchPlanWithGetStepWithFirstOccurrence
+                            >> Build.view
                             >> Query.fromHtml
                             >> Query.findAll
                                 (iconSelector
@@ -814,34 +812,141 @@ all =
                                     }
                                 )
                             >> Query.first
-                    , updateFunc = \msg -> Build.update msg >> Tuple.first
-                    , unhoveredSelector =
-                        { description = "no tooltip", selector = [] }
-                    , hoveredSelector =
-                        { description = "grey plus icon with tooltip"
-                        , selector =
-                            [ style [ ( "position", "relative" ) ]
-                            , containing
-                                [ containing
-                                    [ text "new version" ]
-                                , style
-                                    [ ( "position", "absolute" )
-                                    , ( "left", "100%" )
-                                    , ( "bottom", "50%" )
-                                    , ( "background-color", tooltipGreyHex )
-                                    , ( "padding", "10px" )
-                                    , ( "z-index", "100" )
-                                    , ( "width", "6em" )
+                            >> Query.children []
+                            >> Query.count (Expect.equal 0)
+                    , test "hovering over yellow arrow triggers Hover message" <|
+                        fetchPlanWithGetStepWithFirstOccurrence
+                            >> Build.view
+                            >> Query.fromHtml
+                            >> Query.findAll
+                                (iconSelector
+                                    { size = "28px"
+                                    , image = "ic-arrow-downward-yellow.svg"
+                                    }
+                                )
+                            >> Query.first
+                            >> Event.simulate Event.mouseEnter
+                            >> Event.expect
+                                (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                    , test "no tooltip before 1 second has passed" <|
+                        fetchPlanWithGetStepWithFirstOccurrence
+                            >> Build.update
+                                (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                            >> Tuple.first
+                            >> Build.view
+                            >> Query.fromHtml
+                            >> Query.findAll
+                                (iconSelector
+                                    { size = "28px"
+                                    , image = "ic-arrow-downward-yellow.svg"
+                                    }
+                                )
+                            >> Query.first
+                            >> Query.children []
+                            >> Query.count (Expect.equal 0)
+                    , test "1 second after hovering, tooltip appears" <|
+                        fetchPlanWithGetStepWithFirstOccurrence
+                            >> Build.update (Msgs.ClockTick 0)
+                            >> Tuple.first
+                            >> Build.update
+                                (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                            >> Tuple.first
+                            >> Build.update (Msgs.ClockTick 1)
+                            >> Tuple.first
+                            >> Build.view
+                            >> Query.fromHtml
+                            >> Query.findAll
+                                (iconSelector
+                                    { size = "28px"
+                                    , image = "ic-arrow-downward-yellow.svg"
+                                    }
+                                )
+                            >> Query.first
+                            >> Query.has
+                                [ style [ ( "position", "relative" ) ]
+                                , containing
+                                    [ containing
+                                        [ text "new version" ]
+                                    , style
+                                        [ ( "position", "absolute" )
+                                        , ( "left", "0" )
+                                        , ( "bottom", "100%" )
+                                        , ( "background-color", tooltipGreyHex )
+                                        , ( "padding", "5px" )
+                                        , ( "z-index", "100" )
+                                        , ( "width", "6em" )
+                                        , ( "pointer-events", "none" )
+                                        , ( "cursor", "default" )
+                                        , ( "user-select", "none" )
+                                        , ( "-ms-user-select", "none" )
+                                        , ( "-moz-user-select", "none" )
+                                        , ( "-khtml-user-select", "none" )
+                                        , ( "-webkit-user-select", "none" )
+                                        , ( "-webkit-touch-callout", "none" )
+                                        ]
+                                    ]
+                                , containing
+                                    [ style
+                                        [ ( "width", "0" )
+                                        , ( "height", "0" )
+                                        , ( "left", "50%" )
+                                        , ( "margin-left", "-5px" )
+                                        , ( "border-top"
+                                          , "5px solid " ++ tooltipGreyHex
+                                          )
+                                        , ( "border-left", "5px solid transparent" )
+                                        , ( "border-right", "5px solid transparent" )
+                                        , ( "position", "absolute" )
+                                        ]
                                     ]
                                 ]
-                            ]
-                        }
-                    , mouseEnterMsg = Msgs.Hover (Msgs.FirstOccurrence "foo")
-                    , mouseLeaveMsg = Msgs.Hover Msgs.Neither
-                    }
+                    , test "mousing off yellow arrow triggers Hover message" <|
+                        fetchPlanWithGetStepWithFirstOccurrence
+                            >> Build.update
+                                (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                            >> Tuple.first
+                            >> Build.view
+                            >> Query.fromHtml
+                            >> Query.findAll
+                                (iconSelector
+                                    { size = "28px"
+                                    , image = "ic-arrow-downward-yellow.svg"
+                                    }
+                                )
+                            >> Query.first
+                            >> Event.simulate Event.mouseLeave
+                            >> Event.expect
+                                (Msgs.Hover Nothing)
+                    , test "unhovering after tooltip appears dismisses" <|
+                        fetchPlanWithGetStepWithFirstOccurrence
+                            >> Build.update (Msgs.ClockTick 0)
+                            >> Tuple.first
+                            >> Build.update
+                                (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                            >> Tuple.first
+                            >> Build.update (Msgs.ClockTick 1)
+                            >> Tuple.first
+                            >> Build.update (Msgs.Hover Nothing)
+                            >> Tuple.first
+                            >> Build.view
+                            >> Query.fromHtml
+                            >> Query.findAll
+                                (iconSelector
+                                    { size = "28px"
+                                    , image = "ic-arrow-downward-yellow.svg"
+                                    }
+                                )
+                            >> Query.first
+                            >> Query.children []
+                            >> Query.count (Expect.equal 0)
+                    ]
                 , test "hovering one resource of several produces only a single tooltip" <|
                     fetchPlanWithGetStepWithFirstOccurrence
-                        >> Build.update (Msgs.Hover (Msgs.FirstOccurrence "foo"))
+                        >> Build.update (Msgs.ClockTick 0)
+                        >> Tuple.first
+                        >> Build.update (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                        >> Tuple.first
+                        >> Build.update (Msgs.ClockTick 1)
                         >> Tuple.first
                         >> Build.view
                         >> Query.fromHtml

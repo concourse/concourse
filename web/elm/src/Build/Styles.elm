@@ -2,6 +2,7 @@ module Build.Styles exposing
     ( abortButton
     , abortIcon
     , firstOccurrenceTooltip
+    , firstOccurrenceTooltipArrow
     , stepHeader
     , stepHeaderIcon
     , stepStatusIcon
@@ -12,6 +13,7 @@ module Build.Styles exposing
 
 import Build.Models exposing (StepHeaderType(..))
 import Colors
+import Styles
 
 
 triggerButton : Bool -> List ( String, String )
@@ -148,10 +150,25 @@ stepStatusIcon image =
 firstOccurrenceTooltip : List ( String, String )
 firstOccurrenceTooltip =
     [ ( "position", "absolute" )
-    , ( "left", "100%" )
-    , ( "bottom", "50%" )
+    , ( "left", "0" )
+    , ( "bottom", "100%" )
     , ( "background-color", Colors.tooltipBackground )
-    , ( "padding", "10px" )
+    , ( "padding", "5px" )
     , ( "z-index", "100" )
     , ( "width", "6em" )
+    , ( "pointer-events", "none" )
+    ]
+        ++ Styles.disableInteraction
+
+
+firstOccurrenceTooltipArrow : List ( String, String )
+firstOccurrenceTooltipArrow =
+    [ ( "width", "0" )
+    , ( "height", "0" )
+    , ( "left", "50%" )
+    , ( "margin-left", "-5px" )
+    , ( "border-top", "5px solid " ++ Colors.tooltipBackground )
+    , ( "border-left", "5px solid transparent" )
+    , ( "border-right", "5px solid transparent" )
+    , ( "position", "absolute" )
     ]

@@ -19,7 +19,7 @@ module Build.Models exposing
 
 import Ansi.Log
 import Array exposing (Array)
-import Build.Msgs exposing (HoveredButton, Msg, StepID)
+import Build.Msgs exposing (Hoverable, Msg, StepID)
 import Concourse
 import Date exposing (Date)
 import Dict exposing (Dict)
@@ -45,7 +45,8 @@ type alias Model =
     , previousTriggerBuildByKey : Bool
     , showHelp : Bool
     , hash : String
-    , hoveredButton : HoveredButton
+    , hoveredElement : Maybe Hoverable
+    , hoveredCounter : Int
     }
 
 

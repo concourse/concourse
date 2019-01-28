@@ -1,4 +1,4 @@
-module Build.Msgs exposing (HoveredButton(..), Msg(..), StepID)
+module Build.Msgs exposing (Hoverable(..), Msg(..), StepID)
 
 import Concourse
 import Concourse.BuildEvents
@@ -11,7 +11,7 @@ import Time
 type Msg
     = Noop
     | SwitchToBuild Concourse.Build
-    | Hover HoveredButton
+    | Hover (Maybe Hoverable)
     | TriggerBuild (Maybe Concourse.JobIdentifier)
     | AbortBuild Int
     | ScrollBuilds StrictEvents.MouseWheelEvent
@@ -34,8 +34,7 @@ type alias StepID =
     String
 
 
-type HoveredButton
-    = Neither
-    | Abort
+type Hoverable
+    = Abort
     | Trigger
     | FirstOccurrence StepID

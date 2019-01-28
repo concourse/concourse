@@ -11,8 +11,8 @@ module Build exposing
     )
 
 import AnimationFrame
-import Build.Models exposing (Model, OutputModel, Page(..))
-import Build.Msgs exposing (HoveredButton(..), Msg(..))
+import Build.Models as Models exposing (Model, OutputModel, Page(..))
+import Build.Msgs exposing (Hoverable(..), Msg(..), StepID)
 import Build.Output
 import Build.StepTree as StepTree
 import Build.Styles as Styles
@@ -110,7 +110,8 @@ init flags page =
                 , previousTriggerBuildByKey = False
                 , showHelp = False
                 , hash = flags.hash
-                , hoveredButton = Neither
+                , hoveredElement = Nothing
+                , hoveredCounter = 0
                 }
     in
     ( model, effects ++ [ GetCurrentTime ] )
@@ -270,9 +271,15 @@ update action model =
             ( model, [ NavigateTo <| Routes.buildRoute build ] )
 
         Hover state ->
+            let
+                newModel =
+                    { model | hoveredElement = state, hoveredCounter = 0 }
+            in
             updateOutput
-                (Build.Output.handleStepTreeMsg (StepTree.setHovering state))
-                { model | hoveredButton = state }
+                (Build.Output.handleStepTreeMsg <|
+                    StepTree.updateTooltip newModel
+                )
+                newModel
 
         TriggerBuild job ->
             case job of
@@ -319,7 +326,18 @@ update action model =
                 ( model, [ Scroll (Builds -event.deltaX) ] )
 
         ClockTick now ->
-            ( { model | now = Just now }, [] )
+            let
+                newModel =
+                    { model
+                        | now = Just now
+                        , hoveredCounter = model.hoveredCounter + 1
+                    }
+            in
+            updateOutput
+                (Build.Output.handleStepTreeMsg <|
+                    StepTree.updateTooltip newModel
+                )
+                newModel
 
         WindowScrolled fromBottom ->
             if fromBottom == 0 then
@@ -949,7 +967,7 @@ viewBuildPrepStatus status =
 
 
 viewBuildHeader : Concourse.Build -> Model -> Html Msg
-viewBuildHeader build { now, job, history, hoveredButton } =
+viewBuildHeader build { now, job, history, hoveredElement } =
     let
         triggerButton =
             case job of
@@ -973,7 +991,7 @@ viewBuildHeader build { now, job, history, hoveredButton } =
                                     job.disableManualTrigger
 
                         buttonHovered =
-                            hoveredButton == Trigger
+                            hoveredElement == Just Trigger
 
                         buttonHighlight =
                             buttonHovered && not buttonDisabled
@@ -984,10 +1002,10 @@ viewBuildHeader build { now, job, history, hoveredButton } =
                         , attribute "aria-label" "Trigger Build"
                         , attribute "title" "Trigger Build"
                         , onLeftClick <| TriggerBuild build.job
-                        , onMouseEnter <| Hover Trigger
-                        , onFocus <| Hover Trigger
-                        , onMouseLeave <| Hover Neither
-                        , onBlur <| Hover Neither
+                        , onMouseEnter <| Hover (Just Trigger)
+                        , onFocus <| Hover (Just Trigger)
+                        , onMouseLeave <| Hover Nothing
+                        , onBlur <| Hover Nothing
                         , style <| Styles.triggerButton buttonDisabled
                         ]
                     <|
@@ -1019,14 +1037,18 @@ viewBuildHeader build { now, job, history, hoveredButton } =
                     , attribute "tabindex" "0"
                     , attribute "aria-label" "Abort Build"
                     , attribute "title" "Abort Build"
-                    , onMouseEnter <| Hover Abort
-                    , onFocus <| Hover Abort
-                    , onMouseLeave <| Hover Neither
-                    , onBlur <| Hover Neither
+                    , onMouseEnter <| Hover (Just Abort)
+                    , onFocus <| Hover (Just Abort)
+                    , onMouseLeave <| Hover Nothing
+                    , onBlur <| Hover Nothing
                     , style Styles.abortButton
                     ]
                     [ Html.div
-                        [ style <| Styles.abortIcon <| hoveredButton == Abort ]
+                        [ style <|
+                            Styles.abortIcon <|
+                                hoveredElement
+                                    == Just Abort
+                        ]
                         []
                     ]
 
