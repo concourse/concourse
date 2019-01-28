@@ -8,6 +8,7 @@ import (
 	sl "github.com/racksec/srslog"
 	"io/ioutil"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -17,6 +18,8 @@ const priority = sl.LOG_USER | sl.LOG_INFO
 type Syslog struct {
 	writer *sl.Writer
 	closed bool
+
+	mu     sync.RWMutex
 }
 
 func Dial(transport, address string, caCerts []string) (*Syslog, error) {
@@ -62,7 +65,9 @@ func Dial(transport, address string, caCerts []string) (*Syslog, error) {
 }
 
 func (s *Syslog) Write(hostname, tag string, ts time.Time, msg string) error {
-	if s.closed {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.writer == nil {
 		return errors.New("connection already closed")
 	}
 
@@ -72,12 +77,19 @@ func (s *Syslog) Write(hostname, tag string, ts time.Time, msg string) error {
 }
 
 func (s *Syslog) Close() error {
-	if s.closed {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.writer == nil {
 		return errors.New("connection already closed")
 	}
 
-	s.closed = true
-	return s.writer.Close()
+	err := s.writer.Close()
+	if err == nil {
+		s.writer = nil
+	}
+
+	return err
 }
 
 // generate custom formatter based on hostname and tag

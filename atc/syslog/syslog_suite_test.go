@@ -24,6 +24,7 @@ type testServer struct {
 	ln     net.Listener
 	closed bool
 	wg     *sync.WaitGroup
+	mu     sync.RWMutex
 }
 
 func newTestServer(cert *tls.Certificate) *testServer {
@@ -69,9 +70,13 @@ func (server *testServer) ServeTCP() {
 
 	for {
 		conn, err := server.ln.Accept()
+
+		server.mu.RLock()
 		if server.closed {
+			server.mu.RUnlock()
 			return
 		}
+		server.mu.RUnlock()
 
 		Expect(err).NotTo(HaveOccurred())
 
@@ -97,7 +102,10 @@ func (server *testServer) ServeTCP() {
 }
 
 func (server *testServer) Close() {
+	server.mu.Lock()
 	server.closed = true
+	server.mu.Unlock()
+
 	server.ln.Close()
 	server.wg.Wait()
 }
