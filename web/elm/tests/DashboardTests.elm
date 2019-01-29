@@ -29,7 +29,6 @@ import Html.Styled as HS
 import List.Extra
 import NewTopBar.Msgs
 import QueryString
-import RemoteData
 import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -490,7 +489,7 @@ all =
                 whenOnDashboard { highDensity = True }
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
-                            RemoteData.Success
+                            Ok
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
@@ -501,7 +500,7 @@ all =
                         , Tuple.first
                             >> Dashboard.handleCallback
                                 (Callback.APIDataFetched <|
-                                    RemoteData.Success
+                                    Ok
                                         ( 0
                                         , apiData
                                             [ ( "team", [ "pipeline" ] ) ]
@@ -518,7 +517,7 @@ all =
                                     >> Query.children []
                                     >> Query.index -1
                                     >> Query.has [ text "pending" ]
-                                , Query.has [ tag "input" ]
+                                , Query.hasNot [ tag "input" ]
                                 ]
                         ]
         , test "HD view redirects to no pipelines view when pipelines disappear" <|
@@ -526,7 +525,7 @@ all =
                 whenOnDashboard { highDensity = True }
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
-                            RemoteData.Success
+                            Ok
                                 ( 0
                                 , apiData [ ( "team", [ "pipeline" ] ) ] Nothing
                                 )
@@ -534,7 +533,7 @@ all =
                     |> Tuple.first
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
-                            RemoteData.Success
+                            Ok
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
@@ -551,7 +550,7 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
-                            RemoteData.Success
+                            Ok
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
@@ -564,7 +563,7 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
-                            RemoteData.Success
+                            Ok
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
@@ -577,7 +576,7 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
-                            RemoteData.Success
+                            Ok
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
@@ -590,7 +589,7 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
-                            RemoteData.Success
+                            Ok
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
@@ -604,7 +603,7 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
-                            RemoteData.Success
+                            Ok
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
@@ -2819,7 +2818,7 @@ whenOnDashboard { highDensity } =
         , pipelineRunningKeyframes = pipelineRunningKeyframes
         , route =
             { logical = Routes.Dashboard { isHd = highDensity }
-            , queries = QueryString.empty
+            , queries = QueryString.parse ""
             , page = Nothing
             , hash = ""
             }
@@ -2837,9 +2836,7 @@ queryView =
 givenDataAndUser : (Maybe Concourse.User -> APIData.APIData) -> Concourse.User -> Dashboard.Model -> Dashboard.Model
 givenDataAndUser data user =
     Dashboard.handleCallback
-        (Callback.APIDataFetched <|
-            RemoteData.Success ( 0, data <| Just user )
-        )
+        (Callback.APIDataFetched <| Ok ( 0, data <| Just user ))
         >> Tuple.first
 
 
@@ -2857,9 +2854,7 @@ userWithRoles roles =
 givenDataUnauthenticated : (Maybe Concourse.User -> APIData.APIData) -> Dashboard.Model -> Dashboard.Model
 givenDataUnauthenticated data =
     Dashboard.handleCallback
-        (Callback.APIDataFetched <|
-            RemoteData.Success ( 0, data Nothing )
-        )
+        (Callback.APIDataFetched <| Ok ( 0, data Nothing ))
         >> Tuple.first
 
 

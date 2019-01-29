@@ -10,7 +10,6 @@ import Html.Styled exposing (toUnstyled)
 import NewTopBar.Msgs as Msgs
 import NewestTopBar
 import QueryString
-import RemoteData
 import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -616,7 +615,7 @@ all =
                     >> Tuple.first
                     >> NewestTopBar.handleCallback
                         (Callback.APIDataFetched
-                            (RemoteData.Success
+                            (Ok
                                 ( 0
                                 , { teams = [ Concourse.Team 1 "team1", Concourse.Team 2 "team2" ]
                                   , pipelines = [ onePipeline "team1" ]
@@ -644,7 +643,7 @@ all =
                     >> Tuple.first
                     >> NewestTopBar.handleCallback
                         (Callback.APIDataFetched
-                            (RemoteData.Success
+                            (Ok
                                 ( 0
                                 , { teams =
                                         [ Concourse.Team 1 "team1"

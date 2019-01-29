@@ -31,7 +31,6 @@ import Json.Encode
 import Navigation
 import Process
 import QueryString
-import RemoteData
 import Resource.Models exposing (VersionId, VersionToggleAction(..))
 import Scroll
 import Task
@@ -404,8 +403,7 @@ fetchData : Cmd Callback
 fetchData =
     Dashboard.APIData.remoteData
         |> Task.map2 (,) Time.now
-        |> RemoteData.asCmd
-        |> Cmd.map APIDataFetched
+        |> Task.attempt APIDataFetched
 
 
 togglePipelinePaused : { pipeline : Dashboard.Models.Pipeline, csrfToken : Concourse.CSRFToken } -> Cmd Callback

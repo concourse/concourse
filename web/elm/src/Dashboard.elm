@@ -68,13 +68,12 @@ type alias Flags =
 
 
 type DashboardError
-    = NotAsked
-    | Turbulence String
+    = Turbulence String
 
 
 type alias Model =
     { csrfToken : String
-    , state : Result DashboardError SubState.SubState
+    , state : RemoteData.RemoteData DashboardError SubState.SubState
     , turbulencePath : String
     , highDensity : Bool
     , hoveredPipeline : Maybe Models.Pipeline
@@ -95,7 +94,7 @@ type alias Model =
 
 substateOptional : Monocle.Optional.Optional Model SubState.SubState
 substateOptional =
-    Monocle.Optional.Optional (.state >> Result.toMaybe) (\s m -> { m | state = Ok s })
+    Monocle.Optional.Optional (.state >> RemoteData.toMaybe) (\s m -> { m | state = RemoteData.Success s })
 
 
 init : Flags -> ( Model, List Effect )
@@ -104,7 +103,7 @@ init flags =
         ( topBar, topBarEffects ) =
             NewTopBar.init { route = flags.route, isHd = flags.highDensity }
     in
-    ( { state = Err NotAsked
+    ( { state = RemoteData.NotAsked
       , csrfToken = flags.csrfToken
       , turbulencePath = flags.turbulencePath
       , highDensity = flags.highDensity
@@ -148,16 +147,10 @@ handleCallback msg model =
 handleCallbackWithoutTopBar : Callback -> Model -> ( Model, List Effect )
 handleCallbackWithoutTopBar msg model =
     case msg of
-        APIDataFetched RemoteData.NotAsked ->
-            ( { model | state = Err NotAsked }, [] )
+        APIDataFetched (Err _) ->
+            ( { model | state = RemoteData.Failure (Turbulence model.turbulencePath) }, [] )
 
-        APIDataFetched RemoteData.Loading ->
-            ( { model | state = Err NotAsked }, [] )
-
-        APIDataFetched (RemoteData.Failure _) ->
-            ( { model | state = Err (Turbulence model.turbulencePath) }, [] )
-
-        APIDataFetched (RemoteData.Success ( now, apiData )) ->
+        APIDataFetched (Ok ( now, apiData )) ->
             let
                 groups =
                     Group.groups apiData
@@ -167,16 +160,16 @@ handleCallbackWithoutTopBar msg model =
 
                 newModel =
                     case model.state of
-                        Ok substate ->
+                        RemoteData.Success substate ->
                             { model
                                 | state =
-                                    Ok (SubState.tick now substate)
+                                    RemoteData.Success (SubState.tick now substate)
                             }
 
                         _ ->
                             { model
                                 | state =
-                                    Ok
+                                    RemoteData.Success
                                         { now = now
                                         , dragState = Group.NotDragging
                                         , dropState = Group.NotDropping
@@ -257,12 +250,7 @@ updateWithoutTopBar msg model =
                 newModel =
                     Footer.tick model
               in
-              case model.state of
-                Ok substate ->
-                    { newModel | state = Ok (SubState.tick now substate) }
-
-                _ ->
-                    newModel
+              { newModel | state = RemoteData.map (SubState.tick now) newModel.state }
             , []
             )
 
@@ -285,40 +273,14 @@ updateWithoutTopBar msg model =
         DragStart teamName index ->
             let
                 newModel =
-                    case model.state of
-                        Ok substate ->
-                            { model
-                                | state =
-                                    Ok
-                                        { substate
-                                            | dragState =
-                                                Group.Dragging
-                                                    teamName
-                                                    index
-                                        }
-                            }
-
-                        _ ->
-                            model
+                    { model | state = RemoteData.map (\s -> { s | dragState = Group.Dragging teamName index }) model.state }
             in
             ( newModel, [] )
 
         DragOver teamName index ->
             let
                 newModel =
-                    case model.state of
-                        Ok substate ->
-                            { model
-                                | state =
-                                    Ok
-                                        { substate
-                                            | dropState =
-                                                Group.Dropping index
-                                        }
-                            }
-
-                        _ ->
-                            model
+                    { model | state = RemoteData.map (\s -> { s | dropState = Group.Dropping index }) model.state }
             in
             ( newModel, [] )
 
@@ -406,7 +368,7 @@ updateWithoutTopBar msg model =
             ( { model | screenSize = ScreenSize.fromWindowSize size }, [] )
 
         FromTopBar NewTopBar.Msgs.LogOut ->
-            ( { model | state = Err NotAsked }, [] )
+            ( { model | state = RemoteData.NotAsked }, [] )
 
         FromTopBar NewTopBar.Msgs.ToggleUserMenu ->
             ( { model | userMenuVisible = not model.userMenuVisible }, [] )
@@ -447,13 +409,16 @@ dashboardView model =
     let
         mainContent =
             case model.state of
-                Err NotAsked ->
+                RemoteData.NotAsked ->
                     [ Html.text "" ]
 
-                Err (Turbulence path) ->
+                RemoteData.Loading ->
+                    [ Html.text "" ]
+
+                RemoteData.Failure (Turbulence path) ->
                     [ turbulenceView path ]
 
-                Ok substate ->
+                RemoteData.Success substate ->
                     [ Html.div
                         [ class "dashboard-content" ]
                       <|
