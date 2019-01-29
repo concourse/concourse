@@ -1,7 +1,6 @@
 package db
 
 import (
-	"database/sql"
 	"fmt"
 	"time"
 
@@ -147,26 +146,35 @@ type ContainerOwnerExpiries struct {
 }
 
 func (c resourceConfigCheckSessionContainerOwner) Find(conn Conn) (sq.Eq, bool, error) {
-	var id int
-	err := psql.Select("id").
+	var ids []int
+	rows, err := psql.Select("id").
 		From("resource_config_check_sessions").
 		Where(sq.And{
 			sq.Eq{"resource_config_id": c.resourceConfig.ID()},
 			sq.Expr(fmt.Sprintf("expires_at > NOW() + interval '%d seconds'", int(c.expiries.GraceTime.Seconds()))),
 		}).
 		RunWith(conn).
-		QueryRow().
-		Scan(&id)
+		Query()
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, false, nil
-		}
-
 		return nil, false, err
 	}
 
+	for rows.Next() {
+		var id int
+		err = rows.Scan(&id)
+		if err != nil {
+			return nil, false, err
+		}
+
+		ids = append(ids, id)
+	}
+
+	if len(ids) == 0 {
+		return nil, false, nil
+	}
+
 	return sq.Eq{
-		"resource_config_check_session_id": id,
+		"resource_config_check_session_id": ids,
 	}, true, nil
 }
 

@@ -623,6 +623,7 @@ var _ = Describe("DBProvider", func() {
 			foundWorker, found, findErr = provider.FindWorkerForContainerByOwner(
 				logger,
 				345278,
+				atc.Tags{"some-tag"},
 				fakeOwner,
 			)
 		})
@@ -653,8 +654,10 @@ var _ = Describe("DBProvider", func() {
 			})
 
 			It("found the worker for the right owner", func() {
-				owner := fakeDBWorkerFactory.FindWorkerForContainerByOwnerArgsForCall(0)
+				owner, teamID, tags := fakeDBWorkerFactory.FindWorkerForContainerByOwnerArgsForCall(0)
 				Expect(owner).To(Equal(fakeOwner))
+				Expect(teamID).To(Equal(345278))
+				Expect(tags).To(Equal(atc.Tags{"some-tag"}))
 			})
 
 			Context("when the worker version is outdated", func() {

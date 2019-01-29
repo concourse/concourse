@@ -20,7 +20,7 @@ type WorkerFactory interface {
 	Workers() ([]Worker, error)
 	VisibleWorkers([]string) ([]Worker, error)
 
-	FindWorkerForContainerByOwner(ContainerOwner) (Worker, bool, error)
+	FindWorkerForContainerByOwner(ContainerOwner, int, atc.Tags) (Worker, bool, error)
 	BuildContainersCountPerWorker() (map[string]int, error)
 }
 
@@ -321,7 +321,20 @@ func (f *workerFactory) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Wor
 	return savedWorker, nil
 }
 
-func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner) (Worker, bool, error) {
+func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner, teamID int, tags atc.Tags) (Worker, bool, error) {
+	var teamWorkers int
+
+	err := psql.Select("COUNT (1)").
+		From("workers").
+		Where(sq.Eq{
+			"team_id": teamID,
+		}).
+		RunWith(f.conn).
+		Scan(&teamWorkers)
+	if err != nil {
+		return nil, false, err
+	}
+
 	ownerQuery, found, err := owner.Find(f.conn)
 	if err != nil {
 		return nil, false, err
@@ -332,13 +345,30 @@ func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner) (Wor
 	}
 
 	ownerEq := sq.Eq{}
+	if teamWorkers > 0 {
+		ownerEq["t.id"] = teamID
+	} else {
+		ownerEq["t.id"] = nil
+	}
+
 	for k, v := range ownerQuery {
 		ownerEq["c."+k] = v
 	}
 
-	return getWorker(f.conn, workersQuery.Join("containers c ON c.worker_name = w.name").Where(sq.And{
+	workers, err := getWorkers(f.conn, workersQuery.Join("containers c ON c.worker_name = w.name").Where(sq.And{
 		ownerEq,
 	}))
+	if err != nil {
+		return nil, false, err
+	}
+
+	for _, w := range workers {
+		if tagsMatch(w.Tags(), tags) {
+			return w, true, nil
+		}
+	}
+
+	return nil, false, nil
 }
 
 func (f *workerFactory) BuildContainersCountPerWorker() (map[string]int, error) {
@@ -536,31 +566,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			},
 		}
 
-		ubrt, err := workerResourceType.BaseResourceType.FindOrCreate(tx)
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = psql.Delete("worker_base_resource_types").
-			Where(sq.Eq{
-				"worker_name":           atcWorker.Name,
-				"base_resource_type_id": ubrt.ID,
-			}).
-			Where(sq.Or{
-				sq.NotEq{
-					"image": resourceType.Image,
-				},
-				sq.NotEq{
-					"version": resourceType.Version,
-				},
-			}).
-			RunWith(tx).
-			Exec()
-		if err != nil {
-			return nil, err
-		}
-
-		uwrt, err := workerResourceType.FindOrCreate(tx)
+		uwrt, err := workerResourceType.FindOrCreate(tx, resourceType.UniqueVersionHistory)
 		if err != nil {
 			return nil, err
 		}
@@ -592,4 +598,23 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 	}
 
 	return savedWorker, nil
+}
+
+func tagsMatch(workerTags []string, tags []string) bool {
+	if len(workerTags) > 0 && len(tags) == 0 {
+		return false
+	}
+
+insert_coin:
+	for _, stag := range tags {
+		for _, wtag := range workerTags {
+			if stag == wtag {
+				continue insert_coin
+			}
+		}
+
+		return false
+	}
+
+	return true
 }

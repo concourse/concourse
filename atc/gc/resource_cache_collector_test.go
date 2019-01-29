@@ -122,7 +122,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						var versionID int
 						version := `{"some":"version"}`
 						err = psql.Insert("resource_config_versions").
-							Columns("version", "version_md5", "metadata", "resource_config_id").
+							Columns("version", "version_md5", "metadata", "resource_config_scope_id").
 							Values(version, sq.Expr(fmt.Sprintf("md5('%s')", version)), `null`, jobCache.ResourceConfig().ID()).
 							Suffix("RETURNING id").
 							RunWith(dbConn).QueryRow().Scan(&versionID)

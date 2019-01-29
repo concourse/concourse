@@ -30,10 +30,10 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 		Context("for resources", func() {
 			findOrCreateSessionForDefaultResource := func() int {
-				resourceConfig, err := defaultResource.SetResourceConfig(logger, defaultResource.Source(), creds.VersionedResourceTypes{})
+				resourceConfigScope, err := defaultResource.SetResourceConfig(logger, defaultResource.Source(), creds.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
-				owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, expiry)
+				owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), expiry)
 
 				var query sq.Eq
 				var found bool
@@ -49,9 +49,13 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 					err = tx.Commit()
 					Expect(err).ToNot(HaveOccurred())
-				}
 
-				return query["resource_config_check_session_id"].(int)
+					return query["resource_config_check_session_id"].(int)
+				} else {
+					rccsIDs := query["resource_config_check_session_id"].([]int)
+					Expect(rccsIDs).To(HaveLen(1))
+					return rccsIDs[0]
+				}
 			}
 
 			var oldRccsID int
@@ -120,13 +124,13 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 		Context("for resource types", func() {
 			findOrCreateSessionForDefaultResourceType := func() int {
-				resourceConfig, err := defaultResourceType.SetResourceConfig(logger,
+				resourceConfigScope, err := defaultResourceType.SetResourceConfig(logger,
 					defaultResourceType.Source(),
 					creds.VersionedResourceTypes{},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, expiry)
+				owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), expiry)
 
 				var query sq.Eq
 				var found bool
@@ -142,9 +146,13 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 					err = tx.Commit()
 					Expect(err).ToNot(HaveOccurred())
-				}
 
-				return query["resource_config_check_session_id"].(int)
+					return query["resource_config_check_session_id"].(int)
+				} else {
+					rccsIDs := query["resource_config_check_session_id"].([]int)
+					Expect(rccsIDs).To(HaveLen(1))
+					return rccsIDs[0]
+				}
 			}
 
 			var oldRccsID int
