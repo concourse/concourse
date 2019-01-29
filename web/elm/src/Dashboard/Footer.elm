@@ -187,17 +187,9 @@ legendItem status =
 
 toggleView : Bool -> Html Msg
 toggleView highDensity =
-    let
-        route =
-            if highDensity then
-                Routes.dashboardRoute
-
-            else
-                Routes.dashboardHdRoute
-    in
     Html.a
         [ style Styles.highDensityToggle
-        , href route
+        , href (Routes.dashboardRoute highDensity)
         , attribute "aria-label" "Toggle high-density view"
         ]
         [ Html.div [ style <| Styles.highDensityIcon highDensity ] []

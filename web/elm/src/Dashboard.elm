@@ -44,6 +44,7 @@ import Monocle.Lens
 import Monocle.Optional
 import MonocleHelpers exposing (..)
 import Mouse
+import NewTopBar.Msgs
 import NewestTopBar as NewTopBar
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
@@ -101,7 +102,7 @@ init : Flags -> ( Model, List Effect )
 init flags =
     let
         ( topBar, topBarEffects ) =
-            NewTopBar.init flags.route
+            NewTopBar.init { route = flags.route, isHd = flags.highDensity }
     in
     ( { state = Err NotAsked
       , csrfToken = flags.csrfToken
@@ -197,7 +198,7 @@ handleCallbackWithoutTopBar msg model =
                     , version = apiData.version
                     , userState = userState
                   }
-                , [ ModifyUrl Routes.dashboardRoute ]
+                , [ ModifyUrl (Routes.dashboardRoute False) ]
                 )
 
             else
@@ -210,19 +211,13 @@ handleCallbackWithoutTopBar msg model =
                 )
 
         LoggedOut (Ok ()) ->
-            let
-                redirectUrl =
-                    if model.highDensity then
-                        Routes.dashboardHdRoute
-
-                    else
-                        Routes.dashboardRoute
-            in
             ( { model
                 | userState = UserState.UserStateLoggedOut
                 , userMenuVisible = False
               }
-            , [ NavigateTo redirectUrl, FetchData ]
+            , [ NavigateTo (Routes.dashboardRoute model.highDensity)
+              , FetchData
+              ]
             )
 
         LoggedOut (Err err) ->
@@ -407,35 +402,14 @@ updateWithoutTopBar msg model =
         TopCliHover state ->
             ( { model | hoveredTopCliIcon = state }, [] )
 
-        FilterMsg query ->
-            ( model, [] )
-
-        LogIn ->
-            ( model, [ RedirectToLogin ] )
-
-        LogOut ->
-            ( { model | state = Err NotAsked }, [ SendLogOutRequest ] )
-
-        ToggleUserMenu ->
-            ( { model | userMenuVisible = not model.userMenuVisible }, [] )
-
-        FocusMsg ->
-            ( model, [] )
-
-        BlurMsg ->
-            ( model, [] )
-
-        SelectMsg index ->
-            ( model, [] )
-
-        KeyDowns keycode ->
-            ( model, [] )
-
-        ShowSearchInput ->
-            ( model, [] )
-
         ResizeScreen size ->
             ( { model | screenSize = ScreenSize.fromWindowSize size }, [] )
+
+        FromTopBar NewTopBar.Msgs.LogOut ->
+            ( { model | state = Err NotAsked }, [] )
+
+        FromTopBar NewTopBar.Msgs.ToggleUserMenu ->
+            ( { model | userMenuVisible = not model.userMenuVisible }, [] )
 
         FromTopBar m ->
             ( model, [] )
@@ -449,7 +423,7 @@ subscriptions model =
         , Mouse.moves (\_ -> ShowFooter)
         , Mouse.clicks (\_ -> ShowFooter)
         , Keyboard.presses KeyPressed
-        , Keyboard.downs KeyDowns
+        , Keyboard.downs (NewTopBar.Msgs.KeyDown >> FromTopBar)
         , Window.resizes Msgs.ResizeScreen
         ]
 

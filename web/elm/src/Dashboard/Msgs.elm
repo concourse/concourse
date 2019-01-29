@@ -13,7 +13,6 @@ type Msg
     | AutoRefresh Time.Time
     | ShowFooter
     | KeyPressed Keyboard.KeyCode
-    | KeyDowns Keyboard.KeyCode
     | DragStart String Int
     | DragOver String Int
     | DragEnd
@@ -24,49 +23,14 @@ type Msg
     | CliHover (Maybe Cli.Cli)
     | TopCliHover (Maybe Cli.Cli)
     | ResizeScreen Window.Size
-    | LogIn
-    | LogOut
-    | FilterMsg String
-    | FocusMsg
-    | BlurMsg
-    | SelectMsg Int
-    | ToggleUserMenu
-    | ShowSearchInput
     | FromTopBar NTB.Msg
 
 
 fromDashboardMsg : Msg -> NTB.Msg
 fromDashboardMsg msg =
     case msg of
-        LogIn ->
-            NTB.LogIn
-
-        LogOut ->
-            NTB.LogOut
-
-        FilterMsg s ->
-            NTB.FilterMsg s
-
-        FocusMsg ->
-            NTB.FocusMsg
-
-        BlurMsg ->
-            NTB.BlurMsg
-
-        SelectMsg i ->
-            NTB.SelectMsg i
-
-        KeyDowns k ->
-            NTB.KeyDown k
-
         KeyPressed k ->
             NTB.KeyPressed k
-
-        ToggleUserMenu ->
-            NTB.ToggleUserMenu
-
-        ShowSearchInput ->
-            NTB.ShowSearchInput
 
         ResizeScreen s ->
             NTB.ResizeScreen s

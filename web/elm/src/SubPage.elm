@@ -107,23 +107,12 @@ init flags route =
                 }
                 |> Tuple.mapFirst PipelineModel
 
-        Routes.Dashboard ->
+        Routes.Dashboard { isHd } ->
             Dashboard.init
                 { turbulencePath = flags.turbulencePath
                 , csrfToken = flags.csrfToken
                 , search = querySearchForRoute route
-                , highDensity = False
-                , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
-                , route = route
-                }
-                |> Tuple.mapFirst DashboardModel
-
-        Routes.DashboardHd ->
-            Dashboard.init
-                { turbulencePath = flags.turbulencePath
-                , csrfToken = flags.csrfToken
-                , search = querySearchForRoute route
-                , highDensity = True
+                , highDensity = isHd
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
                 , route = route
                 }

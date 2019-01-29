@@ -191,10 +191,7 @@ extractPidFromRoute route =
         Routes.Pipeline teamName pipelineName ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
-        Routes.Dashboard ->
-            Nothing
-
-        Routes.DashboardHd ->
+        Routes.Dashboard _ ->
             Nothing
 
         Routes.FlySuccess ->

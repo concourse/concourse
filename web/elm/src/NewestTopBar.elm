@@ -1,5 +1,6 @@
 module NewestTopBar exposing
-    ( Model
+    ( Flags
+    , Model
     , autocompleteOptions
     , handleCallback
     , init
@@ -56,6 +57,12 @@ type alias Model =
     }
 
 
+type alias Flags =
+    { route : Routes.ConcourseRoute
+    , isHd : Bool
+    }
+
+
 query : Model -> String
 query model =
     case model.searchBar of
@@ -72,11 +79,11 @@ querySearchForRoute route =
         |> Maybe.withDefault ""
 
 
-init : Routes.ConcourseRoute -> ( Model, List Effect )
-init route =
+init : Flags -> ( Model, List Effect )
+init { route, isHd } =
     let
         showSearch =
-            route.logical == Routes.Dashboard
+            route.logical == Routes.Dashboard { isHd = isHd }
 
         searchBar =
             if showSearch then
@@ -96,7 +103,7 @@ init route =
       , teams = RemoteData.Loading
       , route = route
       , screenSize = Desktop
-      , highDensity = False
+      , highDensity = isHd
       }
     , [ FetchUser, FetchTeams, GetScreenSize ]
     )
@@ -127,10 +134,10 @@ handleCallback callback model =
                 redirectUrl =
                     case model.searchBar of
                         Collapsed ->
-                            Routes.dashboardHdRoute
+                            Routes.dashboardRoute True
 
                         Expanded _ ->
-                            Routes.dashboardRoute
+                            Routes.dashboardRoute False
             in
             ( { model
                 | userState = UserStateLoggedOut

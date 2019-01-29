@@ -86,10 +86,7 @@ init flags location =
 
         topBarType =
             case route.logical of
-                Routes.Dashboard ->
-                    Dashboard
-
-                Routes.DashboardHd ->
+                Routes.Dashboard _ ->
                     Dashboard
 
                 _ ->
@@ -449,7 +446,7 @@ routeMatchesModel route model =
         ( Routes.Job _ _ _, SubPage.JobModel _ ) ->
             True
 
-        ( Routes.Dashboard, SubPage.DashboardModel _ ) ->
+        ( Routes.Dashboard _, SubPage.DashboardModel _ ) ->
             True
 
         _ ->

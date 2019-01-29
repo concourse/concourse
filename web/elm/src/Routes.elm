@@ -3,7 +3,6 @@ module Routes exposing
     , Route(..)
     , buildRoute
     , customToString
-    , dashboardHdRoute
     , dashboardRoute
     , jobRoute
     , parsePath
@@ -24,8 +23,7 @@ type Route
     | Job String String String
     | OneOffBuild String
     | Pipeline String String
-    | Dashboard
-    | DashboardHd
+    | Dashboard { isHd : Bool }
     | FlySuccess
 
 
@@ -66,14 +64,16 @@ pipeline =
     Pipeline := static "teams" </> string </> static "pipelines" </> string
 
 
-dashboard : Route.Route Route
-dashboard =
-    Dashboard := static ""
+dashboard : Bool -> Route.Route Route
+dashboard isHd =
+    Dashboard { isHd = isHd }
+        := static
+            (if isHd then
+                "hd"
 
-
-dashboardHd : Route.Route Route
-dashboardHd =
-    DashboardHd := static "hd"
+             else
+                ""
+            )
 
 
 flySuccess : Route.Route Route
@@ -105,14 +105,9 @@ pipelineRoute p =
     Pipeline p.teamName p.name |> toString
 
 
-dashboardRoute : String
-dashboardRoute =
-    Dashboard |> toString
-
-
-dashboardHdRoute : String
-dashboardHdRoute =
-    DashboardHd |> toString
+dashboardRoute : Bool -> String
+dashboardRoute isHd =
+    Dashboard { isHd = isHd } |> toString
 
 
 
@@ -127,8 +122,8 @@ sitemap =
         , job
         , oneOffBuild
         , pipeline
-        , dashboard
-        , dashboardHd
+        , dashboard False
+        , dashboard True
         , flySuccess
         ]
 
@@ -136,7 +131,7 @@ sitemap =
 match : String -> Route
 match =
     Route.match sitemap
-        >> Maybe.withDefault Dashboard
+        >> Maybe.withDefault (Dashboard { isHd = False })
 
 
 toString : Route -> String
@@ -157,11 +152,8 @@ toString route =
         Pipeline teamName pipelineName ->
             reverse pipeline [ teamName, pipelineName ]
 
-        Dashboard ->
-            reverse dashboard []
-
-        DashboardHd ->
-            reverse dashboardHd []
+        Dashboard { isHd } ->
+            reverse (dashboard isHd) []
 
         FlySuccess ->
             reverse flySuccess []

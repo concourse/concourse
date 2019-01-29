@@ -27,6 +27,7 @@ import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Html.Styled as HS
 import List.Extra
+import NewTopBar.Msgs
 import QueryString
 import RemoteData
 import Routes
@@ -462,7 +463,7 @@ all =
                     |> givenDataAndUser
                         (oneTeamOnePipelineNonPublic "team")
                         (userWithRoles [ ( "team", [ "owner" ] ) ])
-                    |> Dashboard.update Msgs.LogOut
+                    |> Dashboard.update (Msgs.FromTopBar NewTopBar.Msgs.LogOut)
                     |> Tuple.first
                     |> showsLoadingState
         , test "links to specific builds" <|
@@ -2817,12 +2818,7 @@ whenOnDashboard { highDensity } =
         , highDensity = highDensity
         , pipelineRunningKeyframes = pipelineRunningKeyframes
         , route =
-            { logical =
-                if highDensity then
-                    Routes.DashboardHd
-
-                else
-                    Routes.Dashboard
+            { logical = Routes.Dashboard { isHd = highDensity }
             , queries = QueryString.empty
             , page = Nothing
             , hash = ""
