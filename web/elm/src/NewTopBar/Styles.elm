@@ -168,7 +168,7 @@ searchInput screenSize =
 searchInputCSS : List ( String, String )
 searchInputCSS =
     [ ( "background-color", "transparent" )
-    , ( "background-image", "url('public/images/ic_search_white_24px.svg')" )
+    , ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
     , ( "background-repeat", "no-repeat" )
     , ( "background-position", "12px 8px" )
     , ( "width", "220px" )
@@ -216,7 +216,7 @@ searchClearButtonCSS active =
             else
                 "0.2"
     in
-    [ ( "background-image", "url('public/images/ic_close_white_24px.svg')" )
+    [ ( "background-image", "url('public/images/ic-close-white-24px.svg')" )
     , ( "background-repeat", "no-repeat" )
     , ( "background-position", "10px 10px" )
     , ( "border", "0" )
@@ -365,7 +365,7 @@ logoutButtonCSS =
 
 concourseLogoCSS : List ( String, String )
 concourseLogoCSS =
-    [ ( "background-image", "url(/public/images/concourse_logo_white.svg)" )
+    [ ( "background-image", "url(/public/images/concourse-logo-white.svg)" )
     , ( "background-position", "50% 50%" )
     , ( "background-repeat", "no-repeat" )
     , ( "background-size", "42px 42px" )
@@ -376,7 +376,7 @@ concourseLogoCSS =
 
 breadcrumbComponentCSS : String -> List ( String, String )
 breadcrumbComponentCSS componentType =
-    [ ( "background-image", "url(/public/images/ic_breadcrumb_" ++ componentType ++ ".svg)" )
+    [ ( "background-image", "url(/public/images/ic-breadcrumb-" ++ componentType ++ ".svg)" )
     , ( "background-repeat", "no-repeat" )
     , ( "background-size", "contain" )
     , ( "display", "inline-block" )

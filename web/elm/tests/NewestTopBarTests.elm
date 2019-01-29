@@ -108,7 +108,7 @@ all =
                         >> Query.index 1
                         >> Query.has
                             [ style
-                                [ ( "background-image", "url(/public/images/concourse_logo_white.svg)" )
+                                [ ( "background-image", "url(/public/images/concourse-logo-white.svg)" )
                                 , ( "background-position", "50% 50%" )
                                 , ( "background-repeat", "no-repeat" )
                                 , ( "background-size", "42px 42px" )
@@ -458,7 +458,7 @@ all =
                 Query.find [ id "search-bar" ]
                     >> Query.has
                         [ style
-                            [ ( "background-image", "url('public/images/ic_search_white_24px.svg')" )
+                            [ ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
                             , ( "background-position", "12px 8px" )
                             , ( "background-repeat", "no-repeat" )
                             ]
@@ -504,7 +504,7 @@ all =
                 Query.find [ id "search-clear" ]
                     >> Query.has
                         [ style
-                            [ ( "background-image", "url('public/images/ic_close_white_24px.svg')" )
+                            [ ( "background-image", "url('public/images/ic-close-white-24px.svg')" )
                             , ( "background-position", "10px 10px" )
                             , ( "background-repeat", "no-repeat" )
                             ]
@@ -789,7 +789,7 @@ logInUser model =
 pipelineBreadcrumbSelector : List Selector.Selector
 pipelineBreadcrumbSelector =
     [ style
-        [ ( "background-image", "url(/public/images/ic_breadcrumb_pipeline.svg)" )
+        [ ( "background-image", "url(/public/images/ic-breadcrumb-pipeline.svg)" )
         , ( "background-repeat", "no-repeat" )
         ]
     ]
@@ -798,7 +798,7 @@ pipelineBreadcrumbSelector =
 jobBreadcrumbSelector : List Selector.Selector
 jobBreadcrumbSelector =
     [ style
-        [ ( "background-image", "url(/public/images/ic_breadcrumb_job.svg)" )
+        [ ( "background-image", "url(/public/images/ic-breadcrumb-job.svg)" )
         , ( "background-repeat", "no-repeat" )
         ]
     ]
@@ -807,7 +807,7 @@ jobBreadcrumbSelector =
 resourceBreadcrumbSelector : List Selector.Selector
 resourceBreadcrumbSelector =
     [ style
-        [ ( "background-image", "url(/public/images/ic_breadcrumb_resource.svg)" )
+        [ ( "background-image", "url(/public/images/ic-breadcrumb-resource.svg)" )
         , ( "background-repeat", "no-repeat" )
         ]
     ]
