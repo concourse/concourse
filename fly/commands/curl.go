@@ -28,10 +28,6 @@ func (command *CurlCommand) Execute([]string) error {
 		return err
 	}
 
-	if target.CACert() != "" {
-		return fmt.Errorf("not implemented for custom CA Certs")
-	}
-
 	fullUrl, err := command.makeFullUrl(target.URL(), command.Args.Path)
 	if err != nil {
 		return err
@@ -74,9 +70,9 @@ func (command *CurlCommand) makeArgsList(token *rc.TargetToken, url string, opti
 }
 
 func printableCommand(args []string) string {
-	for i,_ := range args {
-		if strings.Contains(args[i], " ") {
-			args[i] = fmt.Sprintf(`"%s"`, args[i])
+	for i, arg := range args {
+		if strings.Contains(arg, " ") {
+			args[i] = fmt.Sprintf(`"%s"`, arg)
 		}
 	}
 
