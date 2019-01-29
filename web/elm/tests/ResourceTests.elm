@@ -36,6 +36,11 @@ import Test.Html.Selector
         )
 
 
+commentButtonBlue : String
+commentButtonBlue =
+    "#196AC8"
+
+
 teamName : String
 teamName =
     "some-team"
@@ -921,9 +926,7 @@ all =
                             (Query.find pinButtonSelector
                                 >> Query.has [ style [ ( "background-color", "#1e1d1d" ) ] ]
                             )
-            ]
-        , describe "given resource is pinned with a comment"
-            [ test "pin comment bar is visible" <|
+            , test "pin comment bar is visible" <|
                 \_ ->
                     init
                         |> givenResourcePinnedWithComment
@@ -1030,44 +1033,115 @@ all =
                                     |> header
                                     |> Query.has
                                         [ style [ ( "display", "flex" ) ] ]
-                        , test "centers contents vertically" <|
+                        , test "aligns contents to top" <|
                             \_ ->
                                 init
                                     |> givenResourcePinnedWithComment
                                     |> header
                                     |> Query.has
                                         [ style
-                                            [ ( "align-items", "center" ) ]
+                                            [ ( "align-items"
+                                              , "flex-start"
+                                              )
+                                            ]
                                         ]
-                        , test "has message icon at the left" <|
-                            let
-                                messageIcon =
-                                    "baseline-message.svg"
-                            in
+                        , test "doesn't squish vertically" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> header
+                                    |> Query.has
+                                        [ style [ ( "flex-shrink", "0" ) ] ]
+                        , test "has two children" <|
                             \_ ->
                                 init
                                     |> givenResourcePinnedWithComment
                                     |> header
                                     |> Query.children []
-                                    |> Query.first
-                                    |> Query.has
-                                        [ style
-                                            [ ( "background-image"
-                                              , "url(/public/images/"
-                                                    ++ messageIcon
-                                                    ++ ")"
-                                              )
-                                            , ( "background-size", "contain" )
-                                            , ( "width", "24px" )
-                                            , ( "height", "24px" )
-                                            , ( "margin-right", "10px" )
-                                            ]
-                                        ]
-                        , test "second item is pin icon" <|
+                                    |> Query.count (Expect.equal 2)
+                        , describe "icon container" <|
                             let
-                                pinIcon =
-                                    "pin-ic-white.svg"
+                                iconContainer =
+                                    header
+                                        >> Query.children []
+                                        >> Query.first
                             in
+                            [ test "lays out horizontally" <|
+                                \_ ->
+                                    init
+                                        |> givenResourcePinnedWithComment
+                                        |> iconContainer
+                                        |> Query.has
+                                            [ style [ ( "display", "flex" ) ] ]
+                            , test "centers contents vertically" <|
+                                \_ ->
+                                    init
+                                        |> givenResourcePinnedWithComment
+                                        |> iconContainer
+                                        |> Query.has
+                                            [ style
+                                                [ ( "align-items"
+                                                  , "center"
+                                                  )
+                                                ]
+                                            ]
+                            , test "has message icon at the left" <|
+                                let
+                                    messageIcon =
+                                        "baseline-message.svg"
+                                in
+                                \_ ->
+                                    init
+                                        |> givenResourcePinnedWithComment
+                                        |> iconContainer
+                                        |> Query.children []
+                                        |> Query.first
+                                        |> Query.has
+                                            [ style
+                                                [ ( "background-image"
+                                                  , "url(/public/images/"
+                                                        ++ messageIcon
+                                                        ++ ")"
+                                                  )
+                                                , ( "background-size", "contain" )
+                                                , ( "width", "24px" )
+                                                , ( "height", "24px" )
+                                                , ( "margin-right", "10px" )
+                                                ]
+                                            ]
+                            , test "has pin icon on the right" <|
+                                let
+                                    pinIcon =
+                                        "pin-ic-white.svg"
+                                in
+                                \_ ->
+                                    init
+                                        |> givenResourcePinnedWithComment
+                                        |> iconContainer
+                                        |> Query.children []
+                                        |> Query.index 1
+                                        |> Query.has
+                                            (iconSelector
+                                                { image = pinIcon
+                                                , size = "20px"
+                                                }
+                                                ++ [ style
+                                                        [ ( "margin-right"
+                                                          , "10px"
+                                                          )
+                                                        ]
+                                                   ]
+                                            )
+                            ]
+                        , test "second item is the pinned version" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> header
+                                    |> Query.children []
+                                    |> Query.index 1
+                                    |> Query.has [ text version ]
+                        , test "pinned version is vertically centered" <|
                             \_ ->
                                 init
                                     |> givenResourcePinnedWithComment
@@ -1075,25 +1149,12 @@ all =
                                     |> Query.children []
                                     |> Query.index 1
                                     |> Query.has
-                                        (iconSelector
-                                            { image = pinIcon
-                                            , size = "20px"
-                                            }
-                                            ++ [ style
-                                                    [ ( "margin-right"
-                                                      , "10px"
-                                                      )
-                                                    ]
-                                               ]
-                                        )
-                        , test "third item is the pinned version" <|
-                            \_ ->
-                                init
-                                    |> givenResourcePinnedWithComment
-                                    |> header
-                                    |> Query.children []
-                                    |> Query.index 2
-                                    |> Query.has [ text version ]
+                                        [ style
+                                            [ ( "align-self"
+                                              , "center"
+                                              )
+                                            ]
+                                        ]
                         ]
                     , describe "when unauthenticated"
                         [ test "contains a pre" <|
@@ -1109,8 +1170,41 @@ all =
                                     |> commentBar
                                     |> Query.find [ tag "pre" ]
                                     |> Query.has [ text "some pin comment" ]
+                        , test "pre fills vertical space and has margin" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "pre" ]
+                                    |> Query.has
+                                        [ style
+                                            [ ( "margin", "10px 0" )
+                                            , ( "flex-grow", "1" )
+                                            ]
+                                        ]
+                        , test "pre has vertical scroll on overflow" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "pre" ]
+                                    |> Query.has
+                                        [ style [ ( "overflow-y", "auto" ) ] ]
+                        , test "contains a spacer at the bottom" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> contents
+                                    |> Query.children []
+                                    |> Query.index -1
+                                    |> Query.has
+                                        [ style [ ( "height", "24px" ) ] ]
                         ]
-                    , describe "when authorized"
+                    , describe "when authorized" <|
+                        let
+                            textarea =
+                                Query.find [ tag "textarea" ]
+                        in
                         [ test "contains a textarea" <|
                             \_ ->
                                 init
@@ -1118,13 +1212,36 @@ all =
                                     |> givenResourcePinnedWithComment
                                     |> commentBar
                                     |> Query.has [ tag "textarea" ]
-                        , test "textarea has 10px vertical margin, stretches vertically" <|
+                        , test "textarea has comment as value" <|
                             \_ ->
                                 init
                                     |> givenUserIsAuthorized
                                     |> givenResourcePinnedWithComment
                                     |> commentBar
                                     |> Query.find [ tag "textarea" ]
+                                    |> Query.has
+                                        [ attribute <|
+                                            Attr.value "some pin comment"
+                                        ]
+                        , test "textarea has placeholder" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "textarea" ]
+                                    |> Query.has
+                                        [ attribute <|
+                                            Attr.placeholder
+                                                "enter a comment"
+                                        ]
+                        , test "textarea has 10px vertical margin, stretches vertically" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> textarea
                                     |> Query.has
                                         [ style
                                             [ ( "margin", "10px 0" )
@@ -1137,7 +1254,7 @@ all =
                                     |> givenUserIsAuthorized
                                     |> givenResourcePinnedWithComment
                                     |> commentBar
-                                    |> Query.find [ tag "textarea" ]
+                                    |> textarea
                                     |> Query.has
                                         [ style [ ( "resize", "none" ) ] ]
                         , test "textarea matches app font" <|
@@ -1146,7 +1263,7 @@ all =
                                     |> givenUserIsAuthorized
                                     |> givenResourcePinnedWithComment
                                     |> commentBar
-                                    |> Query.find [ tag "textarea" ]
+                                    |> textarea
                                     |> Query.has
                                         [ style
                                             [ ( "font-size", "12px" )
@@ -1160,7 +1277,7 @@ all =
                                     |> givenUserIsAuthorized
                                     |> givenResourcePinnedWithComment
                                     |> commentBar
-                                    |> Query.find [ tag "textarea" ]
+                                    |> textarea
                                     |> Query.has
                                         [ style
                                             [ ( "background-color", "transparent" )
@@ -1169,6 +1286,341 @@ all =
                                             , ( "border", "1px solid " ++ lightGreyHex )
                                             ]
                                         ]
+                        , describe "when editing the textarea" <|
+                            let
+                                givenUserEditedComment =
+                                    Resource.update
+                                        (Msgs.EditComment "foo")
+                                        >> Tuple.first
+                            in
+                            [ test "input in textarea produces EditComment msg" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> commentBar
+                                        |> textarea
+                                        |> Event.simulate (Event.input "foo")
+                                        |> Event.expect (Msgs.EditComment "foo")
+                            , test "EditComment updates textarea value" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> commentBar
+                                        |> textarea
+                                        |> Query.has
+                                            [ attribute <|
+                                                Attr.value "foo"
+                                            ]
+                            , test "autorefresh doesn't change textarea" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> givenResourcePinnedWithComment
+                                        |> commentBar
+                                        |> textarea
+                                        |> Query.has
+                                            [ attribute <|
+                                                Attr.value "foo"
+                                            ]
+                            , test "button outline turns blue" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> commentBar
+                                        |> Query.find [ tag "button" ]
+                                        |> Query.has
+                                            [ style
+                                                [ ( "border"
+                                                  , "1px solid " ++ commentButtonBlue
+                                                  )
+                                                ]
+                                            ]
+                            , defineHoverBehaviour
+                                { name = "save comment button"
+                                , setup =
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                , query =
+                                    commentBar
+                                        >> Query.find [ tag "button" ]
+                                , unhoveredSelector =
+                                    { description = "blue border"
+                                    , selector =
+                                        [ style
+                                            [ ( "border"
+                                              , "1px solid "
+                                                    ++ commentButtonBlue
+                                              )
+                                            ]
+                                        ]
+                                    }
+                                , mouseEnterMsg =
+                                    Msgs.Hover Models.SaveComment
+                                , mouseLeaveMsg = Msgs.Hover Models.None
+                                , updateFunc =
+                                    \msg ->
+                                        Resource.update msg
+                                            >> Tuple.first
+                                , hoveredSelector =
+                                    { description = "blue background"
+                                    , selector =
+                                        [ style
+                                            [ ( "background-color"
+                                              , commentButtonBlue
+                                              )
+                                            , ( "cursor", "pointer" )
+                                            ]
+                                        ]
+                                    }
+                                }
+                            , test "button click sends SaveComment msg" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> commentBar
+                                        |> Query.find [ tag "button" ]
+                                        |> Event.simulate Event.click
+                                        |> Event.expect
+                                            (Msgs.SaveComment "foo")
+                            , test "SaveComment msg makes API call" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> Resource.update
+                                            (Msgs.SaveComment "foo")
+                                        |> Tuple.second
+                                        |> Expect.equal
+                                            [ Effects.SetPinComment
+                                                { teamName = teamName
+                                                , pipelineName = pipelineName
+                                                , resourceName = resourceName
+                                                }
+                                                "csrf_token"
+                                                "foo"
+                                            ]
+                            , describe "button loading state" <|
+                                let
+                                    givenCommentSavingInProgress : Models.Model
+                                    givenCommentSavingInProgress =
+                                        init
+                                            |> givenUserIsAuthorized
+                                            |> givenResourcePinnedWithComment
+                                            |> givenUserEditedComment
+                                            |> Resource.update
+                                                (Msgs.SaveComment "foo")
+                                            |> Tuple.first
+
+                                    viewButton : Models.Model -> Query.Single Msgs.Msg
+                                    viewButton =
+                                        commentBar
+                                            >> Query.find [ tag "button" ]
+                                in
+                                [ test "shows spinner" <|
+                                    \_ ->
+                                        givenCommentSavingInProgress
+                                            |> viewButton
+                                            |> Query.has
+                                                [ style
+                                                    [ ( "animation"
+                                                      , "container-rotate 1568ms linear infinite"
+                                                      )
+                                                    , ( "height", "12px" )
+                                                    , ( "width", "12px" )
+                                                    ]
+                                                ]
+                                , test "clears button text" <|
+                                    \_ ->
+                                        givenCommentSavingInProgress
+                                            |> viewButton
+                                            |> Query.hasNot [ text "save" ]
+                                , test "has transparent background on hover" <|
+                                    \_ ->
+                                        givenCommentSavingInProgress
+                                            |> Resource.update
+                                                (Msgs.Hover Models.SaveComment)
+                                            |> Tuple.first
+                                            |> viewButton
+                                            |> Query.has
+                                                [ style
+                                                    [ ( "background-color"
+                                                      , "transparent"
+                                                      )
+                                                    ]
+                                                ]
+                                ]
+                            , describe "saving comment API callback"
+                                [ test "on success, shows pristine state" <|
+                                    \_ ->
+                                        init
+                                            |> givenUserIsAuthorized
+                                            |> givenResourcePinnedWithComment
+                                            |> givenUserEditedComment
+                                            |> Resource.update
+                                                (Msgs.SaveComment "foo")
+                                            |> Tuple.first
+                                            |> Resource.handleCallback
+                                                (Callback.CommentSet
+                                                    (Ok ())
+                                                )
+                                            |> Tuple.first
+                                            |> commentBar
+                                            |> Query.find [ tag "button" ]
+                                            |> Query.has
+                                                [ containing [ text "save" ]
+                                                , style
+                                                    [ ( "background-color"
+                                                      , "transparent"
+                                                      )
+                                                    , ( "border"
+                                                      , "1px solid "
+                                                            ++ lightGreyHex
+                                                      )
+                                                    , ( "cursor", "default" )
+                                                    ]
+                                                ]
+                                , test "on success, refetches data" <|
+                                    \_ ->
+                                        init
+                                            |> givenUserIsAuthorized
+                                            |> givenResourcePinnedWithComment
+                                            |> givenUserEditedComment
+                                            |> Resource.update
+                                                (Msgs.SaveComment "foo")
+                                            |> Tuple.first
+                                            |> Resource.handleCallback
+                                                (Callback.CommentSet
+                                                    (Ok ())
+                                                )
+                                            |> Tuple.second
+                                            |> Expect.equal
+                                                [ Effects.FetchResource
+                                                    { teamName = teamName
+                                                    , pipelineName = pipelineName
+                                                    , resourceName = resourceName
+                                                    }
+                                                ]
+                                , test "on error, shows edited state" <|
+                                    \_ ->
+                                        init
+                                            |> givenUserIsAuthorized
+                                            |> givenResourcePinnedWithComment
+                                            |> givenUserEditedComment
+                                            |> Resource.update
+                                                (Msgs.SaveComment "foo")
+                                            |> Tuple.first
+                                            |> Resource.handleCallback
+                                                (Callback.CommentSet
+                                                    badResponse
+                                                )
+                                            |> Tuple.first
+                                            |> Resource.update
+                                                (Msgs.Hover Models.SaveComment)
+                                            |> Tuple.first
+                                            |> commentBar
+                                            |> Query.find [ tag "button" ]
+                                            |> Query.has
+                                                [ style
+                                                    [ ( "border"
+                                                      , "1px solid "
+                                                            ++ commentButtonBlue
+                                                      )
+                                                    , ( "cursor", "pointer" )
+                                                    , ( "background-color"
+                                                      , commentButtonBlue
+                                                      )
+                                                    ]
+                                                ]
+                                , test "on error, refetches data" <|
+                                    \_ ->
+                                        init
+                                            |> givenUserIsAuthorized
+                                            |> givenResourcePinnedWithComment
+                                            |> givenUserEditedComment
+                                            |> Resource.update
+                                                (Msgs.SaveComment "foo")
+                                            |> Tuple.first
+                                            |> Resource.handleCallback
+                                                (Callback.CommentSet
+                                                    badResponse
+                                                )
+                                            |> Tuple.second
+                                            |> Expect.equal
+                                                [ Effects.FetchResource
+                                                    { teamName = teamName
+                                                    , pipelineName = pipelineName
+                                                    , resourceName = resourceName
+                                                    }
+                                                ]
+                                ]
+                            , test "edit without changing leaves button alone" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> Resource.update
+                                            (Msgs.EditComment "some pin comment")
+                                        |> Tuple.first
+                                        |> commentBar
+                                        |> Query.find [ tag "button" ]
+                                        |> Query.has
+                                            [ style
+                                                [ ( "border"
+                                                  , "1px solid " ++ lightGreyHex
+                                                  )
+                                                ]
+                                            ]
+                            , test "when unchanged button doesn't hover" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> Resource.update
+                                            (Msgs.EditComment "some pin comment")
+                                        |> Tuple.first
+                                        |> Resource.update
+                                            (Msgs.Hover Models.SaveComment)
+                                        |> Tuple.first
+                                        |> commentBar
+                                        |> Query.find [ tag "button" ]
+                                        |> Query.has
+                                            [ style
+                                                [ ( "background-color"
+                                                  , "transparent"
+                                                  )
+                                                , ( "cursor", "default" )
+                                                ]
+                                            ]
+                            , test "no comment and empty edit leaves button" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedDynamically
+                                        |> Resource.update
+                                            (Msgs.EditComment "")
+                                        |> Tuple.first
+                                        |> commentBar
+                                        |> Query.find [ tag "button" ]
+                                        |> Query.has
+                                            [ style
+                                                [ ( "border"
+                                                  , "1px solid " ++ lightGreyHex
+                                                  )
+                                                ]
+                                            ]
+                            ]
                         , test "contains a button" <|
                             \_ ->
                                 init

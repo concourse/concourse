@@ -10,6 +10,7 @@ module Concourse.Resource exposing
     , fetchVersionedResource
     , fetchVersionedResources
     , pinVersion
+    , setPinComment
     , unpinVersion
     )
 
@@ -196,6 +197,37 @@ check rid csrfToken =
             , body =
                 Http.jsonBody <|
                     Json.Encode.object [ ( "from", Json.Encode.null ) ]
+            , expect = Http.expectStringResponse (\_ -> Ok ())
+            , timeout = Nothing
+            , withCredentials = False
+            }
+
+
+setPinComment :
+    Concourse.ResourceIdentifier
+    -> Concourse.CSRFToken
+    -> String
+    -> Task Http.Error ()
+setPinComment rid csrfToken comment =
+    Http.toTask <|
+        Http.request
+            { method = "PUT"
+            , url =
+                "/api/v1/teams/"
+                    ++ rid.teamName
+                    ++ "/pipelines/"
+                    ++ rid.pipelineName
+                    ++ "/resources/"
+                    ++ rid.resourceName
+                    ++ "/pin_comment"
+            , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
+            , body =
+                Http.jsonBody <|
+                    Json.Encode.object
+                        [ ( "pin_comment"
+                          , Json.Encode.string comment
+                          )
+                        ]
             , expect = Http.expectStringResponse (\_ -> Ok ())
             , timeout = Nothing
             , withCredentials = False

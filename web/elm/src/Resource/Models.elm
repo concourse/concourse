@@ -13,7 +13,7 @@ module Resource.Models exposing
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Date exposing (Date)
-import Pinned exposing (ResourcePinState)
+import Pinned exposing (CommentState, ResourcePinState)
 import Routes
 import Time
 import UserState exposing (UserState)
@@ -23,6 +23,7 @@ type Hoverable
     = PreviousPage
     | NextPage
     | CheckButton
+    | SaveComment
     | None
 
 
@@ -66,12 +67,12 @@ type alias Model =
     , userMenuVisible : Bool
     , pinnedResources : List ( String, Concourse.Version )
     , showPinIconDropDown : Bool
-    , pinComment : Maybe String
+    , pinCommentLoading : Bool
     }
 
 
 type alias PinnedVersion =
-    ResourcePinState Concourse.Version VersionId
+    ResourcePinState Concourse.Version VersionId CommentState
 
 
 type VersionEnabledState

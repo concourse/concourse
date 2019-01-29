@@ -32,6 +32,7 @@ type Callback
     | VersionUnpinned (Result Http.Error ())
     | VersionToggled VersionToggleAction VersionId (Result Http.Error ())
     | Checked (Result Http.Error ())
+    | CommentSet (Result Http.Error ())
     | TokenSentToFly Bool
     | APIDataFetched (RemoteData.WebData ( Time.Time, Dashboard.APIData.APIData ))
     | LoggedOut (Result Http.Error ())

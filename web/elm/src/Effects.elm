@@ -109,6 +109,7 @@ type Effect
     | DoUnpinVersion Concourse.ResourceIdentifier Concourse.CSRFToken
     | DoToggleVersion VersionToggleAction VersionId Concourse.CSRFToken
     | DoCheck Concourse.ResourceIdentifier Concourse.CSRFToken
+    | SetPinComment Concourse.ResourceIdentifier Concourse.CSRFToken String
     | SendTokenToFly String Int
     | SendTogglePipelineRequest { pipeline : Dashboard.Models.Pipeline, csrfToken : Concourse.CSRFToken }
     | ShowTooltip ( String, String )
@@ -216,6 +217,10 @@ runEffect effect =
         DoCheck rid csrfToken ->
             Task.attempt Checked <|
                 Concourse.Resource.check rid csrfToken
+
+        SetPinComment rid csrfToken comment ->
+            Task.attempt CommentSet <|
+                Concourse.Resource.setPinComment rid csrfToken comment
 
         SendTokenToFly authToken flyPort ->
             sendTokenToFly authToken flyPort

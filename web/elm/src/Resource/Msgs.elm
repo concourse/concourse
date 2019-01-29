@@ -22,3 +22,5 @@ type Msg
     | Hover Models.Hoverable
     | Check
     | TopBarMsg TopBar.Msg
+    | EditComment String
+    | SaveComment String

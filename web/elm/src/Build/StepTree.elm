@@ -804,12 +804,12 @@ viewVersion : Maybe Version -> Html Msg
 viewVersion version =
     Maybe.withDefault Dict.empty version
         |> Dict.map (always Html.text)
-        |> DictView.view
+        |> DictView.view []
 
 
 viewMetadata : List MetadataField -> Html Msg
 viewMetadata metadata =
-    DictView.view
+    DictView.view []
         << Dict.fromList
     <|
         List.map (\{ name, value } -> ( name, Html.pre [] [ Html.text value ] )) metadata

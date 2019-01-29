@@ -33,6 +33,7 @@ import DictView
 import Duration exposing (Duration)
 import Effects exposing (Effect(..), runEffect, setTitle)
 import Erl
+import Html as UnstyledHtml
 import Html.Attributes
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes
@@ -42,12 +43,15 @@ import Html.Styled.Attributes
         , css
         , href
         , id
+        , placeholder
         , style
         , title
+        , value
         )
 import Html.Styled.Events
     exposing
         ( onClick
+        , onInput
         , onMouseEnter
         , onMouseLeave
         , onMouseOut
@@ -114,7 +118,6 @@ init flags =
                 , csrfToken = flags.csrfToken
                 , showPinBarTooltip = False
                 , pinIconHover = False
-                , pinComment = Nothing
                 , route =
                     { logical =
                         Routes.Resource
@@ -130,6 +133,7 @@ init flags =
                 , userMenuVisible = False
                 , pinnedResources = []
                 , showPinIconDropDown = False
+                , pinCommentLoading = False
                 }
     in
     ( model
@@ -171,12 +175,33 @@ updatePinnedVersion resource model =
             { model | pinnedVersion = PinnedStaticallyTo v }
 
         ( Just newVersion, False ) ->
+            let
+                pristineComment =
+                    resource.pinComment |> Maybe.withDefault ""
+            in
             case model.pinnedVersion of
-                UnpinningFrom _ ->
-                    { model | pinnedVersion = UnpinningFrom newVersion }
+                UnpinningFrom c _ ->
+                    { model | pinnedVersion = UnpinningFrom c newVersion }
+
+                PinnedDynamicallyTo { comment } _ ->
+                    { model
+                        | pinnedVersion =
+                            PinnedDynamicallyTo
+                                { comment = comment
+                                , pristineComment = pristineComment
+                                }
+                                newVersion
+                    }
 
                 _ ->
-                    { model | pinnedVersion = PinnedDynamicallyTo newVersion }
+                    { model
+                        | pinnedVersion =
+                            PinnedDynamicallyTo
+                                { comment = pristineComment
+                                , pristineComment = pristineComment
+                                }
+                                newVersion
+                    }
 
 
 hasPinnedVersion : Model -> Concourse.Version -> Bool
@@ -185,10 +210,10 @@ hasPinnedVersion model v =
         PinnedStaticallyTo pv ->
             v == pv
 
-        PinnedDynamicallyTo pv ->
+        PinnedDynamicallyTo _ pv ->
             v == pv
 
-        UnpinningFrom pv ->
+        UnpinningFrom _ pv ->
             v == pv
 
         _ ->
@@ -222,7 +247,6 @@ handleCallback action model =
                 , checkError = resource.checkError
                 , checkSetupError = resource.checkSetupError
                 , lastChecked = resource.lastChecked
-                , pinComment = resource.pinComment
               }
                 |> updatePinnedVersion resource
             , [ SetTitle <| resource.name ++ " - " ]
@@ -436,6 +460,24 @@ handleCallback action model =
             , [ NavigateTo "/" ]
             )
 
+        CommentSet result ->
+            ( { model
+                | pinCommentLoading = False
+                , pinnedVersion =
+                    case ( result, model.pinnedVersion ) of
+                        ( Ok (), PinnedDynamicallyTo { comment } v ) ->
+                            PinnedDynamicallyTo
+                                { comment = comment
+                                , pristineComment = comment
+                                }
+                                v
+
+                        ( _, pv ) ->
+                            pv
+              }
+            , [ FetchResource model.resourceIdentifier ]
+            )
+
         _ ->
             ( model, [] )
 
@@ -607,6 +649,27 @@ update action model =
         TopBarMsg msg ->
             TopBar.update msg model
 
+        EditComment input ->
+            let
+                newPinnedVersion =
+                    case model.pinnedVersion of
+                        PinnedDynamicallyTo { pristineComment } v ->
+                            PinnedDynamicallyTo
+                                { comment = input
+                                , pristineComment = pristineComment
+                                }
+                                v
+
+                        x ->
+                            x
+            in
+            ( { model | pinnedVersion = newPinnedVersion }, [] )
+
+        SaveComment comment ->
+            ( { model | pinCommentLoading = True }
+            , [ SetPinComment model.resourceIdentifier model.csrfToken comment ]
+            )
+
 
 updateVersion :
     Models.VersionId
@@ -769,11 +832,11 @@ body model =
         , id "body"
         , style
             [ ( "padding-bottom"
-              , case model.pinComment of
-                    Just _ ->
+              , case model.pinnedVersion of
+                    PinnedDynamicallyTo _ _ ->
                         "300px"
 
-                    Nothing ->
+                    _ ->
                         ""
               )
             ]
@@ -1079,27 +1142,22 @@ isAuthorized { teamName, userState } =
 
 commentBar :
     { a
-        | pinComment : Maybe String
-        , pinnedVersion : Models.PinnedVersion
+        | pinnedVersion : Models.PinnedVersion
         , teamName : String
         , userState : UserState
+        , hovered : Models.Hoverable
+        , pinCommentLoading : Bool
     }
     -> Html Msg
-commentBar ({ pinComment, pinnedVersion } as params) =
-    let
-        version =
-            case Pinned.stable pinnedVersion of
-                Just v ->
-                    viewVersion v
-
-                Nothing ->
-                    Html.text ""
-    in
-    case pinComment of
-        Nothing ->
-            Html.text ""
-
-        Just text ->
+commentBar ({ pinnedVersion, hovered, pinCommentLoading } as params) =
+    case pinnedVersion of
+        PinnedDynamicallyTo commentState v ->
+            let
+                version =
+                    viewVersion
+                        [ Html.Attributes.style [ ( "align-self", "center" ) ] ]
+                        v
+            in
             Html.div
                 [ id "comment-bar", style Resource.Styles.commentBar ]
                 [ Html.div
@@ -1110,31 +1168,72 @@ commentBar ({ pinComment, pinnedVersion } as params) =
                             Html.div
                                 [ style Resource.Styles.commentBarHeader ]
                                 [ Html.div
-                                    [ style Resource.Styles.commentBarMessageIcon ]
-                                    []
-                                , Html.div
-                                    [ style Resource.Styles.commentBarPinIcon ]
-                                    []
+                                    [ style
+                                        Resource.Styles.commentBarIconContainer
+                                    ]
+                                    [ Html.div
+                                        [ style
+                                            Resource.Styles.commentBarMessageIcon
+                                        ]
+                                        []
+                                    , Html.div
+                                        [ style
+                                            Resource.Styles.commentBarPinIcon
+                                        ]
+                                        []
+                                    ]
                                 , version
                                 ]
                     in
                     if isAuthorized params then
                         [ header
                         , Html.textarea
-                            [ style Resource.Styles.commentTextArea ]
-                            [ Html.text text ]
+                            [ style Resource.Styles.commentTextArea
+                            , onInput EditComment
+                            , value commentState.comment
+                            , placeholder "enter a comment"
+                            ]
+                            []
                         , Html.button
-                            [ style Resource.Styles.commentSaveButton ]
-                            [ Html.text "save" ]
+                            [ style <|
+                                let
+                                    commentChanged =
+                                        commentState.comment
+                                            /= commentState.pristineComment
+                                in
+                                Resource.Styles.commentSaveButton
+                                    { isHovered =
+                                        not pinCommentLoading
+                                            && commentChanged
+                                            && hovered
+                                            == Models.SaveComment
+                                    , commentChanged = commentChanged
+                                    }
+                            , onMouseEnter <| Hover Models.SaveComment
+                            , onMouseLeave <| Hover Models.None
+                            , onClick <| SaveComment commentState.comment
+                            ]
+                            (if pinCommentLoading then
+                                [ Spinner.spinner "12px" []
+                                    |> Html.fromUnstyled
+                                ]
+
+                             else
+                                [ Html.text "save" ]
+                            )
                         ]
 
                     else
                         [ header
                         , Html.pre
                             [ style Resource.Styles.commentText ]
-                            [ Html.text text ]
+                            [ Html.text commentState.pristineComment ]
+                        , Html.div [ style [ ( "height", "24px" ) ] ] []
                         ]
                 ]
+
+        _ ->
+            Html.text ""
 
 
 pinBar :
@@ -1163,7 +1262,7 @@ pinBar { pinnedVersion, showPinBarTooltip, pinIconHover } =
 
         isPinnedDynamically =
             case pinnedVersion of
-                PinnedDynamicallyTo _ ->
+                PinnedDynamicallyTo _ _ ->
                     True
 
                 _ ->
@@ -1197,7 +1296,7 @@ pinBar { pinnedVersion, showPinBarTooltip, pinIconHover } =
          ]
             ++ (case pinBarVersion of
                     Just v ->
-                        [ viewVersion v ]
+                        [ viewVersion [] v ]
 
                     _ ->
                         []
@@ -1450,15 +1549,15 @@ viewVersionHeader { id, version, pinnedState } =
         [ onClick <| ExpandVersionedResource id
         , style <| Resource.Styles.versionHeader pinnedState
         ]
-        [ viewVersion version ]
+        [ viewVersion [] version ]
 
 
-viewVersion : Concourse.Version -> Html Msg
-viewVersion version =
+viewVersion : List (UnstyledHtml.Attribute Msg) -> Concourse.Version -> Html Msg
+viewVersion attrs version =
     version
         |> Dict.map (always Html.text)
         |> Dict.map (always Html.toUnstyled)
-        |> DictView.view
+        |> DictView.view attrs
         |> Html.fromUnstyled
 
 

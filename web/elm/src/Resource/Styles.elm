@@ -3,6 +3,7 @@ module Resource.Styles exposing
     , commentBar
     , commentBarContent
     , commentBarHeader
+    , commentBarIconContainer
     , commentBarMessageIcon
     , commentBarPinIcon
     , commentSaveButton
@@ -227,7 +228,8 @@ commentBarContent =
 commentBarHeader : List ( String, String )
 commentBarHeader =
     [ ( "display", "flex" )
-    , ( "align-items", "center" )
+    , ( "flex-shrink", "0" )
+    , ( "align-items", "flex-start" )
     ]
 
 
@@ -277,18 +279,51 @@ commentTextArea =
 
 commentText : List ( String, String )
 commentText =
-    []
+    [ ( "margin", "10px 0" )
+    , ( "flex-grow", "1" )
+    , ( "overflow-y", "auto" )
+    ]
 
 
-commentSaveButton : List ( String, String )
-commentSaveButton =
+commentSaveButton :
+    { commentChanged : Bool, isHovered : Bool }
+    -> List ( String, String )
+commentSaveButton { commentChanged, isHovered } =
     [ ( "font-size", "12px" )
     , ( "font-family", "Inconsolata, monospace" )
     , ( "font-weight", "700" )
-    , ( "border", "1px solid " ++ Colors.background )
-    , ( "background-color", "transparent" )
+    , ( "border"
+      , "1px solid "
+            ++ (if commentChanged then
+                    Colors.comment
+
+                else
+                    Colors.background
+               )
+      )
+    , ( "background-color"
+      , if isHovered then
+            Colors.comment
+
+        else
+            "transparent"
+      )
     , ( "color", Colors.text )
     , ( "padding", "5px 10px" )
     , ( "align-self", "flex-end" )
     , ( "outline", "none" )
+    , ( "cursor"
+      , if isHovered then
+            "pointer"
+
+        else
+            "default"
+      )
+    ]
+
+
+commentBarIconContainer : List ( String, String )
+commentBarIconContainer =
+    [ ( "display", "flex" )
+    , ( "align-items", "center" )
     ]

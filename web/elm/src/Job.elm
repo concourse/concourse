@@ -731,7 +731,7 @@ viewBuildOutputs model bo =
 
 viewVersion : Concourse.Version -> Html Msg
 viewVersion version =
-    DictView.view
+    DictView.view []
         << Dict.map (\_ s -> Html.text s)
     <|
         version

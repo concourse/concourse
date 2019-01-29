@@ -1,5 +1,6 @@
 module Pinned exposing
-    ( ResourcePinState(..)
+    ( CommentState
+    , ResourcePinState(..)
     , VersionPinState(..)
     , finishPinning
     , pinState
@@ -10,11 +11,17 @@ module Pinned exposing
     )
 
 
-type ResourcePinState version id
+type alias CommentState =
+    { comment : String
+    , pristineComment : String
+    }
+
+
+type ResourcePinState version id comment
     = NotPinned
     | PinningTo id
-    | PinnedDynamicallyTo version
-    | UnpinningFrom version
+    | PinnedDynamicallyTo comment version
+    | UnpinningFrom comment version
     | PinnedStaticallyTo version
 
 
@@ -26,7 +33,10 @@ type VersionPinState
     | InTransition
 
 
-startPinningTo : id -> ResourcePinState version id -> ResourcePinState version id
+startPinningTo :
+    id
+    -> ResourcePinState version id CommentState
+    -> ResourcePinState version id CommentState
 startPinningTo destination resourcePinState =
     case resourcePinState of
         NotPinned ->
@@ -36,50 +46,64 @@ startPinningTo destination resourcePinState =
             x
 
 
-finishPinning : (id -> Maybe version) -> ResourcePinState version id -> ResourcePinState version id
+finishPinning :
+    (id -> Maybe version)
+    -> ResourcePinState version id CommentState
+    -> ResourcePinState version id CommentState
 finishPinning lookup resourcePinState =
     case resourcePinState of
         PinningTo b ->
-            lookup b |> Maybe.map PinnedDynamicallyTo |> Maybe.withDefault NotPinned
+            lookup b
+                |> Maybe.map
+                    (PinnedDynamicallyTo { comment = "", pristineComment = "" })
+                |> Maybe.withDefault NotPinned
 
         x ->
             x
 
 
-startUnpinning : ResourcePinState version id -> ResourcePinState version id
+startUnpinning :
+    ResourcePinState version id CommentState
+    -> ResourcePinState version id CommentState
 startUnpinning resourcePinState =
     case resourcePinState of
-        PinnedDynamicallyTo v ->
-            UnpinningFrom v
+        PinnedDynamicallyTo c v ->
+            UnpinningFrom c v
 
         x ->
             x
 
 
-quitUnpinning : ResourcePinState version id -> ResourcePinState version id
+quitUnpinning :
+    ResourcePinState version id CommentState
+    -> ResourcePinState version id CommentState
 quitUnpinning resourcePinState =
     case resourcePinState of
-        UnpinningFrom v ->
-            PinnedDynamicallyTo v
+        UnpinningFrom c v ->
+            PinnedDynamicallyTo c v
 
         x ->
             x
 
 
-stable : ResourcePinState version id -> Maybe version
+stable : ResourcePinState version id CommentState -> Maybe version
 stable version =
     case version of
         PinnedStaticallyTo v ->
             Just v
 
-        PinnedDynamicallyTo v ->
+        PinnedDynamicallyTo _ v ->
             Just v
 
         _ ->
             Nothing
 
 
-pinState : version -> id -> ResourcePinState version id -> VersionPinState
+pinState :
+    version
+    -> id
+    -> ResourcePinState version id CommentState
+    -> VersionPinState
 pinState version id resourcePinState =
     case resourcePinState of
         PinnedStaticallyTo v ->
@@ -99,14 +123,14 @@ pinState version id resourcePinState =
             else
                 Disabled
 
-        PinnedDynamicallyTo v ->
+        PinnedDynamicallyTo _ v ->
             if v == version then
                 PinnedDynamically
 
             else
                 Disabled
 
-        UnpinningFrom v ->
+        UnpinningFrom _ v ->
             if v == version then
                 InTransition
 
