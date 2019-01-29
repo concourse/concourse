@@ -10,6 +10,7 @@ import Html.Styled exposing (toUnstyled)
 import NewTopBar.Msgs as Msgs
 import NewestTopBar
 import QueryString
+import RemoteData
 import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -613,7 +614,20 @@ all =
             , it "when the user is logged in, and there are teams, the dropdown displays them" <|
                 NewestTopBar.update Msgs.FocusMsg
                     >> Tuple.first
-                    >> NewestTopBar.handleCallback (Callback.TeamsFetched (Ok [ Concourse.Team 1 "team1", Concourse.Team 2 "team2" ]))
+                    >> NewestTopBar.handleCallback
+                        (Callback.APIDataFetched
+                            (RemoteData.Success
+                                ( 0
+                                , { teams = [ Concourse.Team 1 "team1", Concourse.Team 2 "team2" ]
+                                  , pipelines = [ onePipeline "team1" ]
+                                  , jobs = []
+                                  , resources = []
+                                  , user = Nothing
+                                  , version = ""
+                                  }
+                                )
+                            )
+                        )
                     >> Tuple.first
                     >> NewestTopBar.view
                     >> toUnstyled
@@ -625,24 +639,33 @@ all =
                         , Query.first >> Query.has [ tag "li", text "team1" ]
                         , Query.index 1 >> Query.has [ tag "li", text "team2" ]
                         ]
-            , it "when there are teams, the dropdown only displays the first 10" <|
+            , it "when there are many teams, the dropdown only displays the first 10" <|
                 NewestTopBar.update Msgs.FocusMsg
                     >> Tuple.first
                     >> NewestTopBar.handleCallback
-                        (Callback.TeamsFetched
-                            (Ok
-                                [ Concourse.Team 1 "team1"
-                                , Concourse.Team 2 "team2"
-                                , Concourse.Team 3 "team3"
-                                , Concourse.Team 4 "team4"
-                                , Concourse.Team 5 "team5"
-                                , Concourse.Team 6 "team6"
-                                , Concourse.Team 7 "team7"
-                                , Concourse.Team 8 "team8"
-                                , Concourse.Team 9 "team9"
-                                , Concourse.Team 10 "team10"
-                                , Concourse.Team 11 "team11"
-                                ]
+                        (Callback.APIDataFetched
+                            (RemoteData.Success
+                                ( 0
+                                , { teams =
+                                        [ Concourse.Team 1 "team1"
+                                        , Concourse.Team 2 "team2"
+                                        , Concourse.Team 3 "team3"
+                                        , Concourse.Team 4 "team4"
+                                        , Concourse.Team 5 "team5"
+                                        , Concourse.Team 6 "team6"
+                                        , Concourse.Team 7 "team7"
+                                        , Concourse.Team 8 "team8"
+                                        , Concourse.Team 9 "team9"
+                                        , Concourse.Team 10 "team10"
+                                        , Concourse.Team 11 "team11"
+                                        ]
+                                  , pipelines = [ onePipeline "team1" ]
+                                  , jobs = []
+                                  , resources = []
+                                  , user = Nothing
+                                  , version = ""
+                                  }
+                                )
                             )
                         )
                     >> Tuple.first
@@ -811,3 +834,14 @@ resourceBreadcrumbSelector =
         , ( "background-repeat", "no-repeat" )
         ]
     ]
+
+
+onePipeline : String -> Concourse.Pipeline
+onePipeline teamName =
+    { id = 0
+    , name = "pipeline"
+    , paused = False
+    , public = True
+    , teamName = teamName
+    , groups = []
+    }

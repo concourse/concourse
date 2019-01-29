@@ -20,7 +20,6 @@ import Concourse.Pagination exposing (Page, Paginated)
 import Concourse.Pipeline
 import Concourse.PipelineStatus
 import Concourse.Resource
-import Concourse.Team
 import Concourse.User
 import Dashboard.APIData
 import Dashboard.Group
@@ -87,7 +86,6 @@ type Effect
     | FetchOutputOf Concourse.VersionedResourceIdentifier
     | FetchData
     | FetchUser
-    | FetchTeams
     | FetchBuild Time Int Int
     | FetchJobBuild Int Concourse.JobBuildIdentifier
     | FetchBuildJobDetails Concourse.JobIdentifier
@@ -270,9 +268,6 @@ runEffect effect =
         FetchUser ->
             fetchUser
 
-        FetchTeams ->
-            fetchTeams
-
         SetFavIcon status ->
             setFavicon status
 
@@ -338,12 +333,6 @@ fetchJobs pid =
 fetchUser : Cmd Callback
 fetchUser =
     Task.attempt UserFetched Concourse.User.fetchUser
-
-
-fetchTeams : Cmd Callback
-fetchTeams =
-    Concourse.Team.fetchTeams
-        |> Task.attempt TeamsFetched
 
 
 fetchVersion : Cmd Callback

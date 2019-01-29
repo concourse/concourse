@@ -40,10 +40,7 @@ import ScreenSize exposing (ScreenSize(..))
 import SearchBar exposing (SearchBar(..))
 import TopBar exposing (userDisplayName)
 import UserState exposing (UserState(..))
-
-
-
--- import StrictEvents exposing (onLeftClickOrShiftLeftClick)
+import Window
 
 
 type alias Model =
@@ -54,6 +51,7 @@ type alias Model =
     , route : Routes.ConcourseRoute
     , screenSize : ScreenSize
     , highDensity : Bool
+    , hasPipelines : Bool
     }
 
 
@@ -104,8 +102,9 @@ init { route, isHd } =
       , route = route
       , screenSize = Desktop
       , highDensity = isHd
+      , hasPipelines = True
       }
-    , [ FetchUser, FetchTeams, GetScreenSize ]
+    , [ GetScreenSize ]
     )
 
 
@@ -123,12 +122,6 @@ queryStringFromSearch query =
 handleCallback : Callback -> Model -> ( Model, List Effect )
 handleCallback callback model =
     case callback of
-        UserFetched (Ok user) ->
-            ( { model | userState = UserStateLoggedIn user }, [] )
-
-        UserFetched (Err err) ->
-            ( { model | userState = UserStateLoggedOut }, [] )
-
         LoggedOut (Ok ()) ->
             let
                 redirectUrl =
@@ -151,45 +144,32 @@ handleCallback callback model =
             flip always (Debug.log "failed to log out" err) <|
                 ( model, [] )
 
-        TeamsFetched (Ok teams) ->
-            ( { model | teams = RemoteData.Success teams }, [] )
+        APIDataFetched (RemoteData.Success ( time, data )) ->
+            ( { model
+                | teams = RemoteData.Success data.teams
+                , userState =
+                    case data.user of
+                        Just user ->
+                            UserStateLoggedIn user
 
-        TeamsFetched (Err err) ->
-            ( { model | teams = RemoteData.Failure err }, [] )
+                        Nothing ->
+                            UserStateLoggedOut
+                , hasPipelines = data.pipelines /= []
+              }
+            , []
+            )
+
+        APIDataFetched (RemoteData.Failure err) ->
+            ( { model
+                | teams = RemoteData.Failure err
+                , userState = UserStateLoggedOut
+                , hasPipelines = False
+              }
+            , []
+            )
 
         ScreenResized size ->
-            let
-                newSize =
-                    ScreenSize.fromWindowSize size
-
-                newSizedModel =
-                    { model | screenSize = newSize }
-
-                newModel =
-                    case model.searchBar of
-                        Expanded r ->
-                            if newSize == Mobile && model.screenSize == Desktop && String.isEmpty r.query then
-                                { newSizedModel | searchBar = Collapsed }
-
-                            else
-                                newSizedModel
-
-                        Collapsed ->
-                            if newSize == Desktop then
-                                { newSizedModel
-                                    | searchBar =
-                                        Expanded
-                                            { query = ""
-                                            , selectionMade = False
-                                            , showAutocomplete = False
-                                            , selection = 0
-                                            }
-                                }
-
-                            else
-                                newSizedModel
-            in
-            ( newModel, [] )
+            ( screenResize size model, [] )
 
         _ ->
             ( model, [] )
@@ -240,13 +220,7 @@ update msg model =
                 newModel =
                     case model.searchBar of
                         Expanded r ->
-                            { model
-                                | searchBar =
-                                    Expanded
-                                        { r
-                                            | showAutocomplete = False
-                                        }
-                            }
+                            { model | searchBar = Expanded { r | showAutocomplete = False } }
 
                         Collapsed ->
                             model
@@ -326,24 +300,27 @@ update msg model =
                     ( model, [] )
 
         ResizeScreen size ->
-            let
-                newSize =
-                    ScreenSize.fromWindowSize size
-            in
-            ( { model
-                | screenSize = newSize
-                , searchBar =
-                    SearchBar.screenSizeChanged
-                        { oldSize = model.screenSize
-                        , newSize = newSize
-                        }
-                        model.searchBar
-              }
-            , []
-            )
+            ( screenResize size model, [] )
 
         Noop ->
             ( model, [] )
+
+
+screenResize : Window.Size -> Model -> Model
+screenResize size model =
+    let
+        newSize =
+            ScreenSize.fromWindowSize size
+    in
+    { model
+        | screenSize = newSize
+        , searchBar =
+            SearchBar.screenSizeChanged
+                { oldSize = model.screenSize
+                , newSize = newSize
+                }
+                model.searchBar
+    }
 
 
 showSearchInput : Model -> ( Model, List Effect )
@@ -416,12 +393,17 @@ view model =
                     _ ->
                         []
                 )
-            ++ viewSearch
-                { showAutocomplete = showAutocomplete model
-                , active = String.length (query model) > 0
-                , query = query model
-                , teams = model.teams
-                }
+            ++ (if model.hasPipelines then
+                    viewSearch
+                        { showAutocomplete = showAutocomplete model
+                        , active = String.length (query model) > 0
+                        , query = query model
+                        , teams = model.teams
+                        }
+
+                else
+                    []
+               )
             ++ viewLogin model
 
 
@@ -637,43 +619,6 @@ viewResourceBreadcrumb resourceName =
 decodeName : String -> String
 decodeName name =
     Maybe.withDefault name (Http.decodeUri name)
-
-
-viewMiddleSection : Model -> List (Html Msg)
-viewMiddleSection model =
-    case model.searchBar of
-        Collapsed ->
-            [ Html.div [ css <| Styles.middleSection model ]
-                [ Html.a
-                    [ id "search-button"
-                    , onClick ShowSearchInput
-                    , css Styles.searchButton
-                    ]
-                    []
-                ]
-            ]
-
-        Expanded r ->
-            [ Html.div [ css <| Styles.middleSection model ] <|
-                (searchInput { query = r.query, screenSize = model.screenSize }
-                    ++ (if r.showAutocomplete then
-                            [ Html.ul
-                                [ css <| Styles.searchOptionsList model.screenSize ]
-                                (viewAutocomplete
-                                    { query = r.query
-                                    , teams = model.teams
-                                    , selectionMade = r.selectionMade
-                                    , selection = r.selection
-                                    , screenSize = model.screenSize
-                                    }
-                                )
-                            ]
-
-                        else
-                            []
-                       )
-                )
-            ]
 
 
 viewAutocomplete :
