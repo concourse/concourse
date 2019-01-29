@@ -19,7 +19,7 @@ type connectionRetryingDriver struct {
 
 func SetupConnectionRetryingDriver(
 	delegateDriverName string,
-	dbConfig flag.DBConfig,
+	pgConfig flag.PostgresConfig,
 	newDriverName string,
 ) {
 	for _, driverName := range sql.Drivers() {
@@ -27,7 +27,7 @@ func SetupConnectionRetryingDriver(
 			return
 		}
 	}
-	delegateDBConn, err := sql.Open(delegateDriverName, dbConfig.ConnectionString())
+	delegateDBConn, err := sql.Open(delegateDriverName, pgConfig.ConnectionString())
 	if err == nil {
 		// ignoring any connection errors since we only need this to access the driver struct
 		_ = delegateDBConn.Close()
@@ -36,8 +36,8 @@ func SetupConnectionRetryingDriver(
 	connectionRetryingDriver := &connectionRetryingDriver{
 		delegateDBConn.Driver(),
 		delegateDriverName,
-		dbConfig.GetReadTimeout(),
-		dbConfig.GetWriteTimeout(),
+		pgConfig.ReadTimeout,
+		pgConfig.WriteTimeout,
 	}
 	sql.Register(newDriverName, connectionRetryingDriver)
 }

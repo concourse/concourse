@@ -56,7 +56,7 @@ type Tx interface {
 	Stmt(stmt *sql.Stmt) *sql.Stmt
 }
 
-func Open(logger lager.Logger, sqlDriver string, dbConfig flag.DBConfig, newKey *encryption.Key, oldKey *encryption.Key, connectionName string, lockFactory lock.LockFactory) (Conn, error) {
+func Open(logger lager.Logger, sqlDriver string, pgConfig flag.PostgresConfig, newKey *encryption.Key, oldKey *encryption.Key, connectionName string, lockFactory lock.LockFactory) (Conn, error) {
 	for {
 		var strategy encryption.Strategy
 		if newKey != nil {
@@ -65,7 +65,7 @@ func Open(logger lager.Logger, sqlDriver string, dbConfig flag.DBConfig, newKey 
 			strategy = encryption.NewNoEncryption()
 		}
 
-		sqlDb, err := migration.NewOpenHelper(sqlDriver, dbConfig.ConnectionString(), lockFactory, strategy).Open()
+		sqlDb, err := migration.NewOpenHelper(sqlDriver, pgConfig.ConnectionString(), lockFactory, strategy).Open()
 		if err != nil {
 			if shouldRetry(err) {
 				logger.Error("failed-to-open-db-retrying", err)
@@ -95,9 +95,9 @@ func Open(logger lager.Logger, sqlDriver string, dbConfig flag.DBConfig, newKey 
 
 		listener := pq.NewDialListener(
 			timeoutDialer{
-				readTimeout:  dbConfig.GetReadTimeout(),
-				writeTimeout: dbConfig.GetWriteTimeout(),
-			}, dbConfig.ConnectionString(), time.Second, time.Minute, nil)
+				readTimeout:  pgConfig.ReadTimeout,
+				writeTimeout: pgConfig.WriteTimeout,
+			}, pgConfig.ConnectionString(), time.Second, time.Minute, nil)
 
 		return &db{
 			DB: sqlDb,
