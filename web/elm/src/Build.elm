@@ -920,14 +920,17 @@ viewBuildPrepLi text status details =
             [ ( "prep-status", True )
             , ( "inactive", status == Concourse.BuildPrepStatusUnknown )
             ]
-        , style
-            [ ( "display", "flex" )
-            , ( "align-items", "center" )
-            ]
         ]
-        [ viewBuildPrepStatus status
-        , Html.span []
-            [ Html.text text ]
+        [ Html.div
+            [ style
+                [ ( "align-items", "center" )
+                , ( "display", "flex" )
+                ]
+            ]
+            [ viewBuildPrepStatus status
+            , Html.span []
+                [ Html.text text ]
+            ]
         , viewBuildPrepDetails details
         ]
 
