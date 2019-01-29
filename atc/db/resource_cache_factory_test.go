@@ -41,7 +41,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 			Name: "some-base-type",
 		}
 
-		_, err = baseResourceType.FindOrCreate(setupTx)
+		_, err = baseResourceType.FindOrCreate(setupTx, false)
 		Expect(err).NotTo(HaveOccurred())
 
 		imageBaseResourceType := db.BaseResourceType{
@@ -50,7 +50,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 		resourceCacheLifecycle = db.NewResourceCacheLifecycle(dbConn)
 
-		usedImageBaseResourceType, err = imageBaseResourceType.FindOrCreate(setupTx)
+		usedImageBaseResourceType, err = imageBaseResourceType.FindOrCreate(setupTx, false)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(setupTx.Commit()).To(Succeed())

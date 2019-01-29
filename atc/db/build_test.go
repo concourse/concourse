@@ -382,7 +382,8 @@ var _ = Describe("Build", func() {
 			brt := db.BaseResourceType{
 				Name: "some-type",
 			}
-			_, err = brt.FindOrCreate(setupTx)
+
+			_, err = brt.FindOrCreate(setupTx, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
@@ -476,7 +477,8 @@ var _ = Describe("Build", func() {
 			brt := db.BaseResourceType{
 				Name: "some-type",
 			}
-			_, err = brt.FindOrCreate(setupTx)
+
+			_, err = brt.FindOrCreate(setupTx, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
@@ -740,7 +742,8 @@ var _ = Describe("Build", func() {
 					brt := db.BaseResourceType{
 						Name: "some-type",
 					}
-					_, err = brt.FindOrCreate(setupTx)
+
+					_, err = brt.FindOrCreate(setupTx, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 
@@ -917,7 +920,8 @@ var _ = Describe("Build", func() {
 					brt := db.BaseResourceType{
 						Name: "some-type",
 					}
-					_, err = brt.FindOrCreate(setupTx)
+
+					_, err = brt.FindOrCreate(setupTx, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 
@@ -1088,7 +1092,8 @@ var _ = Describe("Build", func() {
 			brt := db.BaseResourceType{
 				Name: "some-type",
 			}
-			_, err = brt.FindOrCreate(setupTx)
+
+			_, err = brt.FindOrCreate(setupTx, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
@@ -1119,7 +1124,8 @@ var _ = Describe("Build", func() {
 			brt := db.BaseResourceType{
 				Name: "some-other-type",
 			}
-			_, err = brt.FindOrCreate(setupTx)
+
+			_, err = brt.FindOrCreate(setupTx, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
@@ -1139,7 +1145,8 @@ var _ = Describe("Build", func() {
 			brt2 := db.BaseResourceType{
 				Name: "type",
 			}
-			_, err = brt2.FindOrCreate(setupTx2)
+
+			_, err = brt2.FindOrCreate(setupTx2, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx2.Commit()).To(Succeed())
 

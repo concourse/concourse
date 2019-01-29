@@ -128,7 +128,8 @@ var _ = Describe("Resource", func() {
 					brt := db.BaseResourceType{
 						Name: "registry-image",
 					}
-					_, err = brt.FindOrCreate(setupTx)
+
+					_, err = brt.FindOrCreate(setupTx, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 
@@ -270,7 +271,8 @@ var _ = Describe("Resource", func() {
 					brt := db.BaseResourceType{
 						Name: "some-type",
 					}
-					_, err = brt.FindOrCreate(setupTx)
+
+					_, err = brt.FindOrCreate(setupTx, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 
@@ -337,10 +339,10 @@ var _ = Describe("Resource", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					brt := db.BaseResourceType{
-						Name:                 "some-type",
-						UniqueVersionHistory: true,
+						Name: "some-type",
 					}
-					_, err = brt.FindOrCreate(setupTx)
+
+					_, err = brt.FindOrCreate(setupTx, true)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 
@@ -404,7 +406,8 @@ var _ = Describe("Resource", func() {
 					brt := db.BaseResourceType{
 						Name: "base",
 					}
-					_, err = brt.FindOrCreate(setupTx)
+
+					_, err = brt.FindOrCreate(setupTx, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 
@@ -545,7 +548,8 @@ var _ = Describe("Resource", func() {
 					brt := db.BaseResourceType{
 						Name: "some-type",
 					}
-					_, err = brt.FindOrCreate(setupTx)
+
+					_, err = brt.FindOrCreate(setupTx, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 
@@ -653,7 +657,8 @@ var _ = Describe("Resource", func() {
 				brt := db.BaseResourceType{
 					Name: "registry-image",
 				}
-				_, err = brt.FindOrCreate(setupTx)
+
+				_, err = brt.FindOrCreate(setupTx, false)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 
@@ -699,7 +704,8 @@ var _ = Describe("Resource", func() {
 				brt := db.BaseResourceType{
 					Name: "registry-image",
 				}
-				_, err = brt.FindOrCreate(setupTx)
+
+				_, err = brt.FindOrCreate(setupTx, false)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 				_, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "registry-image", atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
@@ -730,7 +736,8 @@ var _ = Describe("Resource", func() {
 				brt := db.BaseResourceType{
 					Name: "git",
 				}
-				_, err = brt.FindOrCreate(setupTx)
+
+				_, err = brt.FindOrCreate(setupTx, false)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 
@@ -892,7 +899,8 @@ var _ = Describe("Resource", func() {
 				brt := db.BaseResourceType{
 					Name: "git",
 				}
-				_, err = brt.FindOrCreate(setupTx)
+
+				_, err = brt.FindOrCreate(setupTx, false)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 
@@ -1024,7 +1032,8 @@ var _ = Describe("Resource", func() {
 				brt := db.BaseResourceType{
 					Name: "git",
 				}
-				_, err = brt.FindOrCreate(setupTx)
+
+				_, err = brt.FindOrCreate(setupTx, false)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 
@@ -1068,7 +1077,8 @@ var _ = Describe("Resource", func() {
 			brt := db.BaseResourceType{
 				Name: "git",
 			}
-			_, err = brt.FindOrCreate(setupTx)
+
+			_, err = brt.FindOrCreate(setupTx, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
@@ -1145,7 +1155,8 @@ var _ = Describe("Resource", func() {
 				brt := db.BaseResourceType{
 					Name: "registry-image",
 				}
-				_, err = brt.FindOrCreate(setupTx)
+
+				_, err = brt.FindOrCreate(setupTx, false)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 

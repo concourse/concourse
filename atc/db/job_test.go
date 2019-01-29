@@ -701,7 +701,8 @@ var _ = Describe("Job", func() {
 			brt := db.BaseResourceType{
 				Name: "some-type",
 			}
-			_, err = brt.FindOrCreate(setupTx)
+
+			_, err = brt.FindOrCreate(setupTx, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
@@ -880,7 +881,8 @@ var _ = Describe("Job", func() {
 			brt := db.BaseResourceType{
 				Name: "some-type",
 			}
-			_, err = brt.FindOrCreate(setupTx)
+
+			_, err = brt.FindOrCreate(setupTx, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 

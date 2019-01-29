@@ -562,36 +562,11 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			Image:   resourceType.Image,
 			Version: resourceType.Version,
 			BaseResourceType: &BaseResourceType{
-				Name:                 resourceType.Type,
-				UniqueVersionHistory: resourceType.UniqueVersionHistory,
+				Name: resourceType.Type,
 			},
 		}
 
-		ubrt, err := workerResourceType.BaseResourceType.FindOrCreate(tx)
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = psql.Delete("worker_base_resource_types").
-			Where(sq.Eq{
-				"worker_name":           atcWorker.Name,
-				"base_resource_type_id": ubrt.ID,
-			}).
-			Where(sq.Or{
-				sq.NotEq{
-					"image": resourceType.Image,
-				},
-				sq.NotEq{
-					"version": resourceType.Version,
-				},
-			}).
-			RunWith(tx).
-			Exec()
-		if err != nil {
-			return nil, err
-		}
-
-		uwrt, err := workerResourceType.FindOrCreate(tx)
+		uwrt, err := workerResourceType.FindOrCreate(tx, resourceType.UniqueVersionHistory)
 		if err != nil {
 			return nil, err
 		}

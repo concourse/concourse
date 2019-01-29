@@ -27,6 +27,8 @@ BEGIN;
   CREATE UNIQUE INDEX resource_configs_base_resource_type_id_so_key
   ON resource_configs (base_resource_type_id, source_hash);
 
+  TRUNCATE TABLE resource_config_versions CASCADE;
+
   ALTER TABLE resource_config_versions
     DROP COLUMN resource_config_id,
     ADD COLUMN resource_config_scope_id integer NOT NULL REFERENCES resource_config_scopes (id) ON DELETE CASCADE,

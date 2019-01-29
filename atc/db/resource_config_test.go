@@ -54,7 +54,8 @@ var _ = Describe("ResourceConfig", func() {
 				brt := db.BaseResourceType{
 					Name: "some-type",
 				}
-				_, err = brt.FindOrCreate(setupTx)
+
+				_, err = brt.FindOrCreate(setupTx, false)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 
@@ -88,10 +89,10 @@ var _ = Describe("ResourceConfig", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				brt := db.BaseResourceType{
-					Name:                 "some-type",
-					UniqueVersionHistory: true,
+					Name: "some-type",
 				}
-				_, err = brt.FindOrCreate(setupTx)
+
+				_, err = brt.FindOrCreate(setupTx, true)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 
@@ -127,7 +128,8 @@ var _ = Describe("ResourceConfig", func() {
 				brt := db.BaseResourceType{
 					Name: "some-type",
 				}
-				_, err = brt.FindOrCreate(setupTx)
+
+				_, err = brt.FindOrCreate(setupTx, false)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 
