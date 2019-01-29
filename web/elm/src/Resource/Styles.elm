@@ -87,7 +87,7 @@ pinBarTooltip =
     [ ( "position", "absolute" )
     , ( "top", "-10px" )
     , ( "left", "30px" )
-    , ( "background-color", Colors.pinTooltip )
+    , ( "background-color", Colors.tooltipBackground )
     , ( "padding", "5px" )
     , ( "z-index", "2" )
     ]

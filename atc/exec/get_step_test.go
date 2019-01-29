@@ -92,6 +92,7 @@ var _ = Describe("GetStep", func() {
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeBuild.IDReturns(buildID)
 		fakeBuild.TeamIDReturns(teamID)
+		fakeBuild.PipelineNameReturns("pipeline")
 
 		resourceTypes = atc.VersionedResourceTypes{
 			{
@@ -212,23 +213,97 @@ var _ = Describe("GetStep", func() {
 				fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeResourceCache, nil)
 			})
 
-			It("saves the resource config version", func() {
-				Expect(fakeResourceConfig.SaveUncheckedVersionCallCount()).To(Equal(1))
-
-				version, metadata := fakeResourceConfig.SaveUncheckedVersionArgsForCall(0)
-				Expect(version).To(Equal(atc.Version{"some": "version"}))
-				Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields([]atc.MetadataField{{"some", "metadata"}})))
+			It("finds the pipeline", func() {
+				Expect(fakeBuild.PipelineCallCount()).To(Equal(1))
 			})
 
-			Context("when it fails to save the version", func() {
+			Context("when finding the pipeline succeeds", func() {
+				var fakePipeline *dbfakes.FakePipeline
+
+				BeforeEach(func() {
+					fakePipeline = new(dbfakes.FakePipeline)
+					fakeBuild.PipelineReturns(fakePipeline, true, nil)
+				})
+
+				It("finds the resource", func() {
+					Expect(fakePipeline.ResourceCallCount()).To(Equal(1))
+
+					Expect(fakePipeline.ResourceArgsForCall(0)).To(Equal(getPlan.Resource))
+				})
+
+				Context("when finding the resource succeeds", func() {
+					var fakeResource *dbfakes.FakeResource
+
+					BeforeEach(func() {
+						fakeResource = new(dbfakes.FakeResource)
+						fakePipeline.ResourceReturns(fakeResource, true, nil)
+					})
+
+					It("saves the resource config version", func() {
+						Expect(fakeResource.SaveUncheckedVersionCallCount()).To(Equal(1))
+
+						version, metadata, resourceConfig, actualResourceTypes := fakeResource.SaveUncheckedVersionArgsForCall(0)
+						Expect(version).To(Equal(atc.Version{"some": "version"}))
+						Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields([]atc.MetadataField{{"some", "metadata"}})))
+						Expect(resourceConfig).To(Equal(fakeResourceConfig))
+						Expect(actualResourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, resourceTypes)))
+					})
+
+					Context("when it fails to save the version", func() {
+						disaster := errors.New("oops")
+
+						BeforeEach(func() {
+							fakeResource.SaveUncheckedVersionReturns(false, disaster)
+						})
+
+						It("returns an error", func() {
+							Expect(stepErr).To(Equal(disaster))
+						})
+					})
+				})
+
+				Context("when it fails to find the resource", func() {
+					disaster := errors.New("oops")
+
+					BeforeEach(func() {
+						fakePipeline.ResourceReturns(nil, false, disaster)
+					})
+
+					It("returns an error", func() {
+						Expect(stepErr).To(Equal(disaster))
+					})
+				})
+
+				Context("when the resource is not found", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceReturns(nil, false, nil)
+					})
+
+					It("returns an ErrResourceNotFound", func() {
+						Expect(stepErr).To(Equal(exec.ErrResourceNotFound{"some-pipeline-resource"}))
+					})
+				})
+			})
+
+			Context("when it fails to find the pipeline", func() {
 				disaster := errors.New("oops")
 
 				BeforeEach(func() {
-					fakeResourceConfig.SaveUncheckedVersionReturns(false, disaster)
+					fakeBuild.PipelineReturns(nil, false, disaster)
 				})
 
 				It("returns an error", func() {
 					Expect(stepErr).To(Equal(disaster))
+				})
+			})
+
+			Context("when the pipeline is not found", func() {
+				BeforeEach(func() {
+					fakeBuild.PipelineReturns(nil, false, nil)
+				})
+
+				It("returns an ErrPipelineNotFound", func() {
+					Expect(stepErr).To(Equal(exec.ErrPipelineNotFound{"pipeline"}))
 				})
 			})
 		})
@@ -245,9 +320,9 @@ var _ = Describe("GetStep", func() {
 				fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeResourceCache, nil)
 			})
 
-			It("does not save the resource config version", func() {
+			It("does not find the pipeline", func() {
 				// TODO: this can be removed once /check returns metadata
-				Expect(fakeResourceConfig.SaveUncheckedVersionCallCount()).To(Equal(0))
+				Expect(fakeBuild.PipelineCallCount()).To(Equal(0))
 			})
 		})
 

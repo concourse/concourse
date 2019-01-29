@@ -35,7 +35,6 @@ groups:
 - name: develop
   jobs:
   - unit
-  - lint
   - dev-image
   - rc-image
   - testflight
@@ -126,15 +125,6 @@ jobs:
       file: concourse/ci/tasks/fly-windows.yml
       timeout: 1h
 
-- name: lint
-  public: true
-  serial: true
-  plan:
-  - get: concourse
-    trigger: true
-  - task: golang-lint
-    file: concourse/ci/tasks/golang-lint.yml
-
 - name: dev-image
   public: true
   serial: true
@@ -189,7 +179,7 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [unit, lint, dev-image]
+      passed: [unit, dev-image]
       trigger: true
     - get: unit-image
       passed: [unit, dev-image]
@@ -212,7 +202,7 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [unit, lint, dev-image]
+      passed: [unit, dev-image]
       trigger: true
     - get: unit-image
       passed: [unit, dev-image]

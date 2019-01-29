@@ -48,21 +48,29 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 
 		go func() {
 			var fromVersion atc.Version
-			resourceConfigId := pipelineResource.ResourceConfigID()
-			resourceConfig, found, err := s.resourceConfigFactory.FindResourceConfigByID(resourceConfigId)
+			resourceConfigID := pipelineResource.ResourceConfigID()
+			resourceConfig, found, err := s.resourceConfigFactory.FindResourceConfigByID(resourceConfigID)
 			if err != nil {
-				logger.Error("failed-to-get-resource-config", err, lager.Data{"resource-config-id": resourceConfigId})
+				logger.Error("failed-to-get-resource-config", err, lager.Data{"resource-config-id": resourceConfigID})
 				return
 			}
 
 			if found {
-				latestVersion, found, err := resourceConfig.LatestVersion()
+				resourceConfigScope, found, err := resourceConfig.FindResourceConfigScopeByID(pipelineResource.ResourceConfigScopeID(), pipelineResource)
 				if err != nil {
-					logger.Error("failed-to-get-latest-resource-version", err, lager.Data{"resource-config-id": resourceConfigId})
+					logger.Error("failed-to-get-resource-config-scope", err, lager.Data{"resource-config-scope-id": pipelineResource.ResourceConfigScopeID()})
 					return
 				}
+
 				if found {
-					fromVersion = atc.Version(latestVersion.Version())
+					latestVersion, found, err := resourceConfigScope.LatestVersion()
+					if err != nil {
+						logger.Error("failed-to-get-latest-resource-version", err, lager.Data{"resource-config-id": resourceConfigID})
+						return
+					}
+					if found {
+						fromVersion = atc.Version(latestVersion.Version())
+					}
 				}
 			}
 

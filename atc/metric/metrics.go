@@ -1,9 +1,10 @@
 package metric
 
 import (
-	"github.com/concourse/concourse/atc/db/lock"
 	"strconv"
 	"time"
+
+	"github.com/concourse/concourse/atc/db/lock"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"

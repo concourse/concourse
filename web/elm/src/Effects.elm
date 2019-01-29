@@ -91,8 +91,8 @@ type Effect
     | FetchBuildJobDetails Concourse.JobIdentifier
     | FetchBuildHistory Concourse.JobIdentifier (Maybe Page)
     | FetchBuildPrep Time Int Int
-    | FetchBuildPlan Int
-    | FetchBuildPlanAndResources Int
+    | FetchBuildPlan Concourse.BuildId
+    | FetchBuildPlanAndResources Concourse.BuildId
     | FocusSearchInput
     | GetCurrentTime
     | DoTriggerBuild Concourse.JobIdentifier String
@@ -463,16 +463,17 @@ fetchBuildPrep delay browsingIndex buildId =
         |> Task.attempt BuildPrepFetched
 
 
-fetchBuildPlanAndResources : Int -> Cmd Callback
+fetchBuildPlanAndResources : Concourse.BuildId -> Cmd Callback
 fetchBuildPlanAndResources buildId =
-    Task.attempt PlanAndResourcesFetched <|
-        Task.map2 (,) (Concourse.BuildPlan.fetch buildId) (Concourse.BuildResources.fetch buildId)
+    Task.map2 (,) (Concourse.BuildPlan.fetch buildId) (Concourse.BuildResources.fetch buildId)
+        |> Task.attempt (PlanAndResourcesFetched buildId)
 
 
-fetchBuildPlan : Int -> Cmd Callback
+fetchBuildPlan : Concourse.BuildId -> Cmd Callback
 fetchBuildPlan buildId =
-    Task.attempt PlanAndResourcesFetched <|
-        Task.map (flip (,) Concourse.BuildResources.empty) (Concourse.BuildPlan.fetch buildId)
+    Concourse.BuildPlan.fetch buildId
+        |> Task.map (\p -> ( p, Concourse.BuildResources.empty ))
+        |> Task.attempt (PlanAndResourcesFetched buildId)
 
 
 setFavicon : Maybe Concourse.BuildStatus -> Cmd Callback

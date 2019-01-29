@@ -42,6 +42,16 @@ type FakeResource struct {
 	checkEveryReturnsOnCall map[int]struct {
 		result1 string
 	}
+	CheckSetupErrorStub        func() error
+	checkSetupErrorMutex       sync.RWMutex
+	checkSetupErrorArgsForCall []struct {
+	}
+	checkSetupErrorReturns struct {
+		result1 error
+	}
+	checkSetupErrorReturnsOnCall map[int]struct {
+		result1 error
+	}
 	CheckTimeoutStub        func() string
 	checkTimeoutMutex       sync.RWMutex
 	checkTimeoutArgsForCall []struct {
@@ -177,16 +187,6 @@ type FakeResource struct {
 		result1 bool
 		result2 error
 	}
-	ResourceConfigCheckErrorStub        func() error
-	resourceConfigCheckErrorMutex       sync.RWMutex
-	resourceConfigCheckErrorArgsForCall []struct {
-	}
-	resourceConfigCheckErrorReturns struct {
-		result1 error
-	}
-	resourceConfigCheckErrorReturnsOnCall map[int]struct {
-		result1 error
-	}
 	ResourceConfigIDStub        func() int
 	resourceConfigIDMutex       sync.RWMutex
 	resourceConfigIDArgsForCall []struct {
@@ -195,6 +195,16 @@ type FakeResource struct {
 		result1 int
 	}
 	resourceConfigIDReturnsOnCall map[int]struct {
+		result1 int
+	}
+	ResourceConfigScopeIDStub        func() int
+	resourceConfigScopeIDMutex       sync.RWMutex
+	resourceConfigScopeIDArgsForCall []struct {
+	}
+	resourceConfigScopeIDReturns struct {
+		result1 int
+	}
+	resourceConfigScopeIDReturnsOnCall map[int]struct {
 		result1 int
 	}
 	ResourceConfigVersionIDStub        func(atc.Version) (int, bool, error)
@@ -212,15 +222,31 @@ type FakeResource struct {
 		result2 bool
 		result3 error
 	}
-	SetCheckErrorStub        func(error) error
-	setCheckErrorMutex       sync.RWMutex
-	setCheckErrorArgsForCall []struct {
+	SaveUncheckedVersionStub        func(atc.Version, db.ResourceConfigMetadataFields, db.ResourceConfig, creds.VersionedResourceTypes) (bool, error)
+	saveUncheckedVersionMutex       sync.RWMutex
+	saveUncheckedVersionArgsForCall []struct {
+		arg1 atc.Version
+		arg2 db.ResourceConfigMetadataFields
+		arg3 db.ResourceConfig
+		arg4 creds.VersionedResourceTypes
+	}
+	saveUncheckedVersionReturns struct {
+		result1 bool
+		result2 error
+	}
+	saveUncheckedVersionReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
+	SetCheckSetupErrorStub        func(error) error
+	setCheckSetupErrorMutex       sync.RWMutex
+	setCheckSetupErrorArgsForCall []struct {
 		arg1 error
 	}
-	setCheckErrorReturns struct {
+	setCheckSetupErrorReturns struct {
 		result1 error
 	}
-	setCheckErrorReturnsOnCall map[int]struct {
+	setCheckSetupErrorReturnsOnCall map[int]struct {
 		result1 error
 	}
 	SetPinCommentStub        func(string) error
@@ -234,7 +260,7 @@ type FakeResource struct {
 	setPinCommentReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SetResourceConfigStub        func(lager.Logger, atc.Source, creds.VersionedResourceTypes) (db.ResourceConfig, error)
+	SetResourceConfigStub        func(lager.Logger, atc.Source, creds.VersionedResourceTypes) (db.ResourceConfigScope, error)
 	setResourceConfigMutex       sync.RWMutex
 	setResourceConfigArgsForCall []struct {
 		arg1 lager.Logger
@@ -242,11 +268,11 @@ type FakeResource struct {
 		arg3 creds.VersionedResourceTypes
 	}
 	setResourceConfigReturns struct {
-		result1 db.ResourceConfig
+		result1 db.ResourceConfigScope
 		result2 error
 	}
 	setResourceConfigReturnsOnCall map[int]struct {
-		result1 db.ResourceConfig
+		result1 db.ResourceConfigScope
 		result2 error
 	}
 	SourceStub        func() atc.Source
@@ -483,6 +509,58 @@ func (fake *FakeResource) CheckEveryReturnsOnCall(i int, result1 string) {
 	}
 	fake.checkEveryReturnsOnCall[i] = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeResource) CheckSetupError() error {
+	fake.checkSetupErrorMutex.Lock()
+	ret, specificReturn := fake.checkSetupErrorReturnsOnCall[len(fake.checkSetupErrorArgsForCall)]
+	fake.checkSetupErrorArgsForCall = append(fake.checkSetupErrorArgsForCall, struct {
+	}{})
+	fake.recordInvocation("CheckSetupError", []interface{}{})
+	fake.checkSetupErrorMutex.Unlock()
+	if fake.CheckSetupErrorStub != nil {
+		return fake.CheckSetupErrorStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.checkSetupErrorReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) CheckSetupErrorCallCount() int {
+	fake.checkSetupErrorMutex.RLock()
+	defer fake.checkSetupErrorMutex.RUnlock()
+	return len(fake.checkSetupErrorArgsForCall)
+}
+
+func (fake *FakeResource) CheckSetupErrorCalls(stub func() error) {
+	fake.checkSetupErrorMutex.Lock()
+	defer fake.checkSetupErrorMutex.Unlock()
+	fake.CheckSetupErrorStub = stub
+}
+
+func (fake *FakeResource) CheckSetupErrorReturns(result1 error) {
+	fake.checkSetupErrorMutex.Lock()
+	defer fake.checkSetupErrorMutex.Unlock()
+	fake.CheckSetupErrorStub = nil
+	fake.checkSetupErrorReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResource) CheckSetupErrorReturnsOnCall(i int, result1 error) {
+	fake.checkSetupErrorMutex.Lock()
+	defer fake.checkSetupErrorMutex.Unlock()
+	fake.CheckSetupErrorStub = nil
+	if fake.checkSetupErrorReturnsOnCall == nil {
+		fake.checkSetupErrorReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.checkSetupErrorReturnsOnCall[i] = struct {
+		result1 error
 	}{result1}
 }
 
@@ -1189,58 +1267,6 @@ func (fake *FakeResource) ReloadReturnsOnCall(i int, result1 bool, result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeResource) ResourceConfigCheckError() error {
-	fake.resourceConfigCheckErrorMutex.Lock()
-	ret, specificReturn := fake.resourceConfigCheckErrorReturnsOnCall[len(fake.resourceConfigCheckErrorArgsForCall)]
-	fake.resourceConfigCheckErrorArgsForCall = append(fake.resourceConfigCheckErrorArgsForCall, struct {
-	}{})
-	fake.recordInvocation("ResourceConfigCheckError", []interface{}{})
-	fake.resourceConfigCheckErrorMutex.Unlock()
-	if fake.ResourceConfigCheckErrorStub != nil {
-		return fake.ResourceConfigCheckErrorStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.resourceConfigCheckErrorReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeResource) ResourceConfigCheckErrorCallCount() int {
-	fake.resourceConfigCheckErrorMutex.RLock()
-	defer fake.resourceConfigCheckErrorMutex.RUnlock()
-	return len(fake.resourceConfigCheckErrorArgsForCall)
-}
-
-func (fake *FakeResource) ResourceConfigCheckErrorCalls(stub func() error) {
-	fake.resourceConfigCheckErrorMutex.Lock()
-	defer fake.resourceConfigCheckErrorMutex.Unlock()
-	fake.ResourceConfigCheckErrorStub = stub
-}
-
-func (fake *FakeResource) ResourceConfigCheckErrorReturns(result1 error) {
-	fake.resourceConfigCheckErrorMutex.Lock()
-	defer fake.resourceConfigCheckErrorMutex.Unlock()
-	fake.ResourceConfigCheckErrorStub = nil
-	fake.resourceConfigCheckErrorReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeResource) ResourceConfigCheckErrorReturnsOnCall(i int, result1 error) {
-	fake.resourceConfigCheckErrorMutex.Lock()
-	defer fake.resourceConfigCheckErrorMutex.Unlock()
-	fake.ResourceConfigCheckErrorStub = nil
-	if fake.resourceConfigCheckErrorReturnsOnCall == nil {
-		fake.resourceConfigCheckErrorReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.resourceConfigCheckErrorReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeResource) ResourceConfigID() int {
 	fake.resourceConfigIDMutex.Lock()
 	ret, specificReturn := fake.resourceConfigIDReturnsOnCall[len(fake.resourceConfigIDArgsForCall)]
@@ -1289,6 +1315,58 @@ func (fake *FakeResource) ResourceConfigIDReturnsOnCall(i int, result1 int) {
 		})
 	}
 	fake.resourceConfigIDReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeResource) ResourceConfigScopeID() int {
+	fake.resourceConfigScopeIDMutex.Lock()
+	ret, specificReturn := fake.resourceConfigScopeIDReturnsOnCall[len(fake.resourceConfigScopeIDArgsForCall)]
+	fake.resourceConfigScopeIDArgsForCall = append(fake.resourceConfigScopeIDArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ResourceConfigScopeID", []interface{}{})
+	fake.resourceConfigScopeIDMutex.Unlock()
+	if fake.ResourceConfigScopeIDStub != nil {
+		return fake.ResourceConfigScopeIDStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.resourceConfigScopeIDReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) ResourceConfigScopeIDCallCount() int {
+	fake.resourceConfigScopeIDMutex.RLock()
+	defer fake.resourceConfigScopeIDMutex.RUnlock()
+	return len(fake.resourceConfigScopeIDArgsForCall)
+}
+
+func (fake *FakeResource) ResourceConfigScopeIDCalls(stub func() int) {
+	fake.resourceConfigScopeIDMutex.Lock()
+	defer fake.resourceConfigScopeIDMutex.Unlock()
+	fake.ResourceConfigScopeIDStub = stub
+}
+
+func (fake *FakeResource) ResourceConfigScopeIDReturns(result1 int) {
+	fake.resourceConfigScopeIDMutex.Lock()
+	defer fake.resourceConfigScopeIDMutex.Unlock()
+	fake.ResourceConfigScopeIDStub = nil
+	fake.resourceConfigScopeIDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeResource) ResourceConfigScopeIDReturnsOnCall(i int, result1 int) {
+	fake.resourceConfigScopeIDMutex.Lock()
+	defer fake.resourceConfigScopeIDMutex.Unlock()
+	fake.ResourceConfigScopeIDStub = nil
+	if fake.resourceConfigScopeIDReturnsOnCall == nil {
+		fake.resourceConfigScopeIDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.resourceConfigScopeIDReturnsOnCall[i] = struct {
 		result1 int
 	}{result1}
 }
@@ -1359,62 +1437,128 @@ func (fake *FakeResource) ResourceConfigVersionIDReturnsOnCall(i int, result1 in
 	}{result1, result2, result3}
 }
 
-func (fake *FakeResource) SetCheckError(arg1 error) error {
-	fake.setCheckErrorMutex.Lock()
-	ret, specificReturn := fake.setCheckErrorReturnsOnCall[len(fake.setCheckErrorArgsForCall)]
-	fake.setCheckErrorArgsForCall = append(fake.setCheckErrorArgsForCall, struct {
+func (fake *FakeResource) SaveUncheckedVersion(arg1 atc.Version, arg2 db.ResourceConfigMetadataFields, arg3 db.ResourceConfig, arg4 creds.VersionedResourceTypes) (bool, error) {
+	fake.saveUncheckedVersionMutex.Lock()
+	ret, specificReturn := fake.saveUncheckedVersionReturnsOnCall[len(fake.saveUncheckedVersionArgsForCall)]
+	fake.saveUncheckedVersionArgsForCall = append(fake.saveUncheckedVersionArgsForCall, struct {
+		arg1 atc.Version
+		arg2 db.ResourceConfigMetadataFields
+		arg3 db.ResourceConfig
+		arg4 creds.VersionedResourceTypes
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("SaveUncheckedVersion", []interface{}{arg1, arg2, arg3, arg4})
+	fake.saveUncheckedVersionMutex.Unlock()
+	if fake.SaveUncheckedVersionStub != nil {
+		return fake.SaveUncheckedVersionStub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.saveUncheckedVersionReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeResource) SaveUncheckedVersionCallCount() int {
+	fake.saveUncheckedVersionMutex.RLock()
+	defer fake.saveUncheckedVersionMutex.RUnlock()
+	return len(fake.saveUncheckedVersionArgsForCall)
+}
+
+func (fake *FakeResource) SaveUncheckedVersionCalls(stub func(atc.Version, db.ResourceConfigMetadataFields, db.ResourceConfig, creds.VersionedResourceTypes) (bool, error)) {
+	fake.saveUncheckedVersionMutex.Lock()
+	defer fake.saveUncheckedVersionMutex.Unlock()
+	fake.SaveUncheckedVersionStub = stub
+}
+
+func (fake *FakeResource) SaveUncheckedVersionArgsForCall(i int) (atc.Version, db.ResourceConfigMetadataFields, db.ResourceConfig, creds.VersionedResourceTypes) {
+	fake.saveUncheckedVersionMutex.RLock()
+	defer fake.saveUncheckedVersionMutex.RUnlock()
+	argsForCall := fake.saveUncheckedVersionArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeResource) SaveUncheckedVersionReturns(result1 bool, result2 error) {
+	fake.saveUncheckedVersionMutex.Lock()
+	defer fake.saveUncheckedVersionMutex.Unlock()
+	fake.SaveUncheckedVersionStub = nil
+	fake.saveUncheckedVersionReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResource) SaveUncheckedVersionReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.saveUncheckedVersionMutex.Lock()
+	defer fake.saveUncheckedVersionMutex.Unlock()
+	fake.SaveUncheckedVersionStub = nil
+	if fake.saveUncheckedVersionReturnsOnCall == nil {
+		fake.saveUncheckedVersionReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.saveUncheckedVersionReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResource) SetCheckSetupError(arg1 error) error {
+	fake.setCheckSetupErrorMutex.Lock()
+	ret, specificReturn := fake.setCheckSetupErrorReturnsOnCall[len(fake.setCheckSetupErrorArgsForCall)]
+	fake.setCheckSetupErrorArgsForCall = append(fake.setCheckSetupErrorArgsForCall, struct {
 		arg1 error
 	}{arg1})
-	fake.recordInvocation("SetCheckError", []interface{}{arg1})
-	fake.setCheckErrorMutex.Unlock()
-	if fake.SetCheckErrorStub != nil {
-		return fake.SetCheckErrorStub(arg1)
+	fake.recordInvocation("SetCheckSetupError", []interface{}{arg1})
+	fake.setCheckSetupErrorMutex.Unlock()
+	if fake.SetCheckSetupErrorStub != nil {
+		return fake.SetCheckSetupErrorStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setCheckErrorReturns
+	fakeReturns := fake.setCheckSetupErrorReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeResource) SetCheckErrorCallCount() int {
-	fake.setCheckErrorMutex.RLock()
-	defer fake.setCheckErrorMutex.RUnlock()
-	return len(fake.setCheckErrorArgsForCall)
+func (fake *FakeResource) SetCheckSetupErrorCallCount() int {
+	fake.setCheckSetupErrorMutex.RLock()
+	defer fake.setCheckSetupErrorMutex.RUnlock()
+	return len(fake.setCheckSetupErrorArgsForCall)
 }
 
-func (fake *FakeResource) SetCheckErrorCalls(stub func(error) error) {
-	fake.setCheckErrorMutex.Lock()
-	defer fake.setCheckErrorMutex.Unlock()
-	fake.SetCheckErrorStub = stub
+func (fake *FakeResource) SetCheckSetupErrorCalls(stub func(error) error) {
+	fake.setCheckSetupErrorMutex.Lock()
+	defer fake.setCheckSetupErrorMutex.Unlock()
+	fake.SetCheckSetupErrorStub = stub
 }
 
-func (fake *FakeResource) SetCheckErrorArgsForCall(i int) error {
-	fake.setCheckErrorMutex.RLock()
-	defer fake.setCheckErrorMutex.RUnlock()
-	argsForCall := fake.setCheckErrorArgsForCall[i]
+func (fake *FakeResource) SetCheckSetupErrorArgsForCall(i int) error {
+	fake.setCheckSetupErrorMutex.RLock()
+	defer fake.setCheckSetupErrorMutex.RUnlock()
+	argsForCall := fake.setCheckSetupErrorArgsForCall[i]
 	return argsForCall.arg1
 }
 
-func (fake *FakeResource) SetCheckErrorReturns(result1 error) {
-	fake.setCheckErrorMutex.Lock()
-	defer fake.setCheckErrorMutex.Unlock()
-	fake.SetCheckErrorStub = nil
-	fake.setCheckErrorReturns = struct {
+func (fake *FakeResource) SetCheckSetupErrorReturns(result1 error) {
+	fake.setCheckSetupErrorMutex.Lock()
+	defer fake.setCheckSetupErrorMutex.Unlock()
+	fake.SetCheckSetupErrorStub = nil
+	fake.setCheckSetupErrorReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeResource) SetCheckErrorReturnsOnCall(i int, result1 error) {
-	fake.setCheckErrorMutex.Lock()
-	defer fake.setCheckErrorMutex.Unlock()
-	fake.SetCheckErrorStub = nil
-	if fake.setCheckErrorReturnsOnCall == nil {
-		fake.setCheckErrorReturnsOnCall = make(map[int]struct {
+func (fake *FakeResource) SetCheckSetupErrorReturnsOnCall(i int, result1 error) {
+	fake.setCheckSetupErrorMutex.Lock()
+	defer fake.setCheckSetupErrorMutex.Unlock()
+	fake.SetCheckSetupErrorStub = nil
+	if fake.setCheckSetupErrorReturnsOnCall == nil {
+		fake.setCheckSetupErrorReturnsOnCall = make(map[int]struct {
 			result1 error
 		})
 	}
-	fake.setCheckErrorReturnsOnCall[i] = struct {
+	fake.setCheckSetupErrorReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -1479,7 +1623,7 @@ func (fake *FakeResource) SetPinCommentReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeResource) SetResourceConfig(arg1 lager.Logger, arg2 atc.Source, arg3 creds.VersionedResourceTypes) (db.ResourceConfig, error) {
+func (fake *FakeResource) SetResourceConfig(arg1 lager.Logger, arg2 atc.Source, arg3 creds.VersionedResourceTypes) (db.ResourceConfigScope, error) {
 	fake.setResourceConfigMutex.Lock()
 	ret, specificReturn := fake.setResourceConfigReturnsOnCall[len(fake.setResourceConfigArgsForCall)]
 	fake.setResourceConfigArgsForCall = append(fake.setResourceConfigArgsForCall, struct {
@@ -1505,7 +1649,7 @@ func (fake *FakeResource) SetResourceConfigCallCount() int {
 	return len(fake.setResourceConfigArgsForCall)
 }
 
-func (fake *FakeResource) SetResourceConfigCalls(stub func(lager.Logger, atc.Source, creds.VersionedResourceTypes) (db.ResourceConfig, error)) {
+func (fake *FakeResource) SetResourceConfigCalls(stub func(lager.Logger, atc.Source, creds.VersionedResourceTypes) (db.ResourceConfigScope, error)) {
 	fake.setResourceConfigMutex.Lock()
 	defer fake.setResourceConfigMutex.Unlock()
 	fake.SetResourceConfigStub = stub
@@ -1518,28 +1662,28 @@ func (fake *FakeResource) SetResourceConfigArgsForCall(i int) (lager.Logger, atc
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeResource) SetResourceConfigReturns(result1 db.ResourceConfig, result2 error) {
+func (fake *FakeResource) SetResourceConfigReturns(result1 db.ResourceConfigScope, result2 error) {
 	fake.setResourceConfigMutex.Lock()
 	defer fake.setResourceConfigMutex.Unlock()
 	fake.SetResourceConfigStub = nil
 	fake.setResourceConfigReturns = struct {
-		result1 db.ResourceConfig
+		result1 db.ResourceConfigScope
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeResource) SetResourceConfigReturnsOnCall(i int, result1 db.ResourceConfig, result2 error) {
+func (fake *FakeResource) SetResourceConfigReturnsOnCall(i int, result1 db.ResourceConfigScope, result2 error) {
 	fake.setResourceConfigMutex.Lock()
 	defer fake.setResourceConfigMutex.Unlock()
 	fake.SetResourceConfigStub = nil
 	if fake.setResourceConfigReturnsOnCall == nil {
 		fake.setResourceConfigReturnsOnCall = make(map[int]struct {
-			result1 db.ResourceConfig
+			result1 db.ResourceConfigScope
 			result2 error
 		})
 	}
 	fake.setResourceConfigReturnsOnCall[i] = struct {
-		result1 db.ResourceConfig
+		result1 db.ResourceConfigScope
 		result2 error
 	}{result1, result2}
 }
@@ -1934,6 +2078,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.checkErrorMutex.RUnlock()
 	fake.checkEveryMutex.RLock()
 	defer fake.checkEveryMutex.RUnlock()
+	fake.checkSetupErrorMutex.RLock()
+	defer fake.checkSetupErrorMutex.RUnlock()
 	fake.checkTimeoutMutex.RLock()
 	defer fake.checkTimeoutMutex.RUnlock()
 	fake.configPinnedVersionMutex.RLock()
@@ -1960,14 +2106,16 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.pipelineNameMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
-	fake.resourceConfigCheckErrorMutex.RLock()
-	defer fake.resourceConfigCheckErrorMutex.RUnlock()
 	fake.resourceConfigIDMutex.RLock()
 	defer fake.resourceConfigIDMutex.RUnlock()
+	fake.resourceConfigScopeIDMutex.RLock()
+	defer fake.resourceConfigScopeIDMutex.RUnlock()
 	fake.resourceConfigVersionIDMutex.RLock()
 	defer fake.resourceConfigVersionIDMutex.RUnlock()
-	fake.setCheckErrorMutex.RLock()
-	defer fake.setCheckErrorMutex.RUnlock()
+	fake.saveUncheckedVersionMutex.RLock()
+	defer fake.saveUncheckedVersionMutex.RUnlock()
+	fake.setCheckSetupErrorMutex.RLock()
+	defer fake.setCheckSetupErrorMutex.RUnlock()
 	fake.setPinCommentMutex.RLock()
 	defer fake.setPinCommentMutex.RUnlock()
 	fake.setResourceConfigMutex.RLock()
