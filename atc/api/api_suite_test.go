@@ -143,7 +143,7 @@ var _ = BeforeEach(func() {
 
 	logger = lagertest.NewTestLogger("api")
 
-	sink = lager.NewReconfigurableSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG), lager.DEBUG)
+	sink = lager.NewReconfigurableSink(lager.NewPrettySink(GinkgoWriter, lager.DEBUG), lager.DEBUG)
 
 	expire = 24 * time.Hour
 

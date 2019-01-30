@@ -11,7 +11,7 @@ import (
 
 func NewLogger() lager.Logger {
 	logger := lager.NewLogger("web")
-	logger.RegisterSink(lager.NewReconfigurableSink(lager.NewWriterSink(os.Stdout, lager.DEBUG), lager.DEBUG))
+	logger.RegisterSink(lager.NewReconfigurableSink(lager.NewPrettySink(os.Stdout, lager.DEBUG), lager.DEBUG))
 	return logger
 }
 

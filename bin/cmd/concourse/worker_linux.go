@@ -73,6 +73,8 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 		"--depot", depotDir,
 		"--properties-path", filepath.Join(cmd.WorkDir.Path(), "garden-properties.json"),
 
+		"--time-format", "rfc3339",
+
 		// disable graph and grootfs setup; all images passed to Concourse
 		// containers are raw://
 		"--no-image-plugin",
