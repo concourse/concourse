@@ -453,7 +453,11 @@ func (p *pipeline) Resources() (Resources, error) {
 }
 
 func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
-	rows, err := resourceTypesQuery.Where(sq.Eq{"r.pipeline_id": p.id}).RunWith(p.conn).Query()
+	rows, err := resourceTypesQuery.
+		Where(sq.Eq{"r.pipeline_id": p.id}).
+		OrderBy("r.name").
+		RunWith(p.conn).
+		Query()
 	if err != nil {
 		return nil, err
 	}
@@ -1049,7 +1053,11 @@ func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, 
 }
 
 func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory) (Resources, error) {
-	rows, err := resourcesQuery.Where(sq.Eq{"r.pipeline_id": pipelineID}).RunWith(conn).Query()
+	rows, err := resourcesQuery.
+		Where(sq.Eq{"r.pipeline_id": pipelineID}).
+		OrderBy("r.name").
+		RunWith(conn).
+		Query()
 	if err != nil {
 		return nil, err
 	}
