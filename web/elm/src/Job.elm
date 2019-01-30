@@ -49,6 +49,7 @@ import LoadingIndicator
 import RemoteData exposing (WebData)
 import Routes
 import StrictEvents exposing (onLeftClick)
+import Subscription exposing (Subscription(..))
 import Time exposing (Time)
 import UpdateMsg exposing (UpdateMsg)
 
@@ -195,14 +196,8 @@ handleCallback callback model =
                 anyList ->
                     let
                         transformer bwr =
-                            let
-                                bwrb =
-                                    bwr.build
-                            in
                             if bwr.build.id == id then
-                                { bwr
-                                    | resources = Just buildResources
-                                }
+                                { bwr | resources = Just buildResources }
 
                             else
                                 bwr
@@ -753,9 +748,8 @@ paginationParam page =
             "to=" ++ toString i
 
 
-subscriptions : Model -> Sub Msg
+subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
-    Sub.batch
-        [ Time.every (5 * Time.second) SubscriptionTick
-        , Time.every (1 * Time.second) ClockTick
-        ]
+    [ OnClockTick (5 * Time.second) SubscriptionTick
+    , OnClockTick (1 * Time.second) ClockTick
+    ]

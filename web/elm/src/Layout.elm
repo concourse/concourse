@@ -1,7 +1,6 @@
-port module Layout exposing
+module Layout exposing
     ( Flags
     , Model
-    , Msg(..)
     , handleCallback
     , init
     , locationMsg
@@ -17,17 +16,13 @@ import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id, style)
 import Http
 import Json.Decode
+import Msgs exposing (Msg(..), NavIndex)
 import Navigation
 import Routes
 import SubPage
 import SubPage.Msgs
+import Subscription exposing (Subscription(..))
 import TopBar
-
-
-port newUrl : (String -> msg) -> Sub msg
-
-
-port tokenReceived : (Maybe String -> msg) -> Sub msg
 
 
 type alias Flags =
@@ -37,10 +32,6 @@ type alias Flags =
     , authToken : String
     , pipelineRunningKeyframes : String
     }
-
-
-type alias NavIndex =
-    Int
 
 
 anyNavIndex : NavIndex
@@ -65,17 +56,6 @@ type alias Model =
 type TopBarType
     = Dashboard
     | Normal
-
-
-type Msg
-    = Noop
-    | RouteChanged Routes.ConcourseRoute
-    | SubMsg NavIndex SubPage.Msgs.Msg
-    | TopMsg NavIndex TopBar.Msg
-    | NewUrl String
-    | ModifyUrl String
-    | TokenReceived (Maybe String)
-    | Callback Effects.LayoutDispatch Callback
 
 
 init : Flags -> Navigation.Location -> ( Model, List ( LayoutDispatch, Effect ) )
@@ -260,7 +240,7 @@ update msg model =
         NewUrl url ->
             ( model, [ ( Layout, NavigateTo url ) ] )
 
-        ModifyUrl url ->
+        Msgs.ModifyUrl url ->
             ( model, [ ( Layout, Effects.ModifyUrl url ) ] )
 
         RouteChanged route ->
@@ -309,9 +289,6 @@ update msg model =
 
         Callback dispatch callback ->
             handleCallback dispatch callback model
-
-        Noop ->
-            ( model, [] )
 
 
 redirectToLoginIfNecessary : Http.Error -> NavIndex -> List ( LayoutDispatch, Effect )
@@ -412,26 +389,18 @@ view model =
                 ]
 
 
-subscriptions : Model -> Sub Msg
+subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
-    case model.topBarType of
-        Dashboard ->
-            Sub.batch
-                [ newUrl NewUrl
-                , tokenReceived TokenReceived
-                , Sub.map (SubMsg model.navIndex) <|
-                    SubPage.subscriptions model.subModel
-                ]
-
-        Normal ->
-            Sub.batch
-                [ newUrl NewUrl
-                , tokenReceived TokenReceived
-                , Sub.map (TopMsg model.navIndex) <|
-                    TopBar.subscriptions model.topModel
-                , Sub.map (SubMsg model.navIndex) <|
-                    SubPage.subscriptions model.subModel
-                ]
+    [ OnNewUrl NewUrl
+    , OnTokenReceived TokenReceived
+    ]
+        ++ (SubPage.subscriptions model.subModel
+                |> List.map (Subscription.map (SubMsg model.navIndex))
+           )
+        ++ (TopBar.subscriptions model.topModel
+                |> List.map (Subscription.map (TopMsg model.navIndex))
+                |> List.map (Conditionally (model.topBarType == Normal))
+           )
 
 
 routeMatchesModel : Routes.ConcourseRoute -> Model -> Bool

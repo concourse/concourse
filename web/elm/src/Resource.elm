@@ -65,6 +65,7 @@ import Resource.Styles
 import Routes
 import Spinner
 import StrictEvents
+import Subscription exposing (Subscription(..))
 import Time exposing (Time)
 import TopBar
 import UpdateMsg exposing (UpdateMsg)
@@ -443,9 +444,6 @@ handleCallback action model =
 update : Msg -> Model -> ( Model, List Effect )
 update action model =
     case action of
-        Noop ->
-            ( model, [] )
-
         AutoupdateTimerTicked timestamp ->
             ( model
             , [ FetchResource model.resourceIdentifier
@@ -792,27 +790,25 @@ paginationMenu :
     -> Html Msg
 paginationMenu { versions, resourceIdentifier, hovered } =
     let
-        previousButtonEvent =
+        previousButtonEventHandler =
             case versions.pagination.previousPage of
                 Nothing ->
-                    Noop
+                    []
 
                 Just pp ->
-                    LoadPage pp
+                    [ onClick <| LoadPage pp ]
 
-        nextButtonEvent =
+        nextButtonEventHandler =
             case versions.pagination.nextPage of
                 Nothing ->
-                    Noop
+                    []
 
                 Just np ->
                     let
                         updatedPage =
-                            { np
-                                | limit = 100
-                            }
+                            { np | limit = 100 }
                     in
-                    LoadPage updatedPage
+                    [ onClick <| LoadPage updatedPage ]
     in
     Html.div
         [ id "pagination"
@@ -838,11 +834,12 @@ paginationMenu { versions, resourceIdentifier, hovered } =
 
             Just page ->
                 Html.div
-                    [ style chevronContainer
-                    , onClick previousButtonEvent
-                    , onMouseEnter <| Hover Models.PreviousPage
-                    , onMouseLeave <| Hover Models.None
-                    ]
+                    ([ style chevronContainer
+                     , onMouseEnter <| Hover Models.PreviousPage
+                     , onMouseLeave <| Hover Models.None
+                     ]
+                        ++ previousButtonEventHandler
+                    )
                     [ Html.a
                         [ href <|
                             paginationRoute
@@ -875,11 +872,12 @@ paginationMenu { versions, resourceIdentifier, hovered } =
 
             Just page ->
                 Html.div
-                    [ style chevronContainer
-                    , onClick nextButtonEvent
-                    , onMouseEnter <| Hover Models.NextPage
-                    , onMouseLeave <| Hover Models.None
-                    ]
+                    ([ style chevronContainer
+                     , onMouseEnter <| Hover Models.NextPage
+                     , onMouseLeave <| Hover Models.None
+                     ]
+                        ++ nextButtonEventHandler
+                    )
                     [ Html.a
                         [ href <|
                             paginationRoute
@@ -1552,9 +1550,8 @@ fetchDataForExpandedVersions model =
         |> List.concatMap (\v -> [ FetchInputTo v.id, FetchOutputOf v.id ])
 
 
-subscriptions : Model -> Sub Msg
+subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
-    Sub.batch
-        [ Time.every (5 * Time.second) AutoupdateTimerTicked
-        , Time.every Time.second ClockTick
-        ]
+    [ OnClockTick (5 * Time.second) AutoupdateTimerTicked
+    , OnClockTick Time.second ClockTick
+    ]
