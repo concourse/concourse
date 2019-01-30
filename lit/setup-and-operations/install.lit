@@ -647,7 +647,7 @@ page.
     The latest stable Helm chart for deploying Concourse into k8s. \bold{Official support coming soon.}
 
     \link{Concourse Formula}{https://github.com/marco-m/concourse-ci-formula} by \ghuser{marco-m}.
-    All-in-one Concourse installation using Vagrant and Virutalbox with S3-compatible storage and Vault secret manager.
+    All-in-one Concourse installation using Vagrant and Virtualbox with S3-compatible storage and Vault secret manager.
 
     \link{BUCC}{https://github.com/starkandwayne/bucc} by \ghuser{starkandwayne}.
     The \code{bucc} command line utility allows for easy bootstrapping of the BUCC stack (BOSH UA Credhub and Concourse). Which is the starting point for many deployments.
