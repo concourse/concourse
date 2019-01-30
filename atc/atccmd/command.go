@@ -89,7 +89,9 @@ type RunCommand struct {
 	ExternalURL flag.URL `long:"external-url" description:"URL used to reach any ATC from the outside world."`
 	PeerURL     flag.URL `long:"peer-url"     description:"URL used to reach this ATC from other ATCs in the cluster."`
 
-	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
+	Postgres        flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
+	SQLReadTimeout  time.Duration       `long:"sql-read-timeout" description:"Read timeout. (0 means wait indefinitely)" default:"0m"`
+	SQLWriteTimeout time.Duration       `long:"sql-write-timeout" description:"Write timeout. (0 means wait indefinitely)" default:"0m"`
 
 	CredentialManagement creds.CredentialManagementConfig `group:"Credential Management"`
 	CredentialManagers   creds.Managers
@@ -351,7 +353,13 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	radar.GlobalResourceCheckTimeout = cmd.GlobalResourceCheckTimeout
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
-	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres, retryingDriverName)
+	db.SetupConnectionRetryingDriver(
+		"postgres",
+		cmd.Postgres.ConnectionString(),
+		retryingDriverName,
+		cmd.SQLReadTimeout,
+		cmd.SQLWriteTimeout,
+	)
 
 	// Register the sink that collects error metrics
 	if cmd.Metrics.CaptureErrorMetrics {
@@ -1112,7 +1120,7 @@ func (cmd *RunCommand) constructDBConn(
 	connectionName string,
 	lockFactory lock.LockFactory,
 ) (db.Conn, error) {
-	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres, cmd.newKey(), cmd.oldKey(), connectionName, lockFactory)
+	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), cmd.newKey(), cmd.oldKey(), connectionName, lockFactory, cmd.SQLReadTimeout, cmd.SQLWriteTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %s", err)
 	}

@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"database/sql/driver"
-	"github.com/concourse/flag"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -19,15 +18,17 @@ type connectionRetryingDriver struct {
 
 func SetupConnectionRetryingDriver(
 	delegateDriverName string,
-	pgConfig flag.PostgresConfig,
+	sqlDataSource string,
 	newDriverName string,
+	sqlReadTimeout time.Duration,
+	sqlWriteTimeout time.Duration,
 ) {
 	for _, driverName := range sql.Drivers() {
 		if driverName == newDriverName {
 			return
 		}
 	}
-	delegateDBConn, err := sql.Open(delegateDriverName, pgConfig.ConnectionString())
+	delegateDBConn, err := sql.Open(delegateDriverName, sqlDataSource)
 	if err == nil {
 		// ignoring any connection errors since we only need this to access the driver struct
 		_ = delegateDBConn.Close()
@@ -36,8 +37,8 @@ func SetupConnectionRetryingDriver(
 	connectionRetryingDriver := &connectionRetryingDriver{
 		delegateDBConn.Driver(),
 		delegateDriverName,
-		pgConfig.ReadTimeout,
-		pgConfig.WriteTimeout,
+		sqlReadTimeout,
+		sqlWriteTimeout,
 	}
 	sql.Register(newDriverName, connectionRetryingDriver)
 }

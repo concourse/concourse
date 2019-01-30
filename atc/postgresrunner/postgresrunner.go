@@ -10,13 +10,13 @@ import (
 	"path/filepath"
 	"strconv"
 	"syscall"
+	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/migration"
-	"github.com/concourse/flag"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -152,17 +152,13 @@ func (runner *Runner) OpenConn() db.Conn {
 	dbConn, err := db.Open(
 		lagertest.NewTestLogger("postgres-runner"),
 		"postgres",
-		flag.PostgresConfig{
-			Host:     "/tmp",
-			User:     "postgres",
-			Database: "testdb",
-			SSLMode:  "disable",
-			Port:     uint16(runner.Port),
-		},
+		runner.DataSourceName(),
 		nil,
 		nil,
 		"postgresrunner",
 		nil,
+		0*time.Second,
+		0*time.Second,
 	)
 	Expect(err).NotTo(HaveOccurred())
 
