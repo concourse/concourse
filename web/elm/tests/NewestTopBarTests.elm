@@ -155,6 +155,9 @@ all =
                     Query.children []
                         >> Query.index -1
                         >> Query.has [ id "login-component" ]
+                , it "renders login component with a maximum width" <|
+                    Query.find [ id "login-component" ]
+                        >> Query.has [ style [ ( "max-width", "20%" ) ] ]
                 , it "renders login container with relative position" <|
                     Query.children []
                         >> Query.index -1
@@ -187,15 +190,25 @@ all =
                     Query.children []
                         >> Query.index -1
                         >> Query.find [ id "login-item" ]
-                        >> Query.has
-                            [ style
-                                [ ( "padding", "0 30px" )
-                                , ( "cursor", "pointer" )
-                                , ( "display", "flex" )
-                                , ( "align-items", "center" )
-                                , ( "justify-content", "center" )
-                                , ( "flex-grow", "1" )
+                        >> Expect.all
+                            [ Query.has
+                                [ style
+                                    [ ( "padding", "0 30px" )
+                                    , ( "cursor", "pointer" )
+                                    , ( "display", "flex" )
+                                    , ( "align-items", "center" )
+                                    , ( "justify-content", "center" )
+                                    , ( "flex-grow", "1" )
+                                    ]
                                 ]
+                            , Query.children []
+                                >> Query.index 0
+                                >> Query.has
+                                    [ style
+                                        [ ( "overflow", "hidden" )
+                                        , ( "text-overflow", "ellipsis" )
+                                        ]
+                                    ]
                             ]
                 , it "shows the logged in username when the user is logged in" <|
                     Query.children []
@@ -406,7 +419,7 @@ all =
                 NewestTopBar.view
                     >> toUnstyled
                     >> Query.fromHtml
-                    >> Query.find [ id "search-bar" ]
+                    >> Query.find [ id "search-input-field" ]
                     >> Query.has [ tag "input", attribute <| Attr.value "test" ]
             , it "sends a FilterMsg when the clear search button is clicked" <|
                 NewestTopBar.view
@@ -440,15 +453,15 @@ all =
                     >> Query.fromHtml
                 )
                 [ it "renders search bar" <|
-                    Query.has [ id "search-bar" ]
+                    Query.has [ id "search-input-field" ]
                 , it "search bar is an input field" <|
-                    Query.find [ id "search-bar" ]
+                    Query.find [ id "search-input-field" ]
                         >> Query.has [ tag "input" ]
                 , it "renders search bar with transparent background to remove white of search bar" <|
-                    Query.find [ id "search-bar" ]
+                    Query.find [ id "search-input-field" ]
                         >> Query.has [ style [ ( "background-color", "transparent" ) ] ]
                 , it "sets magnifying glass on search bar in correct position" <|
-                    Query.find [ id "search-bar" ]
+                    Query.find [ id "search-input-field" ]
                         >> Query.has
                             [ style
                                 [ ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
@@ -457,7 +470,7 @@ all =
                                 ]
                             ]
                 , it "styles search border and input text colour" <|
-                    Query.find [ id "search-bar" ]
+                    Query.find [ id "search-input-field" ]
                         >> Query.has
                             [ style
                                 [ ( "border", searchBarBorder )
@@ -467,7 +480,7 @@ all =
                                 ]
                             ]
                 , it "renders search with appropriate size and padding" <|
-                    Query.find [ id "search-bar" ]
+                    Query.find [ id "search-input-field" ]
                         >> Query.has
                             [ style
                                 [ ( "height", searchBarHeight )
@@ -476,10 +489,10 @@ all =
                                 ]
                             ]
                 , it "does not have an outline when focused" <|
-                    Query.find [ id "search-bar" ]
+                    Query.find [ id "search-input-field" ]
                         >> Query.has [ style [ ( "outline", "0" ) ] ]
                 , it "has placeholder text" <|
-                    Query.find [ id "search-bar" ]
+                    Query.find [ id "search-input-field" ]
                         >> Query.has [ tag "input", attribute <| Attr.placeholder "search" ]
                 , it "has a search container" <|
                     Query.has [ id "search-container" ]
@@ -547,7 +560,7 @@ all =
                         >> toUnstyled
                         >> Query.fromHtml
                         >> Query.hasNot
-                            [ id "search-bar" ]
+                            [ id "search-input-field" ]
                 , it "should have a magnifying glass icon" <|
                     NewestTopBar.view
                         >> toUnstyled
@@ -577,12 +590,12 @@ all =
                             >> Query.fromHtml
                         )
                         [ it "renders search bar" <|
-                            Query.has [ id "search-bar" ]
+                            Query.has [ id "search-input-field" ]
                         , it "search bar is an input field" <|
-                            Query.find [ id "search-bar" ]
+                            Query.find [ id "search-input-field" ]
                                 >> Query.has [ tag "input" ]
                         , it "has placeholder text" <|
-                            Query.find [ id "search-bar" ]
+                            Query.find [ id "search-input-field" ]
                                 >> Query.has [ tag "input", attribute <| Attr.placeholder "search" ]
                         , it "has a search container" <|
                             Query.has [ id "search-container" ]
@@ -622,12 +635,12 @@ all =
                         (Tuple.first
                             >> NewestTopBar.update Msgs.FocusMsg
                             >> Tuple.first
-                            >> NewestTopBar.view
-                            >> toUnstyled
-                            >> Query.fromHtml
                         )
                         [ it "should display a dropdown of options" <|
-                            Query.find [ id "search-dropdown" ]
+                            NewestTopBar.view
+                                >> toUnstyled
+                                >> Query.fromHtml
+                                >> Query.find [ id "search-dropdown" ]
                                 >> Query.findAll [ tag "li" ]
                                 >> Expect.all
                                     [ Query.count (Expect.equal 2)
@@ -635,7 +648,10 @@ all =
                                     , Query.index 1 >> Query.has [ text "team:" ]
                                     ]
                         , it "the search dropdown is positioned below the search bar" <|
-                            Query.find [ id "search-dropdown" ]
+                            NewestTopBar.view
+                                >> toUnstyled
+                                >> Query.fromHtml
+                                >> Query.find [ id "search-dropdown" ]
                                 >> Expect.all
                                     [ Query.has
                                         [ style
@@ -646,8 +662,51 @@ all =
                                     , Query.hasNot [ style [ ( "position", "absolute" ) ] ]
                                     ]
                         , it "the search dropdown is the same width as search bar" <|
-                            Query.find [ id "search-dropdown" ]
+                            NewestTopBar.view
+                                >> toUnstyled
+                                >> Query.fromHtml
+                                >> Query.find [ id "search-dropdown" ]
                                 >> Query.has [ style [ ( "width", "100%" ) ] ]
+                        , context "after the search is blurred"
+                            (NewestTopBar.update Msgs.BlurMsg
+                                >> Tuple.first
+                                >> NewestTopBar.view
+                                >> toUnstyled
+                                >> Query.fromHtml
+                            )
+                            [ it "should not have a search bar" <|
+                                Query.hasNot
+                                    [ id "search-input-field" ]
+                            , it "should have a magnifying glass icon" <|
+                                Query.find [ id "show-search-button" ]
+                                    >> Query.has
+                                        [ style
+                                            [ ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
+                                            , ( "background-position", "12px 8px" )
+                                            , ( "background-repeat", "no-repeat" )
+                                            ]
+                                        ]
+                            , it "shows the login component" <|
+                                Query.has [ id "login-component" ]
+                            ]
+                        , context "after the search is blurred with a search query"
+                            (NewestTopBar.update (Msgs.FilterMsg "query")
+                                >> Tuple.first
+                                >> NewestTopBar.update Msgs.BlurMsg
+                                >> Tuple.first
+                                >> NewestTopBar.view
+                                >> toUnstyled
+                                >> Query.fromHtml
+                            )
+                            [ it "should have a search bar" <|
+                                Query.has [ id "search-input-field" ]
+                            , it "should not have a magnifying glass icon" <|
+                                Query.hasNot [ id "show-search-button" ]
+                            , it "should not show the login component" <|
+                                Query.hasNot [ id "login-component" ]
+                            , it "should not display a dropdown of options" <|
+                                Query.hasNot [ id "search-dropdown" ]
+                            ]
                         ]
                     ]
                 ]
@@ -810,7 +869,7 @@ all =
                     Query.findAll [ id "search-dropdown" ]
                         >> Query.count (Expect.equal 0)
                 , it "sends FocusMsg when focusing on search bar" <|
-                    Query.find [ id "search-bar" ]
+                    Query.find [ id "search-input-field" ]
                         >> Event.simulate Event.focus
                         >> Event.expect Msgs.FocusMsg
                 ]
@@ -825,7 +884,7 @@ all =
                     Query.find [ id "search-container" ]
                         >> Query.has [ id "search-dropdown" ]
                 , it "should trigger a FilterMsg when typing in the search bar" <|
-                    Query.find [ id "search-bar" ]
+                    Query.find [ id "search-input-field" ]
                         >> Event.simulate (Event.input "test")
                         >> Event.expect (Msgs.FilterMsg "test")
                 , context "dropdown elements"
@@ -895,7 +954,7 @@ all =
                         >> Event.simulate Event.mouseDown
                         >> Event.expect (Msgs.FilterMsg "status:")
                 , it "sends BlurMsg when blurring the search bar" <|
-                    Query.find [ id "search-bar" ]
+                    Query.find [ id "search-input-field" ]
                         >> Event.simulate Event.blur
                         >> Event.expect Msgs.BlurMsg
                 ]

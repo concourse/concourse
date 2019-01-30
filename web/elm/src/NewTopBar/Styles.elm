@@ -4,8 +4,10 @@ module NewTopBar.Styles exposing
     , concourseLogoCSS
     , dropdownContainerCSS
     , dropdownItemCSS
+    , loginComponentCSS
     , loginContainerCSS
     , loginItemCSS
+    , loginTextCSS
     , logoutButtonCSS
     , pageHeaderHeight
     , searchButtonCSS
@@ -211,6 +213,11 @@ breadcrumbContainerCSS =
     ]
 
 
+loginComponentCSS : List ( String, String )
+loginComponentCSS =
+    [ ( "max-width", "20%" ) ]
+
+
 loginContainerCSS : List ( String, String )
 loginContainerCSS =
     [ ( "position", "relative" )
@@ -229,6 +236,13 @@ loginItemCSS =
     , ( "align-items", "center" )
     , ( "justify-content", "center" )
     , ( "flex-grow", "1" )
+    ]
+
+
+loginTextCSS : List ( String, String )
+loginTextCSS =
+    [ ( "overflow", "hidden" )
+    , ( "text-overflow", "ellipsis" )
     ]
 
 

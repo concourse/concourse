@@ -188,7 +188,7 @@ update msg model =
                             model
             in
             ( newModel
-            , [ ForceFocus "search-bar"
+            , [ ForceFocus "search-input-field"
               , ModifyUrl (queryStringFromSearch query)
               ]
             )
@@ -219,7 +219,11 @@ update msg model =
                 newModel =
                     case model.searchBar of
                         Expanded r ->
-                            { model | searchBar = Expanded { r | showAutocomplete = False } }
+                            if model.screenSize == Mobile && query model == "" then
+                                { model | searchBar = Collapsed }
+
+                            else
+                                { model | searchBar = Expanded { r | showAutocomplete = False } }
 
                         Collapsed ->
                             model
@@ -380,7 +384,7 @@ viewBreadcrumbs model =
 viewLogin : Model -> List (Html Msg)
 viewLogin model =
     if model.screenSize /= Mobile || model.searchBar == Collapsed then
-        [ Html.div [ id "login-component" ] <| viewLoginState model ]
+        [ Html.div [ id "login-component", style Styles.loginComponentCSS ] <| viewLoginState model ]
 
     else
         []
@@ -411,7 +415,7 @@ viewLoginState { userState, isUserMenuExpanded } =
                 ]
                 [ Html.div []
                     [ Html.div [ id "login-item", style Styles.loginItemCSS ]
-                        [ Html.text (userDisplayName user)
+                        [ Html.div [ style Styles.loginTextCSS ] [ Html.text (userDisplayName user) ]
                         , if isUserMenuExpanded then
                             Html.div [ id "logout-button", style Styles.logoutButtonCSS, onClick LogOut ] [ Html.text "logout" ]
 
@@ -461,7 +465,7 @@ viewSearch model =
         , style (Styles.searchContainerCSS model.screenSize)
         ]
         ([ Html.input
-            [ id "search-bar"
+            [ id "search-input-field"
             , style (Styles.searchInputCSS model.screenSize)
             , placeholder "search"
             , value (query model)
