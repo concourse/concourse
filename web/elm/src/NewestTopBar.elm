@@ -1,7 +1,6 @@
 module NewestTopBar exposing
     ( Flags
     , Model
-    , autocompleteOptions
     , handleCallback
     , init
     , query
@@ -378,16 +377,6 @@ viewBreadcrumbs model =
         )
 
 
-showAutocomplete : Model -> Bool
-showAutocomplete model =
-    case model.searchBar of
-        Expanded r ->
-            r.showAutocomplete
-
-        _ ->
-            False
-
-
 viewLogin : Model -> List (Html Msg)
 viewLogin model =
     if model.screenSize /= Mobile || model.searchBar == Collapsed then
@@ -432,46 +421,6 @@ viewLoginState { userState, isUserMenuExpanded } =
                     ]
                 ]
             ]
-
-
-viewUserState : { a | userState : UserState, isUserMenuExpanded : Bool } -> List (Html Msg)
-viewUserState { userState, isUserMenuExpanded } =
-    case userState of
-        UserStateUnknown ->
-            []
-
-        UserStateLoggedOut ->
-            [ Html.div
-                [ href "/sky/login"
-                , HA.attribute "aria-label" "Log In"
-                , id "login-button"
-                , onClick LogIn
-                , css Styles.menuButton
-                ]
-                [ Html.div [] [ Html.text "login" ] ]
-            ]
-
-        UserStateLoggedIn user ->
-            [ Html.div
-                [ id "user-id"
-                , onClick ToggleUserMenu
-                , css Styles.menuButton
-                ]
-                [ Html.div [ css Styles.userName ] [ Html.text (userDisplayName user) ] ]
-            ]
-                ++ (if isUserMenuExpanded then
-                        [ Html.div
-                            [ HA.attribute "aria-label" "Log Out"
-                            , onClick LogOut
-                            , css Styles.logoutButton
-                            , id "logout-button"
-                            ]
-                            [ Html.div [] [ Html.text "logout" ] ]
-                        ]
-
-                    else
-                        []
-                   )
 
 
 viewMiddleSection : Model -> List (Html Msg)
@@ -531,7 +480,7 @@ viewSearch model =
             ++ (if showAutocomplete model then
                     [ Html.ul
                         [ id "search-dropdown"
-                        , style Styles.dropdownContainerCSS
+                        , style (Styles.dropdownContainerCSS model.screenSize)
                         ]
                       <|
                         case String.trim (query model) of
@@ -567,6 +516,16 @@ viewSearch model =
                )
         )
     ]
+
+
+showAutocomplete : Model -> Bool
+showAutocomplete model =
+    case model.searchBar of
+        Expanded r ->
+            r.showAutocomplete
+
+        _ ->
+            False
 
 
 viewConcourseLogo : List (Html Msg)
@@ -615,54 +574,6 @@ viewResourceBreadcrumb resourceName =
 decodeName : String -> String
 decodeName name =
     Maybe.withDefault name (Http.decodeUri name)
-
-
-viewAutocomplete :
-    { a
-        | query : String
-        , teams : RemoteData.WebData (List Concourse.Team)
-        , selectionMade : Bool
-        , selection : Int
-        , screenSize : ScreenSize
-    }
-    -> List (Html Msg)
-viewAutocomplete r =
-    let
-        options =
-            autocompleteOptions r
-    in
-    options
-        |> List.indexedMap
-            (\index option ->
-                let
-                    active =
-                        r.selectionMade && index == (r.selection - 1) % List.length options
-                in
-                Html.li
-                    [ onMouseDown (FilterMsg option)
-                    , onMouseOver (SelectMsg index)
-                    , css <| Styles.searchOption { screenSize = r.screenSize, active = active }
-                    ]
-                    [ Html.text option ]
-            )
-
-
-viewUserInfo : Model -> List (Html Msg)
-viewUserInfo model =
-    case model.searchBar of
-        Expanded r ->
-            case model.screenSize of
-                Mobile ->
-                    []
-
-                Desktop ->
-                    [ Html.div [ css Styles.userInfo ] (viewUserState model) ]
-
-                BigDesktop ->
-                    [ Html.div [ css Styles.userInfo ] (viewUserState model) ]
-
-        Collapsed ->
-            [ Html.div [ css Styles.userInfo ] (viewUserState model) ]
 
 
 autocompleteOptions : { a | query : String, teams : RemoteData.WebData (List Concourse.Team) } -> List String

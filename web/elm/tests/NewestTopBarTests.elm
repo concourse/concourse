@@ -134,12 +134,10 @@ all =
                             >> Query.index 1
                             >> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
                     ]
-                , it "is 56px tall with dark grey background" <|
-                    Query.has [ style [ ( "background-color", backgroundGrey ), ( "height", lineHeight ) ] ]
+                , it "has dark grey background" <|
+                    Query.has [ style [ ( "background-color", backgroundGrey ) ] ]
                 , it "lays out contents horizontally" <|
                     Query.has [ style [ ( "display", "flex" ) ] ]
-                , it "centers contents vertically" <|
-                    Query.has [ style [ ( "align-items", "center" ) ] ]
                 , it "maximizes spacing between the left and right navs" <|
                     Query.has [ style [ ( "justify-content", "space-between" ) ] ]
                 , it "renders the login component last" <|
@@ -162,10 +160,7 @@ all =
                         >> Query.index -1
                         >> Query.find [ id "login-container" ]
                         >> Query.has
-                            [ style
-                                [ ( "position", "relative" )
-                                ]
-                            ]
+                            [ style [ ( "position", "relative" ) ] ]
                 , it "lays out login container contents vertically" <|
                     Query.children []
                         >> Query.index -1
@@ -181,19 +176,13 @@ all =
                         >> Query.index -1
                         >> Query.find [ id "login-container" ]
                         >> Query.has
-                            [ style
-                                [ ( "border-left", "1px solid " ++ borderGrey )
-                                ]
-                            ]
+                            [ style [ ( "border-left", "1px solid " ++ borderGrey ) ] ]
                 , it "renders login container tall enough" <|
                     Query.children []
                         >> Query.index -1
                         >> Query.find [ id "login-container" ]
                         >> Query.has
-                            [ style
-                                [ ( "line-height", lineHeight )
-                                ]
-                            ]
+                            [ style [ ( "line-height", lineHeight ) ] ]
                 , it "has the login username styles" <|
                     Query.children []
                         >> Query.index -1
@@ -507,6 +496,12 @@ all =
                                 ]
                             , Query.hasNot [ style [ ( "flex-grow", "1" ) ] ]
                             ]
+                , it "search container is sized correctly" <|
+                    Query.find [ id "search-container" ]
+                        >> Expect.all
+                            [ Query.has [ style [ ( "margin", "12px" ) ] ]
+                            , Query.hasNot [ style [ ( "height", "56px" ) ] ]
+                            ]
                 , it "has a clear search button container" <|
                     Query.find [ id "search-container" ]
                         >> Query.has [ id "search-clear" ]
@@ -602,6 +597,12 @@ all =
                                         , ( "flex-grow", "1" )
                                         ]
                                     ]
+                        , it "search container is sized correctly" <|
+                            Query.find [ id "search-container" ]
+                                >> Expect.all
+                                    [ Query.has [ style [ ( "margin", "12px" ) ] ]
+                                    , Query.hasNot [ style [ ( "height", "56px" ) ] ]
+                                    ]
                         , it "has a clear search button container" <|
                             Query.find [ id "search-container" ]
                                 >> Query.has [ id "search-clear" ]
@@ -633,6 +634,20 @@ all =
                                     , Query.index 0 >> Query.has [ text "status:" ]
                                     , Query.index 1 >> Query.has [ text "team:" ]
                                     ]
+                        , it "the search dropdown is positioned below the search bar" <|
+                            Query.find [ id "search-dropdown" ]
+                                >> Expect.all
+                                    [ Query.has
+                                        [ style
+                                            [ ( "top", "100%" )
+                                            , ( "margin", "0" )
+                                            ]
+                                        ]
+                                    , Query.hasNot [ style [ ( "position", "absolute" ) ] ]
+                                    ]
+                        , it "the search dropdown is the same width as search bar" <|
+                            Query.find [ id "search-dropdown" ]
+                                >> Query.has [ style [ ( "width", "100%" ) ] ]
                         ]
                     ]
                 ]
@@ -856,7 +871,7 @@ all =
                             [ style
                                 [ ( "position", "absolute" )
                                 , ( "top", "100%" )
-                                , ( "margin-top", "0" )
+                                , ( "margin", "0" )
                                 ]
                             ]
                 , it "the search dropdown is the same width as search bar" <|
