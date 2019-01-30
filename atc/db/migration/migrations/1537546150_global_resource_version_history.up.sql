@@ -90,6 +90,8 @@ BEGIN;
   ALTER TABLE worker_resource_config_check_sessions
     DROP COLUMN team_id;
 
+  TRUNCATE TABLE worker_resource_config_check_sessions CASCADE;
+
   CREATE UNIQUE INDEX worker_resource_config_check_sessions_uniq
   ON worker_resource_config_check_sessions (resource_config_check_session_id, worker_base_resource_type_id);
 
