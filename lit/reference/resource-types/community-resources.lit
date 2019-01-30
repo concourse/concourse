@@ -157,6 +157,8 @@ before using it!
 }{
   \table-row{\link{Git Bitbucket Pull Request Resource}{https://github.com/zarplata/concourse-git-bitbucket-pr-resource}}{by \ghuser{zarplata}}
 }{
+  \table-row{\link{Bitbucket Pull Request Resource}{https://github.com/halter-corp/bitbucket-pullrequest-resource}}{by \ghuser{halter-corp}}
+}{
   \table-row{\link{NPM Cache Resource}{https://github.com/ymedlop/npm-cache-resource}}{by \ghuser{ymedlop}}
 }{
   \table-row{\link{Gerrit Resource}{https://github.com/google/concourse-resources/tree/master/gerrit}}{by \ghuser{google}}
