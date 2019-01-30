@@ -3,6 +3,7 @@ module NewTopBar.Styles exposing
     , breadcrumbContainerCSS
     , concourseLogo
     , concourseLogoCSS
+    , dropdownContainerCSS
     , dropdownItemCSS
     , loginContainerCSS
     , loginItemCSS
@@ -10,17 +11,16 @@ module NewTopBar.Styles exposing
     , logoutButtonCSS
     , menuButton
     , menuItem
-    , middleSection
     , pageHeaderHeight
-    , searchButton
+    , searchButtonCSS
     , searchClearButton
     , searchClearButtonCSS
     , searchContainerCSS
-    , searchForm
     , searchInput
     , searchInputCSS
     , searchOption
     , searchOptionsList
+    , showSearchContainerCSS
     , topBar
     , topBarCSS
     , userInfo
@@ -76,61 +76,63 @@ concourseLogo =
     ]
 
 
-middleSection :
+showSearchContainerCSS :
     { a
         | searchBar : SearchBar
         , screenSize : ScreenSize
         , highDensity : Bool
     }
-    -> List Style
-middleSection { searchBar, screenSize, highDensity } =
+    -> List ( String, String )
+showSearchContainerCSS { searchBar, screenSize, highDensity } =
     let
         flexLayout =
             if highDensity then
                 []
 
             else
-                case searchBar of
-                    Expanded _ ->
-                        case screenSize of
-                            Mobile ->
-                                [ alignItems stretch ]
+                [ ( "align-items"
+                  , case searchBar of
+                        Expanded _ ->
+                            case screenSize of
+                                Mobile ->
+                                    "stretch"
 
-                            Desktop ->
-                                [ alignItems center ]
+                                Desktop ->
+                                    "center"
 
-                            BigDesktop ->
-                                [ alignItems center ]
+                                BigDesktop ->
+                                    "center"
 
-                    Collapsed ->
-                        [ alignItems flexStart ]
+                        Collapsed ->
+                            "flexStart"
+                  )
+                ]
     in
-    [ displayFlex
-    , flexDirection column
-    , flexGrow <| num 1
-    , justifyContent center
-    , padding <| px 12
-    , position relative
+    [ ( "display", "flex" )
+    , ( "flex-direction", "column" )
+    , ( "flex-grow", "1" )
+    , ( "justify-content", "center" )
+    , ( "padding", "12px" )
+    , ( "position", "relative" )
     ]
         ++ flexLayout
 
 
-searchForm : List Style
-searchForm =
-    [ position relative
-    , displayFlex
-    , flexDirection column
-    , alignItems stretch
-    ]
-
-
-searchContainerCSS : List ( String, String )
-searchContainerCSS =
-    [ ( "position", "relative" )
-    , ( "display", "flex" )
+searchContainerCSS : ScreenSize -> List ( String, String )
+searchContainerCSS screenSize =
+    [ ( "display", "flex" )
     , ( "flex-direction", "column" )
+    , ( "margin", "0 12px" )
+    , ( "position", "relative" )
     , ( "align-items", "stretch" )
     ]
+        ++ (case screenSize of
+                Mobile ->
+                    [ ( "flex-grow", "1" ) ]
+
+                _ ->
+                    []
+           )
 
 
 searchInput : ScreenSize -> List Style
@@ -165,13 +167,24 @@ searchInput screenSize =
         ++ widthStyles
 
 
-searchInputCSS : List ( String, String )
-searchInputCSS =
+searchInputCSS : ScreenSize -> List ( String, String )
+searchInputCSS screenSize =
+    let
+        widthStyles =
+            case screenSize of
+                Mobile ->
+                    []
+
+                Desktop ->
+                    [ ( "width", "220px" ) ]
+
+                BigDesktop ->
+                    [ ( "width", "220px" ) ]
+    in
     [ ( "background-color", "transparent" )
     , ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
     , ( "background-repeat", "no-repeat" )
     , ( "background-position", "12px 8px" )
-    , ( "width", "220px" )
     , ( "height", "30px" )
     , ( "padding", "0 42px" )
     , ( "border", "1px solid #504b4b" )
@@ -180,6 +193,7 @@ searchInputCSS =
     , ( "font-family", "Inconsolata, monospace" )
     , ( "outline", "0" )
     ]
+        ++ widthStyles
 
 
 searchClearButton : Bool -> List Style
@@ -220,7 +234,6 @@ searchClearButtonCSS active =
     , ( "background-repeat", "no-repeat" )
     , ( "background-position", "10px 10px" )
     , ( "border", "0" )
-    , ( "cursor", "pointer" )
     , ( "color", "#504b4b" )
     , ( "position", "absolute" )
     , ( "right", "0" )
@@ -288,15 +301,15 @@ searchOption { screenSize, active } =
     layout ++ styling ++ widthStyles ++ activeStyles
 
 
-searchButton : List Style
-searchButton =
-    [ backgroundImage (url "public/images/ic-search-white-24px.svg")
-    , backgroundRepeat noRepeat
-    , backgroundPosition2 (px 13) (px 9)
-    , height (px 32)
-    , width (px 32)
-    , display inlineBlock
-    , float left
+searchButtonCSS : List ( String, String )
+searchButtonCSS =
+    [ ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-position", "12px 8px" )
+    , ( "height", "32px" )
+    , ( "width", "32px" )
+    , ( "display", "inline-block" )
+    , ( "float", "left" )
     ]
 
 
@@ -418,10 +431,18 @@ loginItemCSS =
     ]
 
 
+dropdownContainerCSS : List ( String, String )
+dropdownContainerCSS =
+    [ ( "position", "absolute" )
+    , ( "top", "100%" )
+    , ( "margin-top", "0" )
+    , ( "width", "100%" )
+    ]
+
+
 dropdownItemCSS : List ( String, String )
 dropdownItemCSS =
-    [ ( "width", "220px" )
-    , ( "padding", "0 42px" )
+    [ ( "padding", "0 42px" )
     , ( "background-color", "#2e2e2e" )
     , ( "line-height", "30px" )
     , ( "list-style-type", "none" )

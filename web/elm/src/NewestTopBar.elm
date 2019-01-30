@@ -345,66 +345,37 @@ showSearchInput model =
             ( model, [] )
 
 
-searchInput : { a | query : String, screenSize : ScreenSize } -> List (Html Msg)
-searchInput { query, screenSize } =
-    [ Html.div [ css Styles.searchForm ] <|
-        [ Html.input
-            [ id "search-input-field"
-            , type_ "text"
-            , placeholder "search"
-            , onInput FilterMsg
-            , onFocus FocusMsg
-            , onBlur BlurMsg
-            , value query
-            , css <| Styles.searchInput screenSize
-            ]
-            []
-        , Html.span
-            [ css <| Styles.searchClearButton (not <| String.isEmpty query)
-            , id "search-clear-button"
-            , onClick (FilterMsg "")
-            ]
-            []
-        ]
-    ]
-
-
 view : Model -> Html Msg
 view model =
     Html.div [ id "top-bar-app", style Styles.topBarCSS ] <|
         viewConcourseLogo
-            ++ List.intersperse viewBreadcrumbSeparator
-                (case model.route.logical of
-                    Routes.Pipeline teamName pipelineName ->
-                        viewPipelineBreadcrumb (Routes.toString model.route.logical) pipelineName
-
-                    Routes.Build teamName pipelineName jobName buildNumber ->
-                        viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName)) pipelineName
-                            ++ viewJobBreadcrumb (Routes.toString (Routes.Job teamName pipelineName jobName))
-
-                    Routes.Resource teamName pipelineName resourceName ->
-                        viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName)) pipelineName
-                            ++ viewResourceBreadcrumb resourceName
-
-                    Routes.Job teamName pipelineName jobName ->
-                        viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName)) pipelineName
-                            ++ viewJobBreadcrumb jobName
-
-                    _ ->
-                        []
-                )
-            ++ (if model.hasPipelines then
-                    viewSearch
-                        { showAutocomplete = showAutocomplete model
-                        , active = String.length (query model) > 0
-                        , query = query model
-                        , teams = model.teams
-                        }
-
-                else
-                    []
-               )
+            ++ viewBreadcrumbs model
+            ++ viewMiddleSection model
             ++ viewLogin model
+
+
+viewBreadcrumbs : Model -> List (Html Msg)
+viewBreadcrumbs model =
+    List.intersperse viewBreadcrumbSeparator
+        (case model.route.logical of
+            Routes.Pipeline teamName pipelineName ->
+                viewPipelineBreadcrumb (Routes.toString model.route.logical) pipelineName
+
+            Routes.Build teamName pipelineName jobName buildNumber ->
+                viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName)) pipelineName
+                    ++ viewJobBreadcrumb (Routes.toString (Routes.Job teamName pipelineName jobName))
+
+            Routes.Resource teamName pipelineName resourceName ->
+                viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName)) pipelineName
+                    ++ viewResourceBreadcrumb resourceName
+
+            Routes.Job teamName pipelineName jobName ->
+                viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName)) pipelineName
+                    ++ viewJobBreadcrumb jobName
+
+            _ ->
+                []
+        )
 
 
 showAutocomplete : Model -> Bool
@@ -419,7 +390,11 @@ showAutocomplete model =
 
 viewLogin : Model -> List (Html Msg)
 viewLogin model =
-    [ Html.div [ id "login-component" ] <| viewLoginState model ]
+    if model.screenSize /= Mobile || model.searchBar == Collapsed then
+        [ Html.div [ id "login-component" ] <| viewLoginState model ]
+
+    else
+        []
 
 
 viewLoginState : { a | userState : UserState, isUserMenuExpanded : Bool } -> List (Html Msg)
@@ -499,8 +474,30 @@ viewUserState { userState, isUserMenuExpanded } =
                    )
 
 
-viewSearch : { a | showAutocomplete : Bool, active : Bool, query : String, teams : RemoteData.WebData (List Concourse.Team) } -> List (Html Msg)
-viewSearch { showAutocomplete, active, query, teams } =
+viewMiddleSection : Model -> List (Html Msg)
+viewMiddleSection model =
+    if model.hasPipelines && not model.highDensity then
+        case model.searchBar of
+            Collapsed ->
+                [ Html.div [ style <| Styles.showSearchContainerCSS model ]
+                    [ Html.a
+                        [ id "show-search-button"
+                        , onClick ShowSearchInput
+                        , style Styles.searchButtonCSS
+                        ]
+                        []
+                    ]
+                ]
+
+            Expanded r ->
+                viewSearch model
+
+    else
+        []
+
+
+viewSearch : Model -> List (Html Msg)
+viewSearch model =
     let
         dropdownItem : String -> Html Msg
         dropdownItem text =
@@ -510,12 +507,15 @@ viewSearch { showAutocomplete, active, query, teams } =
                 ]
                 [ Html.text text ]
     in
-    [ Html.div [ id "search-container", style Styles.searchContainerCSS ]
+    [ Html.div
+        [ id "search-container"
+        , style (Styles.searchContainerCSS model.screenSize)
+        ]
         ([ Html.input
             [ id "search-bar"
-            , style Styles.searchInputCSS
+            , style (Styles.searchInputCSS model.screenSize)
             , placeholder "search"
-            , value query
+            , value (query model)
             , onFocus FocusMsg
             , onBlur BlurMsg
             , onInput FilterMsg
@@ -524,21 +524,17 @@ viewSearch { showAutocomplete, active, query, teams } =
          , Html.div
             [ id "search-clear"
             , onClick (FilterMsg "")
-            , style (Styles.searchClearButtonCSS active)
+            , style (Styles.searchClearButtonCSS (String.length (query model) > 0))
             ]
             []
          ]
-            ++ (if showAutocomplete then
+            ++ (if showAutocomplete model then
                     [ Html.ul
                         [ id "search-dropdown"
-                        , style
-                            [ ( "position", "absolute" )
-                            , ( "top", "100%" )
-                            , ( "margin-top", "0" )
-                            ]
+                        , style Styles.dropdownContainerCSS
                         ]
                       <|
-                        case String.trim query of
+                        case String.trim (query model) of
                             "status:" ->
                                 [ dropdownItem "status: paused"
                                 , dropdownItem "status: pending"
@@ -550,7 +546,7 @@ viewSearch { showAutocomplete, active, query, teams } =
                                 ]
 
                             "team:" ->
-                                case teams of
+                                case model.teams of
                                     RemoteData.Success ts ->
                                         List.map dropdownItem (List.map (\team -> "team: " ++ team.name) <| List.take 10 ts)
 

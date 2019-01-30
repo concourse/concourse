@@ -442,93 +442,200 @@ all =
         , rspecStyleDescribe "rendering search bar on dashboard page"
             (NewestTopBar.init (initFlags (Routes.Dashboard { isHd = False }) "")
                 |> Tuple.first
-                |> NewestTopBar.view
-                |> toUnstyled
-                |> Query.fromHtml
             )
-            [ it "renders search bar" <|
-                Query.has [ id "search-bar" ]
-            , it "search bar is an input field" <|
-                Query.find [ id "search-bar" ]
-                    >> Query.has [ tag "input" ]
-            , it "renders search bar with transparent background to remove white of search bar" <|
-                Query.find [ id "search-bar" ]
-                    >> Query.has [ style [ ( "background-color", "transparent" ) ] ]
-            , it "sets magnifying glass on search bar in correct position" <|
-                Query.find [ id "search-bar" ]
-                    >> Query.has
-                        [ style
-                            [ ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
-                            , ( "background-position", "12px 8px" )
-                            , ( "background-repeat", "no-repeat" )
+            [ context "when desktop sized"
+                (NewestTopBar.handleCallback (ScreenResized { width = 1500, height = 900 })
+                    >> Tuple.first
+                    >> NewestTopBar.view
+                    >> toUnstyled
+                    >> Query.fromHtml
+                )
+                [ it "renders search bar" <|
+                    Query.has [ id "search-bar" ]
+                , it "search bar is an input field" <|
+                    Query.find [ id "search-bar" ]
+                        >> Query.has [ tag "input" ]
+                , it "renders search bar with transparent background to remove white of search bar" <|
+                    Query.find [ id "search-bar" ]
+                        >> Query.has [ style [ ( "background-color", "transparent" ) ] ]
+                , it "sets magnifying glass on search bar in correct position" <|
+                    Query.find [ id "search-bar" ]
+                        >> Query.has
+                            [ style
+                                [ ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
+                                , ( "background-position", "12px 8px" )
+                                , ( "background-repeat", "no-repeat" )
+                                ]
                             ]
-                        ]
-            , it "styles search border and input text colour" <|
-                Query.find [ id "search-bar" ]
-                    >> Query.has
-                        [ style
-                            [ ( "border", searchBarBorder )
-                            , ( "color", "#fff" )
-                            , ( "font-size", "1.15em" )
-                            , ( "font-family", "Inconsolata, monospace" )
+                , it "styles search border and input text colour" <|
+                    Query.find [ id "search-bar" ]
+                        >> Query.has
+                            [ style
+                                [ ( "border", searchBarBorder )
+                                , ( "color", "#fff" )
+                                , ( "font-size", "1.15em" )
+                                , ( "font-family", "Inconsolata, monospace" )
+                                ]
                             ]
-                        ]
-            , it "renders search with appropriate size and padding" <|
-                Query.find [ id "search-bar" ]
-                    >> Query.has [ style [ ( "height", searchBarHeight ), ( "width", searchBarWidth ), ( "padding", searchBarPadding ) ] ]
-            , it "does not have an outline when focused" <|
-                Query.find [ id "search-bar" ]
-                    >> Query.has [ style [ ( "outline", "0" ) ] ]
-            , it "has placeholder text" <|
-                Query.find [ id "search-bar" ]
-                    >> Query.has [ tag "input", attribute <| Attr.placeholder "search" ]
-            , it "has a search container" <|
-                Query.has [ id "search-container" ]
-            , it "search container is positioned appropriately" <|
-                Query.find [ id "search-container" ]
-                    >> Query.has
-                        [ style
-                            [ ( "position", "relative" )
-                            , ( "display", "flex" )
-                            , ( "flex-direction", "column" )
-                            , ( "align-items", "stretch" )
+                , it "renders search with appropriate size and padding" <|
+                    Query.find [ id "search-bar" ]
+                        >> Query.has
+                            [ style
+                                [ ( "height", searchBarHeight )
+                                , ( "width", searchBarWidth )
+                                , ( "padding", searchBarPadding )
+                                ]
                             ]
-                        ]
-            , it "has a clear search button container" <|
-                Query.find [ id "search-container" ]
-                    >> Query.has [ id "search-clear" ]
-            , it "positions the clear search button correctly" <|
-                Query.find [ id "search-container" ]
-                    >> Query.has [ id "search-clear" ]
-            , it "has the appropriate background image for clear search and is in correct position" <|
-                Query.find [ id "search-clear" ]
-                    >> Query.has
-                        [ style
-                            [ ( "background-image", "url('public/images/ic-close-white-24px.svg')" )
-                            , ( "background-position", "10px 10px" )
-                            , ( "background-repeat", "no-repeat" )
+                , it "does not have an outline when focused" <|
+                    Query.find [ id "search-bar" ]
+                        >> Query.has [ style [ ( "outline", "0" ) ] ]
+                , it "has placeholder text" <|
+                    Query.find [ id "search-bar" ]
+                        >> Query.has [ tag "input", attribute <| Attr.placeholder "search" ]
+                , it "has a search container" <|
+                    Query.has [ id "search-container" ]
+                , it "search container is positioned appropriately" <|
+                    Query.find [ id "search-container" ]
+                        >> Expect.all
+                            [ Query.has
+                                [ style
+                                    [ ( "position", "relative" )
+                                    , ( "display", "flex" )
+                                    , ( "flex-direction", "column" )
+                                    , ( "align-items", "stretch" )
+                                    ]
+                                ]
+                            , Query.hasNot [ style [ ( "flex-grow", "1" ) ] ]
                             ]
-                        ]
-            , it "clear search button has no border and renders text appropriately" <|
-                Query.find [ id "search-clear" ]
-                    >> Query.has
-                        [ style
-                            [ ( "border", "0" )
-                            , ( "color", searchBarGrey )
+                , it "has a clear search button container" <|
+                    Query.find [ id "search-container" ]
+                        >> Query.has [ id "search-clear" ]
+                , it "positions the clear search button correctly" <|
+                    Query.find [ id "search-container" ]
+                        >> Query.has [ id "search-clear" ]
+                , it "has the appropriate background image for clear search and is in correct position" <|
+                    Query.find [ id "search-clear" ]
+                        >> Query.has
+                            [ style
+                                [ ( "background-image", "url('public/images/ic-close-white-24px.svg')" )
+                                , ( "background-position", "10px 10px" )
+                                , ( "background-repeat", "no-repeat" )
+                                ]
                             ]
-                        ]
-            , it "clear search button is positioned appropriately" <|
-                Query.find [ id "search-clear" ]
-                    >> Query.has
-                        [ style
-                            [ ( "position", "absolute" )
-                            , ( "right", "0" )
-                            , ( "padding", "17px" )
+                , it "clear search button has no border and renders text appropriately" <|
+                    Query.find [ id "search-clear" ]
+                        >> Query.has
+                            [ style
+                                [ ( "border", "0" )
+                                , ( "color", searchBarGrey )
+                                ]
                             ]
+                , it "clear search button is positioned appropriately" <|
+                    Query.find [ id "search-clear" ]
+                        >> Query.has
+                            [ style
+                                [ ( "position", "absolute" )
+                                , ( "right", "0" )
+                                , ( "padding", "17px" )
+                                ]
+                            ]
+                , it "sets opacity for the clear search button to low when there is no text" <|
+                    Query.find [ id "search-clear" ]
+                        >> Query.has [ style [ ( "opacity", "0.2" ) ] ]
+                ]
+            , context "when mobile sized"
+                (NewestTopBar.handleCallback (ScreenResized { width = 400, height = 900 })
+                    >> Tuple.first
+                )
+                [ it "should not have a search bar" <|
+                    NewestTopBar.view
+                        >> toUnstyled
+                        >> Query.fromHtml
+                        >> Query.hasNot
+                            [ id "search-bar" ]
+                , it "should have a magnifying glass icon" <|
+                    NewestTopBar.view
+                        >> toUnstyled
+                        >> Query.fromHtml
+                        >> Query.find [ id "show-search-button" ]
+                        >> Query.has
+                            [ style
+                                [ ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
+                                , ( "background-position", "12px 8px" )
+                                , ( "background-repeat", "no-repeat" )
+                                ]
+                            ]
+                , it "shows the login component" <|
+                    NewestTopBar.view
+                        >> toUnstyled
+                        >> Query.fromHtml
+                        >> Query.has [ id "login-component" ]
+                , context "after clicking the search icon"
+                    (NewestTopBar.update Msgs.ShowSearchInput)
+                    [ it "tells the ui to focus on the search bar" <|
+                        Tuple.second
+                            >> Expect.equal [ Effects.ForceFocus "search-input-field" ]
+                    , context "the ui"
+                        (Tuple.first
+                            >> NewestTopBar.view
+                            >> toUnstyled
+                            >> Query.fromHtml
+                        )
+                        [ it "renders search bar" <|
+                            Query.has [ id "search-bar" ]
+                        , it "search bar is an input field" <|
+                            Query.find [ id "search-bar" ]
+                                >> Query.has [ tag "input" ]
+                        , it "has placeholder text" <|
+                            Query.find [ id "search-bar" ]
+                                >> Query.has [ tag "input", attribute <| Attr.placeholder "search" ]
+                        , it "has a search container" <|
+                            Query.has [ id "search-container" ]
+                        , it "positions the search container appropriately" <|
+                            Query.find [ id "search-container" ]
+                                >> Query.has
+                                    [ style
+                                        [ ( "position", "relative" )
+                                        , ( "display", "flex" )
+                                        , ( "flex-direction", "column" )
+                                        , ( "align-items", "stretch" )
+                                        , ( "flex-grow", "1" )
+                                        ]
+                                    ]
+                        , it "has a clear search button container" <|
+                            Query.find [ id "search-container" ]
+                                >> Query.has [ id "search-clear" ]
+                        , it "has the appropriate background image for clear search and is in correct position" <|
+                            Query.find [ id "search-clear" ]
+                                >> Query.has
+                                    [ style
+                                        [ ( "background-image", "url('public/images/ic-close-white-24px.svg')" )
+                                        , ( "background-position", "10px 10px" )
+                                        , ( "background-repeat", "no-repeat" )
+                                        ]
+                                    ]
+                        , it "hides the login component" <|
+                            Query.hasNot [ id "login-component" ]
                         ]
-            , it "sets opacity for the clear search button to low when there is no text" <|
-                Query.find [ id "search-clear" ]
-                    >> Query.has [ style [ ( "opacity", "0.2" ) ] ]
+                    , context "after the focus returns"
+                        (Tuple.first
+                            >> NewestTopBar.update Msgs.FocusMsg
+                            >> Tuple.first
+                            >> NewestTopBar.view
+                            >> toUnstyled
+                            >> Query.fromHtml
+                        )
+                        [ it "should display a dropdown of options" <|
+                            Query.find [ id "search-dropdown" ]
+                                >> Query.findAll [ tag "li" ]
+                                >> Expect.all
+                                    [ Query.count (Expect.equal 2)
+                                    , Query.index 0 >> Query.has [ text "status:" ]
+                                    , Query.index 1 >> Query.has [ text "team:" ]
+                                    ]
+                        ]
+                    ]
+                ]
             ]
         , rspecStyleDescribe "when search query is updated"
             (NewestTopBar.init (initFlags (Routes.Dashboard { isHd = False }) "")
@@ -710,9 +817,7 @@ all =
                     (Query.findAll [ tag "li" ])
                     [ it "have the same width and padding as search bar" <|
                         eachHasStyle
-                            [ ( "width", searchBarWidth )
-                            , ( "padding", searchBarPadding )
-                            ]
+                            [ ( "padding", searchBarPadding ) ]
                     , it "have grey background" <|
                         eachHasStyle
                             [ ( "background-color", dropdownBackgroundGrey )
@@ -754,6 +859,9 @@ all =
                                 , ( "margin-top", "0" )
                                 ]
                             ]
+                , it "the search dropdown is the same width as search bar" <|
+                    Query.find [ id "search-dropdown" ]
+                        >> Query.has [ style [ ( "width", "100%" ) ] ]
                 , it "the search dropdown has 2 elements" <|
                     Query.find [ id "search-dropdown" ]
                         >> Expect.all
