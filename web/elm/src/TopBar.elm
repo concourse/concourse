@@ -27,7 +27,7 @@ import UserState exposing (UserState(..))
 
 type alias Model r =
     { r
-        | route : Routes.ConcourseRoute
+        | route : Routes.Route
         , pipeline : Maybe Concourse.Pipeline
         , userState : UserState
         , userMenuVisible : Bool
@@ -48,11 +48,11 @@ type Msg
     | GoToPinnedResource String
 
 
-init : Routes.ConcourseRoute -> ( Model {}, List Effect )
+init : Routes.Route -> ( Model {}, List Effect )
 init route =
     let
         pid =
-            extractPidFromRoute route.logical
+            extractPidFromRoute route
     in
     ( { route = route
       , pipeline = Nothing
@@ -140,7 +140,7 @@ update msg model =
         GoToPinnedResource resourceName ->
             let
                 url =
-                    Routes.toString model.route.logical
+                    Routes.toString model.route
             in
             ( model, [ NavigateTo (url ++ "/resources/" ++ resourceName) ] )
 
@@ -158,9 +158,9 @@ subscriptions model =
         ]
 
 
-pipelineIdentifierFromRouteOrModel : Routes.ConcourseRoute -> Model r -> Maybe Concourse.PipelineIdentifier
+pipelineIdentifierFromRouteOrModel : Routes.Route -> Model r -> Maybe Concourse.PipelineIdentifier
 pipelineIdentifierFromRouteOrModel route model =
-    case extractPidFromRoute route.logical of
+    case extractPidFromRoute route of
         Nothing ->
             case model.pipeline of
                 Nothing ->
@@ -176,32 +176,32 @@ pipelineIdentifierFromRouteOrModel route model =
 extractPidFromRoute : Routes.Route -> Maybe Concourse.PipelineIdentifier
 extractPidFromRoute route =
     case route of
-        Routes.Build teamName pipelineName jobName buildName ->
+        Routes.Build teamName pipelineName jobName buildName _ ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
-        Routes.Job teamName pipelineName jobName ->
+        Routes.Job teamName pipelineName jobName _ ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
-        Routes.Resource teamName pipelineName resourceName ->
+        Routes.Resource teamName pipelineName resourceName _ ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
-        Routes.OneOffBuild buildId ->
+        Routes.OneOffBuild buildId _ ->
             Nothing
 
-        Routes.Pipeline teamName pipelineName ->
+        Routes.Pipeline teamName pipelineName _ ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
-        Routes.Dashboard ->
+        Routes.Dashboard _ ->
             Nothing
 
         Routes.DashboardHd ->
             Nothing
 
-        Routes.FlySuccess ->
+        Routes.FlySuccess _ ->
             Nothing
 
 
-urlUpdate : Routes.ConcourseRoute -> Model r -> ( Model r, List Effect )
+urlUpdate : Routes.Route -> Model r -> ( Model r, List Effect )
 urlUpdate route model =
     let
         pipelineIdentifier =
@@ -266,8 +266,8 @@ view model =
                 , ( "max-width", "20%" )
                 ]
             ]
-            ((case model.route.logical of
-                Routes.Pipeline _ _ ->
+            ((case model.route of
+                Routes.Pipeline _ _ _ ->
                     [ Html.div
                         ([ style
                             [ ( "margin-right", "15px" )
@@ -409,22 +409,22 @@ view model =
 viewBreadcrumbs : Model r -> List (Html Msg)
 viewBreadcrumbs model =
     List.intersperse viewBreadcrumbSeparator <|
-        case model.route.logical of
-            Routes.Pipeline teamName pipelineName ->
-                [ viewBreadcrumbPipeline pipelineName model.route.logical ]
+        case model.route of
+            Routes.Pipeline _ pipelineName _ ->
+                [ viewBreadcrumbPipeline pipelineName model.route ]
 
-            Routes.Job teamName pipelineName jobName ->
-                [ viewBreadcrumbPipeline pipelineName <| Routes.Pipeline teamName pipelineName
+            Routes.Job teamName pipelineName jobName _ ->
+                [ viewBreadcrumbPipeline pipelineName <| Routes.Pipeline teamName pipelineName []
                 , viewBreadcrumbJob jobName
                 ]
 
-            Routes.Build teamName pipelineName jobName buildName ->
-                [ viewBreadcrumbPipeline pipelineName <| Routes.Pipeline teamName pipelineName
+            Routes.Build teamName pipelineName jobName buildName _ ->
+                [ viewBreadcrumbPipeline pipelineName <| Routes.Pipeline teamName pipelineName []
                 , viewBreadcrumbJob jobName
                 ]
 
-            Routes.Resource teamName pipelineName resourceName ->
-                [ viewBreadcrumbPipeline pipelineName <| Routes.Pipeline teamName pipelineName
+            Routes.Resource teamName pipelineName resourceName _ ->
+                [ viewBreadcrumbPipeline pipelineName <| Routes.Pipeline teamName pipelineName []
                 , viewBreadcrumbResource resourceName
                 ]
 

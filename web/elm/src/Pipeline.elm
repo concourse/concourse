@@ -25,7 +25,6 @@ import Json.Encode
 import Keyboard
 import Mouse
 import Pipeline.Msgs exposing (Msg(..))
-import QueryString
 import RemoteData exposing (..)
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
@@ -45,7 +44,6 @@ type alias Model =
     , concourseVersion : String
     , turbulenceImgSrc : String
     , experiencingTurbulence : Bool
-    , route : Routes.ConcourseRoute
     , selectedGroups : List String
     , hideLegend : Bool
     , hideLegendCounter : Time
@@ -56,13 +54,8 @@ type alias Flags =
     { teamName : String
     , pipelineName : String
     , turbulenceImgSrc : String
-    , route : Routes.ConcourseRoute
+    , selectedGroups : List String
     }
-
-
-queryGroupsForRoute : Routes.ConcourseRoute -> List String
-queryGroupsForRoute route =
-    QueryString.all "groups" route.queries
 
 
 init : Flags -> ( Model, List Effect )
@@ -83,10 +76,9 @@ init flags =
             , renderedJobs = Nothing
             , renderedResources = Nothing
             , experiencingTurbulence = False
-            , route = flags.route
-            , selectedGroups = queryGroupsForRoute flags.route
             , hideLegend = False
             , hideLegendCounter = 0
+            , selectedGroups = flags.selectedGroups
             }
     in
     loadPipeline pipelineLocator model
@@ -102,7 +94,7 @@ changeToPipelineAndGroups flags model =
     in
     if model.pipelineLocator == pid then
         renderIfNeeded
-            { model | selectedGroups = queryGroupsForRoute flags.route }
+            { model | selectedGroups = flags.selectedGroups }
 
     else
         init flags
@@ -344,7 +336,11 @@ viewGroupsBar model =
             case model.pipeline of
                 RemoteData.Success pipeline ->
                     List.map
-                        (viewGroup (getSelectedGroupsForRoute model) (Routes.pipelineRoute pipeline))
+                        (viewGroup
+                            { selectedGroups = selectedGroupsOrDefault model
+                            , pipelineLocator = model.pipelineLocator
+                            }
+                        )
                         pipeline.groups
 
                 _ ->
@@ -360,8 +356,22 @@ viewGroupsBar model =
     Html.ul [ class groupClass ] groupList
 
 
-viewGroup : List String -> String -> Concourse.PipelineGroup -> Html Msg
-viewGroup selectedGroups url grp =
+viewGroup :
+    { a
+        | selectedGroups : List String
+        , pipelineLocator : Concourse.PipelineIdentifier
+    }
+    -> Concourse.PipelineGroup
+    -> Html Msg
+viewGroup { selectedGroups, pipelineLocator } grp =
+    let
+        url =
+            Routes.Pipeline
+                pipelineLocator.teamName
+                pipelineLocator.pipelineName
+                []
+                |> Routes.toString
+    in
     Html.li
         [ if List.member grp.name selectedGroups then
             class "main active"
@@ -371,7 +381,9 @@ viewGroup selectedGroups url grp =
         ]
         [ Html.a
             [ Html.Attributes.href <| url ++ "?groups=" ++ grp.name
-            , onLeftClickOrShiftLeftClick (SetGroups [ grp.name ]) (ToggleGroup grp)
+            , onLeftClickOrShiftLeftClick
+                (SetGroups [ grp.name ])
+                (ToggleGroup grp)
             ]
             [ Html.text grp.name ]
         ]
@@ -495,8 +507,8 @@ toggleGroup grp names mpipeline =
         grp.name :: names
 
 
-getSelectedGroupsForRoute : Model -> List String
-getSelectedGroupsForRoute model =
+selectedGroupsOrDefault : Model -> List String
+selectedGroupsOrDefault model =
     if List.isEmpty model.selectedGroups then
         getDefaultSelectedGroups model.pipeline
 
@@ -521,52 +533,11 @@ getDefaultSelectedGroups pipeline =
 
 getNextUrl : List String -> Model -> String
 getNextUrl newGroups model =
-    pidToUrl (pipelineIdentifierFromModel model) <|
-        setGroupsInLocation model.route newGroups
-
-
-setGroupsInLocation : Routes.ConcourseRoute -> List String -> Routes.ConcourseRoute
-setGroupsInLocation loc groups =
-    let
-        updatedUrl =
-            if List.isEmpty groups then
-                QueryString.remove "groups" loc.queries
-
-            else
-                List.foldr
-                    (QueryString.add "groups")
-                    QueryString.empty
-                    groups
-    in
-    { loc | queries = updatedUrl }
-
-
-pidToUrl : Maybe Concourse.PipelineIdentifier -> Routes.ConcourseRoute -> String
-pidToUrl pid { queries } =
-    case pid of
-        Just { teamName, pipelineName } ->
-            String.join ""
-                [ String.join "/"
-                    [ "/teams"
-                    , teamName
-                    , "pipelines"
-                    , pipelineName
-                    ]
-                , QueryString.render queries
-                ]
-
-        Nothing ->
-            ""
-
-
-pipelineIdentifierFromModel : Model -> Maybe Concourse.PipelineIdentifier
-pipelineIdentifierFromModel model =
-    case model.pipeline of
-        RemoteData.Success pipeline ->
-            Just { teamName = pipeline.teamName, pipelineName = pipeline.name }
-
-        _ ->
-            Nothing
+    Routes.Pipeline
+        model.pipelineLocator.teamName
+        model.pipelineLocator.pipelineName
+        newGroups
+        |> Routes.toString
 
 
 cliIcon : Cli.Cli -> List ( String, String )

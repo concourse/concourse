@@ -4,7 +4,6 @@ import Concourse
 import Dict
 import Effects
 import Expect exposing (..)
-import QueryString
 import Routes
 import Test exposing (..)
 import TopBar exposing (userDisplayName)
@@ -51,7 +50,7 @@ all =
                         (TopBar.userDisplayName userWithEmail)
             , test "clicking a pinned resource navigates to the pinned resource page" <|
                 \_ ->
-                    TopBar.init { logical = Routes.Pipeline "team" "pipeline", queries = QueryString.empty, page = Nothing, hash = "" }
+                    TopBar.init (Routes.Pipeline "team" "pipeline" [])
                         |> Tuple.first
                         |> TopBar.update (TopBar.GoToPinnedResource "resource")
                         |> Tuple.second

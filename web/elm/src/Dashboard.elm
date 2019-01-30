@@ -407,7 +407,9 @@ update msg model =
                             model
             in
             ( newModel
-            , [ FocusSearchInput, ModifyUrl (NewTopBar.queryStringFromSearch query) ]
+            , [ FocusSearchInput
+              , ModifyUrl (Routes.Dashboard (Just query) |> Routes.toString)
+              ]
             )
 
         LogIn ->

@@ -44,7 +44,7 @@ type alias Model =
     , previousKeyPress : Maybe Char
     , previousTriggerBuildByKey : Bool
     , showHelp : Bool
-    , hash : String
+    , highlight : Highlight
     , hoveredElement : Maybe Hoverable
     , hoveredCounter : Int
     }

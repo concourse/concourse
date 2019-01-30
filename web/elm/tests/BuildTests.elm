@@ -17,6 +17,8 @@ import Dict
 import Effects
 import Expect
 import Html.Attributes as Attr
+import Layout
+import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -39,7 +41,7 @@ all =
             pageLoad =
                 Build.init
                     { csrfToken = ""
-                    , hash = ""
+                    , highlight = Models.HighlightNothing
                     }
                     (Models.JobBuildPage
                         { teamName = "team"
@@ -155,7 +157,96 @@ all =
                         )
                     )
         in
-        [ test "says loading on page load" <|
+        [ test "converts URL hash to highlighted line in view" <|
+            \_ ->
+                Layout.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = ""
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { href = ""
+                    , host = ""
+                    , hostname = ""
+                    , protocol = ""
+                    , origin = ""
+                    , port_ = ""
+                    , pathname = "/builds/1"
+                    , search = ""
+                    , hash = "#Lstepid:1"
+                    , username = ""
+                    , password = ""
+                    }
+                    |> Tuple.first
+                    |> Layout.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 1
+                                  , name = "1"
+                                  , job = Nothing
+                                  , status = Concourse.BuildStatusStarted
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Layout.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.PlanAndResourcesFetched 307 <|
+                            Ok <|
+                                ( { id = "stepid"
+                                  , step =
+                                        Concourse.BuildStepTask
+                                            "step"
+                                  }
+                                , { inputs = [], outputs = [] }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Layout.update
+                        (Layout.SubMsg 1
+                            (SubPage.Msgs.BuildMsg
+                                (Msgs.BuildEventsMsg BuildEvents.Opened)
+                            )
+                        )
+                    |> Tuple.first
+                    |> Layout.update
+                        (Layout.SubMsg 1
+                            (SubPage.Msgs.BuildMsg
+                                (Msgs.BuildEventsMsg <|
+                                    BuildEvents.Events <|
+                                        Ok <|
+                                            Array.fromList
+                                                [ BuildEvents.StartTask
+                                                    { source = "stdout"
+                                                    , id = "stepid"
+                                                    }
+                                                , BuildEvents.Log
+                                                    { source = "stdout"
+                                                    , id = "stepid"
+                                                    }
+                                                    "log message"
+                                                    Nothing
+                                                ]
+                                )
+                            )
+                        )
+                    |> Tuple.first
+                    |> Layout.view
+                    |> Query.fromHtml
+                    |> Query.find
+                        [ class "timestamped-line"
+                        , containing [ text "log message" ]
+                        ]
+                    |> Query.has [ class "highlighted-line" ]
+        , test "says loading on page load" <|
             \_ ->
                 pageLoad
                     |> Tuple.first

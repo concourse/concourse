@@ -22,7 +22,6 @@ import Html.Styled as HS
 import Job
 import NotFound
 import Pipeline
-import QueryString
 import Resource
 import Resource.Models
 import Routes
@@ -32,8 +31,7 @@ import UpdateMsg exposing (UpdateMsg)
 
 
 type Model
-    = WaitingModel Routes.ConcourseRoute
-    | BuildModel Build.Models.Model
+    = BuildModel Build.Models.Model
     | JobModel Job.Model
     | ResourceModel Resource.Models.Model
     | PipelineModel Pipeline.Model
@@ -50,69 +48,64 @@ type alias Flags =
     }
 
 
-queryGroupsForRoute : Routes.ConcourseRoute -> List String
-queryGroupsForRoute route =
-    QueryString.all "groups" route.queries
-
-
-querySearchForRoute : Routes.ConcourseRoute -> String
-querySearchForRoute route =
-    QueryString.one QueryString.string "search" route.queries
-        |> Maybe.withDefault ""
-
-
-init : Flags -> Routes.ConcourseRoute -> ( Model, List Effect )
+init : Flags -> Routes.Route -> ( Model, List Effect )
 init flags route =
-    case route.logical of
-        Routes.Build teamName pipelineName jobName buildName ->
+    case route of
+        Routes.Build teamName pipelineName jobName buildName highlight ->
             Build.Models.JobBuildPage
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , jobName = jobName
                 , buildName = buildName
                 }
-                |> Build.init { csrfToken = flags.csrfToken, hash = route.hash }
+                |> Build.init
+                    { csrfToken = flags.csrfToken
+                    , highlight = highlight
+                    }
                 |> Tuple.mapFirst BuildModel
 
-        Routes.OneOffBuild buildId ->
+        Routes.OneOffBuild buildId highlight ->
             Build.Models.BuildPage (Result.withDefault 0 (String.toInt buildId))
-                |> Build.init { csrfToken = flags.csrfToken, hash = route.hash }
+                |> Build.init
+                    { csrfToken = flags.csrfToken
+                    , highlight = highlight
+                    }
                 |> Tuple.mapFirst BuildModel
 
-        Routes.Resource teamName pipelineName resourceName ->
+        Routes.Resource teamName pipelineName resourceName page ->
             Resource.init
                 { resourceName = resourceName
                 , teamName = teamName
                 , pipelineName = pipelineName
-                , paging = route.page
+                , paging = page
                 , csrfToken = flags.csrfToken
                 }
                 |> Tuple.mapFirst ResourceModel
 
-        Routes.Job teamName pipelineName jobName ->
+        Routes.Job teamName pipelineName jobName page ->
             Job.init
                 { jobName = jobName
                 , teamName = teamName
                 , pipelineName = pipelineName
-                , paging = route.page
+                , paging = page
                 , csrfToken = flags.csrfToken
                 }
                 |> Tuple.mapFirst JobModel
 
-        Routes.Pipeline teamName pipelineName ->
+        Routes.Pipeline teamName pipelineName groups ->
             Pipeline.init
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , turbulenceImgSrc = flags.turbulencePath
-                , route = route
+                , selectedGroups = groups
                 }
                 |> Tuple.mapFirst PipelineModel
 
-        Routes.Dashboard ->
+        Routes.Dashboard search ->
             Dashboard.init
                 { turbulencePath = flags.turbulencePath
                 , csrfToken = flags.csrfToken
-                , search = querySearchForRoute route
+                , search = search |> Maybe.withDefault ""
                 , highDensity = False
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
                 }
@@ -122,16 +115,16 @@ init flags route =
             Dashboard.init
                 { turbulencePath = flags.turbulencePath
                 , csrfToken = flags.csrfToken
-                , search = querySearchForRoute route
+                , search = ""
                 , highDensity = True
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
                 }
                 |> Tuple.mapFirst DashboardModel
 
-        Routes.FlySuccess ->
+        Routes.FlySuccess flyPort ->
             FlySuccess.init
                 { authToken = flags.authToken
-                , flyPort = QueryString.one QueryString.int "fly_port" route.queries
+                , flyPort = flyPort
                 }
                 |> Tuple.mapFirst FlySuccessModel
 
@@ -262,42 +255,42 @@ update turbulence notFound csrfToken msg mdl =
                 ( mdl, [] )
 
 
-urlUpdate : Routes.ConcourseRoute -> Model -> ( Model, List Effect )
+urlUpdate : Routes.Route -> Model -> ( Model, List Effect )
 urlUpdate route model =
-    case ( route.logical, model ) of
-        ( Routes.Pipeline team pipeline, PipelineModel mdl ) ->
+    case ( route, model ) of
+        ( Routes.Pipeline team pipeline groups, PipelineModel mdl ) ->
             Pipeline.changeToPipelineAndGroups
                 { teamName = team
                 , pipelineName = pipeline
                 , turbulenceImgSrc = mdl.turbulenceImgSrc
-                , route = route
+                , selectedGroups = groups
                 }
                 mdl
                 |> Tuple.mapFirst PipelineModel
 
-        ( Routes.Resource teamName pipelineName resourceName, ResourceModel mdl ) ->
+        ( Routes.Resource teamName pipelineName resourceName page, ResourceModel mdl ) ->
             Resource.changeToResource
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , resourceName = resourceName
-                , paging = route.page
+                , paging = page
                 , csrfToken = mdl.csrfToken
                 }
                 mdl
                 |> Tuple.mapFirst ResourceModel
 
-        ( Routes.Job teamName pipelineName jobName, JobModel mdl ) ->
+        ( Routes.Job teamName pipelineName jobName page, JobModel mdl ) ->
             Job.changeToJob
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , jobName = jobName
-                , paging = route.page
+                , paging = page
                 , csrfToken = mdl.csrfToken
                 }
                 mdl
                 |> Tuple.mapFirst JobModel
 
-        ( Routes.Build teamName pipelineName jobName buildName, BuildModel buildModel ) ->
+        ( Routes.Build teamName pipelineName jobName buildName highlight, BuildModel buildModel ) ->
             Build.changeToBuild
                 (Build.Models.JobBuildPage
                     { teamName = teamName
@@ -306,7 +299,7 @@ urlUpdate route model =
                     , buildName = buildName
                     }
                 )
-                buildModel
+                { buildModel | highlight = highlight }
                 |> Tuple.mapFirst BuildModel
 
         _ ->
@@ -338,9 +331,6 @@ view mdl =
                 |> HS.toUnstyled
                 |> Html.map DashboardMsg
 
-        WaitingModel _ ->
-            Html.div [] []
-
         NotFoundModel model ->
             NotFound.view model
 
@@ -371,9 +361,6 @@ subscriptions mdl =
         DashboardModel model ->
             Dashboard.subscriptions model
                 |> Sub.map DashboardMsg
-
-        WaitingModel _ ->
-            Sub.none
 
         NotFoundModel _ ->
             Sub.none
