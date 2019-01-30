@@ -1,7 +1,6 @@
 module Build exposing
-    ( Model
-    , Page(..)
-    , changeToBuild
+    ( changeToBuild
+    , getScrollBehavior
     , getUpdateMessage
     , handleCallback
     , init
@@ -11,7 +10,8 @@ module Build exposing
     , view
     )
 
-import Build.Msgs exposing (HoveredButton(..), Msg(..))
+import Build.Models as Models exposing (Model, OutputModel, Page(..))
+import Build.Msgs exposing (Hoverable(..), Msg(..))
 import Build.Output
 import Build.StepTree as StepTree
 import Build.Styles as Styles
@@ -57,11 +57,6 @@ import UpdateMsg exposing (UpdateMsg)
 import Views
 
 
-type Page
-    = BuildPage Int
-    | JobBuildPage Concourse.JobBuildIdentifier
-
-
 initJobBuildPage :
     Concourse.TeamName
     -> Concourse.PipelineName
@@ -75,30 +70,6 @@ initJobBuildPage teamName pipelineName jobName buildName =
         , jobName = jobName
         , buildName = buildName
         }
-
-
-type alias CurrentBuild =
-    { build : Concourse.Build
-    , prep : Maybe Concourse.BuildPrep
-    , output : Maybe Build.Output.Model
-    }
-
-
-type alias Model =
-    { page : Page
-    , now : Maybe Time.Time
-    , job : Maybe Concourse.Job
-    , history : List Concourse.Build
-    , currentBuild : WebData CurrentBuild
-    , browsingIndex : Int
-    , autoScroll : Bool
-    , csrfToken : String
-    , previousKeyPress : Maybe Char
-    , previousTriggerBuildByKey : Bool
-    , showHelp : Bool
-    , hash : String
-    , hoveredButton : HoveredButton
-    }
 
 
 type StepRenderingState
@@ -137,7 +108,8 @@ init flags page =
                 , previousTriggerBuildByKey = False
                 , showHelp = False
                 , hash = flags.hash
-                , hoveredButton = Neither
+                , hoveredElement = Nothing
+                , hoveredCounter = 0
                 }
     in
     ( model, effects ++ [ GetCurrentTime ] )
@@ -258,8 +230,8 @@ handleCallback action model =
             flip always (Debug.log "failed to fetch build preparation" err) <|
                 ( model, [] )
 
-        PlanAndResourcesFetched result ->
-            updateOutput (Build.Output.planAndResourcesFetched result) model
+        PlanAndResourcesFetched buildId result ->
+            updateOutput (Build.Output.planAndResourcesFetched buildId result) model
 
         BuildHistoryFetched (Err err) ->
             flip always (Debug.log "failed to fetch build history" err) <|
@@ -286,7 +258,15 @@ update action model =
             ( model, [ NavigateTo <| Routes.buildRoute build ] )
 
         Hover state ->
-            ( { model | hoveredButton = state }, [] )
+            let
+                newModel =
+                    { model | hoveredElement = state, hoveredCounter = 0 }
+            in
+            updateOutput
+                (Build.Output.handleStepTreeMsg <|
+                    StepTree.updateTooltip newModel
+                )
+                newModel
 
         TriggerBuild job ->
             case job of
@@ -333,7 +313,18 @@ update action model =
                 ( model, [ Scroll (Builds -event.deltaX) ] )
 
         ClockTick now ->
-            ( { model | now = Just now }, [] )
+            let
+                newModel =
+                    { model
+                        | now = Just now
+                        , hoveredCounter = model.hoveredCounter + 1
+                    }
+            in
+            updateOutput
+                (Build.Output.handleStepTreeMsg <|
+                    StepTree.updateTooltip newModel
+                )
+                newModel
 
         WindowScrolled fromBottom ->
             if fromBottom == 0 then
@@ -393,9 +384,7 @@ getScrollBehavior model =
 
 
 updateOutput :
-    (Build.Output.Model
-     -> ( Build.Output.Model, List Effect, Build.Output.OutMsg )
-    )
+    (OutputModel -> ( OutputModel, List Effect, Build.Output.OutMsg ))
     -> Model
     -> ( Model, List Effect )
 updateOutput updater model =
@@ -693,7 +682,7 @@ view model =
                 [ viewBuildHeader currentBuild.build model
                 , Html.div [ class "scrollable-body build-body" ] <|
                     [ viewBuildPrep currentBuild.prep
-                    , Html.Lazy.lazy2 viewBuildOutput model.browsingIndex <|
+                    , Html.Lazy.lazy2 viewBuildOutput currentBuild.build <|
                         currentBuild.output
                     , Html.div
                         [ classList
@@ -841,11 +830,11 @@ mmDDYY d =
     Date.Format.format "%m/%d/" d ++ String.right 2 (Date.Format.format "%Y" d)
 
 
-viewBuildOutput : Int -> Maybe Build.Output.Model -> Html Msg
-viewBuildOutput browsingIndex output =
+viewBuildOutput : Concourse.Build -> Maybe OutputModel -> Html Msg
+viewBuildOutput build output =
     case output of
         Just o ->
-            Build.Output.view o
+            Build.Output.view build o
 
         Nothing ->
             Html.div [] []
@@ -918,14 +907,17 @@ viewBuildPrepLi text status details =
             [ ( "prep-status", True )
             , ( "inactive", status == Concourse.BuildPrepStatusUnknown )
             ]
-        , style
-            [ ( "display", "flex" )
-            , ( "align-items", "center" )
-            ]
         ]
-        [ viewBuildPrepStatus status
-        , Html.span []
-            [ Html.text text ]
+        [ Html.div
+            [ style
+                [ ( "align-items", "center" )
+                , ( "display", "flex" )
+                ]
+            ]
+            [ viewBuildPrepStatus status
+            , Html.span []
+                [ Html.text text ]
+            ]
         , viewBuildPrepDetails details
         ]
 
@@ -965,7 +957,7 @@ viewBuildPrepStatus status =
 
 
 viewBuildHeader : Concourse.Build -> Model -> Html Msg
-viewBuildHeader build { now, job, history, hoveredButton } =
+viewBuildHeader build { now, job, history, hoveredElement } =
     let
         triggerButton =
             case job of
@@ -989,7 +981,7 @@ viewBuildHeader build { now, job, history, hoveredButton } =
                                     job.disableManualTrigger
 
                         buttonHovered =
-                            hoveredButton == Trigger
+                            hoveredElement == Just Trigger
 
                         buttonHighlight =
                             buttonHovered && not buttonDisabled
@@ -1000,10 +992,10 @@ viewBuildHeader build { now, job, history, hoveredButton } =
                         , attribute "aria-label" "Trigger Build"
                         , attribute "title" "Trigger Build"
                         , onLeftClick <| TriggerBuild build.job
-                        , onMouseEnter <| Hover Trigger
-                        , onFocus <| Hover Trigger
-                        , onMouseLeave <| Hover Neither
-                        , onBlur <| Hover Neither
+                        , onMouseEnter <| Hover (Just Trigger)
+                        , onFocus <| Hover (Just Trigger)
+                        , onMouseLeave <| Hover Nothing
+                        , onBlur <| Hover Nothing
                         , style <| Styles.triggerButton buttonDisabled
                         ]
                     <|
@@ -1035,14 +1027,18 @@ viewBuildHeader build { now, job, history, hoveredButton } =
                     , attribute "tabindex" "0"
                     , attribute "aria-label" "Abort Build"
                     , attribute "title" "Abort Build"
-                    , onMouseEnter <| Hover Abort
-                    , onFocus <| Hover Abort
-                    , onMouseLeave <| Hover Neither
-                    , onBlur <| Hover Neither
+                    , onMouseEnter <| Hover (Just Abort)
+                    , onFocus <| Hover (Just Abort)
+                    , onMouseLeave <| Hover Nothing
+                    , onBlur <| Hover Nothing
                     , style Styles.abortButton
                     ]
                     [ Html.div
-                        [ style <| Styles.abortIcon <| hoveredButton == Abort ]
+                        [ style <|
+                            Styles.abortIcon <|
+                                hoveredElement
+                                    == Just Abort
+                        ]
                         []
                     ]
 

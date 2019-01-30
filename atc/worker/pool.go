@@ -28,6 +28,7 @@ type WorkerProvider interface {
 	FindWorkerForContainerByOwner(
 		logger lager.Logger,
 		teamID int,
+		workerTags atc.Tags,
 		owner db.ContainerOwner,
 	) (Worker, bool, error)
 
@@ -40,8 +41,7 @@ type WorkerProvider interface {
 }
 
 var (
-	ErrNoWorkers       = errors.New("no workers")
-	ErrNoGlobalWorkers = errors.New("no global workers available")
+	ErrNoWorkers = errors.New("no workers")
 )
 
 type NoCompatibleWorkersError struct {
@@ -98,10 +98,6 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 		return compatibleGeneralWorkers, nil
 	}
 
-	if spec.TeamID == 0 {
-		return nil, ErrNoGlobalWorkers
-	}
-
 	return nil, NoCompatibleWorkersError{
 		Spec: spec,
 	}
@@ -129,6 +125,7 @@ func (pool *pool) FindOrCreateContainer(
 	worker, found, err := pool.provider.FindWorkerForContainerByOwner(
 		logger.Session("find-worker"),
 		workerSpec.TeamID,
+		workerSpec.Tags,
 		owner,
 	)
 	if err != nil {

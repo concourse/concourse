@@ -411,7 +411,7 @@ var _ = Describe("Team", func() {
 			fakeVariablesFactory   *credsfakes.FakeVariablesFactory
 			variables              creds.Variables
 			resourceContainer      db.CreatingContainer
-			resourceConfig         db.ResourceConfig
+			resourceConfigScope    db.ResourceConfigScope
 			firstContainerCreating db.CreatingContainer
 		)
 
@@ -439,11 +439,11 @@ var _ = Describe("Team", func() {
 			pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 			Expect(err).ToNot(HaveOccurred())
 
-			resourceConfig, err = defaultResource.SetResourceConfig(logger, defaultResource.Source(), creds.NewVersionedResourceTypes(variables, pipelineResourceTypes.Deserialize()))
+			resourceConfigScope, err = defaultResource.SetResourceConfig(logger, defaultResource.Source(), creds.NewVersionedResourceTypes(variables, pipelineResourceTypes.Deserialize()))
 			Expect(err).ToNot(HaveOccurred())
 
 			resourceContainer, err = defaultWorker.CreateContainer(
-				db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, expiries),
+				db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), expiries),
 				db.ContainerMetadata{},
 			)
 			Expect(err).ToNot(HaveOccurred())
@@ -1474,7 +1474,8 @@ var _ = Describe("Team", func() {
 			brt := db.BaseResourceType{
 				Name: "some-type",
 			}
-			_, err = brt.FindOrCreate(setupTx)
+
+			_, err = brt.FindOrCreate(setupTx, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
@@ -1527,7 +1528,8 @@ var _ = Describe("Team", func() {
 			brt := db.BaseResourceType{
 				Name: "some-type",
 			}
-			_, err = brt.FindOrCreate(setupTx)
+
+			_, err = brt.FindOrCreate(setupTx, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
@@ -2241,7 +2243,7 @@ var _ = Describe("Team", func() {
 			}
 
 			BeforeEach(func() {
-				resourceConfig, err := defaultResource.SetResourceConfig(
+				resourceConfigScope, err := defaultResource.SetResourceConfig(
 					logger,
 					defaultResource.Source(),
 					creds.VersionedResourceTypes{},
@@ -2249,7 +2251,7 @@ var _ = Describe("Team", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				resourceContainer, err = defaultWorker.CreateContainer(
-					db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, expiries),
+					db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), expiries),
 					db.ContainerMetadata{},
 				)
 				Expect(err).ToNot(HaveOccurred())

@@ -15,7 +15,7 @@ type ResourceConfigVersion interface {
 	Version() Version
 	Metadata() ResourceConfigMetadataFields
 	CheckOrder() int
-	ResourceConfig() ResourceConfig
+	ResourceConfigScope() ResourceConfigScope
 
 	Reload() (bool, error)
 }
@@ -61,7 +61,7 @@ type resourceConfigVersion struct {
 	metadata   ResourceConfigMetadataFields
 	checkOrder int
 
-	resourceConfig ResourceConfig
+	resourceConfigScope ResourceConfigScope
 
 	conn Conn
 }
@@ -81,7 +81,9 @@ func (r *resourceConfigVersion) ID() int                                { return
 func (r *resourceConfigVersion) Version() Version                       { return r.version }
 func (r *resourceConfigVersion) Metadata() ResourceConfigMetadataFields { return r.metadata }
 func (r *resourceConfigVersion) CheckOrder() int                        { return r.checkOrder }
-func (r *resourceConfigVersion) ResourceConfig() ResourceConfig         { return r.resourceConfig }
+func (r *resourceConfigVersion) ResourceConfigScope() ResourceConfigScope {
+	return r.resourceConfigScope
+}
 
 func (r *resourceConfigVersion) Reload() (bool, error) {
 	row := resourceConfigVersionQuery.Where(sq.Eq{"v.id": r.id}).

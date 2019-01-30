@@ -21,28 +21,58 @@ var _ = Describe("WorkerResourceType", func() {
 		}
 	})
 
-	It("can be found/created", func() {
-		tx, err := dbConn.Begin()
-		Expect(err).ToNot(HaveOccurred())
+	Context("when there is a base resource type", func() {
+		var unique bool
+		var usedWorkerResourceType *db.UsedWorkerResourceType
 
-		usedWorkerResourceType, err := wrt.FindOrCreate(tx)
-		Expect(err).ToNot(HaveOccurred())
+		BeforeEach(func() {
+			unique = false
 
-		err = tx.Commit()
-		Expect(err).ToNot(HaveOccurred())
+			tx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
 
-		Expect(usedWorkerResourceType.Worker.Name()).To(Equal(defaultWorker.Name()))
-		Expect(usedWorkerResourceType.UsedBaseResourceType.Name).To(Equal("some-base-resource-type"))
+			usedWorkerResourceType, err = wrt.FindOrCreate(tx, unique)
+			Expect(err).ToNot(HaveOccurred())
 
-		tx, err = dbConn.Begin()
-		Expect(err).ToNot(HaveOccurred())
+			err = tx.Commit()
+			Expect(err).ToNot(HaveOccurred())
 
-		usedWorkerResourceType2, err := wrt.FindOrCreate(tx)
-		Expect(err).ToNot(HaveOccurred())
+			Expect(usedWorkerResourceType.Worker.Name()).To(Equal(defaultWorker.Name()))
+			Expect(usedWorkerResourceType.UsedBaseResourceType.Name).To(Equal("some-base-resource-type"))
+		})
 
-		err = tx.Commit()
-		Expect(err).ToNot(HaveOccurred())
+		It("can be found", func() {
+			tx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
 
-		Expect(usedWorkerResourceType2).To(Equal(usedWorkerResourceType))
+			usedWorkerResourceType2, err := wrt.FindOrCreate(tx, unique)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = tx.Commit()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(usedWorkerResourceType2).To(Equal(usedWorkerResourceType))
+			Expect(usedWorkerResourceType2.UsedBaseResourceType.UniqueVersionHistory).To(BeFalse())
+		})
+
+		Context("when the base resource type becomes unique", func() {
+			BeforeEach(func() {
+				unique = true
+			})
+
+			It("creates the base resource type with unique history", func() {
+				tx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+
+				uniqueUsedWorkerResourceType, err := wrt.FindOrCreate(tx, unique)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = tx.Commit()
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(uniqueUsedWorkerResourceType).ToNot(Equal(usedWorkerResourceType))
+				Expect(uniqueUsedWorkerResourceType.UsedBaseResourceType.UniqueVersionHistory).To(BeTrue())
+			})
+		})
 	})
 })

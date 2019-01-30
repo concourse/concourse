@@ -10,6 +10,7 @@ module SubPage exposing
     )
 
 import Build
+import Build.Models
 import Build.Msgs
 import Callback exposing (Callback)
 import Concourse
@@ -33,7 +34,7 @@ import UpdateMsg exposing (UpdateMsg)
 
 type Model
     = WaitingModel Routes.ConcourseRoute
-    | BuildModel Build.Model
+    | BuildModel Build.Models.Model
     | JobModel Job.Model
     | ResourceModel Resource.Models.Model
     | PipelineModel Pipeline.Model
@@ -65,7 +66,7 @@ init : Flags -> Routes.ConcourseRoute -> ( Model, List Effect )
 init flags route =
     case route.logical of
         Routes.Build teamName pipelineName jobName buildName ->
-            Build.JobBuildPage
+            Build.Models.JobBuildPage
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , jobName = jobName
@@ -75,7 +76,7 @@ init flags route =
                 |> Tuple.mapFirst BuildModel
 
         Routes.OneOffBuild buildId ->
-            Build.BuildPage (Result.withDefault 0 (String.toInt buildId))
+            Build.Models.BuildPage (Result.withDefault 0 (String.toInt buildId))
                 |> Build.init { csrfToken = flags.csrfToken, hash = route.hash }
                 |> Tuple.mapFirst BuildModel
 
@@ -299,7 +300,7 @@ urlUpdate route model =
 
         ( Routes.Build teamName pipelineName jobName buildName, BuildModel buildModel ) ->
             Build.changeToBuild
-                (Build.JobBuildPage
+                (Build.Models.JobBuildPage
                     { teamName = teamName
                     , pipelineName = pipelineName
                     , jobName = jobName

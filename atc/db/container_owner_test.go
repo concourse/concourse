@@ -88,7 +88,38 @@ var _ = Describe("ContainerOwner", func() {
 				})
 
 				It("finds the resource config check session", func() {
-					Expect(foundColumns).To(BeEquivalentTo(createdColumns))
+					Expect(foundColumns).To(HaveLen(1))
+					Expect(foundColumns["resource_config_check_session_id"]).To(ConsistOf(createdColumns["resource_config_check_session_id"]))
+					Expect(found).To(BeTrue())
+				})
+			})
+
+			Context("when there are multiple resource config check sessions", func() {
+				var createdColumns, createdColumns2 map[string]interface{}
+
+				BeforeEach(func() {
+					existingOwner := db.NewResourceConfigCheckSessionContainerOwner(
+						resourceConfig,
+						ownerExpiries,
+					)
+
+					tx, err := dbConn.Begin()
+					Expect(err).ToNot(HaveOccurred())
+
+					createdColumns, err = existingOwner.Create(tx, worker.Name())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(createdColumns).ToNot(BeEmpty())
+
+					createdColumns2, err = existingOwner.Create(tx, defaultWorker.Name())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(createdColumns).ToNot(BeEmpty())
+
+					Expect(tx.Commit()).To(Succeed())
+				})
+
+				It("finds both resource config check sessions", func() {
+					Expect(foundColumns).To(HaveLen(1))
+					Expect(foundColumns["resource_config_check_session_id"]).To(ConsistOf(createdColumns["resource_config_check_session_id"], createdColumns2["resource_config_check_session_id"]))
 					Expect(found).To(BeTrue())
 				})
 			})

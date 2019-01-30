@@ -2,7 +2,6 @@ module Dashboard.Styles exposing
     ( asciiArt
     , cardBody
     , cardFooter
-    , disableInteraction
     , highDensityIcon
     , highDensityToggle
     , info
@@ -39,6 +38,7 @@ import Colors
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import ScreenSize
+import Styles
 
 
 statusColor : PipelineStatus -> String
@@ -512,15 +512,4 @@ asciiArt =
     , ( "color", Colors.asciiArt )
     , ( "z-index", "1" )
     ]
-
-
-disableInteraction : List ( String, String )
-disableInteraction =
-    [ ( "cursor", "default" )
-    , ( "user-select", "none" )
-    , ( "-ms-user-select", "none" )
-    , ( "-moz-user-select", "none" )
-    , ( "-khtml-user-select", "none" )
-    , ( "-webkit-user-select", "none" )
-    , ( "-webkit-touch-callout", "none" )
-    ]
+        ++ Styles.disableInteraction

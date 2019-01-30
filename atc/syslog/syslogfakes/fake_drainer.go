@@ -2,10 +2,10 @@
 package syslogfakes
 
 import (
-	context "context"
-	sync "sync"
+	"context"
+	"sync"
 
-	syslog "github.com/concourse/concourse/atc/syslog"
+	"github.com/concourse/concourse/atc/syslog"
 )
 
 type FakeDrainer struct {

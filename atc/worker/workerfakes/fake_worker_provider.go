@@ -6,6 +6,7 @@ import (
 
 	clock "code.cloudfoundry.org/clock"
 	lager "code.cloudfoundry.org/lager"
+	atc "github.com/concourse/concourse/atc"
 	db "github.com/concourse/concourse/atc/db"
 	worker "github.com/concourse/concourse/atc/worker"
 )
@@ -28,12 +29,13 @@ type FakeWorkerProvider struct {
 		result2 bool
 		result3 error
 	}
-	FindWorkerForContainerByOwnerStub        func(lager.Logger, int, db.ContainerOwner) (worker.Worker, bool, error)
+	FindWorkerForContainerByOwnerStub        func(lager.Logger, int, atc.Tags, db.ContainerOwner) (worker.Worker, bool, error)
 	findWorkerForContainerByOwnerMutex       sync.RWMutex
 	findWorkerForContainerByOwnerArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 int
-		arg3 db.ContainerOwner
+		arg3 atc.Tags
+		arg4 db.ContainerOwner
 	}
 	findWorkerForContainerByOwnerReturns struct {
 		result1 worker.Worker
@@ -144,18 +146,19 @@ func (fake *FakeWorkerProvider) FindWorkerForContainerReturnsOnCall(i int, resul
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorkerProvider) FindWorkerForContainerByOwner(arg1 lager.Logger, arg2 int, arg3 db.ContainerOwner) (worker.Worker, bool, error) {
+func (fake *FakeWorkerProvider) FindWorkerForContainerByOwner(arg1 lager.Logger, arg2 int, arg3 atc.Tags, arg4 db.ContainerOwner) (worker.Worker, bool, error) {
 	fake.findWorkerForContainerByOwnerMutex.Lock()
 	ret, specificReturn := fake.findWorkerForContainerByOwnerReturnsOnCall[len(fake.findWorkerForContainerByOwnerArgsForCall)]
 	fake.findWorkerForContainerByOwnerArgsForCall = append(fake.findWorkerForContainerByOwnerArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 int
-		arg3 db.ContainerOwner
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("FindWorkerForContainerByOwner", []interface{}{arg1, arg2, arg3})
+		arg3 atc.Tags
+		arg4 db.ContainerOwner
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("FindWorkerForContainerByOwner", []interface{}{arg1, arg2, arg3, arg4})
 	fake.findWorkerForContainerByOwnerMutex.Unlock()
 	if fake.FindWorkerForContainerByOwnerStub != nil {
-		return fake.FindWorkerForContainerByOwnerStub(arg1, arg2, arg3)
+		return fake.FindWorkerForContainerByOwnerStub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -170,17 +173,17 @@ func (fake *FakeWorkerProvider) FindWorkerForContainerByOwnerCallCount() int {
 	return len(fake.findWorkerForContainerByOwnerArgsForCall)
 }
 
-func (fake *FakeWorkerProvider) FindWorkerForContainerByOwnerCalls(stub func(lager.Logger, int, db.ContainerOwner) (worker.Worker, bool, error)) {
+func (fake *FakeWorkerProvider) FindWorkerForContainerByOwnerCalls(stub func(lager.Logger, int, atc.Tags, db.ContainerOwner) (worker.Worker, bool, error)) {
 	fake.findWorkerForContainerByOwnerMutex.Lock()
 	defer fake.findWorkerForContainerByOwnerMutex.Unlock()
 	fake.FindWorkerForContainerByOwnerStub = stub
 }
 
-func (fake *FakeWorkerProvider) FindWorkerForContainerByOwnerArgsForCall(i int) (lager.Logger, int, db.ContainerOwner) {
+func (fake *FakeWorkerProvider) FindWorkerForContainerByOwnerArgsForCall(i int) (lager.Logger, int, atc.Tags, db.ContainerOwner) {
 	fake.findWorkerForContainerByOwnerMutex.RLock()
 	defer fake.findWorkerForContainerByOwnerMutex.RUnlock()
 	argsForCall := fake.findWorkerForContainerByOwnerArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeWorkerProvider) FindWorkerForContainerByOwnerReturns(result1 worker.Worker, result2 bool, result3 error) {

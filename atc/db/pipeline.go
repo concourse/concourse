@@ -329,7 +329,7 @@ func (p *pipeline) ResourceVersion(resourceConfigVersionID int) (atc.ResourceVer
 			SELECT 1
 			FROM resource_disabled_versions d, resources r
 			WHERE v.version_md5 = d.version_md5
-			AND r.resource_config_id = v.resource_config_id
+			AND r.resource_config_scope_id = v.resource_config_scope_id
 			AND r.id = d.resource_id
 		)`
 
@@ -594,6 +594,7 @@ func (p *pipeline) Pause() error {
 
 	_, err = psql.Update("resources").
 		Set("resource_config_id", nil).
+		Set("resource_config_scope_id", nil).
 		Where(sq.Eq{
 			"pipeline_id": p.id,
 		}).
@@ -692,7 +693,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		Join("resource_config_versions v ON v.version_md5 = o.version_md5").
 		Join("resources r ON r.id = o.resource_id").
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
-		Where(sq.Expr("r.resource_config_id = v.resource_config_id")).
+		Where(sq.Expr("r.resource_config_scope_id = v.resource_config_scope_id")).
 		Where(sq.NotEq{
 			"v.check_order": 0,
 		}).
@@ -728,7 +729,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		Join("resource_config_versions v ON v.version_md5 = i.version_md5").
 		Join("resources r ON r.id = i.resource_id").
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
-		Where(sq.Expr("r.resource_config_id = v.resource_config_id")).
+		Where(sq.Expr("r.resource_config_scope_id = v.resource_config_scope_id")).
 		Where(sq.NotEq{
 			"v.check_order": 0,
 		}).
@@ -770,7 +771,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 
 	rows, err = psql.Select("v.id, v.check_order, r.id").
 		From("resource_config_versions v").
-		Join("resources r ON r.resource_config_id = v.resource_config_id").
+		Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
 		Where(sq.NotEq{
 			"v.check_order": 0,
