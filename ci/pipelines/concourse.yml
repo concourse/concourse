@@ -138,13 +138,33 @@ jobs:
       trigger: true
     - get: dumb-init
       trigger: true
-    - get: mock-resource
+    - get: bosh-io-release-resource
       trigger: true
-    - get: registry-image-resource
+    - get: bosh-io-stemcell-resource
+      trigger: true
+    - get: cf-resource
+      trigger: true
+    - get: docker-image-resource
       trigger: true
     - get: git-resource
       trigger: true
+    - get: github-release-resource
+      trigger: true
+    - get: hg-resource
+      trigger: true
+    - get: pool-resource
+      trigger: true
+    - get: registry-image-resource
+      trigger: true
+    - get: s3-resource
+      trigger: true
+    - get: semver-resource
+      trigger: true
     - get: time-resource
+      trigger: true
+    - get: tracker-resource
+      trigger: true
+    - get: mock-resource
       trigger: true
     - get: builder
   - task: yarn-build
@@ -163,10 +183,20 @@ jobs:
       - name: concourse
       - name: dumb-init
       - name: gdn
-      - name: mock-resource
-      - name: registry-image-resource
-      - name: time-resource
+      - name: bosh-io-release-resource
+      - name: bosh-io-stemcell-resource
+      - name: cf-resource
+      - name: docker-image-resource
       - name: git-resource
+      - name: github-release-resource
+      - name: hg-resource
+      - name: pool-resource
+      - name: registry-image-resource
+      - name: s3-resource
+      - name: semver-resource
+      - name: time-resource
+      - name: tracker-resource
+      - name: mock-resource
       outputs: [{name: image}]
       run: {path: build}
   - put: dev-image
@@ -1001,11 +1031,32 @@ resources:
     repository: mock-resource
     access_token: ((concourse_github_dummy.access_token))
 
-- name: registry-image-resource
+- name: bosh-io-release-resource
   type: github-release
   source:
     owner: concourse
-    repository: registry-image-resource
+    repository: bosh-io-release-resource
+    access_token: ((concourse_github_dummy.access_token))
+
+- name: bosh-io-stemcell-resource
+  type: github-release
+  source:
+    owner: concourse
+    repository: bosh-io-stemcell-resource
+    access_token: ((concourse_github_dummy.access_token))
+
+- name: cf-resource
+  type: github-release
+  source:
+    owner: concourse
+    repository: cf-resource
+    access_token: ((concourse_github_dummy.access_token))
+
+- name: docker-image-resource
+  type: github-release
+  source:
+    owner: concourse
+    repository: docker-image-resource
     access_token: ((concourse_github_dummy.access_token))
 
 - name: git-resource
@@ -1015,11 +1066,60 @@ resources:
     repository: git-resource
     access_token: ((concourse_github_dummy.access_token))
 
+- name: github-release-resource
+  type: github-release
+  source:
+    owner: concourse
+    repository: github-release-resource
+    access_token: ((concourse_github_dummy.access_token))
+
+- name: hg-resource
+  type: github-release
+  source:
+    owner: concourse
+    repository: hg-resource
+    access_token: ((concourse_github_dummy.access_token))
+
+- name: pool-resource
+  type: github-release
+  source:
+    owner: concourse
+    repository: pool-resource
+    access_token: ((concourse_github_dummy.access_token))
+
+- name: registry-image-resource
+  type: github-release
+  source:
+    owner: concourse
+    repository: registry-image-resource
+    access_token: ((concourse_github_dummy.access_token))
+
+- name: s3-resource
+  type: github-release
+  source:
+    owner: concourse
+    repository: s3-resource
+    access_token: ((concourse_github_dummy.access_token))
+
+- name: semver-resource
+  type: github-release
+  source:
+    owner: concourse
+    repository: semver-resource
+    access_token: ((concourse_github_dummy.access_token))
+
 - name: time-resource
   type: github-release
   source:
     owner: concourse
     repository: time-resource
+    access_token: ((concourse_github_dummy.access_token))
+
+- name: tracker-resource
+  type: github-release
+  source:
+    owner: concourse
+    repository: tracker-resource
     access_token: ((concourse_github_dummy.access_token))
 
 - name: builder
