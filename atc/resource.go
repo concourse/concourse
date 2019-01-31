@@ -17,3 +17,5 @@ type Resource struct {
 	PinnedInConfig bool    `json:"pinned_in_config,omitempty"`
 	PinComment     string  `json:"pin_comment,omitempty"`
 }
+
+var EnableGlobalResources bool

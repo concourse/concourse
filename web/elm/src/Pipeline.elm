@@ -22,13 +22,12 @@ import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Json.Decode
 import Json.Encode
-import Keyboard
-import Mouse
 import Pipeline.Msgs exposing (Msg(..))
 import QueryString
 import RemoteData exposing (..)
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
+import Subscription exposing (Subscription(..))
 import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
 import Time exposing (Time)
@@ -202,9 +201,6 @@ handleCallback callback model =
 update : Msg -> Model -> ( Model, List Effect )
 update msg model =
     case msg of
-        Noop ->
-            ( model, [] )
-
         HideLegendTimerTicked _ ->
             if model.hideLegendCounter + timeUntilHiddenCheckInterval > timeUntilHidden then
                 ( { model | hideLegend = True }, [] )
@@ -240,17 +236,16 @@ update msg model =
             ( model, [ NavigateTo <| getNextUrl groups model ] )
 
 
-subscriptions : Model -> Sub Msg
+subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
-    Sub.batch
-        [ autoupdateVersionTimer
-        , Time.every (5 * Time.second) AutoupdateTimerTicked
-        , Time.every timeUntilHiddenCheckInterval HideLegendTimerTicked
-        , Mouse.moves (\_ -> ShowLegend)
-        , Keyboard.presses (\_ -> ShowLegend)
-        , Mouse.clicks (\_ -> ShowLegend)
-        , Keyboard.presses KeyPressed
-        ]
+    [ OnClockTick (1 * Time.minute) AutoupdateVersionTicked
+    , OnClockTick (5 * Time.second) AutoupdateTimerTicked
+    , OnClockTick timeUntilHiddenCheckInterval HideLegendTimerTicked
+    , OnMouseMove ShowLegend
+    , OnMouseClick ShowLegend
+    , OnKeyPress (\_ -> ShowLegend)
+    , OnKeyPress KeyPressed
+    ]
 
 
 view : Model -> Html Msg
@@ -375,11 +370,6 @@ viewGroup selectedGroups url grp =
             ]
             [ Html.text grp.name ]
         ]
-
-
-autoupdateVersionTimer : Sub Msg
-autoupdateVersionTimer =
-    Time.every (1 * Time.minute) AutoupdateVersionTicked
 
 
 jobAppearsInGroups : List String -> Concourse.PipelineIdentifier -> Json.Encode.Value -> Bool

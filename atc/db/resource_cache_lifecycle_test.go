@@ -305,7 +305,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				err := defaultPipeline.Unpause()
 				Expect(err).ToNot(HaveOccurred())
 
-				resourceConfig, err := defaultResource.SetResourceConfig(
+				resourceConfigScope, err := defaultResource.SetResourceConfig(
 					logger,
 					atc.Source{"some": "source"},
 					creds.NewVersionedResourceTypes(
@@ -315,17 +315,17 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				containerOwner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, db.ContainerOwnerExpiries{})
+				containerOwner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), db.ContainerOwnerExpiries{})
 
 				container, err := defaultWorker.CreateContainer(containerOwner, db.ContainerMetadata{})
 				Expect(err).ToNot(HaveOccurred())
 
-				rc := createResourceCacheWithUser(db.ForContainer(container.ID()))
+				_ = createResourceCacheWithUser(db.ForContainer(container.ID()))
 
-				err = rc.ResourceConfig().SaveVersions([]atc.Version{{"some": "version"}})
+				err = resourceConfigScope.SaveVersions([]atc.Version{{"some": "version"}})
 				Expect(err).ToNot(HaveOccurred())
 
-				resourceConfigVersion, found, err := rc.ResourceConfig().FindVersion(atc.Version{"some": "version"})
+				resourceConfigVersion, found, err := resourceConfigScope.FindVersion(atc.Version{"some": "version"})
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 
@@ -377,7 +377,7 @@ func createResourceCacheWithUser(resourceCacheUser db.ResourceCacheUser) db.Used
 		"some-base-resource-type",
 		atc.Version{"some": "version"},
 		atc.Source{
-			"some": fmt.Sprintf("param-%d", time.Now().UnixNano()),
+			"some": "source",
 		},
 		atc.Params{"some": fmt.Sprintf("param-%d", time.Now().UnixNano())},
 		creds.NewVersionedResourceTypes(

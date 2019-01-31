@@ -22,8 +22,27 @@ type UsedWorkerResourceType struct {
 	UsedBaseResourceType *UsedBaseResourceType
 }
 
-func (wrt WorkerResourceType) FindOrCreate(tx Tx) (*UsedWorkerResourceType, error) {
-	usedBaseResourceType, err := wrt.BaseResourceType.FindOrCreate(tx)
+func (wrt WorkerResourceType) FindOrCreate(tx Tx, unique bool) (*UsedWorkerResourceType, error) {
+	usedBaseResourceType, err := wrt.BaseResourceType.FindOrCreate(tx, unique)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = psql.Delete("worker_base_resource_types").
+		Where(sq.Eq{
+			"worker_name":           wrt.Worker.Name(),
+			"base_resource_type_id": usedBaseResourceType.ID,
+		}).
+		Where(sq.Or{
+			sq.NotEq{
+				"image": wrt.Image,
+			},
+			sq.NotEq{
+				"version": wrt.Version,
+			},
+		}).
+		RunWith(tx).
+		Exec()
 	if err != nil {
 		return nil, err
 	}

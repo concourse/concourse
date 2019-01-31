@@ -8,15 +8,15 @@ import (
 func Resource(resource db.Resource, showCheckError bool, teamName string) atc.Resource {
 	var checkErrString, rcCheckErrString string
 	var failingToCheck bool
+	if resource.CheckSetupError() != nil && showCheckError {
+		checkErrString = resource.CheckSetupError().Error()
+	}
+
 	if resource.CheckError() != nil && showCheckError {
-		checkErrString = resource.CheckError().Error()
+		rcCheckErrString = resource.CheckError().Error()
 	}
 
-	if resource.ResourceConfigCheckError() != nil && showCheckError {
-		rcCheckErrString = resource.ResourceConfigCheckError().Error()
-	}
-
-	if resource.CheckError() != nil || resource.ResourceConfigCheckError() != nil {
+	if resource.CheckSetupError() != nil || resource.CheckError() != nil {
 		failingToCheck = true
 	}
 

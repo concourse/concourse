@@ -10,6 +10,7 @@ module SubPage exposing
     )
 
 import Build
+import Build.Models
 import Build.Msgs
 import Callback exposing (Callback)
 import Concourse
@@ -27,12 +28,13 @@ import Resource.Models
 import Routes
 import String
 import SubPage.Msgs exposing (Msg(..))
+import Subscription exposing (Subscription)
 import UpdateMsg exposing (UpdateMsg)
 
 
 type Model
     = WaitingModel Routes.ConcourseRoute
-    | BuildModel Build.Model
+    | BuildModel Build.Models.Model
     | JobModel Job.Model
     | ResourceModel Resource.Models.Model
     | PipelineModel Pipeline.Model
@@ -64,7 +66,7 @@ init : Flags -> Routes.ConcourseRoute -> ( Model, List Effect )
 init flags route =
     case route.logical of
         Routes.Build teamName pipelineName jobName buildName ->
-            Build.JobBuildPage
+            Build.Models.JobBuildPage
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , jobName = jobName
@@ -74,7 +76,7 @@ init flags route =
                 |> Tuple.mapFirst BuildModel
 
         Routes.OneOffBuild buildId ->
-            Build.BuildPage (Result.withDefault 0 (String.toInt buildId))
+            Build.Models.BuildPage (Result.withDefault 0 (String.toInt buildId))
                 |> Build.init { csrfToken = flags.csrfToken, hash = route.hash }
                 |> Tuple.mapFirst BuildModel
 
@@ -289,7 +291,7 @@ urlUpdate route model =
 
         ( Routes.Build teamName pipelineName jobName buildName, BuildModel buildModel ) ->
             Build.changeToBuild
-                (Build.JobBuildPage
+                (Build.Models.JobBuildPage
                     { teamName = teamName
                     , pipelineName = pipelineName
                     , jobName = jobName
@@ -339,34 +341,34 @@ view mdl =
                 |> Html.map FlySuccessMsg
 
 
-subscriptions : Model -> Sub Msg
+subscriptions : Model -> List (Subscription Msg)
 subscriptions mdl =
     case mdl of
         BuildModel model ->
             Build.subscriptions model
-                |> Sub.map BuildMsg
+                |> List.map (Subscription.map BuildMsg)
 
         JobModel model ->
             Job.subscriptions model
-                |> Sub.map JobMsg
+                |> List.map (Subscription.map JobMsg)
 
         PipelineModel model ->
             Pipeline.subscriptions model
-                |> Sub.map PipelineMsg
+                |> List.map (Subscription.map PipelineMsg)
 
         ResourceModel model ->
             Resource.subscriptions model
-                |> Sub.map ResourceMsg
+                |> List.map (Subscription.map ResourceMsg)
 
         DashboardModel model ->
             Dashboard.subscriptions model
-                |> Sub.map DashboardMsg
+                |> List.map (Subscription.map DashboardMsg)
 
         WaitingModel _ ->
-            Sub.none
+            []
 
         NotFoundModel _ ->
-            Sub.none
+            []
 
         FlySuccessModel _ ->
-            Sub.none
+            []

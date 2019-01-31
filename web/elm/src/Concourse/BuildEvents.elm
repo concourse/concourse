@@ -1,4 +1,19 @@
-module Concourse.BuildEvents exposing (BuildEvent(..), Msg(..), Origin, dateFromSeconds, decodeBuildEvent, decodeBuildEventEnvelope, decodeErrorEvent, decodeFinishResource, decodeOrigin, parseEvent, parseEvents, parseEventsFromIndex, parseMsg, subscribe)
+module Concourse.BuildEvents exposing
+    ( BuildEvent(..)
+    , Msg(..)
+    , Origin
+    , dateFromSeconds
+    , decodeBuildEvent
+    , decodeBuildEventEnvelope
+    , decodeErrorEvent
+    , decodeFinishResource
+    , decodeOrigin
+    , parseEvent
+    , parseEvents
+    , parseEventsFromIndex
+    , parseMsg
+    , subscribe
+    )
 
 import Array exposing (Array)
 import Concourse
@@ -7,6 +22,7 @@ import Dict exposing (Dict)
 import EventSource
 import EventSource.LowLevel as ES
 import Json.Decode
+import Subscription exposing (Subscription(..))
 
 
 type BuildEvent
@@ -95,9 +111,9 @@ decodeBuildEvent eventType =
             Json.Decode.fail ("unknown event type: " ++ unknown)
 
 
-subscribe : Int -> Sub Msg
+subscribe : Int -> Subscription Msg
 subscribe build =
-    EventSource.listen ( "/api/v1/builds/" ++ toString build ++ "/events", [ "end", "event" ] ) parseMsg
+    FromEventSource ( "/api/v1/builds/" ++ toString build ++ "/events", [ "end", "event" ] ) parseMsg
 
 
 parseEvents : Array.Array ES.Event -> Result String (Array.Array BuildEvent)
@@ -108,25 +124,13 @@ parseEvents evs =
 
 parseEventsFromIndex : Array.Array ES.Event -> Array.Array BuildEvent -> Int -> Result String (Array.Array BuildEvent)
 parseEventsFromIndex evs acc i =
-    let
-        elem =
-            Array.get i evs
-    in
-    case elem of
+    case Array.get i evs of
         Nothing ->
             Ok acc
 
         Just ev ->
-            let
-                parsed =
-                    parseEvent ev
-            in
-            case parsed of
-                Ok ev ->
-                    parseEventsFromIndex evs (Array.set i ev acc) (i + 1)
-
-                Err err ->
-                    Err err
+            parseEvent ev
+                |> Result.andThen (\ev -> parseEventsFromIndex evs (Array.set i ev acc) (i + 1))
 
 
 parseMsg : EventSource.Msg -> Msg

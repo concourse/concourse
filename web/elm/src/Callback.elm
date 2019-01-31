@@ -39,5 +39,5 @@ type Callback
     | BuildFetched (Result Http.Error ( Int, Concourse.Build ))
     | BuildPrepFetched (Result Http.Error ( Int, Concourse.BuildPrep ))
     | BuildHistoryFetched (Result Http.Error (Paginated Concourse.Build))
-    | PlanAndResourcesFetched (Result Http.Error ( Concourse.BuildPlan, Concourse.BuildResources ))
+    | PlanAndResourcesFetched Int (Result Http.Error ( Concourse.BuildPlan, Concourse.BuildResources ))
     | BuildAborted (Result Http.Error ())

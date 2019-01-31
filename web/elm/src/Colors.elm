@@ -16,7 +16,6 @@ module Colors exposing
     , paused
     , pending
     , pinIconHover
-    , pinTooltip
     , pinned
     , resourceError
     , secondaryTopBar
@@ -24,6 +23,7 @@ module Colors exposing
     , success
     , successFaded
     , text
+    , tooltipBackground
     )
 
 
@@ -52,8 +52,8 @@ pinned =
     "#5C3BD1"
 
 
-pinTooltip : String
-pinTooltip =
+tooltipBackground : String
+tooltipBackground =
     "#9b9b9b"
 
 

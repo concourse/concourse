@@ -1,6 +1,5 @@
 module Build.Output exposing
-    ( Model
-    , OutMsg(..)
+    ( OutMsg(..)
     , handleEventsMsg
     , handleStepTreeMsg
     , init
@@ -10,8 +9,16 @@ module Build.Output exposing
 
 import Ansi.Log
 import Array exposing (Array)
-import Build.Msgs exposing (Msg(..))
-import Build.StepTree as StepTree exposing (StepTree)
+import Build.Models
+    exposing
+        ( OutputModel
+        , OutputState(..)
+        , StepState(..)
+        , StepTree
+        , StepTreeModel
+        )
+import Build.Msgs exposing (Msg(..), StepID)
+import Build.StepTree as StepTree
 import Build.Styles as Styles
 import Concourse
 import Concourse.BuildEvents
@@ -33,24 +40,7 @@ import Html.Attributes
 import Http
 import LoadingIndicator
 import NotAuthorized
-
-
-type alias Model =
-    { build : Concourse.Build
-    , steps : Maybe StepTree.Model
-    , errors : Maybe Ansi.Log.Model
-    , state : OutputState
-    , eventSourceOpened : Bool
-    , events : Sub Msg
-    , highlight : StepTree.Highlight
-    }
-
-
-type OutputState
-    = StepsLoading
-    | StepsLiveUpdating
-    | StepsComplete
-    | NotAuthorized
+import Subscription exposing (Subscription(..))
 
 
 type OutMsg
@@ -62,7 +52,7 @@ type alias Flags =
     { hash : String }
 
 
-init : Flags -> Concourse.Build -> ( Model, List Effect )
+init : Flags -> Concourse.Build -> ( OutputModel, List Effect )
 init flags build =
     let
         outputState =
@@ -73,29 +63,28 @@ init flags build =
                 StepsLoading
 
         model =
-            { build = build
-            , steps = Nothing
+            { steps = Nothing
             , errors = Nothing
             , state = outputState
-            , events = Sub.none
+            , events = Nothing
             , eventSourceOpened = False
             , highlight = StepTree.parseHighlight flags.hash
             }
 
         fetch =
             if build.job /= Nothing then
-                [ FetchBuildPlanAndResources model.build.id ]
+                [ FetchBuildPlanAndResources build.id ]
 
             else
-                [ FetchBuildPlan model.build.id ]
+                [ FetchBuildPlan build.id ]
     in
     ( model, fetch )
 
 
 handleStepTreeMsg :
-    (StepTree.Model -> ( StepTree.Model, List Effect ))
-    -> Model
-    -> ( Model, List Effect, OutMsg )
+    (StepTreeModel -> ( StepTreeModel, List Effect ))
+    -> OutputModel
+    -> ( OutputModel, List Effect, OutMsg )
 handleStepTreeMsg action model =
     case model.steps of
         Just st ->
@@ -110,41 +99,39 @@ handleStepTreeMsg action model =
 
 
 planAndResourcesFetched :
-    Result Http.Error ( Concourse.BuildPlan, Concourse.BuildResources )
-    -> Model
-    -> ( Model, List Effect, OutMsg )
-planAndResourcesFetched result model =
-    case result of
+    Concourse.BuildId
+    -> Result Http.Error ( Concourse.BuildPlan, Concourse.BuildResources )
+    -> OutputModel
+    -> ( OutputModel, List Effect, OutMsg )
+planAndResourcesFetched buildId result model =
+    ( case result of
         Err err ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
-                        ( { model | events = subscribeToEvents model.build.id }
-                        , []
-                        , OutNoop
-                        )
+                        { model | events = Just (subscribeToEvents buildId) }
 
                     else
-                        ( model, [], OutNoop )
+                        model
 
                 _ ->
                     flip always (Debug.log "failed to fetch plan" err) <|
-                        ( model, [], OutNoop )
+                        model
 
         Ok ( plan, resources ) ->
-            ( { model
+            { model
                 | steps = Just (StepTree.init model.highlight resources plan)
-                , events = subscribeToEvents model.build.id
-              }
-            , []
-            , OutNoop
-            )
+                , events = Just (subscribeToEvents buildId)
+            }
+    , []
+    , OutNoop
+    )
 
 
 handleEventsMsg :
     Concourse.BuildEvents.Msg
-    -> Model
-    -> ( Model, List Effect, OutMsg )
+    -> OutputModel
+    -> ( OutputModel, List Effect, OutMsg )
 handleEventsMsg action model =
     case action of
         Concourse.BuildEvents.Opened ->
@@ -171,39 +158,31 @@ handleEventsMsg action model =
 
 handleEvent_ :
     Concourse.BuildEvents.BuildEvent
-    -> ( Model, List Effect, OutMsg )
-    -> ( Model, List Effect, OutMsg )
+    -> ( OutputModel, List Effect, OutMsg )
+    -> ( OutputModel, List Effect, OutMsg )
 handleEvent_ ev ( m, msgpassedin, outmsgpassedin ) =
     let
         ( m1, msgfromhandleevent, outmsgfromhandleevent ) =
             handleEvent ev m
     in
     ( m1
-    , case ( msgpassedin == [], msgfromhandleevent == [] ) of
-        ( True, True ) ->
-            []
+    , if msgfromhandleevent == [] then
+        msgpassedin
 
-        ( False, True ) ->
-            msgpassedin
+      else
+        msgfromhandleevent
+    , if outmsgfromhandleevent == OutNoop then
+        outmsgpassedin
 
-        otherwise ->
-            msgfromhandleevent
-    , case ( outmsgpassedin == OutNoop, outmsgfromhandleevent == OutNoop ) of
-        ( True, True ) ->
-            OutNoop
-
-        ( False, True ) ->
-            outmsgpassedin
-
-        otherwise ->
-            outmsgfromhandleevent
+      else
+        outmsgfromhandleevent
     )
 
 
 handleEvent :
     Concourse.BuildEvents.BuildEvent
-    -> Model
-    -> ( Model, List Effect, OutMsg )
+    -> OutputModel
+    -> ( OutputModel, List Effect, OutMsg )
 handleEvent event model =
     case event of
         Concourse.BuildEvents.Log origin output time ->
@@ -276,17 +255,17 @@ handleEvent event model =
             )
 
         Concourse.BuildEvents.End ->
-            ( { model | state = StepsComplete, events = Sub.none }, [], OutNoop )
+            ( { model | state = StepsComplete, events = Nothing }, [], OutNoop )
 
 
-updateStep : StepTree.StepID -> (StepTree -> StepTree) -> Model -> Model
+updateStep : StepID -> (StepTree -> StepTree) -> OutputModel -> OutputModel
 updateStep id update model =
     { model | steps = Maybe.map (StepTree.updateAt id update) model.steps }
 
 
 setRunning : StepTree -> StepTree
 setRunning =
-    setStepState StepTree.StepStateRunning
+    setStepState StepStateRunning
 
 
 appendStepLog : String -> Maybe Date -> StepTree -> StepTree
@@ -320,7 +299,7 @@ setStepError message tree =
     StepTree.map
         (\step ->
             { step
-                | state = StepTree.StepStateErrored
+                | state = StepStateErrored
                 , error = Just message
             }
         )
@@ -332,10 +311,10 @@ finishStep exitStatus tree =
     let
         stepState =
             if exitStatus == 0 then
-                StepTree.StepStateSucceeded
+                StepStateSucceeded
 
             else
-                StepTree.StepStateFailed
+                StepStateFailed
     in
     setStepState stepState tree
 
@@ -345,18 +324,18 @@ setResourceInfo version metadata tree =
     StepTree.map (\step -> { step | version = Just version, metadata = metadata }) tree
 
 
-setStepState : StepTree.StepState -> StepTree -> StepTree
+setStepState : StepState -> StepTree -> StepTree
 setStepState state tree =
     StepTree.map (\step -> { step | state = state }) tree
 
 
-subscribeToEvents : Int -> Sub Msg
+subscribeToEvents : Int -> Subscription Msg
 subscribeToEvents buildId =
-    Sub.map BuildEventsMsg (Concourse.BuildEvents.subscribe buildId)
+    Subscription.map BuildEventsMsg (Concourse.BuildEvents.subscribe buildId)
 
 
-view : Model -> Html Msg
-view { build, steps, errors, state } =
+view : Concourse.Build -> OutputModel -> Html Msg
+view build { steps, errors, state } =
     Html.div [ class "steps" ]
         [ viewErrors errors
         , viewStepTree build steps state
@@ -365,7 +344,7 @@ view { build, steps, errors, state } =
 
 viewStepTree :
     Concourse.Build
-    -> Maybe StepTree.Model
+    -> Maybe StepTreeModel
     -> OutputState
     -> Html Msg
 viewStepTree build steps state =

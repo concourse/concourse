@@ -345,7 +345,7 @@ var _ = Describe("Build", func() {
 	Describe("SaveOutput", func() {
 		var pipeline db.Pipeline
 		var job db.Job
-		var resourceConfig db.ResourceConfig
+		var resourceConfigScope db.ResourceConfigScope
 
 		BeforeEach(func() {
 			pipelineConfig := atc.Config{
@@ -382,7 +382,8 @@ var _ = Describe("Build", func() {
 			brt := db.BaseResourceType{
 				Name: "some-type",
 			}
-			_, err = brt.FindOrCreate(setupTx)
+
+			_, err = brt.FindOrCreate(setupTx, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
@@ -390,7 +391,7 @@ var _ = Describe("Build", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{"some": "explicit-source"}, creds.VersionedResourceTypes{})
+			resourceConfigScope, err = resource.SetResourceConfig(logger, atc.Source{"some": "explicit-source"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -411,7 +412,7 @@ var _ = Describe("Build", func() {
 				}, "output-name", "some-explicit-resource")
 				Expect(err).ToNot(HaveOccurred())
 
-				rcv, found, err := resourceConfig.FindVersion(atc.Version{"some": "version"})
+				rcv, found, err := resourceConfigScope.FindVersion(atc.Version{"some": "version"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -427,11 +428,11 @@ var _ = Describe("Build", func() {
 			var rcv db.ResourceConfigVersion
 
 			BeforeEach(func() {
-				err := resourceConfig.SaveVersions([]atc.Version{{"some": "version"}})
+				err := resourceConfigScope.SaveVersions([]atc.Version{{"some": "version"}})
 				Expect(err).ToNot(HaveOccurred())
 
 				var found bool
-				rcv, found, err = resourceConfig.FindVersion(atc.Version{"some": "version"})
+				rcv, found, err = resourceConfigScope.FindVersion(atc.Version{"some": "version"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 			})
@@ -452,7 +453,7 @@ var _ = Describe("Build", func() {
 				}, "output-name", "some-explicit-resource")
 				Expect(err).ToNot(HaveOccurred())
 
-				newRCV, found, err := resourceConfig.FindVersion(atc.Version{"some": "version"})
+				newRCV, found, err := resourceConfigScope.FindVersion(atc.Version{"some": "version"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -463,10 +464,10 @@ var _ = Describe("Build", func() {
 
 	Describe("Resources", func() {
 		var (
-			pipeline        db.Pipeline
-			job             db.Job
-			resourceConfig1 db.ResourceConfig
-			resource1       db.Resource
+			pipeline             db.Pipeline
+			job                  db.Job
+			resourceConfigScope1 db.ResourceConfigScope
+			resource1            db.Resource
 		)
 
 		BeforeEach(func() {
@@ -476,7 +477,8 @@ var _ = Describe("Build", func() {
 			brt := db.BaseResourceType{
 				Name: "some-type",
 			}
-			_, err = brt.FindOrCreate(setupTx)
+
+			_, err = brt.FindOrCreate(setupTx, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
@@ -521,20 +523,20 @@ var _ = Describe("Build", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfig1, err = resource1.SetResourceConfig(logger, atc.Source{"some": "source-1"}, creds.VersionedResourceTypes{})
+			resourceConfigScope1, err = resource1.SetResourceConfig(logger, atc.Source{"some": "source-1"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			_, err = resource2.SetResourceConfig(logger, atc.Source{"some": "source-2"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfig1.SaveVersions([]atc.Version{
+			err = resourceConfigScope1.SaveVersions([]atc.Version{
 				{"ver": "1"},
 				{"ver": "2"},
 			})
 			Expect(err).ToNot(HaveOccurred())
 
 			// This version should not be returned by the Resources method because it has a check order of 0
-			created, err := resourceConfig1.SaveUncheckedVersion(atc.Version{"ver": "not-returned"}, nil)
+			created, err := resource1.SaveUncheckedVersion(atc.Version{"ver": "not-returned"}, nil, resourceConfigScope1.ResourceConfig(), creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(created).To(BeTrue())
 		})
@@ -740,21 +742,22 @@ var _ = Describe("Build", func() {
 					brt := db.BaseResourceType{
 						Name: "some-type",
 					}
-					_, err = brt.FindOrCreate(setupTx)
+
+					_, err = brt.FindOrCreate(setupTx, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 
-					resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-					Expect(err).NotTo(HaveOccurred())
-
-					err = resourceConfig.SaveVersions([]atc.Version{{"version": "v5"}})
-					Expect(err).NotTo(HaveOccurred())
-
-					rcv, found, err := resourceConfig.FindVersion(atc.Version{"version": "v5"})
-					Expect(found).To(BeTrue())
-					Expect(err).NotTo(HaveOccurred())
-
 					resource, found, err := pipeline.Resource("some-resource")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					resourceConfigScope, err := resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
+					Expect(err).NotTo(HaveOccurred())
+
+					err = resourceConfigScope.SaveVersions([]atc.Version{{"version": "v5"}})
+					Expect(err).NotTo(HaveOccurred())
+
+					rcv, found, err := resourceConfigScope.FindVersion(atc.Version{"version": "v5"})
 					Expect(found).To(BeTrue())
 					Expect(err).NotTo(HaveOccurred())
 
@@ -917,7 +920,8 @@ var _ = Describe("Build", func() {
 					brt := db.BaseResourceType{
 						Name: "some-type",
 					}
-					_, err = brt.FindOrCreate(setupTx)
+
+					_, err = brt.FindOrCreate(setupTx, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 
@@ -1088,7 +1092,8 @@ var _ = Describe("Build", func() {
 			brt := db.BaseResourceType{
 				Name: "some-type",
 			}
-			_, err = brt.FindOrCreate(setupTx)
+
+			_, err = brt.FindOrCreate(setupTx, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
@@ -1119,7 +1124,8 @@ var _ = Describe("Build", func() {
 			brt := db.BaseResourceType{
 				Name: "some-other-type",
 			}
-			_, err = brt.FindOrCreate(setupTx)
+
+			_, err = brt.FindOrCreate(setupTx, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
@@ -1139,7 +1145,8 @@ var _ = Describe("Build", func() {
 			brt2 := db.BaseResourceType{
 				Name: "type",
 			}
-			_, err = brt2.FindOrCreate(setupTx2)
+
+			_, err = brt2.FindOrCreate(setupTx2, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx2.Commit()).To(Succeed())
 

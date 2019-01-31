@@ -8,24 +8,11 @@
 FROM golang:1
 
 RUN apt-get update && apt-get -y install \
-      apt-transport-https \
-      ca-certificates \
-      curl \
-      gnupg2 \
-      software-properties-common \
       iproute2 \
+      ca-certificates \
       file \
       btrfs-tools \
       jq
-
-# install Node 8.x
-RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
-RUN apt-get update && apt-get install -y nodejs
-
-# install Yarn for building the web UI
-RUN curl -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
-RUN add-apt-repository "deb https://dl.yarnpkg.com/debian/ stable main"
-RUN apt-get update && apt-get -y install yarn
 
 # fetch dependencies
 COPY dumb-init/dumb-init_*_amd64 /usr/local/bin/dumb-init
@@ -33,10 +20,20 @@ COPY gdn/gdn-* /usr/local/bin/gdn
 RUN chmod +x /usr/local/bin/dumb-init && chmod +x /usr/local/bin/gdn
 
 # extract resource types
-COPY mock-resource/mock-resource-*.tgz /concourse-resource-types/mock.tgz
-COPY registry-image-resource/registry-image-resource-*.tgz /concourse-resource-types/registry-image.tgz
-COPY time-resource/time-resource-*.tgz /concourse-resource-types/time.tgz
+COPY bosh-io-release-resource/bosh-io-release-resource-*.tgz /concourse-resource-types/bosh-io-release.tgz
+COPY bosh-io-stemcell-resource/bosh-io-stemcell-resource-*.tgz /concourse-resource-types/bosh-io-stemcell.tgz
+COPY cf-resource/cf-resource-*.tgz /concourse-resource-types/cf.tgz
+COPY docker-image-resource/docker-image-resource-*.tgz /concourse-resource-types/docker-image.tgz
 COPY git-resource/git-resource-*.tgz /concourse-resource-types/git.tgz
+COPY github-release-resource/github-release-resource-*.tgz /concourse-resource-types/github-release.tgz
+COPY hg-resource/hg-resource-*.tgz /concourse-resource-types/hg.tgz
+COPY pool-resource/pool-resource-*.tgz /concourse-resource-types/pool.tgz
+COPY registry-image-resource/registry-image-resource-*.tgz /concourse-resource-types/registry-image.tgz
+COPY s3-resource/s3-resource-*.tgz /concourse-resource-types/s3.tgz
+COPY semver-resource/semver-resource-*.tgz /concourse-resource-types/semver.tgz
+COPY time-resource/time-resource-*.tgz /concourse-resource-types/time.tgz
+COPY tracker-resource/tracker-resource-*.tgz /concourse-resource-types/tracker.tgz
+COPY mock-resource/mock-resource-*.tgz /concourse-resource-types/mock.tgz
 RUN set -e; for t in mock registry-image time git; do \
       mkdir /concourse-resource-types/$t; \
       tar -C /concourse-resource-types/$t -zxf /concourse-resource-types/$t.tgz; \

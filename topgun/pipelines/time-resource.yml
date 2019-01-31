@@ -1,0 +1,10 @@
+resources:
+- name: time-resource
+  type: time
+  source:
+    interval: 1m
+
+jobs:
+- name: some-job
+  plan:
+  - get: time-resource

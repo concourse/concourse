@@ -125,7 +125,8 @@ var _ = BeforeEach(func() {
 	baseResourceType := db.BaseResourceType{
 		Name: "some-base-type",
 	}
-	_, err = baseResourceType.FindOrCreate(setupTx)
+
+	_, err = baseResourceType.FindOrCreate(setupTx, false)
 	Expect(err).NotTo(HaveOccurred())
 
 	Expect(setupTx.Commit()).To(Succeed())

@@ -2,6 +2,7 @@ module BuildTests exposing (all)
 
 import Array
 import Build
+import Build.Models as Models
 import Build.Msgs as Msgs
 import Callback
 import Concourse exposing (BuildPrepStatus(..))
@@ -17,6 +18,7 @@ import Effects
 import Expect
 import Html.Attributes as Attr
 import Test exposing (..)
+import Test.Html.Event as Event
 import Test.Html.Query as Query
 import Test.Html.Selector
     exposing
@@ -39,7 +41,7 @@ all =
                     { csrfToken = ""
                     , hash = ""
                     }
-                    (Build.JobBuildPage
+                    (Models.JobBuildPage
                         { teamName = "team"
                         , pipelineName = "pipeline"
                         , jobName = "job"
@@ -83,17 +85,17 @@ all =
                 , reapTime = Nothing
                 }
 
-            fetchBuild : Build.Model -> ( Build.Model, List Effects.Effect )
+            fetchBuild : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchBuild =
                 Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, theBuild )
 
             fetchStartedBuild :
-                Build.Model
-                -> ( Build.Model, List Effects.Effect )
+                Models.Model
+                -> ( Models.Model, List Effects.Effect )
             fetchStartedBuild =
                 Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, startedBuild )
 
-            fetchJobDetails : Build.Model -> ( Build.Model, List Effects.Effect )
+            fetchJobDetails : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchJobDetails =
                 Build.handleCallback <|
                     Callback.BuildJobDetailsFetched <|
@@ -116,8 +118,8 @@ all =
                             }
 
             fetchJobDetailsNoTrigger :
-                Build.Model
-                -> ( Build.Model, List Effects.Effect )
+                Models.Model
+                -> ( Models.Model, List Effects.Effect )
             fetchJobDetailsNoTrigger =
                 Build.handleCallback <|
                     Callback.BuildJobDetailsFetched <|
@@ -139,7 +141,7 @@ all =
                             , groups = []
                             }
 
-            fetchHistory : Build.Model -> ( Build.Model, List Effects.Effect )
+            fetchHistory : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchHistory =
                 Build.handleCallback
                     (Callback.BuildHistoryFetched
@@ -173,22 +175,21 @@ all =
                             }
                         , Effects.GetCurrentTime
                         ]
-        , test "has a header after the build is fetched" <|
-            \_ ->
-                pageLoad
-                    |> Tuple.first
-                    |> fetchBuild
-                    |> Tuple.first
-                    |> Build.view
-                    |> Query.fromHtml
-                    |> Query.has [ id "build-header" ]
-        , test "fetches build history and job details after build is fetched" <|
-            \_ ->
-                pageLoad
-                    |> Tuple.first
-                    |> fetchBuild
-                    |> Tuple.second
-                    |> Expect.all
+        , describe "after build is fetched" <|
+            let
+                givenBuildFetched _ =
+                    pageLoad |> Tuple.first |> fetchBuild
+            in
+            [ test "has a header after the build is fetched" <|
+                givenBuildFetched
+                    >> Tuple.first
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.has [ id "build-header" ]
+            , test "fetches build history and job details after build is fetched" <|
+                givenBuildFetched
+                    >> Tuple.second
+                    >> Expect.all
                         [ List.member
                             (Effects.FetchBuildHistory
                                 { teamName = "team"
@@ -209,398 +210,204 @@ all =
                             >> Expect.true
                                 "expected effect was not in the list"
                         ]
-        , test "header lays out horizontally" <|
-            \_ ->
-                pageLoad
-                    |> Tuple.first
-                    |> fetchBuild
-                    |> Tuple.first
-                    |> Build.view
-                    |> Query.fromHtml
-                    |> Query.find [ id "build-header" ]
-                    |> Query.has
+            , test "header lays out horizontally" <|
+                givenBuildFetched
+                    >> Tuple.first
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.find [ id "build-header" ]
+                    >> Query.has
                         [ style [ ( "display", "flex" ) ] ]
-        , test "header spreads out contents" <|
-            \_ ->
-                pageLoad
-                    |> Tuple.first
-                    |> fetchBuild
-                    |> Tuple.first
-                    |> Build.view
-                    |> Query.fromHtml
-                    |> Query.find [ id "build-header" ]
-                    |> Query.has
+            , test "header spreads out contents" <|
+                givenBuildFetched
+                    >> Tuple.first
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.find [ id "build-header" ]
+                    >> Query.has
                         [ style [ ( "justify-content", "space-between" ) ] ]
-        , test
-            ("trigger build button on right side of header "
-                ++ "after history and job details fetched"
-            )
-          <|
-            \_ ->
-                pageLoad
-                    |> Tuple.first
-                    |> fetchBuild
-                    |> Tuple.first
-                    |> fetchHistory
-                    |> Tuple.first
-                    |> fetchJobDetails
-                    |> Tuple.first
-                    |> Build.view
-                    |> Query.fromHtml
-                    |> Query.find [ id "build-header" ]
-                    |> Query.children []
-                    |> Query.index -1
-                    |> Query.has
-                        [ attribute <|
-                            Attr.attribute "aria-label" "Trigger Build"
-                        ]
-        , test "trigger build button is styled as a plain grey box" <|
-            \_ ->
-                pageLoad
-                    |> Tuple.first
-                    |> fetchBuild
-                    |> Tuple.first
-                    |> fetchHistory
-                    |> Tuple.first
-                    |> fetchJobDetails
-                    |> Tuple.first
-                    |> Build.view
-                    |> Query.fromHtml
-                    |> Query.find
-                        [ attribute <|
-                            Attr.attribute "aria-label" "Trigger Build"
-                        ]
-                    |> Query.has
-                        [ style
-                            [ ( "padding", "10px" )
-                            , ( "border", "none" )
-                            , ( "background-color", middleGrey )
-                            , ( "outline", "none" )
-                            , ( "margin", "0" )
+            , describe "after history and details get fetched" <|
+                let
+                    givenHistoryAndDetailsFetched =
+                        givenBuildFetched
+                            >> Tuple.first
+                            >> fetchHistory
+                            >> Tuple.first
+                            >> fetchJobDetails
+                in
+                [ test
+                    ("trigger build button on right side of header "
+                        ++ "after history and job details fetched"
+                    )
+                  <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.find [ id "build-header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has
+                            [ attribute <|
+                                Attr.attribute "aria-label" "Trigger Build"
                             ]
-                        ]
-        , test
-            ("when manual triggering is disabled, "
-                ++ "trigger build button has default cursor"
-            )
-          <|
-            \_ ->
-                pageLoad
-                    |> Tuple.first
-                    |> fetchBuild
-                    |> Tuple.first
-                    |> fetchHistory
-                    |> Tuple.first
-                    |> fetchJobDetailsNoTrigger
-                    |> Tuple.first
-                    |> Build.view
-                    |> Query.fromHtml
-                    |> Query.find
-                        [ attribute <|
-                            Attr.attribute "aria-label" "Trigger Build"
-                        ]
-                    |> Query.has [ style [ ( "cursor", "default" ) ] ]
-        , test "trigger build button has pointer cursor" <|
-            \_ ->
-                pageLoad
-                    |> Tuple.first
-                    |> fetchBuild
-                    |> Tuple.first
-                    |> fetchHistory
-                    |> Tuple.first
-                    |> fetchJobDetails
-                    |> Tuple.first
-                    |> Build.view
-                    |> Query.fromHtml
-                    |> Query.find
-                        [ attribute <|
-                            Attr.attribute "aria-label" "Trigger Build"
-                        ]
-                    |> Query.has [ style [ ( "cursor", "pointer" ) ] ]
-        , test "trigger build button has 'plus' icon" <|
-            \_ ->
-                pageLoad
-                    |> Tuple.first
-                    |> fetchBuild
-                    |> Tuple.first
-                    |> fetchHistory
-                    |> Tuple.first
-                    |> fetchJobDetails
-                    |> Tuple.first
-                    |> Build.view
-                    |> Query.fromHtml
-                    |> Query.find
-                        [ attribute <|
-                            Attr.attribute "aria-label" "Trigger Build"
-                        ]
-                    |> Query.children []
-                    |> Query.first
-                    |> Query.has
-                        (iconSelector
-                            { size = "40px"
-                            , image = "ic-add-circle-outline-white.svg"
-                            }
-                        )
-        , defineHoverBehaviour
-            { name = "trigger build button"
-            , setup =
-                pageLoad
-                    |> Tuple.first
-                    |> fetchBuild
-                    |> Tuple.first
-                    |> fetchHistory
-                    |> Tuple.first
-                    |> fetchJobDetails
-                    |> Tuple.first
-            , query =
-                Build.view
-                    >> Query.fromHtml
-                    >> Query.find
-                        [ attribute <|
-                            Attr.attribute "aria-label" "Trigger Build"
-                        ]
-            , updateFunc = \msg -> Build.update msg >> Tuple.first
-            , unhoveredSelector =
-                { description = "grey plus icon"
-                , selector =
-                    [ style [ ( "opacity", "0.5" ) ] ]
-                        ++ iconSelector
-                            { size = "40px"
-                            , image = "ic-add-circle-outline-white.svg"
-                            }
-                }
-            , hoveredSelector =
-                { description = "white plus icon"
-                , selector =
-                    [ style [ ( "opacity", "1" ) ] ]
-                        ++ iconSelector
-                            { size = "40px"
-                            , image = "ic-add-circle-outline-white.svg"
-                            }
-                }
-            , mouseEnterMsg = Msgs.Hover Msgs.Trigger
-            , mouseLeaveMsg = Msgs.Hover Msgs.Neither
-            }
-        , defineHoverBehaviour
-            { name = "disabled trigger build button"
-            , setup =
-                pageLoad
-                    |> Tuple.first
-                    |> fetchBuild
-                    |> Tuple.first
-                    |> fetchHistory
-                    |> Tuple.first
-                    |> fetchJobDetailsNoTrigger
-                    |> Tuple.first
-            , query =
-                Build.view
-                    >> Query.fromHtml
-                    >> Query.find
-                        [ attribute <|
-                            Attr.attribute "aria-label" "Trigger Build"
-                        ]
-            , updateFunc = \msg -> Build.update msg >> Tuple.first
-            , unhoveredSelector =
-                { description = "grey plus icon"
-                , selector =
-                    [ style [ ( "opacity", "0.5" ) ] ]
-                        ++ iconSelector
-                            { size = "40px"
-                            , image = "ic-add-circle-outline-white.svg"
-                            }
-                }
-            , hoveredSelector =
-                { description = "grey plus icon with tooltip"
-                , selector =
-                    [ style [ ( "position", "relative" ) ]
-                    , containing
-                        [ containing
-                            [ text "manual triggering disabled in job config" ]
-                        , style
-                            [ ( "position", "absolute" )
-                            , ( "right", "100%" )
-                            , ( "top", "15px" )
-                            , ( "width", "300px" )
-                            , ( "color", "#ecf0f1" )
-                            , ( "font-size", "12px" )
-                            , ( "font-family", "Inconsolata,monospace" )
-                            , ( "padding", "10px" )
-                            , ( "text-align", "right" )
+                , test "trigger build button is styled as a plain grey box" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.find
+                            [ attribute <|
+                                Attr.attribute "aria-label" "Trigger Build"
                             ]
-                        ]
-                    , containing <|
-                        [ style
-                            [ ( "opacity", "0.5" )
+                        >> Query.has
+                            [ style
+                                [ ( "padding", "10px" )
+                                , ( "border", "none" )
+                                , ( "background-color", middleGrey )
+                                , ( "outline", "none" )
+                                , ( "margin", "0" )
+                                ]
                             ]
-                        ]
-                            ++ iconSelector
+                , test "trigger build button has pointer cursor" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.find
+                            [ attribute <|
+                                Attr.attribute "aria-label" "Trigger Build"
+                            ]
+                        >> Query.has [ style [ ( "cursor", "pointer" ) ] ]
+                , test "trigger build button has 'plus' icon" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.find
+                            [ attribute <|
+                                Attr.attribute "aria-label" "Trigger Build"
+                            ]
+                        >> Query.children []
+                        >> Query.first
+                        >> Query.has
+                            (iconSelector
                                 { size = "40px"
                                 , image = "ic-add-circle-outline-white.svg"
                                 }
-                    ]
-                }
-            , mouseEnterMsg = Msgs.Hover Msgs.Trigger
-            , mouseLeaveMsg = Msgs.Hover Msgs.Neither
-            }
-        , test "build action section lays out horizontally" <|
-            \_ ->
-                pageLoad
-                    |> Tuple.first
-                    |> fetchStartedBuild
-                    |> Tuple.first
-                    |> fetchHistory
-                    |> Tuple.first
-                    |> fetchJobDetails
-                    |> Tuple.first
-                    |> Build.view
-                    |> Query.fromHtml
-                    |> Query.find [ id "build-header" ]
-                    |> Query.children []
-                    |> Query.index -1
-                    |> Query.has [ style [ ( "display", "flex" ) ] ]
-        , test "abort build button is to the left of the trigger button" <|
-            \_ ->
-                pageLoad
-                    |> Tuple.first
-                    |> fetchStartedBuild
-                    |> Tuple.first
-                    |> fetchHistory
-                    |> Tuple.first
-                    |> fetchJobDetails
-                    |> Tuple.first
-                    |> Build.view
-                    |> Query.fromHtml
-                    |> Query.find [ id "build-header" ]
-                    |> Query.children []
-                    |> Query.index -1
-                    |> Query.children []
-                    |> Query.first
-                    |> Query.has
-                        [ attribute <|
-                            Attr.attribute "aria-label" "Abort Build"
-                        ]
-        , test "abort build button is styled as a plain grey box" <|
-            \_ ->
-                pageLoad
-                    |> Tuple.first
-                    |> fetchStartedBuild
-                    |> Tuple.first
-                    |> fetchHistory
-                    |> Tuple.first
-                    |> fetchJobDetails
-                    |> Tuple.first
-                    |> Build.view
-                    |> Query.fromHtml
-                    |> Query.find
-                        [ attribute <|
-                            Attr.attribute "aria-label" "Abort Build"
-                        ]
-                    |> Query.has
-                        [ style
-                            [ ( "padding", "10px" )
-                            , ( "border", "none" )
-                            , ( "background-color", middleGrey )
-                            , ( "outline", "none" )
-                            , ( "margin", "0" )
-                            ]
-                        ]
-        , test "abort build button has pointer cursor" <|
-            \_ ->
-                pageLoad
-                    |> Tuple.first
-                    |> fetchStartedBuild
-                    |> Tuple.first
-                    |> fetchHistory
-                    |> Tuple.first
-                    |> fetchJobDetails
-                    |> Tuple.first
-                    |> Build.view
-                    |> Query.fromHtml
-                    |> Query.find
-                        [ attribute <|
-                            Attr.attribute "aria-label" "Abort Build"
-                        ]
-                    |> Query.has [ style [ ( "cursor", "pointer" ) ] ]
-        , test "abort build button has 'X' icon" <|
-            \_ ->
-                pageLoad
-                    |> Tuple.first
-                    |> fetchStartedBuild
-                    |> Tuple.first
-                    |> fetchHistory
-                    |> Tuple.first
-                    |> fetchJobDetails
-                    |> Tuple.first
-                    |> Build.view
-                    |> Query.fromHtml
-                    |> Query.find
-                        [ attribute <|
-                            Attr.attribute "aria-label" "Abort Build"
-                        ]
-                    |> Query.children []
-                    |> Query.first
-                    |> Query.has
-                        (iconSelector
-                            { size = "40px"
-                            , image = "ic-abort-circle-outline-white.svg"
-                            }
-                        )
-        , defineHoverBehaviour
-            { name = "abort build button"
-            , setup =
-                pageLoad
-                    |> Tuple.first
-                    |> fetchStartedBuild
-                    |> Tuple.first
-                    |> fetchHistory
-                    |> Tuple.first
-                    |> fetchJobDetails
-                    |> Tuple.first
-            , query =
-                Build.view
-                    >> Query.fromHtml
-                    >> Query.find
-                        [ attribute <|
-                            Attr.attribute "aria-label" "Abort Build"
-                        ]
-            , updateFunc = \msg -> Build.update msg >> Tuple.first
-            , unhoveredSelector =
-                { description = "grey abort icon"
-                , selector =
-                    [ style [ ( "opacity", "0.5" ) ] ]
-                        ++ iconSelector
-                            { size = "40px"
-                            , image = "ic-abort-circle-outline-white.svg"
-                            }
-                }
-            , hoveredSelector =
-                { description = "white abort icon"
-                , selector =
-                    [ style [ ( "opacity", "1" ) ] ]
-                        ++ iconSelector
-                            { size = "40px"
-                            , image = "ic-abort-circle-outline-white.svg"
-                            }
-                }
-            , mouseEnterMsg = Msgs.Hover Msgs.Abort
-            , mouseLeaveMsg = Msgs.Hover Msgs.Neither
-            }
-        , describe "build prep section"
-            [ test "when pipeline is not paused, shows a check" <|
-                let
-                    prep =
-                        { pausedPipeline = BuildPrepStatusNotBlocking
-                        , pausedJob = BuildPrepStatusNotBlocking
-                        , maxRunningBuilds = BuildPrepStatusNotBlocking
-                        , inputs = Dict.empty
-                        , inputsSatisfied = BuildPrepStatusNotBlocking
-                        , missingInputReasons = Dict.empty
+                            )
+                , defineHoverBehaviour
+                    { name = "trigger build button"
+                    , setup =
+                        givenHistoryAndDetailsFetched () |> Tuple.first
+                    , query =
+                        Build.view
+                            >> Query.fromHtml
+                            >> Query.find
+                                [ attribute <|
+                                    Attr.attribute "aria-label" "Trigger Build"
+                                ]
+                    , updateFunc = \msg -> Build.update msg >> Tuple.first
+                    , unhoveredSelector =
+                        { description = "grey plus icon"
+                        , selector =
+                            [ style [ ( "opacity", "0.5" ) ] ]
+                                ++ iconSelector
+                                    { size = "40px"
+                                    , image = "ic-add-circle-outline-white.svg"
+                                    }
                         }
-
-                    icon =
-                        "url(/public/images/ic-not-blocking-check.svg)"
+                    , hoveredSelector =
+                        { description = "white plus icon"
+                        , selector =
+                            [ style [ ( "opacity", "1" ) ] ]
+                                ++ iconSelector
+                                    { size = "40px"
+                                    , image = "ic-add-circle-outline-white.svg"
+                                    }
+                        }
+                    , mouseEnterMsg = Msgs.Hover <| Just Msgs.Trigger
+                    , mouseLeaveMsg = Msgs.Hover Nothing
+                    }
+                ]
+            , describe "when history and details witche dwith maual triggering disabled" <|
+                let
+                    givenHistoryAndDetailsFetched =
+                        givenBuildFetched
+                            >> Tuple.first
+                            >> fetchHistory
+                            >> Tuple.first
+                            >> fetchJobDetailsNoTrigger
                 in
-                \_ ->
+                [ test "when manual triggering is disabled, trigger build button has default cursor" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.find
+                            [ attribute <|
+                                Attr.attribute "aria-label" "Trigger Build"
+                            ]
+                        >> Query.has [ style [ ( "cursor", "default" ) ] ]
+                , defineHoverBehaviour
+                    { name = "disabled trigger build button"
+                    , setup =
+                        givenHistoryAndDetailsFetched () |> Tuple.first
+                    , query =
+                        Build.view
+                            >> Query.fromHtml
+                            >> Query.find
+                                [ attribute <|
+                                    Attr.attribute "aria-label" "Trigger Build"
+                                ]
+                    , updateFunc = \msg -> Build.update msg >> Tuple.first
+                    , unhoveredSelector =
+                        { description = "grey plus icon"
+                        , selector =
+                            [ style [ ( "opacity", "0.5" ) ] ]
+                                ++ iconSelector
+                                    { size = "40px"
+                                    , image = "ic-add-circle-outline-white.svg"
+                                    }
+                        }
+                    , hoveredSelector =
+                        { description = "grey plus icon with tooltip"
+                        , selector =
+                            [ style [ ( "position", "relative" ) ]
+                            , containing
+                                [ containing
+                                    [ text "manual triggering disabled in job config" ]
+                                , style
+                                    [ ( "position", "absolute" )
+                                    , ( "right", "100%" )
+                                    , ( "top", "15px" )
+                                    , ( "width", "300px" )
+                                    , ( "color", "#ecf0f1" )
+                                    , ( "font-size", "12px" )
+                                    , ( "font-family", "Inconsolata,monospace" )
+                                    , ( "padding", "10px" )
+                                    , ( "text-align", "right" )
+                                    ]
+                                ]
+                            , containing <|
+                                [ style
+                                    [ ( "opacity", "0.5" )
+                                    ]
+                                ]
+                                    ++ iconSelector
+                                        { size = "40px"
+                                        , image = "ic-add-circle-outline-white.svg"
+                                        }
+                            ]
+                        }
+                    , mouseEnterMsg = Msgs.Hover <| Just Msgs.Trigger
+                    , mouseLeaveMsg = Msgs.Hover Nothing
+                    }
+                ]
+            ]
+        , describe "given build started and history and details fetched" <|
+            let
+                givenBuildStarted _ =
                     pageLoad
                         |> Tuple.first
                         |> fetchStartedBuild
@@ -608,21 +415,142 @@ all =
                         |> fetchHistory
                         |> Tuple.first
                         |> fetchJobDetails
+            in
+            [ test "build action section lays out horizontally" <|
+                givenBuildStarted
+                    >> Tuple.first
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.find [ id "build-header" ]
+                    >> Query.children []
+                    >> Query.index -1
+                    >> Query.has [ style [ ( "display", "flex" ) ] ]
+            , test "abort build button is to the left of the trigger button" <|
+                givenBuildStarted
+                    >> Tuple.first
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.find [ id "build-header" ]
+                    >> Query.children []
+                    >> Query.index -1
+                    >> Query.children []
+                    >> Query.first
+                    >> Query.has
+                        [ attribute <|
+                            Attr.attribute "aria-label" "Abort Build"
+                        ]
+            , test "abort build button is styled as a plain grey box" <|
+                givenBuildStarted
+                    >> Tuple.first
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.find
+                        [ attribute <|
+                            Attr.attribute "aria-label" "Abort Build"
+                        ]
+                    >> Query.has
+                        [ style
+                            [ ( "padding", "10px" )
+                            , ( "border", "none" )
+                            , ( "background-color", middleGrey )
+                            , ( "outline", "none" )
+                            , ( "margin", "0" )
+                            ]
+                        ]
+            , test "abort build button has pointer cursor" <|
+                givenBuildStarted
+                    >> Tuple.first
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.find
+                        [ attribute <|
+                            Attr.attribute "aria-label" "Abort Build"
+                        ]
+                    >> Query.has [ style [ ( "cursor", "pointer" ) ] ]
+            , test "abort build button has 'X' icon" <|
+                givenBuildStarted
+                    >> Tuple.first
+                    >> Build.view
+                    >> Query.fromHtml
+                    >> Query.find
+                        [ attribute <|
+                            Attr.attribute "aria-label" "Abort Build"
+                        ]
+                    >> Query.children []
+                    >> Query.first
+                    >> Query.has
+                        (iconSelector
+                            { size = "40px"
+                            , image = "ic-abort-circle-outline-white.svg"
+                            }
+                        )
+            , defineHoverBehaviour
+                { name = "abort build button"
+                , setup =
+                    givenBuildStarted ()
                         |> Tuple.first
-                        |> Build.handleCallback (Callback.BuildPrepFetched <| Ok ( 1, prep ))
-                        |> Tuple.first
-                        |> Build.view
-                        |> Query.fromHtml
-                        |> Query.find [ class "prep-status-list" ]
-                        |> Expect.all
+                , query =
+                    Build.view
+                        >> Query.fromHtml
+                        >> Query.find
+                            [ attribute <|
+                                Attr.attribute "aria-label" "Abort Build"
+                            ]
+                , updateFunc = \msg -> Build.update msg >> Tuple.first
+                , unhoveredSelector =
+                    { description = "grey abort icon"
+                    , selector =
+                        [ style [ ( "opacity", "0.5" ) ] ]
+                            ++ iconSelector
+                                { size = "40px"
+                                , image = "ic-abort-circle-outline-white.svg"
+                                }
+                    }
+                , hoveredSelector =
+                    { description = "white abort icon"
+                    , selector =
+                        [ style [ ( "opacity", "1" ) ] ]
+                            ++ iconSelector
+                                { size = "40px"
+                                , image = "ic-abort-circle-outline-white.svg"
+                                }
+                    }
+                , mouseEnterMsg = Msgs.Hover <| Just Msgs.Abort
+                , mouseLeaveMsg = Msgs.Hover Nothing
+                }
+            , describe "build prep section"
+                [ test "when pipeline is not paused, shows a check" <|
+                    let
+                        prep =
+                            { pausedPipeline = BuildPrepStatusNotBlocking
+                            , pausedJob = BuildPrepStatusNotBlocking
+                            , maxRunningBuilds = BuildPrepStatusNotBlocking
+                            , inputs = Dict.empty
+                            , inputsSatisfied = BuildPrepStatusNotBlocking
+                            , missingInputReasons = Dict.empty
+                            }
+
+                        icon =
+                            "url(/public/images/ic-not-blocking-check.svg)"
+                    in
+                    givenBuildStarted
+                        >> Tuple.first
+                        >> Build.handleCallback (Callback.BuildPrepFetched <| Ok ( 1, prep ))
+                        >> Tuple.first
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.find [ class "prep-status-list" ]
+                        >> Expect.all
                             [ Query.children []
                                 >> Query.each
-                                    (Query.has
-                                        [ style
-                                            [ ( "display", "flex" )
-                                            , ( "align-items", "center" )
+                                    (Query.children []
+                                        >> Query.first
+                                        >> Query.has
+                                            [ style
+                                                [ ( "display", "flex" )
+                                                , ( "align-items", "center" )
+                                                ]
                                             ]
-                                        ]
                                     )
                             , Query.has
                                 [ style
@@ -637,40 +565,35 @@ all =
                                 , attribute <| Attr.title "not blocking"
                                 ]
                             ]
-            , test "when pipeline is paused, shows a spinner" <|
-                let
-                    prep =
-                        { pausedPipeline = BuildPrepStatusBlocking
-                        , pausedJob = BuildPrepStatusNotBlocking
-                        , maxRunningBuilds = BuildPrepStatusNotBlocking
-                        , inputs = Dict.empty
-                        , inputsSatisfied = BuildPrepStatusNotBlocking
-                        , missingInputReasons = Dict.empty
-                        }
-                in
-                \_ ->
-                    pageLoad
-                        |> Tuple.first
-                        |> fetchStartedBuild
-                        |> Tuple.first
-                        |> fetchHistory
-                        |> Tuple.first
-                        |> fetchJobDetails
-                        |> Tuple.first
-                        |> Build.handleCallback (Callback.BuildPrepFetched <| Ok ( 1, prep ))
-                        |> Tuple.first
-                        |> Build.view
-                        |> Query.fromHtml
-                        |> Query.find [ class "prep-status-list" ]
-                        |> Expect.all
+                , test "when pipeline is paused, shows a spinner" <|
+                    let
+                        prep =
+                            { pausedPipeline = BuildPrepStatusBlocking
+                            , pausedJob = BuildPrepStatusNotBlocking
+                            , maxRunningBuilds = BuildPrepStatusNotBlocking
+                            , inputs = Dict.empty
+                            , inputsSatisfied = BuildPrepStatusNotBlocking
+                            , missingInputReasons = Dict.empty
+                            }
+                    in
+                    givenBuildStarted
+                        >> Tuple.first
+                        >> Build.handleCallback (Callback.BuildPrepFetched <| Ok ( 1, prep ))
+                        >> Tuple.first
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.find [ class "prep-status-list" ]
+                        >> Expect.all
                             [ Query.children []
                                 >> Query.each
-                                    (Query.has
-                                        [ style
-                                            [ ( "display", "flex" )
-                                            , ( "align-items", "center" )
+                                    (Query.children []
+                                        >> Query.first
+                                        >> Query.has
+                                            [ style
+                                                [ ( "display", "flex" )
+                                                , ( "align-items", "center" )
+                                                ]
                                             ]
-                                        ]
                                     )
                             , Query.has
                                 [ style
@@ -684,95 +607,156 @@ all =
                                 , attribute <| Attr.title "blocking"
                                 ]
                             ]
-            ]
-        , describe "step header" <|
-            let
-                setup : () -> Build.Model
-                setup _ =
-                    pageLoad
-                        |> Tuple.first
-                        |> fetchStartedBuild
-                        |> Tuple.first
-                        |> fetchHistory
-                        |> Tuple.first
-                        |> fetchJobDetails
-                        |> Tuple.first
-                        |> Build.handleCallback
-                            (Callback.PlanAndResourcesFetched <|
-                                Ok <|
-                                    ( { id = "plan"
-                                      , step =
-                                            Concourse.BuildStepGet
-                                                "step"
-                                                Nothing
-                                      }
-                                    , { inputs = [], outputs = [] }
-                                    )
-                            )
-                        |> Tuple.first
-            in
-            [ test "build step header lays out horizontally" <|
-                setup
-                    >> Build.view
-                    >> Query.fromHtml
-                    >> Query.find [ class "header" ]
-                    >> Query.has [ style [ ( "display", "flex" ) ] ]
-            , test "has two children spread apart" <|
-                setup
-                    >> Build.view
-                    >> Query.fromHtml
-                    >> Query.find [ class "header" ]
-                    >> Expect.all
-                        [ Query.has
-                            [ style
-                                [ ( "justify-content", "space-between" ) ]
+                ]
+            , describe "step header" <|
+                let
+                    fetchPlanWithGetStep : () -> Models.Model
+                    fetchPlanWithGetStep =
+                        givenBuildStarted
+                            >> Tuple.first
+                            >> Build.handleCallback
+                                (Callback.PlanAndResourcesFetched 307 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step =
+                                                Concourse.BuildStepGet
+                                                    "step"
+                                                    Nothing
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            >> Tuple.first
+
+                    fetchPlanWithTaskStep : () -> Models.Model
+                    fetchPlanWithTaskStep =
+                        givenBuildStarted
+                            >> Tuple.first
+                            >> Build.handleCallback
+                                (Callback.PlanAndResourcesFetched 307 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step =
+                                                Concourse.BuildStepTask
+                                                    "step"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            >> Tuple.first
+
+                    fetchPlanWithPutStep : () -> Models.Model
+                    fetchPlanWithPutStep =
+                        givenBuildStarted
+                            >> Tuple.first
+                            >> Build.handleCallback
+                                (Callback.PlanAndResourcesFetched 307 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step =
+                                                Concourse.BuildStepPut
+                                                    "step"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            >> Tuple.first
+
+                    fetchPlanWithGetStepWithFirstOccurrence : () -> Models.Model
+                    fetchPlanWithGetStepWithFirstOccurrence =
+                        givenBuildStarted
+                            >> Tuple.first
+                            >> Build.handleCallback
+                                (Callback.PlanAndResourcesFetched 307 <|
+                                    let
+                                        version =
+                                            Dict.fromList
+                                                [ ( "ref", "abc123" ) ]
+                                    in
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step =
+                                                Concourse.BuildStepDo <|
+                                                    Array.fromList
+                                                        [ { id = "foo"
+                                                          , step =
+                                                                Concourse.BuildStepGet "step"
+                                                                    (Just version)
+                                                          }
+                                                        , { id = "bar"
+                                                          , step =
+                                                                Concourse.BuildStepGet "step2"
+                                                                    (Just version)
+                                                          }
+                                                        , { id = "baz"
+                                                          , step =
+                                                                Concourse.BuildStepGet "step3"
+                                                                    (Just version)
+                                                          }
+                                                        ]
+                                          }
+                                        , { inputs =
+                                                [ { name = "step"
+                                                  , version = version
+                                                  , firstOccurrence = True
+                                                  }
+                                                , { name = "step2"
+                                                  , version = version
+                                                  , firstOccurrence = True
+                                                  }
+                                                , { name = "step3"
+                                                  , version = version
+                                                  , firstOccurrence = False
+                                                  }
+                                                ]
+                                          , outputs = []
+                                          }
+                                        )
+                                )
+                            >> Tuple.first
+                in
+                [ test "build step header lays out horizontally" <|
+                    fetchPlanWithGetStep
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.find [ class "header" ]
+                        >> Query.has [ style [ ( "display", "flex" ) ] ]
+                , test "has two children spread apart" <|
+                    fetchPlanWithGetStep
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.find [ class "header" ]
+                        >> Expect.all
+                            [ Query.has
+                                [ style
+                                    [ ( "justify-content", "space-between" ) ]
+                                ]
+                            , Query.children [] >> Query.count (Expect.equal 2)
                             ]
-                        , Query.children [] >> Query.count (Expect.equal 2)
-                        ]
-            , test "both children lay out horizontally" <|
-                setup
-                    >> Build.view
-                    >> Query.fromHtml
-                    >> Query.find [ class "header" ]
-                    >> Query.children []
-                    >> Query.each
-                        (Query.has [ style [ ( "display", "flex" ) ] ])
-            , test "resource get step shows downward arrow" <|
-                setup
-                    >> Build.view
-                    >> Query.fromHtml
-                    >> Query.has
-                        (iconSelector
-                            { size = "28px"
-                            , image = "ic-arrow-downward.svg"
-                            }
-                            ++ [ style [ ( "background-size", "14px 14px" ) ] ]
-                        )
-            , test "task step shows terminal icon" <|
-                \_ ->
-                    pageLoad
-                        |> Tuple.first
-                        |> fetchStartedBuild
-                        |> Tuple.first
-                        |> fetchHistory
-                        |> Tuple.first
-                        |> fetchJobDetails
-                        |> Tuple.first
-                        |> Build.handleCallback
-                            (Callback.PlanAndResourcesFetched <|
-                                Ok <|
-                                    ( { id = "plan"
-                                      , step =
-                                            Concourse.BuildStepTask
-                                                "step"
-                                      }
-                                    , { inputs = [], outputs = [] }
-                                    )
+                , test "both children lay out horizontally" <|
+                    fetchPlanWithGetStep
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.each
+                            (Query.has [ style [ ( "display", "flex" ) ] ])
+                , test "resource get step shows downward arrow" <|
+                    fetchPlanWithGetStep
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-arrow-downward.svg"
+                                }
+                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
                             )
-                        |> Tuple.first
-                        |> Build.view
-                        |> Query.fromHtml
-                        |> Query.has
+                , test "task step shows terminal icon" <|
+                    fetchPlanWithTaskStep
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.has
                             (iconSelector
                                 { size = "28px"
                                 , image = "ic-terminal.svg"
@@ -781,29 +765,11 @@ all =
                                         [ ( "background-size", "14px 14px" ) ]
                                    ]
                             )
-            , test "put step shows upward arrow" <|
-                \_ ->
-                    pageLoad
-                        |> Tuple.first
-                        |> fetchStartedBuild
-                        |> Tuple.first
-                        |> fetchHistory
-                        |> Tuple.first
-                        |> fetchJobDetails
-                        |> Tuple.first
-                        |> Build.handleCallback
-                            (Callback.PlanAndResourcesFetched <|
-                                Ok <|
-                                    ( { id = "plan"
-                                      , step = Concourse.BuildStepPut "step"
-                                      }
-                                    , { inputs = [], outputs = [] }
-                                    )
-                            )
-                        |> Tuple.first
-                        |> Build.view
-                        |> Query.fromHtml
-                        |> Query.has
+                , test "put step shows upward arrow" <|
+                    fetchPlanWithPutStep
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.has
                             (iconSelector
                                 { size = "28px"
                                 , image = "ic-arrow-upward.svg"
@@ -812,44 +778,11 @@ all =
                                         [ ( "background-size", "14px 14px" ) ]
                                    ]
                             )
-            , test "get step on first occurrence shows yellow downward arrow" <|
-                \_ ->
-                    pageLoad
-                        |> Tuple.first
-                        |> fetchStartedBuild
-                        |> Tuple.first
-                        |> fetchHistory
-                        |> Tuple.first
-                        |> fetchJobDetails
-                        |> Tuple.first
-                        |> Build.handleCallback
-                            (Callback.PlanAndResourcesFetched <|
-                                let
-                                    version =
-                                        Dict.fromList
-                                            [ ( "ref", "abc123" ) ]
-                                in
-                                Ok <|
-                                    ( { id = "plan"
-                                      , step =
-                                            Concourse.BuildStepGet
-                                                "step"
-                                                (Just version)
-                                      }
-                                    , { inputs =
-                                            [ { name = "step"
-                                              , version = version
-                                              , firstOccurrence = True
-                                              }
-                                            ]
-                                      , outputs = []
-                                      }
-                                    )
-                            )
-                        |> Tuple.first
-                        |> Build.view
-                        |> Query.fromHtml
-                        |> Query.has
+                , test "get step on first occurrence shows yellow downward arrow" <|
+                    fetchPlanWithGetStepWithFirstOccurrence
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.has
                             (iconSelector
                                 { size = "28px"
                                 , image = "ic-arrow-downward-yellow.svg"
@@ -858,81 +791,226 @@ all =
                                         [ ( "background-size", "14px 14px" ) ]
                                    ]
                             )
-            , test "successful step has a checkmark at the far right" <|
-                setup
-                    >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)
-                    >> Tuple.first
-                    >> Build.update
-                        (Msgs.BuildEventsMsg <|
-                            BuildEvents.Events <|
-                                Ok <|
-                                    Array.fromList
-                                        [ BuildEvents.FinishGet
-                                            { source = "stdout", id = "plan" }
-                                            0
-                                            Dict.empty
-                                            []
-                                        ]
-                        )
-                    >> Tuple.first
-                    >> Build.view
-                    >> Query.fromHtml
-                    >> Query.find [ class "header" ]
-                    >> Query.children []
-                    >> Query.index -1
-                    >> Query.has
-                        (iconSelector
-                            { size = "28px"
-                            , image = "ic-success-check.svg"
-                            }
-                            ++ [ style [ ( "background-size", "14px 14px" ) ] ]
-                        )
-            , test "get step lists resource version on the right" <|
-                setup
-                    >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)
-                    >> Tuple.first
-                    >> Build.update
-                        (Msgs.BuildEventsMsg <|
-                            BuildEvents.Events <|
-                                Ok <|
-                                    Array.fromList
-                                        [ BuildEvents.FinishGet
-                                            { source = "stdout", id = "plan" }
-                                            0
-                                            (Dict.fromList [ ( "version", "v3.1.4" ) ])
-                                            []
-                                        ]
-                        )
-                    >> Tuple.first
-                    >> Build.view
-                    >> Query.fromHtml
-                    >> Query.find [ class "header" ]
-                    >> Query.children []
-                    >> Query.index -1
-                    >> Query.has [ text "v3.1.4" ]
-            , test "running step has loading spinner at the right" <|
-                \_ ->
-                    pageLoad
-                        |> Tuple.first
-                        |> fetchStartedBuild
-                        |> Tuple.first
-                        |> fetchHistory
-                        |> Tuple.first
-                        |> fetchJobDetails
-                        |> Tuple.first
-                        |> Build.handleCallback
-                            (Callback.PlanAndResourcesFetched <|
-                                Ok <|
-                                    ( { id = "plan"
-                                      , step =
-                                            Concourse.BuildStepTask
-                                                "step"
-                                      }
-                                    , { inputs = [], outputs = [] }
-                                    )
+                , test "hovering over a grey down arrow does nothing" <|
+                    fetchPlanWithGetStep
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.find
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-arrow-downward.svg"
+                                }
                             )
-                        |> Tuple.first
-                        |> Build.update
+                        >> Event.simulate Event.mouseEnter
+                        >> Event.toResult
+                        >> Expect.err
+                , describe "yellow resource down arrow hover behaviour"
+                    [ test "yellow resource down arrow has no tooltip" <|
+                        fetchPlanWithGetStepWithFirstOccurrence
+                            >> Build.view
+                            >> Query.fromHtml
+                            >> Query.findAll
+                                (iconSelector
+                                    { size = "28px"
+                                    , image = "ic-arrow-downward-yellow.svg"
+                                    }
+                                )
+                            >> Query.first
+                            >> Query.children []
+                            >> Query.count (Expect.equal 0)
+                    , test "hovering over yellow arrow triggers Hover message" <|
+                        fetchPlanWithGetStepWithFirstOccurrence
+                            >> Build.view
+                            >> Query.fromHtml
+                            >> Query.findAll
+                                (iconSelector
+                                    { size = "28px"
+                                    , image = "ic-arrow-downward-yellow.svg"
+                                    }
+                                )
+                            >> Query.first
+                            >> Event.simulate Event.mouseEnter
+                            >> Event.expect
+                                (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                    , test "no tooltip before 1 second has passed" <|
+                        fetchPlanWithGetStepWithFirstOccurrence
+                            >> Build.update
+                                (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                            >> Tuple.first
+                            >> Build.view
+                            >> Query.fromHtml
+                            >> Query.findAll
+                                (iconSelector
+                                    { size = "28px"
+                                    , image = "ic-arrow-downward-yellow.svg"
+                                    }
+                                )
+                            >> Query.first
+                            >> Query.children []
+                            >> Query.count (Expect.equal 0)
+                    , test "1 second after hovering, tooltip appears" <|
+                        fetchPlanWithGetStepWithFirstOccurrence
+                            >> Build.update (Msgs.ClockTick 0)
+                            >> Tuple.first
+                            >> Build.update
+                                (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                            >> Tuple.first
+                            >> Build.update (Msgs.ClockTick 1)
+                            >> Tuple.first
+                            >> Build.view
+                            >> Query.fromHtml
+                            >> Query.findAll
+                                (iconSelector
+                                    { size = "28px"
+                                    , image = "ic-arrow-downward-yellow.svg"
+                                    }
+                                )
+                            >> Query.first
+                            >> Query.has
+                                [ style [ ( "position", "relative" ) ]
+                                , containing
+                                    [ containing
+                                        [ text "new version" ]
+                                    , style
+                                        [ ( "position", "absolute" )
+                                        , ( "left", "0" )
+                                        , ( "bottom", "100%" )
+                                        , ( "background-color", tooltipGreyHex )
+                                        , ( "padding", "5px" )
+                                        , ( "z-index", "100" )
+                                        , ( "width", "6em" )
+                                        , ( "pointer-events", "none" )
+                                        , ( "cursor", "default" )
+                                        , ( "user-select", "none" )
+                                        , ( "-ms-user-select", "none" )
+                                        , ( "-moz-user-select", "none" )
+                                        , ( "-khtml-user-select", "none" )
+                                        , ( "-webkit-user-select", "none" )
+                                        , ( "-webkit-touch-callout", "none" )
+                                        ]
+                                    ]
+                                , containing
+                                    [ style
+                                        [ ( "width", "0" )
+                                        , ( "height", "0" )
+                                        , ( "left", "50%" )
+                                        , ( "margin-left", "-5px" )
+                                        , ( "border-top"
+                                          , "5px solid " ++ tooltipGreyHex
+                                          )
+                                        , ( "border-left", "5px solid transparent" )
+                                        , ( "border-right", "5px solid transparent" )
+                                        , ( "position", "absolute" )
+                                        ]
+                                    ]
+                                ]
+                    , test "mousing off yellow arrow triggers Hover message" <|
+                        fetchPlanWithGetStepWithFirstOccurrence
+                            >> Build.update
+                                (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                            >> Tuple.first
+                            >> Build.view
+                            >> Query.fromHtml
+                            >> Query.findAll
+                                (iconSelector
+                                    { size = "28px"
+                                    , image = "ic-arrow-downward-yellow.svg"
+                                    }
+                                )
+                            >> Query.first
+                            >> Event.simulate Event.mouseLeave
+                            >> Event.expect
+                                (Msgs.Hover Nothing)
+                    , test "unhovering after tooltip appears dismisses" <|
+                        fetchPlanWithGetStepWithFirstOccurrence
+                            >> Build.update (Msgs.ClockTick 0)
+                            >> Tuple.first
+                            >> Build.update
+                                (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                            >> Tuple.first
+                            >> Build.update (Msgs.ClockTick 1)
+                            >> Tuple.first
+                            >> Build.update (Msgs.Hover Nothing)
+                            >> Tuple.first
+                            >> Build.view
+                            >> Query.fromHtml
+                            >> Query.findAll
+                                (iconSelector
+                                    { size = "28px"
+                                    , image = "ic-arrow-downward-yellow.svg"
+                                    }
+                                )
+                            >> Query.first
+                            >> Query.children []
+                            >> Query.count (Expect.equal 0)
+                    ]
+                , test "hovering one resource of several produces only a single tooltip" <|
+                    fetchPlanWithGetStepWithFirstOccurrence
+                        >> Build.update (Msgs.ClockTick 0)
+                        >> Tuple.first
+                        >> Build.update (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                        >> Tuple.first
+                        >> Build.update (Msgs.ClockTick 1)
+                        >> Tuple.first
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.findAll [ text "new version" ]
+                        >> Query.count (Expect.equal 1)
+                , test "successful step has a checkmark at the far right" <|
+                    fetchPlanWithGetStep
+                        >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)
+                        >> Tuple.first
+                        >> Build.update
+                            (Msgs.BuildEventsMsg <|
+                                BuildEvents.Events <|
+                                    Ok <|
+                                        Array.fromList
+                                            [ BuildEvents.FinishGet
+                                                { source = "stdout", id = "plan" }
+                                                0
+                                                Dict.empty
+                                                []
+                                            ]
+                            )
+                        >> Tuple.first
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-success-check.svg"
+                                }
+                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                            )
+                , test "get step lists resource version on the right" <|
+                    fetchPlanWithGetStep
+                        >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)
+                        >> Tuple.first
+                        >> Build.update
+                            (Msgs.BuildEventsMsg <|
+                                BuildEvents.Events <|
+                                    Ok <|
+                                        Array.fromList
+                                            [ BuildEvents.FinishGet
+                                                { source = "stdout", id = "plan" }
+                                                0
+                                                (Dict.fromList [ ( "version", "v3.1.4" ) ])
+                                                []
+                                            ]
+                            )
+                        >> Tuple.first
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has [ text "v3.1.4" ]
+                , test "running step has loading spinner at the right" <|
+                    fetchPlanWithTaskStep
+                        >> Build.update
                             (Msgs.BuildEventsMsg <|
                                 BuildEvents.Events <|
                                     Ok <|
@@ -943,92 +1021,59 @@ all =
                                                 }
                                             ]
                             )
-                        |> Tuple.first
-                        |> Build.view
-                        |> Query.fromHtml
-                        |> Query.find [ class "header" ]
-                        |> Query.children []
-                        |> Query.index -1
-                        |> Query.has
+                        >> Tuple.first
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has
                             [ style
                                 [ ( "animation"
                                   , "container-rotate 1568ms linear infinite"
                                   )
                                 ]
                             ]
-            , test "failing step has an X at the far right" <|
-                setup
-                    >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)
-                    >> Tuple.first
-                    >> Build.update
-                        (Msgs.BuildEventsMsg <|
-                            BuildEvents.Events <|
-                                Ok <|
-                                    Array.fromList
-                                        [ BuildEvents.FinishGet
-                                            { source = "stdout", id = "plan" }
-                                            1
-                                            Dict.empty
-                                            []
-                                        ]
-                        )
-                    >> Tuple.first
-                    >> Build.view
-                    >> Query.fromHtml
-                    >> Query.find [ class "header" ]
-                    >> Query.children []
-                    >> Query.index -1
-                    >> Query.has
-                        (iconSelector
-                            { size = "28px"
-                            , image = "ic-failure-times.svg"
-                            }
-                            ++ [ style [ ( "background-size", "14px 14px" ) ] ]
-                        )
-            , test "erroring step has orange exclamation triangle at right" <|
-                setup
-                    >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)
-                    >> Tuple.first
-                    >> Build.update
-                        (Msgs.BuildEventsMsg <|
-                            BuildEvents.Events <|
-                                Ok <|
-                                    Array.fromList
-                                        [ BuildEvents.Error
-                                            { source = "stderr", id = "plan" }
-                                            "error message"
-                                        ]
-                        )
-                    >> Tuple.first
-                    >> Build.view
-                    >> Query.fromHtml
-                    >> Query.find [ class "header" ]
-                    >> Query.children []
-                    >> Query.index -1
-                    >> Query.has
-                        (iconSelector
-                            { size = "28px"
-                            , image = "ic-exclamation-triangle.svg"
-                            }
-                            ++ [ style [ ( "background-size", "14px 14px" ) ] ]
-                        )
-            , describe "erroring build" <|
-                let
-                    erroringBuild : () -> Build.Model
-                    erroringBuild =
-                        setup
-                            >> Build.update
-                                (Msgs.BuildEventsMsg BuildEvents.Errored)
-                            >> Tuple.first
-                in
-                [ test "has orange exclamation triangle at left" <|
-                    erroringBuild
+                , test "failing step has an X at the far right" <|
+                    fetchPlanWithGetStep
+                        >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)
+                        >> Tuple.first
                         >> Build.update
                             (Msgs.BuildEventsMsg <|
                                 BuildEvents.Events <|
                                     Ok <|
                                         Array.fromList
-                                            [ BuildEvents.BuildError
+                                            [ BuildEvents.FinishGet
+                                                { source = "stdout", id = "plan" }
+                                                1
+                                                Dict.empty
+                                                []
+                                            ]
+                            )
+                        >> Tuple.first
+                        >> Build.view
+                        >> Query.fromHtml
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-failure-times.svg"
+                                }
+                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                            )
+                , test "erroring step has orange exclamation triangle at right" <|
+                    fetchPlanWithGetStep
+                        >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)
+                        >> Tuple.first
+                        >> Build.update
+                            (Msgs.BuildEventsMsg <|
+                                BuildEvents.Events <|
+                                    Ok <|
+                                        Array.fromList
+                                            [ BuildEvents.Error
+                                                { source = "stderr", id = "plan" }
                                                 "error message"
                                             ]
                             )
@@ -1037,7 +1082,7 @@ all =
                         >> Query.fromHtml
                         >> Query.find [ class "header" ]
                         >> Query.children []
-                        >> Query.first
+                        >> Query.index -1
                         >> Query.has
                             (iconSelector
                                 { size = "28px"
@@ -1045,17 +1090,56 @@ all =
                                 }
                                 ++ [ style [ ( "background-size", "14px 14px" ) ] ]
                             )
-                , test "has passport officer icon" <|
+                , describe "erroring build" <|
                     let
-                        url =
-                            "/public/images/passport-officer-ic.svg"
+                        erroringBuild : () -> Models.Model
+                        erroringBuild =
+                            fetchPlanWithGetStep
+                                >> Build.update
+                                    (Msgs.BuildEventsMsg BuildEvents.Errored)
+                                >> Tuple.first
                     in
-                    erroringBuild
-                        >> Build.view
-                        >> Query.fromHtml
-                        >> Query.find [ class "not-authorized" ]
-                        >> Query.find [ tag "img" ]
-                        >> Query.has [ attribute <| Attr.src url ]
+                    [ test "has orange exclamation triangle at left" <|
+                        erroringBuild
+                            >> Build.update
+                                (Msgs.BuildEventsMsg <|
+                                    BuildEvents.Events <|
+                                        Ok <|
+                                            Array.fromList
+                                                [ BuildEvents.BuildError
+                                                    "error message"
+                                                ]
+                                )
+                            >> Tuple.first
+                            >> Build.view
+                            >> Query.fromHtml
+                            >> Query.find [ class "header" ]
+                            >> Query.children []
+                            >> Query.first
+                            >> Query.has
+                                (iconSelector
+                                    { size = "28px"
+                                    , image = "ic-exclamation-triangle.svg"
+                                    }
+                                    ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                                )
+                    , test "has passport officer icon" <|
+                        let
+                            url =
+                                "/public/images/passport-officer-ic.svg"
+                        in
+                        erroringBuild
+                            >> Build.view
+                            >> Query.fromHtml
+                            >> Query.find [ class "not-authorized" ]
+                            >> Query.find [ tag "img" ]
+                            >> Query.has [ attribute <| Attr.src url ]
+                    ]
                 ]
             ]
         ]
+
+
+tooltipGreyHex : String
+tooltipGreyHex =
+    "#9b9b9b"
