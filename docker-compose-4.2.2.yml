@@ -8,7 +8,7 @@ services:
     - POSTGRES_USER=dev
     - POSTGRES_PASSWORD=
 
-  web:
+  concourse:
     image: concourse/concourse:4.2.2
     command: quickstart
     privileged: true

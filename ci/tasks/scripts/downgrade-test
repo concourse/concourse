@@ -15,11 +15,15 @@ start_docker
 
 cd concourse
 
-docker-compose -f docker-compose-4.2.2.yml up -d
+docker-compose up --build -d
 
 ./ci/tasks/scripts/create-upgrade-downgrade-pipeline
 
-docker-compose up --build --remove-orphans -d
+downgrade_to=$(docker run concourse/concourse:4.2.2 migrate --current-db-version)
+docker-compose stop web
+docker-compose run web migrate --migrate-db-to-version $downgrade_to
+
+docker-compose -f docker-compose-4.2.2.yml up --remove-orphans -d
 
 ./ci/tasks/scripts/verify-upgrade-downgrade-pipeline
 

@@ -3,6 +3,8 @@
 
 set -e -u -x
 
+cd $(dirname $0)/../../..
+
 web_url=http://localhost:8080
 
 until curl --silent --fail "$web_url/api/v1/info"; do
