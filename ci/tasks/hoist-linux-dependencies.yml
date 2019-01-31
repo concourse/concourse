@@ -11,6 +11,9 @@ inputs:
 outputs:
 - name: gdn
 - name: resource-types
+- name: fly-linux
+- name: fly-windows
+- name: fly-darwin
 
 run:
   path: concourse/ci/tasks/scripts/hoist-linux-dependencies
