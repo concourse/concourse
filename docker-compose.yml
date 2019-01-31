@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: concourse
       POSTGRES_USER: dev
-      POSTGRES_PASSWORD: ""
+      POSTGRES_PASSWORD: dev
 
   web:
     build:
