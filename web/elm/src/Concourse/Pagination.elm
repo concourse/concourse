@@ -60,40 +60,28 @@ linkHeaderRegex =
     Regex.regex ("<([^>]+)>; rel=\"(" ++ previousRel ++ "|" ++ nextRel ++ ")\"")
 
 
+directionEqual : Direction -> Direction -> Bool
+directionEqual d1 d2 =
+    case ( d1, d2 ) of
+        ( Since p1, Since p2 ) ->
+            p1 == p2
+
+        ( Until p1, Until p2 ) ->
+            p1 == p2
+
+        ( From p1, From p2 ) ->
+            p1 == p2
+
+        ( To p1, To p2 ) ->
+            p1 == p2
+
+        ( _, _ ) ->
+            False
+
+
 equal : Page -> Page -> Bool
 equal one two =
-    case one.direction of
-        Since p ->
-            case two.direction of
-                Since pp ->
-                    p == pp
-
-                _ ->
-                    False
-
-        Until q ->
-            case two.direction of
-                Until qq ->
-                    q == qq
-
-                _ ->
-                    False
-
-        From f ->
-            case two.direction of
-                From ff ->
-                    f == ff
-
-                _ ->
-                    False
-
-        To t ->
-            case two.direction of
-                To tt ->
-                    t == tt
-
-                _ ->
-                    False
+    directionEqual one.direction two.direction
 
 
 fetch : Json.Decode.Decoder a -> String -> Maybe Page -> Task Http.Error (Paginated a)
@@ -148,12 +136,9 @@ parseLinks response =
 
 keysToLower : Dict String a -> Dict String a
 keysToLower =
-    Dict.fromList << List.map fstToLower << Dict.toList
-
-
-fstToLower : ( String, a ) -> ( String, a )
-fstToLower ( x, y ) =
-    ( String.toLower x, y )
+    Dict.toList
+        >> List.map (Tuple.mapFirst String.toLower)
+        >> Dict.fromList
 
 
 parseLinkTuple : String -> Maybe ( String, String )

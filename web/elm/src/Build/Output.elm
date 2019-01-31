@@ -40,6 +40,7 @@ import Html.Attributes
 import Http
 import LoadingIndicator
 import NotAuthorized
+import Subscription exposing (Subscription(..))
 
 
 type OutMsg
@@ -65,7 +66,7 @@ init { highlight } build =
             { steps = Nothing
             , errors = Nothing
             , state = outputState
-            , events = Sub.none
+            , events = Nothing
             , eventSourceOpened = False
             , highlight = highlight
             }
@@ -108,7 +109,7 @@ planAndResourcesFetched buildId result model =
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
-                        { model | events = subscribeToEvents buildId }
+                        { model | events = Just (subscribeToEvents buildId) }
 
                     else
                         model
@@ -120,7 +121,7 @@ planAndResourcesFetched buildId result model =
         Ok ( plan, resources ) ->
             { model
                 | steps = Just (StepTree.init model.highlight resources plan)
-                , events = subscribeToEvents buildId
+                , events = Just (subscribeToEvents buildId)
             }
     , []
     , OutNoop
@@ -254,7 +255,7 @@ handleEvent event model =
             )
 
         Concourse.BuildEvents.End ->
-            ( { model | state = StepsComplete, events = Sub.none }, [], OutNoop )
+            ( { model | state = StepsComplete, events = Nothing }, [], OutNoop )
 
 
 updateStep : StepID -> (StepTree -> StepTree) -> OutputModel -> OutputModel
@@ -328,9 +329,9 @@ setStepState state tree =
     StepTree.map (\step -> { step | state = state }) tree
 
 
-subscribeToEvents : Int -> Sub Msg
+subscribeToEvents : Int -> Subscription Msg
 subscribeToEvents buildId =
-    Sub.map BuildEventsMsg (Concourse.BuildEvents.subscribe buildId)
+    Subscription.map BuildEventsMsg (Concourse.BuildEvents.subscribe buildId)
 
 
 view : Concourse.Build -> OutputModel -> Html Msg

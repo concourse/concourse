@@ -10,9 +10,8 @@ module Build exposing
     , view
     )
 
-import AnimationFrame
 import Build.Models as Models exposing (Model, OutputModel, Page(..))
-import Build.Msgs exposing (Hoverable(..), Msg(..), StepID)
+import Build.Msgs exposing (Hoverable(..), Msg(..))
 import Build.Output
 import Build.StepTree as StepTree
 import Build.Styles as Styles
@@ -45,15 +44,14 @@ import Html.Attributes
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
 import Http
-import Keyboard
 import LoadingIndicator
 import Maybe.Extra
 import RemoteData exposing (WebData)
 import Routes
-import Scroll
 import Spinner
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
+import Subscription exposing (Subscription(..))
 import Time exposing (Time)
 import UpdateMsg exposing (UpdateMsg)
 import Views
@@ -117,29 +115,21 @@ init flags page =
     ( model, effects ++ [ GetCurrentTime ] )
 
 
-subscriptions : Model -> Sub Msg
+subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
-    Sub.batch
-        [ Time.every Time.second ClockTick
-        , Scroll.fromWindowBottom WindowScrolled
-        , case
-            model.currentBuild
-                |> RemoteData.toMaybe
-                |> Maybe.andThen .output
-          of
-            Nothing ->
-                Sub.none
-
-            Just buildOutput ->
-                buildOutput.events
-        , Keyboard.presses KeyPressed
-        , Keyboard.ups KeyUped
-        , if getScrollBehavior model /= NoScroll then
-            AnimationFrame.times (always ScrollDown)
-
-          else
-            Sub.none
-        ]
+    [ OnClockTick Time.second ClockTick
+    , OnScrollFromWindowBottom WindowScrolled
+    , OnKeyPress KeyPressed
+    , OnKeyUp KeyUped
+    , Conditionally
+        (getScrollBehavior model /= NoScroll)
+        (OnAnimationFrame ScrollDown)
+    , model.currentBuild
+        |> RemoteData.toMaybe
+        |> Maybe.andThen .output
+        |> Maybe.andThen .events
+        |> WhenPresent
+    ]
 
 
 changeToBuild : Page -> Model -> ( Model, List Effect )
@@ -264,9 +254,6 @@ handleCallback action model =
 update : Msg -> Model -> ( Model, List Effect )
 update action model =
     case action of
-        Noop ->
-            ( model, [] )
-
         SwitchToBuild build ->
             ( model, [ NavigateTo <| Routes.buildRoute build ] )
 

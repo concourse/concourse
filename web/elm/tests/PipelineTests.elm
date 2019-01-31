@@ -7,6 +7,7 @@ import Expect exposing (..)
 import Html.Attributes as Attr
 import Json.Encode
 import Layout
+import Msgs
 import Pipeline exposing (update)
 import Pipeline.Msgs exposing (Msg(..))
 import Test exposing (..)
@@ -14,7 +15,7 @@ import Test.Html.Event as Event
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector exposing (attribute, class, containing, id, style, tag, text)
 import Time exposing (Time)
-import TopBar
+import TopBar.Msgs
 
 
 rspecStyleDescribe : String -> model -> List (model -> Test) -> Test
@@ -85,9 +86,6 @@ all =
                     |> Query.has [ class "active" ]
         , describe "update" <|
             let
-                resetFocus =
-                    \_ -> Cmd.map (\_ -> Noop) Cmd.none
-
                 defaultModel : Pipeline.Model
                 defaultModel =
                     Pipeline.init
@@ -395,11 +393,11 @@ all =
                         >> Query.children []
                         >> Query.first
                         >> Event.simulate Event.mouseEnter
-                        >> Event.expect (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                        >> Event.expect (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                 , it "TogglePinIconDropdown msg causes pin icon to have light grey circular background" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml
@@ -413,7 +411,7 @@ all =
                 , it "TogglePinIconDropdown msg causes dropdown list of pinned resources to appear" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml
@@ -423,7 +421,7 @@ all =
                 , it "on TogglePinIconDropdown, pin badge has no other children" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml
@@ -435,7 +433,7 @@ all =
                 , it "dropdown list of pinned resources contains resource name" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml
@@ -446,7 +444,7 @@ all =
                 , it "dropdown list of pinned resources shows resource names in bold" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml
@@ -459,7 +457,7 @@ all =
                 , it "dropdown list of pinned resources shows pinned version of each resource" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml
@@ -471,7 +469,7 @@ all =
                 , it "dropdown list of pinned resources has white background" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml
@@ -482,7 +480,7 @@ all =
                 , it "dropdown list of pinned resources is drawn over other elements on the page" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml
@@ -493,7 +491,7 @@ all =
                 , it "dropdown list of pinned resources has dark grey text" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml
@@ -504,7 +502,7 @@ all =
                 , it "dropdown list has upward-pointing arrow" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml
@@ -521,7 +519,7 @@ all =
                 , it "dropdown list of pinned resources is offset below and left of the pin icon" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml
@@ -539,7 +537,7 @@ all =
                 , it "dropdown list of pinned resources stretches horizontally to fit content" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml
@@ -553,7 +551,7 @@ all =
                 , it "dropdown list of pinned resources has no bullet points" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml
@@ -567,7 +565,7 @@ all =
                 , it "dropdown list has comfortable padding" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml
@@ -581,7 +579,7 @@ all =
                 , it "dropdown list arrow is centered below the pin icon above the list" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml
@@ -613,25 +611,25 @@ all =
                         >> Query.children []
                         >> Query.first
                         >> Event.simulate Event.mouseLeave
-                        >> Event.expect (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                        >> Event.expect (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                 , it "clicking a pinned resource sends a Navigation Msg" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find [ tag "li" ]
                         >> Event.simulate Event.click
-                        >> Event.expect (Layout.TopMsg 1 (TopBar.GoToPinnedResource "resource"))
+                        >> Event.expect (Msgs.TopMsg 1 (TopBar.Msgs.GoToPinnedResource "resource"))
                 , it "TogglePinIconDropdown msg causes dropdown list of pinned resources to disappear" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml
@@ -641,7 +639,7 @@ all =
                 , it "pinned resources in the dropdown should have a pointer cursor" <|
                     givenPinnedResource
                         >> Layout.update
-                            (Layout.TopMsg 1 TopBar.TogglePinIconDropdown)
+                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Layout.view
                         >> Query.fromHtml

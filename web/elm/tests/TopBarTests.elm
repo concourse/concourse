@@ -7,6 +7,7 @@ import Expect exposing (..)
 import Routes
 import Test exposing (..)
 import TopBar exposing (userDisplayName)
+import TopBar.Msgs
 
 
 userWithId : Concourse.User
@@ -52,7 +53,7 @@ all =
                 \_ ->
                     TopBar.init (Routes.Pipeline "team" "pipeline" [])
                         |> Tuple.first
-                        |> TopBar.update (TopBar.GoToPinnedResource "resource")
+                        |> TopBar.update (TopBar.Msgs.GoToPinnedResource "resource")
                         |> Tuple.second
                         |> Expect.equal [ Effects.NavigateTo "/teams/team/pipelines/pipeline/resources/resource" ]
             , test "displays id if no userName, name or email present" <|

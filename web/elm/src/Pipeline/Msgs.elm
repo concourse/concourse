@@ -6,8 +6,7 @@ import Time exposing (Time)
 
 
 type Msg
-    = Noop
-    | AutoupdateVersionTicked Time
+    = AutoupdateVersionTicked Time
     | AutoupdateTimerTicked Time
     | HideLegendTimerTicked Time
     | ShowLegend

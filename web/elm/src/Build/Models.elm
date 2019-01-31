@@ -25,6 +25,7 @@ import Date exposing (Date)
 import Dict exposing (Dict)
 import Focus exposing (Focus)
 import RemoteData exposing (WebData)
+import Subscription exposing (Subscription)
 import Time exposing (Time)
 
 
@@ -77,7 +78,7 @@ type alias OutputModel =
     , errors : Maybe Ansi.Log.Model
     , state : OutputState
     , eventSourceOpened : Bool
-    , events : Sub Msg
+    , events : Maybe (Subscription Msg)
     , highlight : Highlight
     }
 

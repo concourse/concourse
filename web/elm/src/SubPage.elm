@@ -27,6 +27,7 @@ import Resource.Models
 import Routes
 import String
 import SubPage.Msgs exposing (Msg(..))
+import Subscription exposing (Subscription)
 import UpdateMsg exposing (UpdateMsg)
 
 
@@ -339,31 +340,31 @@ view mdl =
                 |> Html.map FlySuccessMsg
 
 
-subscriptions : Model -> Sub Msg
+subscriptions : Model -> List (Subscription Msg)
 subscriptions mdl =
     case mdl of
         BuildModel model ->
             Build.subscriptions model
-                |> Sub.map BuildMsg
+                |> List.map (Subscription.map BuildMsg)
 
         JobModel model ->
             Job.subscriptions model
-                |> Sub.map JobMsg
+                |> List.map (Subscription.map JobMsg)
 
         PipelineModel model ->
             Pipeline.subscriptions model
-                |> Sub.map PipelineMsg
+                |> List.map (Subscription.map PipelineMsg)
 
         ResourceModel model ->
             Resource.subscriptions model
-                |> Sub.map ResourceMsg
+                |> List.map (Subscription.map ResourceMsg)
 
         DashboardModel model ->
             Dashboard.subscriptions model
-                |> Sub.map DashboardMsg
+                |> List.map (Subscription.map DashboardMsg)
 
         NotFoundModel _ ->
-            Sub.none
+            []
 
         FlySuccessModel _ ->
-            Sub.none
+            []

@@ -39,12 +39,10 @@ import Html.Styled.Attributes
         )
 import Html.Styled.Events exposing (onMouseEnter, onMouseLeave)
 import Http
-import Keyboard
 import Monocle.Common exposing ((<|>), (=>))
 import Monocle.Lens
 import Monocle.Optional
 import MonocleHelpers exposing (..)
-import Mouse
 import NewTopBar
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
@@ -52,10 +50,10 @@ import Routes
 import ScreenSize
 import SearchBar exposing (SearchBar(..))
 import Simple.Fuzzy exposing (filter, match, root)
+import Subscription exposing (Subscription(..))
 import Task
 import Time exposing (Time)
 import UserState
-import Window
 
 
 type alias Flags =
@@ -644,17 +642,16 @@ update msg model =
             )
 
 
-subscriptions : Model -> Sub Msg
+subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
-    Sub.batch
-        [ Time.every Time.second ClockTick
-        , Time.every (5 * Time.second) AutoRefresh
-        , Mouse.moves (\_ -> ShowFooter)
-        , Mouse.clicks (\_ -> ShowFooter)
-        , Keyboard.presses KeyPressed
-        , Keyboard.downs KeyDowns
-        , Window.resizes Msgs.ResizeScreen
-        ]
+    [ OnClockTick Time.second ClockTick
+    , OnClockTick (5 * Time.second) AutoRefresh
+    , OnMouseMove ShowFooter
+    , OnMouseClick ShowFooter
+    , OnKeyPress KeyPressed
+    , OnKeyDown KeyDowns
+    , OnWindowResize Msgs.ResizeScreen
+    ]
 
 
 view : Model -> Html Msg
