@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -e -u
+
+export PIPELINE_NAME=test-pipeline
+
+inputs=$PWD
+
+source concourse/ci/tasks/scripts/docker-helpers.sh
+
+start_docker
+
+[ -d dev-image ] && docker load -i dev-image/image.tar
+[ -d postgres-image ] && docker load -i postgres-image/image.tar
+
+cd concourse
+
+docker-compose -f docker-compose-4.2.2.yml up -d
+
+./ci/tasks/scripts/create-upgrade-downgrade-pipeline
+
+docker-compose up --build -d
+
+./ci/tasks/scripts/verify-upgrade-downgrade-pipeline
+
+./ci/tasks/scripts/watsjs test/smoke.js
