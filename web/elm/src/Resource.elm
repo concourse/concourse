@@ -51,6 +51,7 @@ import Html.Styled.Attributes
 import Html.Styled.Events
     exposing
         ( onClick
+        , onFocus
         , onInput
         , onMouseEnter
         , onMouseLeave
@@ -58,6 +59,7 @@ import Html.Styled.Events
         , onMouseOver
         )
 import Http
+import Keycodes
 import List.Extra
 import Maybe.Extra as ME
 import NewTopBar.Styles as Styles
@@ -135,6 +137,7 @@ init flags =
                 , pinnedResources = []
                 , showPinIconDropDown = False
                 , pinCommentLoading = False
+                , ctrlDown = False
                 }
     in
     ( model
@@ -668,6 +671,30 @@ update action model =
             , [ SetPinComment model.resourceIdentifier model.csrfToken comment ]
             )
 
+        FocusTextArea ->
+            ( model, [] )
+
+        KeyDowns code ->
+            if code == Keycodes.ctrl then
+                ( { model | ctrlDown = True }, [] )
+
+            else if code == Keycodes.enter && model.ctrlDown then
+                ( model
+                , case model.pinnedVersion of
+                    PinnedDynamicallyTo { comment } _ ->
+                        [ SetPinComment
+                            model.resourceIdentifier
+                            model.csrfToken
+                            comment
+                        ]
+
+                    _ ->
+                        []
+                )
+
+            else
+                ( model, [] )
+
 
 updateVersion :
     Models.VersionId
@@ -1190,6 +1217,7 @@ commentBar ({ pinnedVersion, hovered, pinCommentLoading } as params) =
                             , onInput EditComment
                             , value commentState.comment
                             , placeholder "enter a comment"
+                            , onFocus FocusTextArea
                             ]
                             []
                         , Html.button
@@ -1671,4 +1699,5 @@ subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
     [ OnClockTick (5 * Time.second) AutoupdateTimerTicked
     , OnClockTick Time.second ClockTick
+    , OnKeyDown
     ]

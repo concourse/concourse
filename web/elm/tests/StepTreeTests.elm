@@ -15,7 +15,6 @@ module StepTreeTests exposing
 import Ansi.Log
 import Array
 import Build.Models as Models
-import Build.Msgs as Msgs
 import Build.StepTree as StepTree
 import Concourse exposing (BuildStep(..), HookedPlan)
 import Dict
@@ -40,12 +39,12 @@ all =
         ]
 
 
-someStep : Msgs.StepID -> Models.StepName -> Models.StepState -> Models.Step
+someStep : Models.StepID -> Models.StepName -> Models.StepState -> Models.Step
 someStep =
     someVersionedStep Nothing
 
 
-someVersionedStep : Maybe Models.Version -> Msgs.StepID -> Models.StepName -> Models.StepState -> Models.Step
+someVersionedStep : Maybe Models.Version -> Models.StepID -> Models.StepName -> Models.StepState -> Models.Step
 someVersionedStep version id name state =
     { id = id
     , name = name
@@ -480,7 +479,7 @@ updateStep f tree =
             tree
 
 
-assertFocus : Msgs.StepID -> Dict.Dict Msgs.StepID Models.StepFocus -> Models.StepTree -> (Models.Step -> Models.Step) -> Models.StepTree -> Expectation
+assertFocus : Models.StepID -> Dict.Dict Models.StepID Models.StepFocus -> Models.StepTree -> (Models.Step -> Models.Step) -> Models.StepTree -> Expectation
 assertFocus id foci tree update expected =
     case Dict.get id foci of
         Nothing ->

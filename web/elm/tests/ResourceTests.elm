@@ -20,6 +20,7 @@ import Http
 import Resource
 import Resource.Models as Models
 import Resource.Msgs as Msgs
+import Subscription
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -1190,6 +1191,14 @@ all =
                                     |> Query.find [ tag "pre" ]
                                     |> Query.has
                                         [ style [ ( "overflow-y", "auto" ) ] ]
+                        , test "pre has padding" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "pre" ]
+                                    |> Query.has
+                                        [ style [ ( "padding", "10px" ) ] ]
                         , test "contains a spacer at the bottom" <|
                             \_ ->
                                 init
@@ -1257,6 +1266,15 @@ all =
                                     |> textarea
                                     |> Query.has
                                         [ style [ ( "resize", "none" ) ] ]
+                        , test "textarea has padding" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> textarea
+                                    |> Query.has
+                                        [ style [ ( "padding", "10px" ) ] ]
                         , test "textarea matches app font" <|
                             \_ ->
                                 init
@@ -1382,6 +1400,43 @@ all =
                                         ]
                                     }
                                 }
+                            , test "focusing textarea triggers FocusTextArea msg" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> commentBar
+                                        |> Query.find [ tag "textarea" ]
+                                        |> Event.simulate Event.focus
+                                        |> Event.expect Msgs.FocusTextArea
+                            , test "keydown subscription active when textarea is focused" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenTextareaFocused
+                                        |> Resource.subscriptions
+                                        |> List.member Subscription.OnKeyDown
+                                        |> Expect.true "why are we not subscribed to keydowns!?"
+                            , test "Ctrl-Enter sends SaveComment msg" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> givenTextareaFocused
+                                        |> givenControlKeyDown
+                                        |> pressEnterKey
+                                        |> Tuple.second
+                                        |> Expect.equal
+                                            [ Effects.SetPinComment
+                                                { teamName = teamName
+                                                , pipelineName = pipelineName
+                                                , resourceName = resourceName
+                                                }
+                                                "csrf_token"
+                                                "foo"
+                                            ]
                             , test "button click sends SaveComment msg" <|
                                 \_ ->
                                     init
@@ -2918,6 +2973,23 @@ givenVersionsWithPagination =
                 )
         )
         >> Tuple.first
+
+
+givenTextareaFocused : Models.Model -> Models.Model
+givenTextareaFocused =
+    Resource.update Msgs.FocusTextArea
+        >> Tuple.first
+
+
+givenControlKeyDown : Models.Model -> Models.Model
+givenControlKeyDown =
+    Resource.update (Msgs.KeyDowns 17)
+        >> Tuple.first
+
+
+pressEnterKey : Models.Model -> ( Models.Model, List Effects.Effect )
+pressEnterKey =
+    Resource.update (Msgs.KeyDowns 13)
 
 
 versionSelector : String -> List Selector

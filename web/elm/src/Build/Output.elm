@@ -4,6 +4,7 @@ module Build.Output exposing
     , handleStepTreeMsg
     , init
     , planAndResourcesFetched
+    , subscribeToEvents
     , view
     )
 
@@ -11,21 +12,24 @@ import Ansi.Log
 import Array exposing (Array)
 import Build.Models
     exposing
-        ( OutputModel
+        ( BuildEvent(..)
+        , OutputModel
         , OutputState(..)
+        , StepID
         , StepState(..)
         , StepTree
         , StepTreeModel
         )
-import Build.Msgs exposing (Msg(..), StepID)
+import Build.Msgs exposing (EventsMsg(..), Msg(..))
 import Build.StepTree as StepTree
 import Build.Styles as Styles
 import Concourse
-import Concourse.BuildEvents
+import Concourse.BuildEvents as BuildEvents
 import Concourse.BuildStatus
 import Date exposing (Date)
 import Dict exposing (Dict)
 import Effects exposing (Effect(..))
+import EventSource
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -40,7 +44,7 @@ import Html.Attributes
 import Http
 import LoadingIndicator
 import NotAuthorized
-import Subscription exposing (Subscription(..))
+import Subscription
 
 
 type OutMsg
@@ -109,7 +113,7 @@ planAndResourcesFetched buildId result model =
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
-                        { model | events = Just (subscribeToEvents buildId) }
+                        { model | events = Just buildId }
 
                     else
                         model
@@ -121,7 +125,7 @@ planAndResourcesFetched buildId result model =
         Ok ( plan, resources ) ->
             { model
                 | steps = Just (StepTree.init model.highlight resources plan)
-                , events = Just (subscribeToEvents buildId)
+                , events = Just buildId
             }
     , []
     , OutNoop
@@ -129,15 +133,15 @@ planAndResourcesFetched buildId result model =
 
 
 handleEventsMsg :
-    Concourse.BuildEvents.Msg
+    EventsMsg
     -> OutputModel
     -> ( OutputModel, List Effect, OutMsg )
 handleEventsMsg action model =
     case action of
-        Concourse.BuildEvents.Opened ->
+        Opened ->
             ( { model | eventSourceOpened = True }, [], OutNoop )
 
-        Concourse.BuildEvents.Errored ->
+        Errored ->
             if model.eventSourceOpened then
                 -- connection could have dropped out of the blue; just let the browser
                 -- handle reconnecting
@@ -148,16 +152,16 @@ handleEventsMsg action model =
                 -- really tell
                 ( { model | state = NotAuthorized }, [], OutNoop )
 
-        Concourse.BuildEvents.Events (Ok events) ->
+        Events (Ok events) ->
             Array.foldl handleEvent_ ( model, [], OutNoop ) events
 
-        Concourse.BuildEvents.Events (Err err) ->
+        Events (Err err) ->
             flip always (Debug.log "failed to get event" err) <|
                 ( model, [], OutNoop )
 
 
 handleEvent_ :
-    Concourse.BuildEvents.BuildEvent
+    BuildEvent
     -> ( OutputModel, List Effect, OutMsg )
     -> ( OutputModel, List Effect, OutMsg )
 handleEvent_ ev ( m, msgpassedin, outmsgpassedin ) =
@@ -180,54 +184,54 @@ handleEvent_ ev ( m, msgpassedin, outmsgpassedin ) =
 
 
 handleEvent :
-    Concourse.BuildEvents.BuildEvent
+    BuildEvent
     -> OutputModel
     -> ( OutputModel, List Effect, OutMsg )
 handleEvent event model =
     case event of
-        Concourse.BuildEvents.Log origin output time ->
+        Log origin output time ->
             ( updateStep origin.id (setRunning << appendStepLog output time) model
             , []
             , OutNoop
             )
 
-        Concourse.BuildEvents.Error origin message ->
+        Error origin message ->
             ( updateStep origin.id (setStepError message) model
             , []
             , OutNoop
             )
 
-        Concourse.BuildEvents.Initialize origin ->
+        Initialize origin ->
             ( updateStep origin.id setRunning model
             , []
             , OutNoop
             )
 
-        Concourse.BuildEvents.StartTask origin ->
+        StartTask origin ->
             ( updateStep origin.id setRunning model
             , []
             , OutNoop
             )
 
-        Concourse.BuildEvents.FinishTask origin exitStatus ->
+        FinishTask origin exitStatus ->
             ( updateStep origin.id (finishStep exitStatus) model
             , []
             , OutNoop
             )
 
-        Concourse.BuildEvents.FinishGet origin exitStatus version metadata ->
+        FinishGet origin exitStatus version metadata ->
             ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
             , []
             , OutNoop
             )
 
-        Concourse.BuildEvents.FinishPut origin exitStatus version metadata ->
+        FinishPut origin exitStatus version metadata ->
             ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
             , []
             , OutNoop
             )
 
-        Concourse.BuildEvents.BuildStatus status date ->
+        BuildStatus status date ->
             case model.steps of
                 Just st ->
                     let
@@ -243,7 +247,7 @@ handleEvent event model =
                 Nothing ->
                     ( model, [], OutBuildStatus status date )
 
-        Concourse.BuildEvents.BuildError message ->
+        BuildError message ->
             ( { model
                 | errors =
                     Just <|
@@ -254,7 +258,7 @@ handleEvent event model =
             , OutNoop
             )
 
-        Concourse.BuildEvents.End ->
+        End ->
             ( { model | state = StepsComplete, events = Nothing }, [], OutNoop )
 
 
@@ -329,9 +333,28 @@ setStepState state tree =
     StepTree.map (\step -> { step | state = state }) tree
 
 
-subscribeToEvents : Int -> Subscription Msg
+subscribeToEvents : Int -> Subscription.Subscription Msg
 subscribeToEvents buildId =
-    Subscription.map BuildEventsMsg (Concourse.BuildEvents.subscribe buildId)
+    Subscription.map BuildEventsMsg
+        (Subscription.FromEventSource
+            ( "/api/v1/builds/" ++ toString buildId ++ "/events"
+            , [ "end", "event" ]
+            )
+            parseMsg
+        )
+
+
+parseMsg : EventSource.Msg -> EventsMsg
+parseMsg msg =
+    case msg of
+        EventSource.Events evs ->
+            Events (BuildEvents.parseEvents evs)
+
+        EventSource.Opened ->
+            Opened
+
+        EventSource.Errored ->
+            Errored
 
 
 view : Concourse.Build -> OutputModel -> Html Msg

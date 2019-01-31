@@ -6,7 +6,6 @@ import Build.Models as Models
 import Build.Msgs as Msgs
 import Callback
 import Concourse exposing (BuildPrepStatus(..))
-import Concourse.BuildEvents as BuildEvents
 import DashboardTests
     exposing
         ( defineHoverBehaviour
@@ -326,7 +325,7 @@ all =
                                     , image = "ic-add-circle-outline-white.svg"
                                     }
                         }
-                    , mouseEnterMsg = Msgs.Hover <| Just Msgs.Trigger
+                    , mouseEnterMsg = Msgs.Hover <| Just Models.Trigger
                     , mouseLeaveMsg = Msgs.Hover Nothing
                     }
                 ]
@@ -400,7 +399,7 @@ all =
                                         }
                             ]
                         }
-                    , mouseEnterMsg = Msgs.Hover <| Just Msgs.Trigger
+                    , mouseEnterMsg = Msgs.Hover <| Just Models.Trigger
                     , mouseLeaveMsg = Msgs.Hover Nothing
                     }
                 ]
@@ -515,7 +514,7 @@ all =
                                 , image = "ic-abort-circle-outline-white.svg"
                                 }
                     }
-                , mouseEnterMsg = Msgs.Hover <| Just Msgs.Abort
+                , mouseEnterMsg = Msgs.Hover <| Just Models.Abort
                 , mouseLeaveMsg = Msgs.Hover Nothing
                 }
             , describe "build prep section"
@@ -831,11 +830,11 @@ all =
                             >> Query.first
                             >> Event.simulate Event.mouseEnter
                             >> Event.expect
-                                (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                                (Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                     , test "no tooltip before 1 second has passed" <|
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> Build.update
-                                (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                                (Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
                             >> Build.view
                             >> Query.fromHtml
@@ -853,7 +852,7 @@ all =
                             >> Build.update (Msgs.ClockTick 0)
                             >> Tuple.first
                             >> Build.update
-                                (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                                (Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
                             >> Build.update (Msgs.ClockTick 1)
                             >> Tuple.first
@@ -907,7 +906,7 @@ all =
                     , test "mousing off yellow arrow triggers Hover message" <|
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> Build.update
-                                (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                                (Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
                             >> Build.view
                             >> Query.fromHtml
@@ -926,7 +925,7 @@ all =
                             >> Build.update (Msgs.ClockTick 0)
                             >> Tuple.first
                             >> Build.update
-                                (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                                (Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
                             >> Build.update (Msgs.ClockTick 1)
                             >> Tuple.first
@@ -948,7 +947,7 @@ all =
                     fetchPlanWithGetStepWithFirstOccurrence
                         >> Build.update (Msgs.ClockTick 0)
                         >> Tuple.first
-                        >> Build.update (Msgs.Hover <| Just <| Msgs.FirstOccurrence "foo")
+                        >> Build.update (Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                         >> Tuple.first
                         >> Build.update (Msgs.ClockTick 1)
                         >> Tuple.first
@@ -958,14 +957,14 @@ all =
                         >> Query.count (Expect.equal 1)
                 , test "successful step has a checkmark at the far right" <|
                     fetchPlanWithGetStep
-                        >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)
+                        >> Build.update (Msgs.BuildEventsMsg Msgs.Opened)
                         >> Tuple.first
                         >> Build.update
                             (Msgs.BuildEventsMsg <|
-                                BuildEvents.Events <|
+                                Msgs.Events <|
                                     Ok <|
                                         Array.fromList
-                                            [ BuildEvents.FinishGet
+                                            [ Models.FinishGet
                                                 { source = "stdout", id = "plan" }
                                                 0
                                                 Dict.empty
@@ -987,14 +986,14 @@ all =
                             )
                 , test "get step lists resource version on the right" <|
                     fetchPlanWithGetStep
-                        >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)
+                        >> Build.update (Msgs.BuildEventsMsg Msgs.Opened)
                         >> Tuple.first
                         >> Build.update
                             (Msgs.BuildEventsMsg <|
-                                BuildEvents.Events <|
+                                Msgs.Events <|
                                     Ok <|
                                         Array.fromList
-                                            [ BuildEvents.FinishGet
+                                            [ Models.FinishGet
                                                 { source = "stdout", id = "plan" }
                                                 0
                                                 (Dict.fromList [ ( "version", "v3.1.4" ) ])
@@ -1012,10 +1011,10 @@ all =
                     fetchPlanWithTaskStep
                         >> Build.update
                             (Msgs.BuildEventsMsg <|
-                                BuildEvents.Events <|
+                                Msgs.Events <|
                                     Ok <|
                                         Array.fromList
-                                            [ BuildEvents.StartTask
+                                            [ Models.StartTask
                                                 { source = "stdout"
                                                 , id = "plan"
                                                 }
@@ -1036,14 +1035,14 @@ all =
                             ]
                 , test "failing step has an X at the far right" <|
                     fetchPlanWithGetStep
-                        >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)
+                        >> Build.update (Msgs.BuildEventsMsg Msgs.Opened)
                         >> Tuple.first
                         >> Build.update
                             (Msgs.BuildEventsMsg <|
-                                BuildEvents.Events <|
+                                Msgs.Events <|
                                     Ok <|
                                         Array.fromList
-                                            [ BuildEvents.FinishGet
+                                            [ Models.FinishGet
                                                 { source = "stdout", id = "plan" }
                                                 1
                                                 Dict.empty
@@ -1065,14 +1064,14 @@ all =
                             )
                 , test "erroring step has orange exclamation triangle at right" <|
                     fetchPlanWithGetStep
-                        >> Build.update (Msgs.BuildEventsMsg BuildEvents.Opened)
+                        >> Build.update (Msgs.BuildEventsMsg Msgs.Opened)
                         >> Tuple.first
                         >> Build.update
                             (Msgs.BuildEventsMsg <|
-                                BuildEvents.Events <|
+                                Msgs.Events <|
                                     Ok <|
                                         Array.fromList
-                                            [ BuildEvents.Error
+                                            [ Models.Error
                                                 { source = "stderr", id = "plan" }
                                                 "error message"
                                             ]
@@ -1096,17 +1095,17 @@ all =
                         erroringBuild =
                             fetchPlanWithGetStep
                                 >> Build.update
-                                    (Msgs.BuildEventsMsg BuildEvents.Errored)
+                                    (Msgs.BuildEventsMsg Msgs.Errored)
                                 >> Tuple.first
                     in
                     [ test "has orange exclamation triangle at left" <|
                         erroringBuild
                             >> Build.update
                                 (Msgs.BuildEventsMsg <|
-                                    BuildEvents.Events <|
+                                    Msgs.Events <|
                                         Ok <|
                                             Array.fromList
-                                                [ BuildEvents.BuildError
+                                                [ Models.BuildError
                                                     "error message"
                                                 ]
                                 )

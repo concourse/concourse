@@ -274,6 +274,7 @@ commentTextArea =
     , ( "resize", "none" )
     , ( "margin", "10px 0" )
     , ( "flex-grow", "1" )
+    , ( "padding", "10px" )
     ]
 
 
@@ -282,6 +283,7 @@ commentText =
     [ ( "margin", "10px 0" )
     , ( "flex-grow", "1" )
     , ( "overflow-y", "auto" )
+    , ( "padding", "10px" )
     ]
 
 

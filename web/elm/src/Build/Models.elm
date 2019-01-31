@@ -1,14 +1,18 @@
 module Build.Models exposing
-    ( Highlight(..)
+    ( BuildEvent(..)
+    , Highlight(..)
     , HookedStep
+    , Hoverable(..)
     , MetadataField
     , Model
+    , Origin
     , OutputModel
     , OutputState(..)
     , Page(..)
     , Step
     , StepFocus
     , StepHeaderType(..)
+    , StepID
     , StepName
     , StepState(..)
     , StepTree(..)
@@ -19,13 +23,11 @@ module Build.Models exposing
 
 import Ansi.Log
 import Array exposing (Array)
-import Build.Msgs exposing (Hoverable, Msg, StepID)
 import Concourse
 import Date exposing (Date)
 import Dict exposing (Dict)
 import Focus exposing (Focus)
 import RemoteData exposing (WebData)
-import Subscription exposing (Subscription)
 import Time exposing (Time)
 
 
@@ -69,6 +71,16 @@ type StepHeaderType
     | StepHeaderTask
 
 
+type alias StepID =
+    String
+
+
+type Hoverable
+    = Abort
+    | Trigger
+    | FirstOccurrence StepID
+
+
 
 -- Output
 
@@ -78,7 +90,7 @@ type alias OutputModel =
     , errors : Maybe Ansi.Log.Model
     , state : OutputState
     , eventSourceOpened : Bool
-    , events : Maybe (Subscription Msg)
+    , events : Maybe Int
     , highlight : Highlight
     }
 
@@ -173,3 +185,22 @@ type alias HookedStep =
 type TabFocus
     = Auto
     | User
+
+
+type BuildEvent
+    = BuildStatus Concourse.BuildStatus Date
+    | Initialize Origin
+    | StartTask Origin
+    | FinishTask Origin Int
+    | FinishGet Origin Int Concourse.Version Concourse.Metadata
+    | FinishPut Origin Int Concourse.Version Concourse.Metadata
+    | Log Origin String (Maybe Date)
+    | Error Origin String
+    | BuildError String
+    | End
+
+
+type alias Origin =
+    { source : String
+    , id : String
+    }

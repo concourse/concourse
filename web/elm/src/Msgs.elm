@@ -2,6 +2,7 @@ module Msgs exposing (Msg(..), NavIndex)
 
 import Callback exposing (Callback)
 import Effects
+import Keyboard
 import Routes
 import SubPage.Msgs
 import TopBar.Msgs
@@ -19,3 +20,4 @@ type Msg
     | ModifyUrl String
     | TokenReceived (Maybe String)
     | Callback Effects.LayoutDispatch Callback
+    | KeyDown Keyboard.KeyCode

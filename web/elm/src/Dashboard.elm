@@ -647,7 +647,7 @@ subscriptions model =
     , OnMouseMove ShowFooter
     , OnMouseClick ShowFooter
     , OnKeyPress KeyPressed
-    , OnKeyDown KeyDowns
+    , OnKeyDown
     , OnWindowResize Msgs.ResizeScreen
     ]
 

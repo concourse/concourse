@@ -10,8 +10,14 @@ module Build exposing
     , view
     )
 
-import Build.Models as Models exposing (Model, OutputModel, Page(..))
-import Build.Msgs exposing (Hoverable(..), Msg(..))
+import Build.Models as Models
+    exposing
+        ( Hoverable(..)
+        , Model
+        , OutputModel
+        , Page(..)
+        )
+import Build.Msgs exposing (Msg(..))
 import Build.Output
 import Build.StepTree as StepTree
 import Build.Styles as Styles
@@ -128,6 +134,7 @@ subscriptions model =
         |> RemoteData.toMaybe
         |> Maybe.andThen .output
         |> Maybe.andThen .events
+        |> Maybe.map Build.Output.subscribeToEvents
         |> WhenPresent
     ]
 

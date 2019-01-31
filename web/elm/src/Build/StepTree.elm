@@ -18,10 +18,12 @@ import Build.Models
     exposing
         ( Highlight(..)
         , HookedStep
+        , Hoverable(..)
         , MetadataField
         , Step
         , StepFocus
         , StepHeaderType(..)
+        , StepID
         , StepName
         , StepState(..)
         , StepTree(..)
@@ -29,7 +31,7 @@ import Build.Models
         , TabFocus(..)
         , Version
         )
-import Build.Msgs exposing (Hoverable(..), Msg(..), StepID)
+import Build.Msgs exposing (Msg(..))
 import Build.Styles as Styles
 import Concourse
 import Date exposing (Date)

@@ -68,6 +68,7 @@ type alias Model =
     , pinnedResources : List ( String, Concourse.Version )
     , showPinIconDropDown : Bool
     , pinCommentLoading : Bool
+    , ctrlDown : Bool
     }
 
 

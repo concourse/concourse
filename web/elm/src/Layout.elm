@@ -11,6 +11,7 @@ module Layout exposing
 
 import Callback exposing (Callback(..))
 import Concourse
+import Dashboard.Msgs
 import Effects exposing (Effect(..), LayoutDispatch(..))
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id, style)
@@ -18,6 +19,7 @@ import Http
 import Json.Decode
 import Msgs exposing (Msg(..), NavIndex)
 import Navigation
+import Resource.Msgs
 import Routes
 import SubPage
 import SubPage.Msgs
@@ -289,6 +291,27 @@ update msg model =
 
         Callback dispatch callback ->
             handleCallback dispatch callback model
+
+        KeyDown keycode ->
+            case model.subModel of
+                SubPage.DashboardModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.DashboardMsg <|
+                                Dashboard.Msgs.KeyDowns keycode
+                        )
+                        model
+
+                SubPage.ResourceModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.ResourceMsg <|
+                                Resource.Msgs.KeyDowns keycode
+                        )
+                        model
+
+                _ ->
+                    ( model, [] )
 
 
 redirectToLoginIfNecessary : Http.Error -> NavIndex -> List ( LayoutDispatch, Effect )
