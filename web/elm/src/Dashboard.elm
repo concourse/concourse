@@ -42,7 +42,6 @@ import Monocle.Common exposing ((<|>), (=>))
 import Monocle.Lens
 import Monocle.Optional
 import MonocleHelpers exposing (..)
-import Mouse
 import NewTopBar.Msgs
 import NewestTopBar as NewTopBar
 import Regex exposing (HowMany(All), regex, replace)

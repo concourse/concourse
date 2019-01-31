@@ -346,7 +346,7 @@ showSearchInput model =
 
 view : Model -> Html Msg
 view model =
-    Html.div [ id "top-bar-app", style Styles.topBarCSS ] <|
+    Html.div [ id "top-bar-app", style Styles.topBar ] <|
         viewConcourseLogo
             ++ viewBreadcrumbs model
             ++ viewMiddleSection model
@@ -380,7 +380,7 @@ viewBreadcrumbs model =
 viewLogin : Model -> List (Html Msg)
 viewLogin model =
     if model.screenSize /= Mobile || model.searchBar == Collapsed then
-        [ Html.div [ id "login-component", style Styles.loginComponentCSS ] <| viewLoginState model ]
+        [ Html.div [ id "login-component", style Styles.loginComponent ] <| viewLoginState model ]
 
     else
         []
@@ -398,21 +398,21 @@ viewLoginState { userState, isUserMenuExpanded } =
                 , HA.attribute "aria-label" "Log In"
                 , id "login-container"
                 , onClick LogIn
-                , style Styles.loginContainerCSS
+                , style Styles.loginContainer
                 ]
-                [ Html.div [ style Styles.loginItemCSS, id "login-item" ] [ Html.a [ href "/sky/login" ] [ Html.text "login" ] ] ]
+                [ Html.div [ style Styles.loginItem, id "login-item" ] [ Html.a [ href "/sky/login" ] [ Html.text "login" ] ] ]
             ]
 
         UserStateLoggedIn user ->
             [ Html.div
                 [ id "login-container"
                 , onClick ToggleUserMenu
-                , style Styles.loginContainerCSS
+                , style Styles.loginContainer
                 ]
-                [ Html.div [ id "user-id", style Styles.loginItemCSS ]
-                    ([ Html.div [ style Styles.loginTextCSS ] [ Html.text (userDisplayName user) ] ]
+                [ Html.div [ id "user-id", style Styles.loginItem ]
+                    ([ Html.div [ style Styles.loginText ] [ Html.text (userDisplayName user) ] ]
                         ++ (if isUserMenuExpanded then
-                                [ Html.div [ id "logout-button", style Styles.logoutButtonCSS, onClick LogOut ] [ Html.text "logout" ] ]
+                                [ Html.div [ id "logout-button", style Styles.logoutButton, onClick LogOut ] [ Html.text "logout" ] ]
 
                             else
                                 []
@@ -427,11 +427,11 @@ viewMiddleSection model =
     if model.hasPipelines && not model.highDensity then
         case model.searchBar of
             Collapsed ->
-                [ Html.div [ style <| Styles.showSearchContainerCSS model ]
+                [ Html.div [ style <| Styles.showSearchContainer model ]
                     [ Html.a
                         [ id "show-search-button"
                         , onClick ShowSearchInput
-                        , style Styles.searchButtonCSS
+                        , style Styles.searchButton
                         ]
                         []
                     ]
@@ -448,11 +448,11 @@ viewSearch : Model -> List (Html Msg)
 viewSearch model =
     [ Html.div
         [ id "search-container"
-        , style (Styles.searchContainerCSS model.screenSize)
+        , style (Styles.searchContainer model.screenSize)
         ]
         ([ Html.input
             [ id "search-input-field"
-            , style (Styles.searchInputCSS model.screenSize)
+            , style (Styles.searchInput model.screenSize)
             , placeholder "search"
             , value (query model)
             , onFocus FocusMsg
@@ -463,14 +463,14 @@ viewSearch model =
          , Html.div
             [ id "search-clear"
             , onClick (FilterMsg "")
-            , style (Styles.searchClearButtonCSS (String.length (query model) > 0))
+            , style (Styles.searchClearButton (String.length (query model) > 0))
             ]
             []
          ]
             ++ (if showAutocomplete model then
                     [ Html.ul
                         [ id "search-dropdown"
-                        , style (Styles.dropdownContainerCSS model.screenSize)
+                        , style (Styles.dropdownContainer model.screenSize)
                         ]
                         (viewDropdownItems model)
                     ]
@@ -498,7 +498,7 @@ viewDropdownItems model =
         dropdownItem idx text =
             Html.li
                 [ onMouseDown (FilterMsg text)
-                , style (Styles.dropdownItemCSS (Just idx == selectedIdx))
+                , style (Styles.dropdownItem (Just idx == selectedIdx))
                 ]
                 [ Html.text text ]
 
@@ -543,7 +543,7 @@ showAutocomplete model =
 viewConcourseLogo : List (Html Msg)
 viewConcourseLogo =
     [ Html.a
-        [ style Styles.concourseLogoCSS, href "#" ]
+        [ style Styles.concourseLogo, href "#" ]
         []
     ]
 
@@ -551,7 +551,7 @@ viewConcourseLogo =
 breadcrumbComponent : String -> String -> List (Html Msg)
 breadcrumbComponent componentType name =
     [ Html.div
-        [ style (Styles.breadcrumbComponentCSS componentType) ]
+        [ style (Styles.breadcrumbComponent componentType) ]
         []
     , Html.text <| decodeName name
     ]
@@ -559,12 +559,12 @@ breadcrumbComponent componentType name =
 
 viewBreadcrumbSeparator : Html Msg
 viewBreadcrumbSeparator =
-    Html.li [ class "breadcrumb-separator", style Styles.breadcrumbContainerCSS ] [ Html.text "/" ]
+    Html.li [ class "breadcrumb-separator", style Styles.breadcrumbContainer ] [ Html.text "/" ]
 
 
 viewPipelineBreadcrumb : String -> String -> List (Html Msg)
 viewPipelineBreadcrumb url pipelineName =
-    [ Html.li [ style Styles.breadcrumbContainerCSS, id "breadcrumb-pipeline" ]
+    [ Html.li [ style Styles.breadcrumbContainer, id "breadcrumb-pipeline" ]
         [ Html.a
             [ href url ]
           <|
@@ -575,12 +575,12 @@ viewPipelineBreadcrumb url pipelineName =
 
 viewJobBreadcrumb : String -> List (Html Msg)
 viewJobBreadcrumb jobName =
-    [ Html.li [ id "breadcrumb-job", style Styles.breadcrumbContainerCSS ] <| breadcrumbComponent "job" jobName ]
+    [ Html.li [ id "breadcrumb-job", style Styles.breadcrumbContainer ] <| breadcrumbComponent "job" jobName ]
 
 
 viewResourceBreadcrumb : String -> List (Html Msg)
 viewResourceBreadcrumb resourceName =
-    [ Html.li [ id "breadcrumb-resource", style Styles.breadcrumbContainerCSS ] <| breadcrumbComponent "resource" resourceName ]
+    [ Html.li [ id "breadcrumb-resource", style Styles.breadcrumbContainer ] <| breadcrumbComponent "resource" resourceName ]
 
 
 decodeName : String -> String

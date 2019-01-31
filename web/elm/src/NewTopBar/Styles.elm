@@ -1,21 +1,21 @@
 module NewTopBar.Styles exposing
-    ( breadcrumbComponentCSS
-    , breadcrumbContainerCSS
-    , concourseLogoCSS
-    , dropdownContainerCSS
-    , dropdownItemCSS
-    , loginComponentCSS
-    , loginContainerCSS
-    , loginItemCSS
-    , loginTextCSS
-    , logoutButtonCSS
+    ( breadcrumbComponent
+    , breadcrumbContainer
+    , concourseLogo
+    , dropdownContainer
+    , dropdownItem
+    , loginComponent
+    , loginContainer
+    , loginItem
+    , loginText
+    , logoutButton
     , pageHeaderHeight
-    , searchButtonCSS
-    , searchClearButtonCSS
-    , searchContainerCSS
-    , searchInputCSS
-    , showSearchContainerCSS
-    , topBarCSS
+    , searchButton
+    , searchClearButton
+    , searchContainer
+    , searchInput
+    , showSearchContainer
+    , topBar
     )
 
 import ScreenSize exposing (ScreenSize(..))
@@ -27,8 +27,8 @@ pageHeaderHeight =
     54
 
 
-topBarCSS : List ( String, String )
-topBarCSS =
+topBar : List ( String, String )
+topBar =
     [ ( "position", "fixed" )
     , ( "top", "0" )
     , ( "width", "100%" )
@@ -40,14 +40,14 @@ topBarCSS =
     ]
 
 
-showSearchContainerCSS :
+showSearchContainer :
     { a
         | searchBar : SearchBar
         , screenSize : ScreenSize
         , highDensity : Bool
     }
     -> List ( String, String )
-showSearchContainerCSS { searchBar, screenSize, highDensity } =
+showSearchContainer { searchBar, screenSize, highDensity } =
     let
         flexLayout =
             if highDensity then
@@ -82,8 +82,8 @@ showSearchContainerCSS { searchBar, screenSize, highDensity } =
         ++ flexLayout
 
 
-searchContainerCSS : ScreenSize -> List ( String, String )
-searchContainerCSS screenSize =
+searchContainer : ScreenSize -> List ( String, String )
+searchContainer screenSize =
     [ ( "display", "flex" )
     , ( "flex-direction", "column" )
     , ( "margin", "12px" )
@@ -99,8 +99,8 @@ searchContainerCSS screenSize =
            )
 
 
-searchInputCSS : ScreenSize -> List ( String, String )
-searchInputCSS screenSize =
+searchInput : ScreenSize -> List ( String, String )
+searchInput screenSize =
     let
         widthStyles =
             case screenSize of
@@ -128,8 +128,8 @@ searchInputCSS screenSize =
         ++ widthStyles
 
 
-searchClearButtonCSS : Bool -> List ( String, String )
-searchClearButtonCSS active =
+searchClearButton : Bool -> List ( String, String )
+searchClearButton active =
     let
         opacityValue =
             if active then
@@ -150,8 +150,8 @@ searchClearButtonCSS active =
     ]
 
 
-searchButtonCSS : List ( String, String )
-searchButtonCSS =
+searchButton : List ( String, String )
+searchButton =
     [ ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
     , ( "background-repeat", "no-repeat" )
     , ( "background-position", "12px 8px" )
@@ -162,8 +162,8 @@ searchButtonCSS =
     ]
 
 
-logoutButtonCSS : List ( String, String )
-logoutButtonCSS =
+logoutButton : List ( String, String )
+logoutButton =
     [ ( "position", "absolute" )
     , ( "top", "55px" )
     , ( "background-color", "#1e1d1d" )
@@ -178,8 +178,8 @@ logoutButtonCSS =
     ]
 
 
-concourseLogoCSS : List ( String, String )
-concourseLogoCSS =
+concourseLogo : List ( String, String )
+concourseLogo =
     [ ( "background-image", "url(/public/images/concourse-logo-white.svg)" )
     , ( "background-position", "50% 50%" )
     , ( "background-repeat", "no-repeat" )
@@ -190,8 +190,8 @@ concourseLogoCSS =
     ]
 
 
-breadcrumbComponentCSS : String -> List ( String, String )
-breadcrumbComponentCSS componentType =
+breadcrumbComponent : String -> List ( String, String )
+breadcrumbComponent componentType =
     [ ( "background-image", "url(/public/images/ic-breadcrumb-" ++ componentType ++ ".svg)" )
     , ( "background-repeat", "no-repeat" )
     , ( "background-size", "contain" )
@@ -203,8 +203,8 @@ breadcrumbComponentCSS componentType =
     ]
 
 
-breadcrumbContainerCSS : List ( String, String )
-breadcrumbContainerCSS =
+breadcrumbContainer : List ( String, String )
+breadcrumbContainer =
     [ ( "display", "inline-block" )
     , ( "vertical-align", "middle" )
     , ( "font-size", "18px" )
@@ -213,13 +213,13 @@ breadcrumbContainerCSS =
     ]
 
 
-loginComponentCSS : List ( String, String )
-loginComponentCSS =
+loginComponent : List ( String, String )
+loginComponent =
     [ ( "max-width", "20%" ) ]
 
 
-loginContainerCSS : List ( String, String )
-loginContainerCSS =
+loginContainer : List ( String, String )
+loginContainer =
     [ ( "position", "relative" )
     , ( "display", "flex" )
     , ( "flex-direction", "column" )
@@ -228,8 +228,8 @@ loginContainerCSS =
     ]
 
 
-loginItemCSS : List ( String, String )
-loginItemCSS =
+loginItem : List ( String, String )
+loginItem =
     [ ( "padding", "0 30px" )
     , ( "cursor", "pointer" )
     , ( "display", "flex" )
@@ -239,15 +239,15 @@ loginItemCSS =
     ]
 
 
-loginTextCSS : List ( String, String )
-loginTextCSS =
+loginText : List ( String, String )
+loginText =
     [ ( "overflow", "hidden" )
     , ( "text-overflow", "ellipsis" )
     ]
 
 
-dropdownContainerCSS : ScreenSize -> List ( String, String )
-dropdownContainerCSS screenSize =
+dropdownContainer : ScreenSize -> List ( String, String )
+dropdownContainer screenSize =
     [ ( "top", "100%" )
     , ( "margin", "0" )
     , ( "width", "100%" )
@@ -261,8 +261,8 @@ dropdownContainerCSS screenSize =
            )
 
 
-dropdownItemCSS : Bool -> List ( String, String )
-dropdownItemCSS isSelected =
+dropdownItem : Bool -> List ( String, String )
+dropdownItem isSelected =
     let
         coloration =
             if isSelected then
