@@ -413,16 +413,15 @@ viewLoginState { userState, isUserMenuExpanded } =
                 , onClick ToggleUserMenu
                 , style Styles.loginContainerCSS
                 ]
-                [ Html.div []
-                    [ Html.div [ id "login-item", style Styles.loginItemCSS ]
-                        [ Html.div [ style Styles.loginTextCSS ] [ Html.text (userDisplayName user) ]
-                        , if isUserMenuExpanded then
-                            Html.div [ id "logout-button", style Styles.logoutButtonCSS, onClick LogOut ] [ Html.text "logout" ]
+                [ Html.div [ id "user-id", style Styles.loginItemCSS ]
+                    ([ Html.div [ style Styles.loginTextCSS ] [ Html.text (userDisplayName user) ] ]
+                        ++ (if isUserMenuExpanded then
+                                [ Html.div [ id "logout-button", style Styles.logoutButtonCSS, onClick LogOut ] [ Html.text "logout" ] ]
 
-                          else
-                            Html.div [ id "login-menu" ] []
-                        ]
-                    ]
+                            else
+                                []
+                           )
+                    )
                 ]
             ]
 
@@ -451,15 +450,6 @@ viewMiddleSection model =
 
 viewSearch : Model -> List (Html Msg)
 viewSearch model =
-    let
-        dropdownItem : String -> Html Msg
-        dropdownItem text =
-            Html.li
-                [ onMouseDown (FilterMsg text)
-                , style Styles.dropdownItemCSS
-                ]
-                [ Html.text text ]
-    in
     [ Html.div
         [ id "search-container"
         , style (Styles.searchContainerCSS model.screenSize)
@@ -486,33 +476,7 @@ viewSearch model =
                         [ id "search-dropdown"
                         , style (Styles.dropdownContainerCSS model.screenSize)
                         ]
-                      <|
-                        case String.trim (query model) of
-                            "status:" ->
-                                [ dropdownItem "status: paused"
-                                , dropdownItem "status: pending"
-                                , dropdownItem "status: failed"
-                                , dropdownItem "status: errored"
-                                , dropdownItem "status: aborted"
-                                , dropdownItem "status: running"
-                                , dropdownItem "status: succeeded"
-                                ]
-
-                            "team:" ->
-                                case model.teams of
-                                    RemoteData.Success ts ->
-                                        List.map dropdownItem (List.map (\team -> "team: " ++ team.name) <| List.take 10 ts)
-
-                                    _ ->
-                                        []
-
-                            "" ->
-                                [ dropdownItem "status:"
-                                , dropdownItem "team:"
-                                ]
-
-                            _ ->
-                                []
+                        (viewDropdownItems model)
                     ]
 
                 else
@@ -520,6 +484,45 @@ viewSearch model =
                )
         )
     ]
+
+
+viewDropdownItems : Model -> List (Html Msg)
+viewDropdownItems model =
+    let
+        dropdownItem : String -> Html Msg
+        dropdownItem text =
+            Html.li
+                [ onMouseDown (FilterMsg text)
+                , style Styles.dropdownItemCSS
+                ]
+                [ Html.text text ]
+
+        itemList : List String
+        itemList =
+            case String.trim (query model) of
+                "status:" ->
+                    [ "status: paused"
+                    , "status: pending"
+                    , "status: failed"
+                    , "status: errored"
+                    , "status: aborted"
+                    , "status: running"
+                    , "status: succeeded"
+                    ]
+
+                "team:" ->
+                    model.teams
+                        |> RemoteData.withDefault []
+                        |> List.take 10
+                        |> List.map (\t -> "team: " ++ t.name)
+
+                "" ->
+                    [ "status:", "team:" ]
+
+                _ ->
+                    []
+    in
+    List.map dropdownItem itemList
 
 
 showAutocomplete : Model -> Bool

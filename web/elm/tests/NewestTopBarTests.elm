@@ -189,7 +189,7 @@ all =
                 , it "has the login username styles" <|
                     Query.children []
                         >> Query.index -1
-                        >> Query.find [ id "login-item" ]
+                        >> Query.find [ id "user-id" ]
                         >> Expect.all
                             [ Query.has
                                 [ style
@@ -213,20 +213,17 @@ all =
                 , it "shows the logged in username when the user is logged in" <|
                     Query.children []
                         >> Query.index -1
-                        >> Query.find [ id "login-item" ]
+                        >> Query.find [ id "user-id" ]
                         >> Query.has [ text "test" ]
                 , it "ToggleUserMenu message is received when login menu is clicked" <|
                     Query.find [ id "login-container" ]
                         >> Event.simulate Event.click
                         >> Event.expect Msgs.ToggleUserMenu
-                , it "renders login menu with empty content" <|
+                , it "does not render the logout button" <|
                     Query.children []
                         >> Query.index -1
-                        >> Query.find [ id "login-item" ]
-                        >> Expect.all
-                            [ Query.has [ id "login-menu" ]
-                            , Query.find [ id "login-menu" ] >> Query.children [] >> Query.count (Expect.equal 0)
-                            ]
+                        >> Query.find [ id "user-id" ]
+                        >> Query.hasNot [ id "logout-button" ]
                 ]
             ]
         , rspecStyleDescribe "rendering user menus on clicks"

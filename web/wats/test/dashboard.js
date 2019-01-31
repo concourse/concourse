@@ -181,7 +181,7 @@ test.skip('links to specific builds', async t => {
 test.only('dropdown is gone after selecting a specific status to filter', async t => {
   await t.context.web.page.goto(t.context.web.route('/'));
 
-  await t.context.web.clickAndWait('#search-bar', '#search-dropdown');
+  await t.context.web.clickAndWait('#search-input-field', '#search-dropdown');
   const statusOption = await t.context.web.page.$x("//ul[@id='search-dropdown']/li[contains(text(), 'status:')]");
   await statusOption[0].click();
   await t.context.web.page.waitForSelector('#search-dropdown');
@@ -189,6 +189,6 @@ test.only('dropdown is gone after selecting a specific status to filter', async 
   await statusPaused[0].click();
 
   let dropdown = await t.context.web.page.waitForSelector('#search-dropdown');
-  let dropdownChildren = await dropdown.$x("*");
-  t.deepEqual(dropdownChildren, []);
+  const statusChildren = await t.context.web.page.$x("//ul[@id='search-dropdown']/*");
+  t.deepEqual(statusChildren, []);
 });
