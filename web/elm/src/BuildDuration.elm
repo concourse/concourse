@@ -28,8 +28,8 @@ view duration now =
                         -- https://github.com/elm-lang/elm-compiler/issues/1223
                         Duration.between (Date.toTime startedAt) (Date.toTime finishedAt)
                 in
-                [ labeledRelativeDate "started" now startedAt
-                , labeledRelativeDate "finished" now finishedAt
+                [ labeledVerboseDate "started" startedAt
+                , labeledVerboseDate "finished" finishedAt
                 , labeledDuration "duration" durationElmIssue
                 ]
 
@@ -38,6 +38,17 @@ show : Time.Time -> Concourse.BuildDuration -> String
 show now =
     .startedAt >> Maybe.map (Date.toTime >> flip Duration.between now >> Duration.format) >> Maybe.withDefault ""
 
+labeledVerboseDate : String -> Date -> Html a
+labeledVerboseDate label date =
+    let verboseDate =
+                    Date.Format.format "%b %d %Y %I:%M:%S %p" date
+    in
+    Html.tr []
+        [ Html.td [ class "dict-key" ] [ Html.text label ]
+        , Html.td
+            [ title verboseDate, class "dict-value" ]
+            [ Html.span [] [ Html.text verboseDate ] ]
+        ]
 
 labeledRelativeDate : String -> Time -> Date -> Html a
 labeledRelativeDate label now date =
