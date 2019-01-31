@@ -56,7 +56,7 @@ showSearchContainer { searchBar, screenSize, highDensity } =
             else
                 [ ( "align-items"
                   , case searchBar of
-                        Expanded _ ->
+                        Visible _ ->
                             case screenSize of
                                 Mobile ->
                                     "stretch"
@@ -67,8 +67,11 @@ showSearchContainer { searchBar, screenSize, highDensity } =
                                 BigDesktop ->
                                     "center"
 
-                        Collapsed ->
+                        Minified ->
                             "flexStart"
+
+                        Gone ->
+                            Debug.log "attempting to show search container when search is gone" "center"
                   )
                 ]
     in

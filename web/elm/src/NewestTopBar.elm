@@ -36,7 +36,7 @@ import QueryString
 import RemoteData exposing (RemoteData)
 import Routes
 import ScreenSize exposing (ScreenSize(..))
-import SearchBar exposing (Autocomplete(..), SearchBar(..))
+import SearchBar exposing (Dropdown(..), SearchBar(..))
 import TopBar exposing (userDisplayName)
 import UserState exposing (UserState(..))
 import Window
@@ -63,10 +63,13 @@ type alias Flags =
 query : Model -> String
 query model =
     case model.searchBar of
-        Expanded r ->
+        Visible r ->
             r.query
 
-        Collapsed ->
+        Minified ->
+            ""
+
+        Gone ->
             ""
 
 
@@ -80,14 +83,14 @@ init : Flags -> ( Model, List Effect )
 init { route, isHd } =
     let
         showSearch =
-            route.logical == Routes.Dashboard { isHd = isHd }
+            route.logical == Routes.Dashboard { isHd = False }
 
         searchBar =
             if showSearch then
-                Expanded { query = querySearchForRoute route, autocomplete = Hidden }
+                Visible { query = querySearchForRoute route, dropdown = Hidden }
 
             else
-                Collapsed
+                Gone
     in
     ( { userState = UserStateUnknown
       , isUserMenuExpanded = False
@@ -119,12 +122,7 @@ handleCallback callback model =
         LoggedOut (Ok ()) ->
             let
                 redirectUrl =
-                    case model.searchBar of
-                        Collapsed ->
-                            Routes.dashboardRoute True
-
-                        Expanded _ ->
-                            Routes.dashboardRoute False
+                    Routes.dashboardRoute model.highDensity
             in
             ( { model
                 | userState = UserStateLoggedOut
@@ -176,8 +174,8 @@ update msg model =
             let
                 newModel =
                     case model.searchBar of
-                        Expanded r ->
-                            { model | searchBar = Expanded { r | query = query } }
+                        Visible r ->
+                            { model | searchBar = Visible { r | query = query } }
 
                         _ ->
                             model
@@ -201,10 +199,10 @@ update msg model =
             let
                 newModel =
                     case model.searchBar of
-                        Expanded r ->
-                            { model | searchBar = Expanded { r | autocomplete = Shown { selectedIdx = Nothing } } }
+                        Visible r ->
+                            { model | searchBar = Visible { r | dropdown = Shown { selectedIdx = Nothing } } }
 
-                        Collapsed ->
+                        _ ->
                             model
             in
             ( newModel, [] )
@@ -213,22 +211,22 @@ update msg model =
             let
                 newModel =
                     case model.searchBar of
-                        Expanded r ->
-                            if model.screenSize == Mobile && query model == "" then
-                                { model | searchBar = Collapsed }
+                        Visible r ->
+                            if model.screenSize == Mobile && r.query == "" then
+                                { model | searchBar = Minified }
 
                             else
-                                { model | searchBar = Expanded { r | autocomplete = Hidden } }
+                                { model | searchBar = Visible { r | dropdown = Hidden } }
 
-                        Collapsed ->
+                        _ ->
                             model
             in
             ( newModel, [] )
 
         KeyDown keycode ->
             case model.searchBar of
-                Expanded r ->
-                    case r.autocomplete of
+                Visible r ->
+                    case r.dropdown of
                         Hidden ->
                             ( model, [] )
 
@@ -240,20 +238,20 @@ update msg model =
                                         38 ->
                                             let
                                                 options =
-                                                    autocompleteOptions { query = r.query, teams = model.teams }
+                                                    dropdownOptions { query = r.query, teams = model.teams }
 
                                                 lastItem =
                                                     List.length options - 1
                                             in
-                                            ( { model | searchBar = Expanded { r | autocomplete = Shown { selectedIdx = Just lastItem } } }, [] )
+                                            ( { model | searchBar = Visible { r | dropdown = Shown { selectedIdx = Just lastItem } } }, [] )
 
                                         -- down arrow
                                         40 ->
                                             let
                                                 options =
-                                                    autocompleteOptions { query = r.query, teams = model.teams }
+                                                    dropdownOptions { query = r.query, teams = model.teams }
                                             in
-                                            ( { model | searchBar = Expanded { r | autocomplete = Shown { selectedIdx = Just 0 } } }, [] )
+                                            ( { model | searchBar = Visible { r | dropdown = Shown { selectedIdx = Just 0 } } }, [] )
 
                                         -- escape key
                                         27 ->
@@ -268,16 +266,16 @@ update msg model =
                                         13 ->
                                             let
                                                 options =
-                                                    Array.fromList (autocompleteOptions { query = r.query, teams = model.teams })
+                                                    Array.fromList (dropdownOptions { query = r.query, teams = model.teams })
 
                                                 selectedItem =
                                                     Maybe.withDefault r.query (Array.get selectionIdx options)
                                             in
                                             ( { model
                                                 | searchBar =
-                                                    Expanded
+                                                    Visible
                                                         { r
-                                                            | autocomplete = Shown { selectedIdx = Nothing }
+                                                            | dropdown = Shown { selectedIdx = Nothing }
                                                             , query = selectedItem
                                                         }
                                               }
@@ -288,32 +286,35 @@ update msg model =
                                         38 ->
                                             let
                                                 options =
-                                                    autocompleteOptions { query = r.query, teams = model.teams }
+                                                    dropdownOptions { query = r.query, teams = model.teams }
 
                                                 newSelection =
                                                     (selectionIdx - 1) % List.length options
                                             in
-                                            ( { model | searchBar = Expanded { r | autocomplete = Shown { selectedIdx = Just newSelection } } }, [] )
+                                            ( { model | searchBar = Visible { r | dropdown = Shown { selectedIdx = Just newSelection } } }, [] )
 
                                         -- down arrow
                                         40 ->
                                             let
                                                 options =
-                                                    autocompleteOptions { query = r.query, teams = model.teams }
+                                                    dropdownOptions { query = r.query, teams = model.teams }
 
                                                 newSelection =
                                                     (selectionIdx + 1) % List.length options
                                             in
-                                            ( { model | searchBar = Expanded { r | autocomplete = Shown { selectedIdx = Just newSelection } } }, [] )
+                                            ( { model | searchBar = Visible { r | dropdown = Shown { selectedIdx = Just newSelection } } }, [] )
 
                                         -- escape key
                                         27 ->
                                             ( model, [ ForceFocus "search-input-field" ] )
 
                                         _ ->
-                                            ( { model | searchBar = Expanded { r | autocomplete = Shown { selectedIdx = Nothing } } }, [] )
+                                            ( { model | searchBar = Visible { r | dropdown = Shown { selectedIdx = Nothing } } }, [] )
 
-                Collapsed ->
+                Minified ->
+                    ( model, [] )
+
+                Gone ->
                     ( model, [] )
 
         ShowSearchInput ->
@@ -355,14 +356,17 @@ showSearchInput : Model -> ( Model, List Effect )
 showSearchInput model =
     let
         newModel =
-            { model | searchBar = Expanded { query = "", autocomplete = Hidden } }
+            { model | searchBar = Visible { query = "", dropdown = Hidden } }
     in
     case model.searchBar of
-        Collapsed ->
+        Minified ->
             ( newModel, [ ForceFocus "search-input-field" ] )
 
-        Expanded _ ->
+        Visible _ ->
             ( model, [] )
+
+        Gone ->
+            Debug.log "attempting to show search input when search is gone" ( model, [] )
 
 
 view : Model -> Html Msg
@@ -400,7 +404,7 @@ viewBreadcrumbs model =
 
 viewLogin : Model -> List (Html Msg)
 viewLogin model =
-    if model.screenSize /= Mobile || model.searchBar == Collapsed then
+    if model.screenSize /= Mobile || model.searchBar == Minified then
         [ Html.div [ id "login-component", style Styles.loginComponent ] <| viewLoginState model ]
 
     else
@@ -445,9 +449,12 @@ viewLoginState { userState, isUserMenuExpanded } =
 
 viewMiddleSection : Model -> List (Html Msg)
 viewMiddleSection model =
-    if model.hasPipelines && not model.highDensity then
+    if model.hasPipelines then
         case model.searchBar of
-            Collapsed ->
+            Gone ->
+                []
+
+            Minified ->
                 [ Html.div [ style <| Styles.showSearchContainer model ]
                     [ Html.a
                         [ id "show-search-button"
@@ -458,15 +465,15 @@ viewMiddleSection model =
                     ]
                 ]
 
-            Expanded r ->
-                viewSearch model
+            Visible r ->
+                viewSearch r model
 
     else
         []
 
 
-viewSearch : Model -> List (Html Msg)
-viewSearch model =
+viewSearch : { query : String, dropdown : Dropdown } -> Model -> List (Html Msg)
+viewSearch r model =
     [ Html.div
         [ id "search-container"
         , style (Styles.searchContainer model.screenSize)
@@ -475,7 +482,7 @@ viewSearch model =
             [ id "search-input-field"
             , style (Styles.searchInput model.screenSize)
             , placeholder "search"
-            , value (query model)
+            , value r.query
             , onFocus FocusMsg
             , onBlur BlurMsg
             , onInput FilterMsg
@@ -484,67 +491,62 @@ viewSearch model =
          , Html.div
             [ id "search-clear"
             , onClick (FilterMsg "")
-            , style (Styles.searchClearButton (String.length (query model) > 0))
+            , style (Styles.searchClearButton (String.length r.query > 0))
             ]
             []
          ]
-            ++ viewDropdownItems model
+            ++ viewDropdownItems r model
         )
     ]
 
 
-viewDropdownItems : Model -> List (Html Msg)
-viewDropdownItems model =
-    case model.searchBar of
-        Expanded r ->
-            case r.autocomplete of
-                Hidden ->
-                    []
-
-                Shown { selectedIdx } ->
-                    let
-                        dropdownItem : Int -> String -> Html Msg
-                        dropdownItem idx text =
-                            Html.li
-                                [ onMouseDown (FilterMsg text)
-                                , style (Styles.dropdownItem (Just idx == selectedIdx))
-                                ]
-                                [ Html.text text ]
-
-                        itemList : List String
-                        itemList =
-                            case String.trim r.query of
-                                "status:" ->
-                                    [ "status: paused"
-                                    , "status: pending"
-                                    , "status: failed"
-                                    , "status: errored"
-                                    , "status: aborted"
-                                    , "status: running"
-                                    , "status: succeeded"
-                                    ]
-
-                                "team:" ->
-                                    model.teams
-                                        |> RemoteData.withDefault []
-                                        |> List.take 10
-                                        |> List.map (\t -> "team: " ++ t.name)
-
-                                "" ->
-                                    [ "status:", "team:" ]
-
-                                _ ->
-                                    []
-                    in
-                    [ Html.ul
-                        [ id "search-dropdown"
-                        , style (Styles.dropdownContainer model.screenSize)
-                        ]
-                        (List.indexedMap dropdownItem itemList)
-                    ]
-
-        Collapsed ->
+viewDropdownItems : { query : String, dropdown : Dropdown } -> Model -> List (Html Msg)
+viewDropdownItems { query, dropdown } model =
+    case dropdown of
+        Hidden ->
             []
+
+        Shown { selectedIdx } ->
+            let
+                dropdownItem : Int -> String -> Html Msg
+                dropdownItem idx text =
+                    Html.li
+                        [ onMouseDown (FilterMsg text)
+                        , style (Styles.dropdownItem (Just idx == selectedIdx))
+                        ]
+                        [ Html.text text ]
+
+                itemList : List String
+                itemList =
+                    case String.trim query of
+                        "status:" ->
+                            [ "status: paused"
+                            , "status: pending"
+                            , "status: failed"
+                            , "status: errored"
+                            , "status: aborted"
+                            , "status: running"
+                            , "status: succeeded"
+                            ]
+
+                        "team:" ->
+                            model.teams
+                                |> RemoteData.withDefault []
+                                |> List.take 10
+                                |> List.map (\t -> "team: " ++ t.name)
+
+                        "" ->
+                            [ "status:", "team:" ]
+
+                        _ ->
+                            []
+            in
+            [ Html.ul
+                [ id "search-dropdown"
+                , style (Styles.dropdownContainer model.screenSize)
+                ]
+                (List.indexedMap dropdownItem itemList)
+            ]
 
 
 viewConcourseLogo : List (Html Msg)
@@ -595,8 +597,8 @@ decodeName name =
     Maybe.withDefault name (Http.decodeUri name)
 
 
-autocompleteOptions : { a | query : String, teams : RemoteData.WebData (List Concourse.Team) } -> List String
-autocompleteOptions { query, teams } =
+dropdownOptions : { a | query : String, teams : RemoteData.WebData (List Concourse.Team) } -> List String
+dropdownOptions { query, teams } =
     case String.trim query of
         "" ->
             [ "status: ", "team: " ]
