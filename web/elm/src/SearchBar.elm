@@ -1,15 +1,16 @@
-module SearchBar exposing (SearchBar(..), screenSizeChanged)
+module SearchBar exposing (Autocomplete(..), SearchBar(..), screenSizeChanged)
 
 import ScreenSize exposing (ScreenSize)
 
 
 type SearchBar
     = Collapsed
-    | Expanded
-        { query : String
-        , showAutocomplete : Bool
-        , selection : Maybe Int
-        }
+    | Expanded { query : String, autocomplete : Autocomplete }
+
+
+type Autocomplete
+    = Hidden
+    | Shown { selectedIdx : Maybe Int }
 
 
 screenSizeChanged :
@@ -46,18 +47,10 @@ screenSizeChanged { oldSize, newSize } searchBar =
             Expanded r
 
         ( Collapsed, ScreenSize.Desktop ) ->
-            Expanded
-                { query = ""
-                , showAutocomplete = False
-                , selection = Nothing
-                }
+            Expanded { query = "", autocomplete = Hidden }
 
         ( Collapsed, ScreenSize.BigDesktop ) ->
-            Expanded
-                { query = ""
-                , showAutocomplete = False
-                , selection = Nothing
-                }
+            Expanded { query = "", autocomplete = Hidden }
 
         ( Collapsed, ScreenSize.Mobile ) ->
             Collapsed
