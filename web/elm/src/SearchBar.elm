@@ -8,8 +8,7 @@ type SearchBar
     | Expanded
         { query : String
         , showAutocomplete : Bool
-        , selectionMade : Bool
-        , selection : Int
+        , selection : Maybe Int
         }
 
 
@@ -49,17 +48,15 @@ screenSizeChanged { oldSize, newSize } searchBar =
         ( Collapsed, ScreenSize.Desktop ) ->
             Expanded
                 { query = ""
-                , selectionMade = False
                 , showAutocomplete = False
-                , selection = 0
+                , selection = Nothing
                 }
 
         ( Collapsed, ScreenSize.BigDesktop ) ->
             Expanded
                 { query = ""
-                , selectionMade = False
                 , showAutocomplete = False
-                , selection = 0
+                , selection = Nothing
                 }
 
         ( Collapsed, ScreenSize.Mobile ) ->

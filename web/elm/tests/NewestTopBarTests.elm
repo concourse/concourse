@@ -14,7 +14,16 @@ import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector as Selector exposing (attribute, class, containing, id, style, tag, text)
+import Test.Html.Selector as Selector
+    exposing
+        ( attribute
+        , class
+        , containing
+        , id
+        , style
+        , tag
+        , text
+        )
 import UserState exposing (UserState(..))
 
 
@@ -873,88 +882,70 @@ all =
             , context "after receiving FocusMsg"
                 (NewestTopBar.update Msgs.FocusMsg
                     >> Tuple.first
-                    >> NewestTopBar.view
-                    >> toUnstyled
-                    >> Query.fromHtml
                 )
-                [ it "has a dropdown when search bar is focused" <|
-                    Query.find [ id "search-container" ]
-                        >> Query.has [ id "search-dropdown" ]
-                , it "should trigger a FilterMsg when typing in the search bar" <|
-                    Query.find [ id "search-input-field" ]
-                        >> Event.simulate (Event.input "test")
-                        >> Event.expect (Msgs.FilterMsg "test")
-                , context "dropdown elements"
-                    (Query.findAll [ tag "li" ])
-                    [ it "have the same width and padding as search bar" <|
-                        eachHasStyle
-                            [ ( "padding", searchBarPadding ) ]
-                    , it "have grey background" <|
-                        eachHasStyle
-                            [ ( "background-color", dropdownBackgroundGrey )
-                            ]
-                    , it "have the same height as the search bar" <|
-                        eachHasStyle
-                            [ ( "line-height", searchBarHeight )
-                            ]
-                    , it "have no bullet points" <|
-                        eachHasStyle
-                            [ ( "list-style-type", "none" )
-                            ]
-                    , it "have the same border style as the search bar" <|
-                        eachHasStyle
-                            [ ( "border", searchBarBorder )
-                            ]
-                    , it "are vertically aligned flush to each other" <|
-                        eachHasStyle
-                            [ ( "margin-top", "-1px" )
-                            ]
-                    , it "have light grey text" <|
-                        eachHasStyle
-                            [ ( "color", "#9b9b9b" )
-                            ]
-                    , it "have slightly larger font" <|
-                        eachHasStyle
-                            [ ( "font-size", "1.15em" )
-                            ]
-                    , it "have a pointer cursor" <|
-                        eachHasStyle
-                            [ ( "cursor", "pointer" ) ]
-                    ]
-                , it "the search dropdown is positioned below the search bar" <|
-                    Query.find [ id "search-dropdown" ]
-                        >> Query.has
-                            [ style
-                                [ ( "position", "absolute" )
-                                , ( "top", "100%" )
-                                , ( "margin", "0" )
-                                ]
-                            ]
-                , it "the search dropdown is the same width as search bar" <|
-                    Query.find [ id "search-dropdown" ]
-                        >> Query.has [ style [ ( "width", "100%" ) ] ]
-                , it "the search dropdown has 2 elements" <|
-                    Query.find [ id "search-dropdown" ]
-                        >> Expect.all
-                            [ Query.findAll [ tag "li" ] >> Query.count (Expect.equal 2)
-                            , Query.has [ text "status:" ]
-                            , Query.has [ text "team:" ]
-                            ]
-                , it "when team is clicked, it should trigger a FilterMsg for team" <|
-                    Query.find [ id "search-dropdown" ]
-                        >> Query.find [ tag "li", containing [ text "team:" ] ]
-                        >> Event.simulate Event.mouseDown
-                        >> Event.expect (Msgs.FilterMsg "team:")
-                , it "when status is clicked, it should trigger a FilterMsg for status" <|
-                    Query.find [ id "search-dropdown" ]
-                        >> Query.find [ tag "li", containing [ text "status:" ] ]
-                        >> Event.simulate Event.mouseDown
-                        >> Event.expect (Msgs.FilterMsg "status:")
-                , it "sends BlurMsg when blurring the search bar" <|
-                    Query.find [ id "search-input-field" ]
-                        >> Event.simulate Event.blur
-                        >> Event.expect Msgs.BlurMsg
-                ]
+                ([ testDropdown [] [ 0, 1 ] ]
+                    ++ [ context "after down arrow keypress"
+                            (NewestTopBar.update (Msgs.KeyDown 40)
+                                >> Tuple.first
+                            )
+                            ([ testDropdown [ 0 ] [ 1 ] ]
+                                ++ [ context "after second down arrow keypress"
+                                        (NewestTopBar.update (Msgs.KeyDown 40)
+                                            >> Tuple.first
+                                        )
+                                        ([ testDropdown [ 1 ] [ 0 ] ]
+                                            ++ [ context "after loop around down arrow keypress"
+                                                    (NewestTopBar.update (Msgs.KeyDown 40)
+                                                        >> Tuple.first
+                                                    )
+                                                    [ testDropdown [ 0 ] [ 1 ] ]
+                                               , context "after hitting enter"
+                                                    (NewestTopBar.update (Msgs.KeyDown 13)
+                                                        >> Tuple.first
+                                                        >> NewestTopBar.view
+                                                        >> toUnstyled
+                                                        >> Query.fromHtml
+                                                    )
+                                                    [ it "updates the query" <|
+                                                        Query.find [ id "search-input-field" ]
+                                                            >> Query.has [ attribute <| Attr.value "team: " ]
+                                                    ]
+                                               ]
+                                        )
+                                   , context "after hitting enter"
+                                        (NewestTopBar.update (Msgs.KeyDown 13)
+                                            >> Tuple.first
+                                            >> NewestTopBar.view
+                                            >> toUnstyled
+                                            >> Query.fromHtml
+                                        )
+                                        [ it "updates the query" <|
+                                            Query.find [ id "search-input-field" ]
+                                                >> Query.has [ attribute <| Attr.value "status: " ]
+                                        ]
+                                   ]
+                            )
+                       , context "after up arrow keypress"
+                            (NewestTopBar.update (Msgs.KeyDown 38)
+                                >> Tuple.first
+                            )
+                            ([ testDropdown [ 1 ] [ 0 ] ]
+                                ++ [ context "after second up arrow keypress"
+                                        (NewestTopBar.update (Msgs.KeyDown 38)
+                                            >> Tuple.first
+                                        )
+                                        ([ testDropdown [ 0 ] [ 1 ] ]
+                                            ++ [ context "after loop around up arrow keypress"
+                                                    (NewestTopBar.update (Msgs.KeyDown 38)
+                                                        >> Tuple.first
+                                                    )
+                                                    [ testDropdown [ 1 ] [ 0 ] ]
+                                               ]
+                                        )
+                                   ]
+                            )
+                       ]
+                )
             , context "after receiving FocusMsg and then BlurMsg"
                 (NewestTopBar.update Msgs.FocusMsg
                     >> Tuple.first
@@ -1023,3 +1014,103 @@ onePipeline teamName =
     , teamName = teamName
     , groups = []
     }
+
+
+testDropdown : List Int -> List Int -> NewestTopBar.Model -> Test
+testDropdown selecteds notSelecteds =
+    context "ui"
+        (NewestTopBar.view
+            >> toUnstyled
+            >> Query.fromHtml
+        )
+        [ it "has a dropdown when search bar is focused" <|
+            Query.find [ id "search-container" ]
+                >> Query.has [ id "search-dropdown" ]
+        , it "should trigger a FilterMsg when typing in the search bar" <|
+            Query.find [ id "search-input-field" ]
+                >> Event.simulate (Event.input "test")
+                >> Event.expect (Msgs.FilterMsg "test")
+        , context "dropdown elements"
+            (Query.findAll [ tag "li" ])
+            [ it "have the same width and padding as search bar" <|
+                eachHasStyle [ ( "padding", searchBarPadding ) ]
+            , it "have the same height as the search bar" <|
+                eachHasStyle [ ( "line-height", searchBarHeight ) ]
+            , it "have no bullet points" <|
+                eachHasStyle [ ( "list-style-type", "none" ) ]
+            , it "have the same border style as the search bar" <|
+                eachHasStyle [ ( "border", searchBarBorder ) ]
+            , it "are vertically aligned flush to each other" <|
+                eachHasStyle [ ( "margin-top", "-1px" ) ]
+            , it "have slightly larger font" <|
+                eachHasStyle [ ( "font-size", "1.15em" ) ]
+            , it "have a pointer cursor" <|
+                eachHasStyle [ ( "cursor", "pointer" ) ]
+            ]
+        , it "the search dropdown is positioned below the search bar" <|
+            Query.find [ id "search-dropdown" ]
+                >> Query.has
+                    [ style
+                        [ ( "position", "absolute" )
+                        , ( "top", "100%" )
+                        , ( "margin", "0" )
+                        ]
+                    ]
+        , it "the search dropdown is the same width as search bar" <|
+            Query.find [ id "search-dropdown" ]
+                >> Query.has [ style [ ( "width", "100%" ) ] ]
+        , it "the search dropdown has 2 elements" <|
+            Query.find [ id "search-dropdown" ]
+                >> Expect.all
+                    [ Query.findAll [ tag "li" ] >> Query.count (Expect.equal 2)
+                    , Query.has [ text "status:" ]
+                    , Query.has [ text "team:" ]
+                    ]
+        , it "when team is clicked, it should trigger a FilterMsg for team" <|
+            Query.find [ id "search-dropdown" ]
+                >> Query.find [ tag "li", containing [ text "team:" ] ]
+                >> Event.simulate Event.mouseDown
+                >> Event.expect (Msgs.FilterMsg "team:")
+        , it "when status is clicked, it should trigger a FilterMsg for status" <|
+            Query.find [ id "search-dropdown" ]
+                >> Query.find [ tag "li", containing [ text "status:" ] ]
+                >> Event.simulate Event.mouseDown
+                >> Event.expect (Msgs.FilterMsg "status:")
+        , it "sends BlurMsg when blurring the search bar" <|
+            Query.find [ id "search-input-field" ]
+                >> Event.simulate Event.blur
+                >> Event.expect Msgs.BlurMsg
+        , context "selected highlighting"
+            (Query.findAll [ tag "li" ])
+            (List.concat
+                (List.map
+                    (\idx ->
+                        [ it ("has the first element highlighted " ++ toString idx) <|
+                            Query.index idx
+                                >> Query.has [ style [ ( "background-color", "#1e1d1d" ) ] ]
+                        , it ("has white text " ++ toString idx) <|
+                            Query.index idx
+                                >> Query.has [ style [ ( "color", "#fff" ) ] ]
+                        ]
+                    )
+                    selecteds
+                )
+                ++ [ it "always has at least one test" <| \_ -> Expect.equal 0 0 ]
+            )
+        , context "other highlighting"
+            (Query.findAll [ tag "li" ])
+            (List.concat
+                (List.map
+                    (\idx ->
+                        [ it ("has the other elements not highlighted " ++ toString idx) <|
+                            Query.index idx
+                                >> Query.has [ style [ ( "background-color", dropdownBackgroundGrey ) ] ]
+                        , it ("have light grey text " ++ toString idx) <|
+                            Query.index idx
+                                >> Query.has [ style [ ( "color", "#9b9b9b" ) ] ]
+                        ]
+                    )
+                    notSelecteds
+                )
+            )
+        ]

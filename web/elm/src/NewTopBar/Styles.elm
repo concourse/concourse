@@ -261,15 +261,26 @@ dropdownContainerCSS screenSize =
            )
 
 
-dropdownItemCSS : List ( String, String )
-dropdownItemCSS =
+dropdownItemCSS : Bool -> List ( String, String )
+dropdownItemCSS isSelected =
+    let
+        coloration =
+            if isSelected then
+                [ ( "background-color", "#1e1d1d" )
+                , ( "color", "#fff" )
+                ]
+
+            else
+                [ ( "background-color", "#2e2e2e" )
+                , ( "color", "#9b9b9b" )
+                ]
+    in
     [ ( "padding", "0 42px" )
-    , ( "background-color", "#2e2e2e" )
     , ( "line-height", "30px" )
     , ( "list-style-type", "none" )
     , ( "border", "1px solid #504b4b" )
     , ( "margin-top", "-1px" )
-    , ( "color", "#9b9b9b" )
     , ( "font-size", "1.15em" )
     , ( "cursor", "pointer" )
     ]
+        ++ coloration

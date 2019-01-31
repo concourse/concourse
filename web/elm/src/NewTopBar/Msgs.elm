@@ -10,7 +10,6 @@ type Msg
     | FilterMsg String
     | FocusMsg
     | BlurMsg
-    | SelectMsg Int
     | KeyDown Keyboard.KeyCode
     | KeyPressed Keyboard.KeyCode
     | ToggleUserMenu
