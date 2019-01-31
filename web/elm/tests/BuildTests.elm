@@ -543,12 +543,14 @@ all =
                         >> Expect.all
                             [ Query.children []
                                 >> Query.each
-                                    (Query.has
-                                        [ style
-                                            [ ( "display", "flex" )
-                                            , ( "align-items", "center" )
+                                    (Query.children []
+                                        >> Query.first
+                                        >> Query.has
+                                            [ style
+                                                [ ( "display", "flex" )
+                                                , ( "align-items", "center" )
+                                                ]
                                             ]
-                                        ]
                                     )
                             , Query.has
                                 [ style
@@ -584,12 +586,14 @@ all =
                         >> Expect.all
                             [ Query.children []
                                 >> Query.each
-                                    (Query.has
-                                        [ style
-                                            [ ( "display", "flex" )
-                                            , ( "align-items", "center" )
+                                    (Query.children []
+                                        >> Query.first
+                                        >> Query.has
+                                            [ style
+                                                [ ( "display", "flex" )
+                                                , ( "align-items", "center" )
+                                                ]
                                             ]
-                                        ]
                                     )
                             , Query.has
                                 [ style

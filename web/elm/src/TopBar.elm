@@ -1,6 +1,5 @@
 module TopBar exposing
     ( Model
-    , Msg(..)
     , handleCallback
     , init
     , subscriptions
@@ -21,7 +20,9 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave, onMouseOut, on
 import Http
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
+import Subscription exposing (Subscription(..))
 import Time
+import TopBar.Msgs as Msgs exposing (Msg(..))
 import UserState exposing (UserState(..))
 
 
@@ -34,18 +35,6 @@ type alias Model r =
         , pinnedResources : List ( String, Concourse.Version )
         , showPinIconDropDown : Bool
     }
-
-
-type Msg
-    = Noop
-    | FetchUser Time.Time
-    | FetchPipeline Concourse.PipelineIdentifier
-    | LogOut
-    | LogIn
-    | ResetToPipeline String
-    | ToggleUserMenu
-    | TogglePinIconDropdown
-    | GoToPinnedResource String
 
 
 init : Routes.ConcourseRoute -> ( Model {}, List Effect )
@@ -113,13 +102,10 @@ handleCallback callback model =
 update : Msg -> Model r -> ( Model r, List Effect )
 update msg model =
     case msg of
-        Noop ->
-            ( model, [] )
-
-        FetchPipeline pid ->
+        Msgs.FetchPipeline pid ->
             ( model, [ Effects.FetchPipeline pid ] )
 
-        FetchUser _ ->
+        Msgs.FetchUser _ ->
             ( model, [ Effects.FetchUser ] )
 
         LogIn ->
@@ -145,17 +131,14 @@ update msg model =
             ( model, [ NavigateTo (url ++ "/resources/" ++ resourceName) ] )
 
 
-subscriptions : Model r -> Sub Msg
+subscriptions : Model r -> List (Subscription Msg)
 subscriptions model =
-    Sub.batch
-        [ case pipelineIdentifierFromRouteOrModel model.route model of
-            Nothing ->
-                Sub.none
-
-            Just pid ->
-                Time.every (5 * Time.second) (always (FetchPipeline pid))
-        , Time.every (5 * Time.second) FetchUser
-        ]
+    [ OnClockTick (5 * Time.second) Msgs.FetchUser
+    , pipelineIdentifierFromRouteOrModel model.route model
+        |> Maybe.map (always << Msgs.FetchPipeline)
+        |> Maybe.map (OnClockTick (5 * Time.second))
+        |> WhenPresent
+    ]
 
 
 pipelineIdentifierFromRouteOrModel : Routes.ConcourseRoute -> Model r -> Maybe Concourse.PipelineIdentifier
@@ -460,7 +443,12 @@ viewBreadcrumbsComponent componentType name =
 
 cssBreadcrumbContainer : List ( String, String )
 cssBreadcrumbContainer =
-    [ ( "display", "inline-block" ), ( "vertical-align", "middle" ), ( "font-size", "18px" ), ( "padding", "0 10px" ), ( "line-height", "54px" ) ]
+    [ ( "display", "inline-block" )
+    , ( "vertical-align", "middle" )
+    , ( "font-size", "18px" )
+    , ( "padding", "0 10px" )
+    , ( "line-height", "54px" )
+    ]
 
 
 viewBreadcrumbPipeline : String -> Routes.Route -> Html Msg
