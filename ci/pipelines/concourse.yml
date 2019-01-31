@@ -170,35 +170,18 @@ jobs:
   - task: yarn-build
     image: unit-image
     file: concourse/ci/tasks/yarn-build.yml
+  - aggregate:
+    - task: fly-linux
+      file: concourse/ci/tasks/fly-build-linux.yml
+    - task: fly-windows
+      file: concourse/ci/tasks/fly-build-windows.yml
+    - task: fly-darwin
+      file: concourse/ci/tasks/fly-build-darwin.yml
   - task: build
     image: builder
     privileged: true
     input_mapping: {concourse: built-concourse}
-    config:
-      platform: linux
-      params:
-        REPOSITORY: concourse/dev
-        DOCKERFILE: concourse/ci/dockerfiles/dev/Dockerfile
-      inputs:
-      - name: concourse
-      - name: dumb-init
-      - name: gdn
-      - name: bosh-io-release-resource
-      - name: bosh-io-stemcell-resource
-      - name: cf-resource
-      - name: docker-image-resource
-      - name: git-resource
-      - name: github-release-resource
-      - name: hg-resource
-      - name: pool-resource
-      - name: registry-image-resource
-      - name: s3-resource
-      - name: semver-resource
-      - name: time-resource
-      - name: tracker-resource
-      - name: mock-resource
-      outputs: [{name: image}]
-      run: {path: build}
+    file: concourse/ci/tasks/build-dev-image.yml
   - put: dev-image
     params: {image: image/image.tar}
     get_params: {format: oci}
