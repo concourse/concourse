@@ -380,6 +380,13 @@ jobs:
       resource: version
       passed: [rc]
       params: {bump: final}
+  - aggregate:
+    - task: fly-linux
+      file: concourse/ci/tasks/fly-build-linux.yml
+    - task: fly-windows
+      file: concourse/ci/tasks/fly-build-windows.yml
+    - task: fly-darwin
+      file: concourse/ci/tasks/fly-build-darwin.yml
   - task: hoist-linux-dependencies
     image: dev-image
     file: concourse/ci/tasks/hoist-linux-dependencies.yml

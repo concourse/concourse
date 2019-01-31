@@ -3,12 +3,5 @@
 
 set -e -x
 
-outputs=$PWD
-
-cd /usr/local/concourse
-
-cp bin/gdn                      $outputs/gdn/
-cp fly-assets/fly-linux-*.tgz   $outputs/fly-linux/
-cp fly-assets/fly-windows-*.zip $outputs/fly-windows/
-cp fly-assets/fly-darwin-*.tgz  $outputs/fly-darwin/
-cp -a resource-types/*          $outputs/resource-types/
+cp $(which gdn) gdn/gdn
+cp -a /usr/local/concourse/resource-types/* resource-types/
