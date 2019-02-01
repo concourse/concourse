@@ -5,7 +5,6 @@ import Array
 import Concourse.Pagination exposing (Direction(..), Pagination)
 import Dict exposing (Dict)
 import Expect exposing (..)
-import Focus
 import Http
 import Regex
 import String

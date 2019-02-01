@@ -20,7 +20,6 @@ import Build.StepTree as StepTree
 import Concourse exposing (BuildStep(..), HookedPlan)
 import Dict
 import Expect exposing (..)
-import Focus
 import Test exposing (..)
 
 
@@ -489,7 +488,7 @@ assertFocus id foci tree update expected =
         Just focus ->
             Expect.equal
                 expected
-                (Focus.update focus (updateStep update) tree)
+                (focus.update (updateStep update) tree)
 
 
 cookedLog : Ansi.Log.Model

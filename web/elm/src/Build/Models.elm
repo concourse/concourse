@@ -23,7 +23,6 @@ import Build.Msgs exposing (Hoverable, Msg, StepID)
 import Concourse
 import Date exposing (Date)
 import Dict exposing (Dict)
-import Focus exposing (Focus)
 import RemoteData exposing (WebData)
 import Subscription exposing (Subscription)
 import Time exposing (Time)
@@ -119,7 +118,7 @@ type StepTree
 
 
 type alias StepFocus =
-    Focus StepTree StepTree
+    { update : (StepTree -> StepTree) -> StepTree -> StepTree }
 
 
 type Highlight
