@@ -672,7 +672,9 @@
 
   \section{
     \title{Container Placement Strategies}{container-placement-strategies}
-    As explained above, each step of a build plan is executed inside a container. ATC will distribute containers across the worker cluster depending on the configured strategy. \bold{Default:} \code{volume-locality}
+    \bold{Default:} \code{volume-locality}
+
+    Each step of a build plan is executed inside a container. ATC will distribute containers across the worker cluster depending on the configured strategy.
 
     \define-table{volume-locality}{
        When using \code{volume-locality}, the ATC places \code{get}, \code{put} and \code{task} containers on workers where a majority of their inputs (required resources) are present. This alleviates the need to stream resources cached on other workers to the chosen worker. This is advantageous for workloads that are invoked often. e.g. builds invoked by a short time-resource interval.
@@ -683,7 +685,7 @@
       }
 
      \define-table{least-build-containers}{
-       If using the \code{least-build-containers} strategy, the ATC places \code{get}, \code{put} and \code{task} containers on a worker which has the least containers. This ensures build containers are distributed equally across workers.
+       When using the \code{least-build-containers} strategy, the ATC places \code{get}, \code{put} and \code{task} containers on a worker which has the least containers. This ensures build containers are distributed equally across workers.
      }
 
      Refer to \reference{configuring-placement-strategies} for information on how to specify a particular strategy.

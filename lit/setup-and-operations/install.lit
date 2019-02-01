@@ -456,7 +456,7 @@ page.
 \section{
 	\title{Configuring Container Placement}{configuring-placement-strategies}
 
-	By default, the container placement strategy used is \code{volume-locality}. To set a different container placement strategy, pass the selected option to the \code{--container-placement-strategy} flag.
+	Concourse uses the \code{volume-locality} container placement strategy by default. Concourse can be configured to use a different container placement strategy using the \code{--container-placement-strategy} flag.
 
 	\codeblock{bash}{{{
 		concourse web \
