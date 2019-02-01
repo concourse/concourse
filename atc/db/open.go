@@ -55,7 +55,7 @@ type Tx interface {
 	Stmt(stmt *sql.Stmt) *sql.Stmt
 }
 
-func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *encryption.Key, oldKey *encryption.Key, connectionName string, lockFactory lock.LockFactory, sqlReadTimeout time.Duration, sqlWriteTimeout time.Duration) (Conn, error) {
+func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *encryption.Key, oldKey *encryption.Key, connectionName string, lockFactory lock.LockFactory, keepAliveIdleTime time.Duration, keepAliveCount int, keepAliveInterval time.Duration) (Conn, error) {
 	for {
 		var strategy encryption.Strategy
 		if newKey != nil {
@@ -93,9 +93,10 @@ func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *e
 		}
 
 		listener := pq.NewDialListener(
-			timeoutDialer{
-				readTimeout:  sqlReadTimeout,
-				writeTimeout: sqlWriteTimeout,
+			keepAliveDialer{
+				keepAliveIdleTime: keepAliveIdleTime,
+				keepAliveCount:    keepAliveCount,
+				keepAliveInterval: keepAliveInterval,
 			}, sqlDataSource, time.Second, time.Minute, nil)
 
 		return &db{

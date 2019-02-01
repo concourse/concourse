@@ -89,9 +89,10 @@ type RunCommand struct {
 	ExternalURL flag.URL `long:"external-url" description:"URL used to reach any ATC from the outside world."`
 	PeerURL     flag.URL `long:"peer-url"     description:"URL used to reach this ATC from other ATCs in the cluster."`
 
-	Postgres        flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
-	SQLReadTimeout  time.Duration       `long:"sql-read-timeout" description:"Read timeout. (0 means wait indefinitely)" default:"0m"`
-	SQLWriteTimeout time.Duration       `long:"sql-write-timeout" description:"Write timeout. (0 means wait indefinitely)" default:"0m"`
+	Postgres            flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
+	DBKeepAliveIdleTime time.Duration       `long:"db-tcp-keepalive-time" description:"Set net.ipv4.tcp_keepalive_time for DB session. (0 means disable this feature)" default:"0m"`
+	DBKeepAliveCount    int                 `long:"db-tcp-keepalive-probes" description:"Set net.ipv4.tcp_keepalive_probes for DB session. (0 means disable this feature)" default:"0"`
+	DBKeepAliveInterval time.Duration       `long:"db-tcp-keepalive-intvl" description:"Set net.ipv4.tcp_keepalive_intvl for DB session. (0 means disable this feature)" default:"0m"`
 
 	CredentialManagement creds.CredentialManagementConfig `group:"Credential Management"`
 	CredentialManagers   creds.Managers
@@ -357,8 +358,9 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		"postgres",
 		cmd.Postgres.ConnectionString(),
 		retryingDriverName,
-		cmd.SQLReadTimeout,
-		cmd.SQLWriteTimeout,
+		cmd.DBKeepAliveIdleTime,
+		cmd.DBKeepAliveCount,
+		cmd.DBKeepAliveInterval,
 	)
 
 	// Register the sink that collects error metrics
@@ -1120,7 +1122,7 @@ func (cmd *RunCommand) constructDBConn(
 	connectionName string,
 	lockFactory lock.LockFactory,
 ) (db.Conn, error) {
-	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), cmd.newKey(), cmd.oldKey(), connectionName, lockFactory, cmd.SQLReadTimeout, cmd.SQLWriteTimeout)
+	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), cmd.newKey(), cmd.oldKey(), connectionName, lockFactory, cmd.DBKeepAliveIdleTime, cmd.DBKeepAliveCount, cmd.DBKeepAliveInterval)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %s", err)
 	}

@@ -11,17 +11,19 @@ import (
 
 type connectionRetryingDriver struct {
 	driver.Driver
-	driverName   string
-	readTimeout  time.Duration
-	writeTimeout time.Duration
+	driverName        string
+	keepAliveIdleTime time.Duration
+	keepAliveCount    int
+	keepAliveInterval time.Duration
 }
 
 func SetupConnectionRetryingDriver(
 	delegateDriverName string,
 	sqlDataSource string,
 	newDriverName string,
-	sqlReadTimeout time.Duration,
-	sqlWriteTimeout time.Duration,
+	keepAliveIdleTime time.Duration,
+	keepAliveCount int,
+	keepAliveInterval time.Duration,
 ) {
 	for _, driverName := range sql.Drivers() {
 		if driverName == newDriverName {
@@ -37,8 +39,9 @@ func SetupConnectionRetryingDriver(
 	connectionRetryingDriver := &connectionRetryingDriver{
 		delegateDBConn.Driver(),
 		delegateDriverName,
-		sqlReadTimeout,
-		sqlWriteTimeout,
+		keepAliveIdleTime,
+		keepAliveCount,
+		keepAliveInterval,
 	}
 	sql.Register(newDriverName, connectionRetryingDriver)
 }
@@ -49,9 +52,10 @@ func (d *connectionRetryingDriver) Open(name string) (driver.Conn, error) {
 	err := backoff.Retry(func() error {
 		var err error
 		if d.driverName == "postgres" {
-			conn, err = pq.DialOpen(&timeoutDialer{
-				readTimeout:  d.readTimeout,
-				writeTimeout: d.writeTimeout,
+			conn, err = pq.DialOpen(&keepAliveDialer{
+				keepAliveIdleTime: d.keepAliveIdleTime,
+				keepAliveCount:    d.keepAliveCount,
+				keepAliveInterval: d.keepAliveInterval,
 			}, name)
 		} else {
 			conn, err = d.Driver.Open(name)

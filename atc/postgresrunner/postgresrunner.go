@@ -158,6 +158,7 @@ func (runner *Runner) OpenConn() db.Conn {
 		"postgresrunner",
 		nil,
 		0*time.Second,
+		0,
 		0*time.Second,
 	)
 	Expect(err).NotTo(HaveOccurred())
