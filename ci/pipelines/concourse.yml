@@ -289,8 +289,10 @@ jobs:
       resource: charts
       trigger: true
   - task: check-params
-    file: concourse/ci/tasks/check-helm-chart-params.yml
+    file: concourse/ci/tasks/check-distribution-env.yml
     image: dev-image
+    input_mapping: {distribution: helm-chart}
+    params: {DISTRIBUTION: helm}
 
 
 - name: k8s-topgun
@@ -514,8 +516,10 @@ jobs:
       trigger: true
     - get: concourse-release-repo
   - task: check-params
-    file: concourse/ci/tasks/check-bosh-props.yml
+    file: concourse/ci/tasks/check-distribution-env.yml
     image: dev-image
+    input_mapping: {distribution: concourse-release-repo}
+    params: {DISTRIBUTION: bosh}
 
 - name: bosh-bump
   public: true
