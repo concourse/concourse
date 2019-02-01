@@ -60,7 +60,7 @@ type alias Model =
     , csrfToken : String
     , showPinBarTooltip : Bool
     , pinIconHover : Bool
-    , route : Routes.ConcourseRoute
+    , route : Routes.Route
     , pipeline : Maybe Concourse.Pipeline
     , userState : UserState
     , userMenuVisible : Bool

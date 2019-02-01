@@ -12,7 +12,7 @@ type alias NavIndex =
 
 
 type Msg
-    = RouteChanged Routes.ConcourseRoute
+    = RouteChanged Routes.Route
     | SubMsg NavIndex SubPage.Msgs.Msg
     | TopMsg NavIndex TopBar.Msgs.Msg
     | NewUrl String

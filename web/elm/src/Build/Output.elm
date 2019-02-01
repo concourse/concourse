@@ -49,11 +49,11 @@ type OutMsg
 
 
 type alias Flags =
-    { hash : String }
+    { highlight : Build.Models.Highlight }
 
 
 init : Flags -> Concourse.Build -> ( OutputModel, List Effect )
-init flags build =
+init { highlight } build =
     let
         outputState =
             if Concourse.BuildStatus.isRunning build.status then
@@ -68,7 +68,7 @@ init flags build =
             , state = outputState
             , events = Nothing
             , eventSourceOpened = False
-            , highlight = StepTree.parseHighlight flags.hash
+            , highlight = highlight
             }
 
         fetch =

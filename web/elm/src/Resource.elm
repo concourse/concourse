@@ -32,7 +32,6 @@ import Dict
 import DictView
 import Duration exposing (Duration)
 import Effects exposing (Effect(..), runEffect, setTitle)
-import Erl
 import Html.Attributes
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes
@@ -58,7 +57,6 @@ import List.Extra
 import Maybe.Extra as ME
 import NewTopBar.Styles as Styles
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
-import QueryString
 import Resource.Models as Models exposing (Model)
 import Resource.Msgs exposing (Msg(..))
 import Resource.Styles
@@ -117,15 +115,11 @@ init flags =
                 , pinIconHover = False
                 , pinComment = Nothing
                 , route =
-                    { logical =
-                        Routes.Resource
-                            flags.teamName
-                            flags.pipelineName
-                            flags.resourceName
-                    , queries = QueryString.empty
-                    , page = Nothing
-                    , hash = ""
-                    }
+                    Routes.Resource
+                        flags.teamName
+                        flags.pipelineName
+                        flags.resourceName
+                        Nothing
                 , pipeline = Nothing
                 , userState = UserStateUnknown
                 , userMenuVisible = False
@@ -641,34 +635,8 @@ permalink versionedResources =
 
 paginationRoute : Concourse.ResourceIdentifier -> Page -> String
 paginationRoute rid page =
-    let
-        ( param, boundary ) =
-            case page.direction of
-                Concourse.Pagination.Since bound ->
-                    ( "since", Basics.toString bound )
-
-                Concourse.Pagination.Until bound ->
-                    ( "until", Basics.toString bound )
-
-                Concourse.Pagination.From bound ->
-                    ( "from", Basics.toString bound )
-
-                Concourse.Pagination.To bound ->
-                    ( "to", Basics.toString bound )
-
-        parsedRoute =
-            Erl.parse <|
-                "/teams/"
-                    ++ rid.teamName
-                    ++ "/pipelines/"
-                    ++ rid.pipelineName
-                    ++ "/resources/"
-                    ++ rid.resourceName
-
-        newParsedRoute =
-            Erl.addQuery param boundary <| Erl.addQuery "limit" (Basics.toString page.limit) parsedRoute
-    in
-    Erl.toString newParsedRoute
+    Routes.Resource rid.teamName rid.pipelineName rid.resourceName (Just page)
+        |> Routes.toString
 
 
 view : Model -> Html Msg

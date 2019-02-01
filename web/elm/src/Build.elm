@@ -81,7 +81,7 @@ type StepRenderingState
 
 type alias Flags =
     { csrfToken : String
-    , hash : String
+    , highlight : Models.Highlight
     }
 
 
@@ -107,7 +107,7 @@ init flags page =
                 , previousKeyPress = Nothing
                 , previousTriggerBuildByKey = False
                 , showHelp = False
-                , hash = flags.hash
+                , highlight = flags.highlight
                 , hoveredElement = Nothing
                 , hoveredCounter = 0
                 }
@@ -601,7 +601,7 @@ initBuildOutput : Concourse.Build -> Model -> ( Model, List Effect )
 initBuildOutput build model =
     let
         ( output, outputCmd ) =
-            Build.Output.init { hash = model.hash } build
+            Build.Output.init { highlight = model.highlight } build
     in
     ( { model
         | currentBuild =

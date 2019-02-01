@@ -3,7 +3,6 @@ module Build.StepTree exposing
     , finished
     , init
     , map
-    , parseHighlight
     , setHighlight
     , switchTab
     , toggleStep
@@ -41,6 +40,7 @@ import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style)
 import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
+import Routes exposing (showHighlight)
 import Spinner
 import StrictEvents
 
@@ -792,44 +792,3 @@ viewStepHeaderIcon headerType tooltip id =
          else
             []
         )
-
-
-showHighlight : Highlight -> String
-showHighlight hl =
-    case hl of
-        HighlightNothing ->
-            ""
-
-        HighlightLine id line ->
-            "#L" ++ id ++ ":" ++ toString line
-
-        HighlightRange id line1 line2 ->
-            "#L" ++ id ++ ":" ++ toString line1 ++ ":" ++ toString line2
-
-
-parseHighlight : String -> Highlight
-parseHighlight hash =
-    case String.uncons (String.dropLeft 1 hash) of
-        Just ( 'L', selector ) ->
-            case String.split ":" selector of
-                [ stepID, line1str, line2str ] ->
-                    case ( String.toInt line1str, String.toInt line2str ) of
-                        ( Ok line1, Ok line2 ) ->
-                            HighlightRange stepID line1 line2
-
-                        _ ->
-                            HighlightNothing
-
-                [ stepID, linestr ] ->
-                    case String.toInt linestr of
-                        Ok line ->
-                            HighlightLine stepID line
-
-                        _ ->
-                            HighlightNothing
-
-                _ ->
-                    HighlightNothing
-
-        _ ->
-            HighlightNothing

@@ -2,7 +2,6 @@ module NewTopBar exposing
     ( Model
     , autocompleteOptions
     , query
-    , queryStringFromSearch
     , view
     )
 
@@ -22,7 +21,6 @@ import Html.Styled.Attributes as HA
         )
 import Html.Styled.Events exposing (..)
 import NewTopBar.Styles as Styles
-import QueryString
 import ScreenSize exposing (ScreenSize(..))
 import SearchBar exposing (SearchBar(..))
 import TopBar exposing (userDisplayName)
@@ -48,17 +46,6 @@ query model =
 
         _ ->
             ""
-
-
-queryStringFromSearch : String -> String
-queryStringFromSearch query =
-    case query of
-        "" ->
-            QueryString.render QueryString.empty
-
-        query ->
-            QueryString.render <|
-                QueryString.add "search" query QueryString.empty
 
 
 viewUserState : { a | userState : UserState, userMenuVisible : Bool } -> List (Html Msg)

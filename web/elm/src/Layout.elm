@@ -49,7 +49,7 @@ type alias Model =
     , csrfToken : String
     , authToken : String
     , pipelineRunningKeyframes : String
-    , route : Routes.ConcourseRoute
+    , route : Routes.Route
     }
 
 
@@ -65,8 +65,8 @@ init flags location =
             Routes.parsePath location
 
         topBarType =
-            case route.logical of
-                Routes.Dashboard ->
+            case route of
+                Routes.Dashboard _ ->
                     Dashboard
 
                 Routes.DashboardHd ->
@@ -117,7 +117,7 @@ init flags location =
                 []
 
             else
-                [ ( Layout, Effects.ModifyUrl (Routes.customToString route) ) ]
+                [ ( Layout, Effects.ModifyUrl (Routes.toString route) ) ]
     in
     ( model
     , [ handleTokenEffect ]
@@ -314,7 +314,7 @@ validNavIndex modelNavIndex navIndex =
         navIndex == modelNavIndex
 
 
-urlUpdate : Routes.ConcourseRoute -> Model -> ( Model, List ( LayoutDispatch, Effect ) )
+urlUpdate : Routes.Route -> Model -> ( Model, List ( LayoutDispatch, Effect ) )
 urlUpdate route model =
     let
         navIndex =
@@ -403,22 +403,22 @@ subscriptions model =
            )
 
 
-routeMatchesModel : Routes.ConcourseRoute -> Model -> Bool
+routeMatchesModel : Routes.Route -> Model -> Bool
 routeMatchesModel route model =
-    case ( route.logical, model.subModel ) of
-        ( Routes.Pipeline _ _, SubPage.PipelineModel _ ) ->
+    case ( route, model.subModel ) of
+        ( Routes.Pipeline _ _ _, SubPage.PipelineModel _ ) ->
             True
 
-        ( Routes.Resource _ _ _, SubPage.ResourceModel _ ) ->
+        ( Routes.Resource _ _ _ _, SubPage.ResourceModel _ ) ->
             True
 
-        ( Routes.Build _ _ _ _, SubPage.BuildModel _ ) ->
+        ( Routes.Build _ _ _ _ _, SubPage.BuildModel _ ) ->
             True
 
-        ( Routes.Job _ _ _, SubPage.JobModel _ ) ->
+        ( Routes.Job _ _ _ _, SubPage.JobModel _ ) ->
             True
 
-        ( Routes.Dashboard, SubPage.DashboardModel _ ) ->
+        ( Routes.Dashboard _, SubPage.DashboardModel _ ) ->
             True
 
         _ ->

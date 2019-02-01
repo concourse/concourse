@@ -10,8 +10,6 @@ import Layout
 import Msgs
 import Pipeline exposing (update)
 import Pipeline.Msgs exposing (Msg(..))
-import QueryString
-import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -35,7 +33,58 @@ it desc expectationFunc model =
 all : Test
 all =
     describe "Pipeline"
-        [ describe "update" <|
+        [ test "view respects selected groups in URL" <|
+            \_ ->
+                Layout.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = ""
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { href = ""
+                    , host = ""
+                    , hostname = ""
+                    , protocol = ""
+                    , origin = ""
+                    , port_ = ""
+                    , pathname = "/teams/team/pipelines/pipeline"
+                    , search = "?groups=other-group"
+                    , hash = ""
+                    , username = ""
+                    , password = ""
+                    }
+                    |> Tuple.first
+                    |> Layout.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.PipelineFetched
+                            (Ok
+                                { id = 0
+                                , name = "pipeline"
+                                , paused = False
+                                , public = True
+                                , teamName = "team"
+                                , groups =
+                                    [ { name = "group"
+                                      , jobs = []
+                                      , resources = []
+                                      }
+                                    , { name = "other-group"
+                                      , jobs = []
+                                      , resources = []
+                                      }
+                                    ]
+                                }
+                            )
+                        )
+                    |> Tuple.first
+                    |> Layout.view
+                    |> Query.fromHtml
+                    |> Query.find [ class "groups-bar" ]
+                    |> Query.find
+                        [ class "main", containing [ text "other-group" ] ]
+                    |> Query.has [ class "active" ]
+        , describe "update" <|
             let
                 defaultModel : Pipeline.Model
                 defaultModel =
@@ -43,7 +92,7 @@ all =
                         { teamName = "some-team"
                         , pipelineName = "some-pipeline"
                         , turbulenceImgSrc = "some-turbulence-img-src"
-                        , route = { logical = Routes.Pipeline "" "", queries = QueryString.empty, page = Nothing, hash = "" }
+                        , selectedGroups = []
                         }
                         |> Tuple.first
             in
