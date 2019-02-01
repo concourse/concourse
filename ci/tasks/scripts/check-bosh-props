@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# check-helm-chart-parameters - verifies if there are any concourse
+# parameters that are missing from the helm chart's template files
+# that define environment variables.
+#
+# Environment variables:
+#   RELEASE    Location of the Concourse bosh release
+
+set -o errexit
+
+readonly RELEASE=${RELEASE:-"$PWD/bosh-release-repo"}
+readonly CONCOURSE_IGNORE_LIST="CONCOURSE_VERSION"
+
+main() {
+  local actual=$(get_bosh_variables)
+  local expected=$(get_concourse_variables)
+  local diff=$(get_diff "$actual" "$expected")
+
+  if [[ -z $diff ]]; then
+    echo "All good!"
+    exit 0
+  fi
+
+  echo "$diff"
+
+  exit 1
+}
+
+get_concourse_variables() {
+  for subcommand in web worker; do
+    concourse $subcommand --help 2>&1 |
+      grep -o '\[\$.*\]' |
+      tr -d \[\]\$ |
+      egrep -v "$CONCOURSE_IGNORE_LIST"
+  done
+}
+
+get_bosh_variables() {
+  grep -REhv '\s+#\s+' $RELEASE/jobs |
+    grep -Eoh 'env(_file)?: (([A-Z_])+|http_proxy|https_proxy|no_proxy)' |
+    sed -e "s/^env\(_file\)\?: //"
+}
+
+get_diff() {
+  local actual=$1
+  local expected=$2
+
+  comm -23 <(echo "$expected" | sort -u) <(echo "$actual" | sort -u) | sed 's/^/+ /'
+  comm -13 <(echo "$expected" | sort -u) <(echo "$actual" | sort -u) | sed 's/^/- /'
+}
+
+main "$@"

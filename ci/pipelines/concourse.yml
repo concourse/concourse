@@ -57,6 +57,7 @@ groups:
   - bosh-smoke
   - bosh-topgun
   - bosh-prod-deploy
+  - bosh-check-props
   - merge-cbd
 
 - name: images
@@ -499,6 +500,22 @@ jobs:
     image: unit-image
     file: concourse/ci/tasks/upgrade-test.yml
     params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
+
+- name: bosh-check-props
+  public: true
+  max_in_flight: 1
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [bin-smoke]
+      trigger: true
+    - get: dev-image
+      passed: [bin-smoke]
+      trigger: true
+    - get: concourse-release-repo
+  - task: check-params
+    file: concourse/ci/tasks/check-bosh-props.yml
+    image: dev-image
 
 - name: bosh-bump
   public: true
