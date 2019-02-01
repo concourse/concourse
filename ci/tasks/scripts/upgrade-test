@@ -15,12 +15,16 @@ start_docker
 
 cd concourse
 
+# start with latest release and set up
 docker-compose -f docker-compose-4.2.2.yml up -d
-
 ./ci/tasks/scripts/create-upgrade-downgrade-pipeline
 
+# upgrade and verify
 docker-compose up --build --remove-orphans -d
-
 ./ci/tasks/scripts/verify-upgrade-downgrade-pipeline
 
-./ci/tasks/scripts/watsjs test/smoke.js
+# run smoke tests
+cd web/wats
+stty columns 80 # for better yarn output
+yarn install
+yarn test -v --color test/smoke.js
