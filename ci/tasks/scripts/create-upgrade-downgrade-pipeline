@@ -20,7 +20,8 @@ echo "logging in..."
 fly -t local login -c "$web_url" -u test -p test
 
 # wait for worker to be available
-until fly -t local workers | grep running; do
+worker=$(docker ps -q --filter name=worker)
+until fly -t local workers | grep "${worker}.*running"; do
   echo "waiting for running worker..."
   sleep 2
 done
