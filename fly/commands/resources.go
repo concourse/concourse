@@ -44,28 +44,25 @@ func (command *ResourcesCommand) Execute([]string) error {
 		return nil
 	}
 
-	headers = []string{"name", "paused", "type"}
+	headers = []string{"name", "type", "pinned"}
 	table := ui.Table{Headers: ui.TableRow{}}
 	for _, h := range headers {
 		table.Headers = append(table.Headers, ui.TableCell{Contents: h, Color: color.New(color.Bold)})
 	}
 
 	for _, p := range resources {
-		var pausedColumn ui.TableCell
-		if p.Paused {
-			pausedColumn.Contents = "yes"
-			pausedColumn.Color = ui.OnColor
-		} else {
-			pausedColumn.Contents = "no"
-		}
-
-		var resourceType ui.TableCell
-		resourceType.Contents = p.Type
-
 		row := ui.TableRow{}
 		row = append(row, ui.TableCell{Contents: p.Name})
-		row = append(row, pausedColumn)
-		row = append(row, resourceType)
+		row = append(row, ui.TableCell{Contents: p.Type})
+
+		var pinnedColumn ui.TableCell
+		if p.PinnedVersion != nil {
+			pinnedColumn.Contents = ui.PresentVersion(p.PinnedVersion)
+		} else {
+			pinnedColumn.Contents = "n/a"
+		}
+
+		row = append(row, pinnedColumn)
 
 		table.Data = append(table.Data, row)
 	}
