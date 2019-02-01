@@ -19,7 +19,7 @@ docker-compose up --build -d
 
 ./ci/tasks/scripts/create-upgrade-downgrade-pipeline
 
-downgrade_to=$(docker run concourse/concourse:4.2.2 migrate --current-db-version)
+downgrade_to=$(docker run concourse/concourse:4.2.2 migrate --supported-db-version)
 docker-compose stop web
 docker-compose run web migrate --migrate-db-to-version $downgrade_to
 
