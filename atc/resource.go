@@ -7,8 +7,6 @@ type Resource struct {
 	Type         string `json:"type"`
 	LastChecked  int64  `json:"last_checked,omitempty"`
 
-	Paused bool `json:"paused,omitempty"`
-
 	FailingToCheck  bool   `json:"failing_to_check,omitempty"`
 	CheckSetupError string `json:"check_setup_error,omitempty"`
 	CheckError      string `json:"check_error,omitempty"`
