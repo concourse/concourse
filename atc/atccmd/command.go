@@ -90,9 +90,9 @@ type RunCommand struct {
 	PeerURL     flag.URL `long:"peer-url"     description:"URL used to reach this ATC from other ATCs in the cluster."`
 
 	Postgres            flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
-	DBKeepAliveIdleTime time.Duration       `long:"db-tcp-keepalive-time" description:"Set net.ipv4.tcp_keepalive_time for DB session. (0 means disable this feature)" default:"0m"`
-	DBKeepAliveCount    int                 `long:"db-tcp-keepalive-probes" description:"Set net.ipv4.tcp_keepalive_probes for DB session. (0 means disable this feature)" default:"0"`
-	DBKeepAliveInterval time.Duration       `long:"db-tcp-keepalive-intvl" description:"Set net.ipv4.tcp_keepalive_intvl for DB session. (0 means disable this feature)" default:"0m"`
+	DBKeepAliveIdleTime time.Duration       `long:"db-tcp-keepalive-time" description:"Set net.ipv4.tcp_keepalive_time for DB session. (0 means disable this feature)" default:"10s"`
+	DBKeepAliveCount    int                 `long:"db-tcp-keepalive-probes" description:"Set net.ipv4.tcp_keepalive_probes for DB session. (0 means disable this feature)" default:"3"`
+	DBKeepAliveInterval time.Duration       `long:"db-tcp-keepalive-intvl" description:"Set net.ipv4.tcp_keepalive_intvl for DB session. (0 means disable this feature)" default:"5s"`
 
 	CredentialManagement creds.CredentialManagementConfig `group:"Credential Management"`
 	CredentialManagers   creds.Managers
