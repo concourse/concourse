@@ -102,23 +102,25 @@ init flags route =
                 }
                 |> Tuple.mapFirst PipelineModel
 
-        Routes.Dashboard search ->
+        Routes.Dashboard (Routes.Normal search) ->
             Dashboard.init
                 { turbulencePath = flags.turbulencePath
                 , csrfToken = flags.csrfToken
                 , search = search |> Maybe.withDefault ""
                 , highDensity = False
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+                , route = route
                 }
                 |> Tuple.mapFirst DashboardModel
 
-        Routes.DashboardHd ->
+        Routes.Dashboard Routes.HighDensity ->
             Dashboard.init
                 { turbulencePath = flags.turbulencePath
                 , csrfToken = flags.csrfToken
                 , search = ""
                 , highDensity = True
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+                , route = route
                 }
                 |> Tuple.mapFirst DashboardModel
 

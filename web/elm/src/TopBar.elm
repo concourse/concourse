@@ -177,9 +177,6 @@ extractPidFromRoute route =
         Routes.Dashboard _ ->
             Nothing
 
-        Routes.DashboardHd ->
-            Nothing
-
         Routes.FlySuccess _ ->
             Nothing
 

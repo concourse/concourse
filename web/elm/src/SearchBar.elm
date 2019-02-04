@@ -1,16 +1,17 @@
-module SearchBar exposing (SearchBar(..), screenSizeChanged)
+module SearchBar exposing (Dropdown(..), SearchBar(..), screenSizeChanged)
 
 import ScreenSize exposing (ScreenSize)
 
 
 type SearchBar
-    = Collapsed
-    | Expanded
-        { query : String
-        , showAutocomplete : Bool
-        , selectionMade : Bool
-        , selection : Int
-        }
+    = Gone
+    | Minified
+    | Visible { query : String, dropdown : Dropdown }
+
+
+type Dropdown
+    = Hidden
+    | Shown { selectedIdx : Maybe Int }
 
 
 screenSizeChanged :
@@ -21,46 +22,39 @@ screenSizeChanged :
     -> SearchBar
 screenSizeChanged { oldSize, newSize } searchBar =
     case ( searchBar, newSize ) of
-        ( Expanded r, ScreenSize.Mobile ) ->
+        ( Gone, _ ) ->
+            Gone
+
+        ( Visible r, ScreenSize.Mobile ) ->
             case oldSize of
                 ScreenSize.Desktop ->
                     if String.isEmpty r.query then
-                        Collapsed
+                        Minified
 
                     else
-                        Expanded r
+                        Visible r
 
                 ScreenSize.BigDesktop ->
                     if String.isEmpty r.query then
-                        Collapsed
+                        Minified
 
                     else
-                        Expanded r
+                        Visible r
 
                 ScreenSize.Mobile ->
-                    Expanded r
+                    Visible r
 
-        ( Expanded r, ScreenSize.Desktop ) ->
-            Expanded r
+        ( Visible r, ScreenSize.Desktop ) ->
+            Visible r
 
-        ( Expanded r, ScreenSize.BigDesktop ) ->
-            Expanded r
+        ( Visible r, ScreenSize.BigDesktop ) ->
+            Visible r
 
-        ( Collapsed, ScreenSize.Desktop ) ->
-            Expanded
-                { query = ""
-                , selectionMade = False
-                , showAutocomplete = False
-                , selection = 0
-                }
+        ( Minified, ScreenSize.Desktop ) ->
+            Visible { query = "", dropdown = Hidden }
 
-        ( Collapsed, ScreenSize.BigDesktop ) ->
-            Expanded
-                { query = ""
-                , selectionMade = False
-                , showAutocomplete = False
-                , selection = 0
-                }
+        ( Minified, ScreenSize.BigDesktop ) ->
+            Visible { query = "", dropdown = Hidden }
 
-        ( Collapsed, ScreenSize.Mobile ) ->
-            Collapsed
+        ( Minified, ScreenSize.Mobile ) ->
+            Minified

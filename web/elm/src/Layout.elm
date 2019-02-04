@@ -69,9 +69,6 @@ init flags location =
                 Routes.Dashboard _ ->
                     Dashboard
 
-                Routes.DashboardHd ->
-                    Dashboard
-
                 _ ->
                     Normal
 

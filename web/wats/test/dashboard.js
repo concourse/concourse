@@ -86,63 +86,6 @@ test('shows pipelines in their correct order', async t => {
   t.deepEqual(names, pipelineOrder);
 });
 
-test.skip('shows pipelines with no finished builds in grey', showsPipelineState, async t => {
-  // no setup
-}, (t, text, background) => {
-  t.regex(text, /some-pipeline/);
-  t.regex(text, /pending/);
-
-  t.deepEqual(background, palette.grey);
-});
-
-test.skip('shows paused pipelines in blue', showsPipelineState, async t => {
-  await t.context.fly.run("pause-pipeline -p some-pipeline");
-}, (t, text, background) => {
-  t.regex(text, /some-pipeline/);
-  t.regex(text, /paused/);
-
-  t.deepEqual(background, palette.blue);
-});
-
-test.skip('shows pipelines with only passing builds in green', showsPipelineState, async t => {
-  await t.context.fly.run("trigger-job -w -j some-pipeline/passing");
-}, (t, text, background) => {
-  t.regex(text, /some-pipeline/);
-  t.deepEqual(background, palette.green);
-});
-
-test.skip('shows pipelines with any failed builds in red', showsPipelineState, async t => {
-  await t.context.fly.run("trigger-job -w -j some-pipeline/passing");
-  await t.throws(t.context.fly.run("trigger-job -w -j some-pipeline/failing"));
-}, (t, text, background) => {
-  t.regex(text, /some-pipeline/);
-  t.deepEqual(background, palette.red);
-});
-
-test.skip('shows pipelines with any errored builds in amber', showsPipelineState, async t => {
-  await t.context.fly.run("trigger-job -w -j some-pipeline/passing");
-  await t.throws(t.context.fly.run("trigger-job -w -j some-pipeline/erroring"));
-}, (t, text, background) => {
-  t.regex(text, /some-pipeline/);
-  t.deepEqual(background, palette.amber);
-});
-
-test.skip('shows pipelines with any aborted builds in brown', showsPipelineState, async t => {
-  await t.context.fly.run("trigger-job -j some-pipeline/passing -w");
-
-  let run = t.context.fly.spawn("trigger-job -j some-pipeline/running -w");
-
-  run.childProcess.stdout.on('data', async data => {
-    if (data.toString().indexOf("hello") !== -1) {
-      await t.context.fly.run("abort-build -j some-pipeline/running -b 1");
-    }
-  });
-
-  await t.throws(run);
-}, (t, text, background) => {
-  t.deepEqual(background, palette.brown);
-});
-
 test('auto-refreshes to reflect state changes', showsPipelineState, async t => {
   await t.context.fly.run("trigger-job -w -j some-pipeline/passing");
 }, async (t, text, background, group) => {
@@ -155,16 +98,4 @@ test('auto-refreshes to reflect state changes', showsPipelineState, async t => {
   let newBanner = await t.context.web.page.$(`${group} .banner`);
   let newBackground = await t.context.web.computedStyle(newBanner, 'backgroundColor');
   t.deepEqual(color(newBackground), palette.red);
-});
-
-test.skip('links to specific builds', async t => {
-  await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
-  await t.context.fly.run('unpause-pipeline -p some-pipeline');
-  await t.context.fly.run("trigger-job -w -j some-pipeline/passing");
-
-  await t.context.web.page.goto(t.context.web.route('/'));
-
-  const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
-  await t.context.web.clickAndWait(`${group} .node[data-tooltip="passing"] a`, '.build-header');
-  t.regex(await t.context.web.text(), /passing #1/);
 });
