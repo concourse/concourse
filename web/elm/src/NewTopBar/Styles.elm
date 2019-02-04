@@ -18,7 +18,6 @@ module NewTopBar.Styles exposing
     , topBar
     )
 
-import NewTopBar.Model exposing (SearchBar(..))
 import ScreenSize exposing (ScreenSize(..))
 
 
@@ -42,38 +41,18 @@ topBar =
 
 showSearchContainer :
     { a
-        | searchBar : SearchBar
-        , screenSize : ScreenSize
+        | screenSize : ScreenSize
         , highDensity : Bool
     }
     -> List ( String, String )
-showSearchContainer { searchBar, screenSize, highDensity } =
+showSearchContainer { screenSize, highDensity } =
     let
         flexLayout =
             if highDensity then
                 []
 
             else
-                [ ( "align-items"
-                  , case searchBar of
-                        Visible _ ->
-                            case screenSize of
-                                Mobile ->
-                                    "stretch"
-
-                                Desktop ->
-                                    "center"
-
-                                BigDesktop ->
-                                    "center"
-
-                        Minified ->
-                            "flex-start"
-
-                        Gone ->
-                            Debug.log "attempting to show search container when search is gone" "center"
-                  )
-                ]
+                [ ( "align-items", "flex-start" ) ]
     in
     [ ( "display", "flex" )
     , ( "flex-direction", "column" )

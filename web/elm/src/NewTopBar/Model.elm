@@ -1,4 +1,8 @@
-module NewTopBar.Model exposing (Dropdown(..), Model, SearchBar(..))
+module NewTopBar.Model exposing
+    ( Dropdown(..)
+    , MiddleSection(..)
+    , Model
+    )
 
 import Concourse
 import RemoteData
@@ -10,18 +14,22 @@ import UserState exposing (UserState)
 type alias Model =
     { userState : UserState
     , isUserMenuExpanded : Bool
-    , searchBar : SearchBar
+    , middleSection : MiddleSection
     , teams : RemoteData.WebData (List Concourse.Team)
-    , route : Routes.Route
     , screenSize : ScreenSize
     , highDensity : Bool
     }
 
 
-type SearchBar
-    = Gone
-    | Minified
-    | Visible { query : String, dropdown : Dropdown }
+
+-- The Route in middle section should always be a pipeline, build, resource, or job, but that's hard to demonstrate statically
+
+
+type MiddleSection
+    = Breadcrumbs Routes.Route
+    | MinifiedSearch
+    | SearchBar { query : String, dropdown : Dropdown }
+    | Empty
 
 
 type Dropdown
