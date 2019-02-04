@@ -64,6 +64,10 @@ func (f *Fly) Start(argv ...string) *gexec.Session {
 	return Start([]string{"HOME=" + f.Home}, f.Bin, append([]string{"-t", f.Target}, argv...)...)
 }
 
+func (f *Fly) StartWithEnv(env []string, argv ...string) *gexec.Session {
+	return Start(append([]string{"HOME=" + f.Home}, env...), f.Bin, append([]string{"-t", f.Target}, argv...)...)
+}
+
 func (f *Fly) SpawnInteractive(stdin io.Reader, argv ...string) *gexec.Session {
 	return SpawnInteractive(stdin, []string{"HOME=" + f.Home}, f.Bin, append([]string{"-t", f.Target}, argv...)...)
 }
