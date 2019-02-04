@@ -1,0 +1,49 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -u -x
+
+cd $(dirname $0)/../../..
+
+web_url=http://localhost:8080
+
+until curl --silent --fail "$web_url/api/v1/info"; do
+  echo "waiting for /api/v1/info..."
+  sleep 2
+done
+
+echo "installing fly..."
+curl "$web_url/api/v1/cli?platform=linux&arch=amd64" -o /usr/local/bin/fly
+chmod +x /usr/local/bin/fly
+
+echo "logging in..."
+fly -t local login -c "$web_url" -u test -p test
+
+# wait for worker to be available
+worker=$(docker ps -q --filter name=worker)
+until fly -t local workers | grep "${worker}.*running"; do
+  echo "waiting for running worker..."
+  sleep 2
+done
+
+# test that the pipeline exists
+fly -t local pipelines \
+  | grep "test-pipeline"
+
+# test that our old pipeline has not changed
+fly -t local set-pipeline -n \
+  -p test-pipeline \
+  -c ci/pipelines/upgrade-downgrade-pipeline.yml \
+  | grep "no changes to apply"
+
+# test that succeeded build shown in build history
+fly -t local builds \
+  | grep "test-pipeline/test-job.*1.*succeeded"
+
+# test that we can still fetch build history
+fly -t local watch -j "test-pipeline/test-job" \
+  | grep "succeeded"
+
+# test that we can check our resources
+fly -t local check-resource -r "test-pipeline/test-resource" \
+  | grep "checked"

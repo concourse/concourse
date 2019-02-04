@@ -35,13 +35,14 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("when resources are returned from the API", func() {
-			createResource := func(num int, paused bool, resourceType string) atc.Resource {
+			createResource := func(num int, pinnedVersion atc.Version, resourceType string) atc.Resource {
 				return atc.Resource{
 					Name:   fmt.Sprintf("resource-%d", num),
-					Paused: paused,
+					PinnedVersion: pinnedVersion,
 					Type:   resourceType,
 				}
 			}
+
 			BeforeEach(func() {
 				pipelineName := "pipeline"
 				flyCmd = exec.Command(flyPath, "-t", targetName, "resources", "--pipeline", pipelineName)
@@ -49,8 +50,8 @@ var _ = Describe("Fly CLI", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/resources"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Resource{
-							createResource(1, false, "time"),
-							createResource(2, true, "custom"),
+							createResource(1, nil, "time"),
+							createResource(2, atc.Version{"some":"version"}, "custom"),
 						}),
 					),
 				)
@@ -78,7 +79,7 @@ var _ = Describe("Fly CLI", func() {
                 "pipeline_name": "",
                 "team_name": "",
                 "type": "custom",
-				"paused": true
+								"pinned_version": {"some": "version"}
               }
             ]`))
 				})
@@ -91,8 +92,8 @@ var _ = Describe("Fly CLI", func() {
 
 				Expect(sess.Out).To(PrintTable(ui.Table{
 					Data: []ui.TableRow{
-						{{Contents: "resource-1"}, {Contents: "no"}, {Contents: "time"}},
-						{{Contents: "resource-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "custom"}},
+						{{Contents: "resource-1"}, {Contents: "time"}, {Contents: "n/a"}},
+						{{Contents: "resource-2"}, {Contents: "custom"}, {Contents: "some:version", Color: color.New(color.FgCyan)}},
 					},
 				}))
 			})

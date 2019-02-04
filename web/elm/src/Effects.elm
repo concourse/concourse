@@ -30,9 +30,9 @@ import Http
 import Json.Encode
 import Navigation
 import Process
-import QueryString
 import RemoteData
 import Resource.Models exposing (VersionId, VersionToggleAction(..))
+import Routes
 import Scroll
 import Task
 import Time exposing (Time)
@@ -386,16 +386,10 @@ unpauseJob jobIdentifier csrfToken =
 
 sendTokenToFly : String -> Int -> Cmd Callback
 sendTokenToFly authToken flyPort =
-    let
-        queryString =
-            QueryString.empty
-                |> QueryString.add "token" authToken
-                |> QueryString.render
-    in
     Http.request
         { method = "GET"
         , headers = []
-        , url = "http://127.0.0.1:" ++ toString flyPort ++ queryString
+        , url = Routes.tokenToFlyRoute authToken flyPort
         , body = Http.emptyBody
         , expect = Http.expectStringResponse (\_ -> Ok ())
         , timeout = Nothing

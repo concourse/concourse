@@ -3,7 +3,7 @@ module BuildTests exposing (all)
 import Array
 import Build
 import Build.Models as Models
-import Build.Msgs as Msgs
+import Build.Msgs
 import Callback
 import Concourse exposing (BuildPrepStatus(..))
 import DashboardTests
@@ -16,6 +16,9 @@ import Dict
 import Effects
 import Expect
 import Html.Attributes as Attr
+import Layout
+import Msgs
+import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -38,7 +41,7 @@ all =
             pageLoad =
                 Build.init
                     { csrfToken = ""
-                    , hash = ""
+                    , highlight = Models.HighlightNothing
                     }
                     (Models.JobBuildPage
                         { teamName = "team"
@@ -154,7 +157,96 @@ all =
                         )
                     )
         in
-        [ test "says loading on page load" <|
+        [ test "converts URL hash to highlighted line in view" <|
+            \_ ->
+                Layout.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = ""
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { href = ""
+                    , host = ""
+                    , hostname = ""
+                    , protocol = ""
+                    , origin = ""
+                    , port_ = ""
+                    , pathname = "/builds/1"
+                    , search = ""
+                    , hash = "#Lstepid:1"
+                    , username = ""
+                    , password = ""
+                    }
+                    |> Tuple.first
+                    |> Layout.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 1
+                                  , name = "1"
+                                  , job = Nothing
+                                  , status = Concourse.BuildStatusStarted
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Layout.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.PlanAndResourcesFetched 307 <|
+                            Ok <|
+                                ( { id = "stepid"
+                                  , step =
+                                        Concourse.BuildStepTask
+                                            "step"
+                                  }
+                                , { inputs = [], outputs = [] }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Layout.update
+                        (Msgs.SubMsg 1
+                            (SubPage.Msgs.BuildMsg
+                                (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
+                            )
+                        )
+                    |> Tuple.first
+                    |> Layout.update
+                        (Msgs.SubMsg 1
+                            (SubPage.Msgs.BuildMsg
+                                (Build.Msgs.BuildEventsMsg <|
+                                    Build.Msgs.Events <|
+                                        Ok <|
+                                            Array.fromList
+                                                [ Models.StartTask
+                                                    { source = "stdout"
+                                                    , id = "stepid"
+                                                    }
+                                                , Models.Log
+                                                    { source = "stdout"
+                                                    , id = "stepid"
+                                                    }
+                                                    "log message"
+                                                    Nothing
+                                                ]
+                                )
+                            )
+                        )
+                    |> Tuple.first
+                    |> Layout.view
+                    |> Query.fromHtml
+                    |> Query.find
+                        [ class "timestamped-line"
+                        , containing [ text "log message" ]
+                        ]
+                    |> Query.has [ class "highlighted-line" ]
+        , test "says loading on page load" <|
             \_ ->
                 pageLoad
                     |> Tuple.first
@@ -325,8 +417,8 @@ all =
                                     , image = "ic-add-circle-outline-white.svg"
                                     }
                         }
-                    , mouseEnterMsg = Msgs.Hover <| Just Models.Trigger
-                    , mouseLeaveMsg = Msgs.Hover Nothing
+                    , mouseEnterMsg = Build.Msgs.Hover <| Just Models.Trigger
+                    , mouseLeaveMsg = Build.Msgs.Hover Nothing
                     }
                 ]
             , describe "when history and details witche dwith maual triggering disabled" <|
@@ -399,8 +491,8 @@ all =
                                         }
                             ]
                         }
-                    , mouseEnterMsg = Msgs.Hover <| Just Models.Trigger
-                    , mouseLeaveMsg = Msgs.Hover Nothing
+                    , mouseEnterMsg = Build.Msgs.Hover <| Just Models.Trigger
+                    , mouseLeaveMsg = Build.Msgs.Hover Nothing
                     }
                 ]
             ]
@@ -514,8 +606,8 @@ all =
                                 , image = "ic-abort-circle-outline-white.svg"
                                 }
                     }
-                , mouseEnterMsg = Msgs.Hover <| Just Models.Abort
-                , mouseLeaveMsg = Msgs.Hover Nothing
+                , mouseEnterMsg = Build.Msgs.Hover <| Just Models.Abort
+                , mouseLeaveMsg = Build.Msgs.Hover Nothing
                 }
             , describe "build prep section"
                 [ test "when pipeline is not paused, shows a check" <|
@@ -830,11 +922,11 @@ all =
                             >> Query.first
                             >> Event.simulate Event.mouseEnter
                             >> Event.expect
-                                (Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                     , test "no tooltip before 1 second has passed" <|
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> Build.update
-                                (Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
                             >> Build.view
                             >> Query.fromHtml
@@ -849,12 +941,12 @@ all =
                             >> Query.count (Expect.equal 0)
                     , test "1 second after hovering, tooltip appears" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> Build.update (Msgs.ClockTick 0)
+                            >> Build.update (Build.Msgs.ClockTick 0)
                             >> Tuple.first
                             >> Build.update
-                                (Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
-                            >> Build.update (Msgs.ClockTick 1)
+                            >> Build.update (Build.Msgs.ClockTick 1)
                             >> Tuple.first
                             >> Build.view
                             >> Query.fromHtml
@@ -906,7 +998,7 @@ all =
                     , test "mousing off yellow arrow triggers Hover message" <|
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> Build.update
-                                (Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
                             >> Build.view
                             >> Query.fromHtml
@@ -919,17 +1011,17 @@ all =
                             >> Query.first
                             >> Event.simulate Event.mouseLeave
                             >> Event.expect
-                                (Msgs.Hover Nothing)
+                                (Build.Msgs.Hover Nothing)
                     , test "unhovering after tooltip appears dismisses" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> Build.update (Msgs.ClockTick 0)
+                            >> Build.update (Build.Msgs.ClockTick 0)
                             >> Tuple.first
                             >> Build.update
-                                (Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
-                            >> Build.update (Msgs.ClockTick 1)
+                            >> Build.update (Build.Msgs.ClockTick 1)
                             >> Tuple.first
-                            >> Build.update (Msgs.Hover Nothing)
+                            >> Build.update (Build.Msgs.Hover Nothing)
                             >> Tuple.first
                             >> Build.view
                             >> Query.fromHtml
@@ -945,11 +1037,11 @@ all =
                     ]
                 , test "hovering one resource of several produces only a single tooltip" <|
                     fetchPlanWithGetStepWithFirstOccurrence
-                        >> Build.update (Msgs.ClockTick 0)
+                        >> Build.update (Build.Msgs.ClockTick 0)
                         >> Tuple.first
-                        >> Build.update (Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                        >> Build.update (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                         >> Tuple.first
-                        >> Build.update (Msgs.ClockTick 1)
+                        >> Build.update (Build.Msgs.ClockTick 1)
                         >> Tuple.first
                         >> Build.view
                         >> Query.fromHtml
@@ -957,11 +1049,11 @@ all =
                         >> Query.count (Expect.equal 1)
                 , test "successful step has a checkmark at the far right" <|
                     fetchPlanWithGetStep
-                        >> Build.update (Msgs.BuildEventsMsg Msgs.Opened)
+                        >> Build.update (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
                         >> Tuple.first
                         >> Build.update
-                            (Msgs.BuildEventsMsg <|
-                                Msgs.Events <|
+                            (Build.Msgs.BuildEventsMsg <|
+                                Build.Msgs.Events <|
                                     Ok <|
                                         Array.fromList
                                             [ Models.FinishGet
@@ -986,11 +1078,11 @@ all =
                             )
                 , test "get step lists resource version on the right" <|
                     fetchPlanWithGetStep
-                        >> Build.update (Msgs.BuildEventsMsg Msgs.Opened)
+                        >> Build.update (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
                         >> Tuple.first
                         >> Build.update
-                            (Msgs.BuildEventsMsg <|
-                                Msgs.Events <|
+                            (Build.Msgs.BuildEventsMsg <|
+                                Build.Msgs.Events <|
                                     Ok <|
                                         Array.fromList
                                             [ Models.FinishGet
@@ -1010,8 +1102,8 @@ all =
                 , test "running step has loading spinner at the right" <|
                     fetchPlanWithTaskStep
                         >> Build.update
-                            (Msgs.BuildEventsMsg <|
-                                Msgs.Events <|
+                            (Build.Msgs.BuildEventsMsg <|
+                                Build.Msgs.Events <|
                                     Ok <|
                                         Array.fromList
                                             [ Models.StartTask
@@ -1035,11 +1127,11 @@ all =
                             ]
                 , test "failing step has an X at the far right" <|
                     fetchPlanWithGetStep
-                        >> Build.update (Msgs.BuildEventsMsg Msgs.Opened)
+                        >> Build.update (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
                         >> Tuple.first
                         >> Build.update
-                            (Msgs.BuildEventsMsg <|
-                                Msgs.Events <|
+                            (Build.Msgs.BuildEventsMsg <|
+                                Build.Msgs.Events <|
                                     Ok <|
                                         Array.fromList
                                             [ Models.FinishGet
@@ -1064,11 +1156,11 @@ all =
                             )
                 , test "erroring step has orange exclamation triangle at right" <|
                     fetchPlanWithGetStep
-                        >> Build.update (Msgs.BuildEventsMsg Msgs.Opened)
+                        >> Build.update (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
                         >> Tuple.first
                         >> Build.update
-                            (Msgs.BuildEventsMsg <|
-                                Msgs.Events <|
+                            (Build.Msgs.BuildEventsMsg <|
+                                Build.Msgs.Events <|
                                     Ok <|
                                         Array.fromList
                                             [ Models.Error
@@ -1095,14 +1187,14 @@ all =
                         erroringBuild =
                             fetchPlanWithGetStep
                                 >> Build.update
-                                    (Msgs.BuildEventsMsg Msgs.Errored)
+                                    (Build.Msgs.BuildEventsMsg Build.Msgs.Errored)
                                 >> Tuple.first
                     in
                     [ test "has orange exclamation triangle at left" <|
                         erroringBuild
                             >> Build.update
-                                (Msgs.BuildEventsMsg <|
-                                    Msgs.Events <|
+                                (Build.Msgs.BuildEventsMsg <|
+                                    Build.Msgs.Events <|
                                         Ok <|
                                             Array.fromList
                                                 [ Models.BuildError
