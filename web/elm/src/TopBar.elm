@@ -39,10 +39,6 @@ type alias Model r =
 
 init : Routes.Route -> ( Model {}, List Effect )
 init route =
-    let
-        pid =
-            extractPidFromRoute route
-    in
     ( { route = route
       , pipeline = Nothing
       , userState = UserStateUnknown
@@ -50,7 +46,7 @@ init route =
       , pinnedResources = []
       , showPinIconDropDown = False
       }
-    , case pid of
+    , case Routes.extractPid route of
         Nothing ->
             [ Effects.FetchUser ]
 
@@ -143,42 +139,13 @@ subscriptions model =
 
 pipelineIdentifierFromRouteOrModel : Routes.Route -> Model r -> Maybe Concourse.PipelineIdentifier
 pipelineIdentifierFromRouteOrModel route model =
-    case extractPidFromRoute route of
+    case Routes.extractPid route of
         Nothing ->
-            case model.pipeline of
-                Nothing ->
-                    Nothing
-
-                Just pipeline ->
-                    Just { teamName = pipeline.teamName, pipelineName = pipeline.name }
+            model.pipeline
+                |> Maybe.map (\p -> { teamName = p.teamName, pipelineName = p.name })
 
         Just pidFromRoute ->
             Just pidFromRoute
-
-
-extractPidFromRoute : Routes.Route -> Maybe Concourse.PipelineIdentifier
-extractPidFromRoute route =
-    case route of
-        Routes.Build teamName pipelineName jobName buildName _ ->
-            Just { teamName = teamName, pipelineName = pipelineName }
-
-        Routes.Job teamName pipelineName jobName _ ->
-            Just { teamName = teamName, pipelineName = pipelineName }
-
-        Routes.Resource teamName pipelineName resourceName _ ->
-            Just { teamName = teamName, pipelineName = pipelineName }
-
-        Routes.OneOffBuild buildId _ ->
-            Nothing
-
-        Routes.Pipeline teamName pipelineName _ ->
-            Just { teamName = teamName, pipelineName = pipelineName }
-
-        Routes.Dashboard _ ->
-            Nothing
-
-        Routes.FlySuccess _ ->
-            Nothing
 
 
 urlUpdate : Routes.Route -> Model r -> ( Model r, List Effect )
@@ -187,9 +154,7 @@ urlUpdate route model =
         pipelineIdentifier =
             pipelineIdentifierFromRouteOrModel route model
     in
-    ( { model
-        | route = route
-      }
+    ( { model | route = route }
     , case pipelineIdentifier of
         Nothing ->
             [ Effects.FetchUser ]

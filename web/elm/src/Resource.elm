@@ -88,47 +88,40 @@ init flags =
             , resourceName = flags.resourceName
             }
 
-        ( model, effect ) =
-            changeToResource flags
-                { resourceIdentifier = resourceId
-                , pageStatus = Err Models.Empty
-                , teamName = flags.teamName
-                , pipelineName = flags.pipelineName
-                , name = flags.resourceName
-                , checkStatus = Models.CheckingSuccessfully
-                , checkError = ""
-                , checkSetupError = ""
-                , hovered = Models.None
-                , lastChecked = Nothing
-                , pinnedVersion = NotPinned
-                , currentPage = Nothing
-                , versions =
-                    { content = []
-                    , pagination =
-                        { previousPage = Nothing
-                        , nextPage = Nothing
-                        }
-                    }
-                , now = Nothing
-                , csrfToken = flags.csrfToken
-                , showPinBarTooltip = False
-                , pinIconHover = False
-                , pinComment = Nothing
-                , route =
-                    Routes.Resource
-                        flags.teamName
-                        flags.pipelineName
-                        flags.resourceName
-                        Nothing
+        model =
+            { resourceIdentifier = resourceId
+            , pageStatus = Err Models.Empty
+            , teamName = flags.teamName
+            , pipelineName = flags.pipelineName
+            , name = flags.resourceName
+            , checkStatus = Models.CheckingSuccessfully
+            , checkError = ""
+            , checkSetupError = ""
+            , hovered = Models.None
+            , lastChecked = Nothing
+            , pinnedVersion = NotPinned
+            , currentPage = flags.paging
+            , versions =
+                { content = []
+                , pagination = { previousPage = Nothing, nextPage = Nothing }
+                }
+            , now = Nothing
+            , csrfToken = flags.csrfToken
+            , showPinBarTooltip = False
+            , pinIconHover = False
+            , pinComment = Nothing
+            , topBar =
+                { route = Routes.Resource flags.teamName flags.pipelineName flags.resourceName Nothing
                 , pipeline = Nothing
                 , userState = UserStateUnknown
                 , userMenuVisible = False
                 , pinnedResources = []
                 , showPinIconDropDown = False
                 }
+            }
     in
     ( model
-    , [ FetchResource model.resourceIdentifier
+    , [ FetchResource resourceId
       , FetchUser
       , FetchVersionedResources resourceId flags.paging
       ]
@@ -141,10 +134,7 @@ changeToResource flags model =
         | currentPage = flags.paging
         , versions =
             { content = []
-            , pagination =
-                { previousPage = Nothing
-                , nextPage = Nothing
-                }
+            , pagination = { previousPage = Nothing, nextPage = Nothing }
             }
       }
     , [ FetchVersionedResources model.resourceIdentifier flags.paging ]
@@ -200,7 +190,21 @@ getUpdateMessage model =
 
 
 handleCallback : Callback -> Model -> ( Model, List Effect )
-handleCallback action model =
+handleCallback msg model =
+    let
+        ( newTopBar, topBarEffects ) =
+            TopBar.handleCallback msg model.topBar
+
+        ( newModel, dashboardEffects ) =
+            handleCallbackWithoutTopBar msg model
+    in
+    ( { newModel | topBar = newTopBar }
+    , topBarEffects ++ dashboardEffects
+    )
+
+
+handleCallbackWithoutTopBar : Callback -> Model -> ( Model, List Effect )
+handleCallbackWithoutTopBar action model =
     case action of
         ResourceFetched (Ok resource) ->
             ( { model
@@ -417,20 +421,6 @@ handleCallback action model =
                     []
             )
 
-        UserFetched (Ok user) ->
-            ( { model | userState = UserStateLoggedIn user }, [] )
-
-        UserFetched (Err _) ->
-            ( { model | userState = UserStateLoggedOut }, [] )
-
-        LoggedOut (Ok _) ->
-            ( { model
-                | userState = UserStateLoggedOut
-                , pipeline = Nothing
-              }
-            , [ NavigateTo "/" ]
-            )
-
         _ ->
             ( model, [] )
 
@@ -587,7 +577,7 @@ update action model =
             ( { model | hovered = hovered }, [] )
 
         Check ->
-            case model.userState of
+            case model.topBar.userState of
                 UserStateLoggedIn _ ->
                     ( { model | checkStatus = Models.CurrentlyChecking }
                     , [ DoCheck model.resourceIdentifier model.csrfToken ]
@@ -597,7 +587,11 @@ update action model =
                     ( model, [ RedirectToLogin ] )
 
         TopBarMsg msg ->
-            TopBar.update msg model
+            let
+                ( newTopBar, effects ) =
+                    TopBar.update msg model.topBar
+            in
+            ( { model | topBar = newTopBar }, effects )
 
 
 updateVersion :
@@ -647,7 +641,7 @@ view model =
             , ( "font-weight", "700" )
             ]
         ]
-        [ Html.map TopBarMsg <| Html.fromUnstyled <| TopBar.view model
+        [ Html.map TopBarMsg <| Html.fromUnstyled <| TopBar.view model.topBar
         , subpageView model
         , commentBar model
         ]
@@ -720,6 +714,15 @@ body model =
     let
         headerHeight =
             60
+
+        sectionModel =
+            { checkStatus = model.checkStatus
+            , checkSetupError = model.checkSetupError
+            , checkError = model.checkError
+            , hovered = model.hovered
+            , userState = model.topBar.userState
+            , teamName = model.teamName
+            }
     in
     Html.div
         [ css
@@ -744,7 +747,7 @@ body model =
               )
             ]
         ]
-        [ checkSection model
+        [ checkSection sectionModel
         , viewVersionedResources model
         ]
 

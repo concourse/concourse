@@ -3,6 +3,7 @@ module Routes exposing
     , SearchType(..)
     , buildRoute
     , dashboardRoute
+    , extractPid
     , jobRoute
     , parsePath
     , pipelineRoute
@@ -374,3 +375,32 @@ parsePath location =
 
         _ ->
             Dashboard (Normal Nothing)
+
+
+
+-- route utils
+
+
+extractPid : Route -> Maybe Concourse.PipelineIdentifier
+extractPid route =
+    case route of
+        Build teamName pipelineName _ _ _ ->
+            Just { teamName = teamName, pipelineName = pipelineName }
+
+        Job teamName pipelineName _ _ ->
+            Just { teamName = teamName, pipelineName = pipelineName }
+
+        Resource teamName pipelineName _ _ ->
+            Just { teamName = teamName, pipelineName = pipelineName }
+
+        Pipeline teamName pipelineName _ ->
+            Just { teamName = teamName, pipelineName = pipelineName }
+
+        OneOffBuild _ _ ->
+            Nothing
+
+        Dashboard _ ->
+            Nothing
+
+        FlySuccess _ ->
+            Nothing

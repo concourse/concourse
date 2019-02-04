@@ -60,13 +60,22 @@ type alias Model =
     , csrfToken : String
     , showPinBarTooltip : Bool
     , pinIconHover : Bool
-    , route : Routes.Route
+    , pinComment : Maybe String
+    , topBar : TopBarModel
+    }
+
+
+
+-- Not an import to prevent dependency cycles
+
+
+type alias TopBarModel =
+    { route : Routes.Route
     , pipeline : Maybe Concourse.Pipeline
     , userState : UserState
     , userMenuVisible : Bool
     , pinnedResources : List ( String, Concourse.Version )
     , showPinIconDropDown : Bool
-    , pinComment : Maybe String
     }
 
 
