@@ -192,7 +192,7 @@ the following parameters:
 * password: (blank)
 * database: `concourse`
 
-A utility script is provided to connect via `psql`:
+A utility script is provided to connect via `psql` (or `pgcli` if installed):
 
 ```sh
 $ ./hack/db
