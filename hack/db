@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if which pgcli >/dev/null; then
+if command -qs pgcli; then
   pgcli -h localhost -p 6543 -U dev concourse
 else
   psql -h localhost -p 6543 -U dev concourse
