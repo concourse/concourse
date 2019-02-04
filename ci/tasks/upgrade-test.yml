@@ -1,0 +1,19 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: concourse/unit}
+
+params:
+  DOCKERFILE:
+
+inputs:
+- name: concourse
+- name: dev-image
+  optional: true
+- name: postgres-image
+  optional: true
+
+run:
+  path: concourse/ci/tasks/scripts/upgrade-test

@@ -1,5 +1,6 @@
 module NewestTopBarTests exposing (all)
 
+import Build.Models
 import Callback exposing (Callback(..))
 import Concourse
 import Dict
@@ -9,7 +10,6 @@ import Html.Attributes as Attr
 import Html.Styled exposing (toUnstyled)
 import NewTopBar.Msgs as Msgs
 import NewestTopBar
-import QueryString
 import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -95,16 +95,11 @@ searchBarPadding =
     "0 42px"
 
 
-initFlags : Routes.Route -> String -> NewestTopBar.Flags
-initFlags r q =
-    { isHd = False, route = { logical = r, queries = QueryString.parse q, page = Nothing, hash = "" } }
-
-
 all : Test
 all =
     describe "NewestTopBar"
         [ rspecStyleDescribe "when on pipeline page"
-            (NewestTopBar.init (initFlags (Routes.Pipeline "team" "pipeline") "")
+            (NewestTopBar.init { route = Routes.Pipeline "team" "pipeline" [] }
                 |> Tuple.first
             )
             [ context "when login state unknown"
@@ -236,7 +231,7 @@ all =
                 ]
             ]
         , rspecStyleDescribe "rendering user menus on clicks"
-            (NewestTopBar.init (initFlags (Routes.Pipeline "team" "pipeline") "")
+            (NewestTopBar.init { route = Routes.Pipeline "team" "pipeline" [] }
                 |> Tuple.first
                 |> logInUser
             )
@@ -293,7 +288,7 @@ all =
                     >> Query.has [ text "login" ]
             ]
         , rspecStyleDescribe "login component when user is logged out"
-            (NewestTopBar.init (initFlags (Routes.Pipeline "team" "pipeline") "")
+            (NewestTopBar.init { route = Routes.Pipeline "team" "pipeline" [] }
                 |> Tuple.first
                 |> logoutUser
                 |> NewestTopBar.view
@@ -334,7 +329,7 @@ all =
                         ]
             ]
         , rspecStyleDescribe "when triggering a log in message"
-            (NewestTopBar.init (initFlags (Routes.Pipeline "team" "pipeline") ""))
+            (NewestTopBar.init { route = Routes.Pipeline "team" "pipeline" [] })
             [ it "redirects to login page when you click login" <|
                 Tuple.first
                     >> NewestTopBar.update Msgs.LogIn
@@ -342,7 +337,7 @@ all =
                     >> Expect.equal [ Effects.RedirectToLogin ]
             ]
         , rspecStyleDescribe "rendering top bar on build page"
-            (NewestTopBar.init (initFlags (Routes.Build "team" "pipeline" "job" "1") "")
+            (NewestTopBar.init { route = Routes.Build "team" "pipeline" "job" "1" Build.Models.HighlightNothing }
                 |> Tuple.first
                 |> NewestTopBar.view
                 |> toUnstyled
@@ -364,7 +359,7 @@ all =
                     >> Query.has [ text "job" ]
             ]
         , rspecStyleDescribe "rendering top bar on resource page"
-            (NewestTopBar.init (initFlags (Routes.Resource "team" "pipeline" "resource") "")
+            (NewestTopBar.init { route = Routes.Resource "team" "pipeline" "resource" Nothing }
                 |> Tuple.first
                 |> NewestTopBar.view
                 |> toUnstyled
@@ -398,7 +393,7 @@ all =
                         [ text "resource" ]
             ]
         , rspecStyleDescribe "rendering top bar on job page"
-            (NewestTopBar.init (initFlags (Routes.Job "team" "pipeline" "job") "")
+            (NewestTopBar.init { route = Routes.Job "team" "pipeline" "job" Nothing }
                 |> Tuple.first
                 |> NewestTopBar.view
                 |> toUnstyled
@@ -418,7 +413,7 @@ all =
                         ]
             ]
         , rspecStyleDescribe "when checking search bar values"
-            (NewestTopBar.init (initFlags (Routes.Dashboard { isHd = False }) "search=test")
+            (NewestTopBar.init { route = Routes.Dashboard (Routes.Normal (Just "test")) }
                 |> Tuple.first
             )
             [ it "renders the search bar with the text in the search query" <|
@@ -448,7 +443,7 @@ all =
                     >> Query.has [ style [ ( "opacity", "1" ) ] ]
             ]
         , rspecStyleDescribe "rendering search bar on dashboard page"
-            (NewestTopBar.init (initFlags (Routes.Dashboard { isHd = False }) "")
+            (NewestTopBar.init { route = Routes.Dashboard (Routes.Normal Nothing) }
                 |> Tuple.first
             )
             [ context "when desktop sized"
@@ -718,7 +713,7 @@ all =
                 ]
             ]
         , rspecStyleDescribe "when search query is updated"
-            (NewestTopBar.init (initFlags (Routes.Dashboard { isHd = False }) "")
+            (NewestTopBar.init { route = Routes.Dashboard (Routes.Normal Nothing) }
                 |> Tuple.first
             )
             [ it "search item is modified" <|
@@ -762,7 +757,7 @@ all =
                     >> Query.count (Expect.equal 0)
             ]
         , rspecStyleDescribe "when search query is `status:`"
-            (NewestTopBar.init (initFlags (Routes.Dashboard { isHd = False }) "search=status:")
+            (NewestTopBar.init { route = Routes.Dashboard (Routes.Normal (Just "status:")) }
                 |> Tuple.first
             )
             [ it "should display a dropdown of status options when the search bar is focused" <|
@@ -785,7 +780,7 @@ all =
                         ]
             ]
         , rspecStyleDescribe "when the search query is `team:`"
-            (NewestTopBar.init (initFlags (Routes.Dashboard { isHd = False }) "search=team:")
+            (NewestTopBar.init { route = Routes.Dashboard (Routes.Normal (Just "team:")) }
                 |> Tuple.first
             )
             [ it "when the user is not logged in the dropdown is empty" <|
@@ -863,7 +858,7 @@ all =
                     >> Query.count (Expect.equal 10)
             ]
         , rspecStyleDescribe "dropdown stuff"
-            (NewestTopBar.init (initFlags (Routes.Dashboard { isHd = False }) "")
+            (NewestTopBar.init { route = Routes.Dashboard (Routes.Normal Nothing) }
                 |> Tuple.first
             )
             [ context "before receiving FocusMsg"

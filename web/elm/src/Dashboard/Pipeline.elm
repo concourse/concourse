@@ -106,7 +106,8 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes } =
 
 headerView : Pipeline -> Html Msg
 headerView pipeline =
-    Html.a [ href <| Routes.pipelineRoute pipeline, draggable "false" ]
+    Html.a
+        [ href <| Routes.pipelineRoute pipeline, draggable "false" ]
         [ Html.div
             [ class "card-header"
             , onMouseEnter <| Tooltip pipeline.name pipeline.teamName

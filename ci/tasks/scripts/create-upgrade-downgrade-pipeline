@@ -1,0 +1,35 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -u -x
+
+cd $(dirname $0)/../../..
+
+web_url=http://localhost:8080
+
+until curl --silent --fail "$web_url/api/v1/info"; do
+  echo "waiting for /api/v1/info..."
+  sleep 2
+done
+
+echo "installing fly..."
+curl "$web_url/api/v1/cli?platform=linux&arch=amd64" -o /usr/local/bin/fly
+chmod +x /usr/local/bin/fly
+
+echo "logging in..."
+fly -t local login -c "$web_url" -u test -p test
+
+# wait for worker to be available
+worker=$(docker ps -q --filter name=worker)
+until fly -t local workers | grep "${worker}.*running"; do
+  echo "waiting for running worker..."
+  sleep 2
+done
+
+fly -t local set-pipeline -n \
+  -p test-pipeline \
+  -c ci/pipelines/upgrade-downgrade-pipeline.yml
+
+fly -t local unpause-pipeline -p test-pipeline
+
+fly -t local trigger-job -j "test-pipeline/test-job" -w

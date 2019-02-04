@@ -47,7 +47,7 @@ type alias Model =
     , isUserMenuExpanded : Bool
     , searchBar : SearchBar
     , teams : RemoteData.WebData (List Concourse.Team)
-    , route : Routes.ConcourseRoute
+    , route : Routes.Route
     , screenSize : ScreenSize
     , highDensity : Bool
     , hasPipelines : Bool
@@ -55,9 +55,7 @@ type alias Model =
 
 
 type alias Flags =
-    { route : Routes.ConcourseRoute
-    , isHd : Bool
-    }
+    { route : Routes.Route }
 
 
 query : Model -> String
@@ -73,24 +71,19 @@ query model =
             ""
 
 
-querySearchForRoute : Routes.ConcourseRoute -> String
-querySearchForRoute route =
-    QueryString.one QueryString.string "search" route.queries
-        |> Maybe.withDefault ""
-
-
 init : Flags -> ( Model, List Effect )
-init { route, isHd } =
+init { route } =
     let
-        showSearch =
-            route.logical == Routes.Dashboard { isHd = False }
+        isHd =
+            route == Routes.Dashboard Routes.HighDensity
 
         searchBar =
-            if showSearch then
-                Visible { query = querySearchForRoute route, dropdown = Hidden }
+            case route of
+                Routes.Dashboard (Routes.Normal search) ->
+                    Visible { query = Maybe.withDefault "" search, dropdown = Hidden }
 
-            else
-                Gone
+                _ ->
+                    Gone
     in
     ( { userState = UserStateUnknown
       , isUserMenuExpanded = False
@@ -381,20 +374,20 @@ view model =
 viewBreadcrumbs : Model -> List (Html Msg)
 viewBreadcrumbs model =
     List.intersperse viewBreadcrumbSeparator
-        (case model.route.logical of
-            Routes.Pipeline teamName pipelineName ->
-                viewPipelineBreadcrumb (Routes.toString model.route.logical) pipelineName
+        (case model.route of
+            Routes.Pipeline teamName pipelineName _ ->
+                viewPipelineBreadcrumb (Routes.toString model.route) pipelineName
 
-            Routes.Build teamName pipelineName jobName buildNumber ->
-                viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName)) pipelineName
-                    ++ viewJobBreadcrumb (Routes.toString (Routes.Job teamName pipelineName jobName))
+            Routes.Build teamName pipelineName jobName buildNumber _ ->
+                viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName [])) pipelineName
+                    ++ viewJobBreadcrumb (Routes.toString (Routes.Job teamName pipelineName jobName Nothing))
 
-            Routes.Resource teamName pipelineName resourceName ->
-                viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName)) pipelineName
+            Routes.Resource teamName pipelineName resourceName _ ->
+                viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName [])) pipelineName
                     ++ viewResourceBreadcrumb resourceName
 
-            Routes.Job teamName pipelineName jobName ->
-                viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName)) pipelineName
+            Routes.Job teamName pipelineName jobName _ ->
+                viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName [])) pipelineName
                     ++ viewJobBreadcrumb jobName
 
             _ ->

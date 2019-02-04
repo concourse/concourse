@@ -28,7 +28,6 @@ import Html.Attributes as Attr
 import Html.Styled as HS
 import List.Extra
 import NewTopBar.Msgs
-import QueryString
 import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -2817,11 +2816,11 @@ whenOnDashboard { highDensity } =
         , highDensity = highDensity
         , pipelineRunningKeyframes = pipelineRunningKeyframes
         , route =
-            { logical = Routes.Dashboard { isHd = highDensity }
-            , queries = QueryString.parse ""
-            , page = Nothing
-            , hash = ""
-            }
+            if highDensity then
+                Routes.Dashboard Routes.HighDensity
+
+            else
+                Routes.Dashboard (Routes.Normal Nothing)
         }
         |> Tuple.first
 

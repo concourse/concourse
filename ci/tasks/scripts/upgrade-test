@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -e -u -x
+
+export PIPELINE_NAME=test-pipeline
+
+inputs=$PWD
+
+source concourse/ci/tasks/scripts/docker-helpers.sh
+
+start_docker
+
+[ -d dev-image ] && docker load -i dev-image/image.tar
+[ -d postgres-image ] && docker load -i postgres-image/image.tar
+
+cd concourse
+
+# start with latest release and set up
+docker-compose -f docker-compose-4.2.2.yml up -d
+./ci/tasks/scripts/create-upgrade-downgrade-pipeline
+
+# upgrade and verify
+docker-compose up --build --remove-orphans -d
+./ci/tasks/scripts/verify-upgrade-downgrade-pipeline
+
+# run smoke tests
+cd web/wats
+stty columns 80 # for better yarn output
+yarn install
+yarn test -v --color test/smoke.js

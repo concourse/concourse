@@ -19,17 +19,14 @@ ENV CONCOURSE_SESSION_SIGNING_KEY /concourse-keys/session_signing_key
 ENV CONCOURSE_TSA_PUBLIC_KEY         /concourse-keys/tsa_host_key.pub
 ENV CONCOURSE_TSA_WORKER_PRIVATE_KEY /concourse-keys/worker_key
 
-RUN mkdir /src
-WORKDIR /src
-
-# download go modules separately to enable caching
+# download go modules separately so this doesn't re-run on every change
 COPY go.mod .
 COPY go.sum .
 RUN grep '^replace' go.mod || go mod download
 
-# build Concourse
+# build Concourse without using 'packr' and set up a volume so the web assets
+# live-update
 COPY . .
-RUN go build -gcflags=all="-N -l" -o /usr/local/bin/concourse github.com/concourse/concourse/bin/cmd/concourse
-
-# override /src with a volume so we get live-updated packr stuff
+RUN go build -gcflags=all="-N -l" -o /usr/local/concourse/bin/concourse \
+      ./bin/cmd/concourse
 VOLUME /src

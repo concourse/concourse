@@ -19,9 +19,10 @@ start_docker
 [ -d postgres-image ] && docker load -i postgres-image/image.tar
 
 pushd concourse
-  # do not collide with outer Concourse network
-  export CONCOURSE_GARDEN_NETWORK_POOL="10.224.0.0/16"
-  docker-compose up -d
+  docker-compose \
+    -f docker-compose.yml \
+    -f docker-compose.nested-pool.yml \
+    up -d
 popd
 
 "$@"

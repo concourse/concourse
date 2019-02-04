@@ -3,7 +3,6 @@ module Build.StepTree exposing
     , finished
     , init
     , map
-    , parseHighlight
     , setHighlight
     , switchTab
     , toggleStep
@@ -38,10 +37,10 @@ import Debug
 import Dict exposing (Dict)
 import DictView
 import Effects exposing (Effect(..))
-import Focus exposing ((=>), Focus)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style)
 import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
+import Routes exposing (showHighlight)
 import Spinner
 import StrictEvents
 
@@ -109,7 +108,7 @@ initMultiStep hl resources planId constructor plans =
             Array.map .tree inited
 
         selfFoci =
-            Dict.singleton planId (Focus.create identity identity)
+            Dict.singleton planId { update = identity }
 
         foci =
             inited
@@ -159,7 +158,7 @@ initBottom hl create id name =
             }
     in
     { tree = create step
-    , foci = Dict.singleton id (Focus.create identity identity)
+    , foci = Dict.singleton id { update = identity }
     , finished = False
     , highlight = hl
     , tooltip = Nothing
@@ -385,7 +384,7 @@ updateAt id update root =
             Debug.crash ("updateAt: id " ++ id ++ " not found")
 
         Just focus ->
-            { root | tree = Focus.update focus update root.tree }
+            { root | tree = focus.update update root.tree }
 
 
 map : (Step -> Step) -> StepTree -> StepTree
@@ -406,37 +405,17 @@ map f tree =
 
 wrapMultiStep : Int -> Dict StepID StepFocus -> Dict StepID StepFocus
 wrapMultiStep i =
-    Dict.map (\_ focus -> Focus.create (getMultiStepIndex i) (setMultiStepIndex i) => focus)
+    Dict.map (\_ subFocus -> { update = \upd tree -> setMultiStepIndex i (subFocus.update upd) tree })
 
 
 wrapStep : StepID -> StepFocus -> StepFocus
 wrapStep id subFocus =
-    Focus.create getStep updateStep => subFocus
+    { update = \upd tree -> updateStep (subFocus.update upd) tree }
 
 
-getStep : StepTree -> StepTree
-getStep tree =
-    case tree of
-        OnSuccess { step } ->
-            step
-
-        OnFailure { step } ->
-            step
-
-        OnAbort { step } ->
-            step
-
-        Ensure { step } ->
-            step
-
-        Try step ->
-            step
-
-        Timeout step ->
-            step
-
-        _ ->
-            Debug.crash "impossible"
+wrapHook : StepID -> StepFocus -> StepFocus
+wrapHook id subFocus =
+    { update = \upd tree -> updateHook (subFocus.update upd) tree }
 
 
 updateStep : (StepTree -> StepTree) -> StepTree -> StepTree
@@ -459,30 +438,6 @@ updateStep update tree =
 
         Timeout step ->
             Timeout (update step)
-
-        _ ->
-            Debug.crash "impossible"
-
-
-wrapHook : StepID -> StepFocus -> StepFocus
-wrapHook id subFocus =
-    Focus.create getHook updateHook => subFocus
-
-
-getHook : StepTree -> StepTree
-getHook tree =
-    case tree of
-        OnSuccess { hook } ->
-            hook
-
-        OnFailure { hook } ->
-            hook
-
-        OnAbort { hook } ->
-            hook
-
-        Ensure { hook } ->
-            hook
 
         _ ->
             Debug.crash "impossible"
@@ -837,44 +792,3 @@ viewStepHeaderIcon headerType tooltip id =
          else
             []
         )
-
-
-showHighlight : Highlight -> String
-showHighlight hl =
-    case hl of
-        HighlightNothing ->
-            ""
-
-        HighlightLine id line ->
-            "#L" ++ id ++ ":" ++ toString line
-
-        HighlightRange id line1 line2 ->
-            "#L" ++ id ++ ":" ++ toString line1 ++ ":" ++ toString line2
-
-
-parseHighlight : String -> Highlight
-parseHighlight hash =
-    case String.uncons (String.dropLeft 1 hash) of
-        Just ( 'L', selector ) ->
-            case String.split ":" selector of
-                [ stepID, line1str, line2str ] ->
-                    case ( String.toInt line1str, String.toInt line2str ) of
-                        ( Ok line1, Ok line2 ) ->
-                            HighlightRange stepID line1 line2
-
-                        _ ->
-                            HighlightNothing
-
-                [ stepID, linestr ] ->
-                    case String.toInt linestr of
-                        Ok line ->
-                            HighlightLine stepID line
-
-                        _ ->
-                            HighlightNothing
-
-                _ ->
-                    HighlightNothing
-
-        _ ->
-            HighlightNothing

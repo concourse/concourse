@@ -23,7 +23,6 @@ import Build.Msgs exposing (Hoverable, Msg, StepID)
 import Concourse
 import Date exposing (Date)
 import Dict exposing (Dict)
-import Focus exposing (Focus)
 import RemoteData exposing (WebData)
 import Subscription exposing (Subscription)
 import Time exposing (Time)
@@ -45,7 +44,7 @@ type alias Model =
     , previousKeyPress : Maybe Char
     , previousTriggerBuildByKey : Bool
     , showHelp : Bool
-    , hash : String
+    , highlight : Highlight
     , hoveredElement : Maybe Hoverable
     , hoveredCounter : Int
     }
@@ -119,7 +118,7 @@ type StepTree
 
 
 type alias StepFocus =
-    Focus StepTree StepTree
+    { update : (StepTree -> StepTree) -> StepTree -> StepTree }
 
 
 type Highlight

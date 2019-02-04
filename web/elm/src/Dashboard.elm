@@ -61,7 +61,7 @@ type alias Flags =
     , search : String
     , highDensity : Bool
     , pipelineRunningKeyframes : String
-    , route : Routes.ConcourseRoute
+    , route : Routes.Route
     }
 
 
@@ -99,7 +99,7 @@ init : Flags -> ( Model, List Effect )
 init flags =
     let
         ( topBar, topBarEffects ) =
-            NewTopBar.init { route = flags.route, isHd = flags.highDensity }
+            NewTopBar.init { route = flags.route }
     in
     ( { state = RemoteData.NotAsked
       , csrfToken = flags.csrfToken
