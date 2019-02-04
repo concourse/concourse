@@ -337,7 +337,7 @@ all =
                     >> Expect.equal [ Effects.RedirectToLogin ]
             ]
         , rspecStyleDescribe "rendering top bar on build page"
-            (NewestTopBar.init { route = Routes.Build "team" "pipeline" "job" "1" Build.Models.HighlightNothing }
+            (NewestTopBar.init { route = Routes.Build "team" "pipeline" "job" "1" Routes.HighlightNothing }
                 |> Tuple.first
                 |> NewestTopBar.view
                 |> toUnstyled

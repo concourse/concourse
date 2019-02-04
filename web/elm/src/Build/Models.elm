@@ -1,6 +1,5 @@
 module Build.Models exposing
-    ( Highlight(..)
-    , HookedStep
+    ( HookedStep
     , MetadataField
     , Model
     , OutputModel
@@ -19,11 +18,12 @@ module Build.Models exposing
 
 import Ansi.Log
 import Array exposing (Array)
-import Build.Msgs exposing (Hoverable, Msg, StepID)
+import Build.Msgs exposing (Hoverable, Msg)
 import Concourse
 import Date exposing (Date)
 import Dict exposing (Dict)
 import RemoteData exposing (WebData)
+import Routes exposing (Highlight(..), StepID)
 import Subscription exposing (Subscription)
 import Time exposing (Time)
 
@@ -119,12 +119,6 @@ type StepTree
 
 type alias StepFocus =
     { update : (StepTree -> StepTree) -> StepTree -> StepTree }
-
-
-type Highlight
-    = HighlightNothing
-    | HighlightLine StepID Int
-    | HighlightRange StepID Int Int
 
 
 type alias Step =

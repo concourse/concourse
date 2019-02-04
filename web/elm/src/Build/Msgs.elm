@@ -1,8 +1,9 @@
-module Build.Msgs exposing (Hoverable(..), Msg(..), StepID)
+module Build.Msgs exposing (Hoverable(..), Msg(..))
 
 import Concourse
 import Concourse.BuildEvents
 import Keyboard
+import Routes exposing (StepID)
 import Scroll
 import StrictEvents
 import Time
@@ -27,10 +28,6 @@ type Msg
     | SetHighlight String Int
     | ExtendHighlight String Int
     | ScrollDown
-
-
-type alias StepID =
-    String
 
 
 type Hoverable

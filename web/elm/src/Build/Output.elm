@@ -17,7 +17,7 @@ import Build.Models
         , StepTree
         , StepTreeModel
         )
-import Build.Msgs exposing (Msg(..), StepID)
+import Build.Msgs exposing (Msg(..))
 import Build.StepTree as StepTree
 import Build.Styles as Styles
 import Concourse
@@ -40,6 +40,7 @@ import Html.Attributes
 import Http
 import LoadingIndicator
 import NotAuthorized
+import Routes exposing (StepID)
 import Subscription exposing (Subscription(..))
 
 
@@ -49,7 +50,7 @@ type OutMsg
 
 
 type alias Flags =
-    { highlight : Build.Models.Highlight }
+    { highlight : Routes.Highlight }
 
 
 init : Flags -> Concourse.Build -> ( OutputModel, List Effect )
