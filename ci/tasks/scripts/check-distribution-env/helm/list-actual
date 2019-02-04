@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e -u
+
+if [ "$#" != "1" ]; then
+  echo "usage: $0 <path/to/charts>"
+  exit 1
+fi
+
+charts=$1
+
+grep -REhv '\s+#\s+' $charts/stable/concourse |
+  grep -Eoh 'name: (([A-Z_])+|http_proxy|https_proxy|no_proxy)' |
+  sed -e "s/^name: //"
