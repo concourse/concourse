@@ -12,6 +12,7 @@ module Resource exposing
     , viewVersionHeader
     )
 
+import Build.Models
 import Callback exposing (Callback(..))
 import Colors
 import Concourse
@@ -457,7 +458,7 @@ handleCallback action model =
                 | userState = UserStateLoggedOut
                 , pipeline = Nothing
               }
-            , [ NavigateTo "/" ]
+            , [ NavigateTo <| Routes.toString <| Routes.Dashboard (Routes.Normal Nothing) ]
             )
 
         CommentSet result ->
@@ -498,7 +499,13 @@ update action model =
                 | currentPage = Just page
               }
             , [ FetchVersionedResources model.resourceIdentifier <| Just page
-              , NavigateTo <| paginationRoute model.resourceIdentifier page
+              , NavigateTo <|
+                    Routes.toString <|
+                        Routes.Resource
+                            model.resourceIdentifier.teamName
+                            model.resourceIdentifier.pipelineName
+                            model.resourceIdentifier.resourceName
+                            (Just page)
               ]
             )
 
@@ -536,8 +543,8 @@ update action model =
         ClockTick now ->
             ( { model | now = Just now }, [] )
 
-        NavTo url ->
-            ( model, [ NavigateTo url ] )
+        NavTo route ->
+            ( model, [ NavigateTo <| Routes.toString route ] )
 
         TogglePinBarTooltip ->
             ( { model
@@ -740,12 +747,6 @@ permalink versionedResources =
             }
 
 
-paginationRoute : Concourse.ResourceIdentifier -> Page -> String
-paginationRoute rid page =
-    Routes.Resource rid.teamName rid.pipelineName rid.resourceName (Just page)
-        |> Routes.toString
-
-
 view : Model -> Html Msg
 view model =
     Html.div
@@ -917,9 +918,8 @@ paginationMenu { versions, resourceIdentifier, hovered } =
                     )
                     [ Html.a
                         [ href <|
-                            paginationRoute
-                                resourceIdentifier
-                                page
+                            Routes.toString <|
+                                Routes.Resource resourceIdentifier.teamName resourceIdentifier.pipelineName resourceIdentifier.resourceName (Just page)
                         , attribute "aria-label" "Previous Page"
                         , style <|
                             chevron
@@ -955,9 +955,8 @@ paginationMenu { versions, resourceIdentifier, hovered } =
                     )
                     [ Html.a
                         [ href <|
-                            paginationRoute
-                                resourceIdentifier
-                                page
+                            Routes.toString <|
+                                Routes.Resource resourceIdentifier.teamName resourceIdentifier.pipelineName resourceIdentifier.resourceName (Just page)
                         , attribute "aria-label" "Next Page"
                         , style <|
                             chevron
@@ -1644,22 +1643,23 @@ viewBuildsByJob buildDict jobName =
     let
         oneBuildToLi =
             \build ->
-                let
-                    link =
-                        case build.job of
-                            Nothing ->
-                                ""
+                case build.job of
+                    Nothing ->
+                        Html.li [ class <| Concourse.BuildStatus.show build.status ]
+                            [ Html.text <| "#" ++ build.name ]
 
-                            Just job ->
-                                "/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName ++ "/builds/" ++ build.name
-                in
-                Html.li [ class <| Concourse.BuildStatus.show build.status ]
-                    [ Html.a
-                        [ Html.Styled.Attributes.fromUnstyled <| StrictEvents.onLeftClick <| NavTo link
-                        , href link
-                        ]
-                        [ Html.text <| "#" ++ build.name ]
-                    ]
+                    Just job ->
+                        let
+                            link =
+                                Routes.Build job.teamName job.pipelineName job.jobName build.name Routes.HighlightNothing
+                        in
+                        Html.li [ class <| Concourse.BuildStatus.show build.status ]
+                            [ Html.a
+                                [ Html.Styled.Attributes.fromUnstyled <| StrictEvents.onLeftClick <| NavTo link
+                                , href (Routes.toString link)
+                                ]
+                                [ Html.text <| "#" ++ build.name ]
+                            ]
     in
     [ Html.h3 [ class "man pas ansi-bright-black-bg" ] [ Html.text jobName ]
     , Html.ul [ class "builds-list" ]

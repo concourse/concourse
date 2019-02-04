@@ -4,6 +4,7 @@ import Array
 import Build.Models exposing (BuildEvent, Hoverable)
 import Concourse
 import Keyboard
+import Routes
 import Scroll
 import StrictEvents
 import Time
@@ -18,7 +19,7 @@ type Msg
     | ClockTick Time.Time
     | RevealCurrentBuildInHistory
     | WindowScrolled Scroll.FromBottom
-    | NavTo String
+    | NavTo Routes.Route
     | NewCSRFToken String
     | KeyPressed Keyboard.KeyCode
     | KeyUped Keyboard.KeyCode

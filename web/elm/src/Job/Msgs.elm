@@ -1,5 +1,6 @@
 module Job.Msgs exposing (Hoverable(..), Msg(..))
 
+import Routes
 import Time exposing (Time)
 
 
@@ -7,7 +8,7 @@ type Msg
     = Noop
     | TriggerBuild
     | TogglePaused
-    | NavTo String
+    | NavTo Routes.Route
     | SubscriptionTick Time
     | Hover Hoverable
     | ClockTick Time

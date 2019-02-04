@@ -262,7 +262,7 @@ update : Msg -> Model -> ( Model, List Effect )
 update action model =
     case action of
         SwitchToBuild build ->
-            ( model, [ NavigateTo <| Routes.buildRoute build ] )
+            ( model, [ NavigateTo <| Routes.toString <| Routes.buildRoute build ] )
 
         Hover state ->
             let
@@ -340,8 +340,8 @@ update action model =
             else
                 ( { model | autoScroll = False }, [] )
 
-        NavTo url ->
-            ( model, [ NavigateTo url ] )
+        NavTo route ->
+            ( model, [ NavigateTo <| Routes.toString route ] )
 
         NewCSRFToken token ->
             ( { model | csrfToken = token }, [] )
@@ -1056,12 +1056,12 @@ viewBuildHeader build { now, job, history, hoveredElement } =
             case build.job of
                 Just { jobName, teamName, pipelineName } ->
                     let
-                        jobUrl =
-                            "/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/jobs/" ++ jobName
+                        jobRoute =
+                            Routes.Job teamName pipelineName jobName Nothing
                     in
                     Html.a
-                        [ StrictEvents.onLeftClick <| NavTo jobUrl
-                        , href jobUrl
+                        [ StrictEvents.onLeftClick <| NavTo jobRoute
+                        , href <| Routes.toString jobRoute
                         ]
                         [ Html.span [ class "build-name" ] [ Html.text jobName ]
                         , Html.text (" #" ++ build.name)
@@ -1120,8 +1120,8 @@ viewHistoryItem currentBuild build =
             class (Concourse.BuildStatus.show build.status)
         ]
         [ Html.a
-            [ onLeftClick (SwitchToBuild build)
-            , href (Routes.buildRoute build)
+            [ onLeftClick <| SwitchToBuild build
+            , href <| Routes.toString <| Routes.buildRoute build
             ]
             [ Html.text build.name
             ]

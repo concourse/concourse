@@ -71,10 +71,10 @@ viewJob job =
     <|
         case latestBuild of
             Nothing ->
-                [ Html.a [ href <| Routes.jobRoute job ] [ Html.text "" ] ]
+                [ Html.a [ href <| Routes.toString <| Routes.jobRoute job ] [ Html.text "" ] ]
 
             Just build ->
-                [ Html.a [ href <| Routes.buildRoute build ] [ Html.text "" ] ]
+                [ Html.a [ href <| Routes.toString <| Routes.buildRoute build ] [ Html.text "" ] ]
 
 
 jobGroups : List Concourse.Job -> Dict Int (List Concourse.Job)

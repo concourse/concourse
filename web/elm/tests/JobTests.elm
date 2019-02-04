@@ -721,7 +721,7 @@ all =
             , defineHoverBehaviour <|
                 let
                     urlPath =
-                        "/teams/team/pipelines/pipeline/jobs/job?since=1"
+                        "/teams/team/pipelines/pipeline/jobs/job?since=1&limit=1"
                 in
                 { name = "left pagination chevron with previous page"
                 , setup =

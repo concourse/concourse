@@ -25,7 +25,7 @@ import Concourse
 import Date exposing (Date)
 import Dict exposing (Dict)
 import RemoteData exposing (WebData)
-import Routes exposing (Highlight(..), StepID)
+import Routes exposing (Highlight, StepID)
 import Time exposing (Time)
 
 

@@ -53,7 +53,7 @@ all =
                 \_ ->
                     TopBar.init (Routes.Pipeline "team" "pipeline" [])
                         |> Tuple.first
-                        |> TopBar.update (TopBar.Msgs.GoToPinnedResource "resource")
+                        |> TopBar.update (TopBar.Msgs.GoToPinnedResource (Routes.Resource "team" "pipeline" "resource" Nothing))
                         |> Tuple.second
                         |> Expect.equal [ Effects.NavigateTo "/teams/team/pipelines/pipeline/resources/resource" ]
             , test "displays id if no userName, name or email present" <|

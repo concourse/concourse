@@ -10,6 +10,7 @@ import Layout
 import Msgs
 import Pipeline exposing (update)
 import Pipeline.Msgs exposing (Msg(..))
+import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -622,7 +623,8 @@ all =
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find [ tag "li" ]
                         >> Event.simulate Event.click
-                        >> Event.expect (Msgs.TopMsg 1 (TopBar.Msgs.GoToPinnedResource "resource"))
+                        >> Event.expect
+                            (Msgs.TopMsg 1 (TopBar.Msgs.GoToPinnedResource (Routes.Resource "team" "pipeline" "resource" Nothing)))
                 , it "TogglePinIconDropdown msg causes dropdown list of pinned resources to disappear" <|
                     givenPinnedResource
                         >> Layout.update
