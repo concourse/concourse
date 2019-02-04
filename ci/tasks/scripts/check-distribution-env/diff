@@ -9,6 +9,7 @@
 set -e -u
 
 distro_dir=$PWD/distribution
+linux_rc=$PWD/linux-rc
 distro_scripts=$(dirname $0)/$DISTRIBUTION
 
 main() {
@@ -31,8 +32,10 @@ get_distribution_variables() {
 }
 
 get_concourse_variables() {
+  tar -zxf $linux_rc/concourse-*.tgz -C $linux_rc
+
   for subcommand in web worker; do
-    concourse $subcommand --help 2>&1 |
+    $linux_rc/concourse/bin/concourse $subcommand --help 2>&1 |
       grep -o '\[\$.*\]' |
       tr -d \[\]\$
   done | filter_list ignored-in-concourse
