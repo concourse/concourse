@@ -1510,6 +1510,48 @@ all =
                                                     "foo"
                                               )
                                             ]
+                            , test "Left Command + Enter sends SaveComment msg" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> givenTextareaFocused
+                                        |> givenLeftCommandKeyDown
+                                        |> pressEnterKey
+                                        |> Tuple.second
+                                        |> Expect.equal
+                                            [ ( Effects.SubPage 1
+                                              , Effects.SetPinComment
+                                                    { teamName = teamName
+                                                    , pipelineName = pipelineName
+                                                    , resourceName = resourceName
+                                                    }
+                                                    "csrf_token"
+                                                    "foo"
+                                              )
+                                            ]
+                            , test "Right Command + Enter sends SaveComment msg" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> givenTextareaFocused
+                                        |> givenRightCommandKeyDown
+                                        |> pressEnterKey
+                                        |> Tuple.second
+                                        |> Expect.equal
+                                            [ ( Effects.SubPage 1
+                                              , Effects.SetPinComment
+                                                    { teamName = teamName
+                                                    , pipelineName = pipelineName
+                                                    , resourceName = resourceName
+                                                    }
+                                                    "csrf_token"
+                                                    "foo"
+                                              )
+                                            ]
                             , test "blurring input triggers BlurTextArea msg" <|
                                 \_ ->
                                     init
@@ -3198,6 +3240,18 @@ givenTextareaBlurred =
 givenControlKeyDown : Layout.Model -> Layout.Model
 givenControlKeyDown =
     Layout.update (Msgs.KeyDown 17)
+        >> Tuple.first
+
+
+givenLeftCommandKeyDown : Layout.Model -> Layout.Model
+givenLeftCommandKeyDown =
+    Layout.update (Msgs.KeyDown 91)
+        >> Tuple.first
+
+
+givenRightCommandKeyDown : Layout.Model -> Layout.Model
+givenRightCommandKeyDown =
+    Layout.update (Msgs.KeyDown 93)
         >> Tuple.first
 
 

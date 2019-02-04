@@ -668,14 +668,14 @@ update action model =
             )
 
         KeyUps code ->
-            if code == Keycodes.ctrl then
+            if Keycodes.isControlModifier code then
                 ( { model | ctrlDown = False }, [] )
 
             else
                 ( model, [] )
 
         KeyDowns code ->
-            if code == Keycodes.ctrl then
+            if Keycodes.isControlModifier code then
                 ( { model | ctrlDown = True }, [] )
 
             else if
