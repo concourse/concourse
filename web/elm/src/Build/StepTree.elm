@@ -15,8 +15,7 @@ import Ansi.Log
 import Array exposing (Array)
 import Build.Models
     exposing
-        ( Highlight(..)
-        , HookedStep
+        ( HookedStep
         , MetadataField
         , Step
         , StepFocus
@@ -28,7 +27,7 @@ import Build.Models
         , TabFocus(..)
         , Version
         )
-import Build.Msgs exposing (Hoverable(..), Msg(..), StepID)
+import Build.Msgs exposing (Hoverable(..), Msg(..))
 import Build.Styles as Styles
 import Concourse
 import Date exposing (Date)
@@ -40,7 +39,7 @@ import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style)
 import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
-import Routes exposing (showHighlight)
+import Routes exposing (Highlight(..), StepID, showHighlight)
 import Spinner
 import StrictEvents
 

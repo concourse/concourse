@@ -24,7 +24,6 @@ class Web {
     });
 
     this.page = await this.browser.newPage();
-    await this.page.setViewport({width: 1000, height: 1000})
     //Default page navigation timeout to 90 Seconds.
     this.page.setDefaultNavigationTimeout(90000);
     this.page.on("console", msg => {

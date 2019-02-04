@@ -1,12 +1,14 @@
 package topgun_test
 
 import (
+	"bytes"
 	"crypto/tls"
 	"database/sql"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -547,4 +549,15 @@ dance:
 
 		break dance
 	}
+}
+
+func pgDump() *gexec.Session {
+	dump := exec.Command("pg_dump", "-U", "atc", "-h", dbInstance.IP, "atc")
+	dump.Env = append(os.Environ(), "PGPASSWORD=dummy-password")
+	dump.Stdin = bytes.NewBufferString("dummy-password\n")
+	session, err := gexec.Start(dump, nil, GinkgoWriter)
+	Expect(err).ToNot(HaveOccurred())
+	<-session.Exited
+	Expect(session.ExitCode()).To(Equal(0))
+	return session
 }

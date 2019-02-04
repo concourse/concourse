@@ -51,4 +51,3 @@ func Run(env []string, command string, argv ...string) *gexec.Session {
 	Wait(session)
 	return session
 }
-

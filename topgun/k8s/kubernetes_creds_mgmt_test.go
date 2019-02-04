@@ -120,4 +120,3 @@ func createCredentialSecret(releaseName, secretName, team string, kv map[string]
 
 	Wait(Start(nil, "kubectl", args...))
 }
-
