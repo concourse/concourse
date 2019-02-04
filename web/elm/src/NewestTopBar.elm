@@ -1,6 +1,5 @@
 module NewestTopBar exposing
     ( Flags
-    , Model
     , handleCallback
     , init
     , query
@@ -30,28 +29,16 @@ import Html.Styled.Attributes as HA
         )
 import Html.Styled.Events exposing (..)
 import Http
+import NewTopBar.Model exposing (Dropdown(..), Model, SearchBar(..))
 import NewTopBar.Msgs exposing (Msg(..))
 import NewTopBar.Styles as Styles
 import QueryString
 import RemoteData exposing (RemoteData)
 import Routes
 import ScreenSize exposing (ScreenSize(..))
-import SearchBar exposing (Dropdown(..), SearchBar(..))
 import TopBar exposing (userDisplayName)
 import UserState exposing (UserState(..))
 import Window
-
-
-type alias Model =
-    { userState : UserState
-    , isUserMenuExpanded : Bool
-    , searchBar : SearchBar
-    , teams : RemoteData.WebData (List Concourse.Team)
-    , route : Routes.Route
-    , screenSize : ScreenSize
-    , highDensity : Bool
-    , hasPipelines : Bool
-    }
 
 
 type alias Flags =
@@ -92,7 +79,6 @@ init { route } =
       , route = route
       , screenSize = Desktop
       , highDensity = isHd
-      , hasPipelines = True
       }
     , [ GetScreenSize ]
     )
@@ -139,7 +125,12 @@ handleCallback callback model =
 
                         Nothing ->
                             UserStateLoggedOut
-                , hasPipelines = data.pipelines /= []
+                , searchBar =
+                    if data.pipelines == [] then
+                        Gone
+
+                    else
+                        model.searchBar
               }
             , []
             )
@@ -148,7 +139,7 @@ handleCallback callback model =
             ( { model
                 | teams = RemoteData.Failure err
                 , userState = UserStateLoggedOut
-                , hasPipelines = False
+                , searchBar = Gone
               }
             , []
             )
@@ -333,16 +324,43 @@ screenResize size model =
     let
         newSize =
             ScreenSize.fromWindowSize size
+
+        newSearchBar =
+            case ( model.searchBar, newSize ) of
+                ( Gone, _ ) ->
+                    Gone
+
+                ( Visible r, ScreenSize.Mobile ) ->
+                    if String.isEmpty r.query then
+                        case model.screenSize of
+                            ScreenSize.Desktop ->
+                                Minified
+
+                            ScreenSize.BigDesktop ->
+                                Minified
+
+                            ScreenSize.Mobile ->
+                                Visible r
+
+                    else
+                        Visible r
+
+                ( Visible r, ScreenSize.Desktop ) ->
+                    Visible r
+
+                ( Visible r, ScreenSize.BigDesktop ) ->
+                    Visible r
+
+                ( Minified, ScreenSize.Desktop ) ->
+                    Visible { query = "", dropdown = Hidden }
+
+                ( Minified, ScreenSize.BigDesktop ) ->
+                    Visible { query = "", dropdown = Hidden }
+
+                ( Minified, ScreenSize.Mobile ) ->
+                    Minified
     in
-    { model
-        | screenSize = newSize
-        , searchBar =
-            SearchBar.screenSizeChanged
-                { oldSize = model.screenSize
-                , newSize = newSize
-                }
-                model.searchBar
-    }
+    { model | screenSize = newSize, searchBar = newSearchBar }
 
 
 showSearchInput : Model -> ( Model, List Effect )
@@ -442,27 +460,23 @@ viewLoginState { userState, isUserMenuExpanded } =
 
 viewMiddleSection : Model -> List (Html Msg)
 viewMiddleSection model =
-    if model.hasPipelines then
-        case model.searchBar of
-            Gone ->
-                []
+    case model.searchBar of
+        Gone ->
+            []
 
-            Minified ->
-                [ Html.div [ style <| Styles.showSearchContainer model ]
-                    [ Html.a
-                        [ id "show-search-button"
-                        , onClick ShowSearchInput
-                        , style Styles.searchButton
-                        ]
-                        []
+        Minified ->
+            [ Html.div [ style <| Styles.showSearchContainer model ]
+                [ Html.a
+                    [ id "show-search-button"
+                    , onClick ShowSearchInput
+                    , style Styles.searchButton
                     ]
+                    []
                 ]
+            ]
 
-            Visible r ->
-                viewSearch r model
-
-    else
-        []
+        Visible r ->
+            viewSearch r model
 
 
 viewSearch : { query : String, dropdown : Dropdown } -> Model -> List (Html Msg)

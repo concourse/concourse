@@ -8,6 +8,7 @@ import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Html.Styled exposing (toUnstyled)
+import NewTopBar.Model as Model
 import NewTopBar.Msgs as Msgs
 import NewestTopBar
 import Routes
@@ -963,12 +964,12 @@ eachHasStyle styles =
     Query.each <| Query.has [ style styles ]
 
 
-logoutUser : NewestTopBar.Model -> NewestTopBar.Model
+logoutUser : Model.Model -> Model.Model
 logoutUser model =
     { model | userState = UserState.UserStateLoggedOut }
 
 
-logInUser : NewestTopBar.Model -> NewestTopBar.Model
+logInUser : Model.Model -> Model.Model
 logInUser model =
     { model | userState = UserState.UserStateLoggedIn { id = "1", userName = "test", name = "Bob", email = "bob@bob.com", teams = Dict.empty } }
 
@@ -1011,7 +1012,7 @@ onePipeline teamName =
     }
 
 
-testDropdown : List Int -> List Int -> NewestTopBar.Model -> Test
+testDropdown : List Int -> List Int -> Model.Model -> Test
 testDropdown selecteds notSelecteds =
     context "ui"
         (NewestTopBar.view

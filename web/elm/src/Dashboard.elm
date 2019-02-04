@@ -42,6 +42,7 @@ import Monocle.Common exposing ((<|>), (=>))
 import Monocle.Lens
 import Monocle.Optional
 import MonocleHelpers exposing (..)
+import NewTopBar.Model
 import NewTopBar.Msgs
 import NewestTopBar as NewTopBar
 import Regex exposing (HowMany(All), regex, replace)
@@ -83,7 +84,7 @@ type alias Model =
     , version : String
     , userState : UserState.UserState
     , userMenuVisible : Bool
-    , topBar : NewTopBar.Model
+    , topBar : NewTopBar.Model.Model
     , hideFooter : Bool
     , hideFooterCounter : Int
     , showHelp : Bool

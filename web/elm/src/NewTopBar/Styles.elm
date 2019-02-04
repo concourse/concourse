@@ -18,8 +18,8 @@ module NewTopBar.Styles exposing
     , topBar
     )
 
+import NewTopBar.Model exposing (SearchBar(..))
 import ScreenSize exposing (ScreenSize(..))
-import SearchBar exposing (SearchBar(..))
 
 
 pageHeaderHeight : Float
