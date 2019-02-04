@@ -266,6 +266,14 @@ You can run `yarn test` from the root of the repo or `elm-test` from the
 `web/elm` directory. They are pretty snappy so you can comfortably run the
 whole suite on every change.
 
+### Elm static analysis
+
+Running `yarn analyse` will run many checks across the codebase and report
+unused imports and variables, potential optimizations, etc. Powered by
+[elm-analyse](https://github.com/stil4m/elm-analyse). If you add the `-s` flag
+it will run a server at `localhost:3000` which allows for easier browsing, and
+even some automated fixes!
+
 ### Running the acceptance tests (`testflight`)
 
 The `testflight` package contains tests that run against a real live Concourse.
