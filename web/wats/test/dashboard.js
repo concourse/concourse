@@ -169,7 +169,7 @@ test.skip('links to specific builds', async t => {
   t.regex(await t.context.web.text(), /passing #1/);
 });
 
-test.only('dropdown is gone after selecting a specific status to filter', async t => {
+test('dropdown is gone after selecting a specific status to filter', async t => {
   await t.context.web.page.goto(t.context.web.route('/'));
 
   await t.context.web.clickAndWait('#search-input-field', '#search-dropdown');

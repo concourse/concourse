@@ -68,7 +68,7 @@ showSearchContainer { searchBar, screenSize, highDensity } =
                                     "center"
 
                         Minified ->
-                            "flexStart"
+                            "flex-start"
 
                         Gone ->
                             Debug.log "attempting to show search container when search is gone" "center"
