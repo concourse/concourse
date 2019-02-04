@@ -1,6 +1,5 @@
 module Build.Models exposing
     ( BuildEvent(..)
-    , Highlight(..)
     , HookedStep
     , Hoverable(..)
     , MetadataField
@@ -12,7 +11,6 @@ module Build.Models exposing
     , Step
     , StepFocus
     , StepHeaderType(..)
-    , StepID
     , StepName
     , StepState(..)
     , StepTree(..)
@@ -27,6 +25,7 @@ import Concourse
 import Date exposing (Date)
 import Dict exposing (Dict)
 import RemoteData exposing (WebData)
+import Routes exposing (Highlight(..), StepID)
 import Time exposing (Time)
 
 
@@ -68,10 +67,6 @@ type StepHeaderType
     = StepHeaderPut
     | StepHeaderGet Bool
     | StepHeaderTask
-
-
-type alias StepID =
-    String
 
 
 type Hoverable
@@ -131,12 +126,6 @@ type StepTree
 
 type alias StepFocus =
     { update : (StepTree -> StepTree) -> StepTree -> StepTree }
-
-
-type Highlight
-    = HighlightNothing
-    | HighlightLine StepID Int
-    | HighlightRange StepID Int Int
 
 
 type alias Step =

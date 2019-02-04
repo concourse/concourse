@@ -1,6 +1,8 @@
 module Routes exposing
-    ( Route(..)
+    ( Highlight(..)
+    , Route(..)
     , SearchType(..)
+    , StepID
     , buildRoute
     , dashboardRoute
     , jobRoute
@@ -11,7 +13,6 @@ module Routes exposing
     , tokenToFlyRoute
     )
 
-import Build.Models exposing (Highlight(..))
 import Concourse
 import Concourse.Pagination as Pagination exposing (Direction(..))
 import Navigation exposing (Location)
@@ -44,6 +45,16 @@ type Route
 type SearchType
     = HighDensity
     | Normal (Maybe String)
+
+
+type Highlight
+    = HighlightNothing
+    | HighlightLine StepID Int
+    | HighlightRange StepID Int Int
+
+
+type alias StepID =
+    String
 
 
 

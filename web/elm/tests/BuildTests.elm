@@ -19,6 +19,7 @@ import Expect
 import Html.Attributes as Attr
 import Layout
 import Msgs
+import Routes
 import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -42,7 +43,7 @@ all =
             pageLoad =
                 Build.init
                     { csrfToken = ""
-                    , highlight = Models.HighlightNothing
+                    , highlight = Routes.HighlightNothing
                     }
                     (Models.JobBuildPage
                         { teamName = "team"

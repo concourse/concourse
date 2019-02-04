@@ -87,7 +87,7 @@ type StepRenderingState
 
 type alias Flags =
     { csrfToken : String
-    , highlight : Models.Highlight
+    , highlight : Routes.Highlight
     }
 
 
