@@ -9,6 +9,7 @@ module Layout exposing
     , view
     )
 
+import Build.Msgs
 import Callback exposing (Callback(..))
 import Concourse
 import Dashboard.Msgs
@@ -252,7 +253,12 @@ update msg model =
             if validNavIndex model.navIndex navIndex then
                 let
                     ( subModel, subEffects ) =
-                        SubPage.update model.turbulenceImgSrc model.notFoundImgSrc model.csrfToken m model.subModel
+                        SubPage.update
+                            model.turbulenceImgSrc
+                            model.notFoundImgSrc
+                            model.csrfToken
+                            m
+                            model.subModel
                 in
                 ( { model | subModel = subModel }
                 , List.map (\ef -> ( SubPage navIndex, ef )) subEffects
@@ -307,6 +313,27 @@ update msg model =
                         (SubMsg model.navIndex <|
                             SubPage.Msgs.ResourceMsg <|
                                 Resource.Msgs.KeyDowns keycode
+                        )
+                        model
+
+                _ ->
+                    ( model, [] )
+
+        KeyUp keycode ->
+            case model.subModel of
+                SubPage.BuildModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.BuildMsg <|
+                                Build.Msgs.KeyUped keycode
+                        )
+                        model
+
+                SubPage.ResourceModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.ResourceMsg <|
+                                Resource.Msgs.KeyUps keycode
                         )
                         model
 

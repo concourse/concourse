@@ -21,3 +21,4 @@ type Msg
     | TokenReceived (Maybe String)
     | Callback Effects.LayoutDispatch Callback
     | KeyDown Keyboard.KeyCode
+    | KeyUp Keyboard.KeyCode

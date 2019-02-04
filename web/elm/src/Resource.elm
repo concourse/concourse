@@ -49,7 +49,8 @@ import Html.Styled.Attributes
         )
 import Html.Styled.Events
     exposing
-        ( onClick
+        ( onBlur
+        , onClick
         , onFocus
         , onInput
         , onMouseEnter
@@ -132,6 +133,7 @@ init flags =
                 , showPinIconDropDown = False
                 , pinCommentLoading = False
                 , ctrlDown = False
+                , textAreaFocused = False
                 }
     in
     ( model
@@ -665,14 +667,23 @@ update action model =
             , [ SetPinComment model.resourceIdentifier model.csrfToken comment ]
             )
 
-        FocusTextArea ->
-            ( model, [] )
+        KeyUps code ->
+            if code == Keycodes.ctrl then
+                ( { model | ctrlDown = False }, [] )
+
+            else
+                ( model, [] )
 
         KeyDowns code ->
             if code == Keycodes.ctrl then
                 ( { model | ctrlDown = True }, [] )
 
-            else if code == Keycodes.enter && model.ctrlDown then
+            else if
+                code
+                    == Keycodes.enter
+                    && model.ctrlDown
+                    && model.textAreaFocused
+            then
                 ( model
                 , case model.pinnedVersion of
                     PinnedDynamicallyTo { comment } _ ->
@@ -688,6 +699,12 @@ update action model =
 
             else
                 ( model, [] )
+
+        FocusTextArea ->
+            ( { model | textAreaFocused = True }, [] )
+
+        BlurTextArea ->
+            ( { model | textAreaFocused = False }, [] )
 
 
 updateVersion :
@@ -1186,6 +1203,7 @@ commentBar ({ pinnedVersion, hovered, pinCommentLoading } as params) =
                             , value commentState.comment
                             , placeholder "enter a comment"
                             , onFocus FocusTextArea
+                            , onBlur BlurTextArea
                             ]
                             []
                         , Html.button
@@ -1668,4 +1686,5 @@ subscriptions model =
     [ OnClockTick (5 * Time.second) AutoupdateTimerTicked
     , OnClockTick Time.second ClockTick
     , OnKeyDown
+    , OnKeyUp
     ]

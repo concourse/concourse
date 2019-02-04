@@ -126,7 +126,7 @@ subscriptions model =
     [ OnClockTick Time.second ClockTick
     , OnScrollFromWindowBottom WindowScrolled
     , OnKeyPress KeyPressed
-    , OnKeyUp KeyUped
+    , OnKeyUp
     , Conditionally
         (getScrollBehavior model /= NoScroll)
         (OnAnimationFrame ScrollDown)

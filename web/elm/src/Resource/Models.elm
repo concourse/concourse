@@ -69,6 +69,7 @@ type alias Model =
     , showPinIconDropDown : Bool
     , pinCommentLoading : Bool
     , ctrlDown : Bool
+    , textAreaFocused : Bool
     }
 
 

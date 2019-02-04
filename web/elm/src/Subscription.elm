@@ -23,7 +23,7 @@ type Subscription m
     | OnMouseClick m
     | OnKeyPress (Keyboard.KeyCode -> m)
     | OnKeyDown
-    | OnKeyUp (Keyboard.KeyCode -> m)
+    | OnKeyUp
     | OnScrollFromWindowBottom (Scroll.FromBottom -> m)
     | OnWindowResize (Window.Size -> m)
     | FromEventSource ( String, List String ) (EventSource.Msg -> m)
@@ -54,8 +54,8 @@ runSubscription s =
         OnKeyDown ->
             Keyboard.downs Msgs.KeyDown
 
-        OnKeyUp m ->
-            Keyboard.ups m
+        OnKeyUp ->
+            Keyboard.ups Msgs.KeyUp
 
         OnScrollFromWindowBottom m ->
             Scroll.fromWindowBottom m
@@ -106,8 +106,8 @@ map f s =
         OnKeyDown ->
             OnKeyDown
 
-        OnKeyUp m ->
-            OnKeyUp (m >> f)
+        OnKeyUp ->
+            OnKeyUp
 
         OnScrollFromWindowBottom m ->
             OnScrollFromWindowBottom (m >> f)

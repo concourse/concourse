@@ -5,6 +5,7 @@ import Build
 import Build.Models as Models
 import Build.Msgs
 import Callback
+import Char
 import Concourse exposing (BuildPrepStatus(..))
 import DashboardTests
     exposing
@@ -246,6 +247,99 @@ all =
                         , containing [ text "log message" ]
                         ]
                     |> Query.has [ class "highlighted-line" ]
+        , test "pressing 'T' twice triggers two builds" <|
+            \_ ->
+                Layout.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = "csrf_token"
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { href = ""
+                    , host = ""
+                    , hostname = ""
+                    , protocol = ""
+                    , origin = ""
+                    , port_ = ""
+                    , pathname = "/teams/t/pipelines/p/jobs/j/builds/1"
+                    , search = ""
+                    , hash = ""
+                    , username = ""
+                    , password = ""
+                    }
+                    |> Tuple.first
+                    |> Layout.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 1
+                                  , name = "1"
+                                  , job =
+                                        Just
+                                            { teamName = "t"
+                                            , pipelineName = "p"
+                                            , jobName = "j"
+                                            }
+                                  , status = Concourse.BuildStatusStarted
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Layout.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildJobDetailsFetched <|
+                            Ok
+                                { pipeline =
+                                    { teamName = "t"
+                                    , pipelineName = "p"
+                                    }
+                                , name = ""
+                                , pipelineName = "p"
+                                , teamName = "t"
+                                , nextBuild = Nothing
+                                , finishedBuild = Nothing
+                                , transitionBuild = Nothing
+                                , paused = False
+                                , disableManualTrigger = False
+                                , inputs = []
+                                , outputs = []
+                                , groups = []
+                                }
+                        )
+                    |> Tuple.first
+                    |> Layout.update
+                        (Msgs.SubMsg 1 <|
+                            SubPage.Msgs.BuildMsg <|
+                                Build.Msgs.KeyPressed <|
+                                    Char.toCode 'T'
+                        )
+                    |> Tuple.first
+                    |> Layout.update (Msgs.KeyUp <| Char.toCode 'T')
+                    |> Tuple.first
+                    |> Layout.update
+                        (Msgs.SubMsg 1 <|
+                            SubPage.Msgs.BuildMsg <|
+                                Build.Msgs.KeyPressed <|
+                                    Char.toCode 'T'
+                        )
+                    |> Tuple.second
+                    |> Expect.equal
+                        [ ( Effects.SubPage 1
+                          , Effects.DoTriggerBuild
+                                { teamName = "t"
+                                , pipelineName = "p"
+                                , jobName = "j"
+                                }
+                                "csrf_token"
+                          )
+                        ]
         , test "says loading on page load" <|
             \_ ->
                 pageLoad

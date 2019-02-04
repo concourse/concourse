@@ -25,4 +25,6 @@ type Msg
     | EditComment String
     | SaveComment String
     | FocusTextArea
+    | BlurTextArea
     | KeyDowns Keyboard.KeyCode
+    | KeyUps Keyboard.KeyCode
