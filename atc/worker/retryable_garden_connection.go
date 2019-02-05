@@ -28,7 +28,7 @@ func (conn *RetryableConnection) Run(handle string, processSpec garden.ProcessSp
 		Process: innerProcess,
 
 		rehydrate: func() (garden.Process, error) {
-			return conn.Attach(handle, innerProcess.ID(), processIO)
+			return conn.Connection.Attach(handle, innerProcess.ID(), processIO)
 		},
 	}, nil
 }
@@ -43,7 +43,7 @@ func (conn *RetryableConnection) Attach(handle string, processID string, process
 		Process: innerProcess,
 
 		rehydrate: func() (garden.Process, error) {
-			return conn.Attach(handle, processID, processIO)
+			return conn.Connection.Attach(handle, processID, processIO)
 		},
 	}, nil
 }
