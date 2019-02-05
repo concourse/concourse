@@ -83,22 +83,45 @@ func (forward ForwardedTCPIP) Wait() {
 	forward.Logger.Debug("drained")
 }
 
-func (server *server) Serve(listener net.Listener) {
+func (server *server) Serve(listener net.Listener) error {
+	var tempDelay time.Duration
 	for {
-		c, err := listener.Accept()
+		conn, err := listener.Accept()
 		if err != nil {
-			if !strings.Contains(err.Error(), "use of closed network connection") {
-				server.logger.Error("failed-to-accept", err)
+			if strings.Contains(err.Error(), "use of closed network connection") {
+				// shutting down
+				return nil
 			}
 
-			return
+			if ne, ok := err.(net.Error); ok && ne.Temporary() {
+				if tempDelay == 0 {
+					tempDelay = 5 * time.Millisecond
+				} else {
+					tempDelay *= 2
+				}
+
+				if max := 1 * time.Second; tempDelay > max {
+					tempDelay = max
+				}
+
+				server.logger.Error("failed-to-accept-temporarily", err, lager.Data{
+					"delay": tempDelay.String(),
+				})
+
+				time.Sleep(tempDelay)
+				continue
+			}
+
+			server.logger.Error("failed-to-accept", err)
+
+			return err
 		}
 
 		logger := server.logger.Session("connection", lager.Data{
-			"remote": c.RemoteAddr().String(),
+			"remote": conn.RemoteAddr().String(),
 		})
 
-		go server.handshake(logger, c)
+		go server.handshake(logger, conn)
 	}
 }
 

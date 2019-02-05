@@ -26,17 +26,16 @@ func (runner serverRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) 
 
 	close(ready)
 
-	exited := make(chan struct{})
+	exited := make(chan error)
 
 	go func() {
-		defer close(exited)
-		runner.server.Serve(listener)
+		exited <- runner.server.Serve(listener)
 	}()
 
 	for {
 		select {
-		case <-exited:
-			return nil
+		case err := <-exited:
+			return err
 		case <-signals:
 			listener.Close()
 		}
