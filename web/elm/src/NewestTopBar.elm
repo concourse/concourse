@@ -114,6 +114,12 @@ handleCallback callback model =
             flip always (Debug.log "failed to log out" err) <|
                 ( model, [] )
 
+        UserFetched (Ok user) ->
+            ( { model | userState = UserStateLoggedIn user }, [] )
+
+        UserFetched (Err _) ->
+            ( { model | userState = UserStateLoggedOut }, [] )
+
         APIDataFetched (Ok ( time, data )) ->
             ( { model
                 | teams = RemoteData.Success data.teams

@@ -7,6 +7,7 @@ import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Html.Styled exposing (toUnstyled)
+import Http
 import NewTopBar.Model as Model
 import NewTopBar.Msgs as Msgs
 import NewestTopBar
@@ -155,6 +156,45 @@ all =
                     Query.children []
                         >> Query.index -1
                         >> Query.has [ id "login-component" ]
+                ]
+            , context "when receives a successful user update"
+                (NewestTopBar.handleCallback (UserFetched (Ok sampleUser))
+                    >> Tuple.first
+                    >> NewestTopBar.view
+                    >> toUnstyled
+                    >> Query.fromHtml
+                )
+                [ it "renders the login component last" <|
+                    Query.children []
+                        >> Query.index -1
+                        >> Query.has [ id "login-component" ]
+                , it "shows the logged in username" <|
+                    Query.children []
+                        >> Query.index -1
+                        >> Query.find [ id "user-id" ]
+                        >> Query.has [ text "test" ]
+                , it "does not render the logout button" <|
+                    Query.children []
+                        >> Query.index -1
+                        >> Query.find [ id "user-id" ]
+                        >> Query.hasNot [ id "logout-button" ]
+                ]
+            , context "when receives a failed user update"
+                (NewestTopBar.handleCallback (UserFetched (Err Http.NetworkError))
+                    >> Tuple.first
+                    >> NewestTopBar.view
+                    >> toUnstyled
+                    >> Query.fromHtml
+                )
+                [ it "renders the login component last" <|
+                    Query.children []
+                        >> Query.index -1
+                        >> Query.has [ id "login-component" ]
+                , it "has a link to login" <|
+                    Query.children []
+                        >> Query.index -1
+                        >> Query.find [ id "login-item" ]
+                        >> Query.has [ tag "a", attribute <| Attr.href "/sky/login" ]
                 ]
             , context "when logged in"
                 (logInUser
@@ -987,9 +1027,14 @@ logoutUser model =
     { model | userState = UserState.UserStateLoggedOut }
 
 
+sampleUser : Concourse.User
+sampleUser =
+    { id = "1", userName = "test", name = "Bob", email = "bob@bob.com", teams = Dict.empty }
+
+
 logInUser : Model.Model -> Model.Model
 logInUser model =
-    { model | userState = UserState.UserStateLoggedIn { id = "1", userName = "test", name = "Bob", email = "bob@bob.com", teams = Dict.empty } }
+    { model | userState = UserState.UserStateLoggedIn sampleUser }
 
 
 pipelineBreadcrumbSelector : List Selector.Selector
