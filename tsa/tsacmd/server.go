@@ -121,6 +121,18 @@ func (server *server) Serve(listener net.Listener) error {
 			"remote": conn.RemoteAddr().String(),
 		})
 
+		if tc, ok := conn.(*net.TCPConn); ok {
+			err := tc.SetKeepAlive(true)
+			if err != nil {
+				logger.Error("failed-to-set-tcp-keepalive", err)
+			}
+
+			err = tc.SetKeepAlivePeriod(15 * time.Second)
+			if err != nil {
+				logger.Error("failed-to-set-tcp-keepalive-period", err)
+			}
+		}
+
 		go server.handshake(logger, conn)
 	}
 }
