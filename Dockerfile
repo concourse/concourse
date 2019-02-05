@@ -20,6 +20,7 @@ ENV CONCOURSE_TSA_PUBLIC_KEY         /concourse-keys/tsa_host_key.pub
 ENV CONCOURSE_TSA_WORKER_PRIVATE_KEY /concourse-keys/worker_key
 
 # download go modules separately so this doesn't re-run on every change
+WORKDIR /src
 COPY go.mod .
 COPY go.sum .
 RUN grep '^replace' go.mod || go mod download

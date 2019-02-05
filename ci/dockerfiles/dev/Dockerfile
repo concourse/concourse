@@ -50,12 +50,16 @@ RUN set -e; \
       rm -rf /concourse-resource-types
 
 # install concourse, leaving the module cache populated
+#
+# nuke /src after to ensure dev builds build from a clean slate (otherwise this
+# can cause build failures if e.g. files are removed locally)
 COPY concourse /src
-WORKDIR /src
-RUN go mod download && \
+RUN cd /src && \
+      go mod download && \
       go install github.com/gobuffalo/packr/packr && \
       packr build -gcflags=all="-N -l" -o /usr/local/concourse/bin/concourse \
-        ./bin/cmd/concourse
+        ./bin/cmd/concourse && \
+      rm -rf /src
 
 # volume for non-aufs/etc. mount for baggageclaim's driver
 VOLUME /worker-state
