@@ -69,6 +69,12 @@ init flags location =
                 Routes.Dashboard _ ->
                     Dashboard
 
+                Routes.Build _ _ _ _ _ ->
+                    Dashboard
+
+                Routes.OneOffBuild _ _ ->
+                    Dashboard
+
                 _ ->
                     Normal
 
@@ -360,6 +366,9 @@ view : Model -> Html Msg
 view model =
     case model.subModel of
         SubPage.DashboardModel _ ->
+            Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
+
+        SubPage.BuildModel _ ->
             Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
 
         SubPage.ResourceModel _ ->

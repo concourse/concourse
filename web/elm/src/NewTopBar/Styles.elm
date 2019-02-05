@@ -1,6 +1,7 @@
 module NewTopBar.Styles exposing
     ( breadcrumbComponent
     , breadcrumbContainer
+    , breadcrumbItem
     , concourseLogo
     , dropdownContainer
     , dropdownItem
@@ -172,6 +173,11 @@ concourseLogo =
     ]
 
 
+breadcrumbContainer : List ( String, String )
+breadcrumbContainer =
+    [ ( "flex-grow", "1" ) ]
+
+
 breadcrumbComponent : String -> List ( String, String )
 breadcrumbComponent componentType =
     [ ( "background-image", "url(/public/images/ic-breadcrumb-" ++ componentType ++ ".svg)" )
@@ -185,8 +191,8 @@ breadcrumbComponent componentType =
     ]
 
 
-breadcrumbContainer : List ( String, String )
-breadcrumbContainer =
+breadcrumbItem : List ( String, String )
+breadcrumbItem =
     [ ( "display", "inline-block" )
     , ( "vertical-align", "middle" )
     , ( "font-size", "18px" )

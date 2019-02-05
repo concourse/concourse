@@ -470,7 +470,7 @@ viewMiddleSection model =
             viewSearch r model
 
         Breadcrumbs r ->
-            viewBreadcrumbs r
+            [ Html.div [ id "breadcrumbs", style Styles.breadcrumbContainer ] (viewBreadcrumbs r) ]
 
 
 viewSearch : { query : String, dropdown : Dropdown } -> Model -> List (Html Msg)
@@ -567,7 +567,7 @@ viewBreadcrumbs route =
         Routes.Build teamName pipelineName jobName buildNumber _ ->
             [ viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName [])) pipelineName
             , viewBreadcrumbSeparator
-            , viewJobBreadcrumb (Routes.toString (Routes.Job teamName pipelineName jobName Nothing))
+            , viewJobBreadcrumb jobName
             ]
 
         Routes.Resource teamName pipelineName resourceName _ ->
@@ -598,14 +598,14 @@ breadcrumbComponent componentType name =
 viewBreadcrumbSeparator : Html Msg
 viewBreadcrumbSeparator =
     Html.li
-        [ class "breadcrumb-separator", style Styles.breadcrumbContainer ]
+        [ class "breadcrumb-separator", style Styles.breadcrumbItem ]
         [ Html.text "/" ]
 
 
 viewPipelineBreadcrumb : String -> String -> Html Msg
 viewPipelineBreadcrumb url pipelineName =
     Html.li
-        [ id "breadcrumb-pipeline", style Styles.breadcrumbContainer ]
+        [ id "breadcrumb-pipeline", style Styles.breadcrumbItem ]
         [ Html.a
             [ href url ]
             (breadcrumbComponent "pipeline" pipelineName)
@@ -615,14 +615,14 @@ viewPipelineBreadcrumb url pipelineName =
 viewJobBreadcrumb : String -> Html Msg
 viewJobBreadcrumb jobName =
     Html.li
-        [ id "breadcrumb-job", style Styles.breadcrumbContainer ]
+        [ id "breadcrumb-job", style Styles.breadcrumbItem ]
         (breadcrumbComponent "job" jobName)
 
 
 viewResourceBreadcrumb : String -> Html Msg
 viewResourceBreadcrumb resourceName =
     Html.li
-        [ id "breadcrumb-resource", style Styles.breadcrumbContainer ]
+        [ id "breadcrumb-resource", style Styles.breadcrumbItem ]
         (breadcrumbComponent "resource" resourceName)
 
 

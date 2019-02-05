@@ -62,6 +62,7 @@ init flags route =
                 |> Build.init
                     { csrfToken = flags.csrfToken
                     , highlight = highlight
+                    , route = route
                     }
                 |> Tuple.mapFirst BuildModel
 
@@ -70,6 +71,7 @@ init flags route =
                 |> Build.init
                     { csrfToken = flags.csrfToken
                     , highlight = highlight
+                    , route = route
                     }
                 |> Tuple.mapFirst BuildModel
 

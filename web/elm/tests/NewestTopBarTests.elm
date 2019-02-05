@@ -1,6 +1,5 @@
 module NewestTopBarTests exposing (all)
 
-import Build.Models
 import Callback exposing (Callback(..))
 import Concourse
 import Dict
@@ -99,7 +98,14 @@ searchBarPadding =
 all : Test
 all =
     describe "NewestTopBar"
-        [ rspecStyleDescribe "when on pipeline page"
+        [ rspecStyleDescribe "on init"
+            (NewestTopBar.init { route = Routes.Pipeline "team" "pipeline" [] }
+                |> Tuple.second
+            )
+            [ it "requests screen size" <|
+                Expect.equal [ Effects.GetScreenSize ]
+            ]
+        , rspecStyleDescribe "when on pipeline page"
             (NewestTopBar.init { route = Routes.Pipeline "team" "pipeline" [] }
                 |> Tuple.first
             )
@@ -344,7 +350,11 @@ all =
                 |> toUnstyled
                 |> Query.fromHtml
             )
-            [ it "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
+            [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
+                Query.find
+                    [ id "breadcrumbs" ]
+                    >> Query.has [ style [ ( "flex-grow", "1" ) ] ]
+            , it "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
                 Query.find [ id "breadcrumb-pipeline" ]
                     >> Query.children []
                     >> Query.index 1
@@ -366,7 +376,11 @@ all =
                 |> toUnstyled
                 |> Query.fromHtml
             )
-            [ it "pipeline breadcrumb should have a link to the pipeline page when viewing resource details" <|
+            [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
+                Query.find
+                    [ id "breadcrumbs" ]
+                    >> Query.has [ style [ ( "flex-grow", "1" ) ] ]
+            , it "pipeline breadcrumb should have a link to the pipeline page when viewing resource details" <|
                 Query.find [ id "breadcrumb-pipeline" ]
                     >> Query.children []
                     >> Query.index 1
@@ -400,7 +414,11 @@ all =
                 |> toUnstyled
                 |> Query.fromHtml
             )
-            [ it "pipeline breadcrumb should have a link to the pipeline page when viewing job details" <|
+            [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
+                Query.find
+                    [ id "breadcrumbs" ]
+                    >> Query.has [ style [ ( "flex-grow", "1" ) ] ]
+            , it "pipeline breadcrumb should have a link to the pipeline page when viewing job details" <|
                 Query.find [ id "breadcrumb-pipeline" ]
                     >> Query.children []
                     >> Query.index 1

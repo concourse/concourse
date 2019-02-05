@@ -22,6 +22,7 @@ import Build.Msgs exposing (Hoverable, Msg)
 import Concourse
 import Date exposing (Date)
 import Dict exposing (Dict)
+import NewTopBar.Model
 import RemoteData exposing (WebData)
 import Routes exposing (Highlight(..), StepID)
 import Subscription exposing (Subscription)
@@ -47,6 +48,7 @@ type alias Model =
     , highlight : Highlight
     , hoveredElement : Maybe Hoverable
     , hoveredCounter : Int
+    , topBar : NewTopBar.Model.Model
     }
 
 

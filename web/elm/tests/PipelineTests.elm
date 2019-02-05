@@ -774,128 +774,111 @@ all =
                         |> Query.children []
                         |> Query.first
                         |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
-            , test "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
-            , test "pipeline breadcrumb should have a link to the pipeline page when viewing resource details" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/resources/resource"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
-            , test "there should be a / between pipeline and job in breadcrumb" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has [ text "/" ]
-            , test "job breadcrumb is laid out horizontally with appropriate spacing" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.find [ tag "ul" ]
-                        |> Query.children []
-                        |> Query.index 2
-                        |> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
-            , test "top bar has job breadcrumb with job icon rendered first" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.find [ tag "ul" ]
-                        |> Query.children []
-                        |> Query.index 2
-                        |> Query.has jobBreadcrumbSelector
-            , test "top bar has build name after job icon" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.find [ tag "ul" ]
-                        |> Query.children []
-                        |> Query.index 2
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has
-                            [ text "job" ]
-            , test "there should be a / between pipeline and resource in breadcrumb" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/resources/resource"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has [ text "/" ]
-            , test "resource breadcrumb is laid out horizontally with appropriate spacing" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/resources/resource"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.find [ tag "ul" ]
-                        |> Query.children []
-                        |> Query.index 2
-                        |> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
-            , test "top bar has resource breadcrumb with resource icon rendered first" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/resources/resource"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.find [ tag "ul" ]
-                        |> Query.children []
-                        |> Query.index 2
-                        |> Query.has resourceBreadcrumbSelector
-            , test "top bar has resource name after resource icon" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/resources/resource"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.find [ tag "ul" ]
-                        |> Query.children []
-                        |> Query.index 2
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has
-                            [ text "resource" ]
+            , describe "build page"
+                [ test "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "breadcrumbs" ]
+                            |> Query.children []
+                            |> Query.index 0
+                            |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                , test "there should be a / between pipeline and job in breadcrumb" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "breadcrumbs" ]
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has [ text "/" ]
+                , test "top bar has job breadcrumb with job icon rendered first" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "breadcrumbs" ]
+                            |> Query.children []
+                            |> Query.index 2
+                            |> Query.has jobBreadcrumbSelector
+                , test "top bar has build name after job icon" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "breadcrumbs" ]
+                            |> Query.children []
+                            |> Query.index 2
+                            |> Query.has [ text "job" ]
+                ]
+            , describe "resource page"
+                [ test "pipeline breadcrumb should have a link to the pipeline page when viewing resource details" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/resources/resource"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "nav" ]
+                            |> Query.first
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                , test "there should be a / between pipeline and resource in breadcrumb" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/resources/resource"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "nav" ]
+                            |> Query.first
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has [ text "/" ]
+                , test "resource breadcrumb is laid out horizontally with appropriate spacing" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/resources/resource"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "nav" ]
+                            |> Query.first
+                            |> Query.find [ tag "ul" ]
+                            |> Query.children []
+                            |> Query.index 2
+                            |> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
+                , test "top bar has resource breadcrumb with resource icon rendered first" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/resources/resource"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "nav" ]
+                            |> Query.first
+                            |> Query.find [ tag "ul" ]
+                            |> Query.children []
+                            |> Query.index 2
+                            |> Query.has resourceBreadcrumbSelector
+                , test "top bar has resource name after resource icon" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/resources/resource"
+                            |> Layout.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.findAll [ tag "nav" ]
+                            |> Query.first
+                            |> Query.find [ tag "ul" ]
+                            |> Query.children []
+                            |> Query.index 2
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has
+                                [ text "resource" ]
+                ]
             ]
         ]
 

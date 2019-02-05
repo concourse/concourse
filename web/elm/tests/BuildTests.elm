@@ -44,6 +44,7 @@ all =
                 Build.init
                     { csrfToken = ""
                     , highlight = Routes.HighlightNothing
+                    , route = Routes.Build "team" "pipeline" "job" "1" Routes.HighlightNothing
                     }
                     (Models.JobBuildPage
                         { teamName = "team"
@@ -266,8 +267,47 @@ all =
                             , jobName = "job"
                             , buildName = "1"
                             }
+                        , Effects.GetScreenSize
                         , Effects.GetCurrentTime
                         ]
+        , describe "top bar" <|
+            [ test "has a top bar" <|
+                \_ ->
+                    pageLoad
+                        |> Tuple.first
+                        |> Build.view
+                        |> Query.fromHtml
+                        |> Query.has [ id "top-bar-app" ]
+            , test "has a concourse icon" <|
+                \_ ->
+                    pageLoad
+                        |> Tuple.first
+                        |> Build.view
+                        |> Query.fromHtml
+                        |> Query.find [ id "top-bar-app" ]
+                        |> Query.has [ style [ ( "background-image", "url(/public/images/concourse-logo-white.svg)" ) ] ]
+            , test "has the breadcrumbs" <|
+                \_ ->
+                    pageLoad
+                        |> Tuple.first
+                        |> Build.view
+                        |> Query.fromHtml
+                        |> Query.find [ id "top-bar-app" ]
+                        |> Expect.all
+                            [ Query.has [ id "breadcrumb-pipeline" ]
+                            , Query.has [ text "pipeline" ]
+                            , Query.has [ id "breadcrumb-job" ]
+                            , Query.has [ text "job" ]
+                            ]
+            , test "has a user section" <|
+                \_ ->
+                    pageLoad
+                        |> Tuple.first
+                        |> Build.view
+                        |> Query.fromHtml
+                        |> Query.find [ id "top-bar-app" ]
+                        |> Query.has [ id "login-component" ]
+            ]
         , describe "after build is fetched" <|
             let
                 givenBuildFetched _ =
