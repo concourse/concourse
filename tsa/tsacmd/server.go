@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/tsa"
@@ -480,12 +479,6 @@ dance:
 			logger.Debug("tcpip-io-interrupted")
 			break dance
 		}
-	}
-}
-
-func keepaliveDialerFactory(network string, address string) gconn.DialerFunc {
-	return func(string, string) (net.Conn, error) {
-		return keepaliveDialer(network, address)
 	}
 }
 

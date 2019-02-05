@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -367,4 +368,14 @@ func (req reportVolumesRequest) Handle(ctx context.Context, state ConnState, cha
 		TokenGenerator: req.server.tokenGenerator,
 		VolumeHandles:  req.volumeHandles,
 	}).WorkerStatus(ctx, worker, tsa.ReportVolumes)
+}
+
+func keepaliveDialerFactory(network string, address string) gconn.DialerFunc {
+	dialer := &net.Dialer{
+		KeepAlive: 15 * time.Second,
+	}
+
+	return func(string, string) (net.Conn, error) {
+		return dialer.Dial(network, address)
+	}
 }
