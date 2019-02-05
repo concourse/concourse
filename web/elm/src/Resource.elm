@@ -60,6 +60,7 @@ import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import Resource.Models as Models exposing (Model)
 import Resource.Msgs exposing (Msg(..))
 import Resource.Styles
+import Resource.Text
 import Routes
 import Spinner
 import StrictEvents
@@ -95,6 +96,7 @@ init flags =
                 , teamName = flags.teamName
                 , pipelineName = flags.pipelineName
                 , name = flags.resourceName
+                , type_ = ""
                 , checkStatus = Models.CheckingSuccessfully
                 , checkError = ""
                 , checkSetupError = ""
@@ -208,6 +210,7 @@ handleCallback action model =
                 , teamName = resource.teamName
                 , pipelineName = resource.pipelineName
                 , name = resource.name
+                , type_ = resource.type_
                 , checkStatus =
                     if resource.failingToCheck then
                         Models.FailingToCheck
@@ -698,9 +701,9 @@ header model =
                 , Css.displayFlex
                 , Css.alignItems Css.center
                 , Css.justifyContent Css.center
-                ]
+                ], id "resource-label"
             ]
-            [ Html.text model.name ]
+            [ Html.text <| Resource.Text.resourceLabel model ]
         , Html.div
             [ css
                 [ Css.displayFlex

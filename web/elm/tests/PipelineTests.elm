@@ -967,6 +967,7 @@ givenPinnedResource =
                         [ ( "team_name", Json.Encode.string "team" )
                         , ( "pipeline_name", Json.Encode.string "pipeline" )
                         , ( "name", Json.Encode.string "resource" )
+                        , ( "type", Json.Encode.string "type" )
                         , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v1" ) ] )
                         ]
                     ]
@@ -985,12 +986,14 @@ givenMultiplePinnedResources =
                         [ ( "team_name", Json.Encode.string "team" )
                         , ( "pipeline_name", Json.Encode.string "pipeline" )
                         , ( "name", Json.Encode.string "resource" )
+                        , ( "type", Json.Encode.string "type" )
                         , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v1" ) ] )
                         ]
                     , Json.Encode.object
                         [ ( "team_name", Json.Encode.string "team" )
                         , ( "pipeline_name", Json.Encode.string "pipeline" )
                         , ( "name", Json.Encode.string "other-resource" )
+                        , ( "type", Json.Encode.string "type" )
                         , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v2" ) ] )
                         ]
                     ]

@@ -605,6 +605,7 @@ type alias Resource =
     { teamName : String
     , pipelineName : String
     , name : String
+    , type_ : String
     , failingToCheck : Bool
     , checkError : String
     , checkSetupError : String
@@ -644,6 +645,7 @@ decodeResource =
         |: Json.Decode.field "team_name" Json.Decode.string
         |: Json.Decode.field "pipeline_name" Json.Decode.string
         |: Json.Decode.field "name" Json.Decode.string
+        |: Json.Decode.field "type" Json.Decode.string
         |: (defaultTo False <| Json.Decode.field "failing_to_check" Json.Decode.bool)
         |: (defaultTo "" <| Json.Decode.field "check_error" Json.Decode.string)
         |: (defaultTo "" <| Json.Decode.field "check_setup_error" Json.Decode.string)

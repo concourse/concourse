@@ -47,6 +47,7 @@ type alias Model =
     , teamName : String
     , pipelineName : String
     , name : String
+    , type_ : String
     , checkStatus : CheckStatus
     , checkError : String
     , checkSetupError : String

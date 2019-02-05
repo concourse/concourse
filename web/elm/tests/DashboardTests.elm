@@ -1499,6 +1499,7 @@ all =
                                             [ { teamName = "team"
                                               , pipelineName = "pipeline"
                                               , name = "resource"
+                                              , type_ = "type"
                                               , failingToCheck = True
                                               , checkError = ""
                                               , checkSetupError = ""
