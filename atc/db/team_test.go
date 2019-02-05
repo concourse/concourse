@@ -2246,6 +2246,41 @@ var _ = Describe("Team", func() {
 			Expect(otherReturnedGroups).To(Equal(updatedConfig.Groups))
 		})
 
+		It("should return sorted resources and resource_types", func() {
+			config.ResourceTypes = append(config.ResourceTypes, atc.ResourceType{
+				Name: "new-resource-type",
+				Type: "new-type",
+				Source: atc.Source{
+					"new-source-config": "new-value",
+				},
+			})
+
+			config.Resources = append(config.Resources, atc.ResourceConfig{
+				Name: "new-resource",
+				Type: "new-type",
+				Source: atc.Source{
+					"new-source-config": "new-value",
+				},
+			})
+
+			pipelineName := "a-pipeline-name"
+
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceTypes, err := pipeline.ResourceTypes()
+			Expect(err).ToNot(HaveOccurred())
+			rtConfigs := resourceTypes.Configs()
+			Expect(rtConfigs[0].Name).To(Equal(config.ResourceTypes[1].Name)) // "new-resource-type"
+			Expect(rtConfigs[1].Name).To(Equal(config.ResourceTypes[0].Name)) // "some-resource-type"
+
+			resources, err := pipeline.Resources()
+			Expect(err).ToNot(HaveOccurred())
+			rConfigs := resources.Configs()
+			Expect(rConfigs[0].Name).To(Equal(config.Resources[1].Name)) // "new-resource"
+			Expect(rConfigs[1].Name).To(Equal(config.Resources[0].Name)) // "some-resource"
+		})
+
 		Context("when there are multiple teams", func() {
 			It("can allow pipelines with the same name across teams", func() {
 				teamPipeline, _, err := team.SavePipeline("steve", config, 0, db.PipelineUnpaused)
