@@ -6,9 +6,6 @@ image_resource:
   source: {repository: concourse/unit}
 
 params:
-  AWS_ACCESS_KEY_ID:
-  AWS_REGION:
-  AWS_SECRET_ACCESS_KEY:
   BOSH_CA_CERT:
   BOSH_CLIENT:
   BOSH_CLIENT_SECRET:
@@ -18,6 +15,9 @@ params:
   BOSH_USER:
   SKIP:
   TOPGUN_NETWORK_OFFSET:
+  AWS_REGION:
+  AWS_ACCESS_KEY_ID:
+  AWS_SECRET_ACCESS_KEY:
 
 inputs:
 - name: bbr

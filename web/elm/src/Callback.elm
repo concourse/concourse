@@ -5,7 +5,6 @@ import Concourse.Pagination exposing (Page, Paginated)
 import Dashboard.APIData
 import Http
 import Json.Encode
-import RemoteData
 import Resource.Models exposing (VersionId, VersionToggleAction)
 import Time exposing (Time)
 import Window
@@ -34,7 +33,7 @@ type Callback
     | Checked (Result Http.Error ())
     | CommentSet (Result Http.Error ())
     | TokenSentToFly Bool
-    | APIDataFetched (RemoteData.WebData ( Time.Time, Dashboard.APIData.APIData ))
+    | APIDataFetched (Result Http.Error ( Time.Time, Dashboard.APIData.APIData ))
     | LoggedOut (Result Http.Error ())
     | ScreenResized Window.Size
     | BuildJobDetailsFetched (Result Http.Error Concourse.Job)

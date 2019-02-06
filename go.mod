@@ -4,7 +4,7 @@ require (
 	cloud.google.com/go v0.28.0 // indirect
 	code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c
 	code.cloudfoundry.org/credhub-cli v0.0.0-20180814203433-814bc1b711fe
-	code.cloudfoundry.org/garden v0.0.0-20180820151144-7999b305fe99
+	code.cloudfoundry.org/garden v0.0.0-20181108172608-62470dc86365
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	code.cloudfoundry.org/localip v0.0.0-20170223024724-b88ad0dea95c
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
@@ -30,14 +30,13 @@ require (
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/cenkalti/backoff v2.1.1+incompatible
-	github.com/charlievieth/fs v0.0.0-20170613215519-7dc373669fa1 // indirect
 	github.com/circonus-labs/circonus-gometrics v2.2.1+incompatible // indirect
 	github.com/circonus-labs/circonusllhist v0.0.0-20180430145027-5eb751da55c6 // indirect
 	github.com/cloudfoundry/bosh-cli v5.4.0+incompatible
-	github.com/cloudfoundry/bosh-utils v0.0.0-20180919212956-15c556314b68 // indirect
+	github.com/cloudfoundry/bosh-utils v0.0.0-20181224171034-c2cf699102bd // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
-	github.com/concourse/baggageclaim v1.3.3
+	github.com/concourse/baggageclaim v1.3.4
 	github.com/concourse/dex v0.0.0-20181120155244-024cbea7e753
 	github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c
 	github.com/concourse/go-archive v1.0.0
@@ -56,7 +55,6 @@ require (
 	github.com/fatih/color v1.7.0
 	github.com/fatih/structs v1.0.0 // indirect
 	github.com/felixge/httpsnoop v1.0.0
-	github.com/felixge/tcpkeepalive v0.0.0-20160804073959-5bb0b2dea91e
 	github.com/go-ldap/ldap v2.5.1+incompatible // indirect
 	github.com/go-openapi/jsonpointer v0.0.0-20180825180259-52eb3d4b47c6 // indirect
 	github.com/go-openapi/jsonreference v0.0.0-20180825180305-1c6a3fa339f2 // indirect
@@ -111,11 +109,11 @@ require (
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/lib/pq v0.0.0-20181016162627-9eb73efc1fcc
 	github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329 // indirect
-	github.com/mattn/go-colorable v0.0.9
+	github.com/mattn/go-colorable v0.1.0
 	github.com/mattn/go-isatty v0.0.4
 	github.com/mattn/go-runewidth v0.0.3 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
-	github.com/miekg/dns v1.1.3
+	github.com/miekg/dns v1.1.4
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.0.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
@@ -135,7 +133,7 @@ require (
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/peterhellberg/link v1.0.0
 	github.com/pkg/errors v0.8.1
-	github.com/pkg/term v0.0.0-20180730021639-bffc007b7fd5
+	github.com/pkg/term v0.0.0-20190109203006-aa71e9d9e942
 	github.com/prometheus/client_golang v0.9.2
 	github.com/racksec/srslog v0.0.0-20180709174129-a4725f04ec91
 	github.com/ryanuber/go-glob v0.0.0-20170128012129-256dc444b735 // indirect
@@ -151,12 +149,12 @@ require (
 	github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926 // indirect
 	github.com/vito/go-interact v0.0.0-20171111012221-fa338ed9e9ec
 	github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac
-	github.com/vito/houdini v0.0.0-20170630141751-8dda540e3245
+	github.com/vito/houdini v1.1.1
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
-	golang.org/x/crypto v0.0.0-20181112202954-3d3f9f413869
-	golang.org/x/net v0.0.0-20181217023233-e147a9138326 // indirect
+	golang.org/x/crypto v0.0.0-20190123085648-057139ce5d2b
+	golang.org/x/net v0.0.0-20190125091013-d26f9f9a57f3 // indirect
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
-	golang.org/x/sys v0.0.0-20190123074212-c6b37f3e9285 // indirect
+	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4 // indirect
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.27

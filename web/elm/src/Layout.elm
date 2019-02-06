@@ -20,6 +20,7 @@ import Http
 import Json.Decode
 import Msgs exposing (Msg(..), NavIndex)
 import Navigation
+import NewTopBar.Msgs
 import Resource.Msgs
 import Routes
 import SubPage
@@ -70,9 +71,6 @@ init flags location =
         topBarType =
             case route of
                 Routes.Dashboard _ ->
-                    Dashboard
-
-                Routes.DashboardHd ->
                     Dashboard
 
                 _ ->
@@ -304,7 +302,8 @@ update msg model =
                     update
                         (SubMsg model.navIndex <|
                             SubPage.Msgs.DashboardMsg <|
-                                Dashboard.Msgs.KeyDowns keycode
+                                Dashboard.Msgs.FromTopBar <|
+                                    NewTopBar.Msgs.KeyDown keycode
                         )
                         model
 

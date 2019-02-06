@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
@@ -15,6 +16,9 @@ var _ = Describe("BBR", func() {
 	var atc0URL string
 
 	BeforeEach(func() {
+		if !strings.Contains(string(bosh("releases").Out.Contents()), "backup-and-restore-sdk") {
+			Skip("backup-and-restore-sdk release not uploaded")
+		}
 
 		Deploy(
 			"deployments/concourse.yml",

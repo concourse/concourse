@@ -27,7 +27,7 @@ var _ = Describe("Beacon", func() {
 		fakeClient = new(workerfakes.FakeTSAClient)
 
 		logger := lager.NewLogger("test")
-		logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
+		logger.RegisterSink(lager.NewPrettySink(GinkgoWriter, lager.DEBUG))
 
 		beacon = &worker.Beacon{
 			Logger: logger,

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e -u
+
+if [ "$#" != "1" ]; then
+  echo "usage: $0 <path/to/release>"
+  exit 1
+fi
+
+release=$1
+
+grep -REhv '\s+#\s+' $release/jobs |
+  grep -Eoh 'env(_file)?: (([A-Z_])+|http_proxy|https_proxy|no_proxy)' |
+  sed -e "s/^env\(_file\)\?: //"

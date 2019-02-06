@@ -57,6 +57,7 @@ groups:
   - bosh-smoke
   - bosh-topgun
   - bosh-prod-deploy
+  - bosh-check-props
   - merge-cbd
 
 - name: images
@@ -232,6 +233,48 @@ jobs:
     file: concourse/ci/tasks/docker-compose-watsjs.yml
     params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
+- name: upgrade
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [dev-image]
+      trigger: true
+    - get: dev-image
+      passed: [dev-image]
+      params: {format: oci}
+    - get: postgres-image
+      params: {format: oci}
+    - get: unit-image
+      passed: [dev-image]
+  - task: upgrade-test
+    privileged: true
+    image: unit-image
+    file: concourse/ci/tasks/upgrade-test.yml
+    params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
+
+- name: downgrade
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [dev-image]
+      trigger: true
+    - get: dev-image
+      passed: [dev-image]
+      params: {format: oci}
+    - get: postgres-image
+      params: {format: oci}
+    - get: unit-image
+      passed: [dev-image]
+  - task: downgrade-test
+    privileged: true
+    image: unit-image
+    file: concourse/ci/tasks/upgrade-test.yml
+    params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
+
 - name: k8s-smoke
   public: true
   serial: true
@@ -279,18 +322,21 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [dev-image]
+      passed: [bin-smoke]
       trigger: true
-    - get: dev-image
-      passed: [dev-image]
+    - get: unit-image
+      passed: [bin-smoke]
       trigger: true
-    - get: helm-chart
-      resource: charts
+    - get: linux-rc
+      passed: [bin-smoke]
+      trigger: true
+    - get: charts
       trigger: true
   - task: check-params
-    file: concourse/ci/tasks/check-helm-chart-params.yml
-    image: dev-image
-
+    file: concourse/ci/tasks/check-distribution-env.yml
+    image: unit-image
+    input_mapping: {distribution: charts}
+    params: {DISTRIBUTION: helm}
 
 - name: k8s-topgun
   public: true
@@ -348,13 +394,13 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [testflight, watsjs]
+      passed: [testflight, watsjs, upgrade, downgrade]
       trigger: true
     - get: dev-image
       trigger: true
-      passed: [testflight, watsjs]
+      passed: [testflight, watsjs, upgrade, downgrade]
     - get: unit-image
-      passed: [testflight, watsjs]
+      passed: [testflight, watsjs, upgrade, downgrade]
       trigger: true
   - put: version
     params: {pre: rc}
@@ -466,39 +512,26 @@ jobs:
     file: concourse/ci/tasks/smoke.yml
     input_mapping: {endpoint-info: outputs}
 
-- name: upgrade
+- name: bosh-check-props
   public: true
-  serial: true
+  max_in_flight: 1
   plan:
   - aggregate:
     - get: concourse
-      passed: [build-rc]
+      passed: [bin-smoke]
       trigger: true
     - get: unit-image
-      passed: [build-rc]
-  - task: upgrade-test
-    privileged: true
-    image: unit-image
-    file: concourse/ci/tasks/upgrade-test.yml
-    params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
-
-- name: downgrade
-  public: true
-  serial: true
-  plan:
-  - aggregate:
-    - get: concourse
-      passed:
-      - build-rc
+      passed: [bin-smoke]
       trigger: true
-    - get: unit-image
-      passed:
-      - build-rc
-  - task: downgrade-test
-    privileged: true
+    - get: linux-rc
+      passed: [bin-smoke]
+      trigger: true
+    - get: concourse-release-repo
+  - task: check-props
+    file: concourse/ci/tasks/check-distribution-env.yml
     image: unit-image
-    file: concourse/ci/tasks/upgrade-test.yml
-    params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
+    input_mapping: {distribution: concourse-release-repo}
+    params: {DISTRIBUTION: bosh}
 
 - name: bosh-bump
   public: true
@@ -686,6 +719,7 @@ jobs:
       - cbd/cluster/operations/syslog-drainer.yml
       - cbd/cluster/operations/container-placement-strategy.yml
       - cbd/cluster/operations/worker-rebalancing.yml
+      - cbd/cluster/operations/enable-global-resources.yml
       vars_files:
       - cbd/versions.yml
       vars:

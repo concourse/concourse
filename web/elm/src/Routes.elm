@@ -1,7 +1,7 @@
 module Routes exposing
     ( Route(..)
+    , SearchType(..)
     , buildRoute
-    , dashboardHdRoute
     , dashboardRoute
     , jobRoute
     , parsePath
@@ -37,9 +37,13 @@ type Route
     | Job String String String (Maybe Pagination.Page)
     | OneOffBuild String Highlight
     | Pipeline String String (List String)
-    | Dashboard (Maybe String)
-    | DashboardHd
+    | Dashboard SearchType
     | FlySuccess (Maybe Int)
+
+
+type SearchType
+    = HighDensity
+    | Normal (Maybe String)
 
 
 
@@ -122,12 +126,10 @@ pipeline =
 
 dashboard : Parser (Route -> a) a
 dashboard =
-    map Dashboard (s "" <?> stringParam "search")
-
-
-dashboardHd : Parser (Route -> a) a
-dashboardHd =
-    map DashboardHd (s "hd")
+    oneOf
+        [ map (Dashboard << Normal) (s "" <?> stringParam "search")
+        , map (Dashboard HighDensity) (s "hd")
+        ]
 
 
 flySuccess : Parser (Route -> a) a
@@ -161,14 +163,13 @@ pipelineRoute p =
     Pipeline p.teamName p.name [] |> toString
 
 
-dashboardRoute : String
-dashboardRoute =
-    Dashboard Nothing |> toString
+dashboardRoute : Bool -> String
+dashboardRoute isHd =
+    if isHd then
+        Dashboard HighDensity |> toString
 
-
-dashboardHdRoute : String
-dashboardHdRoute =
-    DashboardHd |> toString
+    else
+        Dashboard (Normal Nothing) |> toString
 
 
 showHighlight : Highlight -> String
@@ -238,7 +239,6 @@ sitemap =
         [ resource
         , job
         , dashboard
-        , dashboardHd
         , flySuccess
         ]
 
@@ -318,17 +318,13 @@ toString route =
                             "?groups=" ++ String.join "&groups=" gs
                    )
 
-        Dashboard search ->
+        Dashboard (Normal (Just search)) ->
+            "/?search=" ++ search
+
+        Dashboard (Normal Nothing) ->
             "/"
-                ++ (case search of
-                        Nothing ->
-                            ""
 
-                        Just s ->
-                            "?search=" ++ s
-                   )
-
-        DashboardHd ->
+        Dashboard HighDensity ->
             "/hd"
 
         FlySuccess flyPort ->
@@ -377,4 +373,4 @@ parsePath location =
                 |> f
 
         _ ->
-            Dashboard Nothing
+            Dashboard (Normal Nothing)

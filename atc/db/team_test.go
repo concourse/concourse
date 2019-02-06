@@ -415,52 +415,241 @@ var _ = Describe("Team", func() {
 			firstContainerCreating db.CreatingContainer
 		)
 
-		BeforeEach(func() {
-			fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
-			variables = template.StaticVariables{}
-			fakeVariablesFactory.NewVariablesReturns(variables)
+		Context("when there is a task container and a check container", func() {
+			BeforeEach(func() {
+				fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
+				variables = template.StaticVariables{}
+				fakeVariablesFactory.NewVariablesReturns(variables)
 
-			job, found, err := defaultPipeline.Job("some-job")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
+				job, found, err := defaultPipeline.Job("some-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-			build, err := job.CreateBuild()
-			Expect(err).ToNot(HaveOccurred())
+				build, err := job.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
 
-			firstContainerCreating, err = defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), atc.PlanID("some-job"), defaultTeam.ID()), db.ContainerMetadata{Type: "task", StepName: "some-task"})
-			Expect(err).ToNot(HaveOccurred())
+				firstContainerCreating, err = defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), atc.PlanID("some-job"), defaultTeam.ID()), db.ContainerMetadata{Type: "task", StepName: "some-task"})
+				Expect(err).ToNot(HaveOccurred())
 
-			expiries := db.ContainerOwnerExpiries{
-				GraceTime: 2 * time.Minute,
-				Min:       5 * time.Minute,
-				Max:       1 * time.Hour,
-			}
+				expiries := db.ContainerOwnerExpiries{
+					GraceTime: 2 * time.Minute,
+					Min:       5 * time.Minute,
+					Max:       1 * time.Hour,
+				}
 
-			pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
-			Expect(err).ToNot(HaveOccurred())
+				pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
+				Expect(err).ToNot(HaveOccurred())
 
-			resourceConfigScope, err = defaultResource.SetResourceConfig(logger, defaultResource.Source(), creds.NewVersionedResourceTypes(variables, pipelineResourceTypes.Deserialize()))
-			Expect(err).ToNot(HaveOccurred())
+				resourceConfigScope, err = defaultResource.SetResourceConfig(logger, defaultResource.Source(), creds.NewVersionedResourceTypes(variables, pipelineResourceTypes.Deserialize()))
+				Expect(err).ToNot(HaveOccurred())
 
-			resourceContainer, err = defaultWorker.CreateContainer(
-				db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), expiries),
-				db.ContainerMetadata{},
-			)
-			Expect(err).ToNot(HaveOccurred())
+				resourceContainer, err = defaultWorker.CreateContainer(
+					db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), expiries),
+					db.ContainerMetadata{},
+				)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("finds all the containers", func() {
+				containers, err := defaultTeam.Containers(logger)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(containers).To(HaveLen(2))
+				Expect(containers).To(ConsistOf(firstContainerCreating, resourceContainer))
+			})
+
+			It("does not find containers for other teams", func() {
+				containers, err := otherTeam.Containers(logger)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(containers).To(BeEmpty())
+			})
+
 		})
 
-		It("finds all the containers", func() {
-			containers, err := defaultTeam.Containers(logger)
-			Expect(err).ToNot(HaveOccurred())
+		Context("when there is a check container on a team worker", func() {
+			var resourceContainer db.Container
 
-			Expect(containers).To(HaveLen(2))
-			Expect(containers).To(ConsistOf(firstContainerCreating, resourceContainer))
+			BeforeEach(func() {
+				atcWorker := atc.Worker{
+					ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
+					Name:            "default-team-worker",
+					GardenAddr:      "3.4.5.6:7777",
+					BaggageclaimURL: "7.8.9.10:7878",
+					Team:            defaultTeam.Name(),
+				}
+
+				worker, err := defaultTeam.SaveWorker(atcWorker, 0)
+				Expect(err).ToNot(HaveOccurred())
+
+				expiries := db.ContainerOwnerExpiries{
+					GraceTime: 2 * time.Minute,
+					Min:       5 * time.Minute,
+					Max:       1 * time.Hour,
+				}
+
+				resourceConfigScope, err = defaultResource.SetResourceConfig(logger, defaultResource.Source(), creds.VersionedResourceTypes{})
+				Expect(err).ToNot(HaveOccurred())
+
+				resourceContainer, err = worker.CreateContainer(
+					db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), expiries),
+					db.ContainerMetadata{
+						Type: "check",
+					},
+				)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("finds the container", func() {
+				containers, err := defaultTeam.Containers(logger)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(containers).To(HaveLen(1))
+				Expect(containers).To(ConsistOf(resourceContainer))
+			})
+
+			Context("when there is another check container with the same resource config on a different team worker", func() {
+				var (
+					resource2Container db.Container
+					otherTeam          db.Team
+					err                error
+				)
+
+				BeforeEach(func() {
+					otherTeam, err = teamFactory.CreateTeam(atc.Team{Name: "other-team"})
+					Expect(err).NotTo(HaveOccurred())
+
+					otherPipeline, _, err := otherTeam.SavePipeline("other-pipeline", atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+							},
+						},
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "some-base-resource-type",
+								Source: atc.Source{
+									"some": "source",
+								},
+							},
+						},
+						ResourceTypes: atc.ResourceTypes{
+							{
+								Name: "some-type",
+								Type: "some-base-resource-type",
+								Source: atc.Source{
+									"some-type": "source",
+								},
+							},
+						},
+					}, db.ConfigVersion(0), db.PipelineUnpaused)
+					Expect(err).NotTo(HaveOccurred())
+
+					otherResource, found, err := otherPipeline.Resource("some-resource")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					atcWorker := atc.Worker{
+						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
+						Name:            "other-team-worker",
+						GardenAddr:      "4.5.6.7:7777",
+						BaggageclaimURL: "8.9.10.11:7878",
+						Team:            otherTeam.Name(),
+					}
+
+					worker, err := otherTeam.SaveWorker(atcWorker, 0)
+					Expect(err).ToNot(HaveOccurred())
+
+					expiries := db.ContainerOwnerExpiries{
+						GraceTime: 2 * time.Minute,
+						Min:       5 * time.Minute,
+						Max:       1 * time.Hour,
+					}
+
+					resourceConfigScope, err = otherResource.SetResourceConfig(logger, otherResource.Source(), creds.VersionedResourceTypes{})
+					Expect(err).ToNot(HaveOccurred())
+
+					resource2Container, err = worker.CreateContainer(
+						db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), expiries),
+						db.ContainerMetadata{
+							Type: "check",
+						},
+					)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns the container only from the team", func() {
+					containers, err := otherTeam.Containers(logger)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(containers).To(HaveLen(1))
+					Expect(containers).To(ConsistOf(resource2Container))
+				})
+			})
+
+			Context("when there is a check container with the same resource config on a global worker", func() {
+				var (
+					globalResourceContainer db.Container
+				)
+
+				BeforeEach(func() {
+					expiries := db.ContainerOwnerExpiries{
+						GraceTime: 2 * time.Minute,
+						Min:       5 * time.Minute,
+						Max:       1 * time.Hour,
+					}
+
+					resourceConfigScope, err := defaultResource.SetResourceConfig(logger, defaultResource.Source(), creds.VersionedResourceTypes{})
+					Expect(err).ToNot(HaveOccurred())
+
+					globalResourceContainer, err = defaultWorker.CreateContainer(
+						db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), expiries),
+						db.ContainerMetadata{
+							Type: "check",
+						},
+					)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns the container only from the team worker and global worker", func() {
+					containers, err := defaultTeam.Containers(logger)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(containers).To(HaveLen(2))
+					Expect(containers).To(ConsistOf(resourceContainer, globalResourceContainer))
+				})
+			})
 		})
 
-		It("does not find containers for other teams", func() {
-			containers, err := otherTeam.Containers(logger)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(containers).To(BeEmpty())
+		Context("when there is a check container for a resource type", func() {
+			var resourceContainer db.Container
+
+			BeforeEach(func() {
+				expiries := db.ContainerOwnerExpiries{
+					GraceTime: 2 * time.Minute,
+					Min:       5 * time.Minute,
+					Max:       1 * time.Hour,
+				}
+
+				resourceConfigScope, err := defaultResourceType.SetResourceConfig(logger, defaultResourceType.Source(), creds.VersionedResourceTypes{})
+				Expect(err).ToNot(HaveOccurred())
+
+				resourceContainer, err = defaultWorker.CreateContainer(
+					db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), expiries),
+					db.ContainerMetadata{
+						Type: "check",
+					},
+				)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("finds the container", func() {
+				containers, err := defaultTeam.Containers(logger)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(containers).To(HaveLen(1))
+				Expect(containers).To(ConsistOf(resourceContainer))
+			})
 		})
 	})
 
@@ -2055,6 +2244,41 @@ var _ = Describe("Team", func() {
 
 			otherReturnedGroups = otherPipeline.Groups()
 			Expect(otherReturnedGroups).To(Equal(updatedConfig.Groups))
+		})
+
+		It("should return sorted resources and resource_types", func() {
+			config.ResourceTypes = append(config.ResourceTypes, atc.ResourceType{
+				Name: "new-resource-type",
+				Type: "new-type",
+				Source: atc.Source{
+					"new-source-config": "new-value",
+				},
+			})
+
+			config.Resources = append(config.Resources, atc.ResourceConfig{
+				Name: "new-resource",
+				Type: "new-type",
+				Source: atc.Source{
+					"new-source-config": "new-value",
+				},
+			})
+
+			pipelineName := "a-pipeline-name"
+
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceTypes, err := pipeline.ResourceTypes()
+			Expect(err).ToNot(HaveOccurred())
+			rtConfigs := resourceTypes.Configs()
+			Expect(rtConfigs[0].Name).To(Equal(config.ResourceTypes[1].Name)) // "new-resource-type"
+			Expect(rtConfigs[1].Name).To(Equal(config.ResourceTypes[0].Name)) // "some-resource-type"
+
+			resources, err := pipeline.Resources()
+			Expect(err).ToNot(HaveOccurred())
+			rConfigs := resources.Configs()
+			Expect(rConfigs[0].Name).To(Equal(config.Resources[1].Name)) // "new-resource"
+			Expect(rConfigs[1].Name).To(Equal(config.Resources[0].Name)) // "some-resource"
 		})
 
 		Context("when there are multiple teams", func() {

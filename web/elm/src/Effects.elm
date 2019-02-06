@@ -30,7 +30,6 @@ import Http
 import Json.Encode
 import Navigation
 import Process
-import RemoteData
 import Resource.Models exposing (VersionId, VersionToggleAction(..))
 import Routes
 import Scroll
@@ -93,7 +92,6 @@ type Effect
     | FetchBuildPrep Time Int Int
     | FetchBuildPlan Concourse.BuildId
     | FetchBuildPlanAndResources Concourse.BuildId
-    | FocusSearchInput
     | GetCurrentTime
     | DoTriggerBuild Concourse.JobIdentifier String
     | DoAbortBuild Int Concourse.CSRFToken
@@ -122,6 +120,7 @@ type Effect
     | SetFavIcon (Maybe Concourse.BuildStatus)
     | SaveToken String
     | LoadToken
+    | ForceFocus String
 
 
 type ScrollDirection
@@ -225,9 +224,6 @@ runEffect effect =
         SendTokenToFly authToken flyPort ->
             sendTokenToFly authToken flyPort
 
-        FocusSearchInput ->
-            Task.attempt (always EmptyCallback) (Dom.focus "search-input-field")
-
         ModifyUrl url ->
             Navigation.modifyUrl url
 
@@ -290,6 +286,10 @@ runEffect effect =
 
         LoadToken ->
             loadToken ()
+
+        ForceFocus dom ->
+            Dom.focus dom
+                |> Task.attempt (always EmptyCallback)
 
 
 fetchJobBuilds : Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Callback
@@ -402,8 +402,7 @@ fetchData : Cmd Callback
 fetchData =
     Dashboard.APIData.remoteData
         |> Task.map2 (,) Time.now
-        |> RemoteData.asCmd
-        |> Cmd.map APIDataFetched
+        |> Task.attempt APIDataFetched
 
 
 togglePipelinePaused : { pipeline : Dashboard.Models.Pipeline, csrfToken : Concourse.CSRFToken } -> Cmd Callback

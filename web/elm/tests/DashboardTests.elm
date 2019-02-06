@@ -27,7 +27,8 @@ import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Html.Styled as HS
 import List.Extra
-import RemoteData
+import NewTopBar.Msgs
+import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -445,7 +446,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> queryView
-                    |> Query.find [ id "top-bar" ]
+                    |> Query.find [ id "top-bar-app" ]
                     |> Query.has [ style [ ( "font-weight", "700" ) ] ]
         , test "logging out causes pipeline list to reload" <|
             let
@@ -460,7 +461,7 @@ all =
                     |> givenDataAndUser
                         (oneTeamOnePipelineNonPublic "team")
                         (userWithRoles [ ( "team", [ "owner" ] ) ])
-                    |> Dashboard.update Msgs.LogOut
+                    |> Dashboard.update (Msgs.FromTopBar NewTopBar.Msgs.LogOut)
                     |> Tuple.first
                     |> showsLoadingState
         , test "links to specific builds" <|
@@ -487,7 +488,7 @@ all =
                 whenOnDashboard { highDensity = True }
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
-                            RemoteData.Success
+                            Ok
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
@@ -498,7 +499,7 @@ all =
                         , Tuple.first
                             >> Dashboard.handleCallback
                                 (Callback.APIDataFetched <|
-                                    RemoteData.Success
+                                    Ok
                                         ( 0
                                         , apiData
                                             [ ( "team", [ "pipeline" ] ) ]
@@ -515,7 +516,7 @@ all =
                                     >> Query.children []
                                     >> Query.index -1
                                     >> Query.has [ text "pending" ]
-                                , Query.has [ tag "input" ]
+                                , Query.hasNot [ tag "input" ]
                                 ]
                         ]
         , test "HD view redirects to no pipelines view when pipelines disappear" <|
@@ -523,7 +524,7 @@ all =
                 whenOnDashboard { highDensity = True }
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
-                            RemoteData.Success
+                            Ok
                                 ( 0
                                 , apiData [ ( "team", [ "pipeline" ] ) ] Nothing
                                 )
@@ -531,7 +532,7 @@ all =
                     |> Tuple.first
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
-                            RemoteData.Success
+                            Ok
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
@@ -548,7 +549,7 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
-                            RemoteData.Success
+                            Ok
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
@@ -561,7 +562,7 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
-                            RemoteData.Success
+                            Ok
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
@@ -574,7 +575,7 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
-                            RemoteData.Success
+                            Ok
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
@@ -587,7 +588,7 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
-                            RemoteData.Success
+                            Ok
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
@@ -601,7 +602,7 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
-                            RemoteData.Success
+                            Ok
                                 ( 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
@@ -2814,6 +2815,12 @@ whenOnDashboard { highDensity } =
         , search = ""
         , highDensity = highDensity
         , pipelineRunningKeyframes = pipelineRunningKeyframes
+        , route =
+            if highDensity then
+                Routes.Dashboard Routes.HighDensity
+
+            else
+                Routes.Dashboard (Routes.Normal Nothing)
         }
         |> Tuple.first
 
@@ -2828,9 +2835,7 @@ queryView =
 givenDataAndUser : (Maybe Concourse.User -> APIData.APIData) -> Concourse.User -> Dashboard.Model -> Dashboard.Model
 givenDataAndUser data user =
     Dashboard.handleCallback
-        (Callback.APIDataFetched <|
-            RemoteData.Success ( 0, data <| Just user )
-        )
+        (Callback.APIDataFetched <| Ok ( 0, data <| Just user ))
         >> Tuple.first
 
 
@@ -2848,9 +2853,7 @@ userWithRoles roles =
 givenDataUnauthenticated : (Maybe Concourse.User -> APIData.APIData) -> Dashboard.Model -> Dashboard.Model
 givenDataUnauthenticated data =
     Dashboard.handleCallback
-        (Callback.APIDataFetched <|
-            RemoteData.Success ( 0, data Nothing )
-        )
+        (Callback.APIDataFetched <| Ok ( 0, data Nothing ))
         >> Tuple.first
 
 
