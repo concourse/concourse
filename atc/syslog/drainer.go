@@ -104,7 +104,7 @@ func (d *drainer) drainBuild(logger lager.Logger, build db.Build, syslog *Syslog
 
 			err = syslog.Write(d.hostname, tag, time.Unix(log.Time, 0), payload)
 			if err != nil {
-				logger.Error("failed-to-write-to-server", err, lager.Data{"tag": tag})
+				logger.Error("failed-to-write-to-server", err)
 				return err
 			}
 		}
