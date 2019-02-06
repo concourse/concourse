@@ -719,6 +719,7 @@ jobs:
       - cbd/cluster/operations/syslog-drainer.yml
       - cbd/cluster/operations/container-placement-strategy.yml
       - cbd/cluster/operations/worker-rebalancing.yml
+      - cbd/cluster/operations/enable-global-resources.yml
       vars_files:
       - cbd/versions.yml
       vars:
