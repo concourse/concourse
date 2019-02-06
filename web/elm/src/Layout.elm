@@ -241,11 +241,8 @@ subpageHandleCallback : Model -> Callback -> Int -> ( Model, List ( LayoutDispat
 subpageHandleCallback model callback navIndex =
     let
         ( subModel, effects ) =
-            SubPage.handleCallback
-                model.csrfToken
-                callback
-                model.subModel
-                |> SubPage.handleNotFound model.notFoundImgSrc
+            SubPage.handleCallback model.csrfToken callback model.subModel
+                |> SubPage.handleNotFound model.notFoundImgSrc model.route
     in
     ( { model | subModel = subModel }
     , List.map (\ef -> ( SubPage navIndex, ef )) effects
@@ -268,7 +265,7 @@ update msg model =
             if validNavIndex model.navIndex navIndex then
                 let
                     ( subModel, subEffects ) =
-                        SubPage.update model.turbulenceImgSrc model.notFoundImgSrc model.csrfToken m model.subModel
+                        SubPage.update model.turbulenceImgSrc model.notFoundImgSrc model.csrfToken model.route m model.subModel
                 in
                 ( { model | subModel = subModel }
                 , List.map (\ef -> ( SubPage navIndex, ef )) subEffects
@@ -296,7 +293,13 @@ update msg model =
         TokenReceived (Just tokenValue) ->
             let
                 ( newSubModel, subCmd ) =
-                    SubPage.update model.turbulenceImgSrc model.notFoundImgSrc tokenValue (SubPage.Msgs.NewCSRFToken tokenValue) model.subModel
+                    SubPage.update
+                        model.turbulenceImgSrc
+                        model.notFoundImgSrc
+                        tokenValue
+                        model.route
+                        (SubPage.Msgs.NewCSRFToken tokenValue)
+                        model.subModel
             in
             ( { model
                 | csrfToken = tokenValue
@@ -401,26 +404,6 @@ view model =
                 ]
 
         SubPage.PipelineModel _ ->
-            Html.div
-                [ class "content-frame"
-                , style
-                    [ ( "-webkit-font-smoothing", "antialiased" )
-                    , ( "font-weight", "700" )
-                    ]
-                ]
-                [ Html.map (TopMsg model.navIndex) (TopBar.view model.topModel)
-                , Html.div [ class "bottom" ]
-                    [ Html.div [ id "content" ]
-                        [ Html.div [ id "subpage" ]
-                            [ Html.map
-                                (SubMsg model.navIndex)
-                                (SubPage.view model.userState model.subModel)
-                            ]
-                        ]
-                    ]
-                ]
-
-        SubPage.NotFoundModel _ ->
             Html.div
                 [ class "content-frame"
                 , style

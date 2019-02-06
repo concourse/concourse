@@ -15,7 +15,6 @@ import Concourse.Pagination exposing (Page, Paginated)
 import Date exposing (Date)
 import NewTopBar.Model
 import Pinned exposing (ResourcePinState)
-import Routes
 import Time
 
 

@@ -135,11 +135,12 @@ init flags route =
                 |> Tuple.mapFirst FlySuccessModel
 
 
-handleNotFound : String -> ( Model, List Effect ) -> ( Model, List Effect )
-handleNotFound notFound ( model, effects ) =
+handleNotFound : String -> Routes.Route -> ( Model, List Effect ) -> ( Model, List Effect )
+handleNotFound notFound route ( model, effects ) =
     case getUpdateMessage model of
         UpdateMsg.NotFound ->
-            ( NotFoundModel { notFoundImgSrc = notFound }, [ Effects.SetTitle "Not Found " ] )
+            NotFound.init { notFoundImgSrc = notFound, route = route }
+                |> Tuple.mapFirst NotFoundModel
 
         UpdateMsg.AOK ->
             ( model, effects )
@@ -195,18 +196,20 @@ handleCallback csrfToken callback model =
             FlySuccess.handleCallback callback model
                 |> Tuple.mapFirst FlySuccessModel
 
-        _ ->
-            ( model, [] )
+        NotFoundModel model ->
+            NotFound.handleCallback callback model
+                |> Tuple.mapFirst NotFoundModel
 
 
 update :
     String
     -> String
     -> Concourse.CSRFToken
+    -> Routes.Route
     -> Msg
     -> Model
     -> ( Model, List Effect )
-update turbulence notFound csrfToken msg mdl =
+update turbulence notFound csrfToken route msg mdl =
     case ( msg, mdl ) of
         ( NewCSRFToken c, BuildModel buildModel ) ->
             Build.update (Build.Msgs.NewCSRFToken c) buildModel
@@ -219,7 +222,7 @@ update turbulence notFound csrfToken msg mdl =
             in
             Build.update msg model
                 |> Tuple.mapFirst BuildModel
-                |> handleNotFound notFound
+                |> handleNotFound notFound route
 
         ( NewCSRFToken c, JobModel model ) ->
             ( JobModel { model | csrfToken = c }, [] )
@@ -227,12 +230,12 @@ update turbulence notFound csrfToken msg mdl =
         ( JobMsg message, JobModel model ) ->
             Job.update message { model | csrfToken = csrfToken }
                 |> Tuple.mapFirst JobModel
-                |> handleNotFound notFound
+                |> handleNotFound notFound route
 
         ( PipelineMsg message, PipelineModel model ) ->
             Pipeline.update message model
                 |> Tuple.mapFirst PipelineModel
-                |> handleNotFound notFound
+                |> handleNotFound notFound route
 
         ( NewCSRFToken c, ResourceModel model ) ->
             ( ResourceModel { model | csrfToken = c }, [] )
@@ -240,7 +243,7 @@ update turbulence notFound csrfToken msg mdl =
         ( ResourceMsg message, ResourceModel model ) ->
             Resource.update message { model | csrfToken = csrfToken }
                 |> Tuple.mapFirst ResourceModel
-                |> handleNotFound notFound
+                |> handleNotFound notFound route
 
         ( NewCSRFToken c, DashboardModel model ) ->
             ( DashboardModel { model | csrfToken = c }, [] )
@@ -252,6 +255,10 @@ update turbulence notFound csrfToken msg mdl =
         ( FlySuccessMsg message, FlySuccessModel model ) ->
             FlySuccess.update message model
                 |> Tuple.mapFirst FlySuccessModel
+
+        ( NotFoundMsg message, NotFoundModel model ) ->
+            NotFound.update message model
+                |> Tuple.mapFirst NotFoundModel
 
         ( NewCSRFToken _, mdl ) ->
             ( mdl, [] )
@@ -338,7 +345,8 @@ view userState mdl =
                 |> Html.map DashboardMsg
 
         NotFoundModel model ->
-            NotFound.view model
+            NotFound.view userState model
+                |> Html.map NotFoundMsg
 
         FlySuccessModel model ->
             FlySuccess.view userState model
