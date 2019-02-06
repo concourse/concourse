@@ -341,7 +341,7 @@ view userState mdl =
             NotFound.view model
 
         FlySuccessModel model ->
-            FlySuccess.view model
+            FlySuccess.view userState model
                 |> Html.map FlySuccessMsg
 
 
