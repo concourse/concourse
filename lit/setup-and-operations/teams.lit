@@ -322,7 +322,7 @@ against the teams that have granted them access.
   }
 
   \section{
-    \title{ldap}{ldap}
+    \title{LDAP}{ldap}
 
     You can configure which groups and individual users
     should have access to your team.
