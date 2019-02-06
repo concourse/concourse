@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -183,6 +184,87 @@ var _ = Describe("Resource Config Scope", func() {
 		})
 	})
 
+	Describe("UpdateLastChecked", func() {
+		var (
+			someResource        db.Resource
+			resourceConfigScope db.ResourceConfigScope
+		)
+
+		BeforeEach(func() {
+			var err error
+			var found bool
+
+			someResource, found, err = defaultPipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceConfigScope, err = someResource.SetResourceConfig(
+				logger,
+				someResource.Source(),
+				creds.NewVersionedResourceTypes(template.StaticVariables{}, pipelineResourceTypes.Deserialize()),
+			)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when there has not been a check", func() {
+			It("should update the last checked", func() {
+				updated, err := resourceConfigScope.UpdateLastChecked(1*time.Second, false)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(updated).To(BeTrue())
+			})
+
+			Context("when immediate", func() {
+				It("should update the last checked", func() {
+					updated, err := resourceConfigScope.UpdateLastChecked(1*time.Second, true)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(updated).To(BeTrue())
+				})
+			})
+		})
+
+		Context("when there has been a check recently", func() {
+			BeforeEach(func() {
+				updated, err := resourceConfigScope.UpdateLastChecked(1*time.Second, false)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(updated).To(BeTrue())
+			})
+
+			Context("when not immediate", func() {
+				It("does not update the last checked", func() {
+					updated, err := resourceConfigScope.UpdateLastChecked(1*time.Second, false)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(updated).To(BeFalse())
+				})
+
+				It("updates the last checked and stops others from periodically updating at the same time", func() {
+					Consistently(func() bool {
+						updated, err := resourceConfigScope.UpdateLastChecked(1*time.Second, false)
+						Expect(err).ToNot(HaveOccurred())
+
+						return updated
+					}, time.Second, 100*time.Millisecond).Should(BeFalse())
+
+					time.Sleep(time.Second)
+
+					updated, err := resourceConfigScope.UpdateLastChecked(1*time.Second, false)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(updated).To(BeTrue())
+				})
+			})
+
+			Context("when it is immediate", func() {
+				It("updates the last checked and stops others from updating too", func() {
+					updated, err := resourceConfigScope.UpdateLastChecked(1*time.Second, true)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(updated).To(BeTrue())
+				})
+			})
+		})
+	})
+
 	Describe("AcquireResourceCheckingLock", func() {
 		var (
 			someResource        db.Resource
@@ -209,146 +291,65 @@ var _ = Describe("Resource Config Scope", func() {
 		})
 
 		Context("when there has been a check recently", func() {
-			Context("when acquiring immediately", func() {
-				It("gets the lock", func() {
-					lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second, false)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(acquired).To(BeTrue())
+			var lock lock.Lock
+			var err error
 
-					err = lock.Release()
-					Expect(err).ToNot(HaveOccurred())
+			BeforeEach(func() {
+				var err error
+				var acquired bool
+				lock, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(acquired).To(BeTrue())
+			})
 
-					lock, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second, true)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(acquired).To(BeTrue())
+			It("does not get the lock", func() {
+				_, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(acquired).To(BeFalse())
+			})
 
+			Context("and the lock gets released", func() {
+				BeforeEach(func() {
 					err = lock.Release()
 					Expect(err).ToNot(HaveOccurred())
 				})
-			})
 
-			Context("when not acquiring immediately", func() {
-				It("does not get the lock", func() {
-					lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second, false)
+				It("gets the lock", func() {
+					lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
 					err = lock.Release()
 					Expect(err).ToNot(HaveOccurred())
-
-					_, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second, false)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(acquired).To(BeFalse())
 				})
 			})
 		})
 
 		Context("when there has not been a check recently", func() {
-			Context("when acquiring immediately", func() {
-				It("gets and keeps the lock and stops others from periodically getting it", func() {
-					lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second, true)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(acquired).To(BeTrue())
+			It("gets and keeps the lock and stops others from periodically getting it", func() {
+				lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(acquired).To(BeTrue())
 
-					Consistently(func() bool {
-						_, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second, false)
-						Expect(err).ToNot(HaveOccurred())
-
-						return acquired
-					}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
-
-					err = lock.Release()
+				Consistently(func() bool {
+					_, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second)
 					Expect(err).ToNot(HaveOccurred())
 
-					time.Sleep(time.Second)
+					return acquired
+				}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
 
-					lock, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second, true)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(acquired).To(BeTrue())
+				err = lock.Release()
+				Expect(err).ToNot(HaveOccurred())
 
-					err = lock.Release()
-					Expect(err).ToNot(HaveOccurred())
-				})
+				time.Sleep(time.Second)
 
-				It("gets and keeps the lock and stops others from immediately getting it", func() {
-					lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second, true)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(acquired).To(BeTrue())
+				lock, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(acquired).To(BeTrue())
 
-					Consistently(func() bool {
-						_, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second, true)
-						Expect(err).ToNot(HaveOccurred())
-
-						return acquired
-					}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
-
-					err = lock.Release()
-					Expect(err).ToNot(HaveOccurred())
-
-					time.Sleep(time.Second)
-
-					lock, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second, true)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(acquired).To(BeTrue())
-
-					err = lock.Release()
-					Expect(err).ToNot(HaveOccurred())
-				})
-			})
-
-			Context("when not acquiring immediately", func() {
-				It("gets and keeps the lock and stops others from periodically getting it", func() {
-					lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second, false)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(acquired).To(BeTrue())
-
-					Consistently(func() bool {
-						_, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second, false)
-						Expect(err).ToNot(HaveOccurred())
-
-						return acquired
-					}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
-
-					err = lock.Release()
-					Expect(err).ToNot(HaveOccurred())
-
-					time.Sleep(time.Second)
-
-					lock, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second, false)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(acquired).To(BeTrue())
-
-					err = lock.Release()
-					Expect(err).ToNot(HaveOccurred())
-				})
-
-				It("gets and keeps the lock and stops others from immediately getting it", func() {
-					lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second, false)
-
-					Expect(err).ToNot(HaveOccurred())
-					Expect(acquired).To(BeTrue())
-
-					Consistently(func() bool {
-						_, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second, true)
-						Expect(err).ToNot(HaveOccurred())
-
-						return acquired
-					}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
-
-					err = lock.Release()
-					Expect(err).ToNot(HaveOccurred())
-
-					time.Sleep(time.Second)
-
-					lock, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second, false)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(acquired).To(BeTrue())
-
-					err = lock.Release()
-					Expect(err).ToNot(HaveOccurred())
-				})
+				err = lock.Release()
+				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 	})
-
 })

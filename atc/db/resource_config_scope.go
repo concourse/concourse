@@ -36,8 +36,12 @@ type ResourceConfigScope interface {
 	AcquireResourceCheckingLock(
 		logger lager.Logger,
 		interval time.Duration,
-		immediate bool,
 	) (lock.Lock, bool, error)
+
+	UpdateLastChecked(
+		interval time.Duration,
+		immediate bool,
+	) (bool, error)
 }
 
 type resourceConfigScope struct {
@@ -172,46 +176,14 @@ func (r *resourceConfigScope) SetCheckError(cause error) error {
 func (r *resourceConfigScope) AcquireResourceCheckingLock(
 	logger lager.Logger,
 	interval time.Duration,
-	immediate bool,
 ) (lock.Lock, bool, error) {
-	lock, acquired, err := r.lockFactory.Acquire(
+	return r.lockFactory.Acquire(
 		logger,
 		lock.NewResourceConfigCheckingLockID(r.resourceConfig.ID()),
 	)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !acquired {
-		return nil, false, nil
-	}
-
-	intervalUpdated, err := r.checkIfResourceConfigScopeIntervalUpdated(interval, immediate)
-	if err != nil {
-		lockErr := lock.Release()
-		if lockErr != nil {
-			logger.Fatal("failed-to-release-lock", lockErr)
-		}
-		return nil, false, err
-	}
-
-	if !intervalUpdated {
-		logger.Debug("failed-to-update-interval", lager.Data{
-			"interval":  interval,
-			"immediate": immediate,
-		})
-
-		lockErr := lock.Release()
-		if lockErr != nil {
-			logger.Fatal("failed-to-release-lock", lockErr)
-		}
-		return nil, false, nil
-	}
-
-	return lock, true, nil
 }
 
-func (r *resourceConfigScope) checkIfResourceConfigScopeIntervalUpdated(
+func (r *resourceConfigScope) UpdateLastChecked(
 	interval time.Duration,
 	immediate bool,
 ) (bool, error) {
