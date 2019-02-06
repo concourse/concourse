@@ -19,6 +19,7 @@ type Vault struct {
 	SecretReader SecretReader
 
 	PathPrefix   string
+	SharedPath   string
 	TeamName     string
 	PipelineName string
 }
@@ -37,6 +38,13 @@ func (v Vault) Get(varDef template.VariableDefinition) (interface{}, bool, error
 
 	if !found {
 		secret, found, err = v.findSecret(v.path(v.TeamName, varDef.Name))
+		if err != nil {
+			return nil, false, err
+		}
+	}
+
+	if !found && v.SharedPath != "" {
+		secret, found, err = v.findSecret(v.path(v.SharedPath, varDef.Name))
 		if err != nil {
 			return nil, false, err
 		}
