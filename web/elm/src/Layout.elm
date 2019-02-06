@@ -77,6 +77,9 @@ init flags location =
                 Routes.OneOffBuild _ _ ->
                     Dashboard
 
+                Routes.Resource _ _ _ _ ->
+                    Dashboard
+
                 _ ->
                     Normal
 

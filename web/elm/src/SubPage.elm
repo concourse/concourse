@@ -328,7 +328,7 @@ view userState mdl =
                 |> Html.map PipelineMsg
 
         ResourceModel model ->
-            Resource.view model
+            Resource.view userState model
                 |> HS.toUnstyled
                 |> Html.map ResourceMsg
 

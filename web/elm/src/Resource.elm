@@ -56,6 +56,7 @@ import Http
 import List.Extra
 import Maybe.Extra as ME
 import NewTopBar.Styles as Styles
+import NewestTopBar
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import Resource.Models as Models exposing (Model)
 import Resource.Msgs exposing (Msg(..))
@@ -65,7 +66,6 @@ import Spinner
 import StrictEvents
 import Subscription exposing (Subscription(..))
 import Time exposing (Time)
-import TopBar
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState(..))
 
@@ -87,6 +87,9 @@ init flags =
             , pipelineName = flags.pipelineName
             , resourceName = flags.resourceName
             }
+
+        ( topBar, topBarEffects ) =
+            NewestTopBar.init { route = Routes.Resource flags.teamName flags.pipelineName flags.resourceName Nothing }
 
         model =
             { resourceIdentifier = resourceId
@@ -110,21 +113,11 @@ init flags =
             , showPinBarTooltip = False
             , pinIconHover = False
             , pinComment = Nothing
-            , topBar =
-                { route = Routes.Resource flags.teamName flags.pipelineName flags.resourceName Nothing
-                , pipeline = Nothing
-                , userState = UserStateUnknown
-                , userMenuVisible = False
-                , pinnedResources = []
-                , showPinIconDropDown = False
-                }
+            , topBar = topBar
             }
     in
     ( model
-    , [ FetchResource resourceId
-      , FetchUser
-      , FetchVersionedResources resourceId flags.paging
-      ]
+    , topBarEffects ++ [ FetchResource resourceId, FetchVersionedResources resourceId flags.paging ]
     )
 
 
@@ -193,7 +186,7 @@ handleCallback : Callback -> Model -> ( Model, List Effect )
 handleCallback msg model =
     let
         ( newTopBar, topBarEffects ) =
-            TopBar.handleCallback msg model.topBar
+            NewestTopBar.handleCallback msg model.topBar
 
         ( newModel, dashboardEffects ) =
             handleCallbackWithoutTopBar msg model
@@ -576,20 +569,19 @@ update action model =
         Hover hovered ->
             ( { model | hovered = hovered }, [] )
 
-        Check ->
-            case model.topBar.userState of
-                UserStateLoggedIn _ ->
-                    ( { model | checkStatus = Models.CurrentlyChecking }
-                    , [ DoCheck model.resourceIdentifier model.csrfToken ]
-                    )
+        CheckRequested isAuthorized ->
+            if isAuthorized then
+                ( { model | checkStatus = Models.CurrentlyChecking }
+                , [ DoCheck model.resourceIdentifier model.csrfToken ]
+                )
 
-                _ ->
-                    ( model, [ RedirectToLogin ] )
+            else
+                ( model, [ RedirectToLogin ] )
 
         TopBarMsg msg ->
             let
                 ( newTopBar, effects ) =
-                    TopBar.update msg model.topBar
+                    NewestTopBar.update msg model.topBar
             in
             ( { model | topBar = newTopBar }, effects )
 
@@ -633,29 +625,29 @@ paginationRoute rid page =
         |> Routes.toString
 
 
-view : Model -> Html Msg
-view model =
+view : UserState -> Model -> Html Msg
+view userState model =
     Html.div
         [ style
             [ ( "-webkit-font-smoothing", "antialiased" )
             , ( "font-weight", "700" )
             ]
         ]
-        [ Html.map TopBarMsg <| Html.fromUnstyled <| TopBar.view model.topBar
-        , subpageView model
+        [ Html.map TopBarMsg <| NewestTopBar.view userState model.topBar
+        , subpageView userState model
         , commentBar model
         ]
 
 
-subpageView : Model -> Html Msg
-subpageView model =
+subpageView : UserState -> Model -> Html Msg
+subpageView userState model =
     if model.pageStatus == Err Models.Empty then
         Html.div [] []
 
     else
         Html.div []
             [ header model
-            , body model
+            , body userState model
             ]
 
 
@@ -709,8 +701,8 @@ header model =
         ]
 
 
-body : Model -> Html Msg
-body model =
+body : UserState -> Model -> Html Msg
+body userState model =
     let
         headerHeight =
             60
@@ -720,7 +712,7 @@ body model =
             , checkSetupError = model.checkSetupError
             , checkError = model.checkError
             , hovered = model.hovered
-            , userState = model.topBar.userState
+            , userState = userState
             , teamName = model.teamName
             }
     in
@@ -1002,7 +994,7 @@ checkButton { hovered, userState, teamName, checkStatus } =
          , onMouseLeave <| Hover Models.None
          ]
             ++ (if isClickable then
-                    [ onClick Check ]
+                    [ onClick (CheckRequested isAuthorized) ]
 
                 else
                     []

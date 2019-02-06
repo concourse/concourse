@@ -823,10 +823,9 @@ all =
                             |> Layout.view
                             |> Query.fromHtml
                             |> Query.find [ id "top-bar-app" ]
-                            |> Query.findAll [ tag "nav" ]
-                            |> Query.first
+                            |> Query.find [ id "breadcrumbs" ]
                             |> Query.children []
-                            |> Query.index 1
+                            |> Query.index 0
                             |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
                 , test "there should be a / between pipeline and resource in breadcrumb" <|
                     \_ ->
@@ -834,32 +833,17 @@ all =
                             |> Layout.view
                             |> Query.fromHtml
                             |> Query.find [ id "top-bar-app" ]
-                            |> Query.findAll [ tag "nav" ]
-                            |> Query.first
+                            |> Query.find [ id "breadcrumbs" ]
                             |> Query.children []
                             |> Query.index 1
                             |> Query.has [ text "/" ]
-                , test "resource breadcrumb is laid out horizontally with appropriate spacing" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline/resources/resource"
-                            |> Layout.view
-                            |> Query.fromHtml
-                            |> Query.find [ id "top-bar-app" ]
-                            |> Query.findAll [ tag "nav" ]
-                            |> Query.first
-                            |> Query.find [ tag "ul" ]
-                            |> Query.children []
-                            |> Query.index 2
-                            |> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
                 , test "top bar has resource breadcrumb with resource icon rendered first" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline/resources/resource"
                             |> Layout.view
                             |> Query.fromHtml
                             |> Query.find [ id "top-bar-app" ]
-                            |> Query.findAll [ tag "nav" ]
-                            |> Query.first
-                            |> Query.find [ tag "ul" ]
+                            |> Query.find [ id "breadcrumbs" ]
                             |> Query.children []
                             |> Query.index 2
                             |> Query.has resourceBreadcrumbSelector
@@ -869,15 +853,10 @@ all =
                             |> Layout.view
                             |> Query.fromHtml
                             |> Query.find [ id "top-bar-app" ]
-                            |> Query.findAll [ tag "nav" ]
-                            |> Query.first
-                            |> Query.find [ tag "ul" ]
+                            |> Query.find [ id "breadcrumbs" ]
                             |> Query.children []
                             |> Query.index 2
-                            |> Query.children []
-                            |> Query.index 1
-                            |> Query.has
-                                [ text "resource" ]
+                            |> Query.has [ text "resource" ]
                 ]
             ]
         ]

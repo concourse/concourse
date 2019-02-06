@@ -13,10 +13,10 @@ module Resource.Models exposing
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Date exposing (Date)
+import NewTopBar.Model
 import Pinned exposing (ResourcePinState)
 import Routes
 import Time
-import UserState exposing (UserState)
 
 
 type Hoverable
@@ -61,21 +61,7 @@ type alias Model =
     , showPinBarTooltip : Bool
     , pinIconHover : Bool
     , pinComment : Maybe String
-    , topBar : TopBarModel
-    }
-
-
-
--- Not an import to prevent dependency cycles
-
-
-type alias TopBarModel =
-    { route : Routes.Route
-    , pipeline : Maybe Concourse.Pipeline
-    , userState : UserState
-    , userMenuVisible : Bool
-    , pinnedResources : List ( String, Concourse.Version )
-    , showPinIconDropDown : Bool
+    , topBar : NewTopBar.Model.Model
     }
 
 
