@@ -7,7 +7,6 @@ import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Html.Styled exposing (toUnstyled)
-import Http
 import NewTopBar.Model as Model
 import NewTopBar.Msgs as Msgs
 import NewestTopBar
@@ -111,7 +110,7 @@ all =
                 |> Tuple.first
             )
             [ context "when login state unknown"
-                (NewestTopBar.view
+                (NewestTopBar.view UserState.UserStateUnknown
                     >> toUnstyled
                     >> Query.fromHtml
                 )
@@ -157,32 +156,8 @@ all =
                         >> Query.index -1
                         >> Query.has [ id "login-component" ]
                 ]
-            , context "when receives a successful user update"
-                (NewestTopBar.handleCallback (UserFetched (Ok sampleUser))
-                    >> Tuple.first
-                    >> NewestTopBar.view
-                    >> toUnstyled
-                    >> Query.fromHtml
-                )
-                [ it "renders the login component last" <|
-                    Query.children []
-                        >> Query.index -1
-                        >> Query.has [ id "login-component" ]
-                , it "shows the logged in username" <|
-                    Query.children []
-                        >> Query.index -1
-                        >> Query.find [ id "user-id" ]
-                        >> Query.has [ text "test" ]
-                , it "does not render the logout button" <|
-                    Query.children []
-                        >> Query.index -1
-                        >> Query.find [ id "user-id" ]
-                        >> Query.hasNot [ id "logout-button" ]
-                ]
-            , context "when receives a failed user update"
-                (NewestTopBar.handleCallback (UserFetched (Err Http.NetworkError))
-                    >> Tuple.first
-                    >> NewestTopBar.view
+            , context "when logged out"
+                (NewestTopBar.view UserState.UserStateLoggedOut
                     >> toUnstyled
                     >> Query.fromHtml
                 )
@@ -197,8 +172,7 @@ all =
                         >> Query.has [ tag "a", attribute <| Attr.href "/sky/login" ]
                 ]
             , context "when logged in"
-                (logInUser
-                    >> NewestTopBar.view
+                (NewestTopBar.view (UserState.UserStateLoggedIn sampleUser)
                     >> toUnstyled
                     >> Query.fromHtml
                 )
@@ -280,19 +254,18 @@ all =
         , rspecStyleDescribe "rendering user menus on clicks"
             (NewestTopBar.init { route = Routes.Pipeline "team" "pipeline" [] }
                 |> Tuple.first
-                |> logInUser
             )
             [ it "shows user menu when ToggleUserMenu msg is received" <|
                 NewestTopBar.update Msgs.ToggleUserMenu
                     >> Tuple.first
-                    >> NewestTopBar.view
+                    >> NewestTopBar.view (UserState.UserStateLoggedIn sampleUser)
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Query.has [ id "logout-button" ]
             , it "renders user menu content when ToggleUserMenu msg is received and logged in" <|
                 NewestTopBar.update Msgs.ToggleUserMenu
                     >> Tuple.first
-                    >> NewestTopBar.view
+                    >> NewestTopBar.view (UserState.UserStateLoggedIn sampleUser)
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Expect.all
@@ -319,7 +292,7 @@ all =
             , it "when logout is clicked, a LogOut Msg is sent" <|
                 NewestTopBar.update Msgs.ToggleUserMenu
                     >> Tuple.first
-                    >> NewestTopBar.view
+                    >> NewestTopBar.view (UserState.UserStateLoggedIn sampleUser)
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Query.find [ id "logout-button" ]
@@ -328,7 +301,7 @@ all =
             , it "shows 'login' when LoggedOut Msg is successful" <|
                 NewestTopBar.handleCallback (Callback.LoggedOut (Ok ()))
                     >> Tuple.first
-                    >> NewestTopBar.view
+                    >> NewestTopBar.view UserState.UserStateLoggedOut
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Query.find [ id "login-item" ]
@@ -337,8 +310,7 @@ all =
         , rspecStyleDescribe "login component when user is logged out"
             (NewestTopBar.init { route = Routes.Pipeline "team" "pipeline" [] }
                 |> Tuple.first
-                |> logoutUser
-                |> NewestTopBar.view
+                |> NewestTopBar.view UserState.UserStateLoggedOut
                 |> toUnstyled
                 |> Query.fromHtml
             )
@@ -386,7 +358,7 @@ all =
         , rspecStyleDescribe "rendering top bar on build page"
             (NewestTopBar.init { route = Routes.Build "team" "pipeline" "job" "1" Routes.HighlightNothing }
                 |> Tuple.first
-                |> NewestTopBar.view
+                |> NewestTopBar.view UserState.UserStateLoggedOut
                 |> toUnstyled
                 |> Query.fromHtml
             )
@@ -412,7 +384,7 @@ all =
         , rspecStyleDescribe "rendering top bar on resource page"
             (NewestTopBar.init { route = Routes.Resource "team" "pipeline" "resource" Nothing }
                 |> Tuple.first
-                |> NewestTopBar.view
+                |> NewestTopBar.view UserState.UserStateLoggedOut
                 |> toUnstyled
                 |> Query.fromHtml
             )
@@ -450,7 +422,7 @@ all =
         , rspecStyleDescribe "rendering top bar on job page"
             (NewestTopBar.init { route = Routes.Job "team" "pipeline" "job" Nothing }
                 |> Tuple.first
-                |> NewestTopBar.view
+                |> NewestTopBar.view UserState.UserStateLoggedOut
                 |> toUnstyled
                 |> Query.fromHtml
             )
@@ -476,13 +448,13 @@ all =
                 |> Tuple.first
             )
             [ it "renders the search bar with the text in the search query" <|
-                NewestTopBar.view
+                NewestTopBar.view UserState.UserStateLoggedOut
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Query.find [ id "search-input-field" ]
                     >> Query.has [ tag "input", attribute <| Attr.value "test" ]
             , it "sends a FilterMsg when the clear search button is clicked" <|
-                NewestTopBar.view
+                NewestTopBar.view UserState.UserStateLoggedOut
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Query.find [ id "search-container" ]
@@ -495,7 +467,7 @@ all =
                     >> NewestTopBar.query
                     >> Expect.equal ""
             , it "clear search button has full opacity when there is a query" <|
-                NewestTopBar.view
+                NewestTopBar.view UserState.UserStateLoggedOut
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Query.find [ id "search-clear" ]
@@ -508,7 +480,7 @@ all =
             [ context "when desktop sized"
                 (NewestTopBar.handleCallback (ScreenResized { width = 1500, height = 900 })
                     >> Tuple.first
-                    >> NewestTopBar.view
+                    >> NewestTopBar.view UserState.UserStateLoggedOut
                     >> toUnstyled
                     >> Query.fromHtml
                 )
@@ -616,13 +588,13 @@ all =
                     >> Tuple.first
                 )
                 [ it "should not have a search bar" <|
-                    NewestTopBar.view
+                    NewestTopBar.view UserState.UserStateLoggedOut
                         >> toUnstyled
                         >> Query.fromHtml
                         >> Query.hasNot
                             [ id "search-input-field" ]
                 , it "should have a magnifying glass icon" <|
-                    NewestTopBar.view
+                    NewestTopBar.view UserState.UserStateLoggedOut
                         >> toUnstyled
                         >> Query.fromHtml
                         >> Query.find [ id "show-search-button" ]
@@ -634,7 +606,7 @@ all =
                                 ]
                             ]
                 , it "shows the login component" <|
-                    NewestTopBar.view
+                    NewestTopBar.view UserState.UserStateLoggedOut
                         >> toUnstyled
                         >> Query.fromHtml
                         >> Query.has [ id "login-component" ]
@@ -645,7 +617,7 @@ all =
                             >> Expect.equal [ Effects.ForceFocus "search-input-field" ]
                     , context "the ui"
                         (Tuple.first
-                            >> NewestTopBar.view
+                            >> NewestTopBar.view UserState.UserStateLoggedOut
                             >> toUnstyled
                             >> Query.fromHtml
                         )
@@ -697,7 +669,7 @@ all =
                             >> Tuple.first
                         )
                         [ it "should display a dropdown of options" <|
-                            NewestTopBar.view
+                            NewestTopBar.view UserState.UserStateLoggedOut
                                 >> toUnstyled
                                 >> Query.fromHtml
                                 >> Query.find [ id "search-dropdown" ]
@@ -708,7 +680,7 @@ all =
                                     , Query.index 1 >> Query.has [ text "team:" ]
                                     ]
                         , it "the search dropdown is positioned below the search bar" <|
-                            NewestTopBar.view
+                            NewestTopBar.view UserState.UserStateLoggedOut
                                 >> toUnstyled
                                 >> Query.fromHtml
                                 >> Query.find [ id "search-dropdown" ]
@@ -722,7 +694,7 @@ all =
                                     , Query.hasNot [ style [ ( "position", "absolute" ) ] ]
                                     ]
                         , it "the search dropdown is the same width as search bar" <|
-                            NewestTopBar.view
+                            NewestTopBar.view UserState.UserStateLoggedOut
                                 >> toUnstyled
                                 >> Query.fromHtml
                                 >> Query.find [ id "search-dropdown" ]
@@ -730,7 +702,7 @@ all =
                         , context "after the search is blurred"
                             (NewestTopBar.update Msgs.BlurMsg
                                 >> Tuple.first
-                                >> NewestTopBar.view
+                                >> NewestTopBar.view UserState.UserStateLoggedOut
                                 >> toUnstyled
                                 >> Query.fromHtml
                             )
@@ -754,7 +726,7 @@ all =
                                 >> Tuple.first
                                 >> NewestTopBar.update Msgs.BlurMsg
                                 >> Tuple.first
-                                >> NewestTopBar.view
+                                >> NewestTopBar.view UserState.UserStateLoggedOut
                                 >> toUnstyled
                                 >> Query.fromHtml
                             )
@@ -785,7 +757,7 @@ all =
                     >> Tuple.first
                     >> NewestTopBar.update (Msgs.FilterMsg "status:")
                     >> Tuple.first
-                    >> NewestTopBar.view
+                    >> NewestTopBar.view UserState.UserStateLoggedOut
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Query.find [ id "search-dropdown" ]
@@ -807,7 +779,7 @@ all =
                     >> Tuple.first
                     >> NewestTopBar.update (Msgs.FilterMsg "status: pending")
                     >> Tuple.first
-                    >> NewestTopBar.view
+                    >> NewestTopBar.view UserState.UserStateLoggedOut
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Query.findAll [ id "search-dropdown" ]
@@ -822,7 +794,7 @@ all =
             [ it "should display a dropdown of status options when the search bar is focused" <|
                 NewestTopBar.update Msgs.FocusMsg
                     >> Tuple.first
-                    >> NewestTopBar.view
+                    >> NewestTopBar.view UserState.UserStateLoggedOut
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Query.find [ id "search-dropdown" ]
@@ -845,7 +817,7 @@ all =
             [ it "when the user is not logged in the dropdown is empty" <|
                 NewestTopBar.update Msgs.FocusMsg
                     >> Tuple.first
-                    >> NewestTopBar.view
+                    >> NewestTopBar.view UserState.UserStateLoggedOut
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Query.find [ id "search-dropdown" ]
@@ -869,7 +841,7 @@ all =
                             )
                         )
                     >> Tuple.first
-                    >> NewestTopBar.view
+                    >> NewestTopBar.view UserState.UserStateLoggedOut
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Query.find [ id "search-dropdown" ]
@@ -909,7 +881,7 @@ all =
                             )
                         )
                     >> Tuple.first
-                    >> NewestTopBar.view
+                    >> NewestTopBar.view UserState.UserStateLoggedOut
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Query.find [ id "search-dropdown" ]
@@ -921,7 +893,7 @@ all =
                 |> Tuple.first
             )
             [ context "before receiving FocusMsg"
-                (NewestTopBar.view
+                (NewestTopBar.view UserState.UserStateLoggedOut
                     >> toUnstyled
                     >> Query.fromHtml
                 )
@@ -956,7 +928,7 @@ all =
                                                , context "after hitting enter"
                                                     (NewestTopBar.update (Msgs.KeyDown 13)
                                                         >> Tuple.first
-                                                        >> NewestTopBar.view
+                                                        >> NewestTopBar.view UserState.UserStateLoggedOut
                                                         >> toUnstyled
                                                         >> Query.fromHtml
                                                     )
@@ -969,7 +941,7 @@ all =
                                    , context "after hitting enter"
                                         (NewestTopBar.update (Msgs.KeyDown 13)
                                             >> Tuple.first
-                                            >> NewestTopBar.view
+                                            >> NewestTopBar.view UserState.UserStateLoggedOut
                                             >> toUnstyled
                                             >> Query.fromHtml
                                         )
@@ -1005,7 +977,7 @@ all =
                     >> Tuple.first
                     >> NewestTopBar.update Msgs.BlurMsg
                     >> Tuple.first
-                    >> NewestTopBar.view
+                    >> NewestTopBar.view UserState.UserStateLoggedOut
                     >> toUnstyled
                     >> Query.fromHtml
                 )
@@ -1022,19 +994,9 @@ eachHasStyle styles =
     Query.each <| Query.has [ style styles ]
 
 
-logoutUser : Model.Model -> Model.Model
-logoutUser model =
-    { model | userState = UserState.UserStateLoggedOut }
-
-
 sampleUser : Concourse.User
 sampleUser =
     { id = "1", userName = "test", name = "Bob", email = "bob@bob.com", teams = Dict.empty }
-
-
-logInUser : Model.Model -> Model.Model
-logInUser model =
-    { model | userState = UserState.UserStateLoggedIn sampleUser }
 
 
 pipelineBreadcrumbSelector : List Selector.Selector
@@ -1078,7 +1040,7 @@ onePipeline teamName =
 testDropdown : List Int -> List Int -> Model.Model -> Test
 testDropdown selecteds notSelecteds =
     context "ui"
-        (NewestTopBar.view
+        (NewestTopBar.view UserState.UserStateLoggedOut
             >> toUnstyled
             >> Query.fromHtml
         )

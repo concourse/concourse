@@ -56,6 +56,7 @@ import String
 import Subscription exposing (Subscription(..))
 import Time exposing (Time)
 import UpdateMsg exposing (UpdateMsg)
+import UserState exposing (UserState)
 import Views
 
 
@@ -709,8 +710,8 @@ handleBuildPrepFetched browsingIndex buildPrep model =
         ( model, [] )
 
 
-view : Model -> Html Msg
-view model =
+view : UserState -> Model -> Html Msg
+view userState model =
     Html.div
         [ class "page"
         , style
@@ -718,7 +719,7 @@ view model =
             , ( "font-weight", "700" )
             ]
         ]
-        [ NewestTopBar.view model.topBar |> HS.toUnstyled |> Html.map FromTopBar
+        [ NewestTopBar.view userState model.topBar |> HS.toUnstyled |> Html.map FromTopBar
         , viewBuildPage model
         ]
 

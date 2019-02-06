@@ -23,6 +23,7 @@ import SubPage
 import SubPage.Msgs
 import Subscription exposing (Subscription(..))
 import TopBar
+import UserState exposing (UserState(..))
 
 
 type alias Flags =
@@ -50,6 +51,7 @@ type alias Model =
     , authToken : String
     , pipelineRunningKeyframes : String
     , route : Routes.Route
+    , userState : UserState
     }
 
 
@@ -104,6 +106,7 @@ init flags location =
             , authToken = flags.authToken
             , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
             , route = route
+            , userState = UserStateUnknown
             }
 
         handleTokenEffect =
@@ -123,7 +126,7 @@ init flags location =
                 [ ( Layout, Effects.ModifyUrl (Routes.toString route) ) ]
     in
     ( model
-    , [ handleTokenEffect ]
+    , [ ( Layout, FetchUser ), handleTokenEffect ]
         ++ stripCSRFTokenParamCmd
         ++ List.map (\ef -> ( SubPage navIndex, ef )) subEffects
         ++ List.map (\ef -> ( TopBar navIndex, ef )) topEffects
@@ -181,22 +184,12 @@ handleCallback disp callback model =
 
                         topBar =
                             model.topModel
+
+                        newModel =
+                            { model | topModel = { topBar | pinnedResources = pinnedResources } }
                     in
                     if validNavIndex model.navIndex navIndex then
-                        let
-                            ( subModel, subEffects ) =
-                                SubPage.handleCallback
-                                    model.csrfToken
-                                    (ResourcesFetched (Ok fetchedResources))
-                                    model.subModel
-                                    |> SubPage.handleNotFound model.notFoundImgSrc
-                        in
-                        ( { model
-                            | subModel = subModel
-                            , topModel = { topBar | pinnedResources = pinnedResources }
-                          }
-                        , List.map (\ef -> ( SubPage navIndex, ef )) subEffects
-                        )
+                        subpageHandleCallback newModel callback navIndex
 
                     else
                         ( model, [] )
@@ -219,22 +212,47 @@ handleCallback disp callback model =
                 OutputOfFetched (Err err) ->
                     ( model, redirectToLoginIfNecessary err navIndex )
 
+                LoggedOut (Ok ()) ->
+                    subpageHandleCallback { model | userState = UserStateLoggedOut } callback navIndex
+
+                APIDataFetched (Ok ( time, data )) ->
+                    subpageHandleCallback
+                        { model | userState = data.user |> Maybe.map UserStateLoggedIn |> Maybe.withDefault UserStateLoggedOut }
+                        callback
+                        navIndex
+
+                APIDataFetched (Err err) ->
+                    subpageHandleCallback { model | userState = UserStateLoggedOut } callback navIndex
+
                 -- otherwise, pass down
                 _ ->
-                    let
-                        ( subModel, effects ) =
-                            SubPage.handleCallback
-                                model.csrfToken
-                                callback
-                                model.subModel
-                                |> SubPage.handleNotFound model.notFoundImgSrc
-                    in
-                    ( { model | subModel = subModel }
-                    , List.map (\ef -> ( SubPage navIndex, ef )) effects
-                    )
+                    subpageHandleCallback model callback navIndex
 
         Layout ->
-            ( model, [] )
+            case callback of
+                UserFetched (Ok user) ->
+                    subpageHandleCallback { model | userState = UserStateLoggedIn user } callback model.navIndex
+
+                UserFetched (Err _) ->
+                    subpageHandleCallback { model | userState = UserStateLoggedOut } callback model.navIndex
+
+                _ ->
+                    ( model, [] )
+
+
+subpageHandleCallback : Model -> Callback -> Int -> ( Model, List ( LayoutDispatch, Effect ) )
+subpageHandleCallback model callback navIndex =
+    let
+        ( subModel, effects ) =
+            SubPage.handleCallback
+                model.csrfToken
+                callback
+                model.subModel
+                |> SubPage.handleNotFound model.notFoundImgSrc
+    in
+    ( { model | subModel = subModel }
+    , List.map (\ef -> ( SubPage navIndex, ef )) effects
+    )
 
 
 update : Msg -> Model -> ( Model, List ( LayoutDispatch, Effect ) )
@@ -366,13 +384,13 @@ view : Model -> Html Msg
 view model =
     case model.subModel of
         SubPage.DashboardModel _ ->
-            Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
+            Html.map (SubMsg model.navIndex) (SubPage.view model.userState model.subModel)
 
         SubPage.BuildModel _ ->
-            Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
+            Html.map (SubMsg model.navIndex) (SubPage.view model.userState model.subModel)
 
         SubPage.ResourceModel _ ->
-            Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
+            Html.map (SubMsg model.navIndex) (SubPage.view model.userState model.subModel)
 
         _ ->
             Html.div
@@ -388,7 +406,7 @@ view model =
                         [ Html.div [ id "subpage" ]
                             [ Html.map
                                 (SubMsg model.navIndex)
-                                (SubPage.view model.subModel)
+                                (SubPage.view model.userState model.subModel)
                             ]
                         ]
                     ]

@@ -53,7 +53,7 @@ import Simple.Fuzzy exposing (filter, match, root)
 import Subscription exposing (Subscription(..))
 import Task
 import Time exposing (Time)
-import UserState
+import UserState exposing (UserState)
 
 
 type alias Flags =
@@ -388,8 +388,8 @@ subscriptions model =
     ]
 
 
-view : Model -> Html Msg
-view model =
+view : UserState -> Model -> Html Msg
+view userState model =
     Html.div
         [ class "page"
         , style
@@ -397,7 +397,7 @@ view model =
             , ( "font-weight", "700" )
             ]
         ]
-        [ Html.map FromTopBar (NewTopBar.view model.topBar)
+        [ Html.map FromTopBar (NewTopBar.view userState model.topBar)
         , dashboardView model
         ]
 

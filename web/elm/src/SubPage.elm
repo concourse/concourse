@@ -29,6 +29,7 @@ import String
 import SubPage.Msgs exposing (Msg(..))
 import Subscription exposing (Subscription)
 import UpdateMsg exposing (UpdateMsg)
+import UserState exposing (UserState)
 
 
 type Model
@@ -311,11 +312,11 @@ urlUpdate route model =
             ( model, [] )
 
 
-view : Model -> Html Msg
-view mdl =
+view : UserState -> Model -> Html Msg
+view userState mdl =
     case mdl of
         BuildModel model ->
-            Build.view model
+            Build.view userState model
                 |> Html.map BuildMsg
 
         JobModel model ->
@@ -332,7 +333,7 @@ view mdl =
                 |> Html.map ResourceMsg
 
         DashboardModel model ->
-            Dashboard.view model
+            Dashboard.view userState model
                 |> HS.toUnstyled
                 |> Html.map DashboardMsg
 

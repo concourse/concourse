@@ -8,12 +8,10 @@ import Concourse
 import RemoteData
 import Routes
 import ScreenSize exposing (ScreenSize)
-import UserState exposing (UserState)
 
 
 type alias Model =
-    { userState : UserState
-    , isUserMenuExpanded : Bool
+    { isUserMenuExpanded : Bool
     , middleSection : MiddleSection
     , teams : RemoteData.WebData (List Concourse.Team)
     , screenSize : ScreenSize

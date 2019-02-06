@@ -72,8 +72,7 @@ init { route } =
                 _ ->
                     Breadcrumbs route
     in
-    ( { userState = UserStateUnknown
-      , isUserMenuExpanded = False
+    ( { isUserMenuExpanded = False
       , middleSection = middleSection
       , teams = RemoteData.Loading
       , screenSize = Desktop
@@ -103,8 +102,7 @@ handleCallback callback model =
                     Routes.dashboardRoute model.highDensity
             in
             ( { model
-                | userState = UserStateLoggedOut
-                , isUserMenuExpanded = False
+                | isUserMenuExpanded = False
                 , teams = RemoteData.Loading
               }
             , [ NavigateTo redirectUrl ]
@@ -114,22 +112,9 @@ handleCallback callback model =
             flip always (Debug.log "failed to log out" err) <|
                 ( model, [] )
 
-        UserFetched (Ok user) ->
-            ( { model | userState = UserStateLoggedIn user }, [] )
-
-        UserFetched (Err _) ->
-            ( { model | userState = UserStateLoggedOut }, [] )
-
         APIDataFetched (Ok ( time, data )) ->
             ( { model
                 | teams = RemoteData.Success data.teams
-                , userState =
-                    case data.user of
-                        Just user ->
-                            UserStateLoggedIn user
-
-                        Nothing ->
-                            UserStateLoggedOut
                 , middleSection =
                     if data.pipelines == [] then
                         Empty
@@ -141,13 +126,7 @@ handleCallback callback model =
             )
 
         APIDataFetched (Err err) ->
-            ( { model
-                | teams = RemoteData.Failure err
-                , userState = UserStateLoggedOut
-                , middleSection = Empty
-              }
-            , []
-            )
+            ( { model | teams = RemoteData.Failure err, middleSection = Empty }, [] )
 
         ScreenResized size ->
             ( screenResize size model, [] )
@@ -392,18 +371,18 @@ showSearchInput model =
             Debug.log "attempting to show search input on a breadcrumbs page" ( model, [] )
 
 
-view : Model -> Html Msg
-view model =
+view : UserState -> Model -> Html Msg
+view userState model =
     Html.div [ id "top-bar-app", style Styles.topBar ] <|
         viewConcourseLogo
             ++ viewMiddleSection model
-            ++ viewLogin model
+            ++ viewLogin userState model
 
 
-viewLogin : Model -> List (Html Msg)
-viewLogin model =
+viewLogin : UserState -> Model -> List (Html Msg)
+viewLogin userState model =
     if showLogin model then
-        [ Html.div [ id "login-component", style Styles.loginComponent ] <| viewLoginState model ]
+        [ Html.div [ id "login-component", style Styles.loginComponent ] <| viewLoginState userState model.isUserMenuExpanded ]
 
     else
         []
@@ -419,8 +398,8 @@ showLogin model =
             True
 
 
-viewLoginState : { a | userState : UserState, isUserMenuExpanded : Bool } -> List (Html Msg)
-viewLoginState { userState, isUserMenuExpanded } =
+viewLoginState : UserState -> Bool -> List (Html Msg)
+viewLoginState userState isUserMenuExpanded =
     case userState of
         UserStateUnknown ->
             []

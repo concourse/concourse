@@ -44,6 +44,7 @@ import Test.Html.Selector
         , text
         )
 import Time exposing (Time)
+import UserState
 
 
 almostBlack : String
@@ -2042,7 +2043,7 @@ all =
                                     (oneTeamOnePipeline "team")
                                     (userWithRoles [ ( "team", [ "owner" ] ) ])
                         , query =
-                            Dashboard.view
+                            Dashboard.view UserState.UserStateLoggedOut
                                 >> HS.toUnstyled
                                 >> Query.fromHtml
                                 >> Query.find [ class "card-footer" ]
@@ -2098,7 +2099,7 @@ all =
                                     (oneTeamOnePipelinePaused "team")
                                     (userWithRoles [ ( "team", [ "owner" ] ) ])
                         , query =
-                            Dashboard.view
+                            Dashboard.view UserState.UserStateLoggedOut
                                 >> HS.toUnstyled
                                 >> Query.fromHtml
                                 >> Query.find [ class "card-footer" ]
@@ -2827,7 +2828,7 @@ whenOnDashboard { highDensity } =
 
 queryView : Dashboard.Model -> Query.Single Msgs.Msg
 queryView =
-    Dashboard.view
+    Dashboard.view UserState.UserStateLoggedOut
         >> HS.toUnstyled
         >> Query.fromHtml
 
