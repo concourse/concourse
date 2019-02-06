@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"syscall"
-	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
 
@@ -157,9 +156,6 @@ func (runner *Runner) OpenConn() db.Conn {
 		nil,
 		"postgresrunner",
 		nil,
-		0*time.Second,
-		0,
-		0*time.Second,
 	)
 	Expect(err).NotTo(HaveOccurred())
 

@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"database/sql/driver"
-	"time"
 
 	"github.com/cenkalti/backoff"
 	"github.com/lib/pq"
@@ -11,19 +10,13 @@ import (
 
 type connectionRetryingDriver struct {
 	driver.Driver
-	driverName        string
-	keepAliveIdleTime time.Duration
-	keepAliveCount    int
-	keepAliveInterval time.Duration
+	driverName string
 }
 
 func SetupConnectionRetryingDriver(
 	delegateDriverName string,
 	sqlDataSource string,
 	newDriverName string,
-	keepAliveIdleTime time.Duration,
-	keepAliveCount int,
-	keepAliveInterval time.Duration,
 ) {
 	for _, driverName := range sql.Drivers() {
 		if driverName == newDriverName {
@@ -39,9 +32,6 @@ func SetupConnectionRetryingDriver(
 	connectionRetryingDriver := &connectionRetryingDriver{
 		delegateDBConn.Driver(),
 		delegateDriverName,
-		keepAliveIdleTime,
-		keepAliveCount,
-		keepAliveInterval,
 	}
 	sql.Register(newDriverName, connectionRetryingDriver)
 }
@@ -52,11 +42,7 @@ func (d *connectionRetryingDriver) Open(name string) (driver.Conn, error) {
 	err := backoff.Retry(func() error {
 		var err error
 		if d.driverName == "postgres" {
-			conn, err = pq.DialOpen(&keepAliveDialer{
-				keepAliveIdleTime: d.keepAliveIdleTime,
-				keepAliveCount:    d.keepAliveCount,
-				keepAliveInterval: d.keepAliveInterval,
-			}, name)
+			conn, err = pq.DialOpen(keepAliveDialer{}, name)
 		} else {
 			conn, err = d.Driver.Open(name)
 		}

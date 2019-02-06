@@ -371,8 +371,13 @@ func (client *Client) tryDialAll(ctx context.Context) (net.Conn, string, error) 
 		hosts[host] = struct{}{}
 	}
 
+	dialer := &net.Dialer{
+		Timeout:   10 * time.Second,
+		KeepAlive: 15 * time.Second,
+	}
+
 	for host, _ := range hosts {
-		conn, err := keepaliveDialer("tcp", host, 10*time.Second)
+		conn, err := dialer.Dial("tcp", host)
 		if err != nil {
 			logger.Error("failed-to-connect-to-tsa", err)
 			continue
