@@ -5,6 +5,7 @@ module Colors exposing
     , bottomBarText
     , card
     , cliIconHover
+    , comment
     , dashboardText
     , error
     , failure
@@ -150,3 +151,8 @@ asciiArt =
 paginationHover : String
 paginationHover =
     "#504b4b"
+
+
+comment : String
+comment =
+    "#196AC8"

@@ -9,8 +9,10 @@ module Layout exposing
     , view
     )
 
+import Build.Msgs
 import Callback exposing (Callback(..))
 import Concourse
+import Dashboard.Msgs
 import Effects exposing (Effect(..), LayoutDispatch(..))
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id, style)
@@ -18,6 +20,8 @@ import Http
 import Json.Decode
 import Msgs exposing (Msg(..), NavIndex)
 import Navigation
+import NewTopBar.Msgs
+import Resource.Msgs
 import Routes
 import SubPage
 import SubPage.Msgs
@@ -247,7 +251,12 @@ update msg model =
             if validNavIndex model.navIndex navIndex then
                 let
                     ( subModel, subEffects ) =
-                        SubPage.update model.turbulenceImgSrc model.notFoundImgSrc model.csrfToken m model.subModel
+                        SubPage.update
+                            model.turbulenceImgSrc
+                            model.notFoundImgSrc
+                            model.csrfToken
+                            m
+                            model.subModel
                 in
                 ( { model | subModel = subModel }
                 , List.map (\ef -> ( SubPage navIndex, ef )) subEffects
@@ -286,6 +295,49 @@ update msg model =
 
         Callback dispatch callback ->
             handleCallback dispatch callback model
+
+        KeyDown keycode ->
+            case model.subModel of
+                SubPage.DashboardModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.DashboardMsg <|
+                                Dashboard.Msgs.FromTopBar <|
+                                    NewTopBar.Msgs.KeyDown keycode
+                        )
+                        model
+
+                SubPage.ResourceModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.ResourceMsg <|
+                                Resource.Msgs.KeyDowns keycode
+                        )
+                        model
+
+                _ ->
+                    ( model, [] )
+
+        KeyUp keycode ->
+            case model.subModel of
+                SubPage.BuildModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.BuildMsg <|
+                                Build.Msgs.KeyUped keycode
+                        )
+                        model
+
+                SubPage.ResourceModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.ResourceMsg <|
+                                Resource.Msgs.KeyUps keycode
+                        )
+                        model
+
+                _ ->
+                    ( model, [] )
 
 
 redirectToLoginIfNecessary : Http.Error -> NavIndex -> List ( LayoutDispatch, Effect )

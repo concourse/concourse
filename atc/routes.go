@@ -46,6 +46,7 @@ const (
 	DisableResourceVersion        = "DisableResourceVersion"
 	PinResourceVersion            = "PinResourceVersion"
 	UnpinResource                 = "UnpinResource"
+	SetPinCommentOnResource       = "SetPinCommentOnResource"
 	ListBuildsWithVersionAsInput  = "ListBuildsWithVersionAsInput"
 	ListBuildsWithVersionAsOutput = "ListBuildsWithVersionAsOutput"
 	GetResourceCausality          = "GetResourceCausality"
@@ -165,6 +166,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/disable", Method: "PUT", Name: DisableResourceVersion},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/pin", Method: "PUT", Name: PinResourceVersion},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/unpin", Method: "PUT", Name: UnpinResource},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/pin_comment", Method: "PUT", Name: SetPinCommentOnResource},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/input_to", Method: "GET", Name: ListBuildsWithVersionAsInput},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/output_of", Method: "GET", Name: ListBuildsWithVersionAsOutput},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/causality", Method: "GET", Name: GetResourceCausality},

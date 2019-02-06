@@ -382,7 +382,7 @@ subscriptions model =
     , OnMouseMove ShowFooter
     , OnMouseClick ShowFooter
     , OnKeyPress KeyPressed
-    , OnKeyDown (NewTopBar.Msgs.KeyDown >> FromTopBar)
+    , OnKeyDown
     , OnWindowResize Msgs.ResizeScreen
     ]
 

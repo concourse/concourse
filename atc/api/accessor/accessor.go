@@ -147,6 +147,7 @@ var requiredRoles = map[string]string{
 	atc.PauseResource:                 "member",
 	atc.UnpauseResource:               "member",
 	atc.UnpinResource:                 "member",
+	atc.SetPinCommentOnResource:       "member",
 	atc.CheckResource:                 "member",
 	atc.CheckResourceWebHook:          "member",
 	atc.CheckResourceType:             "member",

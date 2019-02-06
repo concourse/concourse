@@ -27,6 +27,6 @@ effectToCmd ( disp, eff ) =
     Effects.runEffect eff |> Cmd.map (Msgs.Callback disp)
 
 
-subscriptionsToSub : List (Subscription.Subscription m) -> Sub m
+subscriptionsToSub : List (Subscription.Subscription Msgs.Msg) -> Sub Msgs.Msg
 subscriptionsToSub =
     List.map Subscription.runSubscription >> Sub.batch

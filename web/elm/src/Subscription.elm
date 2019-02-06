@@ -4,6 +4,7 @@ import AnimationFrame
 import EventSource
 import Keyboard
 import Mouse
+import Msgs exposing (Msg(..))
 import Scroll
 import Time
 import Window
@@ -21,8 +22,8 @@ type Subscription m
     | OnMouseMove m
     | OnMouseClick m
     | OnKeyPress (Keyboard.KeyCode -> m)
-    | OnKeyDown (Keyboard.KeyCode -> m)
-    | OnKeyUp (Keyboard.KeyCode -> m)
+    | OnKeyDown
+    | OnKeyUp
     | OnScrollFromWindowBottom (Scroll.FromBottom -> m)
     | OnWindowResize (Window.Size -> m)
     | FromEventSource ( String, List String ) (EventSource.Msg -> m)
@@ -32,7 +33,7 @@ type Subscription m
     | WhenPresent (Maybe (Subscription m))
 
 
-runSubscription : Subscription m -> Sub m
+runSubscription : Subscription Msg -> Sub Msg
 runSubscription s =
     case s of
         OnClockTick t m ->
@@ -50,11 +51,11 @@ runSubscription s =
         OnKeyPress m ->
             Keyboard.presses m
 
-        OnKeyDown m ->
-            Keyboard.downs m
+        OnKeyDown ->
+            Keyboard.downs Msgs.KeyDown
 
-        OnKeyUp m ->
-            Keyboard.ups m
+        OnKeyUp ->
+            Keyboard.ups Msgs.KeyUp
 
         OnScrollFromWindowBottom m ->
             Scroll.fromWindowBottom m
@@ -102,11 +103,11 @@ map f s =
         OnKeyPress m ->
             OnKeyPress (m >> f)
 
-        OnKeyDown m ->
-            OnKeyDown (m >> f)
+        OnKeyDown ->
+            OnKeyDown
 
-        OnKeyUp m ->
-            OnKeyUp (m >> f)
+        OnKeyUp ->
+            OnKeyUp
 
         OnScrollFromWindowBottom m ->
             OnScrollFromWindowBottom (m >> f)
