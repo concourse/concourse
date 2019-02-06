@@ -68,9 +68,6 @@ init flags location =
 
         topBarType =
             case route of
-                Routes.Job _ _ _ _ ->
-                    Normal
-
                 Routes.Pipeline _ _ _ ->
                     Normal
 
@@ -383,26 +380,6 @@ urlUpdate route model =
 view : Model -> Html Msg
 view model =
     case model.subModel of
-        SubPage.JobModel _ ->
-            Html.div
-                [ class "content-frame"
-                , style
-                    [ ( "-webkit-font-smoothing", "antialiased" )
-                    , ( "font-weight", "700" )
-                    ]
-                ]
-                [ Html.map (TopMsg model.navIndex) (TopBar.view model.topModel)
-                , Html.div [ class "bottom" ]
-                    [ Html.div [ id "content" ]
-                        [ Html.div [ id "subpage" ]
-                            [ Html.map
-                                (SubMsg model.navIndex)
-                                (SubPage.view model.userState model.subModel)
-                            ]
-                        ]
-                    ]
-                ]
-
         SubPage.PipelineModel _ ->
             Html.div
                 [ class "content-frame"

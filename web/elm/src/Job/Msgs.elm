@@ -1,16 +1,17 @@
 module Job.Msgs exposing (Hoverable(..), Msg(..))
 
+import NewTopBar.Msgs
 import Time exposing (Time)
 
 
 type Msg
-    = Noop
-    | TriggerBuild
+    = TriggerBuild
     | TogglePaused
     | NavTo String
     | SubscriptionTick Time
     | Hover Hoverable
     | ClockTick Time
+    | FromTopBar NewTopBar.Msgs.Msg
 
 
 type Hoverable

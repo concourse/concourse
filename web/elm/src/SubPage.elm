@@ -93,6 +93,7 @@ init flags route =
                 , pipelineName = pipelineName
                 , paging = page
                 , csrfToken = flags.csrfToken
+                , route = route
                 }
                 |> Tuple.mapFirst JobModel
 
@@ -299,6 +300,7 @@ urlUpdate route model =
                 , jobName = jobName
                 , paging = page
                 , csrfToken = mdl.csrfToken
+                , route = route
                 }
                 mdl
                 |> Tuple.mapFirst JobModel
@@ -327,7 +329,7 @@ view userState mdl =
                 |> Html.map BuildMsg
 
         JobModel model ->
-            Job.view model
+            Job.view userState model
                 |> Html.map JobMsg
 
         PipelineModel model ->

@@ -43,15 +43,19 @@ import Html.Events
         , onMouseEnter
         , onMouseLeave
         )
+import Html.Styled as HS
 import Http
 import Job.Msgs exposing (Hoverable(..), Msg(..))
 import LoadingIndicator
+import NewTopBar.Model
+import NewestTopBar
 import RemoteData exposing (WebData)
 import Routes
 import StrictEvents exposing (onLeftClick)
 import Subscription exposing (Subscription(..))
 import Time exposing (Time)
 import UpdateMsg exposing (UpdateMsg)
+import UserState exposing (UserState)
 
 
 type alias Model =
@@ -63,6 +67,7 @@ type alias Model =
     , now : Time
     , csrfToken : String
     , hovered : Hoverable
+    , topBar : NewTopBar.Model.Model
     }
 
 
@@ -83,6 +88,7 @@ type alias Flags =
     , pipelineName : String
     , paging : Maybe Page
     , csrfToken : String
+    , route : Routes.Route
     }
 
 
@@ -94,6 +100,9 @@ init flags =
             , teamName = flags.teamName
             , pipelineName = flags.pipelineName
             }
+
+        ( topBar, topBarEffects ) =
+            NewestTopBar.init { route = flags.route }
 
         model =
             { jobIdentifier = jobId
@@ -110,6 +119,7 @@ init flags =
             , csrfToken = flags.csrfToken
             , currentPage = flags.paging
             , hovered = None
+            , topBar = topBar
             }
     in
     ( model
@@ -117,6 +127,7 @@ init flags =
       , FetchJobBuilds jobId flags.paging
       , GetCurrentTime
       ]
+        ++ topBarEffects
     )
 
 
@@ -147,7 +158,21 @@ getUpdateMessage model =
 
 
 handleCallback : Callback -> Model -> ( Model, List Effect )
-handleCallback callback model =
+handleCallback msg model =
+    let
+        ( newTopBar, topBarEffects ) =
+            NewestTopBar.handleCallback msg model.topBar
+
+        ( newModel, jobsEffects ) =
+            handleCallbackWithoutTopBar msg model
+    in
+    ( { newModel | topBar = newTopBar }
+    , topBarEffects ++ jobsEffects
+    )
+
+
+handleCallbackWithoutTopBar : Callback -> Model -> ( Model, List Effect )
+handleCallbackWithoutTopBar callback model =
     case callback of
         BuildTriggered (Ok build) ->
             ( model
@@ -230,9 +255,6 @@ handleCallback callback model =
 update : Msg -> Model -> ( Model, List Effect )
 update action model =
     case action of
-        Noop ->
-            ( model, [] )
-
         TriggerBuild ->
             ( model, [ DoTriggerBuild model.jobIdentifier model.csrfToken ] )
 
@@ -269,6 +291,13 @@ update action model =
 
         ClockTick now ->
             ( { model | now = now }, [] )
+
+        FromTopBar m ->
+            let
+                ( newTopBar, topBarEffects ) =
+                    NewestTopBar.update m model.topBar
+            in
+            ( { model | topBar = newTopBar }, topBarEffects )
 
 
 redirectToLoginIfNecessary : Http.Error -> List Effect
@@ -376,8 +405,22 @@ isRunning build =
     Concourse.BuildStatus.isRunning build.status
 
 
-view : Model -> Html Msg
-view model =
+view : UserState -> Model -> Html Msg
+view userState model =
+    Html.div
+        [ class "page"
+        , style
+            [ ( "-webkit-font-smoothing", "antialiased" )
+            , ( "font-weight", "700" )
+            ]
+        ]
+        [ NewestTopBar.view userState model.topBar |> HS.toUnstyled |> Html.map FromTopBar
+        , viewMainJobsSection model
+        ]
+
+
+viewMainJobsSection : Model -> Html Msg
+viewMainJobsSection model =
     Html.div [ class "with-fixed-header" ]
         [ case model.job |> RemoteData.toMaybe of
             Nothing ->

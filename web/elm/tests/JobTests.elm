@@ -21,6 +21,7 @@ import Job.Msgs exposing (Msg(..))
 import Layout
 import Msgs
 import RemoteData
+import Routes
 import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Query as Query
@@ -86,6 +87,7 @@ all =
                         , pipelineName = "some-pipeline"
                         , paging = Nothing
                         , csrfToken = ""
+                        , route = Routes.Job "some-team" "some-pipeline" "some-job" Nothing
                         }
                         |> Tuple.first
 
