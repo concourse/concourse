@@ -1,4 +1,4 @@
-\title{Tutorials}{tutorials}
+\title{Tutorials & Tools}{tutorials-tools}
 
 \use-plugin{concourse-docs}
 
@@ -8,7 +8,6 @@ maintained by our friends at \link{Stark & Wayne}{https://starkandwayne.com/}.
 
 Below you'll also find additional tutorials, guides and articles written by various
 members of the Concourse community.
-
 
 \warn{
   These guides are not written or maintained by the Concourse maintainers. As usual,
@@ -84,6 +83,24 @@ members of the Concourse community.
 
   \link{Developing a Custom Concourse Resource}{https://content.pivotal.io/blog/developing-a-custom-concourse-resource} by \ghuser{BrianMMcClain}
 }
+
+\section{
+  \title{Tools}
+  \link{\code{ofcourse}}{https://github.com/cloudboss/ofcourse} a library and a
+   project skeleton generator for making your own Concourse resources in Go,
+   with an emphasis on testability. Written and maintained by \ghuser{cloudboss}
+}
+
+\section{
+  \title{Plugins}
+  \link{concourse-vis package}{https://atom.io/packages/concourse-vis}, an
+  \bold{Atom} plugin to preview Concourse pipelines.
+
+  \link{Concourse CI Pipeline Editor}{https://marketplace.visualstudio.com/items?itemName=Pivotal.vscode-concourse},
+  a \bold{VSCode} plugin to help with editing Concourse pipelines.
+
+}
+
 
 \section{
   \title{Thanks}
