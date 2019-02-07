@@ -3,6 +3,7 @@ module Build.Output exposing
     , handleEventsMsg
     , handleStepTreeMsg
     , init
+    , parseMsg
     , planAndResourcesFetched
     , subscribeToEvents
     , view

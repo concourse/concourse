@@ -86,15 +86,23 @@ parseEvents evs =
     parseEventsFromIndex evs (Array.initialize (Array.length evs) (\_ -> End)) 0
 
 
-parseEventsFromIndex : Array.Array ES.Event -> Array.Array BuildEvent -> Int -> Result String (Array.Array BuildEvent)
+parseEventsFromIndex :
+    Array.Array ES.Event
+    -> Array.Array BuildEvent
+    -> Int
+    -> Result String (Array.Array BuildEvent)
 parseEventsFromIndex evs acc i =
     case Array.get i evs of
         Nothing ->
             Ok acc
 
         Just ev ->
-            parseEvent ev
-                |> Result.andThen (\ev -> parseEventsFromIndex evs (Array.set i ev acc) (i + 1))
+            case parseEvent ev of
+                Ok ev ->
+                    parseEventsFromIndex evs (Array.set i ev acc) (i + 1)
+
+                Err err ->
+                    Err err
 
 
 parseEvent : ES.Event -> Result String BuildEvent

@@ -4,6 +4,14 @@ var _concourse$atc$Native_EventSource = function() {
       var source = new EventSource(url);
       var buffer = [];
 
+      function flush() {
+        if (buffer.length > 0) {
+          var elmBuffer = _elm_lang$core$Native_Array.fromJSArray(buffer);
+          _elm_lang$core$Native_Scheduler.rawSpawn(settings.onEvent(elmBuffer));
+          buffer = [];
+        }
+      }
+
       function dispatchEvent(event) {
         var ev = {
           data: event.data
@@ -22,6 +30,9 @@ var _concourse$atc$Native_EventSource = function() {
         }
 
         buffer.push(ev);
+        if (buffer.length > 1000) {
+          flush();
+        }
       };
 
       source.onmessage = function(event) {
@@ -42,13 +53,7 @@ var _concourse$atc$Native_EventSource = function() {
         _elm_lang$core$Native_Scheduler.rawSpawn(settings.onError(_elm_lang$core$Native_Utils.Tuple0));
       };
 
-      setInterval(function() {
-        if (buffer.length > 0) {
-          var elmBuffer = _elm_lang$core$Native_Array.fromJSArray(buffer);
-          _elm_lang$core$Native_Scheduler.rawSpawn(settings.onEvent(elmBuffer));
-          buffer = [];
-        }
-      }, 200);
+      setInterval(flush, 200);
     });
   }
 
