@@ -64,6 +64,7 @@ groups:
 - name: images
   jobs:
   - unit-image
+  - golang-builder-image
 
 - name: publish
   jobs:
@@ -104,6 +105,30 @@ jobs:
       caches: [{path: cache}]
       run: {path: build}
   - put: unit-image
+    params: {image: image/image.tar}
+
+- name: golang-builder-image
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      resource: golang-builder-dockerfile
+      trigger: true
+    - get: builder
+  - task: build
+    image: builder
+    privileged: true
+    config:
+      platform: linux
+      params:
+        REPOSITORY: concourse/golang-builder
+        CONTEXT: concourse/ci/dockerfiles/golang-builder
+      inputs: [{name: concourse}]
+      outputs: [{name: image}]
+      caches: [{path: cache}]
+      run: {path: build}
+  - put: golang-builder-image
     params: {image: image/image.tar}
 
 - name: unit
@@ -1033,6 +1058,13 @@ resources:
     branch: master
     paths: [ci/dockerfiles/unit]
 
+- name: golang-builder-dockerfile
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse.git
+    branch: master
+    paths: [ci/dockerfiles/golang-builder]
+
 - name: dev-image
   type: registry-image
   source:
@@ -1058,6 +1090,13 @@ resources:
   type: registry-image
   source:
     repository: concourse/unit
+    username: ((docker.username))
+    password: ((docker.password))
+
+- name: golang-builder-image
+  type: registry-image
+  source:
+    repository: concourse/golang-builder
     username: ((docker.username))
     password: ((docker.password))
 
