@@ -44,6 +44,7 @@ import Monocle.Optional
 import MonocleHelpers exposing (..)
 import NewTopBar.Model
 import NewTopBar.Msgs
+import NewTopBar.Styles
 import NewestTopBar as NewTopBar
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
@@ -390,15 +391,14 @@ subscriptions model =
 
 view : UserState -> Model -> Html Msg
 view userState model =
-    Html.div
-        [ class "page"
-        , style
-            [ ( "-webkit-font-smoothing", "antialiased" )
-            , ( "font-weight", "700" )
+    Html.div []
+        [ Html.div
+            [ style NewTopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
+            [ Html.map FromTopBar (NewTopBar.view userState NewTopBar.Model.None model.topBar)
+            , Html.div [ id "page-below-top-bar", style NewTopBar.Styles.pageBelowTopBar ]
+                [ dashboardView model
+                ]
             ]
-        ]
-        [ Html.map FromTopBar (NewTopBar.view userState NewTopBar.Model.None model.topBar)
-        , dashboardView model
         ]
 
 

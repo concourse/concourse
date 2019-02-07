@@ -48,6 +48,7 @@ import Http
 import LoadingIndicator
 import Maybe.Extra
 import NewTopBar.Model
+import NewTopBar.Styles
 import NewestTopBar
 import RemoteData exposing (WebData)
 import Routes
@@ -713,15 +714,12 @@ handleBuildPrepFetched browsingIndex buildPrep model =
 
 view : UserState -> Model -> Html Msg
 view userState model =
-    Html.div
-        [ class "page"
-        , style
-            [ ( "-webkit-font-smoothing", "antialiased" )
-            , ( "font-weight", "700" )
+    Html.div []
+        [ Html.div
+            [ style NewTopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
+            [ NewestTopBar.view userState NewTopBar.Model.None model.topBar |> HS.toUnstyled |> Html.map FromTopBar
+            , Html.div [ id "page-below-top-bar", style NewTopBar.Styles.pipelinePageBelowTopBar ] [ viewBuildPage model ]
             ]
-        ]
-        [ NewestTopBar.view userState NewTopBar.Model.None model.topBar |> HS.toUnstyled |> Html.map FromTopBar
-        , viewBuildPage model
         ]
 
 

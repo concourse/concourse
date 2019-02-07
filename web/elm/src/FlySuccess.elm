@@ -25,6 +25,7 @@ import Html.Attributes exposing (attribute, class, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Html.Styled as HS
 import NewTopBar.Model
+import NewTopBar.Styles
 import NewestTopBar
 import Routes
 import UserState exposing (UserState)
@@ -101,29 +102,30 @@ update msg model =
 
 view : UserState -> Model -> Html Msg
 view userState model =
-    Html.div
-        [ class "page"
-        , style
-            [ ( "-webkit-font-smoothing", "antialiased" )
-            , ( "font-weight", "700" )
+    Html.div []
+        [ Html.div
+            [ style NewTopBar.Styles.pageIncludingTopBar
+            , id "page-including-top-bar"
             ]
-        ]
-        [ NewestTopBar.view userState NewTopBar.Model.None model.topBar |> HS.toUnstyled |> Html.map FromTopBar
-        , Html.div
-            [ id "success-card"
-            , style Styles.card
-            ]
-            [ Html.p
-                [ id "success-card-title"
-                , style Styles.title
+            [ NewestTopBar.view userState NewTopBar.Model.None model.topBar |> HS.toUnstyled |> Html.map FromTopBar
+            , Html.div [ id "page-below-top-bar", style NewTopBar.Styles.pageBelowTopBar ]
+                [ Html.div
+                    [ id "success-card"
+                    , style Styles.card
+                    ]
+                    [ Html.p
+                        [ id "success-card-title"
+                        , style Styles.title
+                        ]
+                        [ Html.text Text.title ]
+                    , Html.div
+                        [ id "success-card-body"
+                        , style Styles.body
+                        ]
+                      <|
+                        body model
+                    ]
                 ]
-                [ Html.text Text.title ]
-            , Html.div
-                [ id "success-card-body"
-                , style Styles.body
-                ]
-              <|
-                body model
             ]
         ]
 

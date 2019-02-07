@@ -47,7 +47,7 @@ it desc expectationFunc subject =
 
 lineHeight : String
 lineHeight =
-    "56px"
+    "54px"
 
 
 borderGrey : String

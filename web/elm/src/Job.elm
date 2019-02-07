@@ -48,6 +48,7 @@ import Http
 import Job.Msgs exposing (Hoverable(..), Msg(..))
 import LoadingIndicator
 import NewTopBar.Model
+import NewTopBar.Styles
 import NewestTopBar
 import RemoteData exposing (WebData)
 import Routes
@@ -407,15 +408,18 @@ isRunning build =
 
 view : UserState -> Model -> Html Msg
 view userState model =
-    Html.div
-        [ class "page"
-        , style
-            [ ( "-webkit-font-smoothing", "antialiased" )
-            , ( "font-weight", "700" )
+    Html.div []
+        [ Html.div
+            [ style NewTopBar.Styles.pageIncludingTopBar
+            , id "page-including-top-bar"
             ]
-        ]
-        [ NewestTopBar.view userState NewTopBar.Model.None model.topBar |> HS.toUnstyled |> Html.map FromTopBar
-        , viewMainJobsSection model
+            [ NewestTopBar.view userState NewTopBar.Model.None model.topBar
+                |> HS.toUnstyled
+                |> Html.map FromTopBar
+            , Html.div
+                [ id "page-below-top-bar", style NewTopBar.Styles.pageBelowTopBar ]
+                [ viewMainJobsSection model ]
+            ]
         ]
 
 

@@ -10,7 +10,9 @@ module NewTopBar.Styles exposing
     , loginItem
     , loginText
     , logoutButton
+    , pageBelowTopBar
     , pageHeaderHeight
+    , pageIncludingTopBar
     , pinBadge
     , pinDropdownCursor
     , pinHoverHighlight
@@ -18,6 +20,7 @@ module NewTopBar.Styles exposing
     , pinIconContainer
     , pinIconDropdown
     , pinText
+    , pipelinePageBelowTopBar
     , searchButton
     , searchClearButton
     , searchContainer
@@ -33,6 +36,28 @@ import ScreenSize exposing (ScreenSize(..))
 pageHeaderHeight : Float
 pageHeaderHeight =
     54
+
+
+pageIncludingTopBar : List ( String, String )
+pageIncludingTopBar =
+    [ ( "-webkit-font-smoothing", "antialiased" )
+    , ( "font-weight", "700" )
+    , ( "height", "100%" )
+    ]
+
+
+pageBelowTopBar : List ( String, String )
+pageBelowTopBar =
+    [ ( "padding-top", "54px" )
+    , ( "height", "100%" )
+    ]
+
+
+pipelinePageBelowTopBar : List ( String, String )
+pipelinePageBelowTopBar =
+    [ ( "padding-top", "0" )
+    , ( "height", "100%" )
+    ]
 
 
 topBar : Bool -> List ( String, String )
@@ -226,7 +251,7 @@ loginContainer =
     , ( "display", "flex" )
     , ( "flex-direction", "column" )
     , ( "border-left", "1px solid #3d3c3c" )
-    , ( "line-height", "56px" )
+    , ( "line-height", "54px" )
     ]
 
 

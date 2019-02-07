@@ -24,6 +24,7 @@ import Http
 import Json.Decode
 import Json.Encode
 import NewTopBar.Model
+import NewTopBar.Styles
 import NewestTopBar
 import Pipeline.Msgs exposing (Msg(..))
 import RemoteData exposing (..)
@@ -296,15 +297,16 @@ view userState model =
                 , isPaused = isPaused model.pipeline
                 }
     in
-    Html.div
-        [ class "page"
-        , Html.Attributes.style
-            [ ( "-webkit-font-smoothing", "antialiased" )
-            , ( "font-weight", "700" )
+    Html.div [ Html.Attributes.style [ ( "height", "100%" ) ] ]
+        [ Html.div
+            [ Html.Attributes.style NewTopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
+            [ Html.map FromTopBar <| HS.toUnstyled <| NewestTopBar.view userState pipelineState model.topBar
+            , Html.div
+                [ Html.Attributes.style NewTopBar.Styles.pipelinePageBelowTopBar
+                , id "page-below-top-bar"
+                ]
+                [ viewSubPage model ]
             ]
-        ]
-        [ Html.map FromTopBar <| HS.toUnstyled <| NewestTopBar.view userState pipelineState model.topBar
-        , viewSubPage model
         ]
 
 

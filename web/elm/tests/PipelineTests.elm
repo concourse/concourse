@@ -659,6 +659,14 @@ all =
                         |> Query.children []
                         |> Query.each
                             (Query.has [ style [ ( "display", "inline-block" ) ] ])
+            , describe "top bar positioning"
+                [ testTopBarPositioning "Dashboard" "/"
+                , testTopBarPositioning "Pipeline" "/teams/team/pipelines/pipeline"
+                , testTopBarPositioning "Job" "/teams/team/pipelines/pipeline/jobs/job"
+                , testTopBarPositioning "Build" "/teams/team/pipelines/pipeline/jobs/job/builds/build"
+                , testTopBarPositioning "Resource" "/teams/team/pipelines/pipeline/resources/resource"
+                , testTopBarPositioning "FlySuccess" "/fly_success"
+                ]
             , rspecStyleDescribe "when on job page"
                 (init "/teams/team/pipeline/pipeline/jobs/job/builds/1")
                 [ it "shows no pin icon on top bar when viewing build page" <|
@@ -927,3 +935,35 @@ givenMultiplePinnedResources =
 wrapTopBarMessage : NewTopBar.Msgs.Msg -> Msgs.Msg
 wrapTopBarMessage =
     Pipeline.Msgs.FromTopBar >> SubPage.Msgs.PipelineMsg >> Msgs.SubMsg 1
+
+
+testTopBarPositioning : String -> String -> Test
+testTopBarPositioning pageName url =
+    describe pageName
+        [ test "whole page fills the whole screen" <|
+            \_ ->
+                init url
+                    |> Layout.view
+                    |> Query.fromHtml
+                    |> Query.find [ id "page-including-top-bar" ]
+                    |> Query.has [ style [ ( "height", "100%" ) ] ]
+        , test "lower section fills the whole screen as well" <|
+            \_ ->
+                init url
+                    |> Layout.view
+                    |> Query.fromHtml
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has
+                        [ style
+                            -- this padding ugliness is necessary because pipeline's page is weird and not offset
+                            [ ( "padding-top"
+                              , if pageName == "Pipeline" || pageName == "Build" then
+                                    "0"
+
+                                else
+                                    "54px"
+                              )
+                            , ( "height", "100%" )
+                            ]
+                        ]
+        ]

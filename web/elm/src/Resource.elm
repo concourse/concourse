@@ -56,7 +56,7 @@ import Http
 import List.Extra
 import Maybe.Extra as ME
 import NewTopBar.Model
-import NewTopBar.Styles as Styles
+import NewTopBar.Styles
 import NewestTopBar
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import Resource.Models as Models exposing (Model)
@@ -628,15 +628,15 @@ paginationRoute rid page =
 
 view : UserState -> Model -> Html Msg
 view userState model =
-    Html.div
-        [ style
-            [ ( "-webkit-font-smoothing", "antialiased" )
-            , ( "font-weight", "700" )
+    Html.div []
+        [ Html.div
+            [ style NewTopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
+            [ Html.map TopBarMsg <| NewestTopBar.view userState NewTopBar.Model.None model.topBar
+            , Html.div [ id "page-below-top-bar", style NewTopBar.Styles.pageBelowTopBar ]
+                [ subpageView userState model
+                , commentBar model
+                ]
             ]
-        ]
-        [ Html.map TopBarMsg <| NewestTopBar.view userState NewTopBar.Model.None model.topBar
-        , subpageView userState model
-        , commentBar model
         ]
 
 
@@ -670,7 +670,7 @@ header model =
         [ css
             [ Css.height <| Css.px headerHeight
             , Css.position Css.fixed
-            , Css.top <| Css.px Styles.pageHeaderHeight
+            , Css.top <| Css.px NewTopBar.Styles.pageHeaderHeight
             , Css.displayFlex
             , Css.alignItems Css.stretch
             , Css.width <| Css.pct 100
@@ -720,11 +720,7 @@ body userState model =
     Html.div
         [ css
             [ Css.padding3
-                (Css.px <|
-                    headerHeight
-                        + Styles.pageHeaderHeight
-                        + 10
-                )
+                (Css.px <| headerHeight + 10)
                 (Css.px 10)
                 (Css.px 10)
             ]
