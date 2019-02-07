@@ -135,13 +135,10 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 	// Clear out the check error on the resource type
 	scanner.setCheckError(logger, savedResourceType, err)
 
-	reattempt := true
-	for reattempt {
-		reattempt = mustComplete
+	for {
 		lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(
 			logger,
 			interval,
-			mustComplete,
 		)
 		if err != nil {
 			lockLogger.Error("failed-to-get-lock", err, lager.Data{
@@ -153,15 +150,20 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 
 		if !acquired {
 			lockLogger.Debug("did-not-get-lock")
-			if mustComplete {
-				scanner.clock.Sleep(time.Second)
-				continue
-			} else {
-				return interval, ErrFailedToAcquireLock
-			}
+			scanner.clock.Sleep(time.Second)
+			continue
 		}
 
 		defer lock.Release()
+
+		updated, err := resourceConfigScope.UpdateLastChecked(interval, mustComplete)
+		if err != nil {
+			return interval, err
+		}
+
+		if !updated {
+			return interval, ErrFailedToAcquireLock
+		}
 
 		break
 	}

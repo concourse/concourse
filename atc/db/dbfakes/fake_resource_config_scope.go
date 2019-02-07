@@ -12,12 +12,11 @@ import (
 )
 
 type FakeResourceConfigScope struct {
-	AcquireResourceCheckingLockStub        func(lager.Logger, time.Duration, bool) (lock.Lock, bool, error)
+	AcquireResourceCheckingLockStub        func(lager.Logger, time.Duration) (lock.Lock, bool, error)
 	acquireResourceCheckingLockMutex       sync.RWMutex
 	acquireResourceCheckingLockArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 time.Duration
-		arg3 bool
 	}
 	acquireResourceCheckingLockReturns struct {
 		result1 lock.Lock
@@ -120,22 +119,35 @@ type FakeResourceConfigScope struct {
 	setCheckErrorReturnsOnCall map[int]struct {
 		result1 error
 	}
+	UpdateLastCheckedStub        func(time.Duration, bool) (bool, error)
+	updateLastCheckedMutex       sync.RWMutex
+	updateLastCheckedArgsForCall []struct {
+		arg1 time.Duration
+		arg2 bool
+	}
+	updateLastCheckedReturns struct {
+		result1 bool
+		result2 error
+	}
+	updateLastCheckedReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceConfigScope) AcquireResourceCheckingLock(arg1 lager.Logger, arg2 time.Duration, arg3 bool) (lock.Lock, bool, error) {
+func (fake *FakeResourceConfigScope) AcquireResourceCheckingLock(arg1 lager.Logger, arg2 time.Duration) (lock.Lock, bool, error) {
 	fake.acquireResourceCheckingLockMutex.Lock()
 	ret, specificReturn := fake.acquireResourceCheckingLockReturnsOnCall[len(fake.acquireResourceCheckingLockArgsForCall)]
 	fake.acquireResourceCheckingLockArgsForCall = append(fake.acquireResourceCheckingLockArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 time.Duration
-		arg3 bool
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("AcquireResourceCheckingLock", []interface{}{arg1, arg2, arg3})
+	}{arg1, arg2})
+	fake.recordInvocation("AcquireResourceCheckingLock", []interface{}{arg1, arg2})
 	fake.acquireResourceCheckingLockMutex.Unlock()
 	if fake.AcquireResourceCheckingLockStub != nil {
-		return fake.AcquireResourceCheckingLockStub(arg1, arg2, arg3)
+		return fake.AcquireResourceCheckingLockStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -150,17 +162,17 @@ func (fake *FakeResourceConfigScope) AcquireResourceCheckingLockCallCount() int 
 	return len(fake.acquireResourceCheckingLockArgsForCall)
 }
 
-func (fake *FakeResourceConfigScope) AcquireResourceCheckingLockCalls(stub func(lager.Logger, time.Duration, bool) (lock.Lock, bool, error)) {
+func (fake *FakeResourceConfigScope) AcquireResourceCheckingLockCalls(stub func(lager.Logger, time.Duration) (lock.Lock, bool, error)) {
 	fake.acquireResourceCheckingLockMutex.Lock()
 	defer fake.acquireResourceCheckingLockMutex.Unlock()
 	fake.AcquireResourceCheckingLockStub = stub
 }
 
-func (fake *FakeResourceConfigScope) AcquireResourceCheckingLockArgsForCall(i int) (lager.Logger, time.Duration, bool) {
+func (fake *FakeResourceConfigScope) AcquireResourceCheckingLockArgsForCall(i int) (lager.Logger, time.Duration) {
 	fake.acquireResourceCheckingLockMutex.RLock()
 	defer fake.acquireResourceCheckingLockMutex.RUnlock()
 	argsForCall := fake.acquireResourceCheckingLockArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeResourceConfigScope) AcquireResourceCheckingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
@@ -649,6 +661,70 @@ func (fake *FakeResourceConfigScope) SetCheckErrorReturnsOnCall(i int, result1 e
 	}{result1}
 }
 
+func (fake *FakeResourceConfigScope) UpdateLastChecked(arg1 time.Duration, arg2 bool) (bool, error) {
+	fake.updateLastCheckedMutex.Lock()
+	ret, specificReturn := fake.updateLastCheckedReturnsOnCall[len(fake.updateLastCheckedArgsForCall)]
+	fake.updateLastCheckedArgsForCall = append(fake.updateLastCheckedArgsForCall, struct {
+		arg1 time.Duration
+		arg2 bool
+	}{arg1, arg2})
+	fake.recordInvocation("UpdateLastChecked", []interface{}{arg1, arg2})
+	fake.updateLastCheckedMutex.Unlock()
+	if fake.UpdateLastCheckedStub != nil {
+		return fake.UpdateLastCheckedStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.updateLastCheckedReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeResourceConfigScope) UpdateLastCheckedCallCount() int {
+	fake.updateLastCheckedMutex.RLock()
+	defer fake.updateLastCheckedMutex.RUnlock()
+	return len(fake.updateLastCheckedArgsForCall)
+}
+
+func (fake *FakeResourceConfigScope) UpdateLastCheckedCalls(stub func(time.Duration, bool) (bool, error)) {
+	fake.updateLastCheckedMutex.Lock()
+	defer fake.updateLastCheckedMutex.Unlock()
+	fake.UpdateLastCheckedStub = stub
+}
+
+func (fake *FakeResourceConfigScope) UpdateLastCheckedArgsForCall(i int) (time.Duration, bool) {
+	fake.updateLastCheckedMutex.RLock()
+	defer fake.updateLastCheckedMutex.RUnlock()
+	argsForCall := fake.updateLastCheckedArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeResourceConfigScope) UpdateLastCheckedReturns(result1 bool, result2 error) {
+	fake.updateLastCheckedMutex.Lock()
+	defer fake.updateLastCheckedMutex.Unlock()
+	fake.UpdateLastCheckedStub = nil
+	fake.updateLastCheckedReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResourceConfigScope) UpdateLastCheckedReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.updateLastCheckedMutex.Lock()
+	defer fake.updateLastCheckedMutex.Unlock()
+	fake.UpdateLastCheckedStub = nil
+	if fake.updateLastCheckedReturnsOnCall == nil {
+		fake.updateLastCheckedReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.updateLastCheckedReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeResourceConfigScope) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -670,6 +746,8 @@ func (fake *FakeResourceConfigScope) Invocations() map[string][][]interface{} {
 	defer fake.saveVersionsMutex.RUnlock()
 	fake.setCheckErrorMutex.RLock()
 	defer fake.setCheckErrorMutex.RUnlock()
+	fake.updateLastCheckedMutex.RLock()
+	defer fake.updateLastCheckedMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
