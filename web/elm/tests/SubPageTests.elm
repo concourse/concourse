@@ -100,4 +100,5 @@ topBar route =
     , teams = RemoteData.Loading
     , screenSize = ScreenSize.Desktop
     , highDensity = False
+    , isPinMenuExpanded = False
     }

@@ -19,9 +19,12 @@ import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes exposing (class, height, href, id, src, style, width)
 import Html.Attributes.Aria exposing (ariaLabel)
+import Html.Styled as HS
 import Http
 import Json.Decode
 import Json.Encode
+import NewTopBar.Model
+import NewestTopBar
 import Pipeline.Msgs exposing (Msg(..))
 import RemoteData exposing (..)
 import Routes
@@ -31,6 +34,7 @@ import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
 import Time exposing (Time)
 import UpdateMsg exposing (UpdateMsg)
+import UserState exposing (UserState)
 
 
 type alias Model =
@@ -46,6 +50,7 @@ type alias Model =
     , selectedGroups : List String
     , hideLegend : Bool
     , hideLegendCounter : Time
+    , topBar : NewTopBar.Model.Model
     }
 
 
@@ -54,6 +59,7 @@ type alias Flags =
     , pipelineName : String
     , turbulenceImgSrc : String
     , selectedGroups : List String
+    , route : Routes.Route
     }
 
 
@@ -64,6 +70,9 @@ init flags =
             { teamName = flags.teamName
             , pipelineName = flags.pipelineName
             }
+
+        ( topBar, topBarEffects ) =
+            NewestTopBar.init { route = flags.route }
 
         model =
             { concourseVersion = ""
@@ -78,9 +87,10 @@ init flags =
             , hideLegend = False
             , hideLegendCounter = 0
             , selectedGroups = flags.selectedGroups
+            , topBar = topBar
             }
     in
-    loadPipeline pipelineLocator model
+    ( model, [ FetchPipeline pipelineLocator, FetchVersion, ResetPipelineFocus ] ++ topBarEffects )
 
 
 changeToPipelineAndGroups : Flags -> Model -> ( Model, List Effect )
@@ -92,8 +102,11 @@ changeToPipelineAndGroups flags model =
             }
     in
     if model.pipelineLocator == pid then
-        renderIfNeeded
-            { model | selectedGroups = flags.selectedGroups }
+        let
+            ( newModel, effects ) =
+                renderIfNeeded { model | selectedGroups = flags.selectedGroups }
+        in
+        ( newModel, effects ++ [ ResetPipelineFocus ] )
 
     else
         init flags
@@ -127,7 +140,21 @@ getUpdateMessage model =
 
 
 handleCallback : Callback -> Model -> ( Model, List Effect )
-handleCallback callback model =
+handleCallback msg model =
+    let
+        ( newTopBar, topBarEffects ) =
+            NewestTopBar.handleCallback msg model.topBar
+
+        ( newModel, pipelineEffects ) =
+            handleCallbackWithoutTopBar msg model
+    in
+    ( { newModel | topBar = newTopBar }
+    , topBarEffects ++ pipelineEffects
+    )
+
+
+handleCallbackWithoutTopBar : Callback -> Model -> ( Model, List Effect )
+handleCallbackWithoutTopBar callback model =
     let
         redirectToLoginIfUnauthenticated status =
             if status.code == 401 then
@@ -227,6 +254,25 @@ update msg model =
         SetGroups groups ->
             ( model, [ NavigateTo <| getNextUrl groups model ] )
 
+        FromTopBar msg ->
+            let
+                ( newTopBar, topBarEffects ) =
+                    NewestTopBar.update msg model.topBar
+            in
+            ( { model | topBar = newTopBar }, topBarEffects )
+
+
+getPinnedResources : Model -> List ( String, Concourse.Version )
+getPinnedResources model =
+    case model.fetchedResources of
+        Nothing ->
+            []
+
+        Just res ->
+            Json.Decode.decodeValue (Json.Decode.list Concourse.decodeResource) res
+                |> Result.withDefault []
+                |> List.filterMap (\r -> Maybe.map (\v -> ( r.name, v )) r.pinnedVersion)
+
 
 subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
@@ -240,8 +286,35 @@ subscriptions model =
     ]
 
 
-view : Model -> Html Msg
-view model =
+view : UserState -> Model -> Html Msg
+view userState model =
+    let
+        pipelineState =
+            NewTopBar.Model.HasPipeline
+                { pinnedResources = getPinnedResources model
+                , pipeline = model.pipelineLocator
+                , isPaused = isPaused model.pipeline
+                }
+    in
+    Html.div
+        [ class "page"
+        , Html.Attributes.style
+            [ ( "-webkit-font-smoothing", "antialiased" )
+            , ( "font-weight", "700" )
+            ]
+        ]
+        [ Html.map FromTopBar <| HS.toUnstyled <| NewestTopBar.view userState pipelineState model.topBar
+        , viewSubPage model
+        ]
+
+
+isPaused : WebData Concourse.Pipeline -> Bool
+isPaused p =
+    RemoteData.withDefault False (RemoteData.map .paused p)
+
+
+viewSubPage : Model -> Html Msg
+viewSubPage model =
     Html.div [ class "pipeline-view" ]
         [ Html.nav
             [ class "groups-bar" ]

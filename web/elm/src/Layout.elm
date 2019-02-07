@@ -10,19 +10,15 @@ module Layout exposing
     )
 
 import Callback exposing (Callback(..))
-import Concourse
 import Effects exposing (Effect(..), LayoutDispatch(..))
 import Html exposing (Html)
-import Html.Attributes as Attributes exposing (class, id, style)
 import Http
-import Json.Decode
 import Msgs exposing (Msg(..), NavIndex)
 import Navigation
 import Routes
 import SubPage
 import SubPage.Msgs
 import Subscription exposing (Subscription(..))
-import TopBar
 import UserState exposing (UserState(..))
 
 
@@ -43,8 +39,6 @@ anyNavIndex =
 type alias Model =
     { navIndex : NavIndex
     , subModel : SubPage.Model
-    , topModel : TopBar.Model {}
-    , topBarType : TopBarType
     , turbulenceImgSrc : String
     , notFoundImgSrc : String
     , csrfToken : String
@@ -55,24 +49,11 @@ type alias Model =
     }
 
 
-type TopBarType
-    = Dashboard
-    | Normal
-
-
 init : Flags -> Navigation.Location -> ( Model, List ( LayoutDispatch, Effect ) )
 init flags location =
     let
         route =
             Routes.parsePath location
-
-        topBarType =
-            case route of
-                Routes.Pipeline _ _ _ ->
-                    Normal
-
-                _ ->
-                    Dashboard
 
         ( subModel, subEffects ) =
             SubPage.init
@@ -83,17 +64,12 @@ init flags location =
                 }
                 route
 
-        ( topModel, topEffects ) =
-            TopBar.init route
-
         navIndex =
             1
 
         model =
             { navIndex = navIndex
             , subModel = subModel
-            , topModel = topModel
-            , topBarType = topBarType
             , turbulenceImgSrc = flags.turbulenceImgSrc
             , notFoundImgSrc = flags.notFoundImgSrc
             , csrfToken = flags.csrfToken
@@ -123,7 +99,6 @@ init flags location =
     , [ ( Layout, FetchUser ), handleTokenEffect ]
         ++ stripCSRFTokenParamCmd
         ++ List.map (\ef -> ( SubPage navIndex, ef )) subEffects
-        ++ List.map (\ef -> ( TopBar navIndex, ef )) topEffects
     )
 
 
@@ -139,51 +114,11 @@ handleCallback :
     -> ( Model, List ( LayoutDispatch, Effect ) )
 handleCallback disp callback model =
     case disp of
-        TopBar navIndex ->
-            let
-                ( topModel, effects ) =
-                    TopBar.handleCallback callback model.topModel
-            in
-            ( { model | topModel = topModel }
-            , List.map (\ef -> ( TopBar navIndex, ef )) effects
-            )
-
         SubPage navIndex ->
             case callback of
                 ResourcesFetched (Ok fetchedResources) ->
-                    let
-                        resources : Result String (List Concourse.Resource)
-                        resources =
-                            Json.Decode.decodeValue
-                                (Json.Decode.list Concourse.decodeResource)
-                                fetchedResources
-
-                        pinnedResources : List ( String, Concourse.Version )
-                        pinnedResources =
-                            case resources of
-                                Ok rs ->
-                                    rs
-                                        |> List.filterMap
-                                            (\resource ->
-                                                case resource.pinnedVersion of
-                                                    Just v ->
-                                                        Just ( resource.name, v )
-
-                                                    Nothing ->
-                                                        Nothing
-                                            )
-
-                                Err _ ->
-                                    []
-
-                        topBar =
-                            model.topModel
-
-                        newModel =
-                            { model | topModel = { topBar | pinnedResources = pinnedResources } }
-                    in
                     if validNavIndex model.navIndex navIndex then
-                        subpageHandleCallback newModel callback navIndex
+                        subpageHandleCallback model callback navIndex
 
                     else
                         ( model, [] )
@@ -271,19 +206,6 @@ update msg model =
             else
                 ( model, [] )
 
-        TopMsg navIndex m ->
-            if validNavIndex model.navIndex navIndex then
-                let
-                    ( topModel, topEffects ) =
-                        TopBar.update m model.topModel
-                in
-                ( { model | topModel = topModel }
-                , List.map (\ef -> ( TopBar navIndex, ef )) topEffects
-                )
-
-            else
-                ( model, [] )
-
         TokenReceived Nothing ->
             ( model, [] )
 
@@ -357,51 +279,20 @@ urlUpdate route model =
                     , pipelineRunningKeyframes = model.pipelineRunningKeyframes
                     }
                     route
-
-        ( newTopModel, topEffects ) =
-            if route == model.route then
-                ( model.topModel, [] )
-
-            else
-                TopBar.urlUpdate route model.topModel
     in
     ( { model
         | navIndex = navIndex
         , subModel = newSubmodel
-        , topModel = newTopModel
         , route = route
       }
     , List.map (\ef -> ( SubPage navIndex, ef )) subEffects
-        ++ List.map (\ef -> ( TopBar navIndex, ef )) topEffects
         ++ [ ( Layout, SetFavIcon Nothing ) ]
     )
 
 
 view : Model -> Html Msg
 view model =
-    case model.subModel of
-        SubPage.PipelineModel _ ->
-            Html.div
-                [ class "content-frame"
-                , style
-                    [ ( "-webkit-font-smoothing", "antialiased" )
-                    , ( "font-weight", "700" )
-                    ]
-                ]
-                [ Html.map (TopMsg model.navIndex) (TopBar.view model.topModel)
-                , Html.div [ class "bottom" ]
-                    [ Html.div [ id "content" ]
-                        [ Html.div [ id "subpage" ]
-                            [ Html.map
-                                (SubMsg model.navIndex)
-                                (SubPage.view model.userState model.subModel)
-                            ]
-                        ]
-                    ]
-                ]
-
-        _ ->
-            Html.map (SubMsg model.navIndex) (SubPage.view model.userState model.subModel)
+    Html.map (SubMsg model.navIndex) (SubPage.view model.userState model.subModel)
 
 
 subscriptions : Model -> List (Subscription Msg)
@@ -411,10 +302,6 @@ subscriptions model =
     ]
         ++ (SubPage.subscriptions model.subModel
                 |> List.map (Subscription.map (SubMsg model.navIndex))
-           )
-        ++ (TopBar.subscriptions model.topModel
-                |> List.map (Subscription.map (TopMsg model.navIndex))
-                |> List.map (Conditionally (model.topBarType == Normal))
            )
 
 

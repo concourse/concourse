@@ -414,7 +414,7 @@ view userState model =
             , ( "font-weight", "700" )
             ]
         ]
-        [ NewestTopBar.view userState model.topBar |> HS.toUnstyled |> Html.map FromTopBar
+        [ NewestTopBar.view userState NewTopBar.Model.None model.topBar |> HS.toUnstyled |> Html.map FromTopBar
         , viewMainJobsSection model
         ]
 

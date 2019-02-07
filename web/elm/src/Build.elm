@@ -47,6 +47,7 @@ import Html.Styled as HS
 import Http
 import LoadingIndicator
 import Maybe.Extra
+import NewTopBar.Model
 import NewestTopBar
 import RemoteData exposing (WebData)
 import Routes
@@ -719,7 +720,7 @@ view userState model =
             , ( "font-weight", "700" )
             ]
         ]
-        [ NewestTopBar.view userState model.topBar |> HS.toUnstyled |> Html.map FromTopBar
+        [ NewestTopBar.view userState NewTopBar.Model.None model.topBar |> HS.toUnstyled |> Html.map FromTopBar
         , viewBuildPage model
         ]
 

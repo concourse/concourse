@@ -103,6 +103,7 @@ init flags route =
                 , pipelineName = pipelineName
                 , turbulenceImgSrc = flags.turbulencePath
                 , selectedGroups = groups
+                , route = route
                 }
                 |> Tuple.mapFirst PipelineModel
 
@@ -278,6 +279,7 @@ urlUpdate route model =
                 , pipelineName = pipeline
                 , turbulenceImgSrc = mdl.turbulenceImgSrc
                 , selectedGroups = groups
+                , route = route
                 }
                 mdl
                 |> Tuple.mapFirst PipelineModel
@@ -333,7 +335,7 @@ view userState mdl =
                 |> Html.map JobMsg
 
         PipelineModel model ->
-            Pipeline.view model
+            Pipeline.view userState model
                 |> Html.map PipelineMsg
 
         ResourceModel model ->

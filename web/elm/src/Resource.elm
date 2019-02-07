@@ -55,6 +55,7 @@ import Html.Styled.Events
 import Http
 import List.Extra
 import Maybe.Extra as ME
+import NewTopBar.Model
 import NewTopBar.Styles as Styles
 import NewestTopBar
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
@@ -633,7 +634,7 @@ view userState model =
             , ( "font-weight", "700" )
             ]
         ]
-        [ Html.map TopBarMsg <| NewestTopBar.view userState model.topBar
+        [ Html.map TopBarMsg <| NewestTopBar.view userState NewTopBar.Model.None model.topBar
         , subpageView userState model
         , commentBar model
         ]

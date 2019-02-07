@@ -2,6 +2,8 @@ module NewTopBar.Model exposing
     ( Dropdown(..)
     , MiddleSection(..)
     , Model
+    , PipelineState(..)
+    , isPaused
     )
 
 import Concourse
@@ -12,6 +14,7 @@ import ScreenSize exposing (ScreenSize)
 
 type alias Model =
     { isUserMenuExpanded : Bool
+    , isPinMenuExpanded : Bool
     , middleSection : MiddleSection
     , teams : RemoteData.WebData (List Concourse.Team)
     , screenSize : ScreenSize
@@ -33,3 +36,22 @@ type MiddleSection
 type Dropdown
     = Hidden
     | Shown { selectedIdx : Maybe Int }
+
+
+type PipelineState
+    = None
+    | HasPipeline
+        { pinnedResources : List ( String, Concourse.Version )
+        , pipeline : Concourse.PipelineIdentifier
+        , isPaused : Bool
+        }
+
+
+isPaused : PipelineState -> Bool
+isPaused pipeline =
+    case pipeline of
+        None ->
+            False
+
+        HasPipeline { isPaused } ->
+            isPaused

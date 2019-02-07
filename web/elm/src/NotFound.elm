@@ -70,7 +70,7 @@ view userState model =
             , ( "font-weight", "700" )
             ]
         ]
-        [ NewestTopBar.view userState model.topBar |> HS.toUnstyled |> Html.map FromTopBar
+        [ NewestTopBar.view userState NewTopBar.Model.None model.topBar |> HS.toUnstyled |> Html.map FromTopBar
         , Html.div [ class "notfound" ]
             [ Html.div [ class "title" ] [ Html.text "404" ]
             , Html.div [ class "reason" ] [ Html.text "this page was not found" ]

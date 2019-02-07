@@ -397,7 +397,7 @@ view userState model =
             , ( "font-weight", "700" )
             ]
         ]
-        [ Html.map FromTopBar (NewTopBar.view userState model.topBar)
+        [ Html.map FromTopBar (NewTopBar.view userState NewTopBar.Model.None model.topBar)
         , dashboardView model
         ]
 

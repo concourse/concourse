@@ -11,6 +11,13 @@ module NewTopBar.Styles exposing
     , loginText
     , logoutButton
     , pageHeaderHeight
+    , pinBadge
+    , pinDropdownCursor
+    , pinHoverHighlight
+    , pinIcon
+    , pinIconContainer
+    , pinIconDropdown
+    , pinText
     , searchButton
     , searchClearButton
     , searchContainer
@@ -19,6 +26,7 @@ module NewTopBar.Styles exposing
     , topBar
     )
 
+import Colors
 import ScreenSize exposing (ScreenSize(..))
 
 
@@ -27,16 +35,22 @@ pageHeaderHeight =
     54
 
 
-topBar : List ( String, String )
-topBar =
+topBar : Bool -> List ( String, String )
+topBar isPaused =
     [ ( "position", "fixed" )
     , ( "top", "0" )
     , ( "width", "100%" )
     , ( "z-index", "999" )
     , ( "display", "flex" )
     , ( "justify-content", "space-between" )
-    , ( "background-color", "#1e1d1d" )
     , ( "font-weight", "700" )
+    , ( "background-color"
+      , if isPaused then
+            "#3498db"
+
+        else
+            "#1e1d1d"
+      )
     ]
 
 
@@ -272,3 +286,92 @@ dropdownItem isSelected =
     , ( "cursor", "pointer" )
     ]
         ++ coloration
+
+
+pinIconContainer : Bool -> List ( String, String )
+pinIconContainer showBackground =
+    [ ( "margin-right", "15px" )
+    , ( "top", "10px" )
+    , ( "position", "relative" )
+    , ( "height", "40px" )
+    , ( "display", "flex" )
+    , ( "max-width", "20%" )
+    ]
+        ++ (if showBackground then
+                [ ( "background-color", "#3d3c3c" )
+                , ( "border-radius", "50%" )
+                ]
+
+            else
+                []
+           )
+
+
+pinIcon : Bool -> List ( String, String )
+pinIcon enabled =
+    [ ( "background-image"
+      , if enabled then
+            "url(/public/images/pin-ic-white.svg)"
+
+        else
+            "url(/public/images/pin-ic-grey.svg)"
+      )
+    , ( "width", "40px" )
+    , ( "height", "40px" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-position", "50% 50%" )
+    , ( "position", "relative" )
+    ]
+
+
+pinBadge : List ( String, String )
+pinBadge =
+    [ ( "background-color", Colors.pinned )
+    , ( "border-radius", "50%" )
+    , ( "width", "15px" )
+    , ( "height", "15px" )
+    , ( "position", "absolute" )
+    , ( "top", "3px" )
+    , ( "right", "3px" )
+    , ( "display", "flex" )
+    , ( "align-items", "center" )
+    , ( "justify-content", "center" )
+    ]
+
+
+pinIconDropdown : List ( String, String )
+pinIconDropdown =
+    [ ( "background-color", "#fff" )
+    , ( "color", "#1e1d1d" )
+    , ( "position", "absolute" )
+    , ( "top", "100%" )
+    , ( "right", "0" )
+    , ( "white-space", "nowrap" )
+    , ( "list-style-type", "none" )
+    , ( "padding", "10px" )
+    , ( "margin-top", "0" )
+    , ( "z-index", "1" )
+    ]
+
+
+pinHoverHighlight : List ( String, String )
+pinHoverHighlight =
+    [ ( "border-width", "5px" )
+    , ( "border-style", "solid" )
+    , ( "border-color", "transparent transparent #fff transparent" )
+    , ( "position", "absolute" )
+    , ( "top", "100%" )
+    , ( "right", "50%" )
+    , ( "margin-right", "-5px" )
+    , ( "margin-top", "-10px" )
+    ]
+
+
+pinDropdownCursor : List ( String, String )
+pinDropdownCursor =
+    [ ( "cursor", "pointer" ) ]
+
+
+pinText : List ( String, String )
+pinText =
+    [ ( "font-weight", "700" ) ]

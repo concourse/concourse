@@ -12,6 +12,7 @@ import Array
 import Callback exposing (Callback(..))
 import Char
 import Concourse
+import Dict
 import Effects exposing (Effect(..))
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as HA
@@ -29,14 +30,20 @@ import Html.Styled.Attributes as HA
         )
 import Html.Styled.Events exposing (..)
 import Http
-import NewTopBar.Model exposing (Dropdown(..), MiddleSection(..), Model)
+import NewTopBar.Model
+    exposing
+        ( Dropdown(..)
+        , MiddleSection(..)
+        , Model
+        , PipelineState(..)
+        , isPaused
+        )
 import NewTopBar.Msgs exposing (Msg(..))
 import NewTopBar.Styles as Styles
 import QueryString
 import RemoteData exposing (RemoteData)
 import Routes
 import ScreenSize exposing (ScreenSize(..))
-import TopBar exposing (userDisplayName)
 import UserState exposing (UserState(..))
 import Window
 
@@ -73,6 +80,7 @@ init { route } =
                     Breadcrumbs route
     in
     ( { isUserMenuExpanded = False
+      , isPinMenuExpanded = False
       , middleSection = middleSection
       , teams = RemoteData.Loading
       , screenSize = Desktop
@@ -162,6 +170,9 @@ update msg model =
 
         ToggleUserMenu ->
             ( { model | isUserMenuExpanded = not model.isUserMenuExpanded }, [] )
+
+        TogglePinIconDropdown ->
+            ( { model | isPinMenuExpanded = not model.isPinMenuExpanded }, [] )
 
         FocusMsg ->
             let
@@ -312,6 +323,9 @@ update msg model =
         ResizeScreen size ->
             ( screenResize size model, [] )
 
+        GoToPinnedResource route ->
+            ( model, [ NavigateTo (Routes.toString route) ] )
+
         Noop ->
             ( model, [] )
 
@@ -371,12 +385,17 @@ showSearchInput model =
             Debug.log "attempting to show search input on a breadcrumbs page" ( model, [] )
 
 
-view : UserState -> Model -> Html Msg
-view userState model =
-    Html.div [ id "top-bar-app", style Styles.topBar ] <|
-        viewConcourseLogo
+view : UserState -> PipelineState -> Model -> Html Msg
+view userState pipelineState model =
+    Html.div
+        [ id "top-bar-app"
+        , style <| Styles.topBar <| isPaused pipelineState
+        ]
+        (viewConcourseLogo
             ++ viewMiddleSection model
+            ++ viewPin pipelineState model
             ++ viewLogin userState model
+        )
 
 
 viewLogin : UserState -> Model -> List (Html Msg)
@@ -432,6 +451,13 @@ viewLoginState userState isUserMenuExpanded =
                     )
                 ]
             ]
+
+
+userDisplayName : Concourse.User -> String
+userDisplayName user =
+    Maybe.withDefault user.id <|
+        List.head <|
+            List.filter (not << String.isEmpty) [ user.userName, user.name, user.email ]
 
 
 viewMiddleSection : Model -> List (Html Msg)
@@ -538,7 +564,7 @@ viewDropdownItems { query, dropdown } model =
 viewConcourseLogo : List (Html Msg)
 viewConcourseLogo =
     [ Html.a
-        [ style Styles.concourseLogo, href "#" ]
+        [ style Styles.concourseLogo, href "/" ]
         []
     ]
 
@@ -635,3 +661,72 @@ dropdownOptions { query, teams } =
 
         _ ->
             []
+
+
+viewPin : PipelineState -> Model -> List (Html Msg)
+viewPin pipelineState model =
+    case pipelineState of
+        HasPipeline { pinnedResources, pipeline } ->
+            [ Html.div
+                [ style <| Styles.pinIconContainer model.isPinMenuExpanded
+                , id "pin-icon"
+                ]
+                [ if List.length pinnedResources > 0 then
+                    Html.div
+                        [ style <| Styles.pinIcon True
+                        , onMouseEnter TogglePinIconDropdown
+                        , onMouseLeave TogglePinIconDropdown
+                        ]
+                        ([ Html.div
+                            [ style Styles.pinBadge
+                            , id "pin-badge"
+                            ]
+                            [ Html.div [] [ Html.text <| toString <| List.length pinnedResources ]
+                            ]
+                         ]
+                            ++ viewPinDropdown pinnedResources pipeline model
+                        )
+
+                  else
+                    Html.div [ style <| Styles.pinIcon False ] []
+                ]
+            ]
+
+        None ->
+            []
+
+
+viewPinDropdown : List ( String, Concourse.Version ) -> Concourse.PipelineIdentifier -> Model -> List (Html Msg)
+viewPinDropdown pinnedResources pipeline model =
+    if model.isPinMenuExpanded then
+        [ Html.ul
+            [ style Styles.pinIconDropdown ]
+            (pinnedResources
+                |> List.map
+                    (\( resourceName, pinnedVersion ) ->
+                        Html.li
+                            [ onClick <| GoToPinnedResource <| Routes.Resource pipeline.teamName pipeline.pipelineName resourceName Nothing
+                            , style Styles.pinDropdownCursor
+                            ]
+                            [ Html.div
+                                [ style Styles.pinText ]
+                                [ Html.text resourceName ]
+                            , Html.table []
+                                (pinnedVersion
+                                    |> Dict.toList
+                                    |> List.map
+                                        (\( k, v ) ->
+                                            Html.tr []
+                                                [ Html.td [] [ Html.text k ]
+                                                , Html.td [] [ Html.text v ]
+                                                ]
+                                        )
+                                )
+                            ]
+                    )
+            )
+        , Html.div [ style Styles.pinHoverHighlight ] []
+        ]
+
+    else
+        []
