@@ -86,9 +86,10 @@ members of the Concourse community.
 
 \section{
   \title{Tools}
+
   \link{\code{ofcourse}}{https://github.com/cloudboss/ofcourse} a library and a
-   project skeleton generator for making your own Concourse resources in Go,
-   with an emphasis on testability. Written and maintained by \ghuser{cloudboss}
+  project skeleton generator for making your own Concourse resources in Go,
+  with an emphasis on testability. Written and maintained by \ghuser{cloudboss}
 }
 
 \section{
