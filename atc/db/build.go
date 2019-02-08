@@ -858,11 +858,6 @@ func (b *build) SaveOutput(
 		if err != nil {
 			return err
 		}
-
-		err = bumpCacheIndexForPipelinesUsingResourceConfigScope(tx, resourceConfigScope)
-		if err != nil {
-			return err
-		}
 	}
 
 	_, err = psql.Insert("build_resource_config_version_outputs").
@@ -881,7 +876,17 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	return tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	err = bumpCacheIndexForPipelinesUsingResourceConfigScope(b.conn, resourceConfigScope.ID())
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (b *build) UseInputs(inputs []BuildInput) error {

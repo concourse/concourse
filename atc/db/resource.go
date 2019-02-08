@@ -219,16 +219,16 @@ func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, res
 		return nil, err
 	}
 
-	if rowsAffected > 0 {
-		err = bumpCacheIndexForPipelinesUsingResourceConfigScope(tx, resourceConfigScope)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
+	}
+
+	if rowsAffected > 0 {
+		err = bumpCacheIndexForPipelinesUsingResourceConfigScope(r.conn, resourceConfigScope.ID())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return resourceConfigScope, nil
