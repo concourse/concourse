@@ -63,7 +63,6 @@ type alias Model =
     , pinIconHover : Bool
     , route : Routes.Route
     , pipeline : Maybe Concourse.Pipeline
-    , userState : UserState
     , userMenuVisible : Bool
     , pinnedResources : List ( String, Concourse.Version )
     , showPinIconDropDown : Bool

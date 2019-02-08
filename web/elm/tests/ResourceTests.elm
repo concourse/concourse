@@ -159,15 +159,11 @@ all =
                                     , userName = "test"
                                     , name = "test"
                                     , email = "test"
-                                    , teams =
-                                        Dict.fromList
-                                            [ ( teamName, [ "member" ] )
-                                            ]
+                                    , teams = Dict.fromList [ ( teamName, [ "member" ] ) ]
                                     }
                             )
                         |> Tuple.first
-                        |> handleCallback
-                            (Callback.LoggedOut (Ok ()))
+                        |> handleCallback (Callback.LoggedOut (Ok ()))
             in
             [ test "updates top bar state" <|
                 loggingOut
@@ -2487,12 +2483,12 @@ all =
                             |> Query.children []
                             |> Query.first
                             |> Event.simulate Event.click
-                            |> Event.expect (resourceMsg Resource.Msgs.Check)
+                            |> Event.expect (resourceMsg (Resource.Msgs.CheckRequested False))
                 , test "Check msg redirects to login" <|
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> update Resource.Msgs.Check
+                            |> update (Resource.Msgs.CheckRequested False)
                             |> Tuple.second
                             |> Expect.equal
                                 [ ( Effects.SubPage 1
@@ -2503,7 +2499,7 @@ all =
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> update Resource.Msgs.Check
+                            |> update (Resource.Msgs.CheckRequested False)
                             |> Tuple.first
                             |> checkBar
                             |> Query.find [ tag "h3" ]
@@ -2576,13 +2572,13 @@ all =
                             |> Query.children []
                             |> Query.first
                             |> Event.simulate Event.click
-                            |> Event.expect (resourceMsg Resource.Msgs.Check)
+                            |> Event.expect (resourceMsg (Resource.Msgs.CheckRequested True))
                 , test "Check msg has CheckResource side effect" <|
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> update Resource.Msgs.Check
+                            |> update (Resource.Msgs.CheckRequested True)
                             |> Tuple.second
                             |> Expect.equal
                                 [ ( Effects.SubPage 1
@@ -2600,8 +2596,7 @@ all =
                         givenCheckInProgress =
                             givenResourceIsNotPinned
                                 >> givenUserIsAuthorized
-                                >> Layout.update
-                                    (resourceMsg Resource.Msgs.Check)
+                                >> Layout.update (resourceMsg (Resource.Msgs.CheckRequested True))
                                 >> Tuple.first
                     in
                     [ test "check bar text says 'currently checking'" <|
@@ -2703,7 +2698,7 @@ all =
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> Layout.update (resourceMsg Resource.Msgs.Check)
+                            |> Layout.update (resourceMsg (Resource.Msgs.CheckRequested True))
                             |> Tuple.first
                             |> handleCallback (Callback.Checked <| Ok ())
                             |> Tuple.first
@@ -2731,7 +2726,7 @@ all =
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> update Resource.Msgs.Check
+                            |> update (Resource.Msgs.CheckRequested True)
                             |> Tuple.first
                             |> handleCallback (Callback.Checked <| Ok ())
                             |> Tuple.second
@@ -2757,7 +2752,7 @@ all =
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> update Resource.Msgs.Check
+                            |> update (Resource.Msgs.CheckRequested True)
                             |> Tuple.first
                             |> handleCallback
                                 (Callback.Checked <|
@@ -2793,7 +2788,7 @@ all =
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> update Resource.Msgs.Check
+                            |> update (Resource.Msgs.CheckRequested True)
                             |> Tuple.first
                             |> handleCallback
                                 (Callback.Checked <|
@@ -2823,7 +2818,7 @@ all =
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> update Resource.Msgs.Check
+                            |> update (Resource.Msgs.CheckRequested True)
                             |> Tuple.first
                             |> handleCallback
                                 (Callback.Checked <|

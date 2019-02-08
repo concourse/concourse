@@ -96,50 +96,47 @@ init flags =
             , resourceName = flags.resourceName
             }
 
-        ( model, effect ) =
-            changeToResource flags
-                { resourceIdentifier = resourceId
-                , pageStatus = Err Models.Empty
-                , teamName = flags.teamName
-                , pipelineName = flags.pipelineName
-                , name = flags.resourceName
-                , checkStatus = Models.CheckingSuccessfully
-                , checkError = ""
-                , checkSetupError = ""
-                , hovered = Models.None
-                , lastChecked = Nothing
-                , pinnedVersion = NotPinned
-                , currentPage = Nothing
-                , versions =
-                    { content = []
-                    , pagination =
-                        { previousPage = Nothing
-                        , nextPage = Nothing
-                        }
+        model =
+            { resourceIdentifier = resourceId
+            , pageStatus = Err Models.Empty
+            , teamName = flags.teamName
+            , pipelineName = flags.pipelineName
+            , name = flags.resourceName
+            , checkStatus = Models.CheckingSuccessfully
+            , checkError = ""
+            , checkSetupError = ""
+            , hovered = Models.None
+            , lastChecked = Nothing
+            , pinnedVersion = NotPinned
+            , currentPage = flags.paging
+            , versions =
+                { content = []
+                , pagination =
+                    { previousPage = Nothing
+                    , nextPage = Nothing
                     }
-                , now = Nothing
-                , csrfToken = flags.csrfToken
-                , showPinBarTooltip = False
-                , pinIconHover = False
-                , route =
-                    Routes.Resource
-                        flags.teamName
-                        flags.pipelineName
-                        flags.resourceName
-                        Nothing
-                , pipeline = Nothing
-                , userState = UserStateUnknown
-                , userMenuVisible = False
-                , pinnedResources = []
-                , showPinIconDropDown = False
-                , pinCommentLoading = False
-                , ctrlDown = False
-                , textAreaFocused = False
                 }
+            , now = Nothing
+            , csrfToken = flags.csrfToken
+            , showPinBarTooltip = False
+            , pinIconHover = False
+            , route =
+                Routes.Resource
+                    flags.teamName
+                    flags.pipelineName
+                    flags.resourceName
+                    Nothing
+            , pipeline = Nothing
+            , userMenuVisible = False
+            , pinnedResources = []
+            , showPinIconDropDown = False
+            , pinCommentLoading = False
+            , ctrlDown = False
+            , textAreaFocused = False
+            }
     in
     ( model
     , [ FetchResource model.resourceIdentifier
-      , FetchUser
       , FetchVersionedResources resourceId flags.paging
       ]
     )
@@ -447,17 +444,8 @@ handleCallback action model =
                     []
             )
 
-        UserFetched (Ok user) ->
-            ( { model | userState = UserStateLoggedIn user }, [] )
-
-        UserFetched (Err _) ->
-            ( { model | userState = UserStateLoggedOut }, [] )
-
         LoggedOut (Ok _) ->
-            ( { model
-                | userState = UserStateLoggedOut
-                , pipeline = Nothing
-              }
+            ( { model | pipeline = Nothing }
             , [ NavigateTo <| Routes.toString <| Routes.Dashboard (Routes.Normal Nothing) ]
             )
 
@@ -640,18 +628,36 @@ update action model =
         Hover hovered ->
             ( { model | hovered = hovered }, [] )
 
-        Check ->
-            case model.userState of
-                UserStateLoggedIn _ ->
-                    ( { model | checkStatus = Models.CurrentlyChecking }
-                    , [ DoCheck model.resourceIdentifier model.csrfToken ]
-                    )
+        CheckRequested isAuthorized ->
+            if isAuthorized then
+                ( { model | checkStatus = Models.CurrentlyChecking }
+                , [ DoCheck model.resourceIdentifier model.csrfToken ]
+                )
 
-                _ ->
-                    ( model, [ RedirectToLogin ] )
+            else
+                ( model, [ RedirectToLogin ] )
 
-        TopBarMsg msg ->
-            TopBar.update msg model
+        TopBarMsg userState msg ->
+            let
+                ( newTopBar, effects ) =
+                    TopBar.update msg
+                        { route = model.route
+                        , pipeline = model.pipeline
+                        , userState = userState
+                        , userMenuVisible = model.userMenuVisible
+                        , pinnedResources = model.pinnedResources
+                        , showPinIconDropDown = model.showPinIconDropDown
+                        }
+            in
+            ( { model
+                | route = newTopBar.route
+                , pipeline = newTopBar.pipeline
+                , userMenuVisible = newTopBar.userMenuVisible
+                , pinnedResources = newTopBar.pinnedResources
+                , showPinIconDropDown = newTopBar.showPinIconDropDown
+              }
+            , effects
+            )
 
         EditComment input ->
             let
@@ -747,29 +753,38 @@ permalink versionedResources =
             }
 
 
-view : Model -> Html Msg
-view model =
+view : UserState -> Model -> Html Msg
+view userState model =
     Html.div
         [ style
             [ ( "-webkit-font-smoothing", "antialiased" )
             , ( "font-weight", "700" )
             ]
         ]
-        [ Html.map TopBarMsg <| Html.fromUnstyled <| TopBar.view model
-        , subpageView model
-        , commentBar model
+        [ Html.map (TopBarMsg userState) <|
+            Html.fromUnstyled <|
+                TopBar.view
+                    { route = model.route
+                    , pipeline = model.pipeline
+                    , userState = userState
+                    , userMenuVisible = model.userMenuVisible
+                    , pinnedResources = model.pinnedResources
+                    , showPinIconDropDown = model.showPinIconDropDown
+                    }
+        , subpageView userState model
+        , commentBar userState model
         ]
 
 
-subpageView : Model -> Html Msg
-subpageView model =
+subpageView : UserState -> Model -> Html Msg
+subpageView userState model =
     if model.pageStatus == Err Models.Empty then
         Html.div [] []
 
     else
         Html.div []
             [ header model
-            , body model
+            , body userState model
             ]
 
 
@@ -823,8 +838,8 @@ header model =
         ]
 
 
-body : Model -> Html Msg
-body model =
+body : UserState -> Model -> Html Msg
+body userState model =
     let
         headerHeight =
             60
@@ -852,7 +867,7 @@ body model =
               )
             ]
         ]
-        [ checkSection model
+        [ checkSection userState model
         , viewVersionedResources model
         ]
 
@@ -971,16 +986,17 @@ paginationMenu { versions, resourceIdentifier, hovered } =
 
 
 checkSection :
-    { a
-        | checkStatus : Models.CheckStatus
-        , checkSetupError : String
-        , checkError : String
-        , hovered : Models.Hoverable
-        , userState : UserState
-        , teamName : String
-    }
+    UserState
+    ->
+        { a
+            | checkStatus : Models.CheckStatus
+            , checkSetupError : String
+            , checkError : String
+            , hovered : Models.Hoverable
+            , teamName : String
+        }
     -> Html Msg
-checkSection ({ checkStatus, checkSetupError, checkError } as model) =
+checkSection userState ({ checkStatus, checkSetupError, checkError } as model) =
     let
         failingToCheck =
             checkStatus == Models.FailingToCheck
@@ -1049,20 +1065,21 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
         checkBar =
             Html.div
                 [ style [ ( "display", "flex" ) ] ]
-                [ checkButton model, statusBar ]
+                [ checkButton userState model, statusBar ]
     in
     Html.div [ class "resource-check-status" ] <| checkBar :: stepBody
 
 
 checkButton :
-    { a
-        | hovered : Models.Hoverable
-        , userState : UserState
-        , teamName : String
-        , checkStatus : Models.CheckStatus
-    }
+    UserState
+    ->
+        { a
+            | hovered : Models.Hoverable
+            , teamName : String
+            , checkStatus : Models.CheckStatus
+        }
     -> Html Msg
-checkButton ({ hovered, userState, teamName, checkStatus } as params) =
+checkButton userState ({ hovered, teamName, checkStatus } as params) =
     let
         isHovered =
             hovered == Models.CheckButton
@@ -1078,9 +1095,11 @@ checkButton ({ hovered, userState, teamName, checkStatus } as params) =
                 _ ->
                     True
 
+        isUserAuthorized =
+            isAuthorized params.teamName userState
+
         isClickable =
-            (isUnauthenticated || isAuthorized params)
-                && not isCurrentlyChecking
+            (isUnauthenticated || isUserAuthorized) && not isCurrentlyChecking
 
         isHighlighted =
             (isClickable && isHovered) || isCurrentlyChecking
@@ -1103,7 +1122,7 @@ checkButton ({ hovered, userState, teamName, checkStatus } as params) =
          , onMouseLeave <| Hover Models.None
          ]
             ++ (if isClickable then
-                    [ onClick Check ]
+                    [ onClick (CheckRequested isUserAuthorized) ]
 
                 else
                     []
@@ -1133,8 +1152,8 @@ checkButton ({ hovered, userState, teamName, checkStatus } as params) =
         ]
 
 
-isAuthorized : { a | teamName : String, userState : UserState } -> Bool
-isAuthorized { teamName, userState } =
+isAuthorized : String -> UserState -> Bool
+isAuthorized teamName userState =
     case userState of
         UserStateLoggedIn user ->
             case Dict.get teamName user.teams of
@@ -1150,15 +1169,16 @@ isAuthorized { teamName, userState } =
 
 
 commentBar :
-    { a
-        | pinnedVersion : Models.PinnedVersion
-        , teamName : String
-        , userState : UserState
-        , hovered : Models.Hoverable
-        , pinCommentLoading : Bool
-    }
+    UserState
+    ->
+        { a
+            | pinnedVersion : Models.PinnedVersion
+            , teamName : String
+            , hovered : Models.Hoverable
+            , pinCommentLoading : Bool
+        }
     -> Html Msg
-commentBar ({ pinnedVersion, hovered, pinCommentLoading } as params) =
+commentBar userState ({ pinnedVersion, hovered, pinCommentLoading } as params) =
     case pinnedVersion of
         PinnedDynamicallyTo commentState v ->
             let
@@ -1194,7 +1214,7 @@ commentBar ({ pinnedVersion, hovered, pinCommentLoading } as params) =
                                 , version
                                 ]
                     in
-                    if isAuthorized params then
+                    if isAuthorized params.teamName userState then
                         [ header
                         , Html.textarea
                             [ style Resource.Styles.commentTextArea

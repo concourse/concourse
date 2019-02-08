@@ -27,6 +27,7 @@ import SubPage
 import SubPage.Msgs
 import Subscription exposing (Subscription(..))
 import TopBar
+import UserState exposing (UserState(..))
 
 
 type alias Flags =
@@ -54,6 +55,7 @@ type alias Model =
     , authToken : String
     , pipelineRunningKeyframes : String
     , route : Routes.Route
+    , userState : UserState
     }
 
 
@@ -102,6 +104,7 @@ init flags location =
             , authToken = flags.authToken
             , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
             , route = route
+            , userState = UserStateUnknown
             }
 
         handleTokenEffect =
@@ -121,7 +124,7 @@ init flags location =
                 [ ( Layout, Effects.ModifyUrl <| Routes.toString route ) ]
     in
     ( model
-    , [ handleTokenEffect ]
+    , [ handleTokenEffect, ( Layout, FetchUser ) ]
         ++ stripCSRFTokenParamCmd
         ++ List.map (\ef -> ( SubPage navIndex, ef )) subEffects
         ++ List.map (\ef -> ( TopBar navIndex, ef )) topEffects
@@ -144,8 +147,22 @@ handleCallback disp callback model =
             let
                 ( topModel, effects ) =
                     TopBar.handleCallback callback model.topModel
+
+                newModel =
+                    case callback of
+                        UserFetched (Ok user) ->
+                            { model | userState = UserStateLoggedIn user }
+
+                        UserFetched (Err _) ->
+                            { model | userState = UserStateLoggedOut }
+
+                        LoggedOut (Ok _) ->
+                            { model | userState = UserStateLoggedOut }
+
+                        _ ->
+                            model
             in
-            ( { model | topModel = topModel }
+            ( { newModel | topModel = topModel }
             , List.map (\ef -> ( TopBar navIndex, ef )) effects
             )
 
@@ -217,6 +234,45 @@ handleCallback disp callback model =
                 OutputOfFetched (Err err) ->
                     ( model, redirectToLoginIfNecessary err navIndex )
 
+                UserFetched (Ok user) ->
+                    let
+                        ( subModel, effects ) =
+                            SubPage.handleCallback
+                                model.csrfToken
+                                callback
+                                model.subModel
+                                |> SubPage.handleNotFound model.notFoundImgSrc
+                    in
+                    ( { model | userState = UserStateLoggedIn user, subModel = subModel }
+                    , List.map (\ef -> ( SubPage navIndex, ef )) effects
+                    )
+
+                UserFetched (Err _) ->
+                    let
+                        ( subModel, effects ) =
+                            SubPage.handleCallback
+                                model.csrfToken
+                                callback
+                                model.subModel
+                                |> SubPage.handleNotFound model.notFoundImgSrc
+                    in
+                    ( { model | userState = UserStateLoggedOut, subModel = subModel }
+                    , List.map (\ef -> ( SubPage navIndex, ef )) effects
+                    )
+
+                LoggedOut (Ok _) ->
+                    let
+                        ( subModel, effects ) =
+                            SubPage.handleCallback
+                                model.csrfToken
+                                callback
+                                model.subModel
+                                |> SubPage.handleNotFound model.notFoundImgSrc
+                    in
+                    ( { model | userState = UserStateLoggedOut, subModel = subModel }
+                    , List.map (\ef -> ( SubPage navIndex, ef )) effects
+                    )
+
                 -- otherwise, pass down
                 _ ->
                     let
@@ -232,7 +288,18 @@ handleCallback disp callback model =
                     )
 
         Layout ->
-            ( model, [] )
+            case callback of
+                UserFetched (Ok user) ->
+                    ( { model | userState = UserStateLoggedIn user }, [] )
+
+                UserFetched (Err _) ->
+                    ( { model | userState = UserStateLoggedOut }, [] )
+
+                LoggedOut (Ok _) ->
+                    ( { model | userState = UserStateLoggedOut }, [] )
+
+                _ ->
+                    ( model, [] )
 
 
 update : Msg -> Model -> ( Model, List ( LayoutDispatch, Effect ) )
@@ -412,10 +479,10 @@ view : Model -> Html Msg
 view model =
     case model.subModel of
         SubPage.DashboardModel _ ->
-            Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
+            Html.map (SubMsg model.navIndex) (SubPage.view model.userState model.subModel)
 
         SubPage.ResourceModel _ ->
-            Html.map (SubMsg model.navIndex) (SubPage.view model.subModel)
+            Html.map (SubMsg model.navIndex) (SubPage.view model.userState model.subModel)
 
         _ ->
             Html.div
@@ -431,7 +498,7 @@ view model =
                         [ Html.div [ id "subpage" ]
                             [ Html.map
                                 (SubMsg model.navIndex)
-                                (SubPage.view model.subModel)
+                                (SubPage.view model.userState model.subModel)
                             ]
                         ]
                     ]

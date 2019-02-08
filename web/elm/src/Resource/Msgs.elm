@@ -6,6 +6,7 @@ import Resource.Models as Models
 import Routes
 import Time exposing (Time)
 import TopBar.Msgs
+import UserState exposing (UserState)
 
 
 type Msg
@@ -21,8 +22,8 @@ type Msg
     | ToggleVersion Models.VersionToggleAction Models.VersionId
     | PinIconHover Bool
     | Hover Models.Hoverable
-    | Check
-    | TopBarMsg TopBar.Msgs.Msg
+    | CheckRequested Bool
+    | TopBarMsg UserState TopBar.Msgs.Msg
     | EditComment String
     | SaveComment String
     | FocusTextArea
