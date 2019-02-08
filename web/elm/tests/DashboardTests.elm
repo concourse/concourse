@@ -16,8 +16,8 @@ import Char
 import Concourse
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus
-import Dashboard
 import Dashboard.APIData as APIData
+import Dashboard.Dashboard as Dashboard
 import Dashboard.Group as Group
 import Dashboard.Msgs as Msgs
 import Date exposing (Date)
@@ -27,7 +27,7 @@ import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Html.Styled as HS
 import List.Extra
-import NewTopBar.Msgs
+import TopBar.Msgs
 import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -462,7 +462,7 @@ all =
                     |> givenDataAndUser
                         (oneTeamOnePipelineNonPublic "team")
                         (userWithRoles [ ( "team", [ "owner" ] ) ])
-                    |> Dashboard.update (Msgs.FromTopBar NewTopBar.Msgs.LogOut)
+                    |> Dashboard.update (Msgs.FromTopBar TopBar.Msgs.LogOut)
                     |> Tuple.first
                     |> showsLoadingState
         , test "links to specific builds" <|

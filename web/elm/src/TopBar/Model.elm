@@ -1,4 +1,4 @@
-module NewTopBar.Model exposing
+module TopBar.Model exposing
     ( Dropdown(..)
     , MiddleSection(..)
     , Model

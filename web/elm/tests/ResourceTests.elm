@@ -1,5 +1,7 @@
 module ResourceTests exposing (all)
 
+import Application.Application as Application
+import Application.Msgs as Msgs
 import Callback exposing (Callback(..))
 import Concourse
 import Concourse.Pagination exposing (Direction(..))
@@ -16,8 +18,6 @@ import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Http
-import Layout
-import Msgs
 import Resource.Models as Models
 import Resource.Msgs
 import SubPage.Msgs
@@ -150,7 +150,7 @@ all =
     describe "resource page"
         [ describe "when logging out" <|
             let
-                loggingOut : () -> ( Layout.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
+                loggingOut : () -> ( Application.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
                 loggingOut _ =
                     init
                         |> handleCallback
@@ -405,7 +405,7 @@ all =
                     init
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
-                        |> Layout.update
+                        |> Application.update
                             (resourceMsg <|
                                 Resource.Msgs.ToggleVersion
                                     Models.Enable
@@ -421,7 +421,7 @@ all =
                     init
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
-                        |> Layout.update
+                        |> Application.update
                             (resourceMsg <|
                                 Resource.Msgs.ToggleVersion
                                     Models.Enable
@@ -444,7 +444,7 @@ all =
                     init
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
-                        |> Layout.update
+                        |> Application.update
                             (resourceMsg <|
                                 Resource.Msgs.ToggleVersion
                                     Models.Enable
@@ -984,7 +984,7 @@ all =
                             [ style [ ( "padding-bottom", "300px" ) ] ]
             , describe "pin comment bar" <|
                 let
-                    commentBar : Layout.Model -> Query.Single Msgs.Msg
+                    commentBar : Application.Model -> Query.Single Msgs.Msg
                     commentBar =
                         queryView
                             >> Query.find [ id "comment-bar" ]
@@ -1034,7 +1034,7 @@ all =
                                 ]
                 , describe "contents" <|
                     let
-                        contents : Layout.Model -> Query.Single Msgs.Msg
+                        contents : Application.Model -> Query.Single Msgs.Msg
                         contents =
                             commentBar >> Query.children [] >> Query.first
                     in
@@ -1064,7 +1064,7 @@ all =
                                     ]
                     , describe "header" <|
                         let
-                            header : Layout.Model -> Query.Single Msgs.Msg
+                            header : Application.Model -> Query.Single Msgs.Msg
                             header =
                                 contents >> Query.children [] >> Query.first
                         in
@@ -1434,7 +1434,7 @@ all =
                                             Models.None
                                 , updateFunc =
                                     \msg ->
-                                        Layout.update msg
+                                        Application.update msg
                                             >> Tuple.first
                                 , hoveredSelector =
                                     { description = "blue background"
@@ -1470,7 +1470,7 @@ all =
                                         |> givenUserIsAuthorized
                                         |> givenResourcePinnedWithComment
                                         |> givenTextareaFocused
-                                        |> Layout.subscriptions
+                                        |> Application.subscriptions
                                         |> List.member Subscription.OnKeyDown
                                         |> Expect.true "why are we not subscribed to keydowns!?"
                             , test
@@ -1483,7 +1483,7 @@ all =
                                         |> givenUserIsAuthorized
                                         |> givenResourcePinnedWithComment
                                         |> givenTextareaFocused
-                                        |> Layout.subscriptions
+                                        |> Application.subscriptions
                                         |> List.member Subscription.OnKeyUp
                                         |> Expect.true "why are we not subscribed to keyups!?"
                             , test "Ctrl-Enter sends SaveComment msg" <|
@@ -1626,7 +1626,7 @@ all =
                                             ]
                             , describe "button loading state" <|
                                 let
-                                    givenCommentSavingInProgress : Layout.Model
+                                    givenCommentSavingInProgress : Application.Model
                                     givenCommentSavingInProgress =
                                         init
                                             |> givenUserIsAuthorized
@@ -1636,7 +1636,7 @@ all =
                                                 (Resource.Msgs.SaveComment "foo")
                                             |> Tuple.first
 
-                                    viewButton : Layout.Model -> Query.Single Msgs.Msg
+                                    viewButton : Application.Model -> Query.Single Msgs.Msg
                                     viewButton =
                                         commentBar
                                             >> Query.find [ tag "button" ]
@@ -2332,7 +2332,7 @@ all =
                         >> Query.find [ id "pagination" ]
                         >> Query.children []
                         >> Query.index 0
-                , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "white left chevron"
                     , selector =
@@ -2413,7 +2413,7 @@ all =
                                 UserStateUnknown ->
                                     ( Effects.Layout, EmptyCallback )
                     in
-                    uncurry Layout.handleCallback callback
+                    uncurry Application.handleCallback callback
                         >> Tuple.first
                         >> queryView
                         >> Query.find [ class "resource-check-status" ]
@@ -2488,7 +2488,7 @@ all =
                                        ]
                             ]
                         }
-                    , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                    , updateFunc = \msg -> Application.update msg >> Tuple.first
                     }
                 , test "clicking check button sends Check msg" <|
                     \_ ->
@@ -2585,7 +2585,7 @@ all =
                                        ]
                             ]
                         }
-                    , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                    , updateFunc = \msg -> Application.update msg >> Tuple.first
                     }
                 , test "clicking check button sends Check msg" <|
                     \_ ->
@@ -2615,7 +2615,7 @@ all =
                                 ]
                 , describe "while check in progress" <|
                     let
-                        givenCheckInProgress : Layout.Model -> Layout.Model
+                        givenCheckInProgress : Application.Model -> Application.Model
                         givenCheckInProgress =
                             givenResourceIsNotPinned
                                 >> givenUserIsAuthorized
@@ -2713,7 +2713,7 @@ all =
                                            ]
                                 ]
                             }
-                        , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                        , updateFunc = \msg -> Application.update msg >> Tuple.first
                         }
                     ]
                 , test "when check resolves successfully, status is check" <|
@@ -2922,7 +2922,7 @@ all =
                                        ]
                             ]
                         }
-                    , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                    , updateFunc = \msg -> Application.update msg >> Tuple.first
                     }
                 , test "clicking check button does nothing" <|
                     \_ ->
@@ -2970,9 +2970,9 @@ all =
         ]
 
 
-init : Layout.Model
+init : Application.Model
 init =
-    Layout.init
+    Application.init
         { turbulenceImgSrc = ""
         , notFoundImgSrc = ""
         , csrfToken = "csrf_token"
@@ -3002,18 +3002,18 @@ init =
 
 update :
     Resource.Msgs.Msg
-    -> Layout.Model
-    -> ( Layout.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
+    -> Application.Model
+    -> ( Application.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
 update =
-    resourceMsg >> Layout.update
+    resourceMsg >> Application.update
 
 
 handleCallback :
     Callback.Callback
-    -> Layout.Model
-    -> ( Layout.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
+    -> Application.Model
+    -> ( Application.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
 handleCallback =
-    Layout.handleCallback (Effects.SubPage 1)
+    Application.handleCallback (Effects.SubPage 1)
 
 
 resourceMsg : Resource.Msgs.Msg -> Msgs.Msg
@@ -3021,9 +3021,9 @@ resourceMsg =
     SubPage.Msgs.ResourceMsg >> Msgs.SubMsg 1
 
 
-givenUserIsAuthorized : Layout.Model -> Layout.Model
+givenUserIsAuthorized : Application.Model -> Application.Model
 givenUserIsAuthorized =
-    Layout.handleCallback
+    Application.handleCallback
         Effects.Layout
         (Callback.UserFetched <|
             Ok
@@ -3040,7 +3040,7 @@ givenUserIsAuthorized =
         >> Tuple.first
 
 
-givenResourcePinnedStatically : Layout.Model -> Layout.Model
+givenResourcePinnedStatically : Application.Model -> Application.Model
 givenResourcePinnedStatically =
     handleCallback
         (Callback.ResourceFetched <|
@@ -3060,7 +3060,7 @@ givenResourcePinnedStatically =
         >> Tuple.first
 
 
-givenResourcePinnedDynamically : Layout.Model -> Layout.Model
+givenResourcePinnedDynamically : Application.Model -> Application.Model
 givenResourcePinnedDynamically =
     handleCallback
         (Callback.ResourceFetched <|
@@ -3080,7 +3080,7 @@ givenResourcePinnedDynamically =
         >> Tuple.first
 
 
-givenResourcePinnedWithComment : Layout.Model -> Layout.Model
+givenResourcePinnedWithComment : Application.Model -> Application.Model
 givenResourcePinnedWithComment =
     handleCallback
         (Callback.ResourceFetched <|
@@ -3101,7 +3101,7 @@ givenResourcePinnedWithComment =
         >> Tuple.first
 
 
-givenResourceIsNotPinned : Layout.Model -> Layout.Model
+givenResourceIsNotPinned : Application.Model -> Application.Model
 givenResourceIsNotPinned =
     handleCallback
         (Callback.ResourceFetched <|
@@ -3121,43 +3121,43 @@ givenResourceIsNotPinned =
         >> Tuple.first
 
 
-queryView : Layout.Model -> Query.Single Msgs.Msg
+queryView : Application.Model -> Query.Single Msgs.Msg
 queryView =
-    Layout.view
+    Application.view
         >> Query.fromHtml
 
 
-togglePinBarTooltip : Layout.Model -> Layout.Model
+togglePinBarTooltip : Application.Model -> Application.Model
 togglePinBarTooltip =
     update Resource.Msgs.TogglePinBarTooltip
         >> Tuple.first
 
 
-toggleVersionTooltip : Layout.Model -> Layout.Model
+toggleVersionTooltip : Application.Model -> Application.Model
 toggleVersionTooltip =
     update Resource.Msgs.ToggleVersionTooltip
         >> Tuple.first
 
 
-clickToPin : Models.VersionId -> Layout.Model -> Layout.Model
+clickToPin : Models.VersionId -> Application.Model -> Application.Model
 clickToPin versionID =
     update (Resource.Msgs.PinVersion versionID)
         >> Tuple.first
 
 
-clickToUnpin : Layout.Model -> Layout.Model
+clickToUnpin : Application.Model -> Application.Model
 clickToUnpin =
     update Resource.Msgs.UnpinVersion
         >> Tuple.first
 
 
-clickToDisable : Models.VersionId -> Layout.Model -> Layout.Model
+clickToDisable : Models.VersionId -> Application.Model -> Application.Model
 clickToDisable versionID =
     update (Resource.Msgs.ToggleVersion Models.Disable versionID)
         >> Tuple.first
 
 
-givenVersionsWithoutPagination : Layout.Model -> Layout.Model
+givenVersionsWithoutPagination : Application.Model -> Application.Model
 givenVersionsWithoutPagination =
     handleCallback
         (Callback.VersionedResourcesFetched <|
@@ -3190,7 +3190,7 @@ givenVersionsWithoutPagination =
         >> Tuple.first
 
 
-givenVersionsWithPagination : Layout.Model -> Layout.Model
+givenVersionsWithPagination : Application.Model -> Application.Model
 givenVersionsWithPagination =
     handleCallback
         (Callback.VersionedResourcesFetched <|
@@ -3231,47 +3231,47 @@ givenVersionsWithPagination =
         >> Tuple.first
 
 
-givenTextareaFocused : Layout.Model -> Layout.Model
+givenTextareaFocused : Application.Model -> Application.Model
 givenTextareaFocused =
     update Resource.Msgs.FocusTextArea
         >> Tuple.first
 
 
-givenTextareaBlurred : Layout.Model -> Layout.Model
+givenTextareaBlurred : Application.Model -> Application.Model
 givenTextareaBlurred =
     update Resource.Msgs.BlurTextArea
         >> Tuple.first
 
 
-givenControlKeyDown : Layout.Model -> Layout.Model
+givenControlKeyDown : Application.Model -> Application.Model
 givenControlKeyDown =
-    Layout.update (Msgs.KeyDown 17)
+    Application.update (Msgs.KeyDown 17)
         >> Tuple.first
 
 
-givenLeftCommandKeyDown : Layout.Model -> Layout.Model
+givenLeftCommandKeyDown : Application.Model -> Application.Model
 givenLeftCommandKeyDown =
-    Layout.update (Msgs.KeyDown 91)
+    Application.update (Msgs.KeyDown 91)
         >> Tuple.first
 
 
-givenRightCommandKeyDown : Layout.Model -> Layout.Model
+givenRightCommandKeyDown : Application.Model -> Application.Model
 givenRightCommandKeyDown =
-    Layout.update (Msgs.KeyDown 93)
+    Application.update (Msgs.KeyDown 93)
         >> Tuple.first
 
 
-givenControlKeyUp : Layout.Model -> Layout.Model
+givenControlKeyUp : Application.Model -> Application.Model
 givenControlKeyUp =
-    Layout.update (Msgs.KeyUp 17)
+    Application.update (Msgs.KeyUp 17)
         >> Tuple.first
 
 
 pressEnterKey :
-    Layout.Model
-    -> ( Layout.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
+    Application.Model
+    -> ( Application.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
 pressEnterKey =
-    Layout.update (Msgs.KeyDown 13)
+    Application.update (Msgs.KeyDown 13)
 
 
 versionSelector : String -> List Selector

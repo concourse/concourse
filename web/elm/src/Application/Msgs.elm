@@ -1,4 +1,4 @@
-module Msgs exposing (Msg(..), NavIndex)
+module Application.Msgs exposing (Msg(..), NavIndex)
 
 import Callback exposing (Callback)
 import Effects

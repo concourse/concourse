@@ -1,19 +1,19 @@
 module Main exposing (main)
 
+import Application.Application as Application
+import Application.Msgs as Msgs
 import Effects
-import Layout
-import Msgs
 import Navigation
 import Subscription
 
 
-main : Program Layout.Flags Layout.Model Msgs.Msg
+main : Program Application.Flags Application.Model Msgs.Msg
 main =
-    Navigation.programWithFlags Layout.locationMsg
-        { init = \flags -> Layout.init flags >> Tuple.mapSecond effectsToCmd
-        , update = \msg -> Layout.update msg >> Tuple.mapSecond effectsToCmd
-        , view = Layout.view
-        , subscriptions = Layout.subscriptions >> subscriptionsToSub
+    Navigation.programWithFlags Application.locationMsg
+        { init = \flags -> Application.init flags >> Tuple.mapSecond effectsToCmd
+        , update = \msg -> Application.update msg >> Tuple.mapSecond effectsToCmd
+        , view = Application.view
+        , subscriptions = Application.subscriptions >> subscriptionsToSub
         }
 
 

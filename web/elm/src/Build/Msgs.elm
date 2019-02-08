@@ -4,7 +4,7 @@ import Array
 import Build.Models exposing (BuildEvent, Hoverable)
 import Concourse
 import Keyboard
-import NewTopBar.Msgs
+import TopBar.Msgs
 import Routes exposing (StepID)
 import Scroll
 import StrictEvents
@@ -30,7 +30,7 @@ type Msg
     | SetHighlight String Int
     | ExtendHighlight String Int
     | ScrollDown
-    | FromTopBar NewTopBar.Msgs.Msg
+    | FromTopBar TopBar.Msgs.Msg
 
 
 type EventsMsg
@@ -39,14 +39,14 @@ type EventsMsg
     | Events (Result String (Array.Array BuildEvent))
 
 
-fromBuildMessage : Msg -> NewTopBar.Msgs.Msg
+fromBuildMessage : Msg -> TopBar.Msgs.Msg
 fromBuildMessage msg =
     case msg of
         KeyPressed k ->
-            NewTopBar.Msgs.KeyPressed k
+            TopBar.Msgs.KeyPressed k
 
         FromTopBar m ->
             m
 
         _ ->
-            NewTopBar.Msgs.Noop
+            TopBar.Msgs.Noop

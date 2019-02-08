@@ -1,4 +1,4 @@
-module NewTopBar.Msgs exposing (Msg(..))
+module TopBar.Msgs exposing (Msg(..))
 
 import Keyboard
 import Routes

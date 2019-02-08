@@ -1,13 +1,13 @@
 module FlySuccessTests exposing (all)
 
+import Application.Application as Application
+import Application.Msgs as Msgs
 import Callback exposing (Callback(..))
 import DashboardTests exposing (defineHoverBehaviour, iconSelector)
 import Effects
 import Expect exposing (Expectation)
 import FlySuccess.Msgs
 import Html.Attributes as Attr
-import Layout
-import Msgs
 import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -58,7 +58,7 @@ authToken =
 
 
 type alias SetupSteps =
-    () -> Layout.Model
+    () -> Application.Model
 
 
 type alias Setup =
@@ -84,7 +84,7 @@ whenOnFlySuccessPage : Setup
 whenOnFlySuccessPage =
     setup "when on fly success page"
         (\_ ->
-            Layout.init
+            Application.init
                 { turbulenceImgSrc = ""
                 , notFoundImgSrc = ""
                 , csrfToken = ""
@@ -111,7 +111,7 @@ invalidFlyPort : Setup
 invalidFlyPort =
     setup "with invalid fly port"
         (\_ ->
-            Layout.init
+            Application.init
                 { turbulenceImgSrc = ""
                 , notFoundImgSrc = ""
                 , csrfToken = ""
@@ -138,7 +138,7 @@ tokenSendSuccess : Setup
 tokenSendSuccess =
     setup "when token successfully sent to fly"
         (steps whenOnFlySuccessPage
-            >> Layout.handleCallback
+            >> Application.handleCallback
                 (Effects.SubPage 1)
                 (TokenSentToFly True)
             >> Tuple.first
@@ -149,7 +149,7 @@ tokenSendFailed : Setup
 tokenSendFailed =
     setup "when token failed to send to fly"
         (steps whenOnFlySuccessPage
-            >> Layout.handleCallback
+            >> Application.handleCallback
                 (Effects.SubPage 1)
                 (TokenSentToFly False)
             >> Tuple.first
@@ -160,7 +160,7 @@ tokenCopied : Setup
 tokenCopied =
     setup "when token copied to clipboard"
         (steps tokenSendFailed
-            >> Layout.update
+            >> Application.update
                 (Msgs.SubMsg 1 <|
                     SubPage.Msgs.FlySuccessMsg <|
                         FlySuccess.Msgs.CopyToken
@@ -183,19 +183,19 @@ allCases =
 
 
 type alias Query =
-    Layout.Model -> Query.Single Msgs.Msg
+    Application.Model -> Query.Single Msgs.Msg
 
 
 topBar : Query
 topBar =
-    Layout.view
+    Application.view
         >> Query.fromHtml
         >> Query.find [ id "top-bar-app" ]
 
 
 successCard : Query
 successCard =
-    Layout.view
+    Application.view
         >> Query.fromHtml
         >> Query.find [ id "success-card" ]
 
@@ -665,7 +665,7 @@ all =
                 { name = "copy token button"
                 , setup = steps tokenSendFailed ()
                 , query = button
-                , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description =
                         "same background as card"

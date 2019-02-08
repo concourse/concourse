@@ -29,7 +29,7 @@ import Concourse.BuildStatus
 import Date exposing (Date)
 import Dict exposing (Dict)
 import Effects exposing (Effect(..))
-import EventSource
+import EventSource.EventSource as EventSource
 import Html exposing (Html)
 import Html.Attributes
     exposing

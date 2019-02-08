@@ -1,4 +1,4 @@
-module Build exposing
+module Build.Build exposing
     ( changeToBuild
     , getScrollBehavior
     , getUpdateMessage
@@ -52,9 +52,6 @@ import Html.Styled as HS
 import Http
 import LoadingIndicator
 import Maybe.Extra
-import NewTopBar.Model
-import NewTopBar.Styles
-import NewestTopBar
 import RemoteData exposing (WebData)
 import Routes
 import Spinner
@@ -62,6 +59,9 @@ import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
 import Subscription exposing (Subscription(..))
 import Time exposing (Time)
+import TopBar.Model
+import TopBar.Styles
+import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
 import Views
@@ -98,7 +98,7 @@ init flags =
                     Routes.Build { id = buildId, highlight = flags.highlight }
 
         ( topBar, topBarEffects ) =
-            NewestTopBar.init { route = route }
+            TopBar.init { route = route }
 
         ( model, effects ) =
             changeToBuild
@@ -203,7 +203,7 @@ handleCallback : Callback -> Model -> ( Model, List Effect )
 handleCallback msg model =
     let
         ( newTopBar, topBarEffects ) =
-            NewestTopBar.handleCallback msg model.topBar
+            TopBar.handleCallback msg model.topBar
 
         ( newModel, dashboardEffects ) =
             handleCallbackWithoutTopBar msg model
@@ -278,7 +278,7 @@ update : Msg -> Model -> ( Model, List Effect )
 update msg model =
     let
         ( newTopBar, topBarEffects ) =
-            NewestTopBar.update (fromBuildMessage msg) model.topBar
+            TopBar.update (fromBuildMessage msg) model.topBar
 
         ( newModel, dashboardEffects ) =
             updateWithoutTopBar msg model
@@ -715,9 +715,9 @@ view : UserState -> Model -> Html Msg
 view userState model =
     Html.div []
         [ Html.div
-            [ style NewTopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ NewestTopBar.view userState NewTopBar.Model.None model.topBar |> HS.toUnstyled |> Html.map FromTopBar
-            , Html.div [ id "page-below-top-bar", style NewTopBar.Styles.pipelinePageBelowTopBar ] [ viewBuildPage model ]
+            [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
+            [ TopBar.view userState TopBar.Model.None model.topBar |> HS.toUnstyled |> Html.map FromTopBar
+            , Html.div [ id "page-below-top-bar", style TopBar.Styles.pipelinePageBelowTopBar ] [ viewBuildPage model ]
             ]
         ]
 

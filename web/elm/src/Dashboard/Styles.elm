@@ -34,11 +34,11 @@ module Dashboard.Styles exposing
     , welcomeCardTitle
     )
 
+import Application.Styles
 import Colors
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import ScreenSize
-import Styles
 
 
 statusColor : PipelineStatus -> String
@@ -512,4 +512,4 @@ asciiArt =
     , ( "color", Colors.asciiArt )
     , ( "z-index", "1" )
     ]
-        ++ Styles.disableInteraction
+        ++ Application.Styles.disableInteraction

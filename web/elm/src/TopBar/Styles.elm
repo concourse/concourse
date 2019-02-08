@@ -1,4 +1,4 @@
-module NewTopBar.Styles exposing
+module TopBar.Styles exposing
     ( breadcrumbComponent
     , breadcrumbContainer
     , breadcrumbItem

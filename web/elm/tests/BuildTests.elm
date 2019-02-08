@@ -1,7 +1,9 @@
 module BuildTests exposing (all)
 
+import Application.Application as Application
+import Application.Msgs as Msgs
 import Array
-import Build
+import Build.Build as Build
 import Build.Models as Models
 import Build.Msgs
 import Callback
@@ -17,8 +19,6 @@ import Dict
 import Effects
 import Expect
 import Html.Attributes as Attr
-import Layout
-import Msgs
 import Routes
 import SubPage.Msgs
 import Test exposing (..)
@@ -159,7 +159,7 @@ all =
         in
         [ test "converts URL hash to highlighted line in view" <|
             \_ ->
-                Layout.init
+                Application.init
                     { turbulenceImgSrc = ""
                     , notFoundImgSrc = ""
                     , csrfToken = ""
@@ -179,7 +179,7 @@ all =
                     , password = ""
                     }
                     |> Tuple.first
-                    |> Layout.handleCallback
+                    |> Application.handleCallback
                         (Effects.SubPage 1)
                         (Callback.BuildFetched <|
                             Ok
@@ -197,7 +197,7 @@ all =
                                 )
                         )
                     |> Tuple.first
-                    |> Layout.handleCallback
+                    |> Application.handleCallback
                         (Effects.SubPage 1)
                         (Callback.PlanAndResourcesFetched 307 <|
                             Ok <|
@@ -210,14 +210,14 @@ all =
                                 )
                         )
                     |> Tuple.first
-                    |> Layout.update
+                    |> Application.update
                         (Msgs.SubMsg 1
                             (SubPage.Msgs.BuildMsg
                                 (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
                             )
                         )
                     |> Tuple.first
-                    |> Layout.update
+                    |> Application.update
                         (Msgs.SubMsg 1
                             (SubPage.Msgs.BuildMsg
                                 (Build.Msgs.BuildEventsMsg <|
@@ -239,7 +239,7 @@ all =
                             )
                         )
                     |> Tuple.first
-                    |> Layout.view
+                    |> Application.view
                     |> Query.fromHtml
                     |> Query.find
                         [ class "timestamped-line"
@@ -248,7 +248,7 @@ all =
                     |> Query.has [ class "highlighted-line" ]
         , test "pressing 'T' twice triggers two builds" <|
             \_ ->
-                Layout.init
+                Application.init
                     { turbulenceImgSrc = ""
                     , notFoundImgSrc = ""
                     , csrfToken = "csrf_token"
@@ -268,7 +268,7 @@ all =
                     , password = ""
                     }
                     |> Tuple.first
-                    |> Layout.handleCallback
+                    |> Application.handleCallback
                         (Effects.SubPage 1)
                         (Callback.BuildFetched <|
                             Ok
@@ -291,7 +291,7 @@ all =
                                 )
                         )
                     |> Tuple.first
-                    |> Layout.handleCallback
+                    |> Application.handleCallback
                         (Effects.SubPage 1)
                         (Callback.BuildJobDetailsFetched <|
                             Ok
@@ -313,16 +313,16 @@ all =
                                 }
                         )
                     |> Tuple.first
-                    |> Layout.update
+                    |> Application.update
                         (Msgs.SubMsg 1 <|
                             SubPage.Msgs.BuildMsg <|
                                 Build.Msgs.KeyPressed <|
                                     Char.toCode 'T'
                         )
                     |> Tuple.first
-                    |> Layout.update (Msgs.KeyUp <| Char.toCode 'T')
+                    |> Application.update (Msgs.KeyUp <| Char.toCode 'T')
                     |> Tuple.first
-                    |> Layout.update
+                    |> Application.update
                         (Msgs.SubMsg 1 <|
                             SubPage.Msgs.BuildMsg <|
                                 Build.Msgs.KeyPressed <|

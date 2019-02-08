@@ -1,4 +1,4 @@
-module Resource exposing
+module Resource.Resource exposing
     ( Flags
     , changeToResource
     , getUpdateMessage
@@ -62,9 +62,6 @@ import Http
 import Keycodes
 import List.Extra
 import Maybe.Extra as ME
-import NewTopBar.Model
-import NewTopBar.Styles
-import NewestTopBar
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import Resource.Models as Models exposing (Model)
 import Resource.Msgs exposing (Msg(..))
@@ -74,6 +71,9 @@ import Spinner
 import StrictEvents
 import Subscription exposing (Subscription(..))
 import Time exposing (Time)
+import TopBar.Model
+import TopBar.Styles
+import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState(..))
 
@@ -89,7 +89,7 @@ init : Flags -> ( Model, List Effect )
 init flags =
     let
         ( topBar, topBarEffects ) =
-            NewestTopBar.init { route = Routes.Resource { id = flags.resourceId, page = Nothing } }
+            TopBar.init { route = Routes.Resource { id = flags.resourceId, page = Nothing } }
 
         model =
             { resourceIdentifier = flags.resourceId
@@ -206,7 +206,7 @@ handleCallback : Callback -> Model -> ( Model, List Effect )
 handleCallback msg model =
     let
         ( newTopBar, topBarEffects ) =
-            NewestTopBar.handleCallback msg model.topBar
+            TopBar.handleCallback msg model.topBar
 
         ( newModel, dashboardEffects ) =
             handleCallbackWithoutTopBar msg model
@@ -621,7 +621,7 @@ update action model =
         TopBarMsg msg ->
             let
                 ( newTopBar, effects ) =
-                    NewestTopBar.update msg model.topBar
+                    TopBar.update msg model.topBar
             in
             ( { model | topBar = newTopBar }, effects )
 
@@ -723,9 +723,9 @@ view : UserState -> Model -> Html Msg
 view userState model =
     Html.div []
         [ Html.div
-            [ style NewTopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map TopBarMsg <| NewestTopBar.view userState NewTopBar.Model.None model.topBar
-            , Html.div [ id "page-below-top-bar", style NewTopBar.Styles.pageBelowTopBar ]
+            [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
+            [ Html.map TopBarMsg <| TopBar.view userState TopBar.Model.None model.topBar
+            , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ subpageView userState model
                 , commentBar userState model
                 ]
@@ -763,7 +763,7 @@ header model =
         [ css
             [ Css.height <| Css.px headerHeight
             , Css.position Css.fixed
-            , Css.top <| Css.px NewTopBar.Styles.pageHeaderHeight
+            , Css.top <| Css.px TopBar.Styles.pageHeaderHeight
             , Css.displayFlex
             , Css.alignItems Css.stretch
             , Css.width <| Css.pct 100
