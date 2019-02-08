@@ -917,6 +917,16 @@ all =
                                    ]
                             )
                        ]
+                    ++ [ context "after an ESC keypress"
+                            (NewestTopBar.update (Msgs.KeyDown 27)
+                                >> Tuple.first
+                            )
+                            [ it "should not have any dropdown children anymore" <|
+                                viewNormally
+                                    >> Query.findAll [ id "search-dropdown" ]
+                                    >> Query.count (Expect.equal 0)
+                            ]
+                       ]
                 )
             , context "after receiving FocusMsg and then BlurMsg"
                 (NewestTopBar.update Msgs.FocusMsg
