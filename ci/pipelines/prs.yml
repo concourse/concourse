@@ -10,6 +10,11 @@ resource_types:
 
 
 resources:
+- name: concourse-master
+  type: git
+  source:
+    repository: https://github.com/concourse/concourse.git
+
 - name: concourse-pr
   type: pull-request
   source:
@@ -49,6 +54,8 @@ jobs:
     trigger: true
     version: every
     tags: [pr]
+  - get: concourse-master
+    tags: [pr]
   - put: concourse-pr
     inputs: [concourse-pr]
     params: {path: concourse-pr, status: pending, context: unit}
@@ -61,6 +68,10 @@ jobs:
     timeout: 1h
     file: concourse-pr/ci/tasks/unit.yml
     input_mapping: {concourse: built-concourse}
+    tags: [pr]
+  - task: check-migration-order
+    timeout: 5m
+    file: concourse-pr/ci/tasks/check-migration-order.yml
     tags: [pr]
 
 - name: testflight
