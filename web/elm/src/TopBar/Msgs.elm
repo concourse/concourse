@@ -1,6 +1,7 @@
 module TopBar.Msgs exposing (Msg(..))
 
 import Concourse
+import Routes
 import Time
 
 
@@ -9,7 +10,7 @@ type Msg
     | FetchPipeline Concourse.PipelineIdentifier
     | LogOut
     | LogIn
-    | ResetToPipeline String
+    | ResetToPipeline Routes.Route
     | ToggleUserMenu
     | TogglePinIconDropdown
-    | GoToPinnedResource String
+    | GoToPinnedResource Routes.Route

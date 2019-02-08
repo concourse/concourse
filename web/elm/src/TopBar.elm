@@ -88,7 +88,7 @@ handleCallback callback model =
                 | userState = UserStateLoggedOut
                 , pipeline = Nothing
               }
-            , [ NavigateTo "/" ]
+            , [ NavigateTo <| Routes.toString <| Routes.dashboardRoute False ]
             )
 
         LoggedOut (Err err) ->
@@ -114,8 +114,8 @@ update msg model =
         LogOut ->
             ( model, [ SendLogOutRequest ] )
 
-        ResetToPipeline url ->
-            ( model, [ NavigateTo url, ResetPipelineFocus ] )
+        ResetToPipeline route ->
+            ( model, [ NavigateTo <| Routes.toString route, ResetPipelineFocus ] )
 
         ToggleUserMenu ->
             ( { model | userMenuVisible = not model.userMenuVisible }, [] )
@@ -123,12 +123,8 @@ update msg model =
         TogglePinIconDropdown ->
             ( { model | showPinIconDropDown = not model.showPinIconDropDown }, [] )
 
-        GoToPinnedResource resourceName ->
-            let
-                url =
-                    Routes.toString model.route
-            in
-            ( model, [ NavigateTo (url ++ "/resources/" ++ resourceName) ] )
+        GoToPinnedResource route ->
+            ( model, [ NavigateTo <| Routes.toString route ] )
 
 
 subscriptions : Model r -> List (Subscription Msg)
@@ -247,7 +243,7 @@ view model =
                 ]
             ]
             ((case model.route of
-                Routes.Pipeline _ _ _ ->
+                Routes.Pipeline teamName pipelineName _ ->
                     [ Html.div
                         ([ style
                             [ ( "margin-right", "15px" )
@@ -331,7 +327,9 @@ view model =
                                                     |> List.map
                                                         (\( resourceName, pinnedVersion ) ->
                                                             Html.li
-                                                                [ onClick (GoToPinnedResource resourceName)
+                                                                [ onClick <|
+                                                                    GoToPinnedResource <|
+                                                                        Routes.Resource teamName pipelineName resourceName Nothing
                                                                 , style
                                                                     [ ( "cursor", "pointer" )
                                                                     ]
@@ -450,14 +448,10 @@ cssBreadcrumbContainer =
 
 viewBreadcrumbPipeline : String -> Routes.Route -> Html Msg
 viewBreadcrumbPipeline pipelineName route =
-    let
-        url =
-            Routes.toString route
-    in
     Html.li [ style cssBreadcrumbContainer ]
         [ Html.a
-            [ StrictEvents.onLeftClick <| ResetToPipeline url
-            , href url
+            [ StrictEvents.onLeftClick <| ResetToPipeline route
+            , href <| Routes.toString route
             ]
           <|
             viewBreadcrumbsComponent "pipeline" pipelineName

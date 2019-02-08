@@ -15,14 +15,12 @@ import Ansi.Log
 import Array exposing (Array)
 import Build.Models
     exposing
-        ( Highlight(..)
-        , HookedStep
+        ( HookedStep
         , Hoverable(..)
         , MetadataField
         , Step
         , StepFocus
         , StepHeaderType(..)
-        , StepID
         , StepName
         , StepState(..)
         , StepTree(..)
@@ -42,7 +40,7 @@ import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style)
 import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
-import Routes exposing (showHighlight)
+import Routes exposing (Highlight(..), StepID, showHighlight)
 import Spinner
 import StrictEvents
 

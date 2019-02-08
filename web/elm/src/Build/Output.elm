@@ -15,7 +15,6 @@ import Build.Models
         ( BuildEvent(..)
         , OutputModel
         , OutputState(..)
-        , StepID
         , StepState(..)
         , StepTree
         , StepTreeModel
@@ -44,7 +43,8 @@ import Html.Attributes
 import Http
 import LoadingIndicator
 import NotAuthorized
-import Subscription
+import Routes exposing (StepID)
+import Subscription exposing (Subscription(..))
 
 
 type OutMsg
@@ -53,7 +53,7 @@ type OutMsg
 
 
 type alias Flags =
-    { highlight : Build.Models.Highlight }
+    { highlight : Routes.Highlight }
 
 
 init : Flags -> Concourse.Build -> ( OutputModel, List Effect )

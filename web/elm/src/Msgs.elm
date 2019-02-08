@@ -17,8 +17,12 @@ type Msg
     | SubMsg NavIndex SubPage.Msgs.Msg
     | TopMsg NavIndex TopBar.Msgs.Msg
     | NewUrl String
-    | ModifyUrl String
+    | ModifyUrl Routes.Route
     | TokenReceived (Maybe String)
     | Callback Effects.LayoutDispatch Callback
     | KeyDown Keyboard.KeyCode
     | KeyUp Keyboard.KeyCode
+
+
+
+-- NewUrl must be a String because of the subscriptions, and nasty type-contravariance. :(

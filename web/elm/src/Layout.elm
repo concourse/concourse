@@ -118,7 +118,7 @@ init flags location =
                 []
 
             else
-                [ ( Layout, Effects.ModifyUrl (Routes.toString route) ) ]
+                [ ( Layout, Effects.ModifyUrl <| Routes.toString route ) ]
     in
     ( model
     , [ handleTokenEffect ]
@@ -238,11 +238,11 @@ handleCallback disp callback model =
 update : Msg -> Model -> ( Model, List ( LayoutDispatch, Effect ) )
 update msg model =
     case msg of
-        NewUrl url ->
-            ( model, [ ( Layout, NavigateTo url ) ] )
+        NewUrl route ->
+            ( model, [ ( Layout, NavigateTo route ) ] )
 
-        Msgs.ModifyUrl url ->
-            ( model, [ ( Layout, Effects.ModifyUrl url ) ] )
+        Msgs.ModifyUrl route ->
+            ( model, [ ( Layout, Effects.ModifyUrl <| Routes.toString route ) ] )
 
         RouteChanged route ->
             urlUpdate route model

@@ -1,6 +1,8 @@
 module Routes exposing
-    ( Route(..)
+    ( Highlight(..)
+    , Route(..)
     , SearchType(..)
+    , StepID
     , buildRoute
     , dashboardRoute
     , jobRoute
@@ -11,7 +13,6 @@ module Routes exposing
     , tokenToFlyRoute
     )
 
-import Build.Models exposing (Highlight(..))
 import Concourse
 import Concourse.Pagination as Pagination exposing (Direction(..))
 import Navigation exposing (Location)
@@ -44,6 +45,16 @@ type Route
 type SearchType
     = HighDensity
     | Normal (Maybe String)
+
+
+type Highlight
+    = HighlightNothing
+    | HighlightLine StepID Int
+    | HighlightRange StepID Int Int
+
+
+type alias StepID =
+    String
 
 
 
@@ -141,35 +152,33 @@ flySuccess =
 -- route utils
 
 
-buildRoute : Concourse.Build -> String
+buildRoute : Concourse.Build -> Route
 buildRoute build =
     case build.job of
         Just j ->
             Build j.teamName j.pipelineName j.jobName build.name HighlightNothing
-                |> toString
 
         Nothing ->
             OneOffBuild (Basics.toString build.id) HighlightNothing
-                |> toString
 
 
-jobRoute : Concourse.Job -> String
+jobRoute : Concourse.Job -> Route
 jobRoute j =
-    Job j.teamName j.pipelineName j.name Nothing |> toString
+    Job j.teamName j.pipelineName j.name Nothing
 
 
-pipelineRoute : { a | name : String, teamName : String } -> String
+pipelineRoute : { a | name : String, teamName : String } -> Route
 pipelineRoute p =
-    Pipeline p.teamName p.name [] |> toString
+    Pipeline p.teamName p.name []
 
 
-dashboardRoute : Bool -> String
+dashboardRoute : Bool -> Route
 dashboardRoute isHd =
     if isHd then
-        Dashboard HighDensity |> toString
+        Dashboard HighDensity
 
     else
-        Dashboard (Normal Nothing) |> toString
+        Dashboard (Normal Nothing)
 
 
 showHighlight : Highlight -> String
