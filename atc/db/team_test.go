@@ -1964,29 +1964,6 @@ var _ = Describe("Team", func() {
 			Expect(found).To(BeFalse())
 		})
 
-		It("removes jobs that are inactive", func() {
-			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
-			Expect(err).ToNot(HaveOccurred())
-
-			job, _, err := pipeline.Job("some-job")
-			Expect(err).ToNot(HaveOccurred())
-
-			jobs := config.Jobs
-			config.Jobs = []atc.JobConfig{}
-
-			_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
-			Expect(err).ToNot(HaveOccurred())
-
-			config.Jobs = jobs
-
-			updatedAgainPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion()+1, db.PipelineNoChange)
-			Expect(err).ToNot(HaveOccurred())
-
-			newJob, _, err := updatedAgainPipeline.Job("some-job")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(job.ID()).ToNot(Equal(newJob.ID()))
-		})
-
 		Context("update job names but keeps history", func() {
 			BeforeEach(func() {
 				newJobConfig := atc.JobConfig{
@@ -2027,14 +2004,14 @@ var _ = Describe("Team", func() {
 				config.Jobs = append(config.Jobs, newJobConfig)
 			})
 
-			It("should handle when multiple there are multiple name changes", func() {
+			It("should handle when there are multiple name changes", func() {
 				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
 				Expect(err).ToNot(HaveOccurred())
 
 				job, _, _ := pipeline.Job("some-job")
 				otherJob, _, _ := pipeline.Job("new-job")
 
-				config.Jobs[0].Name = "some-other-job"
+				config.Jobs[0].Name = "new-job"
 				config.Jobs[0].OldName = "some-job"
 
 				config.Jobs[1].Name = "new-other-job"
@@ -2043,19 +2020,16 @@ var _ = Describe("Team", func() {
 				updatedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
 				Expect(err).ToNot(HaveOccurred())
 
-				updatedJob, _, _ := updatedPipeline.Job("some-other-job")
+				updatedJob, _, _ := updatedPipeline.Job("new-job")
 				Expect(updatedJob.ID()).To(Equal(job.ID()))
 
 				otherUpdatedJob, _, _ := updatedPipeline.Job("new-other-job")
 				Expect(otherUpdatedJob.ID()).To(Equal(otherJob.ID()))
 			})
 
-			It("should handle when there is a swap with job name", func() {
+			It("should return an error when there is a swap with job name", func() {
 				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
 				Expect(err).ToNot(HaveOccurred())
-
-				job, _, _ := pipeline.Job("some-job")
-				otherJob, _, _ := pipeline.Job("new-job")
 
 				config.Jobs[0].Name = "new-job"
 				config.Jobs[0].OldName = "some-job"
@@ -2063,25 +2037,26 @@ var _ = Describe("Team", func() {
 				config.Jobs[1].Name = "some-job"
 				config.Jobs[1].OldName = "new-job"
 
-				updatedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
-				Expect(err).ToNot(HaveOccurred())
-
-				updatedJob, _, _ := updatedPipeline.Job("new-job")
-				Expect(updatedJob.ID()).To(Equal(job.ID()))
-
-				otherUpdatedJob, _, _ := updatedPipeline.Job("some-job")
-				Expect(otherUpdatedJob.ID()).To(Equal(otherJob.ID()))
-			})
-
-			It("should error out when new name conflicts with other job names", func() {
-				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
-				Expect(err).ToNot(HaveOccurred())
-
-				config.Jobs[0].Name = "new-job"
-				config.Jobs[0].OldName = "some-job"
-
 				_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
 				Expect(err).To(HaveOccurred())
+			})
+
+			Context("when new job name is in database but is inactive", func() {
+				It("should successfully update job name", func() {
+					pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+					Expect(err).ToNot(HaveOccurred())
+
+					config.Jobs = config.Jobs[:len(config.Jobs)-1]
+
+					_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+					Expect(err).ToNot(HaveOccurred())
+
+					config.Jobs[0].Name = "new-job"
+					config.Jobs[0].OldName = "some-job"
+
+					_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion()+1, db.PipelineNoChange)
+					Expect(err).ToNot(HaveOccurred())
+				})
 			})
 		})
 
