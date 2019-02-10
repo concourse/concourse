@@ -24,7 +24,7 @@ new_on_pr=$(comm -13 "$migrations_on_master" "$actual_pr_migrations")
 
 expected_pr_migrations=$(mktemp)
 sort -n "$migrations_on_master" >> "$expected_pr_migrations"
-echo "$new_on_pr" >> "$expected_pr_migrations"
+echo -n "$new_on_pr" >> "$expected_pr_migrations"
 
 # we use `-n` here and not above because comm requires its
 # inputs to be *lexically* sorted but our test is about
