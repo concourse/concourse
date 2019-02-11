@@ -461,10 +461,10 @@ page.
 	\codeblock{bash}{{{
 		concourse web \
 		  ... \
-		  --container-placement-strategy=least-build-containers
+		  --container-placement-strategy=fewest-build-containers
 	}}}
 
-	Options include \code{volume-locality}, \code{random} and \code{least-build-containers}.
+	Options include \code{volume-locality}, \code{random} and \code{fewest-build-containers}.
   Refer to \reference{container-placement-strategies} for a complete list of options and their descriptions.
 }
 

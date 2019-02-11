@@ -684,8 +684,8 @@
        With the \code{random} strategy, the ATC places \code{get}, \code{put} and \code{task} containers on any worker, ignoring any affinity.
       }
 
-     \define-table{least-build-containers}{
-       When using the \code{least-build-containers} strategy, the ATC places \code{get}, \code{put} and \code{task} containers on a worker which has the least containers. This ensures build containers are distributed equally across workers.
+     \define-table{fewest-build-containers}{
+       When using the \code{fewest-build-containers} strategy, the ATC places \code{get}, \code{put} and \code{task} containers on a worker which has the least containers. This ensures build containers are distributed equally across workers.
      }
 
      Refer to \reference{configuring-placement-strategies} for information on how to specify a particular strategy.
