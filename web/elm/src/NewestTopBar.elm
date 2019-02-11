@@ -113,7 +113,7 @@ handleCallback callback model =
                 | isUserMenuExpanded = False
                 , teams = RemoteData.Loading
               }
-            , [ NavigateTo redirectUrl ]
+            , [ NavigateTo <| Routes.toString redirectUrl ]
             )
 
         LoggedOut (Err err) ->

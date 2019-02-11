@@ -179,13 +179,10 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		fromVersion = currentVersion
 	}
 
-	reattempt := true
-	for reattempt {
-		reattempt = mustComplete
+	for {
 		lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(
 			logger,
 			interval,
-			mustComplete,
 		)
 		if err != nil {
 			lockLogger.Error("failed-to-get-lock", err, lager.Data{
@@ -197,15 +194,23 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 
 		if !acquired {
 			lockLogger.Debug("did-not-get-lock")
-			if mustComplete {
-				scanner.clock.Sleep(time.Second)
-				continue
-			} else {
-				return interval, ErrFailedToAcquireLock
-			}
+			scanner.clock.Sleep(time.Second)
+			continue
 		}
 
 		defer lock.Release()
+
+		updated, err := resourceConfigScope.UpdateLastChecked(interval, mustComplete)
+		if err != nil {
+			return interval, err
+		}
+
+		if !updated {
+			logger.Debug("interval-not-reached", lager.Data{
+				"interval": interval,
+			})
+			return interval, ErrFailedToAcquireLock
+		}
 
 		break
 	}

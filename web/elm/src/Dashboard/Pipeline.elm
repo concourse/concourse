@@ -53,7 +53,7 @@ hdPipelineView { pipeline, pipelineRunningKeyframes } =
         , attribute "data-team-name" pipeline.teamName
         , onMouseEnter <| TooltipHd pipeline.name pipeline.teamName
         , style <| Styles.pipelineCardHd pipeline.status
-        , href <| Routes.pipelineRoute pipeline
+        , href <| Routes.toString <| Routes.pipelineRoute pipeline
         ]
     <|
         [ Html.div
@@ -107,7 +107,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes } =
 headerView : Pipeline -> Html Msg
 headerView pipeline =
     Html.a
-        [ href <| Routes.pipelineRoute pipeline, draggable "false" ]
+        [ href <| Routes.toString <| Routes.pipelineRoute pipeline, draggable "false" ]
         [ Html.div
             [ class "card-header"
             , onMouseEnter <| Tooltip pipeline.name pipeline.teamName

@@ -15,11 +15,13 @@ import Dict
 import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
-import Html.Styled as HS
 import Http
-import Resource
+import Layout
+import Msgs
 import Resource.Models as Models
-import Resource.Msgs as Msgs
+import Resource.Msgs
+import SubPage.Msgs
+import Subscription
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -35,6 +37,11 @@ import Test.Html.Selector
         , text
         )
 import UserState exposing (UserState(..))
+
+
+commentButtonBlue : String
+commentButtonBlue =
+    "#196AC8"
 
 
 teamName : String
@@ -104,6 +111,11 @@ fadedBlackHex =
     "#1e1d1d80"
 
 
+almostWhiteHex : String
+almostWhiteHex =
+    "#e6e7e8"
+
+
 lightGreyHex : String
 lightGreyHex =
     "#3d3c3c"
@@ -138,10 +150,10 @@ all =
     describe "resource page"
         [ describe "when logging out" <|
             let
-                loggingOut : () -> ( Models.Model, List Effects.Effect )
+                loggingOut : () -> ( Layout.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
                 loggingOut _ =
                     init
-                        |> Resource.handleCallback
+                        |> handleCallback
                             (Callback.UserFetched <|
                                 Ok
                                     { id = "test"
@@ -155,7 +167,8 @@ all =
                                     }
                             )
                         |> Tuple.first
-                        |> Resource.handleCallback (Callback.LoggedOut (Ok ()))
+                        |> handleCallback
+                            (Callback.LoggedOut (Ok ()))
             in
             [ test "updates top bar state" <|
                 loggingOut
@@ -168,15 +181,16 @@ all =
             , test "redirects to dashboard" <|
                 loggingOut
                     >> Tuple.second
-                    >> Expect.equal [ Effects.NavigateTo "/" ]
+                    >> Expect.equal
+                        [ ( Effects.SubPage 1, Effects.NavigateTo "/" ) ]
             ]
         , test "autorefresh respects expanded state" <|
             \_ ->
                 init
                     |> givenResourceIsNotPinned
                     |> givenVersionsWithoutPagination
-                    |> Resource.update
-                        (Msgs.ExpandVersionedResource versionID)
+                    |> update
+                        (Resource.Msgs.ExpandVersionedResource versionID)
                     |> Tuple.first
                     |> givenVersionsWithoutPagination
                     |> queryView
@@ -187,10 +201,10 @@ all =
                 init
                     |> givenResourceIsNotPinned
                     |> givenVersionsWithoutPagination
-                    |> Resource.update
-                        (Msgs.ExpandVersionedResource versionID)
+                    |> update
+                        (Resource.Msgs.ExpandVersionedResource versionID)
                     |> Tuple.first
-                    |> Resource.handleCallback
+                    |> handleCallback
                         (Callback.InputToFetched
                             (Ok
                                 ( versionID
@@ -223,10 +237,10 @@ all =
                 init
                     |> givenResourceIsNotPinned
                     |> givenVersionsWithoutPagination
-                    |> Resource.update
-                        (Msgs.ExpandVersionedResource versionID)
+                    |> update
+                        (Resource.Msgs.ExpandVersionedResource versionID)
                     |> Tuple.first
-                    |> Resource.handleCallback
+                    |> handleCallback
                         (Callback.OutputOfFetched
                             (Ok
                                 ( versionID
@@ -321,7 +335,12 @@ all =
                         |> Query.find (versionSelector version)
                         |> Query.find checkboxSelector
                         |> Event.simulate Event.click
-                        |> Event.expect (Msgs.ToggleVersion Models.Disable versionID)
+                        |> Event.expect
+                            (resourceMsg <|
+                                Resource.Msgs.ToggleVersion
+                                    Models.Disable
+                                    versionID
+                            )
             , test "receiving a (ToggleVersion Disable) msg causes the relevant checkbox to go into a transition state" <|
                 \_ ->
                     init
@@ -349,7 +368,7 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
-                        |> Resource.handleCallback (Callback.VersionToggled Models.Disable versionID (Ok ()))
+                        |> handleCallback (Callback.VersionToggled Models.Disable versionID (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -360,7 +379,7 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
-                        |> Resource.handleCallback (Callback.VersionToggled Models.Disable versionID badResponse)
+                        |> handleCallback (Callback.VersionToggled Models.Disable versionID badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -375,14 +394,23 @@ all =
                         |> Query.find (versionSelector disabledVersion)
                         |> Query.find checkboxSelector
                         |> Event.simulate Event.click
-                        |> Event.expect (Msgs.ToggleVersion Models.Enable disabledVersionID)
+                        |> Event.expect
+                            (resourceMsg <|
+                                Resource.Msgs.ToggleVersion
+                                    Models.Enable
+                                    disabledVersionID
+                            )
             , test "receiving a (ToggleVersion Enable) msg causes the relevant checkbox to go into a transition state" <|
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
-                        |> Resource.update
-                            (Msgs.ToggleVersion Models.Enable disabledVersionID)
+                        |> Layout.update
+                            (resourceMsg <|
+                                Resource.Msgs.ToggleVersion
+                                    Models.Enable
+                                    disabledVersionID
+                            )
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
@@ -393,10 +421,19 @@ all =
                     init
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
-                        |> Resource.update
-                            (Msgs.ToggleVersion Models.Enable disabledVersionID)
+                        |> Layout.update
+                            (resourceMsg <|
+                                Resource.Msgs.ToggleVersion
+                                    Models.Enable
+                                    disabledVersionID
+                            )
                         |> Tuple.first
-                        |> Resource.handleCallback (Callback.VersionToggled Models.Enable disabledVersionID (Ok ()))
+                        |> handleCallback
+                            (Callback.VersionToggled
+                                Models.Enable
+                                disabledVersionID
+                                (Ok ())
+                            )
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
@@ -407,10 +444,19 @@ all =
                     init
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
-                        |> Resource.update
-                            (Msgs.ToggleVersion Models.Enable disabledVersionID)
+                        |> Layout.update
+                            (resourceMsg <|
+                                Resource.Msgs.ToggleVersion
+                                    Models.Enable
+                                    disabledVersionID
+                            )
                         |> Tuple.first
-                        |> Resource.handleCallback (Callback.VersionToggled Models.Enable disabledVersionID badResponse)
+                        |> handleCallback
+                            (Callback.VersionToggled
+                                Models.Enable
+                                disabledVersionID
+                                badResponse
+                            )
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
@@ -512,7 +558,8 @@ all =
                             |> queryView
                             |> Query.find [ id "pin-bar" ]
                             |> Event.simulate Event.mouseEnter
-                            |> Event.expect Msgs.TogglePinBarTooltip
+                            |> Event.expect
+                                (resourceMsg Resource.Msgs.TogglePinBarTooltip)
                 , test "TogglePinBarTooltip causes tooltip to appear" <|
                     \_ ->
                         init
@@ -577,7 +624,8 @@ all =
                             |> queryView
                             |> Query.find [ id "pin-bar" ]
                             |> Event.simulate Event.mouseLeave
-                            |> Event.expect Msgs.TogglePinBarTooltip
+                            |> Event.expect
+                                (resourceMsg Resource.Msgs.TogglePinBarTooltip)
                 , test "when mousing off pin bar, tooltip disappears" <|
                     \_ ->
                         init
@@ -605,7 +653,8 @@ all =
                             |> Query.find (versionSelector version)
                             |> Query.find pinButtonSelector
                             |> Event.simulate Event.mouseOver
-                            |> Event.expect Msgs.ToggleVersionTooltip
+                            |> Event.expect
+                                (resourceMsg Resource.Msgs.ToggleVersionTooltip)
                 , test "mousing over an unpinned version's pin button doesn't send any msg" <|
                     \_ ->
                         init
@@ -646,7 +695,8 @@ all =
                             |> Query.find (versionSelector version)
                             |> Query.find pinButtonSelector
                             |> Event.simulate Event.mouseOut
-                            |> Event.expect Msgs.ToggleVersionTooltip
+                            |> Event.expect
+                                (resourceMsg Resource.Msgs.ToggleVersionTooltip)
                 , test "mousing off an unpinned version's pin button doesn't send any msg" <|
                     \_ ->
                         init
@@ -700,7 +750,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> Resource.update Msgs.TogglePinBarTooltip
+                        |> update Resource.Msgs.TogglePinBarTooltip
                         |> Tuple.first
                         |> queryView
                         |> Query.hasNot pinBarTooltipSelector
@@ -718,7 +768,8 @@ all =
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
                         |> Event.simulate Event.click
-                        |> Event.expect Msgs.UnpinVersion
+                        |> Event.expect
+                            (resourceMsg Resource.Msgs.UnpinVersion)
             , test "mousing over pin icon triggers PinIconHover msg" <|
                 \_ ->
                     init
@@ -726,12 +777,13 @@ all =
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
                         |> Event.simulate Event.mouseEnter
-                        |> Event.expect (Msgs.PinIconHover True)
+                        |> Event.expect
+                            (resourceMsg <| Resource.Msgs.PinIconHover True)
             , test "TogglePinIconHover msg causes pin icon to have dark background" <|
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> Resource.update (Msgs.PinIconHover True)
+                        |> update (Resource.Msgs.PinIconHover True)
                         |> Tuple.first
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
@@ -740,19 +792,20 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> Resource.update (Msgs.PinIconHover True)
+                        |> update (Resource.Msgs.PinIconHover True)
                         |> Tuple.first
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
                         |> Event.simulate Event.mouseLeave
-                        |> Event.expect (Msgs.PinIconHover False)
+                        |> Event.expect
+                            (resourceMsg <| Resource.Msgs.PinIconHover False)
             , test "second TogglePinIconHover msg causes pin icon to have transparent background color" <|
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> Resource.update (Msgs.PinIconHover True)
+                        |> update (Resource.Msgs.PinIconHover True)
                         |> Tuple.first
-                        |> Resource.update (Msgs.PinIconHover False)
+                        |> update (Resource.Msgs.PinIconHover False)
                         |> Tuple.first
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
@@ -802,7 +855,7 @@ all =
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
                         |> Event.simulate Event.click
-                        |> Event.expect Msgs.UnpinVersion
+                        |> Event.expect (resourceMsg Resource.Msgs.UnpinVersion)
             , test "pin button on pinned version shows transition state when (UnpinVersion) is received" <|
                 \_ ->
                     init
@@ -830,7 +883,7 @@ all =
                         |> givenResourcePinnedDynamically
                         |> givenVersionsWithoutPagination
                         |> clickToUnpin
-                        |> Resource.handleCallback (Callback.VersionUnpinned (Ok ()))
+                        |> handleCallback (Callback.VersionUnpinned (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasUnpinnedState
@@ -840,14 +893,16 @@ all =
                         |> givenResourcePinnedDynamically
                         |> givenVersionsWithoutPagination
                         |> clickToUnpin
-                        |> Resource.handleCallback (Callback.VersionUnpinned (Ok ()))
+                        |> handleCallback (Callback.VersionUnpinned (Ok ()))
                         |> Tuple.second
                         |> Expect.equal
-                            [ Effects.FetchResource
-                                { resourceName = resourceName
-                                , pipelineName = pipelineName
-                                , teamName = teamName
-                                }
+                            [ ( Effects.SubPage 1
+                              , Effects.FetchResource
+                                    { resourceName = resourceName
+                                    , pipelineName = pipelineName
+                                    , teamName = teamName
+                                    }
+                              )
                             ]
             , test "pin bar shows unpinned state upon receiving failing (VersionUnpinned) msg" <|
                 \_ ->
@@ -855,7 +910,7 @@ all =
                         |> givenResourcePinnedDynamically
                         |> givenVersionsWithoutPagination
                         |> clickToUnpin
-                        |> Resource.handleCallback (Callback.VersionUnpinned badResponse)
+                        |> handleCallback (Callback.VersionUnpinned badResponse)
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasPinnedState version
@@ -913,9 +968,7 @@ all =
                             (Query.find pinButtonSelector
                                 >> Query.has [ style [ ( "background-color", "#1e1d1d" ) ] ]
                             )
-            ]
-        , describe "given resource is pinned with a comment"
-            [ test "pin comment bar is visible" <|
+            , test "pin comment bar is visible" <|
                 \_ ->
                     init
                         |> givenResourcePinnedWithComment
@@ -931,113 +984,931 @@ all =
                             [ style [ ( "padding-bottom", "300px" ) ] ]
             , describe "pin comment bar" <|
                 let
-                    commentBar : () -> Query.Single Msgs.Msg
-                    commentBar _ =
-                        init
-                            |> givenResourcePinnedWithComment
-                            |> queryView
-                            |> Query.find [ id "comment-bar" ]
+                    commentBar : Layout.Model -> Query.Single Msgs.Msg
+                    commentBar =
+                        queryView
+                            >> Query.find [ id "comment-bar" ]
                 in
                 [ test "pin comment bar has dark background" <|
-                    commentBar
-                        >> Query.has
-                            [ style
-                                [ ( "background-color", almostBlack ) ]
-                            ]
-                , test "pin comment bar is fixed to viewport bottom" <|
-                    commentBar
-                        >> Query.has
-                            [ style
-                                [ ( "position", "fixed" )
-                                , ( "bottom", "0" )
+                    \_ ->
+                        init
+                            |> givenResourcePinnedWithComment
+                            |> commentBar
+                            |> Query.has
+                                [ style
+                                    [ ( "background-color", almostBlack ) ]
                                 ]
-                            ]
+                , test "pin comment bar is fixed to viewport bottom" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedWithComment
+                            |> commentBar
+                            |> Query.has
+                                [ style
+                                    [ ( "position", "fixed" )
+                                    , ( "bottom", "0" )
+                                    ]
+                                ]
                 , test "pin comment bar is as wide as the viewport" <|
-                    commentBar
-                        >> Query.has [ style [ ( "width", "100%" ) ] ]
+                    \_ ->
+                        init
+                            |> givenResourcePinnedWithComment
+                            |> commentBar
+                            |> Query.has [ style [ ( "width", "100%" ) ] ]
                 , test "pin comment bar is 300px tall" <|
-                    commentBar
-                        >> Query.has [ style [ ( "height", "300px" ) ] ]
+                    \_ ->
+                        init
+                            |> givenResourcePinnedWithComment
+                            |> commentBar
+                            |> Query.has [ style [ ( "height", "300px" ) ] ]
+                , test "pin comment bar centers contents horizontally" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedWithComment
+                            |> commentBar
+                            |> Query.has
+                                [ style
+                                    [ ( "display", "flex" )
+                                    , ( "justify-content", "center" )
+                                    ]
+                                ]
                 , describe "contents" <|
                     let
-                        contents : () -> Query.Single Msgs.Msg
+                        contents : Layout.Model -> Query.Single Msgs.Msg
                         contents =
                             commentBar >> Query.children [] >> Query.first
                     in
                     [ test "is 700px wide" <|
-                        contents
-                            >> Query.has [ style [ ( "width", "700px" ) ] ]
-                    , test "is horizontally centered" <|
-                        contents
-                            >> Query.has [ style [ ( "margin", "auto" ) ] ]
-                    , test "has padding" <|
-                        contents
-                            >> Query.has [ style [ ( "padding", "20px" ) ] ]
+                        \_ ->
+                            init
+                                |> givenResourcePinnedWithComment
+                                |> contents
+                                |> Query.has [ style [ ( "width", "700px" ) ] ]
+                    , test "has vertical padding" <|
+                        \_ ->
+                            init
+                                |> givenResourcePinnedWithComment
+                                |> contents
+                                |> Query.has
+                                    [ style [ ( "padding", "20px 0" ) ] ]
+                    , test "lays out vertically and left-aligned" <|
+                        \_ ->
+                            init
+                                |> givenResourcePinnedWithComment
+                                |> contents
+                                |> Query.has
+                                    [ style
+                                        [ ( "display", "flex" )
+                                        , ( "flex-direction", "column" )
+                                        ]
+                                    ]
                     , describe "header" <|
                         let
-                            header : () -> Query.Single Msgs.Msg
+                            header : Layout.Model -> Query.Single Msgs.Msg
                             header =
                                 contents >> Query.children [] >> Query.first
                         in
                         [ test "lays out horizontally" <|
-                            header
-                                >> Query.has
-                                    [ style [ ( "display", "flex" ) ] ]
-                        , test "centers contents vertically" <|
-                            header
-                                >> Query.has
-                                    [ style [ ( "align-items", "center" ) ] ]
-                        , test "has message icon at the left" <|
-                            let
-                                messageIcon =
-                                    "baseline-message.svg"
-                            in
-                            header
-                                >> Query.children []
-                                >> Query.first
-                                >> Query.has
-                                    [ style
-                                        [ ( "background-image"
-                                          , "url(/public/images/"
-                                                ++ messageIcon
-                                                ++ ")"
-                                          )
-                                        , ( "background-size", "contain" )
-                                        , ( "width", "24px" )
-                                        , ( "height", "24px" )
-                                        , ( "margin-right", "10px" )
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> header
+                                    |> Query.has
+                                        [ style [ ( "display", "flex" ) ] ]
+                        , test "aligns contents to top" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> header
+                                    |> Query.has
+                                        [ style
+                                            [ ( "align-items"
+                                              , "flex-start"
+                                              )
+                                            ]
                                         ]
-                                    ]
-                        , test "second item is pin icon" <|
+                        , test "doesn't squish vertically" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> header
+                                    |> Query.has
+                                        [ style [ ( "flex-shrink", "0" ) ] ]
+                        , test "has two children" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> header
+                                    |> Query.children []
+                                    |> Query.count (Expect.equal 2)
+                        , describe "icon container" <|
                             let
-                                pinIcon =
-                                    "pin-ic-white.svg"
+                                iconContainer =
+                                    header
+                                        >> Query.children []
+                                        >> Query.first
                             in
-                            header
-                                >> Query.children []
-                                >> Query.index 1
-                                >> Query.has
-                                    (iconSelector
-                                        { image = pinIcon
-                                        , size = "20px"
-                                        }
-                                        ++ [ style
-                                                [ ( "margin-right", "10px" ) ]
-                                           ]
-                                    )
-                        , test "third item is the pinned version" <|
-                            header
-                                >> Query.children []
-                                >> Query.index 2
-                                >> Query.has [ text version ]
+                            [ test "lays out horizontally" <|
+                                \_ ->
+                                    init
+                                        |> givenResourcePinnedWithComment
+                                        |> iconContainer
+                                        |> Query.has
+                                            [ style [ ( "display", "flex" ) ] ]
+                            , test "centers contents vertically" <|
+                                \_ ->
+                                    init
+                                        |> givenResourcePinnedWithComment
+                                        |> iconContainer
+                                        |> Query.has
+                                            [ style
+                                                [ ( "align-items"
+                                                  , "center"
+                                                  )
+                                                ]
+                                            ]
+                            , test "has message icon at the left" <|
+                                let
+                                    messageIcon =
+                                        "baseline-message.svg"
+                                in
+                                \_ ->
+                                    init
+                                        |> givenResourcePinnedWithComment
+                                        |> iconContainer
+                                        |> Query.children []
+                                        |> Query.first
+                                        |> Query.has
+                                            [ style
+                                                [ ( "background-image"
+                                                  , "url(/public/images/"
+                                                        ++ messageIcon
+                                                        ++ ")"
+                                                  )
+                                                , ( "background-size", "contain" )
+                                                , ( "width", "24px" )
+                                                , ( "height", "24px" )
+                                                , ( "margin-right", "10px" )
+                                                ]
+                                            ]
+                            , test "has pin icon on the right" <|
+                                let
+                                    pinIcon =
+                                        "pin-ic-white.svg"
+                                in
+                                \_ ->
+                                    init
+                                        |> givenResourcePinnedWithComment
+                                        |> iconContainer
+                                        |> Query.children []
+                                        |> Query.index 1
+                                        |> Query.has
+                                            (iconSelector
+                                                { image = pinIcon
+                                                , size = "20px"
+                                                }
+                                                ++ [ style
+                                                        [ ( "margin-right"
+                                                          , "10px"
+                                                          )
+                                                        ]
+                                                   ]
+                                            )
+                            ]
+                        , test "second item is the pinned version" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> header
+                                    |> Query.children []
+                                    |> Query.index 1
+                                    |> Query.has [ text version ]
+                        , test "pinned version is vertically centered" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> header
+                                    |> Query.children []
+                                    |> Query.index 1
+                                    |> Query.has
+                                        [ style
+                                            [ ( "align-self"
+                                              , "center"
+                                              )
+                                            ]
+                                        ]
                         ]
-                    , test "contains a pre" <|
-                        commentBar
-                            >> Query.has [ tag "pre" ]
-                    , test "pre contains the comment" <|
-                        commentBar
-                            >> Query.find [ tag "pre" ]
-                            >> Query.has [ text "some pin comment" ]
+                    , describe "when unauthenticated"
+                        [ test "contains a pre" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.has [ tag "pre" ]
+                        , test "pre contains the comment" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "pre" ]
+                                    |> Query.has [ text "some pin comment" ]
+                        , test "pre fills vertical space and has margin" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "pre" ]
+                                    |> Query.has
+                                        [ style
+                                            [ ( "margin", "10px 0" )
+                                            , ( "flex-grow", "1" )
+                                            ]
+                                        ]
+                        , test "pre has vertical scroll on overflow" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "pre" ]
+                                    |> Query.has
+                                        [ style [ ( "overflow-y", "auto" ) ] ]
+                        , test "pre has padding" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "pre" ]
+                                    |> Query.has
+                                        [ style [ ( "padding", "10px" ) ] ]
+                        , test "contains a spacer at the bottom" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> contents
+                                    |> Query.children []
+                                    |> Query.index -1
+                                    |> Query.has
+                                        [ style [ ( "height", "24px" ) ] ]
+                        ]
+                    , describe "when authorized" <|
+                        let
+                            textarea =
+                                Query.find [ tag "textarea" ]
+                        in
+                        [ test "contains a textarea" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.has [ tag "textarea" ]
+                        , test "textarea has comment as value" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "textarea" ]
+                                    |> Query.has
+                                        [ attribute <|
+                                            Attr.value "some pin comment"
+                                        ]
+                        , test "textarea has placeholder" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "textarea" ]
+                                    |> Query.has
+                                        [ attribute <|
+                                            Attr.placeholder
+                                                "enter a comment"
+                                        ]
+                        , test "textarea has 10px vertical margin, stretches vertically" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> textarea
+                                    |> Query.has
+                                        [ style
+                                            [ ( "margin", "10px 0" )
+                                            , ( "flex-grow", "1" )
+                                            ]
+                                        ]
+                        , test "textarea has no resize handle" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> textarea
+                                    |> Query.has
+                                        [ style [ ( "resize", "none" ) ] ]
+                        , test "textarea has padding" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> textarea
+                                    |> Query.has
+                                        [ style [ ( "padding", "10px" ) ] ]
+                        , test "textarea matches app font" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> textarea
+                                    |> Query.has
+                                        [ style
+                                            [ ( "font-size", "12px" )
+                                            , ( "font-family", "Inconsolata, monospace" )
+                                            , ( "font-weight", "700" )
+                                            ]
+                                        ]
+                        , test "textarea has same color scheme as comment bar" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> textarea
+                                    |> Query.has
+                                        [ style
+                                            [ ( "background-color", "transparent" )
+                                            , ( "color", almostWhiteHex )
+                                            , ( "outline", "none" )
+                                            , ( "border", "1px solid " ++ lightGreyHex )
+                                            ]
+                                        ]
+                        , describe "when editing the textarea" <|
+                            let
+                                givenUserEditedComment =
+                                    update (Resource.Msgs.EditComment "foo")
+                                        >> Tuple.first
+                            in
+                            [ test "input in textarea produces EditComment msg" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> commentBar
+                                        |> textarea
+                                        |> Event.simulate (Event.input "foo")
+                                        |> Event.expect
+                                            (resourceMsg <|
+                                                Resource.Msgs.EditComment "foo"
+                                            )
+                            , test "EditComment updates textarea value" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> commentBar
+                                        |> textarea
+                                        |> Query.has
+                                            [ attribute <|
+                                                Attr.value "foo"
+                                            ]
+                            , test "autorefresh doesn't change textarea" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> givenResourcePinnedWithComment
+                                        |> commentBar
+                                        |> textarea
+                                        |> Query.has
+                                            [ attribute <|
+                                                Attr.value "foo"
+                                            ]
+                            , test "button outline turns blue" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> commentBar
+                                        |> Query.find [ tag "button" ]
+                                        |> Query.has
+                                            [ style
+                                                [ ( "border"
+                                                  , "1px solid " ++ commentButtonBlue
+                                                  )
+                                                ]
+                                            ]
+                            , defineHoverBehaviour
+                                { name = "save comment button"
+                                , setup =
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                , query =
+                                    commentBar
+                                        >> Query.find [ tag "button" ]
+                                , unhoveredSelector =
+                                    { description = "blue border"
+                                    , selector =
+                                        [ style
+                                            [ ( "border"
+                                              , "1px solid "
+                                                    ++ commentButtonBlue
+                                              )
+                                            ]
+                                        ]
+                                    }
+                                , mouseEnterMsg =
+                                    resourceMsg <|
+                                        Resource.Msgs.Hover
+                                            Models.SaveComment
+                                , mouseLeaveMsg =
+                                    resourceMsg <|
+                                        Resource.Msgs.Hover
+                                            Models.None
+                                , updateFunc =
+                                    \msg ->
+                                        Layout.update msg
+                                            >> Tuple.first
+                                , hoveredSelector =
+                                    { description = "blue background"
+                                    , selector =
+                                        [ style
+                                            [ ( "background-color"
+                                              , commentButtonBlue
+                                              )
+                                            , ( "cursor", "pointer" )
+                                            ]
+                                        ]
+                                    }
+                                }
+                            , test "focusing textarea triggers FocusTextArea msg" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> commentBar
+                                        |> Query.find [ tag "textarea" ]
+                                        |> Event.simulate Event.focus
+                                        |> Event.expect
+                                            (resourceMsg
+                                                Resource.Msgs.FocusTextArea
+                                            )
+                            , test
+                                ("keydown subscription active when "
+                                    ++ "textarea is focused"
+                                )
+                              <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenTextareaFocused
+                                        |> Layout.subscriptions
+                                        |> List.member Subscription.OnKeyDown
+                                        |> Expect.true "why are we not subscribed to keydowns!?"
+                            , test
+                                ("keyup subscription active when "
+                                    ++ "textarea is focused"
+                                )
+                              <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenTextareaFocused
+                                        |> Layout.subscriptions
+                                        |> List.member Subscription.OnKeyUp
+                                        |> Expect.true "why are we not subscribed to keyups!?"
+                            , test "Ctrl-Enter sends SaveComment msg" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> givenTextareaFocused
+                                        |> givenControlKeyDown
+                                        |> pressEnterKey
+                                        |> Tuple.second
+                                        |> Expect.equal
+                                            [ ( Effects.SubPage 1
+                                              , Effects.SetPinComment
+                                                    { teamName = teamName
+                                                    , pipelineName = pipelineName
+                                                    , resourceName = resourceName
+                                                    }
+                                                    "csrf_token"
+                                                    "foo"
+                                              )
+                                            ]
+                            , test "Left Command + Enter sends SaveComment msg" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> givenTextareaFocused
+                                        |> givenLeftCommandKeyDown
+                                        |> pressEnterKey
+                                        |> Tuple.second
+                                        |> Expect.equal
+                                            [ ( Effects.SubPage 1
+                                              , Effects.SetPinComment
+                                                    { teamName = teamName
+                                                    , pipelineName = pipelineName
+                                                    , resourceName = resourceName
+                                                    }
+                                                    "csrf_token"
+                                                    "foo"
+                                              )
+                                            ]
+                            , test "Right Command + Enter sends SaveComment msg" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> givenTextareaFocused
+                                        |> givenRightCommandKeyDown
+                                        |> pressEnterKey
+                                        |> Tuple.second
+                                        |> Expect.equal
+                                            [ ( Effects.SubPage 1
+                                              , Effects.SetPinComment
+                                                    { teamName = teamName
+                                                    , pipelineName = pipelineName
+                                                    , resourceName = resourceName
+                                                    }
+                                                    "csrf_token"
+                                                    "foo"
+                                              )
+                                            ]
+                            , test "blurring input triggers BlurTextArea msg" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> givenTextareaFocused
+                                        |> commentBar
+                                        |> Query.find [ tag "textarea" ]
+                                        |> Event.simulate Event.blur
+                                        |> Event.expect
+                                            (resourceMsg
+                                                Resource.Msgs.BlurTextArea
+                                            )
+                            , test "Ctrl-Enter after blurring input does nothing" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> givenTextareaFocused
+                                        |> givenTextareaBlurred
+                                        |> givenControlKeyDown
+                                        |> pressEnterKey
+                                        |> Tuple.second
+                                        |> Expect.equal []
+                            , test
+                                ("releasing Ctrl key and pressing enter "
+                                    ++ "does nothing"
+                                )
+                              <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> givenTextareaFocused
+                                        |> givenControlKeyDown
+                                        |> givenControlKeyUp
+                                        |> pressEnterKey
+                                        |> Tuple.second
+                                        |> Expect.equal []
+                            , test "button click sends SaveComment msg" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> commentBar
+                                        |> Query.find [ tag "button" ]
+                                        |> Event.simulate Event.click
+                                        |> Event.expect
+                                            (resourceMsg <|
+                                                Resource.Msgs.SaveComment "foo"
+                                            )
+                            , test "SaveComment msg makes API call" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> update
+                                            (Resource.Msgs.SaveComment "foo")
+                                        |> Tuple.second
+                                        |> Expect.equal
+                                            [ ( Effects.SubPage 1
+                                              , Effects.SetPinComment
+                                                    { teamName = teamName
+                                                    , pipelineName = pipelineName
+                                                    , resourceName = resourceName
+                                                    }
+                                                    "csrf_token"
+                                                    "foo"
+                                              )
+                                            ]
+                            , describe "button loading state" <|
+                                let
+                                    givenCommentSavingInProgress : Layout.Model
+                                    givenCommentSavingInProgress =
+                                        init
+                                            |> givenUserIsAuthorized
+                                            |> givenResourcePinnedWithComment
+                                            |> givenUserEditedComment
+                                            |> update
+                                                (Resource.Msgs.SaveComment "foo")
+                                            |> Tuple.first
+
+                                    viewButton : Layout.Model -> Query.Single Msgs.Msg
+                                    viewButton =
+                                        commentBar
+                                            >> Query.find [ tag "button" ]
+                                in
+                                [ test "shows spinner" <|
+                                    \_ ->
+                                        givenCommentSavingInProgress
+                                            |> viewButton
+                                            |> Query.has
+                                                [ style
+                                                    [ ( "animation"
+                                                      , "container-rotate 1568ms linear infinite"
+                                                      )
+                                                    , ( "height", "12px" )
+                                                    , ( "width", "12px" )
+                                                    ]
+                                                ]
+                                , test "clears button text" <|
+                                    \_ ->
+                                        givenCommentSavingInProgress
+                                            |> viewButton
+                                            |> Query.hasNot [ text "save" ]
+                                , test "has transparent background on hover" <|
+                                    \_ ->
+                                        givenCommentSavingInProgress
+                                            |> update
+                                                (Resource.Msgs.Hover
+                                                    Models.SaveComment
+                                                )
+                                            |> Tuple.first
+                                            |> viewButton
+                                            |> Query.has
+                                                [ style
+                                                    [ ( "background-color"
+                                                      , "transparent"
+                                                      )
+                                                    ]
+                                                ]
+                                ]
+                            , describe "saving comment API callback"
+                                [ test "on success, shows pristine state" <|
+                                    \_ ->
+                                        init
+                                            |> givenUserIsAuthorized
+                                            |> givenResourcePinnedWithComment
+                                            |> givenUserEditedComment
+                                            |> update
+                                                (Resource.Msgs.SaveComment
+                                                    "foo"
+                                                )
+                                            |> Tuple.first
+                                            |> handleCallback
+                                                (Callback.CommentSet
+                                                    (Ok ())
+                                                )
+                                            |> Tuple.first
+                                            |> commentBar
+                                            |> Query.find [ tag "button" ]
+                                            |> Query.has
+                                                [ containing [ text "save" ]
+                                                , style
+                                                    [ ( "background-color"
+                                                      , "transparent"
+                                                      )
+                                                    , ( "border"
+                                                      , "1px solid "
+                                                            ++ lightGreyHex
+                                                      )
+                                                    , ( "cursor", "default" )
+                                                    ]
+                                                ]
+                                , test "on success, refetches data" <|
+                                    \_ ->
+                                        init
+                                            |> givenUserIsAuthorized
+                                            |> givenResourcePinnedWithComment
+                                            |> givenUserEditedComment
+                                            |> update
+                                                (Resource.Msgs.SaveComment
+                                                    "foo"
+                                                )
+                                            |> Tuple.first
+                                            |> handleCallback
+                                                (Callback.CommentSet (Ok ()))
+                                            |> Tuple.second
+                                            |> Expect.equal
+                                                [ ( Effects.SubPage 1
+                                                  , Effects.FetchResource
+                                                        { teamName = teamName
+                                                        , pipelineName = pipelineName
+                                                        , resourceName = resourceName
+                                                        }
+                                                  )
+                                                ]
+                                , test "on error, shows edited state" <|
+                                    \_ ->
+                                        init
+                                            |> givenUserIsAuthorized
+                                            |> givenResourcePinnedWithComment
+                                            |> givenUserEditedComment
+                                            |> update
+                                                (Resource.Msgs.SaveComment
+                                                    "foo"
+                                                )
+                                            |> Tuple.first
+                                            |> handleCallback
+                                                (Callback.CommentSet
+                                                    badResponse
+                                                )
+                                            |> Tuple.first
+                                            |> update
+                                                (Resource.Msgs.Hover
+                                                    Models.SaveComment
+                                                )
+                                            |> Tuple.first
+                                            |> commentBar
+                                            |> Query.find [ tag "button" ]
+                                            |> Query.has
+                                                [ style
+                                                    [ ( "border"
+                                                      , "1px solid "
+                                                            ++ commentButtonBlue
+                                                      )
+                                                    , ( "cursor", "pointer" )
+                                                    , ( "background-color"
+                                                      , commentButtonBlue
+                                                      )
+                                                    ]
+                                                ]
+                                , test "on error, refetches data" <|
+                                    \_ ->
+                                        init
+                                            |> givenUserIsAuthorized
+                                            |> givenResourcePinnedWithComment
+                                            |> givenUserEditedComment
+                                            |> update
+                                                (Resource.Msgs.SaveComment
+                                                    "foo"
+                                                )
+                                            |> Tuple.first
+                                            |> handleCallback
+                                                (Callback.CommentSet
+                                                    badResponse
+                                                )
+                                            |> Tuple.second
+                                            |> Expect.equal
+                                                [ ( Effects.SubPage 1
+                                                  , Effects.FetchResource
+                                                        { teamName = teamName
+                                                        , pipelineName = pipelineName
+                                                        , resourceName = resourceName
+                                                        }
+                                                  )
+                                                ]
+                                ]
+                            , test "edit without changing leaves button alone" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> update
+                                            (Resource.Msgs.EditComment
+                                                "some pin comment"
+                                            )
+                                        |> Tuple.first
+                                        |> commentBar
+                                        |> Query.find [ tag "button" ]
+                                        |> Query.has
+                                            [ style
+                                                [ ( "border"
+                                                  , "1px solid " ++ lightGreyHex
+                                                  )
+                                                ]
+                                            ]
+                            , test "when unchanged button doesn't hover" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> update
+                                            (Resource.Msgs.EditComment
+                                                "some pin comment"
+                                            )
+                                        |> Tuple.first
+                                        |> update
+                                            (Resource.Msgs.Hover
+                                                Models.SaveComment
+                                            )
+                                        |> Tuple.first
+                                        |> commentBar
+                                        |> Query.find [ tag "button" ]
+                                        |> Query.has
+                                            [ style
+                                                [ ( "background-color"
+                                                  , "transparent"
+                                                  )
+                                                , ( "cursor", "default" )
+                                                ]
+                                            ]
+                            , test "no comment and empty edit leaves button" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedDynamically
+                                        |> update
+                                            (Resource.Msgs.EditComment "")
+                                        |> Tuple.first
+                                        |> commentBar
+                                        |> Query.find [ tag "button" ]
+                                        |> Query.has
+                                            [ style
+                                                [ ( "border"
+                                                  , "1px solid " ++ lightGreyHex
+                                                  )
+                                                ]
+                                            ]
+                            ]
+                        , test "contains a button" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.has [ tag "button" ]
+                        , test "button has text 'save'" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "button" ]
+                                    |> Query.has [ text "save" ]
+                        , test "button is flat and black" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "button" ]
+                                    |> Query.has
+                                        [ style
+                                            [ ( "border", "1px solid " ++ lightGreyHex )
+                                            , ( "background-color", "transparent" )
+                                            , ( "color", almostWhiteHex )
+                                            , ( "padding", "5px 10px" )
+                                            , ( "outline", "none" )
+                                            ]
+                                        ]
+                        , test "button matches app font" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "button" ]
+                                    |> Query.has
+                                        [ style
+                                            [ ( "font-size", "12px" )
+                                            , ( "font-family", "Inconsolata, monospace" )
+                                            , ( "font-weight", "700" )
+                                            ]
+                                        ]
+                        , test "button aligns to the right" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "button" ]
+                                    |> Query.has
+                                        [ style [ ( "align-self", "flex-end" ) ] ]
+                        ]
                     ]
                 ]
             ]
@@ -1248,7 +2119,8 @@ all =
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
                         |> Event.simulate Event.click
-                        |> Event.expect (Msgs.PinVersion versionID)
+                        |> Event.expect
+                            (resourceMsg <| Resource.Msgs.PinVersion versionID)
             , test "pin button on 'v1' shows transition state when (PinVersion v1) is received" <|
                 \_ ->
                     init
@@ -1296,7 +2168,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> clickToPin versionID
-                        |> Resource.handleCallback (Callback.VersionPinned (Ok ()))
+                        |> handleCallback (Callback.VersionPinned (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasPinnedState version
@@ -1306,7 +2178,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> clickToPin versionID
-                        |> Resource.handleCallback (Callback.VersionPinned badResponse)
+                        |> handleCallback (Callback.VersionPinned badResponse)
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasUnpinnedState
@@ -1316,7 +2188,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> clickToPin versionID
-                        |> Resource.handleCallback (Callback.VersionPinned badResponse)
+                        |> handleCallback (Callback.VersionPinned badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -1460,7 +2332,7 @@ all =
                         >> Query.find [ id "pagination" ]
                         >> Query.children []
                         >> Query.index 0
-                , updateFunc = \msg -> Resource.update msg >> Tuple.first
+                , updateFunc = \msg -> Layout.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "white left chevron"
                     , selector =
@@ -1519,17 +2391,31 @@ all =
                         ]
                     }
                 , mouseEnterMsg =
-                    Msgs.Hover Models.PreviousPage
+                    resourceMsg <|
+                        Resource.Msgs.Hover Models.PreviousPage
                 , mouseLeaveMsg =
-                    Msgs.Hover Models.None
+                    resourceMsg <|
+                        Resource.Msgs.Hover Models.None
                 }
             ]
         , describe "check bar" <|
             let
                 checkBar userState =
-                    Resource.view userState
-                        >> HS.toUnstyled
-                        >> Query.fromHtml
+                    let
+                        callback =
+                            case userState of
+                                UserStateLoggedIn user ->
+                                    ( Effects.Layout, UserFetched (Ok user) )
+
+                                UserStateLoggedOut ->
+                                    ( Effects.SubPage 1, LoggedOut (Ok ()) )
+
+                                UserStateUnknown ->
+                                    ( Effects.Layout, EmptyCallback )
+                    in
+                    uncurry Layout.handleCallback callback
+                        >> Tuple.first
+                        >> queryView
                         >> Query.find [ class "resource-check-status" ]
                         >> Query.children []
                         >> Query.first
@@ -1573,8 +2459,12 @@ all =
                                        ]
                             ]
                         }
-                    , mouseEnterMsg = Msgs.Hover Models.CheckButton
-                    , mouseLeaveMsg = Msgs.Hover Models.None
+                    , mouseEnterMsg =
+                        resourceMsg <|
+                            Resource.Msgs.Hover Models.CheckButton
+                    , mouseLeaveMsg =
+                        resourceMsg <|
+                            Resource.Msgs.Hover Models.None
                     , hoveredSelector =
                         { description = "black button with white refresh icon"
                         , selector =
@@ -1598,7 +2488,7 @@ all =
                                        ]
                             ]
                         }
-                    , updateFunc = \msg -> Resource.update msg >> Tuple.first
+                    , updateFunc = \msg -> Layout.update msg >> Tuple.first
                     }
                 , test "clicking check button sends Check msg" <|
                     \_ ->
@@ -1608,19 +2498,23 @@ all =
                             |> Query.children []
                             |> Query.first
                             |> Event.simulate Event.click
-                            |> Event.expect (Msgs.CheckRequested False)
+                            |> Event.expect (resourceMsg (Resource.Msgs.CheckRequested False))
                 , test "Check msg redirects to login" <|
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> Resource.update (Msgs.CheckRequested False)
+                            |> update (Resource.Msgs.CheckRequested False)
                             |> Tuple.second
-                            |> Expect.equal [ Effects.RedirectToLogin ]
+                            |> Expect.equal
+                                [ ( Effects.SubPage 1
+                                  , Effects.RedirectToLogin
+                                  )
+                                ]
                 , test "check bar text does not change" <|
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> Resource.update (Msgs.CheckRequested False)
+                            |> update (Resource.Msgs.CheckRequested False)
                             |> Tuple.first
                             |> checkBar UserStateLoggedOut
                             |> Query.find [ tag "h3" ]
@@ -1664,8 +2558,10 @@ all =
                                        ]
                             ]
                         }
-                    , mouseEnterMsg = Msgs.Hover Models.CheckButton
-                    , mouseLeaveMsg = Msgs.Hover Models.None
+                    , mouseEnterMsg =
+                        resourceMsg <| Resource.Msgs.Hover Models.CheckButton
+                    , mouseLeaveMsg =
+                        resourceMsg <| Resource.Msgs.Hover Models.None
                     , hoveredSelector =
                         { description = "black button with white refresh icon"
                         , selector =
@@ -1689,7 +2585,7 @@ all =
                                        ]
                             ]
                         }
-                    , updateFunc = \msg -> Resource.update msg >> Tuple.first
+                    , updateFunc = \msg -> Layout.update msg >> Tuple.first
                     }
                 , test "clicking check button sends Check msg" <|
                     \_ ->
@@ -1699,27 +2595,31 @@ all =
                             |> Query.children []
                             |> Query.first
                             |> Event.simulate Event.click
-                            |> Event.expect (Msgs.CheckRequested True)
+                            |> Event.expect (resourceMsg (Resource.Msgs.CheckRequested True))
                 , test "Check msg has CheckResource side effect" <|
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> Resource.update (Msgs.CheckRequested True)
+                            |> givenUserIsAuthorized
+                            |> update (Resource.Msgs.CheckRequested True)
                             |> Tuple.second
                             |> Expect.equal
-                                [ Effects.DoCheck
-                                    { resourceName = resourceName
-                                    , pipelineName = pipelineName
-                                    , teamName = teamName
-                                    }
-                                    "csrf_token"
+                                [ ( Effects.SubPage 1
+                                  , Effects.DoCheck
+                                        { resourceName = resourceName
+                                        , pipelineName = pipelineName
+                                        , teamName = teamName
+                                        }
+                                        "csrf_token"
+                                  )
                                 ]
                 , describe "while check in progress" <|
                     let
-                        givenCheckInProgress : Models.Model -> Models.Model
+                        givenCheckInProgress : Layout.Model -> Layout.Model
                         givenCheckInProgress =
                             givenResourceIsNotPinned
-                                >> Resource.update (Msgs.CheckRequested True)
+                                >> givenUserIsAuthorized
+                                >> update (Resource.Msgs.CheckRequested True)
                                 >> Tuple.first
                     in
                     [ test "check bar text says 'currently checking'" <|
@@ -1786,8 +2686,11 @@ all =
                                            ]
                                 ]
                             }
-                        , mouseEnterMsg = Msgs.Hover Models.CheckButton
-                        , mouseLeaveMsg = Msgs.Hover Models.None
+                        , mouseEnterMsg =
+                            resourceMsg <|
+                                Resource.Msgs.Hover Models.CheckButton
+                        , mouseLeaveMsg =
+                            resourceMsg <| Resource.Msgs.Hover Models.None
                         , hoveredSelector =
                             { description = "black button with white refresh icon"
                             , selector =
@@ -1810,16 +2713,17 @@ all =
                                            ]
                                 ]
                             }
-                        , updateFunc = \msg -> Resource.update msg >> Tuple.first
+                        , updateFunc = \msg -> Layout.update msg >> Tuple.first
                         }
                     ]
                 , test "when check resolves successfully, status is check" <|
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> Resource.update (Msgs.CheckRequested True)
+                            |> givenUserIsAuthorized
+                            |> update (Resource.Msgs.CheckRequested True)
                             |> Tuple.first
-                            |> Resource.handleCallback (Callback.Checked <| Ok ())
+                            |> handleCallback (Callback.Checked <| Ok ())
                             |> Tuple.first
                             |> checkBar (UserStateLoggedIn sampleUser)
                             |> Query.children []
@@ -1840,30 +2744,36 @@ all =
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> Resource.update (Msgs.CheckRequested True)
+                            |> givenUserIsAuthorized
+                            |> update (Resource.Msgs.CheckRequested True)
                             |> Tuple.first
-                            |> Resource.handleCallback (Callback.Checked <| Ok ())
+                            |> handleCallback (Callback.Checked <| Ok ())
                             |> Tuple.second
                             |> Expect.equal
-                                [ Effects.FetchResource
-                                    { resourceName = resourceName
-                                    , pipelineName = pipelineName
-                                    , teamName = teamName
-                                    }
-                                , Effects.FetchVersionedResources
-                                    { resourceName = resourceName
-                                    , pipelineName = pipelineName
-                                    , teamName = teamName
-                                    }
-                                    Nothing
+                                [ ( Effects.SubPage 1
+                                  , Effects.FetchResource
+                                        { resourceName = resourceName
+                                        , pipelineName = pipelineName
+                                        , teamName = teamName
+                                        }
+                                  )
+                                , ( Effects.SubPage 1
+                                  , Effects.FetchVersionedResources
+                                        { resourceName = resourceName
+                                        , pipelineName = pipelineName
+                                        , teamName = teamName
+                                        }
+                                        Nothing
+                                  )
                                 ]
                 , test "when check resolves unsuccessfully, status is error" <|
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> Resource.update (Msgs.CheckRequested True)
+                            |> givenUserIsAuthorized
+                            |> update (Resource.Msgs.CheckRequested True)
                             |> Tuple.first
-                            |> Resource.handleCallback
+                            |> handleCallback
                                 (Callback.Checked <|
                                     Err <|
                                         Http.BadStatus
@@ -1896,9 +2806,10 @@ all =
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> Resource.update (Msgs.CheckRequested True)
+                            |> givenUserIsAuthorized
+                            |> update (Resource.Msgs.CheckRequested True)
                             |> Tuple.first
-                            |> Resource.handleCallback
+                            |> handleCallback
                                 (Callback.Checked <|
                                     Err <|
                                         Http.BadStatus
@@ -1913,19 +2824,22 @@ all =
                                 )
                             |> Tuple.second
                             |> Expect.equal
-                                [ Effects.FetchResource
-                                    { resourceName = resourceName
-                                    , pipelineName = pipelineName
-                                    , teamName = teamName
-                                    }
+                                [ ( Effects.SubPage 1
+                                  , Effects.FetchResource
+                                        { resourceName = resourceName
+                                        , pipelineName = pipelineName
+                                        , teamName = teamName
+                                        }
+                                  )
                                 ]
                 , test "when check returns 401, redirects to login" <|
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> Resource.update (Msgs.CheckRequested True)
+                            |> givenUserIsAuthorized
+                            |> update (Resource.Msgs.CheckRequested True)
                             |> Tuple.first
-                            |> Resource.handleCallback
+                            |> handleCallback
                                 (Callback.Checked <|
                                     Err <|
                                         Http.BadStatus
@@ -1939,7 +2853,11 @@ all =
                                             }
                                 )
                             |> Tuple.second
-                            |> Expect.equal [ Effects.RedirectToLogin ]
+                            |> Expect.equal
+                                [ ( Effects.SubPage 1
+                                  , Effects.RedirectToLogin
+                                  )
+                                ]
                 ]
             , describe "when unauthorized" <|
                 let
@@ -1979,8 +2897,10 @@ all =
                                        ]
                             ]
                         }
-                    , mouseEnterMsg = Msgs.Hover Models.CheckButton
-                    , mouseLeaveMsg = Msgs.Hover Models.None
+                    , mouseEnterMsg =
+                        resourceMsg <| Resource.Msgs.Hover Models.CheckButton
+                    , mouseLeaveMsg =
+                        resourceMsg <| Resource.Msgs.Hover Models.None
                     , hoveredSelector =
                         { description = "black button with grey refresh icon"
                         , selector =
@@ -2002,7 +2922,7 @@ all =
                                        ]
                             ]
                         }
-                    , updateFunc = \msg -> Resource.update msg >> Tuple.first
+                    , updateFunc = \msg -> Layout.update msg >> Tuple.first
                     }
                 , test "clicking check button does nothing" <|
                     \_ ->
@@ -2018,7 +2938,7 @@ all =
             , test "unsuccessful check shows a warning icon on the right" <|
                 \_ ->
                     init
-                        |> Resource.handleCallback
+                        |> handleCallback
                             (Callback.ResourceFetched <|
                                 Ok
                                     { teamName = teamName
@@ -2050,21 +2970,79 @@ all =
         ]
 
 
-init : Models.Model
+init : Layout.Model
 init =
-    Resource.init
-        { teamName = teamName
-        , pipelineName = pipelineName
-        , resourceName = resourceName
-        , paging = Nothing
+    Layout.init
+        { turbulenceImgSrc = ""
+        , notFoundImgSrc = ""
         , csrfToken = "csrf_token"
+        , authToken = ""
+        , pipelineRunningKeyframes = ""
+        }
+        { href = ""
+        , host = ""
+        , hostname = ""
+        , protocol = ""
+        , origin = ""
+        , port_ = ""
+        , pathname =
+            "/teams/"
+                ++ teamName
+                ++ "/pipelines/"
+                ++ pipelineName
+                ++ "/resources/"
+                ++ resourceName
+        , search = ""
+        , hash = ""
+        , username = ""
+        , password = ""
         }
         |> Tuple.first
 
 
-givenResourcePinnedStatically : Models.Model -> Models.Model
+update :
+    Resource.Msgs.Msg
+    -> Layout.Model
+    -> ( Layout.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
+update =
+    resourceMsg >> Layout.update
+
+
+handleCallback :
+    Callback.Callback
+    -> Layout.Model
+    -> ( Layout.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
+handleCallback =
+    Layout.handleCallback (Effects.SubPage 1)
+
+
+resourceMsg : Resource.Msgs.Msg -> Msgs.Msg
+resourceMsg =
+    SubPage.Msgs.ResourceMsg >> Msgs.SubMsg 1
+
+
+givenUserIsAuthorized : Layout.Model -> Layout.Model
+givenUserIsAuthorized =
+    Layout.handleCallback
+        Effects.Layout
+        (Callback.UserFetched <|
+            Ok
+                { id = "test"
+                , userName = "test"
+                , name = "test"
+                , email = "test"
+                , teams =
+                    Dict.fromList
+                        [ ( teamName, [ "member" ] )
+                        ]
+                }
+        )
+        >> Tuple.first
+
+
+givenResourcePinnedStatically : Layout.Model -> Layout.Model
 givenResourcePinnedStatically =
-    Resource.handleCallback
+    handleCallback
         (Callback.ResourceFetched <|
             Ok
                 { teamName = teamName
@@ -2082,9 +3060,9 @@ givenResourcePinnedStatically =
         >> Tuple.first
 
 
-givenResourcePinnedDynamically : Models.Model -> Models.Model
+givenResourcePinnedDynamically : Layout.Model -> Layout.Model
 givenResourcePinnedDynamically =
-    Resource.handleCallback
+    handleCallback
         (Callback.ResourceFetched <|
             Ok
                 { teamName = teamName
@@ -2102,9 +3080,9 @@ givenResourcePinnedDynamically =
         >> Tuple.first
 
 
-givenResourcePinnedWithComment : Models.Model -> Models.Model
+givenResourcePinnedWithComment : Layout.Model -> Layout.Model
 givenResourcePinnedWithComment =
-    Resource.handleCallback
+    handleCallback
         (Callback.ResourceFetched <|
             Ok
                 { teamName = teamName
@@ -2123,9 +3101,9 @@ givenResourcePinnedWithComment =
         >> Tuple.first
 
 
-givenResourceIsNotPinned : Models.Model -> Models.Model
+givenResourceIsNotPinned : Layout.Model -> Layout.Model
 givenResourceIsNotPinned =
-    Resource.handleCallback
+    handleCallback
         (Callback.ResourceFetched <|
             Ok
                 { teamName = teamName
@@ -2143,46 +3121,45 @@ givenResourceIsNotPinned =
         >> Tuple.first
 
 
-queryView : Models.Model -> Query.Single Msgs.Msg
+queryView : Layout.Model -> Query.Single Msgs.Msg
 queryView =
-    Resource.view UserStateLoggedOut
-        >> HS.toUnstyled
+    Layout.view
         >> Query.fromHtml
 
 
-togglePinBarTooltip : Models.Model -> Models.Model
+togglePinBarTooltip : Layout.Model -> Layout.Model
 togglePinBarTooltip =
-    Resource.update Msgs.TogglePinBarTooltip
+    update Resource.Msgs.TogglePinBarTooltip
         >> Tuple.first
 
 
-toggleVersionTooltip : Models.Model -> Models.Model
+toggleVersionTooltip : Layout.Model -> Layout.Model
 toggleVersionTooltip =
-    Resource.update Msgs.ToggleVersionTooltip
+    update Resource.Msgs.ToggleVersionTooltip
         >> Tuple.first
 
 
-clickToPin : Models.VersionId -> Models.Model -> Models.Model
+clickToPin : Models.VersionId -> Layout.Model -> Layout.Model
 clickToPin versionID =
-    Resource.update (Msgs.PinVersion versionID)
+    update (Resource.Msgs.PinVersion versionID)
         >> Tuple.first
 
 
-clickToUnpin : Models.Model -> Models.Model
+clickToUnpin : Layout.Model -> Layout.Model
 clickToUnpin =
-    Resource.update Msgs.UnpinVersion
+    update Resource.Msgs.UnpinVersion
         >> Tuple.first
 
 
-clickToDisable : Models.VersionId -> Models.Model -> Models.Model
+clickToDisable : Models.VersionId -> Layout.Model -> Layout.Model
 clickToDisable versionID =
-    Resource.update (Msgs.ToggleVersion Models.Disable versionID)
+    update (Resource.Msgs.ToggleVersion Models.Disable versionID)
         >> Tuple.first
 
 
-givenVersionsWithoutPagination : Models.Model -> Models.Model
+givenVersionsWithoutPagination : Layout.Model -> Layout.Model
 givenVersionsWithoutPagination =
-    Resource.handleCallback
+    handleCallback
         (Callback.VersionedResourcesFetched <|
             Ok
                 ( Nothing
@@ -2213,9 +3190,9 @@ givenVersionsWithoutPagination =
         >> Tuple.first
 
 
-givenVersionsWithPagination : Models.Model -> Models.Model
+givenVersionsWithPagination : Layout.Model -> Layout.Model
 givenVersionsWithPagination =
-    Resource.handleCallback
+    handleCallback
         (Callback.VersionedResourcesFetched <|
             Ok
                 ( Nothing
@@ -2252,6 +3229,49 @@ givenVersionsWithPagination =
                 )
         )
         >> Tuple.first
+
+
+givenTextareaFocused : Layout.Model -> Layout.Model
+givenTextareaFocused =
+    update Resource.Msgs.FocusTextArea
+        >> Tuple.first
+
+
+givenTextareaBlurred : Layout.Model -> Layout.Model
+givenTextareaBlurred =
+    update Resource.Msgs.BlurTextArea
+        >> Tuple.first
+
+
+givenControlKeyDown : Layout.Model -> Layout.Model
+givenControlKeyDown =
+    Layout.update (Msgs.KeyDown 17)
+        >> Tuple.first
+
+
+givenLeftCommandKeyDown : Layout.Model -> Layout.Model
+givenLeftCommandKeyDown =
+    Layout.update (Msgs.KeyDown 91)
+        >> Tuple.first
+
+
+givenRightCommandKeyDown : Layout.Model -> Layout.Model
+givenRightCommandKeyDown =
+    Layout.update (Msgs.KeyDown 93)
+        >> Tuple.first
+
+
+givenControlKeyUp : Layout.Model -> Layout.Model
+givenControlKeyUp =
+    Layout.update (Msgs.KeyUp 17)
+        >> Tuple.first
+
+
+pressEnterKey :
+    Layout.Model
+    -> ( Layout.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
+pressEnterKey =
+    Layout.update (Msgs.KeyDown 13)
 
 
 versionSelector : String -> List Selector

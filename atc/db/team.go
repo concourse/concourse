@@ -120,11 +120,19 @@ func (t *team) Containers(
 	logger lager.Logger,
 ) ([]Container, error) {
 	rows, err := selectContainers("c").
+		Join("workers w ON c.worker_name = w.name").
 		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
 		Join("resources r ON r.resource_config_id = rccs.resource_config_id").
 		Join("pipelines p ON p.id = r.pipeline_id").
 		Where(sq.Eq{
 			"p.team_id": t.id,
+		}).
+		Where(sq.Or{
+			sq.Eq{
+				"w.team_id": t.id,
+			}, sq.Eq{
+				"w.team_id": nil,
+			},
 		}).
 		Distinct().
 		RunWith(t.conn).
@@ -140,11 +148,19 @@ func (t *team) Containers(
 	}
 
 	rows, err = selectContainers("c").
+		Join("workers w ON c.worker_name = w.name").
 		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
 		Join("resource_types rt ON rt.resource_config_id = rccs.resource_config_id").
 		Join("pipelines p ON p.id = rt.pipeline_id").
 		Where(sq.Eq{
 			"p.team_id": t.id,
+		}).
+		Where(sq.Or{
+			sq.Eq{
+				"w.team_id": t.id,
+			}, sq.Eq{
+				"w.team_id": nil,
+			},
 		}).
 		Distinct().
 		RunWith(t.conn).
@@ -849,18 +865,28 @@ func (t *team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) 
 		return err
 	}
 
-	clearVerQ := ""
-	if resource.Version != nil {
-		clearVerQ = ", api_pinned_version = NULL"
-	}
-
-	updated, err := checkIfRowsUpdated(tx, fmt.Sprintf(`
+	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE resources
-		SET config = $3, active = true, nonce = $4 %s
+		SET config = $3, active = true, nonce = $4
 		WHERE name = $1 AND pipeline_id = $2
-	`, clearVerQ), resource.Name, pipelineID, encryptedPayload, nonce)
+	`, resource.Name, pipelineID, encryptedPayload, nonce)
 	if err != nil {
 		return err
+	}
+
+	if resource.Version != nil {
+		resourceIDQuery := `
+				resource_pins.resource_id =
+					(SELECT id FROM resources WHERE name = ? AND pipeline_id = ?)`
+
+		_, err = psql.Delete("resource_pins").
+			Where(resourceIDQuery, resource.Name, pipelineID).
+			RunWith(tx).
+			Exec()
+
+		if err != nil {
+			return err
+		}
 	}
 
 	if updated {

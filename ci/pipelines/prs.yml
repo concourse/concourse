@@ -10,6 +10,11 @@ resource_types:
 
 
 resources:
+- name: concourse-master
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse
+
 - name: concourse-pr
   type: pull-request
   source:
@@ -49,9 +54,15 @@ jobs:
     trigger: true
     version: every
     tags: [pr]
+  - get: concourse-master
+    tags: [pr]
   - put: concourse-pr
     inputs: [concourse-pr]
     params: {path: concourse-pr, status: pending, context: unit}
+    tags: [pr]
+  - task: check-migration-order
+    timeout: 5m
+    file: concourse-pr/ci/tasks/check-migration-order.yml
     tags: [pr]
   - task: yarn-test
     file: concourse-pr/ci/tasks/yarn-test.yml

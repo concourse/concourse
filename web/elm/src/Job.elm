@@ -183,14 +183,12 @@ handleCallbackWithoutTopBar callback model =
 
                 Just job ->
                     [ NavigateTo <|
-                        "/teams/"
-                            ++ job.teamName
-                            ++ "/pipelines/"
-                            ++ job.pipelineName
-                            ++ "/jobs/"
-                            ++ job.jobName
-                            ++ "/builds/"
-                            ++ build.name
+                        Routes.toString <|
+                            Routes.Build job.teamName
+                                job.pipelineName
+                                job.jobName
+                                build.name
+                                Routes.HighlightNothing
                     ]
             )
 
@@ -277,8 +275,8 @@ update action model =
                       ]
                     )
 
-        NavTo url ->
-            ( model, [ NavigateTo url ] )
+        NavTo route ->
+            ( model, [ NavigateTo <| Routes.toString route ] )
 
         SubscriptionTick time ->
             ( model
@@ -584,15 +582,11 @@ viewPaginationBar model =
 
             Just page ->
                 let
-                    jobUrl =
-                        "/teams/"
-                            ++ model.jobIdentifier.teamName
-                            ++ "/pipelines/"
-                            ++ model.jobIdentifier.pipelineName
-                            ++ "/jobs/"
-                            ++ model.jobIdentifier.jobName
-                            ++ "?"
-                            ++ paginationParam page
+                    jobRoute =
+                        Routes.Job model.jobIdentifier.teamName
+                            model.jobIdentifier.pipelineName
+                            model.jobIdentifier.jobName
+                            (Just page)
                 in
                 Html.div
                     [ style chevronContainer
@@ -600,8 +594,8 @@ viewPaginationBar model =
                     , onMouseLeave <| Hover None
                     ]
                     [ Html.a
-                        [ StrictEvents.onLeftClick <| NavTo jobUrl
-                        , href jobUrl
+                        [ StrictEvents.onLeftClick <| NavTo jobRoute
+                        , href <| Routes.toString <| jobRoute
                         , attribute "aria-label" "Previous Page"
                         , style <|
                             chevron
@@ -629,15 +623,11 @@ viewPaginationBar model =
 
             Just page ->
                 let
-                    jobUrl =
-                        "/teams/"
-                            ++ model.jobIdentifier.teamName
-                            ++ "/pipelines/"
-                            ++ model.jobIdentifier.pipelineName
-                            ++ "/jobs/"
-                            ++ model.jobIdentifier.jobName
-                            ++ "?"
-                            ++ paginationParam page
+                    jobRoute =
+                        Routes.Job model.jobIdentifier.teamName
+                            model.jobIdentifier.pipelineName
+                            model.jobIdentifier.jobName
+                            (Just page)
                 in
                 Html.div
                     [ style chevronContainer
@@ -645,8 +635,8 @@ viewPaginationBar model =
                     , onMouseLeave <| Hover None
                     ]
                     [ Html.a
-                        [ StrictEvents.onLeftClick <| NavTo jobUrl
-                        , href jobUrl
+                        [ StrictEvents.onLeftClick <| NavTo jobRoute
+                        , href <| Routes.toString jobRoute
                         , attribute "aria-label" "Next Page"
                         , style <|
                             chevron
@@ -679,7 +669,7 @@ viewBuildHeader model b =
     Html.a
         [ class <| Concourse.BuildStatus.show b.status
         , StrictEvents.onLeftClick <| NavTo <| Routes.buildRoute b
-        , href <| Routes.buildRoute b
+        , href <| Routes.toString <| Routes.buildRoute b
         ]
         [ Html.text ("#" ++ b.name)
         ]
@@ -773,26 +763,10 @@ viewBuildOutputs model bo =
 
 viewVersion : Concourse.Version -> Html Msg
 viewVersion version =
-    DictView.view
+    DictView.view []
         << Dict.map (\_ s -> Html.text s)
     <|
         version
-
-
-paginationParam : Page -> String
-paginationParam page =
-    case page.direction of
-        Concourse.Pagination.Since i ->
-            "since=" ++ toString i
-
-        Concourse.Pagination.Until i ->
-            "until=" ++ toString i
-
-        Concourse.Pagination.From i ->
-            "from=" ++ toString i
-
-        Concourse.Pagination.To i ->
-            "to=" ++ toString i
 
 
 subscriptions : Model -> List (Subscription Msg)

@@ -18,7 +18,7 @@ type RetireWorkerCommand struct {
 
 func (cmd *RetireWorkerCommand) Execute(args []string) error {
 	logger := lager.NewLogger("retire-worker")
-	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
+	logger.RegisterSink(lager.NewPrettySink(os.Stdout, lager.DEBUG))
 
 	client := cmd.TSA.Client(atc.Worker{
 		Name: cmd.WorkerName,

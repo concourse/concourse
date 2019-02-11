@@ -100,12 +100,13 @@ type Effect
     | RenderPipeline Json.Encode.Value Json.Encode.Value
     | RedirectToLogin
     | NavigateTo String
-    | SetTitle String
     | ModifyUrl String
+    | SetTitle String
     | DoPinVersion Concourse.VersionedResourceIdentifier Concourse.CSRFToken
     | DoUnpinVersion Concourse.ResourceIdentifier Concourse.CSRFToken
     | DoToggleVersion VersionToggleAction VersionId Concourse.CSRFToken
     | DoCheck Concourse.ResourceIdentifier Concourse.CSRFToken
+    | SetPinComment Concourse.ResourceIdentifier Concourse.CSRFToken String
     | SendTokenToFly String Int
     | SendTogglePipelineRequest { pipeline : Dashboard.Models.Pipeline, csrfToken : Concourse.CSRFToken }
     | ShowTooltip ( String, String )
@@ -184,8 +185,11 @@ runEffect effect =
         RedirectToLogin ->
             requestLoginRedirect ""
 
-        NavigateTo newUrl ->
-            Navigation.newUrl newUrl
+        NavigateTo url ->
+            Navigation.newUrl url
+
+        ModifyUrl url ->
+            Navigation.modifyUrl url
 
         ResetPipelineFocus ->
             resetPipelineFocus ()
@@ -215,11 +219,12 @@ runEffect effect =
             Task.attempt Checked <|
                 Concourse.Resource.check rid csrfToken
 
+        SetPinComment rid csrfToken comment ->
+            Task.attempt CommentSet <|
+                Concourse.Resource.setPinComment rid csrfToken comment
+
         SendTokenToFly authToken flyPort ->
             sendTokenToFly authToken flyPort
-
-        ModifyUrl url ->
-            Navigation.modifyUrl url
 
         SendTogglePipelineRequest { pipeline, csrfToken } ->
             togglePipelinePaused { pipeline = pipeline, csrfToken = csrfToken }

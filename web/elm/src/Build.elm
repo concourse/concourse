@@ -10,8 +10,14 @@ module Build exposing
     , view
     )
 
-import Build.Models as Models exposing (Model, OutputModel, Page(..))
-import Build.Msgs exposing (Hoverable(..), Msg(..), fromBuildMessage)
+import Build.Models as Models
+    exposing
+        ( Hoverable(..)
+        , Model
+        , OutputModel
+        , Page(..)
+        )
+import Build.Msgs exposing (Msg(..), fromBuildMessage)
 import Build.Output
 import Build.StepTree as StepTree
 import Build.Styles as Styles
@@ -130,7 +136,7 @@ subscriptions model =
     [ OnClockTick Time.second ClockTick
     , OnScrollFromWindowBottom WindowScrolled
     , OnKeyPress KeyPressed
-    , OnKeyUp KeyUped
+    , OnKeyUp
     , Conditionally
         (getScrollBehavior model /= NoScroll)
         (OnAnimationFrame ScrollDown)
@@ -138,6 +144,7 @@ subscriptions model =
         |> RemoteData.toMaybe
         |> Maybe.andThen .output
         |> Maybe.andThen .events
+        |> Maybe.map Build.Output.subscribeToEvents
         |> WhenPresent
     ]
 
@@ -293,7 +300,7 @@ updateWithoutTopBar : Msg -> Model -> ( Model, List Effect )
 updateWithoutTopBar action model =
     case action of
         SwitchToBuild build ->
-            ( model, [ NavigateTo <| Routes.buildRoute build ] )
+            ( model, [ NavigateTo <| Routes.toString <| Routes.buildRoute build ] )
 
         Hover state ->
             let
@@ -371,8 +378,8 @@ updateWithoutTopBar action model =
             else
                 ( { model | autoScroll = False }, [] )
 
-        NavTo url ->
-            ( model, [ NavigateTo url ] )
+        NavTo route ->
+            ( model, [ NavigateTo <| Routes.toString route ] )
 
         NewCSRFToken token ->
             ( { model | csrfToken = token }, [] )
@@ -1101,12 +1108,12 @@ viewBuildHeader build { now, job, history, hoveredElement } =
             case build.job of
                 Just { jobName, teamName, pipelineName } ->
                     let
-                        jobUrl =
-                            "/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/jobs/" ++ jobName
+                        jobRoute =
+                            Routes.Job teamName pipelineName jobName Nothing
                     in
                     Html.a
-                        [ StrictEvents.onLeftClick <| NavTo jobUrl
-                        , href jobUrl
+                        [ StrictEvents.onLeftClick <| NavTo jobRoute
+                        , href <| Routes.toString jobRoute
                         ]
                         [ Html.span [ class "build-name" ] [ Html.text jobName ]
                         , Html.text (" #" ++ build.name)
@@ -1165,8 +1172,8 @@ viewHistoryItem currentBuild build =
             class (Concourse.BuildStatus.show build.status)
         ]
         [ Html.a
-            [ onLeftClick (SwitchToBuild build)
-            , href (Routes.buildRoute build)
+            [ onLeftClick <| SwitchToBuild build
+            , href <| Routes.toString <| Routes.buildRoute build
             ]
             [ Html.text build.name
             ]

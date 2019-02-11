@@ -191,7 +191,7 @@ handleCallbackWithoutTopBar msg model =
                     , version = apiData.version
                     , userState = userState
                   }
-                , [ ModifyUrl (Routes.dashboardRoute False) ]
+                , [ ModifyUrl <| Routes.toString <| Routes.dashboardRoute False ]
                 )
 
             else
@@ -208,7 +208,7 @@ handleCallbackWithoutTopBar msg model =
                 | userState = UserState.UserStateLoggedOut
                 , userMenuVisible = False
               }
-            , [ NavigateTo (Routes.dashboardRoute model.highDensity)
+            , [ NavigateTo <| Routes.toString <| Routes.dashboardRoute model.highDensity
               , FetchData
               ]
             )
@@ -384,7 +384,7 @@ subscriptions model =
     , OnMouseMove ShowFooter
     , OnMouseClick ShowFooter
     , OnKeyPress KeyPressed
-    , OnKeyDown (NewTopBar.Msgs.KeyDown >> FromTopBar)
+    , OnKeyDown
     , OnWindowResize Msgs.ResizeScreen
     ]
 

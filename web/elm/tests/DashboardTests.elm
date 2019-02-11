@@ -2426,6 +2426,10 @@ all =
                                     [ style
                                         [ ( "text-transform", "uppercase" ) ]
                                     ]
+                    , test "links to HD view" <|
+                        \_ ->
+                            hdToggle
+                                |> Query.has [ attribute <| Attr.href "/hd" ]
                     , test "displays the off state" <|
                         \_ ->
                             hdToggle
@@ -2471,6 +2475,16 @@ all =
                                         , ( "width", "35px" )
                                         ]
                                     ]
+                    , test "links to normal dashboard view" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = True }
+                                |> givenDataUnauthenticated
+                                    (apiData
+                                        [ ( "team", [ "pipeline" ] ) ]
+                                    )
+                                |> queryView
+                                |> findHDToggle
+                                |> Query.has [ attribute <| Attr.href "/" ]
                     , test "will not shrink on resizing" <|
                         \_ ->
                             whenOnDashboard { highDensity = True }

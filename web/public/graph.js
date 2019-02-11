@@ -623,19 +623,6 @@ GraphNode.prototype.padding = function() {
   return NODE_PADDING;
 }
 
-GraphNode.prototype.imageHeight = function() {
-    var id = this.id;
-    var svgNode = this.svg.selectAll("g.node").filter(function(node) {
-      return node.id == id;
-    })
-    var imageNode = svgNode.select("image").node();
-    if (imageNode) {
-      return imageNode.getBBox().height;
-    } else {
-      return 0;
-    }
-}
-
 GraphNode.prototype.pinned = function() {
   return this.class.includes("pinned");
 }

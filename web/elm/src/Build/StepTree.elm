@@ -16,6 +16,7 @@ import Array exposing (Array)
 import Build.Models
     exposing
         ( HookedStep
+        , Hoverable(..)
         , MetadataField
         , Step
         , StepFocus
@@ -27,7 +28,7 @@ import Build.Models
         , TabFocus(..)
         , Version
         )
-import Build.Msgs exposing (Hoverable(..), Msg(..))
+import Build.Msgs exposing (Msg(..))
 import Build.Styles as Styles
 import Concourse
 import Date exposing (Date)
@@ -712,12 +713,12 @@ viewVersion : Maybe Version -> Html Msg
 viewVersion version =
     Maybe.withDefault Dict.empty version
         |> Dict.map (always Html.text)
-        |> DictView.view
+        |> DictView.view []
 
 
 viewMetadata : List MetadataField -> Html Msg
 viewMetadata metadata =
-    DictView.view
+    DictView.view []
         << Dict.fromList
     <|
         List.map (\{ name, value } -> ( name, Html.pre [] [ Html.text value ] )) metadata

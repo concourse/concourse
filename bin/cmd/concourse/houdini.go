@@ -1,5 +1,3 @@
-// +build windows darwin solaris
-
 package main
 
 import (
@@ -9,17 +7,16 @@ import (
 
 	"code.cloudfoundry.org/garden/server"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	"github.com/tedsuo/ifrit"
 	"github.com/vito/houdini"
 )
 
-func (cmd *WorkerCommand) houdiniRunner(logger lager.Logger, platform string) (atc.Worker, ifrit.Runner, error) {
+func (cmd *WorkerCommand) houdiniRunner(logger lager.Logger) (ifrit.Runner, error) {
 	depotDir := filepath.Join(cmd.WorkDir.Path(), "containers")
 
 	err := os.MkdirAll(depotDir, 0755)
 	if err != nil {
-		return atc.Worker{}, nil, fmt.Errorf("failed to create depot dir: %s", err)
+		return nil, fmt.Errorf("failed to create depot dir: %s", err)
 	}
 
 	backend := houdini.NewBackend(depotDir)
@@ -32,15 +29,7 @@ func (cmd *WorkerCommand) houdiniRunner(logger lager.Logger, platform string) (a
 		logger,
 	)
 
-	worker := cmd.Worker.Worker()
-	worker.Platform = platform
-
-	worker.Name, err = cmd.workerName()
-	if err != nil {
-		return atc.Worker{}, nil, err
-	}
-
-	return worker, gardenServerRunner{logger, server}, nil
+	return gardenServerRunner{logger, server}, nil
 }
 
 func (cmd *WorkerCommand) bindAddr() string {

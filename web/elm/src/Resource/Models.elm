@@ -14,7 +14,8 @@ import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Date exposing (Date)
 import NewTopBar.Model
-import Pinned exposing (ResourcePinState)
+import Pinned exposing (CommentState, ResourcePinState)
+import Routes
 import Time
 
 
@@ -22,6 +23,7 @@ type Hoverable
     = PreviousPage
     | NextPage
     | CheckButton
+    | SaveComment
     | None
 
 
@@ -59,13 +61,16 @@ type alias Model =
     , csrfToken : String
     , showPinBarTooltip : Bool
     , pinIconHover : Bool
-    , pinComment : Maybe String
     , topBar : NewTopBar.Model.Model
+    , route : Routes.Route
+    , pinCommentLoading : Bool
+    , ctrlDown : Bool
+    , textAreaFocused : Bool
     }
 
 
 type alias PinnedVersion =
-    ResourcePinState Concourse.Version VersionId
+    ResourcePinState Concourse.Version VersionId CommentState
 
 
 type VersionEnabledState

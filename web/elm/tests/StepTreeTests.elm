@@ -15,7 +15,6 @@ module StepTreeTests exposing
 import Ansi.Log
 import Array
 import Build.Models as Models
-import Build.Msgs as Msgs
 import Build.StepTree as StepTree
 import Concourse exposing (BuildStep(..), HookedPlan)
 import Dict

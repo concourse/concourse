@@ -108,7 +108,7 @@ type RunCommand struct {
 	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
 	ResourceTypeCheckingInterval time.Duration `long:"resource-type-checking-interval" default:"1m" description:"Interval on which to check for new versions of resource types."`
 
-	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"least-build-containers" description:"Method by which a worker is selected during container placement."`
+	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" description:"Method by which a worker is selected during container placement."`
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
 
 	CLIArtifactsDir flag.Dir `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
@@ -355,7 +355,11 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	radar.GlobalResourceCheckTimeout = cmd.GlobalResourceCheckTimeout
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
-	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres.ConnectionString(), retryingDriverName)
+	db.SetupConnectionRetryingDriver(
+		"postgres",
+		cmd.Postgres.ConnectionString(),
+		retryingDriverName,
+	)
 
 	// Register the sink that collects error metrics
 	if cmd.Metrics.CaptureErrorMetrics {
@@ -1162,7 +1166,7 @@ func (cmd *RunCommand) constructWorkerPool(
 	switch cmd.ContainerPlacementStrategy {
 	case "random":
 		strategy = worker.NewRandomPlacementStrategy()
-	case "least-build-containers":
+	case "fewest-build-containers":
 		strategy = worker.NewLeastBuildContainersPlacementStrategy()
 	default:
 		strategy = worker.NewVolumeLocalityPlacementStrategy()

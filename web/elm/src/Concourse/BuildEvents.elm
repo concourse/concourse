@@ -1,8 +1,5 @@
 module Concourse.BuildEvents exposing
-    ( BuildEvent(..)
-    , Msg(..)
-    , Origin
-    , dateFromSeconds
+    ( dateFromSeconds
     , decodeBuildEvent
     , decodeBuildEventEnvelope
     , decodeErrorEvent
@@ -11,43 +8,15 @@ module Concourse.BuildEvents exposing
     , parseEvent
     , parseEvents
     , parseEventsFromIndex
-    , parseMsg
-    , subscribe
     )
 
 import Array exposing (Array)
+import Build.Models exposing (BuildEvent(..), Origin)
 import Concourse
 import Date exposing (Date)
 import Dict exposing (Dict)
-import EventSource
 import EventSource.LowLevel as ES
 import Json.Decode
-import Subscription exposing (Subscription(..))
-
-
-type BuildEvent
-    = BuildStatus Concourse.BuildStatus Date
-    | Initialize Origin
-    | StartTask Origin
-    | FinishTask Origin Int
-    | FinishGet Origin Int Concourse.Version Concourse.Metadata
-    | FinishPut Origin Int Concourse.Version Concourse.Metadata
-    | Log Origin String (Maybe Date)
-    | Error Origin String
-    | BuildError String
-    | End
-
-
-type Msg
-    = Opened
-    | Errored
-    | Events (Result String (Array.Array BuildEvent))
-
-
-type alias Origin =
-    { source : String
-    , id : String
-    }
 
 
 decodeBuildEventEnvelope : Json.Decode.Decoder BuildEvent
@@ -111,39 +80,29 @@ decodeBuildEvent eventType =
             Json.Decode.fail ("unknown event type: " ++ unknown)
 
 
-subscribe : Int -> Subscription Msg
-subscribe build =
-    FromEventSource ( "/api/v1/builds/" ++ toString build ++ "/events", [ "end", "event" ] ) parseMsg
-
-
 parseEvents : Array.Array ES.Event -> Result String (Array.Array BuildEvent)
 parseEvents evs =
     -- this is hard to read, but faster than a fold or using a List
     parseEventsFromIndex evs (Array.initialize (Array.length evs) (\_ -> End)) 0
 
 
-parseEventsFromIndex : Array.Array ES.Event -> Array.Array BuildEvent -> Int -> Result String (Array.Array BuildEvent)
+parseEventsFromIndex :
+    Array.Array ES.Event
+    -> Array.Array BuildEvent
+    -> Int
+    -> Result String (Array.Array BuildEvent)
 parseEventsFromIndex evs acc i =
     case Array.get i evs of
         Nothing ->
             Ok acc
 
         Just ev ->
-            parseEvent ev
-                |> Result.andThen (\ev -> parseEventsFromIndex evs (Array.set i ev acc) (i + 1))
+            case parseEvent ev of
+                Ok ev ->
+                    parseEventsFromIndex evs (Array.set i ev acc) (i + 1)
 
-
-parseMsg : EventSource.Msg -> Msg
-parseMsg msg =
-    case msg of
-        EventSource.Events evs ->
-            Events (parseEvents evs)
-
-        EventSource.Opened ->
-            Opened
-
-        EventSource.Errored ->
-            Errored
+                Err err ->
+                    Err err
 
 
 parseEvent : ES.Event -> Result String BuildEvent
