@@ -12,13 +12,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
                 ca-certificates \
 	&& rm -rf /var/lib/apt/lists/*
 
-ENV GOLANG_VERSION 1.11.5
+ARG GOLANG_VERSION=1.11.5
 
 RUN set -eux; \
 	url="https://golang.org/dl/go${GOLANG_VERSION}.linux-amd64.tar.gz"; \
-	wget -O go.tgz "$url" 2>/dev/null; \
-	tar -C /usr/local -xzf go.tgz; \
-	rm go.tgz; \
+	wget -nv -O - "$url" | tar -C /usr/local -xz; \
 	export PATH="/usr/local/go/bin:$PATH"; \
 	go version
 
