@@ -1,6 +1,5 @@
 module NewestTopBar exposing
     ( Flags
-    , Model
     , handleCallback
     , init
     , query
@@ -13,6 +12,7 @@ import Array
 import Callback exposing (Callback(..))
 import Char
 import Concourse
+import Dict
 import Effects exposing (Effect(..))
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as HA
@@ -30,28 +30,22 @@ import Html.Styled.Attributes as HA
         )
 import Html.Styled.Events exposing (..)
 import Http
+import NewTopBar.Model
+    exposing
+        ( Dropdown(..)
+        , MiddleSection(..)
+        , Model
+        , PipelineState(..)
+        , isPaused
+        )
 import NewTopBar.Msgs exposing (Msg(..))
 import NewTopBar.Styles as Styles
 import QueryString
 import RemoteData exposing (RemoteData)
 import Routes
 import ScreenSize exposing (ScreenSize(..))
-import SearchBar exposing (Dropdown(..), SearchBar(..))
-import TopBar exposing (userDisplayName)
 import UserState exposing (UserState(..))
 import Window
-
-
-type alias Model =
-    { userState : UserState
-    , isUserMenuExpanded : Bool
-    , searchBar : SearchBar
-    , teams : RemoteData.WebData (List Concourse.Team)
-    , route : Routes.Route
-    , screenSize : ScreenSize
-    , highDensity : Bool
-    , hasPipelines : Bool
-    }
 
 
 type alias Flags =
@@ -60,14 +54,11 @@ type alias Flags =
 
 query : Model -> String
 query model =
-    case model.searchBar of
-        Visible r ->
-            r.query
+    case model.middleSection of
+        SearchBar { query } ->
+            query
 
-        Minified ->
-            ""
-
-        Gone ->
+        _ ->
             ""
 
 
@@ -77,22 +68,23 @@ init { route } =
         isHd =
             route == Routes.Dashboard Routes.HighDensity
 
-        searchBar =
+        middleSection =
             case route of
                 Routes.Dashboard (Routes.Normal search) ->
-                    Visible { query = Maybe.withDefault "" search, dropdown = Hidden }
+                    SearchBar { query = Maybe.withDefault "" search, dropdown = Hidden }
+
+                Routes.Dashboard Routes.HighDensity ->
+                    Empty
 
                 _ ->
-                    Gone
+                    Breadcrumbs route
     in
-    ( { userState = UserStateUnknown
-      , isUserMenuExpanded = False
-      , searchBar = searchBar
+    ( { isUserMenuExpanded = False
+      , isPinMenuExpanded = False
+      , middleSection = middleSection
       , teams = RemoteData.Loading
-      , route = route
       , screenSize = Desktop
       , highDensity = isHd
-      , hasPipelines = True
       }
     , [ GetScreenSize ]
     )
@@ -118,8 +110,7 @@ handleCallback callback model =
                     Routes.dashboardRoute model.highDensity
             in
             ( { model
-                | userState = UserStateLoggedOut
-                , isUserMenuExpanded = False
+                | isUserMenuExpanded = False
                 , teams = RemoteData.Loading
               }
             , [ NavigateTo <| Routes.toString redirectUrl ]
@@ -132,26 +123,18 @@ handleCallback callback model =
         APIDataFetched (Ok ( time, data )) ->
             ( { model
                 | teams = RemoteData.Success data.teams
-                , userState =
-                    case data.user of
-                        Just user ->
-                            UserStateLoggedIn user
+                , middleSection =
+                    if data.pipelines == [] then
+                        Empty
 
-                        Nothing ->
-                            UserStateLoggedOut
-                , hasPipelines = data.pipelines /= []
+                    else
+                        model.middleSection
               }
             , []
             )
 
         APIDataFetched (Err err) ->
-            ( { model
-                | teams = RemoteData.Failure err
-                , userState = UserStateLoggedOut
-                , hasPipelines = False
-              }
-            , []
-            )
+            ( { model | teams = RemoteData.Failure err, middleSection = Empty }, [] )
 
         ScreenResized size ->
             ( screenResize size model, [] )
@@ -166,9 +149,9 @@ update msg model =
         FilterMsg query ->
             let
                 newModel =
-                    case model.searchBar of
-                        Visible r ->
-                            { model | searchBar = Visible { r | query = query } }
+                    case model.middleSection of
+                        SearchBar r ->
+                            { model | middleSection = SearchBar { r | query = query } }
 
                         _ ->
                             model
@@ -188,12 +171,15 @@ update msg model =
         ToggleUserMenu ->
             ( { model | isUserMenuExpanded = not model.isUserMenuExpanded }, [] )
 
+        TogglePinIconDropdown ->
+            ( { model | isPinMenuExpanded = not model.isPinMenuExpanded }, [] )
+
         FocusMsg ->
             let
                 newModel =
-                    case model.searchBar of
-                        Visible r ->
-                            { model | searchBar = Visible { r | dropdown = Shown { selectedIdx = Nothing } } }
+                    case model.middleSection of
+                        SearchBar r ->
+                            { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Nothing } } }
 
                         _ ->
                             model
@@ -203,13 +189,13 @@ update msg model =
         BlurMsg ->
             let
                 newModel =
-                    case model.searchBar of
-                        Visible r ->
+                    case model.middleSection of
+                        SearchBar r ->
                             if model.screenSize == Mobile && r.query == "" then
-                                { model | searchBar = Minified }
+                                { model | middleSection = MinifiedSearch }
 
                             else
-                                { model | searchBar = Visible { r | dropdown = Hidden } }
+                                { model | middleSection = SearchBar { r | dropdown = Hidden } }
 
                         _ ->
                             model
@@ -217,18 +203,15 @@ update msg model =
             ( newModel, [] )
 
         KeyDown keycode ->
-            case model.searchBar of
-                Visible r ->
-                    case r.dropdown of
-                        Hidden ->
-                            ( model, [] )
-
-                        Shown { selectedIdx } ->
-                            case selectedIdx of
-                                Nothing ->
-                                    case keycode of
-                                        -- up arrow
-                                        38 ->
+            case keycode of
+                -- up arrow
+                38 ->
+                    case model.middleSection of
+                        SearchBar r ->
+                            case r.dropdown of
+                                Shown { selectedIdx } ->
+                                    case selectedIdx of
+                                        Nothing ->
                                             let
                                                 options =
                                                     dropdownOptions { query = r.query, teams = model.teams }
@@ -236,37 +219,83 @@ update msg model =
                                                 lastItem =
                                                     List.length options - 1
                                             in
-                                            ( { model | searchBar = Visible { r | dropdown = Shown { selectedIdx = Just lastItem } } }, [] )
+                                            ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Just lastItem } } }
+                                            , []
+                                            )
 
-                                        -- down arrow
-                                        40 ->
+                                        Just selectedIdx ->
+                                            let
+                                                options =
+                                                    dropdownOptions { query = r.query, teams = model.teams }
+
+                                                newSelection =
+                                                    (selectedIdx - 1) % List.length options
+                                            in
+                                            ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Just newSelection } } }
+                                            , []
+                                            )
+
+                                _ ->
+                                    ( model, [] )
+
+                        _ ->
+                            ( model, [] )
+
+                -- down arrow
+                40 ->
+                    case model.middleSection of
+                        SearchBar r ->
+                            case r.dropdown of
+                                Shown { selectedIdx } ->
+                                    case selectedIdx of
+                                        Nothing ->
                                             let
                                                 options =
                                                     dropdownOptions { query = r.query, teams = model.teams }
                                             in
-                                            ( { model | searchBar = Visible { r | dropdown = Shown { selectedIdx = Just 0 } } }, [] )
+                                            ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Just 0 } } }
+                                            , []
+                                            )
 
-                                        -- escape key
-                                        27 ->
-                                            ( model, [ ForceFocus "search-input-field" ] )
+                                        Just selectedIdx ->
+                                            let
+                                                options =
+                                                    dropdownOptions { query = r.query, teams = model.teams }
 
-                                        _ ->
+                                                newSelection =
+                                                    (selectedIdx + 1) % List.length options
+                                            in
+                                            ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Just newSelection } } }
+                                            , []
+                                            )
+
+                                _ ->
+                                    ( model, [] )
+
+                        _ ->
+                            ( model, [] )
+
+                -- enter key
+                13 ->
+                    case model.middleSection of
+                        SearchBar r ->
+                            case r.dropdown of
+                                Shown { selectedIdx } ->
+                                    case selectedIdx of
+                                        Nothing ->
                                             ( model, [] )
 
-                                Just selectionIdx ->
-                                    case keycode of
-                                        -- enter key
-                                        13 ->
+                                        Just selectedIdx ->
                                             let
                                                 options =
                                                     Array.fromList (dropdownOptions { query = r.query, teams = model.teams })
 
                                                 selectedItem =
-                                                    Maybe.withDefault r.query (Array.get selectionIdx options)
+                                                    Maybe.withDefault r.query (Array.get selectedIdx options)
                                             in
                                             ( { model
-                                                | searchBar =
-                                                    Visible
+                                                | middleSection =
+                                                    SearchBar
                                                         { r
                                                             | dropdown = Shown { selectedIdx = Nothing }
                                                             , query = selectedItem
@@ -275,40 +304,65 @@ update msg model =
                                             , []
                                             )
 
-                                        -- up arrow
-                                        38 ->
+                                _ ->
+                                    ( model, [] )
+
+                        _ ->
+                            ( model, [] )
+
+                -- escape key
+                27 ->
+                    case model.middleSection of
+                        SearchBar r ->
+                            case r.dropdown of
+                                Shown { selectedIdx } ->
+                                    case selectedIdx of
+                                        Nothing ->
                                             let
-                                                options =
-                                                    dropdownOptions { query = r.query, teams = model.teams }
+                                                newModel =
+                                                    case model.middleSection of
+                                                        SearchBar r ->
+                                                            if model.screenSize == Mobile && r.query == "" then
+                                                                { model | middleSection = MinifiedSearch }
 
-                                                newSelection =
-                                                    (selectionIdx - 1) % List.length options
+                                                            else
+                                                                { model | middleSection = SearchBar { r | dropdown = Hidden } }
+
+                                                        _ ->
+                                                            model
                                             in
-                                            ( { model | searchBar = Visible { r | dropdown = Shown { selectedIdx = Just newSelection } } }, [] )
+                                            ( newModel, [] )
 
-                                        -- down arrow
-                                        40 ->
+                                        Just selectedIdx ->
                                             let
-                                                options =
-                                                    dropdownOptions { query = r.query, teams = model.teams }
+                                                newModel =
+                                                    case model.middleSection of
+                                                        SearchBar r ->
+                                                            if model.screenSize == Mobile && r.query == "" then
+                                                                { model | middleSection = MinifiedSearch }
 
-                                                newSelection =
-                                                    (selectionIdx + 1) % List.length options
+                                                            else
+                                                                { model | middleSection = SearchBar { r | dropdown = Hidden } }
+
+                                                        _ ->
+                                                            model
                                             in
-                                            ( { model | searchBar = Visible { r | dropdown = Shown { selectedIdx = Just newSelection } } }, [] )
+                                            ( newModel, [] )
 
-                                        -- escape key
-                                        27 ->
-                                            ( model, [ ForceFocus "search-input-field" ] )
+                                _ ->
+                                    ( model, [] )
 
-                                        _ ->
-                                            ( { model | searchBar = Visible { r | dropdown = Shown { selectedIdx = Nothing } } }, [] )
+                        _ ->
+                            ( model, [] )
 
-                Minified ->
-                    ( model, [] )
+                -- any other keycode
+                _ ->
+                    case model.middleSection of
+                        SearchBar r ->
+                            ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Nothing } } }, [] )
 
-                Gone ->
-                    ( model, [] )
+                        _ ->
+                            ( model, [] )
 
         ShowSearchInput ->
             showSearchInput model
@@ -324,6 +378,9 @@ update msg model =
         ResizeScreen size ->
             ( screenResize size model, [] )
 
+        GoToPinnedResource route ->
+            ( model, [ NavigateTo (Routes.toString route) ] )
+
         Noop ->
             ( model, [] )
 
@@ -333,79 +390,90 @@ screenResize size model =
     let
         newSize =
             ScreenSize.fromWindowSize size
+
+        newMiddleSection =
+            case model.middleSection of
+                Breadcrumbs r ->
+                    Breadcrumbs r
+
+                Empty ->
+                    Empty
+
+                SearchBar q ->
+                    if String.isEmpty q.query && newSize == Mobile && model.screenSize /= Mobile then
+                        MinifiedSearch
+
+                    else
+                        SearchBar q
+
+                MinifiedSearch ->
+                    case newSize of
+                        ScreenSize.Desktop ->
+                            SearchBar { query = "", dropdown = Hidden }
+
+                        ScreenSize.BigDesktop ->
+                            SearchBar { query = "", dropdown = Hidden }
+
+                        ScreenSize.Mobile ->
+                            MinifiedSearch
     in
-    { model
-        | screenSize = newSize
-        , searchBar =
-            SearchBar.screenSizeChanged
-                { oldSize = model.screenSize
-                , newSize = newSize
-                }
-                model.searchBar
-    }
+    { model | screenSize = newSize, middleSection = newMiddleSection }
 
 
 showSearchInput : Model -> ( Model, List Effect )
 showSearchInput model =
     let
         newModel =
-            { model | searchBar = Visible { query = "", dropdown = Hidden } }
+            { model | middleSection = SearchBar { query = "", dropdown = Hidden } }
     in
-    case model.searchBar of
-        Minified ->
+    case model.middleSection of
+        MinifiedSearch ->
             ( newModel, [ ForceFocus "search-input-field" ] )
 
-        Visible _ ->
+        SearchBar _ ->
             ( model, [] )
 
-        Gone ->
+        Empty ->
             Debug.log "attempting to show search input when search is gone" ( model, [] )
 
+        Breadcrumbs _ ->
+            Debug.log "attempting to show search input on a breadcrumbs page" ( model, [] )
 
-view : Model -> Html Msg
-view model =
-    Html.div [ id "top-bar-app", style Styles.topBar ] <|
-        viewConcourseLogo
-            ++ viewBreadcrumbs model
+
+view : UserState -> PipelineState -> Model -> Html Msg
+view userState pipelineState model =
+    Html.div
+        [ id "top-bar-app"
+        , style <| Styles.topBar <| isPaused pipelineState
+        ]
+        (viewConcourseLogo
             ++ viewMiddleSection model
-            ++ viewLogin model
-
-
-viewBreadcrumbs : Model -> List (Html Msg)
-viewBreadcrumbs model =
-    List.intersperse viewBreadcrumbSeparator
-        (case model.route of
-            Routes.Pipeline teamName pipelineName _ ->
-                viewPipelineBreadcrumb (Routes.toString model.route) pipelineName
-
-            Routes.Build teamName pipelineName jobName buildNumber _ ->
-                viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName [])) pipelineName
-                    ++ viewJobBreadcrumb (Routes.toString (Routes.Job teamName pipelineName jobName Nothing))
-
-            Routes.Resource teamName pipelineName resourceName _ ->
-                viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName [])) pipelineName
-                    ++ viewResourceBreadcrumb resourceName
-
-            Routes.Job teamName pipelineName jobName _ ->
-                viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName [])) pipelineName
-                    ++ viewJobBreadcrumb jobName
-
-            _ ->
-                []
+            ++ viewPin pipelineState model
+            ++ viewLogin userState model
         )
 
 
-viewLogin : Model -> List (Html Msg)
-viewLogin model =
-    if model.screenSize /= Mobile || model.searchBar == Minified then
-        [ Html.div [ id "login-component", style Styles.loginComponent ] <| viewLoginState model ]
+viewLogin : UserState -> Model -> List (Html Msg)
+viewLogin userState model =
+    if showLogin model then
+        [ Html.div [ id "login-component", style Styles.loginComponent ] <| viewLoginState userState model.isUserMenuExpanded ]
 
     else
         []
 
 
-viewLoginState : { a | userState : UserState, isUserMenuExpanded : Bool } -> List (Html Msg)
-viewLoginState { userState, isUserMenuExpanded } =
+showLogin : Model -> Bool
+showLogin model =
+    case model.middleSection of
+        SearchBar _ ->
+            model.screenSize /= Mobile
+
+        _ ->
+            True
+
+
+viewLoginState : UserState -> Bool -> List (Html Msg)
+viewLoginState userState isUserMenuExpanded =
     case userState of
         UserStateUnknown ->
             []
@@ -440,29 +508,35 @@ viewLoginState { userState, isUserMenuExpanded } =
             ]
 
 
+userDisplayName : Concourse.User -> String
+userDisplayName user =
+    Maybe.withDefault user.id <|
+        List.head <|
+            List.filter (not << String.isEmpty) [ user.userName, user.name, user.email ]
+
+
 viewMiddleSection : Model -> List (Html Msg)
 viewMiddleSection model =
-    if model.hasPipelines then
-        case model.searchBar of
-            Gone ->
-                []
+    case model.middleSection of
+        Empty ->
+            []
 
-            Minified ->
-                [ Html.div [ style <| Styles.showSearchContainer model ]
-                    [ Html.a
-                        [ id "show-search-button"
-                        , onClick ShowSearchInput
-                        , style Styles.searchButton
-                        ]
-                        []
+        MinifiedSearch ->
+            [ Html.div [ style <| Styles.showSearchContainer model ]
+                [ Html.a
+                    [ id "show-search-button"
+                    , onClick ShowSearchInput
+                    , style Styles.searchButton
                     ]
+                    []
                 ]
+            ]
 
-            Visible r ->
-                viewSearch r model
+        SearchBar r ->
+            viewSearch r model
 
-    else
-        []
+        Breadcrumbs r ->
+            [ Html.div [ id "breadcrumbs", style Styles.breadcrumbContainer ] (viewBreadcrumbs r) ]
 
 
 viewSearch : { query : String, dropdown : Dropdown } -> Model -> List (Html Msg)
@@ -545,9 +619,37 @@ viewDropdownItems { query, dropdown } model =
 viewConcourseLogo : List (Html Msg)
 viewConcourseLogo =
     [ Html.a
-        [ style Styles.concourseLogo, href "#" ]
+        [ style Styles.concourseLogo, href "/" ]
         []
     ]
+
+
+viewBreadcrumbs : Routes.Route -> List (Html Msg)
+viewBreadcrumbs route =
+    case route of
+        Routes.Pipeline teamName pipelineName _ ->
+            [ viewPipelineBreadcrumb (Routes.toString route) pipelineName ]
+
+        Routes.Build teamName pipelineName jobName buildNumber _ ->
+            [ viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName [])) pipelineName
+            , viewBreadcrumbSeparator
+            , viewJobBreadcrumb jobName
+            ]
+
+        Routes.Resource teamName pipelineName resourceName _ ->
+            [ viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName [])) pipelineName
+            , viewBreadcrumbSeparator
+            , viewResourceBreadcrumb resourceName
+            ]
+
+        Routes.Job teamName pipelineName jobName _ ->
+            [ viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName [])) pipelineName
+            , viewBreadcrumbSeparator
+            , viewJobBreadcrumb jobName
+            ]
+
+        _ ->
+            []
 
 
 breadcrumbComponent : String -> String -> List (Html Msg)
@@ -561,28 +663,33 @@ breadcrumbComponent componentType name =
 
 viewBreadcrumbSeparator : Html Msg
 viewBreadcrumbSeparator =
-    Html.li [ class "breadcrumb-separator", style Styles.breadcrumbContainer ] [ Html.text "/" ]
+    Html.li
+        [ class "breadcrumb-separator", style Styles.breadcrumbItem ]
+        [ Html.text "/" ]
 
 
-viewPipelineBreadcrumb : String -> String -> List (Html Msg)
+viewPipelineBreadcrumb : String -> String -> Html Msg
 viewPipelineBreadcrumb url pipelineName =
-    [ Html.li [ style Styles.breadcrumbContainer, id "breadcrumb-pipeline" ]
+    Html.li
+        [ id "breadcrumb-pipeline", style Styles.breadcrumbItem ]
         [ Html.a
             [ href url ]
-          <|
-            breadcrumbComponent "pipeline" pipelineName
+            (breadcrumbComponent "pipeline" pipelineName)
         ]
-    ]
 
 
-viewJobBreadcrumb : String -> List (Html Msg)
+viewJobBreadcrumb : String -> Html Msg
 viewJobBreadcrumb jobName =
-    [ Html.li [ id "breadcrumb-job", style Styles.breadcrumbContainer ] <| breadcrumbComponent "job" jobName ]
+    Html.li
+        [ id "breadcrumb-job", style Styles.breadcrumbItem ]
+        (breadcrumbComponent "job" jobName)
 
 
-viewResourceBreadcrumb : String -> List (Html Msg)
+viewResourceBreadcrumb : String -> Html Msg
 viewResourceBreadcrumb resourceName =
-    [ Html.li [ id "breadcrumb-resource", style Styles.breadcrumbContainer ] <| breadcrumbComponent "resource" resourceName ]
+    Html.li
+        [ id "breadcrumb-resource", style Styles.breadcrumbItem ]
+        (breadcrumbComponent "resource" resourceName)
 
 
 decodeName : String -> String
@@ -609,3 +716,72 @@ dropdownOptions { query, teams } =
 
         _ ->
             []
+
+
+viewPin : PipelineState -> Model -> List (Html Msg)
+viewPin pipelineState model =
+    case pipelineState of
+        HasPipeline { pinnedResources, pipeline } ->
+            [ Html.div
+                [ style <| Styles.pinIconContainer model.isPinMenuExpanded
+                , id "pin-icon"
+                ]
+                [ if List.length pinnedResources > 0 then
+                    Html.div
+                        [ style <| Styles.pinIcon True
+                        , onMouseEnter TogglePinIconDropdown
+                        , onMouseLeave TogglePinIconDropdown
+                        ]
+                        ([ Html.div
+                            [ style Styles.pinBadge
+                            , id "pin-badge"
+                            ]
+                            [ Html.div [] [ Html.text <| toString <| List.length pinnedResources ]
+                            ]
+                         ]
+                            ++ viewPinDropdown pinnedResources pipeline model
+                        )
+
+                  else
+                    Html.div [ style <| Styles.pinIcon False ] []
+                ]
+            ]
+
+        None ->
+            []
+
+
+viewPinDropdown : List ( String, Concourse.Version ) -> Concourse.PipelineIdentifier -> Model -> List (Html Msg)
+viewPinDropdown pinnedResources pipeline model =
+    if model.isPinMenuExpanded then
+        [ Html.ul
+            [ style Styles.pinIconDropdown ]
+            (pinnedResources
+                |> List.map
+                    (\( resourceName, pinnedVersion ) ->
+                        Html.li
+                            [ onClick <| GoToPinnedResource <| Routes.Resource pipeline.teamName pipeline.pipelineName resourceName Nothing
+                            , style Styles.pinDropdownCursor
+                            ]
+                            [ Html.div
+                                [ style Styles.pinText ]
+                                [ Html.text resourceName ]
+                            , Html.table []
+                                (pinnedVersion
+                                    |> Dict.toList
+                                    |> List.map
+                                        (\( k, v ) ->
+                                            Html.tr []
+                                                [ Html.td [] [ Html.text k ]
+                                                , Html.td [] [ Html.text v ]
+                                                ]
+                                        )
+                                )
+                            ]
+                    )
+            )
+        , Html.div [ style Styles.pinHoverHighlight ] []
+        ]
+
+    else
+        []

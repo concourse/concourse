@@ -1,6 +1,7 @@
 module NewTopBar.Styles exposing
     ( breadcrumbComponent
     , breadcrumbContainer
+    , breadcrumbItem
     , concourseLogo
     , dropdownContainer
     , dropdownItem
@@ -9,7 +10,17 @@ module NewTopBar.Styles exposing
     , loginItem
     , loginText
     , logoutButton
+    , pageBelowTopBar
     , pageHeaderHeight
+    , pageIncludingTopBar
+    , pinBadge
+    , pinDropdownCursor
+    , pinHoverHighlight
+    , pinIcon
+    , pinIconContainer
+    , pinIconDropdown
+    , pinText
+    , pipelinePageBelowTopBar
     , searchButton
     , searchClearButton
     , searchContainer
@@ -18,8 +29,8 @@ module NewTopBar.Styles exposing
     , topBar
     )
 
+import Colors
 import ScreenSize exposing (ScreenSize(..))
-import SearchBar exposing (SearchBar(..))
 
 
 pageHeaderHeight : Float
@@ -27,53 +38,61 @@ pageHeaderHeight =
     54
 
 
-topBar : List ( String, String )
-topBar =
+pageIncludingTopBar : List ( String, String )
+pageIncludingTopBar =
+    [ ( "-webkit-font-smoothing", "antialiased" )
+    , ( "font-weight", "700" )
+    , ( "height", "100%" )
+    ]
+
+
+pageBelowTopBar : List ( String, String )
+pageBelowTopBar =
+    [ ( "padding-top", "54px" )
+    , ( "height", "100%" )
+    ]
+
+
+pipelinePageBelowTopBar : List ( String, String )
+pipelinePageBelowTopBar =
+    [ ( "padding-top", "0" )
+    , ( "height", "100%" )
+    ]
+
+
+topBar : Bool -> List ( String, String )
+topBar isPaused =
     [ ( "position", "fixed" )
     , ( "top", "0" )
     , ( "width", "100%" )
     , ( "z-index", "999" )
     , ( "display", "flex" )
     , ( "justify-content", "space-between" )
-    , ( "background-color", "#1e1d1d" )
     , ( "font-weight", "700" )
+    , ( "background-color"
+      , if isPaused then
+            "#3498db"
+
+        else
+            "#1e1d1d"
+      )
     ]
 
 
 showSearchContainer :
     { a
-        | searchBar : SearchBar
-        , screenSize : ScreenSize
+        | screenSize : ScreenSize
         , highDensity : Bool
     }
     -> List ( String, String )
-showSearchContainer { searchBar, screenSize, highDensity } =
+showSearchContainer { screenSize, highDensity } =
     let
         flexLayout =
             if highDensity then
                 []
 
             else
-                [ ( "align-items"
-                  , case searchBar of
-                        Visible _ ->
-                            case screenSize of
-                                Mobile ->
-                                    "stretch"
-
-                                Desktop ->
-                                    "center"
-
-                                BigDesktop ->
-                                    "center"
-
-                        Minified ->
-                            "flex-start"
-
-                        Gone ->
-                            Debug.log "attempting to show search container when search is gone" "center"
-                  )
-                ]
+                [ ( "align-items", "flex-start" ) ]
     in
     [ ( "display", "flex" )
     , ( "flex-direction", "column" )
@@ -193,6 +212,11 @@ concourseLogo =
     ]
 
 
+breadcrumbContainer : List ( String, String )
+breadcrumbContainer =
+    [ ( "flex-grow", "1" ) ]
+
+
 breadcrumbComponent : String -> List ( String, String )
 breadcrumbComponent componentType =
     [ ( "background-image", "url(/public/images/ic-breadcrumb-" ++ componentType ++ ".svg)" )
@@ -206,8 +230,8 @@ breadcrumbComponent componentType =
     ]
 
 
-breadcrumbContainer : List ( String, String )
-breadcrumbContainer =
+breadcrumbItem : List ( String, String )
+breadcrumbItem =
     [ ( "display", "inline-block" )
     , ( "vertical-align", "middle" )
     , ( "font-size", "18px" )
@@ -227,7 +251,7 @@ loginContainer =
     , ( "display", "flex" )
     , ( "flex-direction", "column" )
     , ( "border-left", "1px solid #3d3c3c" )
-    , ( "line-height", "56px" )
+    , ( "line-height", "54px" )
     ]
 
 
@@ -287,3 +311,92 @@ dropdownItem isSelected =
     , ( "cursor", "pointer" )
     ]
         ++ coloration
+
+
+pinIconContainer : Bool -> List ( String, String )
+pinIconContainer showBackground =
+    [ ( "margin-right", "15px" )
+    , ( "top", "10px" )
+    , ( "position", "relative" )
+    , ( "height", "40px" )
+    , ( "display", "flex" )
+    , ( "max-width", "20%" )
+    ]
+        ++ (if showBackground then
+                [ ( "background-color", "#3d3c3c" )
+                , ( "border-radius", "50%" )
+                ]
+
+            else
+                []
+           )
+
+
+pinIcon : Bool -> List ( String, String )
+pinIcon enabled =
+    [ ( "background-image"
+      , if enabled then
+            "url(/public/images/pin-ic-white.svg)"
+
+        else
+            "url(/public/images/pin-ic-grey.svg)"
+      )
+    , ( "width", "40px" )
+    , ( "height", "40px" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-position", "50% 50%" )
+    , ( "position", "relative" )
+    ]
+
+
+pinBadge : List ( String, String )
+pinBadge =
+    [ ( "background-color", Colors.pinned )
+    , ( "border-radius", "50%" )
+    , ( "width", "15px" )
+    , ( "height", "15px" )
+    , ( "position", "absolute" )
+    , ( "top", "3px" )
+    , ( "right", "3px" )
+    , ( "display", "flex" )
+    , ( "align-items", "center" )
+    , ( "justify-content", "center" )
+    ]
+
+
+pinIconDropdown : List ( String, String )
+pinIconDropdown =
+    [ ( "background-color", "#fff" )
+    , ( "color", "#1e1d1d" )
+    , ( "position", "absolute" )
+    , ( "top", "100%" )
+    , ( "right", "0" )
+    , ( "white-space", "nowrap" )
+    , ( "list-style-type", "none" )
+    , ( "padding", "10px" )
+    , ( "margin-top", "0" )
+    , ( "z-index", "1" )
+    ]
+
+
+pinHoverHighlight : List ( String, String )
+pinHoverHighlight =
+    [ ( "border-width", "5px" )
+    , ( "border-style", "solid" )
+    , ( "border-color", "transparent transparent #fff transparent" )
+    , ( "position", "absolute" )
+    , ( "top", "100%" )
+    , ( "right", "50%" )
+    , ( "margin-right", "-5px" )
+    , ( "margin-top", "-10px" )
+    ]
+
+
+pinDropdownCursor : List ( String, String )
+pinDropdownCursor =
+    [ ( "cursor", "pointer" ) ]
+
+
+pinText : List ( String, String )
+pinText =
+    [ ( "font-weight", "700" ) ]

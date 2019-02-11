@@ -6,6 +6,10 @@ import Effects
 import Expect
 import Http
 import Layout
+import NewTopBar.Model
+import RemoteData
+import Routes
+import ScreenSize
 import SubPage exposing (..)
 import Test exposing (..)
 
@@ -57,7 +61,7 @@ all =
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
-                        (NotFoundModel { notFoundImgSrc = "notfound.svg" })
+                        (NotFoundModel { notFoundImgSrc = "notfound.svg", topBar = topBar (Routes.Job "t" "p" "j" Nothing) })
             , test "Resource not found" <|
                 init "/teams/t/pipelines/p/resources/r"
                     >> Layout.handleCallback
@@ -66,7 +70,7 @@ all =
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
-                        (NotFoundModel { notFoundImgSrc = "notfound.svg" })
+                        (NotFoundModel { notFoundImgSrc = "notfound.svg", topBar = topBar (Routes.Resource "t" "p" "r" Nothing) })
             , test "Build not found" <|
                 init "/builds/1"
                     >> Layout.handleCallback
@@ -75,7 +79,7 @@ all =
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
-                        (NotFoundModel { notFoundImgSrc = "notfound.svg" })
+                        (NotFoundModel { notFoundImgSrc = "notfound.svg", topBar = topBar (Routes.OneOffBuild "1" Routes.HighlightNothing) })
             , test "Pipeline not found" <|
                 init "/teams/t/pipelines/p"
                     >> Layout.handleCallback
@@ -84,6 +88,17 @@ all =
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
-                        (NotFoundModel { notFoundImgSrc = "notfound.svg" })
+                        (NotFoundModel { notFoundImgSrc = "notfound.svg", topBar = topBar (Routes.Pipeline "t" "p" []) })
             ]
         ]
+
+
+topBar : Routes.Route -> NewTopBar.Model.Model
+topBar route =
+    { isUserMenuExpanded = False
+    , middleSection = NewTopBar.Model.Breadcrumbs route
+    , teams = RemoteData.Loading
+    , screenSize = ScreenSize.Desktop
+    , highDensity = False
+    , isPinMenuExpanded = False
+    }

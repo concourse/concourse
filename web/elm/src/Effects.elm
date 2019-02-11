@@ -66,8 +66,7 @@ port requestLoginRedirect : String -> Cmd msg
 
 
 type LayoutDispatch
-    = TopBar Int
-    | SubPage Int
+    = SubPage Int
     | Layout
 
 

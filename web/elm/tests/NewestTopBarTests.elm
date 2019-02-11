@@ -1,6 +1,5 @@
 module NewestTopBarTests exposing (all)
 
-import Build.Models
 import Callback exposing (Callback(..))
 import Concourse
 import Dict
@@ -8,6 +7,7 @@ import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Html.Styled exposing (toUnstyled)
+import NewTopBar.Model as Model
 import NewTopBar.Msgs as Msgs
 import NewestTopBar
 import Routes
@@ -47,7 +47,7 @@ it desc expectationFunc subject =
 
 lineHeight : String
 lineHeight =
-    "56px"
+    "54px"
 
 
 borderGrey : String
@@ -98,12 +98,19 @@ searchBarPadding =
 all : Test
 all =
     describe "NewestTopBar"
-        [ rspecStyleDescribe "when on pipeline page"
+        [ rspecStyleDescribe "on init"
+            (NewestTopBar.init { route = Routes.Pipeline "team" "pipeline" [] }
+                |> Tuple.second
+            )
+            [ it "requests screen size" <|
+                Expect.equal [ Effects.GetScreenSize ]
+            ]
+        , rspecStyleDescribe "when on pipeline page"
             (NewestTopBar.init { route = Routes.Pipeline "team" "pipeline" [] }
                 |> Tuple.first
             )
             [ context "when login state unknown"
-                (NewestTopBar.view
+                (NewestTopBar.view UserState.UserStateUnknown Model.None
                     >> toUnstyled
                     >> Query.fromHtml
                 )
@@ -149,9 +156,20 @@ all =
                         >> Query.index -1
                         >> Query.has [ id "login-component" ]
                 ]
+            , context "when logged out"
+                viewNormally
+                [ it "renders the login component last" <|
+                    Query.children []
+                        >> Query.index -1
+                        >> Query.has [ id "login-component" ]
+                , it "has a link to login" <|
+                    Query.children []
+                        >> Query.index -1
+                        >> Query.find [ id "login-item" ]
+                        >> Query.has [ tag "a", attribute <| Attr.href "/sky/login" ]
+                ]
             , context "when logged in"
-                (logInUser
-                    >> NewestTopBar.view
+                (NewestTopBar.view (UserState.UserStateLoggedIn sampleUser) Model.None
                     >> toUnstyled
                     >> Query.fromHtml
                 )
@@ -229,23 +247,26 @@ all =
                         >> Query.find [ id "user-id" ]
                         >> Query.hasNot [ id "logout-button" ]
                 ]
+            , it "clicking a pinned resource navigates to the pinned resource page" <|
+                NewestTopBar.update (Msgs.GoToPinnedResource (Routes.Resource "t" "p" "r" Nothing))
+                    >> Tuple.second
+                    >> Expect.equal [ Effects.NavigateTo "/teams/t/pipelines/p/resources/r" ]
             ]
         , rspecStyleDescribe "rendering user menus on clicks"
             (NewestTopBar.init { route = Routes.Pipeline "team" "pipeline" [] }
                 |> Tuple.first
-                |> logInUser
             )
             [ it "shows user menu when ToggleUserMenu msg is received" <|
                 NewestTopBar.update Msgs.ToggleUserMenu
                     >> Tuple.first
-                    >> NewestTopBar.view
+                    >> NewestTopBar.view (UserState.UserStateLoggedIn sampleUser) Model.None
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Query.has [ id "logout-button" ]
             , it "renders user menu content when ToggleUserMenu msg is received and logged in" <|
                 NewestTopBar.update Msgs.ToggleUserMenu
                     >> Tuple.first
-                    >> NewestTopBar.view
+                    >> NewestTopBar.view (UserState.UserStateLoggedIn sampleUser) Model.None
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Expect.all
@@ -272,7 +293,7 @@ all =
             , it "when logout is clicked, a LogOut Msg is sent" <|
                 NewestTopBar.update Msgs.ToggleUserMenu
                     >> Tuple.first
-                    >> NewestTopBar.view
+                    >> NewestTopBar.view (UserState.UserStateLoggedIn sampleUser) Model.None
                     >> toUnstyled
                     >> Query.fromHtml
                     >> Query.find [ id "logout-button" ]
@@ -281,19 +302,14 @@ all =
             , it "shows 'login' when LoggedOut Msg is successful" <|
                 NewestTopBar.handleCallback (Callback.LoggedOut (Ok ()))
                     >> Tuple.first
-                    >> NewestTopBar.view
-                    >> toUnstyled
-                    >> Query.fromHtml
+                    >> viewNormally
                     >> Query.find [ id "login-item" ]
                     >> Query.has [ text "login" ]
             ]
         , rspecStyleDescribe "login component when user is logged out"
             (NewestTopBar.init { route = Routes.Pipeline "team" "pipeline" [] }
                 |> Tuple.first
-                |> logoutUser
-                |> NewestTopBar.view
-                |> toUnstyled
-                |> Query.fromHtml
+                |> viewNormally
             )
             [ it "has a link to login" <|
                 Query.children []
@@ -339,11 +355,13 @@ all =
         , rspecStyleDescribe "rendering top bar on build page"
             (NewestTopBar.init { route = Routes.Build "team" "pipeline" "job" "1" Routes.HighlightNothing }
                 |> Tuple.first
-                |> NewestTopBar.view
-                |> toUnstyled
-                |> Query.fromHtml
+                |> viewNormally
             )
-            [ it "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
+            [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
+                Query.find
+                    [ id "breadcrumbs" ]
+                    >> Query.has [ style [ ( "flex-grow", "1" ) ] ]
+            , it "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
                 Query.find [ id "breadcrumb-pipeline" ]
                     >> Query.children []
                     >> Query.index 1
@@ -361,11 +379,13 @@ all =
         , rspecStyleDescribe "rendering top bar on resource page"
             (NewestTopBar.init { route = Routes.Resource "team" "pipeline" "resource" Nothing }
                 |> Tuple.first
-                |> NewestTopBar.view
-                |> toUnstyled
-                |> Query.fromHtml
+                |> viewNormally
             )
-            [ it "pipeline breadcrumb should have a link to the pipeline page when viewing resource details" <|
+            [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
+                Query.find
+                    [ id "breadcrumbs" ]
+                    >> Query.has [ style [ ( "flex-grow", "1" ) ] ]
+            , it "pipeline breadcrumb should have a link to the pipeline page when viewing resource details" <|
                 Query.find [ id "breadcrumb-pipeline" ]
                     >> Query.children []
                     >> Query.index 1
@@ -395,11 +415,13 @@ all =
         , rspecStyleDescribe "rendering top bar on job page"
             (NewestTopBar.init { route = Routes.Job "team" "pipeline" "job" Nothing }
                 |> Tuple.first
-                |> NewestTopBar.view
-                |> toUnstyled
-                |> Query.fromHtml
+                |> viewNormally
             )
-            [ it "pipeline breadcrumb should have a link to the pipeline page when viewing job details" <|
+            [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
+                Query.find
+                    [ id "breadcrumbs" ]
+                    >> Query.has [ style [ ( "flex-grow", "1" ) ] ]
+            , it "pipeline breadcrumb should have a link to the pipeline page when viewing job details" <|
                 Query.find [ id "breadcrumb-pipeline" ]
                     >> Query.children []
                     >> Query.index 1
@@ -417,15 +439,11 @@ all =
                 |> Tuple.first
             )
             [ it "renders the search bar with the text in the search query" <|
-                NewestTopBar.view
-                    >> toUnstyled
-                    >> Query.fromHtml
+                viewNormally
                     >> Query.find [ id "search-input-field" ]
                     >> Query.has [ tag "input", attribute <| Attr.value "test" ]
             , it "sends a FilterMsg when the clear search button is clicked" <|
-                NewestTopBar.view
-                    >> toUnstyled
-                    >> Query.fromHtml
+                viewNormally
                     >> Query.find [ id "search-container" ]
                     >> Query.find [ id "search-clear" ]
                     >> Event.simulate Event.click
@@ -436,9 +454,7 @@ all =
                     >> NewestTopBar.query
                     >> Expect.equal ""
             , it "clear search button has full opacity when there is a query" <|
-                NewestTopBar.view
-                    >> toUnstyled
-                    >> Query.fromHtml
+                viewNormally
                     >> Query.find [ id "search-clear" ]
                     >> Query.has [ style [ ( "opacity", "1" ) ] ]
             ]
@@ -449,9 +465,7 @@ all =
             [ context "when desktop sized"
                 (NewestTopBar.handleCallback (ScreenResized { width = 1500, height = 900 })
                     >> Tuple.first
-                    >> NewestTopBar.view
-                    >> toUnstyled
-                    >> Query.fromHtml
+                    >> viewNormally
                 )
                 [ it "renders search bar" <|
                     Query.has [ id "search-input-field" ]
@@ -557,15 +571,11 @@ all =
                     >> Tuple.first
                 )
                 [ it "should not have a search bar" <|
-                    NewestTopBar.view
-                        >> toUnstyled
-                        >> Query.fromHtml
+                    viewNormally
                         >> Query.hasNot
                             [ id "search-input-field" ]
                 , it "should have a magnifying glass icon" <|
-                    NewestTopBar.view
-                        >> toUnstyled
-                        >> Query.fromHtml
+                    viewNormally
                         >> Query.find [ id "show-search-button" ]
                         >> Query.has
                             [ style
@@ -575,9 +585,7 @@ all =
                                 ]
                             ]
                 , it "shows the login component" <|
-                    NewestTopBar.view
-                        >> toUnstyled
-                        >> Query.fromHtml
+                    viewNormally
                         >> Query.has [ id "login-component" ]
                 , context "after clicking the search icon"
                     (NewestTopBar.update Msgs.ShowSearchInput)
@@ -586,9 +594,7 @@ all =
                             >> Expect.equal [ Effects.ForceFocus "search-input-field" ]
                     , context "the ui"
                         (Tuple.first
-                            >> NewestTopBar.view
-                            >> toUnstyled
-                            >> Query.fromHtml
+                            >> viewNormally
                         )
                         [ it "renders search bar" <|
                             Query.has [ id "search-input-field" ]
@@ -638,9 +644,7 @@ all =
                             >> Tuple.first
                         )
                         [ it "should display a dropdown of options" <|
-                            NewestTopBar.view
-                                >> toUnstyled
-                                >> Query.fromHtml
+                            viewNormally
                                 >> Query.find [ id "search-dropdown" ]
                                 >> Query.findAll [ tag "li" ]
                                 >> Expect.all
@@ -649,9 +653,7 @@ all =
                                     , Query.index 1 >> Query.has [ text "team:" ]
                                     ]
                         , it "the search dropdown is positioned below the search bar" <|
-                            NewestTopBar.view
-                                >> toUnstyled
-                                >> Query.fromHtml
+                            viewNormally
                                 >> Query.find [ id "search-dropdown" ]
                                 >> Expect.all
                                     [ Query.has
@@ -663,17 +665,13 @@ all =
                                     , Query.hasNot [ style [ ( "position", "absolute" ) ] ]
                                     ]
                         , it "the search dropdown is the same width as search bar" <|
-                            NewestTopBar.view
-                                >> toUnstyled
-                                >> Query.fromHtml
+                            viewNormally
                                 >> Query.find [ id "search-dropdown" ]
                                 >> Query.has [ style [ ( "width", "100%" ) ] ]
                         , context "after the search is blurred"
                             (NewestTopBar.update Msgs.BlurMsg
                                 >> Tuple.first
-                                >> NewestTopBar.view
-                                >> toUnstyled
-                                >> Query.fromHtml
+                                >> viewNormally
                             )
                             [ it "should not have a search bar" <|
                                 Query.hasNot
@@ -695,9 +693,7 @@ all =
                                 >> Tuple.first
                                 >> NewestTopBar.update Msgs.BlurMsg
                                 >> Tuple.first
-                                >> NewestTopBar.view
-                                >> toUnstyled
-                                >> Query.fromHtml
+                                >> viewNormally
                             )
                             [ it "should have a search bar" <|
                                 Query.has [ id "search-input-field" ]
@@ -726,9 +722,7 @@ all =
                     >> Tuple.first
                     >> NewestTopBar.update (Msgs.FilterMsg "status:")
                     >> Tuple.first
-                    >> NewestTopBar.view
-                    >> toUnstyled
-                    >> Query.fromHtml
+                    >> viewNormally
                     >> Query.find [ id "search-dropdown" ]
                     >> Query.findAll [ tag "li" ]
                     >> Expect.all
@@ -748,9 +742,7 @@ all =
                     >> Tuple.first
                     >> NewestTopBar.update (Msgs.FilterMsg "status: pending")
                     >> Tuple.first
-                    >> NewestTopBar.view
-                    >> toUnstyled
-                    >> Query.fromHtml
+                    >> viewNormally
                     >> Query.findAll [ id "search-dropdown" ]
                     >> Query.first
                     >> Query.children []
@@ -763,9 +755,7 @@ all =
             [ it "should display a dropdown of status options when the search bar is focused" <|
                 NewestTopBar.update Msgs.FocusMsg
                     >> Tuple.first
-                    >> NewestTopBar.view
-                    >> toUnstyled
-                    >> Query.fromHtml
+                    >> viewNormally
                     >> Query.find [ id "search-dropdown" ]
                     >> Query.findAll [ tag "li" ]
                     >> Expect.all
@@ -786,9 +776,7 @@ all =
             [ it "when the user is not logged in the dropdown is empty" <|
                 NewestTopBar.update Msgs.FocusMsg
                     >> Tuple.first
-                    >> NewestTopBar.view
-                    >> toUnstyled
-                    >> Query.fromHtml
+                    >> viewNormally
                     >> Query.find [ id "search-dropdown" ]
                     >> Query.children []
                     >> Query.count (Expect.equal 0)
@@ -810,9 +798,7 @@ all =
                             )
                         )
                     >> Tuple.first
-                    >> NewestTopBar.view
-                    >> toUnstyled
-                    >> Query.fromHtml
+                    >> viewNormally
                     >> Query.find [ id "search-dropdown" ]
                     >> Query.children []
                     >> Expect.all
@@ -850,9 +836,7 @@ all =
                             )
                         )
                     >> Tuple.first
-                    >> NewestTopBar.view
-                    >> toUnstyled
-                    >> Query.fromHtml
+                    >> viewNormally
                     >> Query.find [ id "search-dropdown" ]
                     >> Query.children []
                     >> Query.count (Expect.equal 10)
@@ -862,10 +846,7 @@ all =
                 |> Tuple.first
             )
             [ context "before receiving FocusMsg"
-                (NewestTopBar.view
-                    >> toUnstyled
-                    >> Query.fromHtml
-                )
+                viewNormally
                 [ it "has no dropdown" <|
                     Query.findAll [ id "search-dropdown" ]
                         >> Query.count (Expect.equal 0)
@@ -897,9 +878,7 @@ all =
                                                , context "after hitting enter"
                                                     (NewestTopBar.update (Msgs.KeyDown 13)
                                                         >> Tuple.first
-                                                        >> NewestTopBar.view
-                                                        >> toUnstyled
-                                                        >> Query.fromHtml
+                                                        >> viewNormally
                                                     )
                                                     [ it "updates the query" <|
                                                         Query.find [ id "search-input-field" ]
@@ -910,9 +889,7 @@ all =
                                    , context "after hitting enter"
                                         (NewestTopBar.update (Msgs.KeyDown 13)
                                             >> Tuple.first
-                                            >> NewestTopBar.view
-                                            >> toUnstyled
-                                            >> Query.fromHtml
+                                            >> viewNormally
                                         )
                                         [ it "updates the query" <|
                                             Query.find [ id "search-input-field" ]
@@ -940,15 +917,23 @@ all =
                                    ]
                             )
                        ]
+                    ++ [ context "after an ESC keypress"
+                            (NewestTopBar.update (Msgs.KeyDown 27)
+                                >> Tuple.first
+                            )
+                            [ it "should not have any dropdown children anymore" <|
+                                viewNormally
+                                    >> Query.findAll [ id "search-dropdown" ]
+                                    >> Query.count (Expect.equal 0)
+                            ]
+                       ]
                 )
             , context "after receiving FocusMsg and then BlurMsg"
                 (NewestTopBar.update Msgs.FocusMsg
                     >> Tuple.first
                     >> NewestTopBar.update Msgs.BlurMsg
                     >> Tuple.first
-                    >> NewestTopBar.view
-                    >> toUnstyled
-                    >> Query.fromHtml
+                    >> viewNormally
                 )
                 [ it "hides the dropdown" <|
                     Query.findAll [ id "search-dropdown" ]
@@ -963,14 +948,9 @@ eachHasStyle styles =
     Query.each <| Query.has [ style styles ]
 
 
-logoutUser : NewestTopBar.Model -> NewestTopBar.Model
-logoutUser model =
-    { model | userState = UserState.UserStateLoggedOut }
-
-
-logInUser : NewestTopBar.Model -> NewestTopBar.Model
-logInUser model =
-    { model | userState = UserState.UserStateLoggedIn { id = "1", userName = "test", name = "Bob", email = "bob@bob.com", teams = Dict.empty } }
+sampleUser : Concourse.User
+sampleUser =
+    { id = "1", userName = "test", name = "Bob", email = "bob@bob.com", teams = Dict.empty }
 
 
 pipelineBreadcrumbSelector : List Selector.Selector
@@ -1011,13 +991,15 @@ onePipeline teamName =
     }
 
 
-testDropdown : List Int -> List Int -> NewestTopBar.Model -> Test
+viewNormally : Model.Model -> Query.Single Msgs.Msg
+viewNormally =
+    NewestTopBar.view UserStateLoggedOut Model.None >> toUnstyled >> Query.fromHtml
+
+
+testDropdown : List Int -> List Int -> Model.Model -> Test
 testDropdown selecteds notSelecteds =
     context "ui"
-        (NewestTopBar.view
-            >> toUnstyled
-            >> Query.fromHtml
-        )
+        viewNormally
         [ it "has a dropdown when search bar is focused" <|
             Query.find [ id "search-container" ]
                 >> Query.has [ id "search-dropdown" ]

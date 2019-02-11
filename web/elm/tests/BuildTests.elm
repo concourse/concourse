@@ -34,6 +34,7 @@ import Test.Html.Selector
         , tag
         , text
         )
+import UserState
 
 
 all : Test
@@ -44,6 +45,7 @@ all =
                 Build.init
                     { csrfToken = ""
                     , highlight = Routes.HighlightNothing
+                    , route = Routes.Build "team" "pipeline" "job" "1" Routes.HighlightNothing
                     }
                     (Models.JobBuildPage
                         { teamName = "team"
@@ -345,7 +347,7 @@ all =
             \_ ->
                 pageLoad
                     |> Tuple.first
-                    |> Build.view
+                    |> Build.view UserState.UserStateLoggedOut
                     |> Query.fromHtml
                     |> Query.has [ text "loading" ]
         , test "fetches build on page load" <|
@@ -359,8 +361,47 @@ all =
                             , jobName = "job"
                             , buildName = "1"
                             }
+                        , Effects.GetScreenSize
                         , Effects.GetCurrentTime
                         ]
+        , describe "top bar" <|
+            [ test "has a top bar" <|
+                \_ ->
+                    pageLoad
+                        |> Tuple.first
+                        |> Build.view UserState.UserStateLoggedOut
+                        |> Query.fromHtml
+                        |> Query.has [ id "top-bar-app" ]
+            , test "has a concourse icon" <|
+                \_ ->
+                    pageLoad
+                        |> Tuple.first
+                        |> Build.view UserState.UserStateLoggedOut
+                        |> Query.fromHtml
+                        |> Query.find [ id "top-bar-app" ]
+                        |> Query.has [ style [ ( "background-image", "url(/public/images/concourse-logo-white.svg)" ) ] ]
+            , test "has the breadcrumbs" <|
+                \_ ->
+                    pageLoad
+                        |> Tuple.first
+                        |> Build.view UserState.UserStateLoggedOut
+                        |> Query.fromHtml
+                        |> Query.find [ id "top-bar-app" ]
+                        |> Expect.all
+                            [ Query.has [ id "breadcrumb-pipeline" ]
+                            , Query.has [ text "pipeline" ]
+                            , Query.has [ id "breadcrumb-job" ]
+                            , Query.has [ text "job" ]
+                            ]
+            , test "has a user section" <|
+                \_ ->
+                    pageLoad
+                        |> Tuple.first
+                        |> Build.view UserState.UserStateLoggedOut
+                        |> Query.fromHtml
+                        |> Query.find [ id "top-bar-app" ]
+                        |> Query.has [ id "login-component" ]
+            ]
         , describe "after build is fetched" <|
             let
                 givenBuildFetched _ =
@@ -369,7 +410,7 @@ all =
             [ test "has a header after the build is fetched" <|
                 givenBuildFetched
                     >> Tuple.first
-                    >> Build.view
+                    >> Build.view UserState.UserStateLoggedOut
                     >> Query.fromHtml
                     >> Query.has [ id "build-header" ]
             , test "fetches build history and job details after build is fetched" <|
@@ -399,7 +440,7 @@ all =
             , test "header lays out horizontally" <|
                 givenBuildFetched
                     >> Tuple.first
-                    >> Build.view
+                    >> Build.view UserState.UserStateLoggedOut
                     >> Query.fromHtml
                     >> Query.find [ id "build-header" ]
                     >> Query.has
@@ -407,7 +448,7 @@ all =
             , test "header spreads out contents" <|
                 givenBuildFetched
                     >> Tuple.first
-                    >> Build.view
+                    >> Build.view UserState.UserStateLoggedOut
                     >> Query.fromHtml
                     >> Query.find [ id "build-header" ]
                     >> Query.has
@@ -428,7 +469,7 @@ all =
                   <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find [ id "build-header" ]
                         >> Query.children []
@@ -440,7 +481,7 @@ all =
                 , test "trigger build button is styled as a plain grey box" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find
                             [ attribute <|
@@ -458,7 +499,7 @@ all =
                 , test "trigger build button has pointer cursor" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find
                             [ attribute <|
@@ -468,7 +509,7 @@ all =
                 , test "trigger build button has 'plus' icon" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find
                             [ attribute <|
@@ -487,7 +528,7 @@ all =
                     , setup =
                         givenHistoryAndDetailsFetched () |> Tuple.first
                     , query =
-                        Build.view
+                        Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
                             >> Query.find
                                 [ attribute <|
@@ -528,7 +569,7 @@ all =
                 [ test "when manual triggering is disabled, trigger build button has default cursor" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find
                             [ attribute <|
@@ -540,7 +581,7 @@ all =
                     , setup =
                         givenHistoryAndDetailsFetched () |> Tuple.first
                     , query =
-                        Build.view
+                        Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
                             >> Query.find
                                 [ attribute <|
@@ -605,7 +646,7 @@ all =
             [ test "build action section lays out horizontally" <|
                 givenBuildStarted
                     >> Tuple.first
-                    >> Build.view
+                    >> Build.view UserState.UserStateLoggedOut
                     >> Query.fromHtml
                     >> Query.find [ id "build-header" ]
                     >> Query.children []
@@ -614,7 +655,7 @@ all =
             , test "abort build button is to the left of the trigger button" <|
                 givenBuildStarted
                     >> Tuple.first
-                    >> Build.view
+                    >> Build.view UserState.UserStateLoggedOut
                     >> Query.fromHtml
                     >> Query.find [ id "build-header" ]
                     >> Query.children []
@@ -628,7 +669,7 @@ all =
             , test "abort build button is styled as a plain grey box" <|
                 givenBuildStarted
                     >> Tuple.first
-                    >> Build.view
+                    >> Build.view UserState.UserStateLoggedOut
                     >> Query.fromHtml
                     >> Query.find
                         [ attribute <|
@@ -646,7 +687,7 @@ all =
             , test "abort build button has pointer cursor" <|
                 givenBuildStarted
                     >> Tuple.first
-                    >> Build.view
+                    >> Build.view UserState.UserStateLoggedOut
                     >> Query.fromHtml
                     >> Query.find
                         [ attribute <|
@@ -656,7 +697,7 @@ all =
             , test "abort build button has 'X' icon" <|
                 givenBuildStarted
                     >> Tuple.first
-                    >> Build.view
+                    >> Build.view UserState.UserStateLoggedOut
                     >> Query.fromHtml
                     >> Query.find
                         [ attribute <|
@@ -676,7 +717,7 @@ all =
                     givenBuildStarted ()
                         |> Tuple.first
                 , query =
-                    Build.view
+                    Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find
                             [ attribute <|
@@ -723,7 +764,7 @@ all =
                         >> Tuple.first
                         >> Build.handleCallback (Callback.BuildPrepFetched <| Ok ( 1, prep ))
                         >> Tuple.first
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find [ class "prep-status-list" ]
                         >> Expect.all
@@ -766,7 +807,7 @@ all =
                         >> Tuple.first
                         >> Build.handleCallback (Callback.BuildPrepFetched <| Ok ( 1, prep ))
                         >> Tuple.first
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find [ class "prep-status-list" ]
                         >> Expect.all
@@ -903,13 +944,13 @@ all =
                 in
                 [ test "build step header lays out horizontally" <|
                     fetchPlanWithGetStep
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find [ class "header" ]
                         >> Query.has [ style [ ( "display", "flex" ) ] ]
                 , test "has two children spread apart" <|
                     fetchPlanWithGetStep
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find [ class "header" ]
                         >> Expect.all
@@ -921,7 +962,7 @@ all =
                             ]
                 , test "both children lay out horizontally" <|
                     fetchPlanWithGetStep
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find [ class "header" ]
                         >> Query.children []
@@ -929,7 +970,7 @@ all =
                             (Query.has [ style [ ( "display", "flex" ) ] ])
                 , test "resource get step shows downward arrow" <|
                     fetchPlanWithGetStep
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.has
                             (iconSelector
@@ -940,7 +981,7 @@ all =
                             )
                 , test "task step shows terminal icon" <|
                     fetchPlanWithTaskStep
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.has
                             (iconSelector
@@ -953,7 +994,7 @@ all =
                             )
                 , test "put step shows upward arrow" <|
                     fetchPlanWithPutStep
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.has
                             (iconSelector
@@ -966,7 +1007,7 @@ all =
                             )
                 , test "get step on first occurrence shows yellow downward arrow" <|
                     fetchPlanWithGetStepWithFirstOccurrence
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.has
                             (iconSelector
@@ -979,7 +1020,7 @@ all =
                             )
                 , test "hovering over a grey down arrow does nothing" <|
                     fetchPlanWithGetStep
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find
                             (iconSelector
@@ -993,7 +1034,7 @@ all =
                 , describe "yellow resource down arrow hover behaviour"
                     [ test "yellow resource down arrow has no tooltip" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> Build.view
+                            >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
                             >> Query.findAll
                                 (iconSelector
@@ -1006,7 +1047,7 @@ all =
                             >> Query.count (Expect.equal 0)
                     , test "hovering over yellow arrow triggers Hover message" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> Build.view
+                            >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
                             >> Query.findAll
                                 (iconSelector
@@ -1023,7 +1064,7 @@ all =
                             >> Build.update
                                 (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
-                            >> Build.view
+                            >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
                             >> Query.findAll
                                 (iconSelector
@@ -1043,7 +1084,7 @@ all =
                             >> Tuple.first
                             >> Build.update (Build.Msgs.ClockTick 1)
                             >> Tuple.first
-                            >> Build.view
+                            >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
                             >> Query.findAll
                                 (iconSelector
@@ -1095,7 +1136,7 @@ all =
                             >> Build.update
                                 (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
-                            >> Build.view
+                            >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
                             >> Query.findAll
                                 (iconSelector
@@ -1118,7 +1159,7 @@ all =
                             >> Tuple.first
                             >> Build.update (Build.Msgs.Hover Nothing)
                             >> Tuple.first
-                            >> Build.view
+                            >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
                             >> Query.findAll
                                 (iconSelector
@@ -1138,7 +1179,7 @@ all =
                         >> Tuple.first
                         >> Build.update (Build.Msgs.ClockTick 1)
                         >> Tuple.first
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.findAll [ text "new version" ]
                         >> Query.count (Expect.equal 1)
@@ -1159,7 +1200,7 @@ all =
                                             ]
                             )
                         >> Tuple.first
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find [ class "header" ]
                         >> Query.children []
@@ -1188,7 +1229,7 @@ all =
                                             ]
                             )
                         >> Tuple.first
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find [ class "header" ]
                         >> Query.children []
@@ -1208,7 +1249,7 @@ all =
                                             ]
                             )
                         >> Tuple.first
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find [ class "header" ]
                         >> Query.children []
@@ -1237,7 +1278,7 @@ all =
                                             ]
                             )
                         >> Tuple.first
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find [ class "header" ]
                         >> Query.children []
@@ -1264,7 +1305,7 @@ all =
                                             ]
                             )
                         >> Tuple.first
-                        >> Build.view
+                        >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find [ class "header" ]
                         >> Query.children []
@@ -1297,7 +1338,7 @@ all =
                                                 ]
                                 )
                             >> Tuple.first
-                            >> Build.view
+                            >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
                             >> Query.find [ class "header" ]
                             >> Query.children []
@@ -1315,7 +1356,7 @@ all =
                                 "/public/images/passport-officer-ic.svg"
                         in
                         erroringBuild
-                            >> Build.view
+                            >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
                             >> Query.find [ class "not-authorized" ]
                             >> Query.find [ tag "img" ]

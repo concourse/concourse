@@ -1,6 +1,7 @@
 module NewTopBar.Msgs exposing (Msg(..))
 
 import Keyboard
+import Routes
 import Window
 
 
@@ -15,4 +16,6 @@ type Msg
     | ToggleUserMenu
     | ShowSearchInput
     | ResizeScreen Window.Size
+    | TogglePinIconDropdown
+    | GoToPinnedResource Routes.Route
     | Noop

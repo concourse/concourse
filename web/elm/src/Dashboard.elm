@@ -42,7 +42,9 @@ import Monocle.Common exposing ((<|>), (=>))
 import Monocle.Lens
 import Monocle.Optional
 import MonocleHelpers exposing (..)
+import NewTopBar.Model
 import NewTopBar.Msgs
+import NewTopBar.Styles
 import NewestTopBar as NewTopBar
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
@@ -52,7 +54,7 @@ import Simple.Fuzzy exposing (filter, match, root)
 import Subscription exposing (Subscription(..))
 import Task
 import Time exposing (Time)
-import UserState
+import UserState exposing (UserState)
 
 
 type alias Flags =
@@ -83,7 +85,7 @@ type alias Model =
     , version : String
     , userState : UserState.UserState
     , userMenuVisible : Bool
-    , topBar : NewTopBar.Model
+    , topBar : NewTopBar.Model.Model
     , hideFooter : Bool
     , hideFooterCounter : Int
     , showHelp : Bool
@@ -387,17 +389,16 @@ subscriptions model =
     ]
 
 
-view : Model -> Html Msg
-view model =
-    Html.div
-        [ class "page"
-        , style
-            [ ( "-webkit-font-smoothing", "antialiased" )
-            , ( "font-weight", "700" )
+view : UserState -> Model -> Html Msg
+view userState model =
+    Html.div []
+        [ Html.div
+            [ style NewTopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
+            [ Html.map FromTopBar (NewTopBar.view userState NewTopBar.Model.None model.topBar)
+            , Html.div [ id "page-below-top-bar", style NewTopBar.Styles.pageBelowTopBar ]
+                [ dashboardView model
+                ]
             ]
-        ]
-        [ Html.map FromTopBar (NewTopBar.view model.topBar)
-        , dashboardView model
         ]
 
 

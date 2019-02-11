@@ -17,7 +17,7 @@ import Build.Models as Models
         , OutputModel
         , Page(..)
         )
-import Build.Msgs exposing (Msg(..))
+import Build.Msgs exposing (Msg(..), fromBuildMessage)
 import Build.Output
 import Build.StepTree as StepTree
 import Build.Styles as Styles
@@ -49,9 +49,13 @@ import Html.Attributes
         )
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
+import Html.Styled as HS
 import Http
 import LoadingIndicator
 import Maybe.Extra
+import NewTopBar.Model
+import NewTopBar.Styles
+import NewestTopBar
 import RemoteData exposing (WebData)
 import Routes
 import Spinner
@@ -60,6 +64,7 @@ import String
 import Subscription exposing (Subscription(..))
 import Time exposing (Time)
 import UpdateMsg exposing (UpdateMsg)
+import UserState exposing (UserState)
 import Views
 
 
@@ -88,6 +93,7 @@ type StepRenderingState
 type alias Flags =
     { csrfToken : String
     , highlight : Routes.Highlight
+    , route : Routes.Route
     }
 
 
@@ -99,6 +105,9 @@ type ScrollBehavior
 init : Flags -> Page -> ( Model, List Effect )
 init flags page =
     let
+        ( topBar, topBarEffects ) =
+            NewestTopBar.init { route = flags.route }
+
         ( model, effects ) =
             changeToBuild
                 page
@@ -116,9 +125,10 @@ init flags page =
                 , highlight = flags.highlight
                 , hoveredElement = Nothing
                 , hoveredCounter = 0
+                , topBar = topBar
                 }
     in
-    ( model, effects ++ [ GetCurrentTime ] )
+    ( model, effects ++ topBarEffects ++ [ GetCurrentTime ] )
 
 
 subscriptions : Model -> List (Subscription Msg)
@@ -198,7 +208,21 @@ getUpdateMessage model =
 
 
 handleCallback : Callback -> Model -> ( Model, List Effect )
-handleCallback action model =
+handleCallback msg model =
+    let
+        ( newTopBar, topBarEffects ) =
+            NewestTopBar.handleCallback msg model.topBar
+
+        ( newModel, dashboardEffects ) =
+            handleCallbackWithoutTopBar msg model
+    in
+    ( { newModel | topBar = newTopBar }
+    , topBarEffects ++ dashboardEffects
+    )
+
+
+handleCallbackWithoutTopBar : Callback -> Model -> ( Model, List Effect )
+handleCallbackWithoutTopBar action model =
     case action of
         BuildTriggered (Ok build) ->
             update
@@ -259,7 +283,21 @@ handleCallback action model =
 
 
 update : Msg -> Model -> ( Model, List Effect )
-update action model =
+update msg model =
+    let
+        ( newTopBar, topBarEffects ) =
+            NewestTopBar.update (fromBuildMessage msg) model.topBar
+
+        ( newModel, dashboardEffects ) =
+            updateWithoutTopBar msg model
+    in
+    ( { newModel | topBar = newTopBar }
+    , topBarEffects ++ dashboardEffects
+    )
+
+
+updateWithoutTopBar : Msg -> Model -> ( Model, List Effect )
+updateWithoutTopBar action model =
     case action of
         SwitchToBuild build ->
             ( model, [ NavigateTo <| Routes.toString <| Routes.buildRoute build ] )
@@ -366,6 +404,9 @@ update action model =
                 NoScroll ->
                     []
             )
+
+        FromTopBar _ ->
+            ( model, [] )
 
 
 getScrollBehavior : Model -> ScrollBehavior
@@ -678,8 +719,19 @@ handleBuildPrepFetched browsingIndex buildPrep model =
         ( model, [] )
 
 
-view : Model -> Html Msg
-view model =
+view : UserState -> Model -> Html Msg
+view userState model =
+    Html.div []
+        [ Html.div
+            [ style NewTopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
+            [ NewestTopBar.view userState NewTopBar.Model.None model.topBar |> HS.toUnstyled |> Html.map FromTopBar
+            , Html.div [ id "page-below-top-bar", style NewTopBar.Styles.pipelinePageBelowTopBar ] [ viewBuildPage model ]
+            ]
+        ]
+
+
+viewBuildPage : Model -> Html Msg
+viewBuildPage model =
     case model.currentBuild |> RemoteData.toMaybe of
         Just currentBuild ->
             Html.div

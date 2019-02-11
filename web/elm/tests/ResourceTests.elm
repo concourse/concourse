@@ -36,6 +36,7 @@ import Test.Html.Selector
         , tag
         , text
         )
+import UserState exposing (UserState(..))
 
 
 commentButtonBlue : String
@@ -325,11 +326,7 @@ all =
                             [ style
                                 [ ( "background-image", checkIcon ) ]
                             ]
-            , test
-                ("clicking the checkbox on an enabled version triggers"
-                    ++ " a ToggleVersion msg"
-                )
-              <|
+            , test "clicking the checkbox on an enabled version triggers a ToggleVersion msg" <|
                 \_ ->
                     init
                         |> givenResourcePinnedStatically
@@ -2403,8 +2400,22 @@ all =
             ]
         , describe "check bar" <|
             let
-                checkBar =
-                    queryView
+                checkBar userState =
+                    let
+                        callback =
+                            case userState of
+                                UserStateLoggedIn user ->
+                                    ( Effects.Layout, UserFetched (Ok user) )
+
+                                UserStateLoggedOut ->
+                                    ( Effects.SubPage 1, LoggedOut (Ok ()) )
+
+                                UserStateUnknown ->
+                                    ( Effects.Layout, EmptyCallback )
+                    in
+                    uncurry Layout.handleCallback callback
+                        >> Tuple.first
+                        >> queryView
                         >> Query.find [ class "resource-check-status" ]
                         >> Query.children []
                         >> Query.first
@@ -2413,20 +2424,20 @@ all =
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> checkBar
+                        |> checkBar UserStateLoggedOut
                         |> Query.has [ style [ ( "display", "flex" ) ] ]
             , test "has two children: check button and status bar" <|
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> checkBar
+                        |> checkBar UserStateLoggedOut
                         |> Query.children []
                         |> Query.count (Expect.equal 2)
             , describe "when unauthenticated"
                 [ defineHoverBehaviour
                     { name = "check button"
                     , setup = init |> givenResourceIsNotPinned
-                    , query = checkBar >> Query.children [] >> Query.first
+                    , query = checkBar UserStateLoggedOut >> Query.children [] >> Query.first
                     , unhoveredSelector =
                         { description = "black button with grey refresh icon"
                         , selector =
@@ -2483,16 +2494,16 @@ all =
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> checkBar
+                            |> checkBar UserStateLoggedOut
                             |> Query.children []
                             |> Query.first
                             |> Event.simulate Event.click
-                            |> Event.expect (resourceMsg Resource.Msgs.Check)
+                            |> Event.expect (resourceMsg (Resource.Msgs.CheckRequested False))
                 , test "Check msg redirects to login" <|
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> update Resource.Msgs.Check
+                            |> update (Resource.Msgs.CheckRequested False)
                             |> Tuple.second
                             |> Expect.equal
                                 [ ( Effects.SubPage 1
@@ -2503,20 +2514,29 @@ all =
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> update Resource.Msgs.Check
+                            |> update (Resource.Msgs.CheckRequested False)
                             |> Tuple.first
-                            |> checkBar
+                            |> checkBar UserStateLoggedOut
                             |> Query.find [ tag "h3" ]
                             |> Query.has [ text "checking successfully" ]
                 ]
-            , describe "when authorized"
+            , describe "when authorized" <|
+                let
+                    sampleUser : Concourse.User
+                    sampleUser =
+                        { id = "test"
+                        , userName = "test"
+                        , name = "test"
+                        , email = "test"
+                        , teams = Dict.fromList [ ( teamName, [ "member" ] ) ]
+                        }
+                in
                 [ defineHoverBehaviour
                     { name = "check button when authorized"
                     , setup =
                         init
                             |> givenResourceIsNotPinned
-                            |> givenUserIsAuthorized
-                    , query = checkBar >> Query.children [] >> Query.first
+                    , query = checkBar (UserStateLoggedIn sampleUser) >> Query.children [] >> Query.first
                     , unhoveredSelector =
                         { description = "black button with grey refresh icon"
                         , selector =
@@ -2571,18 +2591,17 @@ all =
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> givenUserIsAuthorized
-                            |> checkBar
+                            |> checkBar (UserStateLoggedIn sampleUser)
                             |> Query.children []
                             |> Query.first
                             |> Event.simulate Event.click
-                            |> Event.expect (resourceMsg Resource.Msgs.Check)
+                            |> Event.expect (resourceMsg (Resource.Msgs.CheckRequested True))
                 , test "Check msg has CheckResource side effect" <|
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> update Resource.Msgs.Check
+                            |> update (Resource.Msgs.CheckRequested True)
                             |> Tuple.second
                             |> Expect.equal
                                 [ ( Effects.SubPage 1
@@ -2600,22 +2619,21 @@ all =
                         givenCheckInProgress =
                             givenResourceIsNotPinned
                                 >> givenUserIsAuthorized
-                                >> Layout.update
-                                    (resourceMsg Resource.Msgs.Check)
+                                >> update (Resource.Msgs.CheckRequested True)
                                 >> Tuple.first
                     in
                     [ test "check bar text says 'currently checking'" <|
                         \_ ->
                             init
                                 |> givenCheckInProgress
-                                |> checkBar
+                                |> checkBar (UserStateLoggedIn sampleUser)
                                 |> Query.find [ tag "h3" ]
                                 |> Query.has [ text "currently checking" ]
                     , test "clicking check button does nothing" <|
                         \_ ->
                             init
                                 |> givenCheckInProgress
-                                |> checkBar
+                                |> checkBar (UserStateLoggedIn sampleUser)
                                 |> Query.children []
                                 |> Query.first
                                 |> Event.simulate Event.click
@@ -2625,7 +2643,7 @@ all =
                         \_ ->
                             init
                                 |> givenCheckInProgress
-                                |> checkBar
+                                |> checkBar (UserStateLoggedIn sampleUser)
                                 |> Query.children []
                                 |> Query.index -1
                                 |> Query.has
@@ -2645,7 +2663,7 @@ all =
                     , defineHoverBehaviour
                         { name = "check button"
                         , setup = init |> givenCheckInProgress
-                        , query = checkBar >> Query.children [] >> Query.first
+                        , query = checkBar (UserStateLoggedIn sampleUser) >> Query.children [] >> Query.first
                         , unhoveredSelector =
                             { description = "black button with white refresh icon"
                             , selector =
@@ -2703,11 +2721,11 @@ all =
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> Layout.update (resourceMsg Resource.Msgs.Check)
+                            |> update (Resource.Msgs.CheckRequested True)
                             |> Tuple.first
                             |> handleCallback (Callback.Checked <| Ok ())
                             |> Tuple.first
-                            |> checkBar
+                            |> checkBar (UserStateLoggedIn sampleUser)
                             |> Query.children []
                             |> Query.index -1
                             |> Query.has
@@ -2722,16 +2740,12 @@ all =
                                             ]
                                        ]
                                 )
-                , test
-                    ("when check resolves successfully, resource "
-                        ++ "and versions refresh"
-                    )
-                  <|
+                , test "when check resolves successfully, resource and versions refresh" <|
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> update Resource.Msgs.Check
+                            |> update (Resource.Msgs.CheckRequested True)
                             |> Tuple.first
                             |> handleCallback (Callback.Checked <| Ok ())
                             |> Tuple.second
@@ -2757,7 +2771,7 @@ all =
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> update Resource.Msgs.Check
+                            |> update (Resource.Msgs.CheckRequested True)
                             |> Tuple.first
                             |> handleCallback
                                 (Callback.Checked <|
@@ -2773,7 +2787,7 @@ all =
                                             }
                                 )
                             |> Tuple.first
-                            |> checkBar
+                            |> checkBar (UserStateLoggedIn sampleUser)
                             |> Query.children []
                             |> Query.index -1
                             |> Query.has
@@ -2793,7 +2807,7 @@ all =
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> update Resource.Msgs.Check
+                            |> update (Resource.Msgs.CheckRequested True)
                             |> Tuple.first
                             |> handleCallback
                                 (Callback.Checked <|
@@ -2823,7 +2837,7 @@ all =
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> update Resource.Msgs.Check
+                            |> update (Resource.Msgs.CheckRequested True)
                             |> Tuple.first
                             |> handleCallback
                                 (Callback.Checked <|
@@ -2847,29 +2861,21 @@ all =
                 ]
             , describe "when unauthorized" <|
                 let
-                    givenUserIsUnauthorized : Layout.Model -> Layout.Model
-                    givenUserIsUnauthorized =
-                        handleCallback
-                            (Callback.UserFetched <|
-                                Ok
-                                    { id = "test"
-                                    , userName = "test"
-                                    , name = "test"
-                                    , email = "test"
-                                    , teams =
-                                        Dict.fromList
-                                            [ ( teamName, [ "viewer" ] ) ]
-                                    }
-                            )
-                            >> Tuple.first
+                    sampleUser : Concourse.User
+                    sampleUser =
+                        { id = "test"
+                        , userName = "test"
+                        , name = "test"
+                        , email = "test"
+                        , teams = Dict.fromList [ ( teamName, [ "viewer" ] ) ]
+                        }
                 in
                 [ defineHoverBehaviour
                     { name = "check button"
                     , setup =
                         init
                             |> givenResourceIsNotPinned
-                            |> givenUserIsUnauthorized
-                    , query = checkBar >> Query.children [] >> Query.first
+                    , query = checkBar (UserStateLoggedIn sampleUser) >> Query.children [] >> Query.first
                     , unhoveredSelector =
                         { description = "black button with grey refresh icon"
                         , selector =
@@ -2922,8 +2928,7 @@ all =
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> givenUserIsUnauthorized
-                            |> checkBar
+                            |> checkBar (UserStateLoggedIn sampleUser)
                             |> Query.children []
                             |> Query.first
                             |> Event.simulate Event.click
@@ -3018,7 +3023,8 @@ resourceMsg =
 
 givenUserIsAuthorized : Layout.Model -> Layout.Model
 givenUserIsAuthorized =
-    handleCallback
+    Layout.handleCallback
+        Effects.Layout
         (Callback.UserFetched <|
             Ok
                 { id = "test"
