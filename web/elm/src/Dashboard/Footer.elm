@@ -189,7 +189,7 @@ toggleView : Bool -> Html Msg
 toggleView highDensity =
     Html.a
         [ style Styles.highDensityToggle
-        , href <| Routes.toString <| Routes.dashboardRoute highDensity
+        , href <| Routes.toString <| Routes.dashboardRoute (not highDensity)
         , attribute "aria-label" "Toggle high-density view"
         ]
         [ Html.div [ style <| Styles.highDensityIcon highDensity ] []
