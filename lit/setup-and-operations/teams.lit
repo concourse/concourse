@@ -322,6 +322,33 @@ against the teams that have granted them access.
   }
 
   \section{
+    \title{LDAP}{ldap}
+
+    You can configure which groups and individual users
+    should have access to your team.
+
+    This is done by passing the following flags:
+
+    \definitions{
+      \definition{\code{--ldap-user=USERNAME}}{
+        Authorize an individual user.
+      }
+    }{
+      \definition{\code{--ldap-group=GROUP_NAME}}{
+        Authorize anyone from the group.
+      }
+    }
+
+    For example:
+
+    \codeblock{bash}{{{
+    $ fly set-team -n my-team \
+        --ldap-user my-username \
+        --ldap-group my-group
+    }}}
+  }
+
+  \section{
     \title{Debugging Team Auth Configuration}{team-auth-debugging}
 
     You can list users and groups for all teams pertaining how the team is
