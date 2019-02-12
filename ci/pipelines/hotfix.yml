@@ -113,7 +113,7 @@ resources:
   type: bosh-deployment
   source:
     target: ((bosh_target))
-    deployment: concourse-test-upgrade
+    deployment: concourse-test-upgrade-4-2-x
     client: ((bosh_client.id))
     client_secret: ((bosh_client.secret))
 
@@ -121,7 +121,7 @@ resources:
   type: bosh-deployment
   source:
     target: ((bosh_target))
-    deployment: concourse-test-downgrade
+    deployment: concourse-test-downgrade-4-2-x
     client: ((bosh_client.id))
     client_secret: ((bosh_client.secret))
 
@@ -129,7 +129,7 @@ resources:
   type: bosh-deployment
   source:
     target: ((bosh_target))
-    deployment: concourse-wats
+    deployment: concourse-wats-4-2-x
     client: ((bosh_client.id))
     client_secret: ((bosh_client.secret))
 
