@@ -3,7 +3,7 @@ resources:
   type: git
   source:
     uri: https://github.com/concourse/concourse.git
-    branch: release/4.2.x
+    branch: release/4.2.3-wip
 
 # TODO update the versions file and cut a new release there too
 - name: concourse-head
@@ -37,7 +37,7 @@ resources:
   type: bosh-io-release
   source:
     repository: cloudfoundry/garden-runc-release
-    regexp: 1.16.3
+    regexp: 1.18.2
 
 - name: garden-runc-src
   type: git
