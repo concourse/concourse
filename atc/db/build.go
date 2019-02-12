@@ -258,7 +258,7 @@ func (b *build) Start(engine, metadata string, plan atc.Plan) (bool, error) {
 	var startTime time.Time
 
 	err = psql.Update("builds").
-		Set("status", "started").
+		Set("status", BuildStatusStarted).
 		Set("start_time", sq.Expr("now()")).
 		Set("engine", engine).
 		Set("engine_metadata", encryptedMetadata).

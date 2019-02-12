@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -1951,6 +1952,76 @@ var _ = Describe("Pipeline", func() {
 			builds, _, err := pipeline.Builds(db.Page{Limit: 10})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(builds).To(ConsistOf(expectedBuilds))
+		})
+	})
+
+	Describe("CreateStartedBuild", func() {
+		var (
+			plan         atc.Plan
+			startedBuild db.Build
+			err          error
+		)
+
+		BeforeEach(func() {
+			plan = atc.Plan{
+				ID: atc.PlanID("56"),
+				Get: &atc.GetPlan{
+					Type:     "some-type",
+					Name:     "some-name",
+					Resource: "some-resource",
+					Source:   atc.Source{"some": "source"},
+					Params:   atc.Params{"some": "params"},
+					Version:  &atc.Version{"some": "version"},
+					Tags:     atc.Tags{"some-tags"},
+					VersionedResourceTypes: atc.VersionedResourceTypes{
+						{
+							ResourceType: atc.ResourceType{
+								Name:       "some-name",
+								Source:     atc.Source{"some": "source"},
+								Type:       "some-type",
+								Privileged: true,
+								Tags:       atc.Tags{"some-tags"},
+							},
+							Version: atc.Version{"some-resource-type": "version"},
+						},
+					},
+				},
+			}
+
+			startedBuild, err = pipeline.CreateStartedBuild(plan)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("can create started builds with plans", func() {
+			Expect(startedBuild.ID()).ToNot(BeZero())
+			Expect(startedBuild.JobName()).To(BeZero())
+			Expect(startedBuild.PipelineName()).To(Equal("fake-pipeline"))
+			Expect(startedBuild.Name()).To(Equal(strconv.Itoa(startedBuild.ID())))
+			Expect(startedBuild.TeamName()).To(Equal(team.Name()))
+			Expect(startedBuild.Status()).To(Equal(db.BuildStatusStarted))
+		})
+
+		It("saves the public plan", func() {
+			found, err := startedBuild.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(startedBuild.PublicPlan()).To(Equal(plan.Public()))
+		})
+
+		It("creates Start event", func() {
+			found, err := startedBuild.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			events, err := startedBuild.Events(0)
+			Expect(err).NotTo(HaveOccurred())
+
+			defer db.Close(events)
+
+			Expect(events.Next()).To(Equal(envelope(event.Status{
+				Status: atc.StatusStarted,
+				Time:   startedBuild.StartTime().Unix(),
+			})))
 		})
 	})
 

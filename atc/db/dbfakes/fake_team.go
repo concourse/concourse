@@ -87,6 +87,19 @@ type FakeTeam struct {
 		result1 db.Build
 		result2 error
 	}
+	CreateStartedBuildStub        func(atc.Plan) (db.Build, error)
+	createStartedBuildMutex       sync.RWMutex
+	createStartedBuildArgsForCall []struct {
+		arg1 atc.Plan
+	}
+	createStartedBuildReturns struct {
+		result1 db.Build
+		result2 error
+	}
+	createStartedBuildReturnsOnCall map[int]struct {
+		result1 db.Build
+		result2 error
+	}
 	DeleteStub        func() error
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
@@ -746,6 +759,69 @@ func (fake *FakeTeam) CreateOneOffBuildReturnsOnCall(i int, result1 db.Build, re
 		})
 	}
 	fake.createOneOffBuildReturnsOnCall[i] = struct {
+		result1 db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) CreateStartedBuild(arg1 atc.Plan) (db.Build, error) {
+	fake.createStartedBuildMutex.Lock()
+	ret, specificReturn := fake.createStartedBuildReturnsOnCall[len(fake.createStartedBuildArgsForCall)]
+	fake.createStartedBuildArgsForCall = append(fake.createStartedBuildArgsForCall, struct {
+		arg1 atc.Plan
+	}{arg1})
+	fake.recordInvocation("CreateStartedBuild", []interface{}{arg1})
+	fake.createStartedBuildMutex.Unlock()
+	if fake.CreateStartedBuildStub != nil {
+		return fake.CreateStartedBuildStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.createStartedBuildReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) CreateStartedBuildCallCount() int {
+	fake.createStartedBuildMutex.RLock()
+	defer fake.createStartedBuildMutex.RUnlock()
+	return len(fake.createStartedBuildArgsForCall)
+}
+
+func (fake *FakeTeam) CreateStartedBuildCalls(stub func(atc.Plan) (db.Build, error)) {
+	fake.createStartedBuildMutex.Lock()
+	defer fake.createStartedBuildMutex.Unlock()
+	fake.CreateStartedBuildStub = stub
+}
+
+func (fake *FakeTeam) CreateStartedBuildArgsForCall(i int) atc.Plan {
+	fake.createStartedBuildMutex.RLock()
+	defer fake.createStartedBuildMutex.RUnlock()
+	argsForCall := fake.createStartedBuildArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTeam) CreateStartedBuildReturns(result1 db.Build, result2 error) {
+	fake.createStartedBuildMutex.Lock()
+	defer fake.createStartedBuildMutex.Unlock()
+	fake.CreateStartedBuildStub = nil
+	fake.createStartedBuildReturns = struct {
+		result1 db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) CreateStartedBuildReturnsOnCall(i int, result1 db.Build, result2 error) {
+	fake.createStartedBuildMutex.Lock()
+	defer fake.createStartedBuildMutex.Unlock()
+	fake.CreateStartedBuildStub = nil
+	if fake.createStartedBuildReturnsOnCall == nil {
+		fake.createStartedBuildReturnsOnCall = make(map[int]struct {
+			result1 db.Build
+			result2 error
+		})
+	}
+	fake.createStartedBuildReturnsOnCall[i] = struct {
 		result1 db.Build
 		result2 error
 	}{result1, result2}
@@ -2181,6 +2257,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.containersMutex.RUnlock()
 	fake.createOneOffBuildMutex.RLock()
 	defer fake.createOneOffBuildMutex.RUnlock()
+	fake.createStartedBuildMutex.RLock()
+	defer fake.createStartedBuildMutex.RUnlock()
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
 	fake.findCheckContainersMutex.RLock()

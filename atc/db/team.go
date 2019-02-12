@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/event"
 	"github.com/lib/pq"
 )
 
@@ -43,6 +44,8 @@ type Team interface {
 	OrderPipelines([]string) error
 
 	CreateOneOffBuild() (Build, error)
+	CreateStartedBuild(plan atc.Plan) (Build, error)
+
 	PrivateAndPublicBuilds(Page) ([]Build, Pagination, error)
 	Builds(page Page) ([]Build, Pagination, error)
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
@@ -679,6 +682,55 @@ func (t *team) CreateOneOffBuild() (Build, error) {
 	}
 
 	return build, nil
+}
+
+func (t *team) CreateStartedBuild(plan atc.Plan) (Build, error) {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
+	metadata, err := json.Marshal(map[string]interface{}{"plan": plan})
+	if err != nil {
+		return nil, err
+	}
+
+	encryptedMetadata, nonce, err := t.conn.EncryptionStrategy().Encrypt(metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	build := &build{conn: t.conn, lockFactory: t.lockFactory}
+	err = createBuild(tx, build, map[string]interface{}{
+		"name":            sq.Expr("nextval('one_off_name')"),
+		"team_id":         t.id,
+		"status":          BuildStatusStarted,
+		"start_time":      sq.Expr("now()"),
+		"engine":          "exec.v2",
+		"engine_metadata": encryptedMetadata,
+		"public_plan":     plan.Public(),
+		"nonce":           nonce,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = build.saveEvent(tx, event.Status{
+		Status: atc.StatusStarted,
+		Time:   build.StartTime().Unix(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return build, t.conn.Bus().Notify(buildEventsChannel(build.id))
 }
 
 func (t *team) PrivateAndPublicBuilds(page Page) ([]Build, Pagination, error) {
