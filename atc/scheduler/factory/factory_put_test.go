@@ -412,7 +412,7 @@ var _ = Describe("Factory Put", func() {
 						{
 							Put:      "some-put",
 							Resource: "some-resource",
-							Inputs:   atc.InputsConfig{Specified: []string{"input-1", "input-2"}},
+							Inputs:   &atc.InputsConfig{Specified: []string{"input-1", "input-2"}},
 						},
 					},
 				}
@@ -426,7 +426,7 @@ var _ = Describe("Factory Put", func() {
 					Type:     "git",
 					Name:     "some-put",
 					Resource: "some-resource",
-					Inputs:   []string{"input-1", "input-2"},
+					Inputs:   &atc.InputsConfig{Specified: []string{"input-1", "input-2"}},
 					Source: atc.Source{
 						"uri": "git://some-resource",
 					},
@@ -456,7 +456,50 @@ var _ = Describe("Factory Put", func() {
 						{
 							Put:      "some-put",
 							Resource: "some-resource",
-							Inputs:   atc.InputsConfig{All: true},
+							Inputs:   &atc.InputsConfig{All: true},
+						},
+					},
+				}
+			})
+
+			It("returns the correct plan with all inputs", func() {
+				actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				putPlan := expectedPlanFactory.NewPlan(atc.PutPlan{
+					Type:     "git",
+					Name:     "some-put",
+					Resource: "some-resource",
+					Inputs:   &atc.InputsConfig{All: true},
+					Source: atc.Source{
+						"uri": "git://some-resource",
+					},
+					VersionedResourceTypes: resourceTypes,
+				})
+				expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+					Step: putPlan,
+					Next: expectedPlanFactory.NewPlan(atc.GetPlan{
+						Type:     "git",
+						Name:     "some-put",
+						Resource: "some-resource",
+						Source: atc.Source{
+							"uri": "git://some-resource",
+						},
+						VersionFrom:            &putPlan.ID,
+						VersionedResourceTypes: resourceTypes,
+					}),
+				})
+				Expect(actual).To(testhelpers.MatchPlan(expected))
+			})
+		})
+
+		Context("when I have a put specifying no inputs", func() {
+			BeforeEach(func() {
+				input = atc.JobConfig{
+					Plan: atc.PlanSequence{
+						{
+							Put:      "some-put",
+							Resource: "some-resource",
 						},
 					},
 				}

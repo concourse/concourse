@@ -332,7 +332,7 @@ type PlanConfig struct {
 	Resource string `yaml:"resource,omitempty" json:"resource,omitempty" mapstructure:"resource"`
 
 	// inputs to a put step either a list (e.g. [artifact-1, aritfact-2]) or all (e.g. all)
-	Inputs InputsConfig `yaml:"inputs,omitempty" json:"inputs,omitempty" mapstructure:"inputs"`
+	Inputs *InputsConfig `yaml:"inputs,omitempty" json:"inputs,omitempty" mapstructure:"inputs"`
 
 	// corresponds to a Task plan
 	// name of 'task', e.g. unit, go1.3, go1.4
