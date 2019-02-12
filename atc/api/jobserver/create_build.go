@@ -2,7 +2,6 @@ package jobserver
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/concourse/concourse/atc/api/present"
@@ -33,29 +32,10 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		scheduler := s.schedulerFactory.BuildScheduler(pipeline, s.externalURL, s.variablesFactory.NewVariables(pipeline.TeamName(), pipeline.Name()))
-
-		resourceTypes, err := pipeline.ResourceTypes()
+		build, err := job.CreateBuild()
 		if err != nil {
-			logger.Error("failed-to-get-resource-types", err)
+			logger.Error("failed-to-create-job-build", err)
 			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		versionedResourceTypes := resourceTypes.Deserialize()
-
-		resources, err := pipeline.Resources()
-		if err != nil {
-			logger.Error("failed-to-get-resources", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		build, _, err := scheduler.TriggerImmediately(logger, job, resources, versionedResourceTypes)
-		if err != nil {
-			logger.Error("failed-to-trigger", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "failed to trigger: %s", err)
 			return
 		}
 
