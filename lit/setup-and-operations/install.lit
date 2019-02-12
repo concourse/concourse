@@ -50,6 +50,11 @@ page.
     --worker-work-dir /opt/concourse/worker
   }}}
 
+  \italic{
+    Note: on Linux and OSX, you'll need to run this as root or using
+    \code{sudo} because the \reference{worker-node} needs elevated privileges.
+  }
+
   This command is shorthand for running a single \reference{web-node} and
   \reference{worker-node} on the same machine, auto-wired to trust each other.
   We've also configured some local auth for the \reference{main-team} -
@@ -657,7 +662,7 @@ page.
     The latest stable Helm chart for deploying Concourse into k8s. \bold{Official support coming soon.}
 
     \link{Concourse Formula}{https://github.com/marco-m/concourse-ci-formula} by \ghuser{marco-m}.
-    All-in-one Concourse installation using Vagrant and Virutalbox with S3-compatible storage and Vault secret manager.
+    All-in-one Concourse installation using Vagrant and Virtualbox with S3-compatible storage and Vault secret manager.
 
     \link{BUCC}{https://github.com/starkandwayne/bucc} by \ghuser{starkandwayne}.
     The \code{bucc} command line utility allows for easy bootstrapping of the BUCC stack (BOSH UA Credhub and Concourse). Which is the starting point for many deployments.

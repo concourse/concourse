@@ -262,7 +262,7 @@ func (p Plugin) ReferenceColumn(table string, column string) booklit.Content {
 
 func (p Plugin) Boshprop(job string, target string) booklit.Content {
 	return booklit.Link{
-		Target: fmt.Sprintf("http://bosh.io/jobs/%s?source=github.com/concourse/concourse#p=%s", job, target),
+		Target: fmt.Sprintf("http://bosh.io/jobs/%s?source=github.com/concourse/concourse-bosh-release#p=%s", job, target),
 		Content: booklit.Styled{
 			Style:   booklit.StyleVerbatim,
 			Content: booklit.String(target),

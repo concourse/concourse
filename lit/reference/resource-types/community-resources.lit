@@ -157,6 +157,8 @@ before using it!
 }{
   \table-row{\link{Git Bitbucket Pull Request Resource}{https://github.com/zarplata/concourse-git-bitbucket-pr-resource}}{by \ghuser{zarplata}}
 }{
+  \table-row{\link{Bitbucket Pull Request Resource}{https://github.com/halter-corp/bitbucket-pullrequest-resource}}{by \ghuser{halter-corp}}
+}{
   \table-row{\link{NPM Cache Resource}{https://github.com/ymedlop/npm-cache-resource}}{by \ghuser{ymedlop}}
 }{
   \table-row{\link{Gerrit Resource}{https://github.com/google/concourse-resources/tree/master/gerrit}}{by \ghuser{google}}
@@ -220,6 +222,10 @@ before using it!
   \table-row{\link{Packer}{https://github.com/Snapkitchen/concourse-packer-resource}}{by \ghuser{Snapkitchen}}
 }{
   \table-row{\link{Github Webhook Resource}{https://github.com/homedepot/github-webhook-resource}}{by \ghuser{homedepot}}
+}{
+  \table-row{\link{Ofcourse Resource Generator}{https://github.com/cloudboss/ofcourse}}{by \ghuser{cloudboss}}
+}{
+  \table-row{\link{HTTP PUT Resource}{https://github.com/lorands/http-put-resource}}{by \ghuser{lorands}}
 }
 
 \section{
