@@ -451,14 +451,16 @@ view userState pipelineState model =
         (viewConcourseLogo
             ++ viewMiddleSection model
             ++ viewPin pipelineState model
-            ++ viewLogin userState model
+            ++ viewLogin userState model (isPaused pipelineState)
         )
 
 
-viewLogin : UserState -> Model -> List (Html Msg)
-viewLogin userState model =
+viewLogin : UserState -> Model -> Bool -> List (Html Msg)
+viewLogin userState model isPaused =
     if showLogin model then
-        [ Html.div [ id "login-component", style Styles.loginComponent ] <| viewLoginState userState model.isUserMenuExpanded ]
+        [ Html.div [ id "login-component", style Styles.loginComponent ] <|
+            viewLoginState userState model.isUserMenuExpanded isPaused
+        ]
 
     else
         []
@@ -474,8 +476,8 @@ showLogin model =
             True
 
 
-viewLoginState : UserState -> Bool -> List (Html Msg)
-viewLoginState userState isUserMenuExpanded =
+viewLoginState : UserState -> Bool -> Bool -> List (Html Msg)
+viewLoginState userState isUserMenuExpanded isPaused =
     case userState of
         UserStateUnknown ->
             []
@@ -486,7 +488,7 @@ viewLoginState userState isUserMenuExpanded =
                 , HA.attribute "aria-label" "Log In"
                 , id "login-container"
                 , onClick LogIn
-                , style Styles.loginContainer
+                , style (Styles.loginContainer isPaused)
                 ]
                 [ Html.div [ style Styles.loginItem, id "login-item" ] [ Html.a [ href "/sky/login" ] [ Html.text "login" ] ] ]
             ]
@@ -495,7 +497,7 @@ viewLoginState userState isUserMenuExpanded =
             [ Html.div
                 [ id "login-container"
                 , onClick ToggleUserMenu
-                , style Styles.loginContainer
+                , style (Styles.loginContainer isPaused)
                 ]
                 [ Html.div [ id "user-id", style Styles.loginItem ]
                     ([ Html.div [ style Styles.loginText ] [ Html.text (userDisplayName user) ] ]
@@ -733,7 +735,7 @@ viewPin pipelineState model =
                 ]
                 [ if List.length pinnedResources > 0 then
                     Html.div
-                        [ style <| Styles.pinIcon True
+                        [ style <| Styles.pinIcon
                         , onMouseEnter TogglePinIconDropdown
                         , onMouseLeave TogglePinIconDropdown
                         ]
@@ -748,7 +750,7 @@ viewPin pipelineState model =
                         )
 
                   else
-                    Html.div [ style <| Styles.pinIcon False ] []
+                    Html.div [ style <| Styles.pinIcon ] []
                 ]
             ]
 

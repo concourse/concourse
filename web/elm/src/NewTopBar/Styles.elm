@@ -245,12 +245,18 @@ loginComponent =
     [ ( "max-width", "20%" ) ]
 
 
-loginContainer : List ( String, String )
-loginContainer =
+loginContainer : Bool -> List ( String, String )
+loginContainer isPaused =
     [ ( "position", "relative" )
     , ( "display", "flex" )
     , ( "flex-direction", "column" )
-    , ( "border-left", "1px solid #3d3c3c" )
+    , ( "border-left"
+      , if isPaused then
+            "1px solid rgba(255, 255, 255, 0.5)"
+
+        else
+            "1px solid #3d3c3c"
+      )
     , ( "line-height", "54px" )
     ]
 
@@ -323,7 +329,7 @@ pinIconContainer showBackground =
     , ( "max-width", "20%" )
     ]
         ++ (if showBackground then
-                [ ( "background-color", "#3d3c3c" )
+                [ ( "background-color", "rgba(255, 255, 255, 0.3)" )
                 , ( "border-radius", "50%" )
                 ]
 
@@ -332,15 +338,9 @@ pinIconContainer showBackground =
            )
 
 
-pinIcon : Bool -> List ( String, String )
-pinIcon enabled =
-    [ ( "background-image"
-      , if enabled then
-            "url(/public/images/pin-ic-white.svg)"
-
-        else
-            "url(/public/images/pin-ic-grey.svg)"
-      )
+pinIcon : List ( String, String )
+pinIcon =
+    [ ( "background-image", "url(/public/images/pin-ic-white.svg)" )
     , ( "width", "40px" )
     , ( "height", "40px" )
     , ( "background-repeat", "no-repeat" )
