@@ -48,13 +48,8 @@ all =
                 Build.init
                     { csrfToken = ""
                     , highlight = Routes.HighlightNothing
-                    , route =
-                        Routes.Build
-                            { id = buildId
-                            , highlight = Routes.HighlightNothing
-                            }
+                    , pageType = Models.JobBuildPage buildId
                     }
-                    (Models.JobBuildPage buildId)
 
             theBuild : Concourse.Build
             theBuild =

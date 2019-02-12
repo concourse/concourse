@@ -45,9 +45,6 @@ type CheckStatus
 
 type alias Model =
     { pageStatus : Result PageError ()
-    , teamName : String
-    , pipelineName : String
-    , name : String
     , checkStatus : CheckStatus
     , checkError : String
     , checkSetupError : String
@@ -62,7 +59,6 @@ type alias Model =
     , showPinBarTooltip : Bool
     , pinIconHover : Bool
     , topBar : NewTopBar.Model.Model
-    , route : Routes.Route
     , pinCommentLoading : Bool
     , ctrlDown : Bool
     , textAreaFocused : Bool

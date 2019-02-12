@@ -84,9 +84,7 @@ jobBuildsPerPage =
 
 
 type alias Flags =
-    { jobName : String
-    , teamName : String
-    , pipelineName : String
+    { jobId : Concourse.JobIdentifier
     , paging : Maybe Page
     , csrfToken : String
     }
@@ -95,17 +93,11 @@ type alias Flags =
 init : Flags -> ( Model, List Effect )
 init flags =
     let
-        jobId =
-            { jobName = flags.jobName
-            , teamName = flags.teamName
-            , pipelineName = flags.pipelineName
-            }
-
         ( topBar, topBarEffects ) =
-            NewestTopBar.init { route = Routes.Job { id = jobId, page = flags.paging } }
+            NewestTopBar.init { route = Routes.Job { id = flags.jobId, page = flags.paging } }
 
         model =
-            { jobIdentifier = jobId
+            { jobIdentifier = flags.jobId
             , job = RemoteData.NotAsked
             , pausedChanging = False
             , buildsWithResources =
@@ -123,8 +115,8 @@ init flags =
             }
     in
     ( model
-    , [ FetchJob jobId
-      , FetchJobBuilds jobId flags.paging
+    , [ FetchJob flags.jobId
+      , FetchJobBuilds flags.jobId flags.paging
       , GetCurrentTime
       ]
         ++ topBarEffects

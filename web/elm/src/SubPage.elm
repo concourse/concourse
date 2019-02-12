@@ -54,28 +54,24 @@ init : Flags -> Routes.Route -> ( Model, List Effect )
 init flags route =
     case route of
         Routes.Build { id, highlight } ->
-            Build.Models.JobBuildPage id
-                |> Build.init
-                    { csrfToken = flags.csrfToken
-                    , highlight = highlight
-                    , route = route
-                    }
+            Build.init
+                { csrfToken = flags.csrfToken
+                , highlight = highlight
+                , pageType = Build.Models.JobBuildPage id
+                }
                 |> Tuple.mapFirst BuildModel
 
         Routes.OneOffBuild { id, highlight } ->
-            Build.Models.BuildPage (Result.withDefault 0 (String.toInt id))
-                |> Build.init
-                    { csrfToken = flags.csrfToken
-                    , highlight = highlight
-                    , route = route
-                    }
+            Build.init
+                { csrfToken = flags.csrfToken
+                , highlight = highlight
+                , pageType = Build.Models.OneOffBuildPage id
+                }
                 |> Tuple.mapFirst BuildModel
 
         Routes.Resource { id, page } ->
             Resource.init
-                { resourceName = id.resourceName
-                , teamName = id.teamName
-                , pipelineName = id.pipelineName
+                { resourceId = id
                 , paging = page
                 , csrfToken = flags.csrfToken
                 }
@@ -83,9 +79,7 @@ init flags route =
 
         Routes.Job { id, page } ->
             Job.init
-                { jobName = id.jobName
-                , teamName = id.teamName
-                , pipelineName = id.pipelineName
+                { jobId = id
                 , paging = page
                 , csrfToken = flags.csrfToken
                 }
@@ -93,8 +87,7 @@ init flags route =
 
         Routes.Pipeline { id, groups } ->
             Pipeline.init
-                { teamName = id.teamName
-                , pipelineName = id.pipelineName
+                { pipelineLocator = id
                 , turbulenceImgSrc = flags.turbulencePath
                 , selectedGroups = groups
                 }
@@ -254,41 +247,35 @@ urlUpdate : Routes.Route -> Model -> ( Model, List Effect )
 urlUpdate route model =
     case ( route, model ) of
         ( Routes.Pipeline { id, groups }, PipelineModel mdl ) ->
-            Pipeline.changeToPipelineAndGroups
-                { teamName = id.teamName
-                , pipelineName = id.pipelineName
-                , turbulenceImgSrc = mdl.turbulenceImgSrc
-                , selectedGroups = groups
-                }
-                mdl
+            mdl
+                |> Pipeline.changeToPipelineAndGroups
+                    { pipelineLocator = id
+                    , turbulenceImgSrc = mdl.turbulenceImgSrc
+                    , selectedGroups = groups
+                    }
                 |> Tuple.mapFirst PipelineModel
 
         ( Routes.Resource { id, page }, ResourceModel mdl ) ->
-            Resource.changeToResource
-                { teamName = id.teamName
-                , pipelineName = id.pipelineName
-                , resourceName = id.resourceName
-                , paging = page
-                , csrfToken = mdl.csrfToken
-                }
-                mdl
+            mdl
+                |> Resource.changeToResource
+                    { resourceId = id
+                    , paging = page
+                    , csrfToken = mdl.csrfToken
+                    }
                 |> Tuple.mapFirst ResourceModel
 
         ( Routes.Job { id, page }, JobModel mdl ) ->
-            Job.changeToJob
-                { teamName = id.teamName
-                , pipelineName = id.pipelineName
-                , jobName = id.jobName
-                , paging = page
-                , csrfToken = mdl.csrfToken
-                }
-                mdl
+            mdl
+                |> Job.changeToJob
+                    { jobId = id
+                    , paging = page
+                    , csrfToken = mdl.csrfToken
+                    }
                 |> Tuple.mapFirst JobModel
 
         ( Routes.Build { id, highlight }, BuildModel buildModel ) ->
-            Build.changeToBuild
-                (Build.Models.JobBuildPage id)
-                { buildModel | highlight = highlight }
+            { buildModel | highlight = highlight }
+                |> Build.changeToBuild (Build.Models.JobBuildPage id)
                 |> Tuple.mapFirst BuildModel
 
         _ ->

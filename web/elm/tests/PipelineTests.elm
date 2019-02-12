@@ -91,8 +91,10 @@ all =
                 defaultModel : Pipeline.Model
                 defaultModel =
                     Pipeline.init
-                        { teamName = "some-team"
-                        , pipelineName = "some-pipeline"
+                        { pipelineLocator =
+                            { teamName = "some-team"
+                            , pipelineName = "some-pipeline"
+                            }
                         , turbulenceImgSrc = "some-turbulence-img-src"
                         , selectedGroups = []
                         }

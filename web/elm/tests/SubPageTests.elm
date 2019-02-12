@@ -112,7 +112,7 @@ all =
                             , topBar =
                                 topBar
                                     (Routes.OneOffBuild
-                                        { id = "1"
+                                        { id = 1
                                         , highlight = Routes.HighlightNothing
                                         }
                                     )

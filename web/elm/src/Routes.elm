@@ -24,6 +24,7 @@ import UrlParser
         , (<?>)
         , Parser
         , custom
+        , int
         , intParam
         , map
         , oneOf
@@ -37,7 +38,7 @@ type Route
     = Build { id : Concourse.JobBuildIdentifier, highlight : Highlight }
     | Resource { id : Concourse.ResourceIdentifier, page : Maybe Pagination.Page }
     | Job { id : Concourse.JobIdentifier, page : Maybe Pagination.Page }
-    | OneOffBuild { id : Concourse.BuildName, highlight : Highlight }
+    | OneOffBuild { id : Concourse.BuildId, highlight : Highlight }
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
     | Dashboard { searchType : SearchType }
     | FlySuccess { flyPort : Maybe Int }
@@ -81,7 +82,7 @@ build =
 
 oneOffBuild : Parser ((Highlight -> Route) -> a) a
 oneOffBuild =
-    map (\b h -> OneOffBuild { id = b, highlight = h }) (s "builds" </> string)
+    map (\b h -> OneOffBuild { id = b, highlight = h }) (s "builds" </> int)
 
 
 parsePage : Maybe Int -> Maybe Int -> Maybe Int -> Maybe Pagination.Page
@@ -193,7 +194,7 @@ buildRoute build =
                 }
 
         Nothing ->
-            OneOffBuild { id = Basics.toString build.id, highlight = HighlightNothing }
+            OneOffBuild { id = build.id, highlight = HighlightNothing }
 
 
 jobRoute : Concourse.Job -> Route
@@ -345,7 +346,7 @@ toString route =
 
         OneOffBuild { id, highlight } ->
             "/builds/"
-                ++ id
+                ++ Basics.toString id
                 ++ showHighlight highlight
 
         Pipeline { id, groups } ->

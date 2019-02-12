@@ -56,8 +56,7 @@ type alias Model =
 
 
 type alias Flags =
-    { teamName : String
-    , pipelineName : String
+    { pipelineLocator : Concourse.PipelineIdentifier
     , turbulenceImgSrc : String
     , selectedGroups : List String
     }
@@ -66,18 +65,13 @@ type alias Flags =
 init : Flags -> ( Model, List Effect )
 init flags =
     let
-        pipelineLocator =
-            { teamName = flags.teamName
-            , pipelineName = flags.pipelineName
-            }
-
         ( topBar, topBarEffects ) =
-            NewestTopBar.init { route = Routes.Pipeline { id = pipelineLocator, groups = flags.selectedGroups } }
+            NewestTopBar.init { route = Routes.Pipeline { id = flags.pipelineLocator, groups = flags.selectedGroups } }
 
         model =
             { concourseVersion = ""
             , turbulenceImgSrc = flags.turbulenceImgSrc
-            , pipelineLocator = pipelineLocator
+            , pipelineLocator = flags.pipelineLocator
             , pipeline = RemoteData.NotAsked
             , fetchedJobs = Nothing
             , fetchedResources = Nothing
@@ -90,18 +84,12 @@ init flags =
             , topBar = topBar
             }
     in
-    ( model, [ FetchPipeline pipelineLocator, FetchVersion, ResetPipelineFocus ] ++ topBarEffects )
+    ( model, [ FetchPipeline flags.pipelineLocator, FetchVersion, ResetPipelineFocus ] ++ topBarEffects )
 
 
 changeToPipelineAndGroups : Flags -> Model -> ( Model, List Effect )
 changeToPipelineAndGroups flags model =
-    let
-        pid =
-            { teamName = flags.teamName
-            , pipelineName = flags.pipelineName
-            }
-    in
-    if model.pipelineLocator == pid then
+    if model.pipelineLocator == flags.pipelineLocator then
         let
             ( newModel, effects ) =
                 renderIfNeeded { model | selectedGroups = flags.selectedGroups }

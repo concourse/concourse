@@ -79,9 +79,7 @@ import UserState exposing (UserState(..))
 
 
 type alias Flags =
-    { teamName : String
-    , pipelineName : String
-    , resourceName : String
+    { resourceId : Concourse.ResourceIdentifier
     , paging : Maybe Concourse.Pagination.Page
     , csrfToken : String
     }
@@ -90,21 +88,12 @@ type alias Flags =
 init : Flags -> ( Model, List Effect )
 init flags =
     let
-        resourceId =
-            { teamName = flags.teamName
-            , pipelineName = flags.pipelineName
-            , resourceName = flags.resourceName
-            }
-
         ( topBar, topBarEffects ) =
-            NewestTopBar.init { route = Routes.Resource { id = resourceId, page = Nothing } }
+            NewestTopBar.init { route = Routes.Resource { id = flags.resourceId, page = Nothing } }
 
         model =
-            { resourceIdentifier = resourceId
+            { resourceIdentifier = flags.resourceId
             , pageStatus = Err Models.Empty
-            , teamName = flags.teamName
-            , pipelineName = flags.pipelineName
-            , name = flags.resourceName
             , checkStatus = Models.CheckingSuccessfully
             , checkError = ""
             , checkSetupError = ""
@@ -120,7 +109,6 @@ init flags =
             , csrfToken = flags.csrfToken
             , showPinBarTooltip = False
             , pinIconHover = False
-            , route = Routes.Resource { id = resourceId, page = Nothing }
             , pinCommentLoading = False
             , ctrlDown = False
             , textAreaFocused = False
@@ -128,7 +116,7 @@ init flags =
             }
     in
     ( model
-    , topBarEffects ++ [ FetchResource resourceId, FetchVersionedResources resourceId flags.paging ]
+    , topBarEffects ++ [ FetchResource flags.resourceId, FetchVersionedResources flags.resourceId flags.paging ]
     )
 
 
@@ -234,9 +222,11 @@ handleCallbackWithoutTopBar action model =
         ResourceFetched (Ok resource) ->
             ( { model
                 | pageStatus = Ok ()
-                , teamName = resource.teamName
-                , pipelineName = resource.pipelineName
-                , name = resource.name
+                , resourceIdentifier =
+                    { teamName = resource.teamName
+                    , pipelineName = resource.pipelineName
+                    , resourceName = resource.name
+                    }
                 , checkStatus =
                     if resource.failingToCheck then
                         Models.FailingToCheck
@@ -307,10 +297,9 @@ handleCallbackWithoutTopBar action model =
 
                                         Nothing ->
                                             { id =
-                                                { teamName = model.teamName
-                                                , pipelineName =
-                                                    model.pipelineName
-                                                , resourceName = model.name
+                                                { teamName = model.resourceIdentifier.teamName
+                                                , pipelineName = model.resourceIdentifier.pipelineName
+                                                , resourceName = model.resourceIdentifier.resourceName
                                                 , versionID = vr.id
                                                 }
                                             , version = vr.version
@@ -791,7 +780,7 @@ header model =
                 , Css.justifyContent Css.center
                 ]
             ]
-            [ Html.text model.name ]
+            [ Html.text model.resourceIdentifier.resourceName ]
         , Html.div
             [ css
                 [ Css.displayFlex
@@ -818,7 +807,7 @@ body userState model =
             , checkError = model.checkError
             , hovered = model.hovered
             , userState = userState
-            , teamName = model.teamName
+            , teamName = model.resourceIdentifier.teamName
             }
     in
     Html.div
@@ -1145,12 +1134,12 @@ commentBar :
     ->
         { a
             | pinnedVersion : Models.PinnedVersion
-            , teamName : String
+            , resourceIdentifier : Concourse.ResourceIdentifier
             , hovered : Models.Hoverable
             , pinCommentLoading : Bool
         }
     -> Html Msg
-commentBar userState ({ teamName, pinnedVersion, hovered, pinCommentLoading } as params) =
+commentBar userState ({ resourceIdentifier, pinnedVersion, hovered, pinCommentLoading } as params) =
     case pinnedVersion of
         PinnedDynamicallyTo commentState v ->
             let
@@ -1186,7 +1175,7 @@ commentBar userState ({ teamName, pinnedVersion, hovered, pinCommentLoading } as
                                 , version
                                 ]
                     in
-                    if isAuthorized { teamName = teamName, userState = userState } then
+                    if isAuthorized { teamName = resourceIdentifier.teamName, userState = userState } then
                         [ header
                         , Html.textarea
                             [ style Resource.Styles.commentTextArea
