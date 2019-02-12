@@ -3,8 +3,9 @@ resources:
   type: git
   source:
     uri: https://github.com/concourse/concourse.git
-    branch: hotfix/redirect-issue
+    branch: release/4.2.x
 
+# TODO update the versions file and cut a new release there too
 - name: concourse-head
   type: git
   source:
@@ -22,7 +23,7 @@ resources:
 - name: version
   type: mock
   source:
-    force_version: 4.2.2
+    force_version: 4.2.3-rc.1
 
 - name: final-release
   type: s3
@@ -138,6 +139,8 @@ resources:
     owner: concourse
     repository: bin
     access_token: ((bin_github_release.access_token))
+    release: false
+    pre_release: true
 
 - name: concourse-docker
   type: git
@@ -478,7 +481,7 @@ jobs:
       load_file: concourse-image/image.tar
       load_repository: concourse/concourse-rc
       tag: version/version
-      tag_as_latest: true
+      tag_as_latest: false
 
 
 - name: bosh-upgrade
