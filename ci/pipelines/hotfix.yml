@@ -23,7 +23,7 @@ resources:
 - name: version
   type: mock
   source:
-    force_version: 4.2.3-rc.1
+    force_version: 4.2.3-rc.2
 
 - name: final-release
   type: s3
