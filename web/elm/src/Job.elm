@@ -89,7 +89,6 @@ type alias Flags =
     , pipelineName : String
     , paging : Maybe Page
     , csrfToken : String
-    , route : Routes.Route
     }
 
 
@@ -103,7 +102,15 @@ init flags =
             }
 
         ( topBar, topBarEffects ) =
-            NewestTopBar.init { route = flags.route }
+            NewestTopBar.init
+                { route =
+                    Routes.Job
+                        { teamName = flags.teamName
+                        , pipelineName = flags.pipelineName
+                        , jobName = flags.jobName
+                        , page = flags.paging
+                        }
+                }
 
         model =
             { jobIdentifier = jobId
@@ -184,11 +191,13 @@ handleCallbackWithoutTopBar callback model =
                 Just job ->
                     [ NavigateTo <|
                         Routes.toString <|
-                            Routes.Build job.teamName
-                                job.pipelineName
-                                job.jobName
-                                build.name
-                                Routes.HighlightNothing
+                            Routes.Build
+                                { teamName = job.teamName
+                                , pipelineName = job.pipelineName
+                                , jobName = job.jobName
+                                , buildName = build.name
+                                , highlight = Routes.HighlightNothing
+                                }
                     ]
             )
 
@@ -583,10 +592,12 @@ viewPaginationBar model =
             Just page ->
                 let
                     jobRoute =
-                        Routes.Job model.jobIdentifier.teamName
-                            model.jobIdentifier.pipelineName
-                            model.jobIdentifier.jobName
-                            (Just page)
+                        Routes.Job
+                            { teamName = model.jobIdentifier.teamName
+                            , pipelineName = model.jobIdentifier.pipelineName
+                            , jobName = model.jobIdentifier.jobName
+                            , page = Just page
+                            }
                 in
                 Html.div
                     [ style chevronContainer
@@ -624,10 +635,12 @@ viewPaginationBar model =
             Just page ->
                 let
                     jobRoute =
-                        Routes.Job model.jobIdentifier.teamName
-                            model.jobIdentifier.pipelineName
-                            model.jobIdentifier.jobName
-                            (Just page)
+                        Routes.Job
+                            { teamName = model.jobIdentifier.teamName
+                            , pipelineName = model.jobIdentifier.pipelineName
+                            , jobName = model.jobIdentifier.jobName
+                            , page = Just page
+                            }
                 in
                 Html.div
                     [ style chevronContainer

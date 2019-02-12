@@ -34,13 +34,13 @@ import UrlParser
 
 
 type Route
-    = Build String String String String Highlight
-    | Resource String String String (Maybe Pagination.Page)
-    | Job String String String (Maybe Pagination.Page)
-    | OneOffBuild String Highlight
-    | Pipeline String String (List String)
-    | Dashboard SearchType
-    | FlySuccess (Maybe Int)
+    = Build { teamName : String, pipelineName : String, jobName : String, buildName : String, highlight : Highlight }
+    | Resource { teamName : String, pipelineName : String, resourceName : String, page : Maybe Pagination.Page }
+    | Job { teamName : String, pipelineName : String, jobName : String, page : Maybe Pagination.Page }
+    | OneOffBuild { buildId : String, highlight : Highlight }
+    | Pipeline { teamName : String, pipelineName : String, groups : List String }
+    | Dashboard { searchType : SearchType }
+    | FlySuccess { flyPort : Maybe Int }
 
 
 type SearchType
@@ -64,12 +64,22 @@ type alias StepID =
 
 build : Parser ((Highlight -> Route) -> a) a
 build =
-    map Build (s "teams" </> string </> s "pipelines" </> string </> s "jobs" </> string </> s "builds" </> string)
+    let
+        buildHelper teamName pipelineName jobName buildName highlight =
+            Build
+                { teamName = teamName
+                , pipelineName = pipelineName
+                , jobName = jobName
+                , buildName = buildName
+                , highlight = highlight
+                }
+    in
+    map buildHelper (s "teams" </> string </> s "pipelines" </> string </> s "jobs" </> string </> s "builds" </> string)
 
 
 oneOffBuild : Parser ((Highlight -> Route) -> a) a
 oneOffBuild =
-    map OneOffBuild (s "builds" </> string)
+    map (\b h -> OneOffBuild { buildId = b, highlight = h }) (s "builds" </> string)
 
 
 parsePage : Maybe Int -> Maybe Int -> Maybe Int -> Maybe Pagination.Page
@@ -95,8 +105,12 @@ resource : Parser (Route -> a) a
 resource =
     let
         resourceHelper teamName pipelineName resourceName since until limit =
-            Resource teamName pipelineName resourceName <|
-                parsePage since until limit
+            Resource
+                { teamName = teamName
+                , pipelineName = pipelineName
+                , resourceName = resourceName
+                , page = parsePage since until limit
+                }
     in
     map resourceHelper
         (s "teams"
@@ -115,8 +129,12 @@ job : Parser (Route -> a) a
 job =
     let
         jobHelper teamName pipelineName jobName since until limit =
-            Job teamName pipelineName jobName <|
-                parsePage since until limit
+            Job
+                { teamName = teamName
+                , pipelineName = pipelineName
+                , jobName = jobName
+                , page = parsePage since until limit
+                }
     in
     map jobHelper
         (s "teams"
@@ -133,20 +151,20 @@ job =
 
 pipeline : Parser ((List String -> Route) -> a) a
 pipeline =
-    map Pipeline (s "teams" </> string </> s "pipelines" </> string)
+    map (\t p g -> Pipeline { teamName = t, pipelineName = p, groups = g }) (s "teams" </> string </> s "pipelines" </> string)
 
 
 dashboard : Parser (Route -> a) a
 dashboard =
     oneOf
-        [ map (Dashboard << Normal) (s "" <?> stringParam "search")
-        , map (Dashboard HighDensity) (s "hd")
+        [ map (\s -> Dashboard { searchType = Normal s }) (s "" <?> stringParam "search")
+        , map (Dashboard { searchType = HighDensity }) (s "hd")
         ]
 
 
 flySuccess : Parser (Route -> a) a
 flySuccess =
-    map FlySuccess (s "fly_success" <?> intParam "fly_port")
+    map (\p -> FlySuccess { flyPort = p }) (s "fly_success" <?> intParam "fly_port")
 
 
 
@@ -157,29 +175,35 @@ buildRoute : Concourse.Build -> Route
 buildRoute build =
     case build.job of
         Just j ->
-            Build j.teamName j.pipelineName j.jobName build.name HighlightNothing
+            Build
+                { teamName = j.teamName
+                , pipelineName = j.pipelineName
+                , jobName = j.jobName
+                , buildName = build.name
+                , highlight = HighlightNothing
+                }
 
         Nothing ->
-            OneOffBuild (Basics.toString build.id) HighlightNothing
+            OneOffBuild { buildId = Basics.toString build.id, highlight = HighlightNothing }
 
 
 jobRoute : Concourse.Job -> Route
 jobRoute j =
-    Job j.teamName j.pipelineName j.name Nothing
+    Job { teamName = j.teamName, pipelineName = j.pipelineName, jobName = j.name, page = Nothing }
 
 
 pipelineRoute : { a | name : String, teamName : String } -> Route
 pipelineRoute p =
-    Pipeline p.teamName p.name []
+    Pipeline { teamName = p.teamName, pipelineName = p.name, groups = [] }
 
 
 dashboardRoute : Bool -> Route
 dashboardRoute isHd =
     if isHd then
-        Dashboard HighDensity
+        Dashboard { searchType = HighDensity }
 
     else
-        Dashboard (Normal Nothing)
+        Dashboard { searchType = Normal Nothing }
 
 
 showHighlight : Highlight -> String
@@ -281,7 +305,7 @@ pageToQueryString page =
 toString : Route -> String
 toString route =
     case route of
-        Build teamName pipelineName jobName buildName highlight ->
+        Build { teamName, pipelineName, jobName, buildName, highlight } ->
             "/teams/"
                 ++ teamName
                 ++ "/pipelines/"
@@ -292,7 +316,7 @@ toString route =
                 ++ buildName
                 ++ showHighlight highlight
 
-        Job teamName pipelineName jobName page ->
+        Job { teamName, pipelineName, jobName, page } ->
             "/teams/"
                 ++ teamName
                 ++ "/pipelines/"
@@ -301,7 +325,7 @@ toString route =
                 ++ jobName
                 ++ pageToQueryString page
 
-        Resource teamName pipelineName resourceName page ->
+        Resource { teamName, pipelineName, resourceName, page } ->
             "/teams/"
                 ++ teamName
                 ++ "/pipelines/"
@@ -310,12 +334,12 @@ toString route =
                 ++ resourceName
                 ++ pageToQueryString page
 
-        OneOffBuild buildId highlight ->
+        OneOffBuild { buildId, highlight } ->
             "/builds/"
                 ++ buildId
                 ++ showHighlight highlight
 
-        Pipeline teamName pipelineName groups ->
+        Pipeline { teamName, pipelineName, groups } ->
             "/teams/"
                 ++ teamName
                 ++ "/pipelines/"
@@ -328,16 +352,18 @@ toString route =
                             "?groups=" ++ String.join "&groups=" gs
                    )
 
-        Dashboard (Normal (Just search)) ->
-            "/?search=" ++ search
+        Dashboard { searchType } ->
+            case searchType of
+                Normal (Just search) ->
+                    "/?search=" ++ search
 
-        Dashboard (Normal Nothing) ->
-            "/"
+                Normal Nothing ->
+                    "/"
 
-        Dashboard HighDensity ->
-            "/hd"
+                HighDensity ->
+                    "/hd"
 
-        FlySuccess flyPort ->
+        FlySuccess { flyPort } ->
             "/fly_success"
                 ++ (case flyPort of
                         Nothing ->
@@ -383,7 +409,7 @@ parsePath location =
                 |> f
 
         _ ->
-            Dashboard (Normal Nothing)
+            Dashboard { searchType = Normal Nothing }
 
 
 
@@ -393,19 +419,19 @@ parsePath location =
 extractPid : Route -> Maybe Concourse.PipelineIdentifier
 extractPid route =
     case route of
-        Build teamName pipelineName _ _ _ ->
+        Build { teamName, pipelineName } ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
-        Job teamName pipelineName _ _ ->
+        Job { teamName, pipelineName } ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
-        Resource teamName pipelineName _ _ ->
+        Resource { teamName, pipelineName } ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
-        Pipeline teamName pipelineName _ ->
+        Pipeline { teamName, pipelineName } ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
-        OneOffBuild _ _ ->
+        OneOffBuild _ ->
             Nothing
 
         Dashboard _ ->

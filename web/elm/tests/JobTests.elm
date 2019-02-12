@@ -87,7 +87,6 @@ all =
                         , pipelineName = "some-pipeline"
                         , paging = Nothing
                         , csrfToken = ""
-                        , route = Routes.Job "some-team" "some-pipeline" "some-job" Nothing
                         }
                         |> Tuple.first
 

@@ -61,7 +61,19 @@ all =
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
-                        (NotFoundModel { notFoundImgSrc = "notfound.svg", topBar = topBar (Routes.Job "t" "p" "j" Nothing) })
+                        (NotFoundModel
+                            { notFoundImgSrc = "notfound.svg"
+                            , topBar =
+                                topBar
+                                    (Routes.Job
+                                        { teamName = "t"
+                                        , pipelineName = "p"
+                                        , jobName = "j"
+                                        , page = Nothing
+                                        }
+                                    )
+                            }
+                        )
             , test "Resource not found" <|
                 init "/teams/t/pipelines/p/resources/r"
                     >> Layout.handleCallback
@@ -70,7 +82,19 @@ all =
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
-                        (NotFoundModel { notFoundImgSrc = "notfound.svg", topBar = topBar (Routes.Resource "t" "p" "r" Nothing) })
+                        (NotFoundModel
+                            { notFoundImgSrc = "notfound.svg"
+                            , topBar =
+                                topBar
+                                    (Routes.Resource
+                                        { teamName = "t"
+                                        , pipelineName = "p"
+                                        , resourceName = "r"
+                                        , page = Nothing
+                                        }
+                                    )
+                            }
+                        )
             , test "Build not found" <|
                 init "/builds/1"
                     >> Layout.handleCallback
@@ -79,7 +103,17 @@ all =
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
-                        (NotFoundModel { notFoundImgSrc = "notfound.svg", topBar = topBar (Routes.OneOffBuild "1" Routes.HighlightNothing) })
+                        (NotFoundModel
+                            { notFoundImgSrc = "notfound.svg"
+                            , topBar =
+                                topBar
+                                    (Routes.OneOffBuild
+                                        { buildId = "1"
+                                        , highlight = Routes.HighlightNothing
+                                        }
+                                    )
+                            }
+                        )
             , test "Pipeline not found" <|
                 init "/teams/t/pipelines/p"
                     >> Layout.handleCallback
@@ -88,7 +122,18 @@ all =
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
-                        (NotFoundModel { notFoundImgSrc = "notfound.svg", topBar = topBar (Routes.Pipeline "t" "p" []) })
+                        (NotFoundModel
+                            { notFoundImgSrc = "notfound.svg"
+                            , topBar =
+                                topBar
+                                    (Routes.Pipeline
+                                        { teamName = "t"
+                                        , pipelineName = "p"
+                                        , groups = []
+                                        }
+                                    )
+                            }
+                        )
             ]
         ]
 

@@ -1109,7 +1109,7 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                 Just { jobName, teamName, pipelineName } ->
                     let
                         jobRoute =
-                            Routes.Job teamName pipelineName jobName Nothing
+                            Routes.Job { teamName = teamName, pipelineName = pipelineName, jobName = jobName, page = Nothing }
                     in
                     Html.a
                         [ StrictEvents.onLeftClick <| NavTo jobRoute

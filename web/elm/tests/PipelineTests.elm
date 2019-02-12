@@ -95,7 +95,6 @@ all =
                         , pipelineName = "some-pipeline"
                         , turbulenceImgSrc = "some-turbulence-img-src"
                         , selectedGroups = []
-                        , route = Routes.Pipeline "some-team" "some-pipeline" []
                         }
                         |> Tuple.first
             in
@@ -600,7 +599,12 @@ all =
                         >> Event.expect
                             (wrapTopBarMessage <|
                                 NewTopBar.Msgs.GoToPinnedResource <|
-                                    Routes.Resource "team" "pipeline" "resource" Nothing
+                                    Routes.Resource
+                                        { teamName = "team"
+                                        , pipelineName = "pipeline"
+                                        , resourceName = "resource"
+                                        , page = Nothing
+                                        }
                             )
                 , it "TogglePinIconDropdown msg causes dropdown list of pinned resources to disappear" <|
                     givenPinnedResource

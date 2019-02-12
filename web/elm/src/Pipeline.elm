@@ -60,7 +60,6 @@ type alias Flags =
     , pipelineName : String
     , turbulenceImgSrc : String
     , selectedGroups : List String
-    , route : Routes.Route
     }
 
 
@@ -73,7 +72,14 @@ init flags =
             }
 
         ( topBar, topBarEffects ) =
-            NewestTopBar.init { route = flags.route }
+            NewestTopBar.init
+                { route =
+                    Routes.Pipeline
+                        { pipelineName = flags.pipelineName
+                        , teamName = flags.teamName
+                        , groups = flags.selectedGroups
+                        }
+                }
 
         model =
             { concourseVersion = ""
@@ -436,11 +442,12 @@ viewGroup :
 viewGroup { selectedGroups, pipelineLocator } grp =
     let
         url =
-            Routes.Pipeline
-                pipelineLocator.teamName
-                pipelineLocator.pipelineName
-                []
-                |> Routes.toString
+            Routes.toString <|
+                Routes.Pipeline
+                    { teamName = pipelineLocator.teamName
+                    , pipelineName = pipelineLocator.pipelineName
+                    , groups = []
+                    }
     in
     Html.li
         [ if List.member grp.name selectedGroups then
@@ -598,11 +605,12 @@ getDefaultSelectedGroups pipeline =
 
 getNextUrl : List String -> Model -> String
 getNextUrl newGroups model =
-    Routes.Pipeline
-        model.pipelineLocator.teamName
-        model.pipelineLocator.pipelineName
-        newGroups
-        |> Routes.toString
+    Routes.toString <|
+        Routes.Pipeline
+            { teamName = model.pipelineLocator.teamName
+            , pipelineName = model.pipelineLocator.pipelineName
+            , groups = newGroups
+            }
 
 
 cliIcon : Cli.Cli -> List ( String, String )

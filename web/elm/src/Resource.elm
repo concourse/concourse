@@ -97,7 +97,15 @@ init flags =
             }
 
         ( topBar, topBarEffects ) =
-            NewestTopBar.init { route = Routes.Resource flags.teamName flags.pipelineName flags.resourceName Nothing }
+            NewestTopBar.init
+                { route =
+                    Routes.Resource
+                        { teamName = flags.teamName
+                        , pipelineName = flags.pipelineName
+                        , resourceName = flags.resourceName
+                        , page = Nothing
+                        }
+                }
 
         model =
             { resourceIdentifier = resourceId
@@ -122,10 +130,11 @@ init flags =
             , pinIconHover = False
             , route =
                 Routes.Resource
-                    flags.teamName
-                    flags.pipelineName
-                    flags.resourceName
-                    Nothing
+                    { teamName = flags.teamName
+                    , pipelineName = flags.pipelineName
+                    , resourceName = flags.resourceName
+                    , page = Nothing
+                    }
             , pinCommentLoading = False
             , ctrlDown = False
             , textAreaFocused = False
@@ -491,10 +500,11 @@ update action model =
               , NavigateTo <|
                     Routes.toString <|
                         Routes.Resource
-                            model.resourceIdentifier.teamName
-                            model.resourceIdentifier.pipelineName
-                            model.resourceIdentifier.resourceName
-                            (Just page)
+                            { teamName = model.resourceIdentifier.teamName
+                            , pipelineName = model.resourceIdentifier.pipelineName
+                            , resourceName = model.resourceIdentifier.resourceName
+                            , page = Just page
+                            }
               ]
             )
 
@@ -916,7 +926,12 @@ paginationMenu { versions, resourceIdentifier, hovered } =
                     [ Html.a
                         [ href <|
                             Routes.toString <|
-                                Routes.Resource resourceIdentifier.teamName resourceIdentifier.pipelineName resourceIdentifier.resourceName (Just page)
+                                Routes.Resource
+                                    { teamName = resourceIdentifier.teamName
+                                    , pipelineName = resourceIdentifier.pipelineName
+                                    , resourceName = resourceIdentifier.resourceName
+                                    , page = Just page
+                                    }
                         , attribute "aria-label" "Previous Page"
                         , style <|
                             chevron
@@ -953,7 +968,12 @@ paginationMenu { versions, resourceIdentifier, hovered } =
                     [ Html.a
                         [ href <|
                             Routes.toString <|
-                                Routes.Resource resourceIdentifier.teamName resourceIdentifier.pipelineName resourceIdentifier.resourceName (Just page)
+                                Routes.Resource
+                                    { teamName = resourceIdentifier.teamName
+                                    , pipelineName = resourceIdentifier.pipelineName
+                                    , resourceName = resourceIdentifier.resourceName
+                                    , page = Just page
+                                    }
                         , attribute "aria-label" "Next Page"
                         , style <|
                             chevron
@@ -1652,7 +1672,13 @@ viewBuildsByJob buildDict jobName =
                     Just job ->
                         let
                             link =
-                                Routes.Build job.teamName job.pipelineName job.jobName build.name Routes.HighlightNothing
+                                Routes.Build
+                                    { teamName = job.teamName
+                                    , pipelineName = job.pipelineName
+                                    , jobName = job.jobName
+                                    , buildName = build.name
+                                    , highlight = Routes.HighlightNothing
+                                    }
                         in
                         Html.li [ class <| Concourse.BuildStatus.show build.status ]
                             [ Html.a

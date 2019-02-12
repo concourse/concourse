@@ -45,7 +45,14 @@ all =
                 Build.init
                     { csrfToken = ""
                     , highlight = Routes.HighlightNothing
-                    , route = Routes.Build "team" "pipeline" "job" "1" Routes.HighlightNothing
+                    , route =
+                        Routes.Build
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            , jobName = "job"
+                            , buildName = "1"
+                            , highlight = Routes.HighlightNothing
+                            }
                     }
                     (Models.JobBuildPage
                         { teamName = "team"
