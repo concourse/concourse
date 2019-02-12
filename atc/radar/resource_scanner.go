@@ -27,7 +27,6 @@ type resourceScanner struct {
 	dbPipeline            db.Pipeline
 	externalURL           string
 	variables             creds.Variables
-	typeScanner           Scanner
 }
 
 func NewResourceScanner(
@@ -38,7 +37,6 @@ func NewResourceScanner(
 	dbPipeline db.Pipeline,
 	externalURL string,
 	variables creds.Variables,
-	typeScanner Scanner,
 ) Scanner {
 	return &resourceScanner{
 		clock:                 clock,
@@ -48,11 +46,12 @@ func NewResourceScanner(
 		dbPipeline:            dbPipeline,
 		externalURL:           externalURL,
 		variables:             variables,
-		typeScanner:           typeScanner,
 	}
 }
 
 var ErrFailedToAcquireLock = errors.New("failed to acquire lock")
+var ErrResourceTypeNotFound = errors.New("resource type not found")
+var ErrResourceTypeCheckError = errors.New("resource type failed to check")
 
 func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (time.Duration, error) {
 	interval, err := scanner.scan(logger.Session("tick"), resourceName, nil, false, false)
@@ -115,15 +114,31 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		if parentType.Name() != savedResource.Type() {
 			continue
 		}
-		if parentType.Version() != nil {
-			continue
-		}
 
-		err = scanner.typeScanner.Scan(logger.Session("resource-type-scanner"), parentType.Name())
-		if err != nil {
-			logger.Error("failed-to-scan-parent-resource-type-version", err)
-			scanner.setResourceCheckError(logger, savedResource, err)
-			return 0, err
+		for {
+			if parentType.Version() != nil {
+				break
+			}
+
+			if parentType.CheckError() != nil {
+				scanner.setResourceCheckError(logger, savedResource, parentType.CheckError())
+				logger.Error("resource-type-failed-to-check", err, lager.Data{"resource-type": parentType.Name()})
+				return 0, ErrResourceTypeCheckError
+			} else {
+				logger.Debug("waiting-on-resource-type-version", lager.Data{"resource-type": parentType.Name()})
+				scanner.clock.Sleep(10 * time.Second)
+
+				found, err := parentType.Reload()
+				if err != nil {
+					logger.Error("failed-to-reload-resource-type", err, lager.Data{"resource-type": parentType.Name()})
+					return 0, err
+				}
+
+				if !found {
+					logger.Error("resource-type-not-found", err, lager.Data{"resource-type": parentType.Name()})
+					return 0, ErrResourceTypeNotFound
+				}
+			}
 		}
 	}
 
