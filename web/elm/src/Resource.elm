@@ -79,9 +79,7 @@ import UserState exposing (UserState(..))
 
 
 type alias Flags =
-    { teamName : String
-    , pipelineName : String
-    , resourceName : String
+    { resourceId : Concourse.ResourceIdentifier
     , paging : Maybe Concourse.Pagination.Page
     , csrfToken : String
     }
@@ -90,21 +88,12 @@ type alias Flags =
 init : Flags -> ( Model, List Effect )
 init flags =
     let
-        resourceId =
-            { teamName = flags.teamName
-            , pipelineName = flags.pipelineName
-            , resourceName = flags.resourceName
-            }
-
         ( topBar, topBarEffects ) =
-            NewestTopBar.init { route = Routes.Resource flags.teamName flags.pipelineName flags.resourceName Nothing }
+            NewestTopBar.init { route = Routes.Resource { id = flags.resourceId, page = Nothing } }
 
         model =
-            { resourceIdentifier = resourceId
+            { resourceIdentifier = flags.resourceId
             , pageStatus = Err Models.Empty
-            , teamName = flags.teamName
-            , pipelineName = flags.pipelineName
-            , name = flags.resourceName
             , checkStatus = Models.CheckingSuccessfully
             , checkError = ""
             , checkSetupError = ""
@@ -120,12 +109,6 @@ init flags =
             , csrfToken = flags.csrfToken
             , showPinBarTooltip = False
             , pinIconHover = False
-            , route =
-                Routes.Resource
-                    flags.teamName
-                    flags.pipelineName
-                    flags.resourceName
-                    Nothing
             , pinCommentLoading = False
             , ctrlDown = False
             , textAreaFocused = False
@@ -133,7 +116,7 @@ init flags =
             }
     in
     ( model
-    , topBarEffects ++ [ FetchResource resourceId, FetchVersionedResources resourceId flags.paging ]
+    , topBarEffects ++ [ FetchResource flags.resourceId, FetchVersionedResources flags.resourceId flags.paging ]
     )
 
 
@@ -239,9 +222,11 @@ handleCallbackWithoutTopBar action model =
         ResourceFetched (Ok resource) ->
             ( { model
                 | pageStatus = Ok ()
-                , teamName = resource.teamName
-                , pipelineName = resource.pipelineName
-                , name = resource.name
+                , resourceIdentifier =
+                    { teamName = resource.teamName
+                    , pipelineName = resource.pipelineName
+                    , resourceName = resource.name
+                    }
                 , checkStatus =
                     if resource.failingToCheck then
                         Models.FailingToCheck
@@ -312,10 +297,9 @@ handleCallbackWithoutTopBar action model =
 
                                         Nothing ->
                                             { id =
-                                                { teamName = model.teamName
-                                                , pipelineName =
-                                                    model.pipelineName
-                                                , resourceName = model.name
+                                                { teamName = model.resourceIdentifier.teamName
+                                                , pipelineName = model.resourceIdentifier.pipelineName
+                                                , resourceName = model.resourceIdentifier.resourceName
                                                 , versionID = vr.id
                                                 }
                                             , version = vr.version
@@ -490,11 +474,7 @@ update action model =
             , [ FetchVersionedResources model.resourceIdentifier <| Just page
               , NavigateTo <|
                     Routes.toString <|
-                        Routes.Resource
-                            model.resourceIdentifier.teamName
-                            model.resourceIdentifier.pipelineName
-                            model.resourceIdentifier.resourceName
-                            (Just page)
+                        Routes.Resource { id = model.resourceIdentifier, page = Just page }
               ]
             )
 
@@ -800,7 +780,7 @@ header model =
                 , Css.justifyContent Css.center
                 ]
             ]
-            [ Html.text model.name ]
+            [ Html.text model.resourceIdentifier.resourceName ]
         , Html.div
             [ css
                 [ Css.displayFlex
@@ -827,7 +807,7 @@ body userState model =
             , checkError = model.checkError
             , hovered = model.hovered
             , userState = userState
-            , teamName = model.teamName
+            , teamName = model.resourceIdentifier.teamName
             }
     in
     Html.div
@@ -916,7 +896,7 @@ paginationMenu { versions, resourceIdentifier, hovered } =
                     [ Html.a
                         [ href <|
                             Routes.toString <|
-                                Routes.Resource resourceIdentifier.teamName resourceIdentifier.pipelineName resourceIdentifier.resourceName (Just page)
+                                Routes.Resource { id = resourceIdentifier, page = Just page }
                         , attribute "aria-label" "Previous Page"
                         , style <|
                             chevron
@@ -953,7 +933,7 @@ paginationMenu { versions, resourceIdentifier, hovered } =
                     [ Html.a
                         [ href <|
                             Routes.toString <|
-                                Routes.Resource resourceIdentifier.teamName resourceIdentifier.pipelineName resourceIdentifier.resourceName (Just page)
+                                Routes.Resource { id = resourceIdentifier, page = Just page }
                         , attribute "aria-label" "Next Page"
                         , style <|
                             chevron
@@ -1154,12 +1134,12 @@ commentBar :
     ->
         { a
             | pinnedVersion : Models.PinnedVersion
-            , teamName : String
+            , resourceIdentifier : Concourse.ResourceIdentifier
             , hovered : Models.Hoverable
             , pinCommentLoading : Bool
         }
     -> Html Msg
-commentBar userState ({ teamName, pinnedVersion, hovered, pinCommentLoading } as params) =
+commentBar userState ({ resourceIdentifier, pinnedVersion, hovered, pinCommentLoading } as params) =
     case pinnedVersion of
         PinnedDynamicallyTo commentState v ->
             let
@@ -1195,7 +1175,7 @@ commentBar userState ({ teamName, pinnedVersion, hovered, pinCommentLoading } as
                                 , version
                                 ]
                     in
-                    if isAuthorized { teamName = teamName, userState = userState } then
+                    if isAuthorized { teamName = resourceIdentifier.teamName, userState = userState } then
                         [ header
                         , Html.textarea
                             [ style Resource.Styles.commentTextArea
@@ -1652,7 +1632,15 @@ viewBuildsByJob buildDict jobName =
                     Just job ->
                         let
                             link =
-                                Routes.Build job.teamName job.pipelineName job.jobName build.name Routes.HighlightNothing
+                                Routes.Build
+                                    { id =
+                                        { teamName = job.teamName
+                                        , pipelineName = job.pipelineName
+                                        , jobName = job.jobName
+                                        , buildName = build.name
+                                        }
+                                    , highlight = Routes.HighlightNothing
+                                    }
                         in
                         Html.li [ class <| Concourse.BuildStatus.show build.status ]
                             [ Html.a

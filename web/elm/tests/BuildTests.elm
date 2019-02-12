@@ -41,19 +41,15 @@ all : Test
 all =
     describe "build page" <|
         let
+            buildId =
+                { teamName = "team", pipelineName = "pipeline", jobName = "job", buildName = "1" }
+
             pageLoad =
                 Build.init
                     { csrfToken = ""
                     , highlight = Routes.HighlightNothing
-                    , route = Routes.Build "team" "pipeline" "job" "1" Routes.HighlightNothing
+                    , pageType = Models.JobBuildPage buildId
                     }
-                    (Models.JobBuildPage
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "job"
-                        , buildName = "1"
-                        }
-                    )
 
             theBuild : Concourse.Build
             theBuild =

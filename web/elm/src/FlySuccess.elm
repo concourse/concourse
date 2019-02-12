@@ -43,7 +43,7 @@ init : { authToken : String, flyPort : Maybe Int } -> ( Model, List Effect )
 init { authToken, flyPort } =
     let
         ( topBar, topBarEffects ) =
-            NewestTopBar.init { route = Routes.FlySuccess flyPort }
+            NewestTopBar.init { route = Routes.FlySuccess { flyPort = flyPort } }
     in
     ( { buttonState = Unhovered
       , authToken = authToken

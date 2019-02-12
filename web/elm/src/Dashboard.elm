@@ -60,10 +60,8 @@ import UserState exposing (UserState)
 type alias Flags =
     { csrfToken : String
     , turbulencePath : String
-    , search : String
-    , highDensity : Bool
+    , searchType : Routes.SearchType
     , pipelineRunningKeyframes : String
-    , route : Routes.Route
     }
 
 
@@ -101,12 +99,12 @@ init : Flags -> ( Model, List Effect )
 init flags =
     let
         ( topBar, topBarEffects ) =
-            NewTopBar.init { route = flags.route }
+            NewTopBar.init { route = Routes.Dashboard { searchType = flags.searchType } }
     in
     ( { state = RemoteData.NotAsked
       , csrfToken = flags.csrfToken
       , turbulencePath = flags.turbulencePath
-      , highDensity = flags.highDensity
+      , highDensity = flags.searchType == Routes.HighDensity
       , hoveredPipeline = Nothing
       , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
       , groups = []

@@ -362,16 +362,16 @@ subscriptions model =
 routeMatchesModel : Routes.Route -> Model -> Bool
 routeMatchesModel route model =
     case ( route, model.subModel ) of
-        ( Routes.Pipeline _ _ _, SubPage.PipelineModel _ ) ->
+        ( Routes.Pipeline _, SubPage.PipelineModel _ ) ->
             True
 
-        ( Routes.Resource _ _ _ _, SubPage.ResourceModel _ ) ->
+        ( Routes.Resource _, SubPage.ResourceModel _ ) ->
             True
 
-        ( Routes.Build _ _ _ _ _, SubPage.BuildModel _ ) ->
+        ( Routes.Build _, SubPage.BuildModel _ ) ->
             True
 
-        ( Routes.Job _ _ _ _, SubPage.JobModel _ ) ->
+        ( Routes.Job _, SubPage.JobModel _ ) ->
             True
 
         ( Routes.Dashboard _, SubPage.DashboardModel _ ) ->

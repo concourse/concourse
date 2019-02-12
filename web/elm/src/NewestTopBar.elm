@@ -66,15 +66,17 @@ init : Flags -> ( Model, List Effect )
 init { route } =
     let
         isHd =
-            route == Routes.Dashboard Routes.HighDensity
+            route == Routes.Dashboard { searchType = Routes.HighDensity }
 
         middleSection =
             case route of
-                Routes.Dashboard (Routes.Normal search) ->
-                    SearchBar { query = Maybe.withDefault "" search, dropdown = Hidden }
+                Routes.Dashboard { searchType } ->
+                    case searchType of
+                        Routes.Normal search ->
+                            SearchBar { query = Maybe.withDefault "" search, dropdown = Hidden }
 
-                Routes.Dashboard Routes.HighDensity ->
-                    Empty
+                        Routes.HighDensity ->
+                            Empty
 
                 _ ->
                     Breadcrumbs route
@@ -627,25 +629,25 @@ viewConcourseLogo =
 viewBreadcrumbs : Routes.Route -> List (Html Msg)
 viewBreadcrumbs route =
     case route of
-        Routes.Pipeline teamName pipelineName _ ->
-            [ viewPipelineBreadcrumb (Routes.toString route) pipelineName ]
+        Routes.Pipeline { id } ->
+            [ viewPipelineBreadcrumb { teamName = id.teamName, pipelineName = id.pipelineName } ]
 
-        Routes.Build teamName pipelineName jobName buildNumber _ ->
-            [ viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName [])) pipelineName
+        Routes.Build { id } ->
+            [ viewPipelineBreadcrumb { teamName = id.teamName, pipelineName = id.pipelineName }
             , viewBreadcrumbSeparator
-            , viewJobBreadcrumb jobName
+            , viewJobBreadcrumb id.jobName
             ]
 
-        Routes.Resource teamName pipelineName resourceName _ ->
-            [ viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName [])) pipelineName
+        Routes.Resource { id } ->
+            [ viewPipelineBreadcrumb { teamName = id.teamName, pipelineName = id.pipelineName }
             , viewBreadcrumbSeparator
-            , viewResourceBreadcrumb resourceName
+            , viewResourceBreadcrumb id.resourceName
             ]
 
-        Routes.Job teamName pipelineName jobName _ ->
-            [ viewPipelineBreadcrumb (Routes.toString (Routes.Pipeline teamName pipelineName [])) pipelineName
+        Routes.Job { id } ->
+            [ viewPipelineBreadcrumb { teamName = id.teamName, pipelineName = id.pipelineName }
             , viewBreadcrumbSeparator
-            , viewJobBreadcrumb jobName
+            , viewJobBreadcrumb id.jobName
             ]
 
         _ ->
@@ -668,13 +670,16 @@ viewBreadcrumbSeparator =
         [ Html.text "/" ]
 
 
-viewPipelineBreadcrumb : String -> String -> Html Msg
-viewPipelineBreadcrumb url pipelineName =
+viewPipelineBreadcrumb : Concourse.PipelineIdentifier -> Html Msg
+viewPipelineBreadcrumb pipelineId =
     Html.li
         [ id "breadcrumb-pipeline", style Styles.breadcrumbItem ]
         [ Html.a
-            [ href url ]
-            (breadcrumbComponent "pipeline" pipelineName)
+            [ href <|
+                Routes.toString <|
+                    Routes.Pipeline { id = pipelineId, groups = [] }
+            ]
+            (breadcrumbComponent "pipeline" pipelineId.pipelineName)
         ]
 
 
@@ -760,7 +765,16 @@ viewPinDropdown pinnedResources pipeline model =
                 |> List.map
                     (\( resourceName, pinnedVersion ) ->
                         Html.li
-                            [ onClick <| GoToPinnedResource <| Routes.Resource pipeline.teamName pipeline.pipelineName resourceName Nothing
+                            [ onClick <|
+                                GoToPinnedResource <|
+                                    Routes.Resource
+                                        { id =
+                                            { teamName = pipeline.teamName
+                                            , pipelineName = pipeline.pipelineName
+                                            , resourceName = resourceName
+                                            }
+                                        , page = Nothing
+                                        }
                             , style Styles.pinDropdownCursor
                             ]
                             [ Html.div

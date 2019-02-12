@@ -4,7 +4,6 @@ module Build exposing
     , getUpdateMessage
     , handleCallback
     , init
-    , initJobBuildPage
     , subscriptions
     , update
     , view
@@ -12,10 +11,10 @@ module Build exposing
 
 import Build.Models as Models
     exposing
-        ( Hoverable(..)
+        ( BuildPageType(..)
+        , Hoverable(..)
         , Model
         , OutputModel
-        , Page(..)
         )
 import Build.Msgs exposing (Msg(..), fromBuildMessage)
 import Build.Output
@@ -68,21 +67,6 @@ import UserState exposing (UserState)
 import Views
 
 
-initJobBuildPage :
-    Concourse.TeamName
-    -> Concourse.PipelineName
-    -> Concourse.JobName
-    -> Concourse.BuildName
-    -> Page
-initJobBuildPage teamName pipelineName jobName buildName =
-    JobBuildPage
-        { teamName = teamName
-        , pipelineName = pipelineName
-        , jobName = jobName
-        , buildName = buildName
-        }
-
-
 type StepRenderingState
     = StepsLoading
     | StepsLiveUpdating
@@ -93,7 +77,7 @@ type StepRenderingState
 type alias Flags =
     { csrfToken : String
     , highlight : Routes.Highlight
-    , route : Routes.Route
+    , pageType : BuildPageType
     }
 
 
@@ -102,16 +86,24 @@ type ScrollBehavior
     | NoScroll
 
 
-init : Flags -> Page -> ( Model, List Effect )
-init flags page =
+init : Flags -> ( Model, List Effect )
+init flags =
     let
+        route =
+            case flags.pageType of
+                OneOffBuildPage buildId ->
+                    Routes.OneOffBuild { id = buildId, highlight = flags.highlight }
+
+                JobBuildPage buildId ->
+                    Routes.Build { id = buildId, highlight = flags.highlight }
+
         ( topBar, topBarEffects ) =
-            NewestTopBar.init { route = flags.route }
+            NewestTopBar.init { route = route }
 
         ( model, effects ) =
             changeToBuild
-                page
-                { page = page
+                flags.pageType
+                { page = flags.pageType
                 , now = Nothing
                 , job = Nothing
                 , history = []
@@ -149,7 +141,7 @@ subscriptions model =
     ]
 
 
-changeToBuild : Page -> Model -> ( Model, List Effect )
+changeToBuild : BuildPageType -> Model -> ( Model, List Effect )
 changeToBuild page model =
     if model.browsingIndex > 0 && page == model.page then
         ( model, [] )
@@ -176,7 +168,7 @@ changeToBuild page model =
             , page = page
           }
         , case page of
-            BuildPage buildId ->
+            OneOffBuildPage buildId ->
                 [ FetchBuild 0 newIndex buildId ]
 
             JobBuildPage jbi ->
@@ -1106,16 +1098,16 @@ viewBuildHeader build { now, job, history, hoveredElement } =
 
         buildTitle =
             case build.job of
-                Just { jobName, teamName, pipelineName } ->
+                Just jobId ->
                     let
                         jobRoute =
-                            Routes.Job teamName pipelineName jobName Nothing
+                            Routes.Job { id = jobId, page = Nothing }
                     in
                     Html.a
                         [ StrictEvents.onLeftClick <| NavTo jobRoute
                         , href <| Routes.toString jobRoute
                         ]
-                        [ Html.span [ class "build-name" ] [ Html.text jobName ]
+                        [ Html.span [ class "build-name" ] [ Html.text jobId.jobName ]
                         , Html.text (" #" ++ build.name)
                         ]
 

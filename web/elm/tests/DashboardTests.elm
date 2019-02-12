@@ -2827,15 +2827,13 @@ whenOnDashboard { highDensity } =
     Dashboard.init
         { csrfToken = ""
         , turbulencePath = ""
-        , search = ""
-        , highDensity = highDensity
         , pipelineRunningKeyframes = pipelineRunningKeyframes
-        , route =
+        , searchType =
             if highDensity then
-                Routes.Dashboard Routes.HighDensity
+                Routes.HighDensity
 
             else
-                Routes.Dashboard (Routes.Normal Nothing)
+                Routes.Normal Nothing
         }
         |> Tuple.first
 

@@ -82,12 +82,9 @@ all =
                 defaultModel : Job.Model
                 defaultModel =
                     Job.init
-                        { jobName = "some-job"
-                        , teamName = "some-team"
-                        , pipelineName = "some-pipeline"
+                        { jobId = someJobInfo
                         , paging = Nothing
                         , csrfToken = ""
-                        , route = Routes.Job "some-team" "some-pipeline" "some-job" Nothing
                         }
                         |> Tuple.first
 
