@@ -10,7 +10,7 @@ resources:
   type: git
   source:
     uri: git@github.com:concourse/concourse-bosh-release.git
-    branch: release/v4.2.2
+    branch: release/v4.2.3
     private_key: ((concourse_repo_private_key))
 
 - name: github-release
@@ -535,7 +535,7 @@ jobs:
       - concourse-bosh-deployment-master/cluster/operations/default-test-user.yml
       - concourse-bosh-deployment-master/cluster/operations/static-web.yml
       vars:
-        deployment_name: concourse-test-upgrade
+        deployment_name: concourse-test-upgrade-4-2-x
         web_ip: 10.244.16.2
         external_url: "http://10.244.16.2:8080"
         network_name: test
@@ -564,7 +564,7 @@ jobs:
       - concourse-bosh-deployment/cluster/operations/default-test-user.yml
       - concourse-bosh-deployment/cluster/operations/static-web.yml
       vars:
-        deployment_name: concourse-test-upgrade
+        deployment_name: concourse-test-upgrade-4-2-x
         web_ip: 10.244.16.2
         external_url: "http://10.244.16.2:8080"
         network_name: test
@@ -638,7 +638,7 @@ jobs:
       - concourse-bosh-deployment/cluster/operations/default-test-user.yml
       - concourse-bosh-deployment/cluster/operations/static-web.yml
       vars:
-        deployment_name: concourse-test-downgrade
+        deployment_name: concourse-test-downgrade-4-2-x
         web_ip: 10.244.17.2
         external_url: "http://10.244.17.2:8080"
         network_name: test
@@ -668,7 +668,7 @@ jobs:
         - concourse-bosh-deployment-master/cluster/operations/default-test-user.yml
         - concourse-bosh-deployment-master/cluster/operations/static-web.yml
         vars:
-          deployment_name: concourse-test-downgrade
+          deployment_name: concourse-test-downgrade-4-2-x
           web_ip: 10.244.17.2
           external_url: "http://10.244.17.2:8080"
           network_name: test
@@ -767,7 +767,7 @@ jobs:
       - concourse-bosh-deployment/cluster/operations/influxdb.yml
       - concourse-bosh-deployment/cluster/operations/static-web.yml
       vars:
-        deployment_name: concourse-wats
+        deployment_name: concourse-wats-4-2-x
         web_ip: 10.244.19.2
         external_url: "http://10.244.19.2:8080"
         network_name: test
