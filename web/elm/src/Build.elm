@@ -1106,16 +1106,16 @@ viewBuildHeader build { now, job, history, hoveredElement } =
 
         buildTitle =
             case build.job of
-                Just { jobName, teamName, pipelineName } ->
+                Just jobId ->
                     let
                         jobRoute =
-                            Routes.Job { teamName = teamName, pipelineName = pipelineName, jobName = jobName, page = Nothing }
+                            Routes.Job { id = jobId, page = Nothing }
                     in
                     Html.a
                         [ StrictEvents.onLeftClick <| NavTo jobRoute
                         , href <| Routes.toString jobRoute
                         ]
-                        [ Html.span [ class "build-name" ] [ Html.text jobName ]
+                        [ Html.span [ class "build-name" ] [ Html.text jobId.jobName ]
                         , Html.text (" #" ++ build.name)
                         ]
 

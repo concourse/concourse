@@ -53,13 +53,8 @@ type alias Flags =
 init : Flags -> Routes.Route -> ( Model, List Effect )
 init flags route =
     case route of
-        Routes.Build { teamName, pipelineName, jobName, buildName, highlight } ->
-            Build.Models.JobBuildPage
-                { teamName = teamName
-                , pipelineName = pipelineName
-                , jobName = jobName
-                , buildName = buildName
-                }
+        Routes.Build { id, highlight } ->
+            Build.Models.JobBuildPage id
                 |> Build.init
                     { csrfToken = flags.csrfToken
                     , highlight = highlight
@@ -67,8 +62,8 @@ init flags route =
                     }
                 |> Tuple.mapFirst BuildModel
 
-        Routes.OneOffBuild { buildId, highlight } ->
-            Build.Models.BuildPage (Result.withDefault 0 (String.toInt buildId))
+        Routes.OneOffBuild { id, highlight } ->
+            Build.Models.BuildPage (Result.withDefault 0 (String.toInt id))
                 |> Build.init
                     { csrfToken = flags.csrfToken
                     , highlight = highlight
@@ -76,30 +71,30 @@ init flags route =
                     }
                 |> Tuple.mapFirst BuildModel
 
-        Routes.Resource { teamName, pipelineName, resourceName, page } ->
+        Routes.Resource { id, page } ->
             Resource.init
-                { resourceName = resourceName
-                , teamName = teamName
-                , pipelineName = pipelineName
+                { resourceName = id.resourceName
+                , teamName = id.teamName
+                , pipelineName = id.pipelineName
                 , paging = page
                 , csrfToken = flags.csrfToken
                 }
                 |> Tuple.mapFirst ResourceModel
 
-        Routes.Job { teamName, pipelineName, jobName, page } ->
+        Routes.Job { id, page } ->
             Job.init
-                { jobName = jobName
-                , teamName = teamName
-                , pipelineName = pipelineName
+                { jobName = id.jobName
+                , teamName = id.teamName
+                , pipelineName = id.pipelineName
                 , paging = page
                 , csrfToken = flags.csrfToken
                 }
                 |> Tuple.mapFirst JobModel
 
-        Routes.Pipeline { teamName, pipelineName, groups } ->
+        Routes.Pipeline { id, groups } ->
             Pipeline.init
-                { teamName = teamName
-                , pipelineName = pipelineName
+                { teamName = id.teamName
+                , pipelineName = id.pipelineName
                 , turbulenceImgSrc = flags.turbulencePath
                 , selectedGroups = groups
                 }
@@ -258,47 +253,41 @@ update turbulence notFound csrfToken route msg mdl =
 urlUpdate : Routes.Route -> Model -> ( Model, List Effect )
 urlUpdate route model =
     case ( route, model ) of
-        ( Routes.Pipeline { teamName, pipelineName, groups }, PipelineModel mdl ) ->
+        ( Routes.Pipeline { id, groups }, PipelineModel mdl ) ->
             Pipeline.changeToPipelineAndGroups
-                { teamName = teamName
-                , pipelineName = pipelineName
+                { teamName = id.teamName
+                , pipelineName = id.pipelineName
                 , turbulenceImgSrc = mdl.turbulenceImgSrc
                 , selectedGroups = groups
                 }
                 mdl
                 |> Tuple.mapFirst PipelineModel
 
-        ( Routes.Resource { teamName, pipelineName, resourceName, page }, ResourceModel mdl ) ->
+        ( Routes.Resource { id, page }, ResourceModel mdl ) ->
             Resource.changeToResource
-                { teamName = teamName
-                , pipelineName = pipelineName
-                , resourceName = resourceName
+                { teamName = id.teamName
+                , pipelineName = id.pipelineName
+                , resourceName = id.resourceName
                 , paging = page
                 , csrfToken = mdl.csrfToken
                 }
                 mdl
                 |> Tuple.mapFirst ResourceModel
 
-        ( Routes.Job { teamName, pipelineName, jobName, page }, JobModel mdl ) ->
+        ( Routes.Job { id, page }, JobModel mdl ) ->
             Job.changeToJob
-                { teamName = teamName
-                , pipelineName = pipelineName
-                , jobName = jobName
+                { teamName = id.teamName
+                , pipelineName = id.pipelineName
+                , jobName = id.jobName
                 , paging = page
                 , csrfToken = mdl.csrfToken
                 }
                 mdl
                 |> Tuple.mapFirst JobModel
 
-        ( Routes.Build { teamName, pipelineName, jobName, buildName, highlight }, BuildModel buildModel ) ->
+        ( Routes.Build { id, highlight }, BuildModel buildModel ) ->
             Build.changeToBuild
-                (Build.Models.JobBuildPage
-                    { teamName = teamName
-                    , pipelineName = pipelineName
-                    , jobName = jobName
-                    , buildName = buildName
-                    }
-                )
+                (Build.Models.JobBuildPage id)
                 { buildModel | highlight = highlight }
                 |> Tuple.mapFirst BuildModel
 

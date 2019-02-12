@@ -72,14 +72,7 @@ init flags =
             }
 
         ( topBar, topBarEffects ) =
-            NewestTopBar.init
-                { route =
-                    Routes.Pipeline
-                        { pipelineName = flags.pipelineName
-                        , teamName = flags.teamName
-                        , groups = flags.selectedGroups
-                        }
-                }
+            NewestTopBar.init { route = Routes.Pipeline { id = pipelineLocator, groups = flags.selectedGroups } }
 
         model =
             { concourseVersion = ""
@@ -443,11 +436,7 @@ viewGroup { selectedGroups, pipelineLocator } grp =
     let
         url =
             Routes.toString <|
-                Routes.Pipeline
-                    { teamName = pipelineLocator.teamName
-                    , pipelineName = pipelineLocator.pipelineName
-                    , groups = []
-                    }
+                Routes.Pipeline { id = pipelineLocator, groups = [] }
     in
     Html.li
         [ if List.member grp.name selectedGroups then
@@ -606,11 +595,7 @@ getDefaultSelectedGroups pipeline =
 getNextUrl : List String -> Model -> String
 getNextUrl newGroups model =
     Routes.toString <|
-        Routes.Pipeline
-            { teamName = model.pipelineLocator.teamName
-            , pipelineName = model.pipelineLocator.pipelineName
-            , groups = newGroups
-            }
+        Routes.Pipeline { id = model.pipelineLocator, groups = newGroups }
 
 
 cliIcon : Cli.Cli -> List ( String, String )

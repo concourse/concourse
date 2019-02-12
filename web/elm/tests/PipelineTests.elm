@@ -600,9 +600,11 @@ all =
                             (wrapTopBarMessage <|
                                 NewTopBar.Msgs.GoToPinnedResource <|
                                     Routes.Resource
-                                        { teamName = "team"
-                                        , pipelineName = "pipeline"
-                                        , resourceName = "resource"
+                                        { id =
+                                            { teamName = "team"
+                                            , pipelineName = "pipeline"
+                                            , resourceName = "resource"
+                                            }
                                         , page = Nothing
                                         }
                             )

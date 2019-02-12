@@ -629,25 +629,25 @@ viewConcourseLogo =
 viewBreadcrumbs : Routes.Route -> List (Html Msg)
 viewBreadcrumbs route =
     case route of
-        Routes.Pipeline { teamName, pipelineName } ->
-            [ viewPipelineBreadcrumb { teamName = teamName, pipelineName = pipelineName } ]
+        Routes.Pipeline { id } ->
+            [ viewPipelineBreadcrumb { teamName = id.teamName, pipelineName = id.pipelineName } ]
 
-        Routes.Build { teamName, pipelineName, jobName } ->
-            [ viewPipelineBreadcrumb { teamName = teamName, pipelineName = pipelineName }
+        Routes.Build { id } ->
+            [ viewPipelineBreadcrumb { teamName = id.teamName, pipelineName = id.pipelineName }
             , viewBreadcrumbSeparator
-            , viewJobBreadcrumb jobName
+            , viewJobBreadcrumb id.jobName
             ]
 
-        Routes.Resource { teamName, pipelineName, resourceName } ->
-            [ viewPipelineBreadcrumb { teamName = teamName, pipelineName = pipelineName }
+        Routes.Resource { id } ->
+            [ viewPipelineBreadcrumb { teamName = id.teamName, pipelineName = id.pipelineName }
             , viewBreadcrumbSeparator
-            , viewResourceBreadcrumb resourceName
+            , viewResourceBreadcrumb id.resourceName
             ]
 
-        Routes.Job { teamName, pipelineName, jobName } ->
-            [ viewPipelineBreadcrumb { teamName = teamName, pipelineName = pipelineName }
+        Routes.Job { id } ->
+            [ viewPipelineBreadcrumb { teamName = id.teamName, pipelineName = id.pipelineName }
             , viewBreadcrumbSeparator
-            , viewJobBreadcrumb jobName
+            , viewJobBreadcrumb id.jobName
             ]
 
         _ ->
@@ -671,19 +671,15 @@ viewBreadcrumbSeparator =
 
 
 viewPipelineBreadcrumb : Concourse.PipelineIdentifier -> Html Msg
-viewPipelineBreadcrumb pipeline =
+viewPipelineBreadcrumb pipelineId =
     Html.li
         [ id "breadcrumb-pipeline", style Styles.breadcrumbItem ]
         [ Html.a
             [ href <|
                 Routes.toString <|
-                    Routes.Pipeline
-                        { teamName = pipeline.teamName
-                        , pipelineName = pipeline.pipelineName
-                        , groups = []
-                        }
+                    Routes.Pipeline { id = pipelineId, groups = [] }
             ]
-            (breadcrumbComponent "pipeline" pipeline.pipelineName)
+            (breadcrumbComponent "pipeline" pipelineId.pipelineName)
         ]
 
 
@@ -772,9 +768,11 @@ viewPinDropdown pinnedResources pipeline model =
                             [ onClick <|
                                 GoToPinnedResource <|
                                     Routes.Resource
-                                        { teamName = pipeline.teamName
-                                        , pipelineName = pipeline.pipelineName
-                                        , resourceName = resourceName
+                                        { id =
+                                            { teamName = pipeline.teamName
+                                            , pipelineName = pipeline.pipelineName
+                                            , resourceName = resourceName
+                                            }
                                         , page = Nothing
                                         }
                             , style Styles.pinDropdownCursor

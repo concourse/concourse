@@ -66,9 +66,11 @@ all =
                             , topBar =
                                 topBar
                                     (Routes.Job
-                                        { teamName = "t"
-                                        , pipelineName = "p"
-                                        , jobName = "j"
+                                        { id =
+                                            { teamName = "t"
+                                            , pipelineName = "p"
+                                            , jobName = "j"
+                                            }
                                         , page = Nothing
                                         }
                                     )
@@ -87,9 +89,11 @@ all =
                             , topBar =
                                 topBar
                                     (Routes.Resource
-                                        { teamName = "t"
-                                        , pipelineName = "p"
-                                        , resourceName = "r"
+                                        { id =
+                                            { teamName = "t"
+                                            , pipelineName = "p"
+                                            , resourceName = "r"
+                                            }
                                         , page = Nothing
                                         }
                                     )
@@ -108,7 +112,7 @@ all =
                             , topBar =
                                 topBar
                                     (Routes.OneOffBuild
-                                        { buildId = "1"
+                                        { id = "1"
                                         , highlight = Routes.HighlightNothing
                                         }
                                     )
@@ -127,8 +131,10 @@ all =
                             , topBar =
                                 topBar
                                     (Routes.Pipeline
-                                        { teamName = "t"
-                                        , pipelineName = "p"
+                                        { id =
+                                            { teamName = "t"
+                                            , pipelineName = "p"
+                                            }
                                         , groups = []
                                         }
                                     )
