@@ -172,12 +172,9 @@ func (factory *buildFactory) constructUnhookedPlan(
 			Source:   resource.Source,
 			Params:   planConfig.Params,
 			Tags:     planConfig.Tags,
+			Inputs:   planConfig.Inputs,
 
 			VersionedResourceTypes: resourceTypes,
-		}
-
-		if planConfig.Inputs.Specified != nil {
-			atcPutPlan.Inputs = planConfig.Inputs.Specified
 		}
 
 		putPlan := factory.planFactory.NewPlan(atcPutPlan)

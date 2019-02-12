@@ -96,10 +96,16 @@ func (factory *gardenFactory) Put(
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
 	var putInputs PutInputs
-	if plan.Put.Inputs != nil {
-		putInputs = NewSpecificInputs(plan.Put.Inputs)
-	} else {
+	if plan.Put.Inputs == nil {
+		// Put step defaults to all inputs if not specified
 		putInputs = NewAllInputs()
+	} else if plan.Put.Inputs.All {
+		putInputs = NewAllInputs()
+	} else {
+		// Covers both cases where inputs are specified and when there are no
+		// inputs specified and "all" field is given a false boolean, which will
+		// result in no inputs attached
+		putInputs = NewSpecificInputs(plan.Put.Inputs.Specified)
 	}
 
 	putStep := NewPutStep(
