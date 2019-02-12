@@ -16,7 +16,6 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/radar"
-	"github.com/concourse/concourse/atc/radar/radarfakes"
 	"github.com/concourse/concourse/atc/worker"
 
 	. "github.com/concourse/concourse/atc/radar"
@@ -40,8 +39,7 @@ var _ = Describe("ResourceScanner", func() {
 		fakeResourceType      *dbfakes.FakeResourceType
 		versionedResourceType atc.VersionedResourceType
 
-		scanner                 Scanner
-		fakeResourceTypeScanner *radarfakes.FakeScanner
+		scanner Scanner
 
 		resourceConfig          atc.ResourceConfig
 		fakeDBResource          *dbfakes.FakeResource
@@ -112,8 +110,6 @@ var _ = Describe("ResourceScanner", func() {
 
 		fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
 
-		fakeResourceTypeScanner = new(radarfakes.FakeScanner)
-
 		scanner = NewResourceScanner(
 			fakeClock,
 			fakeResourceFactory,
@@ -122,7 +118,6 @@ var _ = Describe("ResourceScanner", func() {
 			fakeDBPipeline,
 			"https://www.example.com",
 			variables,
-			fakeResourceTypeScanner,
 		)
 	})
 
@@ -323,39 +318,80 @@ var _ = Describe("ResourceScanner", func() {
 					BeforeEach(func() {
 						fakeDBResource.TypeReturns("some-custom-resource")
 					})
+
 					Context("and the custom type has a version", func() {
-						It("doesn't scan for new versions of the custom type", func() {
-							Expect(fakeResourceTypeScanner.ScanCallCount()).To(Equal(0))
+						It("doesn't check for check error of custom type", func() {
+							Expect(fakeResourceType.CheckErrorCallCount()).To(Equal(0))
 						})
 					})
 
 					Context("and the custom type does not have a version", func() {
 						BeforeEach(func() {
-							fakeResourceType.VersionReturns(nil)
+							results := make(chan bool, 4)
+							results <- false
+							results <- false
+							results <- true
+							results <- true
+							close(results)
+
+							fakeResourceType.VersionStub = func() atc.Version {
+								if <-results {
+									return atc.Version{"version": "1"}
+								} else {
+									// allow the sleep to continue
+									go fakeClock.WaitForWatcherAndIncrement(10 * time.Second)
+									return nil
+								}
+							}
 						})
 
-						It("scans for new versions of the custom type", func() {
-							Expect(fakeResourceTypeScanner.ScanCallCount()).To(Equal(1))
-							_, scannedResourceType := fakeResourceTypeScanner.ScanArgsForCall(0)
-							Expect(scannedResourceType).To(Equal("some-custom-resource"))
-						})
-
-						Context("when scanning for the custom type fails", func() {
-							var typeScanErr = errors.New("type scan failed")
+						Context("when the custom type has a check error", func() {
 							BeforeEach(func() {
-								fakeResourceTypeScanner.ScanReturns(typeScanErr)
+								fakeResourceType.CheckErrorReturns(errors.New("oops"))
 							})
-							It("returns the error from scanning for the type", func() {
-								Expect(runErr).To(Equal(typeScanErr))
+
+							It("sets the resource check error to the custom type's check error and does not run a check", func() {
+								Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
+								err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
+								Expect(err).To(Equal(errors.New("oops")))
+
+								Expect(fakeResource.CheckCallCount()).To(Equal(0))
 							})
 						})
 
-						Context("when scanning for the custom type succeeds", func() {
-							BeforeEach(func() {
-								fakeResourceTypeScanner.ScanReturns(nil)
+						Context("when the custom type has a nil check error", func() {
+							Context("when the resource type sucessfully reloads", func() {
+								BeforeEach(func() {
+									fakeResourceType.ReloadReturns(true, nil)
+								})
+
+								It("retries every second until version is not nil", func() {
+									Expect(fakeResourceType.VersionCallCount()).To(Equal(4))
+								})
 							})
-							It("reloads the resource types", func() {
-								Expect(fakeDBPipeline.ResourceTypesCallCount()).To(Equal(2))
+
+							Context("when the resource type fails to reload", func() {
+								disaster := errors.New("oops")
+
+								BeforeEach(func() {
+									fakeResourceType.ReloadReturns(false, disaster)
+								})
+
+								It("returns an error", func() {
+									Expect(runErr).To(HaveOccurred())
+									Expect(runErr).To(Equal(disaster))
+								})
+							})
+
+							Context("when the resource type is not found", func() {
+								BeforeEach(func() {
+									fakeResourceType.ReloadReturns(false, nil)
+								})
+
+								It("returns ErrResourceTypeNotFound error", func() {
+									Expect(runErr).To(HaveOccurred())
+									Expect(runErr).To(Equal(radar.ErrResourceTypeNotFound))
+								})
 							})
 						})
 					})
@@ -542,7 +578,7 @@ var _ = Describe("ResourceScanner", func() {
 				fakeResourceConfigScope.UpdateLastCheckedReturns(true, nil)
 			})
 
-			Context("Parent resource has no version and attempt to Scan fails", func() {
+			Context("Parent resource has no version and check fails", func() {
 				BeforeEach(func() {
 					var fakeGitResourceType *dbfakes.FakeResourceType
 					fakeGitResourceType = new(dbfakes.FakeResourceType)
@@ -554,17 +590,12 @@ var _ = Describe("ResourceScanner", func() {
 					fakeGitResourceType.TypeReturns("registry-image")
 					fakeGitResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
 					fakeGitResourceType.VersionReturns(nil)
-
-					fakeResourceTypeScanner.ScanReturns(errors.New("some-resource-type-error"))
+					fakeGitResourceType.CheckErrorReturns(errors.New("oops"))
 				})
 
 				It("fails and returns error", func() {
-					Expect(fakeResourceTypeScanner.ScanCallCount()).To(Equal(1))
-					_, parentTypeName := fakeResourceTypeScanner.ScanArgsForCall(0)
-					Expect(parentTypeName).To(Equal("git"))
-
 					Expect(scanErr).To(HaveOccurred())
-					Expect(scanErr.Error()).To(Equal("some-resource-type-error"))
+					Expect(scanErr).To(Equal(radar.ErrResourceTypeCheckError))
 				})
 
 				It("saves the error to check_error on resource row in db", func() {
@@ -572,7 +603,27 @@ var _ = Describe("ResourceScanner", func() {
 
 					err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(Equal("some-resource-type-error"))
+					Expect(err).To(Equal(errors.New("oops")))
+				})
+			})
+
+			Context("Parent resource has a version and but check is failing", func() {
+				BeforeEach(func() {
+					var fakeGitResourceType *dbfakes.FakeResourceType
+					fakeGitResourceType = new(dbfakes.FakeResourceType)
+
+					fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{fakeGitResourceType}, nil)
+
+					fakeGitResourceType.IDReturns(5)
+					fakeGitResourceType.NameReturns("git")
+					fakeGitResourceType.TypeReturns("registry-image")
+					fakeGitResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
+					fakeGitResourceType.VersionReturns(atc.Version{"version": "1"})
+					fakeGitResourceType.CheckErrorReturns(errors.New("oops"))
+				})
+
+				It("continues to scan", func() {
+					Expect(scanErr).NotTo(HaveOccurred())
 				})
 			})
 

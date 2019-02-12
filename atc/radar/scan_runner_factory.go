@@ -61,7 +61,6 @@ func NewScanRunnerFactory(
 		dbPipeline,
 		externalURL,
 		variables,
-		resourceTypeScanner,
 	)
 	return &scanRunnerFactory{
 		clock:               clock,
