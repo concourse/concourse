@@ -60,6 +60,16 @@ backgroundGrey =
     "#1e1d1d"
 
 
+pausedBlue : String
+pausedBlue =
+    "#3498db"
+
+
+almostWhite : String
+almostWhite =
+    "rgba(255, 255, 255, 0.5)"
+
+
 topBarHeight : String
 topBarHeight =
     "54px"
@@ -251,6 +261,26 @@ all =
                 NewestTopBar.update (Msgs.GoToPinnedResource (Routes.Resource "t" "p" "r" Nothing))
                     >> Tuple.second
                     >> Expect.equal [ Effects.NavigateTo "/teams/t/pipelines/p/resources/r" ]
+            , context "when pipeline is paused"
+                (NewestTopBar.view (UserState.UserStateLoggedIn sampleUser)
+                    (Model.HasPipeline
+                        { pinnedResources = []
+                        , pipeline = { teamName = "t", pipelineName = "p" }
+                        , isPaused = True
+                        }
+                    )
+                    >> toUnstyled
+                    >> Query.fromHtml
+                )
+                [ it "has blue background" <|
+                    Query.has [ style [ ( "background-color", pausedBlue ) ] ]
+                , it "draws almost-white line to the left of login container" <|
+                    Query.children []
+                        >> Query.index -1
+                        >> Query.find [ id "login-container" ]
+                        >> Query.has
+                            [ style [ ( "border-left", "1px solid " ++ almostWhite ) ] ]
+                ]
             ]
         , rspecStyleDescribe "rendering user menus on clicks"
             (NewestTopBar.init { route = Routes.Pipeline "team" "pipeline" [] }

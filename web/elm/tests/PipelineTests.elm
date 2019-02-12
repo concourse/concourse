@@ -243,7 +243,7 @@ all =
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
-                        >> Query.has [ style [ ( "background-image", "url(/public/images/pin-ic-grey.svg)" ) ] ]
+                        >> Query.has [ style [ ( "background-image", "url(/public/images/pin-ic-white.svg)" ) ] ]
                 , it "mousing over pin icon does nothing if there are no pinned resources" <|
                     Layout.view
                         >> Query.fromHtml
@@ -394,7 +394,7 @@ all =
                         >> Query.find [ id "pin-icon" ]
                         >> Query.has
                             [ style
-                                [ ( "background-color", "#3d3c3c" )
+                                [ ( "background-color", "rgba(255, 255, 255, 0.3)" )
                                 , ( "border-radius", "50%" )
                                 ]
                             ]
