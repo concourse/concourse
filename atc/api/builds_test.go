@@ -971,74 +971,28 @@ var _ = Describe("Builds API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				fakeaccess.IsAuthenticatedReturns(true)
 			})
 
-			Context("when the build can be found", func() {
+			Context("when looking up the build fails", func() {
 				BeforeEach(func() {
-					build.TeamNameReturns("some-team")
-					dbBuildFactory.BuildReturns(build, true, nil)
+					dbBuildFactory.BuildReturns(nil, false, errors.New("nope"))
 				})
 
-				Context("when accessing same team's build", func() {
-					BeforeEach(func() {
-						fakeaccess.IsAuthorizedReturns(true)
-					})
-
-					Context("when the engine returns a build", func() {
-						var engineBuild *enginefakes.FakeBuild
-
-						BeforeEach(func() {
-							engineBuild = new(enginefakes.FakeBuild)
-							fakeEngine.LookupBuildReturns(engineBuild, nil)
-						})
-
-						It("aborts the build", func() {
-							Expect(engineBuild.AbortCallCount()).To(Equal(1))
-						})
-
-						Context("when aborting succeeds", func() {
-							BeforeEach(func() {
-								engineBuild.AbortReturns(nil)
-							})
-
-							It("returns 204", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusNoContent))
-							})
-						})
-
-						Context("when aborting fails", func() {
-							BeforeEach(func() {
-								engineBuild.AbortReturns(errors.New("oh no!"))
-							})
-
-							It("returns 500", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-							})
-						})
-					})
-
-					Context("when the engine returns no build", func() {
-						BeforeEach(func() {
-							fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
-						})
-
-						It("returns Internal Server Error", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-						})
-					})
-				})
-
-				Context("when accessing other team's build", func() {
-					BeforeEach(func() {
-						fakeaccess.IsAuthorizedReturns(false)
-					})
-
-					It("returns 403", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
-					})
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 
@@ -1047,29 +1001,52 @@ var _ = Describe("Builds API", func() {
 					dbBuildFactory.BuildReturns(nil, false, nil)
 				})
 
-				It("returns Not Found", func() {
+				It("returns 404", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 
-			Context("when calling the database fails", func() {
+			Context("when the build is found", func() {
 				BeforeEach(func() {
-					dbBuildFactory.BuildReturns(nil, false, errors.New("nope"))
+					build.TeamNameReturns("some-team")
+					dbBuildFactory.BuildReturns(build, true, nil)
 				})
 
-				It("returns Internal Server Error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				Context("when not authorized", func() {
+					BeforeEach(func() {
+						fakeaccess.IsAuthorizedReturns(false)
+					})
+
+					It("returns 403", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					})
 				})
-			})
-		})
 
-		Context("when not authenticated", func() {
-			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
-			})
+				Context("when authorized", func() {
+					BeforeEach(func() {
+						fakeaccess.IsAuthorizedReturns(true)
+					})
 
-			It("returns 401", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					Context("when aborting the build fails", func() {
+						BeforeEach(func() {
+							build.MarkAsAbortedReturns(errors.New("nope"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+
+					Context("when aborting succeeds", func() {
+						BeforeEach(func() {
+							build.MarkAsAbortedReturns(nil)
+						})
+
+						It("returns 204", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+						})
+					})
+				})
 			})
 		})
 	})
