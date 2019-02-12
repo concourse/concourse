@@ -70,6 +70,9 @@
   metadata, which includes things like commit messages. Build output will
   remain hidden by default unless the job configures
   \reference{job-public}{\code{public: true}}.
+
+  Currently, step names within a build are visible in the API even without
+  \code{public: true}. See \ghissue{2116} for more info.
 }
 
 \section{
