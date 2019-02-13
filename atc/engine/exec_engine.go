@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -22,9 +23,10 @@ type execMetadata struct {
 const execEngineName = "exec.v2"
 
 type execEngine struct {
-	factory         exec.Factory
-	delegateFactory BuildDelegateFactory
-	externalURL     string
+	factory            exec.Factory
+	delegateFactory    BuildDelegateFactory
+	defaultStepTimeout time.Duration
+	externalURL        string
 
 	releaseCh     chan struct{}
 	trackedStates *sync.Map
@@ -33,12 +35,14 @@ type execEngine struct {
 func NewExecEngine(
 	factory exec.Factory,
 	delegateFactory BuildDelegateFactory,
+	defaultStepTimeout time.Duration,
 	externalURL string,
 ) Engine {
 	return &execEngine{
-		factory:         factory,
-		delegateFactory: delegateFactory,
-		externalURL:     externalURL,
+		factory:            factory,
+		delegateFactory:    delegateFactory,
+		defaultStepTimeout: defaultStepTimeout,
+		externalURL:        externalURL,
 
 		releaseCh:     make(chan struct{}),
 		trackedStates: new(sync.Map),
@@ -57,8 +61,9 @@ func (engine *execEngine) CreateBuild(logger lager.Logger, build db.Build, plan 
 
 		stepMetadata: buildMetadata(build, engine.externalURL),
 
-		factory:  engine.factory,
-		delegate: engine.delegateFactory.Delegate(build),
+		factory:            engine.factory,
+		defaultStepTimeout: engine.defaultStepTimeout,
+		delegate:           engine.delegateFactory.Delegate(build),
 		metadata: execMetadata{
 			Plan: plan,
 		},
@@ -87,9 +92,10 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, build db.Build) (Buil
 
 		stepMetadata: buildMetadata(build, engine.externalURL),
 
-		factory:  engine.factory,
-		delegate: engine.delegateFactory.Delegate(build),
-		metadata: metadata,
+		factory:            engine.factory,
+		defaultStepTimeout: engine.defaultStepTimeout,
+		delegate:           engine.delegateFactory.Delegate(build),
+		metadata:           metadata,
 
 		ctx:    ctx,
 		cancel: cancel,
@@ -119,8 +125,9 @@ type execBuild struct {
 	dbBuild      db.Build
 	stepMetadata StepMetadata
 
-	factory  exec.Factory
-	delegate BuildDelegate
+	factory            exec.Factory
+	defaultStepTimeout time.Duration
+	delegate           BuildDelegate
 
 	ctx    context.Context
 	cancel func()
@@ -220,6 +227,16 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan) exec.Step 
 		return build.buildEnsureStep(logger, plan)
 	}
 
+	if plan.Retry != nil {
+		return build.buildRetryStep(logger, plan)
+	}
+
+	// all non-recursive build*() methods after this check
+	_, deadlineSet := ctx.Deadline()
+	if build.defaultStepTimeout.Seconds() > 0 && !deadlineSet {
+		return build.buildTimeoutStep(logger, plan)
+	}
+
 	if plan.Task != nil {
 		return build.buildTaskStep(logger, plan)
 	}
@@ -230,10 +247,6 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan) exec.Step 
 
 	if plan.Put != nil {
 		return build.buildPutStep(logger, plan)
-	}
-
-	if plan.Retry != nil {
-		return build.buildRetryStep(logger, plan)
 	}
 
 	if plan.UserArtifact != nil {

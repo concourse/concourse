@@ -108,6 +108,8 @@ type RunCommand struct {
 	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
 	ResourceTypeCheckingInterval time.Duration `long:"resource-type-checking-interval" default:"1m" description:"Interval on which to check for new versions of resource types."`
 
+	GlobalStepTimeout time.Duration `long:"global-step-timeout" description:"Time limit for how long a Job Step can run before it is interrupted."`
+
 	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" description:"Method by which a worker is selected during container placement."`
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
 
@@ -1223,6 +1225,7 @@ func (cmd *RunCommand) constructEngine(
 	execV2Engine := engine.NewExecEngine(
 		gardenFactory,
 		engine.NewBuildDelegateFactory(),
+		cmd.GlobalStepTimeout,
 		cmd.ExternalURL.String(),
 	)
 

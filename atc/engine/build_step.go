@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"time"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -38,7 +40,21 @@ func (build *execBuild) buildDoStep(logger lager.Logger, plan atc.Plan) exec.Ste
 }
 
 func (build *execBuild) buildTimeoutStep(logger lager.Logger, plan atc.Plan) exec.Step {
-	innerPlan := plan.Timeout.Step
+	var innerPlan atc.Plan
+	var timeout time.Duration
+
+	switch {
+	case plan.Timeout != nil:
+		innerPlan = plan.Timeout.Step
+		timeout = plan.Timeout.Duration
+	case plan.Get != nil:
+	case plan.Put != nil:
+	case plan.UserArtifact != nil:
+	case plan.ArtifactOutput != nil:
+		innerPlan = plan
+		timeout = build.defaultStepTimeout
+	}
+
 	innerPlan.Attempts = plan.Attempts
 	step := build.buildStep(logger, innerPlan)
 	return exec.Timeout(step, plan.Timeout.Duration)
