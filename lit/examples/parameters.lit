@@ -1,0 +1,65 @@
+\title{Pipeline Parameters}{pipeline-parameters-example}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{}{pipeline}
+
+  You can use params in a pipelines configuration file.
+
+	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/pipeline-parameters}
+}
+
+\section{
+  \title{Pipeline Configuration}{configuration}
+	\codeblock{yaml}{{{
+---
+jobs:
+  - name: ((first))-job
+    public: true
+    plan:
+      - task: simple-task
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: { repository: busybox }
+          run:
+            path: echo
+            args: ["Hello, ((hello))!"]
+  - name: level-((number))-job
+    public: true
+    plan:
+      - task: simple-task
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: { repository: busybox }
+          run:
+            path: echo
+            args: ["Hello, ((hello))!"]
+	}}}
+}
+
+\section{
+  \title{Variables}{variables}
+	\codeblock{yaml}{{{
+---
+first: initial
+number: 9000
+hello: HAL
+	}}}
+}
+
+\section{
+	\title{References}{references}
+
+	\list{
+		\reference{jobs}
+	}{
+		\reference{steps}
+	}{
+		\reference{tasks}
+	}
+}

@@ -188,6 +188,7 @@
 \include-section{./setup-and-operations.lit}
 \include-section{./concepts/concepts.lit}
 \include-section{./tutorials.lit}
+\include-section{./examples.lit}
 \include-section{./reference.lit}
 \include-section{./contribute.lit}
 \include-section{./community.lit}

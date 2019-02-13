@@ -9,6 +9,22 @@ engine](https://vito.github.io/booklit/).
 * [Docs Styling](#docs-styling)
 * [Content Layout](#content-layout)
 
+# Examples Status
+
+- git-triggered [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/git-triggered/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/git-triggered)
+- golang [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/golang/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/golang)
+- hooks [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/hooks/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/hooks)
+- java [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/java/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/java)
+- job [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/job/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/job)
+- nodejs [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/nodejs/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/nodejs)
+- parameters [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/parameters/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/parameters)
+- php [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/php/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/php)
+- rails [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/rails/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/rails)
+- serial-job [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/serial-job/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/serial-job)
+- task-passing-artifact [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/task-passing-artifact/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/task-passing-artifact)
+- time-triggered [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/time-triggered/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/time-triggered)
+- trigger-then-continue [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/trigger-then-continue/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/trigger-then-continue)
+
 # Building the Docs Locally
 
 ## Prerequisites

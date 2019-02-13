@@ -11,7 +11,7 @@ steps in your plan can use the artifact that was produced. The source will be
 available under whatever name \code{put} specifies, just like as with
 \code{get}.
 
-\examples{
+\right-side{Examples}{
   \example{Pull & Push}{
     The following plan fetches a repo using \reference{get-step}{\code{get}} and
     pushes it to another repo (assuming \code{repo-develop} and \code{repo-master}

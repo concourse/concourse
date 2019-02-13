@@ -1,0 +1,50 @@
+#!/bin/bash
+
+set -e
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+
+deploy () {
+  local examples=$(ls ${DIR}/../lit/examples/*.lit)
+  fly -t prod login -n examples
+
+  for path in $examples
+  do
+    name=$(basename -s '.lit' $path)
+    tmp_config_path="/tmp/${name}"
+    tmp_vars_path="/tmp/${name}.vars"
+
+    awk '/{configuration}/{flag=1;next}/}}}/{flag=0}flag' ${path} | sed '1d' > $tmp_config_path
+    awk '/{variables}/{flag=1;next}/}}}/{flag=0}flag' ${path} | sed '1d' > $tmp_vars_path
+
+    echo "Setting ${name} example..."
+    if [ -s $tmp_vars_path ]; then
+      fly -t prod sp -n -p ${name} -c ${tmp_config_path} -l ${tmp_vars_path}
+    else
+      fly -t prod sp -n -p ${name} -c ${tmp_config_path} -v DOCKERHUB_EMAIL=$DOCKERHUB_EMAIL -v DOCKERHUB_PASSWORD=$DOCKERHUB_PASSWORD -v DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME
+    fi
+
+    fly -t prod up -p ${name}
+    fly -t prod ep -p ${name}
+
+    rm $tmp_config_path
+    rm $tmp_vars_path
+  done
+}
+
+update_readme () {
+	local badges=""
+
+  local examples=$(ls ${DIR}/../lit/examples/*.lit)
+  for path in $examples
+  do
+    name=$(basename -s '.lit' $path)
+  	badges="${badges}- ${name} [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/${name}/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/${name})\n";
+	done
+
+	awk -v badges="$badges" '/^#\ Examples/{f=1;print;print "";print badges}/^# Building/{f=0}!f;' README.md > tmp
+	mv tmp README.md
+}
+
+deploy
+update_readme

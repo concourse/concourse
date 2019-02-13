@@ -14,7 +14,7 @@ When a task completes, the files in its declared outputs will be made avaliable
 to subsequent steps. This allows those subsequent steps to process the result
 of a task.
 
-\examples{
+\right-side{Examples}{
   \example{Inputs & Outputs}{
     The following plan pulls down a repo, makes a commit to it, and pushes the
     commit to another repo (the task must have an output called

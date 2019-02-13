@@ -5,7 +5,7 @@
 Fetches a resource, making it available to subsequent steps via the given
 name.
 
-\examples{
+\right-side{Examples}{
   \example{Simple Fetch & Test}{
     Almost every simple unit test job will look something like this: fetch my
     code with a \reference{get-step} and run its tests with a

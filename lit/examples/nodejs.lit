@@ -1,0 +1,60 @@
+\title{Nodejs Application}{nodejs-example}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{}{pipeline}
+
+	You can run the tests for a Nodejs application.
+
+	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/nodejs}
+}
+
+\section{
+  \title{Pipeline Configuration}{configuration}
+	\codeblock{yaml}{{{
+---
+resources:
+  - name: nodejs.org-git
+    type: git
+    source:
+      uri: https://github.com/nodejs/nodejs.org.git
+
+jobs:
+  - name: test
+    public: true
+    plan:
+      - get: nodejs.org-git
+        trigger: true
+      - task: run-tests
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: { repository: node, tag: "8" }
+          inputs:
+            - name: nodejs.org-git
+          run:
+            path: /bin/sh
+            args:
+              - -c
+              - |
+                echo "Node Version: $(node --version)"
+                echo "NPM Version: $(npm --version)"
+                cd nodejs.org-git
+                npm install
+                npm test
+	}}}
+}
+
+\section{
+	\title{References}{references}
+
+	\list{
+		\reference{jobs}
+	}{
+		\reference{steps}
+	}{
+		\reference{tasks}
+	}
+}

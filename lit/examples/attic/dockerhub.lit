@@ -1,0 +1,67 @@
+\title{Dockerhub Flow}{dockerhub-flow-example}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{}{pipeline}
+
+	You can use the docker-image resource to compile and test Dockerfiles.
+
+	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/job}
+}
+
+\section{
+  \title{Pipeline Configuration}{configuration}
+	\codeblock{yaml}{{{
+---
+resources:
+  - name: mock-resource-git
+    type: git
+    source:
+      uri: https://github.com/concourse/mock-resource
+
+  - name: dockerhub-edge
+    type: docker-image
+    source:
+      tag: example-edge
+      repository: concourse/docs
+      email: ((DOCKERHUB_EMAIL))
+      username: ((DOCKERHUB_USERNAME))
+      password: ((DOCKERHUB_PASSWORD))
+
+jobs:
+  - name: build-image
+    public: true
+    plan:
+      - get: mock-resource-git
+        trigger: true
+      - put: dockerhub-edge
+        params:
+          build: mock-resource-git
+  - name: test-image
+    public: true
+    plan:
+      - get: dockerhub-edge
+        passed: [build-image]
+        trigger: true
+      - task: test-image
+        image: dockerhub-edge
+        config:
+          platform: linux
+          run:
+            path: ls
+            args: ["-la"]
+	}}}
+}
+
+\section{
+	\title{References}{references}
+
+	\list{
+		\reference{jobs}
+	}{
+		\reference{steps}
+	}{
+		\reference{tasks}
+	}
+}

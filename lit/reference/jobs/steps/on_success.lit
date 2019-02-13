@@ -10,7 +10,7 @@ step to execute only if the parent step succeeds.
   fails, the outer step is considered to have failed.
 }
 
-\examples{
+\right-side{Examples}{
   \example{Running on Success}{
     The following will perform the second task only if the first one succeeds:
 

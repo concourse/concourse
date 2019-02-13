@@ -1,0 +1,67 @@
+\title{PHP Application}{php-example}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{}{pipeline}
+
+	You can run the tests for a PHP application.
+
+	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/nodejs}
+}
+
+\section{
+  \title{Pipeline Configuration}{configuration}
+	\codeblock{yaml}{{{
+---
+resources:
+  - name: larvel-websockets-git
+    type: git
+    source:
+      uri: https://github.com/beyondcode/laravel-websockets.git
+
+jobs:
+  - name: test
+    public: true
+    plan:
+      - get: larvel-websockets-git
+        trigger: true
+      - task: run-tests
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: { repository: php, tag: 7.2-cli }
+          inputs:
+            - name: larvel-websockets-git
+          run:
+            path: /bin/sh
+            args:
+              - -c
+              - |
+                apt-get update
+                apt-get install -y git unzip
+
+                php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+                php -r "if (hash_file('sha384', 'composer-setup.php') === '93b54496392c062774670ac18b134c3b3a95e5a5e5c8f1a9f115f203b75bf9a129d5daa8ba6a13e2cc8a1da0806388a8') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+                php composer-setup.php --filename=composer --install-dir=/usr/bin
+                php -r "unlink('composer-setup.php');"
+
+                cd larvel-websockets-git
+
+                composer install
+                vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover
+	}}}
+}
+
+\section{
+	\title{References}{references}
+
+	\list{
+		\reference{jobs}
+	}{
+		\reference{steps}
+	}{
+		\reference{tasks}
+	}
+}

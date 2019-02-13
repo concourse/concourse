@@ -30,7 +30,7 @@ Each group in the pipeline has the following attributes:
   added; they do not have to be explicitly listed here.
 }{group-resources}
 
-\examples{
+\right-side{Examples}{
   \example{Grouping Jobs}{
     The following example will make the "tests" group the default view (since
     it's listed first), separating the later jobs into a "publish" group:

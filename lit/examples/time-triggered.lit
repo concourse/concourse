@@ -1,0 +1,53 @@
+\title{Time Triggered Job}{time-triggered-job-example}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{}{pipeline}
+
+  The \link{time resource}{https://github.com/concourse/time-resource} can be used to trigger a job.
+
+	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/time-triggered}
+}
+
+\section{
+  \title{Pipeline Configuration}{configuration}
+	\codeblock{yaml}{{{
+---
+resources:
+  - name: every-30s
+    type: time
+    source:
+      interval: 30s
+
+jobs:
+  - name: job
+    public: true
+    plan:
+      - get: every-30s
+        trigger: true
+      - task: simple-task
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: { repository: busybox }
+          run:
+            path: echo
+            args: ["Hello, world!"]
+}}}
+}
+
+\section{
+	\title{References}{references}
+
+	\list{
+		\reference{resources}
+	}{
+		\reference{jobs}
+	}{
+		\reference{steps}
+	}{
+		\reference{tasks}
+	}
+}

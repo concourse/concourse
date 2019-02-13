@@ -1,0 +1,55 @@
+\title{Git Triggered Job}{git-triggered-job-example}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{}{pipeline}
+
+  The \link{git resource}{https://github.com/concourse/git-resource} can be used to trigger a job.
+
+	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/git-triggered}
+}
+
+\section{
+  \title{Pipeline Configuration}{configuration}
+	\codeblock{yaml}{{{
+---
+resources:
+  - name: concourse-docs-git
+    type: git
+    source:
+      uri: https://github.com/concourse/docs
+
+jobs:
+  - name: job
+    public: true
+    plan:
+      - get: concourse-docs-git
+        trigger: true
+      - task: list-files
+        config:
+          inputs:
+            - name: concourse-docs-git
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: { repository: busybox }
+          run:
+            path: ls
+            args: ["-la", "./concourse-docs-git"]
+}}}
+}
+
+\section{
+	\title{References}{references}
+
+	\list{
+		\reference{resources}
+	}{
+		\reference{jobs}
+	}{
+		\reference{steps}
+	}{
+		\reference{tasks}
+	}
+}

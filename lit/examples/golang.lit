@@ -1,0 +1,104 @@
+\title{Golang Application}{golang-example}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{}{pipeline}
+
+	You can run the tests for a Golang application across any specified versions.
+
+	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/golang}
+}
+
+\section{
+  \title{Pipeline Configuration}{configuration}
+	\codeblock{yaml}{{{
+---
+resources:
+  - name: golang-mock-git
+    type: git
+    source:
+      uri: https://github.com/golang/mock.git
+
+  - name: golang-1.11.x-image
+    type: registry-image
+    source:
+      repository: golang
+      tag: 1.11-stretch
+
+  - name: golang-1.10.x-image
+    type: registry-image
+    source:
+      repository: golang
+      tag: 1.10-stretch
+
+  - name: golang-1.9.x-image
+    type: registry-image
+    source:
+      repository: golang
+      tag: 1.9-stretch
+
+task-config: &task-config
+  platform: linux
+  inputs:
+    - name: golang-mock-git
+      path: /go/src/github.com/golang/mock
+  run:
+    path: /bin/sh
+    args:
+      - -c
+      - |
+        SRCPATH=$PWD/go/src/github.com/golang/mock
+        GOPATH=$PWD/go
+        cd $SRCPATH
+        go get -t -v ./...
+        go test -v ./...
+
+jobs:
+  - name: golang-1.11
+    public: true
+    plan:
+      - get: golang-mock-git
+        trigger: true
+      - get: golang-1.11.x-image
+        trigger: true
+      - task: run-tests
+        image: golang-1.11.x-image
+        config:
+          << : *task-config
+  - name: golang-1.10
+    public: true
+    plan:
+      - get: golang-mock-git
+        trigger: true
+      - get: golang-1.10.x-image
+        trigger: true
+      - task: run-tests
+        image: golang-1.10.x-image
+        config:
+          << : *task-config
+  - name: golang-1.9
+    public: true
+    plan:
+      - get: golang-mock-git
+        trigger: true
+      - get: golang-1.9.x-image
+        trigger: true
+      - task: run-tests
+        image: golang-1.9.x-image
+        config:
+          << : *task-config
+	}}}
+}
+
+\section{
+	\title{References}{references}
+
+	\list{
+		\reference{jobs}
+	}{
+		\reference{steps}
+	}{
+		\reference{tasks}
+	}
+}

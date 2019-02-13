@@ -36,7 +36,7 @@ schema:
 \include-section{pipelines/managing.lit}
 \include-section{pipelines/groups.lit}
 
-\examples{
+\right-side{Examples}{
   \example{Hello, world!}{
     The following example makes use of an embedded \reference{tasks}{task
     config} to define the smallest possible pipeline.
