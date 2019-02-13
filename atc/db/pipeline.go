@@ -979,27 +979,27 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 
 	defer Rollback(tx)
 
-	metadata, err := json.Marshal(map[string]interface{}{"plan": plan})
+	metadata, err := json.Marshal(plan)
 	if err != nil {
 		return nil, err
 	}
 
-	encryptedMetadata, nonce, err := p.conn.EncryptionStrategy().Encrypt(metadata)
+	encryptedPlan, nonce, err := p.conn.EncryptionStrategy().Encrypt(metadata)
 	if err != nil {
 		return nil, err
 	}
 
 	build := &build{conn: p.conn, lockFactory: p.lockFactory}
 	err = createBuild(tx, build, map[string]interface{}{
-		"name":            sq.Expr("nextval('one_off_name')"),
-		"pipeline_id":     p.id,
-		"team_id":         p.teamID,
-		"status":          BuildStatusStarted,
-		"start_time":      sq.Expr("now()"),
-		"engine":          "exec.v2",
-		"engine_metadata": encryptedMetadata,
-		"public_plan":     plan.Public(),
-		"nonce":           nonce,
+		"name":         sq.Expr("nextval('one_off_name')"),
+		"pipeline_id":  p.id,
+		"team_id":      p.teamID,
+		"status":       BuildStatusStarted,
+		"start_time":   sq.Expr("now()"),
+		"schema":       "exec.v2",
+		"private_plan": encryptedPlan,
+		"public_plan":  plan.Public(),
+		"nonce":        nonce,
 	})
 	if err != nil {
 		return nil, err

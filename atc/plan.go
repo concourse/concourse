@@ -9,7 +9,7 @@ type Plan struct {
 	Get       *GetPlan       `json:"get,omitempty"`
 	Put       *PutPlan       `json:"put,omitempty"`
 	Task      *TaskPlan      `json:"task,omitempty"`
-	OnAbort   *OnAbortPlan   `json:"on_abort,ommitempty"`
+	OnAbort   *OnAbortPlan   `json:"on_abort,omitempty"`
 	Ensure    *EnsurePlan    `json:"ensure,omitempty"`
 	OnSuccess *OnSuccessPlan `json:"on_success,omitempty"`
 	OnFailure *OnFailurePlan `json:"on_failure,omitempty"`

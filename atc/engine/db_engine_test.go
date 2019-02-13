@@ -31,10 +31,10 @@ var _ = Describe("DBEngine", func() {
 		logger = lagertest.NewTestLogger("test")
 
 		fakeEngineA = new(enginefakes.FakeEngine)
-		fakeEngineA.NameReturns("fake-engine-a")
+		fakeEngineA.SchemaReturns("fake-schema-a")
 
 		fakeEngineB = new(enginefakes.FakeEngine)
-		fakeEngineB.NameReturns("fake-engine-b")
+		fakeEngineB.SchemaReturns("fake-schema-b")
 
 		dbBuild = new(dbfakes.FakeBuild)
 		dbBuild.IDReturns(128)
@@ -99,9 +99,8 @@ var _ = Describe("DBEngine", func() {
 			It("starts the build in the database", func() {
 				Expect(dbBuild.StartCallCount()).To(Equal(1))
 
-				engine, metadata, _ := dbBuild.StartArgsForCall(0)
-				Expect(engine).To(Equal("fake-engine-a"))
-				Expect(metadata).To(Equal("some-metadata"))
+				engine, _ := dbBuild.StartArgsForCall(0)
+				Expect(engine).To(Equal("fake-schema-a"))
 			})
 
 			Context("when the build fails to transition to started", func() {
@@ -235,7 +234,7 @@ var _ = Describe("DBEngine", func() {
 				Context("when the build is active", func() {
 					BeforeEach(func() {
 						dbBuild.ReloadReturns(true, nil)
-						dbBuild.EngineReturns("fake-engine-b")
+						dbBuild.SchemaReturns("fake-schema-b")
 
 						dbBuild.MarkAsAbortedStub = func() error {
 							Expect(dbBuild.AcquireTrackingLockCallCount()).To(Equal(1))
@@ -339,7 +338,7 @@ var _ = Describe("DBEngine", func() {
 				Context("when the build is not yet active", func() {
 					BeforeEach(func() {
 						dbBuild.ReloadReturns(true, nil)
-						dbBuild.EngineReturns("")
+						dbBuild.SchemaReturns("")
 					})
 
 					It("succeeds", func() {
@@ -463,7 +462,7 @@ var _ = Describe("DBEngine", func() {
 
 				Context("when the build is active", func() {
 					BeforeEach(func() {
-						dbBuild.EngineReturns("fake-engine-b")
+						dbBuild.SchemaReturns("fake-schema-b")
 						dbBuild.IsRunningReturns(true)
 						dbBuild.ReloadReturns(true, nil)
 					})
@@ -636,24 +635,24 @@ var _ = Describe("DBEngine", func() {
 					})
 				})
 
-				Context("when the build's engine is unknown", func() {
+				Context("when the build's schema is unknown", func() {
 					BeforeEach(func() {
 						dbBuild.ReloadReturns(true, nil)
 						dbBuild.IsRunningReturns(true)
-						dbBuild.EngineReturns("bogus")
+						dbBuild.SchemaReturns("bogus")
 					})
 
 					It("marks the build as errored", func() {
 						Expect(dbBuild.FinishWithErrorCallCount()).To(Equal(1))
 						finishErr := dbBuild.FinishWithErrorArgsForCall(0)
-						Expect(finishErr).To(Equal(UnknownEngineError{Engine: "bogus"}))
+						Expect(finishErr).To(Equal(UnknownEngineError{Schema: "bogus"}))
 					})
 				})
 
 				Context("when the build is not yet active", func() {
 					BeforeEach(func() {
 						dbBuild.ReloadReturns(true, nil)
-						dbBuild.EngineReturns("")
+						dbBuild.SchemaReturns("")
 					})
 
 					It("does not look up the build in the engine", func() {
@@ -668,7 +667,7 @@ var _ = Describe("DBEngine", func() {
 				Context("when the build has already finished", func() {
 					BeforeEach(func() {
 						dbBuild.ReloadReturns(true, nil)
-						dbBuild.EngineReturns("fake-engine-b")
+						dbBuild.SchemaReturns("fake-schema-b")
 						dbBuild.StatusReturns(db.BuildStatusSucceeded)
 					})
 

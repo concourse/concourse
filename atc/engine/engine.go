@@ -9,7 +9,7 @@ import (
 //go:generate counterfeiter . Engine
 
 type Engine interface {
-	Name() string
+	Schema() string
 	CreateBuild(lager.Logger, db.Build, atc.Plan) (Build, error)
 	LookupBuild(lager.Logger, db.Build) (Build, error)
 	ReleaseAll(lager.Logger)
@@ -25,9 +25,9 @@ type Build interface {
 
 type Engines []Engine
 
-func (engines Engines) Lookup(name string) (Engine, bool) {
+func (engines Engines) Lookup(schema string) (Engine, bool) {
 	for _, e := range engines {
-		if e.Name() == name {
+		if e.Schema() == schema {
 			return e, true
 		}
 	}

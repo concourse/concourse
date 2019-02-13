@@ -1353,7 +1353,7 @@ var _ = Describe("Builds API", func() {
 				Context("when the build returns a plan", func() {
 					BeforeEach(func() {
 						build.PublicPlanReturns(plan)
-						build.EngineReturns("some-schema")
+						build.SchemaReturns("some-schema")
 					})
 
 					It("returns OK", func() {

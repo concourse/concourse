@@ -24,11 +24,11 @@ func NewDBEngine(engines Engines, peerURL string) Engine {
 }
 
 type UnknownEngineError struct {
-	Engine string
+	Schema string
 }
 
 func (err UnknownEngineError) Error() string {
-	return fmt.Sprintf("unknown build engine: %s", err.Engine)
+	return fmt.Sprintf("unknown build engine schema: %s", err.Schema)
 }
 
 type dbEngine struct {
@@ -38,7 +38,7 @@ type dbEngine struct {
 	waitGroup *sync.WaitGroup
 }
 
-func (*dbEngine) Name() string {
+func (*dbEngine) Schema() string {
 	return "db"
 }
 
@@ -50,7 +50,7 @@ func (engine *dbEngine) CreateBuild(logger lager.Logger, build db.Build, plan at
 		return nil, err
 	}
 
-	started, err := build.Start(buildEngine.Name(), createdBuild.Metadata(), plan)
+	started, err := build.Start(buildEngine.Schema(), plan)
 	if err != nil {
 		return nil, err
 	}
@@ -146,9 +146,9 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 		return nil
 	}
 
-	buildEngineName := build.build.Engine()
-	// if there's an engine, there's a real build to abort
-	if buildEngineName == "" {
+	schema := build.build.Schema()
+	// if there's an schema, there's a real build to abort
+	if schema == "" {
 		// otherwise, CreateBuild had not yet tried to start the build, and so it
 		// will see the conflict when it tries to transition, and abort itself.
 		//
@@ -158,10 +158,11 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 		return build.build.Finish(db.BuildStatusAborted)
 	}
 
-	buildEngine, found := build.engines.Lookup(buildEngineName)
+	buildEngine, found := build.engines.Lookup(schema)
 	if !found {
-		logger.Error("unknown-engine", nil, lager.Data{"engine": buildEngineName})
-		return UnknownEngineError{buildEngineName}
+		err := UnknownEngineError{schema}
+		logger.Error("unknown-engine", err, lager.Data{"schema": schema})
+		return err
 	}
 
 	// find the real build to abort...
@@ -209,9 +210,9 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 		return
 	}
 
-	buildEngineName := build.build.Engine()
-	if buildEngineName == "" {
-		logger.Error("build-has-no-engine", err)
+	schema := build.build.Schema()
+	if schema == "" {
+		logger.Error("build-has-no-schema", err)
 		return
 	}
 
@@ -222,11 +223,11 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 		return
 	}
 
-	buildEngine, found := build.engines.Lookup(buildEngineName)
+	buildEngine, found := build.engines.Lookup(schema)
 	if !found {
-		err := UnknownEngineError{Engine: buildEngineName}
-		logger.Error("unknown-build-engine", err, lager.Data{
-			"engine": buildEngineName,
+		err := UnknownEngineError{schema}
+		logger.Error("unknown-engine", err, lager.Data{
+			"schema": schema,
 		})
 		build.finishWithError(logger, err)
 		return

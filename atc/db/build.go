@@ -42,7 +42,7 @@ const (
 	BuildStatusErrored   BuildStatus = "errored"
 )
 
-var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.engine, b.engine_metadata, b.public_plan, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.tracked_by, b.drained").
+var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.schema, b.private_plan, b.public_plan, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.tracked_by, b.drained").
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
@@ -62,8 +62,8 @@ type Build interface {
 	PipelineName() string
 	TeamID() int
 	TeamName() string
-	Engine() string
-	EngineMetadata() string
+	Schema() string
+	PrivatePlan() string
 	PublicPlan() *json.RawMessage
 	Status() BuildStatus
 	StartTime() time.Time
@@ -82,7 +82,7 @@ type Build interface {
 	Interceptible() (bool, error)
 	Preparation() (BuildPreparation, bool, error)
 
-	Start(string, string, atc.Plan) (bool, error)
+	Start(string, atc.Plan) (bool, error)
 	FinishWithError(cause error) error
 	Finish(BuildStatus) error
 
@@ -127,9 +127,9 @@ type build struct {
 
 	isManuallyTriggered bool
 
-	engine         string
-	engineMetadata string
-	publicPlan     *json.RawMessage
+	schema      string
+	privatePlan string
+	publicPlan  *json.RawMessage
 
 	startTime time.Time
 	endTime   time.Time
@@ -164,8 +164,8 @@ func (b *build) PipelineName() string         { return b.pipelineName }
 func (b *build) TeamID() int                  { return b.teamID }
 func (b *build) TeamName() string             { return b.teamName }
 func (b *build) IsManuallyTriggered() bool    { return b.isManuallyTriggered }
-func (b *build) Engine() string               { return b.engine }
-func (b *build) EngineMetadata() string       { return b.engineMetadata }
+func (b *build) Schema() string               { return b.schema }
+func (b *build) PrivatePlan() string          { return b.privatePlan }
 func (b *build) PublicPlan() *json.RawMessage { return b.publicPlan }
 func (b *build) StartTime() time.Time         { return b.startTime }
 func (b *build) EndTime() time.Time           { return b.endTime }
@@ -242,7 +242,7 @@ func (b *build) SetInterceptible(i bool) error {
 	return nil
 }
 
-func (b *build) Start(engine, metadata string, plan atc.Plan) (bool, error) {
+func (b *build) Start(schema string, plan atc.Plan) (bool, error) {
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return false, err
@@ -250,7 +250,12 @@ func (b *build) Start(engine, metadata string, plan atc.Plan) (bool, error) {
 
 	defer Rollback(tx)
 
-	encryptedMetadata, nonce, err := b.conn.EncryptionStrategy().Encrypt([]byte(metadata))
+	metadata, err := json.Marshal(plan)
+	if err != nil {
+		return false, err
+	}
+
+	encryptedPlan, nonce, err := b.conn.EncryptionStrategy().Encrypt([]byte(metadata))
 	if err != nil {
 		return false, err
 	}
@@ -260,8 +265,8 @@ func (b *build) Start(engine, metadata string, plan atc.Plan) (bool, error) {
 	err = psql.Update("builds").
 		Set("status", BuildStatusStarted).
 		Set("start_time", sq.Expr("now()")).
-		Set("engine", engine).
-		Set("engine_metadata", encryptedMetadata).
+		Set("schema", schema).
+		Set("private_plan", encryptedPlan).
 		Set("public_plan", plan.Public()).
 		Set("nonce", nonce).
 		Where(sq.Eq{
@@ -332,7 +337,7 @@ func (b *build) Finish(status BuildStatus) error {
 		Set("status", status).
 		Set("end_time", sq.Expr("now()")).
 		Set("completed", true).
-		Set("engine_metadata", nil).
+		Set("private_plan", nil).
 		Set("nonce", nil).
 		Where(sq.Eq{"id": b.id}).
 		Suffix("RETURNING end_time").
@@ -1114,16 +1119,16 @@ func buildEventSeq(buildid int) string {
 
 func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) error {
 	var (
-		jobID, pipelineID                                                    sql.NullInt64
-		engine, engineMetadata, jobName, pipelineName, publicPlan, trackedBy sql.NullString
-		startTime, endTime, reapTime                                         pq.NullTime
-		nonce                                                                sql.NullString
-		drained                                                              bool
+		jobID, pipelineID                                                 sql.NullInt64
+		schema, privatePlan, jobName, pipelineName, publicPlan, trackedBy sql.NullString
+		startTime, endTime, reapTime                                      pq.NullTime
+		nonce                                                             sql.NullString
+		drained                                                           bool
 
 		status string
 	)
 
-	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &engine, &engineMetadata, &publicPlan, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &trackedBy, &drained)
+	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &schema, &privatePlan, &publicPlan, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &trackedBy, &drained)
 	if err != nil {
 		return err
 	}
@@ -1133,7 +1138,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	b.jobID = int(jobID.Int64)
 	b.pipelineName = pipelineName.String
 	b.pipelineID = int(pipelineID.Int64)
-	b.engine = engine.String
+	b.schema = schema.String
 	b.startTime = startTime.Time
 	b.endTime = endTime.Time
 	b.reapTime = reapTime.Time
@@ -1141,18 +1146,18 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	b.drained = drained
 
 	var (
-		noncense                *string
-		decryptedEngineMetadata []byte
+		noncense      *string
+		decryptedPlan []byte
 	)
 	if nonce.Valid {
 		noncense = &nonce.String
-		decryptedEngineMetadata, err = encryptionStrategy.Decrypt(string(engineMetadata.String), noncense)
+		decryptedPlan, err = encryptionStrategy.Decrypt(string(privatePlan.String), noncense)
 		if err != nil {
 			return err
 		}
-		b.engineMetadata = string(decryptedEngineMetadata)
+		b.privatePlan = string(decryptedPlan)
 	} else {
-		b.engineMetadata = engineMetadata.String
+		b.privatePlan = privatePlan.String
 	}
 
 	if publicPlan.Valid {

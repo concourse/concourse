@@ -29,7 +29,7 @@ var _ = Describe("Build", func() {
 		It("updates the model", func() {
 			build, err := team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			started, err := build.Start("engine", `{"meta":"data"}`, atc.Plan{})
+			started, err := build.Start("schema", atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
@@ -100,7 +100,7 @@ var _ = Describe("Build", func() {
 			build, err = team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			started, err := build.Start("engine", `{"meta":"data"}`, plan)
+			started, err := build.Start("schema", plan)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 		})
@@ -196,7 +196,7 @@ var _ = Describe("Build", func() {
 			found, err := build.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(build.EngineMetadata()).To(BeEmpty())
+			Expect(build.PrivatePlan()).To(BeEmpty())
 		})
 	})
 
@@ -231,7 +231,7 @@ var _ = Describe("Build", func() {
 			defer db.Close(events)
 
 			By("emitting a status event when started")
-			started, err := build.Start("engine", `{"meta":"data"}`, atc.Plan{})
+			started, err := build.Start("schema", atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
@@ -675,7 +675,7 @@ var _ = Describe("Build", func() {
 
 			Context("when the build is started", func() {
 				BeforeEach(func() {
-					started, err := build.Start("some-engine", `{"meta":"data"}`, atc.Plan{})
+					started, err := build.Start("some-schema", atc.Plan{})
 					Expect(started).To(BeTrue())
 					Expect(err).NotTo(HaveOccurred())
 
@@ -773,7 +773,7 @@ var _ = Describe("Build", func() {
 
 				Context("when the build is started", func() {
 					BeforeEach(func() {
-						started, err := build.Start("some-engine", `{"meta":"data"}`, atc.Plan{})
+						started, err := build.Start("some-schema", atc.Plan{})
 						Expect(started).To(BeTrue())
 						Expect(err).NotTo(HaveOccurred())
 
