@@ -1,4 +1,4 @@
-\title{Docs}{index}
+\title{Concourse}{index}
 
 \use-plugin{concourse-docs}
 
@@ -185,13 +185,10 @@
 \split-sections
 
 \include-section{./about.lit}
-\include-section{./setup-and-operations.lit}
-\include-section{./concepts/concepts.lit}
-\include-section{./tutorials.lit}
-\include-section{./examples.lit}
-\include-section{./reference.lit}
-\include-section{./contribute.lit}
+\include-section{./setup.lit}
+\include-section{./docs.lit}
+\include-section{./learning.lit}
+\include-section{./tools.lit}
 \include-section{./community.lit}
+\include-section{./contribute.lit}
 \include-section{./trademarks.lit}
-
-

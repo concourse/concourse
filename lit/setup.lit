@@ -1,0 +1,8 @@
+\title{Setup}{setup}
+
+\include-section{./setup/download.lit}
+\include-section{./setup/getting-started.lit}
+\include-section{./setup/install.lit}
+
+\split-sections
+\table-of-contents
