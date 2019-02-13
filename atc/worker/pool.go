@@ -138,7 +138,7 @@ func (pool *pool) FindOrCreateContainer(
 			return nil, err
 		}
 
-		worker, err = pool.strategy.Choose(logger, compatibleWorkers, containerSpec)
+		worker, err = pool.strategy.Choose(logger, compatibleWorkers, containerSpec, metadata)
 		if err != nil {
 			return nil, err
 		}

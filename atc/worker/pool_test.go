@@ -384,7 +384,7 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("returns all workers satisfying the spec", func() {
-					_, satisfyingWorkers, _ := fakeStrategy.ChooseArgsForCall(0)
+					_, satisfyingWorkers, _, _ := fakeStrategy.ChooseArgsForCall(0)
 					Expect(satisfyingWorkers).To(ConsistOf(workerA, workerB))
 				})
 
@@ -428,7 +428,7 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("returns only the team workers that satisfy the spec", func() {
-					_, satisfyingWorkers, _ := fakeStrategy.ChooseArgsForCall(0)
+					_, satisfyingWorkers, _, _ := fakeStrategy.ChooseArgsForCall(0)
 					Expect(satisfyingWorkers).To(ConsistOf(teamWorker1, teamWorker2))
 				})
 			})
@@ -453,7 +453,7 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("returns the general workers that satisfy the spec", func() {
-					_, satisfyingWorkers, _ := fakeStrategy.ChooseArgsForCall(0)
+					_, satisfyingWorkers, _, _ := fakeStrategy.ChooseArgsForCall(0)
 					Expect(satisfyingWorkers).To(ConsistOf(generalWorker1))
 				})
 			})
