@@ -717,7 +717,6 @@ jobs:
       - cbd/cluster/operations/windows-worker-network.yml
       - cbd/cluster/operations/debug-concourse.yml
       - cbd/cluster/operations/syslog-drainer.yml
-      - cbd/cluster/operations/container-placement-strategy.yml
       - cbd/cluster/operations/worker-rebalancing.yml
       - cbd/cluster/operations/enable-global-resources.yml
       vars_files:
@@ -748,7 +747,6 @@ jobs:
         syslog_permitted_peer: "*.papertrailapp.com"
         default_task_memory_limit: 5GB
         default_task_cpu_limit: 1024
-        container_placement_strategy: "fewest-build-containers"
         worker_rebalance_interval: 30m
 
 
