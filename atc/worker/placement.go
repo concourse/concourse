@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"github.com/concourse/concourse/atc/db"
 	"math/rand"
 	"time"
 
@@ -8,7 +9,7 @@ import (
 )
 
 type ContainerPlacementStrategy interface {
-	Choose(lager.Logger, []Worker, ContainerSpec) (Worker, error)
+	Choose(lager.Logger, []Worker, ContainerSpec, db.ContainerMetadata) (Worker, error)
 }
 
 type VolumeLocalityPlacementStrategy struct {
@@ -21,7 +22,7 @@ func NewVolumeLocalityPlacementStrategy() ContainerPlacementStrategy {
 	}
 }
 
-func (strategy *VolumeLocalityPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
+func (strategy *VolumeLocalityPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec, metadata db.ContainerMetadata) (Worker, error) {
 	workersByCount := map[int][]Worker{}
 	var highestCount int
 	for _, w := range workers {
@@ -60,9 +61,14 @@ func NewLeastBuildContainersPlacementStrategy() ContainerPlacementStrategy {
 	}
 }
 
-func (strategy *LeastBuildContainersPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
+func (strategy *LeastBuildContainersPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec, metadata db.ContainerMetadata) (Worker, error) {
 	workersByWork := map[int][]Worker{}
 	var minWork int
+
+	if metadata.Type == db.ContainerTypeCheck {
+		return workers[strategy.rand.Intn(len(workers))], nil
+	}
+
 	for i, w := range workers {
 		work := w.BuildContainers()
 		workersByWork[work] = append(workersByWork[work], w)
@@ -85,6 +91,6 @@ func NewRandomPlacementStrategy() ContainerPlacementStrategy {
 	}
 }
 
-func (strategy *RandomPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
+func (strategy *RandomPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec, metadata db.ContainerMetadata) (Worker, error) {
 	return workers[strategy.rand.Intn(len(workers))], nil
 }

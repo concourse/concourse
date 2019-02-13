@@ -3,6 +3,7 @@ package worker_test
 import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse/atc/db"
 	. "github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
@@ -15,8 +16,9 @@ import (
 var (
 	strategy ContainerPlacementStrategy
 
-	spec    ContainerSpec
-	workers []Worker
+	spec     ContainerSpec
+	metadata db.ContainerMetadata
+	workers  []Worker
 
 	chosenWorker Worker
 	chooseErr    error
@@ -50,6 +52,9 @@ var _ = Describe("LeastBuildContainersPlacementStrategy", func() {
 
 				Inputs: []InputSource{},
 			}
+			metadata = db.ContainerMetadata{
+				Type: db.ContainerTypeTask,
+			}
 		})
 
 		Context("when there is only one worker", func() {
@@ -63,6 +68,7 @@ var _ = Describe("LeastBuildContainersPlacementStrategy", func() {
 					logger,
 					workers,
 					spec,
+					metadata,
 				)
 				Expect(chooseErr).ToNot(HaveOccurred())
 				Expect(chosenWorker).To(Equal(compatibleWorker1))
@@ -71,41 +77,74 @@ var _ = Describe("LeastBuildContainersPlacementStrategy", func() {
 
 		Context("when there are multiple workers", func() {
 			BeforeEach(func() {
-				workers = []Worker{compatibleWorker2, compatibleWorker3}
+				workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
 
+				compatibleWorker1.BuildContainersReturns(30)
 				compatibleWorker2.BuildContainersReturns(20)
 				compatibleWorker3.BuildContainersReturns(10)
 			})
 
-			It("picks the one with least amount of containers", func() {
-				Consistently(func() Worker {
-					chosenWorker, chooseErr = strategy.Choose(
-						logger,
-						workers,
-						spec,
-					)
-					Expect(chooseErr).ToNot(HaveOccurred())
-					return chosenWorker
-				}).Should(Equal(compatibleWorker3))
-			})
-
-			Context("when there is more than one worker with the same number of build containers", func() {
+			Context("when the container is of type 'check'", func() {
 				BeforeEach(func() {
-					workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
-					compatibleWorker1.BuildContainersReturns(10)
+					metadata = db.ContainerMetadata{
+						Type: db.ContainerTypeCheck,
+					}
+				})
+				It("picks a random worker", func() {
+					workerChoiceCounts := map[Worker]int{}
+
+					for i := 0; i < 100; i++ {
+						chosenWorker, err := strategy.Choose(
+							logger,
+							workers,
+							spec,
+							metadata,
+						)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(chosenWorker).To(SatisfyAny(Equal(compatibleWorker1), Equal(compatibleWorker2), Equal(compatibleWorker3)))
+						workerChoiceCounts[chosenWorker]++
+					}
+
+					Expect(workerChoiceCounts[compatibleWorker1]).ToNot(BeZero())
+					Expect(workerChoiceCounts[compatibleWorker2]).ToNot(BeZero())
+					Expect(workerChoiceCounts[compatibleWorker3]).ToNot(BeZero())
 				})
 
-				It("picks any of them", func() {
+			})
+			Context("when the container is not of type 'check'", func() {
+				It("picks the one with least amount of containers", func() {
 					Consistently(func() Worker {
 						chosenWorker, chooseErr = strategy.Choose(
 							logger,
 							workers,
 							spec,
+							metadata,
 						)
 						Expect(chooseErr).ToNot(HaveOccurred())
 						return chosenWorker
-					}).Should(Or(Equal(compatibleWorker1), Equal(compatibleWorker3)))
+					}).Should(Equal(compatibleWorker3))
 				})
+
+				Context("when there is more than one worker with the same number of build containers", func() {
+					BeforeEach(func() {
+						workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
+						compatibleWorker1.BuildContainersReturns(10)
+					})
+
+					It("picks any of them", func() {
+						Consistently(func() Worker {
+							chosenWorker, chooseErr = strategy.Choose(
+								logger,
+								workers,
+								spec,
+								metadata,
+							)
+							Expect(chooseErr).ToNot(HaveOccurred())
+							return chosenWorker
+						}).Should(Or(Equal(compatibleWorker1), Equal(compatibleWorker3)))
+					})
+				})
+
 			})
 		})
 	})
@@ -118,6 +157,7 @@ var _ = Describe("VolumeLocalityPlacementStrategy", func() {
 				logger,
 				workers,
 				spec,
+				metadata,
 			)
 		})
 
@@ -213,6 +253,7 @@ var _ = Describe("VolumeLocalityPlacementStrategy", func() {
 						logger,
 						workers,
 						spec,
+						metadata,
 					)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(chosenWorker).To(SatisfyAny(Equal(compatibleWorkerOneCache1), Equal(compatibleWorkerOneCache2)))
@@ -245,6 +286,7 @@ var _ = Describe("VolumeLocalityPlacementStrategy", func() {
 						logger,
 						workers,
 						spec,
+						metadata,
 					)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(chosenWorker).To(SatisfyAny(Equal(compatibleWorkerNoCaches1), Equal(compatibleWorkerNoCaches2)))
@@ -265,6 +307,7 @@ var _ = Describe("RandomPlacementStrategy", func() {
 				logger,
 				workers,
 				spec,
+				metadata,
 			)
 		})
 
@@ -288,6 +331,7 @@ var _ = Describe("RandomPlacementStrategy", func() {
 					logger,
 					workers,
 					spec,
+					metadata,
 				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(chosenWorker).To(SatisfyAny(Equal(compatibleWorkerNoCaches1), Equal(compatibleWorkerNoCaches2)))
