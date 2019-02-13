@@ -9,6 +9,8 @@ import (
 )
 
 type ContainerPlacementStrategy interface {
+	//TODO: Don't pass around container metadata since it's not guaranteed to be deterministic.
+	// Change this after check containers stop being reused
 	Choose(lager.Logger, []Worker, ContainerSpec, db.ContainerMetadata) (Worker, error)
 }
 
@@ -65,6 +67,7 @@ func (strategy *FewestBuildContainersPlacementStrategy) Choose(logger lager.Logg
 	workersByWork := map[int][]Worker{}
 	var minWork int
 
+	// TODO: we want to remove this in the future when we don't reuse check containers
 	if metadata.Type == db.ContainerTypeCheck {
 		return workers[strategy.rand.Intn(len(workers))], nil
 	}
