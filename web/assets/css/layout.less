@@ -21,71 +21,6 @@ body,
   display: flex;
   flex-direction: column;
 
-  .top-bar {
-    position: fixed;
-    top: 0;
-    height: @top-bar-height;
-    z-index: @user-menu-z-index;
-    left: 0;
-    right: 0;
-    display: flex;
-    flex-direction: row;
-
-    .main {
-      border-right: 1px solid @base02;
-    }
-
-    .topbar-logo {
-      width: unset;
-    }
-
-    .groups {
-      overflow: hidden;
-      font-size: 14px;
-      flex-grow: 1;
-      display: flex;
-      flex-flow: row wrap;
-    }
-
-    .groups li {
-      padding: 0 10px;
-    }
-
-    .groups .nav-item a {
-      max-width: 40vw;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-  }
-
-  .groups-bar {
-    background: #2b2a2a;
-    color: white;
-
-    .groups {
-      flex-grow: 1;
-      display: flex;
-      flex-flow: row wrap;
-      padding: 5px;
-    }
-
-    .groups li a {
-      font-size: 1.2em;
-      opacity: 0.6;
-      background: rgba(151, 151, 151, 0.1);
-      margin: 5px;
-      padding: 10px;
-      border: 1px solid #2b2a2a;
-    }
-
-    .groups li.active a {
-      opacity: 1;
-      background: inherit;
-      border-color: #979797;
-    }
-  }
-
   .bottom {
     flex-grow: 1;
     box-sizing: border-box;
@@ -143,18 +78,6 @@ body,
   top: 50%;
   transform: translate(0, -70%);
   text-align: center;
-}
-
-nav .groups {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-nav .groups li a {
-  display: inline-block;
-  text-decoration: none;
-  font-size: 18px;
 }
 
 .nav-item {

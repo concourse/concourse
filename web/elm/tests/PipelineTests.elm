@@ -15,7 +15,16 @@ import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector as Selector exposing (attribute, class, containing, id, style, tag, text)
+import Test.Html.Selector as Selector
+    exposing
+        ( attribute
+        , class
+        , containing
+        , id
+        , style
+        , tag
+        , text
+        )
 import Time exposing (Time)
 import TopBar.Msgs
 
@@ -35,57 +44,166 @@ it desc expectationFunc model =
 all : Test
 all =
     describe "Pipeline"
-        [ test "view respects selected groups in URL" <|
-            \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = ""
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { href = ""
-                    , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/teams/team/pipelines/pipeline"
-                    , search = "?groups=other-group"
-                    , hash = ""
-                    , username = ""
-                    , password = ""
-                    }
-                    |> Tuple.first
-                    |> Application.handleCallback
-                        (Effects.SubPage 1)
-                        (Callback.PipelineFetched
-                            (Ok
-                                { id = 0
-                                , name = "pipeline"
-                                , paused = False
-                                , public = True
-                                , teamName = "team"
-                                , groups =
-                                    [ { name = "group"
-                                      , jobs = []
-                                      , resources = []
-                                      }
-                                    , { name = "other-group"
-                                      , jobs = []
-                                      , resources = []
-                                      }
-                                    ]
-                                }
+        [ describe "groups" <|
+            let
+                sampleGroups =
+                    [ { name = "group"
+                      , jobs = []
+                      , resources = []
+                      }
+                    , { name = "other-group"
+                      , jobs = []
+                      , resources = []
+                      }
+                    ]
+
+                setupGroupsBar groups =
+                    Application.init
+                        { turbulenceImgSrc = ""
+                        , notFoundImgSrc = ""
+                        , csrfToken = ""
+                        , authToken = ""
+                        , pipelineRunningKeyframes = ""
+                        }
+                        { href = ""
+                        , host = ""
+                        , hostname = ""
+                        , protocol = ""
+                        , origin = ""
+                        , port_ = ""
+                        , pathname = "/teams/team/pipelines/pipeline"
+                        , search = "?groups=other-group"
+                        , hash = ""
+                        , username = ""
+                        , password = ""
+                        }
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Effects.SubPage 1)
+                            (Callback.PipelineFetched
+                                (Ok
+                                    { id = 0
+                                    , name = "pipeline"
+                                    , paused = False
+                                    , public = True
+                                    , teamName = "team"
+                                    , groups = groups
+                                    }
+                                )
                             )
-                        )
-                    |> Tuple.first
-                    |> Application.view
-                    |> Query.fromHtml
-                    |> Query.find [ class "groups-bar" ]
-                    |> Query.find
-                        [ class "main", containing [ text "other-group" ] ]
-                    |> Query.has [ class "active" ]
+                        |> Tuple.first
+                        |> Application.view
+                        |> Query.fromHtml
+            in
+            [ describe "groups bar styling"
+                [ describe "with groups"
+                    [ test "is flush with the bottom of the top bar" <|
+                        \_ ->
+                            setupGroupsBar sampleGroups
+                                |> Query.find [ id "groups-bar" ]
+                                |> Query.has [ style [ ( "margin-top", "54px" ) ] ]
+                    , test "has light text on a dark background" <|
+                        \_ ->
+                            setupGroupsBar sampleGroups
+                                |> Query.find [ id "groups-bar" ]
+                                |> Query.has
+                                    [ style
+                                        [ ( "background-color", "#2b2a2a" )
+                                        , ( "color", "#fff" )
+                                        ]
+                                    ]
+                    , test "lays out groups in a horizontal list" <|
+                        \_ ->
+                            setupGroupsBar sampleGroups
+                                |> Query.find [ id "groups-bar" ]
+                                |> Query.has
+                                    [ style
+                                        [ ( "flex-grow", "1" )
+                                        , ( "display", "flex" )
+                                        , ( "flex-flow", "row wrap" )
+                                        , ( "padding", "5px" )
+                                        ]
+                                    ]
+                    , test "the individual groups are nicely spaced" <|
+                        \_ ->
+                            setupGroupsBar sampleGroups
+                                |> Query.find [ id "groups-bar" ]
+                                |> Query.findAll [ tag "li" ]
+                                |> Query.each
+                                    (Query.has
+                                        [ style
+                                            [ ( "margin", "5px" )
+                                            , ( "padding", "10px" )
+                                            ]
+                                        ]
+                                    )
+                    , test "the individual groups have no list style" <|
+                        \_ ->
+                            setupGroupsBar sampleGroups
+                                |> Query.find [ id "groups-bar" ]
+                                |> Query.has [ style [ ( "list-style", "none" ) ] ]
+                    , test "the individual groups have large text" <|
+                        \_ ->
+                            setupGroupsBar sampleGroups
+                                |> Query.find [ id "groups-bar" ]
+                                |> Query.findAll [ tag "li" ]
+                                |> Query.each
+                                    (Query.has [ style [ ( "font-size", "18px" ) ] ])
+                    , describe "the individual groups should each have a box around them"
+                        [ test "the unselected ones faded" <|
+                            \_ ->
+                                setupGroupsBar sampleGroups
+                                    |> Query.find [ id "groups-bar" ]
+                                    |> Query.findAll [ tag "li" ]
+                                    |> Query.index 0
+                                    |> Query.has
+                                        [ style
+                                            [ ( "opacity", "0.6" )
+                                            , ( "background", "rgba(151, 151, 151, 0.1)" )
+                                            , ( "border", "1px solid #2b2a2a" )
+                                            ]
+                                        ]
+                        , test "the selected ones brighter" <|
+                            \_ ->
+                                setupGroupsBar sampleGroups
+                                    |> Query.find [ id "groups-bar" ]
+                                    |> Query.findAll [ tag "li" ]
+                                    |> Query.index 1
+                                    |> Query.has
+                                        [ style
+                                            [ ( "opacity", "1" )
+                                            , ( "background", "rgba(151, 151, 151, 0.1)" )
+                                            , ( "border", "1px solid #979797" )
+                                            ]
+                                        ]
+                        ]
+                    , test "the individual groups should each have a group name and link" <|
+                        \_ ->
+                            setupGroupsBar sampleGroups
+                                |> Query.find [ id "groups-bar" ]
+                                |> Query.findAll [ tag "li" ]
+                                |> Expect.all
+                                    [ Query.index 0
+                                        >> Query.find [ tag "a" ]
+                                        >> Query.has
+                                            [ text "group"
+                                            , attribute <| Attr.href "/teams/team/pipelines/pipeline?groups=group"
+                                            ]
+                                    , Query.index 1
+                                        >> Query.find [ tag "a" ]
+                                        >> Query.has
+                                            [ text "other-group"
+                                            , attribute <| Attr.href "/teams/team/pipelines/pipeline?groups=other-group"
+                                            ]
+                                    ]
+                    ]
+                , test "with no groups doesn not display groups list" <|
+                    \_ ->
+                        setupGroupsBar []
+                            |> Query.findAll [ id "groups-bar" ]
+                            |> Query.count (Expect.equal 0)
+                ]
+            ]
         , describe "update" <|
             let
                 defaultModel : Pipeline.Model
