@@ -3,7 +3,7 @@ module Dashboard.Msgs exposing (Msg(..), fromDashboardMsg)
 import Concourse.Cli as Cli
 import Dashboard.Models as Models
 import Keyboard
-import NewTopBar.Msgs as NTB
+import TopBar.Msgs as NTB
 import Time
 import Window
 

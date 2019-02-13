@@ -1,9 +1,9 @@
 module FlySuccess.Msgs exposing (Msg(..))
 
-import NewTopBar.Msgs
+import TopBar.Msgs
 
 
 type Msg
     = CopyTokenButtonHover Bool
     | CopyToken
-    | FromTopBar NewTopBar.Msgs.Msg
+    | FromTopBar TopBar.Msgs.Msg

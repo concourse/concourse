@@ -48,7 +48,7 @@ import Json.Decode
 import List.Extra
 import Maybe.Extra
 import Monocle.Optional
-import NewTopBar.Styles as NTBS
+import TopBar.Styles as NTBS
 import Ordering exposing (Ordering)
 import Set
 import Time exposing (Time)

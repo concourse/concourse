@@ -1,5 +1,7 @@
 module JobTests exposing (all)
 
+import Application.Application as Application
+import Application.Msgs as Msgs
 import Callback exposing (Callback(..))
 import Concourse exposing (Build, BuildId, BuildStatus(..), Job)
 import Concourse.Pagination exposing (Direction(..))
@@ -16,10 +18,8 @@ import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Http
-import Job exposing (update)
+import Job.Job as Job exposing (update)
 import Job.Msgs exposing (Msg(..))
-import Layout
-import Msgs
 import RemoteData
 import Routes
 import SubPage.Msgs
@@ -91,9 +91,9 @@ all =
                 init :
                     { disabled : Bool, paused : Bool }
                     -> ()
-                    -> Layout.Model
+                    -> Application.Model
                 init { disabled, paused } _ =
-                    Layout.init
+                    Application.init
                         { turbulenceImgSrc = ""
                         , notFoundImgSrc = ""
                         , csrfToken = ""
@@ -113,7 +113,7 @@ all =
                         , password = ""
                         }
                         |> Tuple.first
-                        |> Layout.handleCallback
+                        |> Application.handleCallback
                             (Effects.SubPage 1)
                             (JobFetched <|
                                 Ok
@@ -154,7 +154,7 @@ all =
             [ describe "while page is loading"
                 [ test "shows two spinners before anything has loaded" <|
                     \_ ->
-                        Layout.init
+                        Application.init
                             { turbulenceImgSrc = ""
                             , notFoundImgSrc = ""
                             , csrfToken = ""
@@ -174,13 +174,13 @@ all =
                             , password = ""
                             }
                             |> Tuple.first
-                            |> Layout.view
+                            |> Application.view
                             |> Query.fromHtml
                             |> Query.findAll loadingIndicatorSelector
                             |> Query.count (Expect.equal 2)
                 , test "loading build has spinners for inputs and outputs" <|
                     init { disabled = False, paused = False }
-                        >> Layout.handleCallback
+                        >> Application.handleCallback
                             (Effects.SubPage 1)
                             (JobBuildsFetched <|
                                 let
@@ -215,7 +215,7 @@ all =
                                     }
                             )
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Expect.all
                             [ Query.find [ class "inputs" ]
@@ -226,7 +226,7 @@ all =
                 ]
             , test "build header lays out contents horizontally" <|
                 init { disabled = False, paused = False }
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ class "build-header" ]
                     >> Query.has
@@ -237,13 +237,13 @@ all =
                         ]
             , test "header has play/pause button at the left" <|
                 init { disabled = False, paused = False }
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ class "build-header" ]
                     >> Query.has [ id "pause-toggle" ]
             , test "play/pause has grey background" <|
                 init { disabled = False, paused = False }
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ id "pause-toggle" ]
                     >> Query.has
@@ -259,10 +259,10 @@ all =
                 , setup =
                     init { disabled = False, paused = False } ()
                 , query =
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "pause-toggle" ]
-                , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey pause icon"
                     , selector =
@@ -295,10 +295,10 @@ all =
                 , setup =
                     init { disabled = False, paused = True } ()
                 , query =
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "pause-toggle" ]
-                , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey play icon"
                     , selector =
@@ -328,7 +328,7 @@ all =
                 }
             , test "trigger build button has grey background" <|
                 init { disabled = False, paused = False }
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find
                         [ attribute <|
@@ -344,7 +344,7 @@ all =
                         ]
             , test "trigger build button has 'plus' icon" <|
                 init { disabled = False, paused = False }
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find
                         [ attribute <|
@@ -363,13 +363,13 @@ all =
                 , setup =
                     init { disabled = False, paused = False } ()
                 , query =
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey plus icon"
                     , selector =
@@ -402,13 +402,13 @@ all =
                 , setup =
                     init { disabled = True, paused = False } ()
                 , query =
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey plus icon"
                     , selector =
@@ -459,7 +459,7 @@ all =
                 }
             , test "inputs icon on build" <|
                 init { disabled = False, paused = False }
-                    >> Layout.handleCallback
+                    >> Application.handleCallback
                         (Effects.SubPage 1)
                         (JobBuildsFetched <|
                             let
@@ -494,7 +494,7 @@ all =
                                 }
                         )
                     >> Tuple.first
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ class "inputs" ]
                     >> Query.children []
@@ -525,7 +525,7 @@ all =
                         ]
             , test "outputs icon on build" <|
                 init { disabled = False, paused = False }
-                    >> Layout.handleCallback
+                    >> Application.handleCallback
                         (Effects.SubPage 1)
                         (JobBuildsFetched <|
                             let
@@ -560,7 +560,7 @@ all =
                                 }
                         )
                     >> Tuple.first
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ class "outputs" ]
                     >> Query.children []
@@ -591,7 +591,7 @@ all =
                         ]
             , test "pagination header lays out horizontally" <|
                 init { disabled = False, paused = False }
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ id "pagination-header" ]
                     >> Query.has
@@ -605,7 +605,7 @@ all =
                         ]
             , test "the word 'builds' is bold and indented" <|
                 init { disabled = False, paused = False }
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ id "pagination-header" ]
                     >> Query.children []
@@ -619,7 +619,7 @@ all =
                         ]
             , test "pagination lays out horizontally" <|
                 init { disabled = False, paused = False }
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ id "pagination" ]
                     >> Query.has
@@ -630,7 +630,7 @@ all =
                         ]
             , test "pagination chevrons with no pages" <|
                 init { disabled = False, paused = False }
-                    >> Layout.handleCallback
+                    >> Application.handleCallback
                         (Effects.SubPage 1)
                         (JobBuildsFetched <|
                             let
@@ -665,7 +665,7 @@ all =
                                 }
                         )
                     >> Tuple.first
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ id "pagination" ]
                     >> Query.children []
@@ -753,7 +753,7 @@ all =
                             }
                     in
                     init { disabled = False, paused = False } ()
-                        |> Layout.handleCallback
+                        |> Application.handleCallback
                             (Effects.SubPage 1)
                             (JobBuildsFetched <|
                                 Ok
@@ -767,12 +767,12 @@ all =
                             )
                         |> Tuple.first
                 , query =
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "pagination" ]
                         >> Query.children []
                         >> Query.index 0
-                , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "white left chevron"
                     , selector =

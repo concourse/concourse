@@ -1,10 +1,10 @@
 module DashboardSearchTests exposing (all)
 
+import Application.Application as Application
+import Application.Msgs as Msgs
 import Dashboard.Msgs
 import Expect exposing (Expectation)
-import Layout
-import Msgs
-import NewTopBar.Msgs
+import TopBar.Msgs
 import SubPage.Msgs
 import Test exposing (Test)
 import Test.Html.Query as Query
@@ -32,7 +32,7 @@ it desc expectationFunc model =
 all : Test
 all =
     describe "dashboard search"
-        (Layout.init
+        (Application.init
             { turbulenceImgSrc = ""
             , notFoundImgSrc = ""
             , csrfToken = ""
@@ -54,44 +54,44 @@ all =
             |> Tuple.first
         )
         [ context "after focusing the search bar"
-            (Layout.update
+            (Application.update
                 (Msgs.SubMsg 1 <|
                     SubPage.Msgs.DashboardMsg <|
                         Dashboard.Msgs.FromTopBar
-                            NewTopBar.Msgs.FocusMsg
+                            TopBar.Msgs.FocusMsg
                 )
                 >> Tuple.first
             )
             [ it "dropdown appears with a 'status:' option" <|
-                Layout.view
+                Application.view
                     >> Query.fromHtml
                     >> Query.find [ id "search-dropdown" ]
                     >> Query.has [ text "status:" ]
             , context "after clicking 'status:' in the dropdown"
-                (Layout.update
+                (Application.update
                     (Msgs.SubMsg 1 <|
                         SubPage.Msgs.DashboardMsg <|
                             Dashboard.Msgs.FromTopBar <|
-                                NewTopBar.Msgs.FilterMsg "status:"
+                                TopBar.Msgs.FilterMsg "status:"
                     )
                     >> Tuple.first
                 )
                 [ it "a 'status: paused' option appears" <|
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "search-dropdown" ]
                         >> Query.has [ text "status: paused" ]
                 , context "after clicking 'status: paused'"
-                    (Layout.update
+                    (Application.update
                         (Msgs.SubMsg 1 <|
                             SubPage.Msgs.DashboardMsg <|
                                 Dashboard.Msgs.FromTopBar <|
-                                    NewTopBar.Msgs.FilterMsg "status: paused"
+                                    TopBar.Msgs.FilterMsg "status: paused"
                         )
                         >> Tuple.first
                     )
                     [ it "the dropdown is gone" <|
-                        Layout.view
+                        Application.view
                             >> Query.fromHtml
                             >> Query.find [ id "search-dropdown" ]
                             >> Query.children []

@@ -1,4 +1,4 @@
-module SubPage exposing
+module SubPage.SubPage exposing
     ( Model(..)
     , handleCallback
     , handleNotFound
@@ -9,21 +9,21 @@ module SubPage exposing
     , view
     )
 
-import Build
+import Build.Build as Build
 import Build.Models
 import Build.Msgs
 import Callback exposing (Callback)
 import Concourse
-import Dashboard
+import Dashboard.Dashboard as Dashboard
 import Effects exposing (Effect)
-import FlySuccess
+import FlySuccess.FlySuccess as FlySuccess
 import Html exposing (Html)
 import Html.Styled as HS
-import Job
+import Job.Job as Job
 import NotFound
-import Pipeline
-import Resource
+import Pipeline.Pipeline as Pipeline
 import Resource.Models
+import Resource.Resource as Resource
 import Routes
 import String
 import SubPage.Msgs exposing (Msg(..))

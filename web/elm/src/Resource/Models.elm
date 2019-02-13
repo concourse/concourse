@@ -13,10 +13,9 @@ module Resource.Models exposing
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Date exposing (Date)
-import NewTopBar.Model
 import Pinned exposing (CommentState, ResourcePinState)
-import Routes
 import Time
+import TopBar.Model
 
 
 type Hoverable
@@ -58,7 +57,7 @@ type alias Model =
     , csrfToken : String
     , showPinBarTooltip : Bool
     , pinIconHover : Bool
-    , topBar : NewTopBar.Model.Model
+    , topBar : TopBar.Model.Model
     , pinCommentLoading : Bool
     , ctrlDown : Bool
     , textAreaFocused : Bool

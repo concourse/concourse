@@ -1,4 +1,4 @@
-module DashboardPreview exposing (view)
+module Dashboard.DashboardPreview exposing (view)
 
 import Concourse
 import Concourse.BuildStatus

@@ -2,7 +2,7 @@ module Pipeline.Msgs exposing (Msg(..))
 
 import Concourse
 import Keyboard
-import NewTopBar.Msgs
+import TopBar.Msgs
 import Time exposing (Time)
 
 
@@ -15,4 +15,4 @@ type Msg
     | PipelineIdentifierFetched Concourse.PipelineIdentifier
     | ToggleGroup Concourse.PipelineGroup
     | SetGroups (List String)
-    | FromTopBar NewTopBar.Msgs.Msg
+    | FromTopBar TopBar.Msgs.Msg

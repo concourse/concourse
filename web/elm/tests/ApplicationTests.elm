@@ -1,6 +1,6 @@
-module LayoutTests exposing (all)
+module ApplicationTests exposing (all)
 
-import Layout
+import Application.Application as Application
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (style)
@@ -11,7 +11,7 @@ all =
     describe "top-level layout"
         [ test "bold and antialiasing on dashboard" <|
             \_ ->
-                Layout.init
+                Application.init
                     { turbulenceImgSrc = ""
                     , notFoundImgSrc = ""
                     , csrfToken = ""
@@ -31,7 +31,7 @@ all =
                     , password = ""
                     }
                     |> Tuple.first
-                    |> Layout.view
+                    |> Application.view
                     |> Query.fromHtml
                     |> Query.has
                         [ style
@@ -41,7 +41,7 @@ all =
                         ]
         , test "bold and antialiasing on resource page" <|
             \_ ->
-                Layout.init
+                Application.init
                     { turbulenceImgSrc = ""
                     , notFoundImgSrc = ""
                     , csrfToken = ""
@@ -61,7 +61,7 @@ all =
                     , password = ""
                     }
                     |> Tuple.first
-                    |> Layout.view
+                    |> Application.view
                     |> Query.fromHtml
                     |> Query.has
                         [ style
@@ -71,7 +71,7 @@ all =
                         ]
         , test "bold and antialiasing everywhere else" <|
             \_ ->
-                Layout.init
+                Application.init
                     { turbulenceImgSrc = ""
                     , notFoundImgSrc = ""
                     , csrfToken = ""
@@ -91,7 +91,7 @@ all =
                     , password = ""
                     }
                     |> Tuple.first
-                    |> Layout.view
+                    |> Application.view
                     |> Query.fromHtml
                     |> Query.has
                         [ style

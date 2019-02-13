@@ -1,4 +1,4 @@
-module Layout exposing
+module Application.Application exposing
     ( Flags
     , Model
     , handleCallback
@@ -9,6 +9,7 @@ module Layout exposing
     , view
     )
 
+import Application.Msgs as Msgs exposing (Msg(..), NavIndex)
 import Build.Msgs
 import Callback exposing (Callback(..))
 import Concourse
@@ -16,14 +17,14 @@ import Dashboard.Msgs
 import Effects exposing (Effect(..), LayoutDispatch(..))
 import Html exposing (Html)
 import Http
-import Msgs exposing (Msg(..), NavIndex)
+import Json.Decode
 import Navigation
-import NewTopBar.Msgs
 import Resource.Msgs
 import Routes
-import SubPage
 import SubPage.Msgs
+import SubPage.SubPage as SubPage
 import Subscription exposing (Subscription(..))
+import TopBar.Msgs
 import UserState exposing (UserState(..))
 
 
@@ -248,7 +249,7 @@ update msg model =
                         (SubMsg model.navIndex <|
                             SubPage.Msgs.DashboardMsg <|
                                 Dashboard.Msgs.FromTopBar <|
-                                    NewTopBar.Msgs.KeyDown keycode
+                                    TopBar.Msgs.KeyDown keycode
                         )
                         model
 

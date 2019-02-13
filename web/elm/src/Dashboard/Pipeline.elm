@@ -5,10 +5,10 @@ module Dashboard.Pipeline exposing
     )
 
 import Concourse.PipelineStatus as PipelineStatus
+import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Models exposing (Pipeline)
 import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
-import DashboardPreview
 import Duration
 import Html exposing (..)
 import Html.Attributes exposing (..)

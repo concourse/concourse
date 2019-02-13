@@ -11,9 +11,9 @@ module Build.Styles exposing
     , triggerTooltip
     )
 
+import Application.Styles
 import Build.Models exposing (StepHeaderType(..))
 import Colors
-import Styles
 
 
 triggerButton : Bool -> List ( String, String )
@@ -158,7 +158,7 @@ firstOccurrenceTooltip =
     , ( "width", "6em" )
     , ( "pointer-events", "none" )
     ]
-        ++ Styles.disableInteraction
+        ++ Application.Styles.disableInteraction
 
 
 firstOccurrenceTooltipArrow : List ( String, String )

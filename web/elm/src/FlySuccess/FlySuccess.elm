@@ -1,4 +1,4 @@
-module FlySuccess exposing
+module FlySuccess.FlySuccess exposing
     ( Model
     , handleCallback
     , init
@@ -24,10 +24,10 @@ import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Html.Styled as HS
-import NewTopBar.Model
-import NewTopBar.Styles
-import NewestTopBar
 import Routes
+import TopBar.Model
+import TopBar.Styles
+import TopBar.TopBar as TopBar
 import UserState exposing (UserState)
 
 
@@ -35,7 +35,7 @@ type alias Model =
     { buttonState : ButtonState
     , authToken : String
     , tokenTransfer : TokenTransfer
-    , topBar : NewTopBar.Model.Model
+    , topBar : TopBar.Model.Model
     }
 
 
@@ -43,7 +43,7 @@ init : { authToken : String, flyPort : Maybe Int } -> ( Model, List Effect )
 init { authToken, flyPort } =
     let
         ( topBar, topBarEffects ) =
-            NewestTopBar.init { route = Routes.FlySuccess { flyPort = flyPort } }
+            TopBar.init { route = Routes.FlySuccess { flyPort = flyPort } }
     in
     ( { buttonState = Unhovered
       , authToken = authToken
@@ -76,7 +76,7 @@ handleCallback msg model =
         _ ->
             let
                 ( newTopBar, topBarEffects ) =
-                    NewestTopBar.handleCallback msg model.topBar
+                    TopBar.handleCallback msg model.topBar
             in
             ( { model | topBar = newTopBar }, topBarEffects )
 
@@ -95,7 +95,7 @@ update msg model =
         FromTopBar msg ->
             let
                 ( newTopBar, topBarEffects ) =
-                    NewestTopBar.update msg model.topBar
+                    TopBar.update msg model.topBar
             in
             ( { model | topBar = newTopBar }, topBarEffects )
 
@@ -104,11 +104,11 @@ view : UserState -> Model -> Html Msg
 view userState model =
     Html.div []
         [ Html.div
-            [ style NewTopBar.Styles.pageIncludingTopBar
+            [ style TopBar.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
-            [ NewestTopBar.view userState NewTopBar.Model.None model.topBar |> HS.toUnstyled |> Html.map FromTopBar
-            , Html.div [ id "page-below-top-bar", style NewTopBar.Styles.pageBelowTopBar ]
+            [ TopBar.view userState TopBar.Model.None model.topBar |> HS.toUnstyled |> Html.map FromTopBar
+            , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ Html.div
                     [ id "success-card"
                     , style Styles.card

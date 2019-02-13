@@ -2,7 +2,7 @@ module Resource.Msgs exposing (Msg(..))
 
 import Concourse.Pagination exposing (Page, Paginated)
 import Keyboard
-import NewTopBar.Msgs
+import TopBar.Msgs
 import Resource.Models as Models
 import Routes
 import Time exposing (Time)
@@ -22,7 +22,7 @@ type Msg
     | PinIconHover Bool
     | Hover Models.Hoverable
     | CheckRequested Bool
-    | TopBarMsg NewTopBar.Msgs.Msg
+    | TopBarMsg TopBar.Msgs.Msg
     | EditComment String
     | SaveComment String
     | FocusTextArea

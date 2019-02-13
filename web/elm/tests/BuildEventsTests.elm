@@ -4,7 +4,7 @@ import Array
 import Build.Models
 import Build.Msgs
 import Build.Output
-import EventSource
+import EventSource.EventSource as EventSource
 import Expect
 import Json.Encode
 import Test exposing (Test, test)

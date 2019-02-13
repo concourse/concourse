@@ -1,4 +1,4 @@
-module Job exposing
+module Job.Job exposing
     ( Flags
     , Model
     , changeToJob
@@ -47,14 +47,14 @@ import Html.Styled as HS
 import Http
 import Job.Msgs exposing (Hoverable(..), Msg(..))
 import LoadingIndicator
-import NewTopBar.Model
-import NewTopBar.Styles
-import NewestTopBar
 import RemoteData exposing (WebData)
 import Routes
 import StrictEvents exposing (onLeftClick)
 import Subscription exposing (Subscription(..))
 import Time exposing (Time)
+import TopBar.Model
+import TopBar.Styles
+import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
 
@@ -68,7 +68,7 @@ type alias Model =
     , now : Time
     , csrfToken : String
     , hovered : Hoverable
-    , topBar : NewTopBar.Model.Model
+    , topBar : TopBar.Model.Model
     }
 
 
@@ -94,7 +94,7 @@ init : Flags -> ( Model, List Effect )
 init flags =
     let
         ( topBar, topBarEffects ) =
-            NewestTopBar.init { route = Routes.Job { id = flags.jobId, page = flags.paging } }
+            TopBar.init { route = Routes.Job { id = flags.jobId, page = flags.paging } }
 
         model =
             { jobIdentifier = flags.jobId
@@ -153,7 +153,7 @@ handleCallback : Callback -> Model -> ( Model, List Effect )
 handleCallback msg model =
     let
         ( newTopBar, topBarEffects ) =
-            NewestTopBar.handleCallback msg model.topBar
+            TopBar.handleCallback msg model.topBar
 
         ( newModel, jobsEffects ) =
             handleCallbackWithoutTopBar msg model
@@ -289,7 +289,7 @@ update action model =
         FromTopBar m ->
             let
                 ( newTopBar, topBarEffects ) =
-                    NewestTopBar.update m model.topBar
+                    TopBar.update m model.topBar
             in
             ( { model | topBar = newTopBar }, topBarEffects )
 
@@ -403,14 +403,14 @@ view : UserState -> Model -> Html Msg
 view userState model =
     Html.div []
         [ Html.div
-            [ style NewTopBar.Styles.pageIncludingTopBar
+            [ style TopBar.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
-            [ NewestTopBar.view userState NewTopBar.Model.None model.topBar
+            [ TopBar.view userState TopBar.Model.None model.topBar
                 |> HS.toUnstyled
                 |> Html.map FromTopBar
             , Html.div
-                [ id "page-below-top-bar", style NewTopBar.Styles.pageBelowTopBar ]
+                [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ viewMainJobsSection model ]
             ]
         ]

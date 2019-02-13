@@ -1,4 +1,4 @@
-module NewestTopBar exposing
+module TopBar.TopBar exposing
     ( Flags
     , handleCallback
     , init
@@ -30,7 +30,7 @@ import Html.Styled.Attributes as HA
         )
 import Html.Styled.Events exposing (..)
 import Http
-import NewTopBar.Model
+import TopBar.Model
     exposing
         ( Dropdown(..)
         , MiddleSection(..)
@@ -38,8 +38,8 @@ import NewTopBar.Model
         , PipelineState(..)
         , isPaused
         )
-import NewTopBar.Msgs exposing (Msg(..))
-import NewTopBar.Styles as Styles
+import TopBar.Msgs exposing (Msg(..))
+import TopBar.Styles as Styles
 import QueryString
 import RemoteData exposing (RemoteData)
 import Routes

@@ -1,4 +1,4 @@
-effect module EventSource where { subscription = MySub } exposing
+effect module EventSource.EventSource where { subscription = MySub } exposing
     ( Msg(..)
     , listen
     )

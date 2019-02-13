@@ -1,10 +1,10 @@
 port module Subscription exposing (Subscription(..), map, runSubscription)
 
 import AnimationFrame
-import EventSource
+import Application.Msgs as Msgs exposing (Msg(..))
+import EventSource.EventSource as EventSource
 import Keyboard
 import Mouse
-import Msgs exposing (Msg(..))
 import Scroll
 import Time
 import Window

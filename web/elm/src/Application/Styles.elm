@@ -1,4 +1,4 @@
-module Styles exposing (disableInteraction)
+module Application.Styles exposing (disableInteraction)
 
 
 disableInteraction : List ( String, String )

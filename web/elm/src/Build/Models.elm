@@ -24,7 +24,7 @@ import Array exposing (Array)
 import Concourse
 import Date exposing (Date)
 import Dict exposing (Dict)
-import NewTopBar.Model
+import TopBar.Model
 import RemoteData exposing (WebData)
 import Routes exposing (Highlight, StepID)
 import Time exposing (Time)
@@ -49,7 +49,7 @@ type alias Model =
     , highlight : Highlight
     , hoveredElement : Maybe Hoverable
     , hoveredCounter : Int
-    , topBar : NewTopBar.Model.Model
+    , topBar : TopBar.Model.Model
     }
 
 

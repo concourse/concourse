@@ -1,4 +1,4 @@
-module Pipeline exposing
+module Pipeline.Pipeline exposing
     ( Flags
     , Model
     , changeToPipelineAndGroups
@@ -23,9 +23,6 @@ import Html.Styled as HS
 import Http
 import Json.Decode
 import Json.Encode
-import NewTopBar.Model
-import NewTopBar.Styles
-import NewestTopBar
 import Pipeline.Msgs exposing (Msg(..))
 import RemoteData exposing (..)
 import Routes
@@ -34,6 +31,9 @@ import Subscription exposing (Subscription(..))
 import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
 import Time exposing (Time)
+import TopBar.Model
+import TopBar.Styles
+import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
 
@@ -51,7 +51,7 @@ type alias Model =
     , selectedGroups : List String
     , hideLegend : Bool
     , hideLegendCounter : Time
-    , topBar : NewTopBar.Model.Model
+    , topBar : TopBar.Model.Model
     }
 
 
@@ -66,7 +66,7 @@ init : Flags -> ( Model, List Effect )
 init flags =
     let
         ( topBar, topBarEffects ) =
-            NewestTopBar.init { route = Routes.Pipeline { id = flags.pipelineLocator, groups = flags.selectedGroups } }
+            TopBar.init { route = Routes.Pipeline { id = flags.pipelineLocator, groups = flags.selectedGroups } }
 
         model =
             { concourseVersion = ""
@@ -131,7 +131,7 @@ handleCallback : Callback -> Model -> ( Model, List Effect )
 handleCallback msg model =
     let
         ( newTopBar, topBarEffects ) =
-            NewestTopBar.handleCallback msg model.topBar
+            TopBar.handleCallback msg model.topBar
 
         ( newModel, pipelineEffects ) =
             handleCallbackWithoutTopBar msg model
@@ -245,7 +245,7 @@ update msg model =
         FromTopBar msg ->
             let
                 ( newTopBar, topBarEffects ) =
-                    NewestTopBar.update msg model.topBar
+                    TopBar.update msg model.topBar
             in
             ( { model | topBar = newTopBar }, topBarEffects )
 
@@ -278,7 +278,7 @@ view : UserState -> Model -> Html Msg
 view userState model =
     let
         pipelineState =
-            NewTopBar.Model.HasPipeline
+            TopBar.Model.HasPipeline
                 { pinnedResources = getPinnedResources model
                 , pipeline = model.pipelineLocator
                 , isPaused = isPaused model.pipeline
@@ -286,10 +286,10 @@ view userState model =
     in
     Html.div [ Html.Attributes.style [ ( "height", "100%" ) ] ]
         [ Html.div
-            [ Html.Attributes.style NewTopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map FromTopBar <| HS.toUnstyled <| NewestTopBar.view userState pipelineState model.topBar
+            [ Html.Attributes.style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
+            [ Html.map FromTopBar <| HS.toUnstyled <| TopBar.view userState pipelineState model.topBar
             , Html.div
-                [ Html.Attributes.style NewTopBar.Styles.pipelinePageBelowTopBar
+                [ Html.Attributes.style TopBar.Styles.pipelinePageBelowTopBar
                 , id "page-below-top-bar"
                 ]
                 [ viewSubPage model ]
