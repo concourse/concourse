@@ -724,8 +724,8 @@ jobs:
       - cbd/versions.yml
       vars:
         deployment_name: concourse-prod
-        web_instances: 2
-        worker_instances: 5
+        web_instances: 3
+        worker_instances: 8
         external_url: "https://ci.concourse-ci.org"
         web_vm_type: web
         db_vm_type: database
