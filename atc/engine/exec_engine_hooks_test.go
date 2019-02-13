@@ -1,6 +1,8 @@
 package engine_test
 
 import (
+	"time"
+
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -17,6 +19,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 	var (
 		fakeFactory         *execfakes.FakeFactory
 		fakeDelegateFactory *enginefakes.FakeBuildDelegateFactory
+		timeout             time.Duration
 
 		execEngine engine.Engine
 
@@ -40,6 +43,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 		execEngine = engine.NewExecEngine(
 			fakeFactory,
 			fakeDelegateFactory,
+			timeout,
 			"http://example.com",
 		)
 

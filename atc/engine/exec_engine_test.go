@@ -19,6 +19,7 @@ var _ = Describe("ExecEngine", func() {
 	var (
 		fakeFactory         *execfakes.FakeFactory
 		fakeDelegateFactory *enginefakes.FakeBuildDelegateFactory
+		defaultStepTimeout  time.Duration
 		logger              *lagertest.TestLogger
 
 		execEngine engine.Engine
@@ -32,7 +33,6 @@ var _ = Describe("ExecEngine", func() {
 	BeforeEach(func() {
 		fakeFactory = new(execfakes.FakeFactory)
 		fakeDelegateFactory = new(enginefakes.FakeBuildDelegateFactory)
-		defaultStepTimeout = time.Duration{}
 		logger = lagertest.NewTestLogger("test")
 
 		execEngine = engine.NewExecEngine(
