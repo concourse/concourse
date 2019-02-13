@@ -73,7 +73,7 @@ func (brt BaseResourceType) create(tx Tx, unique bool) (*UsedBaseResourceType, e
 		Suffix(`
 			ON CONFLICT (name) DO UPDATE SET
 				name = EXCLUDED.name,
-				unique_version_history = EXCLUDED.unique_version_history
+				unique_version_history = EXCLUDED.unique_version_history OR base_resource_types.unique_version_history
 			RETURNING id, unique_version_history
 		`).
 		RunWith(tx).
