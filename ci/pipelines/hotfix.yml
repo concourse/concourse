@@ -23,7 +23,7 @@ resources:
 - name: version
   type: mock
   source:
-    force_version: 4.2.3-rc.2
+    force_version: 4.2.3-rc.3
 
 - name: final-release
   type: s3
@@ -66,13 +66,13 @@ resources:
   type: git
   source:
     uri: https://github.com/concourse/concourse-bosh-deployment.git
-    branch: v4.2.1
+    branch: release/v4.2.3
 
 - name: concourse-bosh-deployment-master
   type: git
   source:
     uri: https://github.com/concourse/concourse-bosh-deployment.git
-    branch: v4.2.1
+    branch: release/v4.2.3
 
 - name: fly-rc
   type: github-release
@@ -295,20 +295,20 @@ jobs:
   - aggregate:
     - get: concourse
       trigger: true
-      passed: [fly-rc]
+      # passed: [fly-rc]
     - get: garden-runc
       trigger: true
-      passed: [fly-rc]
+      # passed: [fly-rc]
     - get: version
       trigger: true
-      passed: [fly-rc]
+      # passed: [fly-rc]
     - get: final-version
       trigger: true
       resource: version
-      passed: [fly-rc]
+      # passed: [fly-rc]
     - get: fly-rc
       trigger: true
-      passed: [fly-rc]
+      # passed: [fly-rc]
       params:
         globs: [fly_*]
     - get: postgres-release
@@ -328,21 +328,21 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [fly-rc]
+      # passed: [fly-rc]
       trigger: true
     - get: version
-      passed: [fly-rc]
+      # passed: [fly-rc]
       trigger: true
     - get: final-version
       resource: version
-      passed: [fly-rc]
+      # passed: [fly-rc]
       trigger: true
     - get: garden-runc
-      passed: [fly-rc]
+      # passed: [fly-rc]
       trigger: true
     - get: fly-rc
       trigger: true
-      passed: [fly-rc]
+      # passed: [fly-rc]
       params:
         globs: [fly_*]
     - get: garden-runc-src
