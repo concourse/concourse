@@ -38,6 +38,50 @@ function redrawFunction(svg, jobs, resources, newUrl) {
       }
     })
 
+    function layoutGraphNode(graphNode, svgNode, isHighlighted) {
+      svgNode.classed({
+        active: isHighlighted
+      })
+      var scaleFactor = isHighlighted ? 1.06 : 1.00;
+
+      var padding = graphNode.padding() * scaleFactor;
+      var textNode = svgNode.select("text").node();
+      var imageNode = svgNode.select("image").node();
+      var height = graphNode.height() * scaleFactor;
+
+      var width;
+      if (textNode && imageNode) {
+        width = textNode.getBBox().width + padding + imageNode.getBBox().width;
+      } else if (textNode) {
+        width = textNode.getBBox().width;
+      } else if (imageNode) {
+        width = imageNode.getBBox().width;
+      } else {
+        width = 0;
+      }
+      width = width + padding * 2;
+
+      svgNode.select("rect")
+        .attr("width", width)
+        .attr("height", height)
+
+      var textX = graphNode.pinned() ? width - padding : width / 2;
+      var textY = height / 2;
+      svgNode.select("text")
+        .attr("x", textX)
+        .attr("y", textY)
+
+      var position = graphNode.position();
+      var deltaX = (width - graphNode.width());
+      var x = position.x - deltaX / 2;
+      var deltaY = (height - graphNode.height());
+      var y = position.y - deltaY / 2;
+
+      svgNode
+        .attr("transform", "translate("+x+", "+y+")")
+    }
+
+
     function highlight(thing) {
       if (!thing.key) {
         return
@@ -55,9 +99,7 @@ function redrawFunction(svg, jobs, resources, newUrl) {
 
       svgNodes.each(function(node) {
         if (node.key == thing.key) {
-          d3.select(this).classed({
-            active: true
-          })
+          layoutGraphNode(node, d3.select(this), true);
         }
       })
     }
@@ -70,7 +112,12 @@ function redrawFunction(svg, jobs, resources, newUrl) {
       currentHighlight = undefined;
 
       svgEdges.classed({ active: false })
-      svgNodes.classed({ active: false })
+
+      svgNodes.each(function(node) {
+        if (node.key == thing.key) {
+          layoutGraphNode(node, d3.select(this), false);
+        }
+      })
     }
 
     var svgNode = svgNodes.enter().append("g")
@@ -265,12 +312,6 @@ var shouldResetPipelineFocus = false;
 function createPipelineSvg(svg) {
   var g = d3.select("g.test")
   if (g.empty()) {
-    svg.append("defs").append("filter")
-      .attr("id", "embiggen")
-      .append("feMorphology")
-      .attr("operator", "dilate")
-      .attr("radius", "4");
-
     g = svg.append("g").attr("class", "test")
     svg.on("mousedown", function() {
       var ev = d3.event;
