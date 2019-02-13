@@ -15,6 +15,7 @@ params:
 inputs:
 - name: concourse
 - name: fly-rc
+- name: endpoint-info
 
 caches:
 - path: concourse/src/github.com/concourse/web/wats/node_modules

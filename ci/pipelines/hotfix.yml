@@ -730,7 +730,8 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [bosh-rc]
+      # TODO : uncomment this :D
+      # passed: [bosh-rc]
       trigger: true
     - get: bosh-rc
       passed: [bosh-rc]
@@ -765,11 +766,8 @@ jobs:
       - concourse-bosh-deployment/cluster/operations/dev-versions.yml
       - concourse-bosh-deployment/cluster/operations/add-local-users.yml
       - concourse-bosh-deployment/cluster/operations/influxdb.yml
-      - concourse-bosh-deployment/cluster/operations/static-web.yml
       vars:
         deployment_name: concourse-wats-4-2-x
-        web_ip: 10.244.19.2
-        external_url: "http://10.244.19.2:8080"
         network_name: test
         web_vm_type: test
         db_vm_type: test
@@ -780,11 +778,18 @@ jobs:
         add_local_users:
         - 'test:$2a$10$iEnPPyINsvif.wytAMgf7.HcForfasqXbbHyNsR5knEcRhjuR4MEW'
         - 'test2:$2a$10$w9ijd0MV6b3LjPlRNlZN/.dYan8aITbJU9Wb1fH0Z8.qgqnEGHEmq'
-  # - task: wats
-  #   file: concourse/ci/tasks/wats.yml
-  #   params:
-  #     ATC_URL: "http://10.244.19.2:8080"
-  #   timeout: 1h
+  - task: discover-bosh-endpoint-info
+    file: concourse/ci/tasks/discover-bosh-endpoint-info.yml
+    params:
+      BOSH_ENVIRONMENT: ((bosh_target))
+      BOSH_CLIENT: ((bosh_client.id))
+      BOSH_CLIENT_SECRET: ((bosh_client.secret))
+      BOSH_DEPLOYMENT: concourse-wats-4-2-x
+      BOSH_INSTANCE_GROUP: concourse
+  - task: wats
+    file: concourse/ci/tasks/wats.yml
+    timeout: 1h
+
   - task: watsjs
     file: concourse/ci/watsjs.yml
     params:
@@ -900,7 +905,6 @@ jobs:
       load: concourse-image-rc
       tag: version/version
       tag_as_latest: true
-
 
 resource_types:
 - name: bosh-io-release

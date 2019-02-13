@@ -1,0 +1,23 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: concourse/unit
+
+inputs:
+- name: concourse
+
+outputs:
+- name: endpoint-info
+
+params:
+  BOSH_ENVIRONMENT:
+  BOSH_CLIENT:
+  BOSH_CLIENT_SECRET:
+  BOSH_DEPLOYMENT:
+  BOSH_INSTANCE_GROUP:
+
+run:
+  path: concourse/ci/scripts/discover-bosh-endpoint-info
