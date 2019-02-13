@@ -1167,7 +1167,7 @@ func (cmd *RunCommand) constructWorkerPool(
 	case "random":
 		strategy = worker.NewRandomPlacementStrategy()
 	case "fewest-build-containers":
-		strategy = worker.NewLeastBuildContainersPlacementStrategy()
+		strategy = worker.NewFewestBuildContainersPlacementStrategy()
 	default:
 		strategy = worker.NewVolumeLocalityPlacementStrategy()
 	}
