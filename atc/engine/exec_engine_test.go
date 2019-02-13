@@ -1,6 +1,8 @@
 package engine_test
 
 import (
+	"time"
+
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -30,11 +32,13 @@ var _ = Describe("ExecEngine", func() {
 	BeforeEach(func() {
 		fakeFactory = new(execfakes.FakeFactory)
 		fakeDelegateFactory = new(enginefakes.FakeBuildDelegateFactory)
+		defaultStepTimeout = time.Duration{}
 		logger = lagertest.NewTestLogger("test")
 
 		execEngine = engine.NewExecEngine(
 			fakeFactory,
 			fakeDelegateFactory,
+			defaultStepTimeout,
 			"http://example.com",
 		)
 	})

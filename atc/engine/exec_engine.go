@@ -232,7 +232,7 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan) exec.Step 
 	}
 
 	// all non-recursive build*() methods after this check
-	_, deadlineSet := ctx.Deadline()
+	_, deadlineSet := build.ctx.Deadline()
 	if build.defaultStepTimeout.Seconds() > 0 && !deadlineSet {
 		return build.buildTimeoutStep(logger, plan)
 	}
