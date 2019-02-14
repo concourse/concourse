@@ -105,7 +105,9 @@ func (s *Scheduler) TriggerImmediately(
 	job db.Job,
 	resources db.Resources,
 	resourceTypes atc.VersionedResourceTypes,
+	instigator string,
 ) (db.Build, Waiter, error) {
+	logger = logger.Session("trigger-immediately", lager.Data{"job_name": job.Name(), "instigator": instigator})
 
 	build, err := job.CreateBuild()
 	if err != nil {

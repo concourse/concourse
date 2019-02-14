@@ -28,6 +28,7 @@ type BuildScheduler interface {
 		job db.Job,
 		resources db.Resources,
 		resourceTypes atc.VersionedResourceTypes,
+		instigator string,
 	) (db.Build, Waiter, error)
 
 	SaveNextInputMapping(logger lager.Logger, job db.Job, resource db.Resources) error
