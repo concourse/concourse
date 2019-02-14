@@ -1,9 +1,9 @@
 module BuildEventsTests exposing (all)
 
 import Array
-import Build.Models
 import Build.Msgs
-import Build.Output
+import Build.Output.Output
+import Build.StepTree.Models
 import EventSource.EventSource as EventSource
 import Expect
 import Json.Encode
@@ -33,7 +33,7 @@ all : Test
 all =
     test "parseMsg can handle many events, i.e. should use tail recursion" <|
         \_ ->
-            Build.Output.parseMsg
+            Build.Output.Output.parseMsg
                 (EventSource.Events <|
                     Array.fromList <|
                         List.repeat 3000
@@ -49,7 +49,7 @@ all =
                                 List.repeat
                                     3000
                                 <|
-                                    Build.Models.Log
+                                    Build.StepTree.Models.Log
                                         { source = "stdout", id = "stepid" }
                                         "log message"
                                         Nothing

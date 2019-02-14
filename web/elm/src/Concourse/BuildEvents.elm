@@ -11,7 +11,7 @@ module Concourse.BuildEvents exposing
     )
 
 import Array exposing (Array)
-import Build.Models exposing (BuildEvent(..), Origin)
+import Build.StepTree.Models exposing (BuildEvent(..), Origin)
 import Concourse
 import Date exposing (Date)
 import Dict exposing (Dict)

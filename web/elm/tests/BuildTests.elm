@@ -6,6 +6,7 @@ import Array
 import Build.Build as Build
 import Build.Models as Models
 import Build.Msgs
+import Build.StepTree.Models as TreeModels
 import Callback
 import Char
 import Concourse exposing (BuildPrepStatus(..))
@@ -226,11 +227,11 @@ all =
                                     Build.Msgs.Events <|
                                         Ok <|
                                             Array.fromList
-                                                [ Models.StartTask
+                                                [ TreeModels.StartTask
                                                     { source = "stdout"
                                                     , id = "stepid"
                                                     }
-                                                , Models.Log
+                                                , TreeModels.Log
                                                     { source = "stdout"
                                                     , id = "stepid"
                                                     }
@@ -1208,7 +1209,7 @@ all =
                                 Build.Msgs.Events <|
                                     Ok <|
                                         Array.fromList
-                                            [ Models.FinishGet
+                                            [ TreeModels.FinishGet
                                                 { source = "stdout", id = "plan" }
                                                 0
                                                 Dict.empty
@@ -1237,7 +1238,7 @@ all =
                                 Build.Msgs.Events <|
                                     Ok <|
                                         Array.fromList
-                                            [ Models.FinishGet
+                                            [ TreeModels.FinishGet
                                                 { source = "stdout", id = "plan" }
                                                 0
                                                 (Dict.fromList [ ( "version", "v3.1.4" ) ])
@@ -1258,7 +1259,7 @@ all =
                                 Build.Msgs.Events <|
                                     Ok <|
                                         Array.fromList
-                                            [ Models.StartTask
+                                            [ TreeModels.StartTask
                                                 { source = "stdout"
                                                 , id = "plan"
                                                 }
@@ -1286,7 +1287,7 @@ all =
                                 Build.Msgs.Events <|
                                     Ok <|
                                         Array.fromList
-                                            [ Models.FinishGet
+                                            [ TreeModels.FinishGet
                                                 { source = "stdout", id = "plan" }
                                                 1
                                                 Dict.empty
@@ -1315,7 +1316,7 @@ all =
                                 Build.Msgs.Events <|
                                     Ok <|
                                         Array.fromList
-                                            [ Models.Error
+                                            [ TreeModels.Error
                                                 { source = "stderr", id = "plan" }
                                                 "error message"
                                             ]
@@ -1349,7 +1350,7 @@ all =
                                     Build.Msgs.Events <|
                                         Ok <|
                                             Array.fromList
-                                                [ Models.BuildError
+                                                [ TreeModels.BuildError
                                                     "error message"
                                                 ]
                                 )

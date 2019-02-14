@@ -14,11 +14,11 @@ import Build.Models as Models
         ( BuildPageType(..)
         , Hoverable(..)
         , Model
-        , OutputModel
         )
 import Build.Msgs exposing (Msg(..), fromBuildMessage)
-import Build.Output
-import Build.StepTree as StepTree
+import Build.Output.Models exposing (OutputModel)
+import Build.Output.Output
+import Build.StepTree.StepTree as StepTree
 import Build.Styles as Styles
 import BuildDuration
 import Callback exposing (Callback(..))
@@ -136,7 +136,7 @@ subscriptions model =
         |> RemoteData.toMaybe
         |> Maybe.andThen .output
         |> Maybe.andThen .events
-        |> Maybe.map Build.Output.subscribeToEvents
+        |> Maybe.map Build.Output.Output.subscribeToEvents
         |> WhenPresent
     ]
 
@@ -254,7 +254,7 @@ handleCallbackWithoutTopBar action model =
                 ( model, [] )
 
         PlanAndResourcesFetched buildId result ->
-            updateOutput (Build.Output.planAndResourcesFetched buildId result) model
+            updateOutput (Build.Output.Output.planAndResourcesFetched buildId result) model
 
         BuildHistoryFetched (Err err) ->
             flip always (Debug.log "failed to fetch build history" err) <|
@@ -300,7 +300,7 @@ updateWithoutTopBar action model =
                     { model | hoveredElement = state, hoveredCounter = 0 }
             in
             updateOutput
-                (Build.Output.handleStepTreeMsg <|
+                (Build.Output.Output.handleStepTreeMsg <|
                     StepTree.updateTooltip newModel
                 )
                 newModel
@@ -317,26 +317,26 @@ updateWithoutTopBar action model =
             ( model, [ DoAbortBuild buildId model.csrfToken ] )
 
         BuildEventsMsg action ->
-            updateOutput (Build.Output.handleEventsMsg action) model
+            updateOutput (Build.Output.Output.handleEventsMsg action) model
 
         ToggleStep id ->
             updateOutput
-                (Build.Output.handleStepTreeMsg <| StepTree.toggleStep id)
+                (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStep id)
                 model
 
         SwitchTab id tab ->
             updateOutput
-                (Build.Output.handleStepTreeMsg <| StepTree.switchTab id tab)
+                (Build.Output.Output.handleStepTreeMsg <| StepTree.switchTab id tab)
                 model
 
         SetHighlight id line ->
             updateOutput
-                (Build.Output.handleStepTreeMsg <| StepTree.setHighlight id line)
+                (Build.Output.Output.handleStepTreeMsg <| StepTree.setHighlight id line)
                 model
 
         ExtendHighlight id line ->
             updateOutput
-                (Build.Output.handleStepTreeMsg <| StepTree.extendHighlight id line)
+                (Build.Output.Output.handleStepTreeMsg <| StepTree.extendHighlight id line)
                 model
 
         RevealCurrentBuildInHistory ->
@@ -358,7 +358,7 @@ updateWithoutTopBar action model =
                     }
             in
             updateOutput
-                (Build.Output.handleStepTreeMsg <|
+                (Build.Output.Output.handleStepTreeMsg <|
                     StepTree.updateTooltip newModel
                 )
                 newModel
@@ -424,7 +424,7 @@ getScrollBehavior model =
 
 
 updateOutput :
-    (OutputModel -> ( OutputModel, List Effect, Build.Output.OutMsg ))
+    (OutputModel -> ( OutputModel, List Effect, Build.Output.Output.OutMsg ))
     -> Model
     -> ( Model, List Effect )
 updateOutput updater model =
@@ -641,7 +641,7 @@ initBuildOutput : Concourse.Build -> Model -> ( Model, List Effect )
 initBuildOutput build model =
     let
         ( output, outputCmd ) =
-            Build.Output.init { highlight = model.highlight } build
+            Build.Output.Output.init { highlight = model.highlight } build
     in
     ( { model
         | currentBuild =
@@ -885,7 +885,7 @@ viewBuildOutput : Concourse.Build -> Maybe OutputModel -> Html Msg
 viewBuildOutput build output =
     case output of
         Just o ->
-            Build.Output.view build o
+            Build.Output.Output.view build o
 
         Nothing ->
             Html.div [] []
@@ -1177,13 +1177,13 @@ durationTitle date content =
     Html.div [ title (Date.Format.format "%b" date) ] content
 
 
-handleOutMsg : Build.Output.OutMsg -> Model -> ( Model, List Effect )
+handleOutMsg : Build.Output.Output.OutMsg -> Model -> ( Model, List Effect )
 handleOutMsg outMsg model =
     case outMsg of
-        Build.Output.OutNoop ->
+        Build.Output.Output.OutNoop ->
             ( model, [] )
 
-        Build.Output.OutBuildStatus status date ->
+        Build.Output.Output.OutBuildStatus status date ->
             case model.currentBuild |> RemoteData.toMaybe of
                 Nothing ->
                     ( model, [] )
