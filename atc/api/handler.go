@@ -23,7 +23,6 @@ import (
 	"github.com/concourse/concourse/atc/api/workerserver"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/gc"
 	"github.com/concourse/concourse/atc/mainredirect"
 	"github.com/concourse/concourse/atc/worker"
@@ -53,11 +52,8 @@ func NewHandler(
 	eventHandlerFactory buildserver.EventHandlerFactory,
 	drain <-chan struct{},
 
-	engine engine.Engine,
 	workerClient worker.Client,
-	workerProvider worker.WorkerProvider,
 
-	schedulerFactory jobserver.SchedulerFactory,
 	scannerFactory resourceserver.ScannerFactory,
 
 	sink *lager.ReconfigurableSink,
@@ -81,14 +77,14 @@ func NewHandler(
 	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger)
 	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, dbTeamFactory)
 
-	buildServer := buildserver.NewServer(logger, externalURL, peerURL, engine, dbTeamFactory, dbBuildFactory, eventHandlerFactory, drain)
-	jobServer := jobserver.NewServer(logger, schedulerFactory, externalURL, variablesFactory, dbJobFactory)
+	buildServer := buildserver.NewServer(logger, externalURL, peerURL, dbTeamFactory, dbBuildFactory, eventHandlerFactory, drain)
+	jobServer := jobserver.NewServer(logger, externalURL, variablesFactory, dbJobFactory)
 	resourceServer := resourceserver.NewServer(logger, scannerFactory, variablesFactory, dbResourceFactory, dbResourceConfigFactory)
 	versionServer := versionserver.NewServer(logger, externalURL)
-	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL, engine)
+	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL)
 	configServer := configserver.NewServer(logger, dbTeamFactory, variablesFactory)
 	ccServer := ccserver.NewServer(logger, dbTeamFactory, externalURL)
-	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory, workerProvider)
+	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory)
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
 	containerServer := containerserver.NewServer(logger, workerClient, variablesFactory, interceptTimeoutFactory, containerRepository, destroyer)

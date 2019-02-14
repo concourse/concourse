@@ -974,10 +974,6 @@ var _ = Describe("Containers API", func() {
 			It("returns 401 Unauthorized", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
-
-			It("does not hijack the build", func() {
-				Expect(fakeEngine.LookupBuildCallCount()).To(BeZero())
-			})
 		})
 	})
 

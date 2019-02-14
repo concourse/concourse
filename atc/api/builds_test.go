@@ -13,7 +13,6 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/engine/enginefakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -1282,15 +1281,10 @@ var _ = Describe("Builds API", func() {
 		})
 
 		Context("when the build is found", func() {
-			var engineBuild *enginefakes.FakeBuild
-
 			BeforeEach(func() {
 				build.JobNameReturns("job1")
 				build.TeamNameReturns("some-team")
 				dbBuildFactory.BuildReturns(build, true, nil)
-
-				engineBuild = new(enginefakes.FakeBuild)
-				fakeEngine.LookupBuildReturns(engineBuild, nil)
 			})
 
 			Context("when authenticated, but not authorized", func() {

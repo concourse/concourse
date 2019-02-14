@@ -10,25 +10,21 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/concourse/concourse/atc/api"
 	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/atc/api/containerserver/containerserverfakes"
+	"github.com/concourse/concourse/atc/api/resourceserver/resourceserverfakes"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/gc/gcfakes"
-
-	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
-	"github.com/concourse/concourse/atc/api/containerserver/containerserverfakes"
-	"github.com/concourse/concourse/atc/api/jobserver/jobserverfakes"
-	"github.com/concourse/concourse/atc/api/resourceserver/resourceserverfakes"
-	"github.com/concourse/concourse/atc/engine/enginefakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/atc/wrappa"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var (
@@ -36,9 +32,7 @@ var (
 
 	externalURL = "https://example.com"
 
-	fakeEngine              *enginefakes.FakeEngine
 	fakeWorkerClient        *workerfakes.FakeClient
-	fakeWorkerProvider      *workerfakes.FakeWorkerProvider
 	fakeVolumeRepository    *dbfakes.FakeVolumeRepository
 	fakeContainerRepository *dbfakes.FakeContainerRepository
 	fakeDestroyer           *gcfakes.FakeDestroyer
@@ -54,7 +48,6 @@ var (
 	build                   *dbfakes.FakeBuild
 	dbBuildFactory          *dbfakes.FakeBuildFactory
 	dbTeam                  *dbfakes.FakeTeam
-	fakeSchedulerFactory    *jobserverfakes.FakeSchedulerFactory
 	fakeScannerFactory      *resourceserverfakes.FakeScannerFactory
 	fakeVariablesFactory    *credsfakes.FakeVariablesFactory
 	credsManagers           creds.Managers
@@ -121,11 +114,8 @@ var _ = BeforeEach(func() {
 
 	drain = make(chan struct{})
 
-	fakeEngine = new(enginefakes.FakeEngine)
 	fakeWorkerClient = new(workerfakes.FakeClient)
-	fakeWorkerProvider = new(workerfakes.FakeWorkerProvider)
 
-	fakeSchedulerFactory = new(jobserverfakes.FakeSchedulerFactory)
 	fakeScannerFactory = new(resourceserverfakes.FakeScannerFactory)
 
 	fakeVolumeRepository = new(dbfakes.FakeVolumeRepository)
@@ -186,11 +176,8 @@ var _ = BeforeEach(func() {
 		constructedEventHandler.Construct,
 		drain,
 
-		fakeEngine,
 		fakeWorkerClient,
-		fakeWorkerProvider,
 
-		fakeSchedulerFactory,
 		fakeScannerFactory,
 
 		sink,
