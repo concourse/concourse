@@ -23,7 +23,7 @@ resources:
 - name: version
   type: mock
   source:
-    force_version: 4.2.3-rc.6
+    force_version: 4.2.3-rc.8
 
 - name: final-release
   type: s3
@@ -181,90 +181,90 @@ resources:
     password: ((docker.password))
 
 jobs:
-- name: fly
-  public: true
-  plan:
-  - get: concourse
-    trigger: true
-  - aggregate:
-    - task: linux
-      file: concourse/ci/fly-linux.yml
-    - task: darwin
-      file: concourse/ci/fly-darwin.yml
-    - task: windows
-      file: concourse/ci/fly-windows.yml
+# - name: fly
+#   public: true
+#   plan:
+#   - get: concourse
+#     trigger: true
+#   - aggregate:
+#     - task: linux
+#       file: concourse/ci/fly-linux.yml
+#     - task: darwin
+#       file: concourse/ci/fly-darwin.yml
+#     - task: windows
+#       file: concourse/ci/fly-windows.yml
 
-- name: go-concourse
-  public: true
-  plan:
-  - get: concourse
-    trigger: true
-  - task: go-unit
-    file: concourse/ci/go-concourse.yml
+# - name: go-concourse
+#   public: true
+#   plan:
+#   - get: concourse
+#     trigger: true
+#   - task: go-unit
+#     file: concourse/ci/go-concourse.yml
 
-- name: worker
-  public: true
-  plan:
-  - get: concourse
-    trigger: true
-  - task: go-unit
-    file: concourse/ci/worker.yml
+# - name: worker
+#   public: true
+#   plan:
+#   - get: concourse
+#     trigger: true
+#   - task: go-unit
+#     file: concourse/ci/worker.yml
 
-- name: atc
-  public: true
-  serial: true
-  plan:
-  - get: concourse
-    trigger: true
-  - task: go-unit
-    file: concourse/ci/atc-go.yml
-    privileged: true
+# - name: atc
+#   public: true
+#   serial: true
+#   plan:
+#   - get: concourse
+#     trigger: true
+#   - task: go-unit
+#     file: concourse/ci/atc-go.yml
+#     privileged: true
 
-- name: baggageclaim
-  public: true
-  serial: true
-  plan:
-  - get: concourse
-    trigger: true
-  - task: build
-    privileged: true
-    file: concourse/ci/baggageclaim.yml
+# - name: baggageclaim
+#   public: true
+#   serial: true
+#   plan:
+#   - get: concourse
+#     trigger: true
+#   - task: build
+#     privileged: true
+#     file: concourse/ci/baggageclaim.yml
 
-- name: skymarshal
-  public: true
-  serial: true
-  plan:
-  - get: concourse
-    trigger: true
-  - task: build
-    file: concourse/ci/skymarshal.yml
+# - name: skymarshal
+#   public: true
+#   serial: true
+#   plan:
+#   - get: concourse
+#     trigger: true
+#   - task: build
+#     file: concourse/ci/skymarshal.yml
 
-- name: web
-  public: true
-  serial: true
-  plan:
-  - get: concourse
-    trigger: true
-  - aggregate:
-    - task: build
-      file: concourse/ci/web.yml
-    - task: elm-unit
-      file: concourse/ci/atc-elm.yml
+# - name: web
+#   public: true
+#   serial: true
+#   plan:
+#   - get: concourse
+#     trigger: true
+#   - aggregate:
+#     - task: build
+#       file: concourse/ci/web.yml
+#     - task: elm-unit
+#       file: concourse/ci/atc-elm.yml
 
-- name: tsa
-  public: true
-  plan:
-  - get: concourse
-    trigger: true
-  - task: build
-    file: concourse/ci/tsa.yml
+# - name: tsa
+#   public: true
+#   plan:
+#   - get: concourse
+#     trigger: true
+#   - task: build
+#     file: concourse/ci/tsa.yml
 
 - name: fly-rc
   public: true
   plan:
   - get: concourse
     trigger: true
-    passed: [atc, fly, go-concourse, tsa, baggageclaim, skymarshal, web, worker]
+    # passed: [atc, fly, go-concourse, tsa, baggageclaim, skymarshal, web, worker]
   - get: version
     trigger: true
   - get: final-version
@@ -765,11 +765,9 @@ jobs:
   - task: wats
     file: concourse/ci/wats.yml
     timeout: 1h
-
   - task: watsjs
     file: concourse/ci/watsjs.yml
     params:
-      ATC_URL: "http://10.244.19.2:8080"
       ATC_USERNAME: "test"
       ATC_PASSWORD: "test"
     timeout: 1h

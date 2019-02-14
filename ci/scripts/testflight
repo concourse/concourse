@@ -3,7 +3,7 @@
 
 set -e
 
-readonly ATC_URL=${ATC_URL:-http://$(cat ./endpoint-info/instance-ip):8080}
+readonly ATC_URL=${ATC_URL:-http://$(cat ./endpoint-info/instance_ip):8080}
 
 export GOPATH=${PWD}/concourse
 export PATH=${PWD}/concourse/bin:$PATH

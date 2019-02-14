@@ -3,7 +3,7 @@
 
 set -e -x
 
-readonly WEB_IP=${WEB_IP:-$(cat ./endpoint-info/instance-ip)}
+readonly WEB_IP=${WEB_IP:-$(cat ./endpoint-info/instance_ip)}
 
 test -n "$WEB_IP"
 test -n "$WEB_USERNAME"
