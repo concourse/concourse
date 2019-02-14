@@ -9,7 +9,7 @@ export PATH=${PWD}/concourse/bin:$PATH
 export GEM_HOME=${PWD}/gems
 export BUNDLE_PATH=${PWD}/gems
 
-export ATC_URL=$(cat endpoint-info/instance_ip)
+export ATC_URL=http://$(cat endpoint-info/instance_ip)
 
 go install github.com/concourse/fly
 

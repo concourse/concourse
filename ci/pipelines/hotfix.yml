@@ -23,7 +23,7 @@ resources:
 - name: version
   type: mock
   source:
-    force_version: 4.2.3-rc.3
+    force_version: 4.2.3-rc.5
 
 - name: final-release
   type: s3
@@ -60,7 +60,6 @@ resources:
   type: bosh-io-stemcell
   source:
     name: bosh-google-kvm-ubuntu-xenial-go_agent
-    version_family: "97.16"
 
 - name: concourse-bosh-deployment
   type: git
@@ -765,8 +764,8 @@ jobs:
       ops_files:
       - concourse-bosh-deployment/cluster/operations/dev-versions.yml
       - concourse-bosh-deployment/cluster/operations/add-local-users.yml
-      - concourse-bosh-deployment/cluster/operations/influxdb.yml
       vars:
+        external_url: ~
         deployment_name: concourse-wats-4-2-x
         network_name: test
         web_vm_type: test
@@ -779,15 +778,15 @@ jobs:
         - 'test:$2a$10$iEnPPyINsvif.wytAMgf7.HcForfasqXbbHyNsR5knEcRhjuR4MEW'
         - 'test2:$2a$10$w9ijd0MV6b3LjPlRNlZN/.dYan8aITbJU9Wb1fH0Z8.qgqnEGHEmq'
   - task: discover-bosh-endpoint-info
-    file: concourse/ci/tasks/discover-bosh-endpoint-info.yml
+    file: concourse/ci/discover-bosh-endpoint-info.yml
     params:
       BOSH_ENVIRONMENT: ((bosh_target))
       BOSH_CLIENT: ((bosh_client.id))
       BOSH_CLIENT_SECRET: ((bosh_client.secret))
       BOSH_DEPLOYMENT: concourse-wats-4-2-x
-      BOSH_INSTANCE_GROUP: concourse
+      BOSH_INSTANCE_GROUP: web
   - task: wats
-    file: concourse/ci/tasks/wats.yml
+    file: concourse/ci/wats.yml
     timeout: 1h
 
   - task: watsjs
