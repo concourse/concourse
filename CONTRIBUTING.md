@@ -38,13 +38,14 @@ on.
 
 ## Development dependencies
 
-You'll need a few things installed in order to build and run Concourse during
+You'll need a few things installed in order to build, test and run Concourse during
 development:
 
 * [`go`](https://golang.org/dl/) v1.11.4+
 * [`git`](https://git-scm.com/) v2.11+
 * [`yarn`](https://yarnpkg.com/en/docs/install)
 * [`docker-compose`](https://docs.docker.com/compose/install/)
+* [`postgresql`](https://www.postgresql.org/download/)
 
 > *Concourse uses Go 1.11's module system, so make sure it's **not** cloned
 > under your `$GOPATH`.*
