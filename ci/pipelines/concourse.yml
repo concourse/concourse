@@ -1155,6 +1155,14 @@ resources:
     client_secret: ((bosh_client.secret))
     deployment: concourse-prod
 
+- name: wings-deployment
+  type: bosh-deployment
+  source:
+    target: ((bosh_target))
+    client: ((bosh_client.id))
+    client_secret: ((bosh_client.secret))
+    deployment: concourse-wings
+
 - name: gcp-xenial-stemcell
   type: bosh-io-stemcell
   source:
