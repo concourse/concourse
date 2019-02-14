@@ -15,6 +15,7 @@ type Access interface {
 	IsSystem() bool
 	TeamNames() []string
 	CSRFToken() string
+	UserName() string
 }
 
 type access struct {
@@ -109,6 +110,17 @@ func (a *access) CSRFToken() string {
 		if csrfTokenClaim, ok := claims["csrf"]; ok {
 			if csrfToken, ok := csrfTokenClaim.(string); ok {
 				return csrfToken
+			}
+		}
+	}
+	return ""
+}
+
+func (a *access) UserName() string {
+	if claims, ok := a.Token.Claims.(jwt.MapClaims); ok {
+		if userName, ok := claims["user_name"]; ok {
+			if userName, ok := userName.(string); ok {
+				return userName
 			}
 		}
 	}
