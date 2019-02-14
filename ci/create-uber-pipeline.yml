@@ -9,6 +9,7 @@ image_resource:
 inputs:
 - name: concourse
 - name: fly-rc
+- name: endpoint-info
 
 params:
   WEB_IP:

@@ -16,6 +16,8 @@ params:
 
 inputs:
   - name: concourse
+  - name: endpoint-info
+    optional: true
 
 run:
   path: concourse/ci/scripts/testflight

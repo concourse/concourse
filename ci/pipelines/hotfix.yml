@@ -23,7 +23,7 @@ resources:
 - name: version
   type: mock
   source:
-    force_version: 4.2.3-rc.5
+    force_version: 4.2.3-rc.6
 
 - name: final-release
   type: s3
@@ -294,20 +294,20 @@ jobs:
   - aggregate:
     - get: concourse
       trigger: true
-      # passed: [fly-rc]
+      passed: [fly-rc]
     - get: garden-runc
       trigger: true
-      # passed: [fly-rc]
+      passed: [fly-rc]
     - get: version
       trigger: true
-      # passed: [fly-rc]
+      passed: [fly-rc]
     - get: final-version
       trigger: true
       resource: version
-      # passed: [fly-rc]
+      passed: [fly-rc]
     - get: fly-rc
       trigger: true
-      # passed: [fly-rc]
+      passed: [fly-rc]
       params:
         globs: [fly_*]
     - get: postgres-release
@@ -327,21 +327,21 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      # passed: [fly-rc]
+      passed: [fly-rc]
       trigger: true
     - get: version
-      # passed: [fly-rc]
+      passed: [fly-rc]
       trigger: true
     - get: final-version
       resource: version
-      # passed: [fly-rc]
+      passed: [fly-rc]
       trigger: true
     - get: garden-runc
-      # passed: [fly-rc]
+      passed: [fly-rc]
       trigger: true
     - get: fly-rc
       trigger: true
-      # passed: [fly-rc]
+      passed: [fly-rc]
       params:
         globs: [fly_*]
     - get: garden-runc-src
@@ -532,20 +532,25 @@ jobs:
       ops_files:
       - concourse-bosh-deployment-master/cluster/operations/dev-versions.yml
       - concourse-bosh-deployment-master/cluster/operations/default-test-user.yml
-      - concourse-bosh-deployment-master/cluster/operations/static-web.yml
       vars:
+        db_persistent_disk_type: small
+        db_vm_type: test
         deployment_name: concourse-test-upgrade-4-2-x
-        web_ip: 10.244.16.2
-        external_url: "http://10.244.16.2:8080"
+        external_url: ~
         network_name: test
         web_vm_type: test
-        db_vm_type: test
         worker_vm_type: test
-        db_persistent_disk_type: small
+  - task: discover-bosh-endpoint-info
+    file: concourse/ci/discover-bosh-endpoint-info.yml
+    params:
+      BOSH_ENVIRONMENT: ((bosh_target))
+      BOSH_CLIENT: ((bosh_client.id))
+      BOSH_CLIENT_SECRET: ((bosh_client.secret))
+      BOSH_DEPLOYMENT: concourse-test-upgrade-4-2-x
+      BOSH_INSTANCE_GROUP: web
   - task: create-test-pipeline
     file: concourse/ci/create-uber-pipeline.yml
     params:
-      WEB_IP: 10.244.16.2
       WEB_USERNAME: "test"
       WEB_PASSWORD: "test"
       PIPELINE_NAME: test-pipeline
@@ -561,27 +566,23 @@ jobs:
       ops_files:
       - concourse-bosh-deployment/cluster/operations/dev-versions.yml
       - concourse-bosh-deployment/cluster/operations/default-test-user.yml
-      - concourse-bosh-deployment/cluster/operations/static-web.yml
       vars:
+        db_persistent_disk_type: small
+        db_vm_type: test
         deployment_name: concourse-test-upgrade-4-2-x
-        web_ip: 10.244.16.2
-        external_url: "http://10.244.16.2:8080"
+        external_url: ~
         network_name: test
         web_vm_type: test
-        db_vm_type: test
         worker_vm_type: test
-        db_persistent_disk_type: small
   - task: verify-test-pipeline
     file: concourse/ci/verify-uber-pipeline.yml
     params:
-      WEB_IP: 10.244.16.2
       WEB_USERNAME: "test"
       WEB_PASSWORD: "test"
       PIPELINE_NAME: test-pipeline
   - task: testflight
     file: concourse/ci/testflight.yml
     params:
-      ATC_URL: "http://10.244.16.2:8080"
       ATC_USERNAME: "test"
       ATC_PASSWORD: "test"
     timeout: 1h
@@ -635,20 +636,25 @@ jobs:
       ops_files:
       - concourse-bosh-deployment/cluster/operations/dev-versions.yml
       - concourse-bosh-deployment/cluster/operations/default-test-user.yml
-      - concourse-bosh-deployment/cluster/operations/static-web.yml
       vars:
         deployment_name: concourse-test-downgrade-4-2-x
-        web_ip: 10.244.17.2
-        external_url: "http://10.244.17.2:8080"
+        external_url: ~
         network_name: test
         web_vm_type: test
         db_vm_type: test
         worker_vm_type: test
         db_persistent_disk_type: small
+  - task: discover-bosh-endpoint-info
+    file: concourse/ci/discover-bosh-endpoint-info.yml
+    params:
+      BOSH_ENVIRONMENT: ((bosh_target))
+      BOSH_CLIENT: ((bosh_client.id))
+      BOSH_CLIENT_SECRET: ((bosh_client.secret))
+      BOSH_DEPLOYMENT: concourse-test-downgrade-4-2-x
+      BOSH_INSTANCE_GROUP: web
   - task: create-test-pipeline
     file: concourse/ci/create-uber-pipeline.yml
     params:
-      WEB_IP: 10.244.17.2
       WEB_USERNAME: "test"
       WEB_PASSWORD: "test"
       PIPELINE_NAME: test-pipeline
@@ -665,11 +671,9 @@ jobs:
         ops_files:
         - concourse-bosh-deployment-master/cluster/operations/dev-versions.yml
         - concourse-bosh-deployment-master/cluster/operations/default-test-user.yml
-        - concourse-bosh-deployment-master/cluster/operations/static-web.yml
         vars:
           deployment_name: concourse-test-downgrade-4-2-x
-          web_ip: 10.244.17.2
-          external_url: "http://10.244.17.2:8080"
+          external_url: ~
           network_name: test
           web_vm_type: test
           db_vm_type: test
@@ -688,38 +692,12 @@ jobs:
   - task: verify-test-pipeline
     file: concourse/ci/verify-uber-pipeline.yml
     params:
-      WEB_IP: 10.244.17.2
       WEB_USERNAME: "test"
       WEB_PASSWORD: "test"
       PIPELINE_NAME: test-pipeline
-  - task: get-final-release-concourse-repo
-    config:
-      platform: linux
-      image_resource:
-        type: registry-image
-        source:
-          repository: concourse/atc-ci
-      inputs:
-        - name: final-release
-        - name: concourse
-      outputs:
-        - name: final-release-concourse
-      run:
-        path: bash
-        args:
-        - -c
-        - |
-          set -x
-          version=$(cat final-release/version)
-          pushd concourse
-          git checkout tags/v${version} && git submodule update --init --recursive
-          popd
-          cp -r concourse/* final-release-concourse/
   - task: testflight
-    file: final-release-concourse/ci/testflight.yml
-    input_mapping: {concourse: final-release-concourse}
+    file: concourse/ci/testflight.yml
     params:
-      ATC_URL: "http://10.244.17.2:8080"
       ATC_USERNAME: "test"
       ATC_PASSWORD: "test"
     timeout: 1h
@@ -729,8 +707,7 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      # TODO : uncomment this :D
-      # passed: [bosh-rc]
+      passed: [bosh-rc]
       trigger: true
     - get: bosh-rc
       passed: [bosh-rc]
@@ -765,13 +742,13 @@ jobs:
       - concourse-bosh-deployment/cluster/operations/dev-versions.yml
       - concourse-bosh-deployment/cluster/operations/add-local-users.yml
       vars:
-        external_url: ~
+        db_persistent_disk_type: small
+        db_vm_type: test
         deployment_name: concourse-wats-4-2-x
+        external_url: ~
         network_name: test
         web_vm_type: test
-        db_vm_type: test
         worker_vm_type: test
-        db_persistent_disk_type: small
         main_team_local_users:
         - test
         add_local_users:

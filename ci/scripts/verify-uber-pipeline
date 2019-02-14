@@ -3,6 +3,8 @@
 
 set -e -x
 
+readonly WEB_IP=${WEB_IP:-$(cat ./endpoint-info/instance-ip)}
+
 test -n "$WEB_IP"
 test -n "$WEB_USERNAME"
 test -n "$WEB_PASSWORD"
@@ -17,7 +19,7 @@ fly -t local login -c "http://$WEB_IP:8080" -u $WEB_USERNAME -p $WEB_PASSWORD ||
 
   install /tmp/fly /usr/local/bin/fly
 
-  fly -t local login -c "http://$WEB_IP:8080" # -u $WEB_USERNAME -p $WEB_PASSWORD
+  fly -t local login -c "http://$WEB_IP:8080" -u $WEB_USERNAME -p $WEB_PASSWORD
 }
 
 # sync up with deployed version of fly

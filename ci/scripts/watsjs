@@ -3,7 +3,7 @@
 
 set -e
 
-export ATC_URL=http://$(cat endpoint-info/instance_ip)
+export ATC_URL=http://$(cat endpoint-info/instance_ip):8080
 
 install fly-rc/fly_linux_amd64 /usr/local/bin/fly
 
