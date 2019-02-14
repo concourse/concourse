@@ -53,7 +53,6 @@ var (
 	credsManagers           creds.Managers
 	interceptTimeoutFactory *containerserverfakes.FakeInterceptTimeoutFactory
 	interceptTimeout        *containerserverfakes.FakeInterceptTimeout
-	peerURL                 string
 	drain                   chan struct{}
 	expire                  time.Duration
 	isTLSEnabled            bool
@@ -109,8 +108,6 @@ var _ = BeforeEach(func() {
 
 	dbWorkerFactory = new(dbfakes.FakeWorkerFactory)
 	dbWorkerLifecycle = new(dbfakes.FakeWorkerLifecycle)
-
-	peerURL = "http://127.0.0.1:1234"
 
 	drain = make(chan struct{})
 
@@ -172,7 +169,6 @@ var _ = BeforeEach(func() {
 		dbBuildFactory,
 		dbResourceConfigFactory,
 
-		peerURL,
 		constructedEventHandler.Construct,
 		drain,
 

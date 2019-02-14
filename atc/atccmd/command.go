@@ -87,7 +87,6 @@ type RunCommand struct {
 	TLSKey      flag.File `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
 
 	ExternalURL flag.URL `long:"external-url" description:"URL used to reach any ATC from the outside world."`
-	PeerURL     flag.URL `long:"peer-url"     description:"URL used to reach this ATC from other ATCs in the cluster."`
 
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
@@ -164,13 +163,6 @@ type RunCommand struct {
 		AuthFlags     skycmd.AuthFlags
 		MainTeamFlags skycmd.AuthTeamFlags `group:"Authentication (Main Team)" namespace:"main-team"`
 	} `group:"Authentication"`
-}
-
-func (cmd *RunCommand) PeerURLOrDefault() flag.URL {
-	if cmd.PeerURL.URL == nil {
-		cmd.PeerURL = cmd.defaultURL()
-	}
-	return cmd.PeerURL
 }
 
 var HelpError = errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
@@ -328,7 +320,7 @@ func (cmd *RunCommand) Execute(args []string) error {
 
 func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error) {
 	if cmd.ExternalURL.URL == nil {
-		cmd.ExternalURL = cmd.defaultURL()
+		cmd.ExternalURL = cmd.DefaultURL()
 	}
 
 	if len(positionalArguments) != 0 {
@@ -969,7 +961,7 @@ func (cmd *RunCommand) skyHttpClient() (*http.Client, error) {
 		RoundTripper: httpClient.Transport,
 
 		SourceHost: cmd.ExternalURL.URL.Host,
-		TargetURL:  cmd.defaultURL().URL,
+		TargetURL:  cmd.DefaultURL().URL,
 	}
 
 	return httpClient, nil
@@ -1034,7 +1026,7 @@ func (cmd *RunCommand) defaultBindIP() net.IP {
 	return net.ParseIP(URL)
 }
 
-func (cmd *RunCommand) defaultURL() flag.URL {
+func (cmd *RunCommand) DefaultURL() flag.URL {
 	return flag.URL{
 		URL: &url.URL{
 			Scheme: "http",
@@ -1230,7 +1222,7 @@ func (cmd *RunCommand) constructEngine(
 
 	execV1Engine := engine.NewExecV1DummyEngine()
 
-	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine}, cmd.PeerURLOrDefault().String())
+	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine})
 }
 
 func (cmd *RunCommand) constructHTTPHandler(
@@ -1318,7 +1310,6 @@ func (cmd *RunCommand) constructAPIHandler(
 		dbBuildFactory,
 		resourceConfigFactory,
 
-		cmd.PeerURLOrDefault().String(),
 		buildserver.NewEventHandler,
 		drain,
 

@@ -14,10 +14,9 @@ import (
 
 const trackLockDuration = time.Minute
 
-func NewDBEngine(engines Engines, peerURL string) Engine {
+func NewDBEngine(engines Engines) Engine {
 	return &dbEngine{
 		engines:   engines,
-		peerURL:   peerURL,
 		releaseCh: make(chan struct{}),
 		waitGroup: new(sync.WaitGroup),
 	}
@@ -33,7 +32,6 @@ func (err UnknownEngineError) Error() string {
 
 type dbEngine struct {
 	engines   Engines
-	peerURL   string
 	releaseCh chan struct{}
 	waitGroup *sync.WaitGroup
 }
@@ -61,7 +59,6 @@ func (engine *dbEngine) CreateBuild(logger lager.Logger, build db.Build, plan at
 
 	return &dbBuild{
 		engines:   engine.engines,
-		peerURL:   engine.peerURL,
 		releaseCh: engine.releaseCh,
 		waitGroup: engine.waitGroup,
 		build:     build,
@@ -71,7 +68,6 @@ func (engine *dbEngine) CreateBuild(logger lager.Logger, build db.Build, plan at
 func (engine *dbEngine) LookupBuild(logger lager.Logger, build db.Build) (Build, error) {
 	return &dbBuild{
 		engines:   engine.engines,
-		peerURL:   engine.peerURL,
 		releaseCh: engine.releaseCh,
 		waitGroup: engine.waitGroup,
 		build:     build,
@@ -96,7 +92,6 @@ func (engine *dbEngine) ReleaseAll(logger lager.Logger) {
 
 type dbBuild struct {
 	engines   Engines
-	peerURL   string
 	releaseCh chan struct{}
 	build     db.Build
 	waitGroup *sync.WaitGroup
@@ -192,12 +187,6 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 	}
 
 	defer lock.Release()
-
-	err = build.build.TrackedBy(build.peerURL)
-	if err != nil {
-		logger.Error("failed-to-update-build-tracker", err)
-		return
-	}
 
 	found, err := build.build.Reload()
 	if err != nil {

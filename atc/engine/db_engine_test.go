@@ -39,7 +39,7 @@ var _ = Describe("DBEngine", func() {
 		dbBuild = new(dbfakes.FakeBuild)
 		dbBuild.IDReturns(128)
 
-		dbEngine = NewDBEngine(Engines{fakeEngineA, fakeEngineB}, "http://10.2.3.4:8080")
+		dbEngine = NewDBEngine(Engines{fakeEngineA, fakeEngineB})
 	})
 
 	Describe("CreateBuild", func() {
@@ -455,28 +455,11 @@ var _ = Describe("DBEngine", func() {
 					dbBuild.AcquireTrackingLockReturns(fakeLock, true, nil)
 				})
 
-				It("updates the tracking information on the build", func() {
-					Expect(dbBuild.TrackedByCallCount()).To(Equal(1))
-					Expect(dbBuild.TrackedByArgsForCall(0)).To(Equal("http://10.2.3.4:8080"))
-				})
-
 				Context("when the build is active", func() {
 					BeforeEach(func() {
 						dbBuild.SchemaReturns("fake-schema-b")
 						dbBuild.IsRunningReturns(true)
 						dbBuild.ReloadReturns(true, nil)
-					})
-
-					Context("when updating the tracking information fails", func() {
-						disaster := errors.New("oh no")
-
-						BeforeEach(func() {
-							dbBuild.TrackedByReturns(disaster)
-						})
-
-						It("does not resume the build", func() {
-							Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
-						})
 					})
 
 					Context("when the engine build exists", func() {

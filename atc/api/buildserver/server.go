@@ -14,7 +14,6 @@ type Server struct {
 	logger lager.Logger
 
 	externalURL string
-	peerURL     string
 
 	teamFactory         db.TeamFactory
 	buildFactory        db.BuildFactory
@@ -26,7 +25,6 @@ type Server struct {
 func NewServer(
 	logger lager.Logger,
 	externalURL string,
-	peerURL string,
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
 	eventHandlerFactory EventHandlerFactory,
@@ -36,7 +34,6 @@ func NewServer(
 		logger: logger,
 
 		externalURL: externalURL,
-		peerURL:     peerURL,
 
 		teamFactory:         teamFactory,
 		buildFactory:        buildFactory,

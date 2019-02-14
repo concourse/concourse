@@ -48,7 +48,6 @@ func NewHandler(
 	dbBuildFactory db.BuildFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
 
-	peerURL string,
 	eventHandlerFactory buildserver.EventHandlerFactory,
 	drain <-chan struct{},
 
@@ -77,7 +76,7 @@ func NewHandler(
 	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger)
 	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, dbTeamFactory)
 
-	buildServer := buildserver.NewServer(logger, externalURL, peerURL, dbTeamFactory, dbBuildFactory, eventHandlerFactory, drain)
+	buildServer := buildserver.NewServer(logger, externalURL, dbTeamFactory, dbBuildFactory, eventHandlerFactory, drain)
 	jobServer := jobserver.NewServer(logger, externalURL, variablesFactory, dbJobFactory)
 	resourceServer := resourceserver.NewServer(logger, scannerFactory, variablesFactory, dbResourceFactory, dbResourceConfigFactory)
 	versionServer := versionserver.NewServer(logger, externalURL)

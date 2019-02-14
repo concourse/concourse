@@ -42,7 +42,7 @@ const (
 	BuildStatusErrored   BuildStatus = "errored"
 )
 
-var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.schema, b.private_plan, b.public_plan, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.tracked_by, b.drained").
+var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.schema, b.private_plan, b.public_plan, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.drained").
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
@@ -69,7 +69,6 @@ type Build interface {
 	StartTime() time.Time
 	EndTime() time.Time
 	ReapTime() time.Time
-	Tracker() string
 	IsManuallyTriggered() bool
 	IsScheduled() bool
 	IsRunning() bool
@@ -77,7 +76,6 @@ type Build interface {
 	Reload() (bool, error)
 
 	AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error)
-	TrackedBy(peerURL string) error
 
 	Interceptible() (bool, error)
 	Preparation() (BuildPreparation, bool, error)
@@ -135,8 +133,6 @@ type build struct {
 	endTime   time.Time
 	reapTime  time.Time
 
-	trackedBy string
-
 	conn        Conn
 	lockFactory lock.LockFactory
 	drained     bool
@@ -171,7 +167,6 @@ func (b *build) StartTime() time.Time         { return b.startTime }
 func (b *build) EndTime() time.Time           { return b.endTime }
 func (b *build) ReapTime() time.Time          { return b.reapTime }
 func (b *build) Status() BuildStatus          { return b.status }
-func (b *build) Tracker() string              { return b.trackedBy }
 func (b *build) IsScheduled() bool            { return b.scheduled }
 func (b *build) IsDrained() bool              { return b.drained }
 
@@ -555,28 +550,6 @@ func (b *build) AcquireTrackingLock(logger lager.Logger, interval time.Duration)
 	}
 
 	return lock, true, nil
-}
-
-func (b *build) TrackedBy(peerURL string) error {
-	rows, err := psql.Update("builds").
-		Set("tracked_by", peerURL).
-		Where(sq.Eq{"id": b.id}).
-		RunWith(b.conn).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	affected, err := rows.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if affected == 0 {
-		return ErrBuildDisappeared
-	}
-
-	return nil
 }
 
 func (b *build) Preparation() (BuildPreparation, bool, error) {
@@ -1119,16 +1092,16 @@ func buildEventSeq(buildid int) string {
 
 func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) error {
 	var (
-		jobID, pipelineID                                                 sql.NullInt64
-		schema, privatePlan, jobName, pipelineName, publicPlan, trackedBy sql.NullString
-		startTime, endTime, reapTime                                      pq.NullTime
-		nonce                                                             sql.NullString
-		drained                                                           bool
+		jobID, pipelineID                                      sql.NullInt64
+		schema, privatePlan, jobName, pipelineName, publicPlan sql.NullString
+		startTime, endTime, reapTime                           pq.NullTime
+		nonce                                                  sql.NullString
+		drained                                                bool
 
 		status string
 	)
 
-	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &schema, &privatePlan, &publicPlan, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &trackedBy, &drained)
+	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &schema, &privatePlan, &publicPlan, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &drained)
 	if err != nil {
 		return err
 	}
@@ -1142,7 +1115,6 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	b.startTime = startTime.Time
 	b.endTime = endTime.Time
 	b.reapTime = reapTime.Time
-	b.trackedBy = trackedBy.String
 	b.drained = drained
 
 	var (
