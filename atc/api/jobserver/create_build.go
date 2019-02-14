@@ -7,6 +7,8 @@ import (
 
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/api/accessor"
+
 )
 
 func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
@@ -51,7 +53,9 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		build, _, err := scheduler.TriggerImmediately(logger, job, resources, versionedResourceTypes)
+		acc := accessor.GetAccessor(r)
+		instigator := acc.UserName()
+		build, _, err := scheduler.TriggerImmediately(logger, job, resources, versionedResourceTypes, instigator)
 		if err != nil {
 			logger.Error("failed-to-trigger", err)
 			w.WriteHeader(http.StatusInternalServerError)
