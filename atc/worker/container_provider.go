@@ -171,6 +171,7 @@ func (p *containerProvider) FindOrCreateContainer(
 
 			if !acquired {
 				time.Sleep(creatingContainerRetryDelay)
+				logger.Debug(fmt.Sprintf("did-not-acquire-creating-container-lock-%d", creatingContainer.ID()))
 				continue
 			}
 
