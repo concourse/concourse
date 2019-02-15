@@ -8,8 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -366,17 +368,16 @@ func (client *Client) dial(ctx context.Context, idleTimeout time.Duration) (*ssh
 func (client *Client) tryDialAll(ctx context.Context) (net.Conn, string, error) {
 	logger := lagerctx.FromContext(ctx)
 
-	hosts := map[string]struct{}{}
-	for _, host := range client.Hosts {
-		hosts[host] = struct{}{}
-	}
-
 	dialer := &net.Dialer{
 		Timeout:   10 * time.Second,
 		KeepAlive: 15 * time.Second,
 	}
 
-	for host, _ := range hosts {
+	shuffled := make([]string, len(client.Hosts))
+	copy(shuffled, client.Hosts)
+	shuffle(sort.StringSlice(shuffled))
+
+	for _, host := range shuffled {
 		conn, err := dialer.Dial("tcp", host)
 		if err != nil {
 			logger.Error("failed-to-connect-to-tsa", err)
@@ -559,4 +560,10 @@ func handleForwardedConn(ctx context.Context, remoteConn net.Conn, network strin
 	go pipe(remoteConn, localConn)
 
 	wg.Wait()
+}
+
+func shuffle(v sort.Interface) {
+	for i := v.Len() - 1; i > 0; i-- {
+		v.Swap(i, rand.Intn(i+1))
+	}
 }
