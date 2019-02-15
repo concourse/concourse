@@ -9,7 +9,7 @@
 
     Concourse relies on Garden-runC to create containers for executing jobs and
     resource checks in pipelines. By default, all containers created by
-    Concourse using are unprivileged, and should be safe from CVE 2019-5736.
+    Concourse are unprivileged, and should be safe from CVE 2019-5736.
 
     However, if your pipelines configure
     \reference{task-step-privileged}{\code{privileged: true}} on tasks or
