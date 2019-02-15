@@ -53,6 +53,79 @@
     backwards-incompatibly.
   }
 
+  \note{feature,breaking}{
+    ALL YOUR VERSIONS ARE GONNA GO AWAY
+
+    BUT EVERYTHING IS CORRECT NOW
+
+    NO MORE PURGING
+
+    PIPELINES MUST RESTART FROM THE BEGINNING
+  }
+
+  \note{fix,breaking}{
+    We have removed \code{--allow-all-users} as almost every use has been a
+    misuse. You must configure users explicitly now instead. This was done for
+    development environments but even those were trivial to switch to a local
+    user whitelist.
+
+    If you were setting this flag before, you probably didn't mean to - setting
+    this with GitHub oAuth configured, for example, would allow literally
+    everyone to be a part of your team and manage your pipelines.
+  }
+
+  \note{feature,breaking}{
+    The \code{concourse} binary distribution has been rejiggered. Rather than a
+    self-contained binary, we now ship it as a \code{.tgz} containing the
+    binary and its dependencies pre-extracted. The \code{.tgz} should be
+    extracted somewhere like \code{/usr/local}, resulting in
+    \code{/usr/local/concourse/bin/...}.
+
+    The main benefit of this is simplification and faster startup. The
+    \code{concourse worker} command no longer needs to extract resource
+    types/etc. on start, so this speeds that up quite a bit.
+
+    The \code{concourse} binary no longer directly embeds Garden-runC code, and
+    instead ships alongside the \code{gdn} binary, copied from their releases.
+    This simplifies the interface for configuring Garden and allows us to
+    leverage their build process rather than risking deviation.
+
+    The "breaking" aspect of this is that if you have been passing esoteric
+    flags to Garden you'll have to switch to using a config file via
+    \code{--garden-config} instead, or pass them as env vars (e.g.
+    \code{CONCOURSE_GARDEN_FOO_BAR}) - flags are no longer supported as those
+    relied on directly embedding their code.
+  }
+
+  \note{feature,breaking}{
+    Workers can now be configured to periodically rebalance so that they don't
+    end up all forwarding through a single \reference{web-node}. This is done
+    by setting the \code{--rebalance-interval} flag on \code{concourse worker}.
+    The rebalancing makes sure to drain in-flight connections and should not
+    disrupt any in-flight builds.
+
+    Along the way, we removed support for direct worker registration.
+    Forwarding is more secure as it doesn't require opening your workers up to
+    inbound traffic. It's easier to just focus on one registration method and
+    make sure it works well.
+
+    This also sets us up for enforcing TLS for all traffic to the forwarded
+    workers in the future (\ghissue{2415}).
+  }
+
+  \note{fix,breaking}{
+    Two flags have been modified to be more consistent with other flag syntax:
+
+    \list{
+      \code{concourse web --vault-auth-param foo=bar} should now be specified
+      as \code{concourse web --vault-auth-param foo:bar} (note the \code{:}).
+    }{
+      \code{concourse web --tsa-team-authorized-keys team=path/to/key} should
+      now be specified as \code{concourse web --tsa-team-authorized-keys
+      team:path/to/key} (note the \code{:}).
+    }
+  }
+
   \note{feature}{
     The Concourse GitHub repository has been completely restructured. This
     isn't really a feature per se, but it should make contributing a lot
@@ -107,6 +180,10 @@
 
   \note{feature}{
     RBAC
+
+    role is shown on dashboard
+
+    only 'owner's of main team are admin
   }
 
   \note{feature}{
@@ -135,6 +212,24 @@
   }
 
   \note{feature}{
+    Any volumes or containers that disappeared from their worker (possibly due
+    to a worker being re-created and then coming back under the same name) will
+    now be automatically reaped from the database. This makes it easier for
+    Concourse to recover from this situation rather than erroring with
+    \code{file not found} or \code{unknown handle} errors.
+  }
+
+  \note{feature}{
+    Concourse will now automatically retry fetching credentials when the
+    request to the credential manager fails, thanks to a PR by
+    \ghuser{ralekseenkov}!
+
+    By default Concourse will retry 5 times, waiting 1 second between each
+    attempt. This can be adjusted with the \code{--secret-retry-attempts} and
+    \code{--secret-retry-interval} flags on \code{concourse web}.
+  }
+
+  \note{feature}{
     Tasks are now permitted to have inputs, outputs, and caches with
     overlapping paths. This was a hold-over from older versions of the
     container runtime that did not support this.
@@ -148,29 +243,6 @@
     \reference{put-step-inputs} to use, rather than using all of them. This can
     be used to dramatically speed up builds that have a ton of artifacts prior
     to a \code{put}.
-  }
-
-  \note{feature,breaking}{
-    The \code{concourse} binary distribution has been rejiggered. Rather than a
-    self-contained binary, we now ship it as a \code{.tgz} containing the
-    binary and its dependencies pre-extracted. The \code{.tgz} should be
-    extracted somewhere like \code{/usr/local}, resulting in
-    \code{/usr/local/concourse/bin/...}.
-
-    The main benefit of this is simplification and faster startup. The
-    \code{concourse worker} command no longer needs to extract resource
-    types/etc. on start, so this speeds that up quite a bit.
-
-    The \code{concourse} binary no longer directly embeds Garden-runC code, and
-    instead ships alongside the \code{gdn} binary, copied from their releases.
-    This simplifies the interface for configuring Garden and allows us to
-    leverage their build process rather than risking deviation.
-
-    The "breaking" aspect of this is that if you have been passing esoteric
-    flags to Garden you'll have to switch to using a config file via
-    \code{--garden-config} instead, or pass them as env vars (e.g.
-    \code{CONCOURSE_GARDEN_FOO_BAR}) - flags are no longer supported as those
-    relied on directly embedding their code.
   }
 
   \note{feature}{
@@ -312,5 +384,45 @@
   \note{feature}{
     The dashboard page will now indicate whether you are seeing a pipeline
     because it's exposed by showing an ominous "eye" icon.
+  }
+
+  \note{fix}{
+    Fixed handling of auth configs set from empty env vars - previously this
+    would result in bogus Dex configuration (e.g. \code{github:}, with no org
+    or team) and sometimes cause things to misbehave.
+  }
+
+  \note{fix}{
+    The legibility and anti-aliasing of text in the web UI has been improved.
+  }
+
+  \note{fix}{
+    Cleaned up some dashboard behavior when there are no pipelines:
+
+    \list{
+      you can now see which team you're a member of, rather than one big 'no
+      pipelines set' page
+    }{
+      the bar along the bottom will now show
+    }{
+      there's a fancy ASCII art UI now
+    }{
+      the search function is no longer shown (since there's nothing to search)
+    }{
+      the HD view has been disabled and just redirects to \code{/} instead,
+      since there was nothing for it to show
+    }
+
+    The dashboard page will now show the bar along the bottom even if you're no
+    pipelines.
+  }
+
+  \note{fix}{
+    The username part of the top bar will no longer detonate when viewed on a
+    tiny mobile browser.
+  }
+
+  \note{fix}{
+    Fixed the alignment for the "no results" dashboard search view.
   }
 }
