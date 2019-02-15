@@ -766,6 +766,7 @@ jobs:
       passed: [bosh-prod-deploy]
     - get: cbd
       passed: [bosh-prod-deploy]
+    - get: prod
   - put: wings-deployment
     params:
       manifest: cbd/cluster/concourse.yml
@@ -1190,8 +1191,14 @@ resources:
 - name: charts
   type: git
   source:
-     uri: https://github.com/concourse/charts.git
-     branch: merged
+    uri: https://github.com/concourse/charts.git
+    branch: merged
+
+- name: prod
+  type: git
+  source:
+    uri: https://github.com/concourse/prod.git
+    branch: master
 
 - name: golang-windows
   type: s3
