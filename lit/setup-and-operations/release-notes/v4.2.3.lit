@@ -15,4 +15,11 @@
     We recommend that you upgrade your Concourse cluster to v4.2.3 
     to prevent this exploit from occurring.
   }
+  \note{fix}{
+    The \reference{cf-auth-config} connector has been updated to use the
+    \code{authorization_endpoint} so that the authentication flow can be
+    completed successfully. Previously, authentication flows with the
+    \reference{cf-auth-config} connector would fail whenever a
+    third-party SAML redirect is required.
+  }
 }
