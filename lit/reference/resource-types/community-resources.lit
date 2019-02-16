@@ -226,6 +226,8 @@ before using it!
   \table-row{\link{Ofcourse Resource Generator}{https://github.com/cloudboss/ofcourse}}{by \ghuser{cloudboss}}
 }{
   \table-row{\link{HTTP PUT Resource}{https://github.com/lorands/http-put-resource}}{by \ghuser{lorands}}
+}{
+  \table-row{\link{Serverspec Resource}{https://github.com/opicaud/serverspec-concourse}}{by \ghuser{opicaud}}
 }
 
 \section{
