@@ -2,65 +2,33 @@
 
 \release{2019-1-31}{5.0.0}{1.17.2}{
   \note{feature,breaking}{
-    We have jettisoned all core resource types from the core Concourse
-    distribution, and all resource types are now independently versioned
-    on Docker Hub and in GitHub releases instead.
+    We have done a major internal overhaul of how resource versions are stored.
+    As a result, the version history for each resource across your pipelines
+    will be re-set upon upgrading to v5.0.
 
-    This is super backwards-incompatible, and we're sorry for not doing it
-    sooner. Your pipelines will have to change to bring them in via
-    \reference{pipeline-resource-types}.
+    The upgrade does however preserve the state of which versions were
+    disabled, and the data relating versions to builds they were inputs to and
+    outputs of.
 
-    There are many motivations for this:
+    In versions prior to v5.0, resource version history was associated to a
+    pipeline resource by name. This meant that if you changed a resource's
+    configuration or type, those old versions would actually stick around, even
+    though they may technically no longer be appropriate.
 
-    \list{
-      familiarize users with the concept of \code{resource_types} early so it
-      doesn't feel second-class
-    }{
-      make pipelines more self-contained - now they can pin to the version of
-      each resource type they need
-    }{
-      allow users to pull in new versions of these resource types without
-      waiting for a new Concourse release
-    }{
-      set an example for other resource authors on how to publish and version
-      resource types
-    }{
-      make the Concourse distribution itself much smaller
-    }
+    With v5.0, resource versions are now tied directly to an anonymous
+    "resource config" - basically the \code{source:} and \code{type:} for the
+    resource. Pipeline resources instead point to a config, and if their config
+    changes, they'll point to a new config with its own version history.
 
-    For any core \code{foo} resource, you'll add a resource type using the new
-    \resource{registry-image} pulling it from the \code{concourse/foo-resource}
-    repository on Docker Hub like so:
+    This improves the correctness of the system as a whole, eliminating the
+    need to ever "purge" the history of a resource.
 
-    \codeblock{yaml}{{{
-    resource_types:
-    - name: git
-      type: registry-image
-      source:
-        repository: concourse/git-resource
-        tag: 1
-
-    - name: docker-image
-      type: registry-image
-      source:
-        repository: concourse/docker-image-resource
-        tag: 1
-    }}}
-
-    Note that the \code{tag: 1} should keep any newly released versions of
-    these resources from breaking your pipelines - we're starting all resource
-    versions as 1.x and will bump the major version if anything changes
-    backwards-incompatibly.
-  }
-
-  \note{feature,breaking}{
-    ALL YOUR VERSIONS ARE GONNA GO AWAY
-
-    BUT EVERYTHING IS CORRECT NOW
-
-    NO MORE PURGING
-
-    PIPELINES MUST RESTART FROM THE BEGINNING
+    Building on this change, we are currently experimenting with improvements
+    that can now be made to reduce the overall checking overhead across a
+    Concourse cluster that has many equivalent resource definitions across
+    pipelines and teams. This is currently off by default while we learn more
+    about the implications - see \reference{global-resources} for more
+    information.
   }
 
   \note{fix,breaking}{
@@ -133,25 +101,6 @@
 
     More on this on our blog post: \link{The Great Process Update of
     2018}{https://medium.com/concourse-ci/the-great-process-update-of-2018-48f244e55333}.
-  }
-
-  \note{feature}{
-    TODO: document
-
-    We have added an experimental feature, enabled by the
-    \code{--enable-global-resources} flag on the \reference{web-node}.
-
-    When enabled, resources with equivalent configuration
-    (\reference{resource-source}) will share their version history globally,
-    and their \code{check} containers will be shared across teams.
-
-    This should dramatically reduce the overhead of \code{check} containers and
-    reduce the frequency of checks hitting external resources when many
-    pipelines configure the same resource.
-
-    Users running large multi-tenant environments should consider enabling this
-    feature. We plan on enabling it by default once there's a better solution
-    for IAM roles. For more context, see \ghissue{3023}.
   }
 
   \note{feature}{
