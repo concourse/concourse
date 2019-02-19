@@ -66,3 +66,28 @@
   This can be useful to observe the caches warming across your cluster, and
   could be a good indicator of disk use.
 }
+
+\section{
+  \title{\code{fly curl}}{fly-curl}
+
+  To execute an arbirary API request, you can run something like the following:
+
+  \codeblock{bash}{{
+  $ fly -t example curl /api/v1/info
+  }}
+
+  This command is just a shim that runs \code{curl} under the hood. To pass
+  flags to \code{curl}, pass a \code{--} argument after the path so that
+  \code{fly} can distinguish them from its own flags:
+
+  \codeblock{bash}{{
+  $ fly -t example curl /api/v1/builds -- \\
+      -X PUT \\
+      -H "Content-type: application/json" \\
+      -d @plan.json
+  }}
+
+  Note: if you use this command the assumption is that you know what you're
+  doing. If you find yourself using this command often, let us know - perhaps
+  there's a missing command!
+}

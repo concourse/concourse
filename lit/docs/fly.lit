@@ -101,6 +101,17 @@ to consult \code{fly -h} to learn the short forms.
 }
 
 \section{
+  \title{\code{fly userinfo}}{fly-userinfo}
+
+  To check what user you're logged in as, as well as which teams you are
+  currently authenticated to and which roles within each team you have, run:
+
+  \codeblock{bash}{{
+  $ fly -t example userinfo
+  }}
+}
+
+\section{
   \title{\code{fly logout}}{fly-logout}
 
   There are cases when you would like to remove all evidence of a particular

@@ -111,20 +111,24 @@
     combination with disabling versions to effectively pin a resource to the
     most recent available version.
 
-    However, with global resource versions, the checking is now performed
-    globally, so this no longer made sense. As long as one team had the same
-    resource unpaused, versions would still be detected.
+    However, with \reference{global-resources}{global resource versions}, each
+    resource actually points to a shared history, so pausing checking wouldn't
+    be enough - if any other pipelines had the same resource, new versions
+    would still arrive!
 
-    So instead, versions can now be pinned individually via the web UI and via
+    So instead, versions can now be pinned individually via the web UI or via
     the pipeline config (see \reference{resource-version}). Pinned resources
     will also skip periodic checking, but now even if the checking still
     happens (because some other pipeline had it un-pinned), the resource will
-    stay pinned.
+    stay pinned to the desired version.
 
-    A migration will run during the 5.0 upgrade to convert any paused resources
-    to their pinned equivalent (by pinning their most recent available
-    version). A note will be left on any resources that are migrated so that
-    it's clear to pipeline users.
+    A comment can also be left on pinned versions for explaining to your
+    team-mates why you decided to pin the resource.
+
+    During the 5.0 upgrade, paused resources will be automatically transitioned
+    to their pinned equivalent, by pinning the resource to the most recent
+    available version. A comment will be left on any resources that are
+    migrated so that it's clear to pipeline users.
   }
 
   \note{feature}{
@@ -166,6 +170,15 @@
     now be automatically reaped from the database. This makes it easier for
     Concourse to recover from this situation rather than erroring with
     \code{file not found} or \code{unknown handle} errors.
+  }
+
+  \note{feature}{
+    Logs emitted by Concourse components will now be...slightly prettier?
+    They're still JSON (sorry), but the timestamps and log levels are at least
+    human-readable.
+
+    If you've got anything parsing your logs, make sure to update it
+    accordingly!
   }
 
   \note{feature}{
@@ -218,6 +231,29 @@
     disrupts the normal flow of the command. Previously it would ask for a
     token but then eat half of the keystrokes from then on. Now it just won't
     ask for a token.
+  }
+
+  \note{feature}{
+    The \code{concourse} binary now has a \code{generate-key} subcommand to
+    assist with - you guessed it - key generation. This is more portable to
+    other platforms (I'm looking at you, Windows) and is more likely to
+    generate keys that Concourse can actually accept (I'm looking at you,
+    OpenSSH 7.8).
+  }
+
+  \note{feature}{
+    The \code{concourse worker} command can now be given a \code{--use-houdini}
+    flag on Linux to use the "no-op" Houdini Garden backend for those odd cases
+    where you don't really want containerization. (Use sparingly.)
+  }
+
+  \note{feature}{
+    The timestamps shown in the build header are now absolute instead of
+    relative. This should be more useful when viewing older builds. However
+    there is some controversy around this change and we're trying to figure out
+    a good middle ground in \ghissue{3321} - feel free to leave feedback there!
+
+    (Thanks for the PR, \ghuser{Twiknight}!)
   }
 
   \note{fix}{
@@ -280,6 +316,12 @@
     API and will ultimately result in the worker process exiting. (Which may
     end up being re-started by whatever process monitor you use, but hey, it
     laned.)
+  }
+
+  \note{feature}{
+    The web UI now explains why some \code{get} steps have a yellow icon, via a
+    handy-dandy tooltip. (Spoiler: it means the job has never run with that
+    version before!)
   }
 
   \note{fix}{
@@ -372,6 +414,54 @@
   }
 
   \note{fix}{
-    Fixed the alignment for the "no results" dashboard search view.
+    When a resource's metadata is
+    suuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuper
+    wiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiide, it will remain cordoned off
+    to the side rather than uncomfortably squishing the resource's \code{get}
+    output. Thanks for the fix, \ghuser{stigtermichiel}!
+  }
+
+  \note{fix}{
+    Concourse will now send TCP keepalives for connections to the database.
+    This will allow it to detect when the connection has been interrupted
+    ungracefully. Thanks for the PR, \ghuser{SimonXming}!
+  }
+
+  \note{fix}{
+    The \code{manifest.json} href in the web UI used to be relative to the URL,
+    meaning it was broken on any page except \code{/}. This is now fixed.
+  }
+
+  \note{fix}{
+    The \code{web} node used to leak both a connection and a goroutine for each
+    build that completed when configured to drain build logs to syslog. This is
+    now fixed. Sorry about that!
+  }
+
+  \note{fix}{
+    The resources and resource types returned by \reference{fly-get-pipeline}
+    will now be in a deterministic order, thanks to a PR by \ghuser{edtan}!
+  }
+
+  \note{feature}{
+    \reference{fly-curl} is a new command to assist with (hopefully occasional)
+    manual API requests to Concourse. Thanks for the PR and collaboration,
+    \ghuser{simonjohansson}!
+  }
+
+  \note{fix}{
+    The \code{--tsa-authorized-keys} flag is now optional, for situations where
+    all authorized keys are associated to teams (via
+    \code{--tsa-team-authorized-keys}). Thanks for the fix, \ghuser{tlwr}!
+  }
+
+  \note{fix}{
+    The \reference{fly-status} command will now let you know if your token has
+    expired, rather than happily reporting that everything is fine.
+  }
+
+  \note{feature}{
+    A \reference{fly-userinfo} command has been added which will let you know
+    which teams you are logged in to and which roles you have in each team.
   }
 }

@@ -1,4 +1,8 @@
-\title{Global Resources}
+\title{Global Resources}{global-resources}
+
+Concourse v5.0 contains an experimental feature known as "global resources". It
+is enabled by passing the \code{--enable-global-resources} flag to the
+\code{concourse web} command.
 
 The basic concept of global resources is to share detected resource versions
 between all resources that have the same type and source configuration.
@@ -39,8 +43,8 @@ instead associated to an anonymous 'resource config', i.e. its type and source.
 
     Since there will be only one resource check for all resources that have the
     same configuration, the resource that has the shortest
-    \reference{check_every} configured will result in its pipeline running the
-    checks for that resource configuration.
+    \reference{resource-check-every} configured will result in its pipeline
+    running the checks for that resource configuration.
 
     There is an exception to sharing check containers within a deployment, which
     is team and tagged workers. If a resource is tagged, the check container will
