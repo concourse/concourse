@@ -20,7 +20,7 @@ type WorkerFactory interface {
 	Workers() ([]Worker, error)
 	VisibleWorkers([]string) ([]Worker, error)
 
-	FindWorkerForContainerByOwner(ContainerOwner, int, atc.Tags) (Worker, bool, error)
+	FindWorkersForContainerByOwner(ContainerOwner) ([]Worker, error)
 	BuildContainersCountPerWorker() (map[string]int, error)
 }
 
@@ -321,36 +321,17 @@ func (f *workerFactory) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Wor
 	return savedWorker, nil
 }
 
-func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner, teamID int, tags atc.Tags) (Worker, bool, error) {
-	var teamWorkers int
-
-	err := psql.Select("COUNT (1)").
-		From("workers").
-		Where(sq.Eq{
-			"team_id": teamID,
-		}).
-		RunWith(f.conn).
-		Scan(&teamWorkers)
-	if err != nil {
-		return nil, false, err
-	}
-
+func (f *workerFactory) FindWorkersForContainerByOwner(owner ContainerOwner) ([]Worker, error) {
 	ownerQuery, found, err := owner.Find(f.conn)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	if !found {
-		return nil, false, nil
+		return []Worker{}, nil
 	}
 
 	ownerEq := sq.Eq{}
-	if teamWorkers > 0 {
-		ownerEq["t.id"] = teamID
-	} else {
-		ownerEq["t.id"] = nil
-	}
-
 	for k, v := range ownerQuery {
 		ownerEq["c."+k] = v
 	}
@@ -359,16 +340,10 @@ func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner, team
 		ownerEq,
 	}))
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
-	for _, w := range workers {
-		if tagsMatch(w.Tags(), tags) {
-			return w, true, nil
-		}
-	}
-
-	return nil, false, nil
+	return workers, nil
 }
 
 func (f *workerFactory) BuildContainersCountPerWorker() (map[string]int, error) {
