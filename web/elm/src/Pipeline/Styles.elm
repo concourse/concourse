@@ -27,7 +27,7 @@ groupsList =
 
 groupItem : Bool -> List ( String, String )
 groupItem selected =
-    [ ( "font-size", "18px" )
+    [ ( "font-size", "14px" )
     , ( "background", "rgba(151, 151, 151, 0.1)" )
     , ( "margin", "5px" )
     , ( "padding", "10px" )

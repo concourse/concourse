@@ -148,7 +148,7 @@ all =
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.findAll [ tag "li" ]
                                 |> Query.each
-                                    (Query.has [ style [ ( "font-size", "18px" ) ] ])
+                                    (Query.has [ style [ ( "font-size", "14px" ) ] ])
                     , describe "the individual groups should each have a box around them"
                         [ test "the unselected ones faded" <|
                             \_ ->
