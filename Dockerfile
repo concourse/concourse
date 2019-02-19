@@ -21,7 +21,7 @@ RUN grep '^replace' go.mod || go mod download
 # live-update
 COPY . .
 RUN go build -gcflags=all="-N -l" -o /usr/local/concourse/bin/concourse \
-      ./bin/cmd/concourse
+      ./cmd/concourse
 VOLUME /src
 
 # generate keys (with 1024 bits just so they generate faster)
