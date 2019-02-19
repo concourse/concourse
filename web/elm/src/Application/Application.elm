@@ -12,12 +12,10 @@ module Application.Application exposing
 import Application.Msgs as Msgs exposing (Msg(..), NavIndex)
 import Build.Msgs
 import Callback exposing (Callback(..))
-import Concourse
 import Dashboard.Msgs
 import Effects exposing (Effect(..), LayoutDispatch(..))
 import Html exposing (Html)
 import Http
-import Json.Decode
 import Navigation
 import Resource.Msgs
 import Routes

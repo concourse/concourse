@@ -13,6 +13,7 @@ module Colors exposing
     , flySuccessCard
     , flySuccessTokenCopied
     , frame
+    , groupsBarBackground
     , paginationHover
     , paused
     , pending
@@ -156,3 +157,8 @@ paginationHover =
 comment : String
 comment =
     "#196AC8"
+
+
+groupsBarBackground : String
+groupsBarBackground =
+    "#2b2a2a"

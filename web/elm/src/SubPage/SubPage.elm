@@ -25,7 +25,6 @@ import Pipeline.Pipeline as Pipeline
 import Resource.Models
 import Resource.Resource as Resource
 import Routes
-import String
 import SubPage.Msgs exposing (Msg(..))
 import Subscription exposing (Subscription)
 import UpdateMsg exposing (UpdateMsg)

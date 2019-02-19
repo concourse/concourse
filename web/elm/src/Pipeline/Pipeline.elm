@@ -17,13 +17,22 @@ import Concourse
 import Concourse.Cli as Cli
 import Effects exposing (Effect(..))
 import Html exposing (Html)
-import Html.Attributes exposing (class, height, href, id, src, style, width)
+import Html.Attributes
+    exposing
+        ( class
+        , height
+        , href
+        , id
+        , src
+        , width
+        )
 import Html.Attributes.Aria exposing (ariaLabel)
 import Html.Styled as HS
 import Http
 import Json.Decode
 import Json.Encode
 import Pipeline.Msgs exposing (Msg(..))
+import Pipeline.Styles as Styles
 import RemoteData exposing (..)
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
@@ -305,9 +314,7 @@ isPaused p =
 viewSubPage : Model -> Html Msg
 viewSubPage model =
     Html.div [ class "pipeline-view" ]
-        [ Html.nav
-            [ class "groups-bar" ]
-            [ viewGroupsBar model ]
+        [ viewGroupsBar model
         , Html.div [ class "pipeline-content" ]
             [ Svg.svg
                 [ SvgAttributes.class "pipeline-graph test" ]
@@ -402,15 +409,19 @@ viewGroupsBar model =
 
                 _ ->
                     []
-
-        groupClass =
-            if List.isEmpty groupList then
-                "hidden"
-
-            else
-                "groups"
     in
-    Html.ul [ class groupClass ] groupList
+    if List.isEmpty groupList then
+        Html.text ""
+
+    else
+        Html.nav
+            [ id "groups-bar"
+            , Html.Attributes.style Styles.groupsBar
+            ]
+            [ Html.ul
+                [ Html.Attributes.style Styles.groupsList ]
+                groupList
+            ]
 
 
 viewGroup :
@@ -427,14 +438,10 @@ viewGroup { selectedGroups, pipelineLocator } grp =
                 Routes.Pipeline { id = pipelineLocator, groups = [] }
     in
     Html.li
-        [ if List.member grp.name selectedGroups then
-            class "main active"
-
-          else
-            class "main"
-        ]
+        []
         [ Html.a
             [ Html.Attributes.href <| url ++ "?groups=" ++ grp.name
+            , Html.Attributes.style <| Styles.groupItem <| List.member grp.name selectedGroups
             , onLeftClickOrShiftLeftClick
                 (SetGroups [ grp.name ])
                 (ToggleGroup grp)
