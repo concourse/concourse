@@ -14,7 +14,7 @@ import (
 type GenerateKeyCommand struct {
 	Type string `short:"t"  long:"type"  default:"rsa"  choice:"rsa"  choice:"ssh"  description:"The type of key to generate."`
 
-	FilePath string `short:"f"  long:"filename"  required:"true"  description:"File path where the key shall be created."`
+	FilePath string `short:"f"  long:"filename"  required:"true"  description:"File path where the key shall be created. When generating ssh keys, the public key will be stored in a file with the same name but with '.pub' appended."`
 	Bits     int    `short:"b"  long:"bits"      default:"4096"   description:"The number of bits in the key to create."`
 }
 
