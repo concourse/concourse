@@ -1,32 +1,23 @@
-module NotFound exposing (Model, Msg, handleCallback, init, update, view)
+module NotFound.NotFound exposing (handleCallback, init, update, view)
 
 import Callback exposing (Callback)
 import Effects exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src, style)
 import Html.Styled as HS
+import NotFound.Model exposing (Model)
+import NotFound.Msgs exposing (Msg(..))
+import Routes
 import TopBar.Model
-import TopBar.Msgs
 import TopBar.Styles
 import TopBar.TopBar as TopBar
-import Routes
 import UserState exposing (UserState)
-
-
-type alias Model =
-    { notFoundImgSrc : String
-    , topBar : TopBar.Model.Model
-    }
 
 
 type alias Flags =
     { route : Routes.Route
     , notFoundImgSrc : String
     }
-
-
-type Msg
-    = FromTopBar TopBar.Msgs.Msg
 
 
 init : Flags -> ( Model, List Effect )

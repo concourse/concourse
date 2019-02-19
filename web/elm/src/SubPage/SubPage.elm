@@ -20,7 +20,8 @@ import FlySuccess.FlySuccess as FlySuccess
 import Html exposing (Html)
 import Html.Styled as HS
 import Job.Job as Job
-import NotFound
+import NotFound.Model
+import NotFound.NotFound as NotFound
 import Pipeline.Pipeline as Pipeline
 import Resource.Models
 import Resource.Resource as Resource
@@ -36,7 +37,7 @@ type Model
     | JobModel Job.Model
     | ResourceModel Resource.Models.Model
     | PipelineModel Pipeline.Model
-    | NotFoundModel NotFound.Model
+    | NotFoundModel NotFound.Model.Model
     | DashboardModel Dashboard.Model
     | FlySuccessModel FlySuccess.Model
 
