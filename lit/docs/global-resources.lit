@@ -1,0 +1,115 @@
+\title{Global Resources}
+
+The basic concept of global resources is to share detected resource versions
+between all resources that have the same type and source configuration.
+
+Before v5.0.0, each pipeline resource had its own "version history", associated
+to the resource by name. This meant that multiple pipelines with the same
+resource configs would redundantly collect the same version and metadata
+information.
+
+With v5.0.0's experimental 'global resources' feature, resource versions are
+instead associated to an anonymous 'resource config', i.e. its type and source.
+
+\section{
+  \title{Benefits of Global Resources}
+
+  The addition of global resources will result in fewer resource checks, reduce
+  the amount of data recorded for equivalent resource versions, and the
+  resource version history will always be correct. This feature is currently
+  feature flagged <link to enable-global-resources flag> and is defaulted to
+  being off.
+
+  \section{
+    \title{Fewer Resource Checks and Check Containers}
+
+    With global resources, all resources that have the same configuration will
+    use a single check container across all teams, and only one resource's
+    \code{check} interval will be active. This reduces both worker load (fewer
+    containers, fewer \code{check}s) and load on the external services that the
+    resources point to.
+
+    For example, prior to global resources if there were three resources with
+    the same configuration between three team's pipelines it would result in three
+    check containers and three resource checks every minute to fetch the versions.
+
+    With global resources, this configuration will result in only one check
+    container and one resource check every minute to fetch versions for all the
+    resources.
+
+    Since there will be only one resource check for all resources that have the
+    same configuration, the resource that has the shortest
+    \reference{check_every} configured will result in its pipeline running the
+    checks for that resource configuration.
+
+    There is an exception to sharing check containers within a deployment, which
+    is team and tagged workers. If a resource is tagged, the check container will
+    be placed onto the tagged worker and other untagged resources that share the
+    tagged resources configuration will be placed separately on the untagged
+    workers. The same concept is applied to team workers, where resources that
+    belong to a team with team workers will have their check container placed
+    onto those team workers. Other resources with the same configuration but do
+    not belong to the team with the team workers will not be able to find the
+    check containers on the team worker, and as a result will create a new check
+    container on a non team worker.
+  }
+
+  \section{
+    \title{Reduce redundant data}
+
+    The majority of Concourse resources will benefit from having versions shared
+    globally because most resource versions have an external source of truth.
+
+    For example, a check for the git resource that pulls in the concourse/concourse
+    repository will always return the same set of versions as another check that
+    runs with pulls in the same repository. By consolidating the checks and the
+    versions, there will essentially only be one set of versions checked from the
+    repository and saved into the database.
+  }
+
+  \section{
+    \title{Reliable Resource Version History}
+
+    Prior to global resources, a resources version history was directly dependent
+    on the resource name. This means that any changes to a resources configuration
+    without changing its name will basically append the versions from the new
+    configuration onto the old, now inaccurate versions from the previous
+    configuration. Global resources switch the resource versions to strictly
+    dependent on the resources type and configuration, therefore whenever a
+    resource definition changes the versions will reset and change along with it
+    resulting in truthful and reliable version histories.
+  }
+}
+
+\section{
+  \title{Risks and Side Effects}
+
+  \section{
+    \title{Some resources should opt-out}
+
+    time resource
+
+    iam roles
+
+    That being said, not all Concourse resources can share versions globally such
+    as the time-resource <link to time-resource>. The time resource is a base
+    resource type and its versions are time stamps that are produced by the
+    computers internal clock and a configured interval. This means that two time
+    resources that have the exact same configuration of a 1 minute interval will
+    each result in a different version history. As a result, any time resources
+    will not share its versions and there is also an additional field on resource
+    types <link to unique_version_history field on resource types> that allow any
+    resources that use that resource type to have a unique version history.
+  }
+
+  \section{
+    \title{Intercepting \code{check} containers no longer makes sense}
+
+    There are a few changes that came along with global resources, such as fly
+    intercept <link to fly intercept> for check containers will only be available
+    for admin users <link to admin users for RBAC>. We added this restriction
+    because check containers are now shared globally between teams within a
+    deployment and having the ability to modify a container used by teams outside
+    the users scope introduces security concerns.
+  }
+}
