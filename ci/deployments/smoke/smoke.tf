@@ -76,15 +76,9 @@ resource "google_compute_instance" "smoke" {
       "sudo -i -u postgres createuser concourse",
       "sudo -i -u postgres createdb --owner=concourse concourse",
 
-      "mkdir -p /etc/concourse",
-      "ssh-keygen -t rsa -f /etc/concourse/host_key -N ''",
-      "ssh-keygen -t rsa -f /etc/concourse/session_signing_key -N ''",
-      "ssh-keygen -t rsa -f /etc/concourse/worker_key -N ''",
-      "cp /etc/concourse/worker_key.pub /etc/concourse/authorized_worker_keys",
-
       "adduser --system --group concourse",
-      "chgrp concourse /etc/concourse/*",
-      "chmod g+r /etc/concourse/*",
+      "mkdir -p /etc/concourse",
+      "chgrp concourse /etc/concourse",
     ]
   }
 }
@@ -171,6 +165,13 @@ resource "null_resource" "rerun" {
   provisioner "remote-exec" {
     inline = [
       "set -e -x",
+
+      "concourse generate-key -t rsa -f /etc/concourse/session_signing_key",
+      "concourse generate-key -t ssh -f /etc/concourse/host_key",
+      "concourse generate-key -t ssh -f /etc/concourse/worker_key",
+      "cp /etc/concourse/worker_key.pub /etc/concourse/authorized_worker_keys",
+      "chgrp concourse /etc/concourse/*",
+      "chmod g+r /etc/concourse/*",
 
       "systemctl enable /usr/local/concourse/system/concourse-web.service",
       "systemctl restart concourse-web.service",

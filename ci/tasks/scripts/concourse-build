@@ -26,7 +26,7 @@ fi
 
 pushd concourse
   go install github.com/gobuffalo/packr/packr
-  packr build -o concourse -ldflags "$ldflags" ./bin/cmd/concourse
+  packr build -o concourse -ldflags "$ldflags" ./cmd/concourse
   test "$(./concourse --version)" = "$final_version"
 popd
 

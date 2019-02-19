@@ -1,14 +1,15 @@
 package main_test
 
 import (
-	"code.cloudfoundry.org/lager/lagertest"
 	"errors"
-	. "github.com/concourse/concourse/bin/cmd/concourse"
+	"os"
+
+	"code.cloudfoundry.org/lager/lagertest"
+	. "github.com/concourse/concourse/cmd/concourse"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
 	ifritFakes "github.com/tedsuo/ifrit/fake_runner"
-	"os"
 )
 
 var _ = Describe("LoggingRunner", func() {

@@ -58,7 +58,7 @@ RUN cd /src && \
       go mod download && \
       go install github.com/gobuffalo/packr/packr && \
       packr build -gcflags=all="-N -l" -o /usr/local/concourse/bin/concourse \
-        ./bin/cmd/concourse && \
+        ./cmd/concourse && \
       rm -rf /src
 
 # volume for non-aufs/etc. mount for baggageclaim's driver
