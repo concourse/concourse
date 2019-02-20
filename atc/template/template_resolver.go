@@ -54,9 +54,10 @@ func (resolver TemplateResolver) resolve(expectAllKeys bool) ([]byte, error) {
 
 func (resolver TemplateResolver) ResolveDeprecated(allowEmpty bool) ([]byte, error) {
 	vars := boshtemplate.StaticVariables{}
-	for _, variable := range resolver.params {
-		// ideally we should deprecate old-style template parameters and remove this all together
-		if staticVar, ok := variable.(boshtemplate.StaticVariables); ok {
+	// TODO: old-style template parameters require very careful handling and reverse
+	// order processing. we should eventually drop their support
+	for i := len(resolver.params) - 1; i >= 0; i-- {
+		if staticVar, ok := resolver.params[i].(boshtemplate.StaticVariables); ok {
 			for k, v := range staticVar {
 				vars[k] = v
 			}
