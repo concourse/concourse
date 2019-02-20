@@ -36,35 +36,38 @@ view duration now =
 
 show : Time.Time -> Concourse.BuildDuration -> String
 show now =
-    .startedAt >> Maybe.map (Date.toTime >> flip Duration.between now >> Duration.format) >> Maybe.withDefault ""
+    .startedAt
+        >> Maybe.map (Date.toTime >> flip Duration.between now >> Duration.format)
+        >> Maybe.withDefault ""
 
 
-labeledDate: String -> Time -> Date -> Html a
+labeledDate : String -> Time -> Date -> Html a
 labeledDate label now date =
     let
         ago =
             Duration.between (Date.toTime date) now
-        oneDay =
-            toFloat 3600 * 24 * 1000
+
         verboseDate =
             Date.Format.format "%b %d %Y %I:%M:%S %p" date
+
         relativeDate =
             Duration.format ago ++ " ago"
     in
-    if ago < oneDay then
+    if ago < 24 * Time.hour then
         Html.tr []
-        [ Html.td [ class "dict-key" ] [ Html.text label ]
-        , Html.td
-            [ title verboseDate, class "dict-value" ]
-            [ Html.span [] [ Html.text relativeDate ] ]
-        ]
+            [ Html.td [ class "dict-key" ] [ Html.text label ]
+            , Html.td
+                [ title verboseDate, class "dict-value" ]
+                [ Html.span [] [ Html.text relativeDate ] ]
+            ]
+
     else
         Html.tr []
-        [ Html.td [ class "dict-key" ] [ Html.text label ]
-        , Html.td
-            [ title relativeDate, class "dict-value" ]
-            [ Html.span [] [ Html.text verboseDate ] ]
-        ]
+            [ Html.td [ class "dict-key" ] [ Html.text label ]
+            , Html.td
+                [ title relativeDate, class "dict-value" ]
+                [ Html.span [] [ Html.text verboseDate ] ]
+            ]
 
 
 labeledDuration : String -> Duration -> Html a
