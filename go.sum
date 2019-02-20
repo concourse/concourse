@@ -92,6 +92,8 @@ github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 h1:9j2Kb
 github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2/go.mod h1:0a+Ghg38uB86Dx+de84dFSkILTnBHzCpFMRnjHgSzi4=
 github.com/concourse/baggageclaim v1.3.4 h1:YNwWyQyyiSouLyoCYk3W7uECYz8A5IttpM9e9rrA4bk=
 github.com/concourse/baggageclaim v1.3.4/go.mod h1:9K1fnrJ8XyAm7OQtkdILDCj3bmCsnFkW/KCPBPyDy+s=
+github.com/concourse/baggageclaim v1.3.5 h1:cRHTq93MW0WyPgANjkt9YBnAl0wwquh//41fCla8Uic=
+github.com/concourse/baggageclaim v1.3.5/go.mod h1:9K1fnrJ8XyAm7OQtkdILDCj3bmCsnFkW/KCPBPyDy+s=
 github.com/concourse/dex v0.0.0-20181120155244-024cbea7e753 h1:1e4sAPr+xZn0LH8/yGQXdNEaCw4y7NGI3ikgAt0k7v0=
 github.com/concourse/dex v0.0.0-20181120155244-024cbea7e753/go.mod h1:KxaXUXusJaySm+1AjQmBwiyDe7wcR4lLV0GxwOcV598=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c h1:SwMKBc36jGTSS5/3AqVtbRjbGTvDfR3pJ5MkzfiYSas=

@@ -33,9 +33,12 @@ type WorkerCommand struct {
 	BindIP   flag.IP `long:"bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the Garden server."`
 	BindPort uint16  `long:"bind-port" default:"7777"      description:"Port on which to listen for the Garden server."`
 
-	HealthcheckIP      flag.IP       `long:"healthcheck-ip"      default:"0.0.0.0"   description:"IP address on which to listen for health checking requests"`
-	HealthcheckPort    uint16        `long:"healthcheck-port"    default:"8888"      description:"Port on which to listen for health checking requests"`
-	HealthCheckTimeout time.Duration `long:"healthcheck-timeout" default:"5s"        description:"HTTP timeout for the full duration of health checking"`
+	DebugBindIP   flag.IP `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
+	DebugBindPort uint16  `long:"debug-bind-port" default:"7776"      description:"Port on which to listen for the pprof debugger endpoints."`
+
+	HealthcheckBindIP   flag.IP       `long:"healthcheck-bind-ip"    default:"0.0.0.0"  description:"IP address on which to listen for health checking requests."`
+	HealthcheckBindPort uint16        `long:"healthcheck-bind-port"  default:"8888"     description:"Port on which to listen for health checking requests."`
+	HealthCheckTimeout  time.Duration `long:"healthcheck-timeout"    default:"5s"       description:"HTTP timeout for the full duration of health checking."`
 
 	SweepInterval time.Duration `long:"sweep-interval" default:"30s" description:"Interval on which containers and volumes will be garbage collected from the worker."`
 
@@ -97,12 +100,23 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 			Runner: NewLoggingRunner(logger.Session("baggageclaim-runner"), baggageclaimRunner),
 		},
 		{
+			Name: "debug",
+			Runner: NewLoggingRunner(
+				logger.Session("debug-runner"),
+				http_server.New(
+					fmt.Sprintf("%s:%d", cmd.DebugBindIP.IP, cmd.DebugBindPort),
+					http.DefaultServeMux,
+				),
+			),
+		},
+		{
 			Name: "healthcheck",
 			Runner: NewLoggingRunner(
 				logger.Session("healthcheck-runner"),
 				http_server.New(
-					fmt.Sprintf("%s:%d", cmd.HealthcheckIP.IP, cmd.HealthcheckPort),
-					http.HandlerFunc(healthChecker.CheckHealth)),
+					fmt.Sprintf("%s:%d", cmd.HealthcheckBindIP.IP, cmd.HealthcheckBindPort),
+					http.HandlerFunc(healthChecker.CheckHealth),
+				),
 			),
 		},
 	}

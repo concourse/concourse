@@ -23,10 +23,13 @@ import (
 type TSACommand struct {
 	Logger flag.Lager
 
-	BindIP        flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
-	BindPort      uint16  `long:"bind-port" default:"2222"    description:"Port on which to listen for SSH."`
-	DebugBindPort uint16  `long:"bind-debug-port" default:"8089"    description:"Port on which to listen for TSA pprof server."`
-	PeerIP        string  `long:"peer-ip" required:"true" description:"IP address of this TSA, reachable by the ATCs. Used for forwarded worker addresses."`
+	PeerIP string `long:"peer-ip" required:"true" description:"IP address of this TSA, reachable by the ATCs. Used for forwarded worker addresses."`
+
+	BindIP   flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
+	BindPort uint16  `long:"bind-port" default:"2222"    description:"Port on which to listen for SSH."`
+
+	DebugBindIP   flag.IP `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
+	DebugBindPort uint16  `long:"debug-bind-port" default:"2221"      description:"Port on which to listen for the pprof debugger endpoints."`
 
 	HostKey            *flag.PrivateKey               `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
 	AuthorizedKeys     flag.AuthorizedKeys            `long:"authorized-keys" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
@@ -37,10 +40,6 @@ type TSACommand struct {
 	SessionSigningKey *flag.PrivateKey `long:"session-signing-key" required:"true" description:"Path to private key to use when signing tokens in reqests to the ATC during registration."`
 
 	HeartbeatInterval time.Duration `long:"heartbeat-interval" default:"30s" description:"interval on which to heartbeat workers to the ATC"`
-}
-
-func (cmd *TSACommand) debugBindAddr() string {
-	return fmt.Sprintf("127.0.0.1:%d", cmd.DebugBindPort)
 }
 
 type TeamAuthKeys struct {
@@ -185,4 +184,8 @@ func (cmd *TSACommand) configureSSHServer(sessionAuthTeam *sessionTeam, authoriz
 	config.AddHostKey(signer)
 
 	return config, nil
+}
+
+func (cmd *TSACommand) debugBindAddr() string {
+	return fmt.Sprintf("%s:%d", cmd.DebugBindIP, cmd.DebugBindPort)
 }

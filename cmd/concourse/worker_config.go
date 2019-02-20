@@ -17,8 +17,6 @@ type WorkerConfig struct {
 
 	Ephemeral bool `long:"ephemeral" description:"If set, the worker will be immediately removed upon stalling."`
 
-	DebugBindPort uint16 `long:"bind-debug-port" default:"9099"    description:"Port on which to listen for beacon pprof server."`
-
 	Version string `long:"version" hidden:"true" description:"Version of the worker. This is normally baked in to the binary, so this flag is hidden."`
 }
 
