@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -820,7 +819,7 @@ func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int, groups []string
 		UPDATE jobs
 		SET config = $3, interruptible = $4, active = true, nonce = $5, tags = $6
 		WHERE name = $1 AND pipeline_id = $2
-	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce, "{"+strings.Join(groups, ",")+"}")
+	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce, pq.Array(groups))
 	if err != nil {
 		return err
 	}
@@ -832,7 +831,7 @@ func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int, groups []string
 	_, err = tx.Exec(`
 		INSERT INTO jobs (name, pipeline_id, config, interruptible, active, nonce, tags)
 		VALUES ($1, $2, $3, $4, true, $5, $6)
-	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce, "{"+strings.Join(groups, ",")+"}")
+	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce, pq.Array(groups))
 
 	return swallowUniqueViolation(err)
 }

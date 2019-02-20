@@ -588,222 +588,23 @@ var _ = Describe("WorkerFactory", func() {
 			}, nil)
 		})
 
-		Context("when the pipeline config has a tagged resource", func() {
-			var (
-				otherPipeline     db.Pipeline
-				ownerExpiries     db.ContainerOwnerExpiries
-				containerMetadata db.ContainerMetadata
-				otherResource     db.Resource
-			)
-
-			BeforeEach(func() {
-				ownerExpiries = db.ContainerOwnerExpiries{
-					GraceTime: 1 * time.Minute,
-					Min:       5 * time.Minute,
-					Max:       5 * time.Minute,
-				}
-
-				var err error
-				otherPipeline, _, err = defaultTeam.SavePipeline("other-pipeline", atc.Config{
-					Resources: atc.ResourceConfigs{
-						{
-							Name: "some-resource",
-							Type: "some-base-resource-type",
-							Source: atc.Source{
-								"some": "source",
-							},
-							Tags: atc.Tags{"some-tag"},
-						},
-					},
-				}, db.ConfigVersion(0), db.PipelineUnpaused)
-				Expect(err).NotTo(HaveOccurred())
-
-				containerMetadata = db.ContainerMetadata{
-					Type: "check",
-				}
-
-				var found bool
-				otherResource, found, err = otherPipeline.Resource("some-resource")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-			})
-
-			Context("when there is a container on the tagged worker and a container on the global worker", func() {
-				var owner db.ContainerOwner
-				var taggedWorker db.Worker
+		Context("when there are check containers", func() {
+			Context("when there are multiple of the same containers on the global, team and tagged worker", func() {
+				var (
+					owner        db.ContainerOwner
+					taggedWorker db.Worker
+					teamWorker   db.Worker
+				)
 
 				BeforeEach(func() {
-					otherWorkerSpec := atc.Worker{
-						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-						GardenAddr:      "some-garden-addr",
-						BaggageclaimURL: "some-bc-url",
-						Name:            "some-other-name",
-						Tags:            []string{"some-tag"},
+					ownerExpiries := db.ContainerOwnerExpiries{
+						GraceTime: 1 * time.Minute,
+						Min:       5 * time.Minute,
+						Max:       5 * time.Minute,
 					}
 
 					var err error
-					taggedWorker, err = workerFactory.SaveWorker(otherWorkerSpec, 5*time.Minute)
-					Expect(err).NotTo(HaveOccurred())
-
-					rcs, err := otherResource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-					Expect(err).NotTo(HaveOccurred())
-
-					owner = db.NewResourceConfigCheckSessionContainerOwner(rcs.ResourceConfig(), ownerExpiries)
-
-					_, err = taggedWorker.CreateContainer(owner, containerMetadata)
-					Expect(err).ToNot(HaveOccurred())
-
-					_, err = defaultWorker.CreateContainer(owner, containerMetadata)
-					Expect(err).ToNot(HaveOccurred())
-				})
-
-				It("should find the container on the tagged worker with the tagged resource", func() {
-					worker, found, err := workerFactory.FindWorkerForContainerByOwner(owner, defaultTeam.ID(), atc.Tags{"some-tag"})
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(worker.Name()).To(Equal(taggedWorker.Name()))
-				})
-			})
-
-			Context("when there is a container on the global worker", func() {
-				var owner db.ContainerOwner
-
-				BeforeEach(func() {
-					rcs, err := otherResource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-					Expect(err).NotTo(HaveOccurred())
-
-					owner = db.NewResourceConfigCheckSessionContainerOwner(rcs.ResourceConfig(), ownerExpiries)
-
-					_, err = defaultWorker.CreateContainer(owner, containerMetadata)
-					Expect(err).ToNot(HaveOccurred())
-				})
-
-				It("should not find the container on the global worker with the tagged resource", func() {
-					worker, found, err := workerFactory.FindWorkerForContainerByOwner(owner, defaultTeam.ID(), atc.Tags{"some-tag"})
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
-					Expect(worker).To(BeNil())
-				})
-			})
-
-			Context("when there is a team worker with the same check container", func() {
-				var owner db.ContainerOwner
-
-				BeforeEach(func() {
-					teamSpec := atc.Worker{
-						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-						GardenAddr:      "some-team-garden-addr",
-						BaggageclaimURL: "some-team-bc-url",
-						Team:            "default-team",
-						Name:            "some-team-worker",
-					}
-
-					teamWorker, err := defaultTeam.SaveWorker(teamSpec, 5*time.Minute)
-					Expect(err).NotTo(HaveOccurred())
-
-					rcs, err := otherResource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-					Expect(err).NotTo(HaveOccurred())
-
-					owner = db.NewResourceConfigCheckSessionContainerOwner(rcs.ResourceConfig(), ownerExpiries)
-
-					_, err = teamWorker.CreateContainer(owner, containerMetadata)
-					Expect(err).ToNot(HaveOccurred())
-				})
-
-				It("should not find the container on the team worker with the tagged resource", func() {
-					worker, found, err := workerFactory.FindWorkerForContainerByOwner(owner, defaultTeam.ID(), atc.Tags{"some-tag"})
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
-					Expect(worker).To(BeNil())
-				})
-			})
-
-			Context("when there is a container on the team and tagged worker", func() {
-				var owner db.ContainerOwner
-				var teamTaggedWorker db.Worker
-
-				BeforeEach(func() {
-					taggedSpec := atc.Worker{
-						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-						GardenAddr:      "some-tagged-garden-addr",
-						BaggageclaimURL: "some-tagged-bc-url",
-						Tags:            atc.Tags{"some-tag"},
-						Name:            "some-tagged-worker",
-					}
-
-					taggedWorker, err := workerFactory.SaveWorker(taggedSpec, 5*time.Minute)
-					Expect(err).NotTo(HaveOccurred())
-
-					teamSpec := atc.Worker{
-						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-						GardenAddr:      "some-team-garden-addr",
-						BaggageclaimURL: "some-team-bc-url",
-						Team:            "default-team",
-						Name:            "some-team-worker",
-					}
-
-					teamWorker, err := defaultTeam.SaveWorker(teamSpec, 5*time.Minute)
-					Expect(err).NotTo(HaveOccurred())
-
-					teamTaggedSpec := atc.Worker{
-						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-						GardenAddr:      "some-team-tagged-garden-addr",
-						BaggageclaimURL: "some-team-tagged-bc-url",
-						Team:            "default-team",
-						Tags:            atc.Tags{"some-tag"},
-						Name:            "some-team-tagged-worker",
-					}
-
-					teamTaggedWorker, err = defaultTeam.SaveWorker(teamTaggedSpec, 5*time.Minute)
-					Expect(err).NotTo(HaveOccurred())
-
-					rcs, err := otherResource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-					Expect(err).NotTo(HaveOccurred())
-
-					owner = db.NewResourceConfigCheckSessionContainerOwner(rcs.ResourceConfig(), ownerExpiries)
-
-					_, err = taggedWorker.CreateContainer(owner, containerMetadata)
-					Expect(err).ToNot(HaveOccurred())
-
-					_, err = teamWorker.CreateContainer(owner, containerMetadata)
-					Expect(err).ToNot(HaveOccurred())
-
-					_, err = defaultWorker.CreateContainer(owner, containerMetadata)
-					Expect(err).ToNot(HaveOccurred())
-
-					_, err = teamTaggedWorker.CreateContainer(owner, containerMetadata)
-					Expect(err).ToNot(HaveOccurred())
-				})
-
-				It("should find the container with the tagged and team resource", func() {
-					worker, found, err := workerFactory.FindWorkerForContainerByOwner(owner, defaultTeam.ID(), atc.Tags{"some-tag"})
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(worker.Name()).To(Equal(teamTaggedWorker.Name()))
-				})
-			})
-
-			Context("when there is a container on the team and tagged worker and the resource is not part of the that team", func() {
-				var owner db.ContainerOwner
-				var teamTaggedWorker db.Worker
-
-				BeforeEach(func() {
-					otherTeam, err := teamFactory.CreateTeam(atc.Team{Name: "other-team"})
-					Expect(err).NotTo(HaveOccurred())
-
-					teamTaggedSpec := atc.Worker{
-						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-						GardenAddr:      "some-team-tagged-garden-addr",
-						BaggageclaimURL: "some-team-tagged-bc-url",
-						Team:            "other-team",
-						Tags:            atc.Tags{"some-tag"},
-						Name:            "some-team-tagged-worker",
-					}
-
-					teamTaggedWorker, err = defaultTeam.SaveWorker(teamTaggedSpec, 5*time.Minute)
-					Expect(err).NotTo(HaveOccurred())
-
-					otherPipeline, _, err = otherTeam.SavePipeline("other-pipeline", atc.Config{
+					otherPipeline, _, err := defaultTeam.SavePipeline("other-pipeline", atc.Config{
 						Resources: atc.ResourceConfigs{
 							{
 								Name: "some-resource",
@@ -811,685 +612,143 @@ var _ = Describe("WorkerFactory", func() {
 								Source: atc.Source{
 									"some": "source",
 								},
-								Tags: atc.Tags{"some-tag"},
 							},
 						},
 					}, db.ConfigVersion(0), db.PipelineUnpaused)
 					Expect(err).NotTo(HaveOccurred())
 
-					var found bool
-					resource, found, err := otherPipeline.Resource("some-resource")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					rcs, err := resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-					Expect(err).NotTo(HaveOccurred())
-
-					owner = db.NewResourceConfigCheckSessionContainerOwner(rcs.ResourceConfig(), ownerExpiries)
-
-					_, err = teamTaggedWorker.CreateContainer(owner, containerMetadata)
-					Expect(err).ToNot(HaveOccurred())
-				})
-
-				It("should not find the container with the tagged and team resource", func() {
-					worker, found, err := workerFactory.FindWorkerForContainerByOwner(owner, defaultTeam.ID(), atc.Tags{"some-tag"})
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(worker.Name()).To(Equal(teamTaggedWorker.Name()))
-				})
-			})
-		})
-
-		Context("when the pipeline config does not have a resource with matching tags", func() {
-			var (
-				otherPipeline     db.Pipeline
-				ownerExpiries     db.ContainerOwnerExpiries
-				containerMetadata db.ContainerMetadata
-				otherResource     db.Resource
-			)
-
-			BeforeEach(func() {
-				ownerExpiries = db.ContainerOwnerExpiries{
-					GraceTime: 1 * time.Minute,
-					Min:       5 * time.Minute,
-					Max:       5 * time.Minute,
-				}
-
-				var err error
-				otherPipeline, _, err = defaultTeam.SavePipeline("other-pipeline", atc.Config{
-					Resources: atc.ResourceConfigs{
-						{
-							Name: "some-resource",
-							Type: "some-base-resource-type",
-							Source: atc.Source{
-								"some": "source",
-							},
-							Tags: []string{"some-tag"},
-						},
-					},
-				}, db.ConfigVersion(0), db.PipelineUnpaused)
-				Expect(err).NotTo(HaveOccurred())
-
-				containerMetadata = db.ContainerMetadata{
-					Type: "check",
-				}
-
-				var found bool
-				otherResource, found, err = otherPipeline.Resource("some-resource")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-			})
-
-			Context("when there is a container on the tagged worker and a container on the global worker", func() {
-				var owner db.ContainerOwner
-				var taggedWorker db.Worker
-
-				BeforeEach(func() {
-					otherWorkerSpec := atc.Worker{
+					taggedWorkerSpec := atc.Worker{
 						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-						GardenAddr:      "some-garden-addr",
-						BaggageclaimURL: "some-bc-url",
-						Name:            "some-other-name",
-						Tags:            []string{"other-tag"},
+						GardenAddr:      "some-tagged-garden-addr",
+						BaggageclaimURL: "some-tagged-bc-url",
+						Name:            "some-tagged-name",
+						Tags:            []string{"some-tag"},
 					}
 
-					var err error
-					taggedWorker, err = workerFactory.SaveWorker(otherWorkerSpec, 5*time.Minute)
+					taggedWorker, err = workerFactory.SaveWorker(taggedWorkerSpec, 5*time.Minute)
 					Expect(err).NotTo(HaveOccurred())
+
+					teamWorkerSpec := atc.Worker{
+						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
+						GardenAddr:      "some-team-garden-addr",
+						BaggageclaimURL: "some-team-bc-url",
+						Name:            "some-team-name",
+						Team:            "default-team",
+					}
+
+					teamWorker, err = defaultTeam.SaveWorker(teamWorkerSpec, 5*time.Minute)
+					Expect(err).NotTo(HaveOccurred())
+
+					otherWorkerSpec := atc.Worker{
+						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
+						GardenAddr:      "some-other-garden-addr",
+						BaggageclaimURL: "some-other-bc-url",
+						Name:            "some-other-name",
+					}
+
+					_, err = workerFactory.SaveWorker(otherWorkerSpec, 5*time.Minute)
+					Expect(err).NotTo(HaveOccurred())
+
+					containerMetadata = db.ContainerMetadata{
+						Type: "check",
+					}
+
+					otherResource, found, err := otherPipeline.Resource("some-resource")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
 
 					rcs, err := otherResource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
 
 					owner = db.NewResourceConfigCheckSessionContainerOwner(rcs.ResourceConfig(), ownerExpiries)
+
+					_, err = defaultWorker.CreateContainer(owner, containerMetadata)
+					Expect(err).ToNot(HaveOccurred())
 
 					_, err = taggedWorker.CreateContainer(owner, containerMetadata)
 					Expect(err).ToNot(HaveOccurred())
 
-					_, err = defaultWorker.CreateContainer(owner, containerMetadata)
+					_, err = teamWorker.CreateContainer(owner, containerMetadata)
 					Expect(err).ToNot(HaveOccurred())
 				})
 
-				It("should not find any worker", func() {
-					worker, found, err := workerFactory.FindWorkerForContainerByOwner(owner, defaultTeam.ID(), atc.Tags{"some-tag"})
+				It("should find all the workers that have the same container", func() {
+					workers, err := workerFactory.FindWorkersForContainerByOwner(owner)
 					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
-					Expect(worker).To(BeNil())
-				})
-			})
+					Expect(workers).To(HaveLen(3))
 
-			Context("when there is a container on the team and tagged worker", func() {
-				var owner db.ContainerOwner
-				var teamTaggedWorker db.Worker
-
-				BeforeEach(func() {
-					teamTaggedSpec := atc.Worker{
-						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-						GardenAddr:      "some-team-tagged-garden-addr",
-						BaggageclaimURL: "some-team-tagged-bc-url",
-						Team:            "default-team",
-						Tags:            atc.Tags{"other-tag"},
-						Name:            "some-team-tagged-worker",
+					var workerNames []string
+					for _, w := range workers {
+						workerNames = append(workerNames, w.Name())
 					}
 
-					var err error
-					teamTaggedWorker, err = defaultTeam.SaveWorker(teamTaggedSpec, 5*time.Minute)
-					Expect(err).NotTo(HaveOccurred())
-
-					rcs, err := otherResource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-					Expect(err).NotTo(HaveOccurred())
-
-					owner = db.NewResourceConfigCheckSessionContainerOwner(rcs.ResourceConfig(), ownerExpiries)
-
-					_, err = teamTaggedWorker.CreateContainer(owner, containerMetadata)
-					Expect(err).ToNot(HaveOccurred())
-				})
-
-				It("should not find the container with the tagged and team resource", func() {
-					worker, found, err := workerFactory.FindWorkerForContainerByOwner(owner, defaultTeam.ID(), atc.Tags{"some-tag"})
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
-					Expect(worker).To(BeNil())
+					Expect(workerNames).To(ConsistOf([]string{defaultWorker.Name(), taggedWorker.Name(), teamWorker.Name()}))
 				})
 			})
 		})
 
-		Context("when the pipeline config does not have a resource with tags", func() {
-			var (
-				otherPipeline     db.Pipeline
-				ownerExpiries     db.ContainerOwnerExpiries
-				containerMetadata db.ContainerMetadata
-				otherResource     db.Resource
-			)
-
-			BeforeEach(func() {
-				ownerExpiries = db.ContainerOwnerExpiries{
-					GraceTime: 1 * time.Minute,
-					Min:       5 * time.Minute,
-					Max:       5 * time.Minute,
-				}
-
-				var err error
-				otherPipeline, _, err = defaultTeam.SavePipeline("other-pipeline", atc.Config{
-					Resources: atc.ResourceConfigs{
-						{
-							Name: "some-resource",
-							Type: "some-base-resource-type",
-							Source: atc.Source{
-								"some": "source",
-							},
-						},
-					},
-				}, db.ConfigVersion(0), db.PipelineUnpaused)
-				Expect(err).NotTo(HaveOccurred())
-
-				containerMetadata = db.ContainerMetadata{
-					Type: "check",
-				}
-
-				var found bool
-				otherResource, found, err = otherPipeline.Resource("some-resource")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-			})
-
-			Context("when there is a container on the tagged worker and a container on the global worker", func() {
-				var owner db.ContainerOwner
-				var taggedWorker db.Worker
-
+		Context("when there are build containers", func() {
+			Context("when there is a creating container", func() {
 				BeforeEach(func() {
-					otherWorkerSpec := atc.Worker{
-						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-						GardenAddr:      "some-garden-addr",
-						BaggageclaimURL: "some-bc-url",
-						Name:            "some-other-name",
-						Tags:            []string{"other-tag"},
-					}
-
-					var err error
-					taggedWorker, err = workerFactory.SaveWorker(otherWorkerSpec, 5*time.Minute)
-					Expect(err).NotTo(HaveOccurred())
-
-					rcs, err := otherResource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-					Expect(err).NotTo(HaveOccurred())
-
-					rcs, err = defaultResource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-					Expect(err).NotTo(HaveOccurred())
-
-					owner = db.NewResourceConfigCheckSessionContainerOwner(rcs.ResourceConfig(), ownerExpiries)
-
-					_, err = taggedWorker.CreateContainer(owner, containerMetadata)
-					Expect(err).ToNot(HaveOccurred())
-
-					_, err = defaultWorker.CreateContainer(owner, containerMetadata)
+					_, err := defaultWorker.CreateContainer(fakeOwner, containerMetadata)
 					Expect(err).ToNot(HaveOccurred())
 				})
 
-				It("should find the container on the global worker", func() {
-					worker, found, err := workerFactory.FindWorkerForContainerByOwner(owner, defaultTeam.ID(), nil)
+				It("returns it", func() {
+					workers, err := workerFactory.FindWorkersForContainerByOwner(fakeOwner)
 					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(worker.Name()).To(Equal(defaultWorker.Name()))
+					Expect(workers).To(HaveLen(1))
+					Expect(workers[0].Name()).To(Equal(defaultWorker.Name()))
+				})
+
+				It("does not find container for another team", func() {
+					workers, err := workerFactory.FindWorkersForContainerByOwner(otherFakeOwner)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(workers).To(HaveLen(0))
 				})
 			})
 
-			Context("when there is a container on the team and tagged worker", func() {
-				var owner db.ContainerOwner
-				var teamTaggedWorker db.Worker
-
+			Context("when there is a created container", func() {
 				BeforeEach(func() {
-					teamTaggedSpec := atc.Worker{
-						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-						GardenAddr:      "some-team-tagged-garden-addr",
-						BaggageclaimURL: "some-team-tagged-bc-url",
-						Team:            "default-team",
-						Tags:            atc.Tags{"some-tag"},
-						Name:            "some-team-tagged-worker",
-					}
+					creatingContainer, err := defaultWorker.CreateContainer(fakeOwner, containerMetadata)
+					Expect(err).ToNot(HaveOccurred())
 
-					var err error
-					teamTaggedWorker, err = defaultTeam.SaveWorker(teamTaggedSpec, 5*time.Minute)
-					Expect(err).NotTo(HaveOccurred())
-
-					rcs, err := otherResource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-					Expect(err).NotTo(HaveOccurred())
-
-					owner = db.NewResourceConfigCheckSessionContainerOwner(rcs.ResourceConfig(), ownerExpiries)
-
-					_, err = teamTaggedWorker.CreateContainer(owner, containerMetadata)
+					_, err = creatingContainer.Created()
 					Expect(err).ToNot(HaveOccurred())
 				})
 
-				It("should not find the container with the tagged and team resource", func() {
-					worker, found, err := workerFactory.FindWorkerForContainerByOwner(owner, defaultTeam.ID(), nil)
+				It("returns it", func() {
+					workers, err := workerFactory.FindWorkersForContainerByOwner(fakeOwner)
 					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
-					Expect(worker).To(BeNil())
-				})
-			})
-		})
-
-		Context("when there is a container on the team worker and there is a global worker", func() {
-			var (
-				owner      db.ContainerOwner
-				otherTeam  db.Team
-				err        error
-				found      bool
-				worker     db.Worker
-				teamWorker db.Worker
-				teamID     int
-			)
-
-			ownerExpiries := db.ContainerOwnerExpiries{
-				GraceTime: 1 * time.Minute,
-				Min:       5 * time.Minute,
-				Max:       5 * time.Minute,
-			}
-
-			BeforeEach(func() {
-				otherTeam, err = teamFactory.CreateTeam(atc.Team{Name: "other-team"})
-				Expect(err).NotTo(HaveOccurred())
-
-				atcTeamWorker := atc.Worker{
-					ResourceTypes:    []atc.WorkerResourceType{defaultWorkerResourceType},
-					GardenAddr:       "some-garden-addr",
-					BaggageclaimURL:  "some-bc-url",
-					HTTPProxyURL:     "some-http-proxy-url",
-					HTTPSProxyURL:    "some-https-proxy-url",
-					NoProxy:          "some-no-proxy",
-					ActiveContainers: 140,
-					ActiveVolumes:    550,
-					Platform:         "some-platform",
-					Name:             "some-other-name",
-					StartTime:        55,
-					Team:             "other-team",
-				}
-
-				var err error
-				teamWorker, err = otherTeam.SaveWorker(atcTeamWorker, 5*time.Minute)
-				Expect(err).NotTo(HaveOccurred())
-
-				otherPipeline, _, err := otherTeam.SavePipeline("other-pipeline", atc.Config{
-					Resources: atc.ResourceConfigs{
-						{
-							Name: "some-resource",
-							Type: "some-base-resource-type",
-							Source: atc.Source{
-								"some": "source",
-							},
-						},
-					},
-				}, db.ConfigVersion(0), db.PipelineUnpaused)
-				Expect(err).NotTo(HaveOccurred())
-
-				resource, found, err := otherPipeline.Resource("some-resource")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				rcs, err := resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-				Expect(err).NotTo(HaveOccurred())
-
-				owner = db.NewResourceConfigCheckSessionContainerOwner(rcs.ResourceConfig(), ownerExpiries)
-
-				containerMetadata = db.ContainerMetadata{
-					Type: "check",
-				}
-
-				_, err = teamWorker.CreateContainer(owner, containerMetadata)
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			JustBeforeEach(func() {
-				worker, found, err = workerFactory.FindWorkerForContainerByOwner(owner, teamID, nil)
-			})
-
-			Context("when the user belongs to the team", func() {
-				BeforeEach(func() {
-					teamID = otherTeam.ID()
+					Expect(workers).To(HaveLen(1))
+					Expect(workers[0].Name()).To(Equal(defaultWorker.Name()))
 				})
 
-				It("finds the container on the team worker", func() {
+				It("does not find container for another team", func() {
+					workers, err := workerFactory.FindWorkersForContainerByOwner(otherFakeOwner)
 					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(worker.Name()).To(Equal(teamWorker.Name()))
+					Expect(workers).To(HaveLen(0))
 				})
 			})
 
-			Context("when the user does not belong to the team", func() {
-				BeforeEach(func() {
-					teamID = defaultTeam.ID()
-				})
+			Context("when there is no container", func() {
+				It("returns nil", func() {
+					bogusOwner := new(dbfakes.FakeContainerOwner)
+					bogusOwner.FindReturns(sq.Eq{
+						"build_id": build.ID() + 1,
+						"plan_id":  "how-could-this-happen-to-me",
+						"team_id":  1,
+					}, true, nil)
+					bogusOwner.CreateReturns(map[string]interface{}{
+						"build_id": build.ID() + 1,
+						"plan_id":  "how-could-this-happen-to-me",
+						"team_id":  1,
+					}, nil)
 
-				It("does not find the container on the team worker", func() {
+					workers, err := workerFactory.FindWorkersForContainerByOwner(bogusOwner)
 					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
-					Expect(worker).To(BeNil())
+					Expect(workers).To(HaveLen(0))
 				})
-			})
-		})
-
-		Context("when there is a container on the global worker but the team has a team worker", func() {
-			var owner db.ContainerOwner
-			var otherTeam db.Team
-			var err error
-			var teamID int
-			var found bool
-			var worker db.Worker
-
-			ownerExpiries := db.ContainerOwnerExpiries{
-				GraceTime: 1 * time.Minute,
-				Min:       5 * time.Minute,
-				Max:       5 * time.Minute,
-			}
-
-			BeforeEach(func() {
-				otherTeam, err = teamFactory.CreateTeam(atc.Team{Name: "other-team"})
-				Expect(err).NotTo(HaveOccurred())
-
-				atcTeamWorker := atc.Worker{
-					GardenAddr:       "some-garden-addr",
-					BaggageclaimURL:  "some-bc-url",
-					HTTPProxyURL:     "some-http-proxy-url",
-					HTTPSProxyURL:    "some-https-proxy-url",
-					NoProxy:          "some-no-proxy",
-					ActiveContainers: 140,
-					ActiveVolumes:    550,
-					Platform:         "some-platform",
-					Name:             "some-other-name",
-					StartTime:        55,
-					Team:             "other-team",
-				}
-
-				var err error
-				_, err = otherTeam.SaveWorker(atcTeamWorker, 5*time.Minute)
-				Expect(err).NotTo(HaveOccurred())
-
-				containerMetadata = db.ContainerMetadata{
-					Type: "check",
-				}
-
-				rcs, err := defaultResource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-				Expect(err).NotTo(HaveOccurred())
-
-				owner = db.NewResourceConfigCheckSessionContainerOwner(rcs.ResourceConfig(), ownerExpiries)
-
-				_, err = defaultWorker.CreateContainer(owner, containerMetadata)
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			JustBeforeEach(func() {
-				worker, found, err = workerFactory.FindWorkerForContainerByOwner(owner, teamID, nil)
-			})
-
-			Context("when the user belongs to the team", func() {
-				BeforeEach(func() {
-					teamID = otherTeam.ID()
-				})
-
-				It("does not find the container on the global worker", func() {
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
-					Expect(worker).To(BeNil())
-				})
-			})
-
-			Context("when the user does not belong to the team", func() {
-				BeforeEach(func() {
-					teamID = defaultTeam.ID()
-				})
-
-				It("finds the container on the global worker", func() {
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(worker.Name()).To(Equal(defaultWorker.Name()))
-				})
-			})
-		})
-
-		Context("when there is a container on both the team worker and the global worker", func() {
-			var owner db.ContainerOwner
-			var otherTeam db.Team
-			var err error
-
-			ownerExpiries := db.ContainerOwnerExpiries{
-				GraceTime: 1 * time.Minute,
-				Min:       5 * time.Minute,
-				Max:       5 * time.Minute,
-			}
-
-			BeforeEach(func() {
-				otherTeam, err = teamFactory.CreateTeam(atc.Team{Name: "other-team"})
-				Expect(err).NotTo(HaveOccurred())
-
-				certsPath := "/etc/ssl/certs"
-				atcTeamWorker := atc.Worker{
-					ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-					GardenAddr:      "some-garden-addr",
-					BaggageclaimURL: "some-bc-url",
-					Name:            "some-other-name",
-					Team:            "other-team",
-					CertsPath:       &certsPath,
-				}
-
-				teamWorker, err := otherTeam.SaveWorker(atcTeamWorker, 0)
-				Expect(err).NotTo(HaveOccurred())
-
-				otherPipeline, _, err := otherTeam.SavePipeline("other-pipeline", atc.Config{
-					Resources: atc.ResourceConfigs{
-						{
-							Name: "some-resource",
-							Type: "some-base-resource-type",
-							Source: atc.Source{
-								"some": "source",
-							},
-							Tags: atc.Tags{"some-tag"},
-						},
-					},
-				}, db.ConfigVersion(0), db.PipelineUnpaused)
-				Expect(err).NotTo(HaveOccurred())
-
-				resource, found, err := otherPipeline.Resource("some-resource")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				containerMetadata = db.ContainerMetadata{
-					Type: "check",
-				}
-
-				rcs, err := defaultResource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-				Expect(err).NotTo(HaveOccurred())
-
-				owner = db.NewResourceConfigCheckSessionContainerOwner(rcs.ResourceConfig(), ownerExpiries)
-
-				_, err = defaultWorker.CreateContainer(owner, containerMetadata)
-				Expect(err).ToNot(HaveOccurred())
-
-				rcs, err = resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-				Expect(err).NotTo(HaveOccurred())
-
-				owner = db.NewResourceConfigCheckSessionContainerOwner(rcs.ResourceConfig(), ownerExpiries)
-
-				_, err = teamWorker.CreateContainer(owner, containerMetadata)
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("finds the container on the team worker", func() {
-				worker, found, err := workerFactory.FindWorkerForContainerByOwner(owner, otherTeam.ID(), nil)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(worker.Name()).To(Equal("some-other-name"))
-			})
-		})
-
-		Context("when there are two team workers and the container is on the first team's worker", func() {
-			var (
-				owner     db.ContainerOwner
-				otherTeam db.Team
-				teamID    int
-				worker    db.Worker
-				found     bool
-				err       error
-			)
-
-			ownerExpiries := db.ContainerOwnerExpiries{
-				GraceTime: 1 * time.Minute,
-				Min:       5 * time.Minute,
-				Max:       5 * time.Minute,
-			}
-
-			BeforeEach(func() {
-				otherTeam, err = teamFactory.CreateTeam(atc.Team{Name: "other-team"})
-				Expect(err).NotTo(HaveOccurred())
-
-				certsPath := "/etc/ssl/certs"
-				atcTeamWorker := atc.Worker{
-					ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-					GardenAddr:      "some-garden-addr",
-					BaggageclaimURL: "some-bc-url",
-					Name:            "some-other-name",
-					Team:            "other-team",
-					CertsPath:       &certsPath,
-				}
-
-				teamWorker, err := otherTeam.SaveWorker(atcTeamWorker, 0)
-				Expect(err).NotTo(HaveOccurred())
-
-				otherPipeline, _, err := otherTeam.SavePipeline("other-pipeline", atc.Config{
-					Resources: atc.ResourceConfigs{
-						{
-							Name: "some-resource",
-							Type: "some-base-resource-type",
-							Source: atc.Source{
-								"some": "source",
-							},
-							Tags: atc.Tags{"some-tag"},
-						},
-					},
-				}, db.ConfigVersion(0), db.PipelineUnpaused)
-				Expect(err).NotTo(HaveOccurred())
-
-				resource, found, err := otherPipeline.Resource("some-resource")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				atcTeamWorker = atc.Worker{
-					ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-					GardenAddr:      "some-other-garden-addr",
-					BaggageclaimURL: "some-other-bc-url",
-					Name:            "some-default-name",
-					Team:            "default-team",
-					CertsPath:       &certsPath,
-				}
-
-				_, err = defaultTeam.SaveWorker(atcTeamWorker, 0)
-				Expect(err).NotTo(HaveOccurred())
-
-				containerMetadata = db.ContainerMetadata{
-					Type: "check",
-				}
-
-				rcs, err := resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-				Expect(err).NotTo(HaveOccurred())
-
-				owner = db.NewResourceConfigCheckSessionContainerOwner(rcs.ResourceConfig(), ownerExpiries)
-
-				_, err = teamWorker.CreateContainer(owner, containerMetadata)
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			JustBeforeEach(func() {
-				worker, found, err = workerFactory.FindWorkerForContainerByOwner(owner, teamID, nil)
-			})
-
-			Context("when the user belongs to the first team", func() {
-				BeforeEach(func() {
-					teamID = otherTeam.ID()
-				})
-
-				It("finds the container on the first team's worker", func() {
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(worker.Name()).To(Equal("some-other-name"))
-				})
-			})
-
-			Context("when the user does not belong to the first team", func() {
-				BeforeEach(func() {
-					teamID = defaultTeam.ID()
-				})
-
-				It("does not find the container on the first team's worker", func() {
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
-					Expect(worker).To(BeNil())
-				})
-			})
-		})
-
-		Context("when there is a creating container", func() {
-			BeforeEach(func() {
-				_, err := defaultWorker.CreateContainer(fakeOwner, containerMetadata)
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("returns it", func() {
-				worker, found, err := workerFactory.FindWorkerForContainerByOwner(fakeOwner, defaultTeam.ID(), nil)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(worker).ToNot(BeNil())
-				Expect(worker.Name()).To(Equal(defaultWorker.Name()))
-			})
-
-			It("does not find container for another team", func() {
-				worker, found, err := workerFactory.FindWorkerForContainerByOwner(otherFakeOwner, defaultTeam.ID(), nil)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeFalse())
-				Expect(worker).To(BeNil())
-			})
-		})
-
-		Context("when there is a created container", func() {
-			BeforeEach(func() {
-				creatingContainer, err := defaultWorker.CreateContainer(fakeOwner, containerMetadata)
-				Expect(err).ToNot(HaveOccurred())
-
-				_, err = creatingContainer.Created()
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("returns it", func() {
-				worker, found, err := workerFactory.FindWorkerForContainerByOwner(fakeOwner, defaultTeam.ID(), nil)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(worker).ToNot(BeNil())
-				Expect(worker.Name()).To(Equal(defaultWorker.Name()))
-			})
-
-			It("does not find container for another team", func() {
-				worker, found, err := workerFactory.FindWorkerForContainerByOwner(otherFakeOwner, defaultTeam.ID(), nil)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeFalse())
-				Expect(worker).To(BeNil())
-			})
-		})
-
-		Context("when there is no container", func() {
-			It("returns nil", func() {
-				bogusOwner := new(dbfakes.FakeContainerOwner)
-				bogusOwner.FindReturns(sq.Eq{
-					"build_id": build.ID() + 1,
-					"plan_id":  "how-could-this-happen-to-me",
-					"team_id":  1,
-				}, true, nil)
-				bogusOwner.CreateReturns(map[string]interface{}{
-					"build_id": build.ID() + 1,
-					"plan_id":  "how-could-this-happen-to-me",
-					"team_id":  1,
-				}, nil)
-
-				worker, found, err := workerFactory.FindWorkerForContainerByOwner(bogusOwner, defaultTeam.ID(), nil)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeFalse())
-				Expect(worker).To(BeNil())
 			})
 		})
 	})
