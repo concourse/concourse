@@ -6,6 +6,7 @@ import Array
 import Build.Build as Build
 import Build.Models as Models
 import Build.Msgs
+import Build.StepTree.Models as STModels
 import Callback
 import Char
 import Concourse exposing (BuildPrepStatus(..))
@@ -15,6 +16,7 @@ import DashboardTests
         , iconSelector
         , middleGrey
         )
+import Date
 import Dict
 import Effects
 import Expect
@@ -224,11 +226,11 @@ all =
                                     Build.Msgs.Events <|
                                         Ok <|
                                             Array.fromList
-                                                [ Models.StartTask
+                                                [ STModels.StartTask
                                                     { source = "stdout"
                                                     , id = "stepid"
                                                     }
-                                                , Models.Log
+                                                , STModels.Log
                                                     { source = "stdout"
                                                     , id = "stepid"
                                                     }
@@ -1188,7 +1190,7 @@ all =
                                 Build.Msgs.Events <|
                                     Ok <|
                                         Array.fromList
-                                            [ Models.FinishGet
+                                            [ STModels.FinishGet
                                                 { source = "stdout", id = "plan" }
                                                 0
                                                 Dict.empty
@@ -1217,7 +1219,7 @@ all =
                                 Build.Msgs.Events <|
                                     Ok <|
                                         Array.fromList
-                                            [ Models.FinishGet
+                                            [ STModels.FinishGet
                                                 { source = "stdout", id = "plan" }
                                                 0
                                                 (Dict.fromList [ ( "version", "v3.1.4" ) ])
@@ -1238,7 +1240,7 @@ all =
                                 Build.Msgs.Events <|
                                     Ok <|
                                         Array.fromList
-                                            [ Models.StartTask
+                                            [ STModels.StartTask
                                                 { source = "stdout"
                                                 , id = "plan"
                                                 }
@@ -1257,6 +1259,74 @@ all =
                                   )
                                 ]
                             ]
+                , test "pending step has dashed circle at the right" <|
+                    fetchPlanWithTaskStep
+                        >> Build.view UserState.UserStateLoggedOut
+                        >> Query.fromHtml
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-pending.svg"
+                                }
+                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                            )
+                , test "cancelled step has no-entry circle at the right" <|
+                    fetchPlanWithTaskStep
+                        >> Build.update
+                            (Build.Msgs.BuildEventsMsg <|
+                                Build.Msgs.Events <|
+                                    Ok <|
+                                        Array.fromList
+                                            [ STModels.Initialize
+                                                { source = "stdout"
+                                                , id = "plan"
+                                                }
+                                            , STModels.BuildStatus
+                                                Concourse.BuildStatusAborted
+                                                (Date.fromTime 0)
+                                            ]
+                            )
+                        >> Tuple.first
+                        >> Build.view UserState.UserStateLoggedOut
+                        >> Query.fromHtml
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-interrupted.svg"
+                                }
+                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                            )
+                , test "interrupted step has dashed circle with dot at the right" <|
+                    fetchPlanWithTaskStep
+                        >> Build.update
+                            (Build.Msgs.BuildEventsMsg <|
+                                Build.Msgs.Events <|
+                                    Ok <|
+                                        Array.fromList
+                                            [ STModels.BuildStatus
+                                                Concourse.BuildStatusAborted
+                                                (Date.fromTime 0)
+                                            ]
+                            )
+                        >> Tuple.first
+                        >> Build.view UserState.UserStateLoggedOut
+                        >> Query.fromHtml
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-cancelled.svg"
+                                }
+                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                            )
                 , test "failing step has an X at the far right" <|
                     fetchPlanWithGetStep
                         >> Build.update (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
@@ -1266,7 +1336,7 @@ all =
                                 Build.Msgs.Events <|
                                     Ok <|
                                         Array.fromList
-                                            [ Models.FinishGet
+                                            [ STModels.FinishGet
                                                 { source = "stdout", id = "plan" }
                                                 1
                                                 Dict.empty
@@ -1295,7 +1365,7 @@ all =
                                 Build.Msgs.Events <|
                                     Ok <|
                                         Array.fromList
-                                            [ Models.Error
+                                            [ STModels.Error
                                                 { source = "stderr", id = "plan" }
                                                 "error message"
                                             ]
@@ -1329,7 +1399,7 @@ all =
                                     Build.Msgs.Events <|
                                         Ok <|
                                             Array.fromList
-                                                [ Models.BuildError
+                                                [ STModels.BuildError
                                                     "error message"
                                                 ]
                                 )

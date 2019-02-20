@@ -1,9 +1,9 @@
 module BuildEventsTests exposing (all)
 
 import Array
-import Build.Models
 import Build.Msgs
 import Build.Output
+import Build.StepTree.Models
 import EventSource.EventSource as EventSource
 import Expect
 import Json.Encode
@@ -49,7 +49,7 @@ all =
                                 List.repeat
                                     3000
                                 <|
-                                    Build.Models.Log
+                                    Build.StepTree.Models.Log
                                         { source = "stdout", id = "stepid" }
                                         "log message"
                                         Nothing

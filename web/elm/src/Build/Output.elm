@@ -11,17 +11,16 @@ module Build.Output exposing
 
 import Ansi.Log
 import Array exposing (Array)
-import Build.Models
+import Build.Models exposing (OutputModel, OutputState(..))
+import Build.Msgs exposing (EventsMsg(..), Msg(..))
+import Build.StepTree
+import Build.StepTree.Models as StepTree
     exposing
         ( BuildEvent(..)
-        , OutputModel
-        , OutputState(..)
         , StepState(..)
         , StepTree
         , StepTreeModel
         )
-import Build.Msgs exposing (EventsMsg(..), Msg(..))
-import Build.StepTree as StepTree
 import Build.Styles as Styles
 import Concourse
 import Concourse.BuildEvents as BuildEvents
@@ -125,7 +124,7 @@ planAndResourcesFetched buildId result model =
 
         Ok ( plan, resources ) ->
             { model
-                | steps = Just (StepTree.init model.highlight resources plan)
+                | steps = Just (Build.StepTree.init model.highlight resources plan)
                 , events = Just buildId
             }
     , []
@@ -238,7 +237,7 @@ handleEvent event model =
                     let
                         ( newSt, effects ) =
                             if not <| Concourse.BuildStatus.isRunning status then
-                                ( { st | finished = True }, [] )
+                                Build.StepTree.finished st
 
                             else
                                 ( st, [] )
@@ -380,10 +379,10 @@ viewStepTree build steps state =
             NotAuthorized.view
 
         ( StepsLiveUpdating, Just root ) ->
-            StepTree.view root
+            Build.StepTree.view root
 
         ( StepsComplete, Just root ) ->
-            StepTree.view root
+            Build.StepTree.view root
 
         ( _, Nothing ) ->
             Html.div [] []
