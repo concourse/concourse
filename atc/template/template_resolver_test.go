@@ -124,6 +124,96 @@ resources:
 				Expect(err).To(HaveOccurred())
 			})
 		})
+
+		Context("when multiple variable sources are given", func() {
+
+			var staticVars2 boshtemplate.StaticVariables
+
+			BeforeEach(func() {
+				configPayload = []byte(`
+resources:
+- name: my-repo
+  source:
+    uri: git@github.com:concourse/concourse.git
+    private_key: ((secret.concourse_repo.private_key))
+
+- name: env-state
+  source:
+    bucket: ((env))-ci
+    key: state
+
+jobs:
+- name: do-some-stuff
+  plan:
+  - get: my-repo
+  - task: build-thing-on-env
+    tags: ((env-tags))
+`)
+
+				paramPayload2 := []byte(`
+secret:
+  concourse_repo:
+    private_key: some-private-key-override
+
+env: some-env-override
+
+env-tags: ["speedy-override"]
+`)
+				err := yaml.Unmarshal(paramPayload2, &staticVars2)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("evaluates params using param sources in the given order", func() {
+				// forward order
+				evaluatedContent1, err := template.NewTemplateResolver(configPayload, []boshtemplate.Variables{staticVars, staticVars2}).Resolve(false, true)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(evaluatedContent1).To(MatchYAML([]byte(`
+resources:
+- name: my-repo
+  source:
+    uri: git@github.com:concourse/concourse.git
+    private_key: some-private-key
+
+- name: env-state
+  source:
+    bucket: some-env-ci
+    key: state
+
+jobs:
+- name: do-some-stuff
+  plan:
+  - get: my-repo
+  - task: build-thing-on-env
+    tags: ["speedy"]
+`,
+				)))
+
+				// reverse order
+				evaluatedContent2, err := template.NewTemplateResolver(configPayload, []boshtemplate.Variables{staticVars2, staticVars}).Resolve(false, true)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(evaluatedContent2).To(MatchYAML([]byte(`
+resources:
+- name: my-repo
+  source:
+    uri: git@github.com:concourse/concourse.git
+    private_key: some-private-key-override
+
+- name: env-state
+  source:
+    bucket: some-env-override-ci
+    key: state
+
+jobs:
+- name: do-some-stuff
+  plan:
+  - get: my-repo
+  - task: build-thing-on-env
+    tags: ["speedy-override"]
+`,
+				)))
+
+			})
+		})
 	})
 
 	It("can template values into a byte slice", func() {

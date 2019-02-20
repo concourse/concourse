@@ -150,13 +150,13 @@ func (factory *gardenFactory) Task(
 		// external task - construct a source which reads it from file
 		taskConfigSource = FileConfigSource{ConfigPath: plan.Task.ConfigPath}
 
-		// use 'vars' from the pipeline + cred mgr variables for interpolation
+		// for interpolation - use 'vars' from the pipeline, and then fill remaining with cred mgr variables
 		taskVars = []boshtemplate.Variables{boshtemplate.StaticVariables(plan.Task.Vars), credMgrVariables}
 	} else {
 		// embedded task - first we take it
 		taskConfigSource = StaticConfigSource{Config: plan.Task.Config}
 
-		// use just cred mgr variables for interpolation
+		// for interpolation - use just cred mgr variables
 		taskVars = []boshtemplate.Variables{credMgrVariables}
 	}
 
