@@ -1,33 +1,35 @@
 \title{Global Resources}{global-resources}
 
+\use-plugin{concourse-docs}
+
 Concourse v5.0 contains an experimental feature known as "global resources". It
 is enabled by passing the \code{--enable-global-resources} flag to the
 \code{concourse web} command.
 
 The basic concept of global resources is to share detected resource versions
-between all resources that have the same type and source configuration.
+between all resources that have the same \reference{resource-type} and
+\reference{resource-source} configuration.
 
-Before v5.0.0, each pipeline resource had its own "version history", associated
+Before v5.0.0, each pipeline resource had its own version history, associated
 to the resource by name. This meant that multiple pipelines with the same
 resource configs would redundantly collect the same version and metadata
 information.
 
 With v5.0.0's experimental 'global resources' feature, resource versions are
-instead associated to an anonymous 'resource config', i.e. its type and source.
+instead associated to an anonymous 'resource config', i.e. its
+\reference{resource-type} and \reference{resource-source}.
 
 \section{
   \title{Benefits of Global Resources}
 
-  The addition of global resources will result in fewer resource checks, reduce
-  the amount of data recorded for equivalent resource versions, and the
-  resource version history will always be correct. This feature is currently
-  feature flagged <link to enable-global-resources flag> and is defaulted to
-  being off.
-
   \section{
-    \title{Fewer Resource Checks and Check Containers}
+    \title{Fewer resource \code{check}s to perform}
 
     With global resources, all resources that have the same configuration will
+    share same version history and share only one checking interval. This
+    reduces load on the worker and reduces load on the external services that
+    the resources point to.
+
     use a single check container across all teams, and only one resource's
     \code{check} interval will be active. This reduces both worker load (fewer
     containers, fewer \code{check}s) and load on the external services that the
@@ -50,13 +52,13 @@ instead associated to an anonymous 'resource config', i.e. its type and source.
       \title{Complications with reusing containers}
 
       There is an exception to sharing check containers within a deployment,
-      which is workers belonging to a team and workers with
-      \reference{worker-tags}.
+      which is workers belonging to a team and workers with tags.
 
       If a resource has \reference{resource-tags} configured, \italic{and} the
       resource's check interval ends up acquiring the checking lock, a new
       container will be created on a worker matching the appropriate tags, even
-      if a check container already exists.
+      if a check container already exists for the same resource config
+      elsewhere.
 
       Similarly, if a team has its own workers, and their check interval ended
       up acquiring the lock, a new container will be created on the team's
@@ -69,7 +71,7 @@ instead associated to an anonymous 'resource config', i.e. its type and source.
   }
 
   \section{
-    \title{Reduce redundant data}
+    \title{Reducing redundant data}
 
     The majority of Concourse resources will benefit from having versions shared
     globally because most resource versions have an external source of truth.
@@ -142,7 +144,7 @@ instead associated to an anonymous 'resource config', i.e. its type and source.
   }
 
   \section{
-    \title{Intercepting \code{check} containers no longer makes sense}
+    \title{Intercepting \code{check} containers is no longer safe}{intercept-admin-only}
 
     Now that \code{check} containers are shared across teams, it would be
     dangerous to allow anyone to \reference{fly-intercept} to \code{check}
@@ -152,6 +154,6 @@ instead associated to an anonymous 'resource config', i.e. its type and source.
     We recognize that this will make it a bit more difficult for end users to
     debug things like failing checks. We plan to improve this by introducing a
     way to provision a \italic{new} \code{check} container to facilitate
-    debugging. See \ghissue{TODO} for more information.
+    debugging. See \ghissue{3344} for more information.
   }
 }

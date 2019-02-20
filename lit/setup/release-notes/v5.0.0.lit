@@ -3,8 +3,8 @@
 \release{2019-1-31}{5.0.0}{1.17.2}{
   \note{feature,breaking}{
     We have done a major internal overhaul of how resource versions are stored.
-    As a result, the version history for each resource across your pipelines
-    will be re-set upon upgrading to v5.0.
+    \bold{As a result, the version history for each resource across your
+    pipelines will be re-set upon upgrading to v5.0.}
 
     The upgrade does however preserve the state of which versions were
     disabled, and the data relating versions to builds they were inputs to and
@@ -17,11 +17,18 @@
 
     With v5.0, resource versions are now tied directly to an anonymous
     "resource config" - basically the \code{source:} and \code{type:} for the
-    resource. Pipeline resources instead point to a config, and if their config
-    changes, they'll point to a new config with its own version history.
+    resource. Pipeline resources instead point to a config, and if their
+    \code{source:} or \code{type:} changes, they'll point to a new config with
+    its own version history.
 
     This improves the correctness of the system as a whole, eliminating the
     need to ever "purge" the history of a resource.
+
+    In addition, now that versions are tied directly to their configs,
+    \code{check} containers are also shared across teams, reducing the overall
+    container count. As a result however we
+    \reference{intercept-admin-only}{limited who can \code{fly intercept}
+    \code{check} containers}.
 
     Building on this change, we are currently experimenting with improvements
     that can now be made to reduce the overall checking overhead across a

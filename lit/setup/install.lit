@@ -774,5 +774,4 @@ page.
     \reference{included-resources}{a set of core resource types} baked in. If
     you are planning to use them you need to have at least one Linux worker.
   }
-
 }
