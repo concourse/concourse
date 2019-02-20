@@ -452,7 +452,7 @@ all =
                     >> Query.fromHtml
                     >> Query.find [ id "build-header" ]
                     >> Query.has [ text "2s ago" ]
-            , test "when more than 24h old, shows absolute time since build" <|
+            , test "when at least 24h old, shows absolute time of build" <|
                 givenBuildFetched
                     >> Tuple.first
                     >> Build.update (Build.Msgs.ClockTick (24 * Time.hour))
@@ -460,7 +460,7 @@ all =
                     >> Build.view UserState.UserStateLoggedOut
                     >> Query.fromHtml
                     >> Query.find [ id "build-header" ]
-                    >> Query.has [ text "Dec 31 1969" ]
+                    >> Query.hasNot [ text "1d" ]
             , test "header spreads out contents" <|
                 givenBuildFetched
                     >> Tuple.first
