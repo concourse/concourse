@@ -86,6 +86,13 @@ following attributes:
   \reference{tags-step-modifier}.
 }{resource-type-tags}
 
+\define-attribute{unique_version_history: bool}{
+  \italic{Optional. Default \code{false}.} Only relevant when
+  \reference{global-resources} is enabled. When set to \code{true}, resources
+  using this resource type will have a version history that is unique to the
+  resource, rather than sharing a global version history.
+}{resource-type-unique-version-history}
+
 \split-sections
 \table-of-contents
 
