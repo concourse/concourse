@@ -166,6 +166,8 @@ resource "null_resource" "rerun" {
     inline = [
       "set -e -x",
 
+      "export PATH=/usr/local/concourse/bin:$PATH",
+
       "concourse generate-key -t rsa -f /etc/concourse/session_signing_key",
       "concourse generate-key -t ssh -f /etc/concourse/host_key",
       "concourse generate-key -t ssh -f /etc/concourse/worker_key",
