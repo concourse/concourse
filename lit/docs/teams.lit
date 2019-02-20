@@ -21,40 +21,43 @@ against the teams that have granted them access.
 
   Out of the box, Concourse comes with a single team called \code{main}.
 
-  The \code{main} team is an \italic{admin team}, meaning it can create and
-  update other teams. Currently there is no way to promote a team to become an
-  admin team, so \code{main} is a special-case.
+  The \code{main} team is an \italic{admin team}, meaning members (more
+  specifically, \reference{team-owner-role}{owners}) can create and update
+  other teams. Currently there is no way to promote a team to become an admin
+  team, so \code{main} is a special-case.
 
   The \code{main} team is configured as part of the deployment itself as flags
-  passed to the ATC. You can find more about the required flags in \reference{auth-config}.
+  passed to the \reference{web-node}. You can find more about the required
+  flags in \reference{auth-config}.
 
-  The values set in the auth flags take effect whenever the ATC starts up. This
-  is done so that you can't get locked out and so that you can have Concourse
-  sanely configured as soon as it comes up.
+  The values set in the auth flags take effect whenever the \code{web} node
+  starts up. This is done so that you can't get locked out and so that you can
+  have Concourse sanely configured as soon as it comes up.
 
   Consult \code{concourse web --help} to discover the complete list of flags
   for configuring auth for the \code{main} team.
 }
 
 \section{
-  \title{User Roles}
+  \title{User Roles & Permissions}{user-roles}
 
-  Concourse comes with four roles: Concourse Admin, Team Owner, Team Member, Team Viewer
+  Concourse comes with four roles: Concourse Admin, Team Owner, Team Member,
+  Team Viewer.
 
   \section{
-    \title{Concourse Admin}{role-concourse-admin}
-    A Concourse Admin role is granted to any member of the \reference{main-team}.
-    Members of \reference{main-team} will automatically be Concourse Admins and
-    have the ability to administrate teams using \reference{fly} e.g.
-    \reference{fly-set-team}, \reference{fly-destroy-team}, \reference{fly-rename-team} etc.
-    Given that all Concourse Admins must be a member of the \reference{main-team},
-    all Concourse Admins must have at least one other role;
-    and that would typically be the Team Owner role on the \reference{main-team}.
+    \title{Concourse Admin}{concourse-admin}
+
+    \italic{Admin} is a special user attribute granted only to
+    \reference{team-owner-role}{owners} of the \reference{main-team}.
+
+    Admins have the ability to administrate teams using
+    \reference{fly-set-team}, \reference{fly-destroy-team},
+    \reference{fly-rename-team}, etc.
   }
 
-
   \section{
-    \title{Team Owner}
+    \title{Team Owner Role}{team-owner-role}
+
     Team Owners have read, write and auth management capabilities within the
     scope of their team. For those familiar with Concourse today, the scope of
     allowed actions for a Team Owner is very closely aligned to today’s Concourse
@@ -63,148 +66,153 @@ against the teams that have granted them access.
   }
 
   \section{
-    \title{Team Member}
+    \title{Team Member Role}{team-member-role}
+
     Team Member lets users operate within their teams in a read & write fashion;
     but prevents them from changing the auth configurations of their team.
   }
 
   \section{
-    \title{Team Viewer}
+    \title{Team Viewer Role}{team-viewer-role}
+
     Team Viewer gives users “read-only” access to a team. This locks everything
     down, preventing users from doing a set-pipeline or hijack.
   }
+
   \section{
-    \title{Roles and Permissions}
-      \bold{\reference{fly} commands}
-      \table{
-        \table-row{Command}{Anon}{Admin}{Owner}{Member}{Viewer}
-      }{
-        \table-row{abort-build}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{builds}{✓}{}{✓}{✓}{✘}
-      }{
-        \table-row{check-resource}{✘}{}{✓}{✓}{✓}
-      }{
-        \table-row{checklist}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{containers}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{destroy-pipeline}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{destroy-team}{✘}{✓}{✘}{✘}{✘}
-      }{
-        \table-row{execute}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{expose-pipeline}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{format-pipeline}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{get-pipeline}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{help}{✓}{}{✓}{✓}{✓}
-      }{
-        \table-row{hide-pipeline}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{hijack}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{jobs}{✓}{}{✓}{✓}{✓}
-      }{
-        \table-row{login}{✓}{}{}{}{}
-      }{
-        \table-row{logout}{✘}{}{✓}{✓}{✓}
-      }{
-        \table-row{order-pipelines}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{pause-job}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{pause-pipeline}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{pipelines}{✓}{}{✓}{✓}{✓}
-      }{
-        \table-row{prune-worker}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{rename-pipeline}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{rename-team}{✘}{✓}{✘}{✘}{✘}
-      }{
-        \table-row{set-pipeline}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{set-team}{✘}{✓}{✓}{✘}{✘}
-      }{
-        \table-row{status}{✓}{}{✓}{✓}{✓}
-      }{
-        \table-row{sync}{✓}{}{✓}{✓}{✓}
-      }{
-        \table-row{targets}{✓}{}{✓}{✓}{✓}
-      }{
-        \table-row{teams}{✘}{✓}{✓}{✓}{✓}
-      }{
-        \table-row{trigger-job}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{unpause-job}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{unpause-pipeline}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{validate-pipeline}{✓}{}{✓}{✓}{✓}
-      }{
-        \table-row{volumes}{✘}{}{✓}{✓}{✘}
-      }{
-        \table-row{watch}{✓*}{}{✓}{✓}{✓}
-      }{
-        \table-row{workers}{✘}{}{✓}{✓}{✘}
-      }
+    \title{Permission Matrix}{permission-matrix}
 
-      \bold{Web UI}
-      \table{
-        \table-row{Page}{Action}{Owner}{Member}{Viewer}
-      }{
-        \table-row{Home (HD/Dashboard)}{View}{✓}{✓}{✓}
-      }{
-        \table-row{}{Login}{✘}{✘}{✘}
-      }{
-        \table-row{}{Logout}{✓}{✓}{✓}
-      }{
-        \table-row{}{Download \reference{fly}}{✓}{✓}{✓}
-      }{
-        \table-row{}{Pause Pipeline}{✓}{✓}{✘}
-      }{
-        \table-row{}{Resume Pipeline}{✓}{✓}{✘}
-      }{
-        \table-row{}{Reorder Pipeline}{✓}{✓}{✘}
-      }{
-        \table-row{Pipeline Page}{View}{✓}{✓}{✓}
-      }{
-        \table-row{}{Click to Resource}{✓}{✓}{✓}
-      }{
-        \table-row{}{Click to Build}{✓}{✓}{✓}
-      }{
-        \table-row{}{Click on Group}{✓}{✓}{✓}
-      }{
-        \table-row{Resource Page}{View Resource}{✓}{✓}{✓}
-      }{
-        \table-row{}{View Version Details}{✓}{✓}{✓}
-      }{
-        \table-row{}{Pin Version}{✓}{✓}{✘}
-      }{
-        \table-row{}{Paginate (<- ->)}{✓}{✓}{✓}
-      }{
-        \table-row{Build Page}{Trigger new Build}{✓}{✓}{✘}
-      }{
-        \table-row{}{View Build}{✓}{✓}{✓}
-      }{
-        \table-row{}{Build Details}{✓}{✓}{✓}
-      }{
-        \table-row{Job Page}{View Job Page}{✓}{✓}{✓}
-      }{
-        \table-row{}{Pause Job}{✓}{✓}{✘}
-      }{
-        \table-row{}{Trigger new Build}{✓}{✓}{✘}
-      }{
-        \table-row{}{Build History}{✓}{✓}{✓}
-      }{
-        \table-row{}{Paginate (<- ->)}{✓}{✓}{✓}
-      }
+    \bold{\reference{fly} commands}
 
+    \table{
+      \table-row{Command}{Anon}{Admin}{Owner}{Member}{Viewer}
+    }{
+      \table-row{abort-build}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{builds}{✓}{}{✓}{✓}{✓}
+    }{
+      \table-row{check-resource}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{checklist}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{containers}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{destroy-pipeline}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{destroy-team}{✘}{✓}{✘}{✘}{✘}
+    }{
+      \table-row{execute}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{expose-pipeline}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{format-pipeline}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{get-pipeline}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{help}{✓}{}{✓}{✓}{✓}
+    }{
+      \table-row{hide-pipeline}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{hijack}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{jobs}{✓}{}{✓}{✓}{✓}
+    }{
+      \table-row{login}{✓}{}{}{}{}
+    }{
+      \table-row{logout}{✘}{}{✓}{✓}{✓}
+    }{
+      \table-row{order-pipelines}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{pause-job}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{pause-pipeline}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{pipelines}{✓}{}{✓}{✓}{✓}
+    }{
+      \table-row{prune-worker}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{rename-pipeline}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{rename-team}{✘}{✓}{✘}{✘}{✘}
+    }{
+      \table-row{set-pipeline}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{set-team}{✘}{✓}{✓}{✘}{✘}
+    }{
+      \table-row{status}{✓}{}{✓}{✓}{✓}
+    }{
+      \table-row{sync}{✓}{}{✓}{✓}{✓}
+    }{
+      \table-row{targets}{✓}{}{✓}{✓}{✓}
+    }{
+      \table-row{teams}{✘}{✓}{✓}{✓}{✓}
+    }{
+      \table-row{trigger-job}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{unpause-job}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{unpause-pipeline}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{validate-pipeline}{✓}{}{✓}{✓}{✓}
+    }{
+      \table-row{volumes}{✘}{}{✓}{✓}{✘}
+    }{
+      \table-row{watch}{✓*}{}{✓}{✓}{✓}
+    }{
+      \table-row{workers}{✘}{}{✓}{✓}{✘}
+    }
+
+    \bold{Web UI}
+
+    \table{
+      \table-row{Page}{Action}{Owner}{Member}{Viewer}
+    }{
+      \table-row{Home (HD/Dashboard)}{View}{✓}{✓}{✓}
+    }{
+      \table-row{}{Login}{✘}{✘}{✘}
+    }{
+      \table-row{}{Logout}{✓}{✓}{✓}
+    }{
+      \table-row{}{Download \reference{fly}}{✓}{✓}{✓}
+    }{
+      \table-row{}{Pause Pipeline}{✓}{✓}{✘}
+    }{
+      \table-row{}{Resume Pipeline}{✓}{✓}{✘}
+    }{
+      \table-row{}{Reorder Pipeline}{✓}{✓}{✘}
+    }{
+      \table-row{Pipeline Page}{View}{✓}{✓}{✓}
+    }{
+      \table-row{}{Click to Resource}{✓}{✓}{✓}
+    }{
+      \table-row{}{Click to Build}{✓}{✓}{✓}
+    }{
+      \table-row{}{Click on Group}{✓}{✓}{✓}
+    }{
+      \table-row{Resource Page}{View Resource}{✓}{✓}{✓}
+    }{
+      \table-row{}{View Version Details}{✓}{✓}{✓}
+    }{
+      \table-row{}{Pin Version}{✓}{✓}{✘}
+    }{
+      \table-row{}{Paginate (<- ->)}{✓}{✓}{✓}
+    }{
+      \table-row{Build Page}{Trigger new Build}{✓}{✓}{✘}
+    }{
+      \table-row{}{View Build}{✓}{✓}{✓}
+    }{
+      \table-row{}{Build Details}{✓}{✓}{✓}
+    }{
+      \table-row{Job Page}{View Job Page}{✓}{✓}{✓}
+    }{
+      \table-row{}{Pause Job}{✓}{✓}{✘}
+    }{
+      \table-row{}{Trigger new Build}{✓}{✓}{✘}
+    }{
+      \table-row{}{Build History}{✓}{✓}{✓}
+    }{
+      \table-row{}{Paginate (<- ->)}{✓}{✓}{✓}
+    }
   }
 }
 
@@ -248,8 +256,7 @@ against the teams that have granted them access.
     \reference{exposing}.
 
     \section{
-
-      \title{Adding User Roles}{adding-roles}
+      \title{Setting User Roles}{setting-roles}
 
       The \code{-c} flag can be used on \reference{fly-set-team} to specify
       \reference{user-roles} on the team. The \code{-c} flag expects a
@@ -257,8 +264,8 @@ against the teams that have granted them access.
       configuration will vary by provider; the details of which can be found in
       \reference{authentication}.
 
-      A sample configuration for adding users from different providers with different
-      roles:
+      For example, the following config sets three roles with different auth
+      config for each role's provider:
 
       \codeblock{bash}{{{
         roles:

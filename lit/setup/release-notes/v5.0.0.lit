@@ -104,6 +104,49 @@
   }
 
   \note{feature}{
+    We have introduced the first phase of role-based access control!
+
+    Right now there are only a few statically defined roles. We started off by
+    supporting the common request of having read-only team members ('team
+    viewer'), and adding a slightly less powerful 'team member' role. See
+    \reference{user-roles} for more information.
+
+    Here's a quick rundown of how things have changed:
+
+    \list{
+      Existing team auth config will be transitioned to the
+      \reference{team-owner-role} - that is, anyone that can authenticate prior
+      to the upgrade will now be authenticated as an \italic{owner} of their
+      team. This role is the closest equivalent to what they could do before.
+    }{
+      The \reference{main-team} still has special admin power, with the slight
+      tweak that only users that are an \italic{owner} of the main team have
+      admin capabilties.
+    }{
+      Before, teams members could rename or destroy their own team. Team owners
+      no longer have this power - only \reference{concourse-admin}{admins} can
+      do this.
+    }{
+      The \reference{team-member-role} is a new role that allows users to have
+      full read and write powers within the team, \italic{except} for being
+      able to modify the team itself.
+    }{
+      The \reference{team-viewer-role} is a new role that allows users to
+      browse the team's pipelines, builds, resources, etc. without permitting
+      any sensitive operations (like \reference{fly-get-pipeline} or triggering
+      builds).
+    }
+
+    For a detailed breakdown of each role's capabilties, see the
+    \reference{permission-matrix}. To learn how to configure these roles after
+    upgrading, see \reference{setting-roles}.
+
+    If you're curious about the design process for this feature, check out
+    \link{RFC #3
+    (RBAC)}{https://github.com/concourse/rfcs/blob/master/003-rbac/proposal.md}!
+  }
+
+  \note{feature}{
     We have replaced \italic{resource pausing} with \italic{resource pinning}.
 
     Resource pausing had the effect of disabling the periodic checking for the
@@ -129,14 +172,6 @@
     to their pinned equivalent, by pinning the resource to the most recent
     available version. A comment will be left on any resources that are
     migrated so that it's clear to pipeline users.
-  }
-
-  \note{feature}{
-    RBAC
-
-    role is shown on dashboard
-
-    only 'owner's of main team are admin
   }
 
   \note{feature}{
