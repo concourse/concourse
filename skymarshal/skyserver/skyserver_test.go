@@ -794,6 +794,8 @@ var _ = Describe("Sky Server API", func() {
 							"user_name": "some-user-name",
 							"teams":     []string{"some-team"},
 							"csrf":      "some-csrf",
+							"email":     "some@email.com",
+							"name":      "Some Name",
 							"is_admin":  true,
 						})
 						Expect(err).NotTo(HaveOccurred())
@@ -815,6 +817,8 @@ var _ = Describe("Sky Server API", func() {
 						Expect(token["user_id"]).To(Equal("some-user-id"))
 						Expect(token["user_name"]).To(Equal("some-user-name"))
 						Expect(token["csrf"]).To(Equal("some-csrf"))
+						Expect(token["email"]).To(Equal("some@email.com"))
+						Expect(token["name"]).To(Equal("Some Name"))
 						Expect(token["is_admin"]).To(Equal(true))
 
 						By("defaulting any teams to the owner role")
@@ -836,6 +840,8 @@ var _ = Describe("Sky Server API", func() {
 								"some-team": []string{"some-role"},
 							},
 							"csrf":     "some-csrf",
+							"email":    "some@email.com",
+							"name":     "Some Name",
 							"is_admin": true,
 						})
 						Expect(err).NotTo(HaveOccurred())
@@ -857,6 +863,8 @@ var _ = Describe("Sky Server API", func() {
 						Expect(token["user_id"]).To(Equal("some-user-id"))
 						Expect(token["user_name"]).To(Equal("some-user-name"))
 						Expect(token["csrf"]).To(Equal("some-csrf"))
+						Expect(token["email"]).To(Equal("some@email.com"))
+						Expect(token["name"]).To(Equal("Some Name"))
 						Expect(token["is_admin"]).To(Equal(true))
 
 						By("mapping teams to their corresponding role")

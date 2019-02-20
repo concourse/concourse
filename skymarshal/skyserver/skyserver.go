@@ -417,6 +417,8 @@ type UserInfo struct {
 	Sub      string   `json:"sub"`
 	UserId   string   `json:"user_id"`
 	UserName string   `json:"user_name"`
+	Name     string   `json:"name"`
+	Email    string   `json:"email"`
 	CSRF     string   `json:"csrf"`
 	IsAdmin  bool     `json:"is_admin"`
 	Teams    TeamInfo `json:"teams"`
