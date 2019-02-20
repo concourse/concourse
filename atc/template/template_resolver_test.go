@@ -156,8 +156,6 @@ secret:
     private_key: some-private-key-override
 
 env: some-env-override
-
-env-tags: ["speedy-override"]
 `)
 				err := yaml.Unmarshal(paramPayload2, &staticVars2)
 				Expect(err).NotTo(HaveOccurred())
@@ -208,7 +206,7 @@ jobs:
   plan:
   - get: my-repo
   - task: build-thing-on-env
-    tags: ["speedy-override"]
+    tags: ["speedy"]
 `,
 				)))
 
