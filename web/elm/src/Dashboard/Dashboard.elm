@@ -535,17 +535,12 @@ noResultsView query =
             Html.span [ class "monospace-bold" ] [ Html.text query ]
     in
     Html.div
-        [ class <| .pageBodyClass Group.stickyHeaderConfig ]
-        [ Html.div [ class "dashboard-content " ]
-            [ Html.div
-                [ class <| .sectionClass Group.stickyHeaderConfig ]
-                [ Html.div [ class "no-results" ]
-                    [ Html.text "No results for "
-                    , boldedQuery
-                    , Html.text " matched your search."
-                    ]
-                ]
-            ]
+        [ class "no-results"
+        , style Styles.noResults
+        ]
+        [ Html.text "No results for "
+        , boldedQuery
+        , Html.text " matched your search."
         ]
 
 
