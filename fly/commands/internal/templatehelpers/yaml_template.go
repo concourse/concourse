@@ -48,7 +48,21 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 	}
 
 	var params []boshtemplate.Variables
-	for _, path := range yamlTemplate.templateVariablesFiles {
+
+	// first, we take explicitly specified variables on the command line
+	vars := boshtemplate.StaticVariables{}
+	for _, f := range yamlTemplate.templateVariables {
+		vars[f.Name] = f.Value
+	}
+	for _, f := range yamlTemplate.yamlTemplateVariables {
+		vars[f.Name] = f.Value
+	}
+	params = append(params, vars)
+
+	// second, we take all files. with values in the files specified later on command line taking precedence over the
+	// same values in the files specified earlier on command line
+	for i := len(yamlTemplate.templateVariablesFiles) - 1; i >= 0; i-- {
+		path := yamlTemplate.templateVariablesFiles[i]
 		templateVars, err := ioutil.ReadFile(string(path))
 		if err != nil {
 			return nil, fmt.Errorf("could not read template variables file (%s): %s", string(path), err.Error())
@@ -62,15 +76,6 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 
 		params = append(params, staticVars)
 	}
-
-	vars := boshtemplate.StaticVariables{}
-	for _, f := range yamlTemplate.templateVariables {
-		vars[f.Name] = f.Value
-	}
-	for _, f := range yamlTemplate.yamlTemplateVariables {
-		vars[f.Name] = f.Value
-	}
-	params = append(params, vars)
 
 	evaluatedConfig, err := template.NewTemplateResolver(config, params).Resolve(false, allowEmpty)
 	if err != nil {
