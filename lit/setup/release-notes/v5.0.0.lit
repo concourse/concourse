@@ -290,12 +290,10 @@
   }
 
   \note{feature}{
-    The timestamps shown in the build header are now absolute instead of
-    relative. This should be more useful when viewing older builds. However
-    there is some controversy around this change and we're trying to figure out
-    a good middle ground in \ghissue{3321} - feel free to leave feedback there!
-
-    (Thanks for the PR, \ghuser{Twiknight}!)
+    The timestamps shown in the build header will now transition to absolute
+    instead of relative when the build is over 24 hours old. It wasn't very
+    useful to see things like \code{128d 15h 30m ago} when trying to compare
+    old builds. Thanks for the PR, \ghuser{Twiknight}!
   }
 
   \note{fix}{
