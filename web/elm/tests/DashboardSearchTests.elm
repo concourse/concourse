@@ -2,13 +2,15 @@ module DashboardSearchTests exposing (all)
 
 import Application.Application as Application
 import Application.Msgs as Msgs
+import Callback
 import Dashboard.Msgs
+import Effects
 import Expect exposing (Expectation)
-import TopBar.Msgs
 import SubPage.Msgs
 import Test exposing (Test)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (id, text)
+import Test.Html.Selector exposing (class, id, style, text)
+import TopBar.Msgs
 
 
 describe : String -> model -> List (model -> Test) -> Test
@@ -99,4 +101,46 @@ all =
                     ]
                 ]
             ]
+        , it "centers 'no results' message when typing a string with no hits" <|
+            Application.handleCallback
+                (Effects.SubPage 1)
+                (Callback.APIDataFetched
+                    (Ok
+                        ( 0
+                        , { teams = [ { name = "team", id = 0 } ]
+                          , pipelines =
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                          , jobs = []
+                          , resources = []
+                          , user = Nothing
+                          , version = "0.0.0-dev"
+                          }
+                        )
+                    )
+                )
+                >> Tuple.first
+                >> Application.update
+                    (Msgs.SubMsg 1 <|
+                        SubPage.Msgs.DashboardMsg <|
+                            Dashboard.Msgs.FromTopBar <|
+                                TopBar.Msgs.FilterMsg "asdf"
+                    )
+                >> Tuple.first
+                >> Application.view
+                >> Query.fromHtml
+                >> Query.find [ class "no-results" ]
+                >> Query.has
+                    [ style
+                        [ ( "text-align", "center" )
+                        , ( "font-size", "13px" )
+                        , ( "margin-top", "20px" )
+                        ]
+                    ]
         ]
