@@ -372,9 +372,9 @@ func (s *SkyServer) UserInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var claims jwt.Claims
-	var result map[string]interface{}
+	var userInfo UserInfo
 
-	if err = parsed.Claims(&s.config.SigningKey.PublicKey, &claims, &result); err != nil {
+	if err = parsed.Claims(&s.config.SigningKey.PublicKey, &claims, &userInfo); err != nil {
 		logger.Error("failed-to-parse-claims", err)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -388,7 +388,7 @@ func (s *SkyServer) UserInfo(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(result)
+	json.NewEncoder(w).Encode(userInfo)
 }
 
 func (s *SkyServer) endpoint() oauth2.Endpoint {
@@ -410,4 +410,42 @@ func decode(raw string) *token.StateToken {
 	var token *token.StateToken
 	json.Unmarshal(data, &token)
 	return token
+}
+
+type UserInfo struct {
+	Exp      float64  `json:"exp"`
+	Sub      string   `json:"sub"`
+	UserId   string   `json:"user_id"`
+	UserName string   `json:"user_name"`
+	CSRF     string   `json:"csrf"`
+	IsAdmin  bool     `json:"is_admin"`
+	Teams    TeamInfo `json:"teams"`
+}
+
+type TeamInfo map[string]interface{}
+
+func (t *TeamInfo) UnmarshalJSON(b []byte) error {
+
+	var result interface{}
+	err := json.Unmarshal(b, &result)
+	if err != nil {
+		return err
+	}
+
+	info := TeamInfo{}
+	switch val := result.(type) {
+	case []interface{}:
+		for _, team := range val {
+			info[team.(string)] = []string{"owner"}
+		}
+	case map[string]interface{}:
+		for team, roles := range val {
+			info[team] = roles
+		}
+	default:
+		return errors.New("Unsupported teams type")
+	}
+
+	*t = info
+	return nil
 }
