@@ -10,6 +10,12 @@ set -e -u
 
 distro_dir=$PWD/distribution
 linux_rc=$PWD/linux-rc
+
+if [ -z "$DISTRIBUTION" ]; then
+  echo 'missing required env $DISTRIBUTION' >&2
+  exit 1
+fi
+
 distro_scripts=$(dirname $0)/$DISTRIBUTION
 
 main() {
@@ -42,7 +48,13 @@ get_concourse_variables() {
 }
 
 filter_list() {
-  egrep -v "$(cat $distro_scripts/$1 | xargs | tr ' ' '|')"
+  local filter="$(cat $distro_scripts/$1 | xargs | tr ' ' '|')"
+
+  if [ -z "$filter" ]; then
+    tee
+  else
+    egrep -v $filter
+  fi
 }
 
 get_diff() {
