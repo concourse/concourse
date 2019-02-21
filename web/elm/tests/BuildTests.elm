@@ -13,6 +13,7 @@ import DashboardTests
     exposing
         ( defineHoverBehaviour
         , iconSelector
+        , isColorWithStripes
         , middleGrey
         )
 import Date
@@ -71,33 +72,53 @@ all =
                 , reapTime = Nothing
                 }
 
-            startedBuild : Concourse.Build
-            startedBuild =
-                { id = 1
-                , name = "1"
-                , job =
-                    Just
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "job"
-                        }
-                , status = Concourse.BuildStatusStarted
-                , duration =
-                    { startedAt = Nothing
-                    , finishedAt = Nothing
-                    }
-                , reapTime = Nothing
-                }
-
             fetchBuild : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchBuild =
                 Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, theBuild )
 
-            fetchStartedBuild :
-                Models.Model
-                -> ( Models.Model, List Effects.Effect )
-            fetchStartedBuild =
-                Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, startedBuild )
+            fetchBuildWithStatus : Concourse.BuildStatus -> Models.Model -> Models.Model
+            fetchBuildWithStatus status =
+                Build.handleCallback
+                    (Callback.BuildFetched
+                        (Ok
+                            ( 1
+                            , { id = 1
+                              , name = "1"
+                              , job = Nothing
+                              , status = status
+                              , duration =
+                                    { startedAt = Nothing
+                                    , finishedAt = Nothing
+                                    }
+                              , reapTime = Nothing
+                              }
+                            )
+                        )
+                    )
+                    >> Tuple.first
+                    >> Build.handleCallback
+                        (Callback.BuildHistoryFetched
+                            (Ok
+                                { pagination =
+                                    { previousPage = Nothing
+                                    , nextPage = Nothing
+                                    }
+                                , content =
+                                    [ { id = 0
+                                      , name = "0"
+                                      , job = Nothing
+                                      , status = status
+                                      , duration =
+                                            { startedAt = Nothing
+                                            , finishedAt = Nothing
+                                            }
+                                      , reapTime = Nothing
+                                      }
+                                    ]
+                                }
+                            )
+                        )
+                    >> Tuple.first
 
             fetchJobDetails : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchJobDetails =
@@ -461,6 +482,124 @@ all =
                     >> Query.fromHtml
                     >> Query.find [ id "build-header" ]
                     >> Query.hasNot [ text "1d" ]
+            , describe "build banner coloration"
+                [ test "pending build has grey banner" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusPending
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "build-header" ]
+                            |> Query.has [ style [ ( "background", "#9b9b9b" ) ] ]
+                , test "started build has animated striped yellow banner" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusStarted
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "build-header" ]
+                            |> isColorWithStripes { thick = "#f1c40f", thin = "#fad43b" }
+                , test "succeeded build has green banner" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusSucceeded
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "build-header" ]
+                            |> Query.has [ style [ ( "background", "#11c560" ) ] ]
+                , test "failed build has red banner" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusFailed
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "build-header" ]
+                            |> Query.has [ style [ ( "background", "#ed4b35" ) ] ]
+                , test "errored build has amber banner" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusErrored
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "build-header" ]
+                            |> Query.has [ style [ ( "background", "#f5a623" ) ] ]
+                , test "aborted build has brown banner" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusAborted
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "build-header" ]
+                            |> Query.has [ style [ ( "background", "#8b572a" ) ] ]
+                ]
+            , describe "build history tab coloration"
+                [ test "pending build has grey tab in build history" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusPending
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "builds" ]
+                            |> Query.find [ tag "li" ]
+                            |> Query.has [ style [ ( "background", "#9b9b9b" ) ] ]
+                , test "started build has animated striped yellow tab in build history" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusStarted
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "builds" ]
+                            |> Query.find [ tag "li" ]
+                            |> isColorWithStripes { thick = "#f1c40f", thin = "#fad43b" }
+                , test "succeeded build has green tab in build history" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusSucceeded
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "builds" ]
+                            |> Query.find [ tag "li" ]
+                            |> Query.has [ style [ ( "background", "#11c560" ) ] ]
+                , test "failed build has red tab in build history" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusFailed
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "builds" ]
+                            |> Query.find [ tag "li" ]
+                            |> Query.has [ style [ ( "background", "#ed4b35" ) ] ]
+                , test "errored build has amber tab in build history" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusErrored
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "builds" ]
+                            |> Query.find [ tag "li" ]
+                            |> Query.has [ style [ ( "background", "#f5a623" ) ] ]
+                , test "aborted build has brown tab in build history" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusAborted
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "builds" ]
+                            |> Query.find [ tag "li" ]
+                            |> Query.has [ style [ ( "background", "#8b572a" ) ] ]
+                ]
             , test "header spreads out contents" <|
                 givenBuildFetched
                     >> Tuple.first
@@ -573,7 +712,7 @@ all =
                     , mouseLeaveMsg = Build.Msgs.Hover Nothing
                     }
                 ]
-            , describe "when history and details witche dwith maual triggering disabled" <|
+            , describe "when history and details fetched with maual triggering disabled" <|
                 let
                     givenHistoryAndDetailsFetched =
                         givenBuildFetched
@@ -653,8 +792,7 @@ all =
                 givenBuildStarted _ =
                     pageLoad
                         |> Tuple.first
-                        |> fetchStartedBuild
-                        |> Tuple.first
+                        |> fetchBuildWithStatus Concourse.BuildStatusStarted
                         |> fetchHistory
                         |> Tuple.first
                         |> fetchJobDetails

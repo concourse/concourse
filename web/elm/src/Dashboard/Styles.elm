@@ -29,6 +29,7 @@ module Dashboard.Styles exposing
     , previewPlaceholder
     , resourceErrorTriangle
     , runningLegendItem
+    , striped
     , topCliIcon
     , welcomeCard
     , welcomeCardBody
@@ -229,10 +230,15 @@ solid color =
     [ ( "background-color", color ) ]
 
 
-striped : String -> String -> List ( String, String )
-striped pipelineRunningKeyframes color =
+striped :
+    { pipelineRunningKeyframes : String
+    , thickColor : String
+    , thinColor : String
+    }
+    -> List ( String, String )
+striped { pipelineRunningKeyframes, thickColor, thinColor } =
     [ ( "background-image"
-      , withStripes color Colors.card
+      , withStripes thickColor thinColor
       )
     , ( "background-size", "106px 114px" )
     , ( "animation"
@@ -242,25 +248,29 @@ striped pipelineRunningKeyframes color =
 
 
 withStripes : String -> String -> String
-withStripes color stripeColor =
+withStripes thickColor thinColor =
     "repeating-linear-gradient(-115deg,"
-        ++ stripeColor
+        ++ thickColor
         ++ " 0,"
-        ++ stripeColor
+        ++ thickColor
         ++ " 10px,"
-        ++ color
+        ++ thinColor
         ++ " 0,"
-        ++ color
+        ++ thinColor
         ++ " 16px)"
 
 
 texture : String -> Bool -> String -> List ( String, String )
-texture pipelineRunningKeyframes isRunning =
+texture pipelineRunningKeyframes isRunning color =
     if isRunning then
-        striped pipelineRunningKeyframes
+        striped
+            { pipelineRunningKeyframes = pipelineRunningKeyframes
+            , thickColor = Colors.card
+            , thinColor = color
+            }
 
     else
-        solid
+        solid color
 
 
 pipelineCardFooter : List ( String, String )

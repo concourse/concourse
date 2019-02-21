@@ -1,8 +1,10 @@
 module Build.Styles exposing
     ( abortButton
     , abortIcon
+    , buildStatus
     , firstOccurrenceTooltip
     , firstOccurrenceTooltipArrow
+    , header
     , stepHeader
     , stepHeaderIcon
     , stepStatusIcon
@@ -14,6 +16,42 @@ module Build.Styles exposing
 import Application.Styles
 import Build.Models exposing (StepHeaderType(..))
 import Colors
+import Concourse
+import Dashboard.Styles exposing (striped)
+
+
+header : Concourse.BuildStatus -> List ( String, String )
+header status =
+    [ ( "display", "flex" )
+    , ( "justify-content", "space-between" )
+    ]
+        ++ buildStatus status
+
+
+buildStatus : Concourse.BuildStatus -> List ( String, String )
+buildStatus status =
+    case status of
+        Concourse.BuildStatusStarted ->
+            striped
+                { pipelineRunningKeyframes = "pipeline-running"
+                , thickColor = Colors.startedFaded
+                , thinColor = Colors.started
+                }
+
+        Concourse.BuildStatusPending ->
+            [ ( "background", Colors.pending ) ]
+
+        Concourse.BuildStatusSucceeded ->
+            [ ( "background", Colors.success ) ]
+
+        Concourse.BuildStatusFailed ->
+            [ ( "background", Colors.failure ) ]
+
+        Concourse.BuildStatusErrored ->
+            [ ( "background", Colors.error ) ]
+
+        Concourse.BuildStatusAborted ->
+            [ ( "background", Colors.aborted ) ]
 
 
 triggerButton : Bool -> List ( String, String )

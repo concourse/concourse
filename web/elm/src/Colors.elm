@@ -22,6 +22,8 @@ module Colors exposing
     , resourceError
     , secondaryTopBar
     , sectionHeader
+    , started
+    , startedFaded
     , success
     , successFaded
     , text
@@ -67,6 +69,16 @@ pinIconHover =
 background : String
 background =
     "#3d3c3c"
+
+
+started : String
+started =
+    "#fad43b"
+
+
+startedFaded : String
+startedFaded =
+    "#f1c40f"
 
 
 success : String
