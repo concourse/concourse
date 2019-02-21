@@ -36,7 +36,6 @@ local build_params =
   else if resource == "concourse-pipeline" then
     {
       build: ".",
-      dockerfile: resource+"-resource/Dockerfile"
     }
   else
     {
@@ -98,7 +97,8 @@ local create_release = {
   },
   inputs: [
     {name: "version"},
-    {name: "resource-image-dev"}
+    {name: "resource-image-dev-alpine"},
+    {name: "resource-image-dev-ubuntu"}
   ],
   outputs: [
     {name: "release"},
@@ -109,7 +109,7 @@ local create_release = {
     args: [
       "-exc",
       |||
-        cat <<EOF > resource-image-dev/resource_metadata.json
+        cat <<EOF > resource_metadata.json
         {
           "type": "%(resource)s",
           "version": "$(cat version/number)",
@@ -125,9 +125,17 @@ local create_release = {
         echo $version | cut -d. -f1,2   >> docker/tags
         echo $version | cut -d. -f1,2,3 >> docker/tags
 
-        cd resource-image-dev
-        tar -czf rootfs.tgz -C rootfs .
-        tar -czf ../release/%(resource)s-resource-${version}.tgz rootfs.tgz resource_metadata.json
+        pushd resource-image-dev-alpine
+          cp ../resource_metadata.json .
+          tar -czf rootfs.tgz -C rootfs .
+          tar -czf ../release/%(resource)s-resource-${version}-alpine.tgz rootfs.tgz resource_metadata.json
+        popd
+
+        pushd resource-image-dev-ubuntu
+          cp ../resource_metadata.json .
+          tar -czf rootfs.tgz -C rootfs .
+          tar -czf ../release/%(resource)s-resource-${version}-ubuntu.tgz rootfs.tgz resource_metadata.json
+        popd
       ||| % {
         resource: resource,
         privileged: resource == "docker-image",
@@ -144,11 +152,16 @@ local publish_job(bump) = {
       aggregate: [
         {
           get: "resource-repo",
-          passed: ["build"]
+          passed: ["build-alpine", "build-ubuntu"]
         },
         {
-          get: "resource-image-dev",
-          passed: ["build"],
+          get: "resource-image-dev-alpine",
+          passed: ["build-alpine"],
+          params: {save: true}
+        },
+        {
+          get: "resource-image-dev-ubuntu",
+          passed: ["build-ubuntu"],
           params: {save: true}
         },
         {
@@ -166,7 +179,7 @@ local publish_job(bump) = {
         {
           put: "resource-image-latest",
           params: {
-            load: "resource-image-dev",
+            load: "resource-image-dev-alpine",
             additional_tags: "docker/tags"
           }
         },
@@ -228,6 +241,14 @@ local publish_job(bump) = {
       }
     },
     {
+      name: "ubuntu-bionic",
+      type: "docker-image",
+      source: {
+        repository: "ubuntu",
+        tag: "bionic"
+      }
+    },
+    {
       name: "resource-repo",
       type: "git",
       source: {
@@ -277,7 +298,7 @@ local publish_job(bump) = {
       }
     },
     {
-      name: "resource-image-dev",
+      name: "resource-image-dev-alpine",
       type: "docker-image",
       source: {
         repository: "concourse/"+resource+"-resource",
@@ -285,11 +306,21 @@ local publish_job(bump) = {
         username: "((docker.username))",
         password: "((docker.password))"
       }
+    },
+    {
+      name: "resource-image-dev-ubuntu",
+      type: "docker-image",
+      source: {
+        repository: "concourse/"+resource+"-resource",
+        tag: "dev-ubuntu",
+        username: "((docker.username))",
+        password: "((docker.password))"
+      }
     }
   ] + extra_resources,
   jobs: [
     {
-      name: "build",
+      name: "build-alpine",
       plan: [
         {
           aggregate: [
@@ -306,9 +337,36 @@ local publish_job(bump) = {
           ] + extra_gets,
         },
         {
-          put: "resource-image-dev",
+          put: "resource-image-dev-alpine",
           params: {
-            load_base: "alpine-edge"
+            load_base: "alpine-edge",
+            dockerfile: resource+"-resource/dockerfiles/alpine/Dockerfile",
+          } + build_params
+        }
+      ]
+    },
+    {
+      name: "build-ubuntu",
+      plan: [
+        {
+          aggregate: [
+            {
+              get: resource+"-resource",
+              resource: "resource-repo",
+              trigger: true
+            },
+            {
+              get: "ubuntu-bionic",
+              params: {save: true},
+              trigger: true
+            },
+          ] + extra_gets,
+        },
+        {
+          put: "resource-image-dev-ubuntu",
+          params: {
+            load_base: "ubuntu-bionic",
+            dockerfile: resource+"-resource/dockerfiles/ubuntu/Dockerfile",
           } + build_params
         }
       ]
@@ -342,11 +400,12 @@ local publish_job(bump) = {
           get_params: {fetch_merge: true}
         },
         {
-          put: "resource-image-dev",
+          put: "resource-image-dev-alpine",
           params: {
             load_base: "alpine-edge",
             tag: resource+"-resource/.git/id",
             tag_prefix: "pr-",
+            dockerfile: resource+"-resource/dockerfiles/alpine/Dockerfile",
           } + build_params,
           on_failure: {
             put: "resource-pr",
