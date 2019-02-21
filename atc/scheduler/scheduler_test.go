@@ -163,6 +163,10 @@ var _ = Describe("Scheduler", func() {
 						Expect(fakeJob2.EnsurePendingBuildExistsCallCount()).To(BeZero())
 					})
 				})
+
+				It("didn't mark the job as having new inputs", func() {
+					Expect(fakeJob.SetHasNewInputsCallCount()).To(BeZero())
+				})
 			})
 		})
 
@@ -195,6 +199,10 @@ var _ = Describe("Scheduler", func() {
 				It("didn't create a pending build", func() {
 					Expect(fakeJob.EnsurePendingBuildExistsCallCount()).To(BeZero())
 				})
+
+				It("didn't mark the job as having new inputs", func() {
+					Expect(fakeJob.SetHasNewInputsCallCount()).To(BeZero())
+				})
 			})
 
 			Context("when no first occurrence input has trigger: true", func() {
@@ -212,6 +220,43 @@ var _ = Describe("Scheduler", func() {
 
 				It("didn't create a pending build", func() {
 					Expect(fakeJob.EnsurePendingBuildExistsCallCount()).To(BeZero())
+				})
+
+				Context("when the job does not have new inputs since before", func() {
+					BeforeEach(func() {
+						fakeJob.HasNewInputsReturns(false)
+					})
+
+					Context("when marking job as having new input fails", func() {
+						BeforeEach(func() {
+							fakeJob.SetHasNewInputsReturns(disaster)
+						})
+
+						It("returns the error", func() {
+							Expect(scheduleErr).To(Equal(disaster))
+						})
+					})
+
+					Context("when marking job as having new input succeeds", func(){
+						BeforeEach(func() {
+							fakeJob.SetHasNewInputsReturns(nil)
+						})
+
+						It("did the needful", func() {
+							Expect(fakeJob.SetHasNewInputsCallCount()).To(Equal(1))
+							Expect(fakeJob.SetHasNewInputsArgsForCall(0)).To(Equal(true))
+						})
+					})
+				})
+
+				Context("when the job has new inputs since before", func() {
+					BeforeEach(func() {
+						fakeJob.HasNewInputsReturns(true)
+					})
+
+					It("doesn't mark the job as having new inputs", func() {
+						Expect(fakeJob.SetHasNewInputsCallCount()).To(BeZero())
+					})
 				})
 			})
 
@@ -245,6 +290,36 @@ var _ = Describe("Scheduler", func() {
 					It("starts all pending builds and returns no error", func() {
 						Expect(fakeBuildStarter.TryStartPendingBuildsForJobCallCount()).To(Equal(1))
 						Expect(scheduleErr).NotTo(HaveOccurred())
+					})
+				})
+			})
+
+			Context("when no first occurrence", func() {
+				BeforeEach(func() {
+					fakeInputMapper.SaveNextInputMappingReturns(algorithm.InputMapping{
+						"a": algorithm.InputVersion{VersionID: 1, ResourceID: 11, FirstOccurrence: false},
+						"b": algorithm.InputVersion{VersionID: 2, ResourceID: 12, FirstOccurrence: false},
+					}, nil)
+				})
+
+				Context("when job had new inputs", func() {
+					BeforeEach(func() {
+						fakeJob.HasNewInputsReturns(true)
+					})
+
+					It("marks the job as not having new inputs", func() {
+						Expect(fakeJob.SetHasNewInputsCallCount()).To(Equal(1))
+						Expect(fakeJob.SetHasNewInputsArgsForCall(0)).To(Equal(false))
+					})
+				})
+
+				Context("when job did not have new inputs", func() {
+					BeforeEach(func() {
+						fakeJob.HasNewInputsReturns(false)
+					})
+
+					It("doesn't mark the the job as not having new inputs again", func() {
+						Expect(fakeJob.SetHasNewInputsCallCount()).To(Equal(0))
 					})
 				})
 			})

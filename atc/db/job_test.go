@@ -1425,4 +1425,31 @@ var _ = Describe("Job", func() {
 			})
 		})
 	})
+
+	Describe("New Inputs", func() {
+		It("starts out as false", func() {
+			Expect(job.HasNewInputs()).To(BeFalse())
+		})
+
+		It("can be set to true then back to false", func() {
+			job.SetHasNewInputs(true)
+
+			found, err := job.Reload()
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(job.HasNewInputs()).To(BeTrue())
+
+			job.SetHasNewInputs(false)
+
+			found, err = job.Reload()
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(job.HasNewInputs()).To(BeFalse())
+		})
+
+	})
 })
