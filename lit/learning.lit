@@ -2,5 +2,5 @@
 
 \use-plugin{concourse-docs}
 
-\include-section{./examples.lit}
 \include-section{./tutorials.lit}
+\include-section{./examples.lit}

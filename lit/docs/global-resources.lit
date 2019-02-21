@@ -16,7 +16,7 @@ resource configs would redundantly collect the same version and metadata
 information.
 
 With v5.0.0's experimental 'global resources' feature, resource versions are
-instead associated to an anonymous 'resource config', i.e. its
+instead associated to an anonymous 'resource config' i.e. its
 \reference{resource-type} and \reference{resource-source}.
 
 \section{
@@ -26,18 +26,13 @@ instead associated to an anonymous 'resource config', i.e. its
     \title{Fewer resource \code{check}s to perform}
 
     With global resources, all resources that have the same configuration will
-    share same version history and share only one checking interval. This
-    reduces load on the worker and reduces load on the external services that
+    share the same version history and share only one checking interval. This
+    reduces load on the worker and on the external services that
     the resources point to.
-
-    use a single check container across all teams, and only one resource's
-    \code{check} interval will be active. This reduces both worker load (fewer
-    containers, fewer \code{check}s) and load on the external services that the
-    resources point to.
 
     For example, prior to global resources if there were three resources with
     the same configuration between three team's pipelines it would result in three
-    check containers and three resource checks every minute to fetch the versions.
+    check containers performing three resource checks every minute to fetch the versions.
 
     With global resources, this configuration will result in only one check
     container and one resource check every minute to fetch versions for all the

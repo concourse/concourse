@@ -624,6 +624,16 @@ against the teams that have granted them access.
         --ldap-user my-username \
         --ldap-group my-group
     }}}
+
+    or with \code{-c}:
+
+    \codeblock{bash}{{{
+    roles:
+    - name: member
+      ldap:
+        users: ["my-username"]
+        groups: ["my-groups"]
+    }}}
   }
 
   \section{

@@ -10,7 +10,7 @@
 \include-section{./docs/teams.lit}
 \include-section{./docs/operation.lit}
 \include-section{./docs/global-resources.lit}
-\include-section{./concepts/concepts.lit}
+\include-section{./architecture/architecture.lit}
 
 \split-sections
 \table-of-contents
