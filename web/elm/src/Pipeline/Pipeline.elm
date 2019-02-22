@@ -230,11 +230,13 @@ update msg model =
             ( { model | hideLegend = False, hideLegendCounter = 0 }, [] )
 
         KeyPressed keycode ->
-            if (Char.fromCode keycode |> Char.toLower) == 'f' then
-                ( model, [ ResetPipelineFocus ] )
+            ( { model | hideLegend = False, hideLegendCounter = 0 }
+            , if (Char.fromCode keycode |> Char.toLower) == 'f' then
+                [ ResetPipelineFocus ]
 
-            else
-                ( model, [] )
+              else
+                []
+            )
 
         AutoupdateTimerTicked timestamp ->
             ( model, [ FetchPipeline model.pipelineLocator ] )
@@ -278,8 +280,7 @@ subscriptions model =
     , OnClockTick timeUntilHiddenCheckInterval HideLegendTimerTicked
     , OnMouseMove ShowLegend
     , OnMouseClick ShowLegend
-    , OnKeyPress (\_ -> ShowLegend)
-    , OnKeyPress KeyPressed
+    , OnKeyDown
     ]
 
 

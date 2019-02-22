@@ -127,7 +127,7 @@ subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
     [ OnClockTick Time.second ClockTick
     , OnScrollFromWindowBottom WindowScrolled
-    , OnKeyPress KeyPressed
+    , OnKeyDown
     , OnKeyUp
     , Conditionally
         (getScrollBehavior model /= NoScroll)

@@ -17,6 +17,7 @@ import Effects exposing (Effect(..), LayoutDispatch(..))
 import Html exposing (Html)
 import Http
 import Navigation
+import Pipeline.Msgs
 import Resource.Msgs
 import Routes
 import SubPage.Msgs
@@ -256,6 +257,22 @@ update msg model =
                         (SubMsg model.navIndex <|
                             SubPage.Msgs.ResourceMsg <|
                                 Resource.Msgs.KeyDowns keycode
+                        )
+                        model
+
+                SubPage.PipelineModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.PipelineMsg <|
+                                Pipeline.Msgs.KeyPressed keycode
+                        )
+                        model
+
+                SubPage.BuildModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.BuildMsg <|
+                                Build.Msgs.KeyPressed keycode
                         )
                         model
 

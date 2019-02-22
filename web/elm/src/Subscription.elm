@@ -21,7 +21,6 @@ type Subscription m
     | OnAnimationFrame m
     | OnMouseMove m
     | OnMouseClick m
-    | OnKeyPress (Keyboard.KeyCode -> m)
     | OnKeyDown
     | OnKeyUp
     | OnScrollFromWindowBottom (Scroll.FromBottom -> m)
@@ -47,9 +46,6 @@ runSubscription s =
 
         OnMouseClick m ->
             Mouse.clicks (always m)
-
-        OnKeyPress m ->
-            Keyboard.presses m
 
         OnKeyDown ->
             Keyboard.downs Msgs.KeyDown
@@ -99,9 +95,6 @@ map f s =
 
         OnMouseClick m ->
             OnMouseClick (f m)
-
-        OnKeyPress m ->
-            OnKeyPress (m >> f)
 
         OnKeyDown ->
             OnKeyDown

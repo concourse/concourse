@@ -381,7 +381,6 @@ subscriptions model =
     , OnClockTick (5 * Time.second) AutoRefresh
     , OnMouseMove ShowFooter
     , OnMouseClick ShowFooter
-    , OnKeyPress KeyPressed
     , OnKeyDown
     , OnWindowResize Msgs.ResizeScreen
     ]
