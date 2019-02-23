@@ -29,18 +29,20 @@ var _ = Describe("baggageclaim", func() {
 
 	Context("Create", func() {
 		var statusCode = 200
+		const ttl = 3 * time.Second
 
 		JustBeforeEach(func() {
 			ctx, _ := context.WithDeadline(
 				context.Background(), time.Now().Add(100*time.Millisecond))
-			volume, err = bc.Create(ctx, "handle")
+			volume, err = bc.Create(ctx, "handle", ttl)
 		})
 
 		BeforeEach(func() {
-			expectedVol := healthcheck.Volume{Handle: "handle", Path: "/rootfs"}
+			expectedVol := healthcheck.Volume{Handle: "handle", Path: "/rootfs", TTL: ttl}
 
 			bcServer.AppendHandlers(ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/volumes"),
+				ghttp.VerifyJSON(`{"handle": "handle","strategy":{"type": "empty"},"ttl":3}`),
 				ghttp.RespondWithJSONEncodedPtr(&statusCode, &expectedVol),
 			))
 		})
@@ -82,40 +84,5 @@ var _ = Describe("baggageclaim", func() {
 				Expect(err).To(HaveOccurred())
 			})
 		})
-	})
-
-	Context("Destroy", func() {
-		var statusCode = 200
-
-		JustBeforeEach(func() {
-			ctx, _ := context.WithDeadline(
-				context.Background(), time.Now().Add(100*time.Millisecond))
-			err = bc.Destroy(ctx, "handle")
-		})
-
-		BeforeEach(func() {
-			bcServer.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("DELETE", MatchRegexp(`/volumes/[a-z0-9-]+`)),
-				ghttp.RespondWithJSONEncodedPtr(&statusCode, nil),
-			))
-		})
-
-		It("issues volume deletion request", func() {
-			Expect(bcServer.ReceivedRequests()).To(HaveLen(1))
-		})
-
-		Context("blocking forever", func() {
-			BeforeEach(func() {
-				bcServer.Reset()
-				bcServer.AppendHandlers(func(w http.ResponseWriter, r *http.Request) {
-					time.Sleep(5 * time.Second)
-				})
-			})
-
-			It("fails once context expires", func() {
-				Expect(err).To(HaveOccurred())
-			})
-		})
-
 	})
 })

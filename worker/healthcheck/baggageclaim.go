@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
 	"net/http"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -13,13 +15,21 @@ type Baggageclaim struct {
 	Url string
 }
 
-const emptyStrategyPayloadFormat = `{"handle":"%s", "strategy":{"type":"empty"}}`
+func volumeCreationPayload(handle string, ttl time.Duration) []byte {
+	ttlInSeconds := uint(math.Ceil(ttl.Seconds()))
 
-func (b *Baggageclaim) Create(ctx context.Context, handle string) (*Volume, error) {
+	payload := fmt.Sprintf(`{"handle":"%s", "ttl":%d, "strategy":{"type":"empty"}}`,
+		handle, ttlInSeconds)
+
+	return []byte(payload)
+
+}
+
+func (b *Baggageclaim) Create(ctx context.Context, handle string, ttl time.Duration) (*Volume, error) {
 	var (
 		url    = b.Url + "/volumes"
 		method = http.MethodPost
-		body   = bytes.NewBufferString(fmt.Sprintf(emptyStrategyPayloadFormat, handle))
+		body   = bytes.NewBuffer(volumeCreationPayload(handle, ttl))
 		vol    = &Volume{}
 	)
 
@@ -30,19 +40,4 @@ func (b *Baggageclaim) Create(ctx context.Context, handle string) (*Volume, erro
 	}
 
 	return vol, nil
-}
-
-func (b *Baggageclaim) Destroy(ctx context.Context, handle string) error {
-	var (
-		url    = b.Url + "/volumes/" + handle
-		method = http.MethodDelete
-	)
-
-	err := doRequest(ctx, method, url, nil, nil)
-	if err != nil {
-		return errors.Wrapf(err,
-			"destroy request failed")
-	}
-
-	return nil
 }

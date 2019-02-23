@@ -28,73 +28,23 @@ var _ = Describe("garden", func() {
 
 	Context("Create", func() {
 		var statusCode = 200
+		const ttl = 3 * time.Second
 
 		JustBeforeEach(func() {
 			ctx, _ := context.WithDeadline(
 				context.Background(), time.Now().Add(100*time.Millisecond))
-			err = g.Create(ctx, "handle", "/rootfs")
+			err = g.Create(ctx, "handle", "/rootfs", ttl)
 		})
 
 		BeforeEach(func() {
 			gServer.AppendHandlers(ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/containers"),
-				ghttp.VerifyJSON(`{"handle":"handle","rootfs":"raw:///rootfs"}`),
+				ghttp.VerifyJSON(`{"handle":"handle","rootfs":"raw:///rootfs","grace_time": 3}`),
 				ghttp.RespondWithJSONEncodedPtr(&statusCode, nil),
 			))
 		})
 
 		It("issues container creation request", func() {
-			Expect(gServer.ReceivedRequests()).To(HaveLen(1))
-		})
-
-		Context("blocking forever", func() {
-			BeforeEach(func() {
-				gServer.Reset()
-				gServer.AppendHandlers(func(w http.ResponseWriter, r *http.Request) {
-					time.Sleep(5 * time.Second)
-				})
-			})
-
-			It("fails once context expires", func() {
-				Expect(err).To(HaveOccurred())
-			})
-		})
-
-		Context("having positive response", func() {
-			It("doesn't fail", func() {
-				Expect(err).ToNot(HaveOccurred())
-			})
-		})
-
-		Context("having negative response", func() {
-			BeforeEach(func() {
-				statusCode = 500
-			})
-
-			It("fails", func() {
-				Expect(err).To(HaveOccurred())
-			})
-		})
-	})
-
-	Context("Destroy", func() {
-		var statusCode = 200
-
-		JustBeforeEach(func() {
-			ctx, _ := context.WithDeadline(
-				context.Background(), time.Now().Add(100*time.Millisecond))
-			err = g.Destroy(ctx, "handle")
-		})
-
-		BeforeEach(func() {
-			gServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("DELETE", MatchRegexp(`/containers/[a-z0-9-]+`)),
-					ghttp.RespondWithJSONEncodedPtr(&statusCode, nil),
-				))
-		})
-
-		It("issues volume deletion request", func() {
 			Expect(gServer.ReceivedRequests()).To(HaveLen(1))
 		})
 

@@ -65,51 +65,7 @@ var _ = Describe("Worker", func() {
 				It("fails", func() {
 					Expect(err).To(HaveOccurred())
 				})
-
-				It("tries to delete volume", func() {
-					Expect(volumeProvider.DestroyCallCount()).To(Equal(1))
-				})
-			})
-
-			Context("having container creation working", func() {
-				It("tries to delete container", func() {
-					Expect(containerProvider.DestroyCallCount()).To(Equal(1))
-				})
-
-				Context("having container destruction failing", func() {
-					BeforeEach(func() {
-						containerProvider.DestroyReturns(fmt.Errorf("an error"))
-					})
-
-					It("fails", func() {
-						Expect(err).To(HaveOccurred())
-					})
-				})
-
-				Context("having container destruction working", func() {
-					It("tries to delete volume", func() {
-						Expect(volumeProvider.DestroyCallCount()).To(Equal(1))
-					})
-
-					Context("having volume destruction failing", func() {
-						BeforeEach(func() {
-							volumeProvider.DestroyReturns(fmt.Errorf("an error"))
-						})
-
-						It("fails", func() {
-							Expect(err).To(HaveOccurred())
-						})
-					})
-
-					Context("having volume destruction succeeding", func() {
-						It("succeeds", func() {
-							Expect(err).NotTo(HaveOccurred())
-						})
-
-					})
-				})
 			})
 		})
-
 	})
 })

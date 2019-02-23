@@ -19,6 +19,7 @@ func NewHealthChecker(logger lager.Logger, baggageclaimUrl, gardenUrl string, ch
 	checker := &healthcheck.Worker{
 		VolumeProvider:    &healthcheck.Baggageclaim{Url: baggageclaimUrl},
 		ContainerProvider: &healthcheck.Garden{Url: gardenUrl},
+		TTL:               checkTimeout,
 	}
 
 	return healthChecker{

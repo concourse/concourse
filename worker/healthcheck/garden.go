@@ -4,43 +4,37 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
 	"net/http"
+	"time"
 
 	"github.com/pkg/errors"
 )
-
-const containerPayloadFormat = `{"handle":"%s", "rootfs":"raw://%s"}`
 
 type Garden struct {
 	Url string
 }
 
-func (g *Garden) Create(ctx context.Context, handle, rootfs string) error {
+func containerCreationPayload(handle, rootfs string, ttl time.Duration) []byte {
+	ttlInSeconds := uint(math.Ceil(ttl.Seconds()))
+
+	payload := fmt.Sprintf(`{"handle":"%s", "rootfs":"raw://%s", "grace_time":%d}`,
+		handle, rootfs, ttlInSeconds)
+
+	return []byte(payload)
+}
+
+func (g *Garden) Create(ctx context.Context, handle, rootfs string, ttl time.Duration) error {
 	var (
 		url    = g.Url + "/containers"
 		method = http.MethodPost
-		body   = bytes.NewBufferString(fmt.Sprintf(containerPayloadFormat, handle, rootfs))
+		body   = bytes.NewBuffer(containerCreationPayload(handle, rootfs, ttl))
 	)
 
 	err := doRequest(ctx, method, url, body, nil)
 	if err != nil {
 		return errors.Wrapf(err,
 			"create request failed")
-	}
-
-	return nil
-}
-
-func (g *Garden) Destroy(ctx context.Context, handle string) error {
-	var (
-		url    = g.Url + "/containers/" + handle
-		method = http.MethodDelete
-	)
-
-	err := doRequest(ctx, method, url, nil, nil)
-	if err != nil {
-		return errors.Wrapf(err,
-			"destroy request failed")
 	}
 
 	return nil
