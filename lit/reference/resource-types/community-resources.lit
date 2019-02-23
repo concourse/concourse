@@ -238,6 +238,8 @@ before using it!
   \table-row{\link{Docker Compose}{https://github.com/troykinsella/concourse-docker-compose-resource}}{by \ghuser{troykinsella}}
 }{
   \table-row{\link{RubyGems}{https://github.com/troykinsella/concourse-rubygems-resource}}{by \ghuser{troykinsella}}
+}{
+  \table-row{\link{Medium Resource}{https://github.com/cappyzawa/medium-resource}}{by \ghuser{cappyzawa}}
 }
 
 \section{
