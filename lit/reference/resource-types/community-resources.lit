@@ -228,6 +228,8 @@ before using it!
   \table-row{\link{HTTP PUT Resource}{https://github.com/lorands/http-put-resource}}{by \ghuser{lorands}}
 }{
   \table-row{\link{Serverspec Resource}{https://github.com/opicaud/serverspec-concourse}}{by \ghuser{opicaud}}
+}{
+  \table-row{\link{Medium Resource}{https://github.com/cappyzawa/medium-resource}}{by \ghuser{cappyzawa}}
 }
 
 \section{
