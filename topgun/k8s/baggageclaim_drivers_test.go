@@ -41,20 +41,26 @@ var _ = Describe("Baggageclaim Drivers", func() {
 
 			args := []string{
 				"upgrade",
-				"--install",
 				"--force",
-				"--wait",
+				"--install",
 				"--namespace=" + namespace,
 				"--set=concourse.web.kubernetes.enabled=false",
-				"--set=postgresql.persistence.enabled=false",
-				"--set=image=concourse/dev",
-				"--set=worker.replicas=1",
-				"--set=concourse.web.kubernetes.enabled=false",
 				"--set=concourse.worker.baggageclaim.driver=" + c.Driver,
+				"--set=image=" + Environment.ConcourseImageName,
+				"--set=postgresql.persistence.enabled=false",
+				"--set=web.livenessProbe.failureThreshold=3",
+				"--set=web.livenessProbe.initialDelaySeconds=3",
+				"--set=web.livenessProbe.periodSeconds=3",
+				"--set=web.livenessProbe.timeoutSeconds=3",
 				"--set=worker.nodeSelector.nodeImage=" + c.NodeImage,
 				"--set=worker.replicas=1",
+				"--wait",
 				releaseName,
 				Environment.ConcourseChartDir,
+			}
+
+			if Environment.ConcourseImageDigest != "" {
+				args = append(args, "--set=imageDigest="+Environment.ConcourseImageDigest)
 			}
 
 			helmDeploySession := Start(nil, "helm", args...)
