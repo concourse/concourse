@@ -6,7 +6,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 // ScannerFactory is the same interface as resourceserver/server.go
@@ -19,12 +19,13 @@ type ScannerFactory interface {
 }
 
 type scannerFactory struct {
-	resourceFactory              resource.ResourceFactory
+	pool                         worker.Pool
 	resourceConfigFactory        db.ResourceConfigFactory
 	resourceTypeCheckingInterval time.Duration
 	resourceCheckingInterval     time.Duration
 	externalURL                  string
 	variablesFactory             creds.VariablesFactory
+	strategy                     worker.ContainerPlacementStrategy
 }
 
 var ContainerExpiries = db.ContainerOwnerExpiries{
@@ -34,20 +35,22 @@ var ContainerExpiries = db.ContainerOwnerExpiries{
 }
 
 func NewScannerFactory(
-	resourceFactory resource.ResourceFactory,
+	pool worker.Pool,
 	resourceConfigFactory db.ResourceConfigFactory,
 	resourceTypeCheckingInterval time.Duration,
 	resourceCheckingInterval time.Duration,
 	externalURL string,
 	variablesFactory creds.VariablesFactory,
+	strategy worker.ContainerPlacementStrategy,
 ) ScannerFactory {
 	return &scannerFactory{
-		resourceFactory:              resourceFactory,
+		pool:                         pool,
 		resourceConfigFactory:        resourceConfigFactory,
 		resourceCheckingInterval:     resourceCheckingInterval,
 		resourceTypeCheckingInterval: resourceTypeCheckingInterval,
 		externalURL:                  externalURL,
 		variablesFactory:             variablesFactory,
+		strategy:                     strategy,
 	}
 }
 
@@ -56,12 +59,13 @@ func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
 
 	return NewResourceScanner(
 		clock.NewClock(),
-		f.resourceFactory,
+		f.pool,
 		f.resourceConfigFactory,
 		f.resourceCheckingInterval,
 		dbPipeline,
 		f.externalURL,
 		variables,
+		f.strategy,
 	)
 }
 
@@ -70,11 +74,12 @@ func (f *scannerFactory) NewResourceTypeScanner(dbPipeline db.Pipeline) Scanner 
 
 	return NewResourceTypeScanner(
 		clock.NewClock(),
-		f.resourceFactory,
+		f.pool,
 		f.resourceConfigFactory,
 		f.resourceTypeCheckingInterval,
 		dbPipeline,
 		f.externalURL,
 		variables,
+		f.strategy,
 	)
 }

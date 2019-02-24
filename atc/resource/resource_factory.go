@@ -9,9 +9,9 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 )
 
-func NewResourceFactory(workerClient worker.Client) ResourceFactory {
+func NewResourceFactory(worker worker.Worker) ResourceFactory {
 	return &resourceFactory{
-		workerClient: workerClient,
+		worker: worker,
 	}
 }
 
@@ -24,14 +24,13 @@ type ResourceFactory interface {
 		owner db.ContainerOwner,
 		metadata db.ContainerMetadata,
 		containerSpec worker.ContainerSpec,
-		workerSpec worker.WorkerSpec,
 		resourceTypes creds.VersionedResourceTypes,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
 	) (Resource, error)
 }
 
 type resourceFactory struct {
-	workerClient worker.Client
+	worker worker.Worker
 }
 
 func (f *resourceFactory) NewResource(
@@ -40,23 +39,20 @@ func (f *resourceFactory) NewResource(
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
 	containerSpec worker.ContainerSpec,
-	workerSpec worker.WorkerSpec,
 	resourceTypes creds.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (Resource, error) {
-
 	containerSpec.BindMounts = []worker.BindMountSource{
 		&worker.CertsVolumeMount{Logger: logger},
 	}
 
-	container, err := f.workerClient.FindOrCreateContainer(
+	container, err := f.worker.FindOrCreateContainer(
 		ctx,
 		logger,
 		imageFetchingDelegate,
 		owner,
 		metadata,
 		containerSpec,
-		workerSpec,
 		resourceTypes,
 	)
 	if err != nil {

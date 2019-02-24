@@ -8,8 +8,8 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -26,11 +26,10 @@ type Fetcher interface {
 		ctx context.Context,
 		logger lager.Logger,
 		session Session,
-		tags atc.Tags,
-		teamID int,
+		gardenWorker worker.Worker,
+		containerSpec worker.ContainerSpec,
 		resourceTypes creds.VersionedResourceTypes,
 		resourceInstance ResourceInstance,
-		metadata Metadata,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
 	) (VersionedSource, error)
 }
@@ -38,47 +37,36 @@ type Fetcher interface {
 func NewFetcher(
 	clock clock.Clock,
 	lockFactory lock.LockFactory,
-	fetchSourceProviderFactory FetchSourceProviderFactory,
+	resourceCacheFactory db.ResourceCacheFactory,
 ) Fetcher {
 	return &fetcher{
-		clock:                      clock,
-		lockFactory:                lockFactory,
-		fetchSourceProviderFactory: fetchSourceProviderFactory,
+		clock:                clock,
+		lockFactory:          lockFactory,
+		resourceCacheFactory: resourceCacheFactory,
 	}
 }
 
 type fetcher struct {
-	clock                      clock.Clock
-	lockFactory                lock.LockFactory
-	fetchSourceProviderFactory FetchSourceProviderFactory
+	clock                clock.Clock
+	lockFactory          lock.LockFactory
+	resourceCacheFactory db.ResourceCacheFactory
 }
 
 func (f *fetcher) Fetch(
 	ctx context.Context,
 	logger lager.Logger,
 	session Session,
-	tags atc.Tags,
-	teamID int,
+	gardenWorker worker.Worker,
+	containerSpec worker.ContainerSpec,
 	resourceTypes creds.VersionedResourceTypes,
 	resourceInstance ResourceInstance,
-	metadata Metadata,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (VersionedSource, error) {
-	sourceProvider := f.fetchSourceProviderFactory.NewFetchSourceProvider(
-		logger,
-		session,
-		metadata,
-		tags,
-		teamID,
-		resourceTypes,
-		resourceInstance,
-		imageFetchingDelegate,
-	)
-
-	source, err := sourceProvider.Get()
-	if err != nil {
-		return nil, err
+	containerSpec.Outputs = map[string]string{
+		"resource": ResourcesDir("get"),
 	}
+
+	source := NewResourceInstanceFetchSource(logger, gardenWorker, resourceInstance, resourceTypes, containerSpec, session, imageFetchingDelegate, f.resourceCacheFactory)
 
 	ticker := f.clock.NewTicker(GetResourceLockInterval)
 	defer ticker.Stop()

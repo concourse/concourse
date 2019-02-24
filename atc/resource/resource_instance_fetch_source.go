@@ -4,46 +4,47 @@ import (
 	"context"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
 )
 
+//go:generate counterfeiter . FetchSource
+
+type FetchSource interface {
+	LockName() (string, error)
+	Find() (VersionedSource, bool, error)
+	Create(context.Context) (VersionedSource, error)
+}
+
 type resourceInstanceFetchSource struct {
 	logger                 lager.Logger
-	resourceInstance       ResourceInstance
 	worker                 worker.Worker
+	resourceInstance       ResourceInstance
 	resourceTypes          creds.VersionedResourceTypes
-	tags                   atc.Tags
-	teamID                 int
+	containerSpec          worker.ContainerSpec
 	session                Session
-	metadata               Metadata
 	imageFetchingDelegate  worker.ImageFetchingDelegate
 	dbResourceCacheFactory db.ResourceCacheFactory
 }
 
 func NewResourceInstanceFetchSource(
 	logger lager.Logger,
-	resourceInstance ResourceInstance,
 	worker worker.Worker,
+	resourceInstance ResourceInstance,
 	resourceTypes creds.VersionedResourceTypes,
-	tags atc.Tags,
-	teamID int,
+	containerSpec worker.ContainerSpec,
 	session Session,
-	metadata Metadata,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 	dbResourceCacheFactory db.ResourceCacheFactory,
 ) FetchSource {
 	return &resourceInstanceFetchSource{
 		logger:                 logger,
-		resourceInstance:       resourceInstance,
 		worker:                 worker,
+		resourceInstance:       resourceInstance,
 		resourceTypes:          resourceTypes,
-		tags:                   tags,
-		teamID:                 teamID,
+		containerSpec:          containerSpec,
 		session:                session,
-		metadata:               metadata,
 		imageFetchingDelegate:  imageFetchingDelegate,
 		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
@@ -95,36 +96,13 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (VersionedSour
 		return versionedSource, nil
 	}
 
-	mountPath := ResourcesDir("get")
-
-	containerSpec := worker.ContainerSpec{
-		ImageSpec: worker.ImageSpec{
-			ResourceType: string(s.resourceInstance.ResourceType()),
-		},
-		Tags:   s.tags,
-		TeamID: s.teamID,
-		Env:    s.metadata.Env(),
-
-		Outputs: map[string]string{
-			"resource": mountPath,
-		},
-	}
-
-	workerSpec := worker.WorkerSpec{
-		ResourceType:  string(s.resourceInstance.ResourceType()),
-		Tags:          s.tags,
-		TeamID:        s.teamID,
-		ResourceTypes: s.resourceTypes,
-	}
-
 	resourceFactory := NewResourceFactory(s.worker)
 	resource, err := resourceFactory.NewResource(
 		ctx,
 		s.logger,
 		s.resourceInstance.ContainerOwner(),
 		s.session.Metadata,
-		containerSpec,
-		workerSpec,
+		s.containerSpec,
 		s.resourceTypes,
 		s.imageFetchingDelegate,
 	)
@@ -133,6 +111,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (VersionedSour
 		return nil, err
 	}
 
+	mountPath := ResourcesDir("get")
 	var volume worker.Volume
 	for _, mount := range resource.Container().VolumeMounts() {
 		if mount.MountPath == mountPath {

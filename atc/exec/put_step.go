@@ -34,7 +34,7 @@ type PutStep struct {
 	inputs       PutInputs
 
 	delegate              PutDelegate
-	resourceFactory       resource.ResourceFactory
+	pool                  worker.Pool
 	resourceConfigFactory db.ResourceConfigFactory
 	planID                atc.PlanID
 	containerMetadata     db.ContainerMetadata
@@ -44,6 +44,8 @@ type PutStep struct {
 
 	versionInfo VersionInfo
 	succeeded   bool
+
+	strategy worker.ContainerPlacementStrategy
 }
 
 func NewPutStep(
@@ -56,12 +58,13 @@ func NewPutStep(
 	tags atc.Tags,
 	inputs PutInputs,
 	delegate PutDelegate,
-	resourceFactory resource.ResourceFactory,
+	pool worker.Pool,
 	resourceConfigFactory db.ResourceConfigFactory,
 	planID atc.PlanID,
 	containerMetadata db.ContainerMetadata,
 	stepMetadata StepMetadata,
 	resourceTypes creds.VersionedResourceTypes,
+	strategy worker.ContainerPlacementStrategy,
 ) *PutStep {
 	return &PutStep{
 		build: build,
@@ -74,12 +77,13 @@ func NewPutStep(
 		tags:                  tags,
 		inputs:                inputs,
 		delegate:              delegate,
-		resourceFactory:       resourceFactory,
+		pool:                  pool,
 		resourceConfigFactory: resourceConfigFactory,
 		planID:                planID,
 		containerMetadata:     containerMetadata,
 		stepMetadata:          stepMetadata,
 		resourceTypes:         resourceTypes,
+		strategy:              strategy,
 	}
 }
 
@@ -120,13 +124,20 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		ResourceTypes: step.resourceTypes,
 	}
 
-	putResource, err := step.resourceFactory.NewResource(
+	// XXX: TESTS
+	owner := db.NewBuildStepContainerOwner(step.build.ID(), step.planID, step.build.TeamID())
+	chosenWorker, err := step.pool.FindOrChooseWorker(logger, owner, step.containerMetadata, containerSpec, workerSpec, step.strategy)
+	if err != nil {
+		return err
+	}
+
+	resourceFactory := resource.NewResourceFactory(chosenWorker)
+	putResource, err := resourceFactory.NewResource(
 		ctx,
 		logger,
-		db.NewBuildStepContainerOwner(step.build.ID(), step.planID, step.build.TeamID()),
+		owner,
 		step.containerMetadata,
 		containerSpec,
-		workerSpec,
 		step.resourceTypes,
 		step.delegate,
 	)

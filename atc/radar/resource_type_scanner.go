@@ -16,31 +16,34 @@ import (
 
 type resourceTypeScanner struct {
 	clock                 clock.Clock
-	resourceFactory       resource.ResourceFactory
+	pool                  worker.Pool
 	resourceConfigFactory db.ResourceConfigFactory
 	defaultInterval       time.Duration
 	dbPipeline            db.Pipeline
 	externalURL           string
 	variables             creds.Variables
+	strategy              worker.ContainerPlacementStrategy
 }
 
 func NewResourceTypeScanner(
 	clock clock.Clock,
-	resourceFactory resource.ResourceFactory,
+	pool worker.Pool,
 	resourceConfigFactory db.ResourceConfigFactory,
 	defaultInterval time.Duration,
 	dbPipeline db.Pipeline,
 	externalURL string,
 	variables creds.Variables,
+	strategy worker.ContainerPlacementStrategy,
 ) Scanner {
 	return &resourceTypeScanner{
 		clock:                 clock,
-		resourceFactory:       resourceFactory,
+		pool:                  pool,
 		resourceConfigFactory: resourceConfigFactory,
 		defaultInterval:       defaultInterval,
 		dbPipeline:            dbPipeline,
 		externalURL:           externalURL,
 		variables:             variables,
+		strategy:              strategy,
 	}
 }
 
@@ -242,7 +245,19 @@ func (scanner *resourceTypeScanner) check(
 		TeamID:        scanner.dbPipeline.TeamID(),
 	}
 
-	res, err := scanner.resourceFactory.NewResource(
+	// XXX: TESTS
+	owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries)
+	containerMetadata := db.ContainerMetadata{
+		Type: db.ContainerTypeCheck,
+	}
+
+	chosenWorker, err := scanner.pool.FindOrChooseWorker(logger, owner, containerMetadata, containerSpec, workerSpec, scanner.strategy)
+	if err != nil {
+		return err
+	}
+
+	resourceFactory := resource.NewResourceFactory(chosenWorker)
+	res, err := resourceFactory.NewResource(
 		context.Background(),
 		logger,
 		db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries),
@@ -250,7 +265,6 @@ func (scanner *resourceTypeScanner) check(
 			Type: db.ContainerTypeCheck,
 		},
 		containerSpec,
-		workerSpec,
 		versionedResourceTypes.Without(savedResourceType.Name()),
 		worker.NoopImageFetchingDelegate{},
 	)

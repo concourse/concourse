@@ -1,9 +1,10 @@
 package worker
 
 import (
-	"github.com/concourse/concourse/atc/db"
 	"math/rand"
 	"time"
+
+	"github.com/concourse/concourse/atc/db"
 
 	"code.cloudfoundry.org/lager"
 )

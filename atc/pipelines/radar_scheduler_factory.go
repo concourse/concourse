@@ -9,12 +9,12 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/radar"
-	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/scheduler/factory"
 	"github.com/concourse/concourse/atc/scheduler/inputmapper"
 	"github.com/concourse/concourse/atc/scheduler/inputmapper/inputconfig"
 	"github.com/concourse/concourse/atc/scheduler/maxinflight"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 //go:generate counterfeiter . RadarSchedulerFactory
@@ -25,43 +25,47 @@ type RadarSchedulerFactory interface {
 }
 
 type radarSchedulerFactory struct {
-	resourceFactory              resource.ResourceFactory
+	pool                         worker.Pool
 	resourceConfigFactory        db.ResourceConfigFactory
 	resourceTypeCheckingInterval time.Duration
 	resourceCheckingInterval     time.Duration
 	engine                       engine.Engine
+	strategy                     worker.ContainerPlacementStrategy
 }
 
 func NewRadarSchedulerFactory(
-	resourceFactory resource.ResourceFactory,
+	pool worker.Pool,
 	resourceConfigFactory db.ResourceConfigFactory,
 	resourceTypeCheckingInterval time.Duration,
 	resourceCheckingInterval time.Duration,
 	engine engine.Engine,
+	strategy worker.ContainerPlacementStrategy,
 ) RadarSchedulerFactory {
 	return &radarSchedulerFactory{
-		resourceFactory:              resourceFactory,
+		pool:                         pool,
 		resourceConfigFactory:        resourceConfigFactory,
 		resourceTypeCheckingInterval: resourceTypeCheckingInterval,
 		resourceCheckingInterval:     resourceCheckingInterval,
 		engine:                       engine,
+		strategy:                     strategy,
 	}
 }
 
 func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string, variables creds.Variables) radar.ScanRunnerFactory {
-	return radar.NewScanRunnerFactory(rsf.resourceFactory, rsf.resourceConfigFactory, rsf.resourceTypeCheckingInterval, rsf.resourceCheckingInterval, dbPipeline, clock.NewClock(), externalURL, variables)
+	return radar.NewScanRunnerFactory(rsf.pool, rsf.resourceConfigFactory, rsf.resourceTypeCheckingInterval, rsf.resourceCheckingInterval, dbPipeline, clock.NewClock(), externalURL, variables, rsf.strategy)
 }
 
 func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalURL string, variables creds.Variables) scheduler.BuildScheduler {
 
 	scanner := radar.NewResourceScanner(
 		clock.NewClock(),
-		rsf.resourceFactory,
+		rsf.pool,
 		rsf.resourceConfigFactory,
 		rsf.resourceCheckingInterval,
 		pipeline,
 		externalURL,
 		variables,
+		rsf.strategy,
 	)
 
 	inputMapper := inputmapper.NewInputMapper(

@@ -50,20 +50,20 @@ type ImageResourceFetcher interface {
 }
 
 type imageResourceFetcherFactory struct {
-	resourceFetcherFactory  resource.FetcherFactory
 	dbResourceCacheFactory  db.ResourceCacheFactory
 	dbResourceConfigFactory db.ResourceConfigFactory
+	resourceFetcher         resource.Fetcher
 }
 
 func NewImageResourceFetcherFactory(
-	resourceFetcherFactory resource.FetcherFactory,
 	dbResourceCacheFactory db.ResourceCacheFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
+	resourceFetcher resource.Fetcher,
 ) ImageResourceFetcherFactory {
 	return &imageResourceFetcherFactory{
-		resourceFetcherFactory:  resourceFetcherFactory,
 		dbResourceCacheFactory:  dbResourceCacheFactory,
 		dbResourceConfigFactory: dbResourceConfigFactory,
+		resourceFetcher:         resourceFetcher,
 	}
 }
 
@@ -77,12 +77,12 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) ImageResourceFetcher {
 	return &imageResourceFetcher{
-		resourceFetcher:         f.resourceFetcherFactory.FetcherFor(worker),
+		worker:                  worker,
+		resourceFetcher:         f.resourceFetcher,
 		resourceFactory:         resourceFactory,
 		dbResourceCacheFactory:  f.dbResourceCacheFactory,
 		dbResourceConfigFactory: f.dbResourceConfigFactory,
 
-		worker:                worker,
 		imageResource:         imageResource,
 		version:               version,
 		teamID:                teamID,
@@ -166,15 +166,23 @@ func (i *imageResourceFetcher) Fetch(
 		},
 	}
 
+	containerSpec := worker.ContainerSpec{
+		ImageSpec: worker.ImageSpec{
+			ResourceType: string(resourceInstance.ResourceType()),
+		},
+		TeamID: i.teamID,
+	}
+
+	// The random placement strategy is not really used because the image
+	// resource will always find the same worker as the container that owns it
 	versionedSource, err := i.resourceFetcher.Fetch(
 		ctx,
 		logger.Session("init-image"),
 		getSess,
-		i.worker.Tags(),
-		i.teamID,
+		i.worker,
+		containerSpec,
 		i.customTypes,
 		resourceInstance,
-		resource.EmptyMetadata{},
 		i.imageFetchingDelegate,
 	)
 	if err != nil {
@@ -218,7 +226,6 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 	container db.CreatingContainer,
 	resourceType creds.VersionedResourceType,
 ) error {
-
 	checkResourceType, err := i.resourceFactory.NewResource(
 		ctx,
 		logger,
@@ -232,11 +239,6 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 			},
 			TeamID: i.teamID,
 			Tags:   i.worker.Tags(),
-		},
-		worker.WorkerSpec{
-			ResourceType:  resourceType.Name,
-			Tags:          i.worker.Tags(),
-			ResourceTypes: i.customTypes,
 		},
 		i.customTypes,
 		worker.NoopImageFetchingDelegate{},
@@ -288,12 +290,6 @@ func (i *imageResourceFetcher) getLatestVersion(
 		TeamID: i.teamID,
 	}
 
-	workerSpec := worker.WorkerSpec{
-		ResourceType:  i.imageResource.Type,
-		Tags:          i.worker.Tags(),
-		ResourceTypes: i.customTypes,
-	}
-
 	source, err := i.imageResource.Source.Evaluate()
 	if err != nil {
 		return nil, err
@@ -307,7 +303,6 @@ func (i *imageResourceFetcher) getLatestVersion(
 			Type: db.ContainerTypeCheck,
 		},
 		resourceSpec,
-		workerSpec,
 		i.customTypes,
 		i.imageFetchingDelegate,
 	)

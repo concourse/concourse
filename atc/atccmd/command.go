@@ -501,12 +501,12 @@ func (cmd *RunCommand) constructAPIMembers(
 	}
 
 	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
-	resourceFetcherFactory := resource.NewFetcherFactory(lockFactory, clock.NewClock(), dbResourceCacheFactory)
+	resourceFetcher := resource.NewFetcher(clock.NewClock(), lockFactory, dbResourceCacheFactory)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
-		resourceFetcherFactory,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
+		resourceFetcher,
 	)
 
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
@@ -517,6 +517,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	if err != nil {
 		return nil, err
 	}
+
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
@@ -532,13 +533,8 @@ func (cmd *RunCommand) constructAPIMembers(
 		cmd.BaggageclaimResponseHeaderTimeout,
 	)
 
-	workerClient := cmd.constructWorkerPool(
-		logger,
-		workerProvider,
-	)
+	pool := worker.NewPool(workerProvider)
 
-	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
-	resourceFactory := resource.NewResourceFactory(workerClient)
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {
 		return nil, err
@@ -549,23 +545,27 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 
-	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits)
+	buildContainerStrategy := cmd.chooseBuildContainerStrategy()
+
+	engine := cmd.constructEngine(pool, resourceFetcher, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits, buildContainerStrategy)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
-		resourceFactory,
+		pool,
 		dbResourceConfigFactory,
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		engine,
+		buildContainerStrategy,
 	)
 
 	radarScannerFactory := radar.NewScannerFactory(
-		resourceFactory,
+		pool,
 		dbResourceConfigFactory,
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		cmd.ExternalURL.String(),
 		variablesFactory,
+		buildContainerStrategy,
 	)
 
 	drain := make(chan struct{})
@@ -592,7 +592,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		dbBuildFactory,
 		dbResourceConfigFactory,
 		engine,
-		workerClient,
+		pool,
 		workerProvider,
 		drain,
 		radarSchedulerFactory,
@@ -699,12 +699,12 @@ func (cmd *RunCommand) constructBackendMembers(
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
 
 	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
-	resourceFetcherFactory := resource.NewFetcherFactory(lockFactory, clock.NewClock(), dbResourceCacheFactory)
+	resourceFetcher := resource.NewFetcher(clock.NewClock(), lockFactory, dbResourceCacheFactory)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
-		resourceFetcherFactory,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
+		resourceFetcher,
 	)
 
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
@@ -715,6 +715,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	if err != nil {
 		return nil, err
 	}
+
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
@@ -729,13 +730,9 @@ func (cmd *RunCommand) constructBackendMembers(
 		workerVersion,
 		cmd.BaggageclaimResponseHeaderTimeout,
 	)
-	workerClient := cmd.constructWorkerPool(
-		logger,
-		workerProvider,
-	)
 
-	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
-	resourceFactory := resource.NewResourceFactory(workerClient)
+	pool := worker.NewPool(workerProvider)
+
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {
 		return nil, err
@@ -745,14 +742,17 @@ func (cmd *RunCommand) constructBackendMembers(
 	if err != nil {
 		return nil, err
 	}
-	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits)
+
+	buildContainerStrategy := cmd.chooseBuildContainerStrategy()
+	engine := cmd.constructEngine(pool, resourceFetcher, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits, buildContainerStrategy)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
-		resourceFactory,
+		pool,
 		dbResourceConfigFactory,
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		engine,
+		buildContainerStrategy,
 	)
 	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
 	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(dbConn)
@@ -1157,11 +1157,7 @@ func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {
 	return dbConn, nil
 }
 
-func (cmd *RunCommand) constructWorkerPool(
-	logger lager.Logger,
-	workerProvider worker.WorkerProvider,
-) worker.Client {
-
+func (cmd *RunCommand) chooseBuildContainerStrategy() worker.ContainerPlacementStrategy {
 	var strategy worker.ContainerPlacementStrategy
 	switch cmd.ContainerPlacementStrategy {
 	case "random":
@@ -1172,10 +1168,7 @@ func (cmd *RunCommand) constructWorkerPool(
 		strategy = worker.NewVolumeLocalityPlacementStrategy()
 	}
 
-	return worker.NewPool(
-		workerProvider,
-		strategy,
-	)
+	return strategy
 }
 
 func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
@@ -1202,22 +1195,22 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 }
 
 func (cmd *RunCommand) constructEngine(
-	workerClient worker.Client,
+	workerPool worker.Pool,
 	resourceFetcher resource.Fetcher,
-	resourceFactory resource.ResourceFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	variablesFactory creds.VariablesFactory,
 	defaultLimits atc.ContainerLimits,
+	strategy worker.ContainerPlacementStrategy,
 ) engine.Engine {
 	gardenFactory := exec.NewGardenFactory(
-		workerClient,
+		workerPool,
 		resourceFetcher,
-		resourceFactory,
 		resourceCacheFactory,
 		resourceConfigFactory,
 		variablesFactory,
 		defaultLimits,
+		strategy,
 	)
 
 	execV2Engine := engine.NewExecEngine(
@@ -1276,7 +1269,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	dbBuildFactory db.BuildFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	engine engine.Engine,
-	workerClient worker.Client,
+	workerPool worker.Pool,
 	workerProvider worker.WorkerProvider,
 	drain <-chan struct{},
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
@@ -1324,7 +1317,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		drain,
 
 		engine,
-		workerClient,
+		workerPool,
 		workerProvider,
 		radarSchedulerFactory,
 		radarScannerFactory,

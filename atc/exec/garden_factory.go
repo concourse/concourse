@@ -16,32 +16,32 @@ import (
 )
 
 type gardenFactory struct {
-	workerClient          worker.Client
+	pool                  worker.Pool
 	resourceFetcher       resource.Fetcher
-	resourceFactory       resource.ResourceFactory
 	resourceCacheFactory  db.ResourceCacheFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	variablesFactory      creds.VariablesFactory
 	defaultLimits         atc.ContainerLimits
+	strategy              worker.ContainerPlacementStrategy
 }
 
 func NewGardenFactory(
-	workerClient worker.Client,
+	pool worker.Pool,
 	resourceFetcher resource.Fetcher,
-	resourceFactory resource.ResourceFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	variablesFactory creds.VariablesFactory,
 	defaultLimits atc.ContainerLimits,
+	strategy worker.ContainerPlacementStrategy,
 ) Factory {
 	return &gardenFactory{
-		workerClient:          workerClient,
+		pool:                  pool,
 		resourceFetcher:       resourceFetcher,
-		resourceFactory:       resourceFactory,
 		resourceCacheFactory:  resourceCacheFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		variablesFactory:      variablesFactory,
 		defaultLimits:         defaultLimits,
+		strategy:              strategy,
 	}
 }
 
@@ -78,6 +78,9 @@ func (factory *gardenFactory) Get(
 		stepMetadata,
 
 		creds.NewVersionedResourceTypes(variables, plan.Get.VersionedResourceTypes),
+
+		factory.strategy,
+		factory.pool,
 	)
 
 	return LogError(getStep, delegate)
@@ -120,13 +123,15 @@ func (factory *gardenFactory) Put(
 		putInputs,
 
 		delegate,
-		factory.resourceFactory,
+		factory.pool,
 		factory.resourceConfigFactory,
 		plan.ID,
 		workerMetadata,
 		stepMetadata,
 
 		creds.NewVersionedResourceTypes(variables, plan.Put.VersionedResourceTypes),
+
+		factory.strategy,
 	)
 
 	return LogError(putStep, delegate)
@@ -181,7 +186,7 @@ func (factory *gardenFactory) Task(
 
 		delegate,
 
-		factory.workerClient,
+		factory.pool,
 		build.TeamID(),
 		build.ID(),
 		build.JobID(),
@@ -191,6 +196,7 @@ func (factory *gardenFactory) Task(
 
 		creds.NewVersionedResourceTypes(credMgrVariables, plan.Task.VersionedResourceTypes),
 		factory.defaultLimits,
+		factory.strategy,
 	)
 
 	return LogError(taskStep, delegate)

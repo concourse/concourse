@@ -11,15 +11,12 @@ import (
 )
 
 var (
-	workerClient  *workerfakes.FakeClient
 	fakeContainer *workerfakes.FakeContainer
 
 	resourceForContainer resource.Resource
 )
 
 var _ = BeforeEach(func() {
-	workerClient = new(workerfakes.FakeClient)
-
 	fakeContainer = new(workerfakes.FakeContainer)
 
 	resourceForContainer = resource.NewResourceForContainer(fakeContainer)
