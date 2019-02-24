@@ -797,6 +797,7 @@ jobs:
       - cbd/cluster/operations/garden-dns.yml
       - cbd/cluster/operations/max-in-flight.yml
       - cbd/cluster/operations/worker-max-in-flight.yml
+      - cbd/cluster/operations/enable-global-resources.yml
       - prod/wings/ops.yml
       vars_files:
       - prod/wings/vars.yml
@@ -1209,4 +1210,4 @@ resources:
 
 - name: mock-version
   type: mock
-  source: {force_version: 4.2.2}
+  source: {force_version: 4.2.3}
