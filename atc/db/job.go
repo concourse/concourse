@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/lib/pq"
 )
 
 //go:generate counterfeiter . Job
@@ -52,7 +53,7 @@ type Job interface {
 	ClearTaskCache(string, string) (int64, error)
 }
 
-var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "array_to_json(j.tags)").
+var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "j.tags").
 	From("jobs j, pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id").
 	Where(sq.Expr("j.pipeline_id = p.id"))
@@ -800,11 +801,9 @@ func scanJob(j *job, row scannable) error {
 	var (
 		configBlob []byte
 		nonce      sql.NullString
-		tagsBlob   []byte
-		tags       []string
 	)
 
-	err := row.Scan(&j.id, &j.name, &configBlob, &j.paused, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, &tagsBlob)
+	err := row.Scan(&j.id, &j.name, &configBlob, &j.paused, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags))
 	if err != nil {
 		return err
 	}
@@ -828,13 +827,6 @@ func scanJob(j *job, row scannable) error {
 	}
 
 	j.config = config
-
-	err = json.Unmarshal(tagsBlob, &tags)
-	if err != nil {
-		return err
-	}
-
-	j.tags = tags
 
 	return nil
 }

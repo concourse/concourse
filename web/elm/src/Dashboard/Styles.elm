@@ -14,6 +14,7 @@ module Dashboard.Styles exposing
     , noPipelineCardHd
     , noPipelineCardHeader
     , noPipelineCardTextHd
+    , noResults
     , pipelineCard
     , pipelineCardBanner
     , pipelineCardBannerHd
@@ -513,3 +514,11 @@ asciiArt =
     , ( "z-index", "1" )
     ]
         ++ Application.Styles.disableInteraction
+
+
+noResults : List ( String, String )
+noResults =
+    [ ( "text-align", "center" )
+    , ( "font-size", "13px" )
+    , ( "margin-top", "20px" )
+    ]

@@ -47,9 +47,9 @@ groups:
 
 - name: k8s
   jobs:
+  - k8s-check-helm-params
   - k8s-smoke
   - k8s-topgun
-  - k8s-check-helm-params
 
 - name: bosh
   jobs:
@@ -64,7 +64,6 @@ groups:
 - name: images
   jobs:
   - unit-image
-  - k8s-dev-image
 
 - name: publish
   jobs:
@@ -276,47 +275,6 @@ jobs:
     file: concourse/ci/tasks/upgrade-test.yml
     params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
-- name: k8s-smoke
-  public: true
-  serial: true
-  plan:
-  - aggregate:
-    - get: concourse
-      passed: [rc-image]
-      trigger: true
-    - get: k8s-dev-image
-      passed: [k8s-dev-image]
-      trigger: true
-    - get: rc-image
-      trigger: true
-      passed: [rc-image]
-      params: {format: oci}
-    - get: unit-image
-      passed: [rc-image]
-    - get: charts
-      trigger: true
-  - task: terraform-k8s-smoke
-    file: concourse/ci/tasks/terraform-smoke.yml
-    params:
-      GCP_PROJECT: cf-concourse-production
-      GCP_KEY: ((concourse_smoke_gcp_key))
-      SSH_KEY: ((concourse_smoke_ssh_key))
-      DEPLOYMENT: k8s-smoke
-  - task: deploy
-    file: concourse/ci/tasks/k8s-deploy.yml
-    params:
-     KUBE_CONFIG: ((kube_config))
-     RELEASE_NAME: concourse-smoke
-     CONCOURSE_IMAGE: concourse/concourse-rc
-    input_mapping: {endpoint-info: outputs, image-info: rc-image}
-    image: k8s-dev-image
-  - task: smoke
-    image: unit-image
-    file: concourse/ci/tasks/smoke.yml
-    input_mapping: {endpoint-info: outputs}
-    params:
-      MAX_TICKS: 180
-
 - name: k8s-check-helm-params
   public: true
   max_in_flight: 1
@@ -339,6 +297,52 @@ jobs:
     input_mapping: {distribution: charts}
     params: {DISTRIBUTION: helm}
 
+- name: k8s-smoke
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [rc-image]
+      trigger: true
+    - get: rc-image
+      trigger: true
+      passed: [rc-image]
+      params: {format: oci}
+    - get: unit-image
+      passed: [rc-image]
+    - get: charts
+      trigger: true
+  - try:
+    task: delete
+    image: unit-image
+    file: concourse/ci/tasks/k8s-delete.yml
+    params:
+     KUBE_CONFIG: ((kube_config))
+     RELEASE_NAME: concourse-smoke
+     CONCOURSE_IMAGE: concourse/concourse-rc
+  - task: deploy
+    image: unit-image
+    file: concourse/ci/tasks/k8s-deploy.yml
+    params:
+      KUBE_CONFIG: ((kube_config))
+      RELEASE_NAME: concourse-smoke
+      CONCOURSE_IMAGE: concourse/concourse-rc
+  - task: k8s-smoke
+    image: unit-image
+    file: concourse/ci/tasks/k8s-smoke.yml
+    params:
+      KUBE_CONFIG: ((kube_config))
+      RELEASE_NAME: concourse-smoke
+      MAX_TICKS: 180
+  - task: delete
+    image: unit-image
+    file: concourse/ci/tasks/k8s-delete.yml
+    params:
+     KUBE_CONFIG: ((kube_config))
+     RELEASE_NAME: concourse-smoke
+     CONCOURSE_IMAGE: concourse/concourse-rc
+
 - name: k8s-topgun
   public: true
   serial: true
@@ -351,7 +355,7 @@ jobs:
       passed: [k8s-smoke]
       trigger: true
       params: {format: oci}
-    - get: k8s-dev-image
+    - get: unit-image
       passed: [k8s-smoke]
       trigger: true
     - get: charts
@@ -359,35 +363,10 @@ jobs:
       passed: [k8s-smoke]
   - task: k8s-topgun
     file: concourse/ci/tasks/k8s-topgun.yml
-    image: k8s-dev-image
+    image: unit-image
     params:
      KUBE_CONFIG: ((kube_config))
      CONCOURSE_IMAGE_NAME: concourse/concourse-rc
-
-- name: k8s-dev-image
-  public: true
-  serial: true
-  plan:
-  - aggregate:
-    - get: concourse
-      resource: k8s-dev-dockerfile
-      trigger: true
-    - get: builder
-  - task: build
-    image: builder
-    privileged: true
-    config:
-      platform: linux
-      params:
-        REPOSITORY: concourse/k8s-dev
-        CONTEXT: concourse/ci/dockerfiles/k8s-dev
-      inputs: [{name: concourse}]
-      outputs: [{name: image}]
-      caches: [{path: cache}]
-      run: {path: build}
-  - put: k8s-dev-image
-    params: {image: image/image.tar}
-
 
 - name: rc
   public: true
@@ -797,6 +776,7 @@ jobs:
       - cbd/cluster/operations/garden-dns.yml
       - cbd/cluster/operations/max-in-flight.yml
       - cbd/cluster/operations/worker-max-in-flight.yml
+      - cbd/cluster/operations/enable-global-resources.yml
       - prod/wings/ops.yml
       vars_files:
       - prod/wings/vars.yml
@@ -880,20 +860,6 @@ resources:
     uri: https://github.com/concourse/concourse.git
     branch: master
     paths: [ci/dockerfiles/unit]
-
-- name: k8s-dev-dockerfile
-  type: git
-  source:
-    uri: https://github.com/concourse/concourse.git
-    branch: master
-    paths: [ci/dockerfiles/k8s-dev]
-
-- name: k8s-dev-image
-  type: registry-image
-  source:
-    repository: concourse/k8s-dev
-    username: ((docker.username))
-    password: ((docker.password))
 
 - name: dev-image
   type: registry-image
@@ -1209,4 +1175,4 @@ resources:
 
 - name: mock-version
   type: mock
-  source: {force_version: 4.2.2}
+  source: {force_version: 4.2.3}

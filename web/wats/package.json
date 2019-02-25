@@ -6,7 +6,7 @@
     "ava": "^0.25.0",
     "child-process-promise": "^2.2.1",
     "color": "^2.0.0",
-    "puppeteer": "^1.5.0",
+    "puppeteer": "^1.12.2",
     "tmp-promise": "^1.0.3",
     "uuid": "^3.1.0"
   },
@@ -14,13 +14,13 @@
   "scripts": {
     "test": "ava"
   },
-  "repository": "git+https://github.com/concourse/atc.git",
+  "repository": "git+https://github.com/concourse/concourse.git",
   "author": "",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/concourse/atc/issues"
+    "url": "https://github.com/concourse/concourse/issues"
   },
-  "homepage": "https://github.com/concourse/atc#readme",
+  "homepage": "https://github.com/concourse/concourse#readme",
   "ava": {
     "timeout": "5m"
   }

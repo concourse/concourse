@@ -25,12 +25,10 @@ type WorkerProvider interface {
 		handle string,
 	) (Worker, bool, error)
 
-	FindWorkerForContainerByOwner(
+	FindWorkersForContainerByOwner(
 		logger lager.Logger,
-		teamID int,
-		workerTags atc.Tags,
 		owner db.ContainerOwner,
-	) (Worker, bool, error)
+	) ([]Worker, error)
 
 	NewGardenWorker(
 		logger lager.Logger,
@@ -122,22 +120,31 @@ func (pool *pool) FindOrCreateContainer(
 	workerSpec WorkerSpec,
 	resourceTypes creds.VersionedResourceTypes,
 ) (Container, error) {
-	worker, found, err := pool.provider.FindWorkerForContainerByOwner(
+	workersWithContainer, err := pool.provider.FindWorkersForContainerByOwner(
 		logger.Session("find-worker"),
-		workerSpec.TeamID,
-		workerSpec.Tags,
 		owner,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	if !found {
-		compatibleWorkers, err := pool.allSatisfying(logger, workerSpec)
-		if err != nil {
-			return nil, err
-		}
+	compatibleWorkers, err := pool.allSatisfying(logger, workerSpec)
+	if err != nil {
+		return nil, err
+	}
 
+	var worker Worker
+dance:
+	for _, w := range workersWithContainer {
+		for _, c := range compatibleWorkers {
+			if w.Name() == c.Name() {
+				worker = c
+				break dance
+			}
+		}
+	}
+
+	if worker == nil {
 		worker, err = pool.strategy.Choose(logger, compatibleWorkers, containerSpec, metadata)
 		if err != nil {
 			return nil, err

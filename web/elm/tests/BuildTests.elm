@@ -15,6 +15,7 @@ import DashboardTests
         , iconSelector
         , middleGrey
         )
+import Date
 import Dict
 import Effects
 import Expect
@@ -34,6 +35,7 @@ import Test.Html.Selector
         , tag
         , text
         )
+import Time
 import UserState
 
 
@@ -63,8 +65,8 @@ all =
                         }
                 , status = Concourse.BuildStatusSucceeded
                 , duration =
-                    { startedAt = Nothing
-                    , finishedAt = Nothing
+                    { startedAt = Just (Date.fromTime 0)
+                    , finishedAt = Just (Date.fromTime 0)
                     }
                 , reapTime = Nothing
                 }
@@ -441,6 +443,24 @@ all =
                     >> Query.find [ id "build-header" ]
                     >> Query.has
                         [ style [ ( "display", "flex" ) ] ]
+            , test "when less than 24h old, shows relative time since build" <|
+                givenBuildFetched
+                    >> Tuple.first
+                    >> Build.update (Build.Msgs.ClockTick (2 * Time.second))
+                    >> Tuple.first
+                    >> Build.view UserState.UserStateLoggedOut
+                    >> Query.fromHtml
+                    >> Query.find [ id "build-header" ]
+                    >> Query.has [ text "2s ago" ]
+            , test "when at least 24h old, shows absolute time of build" <|
+                givenBuildFetched
+                    >> Tuple.first
+                    >> Build.update (Build.Msgs.ClockTick (24 * Time.hour))
+                    >> Tuple.first
+                    >> Build.view UserState.UserStateLoggedOut
+                    >> Query.fromHtml
+                    >> Query.find [ id "build-header" ]
+                    >> Query.hasNot [ text "1d" ]
             , test "header spreads out contents" <|
                 givenBuildFetched
                     >> Tuple.first
