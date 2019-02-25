@@ -6,14 +6,11 @@ image_resource:
   source: {repository: concourse/unit}
 
 params:
-  CONCOURSE_IMAGE:
   KUBE_CONFIG:
   RELEASE_NAME:
 
 inputs:
-- name: charts
 - name: concourse
-- name: image-info
 
 run:
-  path: concourse/ci/tasks/scripts/k8s-deploy
+  path: concourse/ci/tasks/scripts/k8s-delete

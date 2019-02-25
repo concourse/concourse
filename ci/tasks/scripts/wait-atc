@@ -33,7 +33,7 @@ check_environment_variables() {
 try_until_responding() {
   local ticks=0
 
-  echo -n 'waiting for ATC to be running'
+  echo -n "waiting for ATC at $ATC_URL to be running"
 
   until curl -sf "$ATC_URL/api/v1/info"; do
     echo -n .

@@ -3,14 +3,10 @@
 
 set -e -u
 
-export MAX_TICKS="${MAX_TICKS:-60}"
 readonly DIR=$(cd $(dirname $0) && pwd)
 
-instance_ip="$(cat endpoint-info/instance_ip)"
-
-test -n "$instance_ip"
-
-export ATC_URL="http://${instance_ip}:8080"
+export MAX_TICKS="${MAX_TICKS:-60}"
+export ATC_URL="${ATC_URL:-$(cat endpoint-info/instance_ip)}"
 
 if [ -e endpoint-info/admin_username ]; then
   export ATC_ADMIN_USERNAME="$(cat endpoint-info/admin_username)"
