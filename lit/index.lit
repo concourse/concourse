@@ -185,7 +185,7 @@
 \split-sections
 
 \include-section{./about.lit}
-\include-section{./setup.lit}
+\include-section{./download.lit}
 \include-section{./docs.lit}
 \include-section{./learning.lit}
 \include-section{./tools.lit}
