@@ -17,6 +17,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/radar"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
 
 	. "github.com/concourse/concourse/atc/radar"
 	"github.com/concourse/concourse/atc/resource"
@@ -29,6 +30,9 @@ var _ = Describe("ResourceScanner", func() {
 	var (
 		epoch time.Time
 
+		fakeWorker                *workerfakes.FakeWorker
+		fakePool                  *workerfakes.FakePool
+		fakeStrategy              *workerfakes.FakeContainerPlacementStrategy
 		fakeResourceFactory       *rfakes.FakeResourceFactory
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeDBPipeline            *dbfakes.FakePipeline
@@ -75,6 +79,9 @@ var _ = Describe("ResourceScanner", func() {
 			Version: atc.Version{"custom": "version"},
 		}
 
+		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
+		fakePool = new(workerfakes.FakePool)
+		fakeWorker = new(workerfakes.FakeWorker)
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		fakeResourceType = new(dbfakes.FakeResourceType)
@@ -112,12 +119,13 @@ var _ = Describe("ResourceScanner", func() {
 
 		scanner = NewResourceScanner(
 			fakeClock,
-			fakeResourceFactory,
+			fakePool,
 			fakeResourceConfigFactory,
 			interval,
 			fakeDBPipeline,
 			"https://www.example.com",
 			variables,
+			fakeStrategy,
 		)
 	})
 
@@ -129,6 +137,7 @@ var _ = Describe("ResourceScanner", func() {
 		)
 
 		BeforeEach(func() {
+			fakePool.FindOrChooseWorkerReturns(fakeWorker, nil)
 			fakeResource = new(rfakes.FakeResource)
 			fakeResourceFactory.NewResourceReturns(fakeResource, nil)
 		})
@@ -229,9 +238,9 @@ var _ = Describe("ResourceScanner", func() {
 					err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 					Expect(err).To(BeNil())
 
-					_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+					_, owner, containerMetadata, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
-					Expect(metadata).To(Equal(db.ContainerMetadata{
+					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 						Type: db.ContainerTypeCheck,
 					}))
 					Expect(containerSpec).To(Equal(worker.ContainerSpec{
@@ -251,6 +260,24 @@ var _ = Describe("ResourceScanner", func() {
 						Tags:          atc.Tags{"some-tag"},
 						ResourceTypes: creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{versionedResourceType}),
 						TeamID:        123,
+					}))
+
+					_, _, owner, metadata, containerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
+					Expect(metadata).To(Equal(db.ContainerMetadata{
+						Type: db.ContainerTypeCheck,
+					}))
+					Expect(containerSpec).To(Equal(worker.ContainerSpec{
+						ImageSpec: worker.ImageSpec{
+							ResourceType: "git",
+						},
+						Tags:   atc.Tags{"some-tag"},
+						TeamID: 123,
+						Env: []string{
+							"ATC_EXTERNAL_URL=https://www.example.com",
+							"RESOURCE_PIPELINE_NAME=some-pipeline",
+							"RESOURCE_NAME=some-resource",
+						},
 					}))
 					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 						versionedResourceType,
@@ -564,6 +591,7 @@ var _ = Describe("ResourceScanner", func() {
 		)
 
 		BeforeEach(func() {
+			fakePool.FindOrChooseWorkerReturns(fakeWorker, nil)
 			fakeResource = new(rfakes.FakeResource)
 			fakeResourceFactory.NewResourceReturns(fakeResource, nil)
 		})
@@ -643,9 +671,9 @@ var _ = Describe("ResourceScanner", func() {
 				err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 				Expect(err).To(BeNil())
 
-				_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+				_, owner, containerMetadata, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
-				Expect(metadata).To(Equal(db.ContainerMetadata{
+				Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))
 				Expect(containerSpec).To(Equal(worker.ContainerSpec{
@@ -665,6 +693,24 @@ var _ = Describe("ResourceScanner", func() {
 					Tags:          atc.Tags{"some-tag"},
 					ResourceTypes: creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{versionedResourceType}),
 					TeamID:        123,
+				}))
+
+				_, _, owner, metadata, containerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
+				Expect(metadata).To(Equal(db.ContainerMetadata{
+					Type: db.ContainerTypeCheck,
+				}))
+				Expect(containerSpec).To(Equal(worker.ContainerSpec{
+					ImageSpec: worker.ImageSpec{
+						ResourceType: "git",
+					},
+					Tags:   atc.Tags{"some-tag"},
+					TeamID: 123,
+					Env: []string{
+						"ATC_EXTERNAL_URL=https://www.example.com",
+						"RESOURCE_PIPELINE_NAME=some-pipeline",
+						"RESOURCE_NAME=some-resource",
+					},
 				}))
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 					versionedResourceType,
@@ -702,6 +748,20 @@ var _ = Describe("ResourceScanner", func() {
 			Context("when creating the resource checker fails", func() {
 				BeforeEach(func() {
 					fakeResourceFactory.NewResourceReturns(nil, errors.New("catastrophe"))
+				})
+
+				It("sets the check error and returns the error", func() {
+					Expect(scanErr).To(HaveOccurred())
+					Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
+
+					resourceErr := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
+					Expect(resourceErr).To(MatchError("catastrophe"))
+				})
+			})
+
+			Context("when find or choosing the worker fails", func() {
+				BeforeEach(func() {
+					fakePool.FindOrChooseWorkerReturns(nil, errors.New("catastrophe"))
 				})
 
 				It("sets the check error and returns the error", func() {

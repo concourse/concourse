@@ -23,6 +23,7 @@ type gardenFactory struct {
 	variablesFactory      creds.VariablesFactory
 	defaultLimits         atc.ContainerLimits
 	strategy              worker.ContainerPlacementStrategy
+	resourceFactory       resource.ResourceFactory
 }
 
 func NewGardenFactory(
@@ -33,6 +34,7 @@ func NewGardenFactory(
 	variablesFactory creds.VariablesFactory,
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
+	resourceFactory resource.ResourceFactory,
 ) Factory {
 	return &gardenFactory{
 		pool:                  pool,
@@ -42,6 +44,7 @@ func NewGardenFactory(
 		variablesFactory:      variablesFactory,
 		defaultLimits:         defaultLimits,
 		strategy:              strategy,
+		resourceFactory:       resourceFactory,
 	}
 }
 
@@ -132,6 +135,7 @@ func (factory *gardenFactory) Put(
 		creds.NewVersionedResourceTypes(variables, plan.Put.VersionedResourceTypes),
 
 		factory.strategy,
+		factory.resourceFactory,
 	)
 
 	return LogError(putStep, delegate)

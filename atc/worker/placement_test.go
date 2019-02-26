@@ -201,19 +201,19 @@ var _ = Describe("VolumeLocalityPlacementStrategy", func() {
 			}
 
 			compatibleWorkerOneCache1 = new(workerfakes.FakeWorker)
-			compatibleWorkerOneCache1.SatisfyingReturns(compatibleWorkerOneCache1, nil)
+			compatibleWorkerOneCache1.SatisfiesReturns(true)
 
 			compatibleWorkerOneCache2 = new(workerfakes.FakeWorker)
-			compatibleWorkerOneCache2.SatisfyingReturns(compatibleWorkerOneCache2, nil)
+			compatibleWorkerOneCache2.SatisfiesReturns(true)
 
 			compatibleWorkerTwoCaches = new(workerfakes.FakeWorker)
-			compatibleWorkerTwoCaches.SatisfyingReturns(compatibleWorkerTwoCaches, nil)
+			compatibleWorkerTwoCaches.SatisfiesReturns(true)
 
 			compatibleWorkerNoCaches1 = new(workerfakes.FakeWorker)
-			compatibleWorkerNoCaches1.SatisfyingReturns(compatibleWorkerNoCaches1, nil)
+			compatibleWorkerNoCaches1.SatisfiesReturns(true)
 
 			compatibleWorkerNoCaches2 = new(workerfakes.FakeWorker)
-			compatibleWorkerNoCaches2.SatisfyingReturns(compatibleWorkerNoCaches2, nil)
+			compatibleWorkerNoCaches2.SatisfiesReturns(true)
 		})
 
 		Context("with one having the most local caches", func() {

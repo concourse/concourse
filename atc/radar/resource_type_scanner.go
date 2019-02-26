@@ -17,6 +17,7 @@ import (
 type resourceTypeScanner struct {
 	clock                 clock.Clock
 	pool                  worker.Pool
+	resourceFactory       resource.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	defaultInterval       time.Duration
 	dbPipeline            db.Pipeline
@@ -28,6 +29,7 @@ type resourceTypeScanner struct {
 func NewResourceTypeScanner(
 	clock clock.Clock,
 	pool worker.Pool,
+	resourceFactory resource.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	defaultInterval time.Duration,
 	dbPipeline db.Pipeline,
@@ -38,6 +40,7 @@ func NewResourceTypeScanner(
 	return &resourceTypeScanner{
 		clock:                 clock,
 		pool:                  pool,
+		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		defaultInterval:       defaultInterval,
 		dbPipeline:            dbPipeline,
@@ -236,6 +239,9 @@ func (scanner *resourceTypeScanner) check(
 		},
 		Tags:   savedResourceType.Tags(),
 		TeamID: scanner.dbPipeline.TeamID(),
+		BindMounts: []worker.BindMountSource{
+			&worker.CertsVolumeMount{Logger: logger},
+		},
 	}
 
 	workerSpec := worker.WorkerSpec{
@@ -256,17 +262,16 @@ func (scanner *resourceTypeScanner) check(
 		return err
 	}
 
-	resourceFactory := resource.NewResourceFactory(chosenWorker)
-	res, err := resourceFactory.NewResource(
+	container, err := chosenWorker.FindOrCreateContainer(
 		context.Background(),
 		logger,
+		worker.NoopImageFetchingDelegate{},
 		db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},
 		containerSpec,
 		versionedResourceTypes.Without(savedResourceType.Name()),
-		worker.NoopImageFetchingDelegate{},
 	)
 	if err != nil {
 		chkErr := resourceConfigScope.SetCheckError(err)
@@ -277,6 +282,7 @@ func (scanner *resourceTypeScanner) check(
 		return err
 	}
 
+	res := scanner.resourceFactory.NewResourceForContainer(container)
 	newVersions, err := res.Check(context.TODO(), source, fromVersion)
 	resourceConfigScope.SetCheckError(err)
 	if err != nil {

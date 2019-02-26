@@ -29,7 +29,6 @@ var ErrImageGetDidNotProduceVolume = errors.New("fetching the image did not prod
 type ImageResourceFetcherFactory interface {
 	NewImageResourceFetcher(
 		worker.Worker,
-		resource.ResourceFactory,
 		worker.ImageResource,
 		atc.Version,
 		int,
@@ -53,23 +52,25 @@ type imageResourceFetcherFactory struct {
 	dbResourceCacheFactory  db.ResourceCacheFactory
 	dbResourceConfigFactory db.ResourceConfigFactory
 	resourceFetcher         resource.Fetcher
+	resourceFactory         resource.ResourceFactory
 }
 
 func NewImageResourceFetcherFactory(
 	dbResourceCacheFactory db.ResourceCacheFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
 	resourceFetcher resource.Fetcher,
+	resourceFactory resource.ResourceFactory,
 ) ImageResourceFetcherFactory {
 	return &imageResourceFetcherFactory{
 		dbResourceCacheFactory:  dbResourceCacheFactory,
 		dbResourceConfigFactory: dbResourceConfigFactory,
 		resourceFetcher:         resourceFetcher,
+		resourceFactory:         resourceFactory,
 	}
 }
 
 func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 	worker worker.Worker,
-	resourceFactory resource.ResourceFactory,
 	imageResource worker.ImageResource,
 	version atc.Version,
 	teamID int,
@@ -78,8 +79,8 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 ) ImageResourceFetcher {
 	return &imageResourceFetcher{
 		worker:                  worker,
+		resourceFactory:         f.resourceFactory,
 		resourceFetcher:         f.resourceFetcher,
-		resourceFactory:         resourceFactory,
 		dbResourceCacheFactory:  f.dbResourceCacheFactory,
 		dbResourceConfigFactory: f.dbResourceConfigFactory,
 
@@ -93,8 +94,8 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 
 type imageResourceFetcher struct {
 	worker                  worker.Worker
-	resourceFetcher         resource.Fetcher
 	resourceFactory         resource.ResourceFactory
+	resourceFetcher         resource.Fetcher
 	dbResourceCacheFactory  db.ResourceCacheFactory
 	dbResourceConfigFactory db.ResourceConfigFactory
 
@@ -226,22 +227,27 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 	container db.CreatingContainer,
 	resourceType creds.VersionedResourceType,
 ) error {
-	checkResourceType, err := i.resourceFactory.NewResource(
+	containerSpec := worker.ContainerSpec{
+		ImageSpec: worker.ImageSpec{
+			ResourceType: resourceType.Name,
+		},
+		TeamID: i.teamID,
+		Tags:   i.worker.Tags(),
+		BindMounts: []worker.BindMountSource{
+			&worker.CertsVolumeMount{Logger: logger},
+		},
+	}
+
+	resourceTypeContainer, err := i.worker.FindOrCreateContainer(
 		ctx,
 		logger,
+		worker.NoopImageFetchingDelegate{},
 		db.NewImageCheckContainerOwner(container, i.teamID),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},
-		worker.ContainerSpec{
-			ImageSpec: worker.ImageSpec{
-				ResourceType: resourceType.Name,
-			},
-			TeamID: i.teamID,
-			Tags:   i.worker.Tags(),
-		},
+		containerSpec,
 		i.customTypes,
-		worker.NoopImageFetchingDelegate{},
 	)
 	if err != nil {
 		return err
@@ -252,6 +258,7 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 		return err
 	}
 
+	checkResourceType := i.resourceFactory.NewResourceForContainer(resourceTypeContainer)
 	versions, err := checkResourceType.Check(context.TODO(), source, nil)
 	if err != nil {
 		return err
@@ -288,6 +295,9 @@ func (i *imageResourceFetcher) getLatestVersion(
 		},
 		Tags:   i.worker.Tags(),
 		TeamID: i.teamID,
+		BindMounts: []worker.BindMountSource{
+			&worker.CertsVolumeMount{Logger: logger},
+		},
 	}
 
 	source, err := i.imageResource.Source.Evaluate()
@@ -295,21 +305,22 @@ func (i *imageResourceFetcher) getLatestVersion(
 		return nil, err
 	}
 
-	checkingResource, err := i.resourceFactory.NewResource(
+	imageContainer, err := i.worker.FindOrCreateContainer(
 		ctx,
 		logger,
+		i.imageFetchingDelegate,
 		db.NewImageCheckContainerOwner(container, i.teamID),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},
 		resourceSpec,
 		i.customTypes,
-		i.imageFetchingDelegate,
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	checkingResource := i.resourceFactory.NewResourceForContainer(imageContainer)
 	versions, err := checkingResource.Check(context.TODO(), source, nil)
 	if err != nil {
 		return nil, err

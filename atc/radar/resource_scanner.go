@@ -22,6 +22,7 @@ var GlobalResourceCheckTimeout time.Duration
 type resourceScanner struct {
 	clock                 clock.Clock
 	pool                  worker.Pool
+	resourceFactory       resource.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	defaultInterval       time.Duration
 	dbPipeline            db.Pipeline
@@ -33,6 +34,7 @@ type resourceScanner struct {
 func NewResourceScanner(
 	clock clock.Clock,
 	pool worker.Pool,
+	resourceFactory resource.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	defaultInterval time.Duration,
 	dbPipeline db.Pipeline,
@@ -43,6 +45,7 @@ func NewResourceScanner(
 	return &resourceScanner{
 		clock:                 clock,
 		pool:                  pool,
+		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		defaultInterval:       defaultInterval,
 		dbPipeline:            dbPipeline,
@@ -298,6 +301,9 @@ func (scanner *resourceScanner) check(
 		ImageSpec: worker.ImageSpec{
 			ResourceType: savedResource.Type(),
 		},
+		BindMounts: []worker.BindMountSource{
+			&worker.CertsVolumeMount{Logger: logger},
+		},
 		Tags:   savedResource.Tags(),
 		TeamID: scanner.dbPipeline.TeamID(),
 		Env:    metadata.Env(),
@@ -318,20 +324,23 @@ func (scanner *resourceScanner) check(
 
 	chosenWorker, err := scanner.pool.FindOrChooseWorker(logger, owner, containerMetadata, containerSpec, workerSpec, scanner.strategy)
 	if err != nil {
+		logger.Error("failed-to-choose-a-worker", err)
+		chkErr := resourceConfigScope.SetCheckError(err)
+		if chkErr != nil {
+			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
+		}
 		return err
 	}
 
-	resourceFactory := resource.NewResourceFactory(chosenWorker)
-	res, err := resourceFactory.NewResource(
+	container, err := chosenWorker.FindOrCreateContainer(
 		context.Background(),
 		logger,
+		worker.NoopImageFetchingDelegate{},
 		owner,
 		containerMetadata,
 		containerSpec,
 		resourceTypes,
-		worker.NoopImageFetchingDelegate{},
 	)
-
 	if err != nil {
 		logger.Error("failed-to-initialize-new-container", err)
 		chkErr := resourceConfigScope.SetCheckError(err)
@@ -348,6 +357,7 @@ func (scanner *resourceScanner) check(
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
+	res := scanner.resourceFactory.NewResourceForContainer(container)
 	newVersions, err := res.Check(ctx, source, fromVersion)
 	if err == context.DeadlineExceeded {
 		err = fmt.Errorf("Timed out after %v while checking for new versions - perhaps increase your resource check timeout?", timeout)

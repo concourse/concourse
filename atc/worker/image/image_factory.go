@@ -6,7 +6,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 	w "github.com/concourse/concourse/atc/worker"
 )
@@ -62,7 +61,6 @@ func (f *imageFactory) GetImage(
 	if found {
 		imageResourceFetcher := f.imageResourceFetcherFactory.NewImageResourceFetcher(
 			worker,
-			resource.NewResourceFactory(worker),
 			w.ImageResource{
 				Type:   resourceType.Type,
 				Source: resourceType.Source,
@@ -91,7 +89,6 @@ func (f *imageFactory) GetImage(
 
 		imageResourceFetcher := f.imageResourceFetcherFactory.NewImageResourceFetcher(
 			worker,
-			resource.NewResourceFactory(worker),
 			*imageSpec.ImageResource,
 			version,
 			teamID,

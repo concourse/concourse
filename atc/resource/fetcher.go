@@ -38,11 +38,13 @@ func NewFetcher(
 	clock clock.Clock,
 	lockFactory lock.LockFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
+	resourceFactory ResourceFactory,
 ) Fetcher {
 	return &fetcher{
 		clock:                clock,
 		lockFactory:          lockFactory,
 		resourceCacheFactory: resourceCacheFactory,
+		resourceFactory:      resourceFactory,
 	}
 }
 
@@ -50,6 +52,7 @@ type fetcher struct {
 	clock                clock.Clock
 	lockFactory          lock.LockFactory
 	resourceCacheFactory db.ResourceCacheFactory
+	resourceFactory      ResourceFactory
 }
 
 func (f *fetcher) Fetch(
@@ -66,7 +69,7 @@ func (f *fetcher) Fetch(
 		"resource": ResourcesDir("get"),
 	}
 
-	source := NewResourceInstanceFetchSource(logger, gardenWorker, resourceInstance, resourceTypes, containerSpec, session, imageFetchingDelegate, f.resourceCacheFactory)
+	source := NewResourceInstanceFetchSource(logger, gardenWorker, resourceInstance, resourceTypes, containerSpec, session, imageFetchingDelegate, f.resourceCacheFactory, f.resourceFactory)
 
 	ticker := f.clock.NewTicker(GetResourceLockInterval)
 	defer ticker.Stop()

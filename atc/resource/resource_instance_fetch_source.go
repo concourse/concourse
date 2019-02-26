@@ -26,6 +26,7 @@ type resourceInstanceFetchSource struct {
 	session                Session
 	imageFetchingDelegate  worker.ImageFetchingDelegate
 	dbResourceCacheFactory db.ResourceCacheFactory
+	resourceFactory        ResourceFactory
 }
 
 func NewResourceInstanceFetchSource(
@@ -37,6 +38,7 @@ func NewResourceInstanceFetchSource(
 	session Session,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 	dbResourceCacheFactory db.ResourceCacheFactory,
+	resourceFactory ResourceFactory,
 ) FetchSource {
 	return &resourceInstanceFetchSource{
 		logger:                 logger,
@@ -47,6 +49,7 @@ func NewResourceInstanceFetchSource(
 		session:                session,
 		imageFetchingDelegate:  imageFetchingDelegate,
 		dbResourceCacheFactory: dbResourceCacheFactory,
+		resourceFactory:        resourceFactory,
 	}
 }
 
@@ -96,16 +99,23 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (VersionedSour
 		return versionedSource, nil
 	}
 
-	resourceFactory := NewResourceFactory(s.worker)
-	resource, err := resourceFactory.NewResource(
+	s.containerSpec.BindMounts = []worker.BindMountSource{
+		&worker.CertsVolumeMount{Logger: s.logger},
+	}
+
+	container, err := s.worker.FindOrCreateContainer(
 		ctx,
 		s.logger,
+		s.imageFetchingDelegate,
 		s.resourceInstance.ContainerOwner(),
 		s.session.Metadata,
 		s.containerSpec,
 		s.resourceTypes,
-		s.imageFetchingDelegate,
 	)
+	if err != nil {
+		return nil, err
+	}
+
 	if err != nil {
 		sLog.Error("failed-to-construct-resource", err)
 		return nil, err
@@ -113,13 +123,14 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (VersionedSour
 
 	mountPath := ResourcesDir("get")
 	var volume worker.Volume
-	for _, mount := range resource.Container().VolumeMounts() {
+	for _, mount := range container.VolumeMounts() {
 		if mount.MountPath == mountPath {
 			volume = mount.Volume
 			break
 		}
 	}
 
+	resource := s.resourceFactory.NewResourceForContainer(container)
 	versionedSource, err = resource.Get(
 		ctx,
 		volume,

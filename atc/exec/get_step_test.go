@@ -34,7 +34,9 @@ var _ = Describe("GetStep", func() {
 		cancel     func()
 		testLogger *lagertest.TestLogger
 
-		fakeWorkerClient          *workerfakes.FakeClient
+		fakePool                  *workerfakes.FakePool
+		fakeStrategy              *workerfakes.FakeContainerPlacementStrategy
+		fakeResourceFactory       *resourcefakes.FakeResourceFactory
 		fakeResourceFetcher       *resourcefakes.FakeFetcher
 		fakeResourceCacheFactory  *dbfakes.FakeResourceCacheFactory
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
@@ -71,7 +73,9 @@ var _ = Describe("GetStep", func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
-		fakeWorkerClient = new(workerfakes.FakeClient)
+		fakePool = new(workerfakes.FakePool)
+		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
+		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
 		fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
@@ -86,8 +90,6 @@ var _ = Describe("GetStep", func() {
 
 		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 		fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
-
-		fakeResourceFactory := new(resourcefakes.FakeResourceFactory)
 
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeBuild.IDReturns(buildID)
@@ -115,7 +117,7 @@ var _ = Describe("GetStep", func() {
 			VersionedResourceTypes: resourceTypes,
 		}
 
-		factory = exec.NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeResourceCacheFactory, fakeResourceConfigFactory, fakeVariablesFactory, atc.ContainerLimits{})
+		factory = exec.NewGardenFactory(fakePool, fakeResourceFetcher, fakeResourceCacheFactory, fakeResourceConfigFactory, fakeVariablesFactory, atc.ContainerLimits{}, fakeStrategy, fakeResourceFactory)
 
 		fakeDelegate = new(execfakes.FakeGetDelegate)
 	})
@@ -143,6 +145,11 @@ var _ = Describe("GetStep", func() {
 
 	It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {
 		Expect(stepErr).ToNot(HaveOccurred())
+
+		Expect(fakePool.FindOrChooseWorkerCallCount()).To(Equal(1))
+		_, actualOwner, actualMetadata, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerArgsForCall(0)
+		Expect(actualOwner).To(Equal(db.NewBuildStepContainerOwner(buildID, atc.PlanID(planID), teamID)))
+		Expect(actualMetadata).To(Equal(stepMetadata))
 
 		Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
 		fctx, _, sid, tags, actualTeamID, actualResourceTypes, resourceInstance, sm, delegate := fakeResourceFetcher.FetchArgsForCall(0)

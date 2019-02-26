@@ -248,10 +248,6 @@ func (worker *gardenWorker) Satisfies(logger lager.Logger, spec WorkerSpec) bool
 		return false
 	}
 
-	if spec.Name != "" && spec.Name != worker.Name() {
-		return false
-	}
-
 	return true
 }
 

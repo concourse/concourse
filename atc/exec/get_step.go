@@ -46,7 +46,7 @@ type GetStep struct {
 	build db.Build
 
 	name          string
-	resourceType  string
+	tep.resourceType  string
 	resource      string
 	source        creds.Source
 	params        creds.Params
@@ -192,14 +192,14 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
-			ResourceType: string(resourceInstance.ResourceType()),
+			ResourceType: step.resourceType,
 		},
 		TeamID: step.teamID,
 		Env:    step.stepMetadata.Env(),
 	}
 
 	workerSpec := worker.WorkerSpec{
-		ResourceType:  string(resourceInstance.ResourceType()),
+		ResourceType:  step.resourceType,
 		Tags:          step.tags,
 		TeamID:        step.teamID,
 		ResourceTypes: step.resourceTypes,

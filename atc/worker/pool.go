@@ -111,7 +111,6 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 	}
 }
 
-// XXX: TESTS
 func (pool *pool) FindOrChooseWorker(
 	logger lager.Logger,
 	owner db.ContainerOwner,
