@@ -1,10 +1,12 @@
 package accessor_test
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
+	"code.cloudfoundry.org/lager"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -41,14 +43,15 @@ var _ = Describe("Handler", func() {
 
 	Describe("Accessor Handler", func() {
 		BeforeEach(func() {
-			accessorHandler = accessor.NewHandler(dummyHandler, accessorFactory, "some-action")
+
+			accessorHandler = accessor.NewHandler(dummyHandler, accessorFactory, "some-action", lager.NewLogger("accessor_handler_test"))
 		})
 
 		Context("when access factory return valid access object", func() {
 			BeforeEach(func() {
 				fakeAccess = new(accessorfakes.FakeAccess)
 			})
-			It("calls the innder handler", func() {
+			It("calls the inner handler", func() {
 				Expect(innerHandlerCalled).To(BeTrue())
 				Expect(access).To(Equal(fakeAccess))
 			})
