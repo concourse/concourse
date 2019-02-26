@@ -1,0 +1,177 @@
+\title{User Roles & Permissions}{user-roles}
+
+\use-plugin{concourse-docs}
+
+Concourse comes with four roles: Concourse Admin, Team Owner, Team Member,
+Team Viewer.
+
+\section{
+  \title{Concourse Admin}{concourse-admin}
+
+  \italic{Admin} is a special user attribute granted only to
+  \reference{team-owner-role}{owners} of the \reference{main-team}.
+
+  Admins have the ability to administrate teams using
+  \reference{fly-set-team}, \reference{fly-destroy-team},
+  \reference{fly-rename-team}, etc.
+}
+
+\section{
+  \title{Team Owner role}{team-owner-role}
+
+  Team Owners have read, write and auth management capabilities within the
+  scope of their team. For those familiar with Concourse today, the scope of
+  allowed actions for a Team Owner is very closely aligned to today’s Concourse
+  team member. The new change is that you can no longer rename your own team
+  or destroy your own team as an owner.
+}
+
+\section{
+  \title{Team Member role}{team-member-role}
+
+  Team Member lets users operate within their teams in a read & write fashion;
+  but prevents them from changing the auth configurations of their team.
+}
+
+\section{
+  \title{Team Viewer role}{team-viewer-role}
+
+  Team Viewer gives users “read-only” access to a team. This locks everything
+  down, preventing users from doing a set-pipeline or hijack.
+}
+
+\section{
+  \title{Permission Matrix}{permission-matrix}
+
+  \bold{\reference{fly} commands}
+
+  \table{
+    \table-row{Command}{Anon}{Admin}{Owner}{Member}{Viewer}
+  }{
+    \table-row{abort-build}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{builds}{✓}{}{✓}{✓}{✓}
+  }{
+    \table-row{check-resource}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{checklist}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{containers}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{destroy-pipeline}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{destroy-team}{✘}{✓}{✘}{✘}{✘}
+  }{
+    \table-row{execute}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{expose-pipeline}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{format-pipeline}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{get-pipeline}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{help}{✓}{}{✓}{✓}{✓}
+  }{
+    \table-row{hide-pipeline}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{hijack}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{jobs}{✓}{}{✓}{✓}{✓}
+  }{
+    \table-row{login}{✓}{}{}{}{}
+  }{
+    \table-row{logout}{✘}{}{✓}{✓}{✓}
+  }{
+    \table-row{order-pipelines}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{pause-job}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{pause-pipeline}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{pipelines}{✓}{}{✓}{✓}{✓}
+  }{
+    \table-row{prune-worker}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{rename-pipeline}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{rename-team}{✘}{✓}{✘}{✘}{✘}
+  }{
+    \table-row{set-pipeline}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{set-team}{✘}{✓}{✓}{✘}{✘}
+  }{
+    \table-row{status}{✓}{}{✓}{✓}{✓}
+  }{
+    \table-row{sync}{✓}{}{✓}{✓}{✓}
+  }{
+    \table-row{targets}{✓}{}{✓}{✓}{✓}
+  }{
+    \table-row{teams}{✘}{✓}{✓}{✓}{✓}
+  }{
+    \table-row{trigger-job}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{unpause-job}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{unpause-pipeline}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{validate-pipeline}{✓}{}{✓}{✓}{✓}
+  }{
+    \table-row{volumes}{✘}{}{✓}{✓}{✘}
+  }{
+    \table-row{watch}{✓*}{}{✓}{✓}{✓}
+  }{
+    \table-row{workers}{✘}{}{✓}{✓}{✘}
+  }
+
+  \bold{Web UI}
+
+  \table{
+    \table-row{Page}{Action}{Owner}{Member}{Viewer}
+  }{
+    \table-row{Home (HD/Dashboard)}{View}{✓}{✓}{✓}
+  }{
+    \table-row{}{Login}{✘}{✘}{✘}
+  }{
+    \table-row{}{Logout}{✓}{✓}{✓}
+  }{
+    \table-row{}{Download \reference{fly}}{✓}{✓}{✓}
+  }{
+    \table-row{}{Pause Pipeline}{✓}{✓}{✘}
+  }{
+    \table-row{}{Resume Pipeline}{✓}{✓}{✘}
+  }{
+    \table-row{}{Reorder Pipeline}{✓}{✓}{✘}
+  }{
+    \table-row{Pipeline Page}{View}{✓}{✓}{✓}
+  }{
+    \table-row{}{Click to Resource}{✓}{✓}{✓}
+  }{
+    \table-row{}{Click to Build}{✓}{✓}{✓}
+  }{
+    \table-row{}{Click on Group}{✓}{✓}{✓}
+  }{
+    \table-row{Resource Page}{View Resource}{✓}{✓}{✓}
+  }{
+    \table-row{}{View Version Details}{✓}{✓}{✓}
+  }{
+    \table-row{}{Pin Version}{✓}{✓}{✘}
+  }{
+    \table-row{}{Paginate (<- ->)}{✓}{✓}{✓}
+  }{
+    \table-row{Build Page}{Trigger new Build}{✓}{✓}{✘}
+  }{
+    \table-row{}{View Build}{✓}{✓}{✓}
+  }{
+    \table-row{}{Build Details}{✓}{✓}{✓}
+  }{
+    \table-row{Job Page}{View Job Page}{✓}{✓}{✓}
+  }{
+    \table-row{}{Pause Job}{✓}{✓}{✘}
+  }{
+    \table-row{}{Trigger new Build}{✓}{✓}{✘}
+  }{
+    \table-row{}{Build History}{✓}{✓}{✓}
+  }{
+    \table-row{}{Paginate (<- ->)}{✓}{✓}{✓}
+  }
+}

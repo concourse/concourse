@@ -93,7 +93,7 @@
 
   \note{fix}{
     Added a missing property to the BOSH release for configuring the
-    \reference{generic-oauth} provider's CA cert. Thanks for the PR,
+    \reference{generic-oauth-provider}'s CA cert. Thanks for the PR,
     \ghuser{youngm}!
   }
 

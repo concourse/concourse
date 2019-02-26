@@ -11,7 +11,7 @@
     central to the authentication flow. Instead of logging in as a team, you
     now log in as a user and can belong to one or more teams. Users can be
     added to a team by configuring the team's whitelist as described in
-    \reference{authentication}.
+    \reference{configuring-auth}.
 
     This is the first step on our march towards full role-based access control.
     Help us plan that out by checking out the
@@ -32,8 +32,8 @@
     \list{
       There are different flags to pass to the binary distribution, and the
       BOSH deployment requires manifest changes. Consult
-      \reference{auth-config} for more information for the binaries, and the
-      \link{Concourse BOSH
+      \reference{configuring-auth} for more information for the binaries, and
+      the \link{Concourse BOSH
       deployment}{https://github.com/concourse/concourse-bosh-deployment} repo
       for BOSH.
     }{

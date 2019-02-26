@@ -1,0 +1,65 @@
+\title{Local User auth}{local-auth}
+
+\use-plugin{concourse-docs}
+\omit-children-from-table-of-contents
+
+Local User auth is a primitive username/password-based auth mechanism. All
+users and passwords are configured statically.
+
+In general, we recommend configuring one of the other providers instead, but
+for small deployments with only a few users, local user auth may be all you
+need.
+
+\section{
+  \title{Authentication}{local-authentication}
+
+  Local users are configured on the \reference{web-node} by setting the
+  following env:
+
+  \codeblock{bash}{{{
+  CONCOURSE_ADD_LOCAL_USER=myuser:mypass,anotheruser:anotherpass
+  }}}
+
+  This configures two users, \code{myuser} and \code{anotheruser}, with their
+  corresponding passwords.
+
+  When local users are configured, the log-in page in the web UI will show a
+  username/password prompt.
+
+  Local users can also log in via \reference{fly-login} with the
+  \code{--username} and \code{--password} flags.
+}
+
+\section{
+  \title{Authorization}{local-authorization}
+
+  Local users are granted access to teams via \reference{fly-set-team}, using
+  the \code{--local-user} flag:
+
+  \codeblock{bash}{{{
+  $ fly set-team -n my-team \
+      --local-user some_username
+  }}}
+
+  ...or via \code{--config} for \reference{setting-roles}{setting user roles}:
+
+  \codeblock{bash}{{{
+  roles:
+  - name: member
+    local:
+      users: ["some_username"]
+  }}}
+
+  \section{
+    \title{Configuring \code{main} Team Authorization}
+
+    Local users can be added to the \reference{main-team} authorization config
+    by setting the following env on the \reference{web-node}:
+
+    \codeblock{bash}{{{
+    CONCOURSE_MAIN_TEAM_LOCAL_USER=myuser
+    }}}
+
+    Multiple users may be specified by comma-separating them.
+  }
+}

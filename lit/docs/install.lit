@@ -2,40 +2,99 @@
 
 \use-plugin{concourse-docs}
 
-Concourse is distributed as a single \code{concourse} binary, which contains
-the logic for running both a \reference{web-node} and a
-\reference{worker-node}. The binary is fairly self-contained, making it ideal
-for tossing onto a VM by hand or orchestrating it with Docker, Kubernetes, or
-other ops tooling.
+Concourse is distributed as a single \code{concourse} binary, which can be run
+as either a \reference{web-node} or a \reference{worker-node}. The binary is
+fairly self-contained, making it ideal for tossing onto a VM by hand or
+orchestrating it with Docker, Kubernetes, or other ops tooling.
 
-For the sake of brevity and clarity, the documentation throughout this site
-will focus solely on the \code{concourse} binary. Documentation for other
-platforms is available localized to their GitHub repository, as linked to by
-the \reference{download} page.
+For the sake of brevity, the documentation throughout this site will focus
+solely on the \code{concourse} binary. Documentation for other install methods
+is available localized to their GitHub repository, which can be found on the
+\reference{download} page.
 
 \section{
   \title{Prerequisites}
 
-  The following are hard requirements for any Concourse installation:
-
   \list{
-    On Linux you'll need kernel v3.19 or later, with user namespace support
-    enabled. Windows and Darwin don't really need anything special.
-  }{
-    A PostgresSQL 9.5+ server running somewhere with an empty database created.
+    You'll need a PostgresSQL 9.5+ server running somewhere with an empty
+    database created.
 
     If you're going to run a server yourself, please refer to your platform or
-    Linux distribution's installation instructions.
+    Linux distribution's PostgreSQL install instructions. (They probably have a
+    wiki page for it.)
+  }{
+    Linux: kernel v3.19 or later with user namespace support enabled. (This is
+    off by default in some distributions!) To enforce memory limits on tasks,
+    memory + swap accounting must be enabled.
+  }{
+    Windows/Darwin: no special requirements (that we know of). Note that
+    containerization is fairly primitive on these two platforms, so don't
+    expect great support for multi-tenancy.
   }
 }
 
 \section{
   \title{Installing the \code{concourse} Binary}{install-binary}
 
-  First, grab the appropriate binary for your platform from the
+  First, grab the appropriate archive for your platform from the
   \reference{downloads}{downloads} section.
 
-  Next, install it.
+  Each archive is structured like so:
+
+  \codeblock{sh}{{
+  concourse/bin/concourse
+  concourse/fly-assets/...
+  concourse/bin/gdn # on Linux
+  concourse/resource-types/... # on Linux
+  }}
+
+  When extracted, the \code{concourse} binary will auto-discover its sibling
+  assets based on its file location.
+
+  \section{
+    \title{Installing on Linux}{install-linux}
+
+    A typical Linux installation would just extract the archive to somewhere like
+    \code{/usr/local}:
+
+    \codeblock{sh}{{
+    $ tar -zxf concourse-*.tgz -C /usr/local
+    }}
+
+    From there, you can either add \code{/usr/local/concourse/bin} to your
+    \code{$PATH}, or just execute \code{/usr/local/concourse/bin/concourse}
+    directly.
+  }
+
+  \section{
+    \title{Running Concourse on Windows, OS X, etc.}{install-windows}{install-darwin}
+
+    To install Concourse on Windows or OS X, just extract the archive somewhere
+    sensible (it doesn't matter where) and run \code{concourse/bin/concourse}
+    (or \code{concourse\\bin\\concourse.exe} for our Windows friends).
+  }
+}
+
+\section{
+  \title{Configuring \code{concourse}}{binary-configuration}
+
+  Concourse is configured via flags and env vars passed to the various
+  sub-commands of the \code{concourse} executable.
+
+  For an exhaustive listing of each flag, pass \code{--help} to any command.
+
+  Note that every flag can also be configured via \code{CONCOURSE_*}
+  environment variables. These are also shown in \code{--help}. This is useful
+  for deployment schemes which favor environment-based configuration (e.g.
+  Docker, \code{systemd}, ...).
+
+  Various sections in documentation may refer to configuration via env vars
+  rather than flags, but they are both equivalent an interchangeable. Env
+  vars are just easier to reference in isolation and are more useful to
+  copy-paste.
+
+  The very first thing you'll want to configure is how to log in - so head over
+  to \reference{auth}!
 }
 
 \section{

@@ -5,8 +5,7 @@ DESIGN SOMETHING HERE
 TOC IS WAY TOO BIG
 
 \include-section{./docs/install.lit}
-\include-section{./docs/operation.lit}
-\include-section{./docs/teams.lit}
+\include-section{./docs/auth.lit}
 \include-section{./docs/fly.lit}
 \include-section{./docs/tasks.lit}
 \include-section{./docs/builds.lit}
@@ -14,6 +13,7 @@ TOC IS WAY TOO BIG
 \include-section{./docs/jobs.lit}
 \include-section{./docs/resources.lit}
 \include-section{./docs/resource-types.lit}
+\include-section{./docs/operation.lit}
 \include-section{./architecture/architecture.lit}
 
 \split-sections
