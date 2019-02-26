@@ -12,7 +12,6 @@ module Resource.Resource exposing
     , viewVersionHeader
     )
 
-import Application.Msgs exposing (Interval(..))
 import Callback exposing (Callback(..))
 import Colors
 import Concourse
@@ -70,7 +69,7 @@ import Resource.Styles
 import Routes
 import Spinner
 import StrictEvents
-import Subscription exposing (Subscription(..))
+import Subscription exposing (Interval(..), Subscription(..))
 import Time exposing (Time)
 import TopBar.Model
 import TopBar.Styles
@@ -201,6 +200,15 @@ getUpdateMessage model =
 
     else
         UpdateMsg.AOK
+
+
+subscriptions : Model -> List Subscription
+subscriptions model =
+    [ OnClockTick Subscription.FiveSeconds
+    , OnClockTick Subscription.OneSecond
+    , OnKeyDown
+    , OnKeyUp
+    ]
 
 
 handleCallback : Callback -> Model -> ( Model, List Effect )
@@ -1669,12 +1677,3 @@ fetchDataForExpandedVersions model =
     model.versions.content
         |> List.filter .expanded
         |> List.concatMap (\v -> [ FetchInputTo v.id, FetchOutputOf v.id ])
-
-
-subscriptions : Model -> List (Subscription Msg)
-subscriptions model =
-    [ OnClockTick Application.Msgs.FiveSeconds
-    , OnClockTick Application.Msgs.OneSecond
-    , OnKeyDown
-    , OnKeyUp
-    ]

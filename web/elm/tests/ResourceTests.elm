@@ -22,7 +22,7 @@ import Http
 import Resource.Models as Models
 import Resource.Msgs
 import SubPage.Msgs
-import Subscription
+import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -190,12 +190,12 @@ all =
             \_ ->
                 init
                     |> Application.subscriptions
-                    |> List.member (Subscription.OnClockTick Msgs.FiveSeconds)
+                    |> List.member (Subscription.OnClockTick FiveSeconds)
                     |> Expect.true "not subscribed to the five second interval?"
         , test "autorefreshes resource and versions every 5 seconds" <|
             \_ ->
                 init
-                    |> Application.update (Msgs.DeliveryReceived (Msgs.ClockTicked Msgs.FiveSeconds 0))
+                    |> Application.update (Msgs.DeliveryReceived (ClockTicked FiveSeconds 0))
                     |> Tuple.second
                     |> Expect.equal
                         [ ( Effects.SubPage 1
@@ -2984,7 +2984,7 @@ all =
                                 )
                             |> Tuple.first
                             |> Application.update
-                                (Msgs.DeliveryReceived <| Msgs.ClockTicked Msgs.OneSecond (2 * Time.second))
+                                (Msgs.DeliveryReceived <| ClockTicked OneSecond (2 * Time.second))
                             |> Tuple.first
                             |> queryView
                             |> Query.find [ id "last-checked" ]
@@ -3300,25 +3300,25 @@ givenTextareaBlurred =
 
 givenControlKeyDown : Application.Model -> Application.Model
 givenControlKeyDown =
-    Application.update (Msgs.DeliveryReceived <| Msgs.KeyDown 17)
+    Application.update (Msgs.DeliveryReceived <| KeyDown 17)
         >> Tuple.first
 
 
 givenLeftCommandKeyDown : Application.Model -> Application.Model
 givenLeftCommandKeyDown =
-    Application.update (Msgs.DeliveryReceived <| Msgs.KeyDown 91)
+    Application.update (Msgs.DeliveryReceived <| KeyDown 91)
         >> Tuple.first
 
 
 givenRightCommandKeyDown : Application.Model -> Application.Model
 givenRightCommandKeyDown =
-    Application.update (Msgs.DeliveryReceived <| Msgs.KeyDown 93)
+    Application.update (Msgs.DeliveryReceived <| KeyDown 93)
         >> Tuple.first
 
 
 givenControlKeyUp : Application.Model -> Application.Model
 givenControlKeyUp =
-    Application.update (Msgs.DeliveryReceived <| Msgs.KeyUp 17)
+    Application.update (Msgs.DeliveryReceived <| KeyUp 17)
         >> Tuple.first
 
 
@@ -3326,7 +3326,7 @@ pressEnterKey :
     Application.Model
     -> ( Application.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
 pressEnterKey =
-    Application.update (Msgs.DeliveryReceived <| Msgs.KeyDown 13)
+    Application.update (Msgs.DeliveryReceived <| KeyDown 13)
 
 
 versionSelector : String -> List Selector

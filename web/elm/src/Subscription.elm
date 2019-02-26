@@ -1,7 +1,6 @@
-port module Subscription exposing (Subscription(..), map, runSubscription)
+port module Subscription exposing (Delivery(..), Interval(..), Subscription(..), runSubscription)
 
 import AnimationFrame
-import Application.Msgs as Msgs exposing (Interval, Msg(..))
 import EventSource.EventSource as EventSource
 import Keyboard
 import Mouse
@@ -16,7 +15,7 @@ port newUrl : (String -> msg) -> Sub msg
 port tokenReceived : (Maybe String -> msg) -> Sub msg
 
 
-type Subscription m
+type Subscription
     = OnClockTick Interval
     | OnAnimationFrame
     | OnMouseMove
@@ -25,90 +24,76 @@ type Subscription m
     | OnKeyUp
     | OnScrollFromWindowBottom
     | OnWindowResize
-    | FromEventSource ( String, List String ) (EventSource.Msg -> m)
+    | FromEventSource ( String, List String )
     | OnNonHrefLinkClicked
     | OnTokenReceived
-    | WhenPresent (Maybe (Subscription m))
 
 
-runSubscription : Subscription Msg -> Sub Msg
+type Delivery
+    = KeyDown Keyboard.KeyCode
+    | KeyUp Keyboard.KeyCode
+    | MouseMoved
+    | MouseClicked
+    | ClockTicked Interval Time.Time
+    | AnimationFrameAdvanced
+    | ScrolledFromWindowBottom Scroll.FromBottom
+    | WindowResized Window.Size
+    | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
+    | TokenReceived (Maybe String)
+    | EventReceived EventSource.Msg
+
+
+type Interval
+    = OneSecond
+    | FiveSeconds
+    | OneMinute
+
+
+runSubscription : Subscription -> Sub Delivery
 runSubscription s =
     case s of
         OnClockTick t ->
-            Time.every (Msgs.intervalToTime t) (Msgs.DeliveryReceived << Msgs.ClockTicked t)
+            Time.every (intervalToTime t) (ClockTicked t)
 
         OnAnimationFrame ->
-            AnimationFrame.times (always (Msgs.DeliveryReceived Msgs.AnimationFrameAdvanced))
+            AnimationFrame.times (always AnimationFrameAdvanced)
 
         OnMouseMove ->
-            Mouse.moves (always (Msgs.DeliveryReceived Msgs.MouseMoved))
+            Mouse.moves (always MouseMoved)
 
         OnMouseClick ->
-            Mouse.clicks (always (Msgs.DeliveryReceived Msgs.MouseClicked))
+            Mouse.clicks (always MouseClicked)
 
         OnKeyDown ->
-            Keyboard.downs (Msgs.DeliveryReceived << Msgs.KeyDown)
+            Keyboard.downs KeyDown
 
         OnKeyUp ->
-            Keyboard.ups (Msgs.DeliveryReceived << Msgs.KeyUp)
+            Keyboard.ups KeyUp
 
         OnScrollFromWindowBottom ->
-            Scroll.fromWindowBottom (Msgs.DeliveryReceived << Msgs.ScrolledFromWindowBottom)
+            Scroll.fromWindowBottom ScrolledFromWindowBottom
 
         OnWindowResize ->
-            Window.resizes (Msgs.DeliveryReceived << Msgs.WindowResized)
+            Window.resizes WindowResized
 
-        FromEventSource key m ->
-            EventSource.listen key m
-
-        OnNonHrefLinkClicked ->
-            newUrl (Msgs.DeliveryReceived << Msgs.NonHrefLinkClicked)
-
-        OnTokenReceived ->
-            tokenReceived (Msgs.DeliveryReceived << Msgs.TokenReceived)
-
-        WhenPresent (Just s) ->
-            runSubscription s
-
-        WhenPresent Nothing ->
-            Sub.none
-
-
-map : (m -> n) -> Subscription m -> Subscription n
-map f s =
-    case s of
-        OnClockTick t ->
-            OnClockTick t
-
-        OnAnimationFrame ->
-            OnAnimationFrame
-
-        OnMouseMove ->
-            OnMouseMove
-
-        OnMouseClick ->
-            OnMouseClick
-
-        OnKeyDown ->
-            OnKeyDown
-
-        OnKeyUp ->
-            OnKeyUp
-
-        OnScrollFromWindowBottom ->
-            OnScrollFromWindowBottom
-
-        OnWindowResize ->
-            OnWindowResize
-
-        FromEventSource key m ->
-            FromEventSource key (m >> f)
+        FromEventSource key ->
+            EventSource.listen key EventReceived
 
         OnNonHrefLinkClicked ->
-            OnNonHrefLinkClicked
+            newUrl NonHrefLinkClicked
 
         OnTokenReceived ->
-            OnTokenReceived
+            tokenReceived TokenReceived
 
-        WhenPresent s ->
-            WhenPresent (Maybe.map (map f) s)
+
+intervalToTime : Interval -> Time.Time
+intervalToTime t =
+    case t of
+        OneSecond ->
+            Time.second
+
+        FiveSeconds ->
+            5 * Time.second
+
+        OneMinute ->
+            Time.minute

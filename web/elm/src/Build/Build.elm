@@ -9,7 +9,6 @@ module Build.Build exposing
     , view
     )
 
-import Application.Msgs exposing (Interval(..))
 import Build.Models as Models
     exposing
         ( BuildPageType(..)
@@ -58,7 +57,7 @@ import Routes
 import Spinner
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
-import Subscription exposing (Subscription(..))
+import Subscription exposing (Interval(..), Subscription(..))
 import Time exposing (Time)
 import TopBar.Model
 import TopBar.Styles
@@ -124,20 +123,32 @@ init flags =
     ( model, effects ++ topBarEffects ++ [ GetCurrentTime ] )
 
 
-subscriptions : Model -> List (Subscription Msg)
+subscriptions : Model -> List Subscription
 subscriptions model =
+    let
+        currentBuildId =
+            model.currentBuild
+                |> RemoteData.toMaybe
+                |> Maybe.andThen .output
+                |> Maybe.andThen .events
+    in
     [ OnClockTick OneSecond
     , OnScrollFromWindowBottom
     , OnKeyDown
     , OnKeyUp
     , OnAnimationFrame
-    , model.currentBuild
-        |> RemoteData.toMaybe
-        |> Maybe.andThen .output
-        |> Maybe.andThen .events
-        |> Maybe.map Build.Output.subscribeToEvents
-        |> WhenPresent
     ]
+        ++ (case currentBuildId of
+                Nothing ->
+                    []
+
+                Just buildId ->
+                    [ Subscription.FromEventSource
+                        ( "/api/v1/builds/" ++ toString buildId ++ "/events"
+                        , [ "end", "event" ]
+                        )
+                    ]
+           )
 
 
 changeToBuild : BuildPageType -> Model -> ( Model, List Effect )

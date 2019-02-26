@@ -10,7 +10,6 @@ module Pipeline.Pipeline exposing
     , view
     )
 
-import Application.Msgs exposing (Interval(..))
 import Callback exposing (Callback(..))
 import Char
 import Colors
@@ -37,7 +36,7 @@ import Pipeline.Styles as Styles
 import RemoteData exposing (..)
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
-import Subscription exposing (Subscription(..))
+import Subscription exposing (Interval(..), Subscription(..))
 import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
 import Time exposing (Time)
@@ -274,7 +273,7 @@ getPinnedResources model =
                 |> List.filterMap (\r -> Maybe.map (\v -> ( r.name, v )) r.pinnedVersion)
 
 
-subscriptions : Model -> List (Subscription Msg)
+subscriptions : Model -> List Subscription
 subscriptions model =
     [ OnClockTick OneMinute
     , OnClockTick FiveSeconds

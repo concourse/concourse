@@ -31,7 +31,7 @@ import Html.Styled as HS
 import List.Extra
 import Routes
 import SubPage.Msgs
-import Subscription
+import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -2208,7 +2208,7 @@ all =
                         |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> Application.update
                             (Application.Msgs.DeliveryReceived <|
-                                Application.Msgs.WindowResized { width = 1229, height = 300 }
+                                WindowResized { width = 1229, height = 300 }
                             )
                         |> Tuple.first
                         |> Application.view
@@ -2303,7 +2303,7 @@ all =
                             |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                             |> Application.update
                                 (Application.Msgs.DeliveryReceived <|
-                                    Application.Msgs.WindowResized { width = 800, height = 300 }
+                                    WindowResized { width = 800, height = 300 }
                                 )
                             |> Tuple.first
                             |> Application.view
@@ -2319,7 +2319,7 @@ all =
                             |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                             |> Application.update
                                 (Application.Msgs.DeliveryReceived <|
-                                    Application.Msgs.WindowResized { width = 800, height = 300 }
+                                    WindowResized { width = 800, height = 300 }
                                 )
                             |> Tuple.first
                             |> Application.view
@@ -2757,7 +2757,7 @@ all =
                         |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> afterSeconds 6
                         |> Application.update
-                            (Application.Msgs.DeliveryReceived Application.Msgs.MouseMoved)
+                            (Application.Msgs.DeliveryReceived MouseMoved)
                         |> Tuple.first
                         |> Application.view
                         |> Query.fromHtml
@@ -2768,7 +2768,7 @@ all =
                         |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> afterSeconds 6
                         |> Application.update
-                            (Application.Msgs.DeliveryReceived Application.Msgs.MouseClicked)
+                            (Application.Msgs.DeliveryReceived MouseClicked)
                         |> Tuple.first
                         |> Application.view
                         |> Query.fromHtml
@@ -2779,9 +2779,9 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Dashboard.subscriptions
                     |> Expect.all
-                        [ List.member (Subscription.OnClockTick Application.Msgs.OneSecond)
+                        [ List.member (Subscription.OnClockTick OneSecond)
                             >> Expect.true "doesn't have one second timer"
-                        , List.member (Subscription.OnClockTick Application.Msgs.FiveSeconds)
+                        , List.member (Subscription.OnClockTick FiveSeconds)
                             >> Expect.true "doesn't have five second timer"
                         ]
         , test "auto refreshes data every five seconds" <|
@@ -2789,7 +2789,7 @@ all =
                 initFromApplication
                     |> Application.update
                         (Application.Msgs.DeliveryReceived <|
-                            Application.Msgs.ClockTicked Application.Msgs.FiveSeconds 0
+                            ClockTicked FiveSeconds 0
                         )
                     |> Tuple.second
                     |> Expect.equal [ ( Effects.SubPage 1, Effects.FetchData ) ]

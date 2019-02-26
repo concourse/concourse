@@ -12,7 +12,7 @@ import Pipeline.Msgs exposing (Msg(..))
 import Pipeline.Pipeline as Pipeline exposing (update)
 import Routes
 import SubPage.Msgs
-import Subscription
+import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -26,7 +26,6 @@ import Test.Html.Selector as Selector
         , tag
         , text
         )
-import Time exposing (Time)
 import TopBar.Msgs
 
 
@@ -224,13 +223,13 @@ all =
                 , test "KeyPressed" <|
                     \_ ->
                         setupGroupsBar []
-                            |> Application.update (Msgs.DeliveryReceived <| Msgs.KeyDown <| Char.toCode 'a')
+                            |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'a')
                             |> Tuple.second
                             |> Expect.equal []
                 , test "KeyPressed f" <|
                     \_ ->
                         setupGroupsBar []
-                            |> Application.update (Msgs.DeliveryReceived <| Msgs.KeyDown <| Char.toCode 'f')
+                            |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'f')
                             |> Tuple.second
                             |> Expect.equal [ ( Effects.SubPage 1, Effects.ResetPipelineFocus ) ]
                 ]
@@ -296,14 +295,14 @@ all =
                     init "/teams/team/pipelines/pipeline"
                         |> Application.subscriptions
                         |> Expect.all
-                            [ List.member (Subscription.OnClockTick Msgs.OneSecond) >> Expect.true "not on one second?"
-                            , List.member (Subscription.OnClockTick Msgs.FiveSeconds) >> Expect.true "not on five seconds?"
-                            , List.member (Subscription.OnClockTick Msgs.OneMinute) >> Expect.true "not on one minute?"
+                            [ List.member (Subscription.OnClockTick OneSecond) >> Expect.true "not on one second?"
+                            , List.member (Subscription.OnClockTick FiveSeconds) >> Expect.true "not on five seconds?"
+                            , List.member (Subscription.OnClockTick OneMinute) >> Expect.true "not on one minute?"
                             ]
             , test "on five second timer, refreshes pipeline" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Application.update (Msgs.DeliveryReceived (Msgs.ClockTicked Msgs.FiveSeconds 0))
+                        |> Application.update (Msgs.DeliveryReceived (ClockTicked FiveSeconds 0))
                         |> Tuple.second
                         |> Expect.equal
                             [ ( Effects.SubPage 1
@@ -316,13 +315,13 @@ all =
             , test "in one minute timer, refreshes version" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Application.update (Msgs.DeliveryReceived (Msgs.ClockTicked Msgs.OneMinute 0))
+                        |> Application.update (Msgs.DeliveryReceived (ClockTicked OneMinute 0))
                         |> Tuple.second
                         |> Expect.equal [ ( Effects.SubPage 1, Effects.FetchVersion ) ]
             , describe "Legend" <|
                 let
                     clockTick =
-                        Application.update (Msgs.DeliveryReceived (Msgs.ClockTicked Msgs.OneSecond 0))
+                        Application.update (Msgs.DeliveryReceived (ClockTicked OneSecond 0))
                             >> Tuple.first
 
                     clockTickALot n =
@@ -369,7 +368,7 @@ all =
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
                             |> clockTickALot 11
-                            |> Application.update (Msgs.DeliveryReceived Msgs.MouseMoved)
+                            |> Application.update (Msgs.DeliveryReceived MouseMoved)
                             |> Tuple.first
                             |> Application.view
                             |> Query.fromHtml
@@ -378,7 +377,7 @@ all =
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
                             |> clockTickALot 11
-                            |> Application.update (Msgs.DeliveryReceived Msgs.MouseClicked)
+                            |> Application.update (Msgs.DeliveryReceived MouseClicked)
                             |> Tuple.first
                             |> Application.view
                             |> Query.fromHtml

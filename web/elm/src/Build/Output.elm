@@ -5,7 +5,6 @@ module Build.Output exposing
     , init
     , parseMsg
     , planAndResourcesFetched
-    , subscribeToEvents
     , view
     )
 
@@ -45,7 +44,6 @@ import Http
 import LoadingIndicator
 import NotAuthorized
 import Routes exposing (StepID)
-import Subscription exposing (Subscription(..))
 
 
 type OutMsg
@@ -332,17 +330,6 @@ setResourceInfo version metadata tree =
 setStepState : StepState -> StepTree -> StepTree
 setStepState state tree =
     StepTree.map (\step -> { step | state = state }) tree
-
-
-subscribeToEvents : Int -> Subscription.Subscription Msg
-subscribeToEvents buildId =
-    Subscription.map BuildEventsMsg
-        (Subscription.FromEventSource
-            ( "/api/v1/builds/" ++ toString buildId ++ "/events"
-            , [ "end", "event" ]
-            )
-            parseMsg
-        )
 
 
 parseMsg : EventSource.Msg -> EventsMsg

@@ -9,8 +9,9 @@ module Application.Application exposing
     , view
     )
 
-import Application.Msgs as Msgs exposing (Delivery(..), Interval(..), Msg(..), NavIndex)
+import Application.Msgs as Msgs exposing (Msg(..), NavIndex)
 import Build.Msgs
+import Build.Output
 import Callback exposing (Callback(..))
 import Dashboard.Msgs
 import Effects exposing (Effect(..), LayoutDispatch(..))
@@ -23,7 +24,7 @@ import Resource.Msgs
 import Routes
 import SubPage.Msgs
 import SubPage.SubPage as SubPage
-import Subscription exposing (Subscription(..))
+import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import TopBar.Msgs
 import UserState exposing (UserState(..))
 
@@ -480,6 +481,20 @@ handleDelivery delivery model =
             , List.map (\ef -> ( SubPage anyNavIndex, ef )) subCmd
             )
 
+        EventReceived eventSourceMsg ->
+            case model.subModel of
+                SubPage.BuildModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.BuildMsg <|
+                                Build.Msgs.BuildEventsMsg <|
+                                    Build.Output.parseMsg eventSourceMsg
+                        )
+                        model
+
+                _ ->
+                    ( model, [] )
+
 
 redirectToLoginIfNecessary : Http.Error -> NavIndex -> List ( LayoutDispatch, Effect )
 redirectToLoginIfNecessary err navIndex =
@@ -545,14 +560,12 @@ view model =
     Html.map (SubMsg model.navIndex) (SubPage.view model.userState model.subModel)
 
 
-subscriptions : Model -> List (Subscription Msg)
+subscriptions : Model -> List Subscription
 subscriptions model =
     [ OnNonHrefLinkClicked
     , OnTokenReceived
     ]
-        ++ (SubPage.subscriptions model.subModel
-                |> List.map (Subscription.map (SubMsg model.navIndex))
-           )
+        ++ SubPage.subscriptions model.subModel
 
 
 routeMatchesModel : Routes.Route -> Model -> Bool

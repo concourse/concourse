@@ -315,28 +315,23 @@ view userState mdl =
                 |> Html.map FlySuccessMsg
 
 
-subscriptions : Model -> List (Subscription Msg)
+subscriptions : Model -> List Subscription
 subscriptions mdl =
     case mdl of
         BuildModel model ->
             Build.subscriptions model
-                |> List.map (Subscription.map BuildMsg)
 
         JobModel model ->
             Job.subscriptions model
-                |> List.map (Subscription.map JobMsg)
 
         PipelineModel model ->
             Pipeline.subscriptions model
-                |> List.map (Subscription.map PipelineMsg)
 
         ResourceModel model ->
             Resource.subscriptions model
-                |> List.map (Subscription.map ResourceMsg)
 
         DashboardModel model ->
             Dashboard.subscriptions model
-                |> List.map (Subscription.map DashboardMsg)
 
         NotFoundModel _ ->
             []

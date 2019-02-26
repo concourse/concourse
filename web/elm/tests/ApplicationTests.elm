@@ -7,7 +7,7 @@ import Dashboard.Msgs
 import Effects
 import Expect
 import SubPage.Msgs
-import Subscription
+import Subscription exposing (Delivery(..))
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (style)
@@ -157,7 +157,7 @@ all =
                     , password = ""
                     }
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| Msgs.NonHrefLinkClicked "/foo/bar")
+                    |> Application.update (Msgs.DeliveryReceived <| NonHrefLinkClicked "/foo/bar")
                     |> Tuple.second
                     |> Expect.equal
                         [ ( Effects.Layout, Effects.NavigateTo "/foo/bar" )
@@ -195,7 +195,7 @@ all =
                     , password = ""
                     }
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| Msgs.TokenReceived <| Just "real-token")
+                    |> Application.update (Msgs.DeliveryReceived <| TokenReceived <| Just "real-token")
                     |> Tuple.first
                     |> Application.update
                         (Msgs.SubMsg 1 <|

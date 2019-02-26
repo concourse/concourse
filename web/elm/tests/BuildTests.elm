@@ -18,11 +18,12 @@ import DashboardTests
 import Date
 import Dict
 import Effects
+import EventSource.EventSource as EventSource
 import Expect
 import Html.Attributes as Attr
 import Routes
 import SubPage.Msgs
-import Subscription
+import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -237,32 +238,23 @@ all =
                         )
                     |> Tuple.first
                     |> Application.update
-                        (Msgs.SubMsg 1
-                            (SubPage.Msgs.BuildMsg
-                                (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
-                            )
-                        )
+                        (Msgs.DeliveryReceived <| EventReceived EventSource.Opened)
                     |> Tuple.first
                     |> Application.update
-                        (Msgs.SubMsg 1
-                            (SubPage.Msgs.BuildMsg
-                                (Build.Msgs.BuildEventsMsg <|
-                                    Build.Msgs.Events <|
-                                        Ok <|
-                                            Array.fromList
-                                                [ Models.StartTask
-                                                    { source = "stdout"
-                                                    , id = "stepid"
-                                                    }
-                                                , Models.Log
-                                                    { source = "stdout"
-                                                    , id = "stepid"
-                                                    }
-                                                    "log message"
-                                                    Nothing
-                                                ]
-                                )
-                            )
+                        (Msgs.DeliveryReceived <|
+                            EventReceived <|
+                                EventSource.Events
+                                    (Array.fromList
+                                        [ { lastEventId = Nothing
+                                          , name = Just "event"
+                                          , data = "{\"data\":{\"origin\":{\"source\":\"stdout\",\"id\":\"stepid\"}},\"event\":\"start-task\"}"
+                                          }
+                                        , { lastEventId = Nothing
+                                          , name = Just "event"
+                                          , data = "{\"data\":{\"origin\":{\"source\":\"stdout\",\"id\":\"stepid\"},\"payload\":\"log message\"},\"event\":\"log\"}"
+                                          }
+                                        ]
+                                    )
                         )
                     |> Tuple.first
                     |> Application.view
@@ -279,7 +271,7 @@ all =
                         (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived Msgs.AnimationFrameAdvanced)
+                    |> Application.update (Msgs.DeliveryReceived AnimationFrameAdvanced)
                     |> Tuple.second
                     |> Expect.equal [ ( Effects.SubPage 1, Effects.Scroll Effects.ToWindowBottom ) ]
         , test "when build is not running it does not scroll on animation tick" <|
@@ -289,7 +281,7 @@ all =
                         (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, theBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived Msgs.AnimationFrameAdvanced)
+                    |> Application.update (Msgs.DeliveryReceived AnimationFrameAdvanced)
                     |> Tuple.second
                     |> Expect.equal []
         , test "when build is running but the user is not scrolled to the bottom it does not scroll on animation tick" <|
@@ -299,9 +291,9 @@ all =
                         (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived (Msgs.ScrolledFromWindowBottom 187))
+                    |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 187))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived Msgs.AnimationFrameAdvanced)
+                    |> Application.update (Msgs.DeliveryReceived AnimationFrameAdvanced)
                     |> Tuple.second
                     |> Expect.equal []
         , test "when build is running but the user is scrolls back to the bottom it scrolls on animation tick" <|
@@ -311,11 +303,11 @@ all =
                         (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived (Msgs.ScrolledFromWindowBottom 187))
+                    |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 187))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived (Msgs.ScrolledFromWindowBottom 0))
+                    |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 0))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived Msgs.AnimationFrameAdvanced)
+                    |> Application.update (Msgs.DeliveryReceived AnimationFrameAdvanced)
                     |> Tuple.second
                     |> Expect.equal [ ( Effects.SubPage 1, Effects.Scroll Effects.ToWindowBottom ) ]
         , test "the page subscribes to animation ticks" <|
@@ -373,11 +365,11 @@ all =
                                 }
                         )
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| Msgs.KeyDown <| Char.toCode 'T')
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'T')
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| Msgs.KeyUp <| Char.toCode 'T')
+                    |> Application.update (Msgs.DeliveryReceived <| KeyUp <| Char.toCode 'T')
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| Msgs.KeyDown <| Char.toCode 'T')
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'T')
                     |> Tuple.second
                     |> Expect.equal
                         [ ( Effects.SubPage 1
@@ -496,7 +488,7 @@ all =
                     initFromApplication
                         |> Application.handleCallback (Effects.SubPage 1) (Callback.BuildFetched <| Ok ( 1, theBuild ))
                         |> Tuple.first
-                        |> Application.update (Msgs.DeliveryReceived <| Msgs.ClockTicked Msgs.OneSecond (2 * Time.second))
+                        |> Application.update (Msgs.DeliveryReceived <| ClockTicked OneSecond (2 * Time.second))
                         |> Tuple.first
                         |> Application.view
                         |> Query.fromHtml
@@ -507,7 +499,7 @@ all =
                     initFromApplication
                         |> Application.handleCallback (Effects.SubPage 1) (Callback.BuildFetched <| Ok ( 1, theBuild ))
                         |> Tuple.first
-                        |> Application.update (Msgs.DeliveryReceived <| Msgs.ClockTicked Msgs.OneSecond (24 * Time.hour))
+                        |> Application.update (Msgs.DeliveryReceived <| ClockTicked OneSecond (24 * Time.hour))
                         |> Tuple.first
                         |> Application.view
                         |> Query.fromHtml

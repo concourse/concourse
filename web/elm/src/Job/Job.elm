@@ -10,7 +10,6 @@ module Job.Job exposing
     , view
     )
 
-import Application.Msgs exposing (Interval(..))
 import Build.Styles as Styles
 import BuildDuration
 import Callback exposing (Callback(..))
@@ -51,7 +50,7 @@ import LoadingIndicator
 import RemoteData exposing (WebData)
 import Routes
 import StrictEvents exposing (onLeftClick)
-import Subscription exposing (Subscription(..))
+import Subscription exposing (Interval(..), Subscription(..))
 import Time exposing (Time)
 import TopBar.Model
 import TopBar.Styles
@@ -138,6 +137,13 @@ changeToJob flags model =
       }
     , [ FetchJobBuilds model.jobIdentifier flags.paging ]
     )
+
+
+subscriptions : Model -> List Subscription
+subscriptions model =
+    [ OnClockTick FiveSeconds
+    , OnClockTick OneSecond
+    ]
 
 
 getUpdateMessage : Model -> UpdateMsg
@@ -757,10 +763,3 @@ viewVersion version =
         << Dict.map (\_ s -> Html.text s)
     <|
         version
-
-
-subscriptions : Model -> List (Subscription Msg)
-subscriptions model =
-    [ OnClockTick FiveSeconds
-    , OnClockTick OneSecond
-    ]

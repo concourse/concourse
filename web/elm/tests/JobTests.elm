@@ -22,7 +22,7 @@ import Job.Job as Job exposing (update)
 import Job.Msgs exposing (Msg(..))
 import RemoteData
 import SubPage.Msgs
-import Subscription
+import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
@@ -1000,12 +1000,12 @@ all =
                 init { disabled = False, paused = False }
                     >> Application.subscriptions
                     >> Expect.all
-                        [ List.member (Subscription.OnClockTick Msgs.OneSecond) >> Expect.true "not on one second?"
-                        , List.member (Subscription.OnClockTick Msgs.FiveSeconds) >> Expect.true "not on five seconds?"
+                        [ List.member (Subscription.OnClockTick OneSecond) >> Expect.true "not on one second?"
+                        , List.member (Subscription.OnClockTick FiveSeconds) >> Expect.true "not on five seconds?"
                         ]
             , test "on five-second timer, refreshes job and builds" <|
                 init { disabled = False, paused = False }
-                    >> Application.update (Msgs.DeliveryReceived <| Msgs.ClockTicked Msgs.FiveSeconds 0)
+                    >> Application.update (Msgs.DeliveryReceived <| ClockTicked FiveSeconds 0)
                     >> Tuple.second
                     >> Expect.equal
                         [ ( Effects.SubPage 1, Effects.FetchJobBuilds jobInfo Nothing )
@@ -1027,7 +1027,7 @@ all =
                     >> Tuple.first
                     >> Application.update
                         (Msgs.DeliveryReceived <|
-                            Msgs.ClockTicked Msgs.OneSecond (2 * Time.second)
+                            ClockTicked OneSecond (2 * Time.second)
                         )
                     >> Tuple.first
                     >> Application.view

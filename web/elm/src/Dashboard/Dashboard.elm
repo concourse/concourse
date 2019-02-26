@@ -7,7 +7,6 @@ module Dashboard.Dashboard exposing
     , view
     )
 
-import Application.Msgs exposing (Interval(..))
 import Callback exposing (Callback(..))
 import Char
 import Concourse
@@ -48,7 +47,7 @@ import RemoteData
 import Routes
 import ScreenSize
 import Simple.Fuzzy exposing (filter, match, root)
-import Subscription exposing (Subscription(..))
+import Subscription exposing (Interval(..), Subscription(..))
 import Task
 import Time exposing (Time)
 import TopBar.Model
@@ -376,7 +375,7 @@ updateWithoutTopBar msg model =
             ( model, [] )
 
 
-subscriptions : Model -> List (Subscription Msg)
+subscriptions : Model -> List Subscription
 subscriptions model =
     [ OnClockTick OneSecond
     , OnClockTick FiveSeconds
