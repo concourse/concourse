@@ -11,6 +11,8 @@ module DashboardTests exposing
     , white
     )
 
+import Application.Application as Application
+import Application.Msgs
 import Callback
 import Char
 import Concourse
@@ -27,8 +29,8 @@ import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Html.Styled as HS
 import List.Extra
-import TopBar.Msgs
 import Routes
+import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -44,6 +46,7 @@ import Test.Html.Selector
         , text
         )
 import Time exposing (Time)
+import TopBar.Msgs
 import UserState
 
 
@@ -2745,8 +2748,85 @@ all =
                         |> Tuple.first
                         |> queryView
                         |> Query.hasNot [ id "dashboard-info" ]
+            , test "reappears on mouse motion" <|
+                \_ ->
+                    Application.init
+                        { turbulenceImgSrc = ""
+                        , notFoundImgSrc = ""
+                        , csrfToken = ""
+                        , authToken = ""
+                        , pipelineRunningKeyframes = ""
+                        }
+                        { href = ""
+                        , host = ""
+                        , hostname = ""
+                        , protocol = ""
+                        , origin = ""
+                        , port_ = ""
+                        , pathname = "/"
+                        , search = ""
+                        , hash = ""
+                        , username = ""
+                        , password = ""
+                        }
+                        |> Tuple.first
+                        |> Application.handleCallback (Effects.SubPage 1)
+                            (Callback.APIDataFetched (Ok ( 0, apiData [ ( "team", [ "pipeline" ] ) ] Nothing )))
+                        |> Tuple.first
+                        |> afterSeconds 7
+                        |> Application.update
+                            (Application.Msgs.DeliveryReceived Application.Msgs.MouseMoved)
+                        |> Tuple.first
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Query.has [ id "dashboard-info" ]
+            , test "reappears on mouse click" <|
+                \_ ->
+                    Application.init
+                        { turbulenceImgSrc = ""
+                        , notFoundImgSrc = ""
+                        , csrfToken = ""
+                        , authToken = ""
+                        , pipelineRunningKeyframes = ""
+                        }
+                        { href = ""
+                        , host = ""
+                        , hostname = ""
+                        , protocol = ""
+                        , origin = ""
+                        , port_ = ""
+                        , pathname = "/"
+                        , search = ""
+                        , hash = ""
+                        , username = ""
+                        , password = ""
+                        }
+                        |> Tuple.first
+                        |> Application.handleCallback (Effects.SubPage 1)
+                            (Callback.APIDataFetched (Ok ( 0, apiData [ ( "team", [ "pipeline" ] ) ] Nothing )))
+                        |> Tuple.first
+                        |> afterSeconds 7
+                        |> Application.update
+                            (Application.Msgs.DeliveryReceived Application.Msgs.MouseClicked)
+                        |> Tuple.first
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Query.has [ id "dashboard-info" ]
             ]
         ]
+
+
+afterSeconds : Int -> Application.Model -> Application.Model
+afterSeconds n =
+    List.repeat n
+        (Application.update
+            (Application.Msgs.SubMsg 1 <|
+                SubPage.Msgs.DashboardMsg <|
+                    Msgs.ClockTick 1000
+            )
+            >> Tuple.first
+        )
+        |> List.foldr (>>) identity
 
 
 defineHoverBehaviour :

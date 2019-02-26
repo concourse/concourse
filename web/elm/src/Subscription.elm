@@ -19,8 +19,8 @@ port tokenReceived : (Maybe String -> msg) -> Sub msg
 type Subscription m
     = OnClockTick Time.Time (Time.Time -> m)
     | OnAnimationFrame m
-    | OnMouseMove m
-    | OnMouseClick m
+    | OnMouseMove
+    | OnMouseClick
     | OnKeyDown
     | OnKeyUp
     | OnScrollFromWindowBottom (Scroll.FromBottom -> m)
@@ -41,17 +41,17 @@ runSubscription s =
         OnAnimationFrame m ->
             AnimationFrame.times (always m)
 
-        OnMouseMove m ->
-            Mouse.moves (always m)
+        OnMouseMove ->
+            Mouse.moves (always (Msgs.DeliveryReceived Msgs.MouseMoved))
 
-        OnMouseClick m ->
-            Mouse.clicks (always m)
+        OnMouseClick ->
+            Mouse.clicks (always (Msgs.DeliveryReceived Msgs.MouseClicked))
 
         OnKeyDown ->
-            Keyboard.downs Msgs.KeyDown
+            Keyboard.downs (Msgs.DeliveryReceived << Msgs.KeyDown)
 
         OnKeyUp ->
-            Keyboard.ups Msgs.KeyUp
+            Keyboard.ups (Msgs.DeliveryReceived << Msgs.KeyUp)
 
         OnScrollFromWindowBottom m ->
             Scroll.fromWindowBottom m
@@ -90,11 +90,11 @@ map f s =
         OnAnimationFrame m ->
             OnAnimationFrame (f m)
 
-        OnMouseMove m ->
-            OnMouseMove (f m)
+        OnMouseMove ->
+            OnMouseMove
 
-        OnMouseClick m ->
-            OnMouseClick (f m)
+        OnMouseClick ->
+            OnMouseClick
 
         OnKeyDown ->
             OnKeyDown
@@ -120,8 +120,5 @@ map f s =
         Conditionally b m ->
             Conditionally b (map f m)
 
-        WhenPresent (Just s) ->
-            WhenPresent (Just (map f s))
-
-        WhenPresent Nothing ->
-            WhenPresent Nothing
+        WhenPresent s ->
+            WhenPresent (Maybe.map (map f) s)

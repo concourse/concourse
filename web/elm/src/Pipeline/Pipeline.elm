@@ -278,8 +278,8 @@ subscriptions model =
     [ OnClockTick (1 * Time.minute) AutoupdateVersionTicked
     , OnClockTick (5 * Time.second) AutoupdateTimerTicked
     , OnClockTick timeUntilHiddenCheckInterval HideLegendTimerTicked
-    , OnMouseMove ShowLegend
-    , OnMouseClick ShowLegend
+    , OnMouseMove
+    , OnMouseClick
     , OnKeyDown
     ]
 
@@ -333,34 +333,33 @@ viewSubPage model =
                     , Html.p [ class "explanation" ] []
                     ]
                 ]
-            , Html.dl
-                [ if model.hideLegend then
-                    class "legend hidden"
+            , if model.hideLegend then
+                Html.text ""
 
-                  else
-                    class "legend"
-                ]
-                [ Html.dt [ class "succeeded" ] []
-                , Html.dd [] [ Html.text "succeeded" ]
-                , Html.dt [ class "errored" ] []
-                , Html.dd [] [ Html.text "errored" ]
-                , Html.dt [ class "aborted" ] []
-                , Html.dd [] [ Html.text "aborted" ]
-                , Html.dt [ class "paused" ] []
-                , Html.dd [] [ Html.text "paused" ]
-                , Html.dt [ Html.Attributes.style [ ( "background-color", Colors.pinned ) ] ] []
-                , Html.dd [] [ Html.text "pinned" ]
-                , Html.dt [ class "failed" ] []
-                , Html.dd [] [ Html.text "failed" ]
-                , Html.dt [ class "pending" ] []
-                , Html.dd [] [ Html.text "pending" ]
-                , Html.dt [ class "started" ] []
-                , Html.dd [] [ Html.text "started" ]
-                , Html.dt [ class "dotted" ] [ Html.text "." ]
-                , Html.dd [] [ Html.text "dependency" ]
-                , Html.dt [ class "solid" ] [ Html.text "-" ]
-                , Html.dd [] [ Html.text "dependency (trigger)" ]
-                ]
+              else
+                Html.dl
+                    [ id "legend", class "legend" ]
+                    [ Html.dt [ class "succeeded" ] []
+                    , Html.dd [] [ Html.text "succeeded" ]
+                    , Html.dt [ class "errored" ] []
+                    , Html.dd [] [ Html.text "errored" ]
+                    , Html.dt [ class "aborted" ] []
+                    , Html.dd [] [ Html.text "aborted" ]
+                    , Html.dt [ class "paused" ] []
+                    , Html.dd [] [ Html.text "paused" ]
+                    , Html.dt [ Html.Attributes.style [ ( "background-color", Colors.pinned ) ] ] []
+                    , Html.dd [] [ Html.text "pinned" ]
+                    , Html.dt [ class "failed" ] []
+                    , Html.dd [] [ Html.text "failed" ]
+                    , Html.dt [ class "pending" ] []
+                    , Html.dd [] [ Html.text "pending" ]
+                    , Html.dt [ class "started" ] []
+                    , Html.dd [] [ Html.text "started" ]
+                    , Html.dt [ class "dotted" ] [ Html.text "." ]
+                    , Html.dd [] [ Html.text "dependency" ]
+                    , Html.dt [ class "solid" ] [ Html.text "-" ]
+                    , Html.dd [] [ Html.text "dependency (trigger)" ]
+                    ]
             , Html.table [ class "lower-right-info" ]
                 [ Html.tr []
                     [ Html.td [ class "label" ] [ Html.text "cli:" ]

@@ -379,8 +379,8 @@ subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
     [ OnClockTick Time.second ClockTick
     , OnClockTick (5 * Time.second) AutoRefresh
-    , OnMouseMove ShowFooter
-    , OnMouseClick ShowFooter
+    , OnMouseMove
+    , OnMouseClick
     , OnKeyDown
     , OnWindowResize Msgs.ResizeScreen
     ]

@@ -1,4 +1,4 @@
-module Application.Msgs exposing (Msg(..), NavIndex)
+module Application.Msgs exposing (Delivery(..), Msg(..), NavIndex)
 
 import Callback exposing (Callback)
 import Effects
@@ -18,9 +18,15 @@ type Msg
     | ModifyUrl Routes.Route
     | TokenReceived (Maybe String)
     | Callback Effects.LayoutDispatch Callback
-    | KeyDown Keyboard.KeyCode
-    | KeyUp Keyboard.KeyCode
+    | DeliveryReceived Delivery
 
 
 
 -- NewUrl must be a String because of the subscriptions, and nasty type-contravariance. :(
+
+
+type Delivery
+    = KeyDown Keyboard.KeyCode
+    | KeyUp Keyboard.KeyCode
+    | MouseMoved
+    | MouseClicked

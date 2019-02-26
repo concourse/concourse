@@ -92,19 +92,21 @@ all =
                                 )
                             )
                         |> Tuple.first
-                        |> Application.view
-                        |> Query.fromHtml
             in
             [ describe "groups bar styling"
                 [ describe "with groups"
                     [ test "is flush with the bottom of the top bar" <|
                         \_ ->
                             setupGroupsBar sampleGroups
+                                |> Application.view
+                                |> Query.fromHtml
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.has [ style [ ( "margin-top", "54px" ) ] ]
                     , test "has light text on a dark background" <|
                         \_ ->
                             setupGroupsBar sampleGroups
+                                |> Application.view
+                                |> Query.fromHtml
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.has
                                     [ style
@@ -115,6 +117,8 @@ all =
                     , test "lays out groups in a horizontal list" <|
                         \_ ->
                             setupGroupsBar sampleGroups
+                                |> Application.view
+                                |> Query.fromHtml
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.has
                                     [ style
@@ -127,6 +131,8 @@ all =
                     , test "the individual groups are nicely spaced" <|
                         \_ ->
                             setupGroupsBar sampleGroups
+                                |> Application.view
+                                |> Query.fromHtml
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.findAll [ tag "li" ]
                                 |> Query.each
@@ -140,11 +146,15 @@ all =
                     , test "the individual groups have no list style" <|
                         \_ ->
                             setupGroupsBar sampleGroups
+                                |> Application.view
+                                |> Query.fromHtml
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.has [ style [ ( "list-style", "none" ) ] ]
                     , test "the individual groups have large text" <|
                         \_ ->
                             setupGroupsBar sampleGroups
+                                |> Application.view
+                                |> Query.fromHtml
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.findAll [ tag "li" ]
                                 |> Query.each
@@ -153,6 +163,8 @@ all =
                         [ test "the unselected ones faded" <|
                             \_ ->
                                 setupGroupsBar sampleGroups
+                                    |> Application.view
+                                    |> Query.fromHtml
                                     |> Query.find [ id "groups-bar" ]
                                     |> Query.findAll [ tag "li" ]
                                     |> Query.index 0
@@ -166,6 +178,8 @@ all =
                         , test "the selected ones brighter" <|
                             \_ ->
                                 setupGroupsBar sampleGroups
+                                    |> Application.view
+                                    |> Query.fromHtml
                                     |> Query.find [ id "groups-bar" ]
                                     |> Query.findAll [ tag "li" ]
                                     |> Query.index 1
@@ -180,6 +194,8 @@ all =
                     , test "the individual groups should each have a group name and link" <|
                         \_ ->
                             setupGroupsBar sampleGroups
+                                |> Application.view
+                                |> Query.fromHtml
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.findAll [ tag "li" ]
                                 |> Expect.all
@@ -200,8 +216,22 @@ all =
                 , test "with no groups doesn not display groups list" <|
                     \_ ->
                         setupGroupsBar []
+                            |> Application.view
+                            |> Query.fromHtml
                             |> Query.findAll [ id "groups-bar" ]
                             |> Query.count (Expect.equal 0)
+                , test "KeyPressed" <|
+                    \_ ->
+                        setupGroupsBar []
+                            |> Application.update (Msgs.DeliveryReceived <| Msgs.KeyDown <| Char.toCode 'a')
+                            |> Tuple.second
+                            |> Expect.equal []
+                , test "KeyPressed f" <|
+                    \_ ->
+                        setupGroupsBar []
+                            |> Application.update (Msgs.DeliveryReceived <| Msgs.KeyDown <| Char.toCode 'f')
+                            |> Tuple.second
+                            |> Expect.equal [ ( Effects.SubPage 1, Effects.ResetPipelineFocus ) ]
                 ]
             ]
         , describe "update" <|
@@ -260,58 +290,71 @@ all =
                                         ]
                                     ]
                             ]
-            , test "HideLegendTimerTicked" <|
-                \_ ->
-                    defaultModel
-                        |> update (HideLegendTimerTicked 0)
-                        |> Tuple.mapFirst .hideLegendCounter
-                        |> Expect.equal ( 1 * Time.second, [] )
-            , test "HideLegendTimeTicked reaches timeout" <|
-                \_ ->
-                    { defaultModel | hideLegendCounter = 10 * Time.second }
-                        |> update (HideLegendTimerTicked 0)
-                        |> Tuple.mapFirst .hideLegend
-                        |> Expect.equal ( True, [] )
-            , test "ShowLegend" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline"
-                        |> Application.view
-                        |> Query.fromHtml
-                        |> Query.find [ class "legend" ]
-                        |> Query.children []
-                        |> Expect.all
-                            [ Query.count (Expect.equal 20)
-                            , Query.index 1 >> Query.has [ text "succeeded" ]
-                            , Query.index 3 >> Query.has [ text "errored" ]
-                            , Query.index 5 >> Query.has [ text "aborted" ]
-                            , Query.index 7 >> Query.has [ text "paused" ]
-                            , Query.index 8 >> Query.has [ style [ ( "background-color", "#5C3BD1" ) ] ]
-                            , Query.index 9 >> Query.has [ text "pinned" ]
-                            , Query.index 11 >> Query.has [ text "failed" ]
-                            , Query.index 13 >> Query.has [ text "pending" ]
-                            , Query.index 15 >> Query.has [ text "started" ]
-                            , Query.index 17 >> Query.has [ text "dependency" ]
-                            , Query.index 19 >> Query.has [ text "dependency (trigger)" ]
-                            ]
-            , test "Legend has definition for pinned resource color" <|
-                \_ ->
-                    { defaultModel | hideLegend = True, hideLegendCounter = 3 * Time.second }
-                        |> update ShowLegend
-                        |> Expect.all
-                            [ \( m, _ ) -> m.hideLegend |> Expect.equal False
-                            , \( m, _ ) -> m.hideLegendCounter |> Expect.equal 0
-                            , \( _, e ) -> Expect.equal [] e
-                            ]
-            , test "KeyPressed" <|
-                \_ ->
-                    defaultModel
-                        |> update (KeyPressed (Char.toCode 'a'))
-                        |> Expect.equal ( defaultModel, [] )
-            , test "KeyPressed f" <|
-                \_ ->
-                    defaultModel
-                        |> update (KeyPressed (Char.toCode 'f'))
-                        |> Expect.notEqual ( defaultModel, [] )
+            , describe "Legend" <|
+                let
+                    clockTick =
+                        Application.update (Msgs.SubMsg 1 <| SubPage.Msgs.PipelineMsg <| HideLegendTimerTicked 0)
+                            >> Tuple.first
+
+                    clockTickALot n =
+                        List.foldr (>>) identity (List.repeat n clockTick)
+                in
+                [ test "Legend has definition for pinned resource color" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> Application.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "legend" ]
+                            |> Query.children []
+                            |> Expect.all
+                                [ Query.count (Expect.equal 20)
+                                , Query.index 1 >> Query.has [ text "succeeded" ]
+                                , Query.index 3 >> Query.has [ text "errored" ]
+                                , Query.index 5 >> Query.has [ text "aborted" ]
+                                , Query.index 7 >> Query.has [ text "paused" ]
+                                , Query.index 8 >> Query.has [ style [ ( "background-color", "#5C3BD1" ) ] ]
+                                , Query.index 9 >> Query.has [ text "pinned" ]
+                                , Query.index 11 >> Query.has [ text "failed" ]
+                                , Query.index 13 >> Query.has [ text "pending" ]
+                                , Query.index 15 >> Query.has [ text "started" ]
+                                , Query.index 17 >> Query.has [ text "dependency" ]
+                                , Query.index 19 >> Query.has [ text "dependency (trigger)" ]
+                                ]
+                , test "HideLegendTimerTicked" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> clockTick
+                            |> Application.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "legend" ]
+                            |> Query.children []
+                            |> Query.count (Expect.equal 20)
+                , test "HideLegendTimeTicked reaches timeout" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> clockTickALot 11
+                            |> Application.view
+                            |> Query.fromHtml
+                            |> Query.hasNot [ id "legend" ]
+                , test "Mouse move after legend hidden reshows legend" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> clockTickALot 11
+                            |> Application.update (Msgs.DeliveryReceived Msgs.MouseMoved)
+                            |> Tuple.first
+                            |> Application.view
+                            |> Query.fromHtml
+                            |> Query.has [ id "legend" ]
+                , test "Mouse click after legend hidden reshows legend" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> clockTickALot 11
+                            |> Application.update (Msgs.DeliveryReceived Msgs.MouseClicked)
+                            |> Tuple.first
+                            |> Application.view
+                            |> Query.fromHtml
+                            |> Query.has [ id "legend" ]
+                ]
             , rspecStyleDescribe "when on pipeline page"
                 (init "/teams/team/pipelines/pipeline")
                 [ it "shows a pin icon on top bar" <|

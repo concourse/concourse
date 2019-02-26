@@ -9,7 +9,7 @@ module Application.Application exposing
     , view
     )
 
-import Application.Msgs as Msgs exposing (Msg(..), NavIndex)
+import Application.Msgs as Msgs exposing (Delivery(..), Msg(..), NavIndex)
 import Build.Msgs
 import Callback exposing (Callback(..))
 import Dashboard.Msgs
@@ -241,6 +241,13 @@ update msg model =
         Callback dispatch callback ->
             handleCallback dispatch callback model
 
+        DeliveryReceived delivery ->
+            handleDelivery delivery model
+
+
+handleDelivery : Delivery -> Model -> ( Model, List ( LayoutDispatch, Effect ) )
+handleDelivery delivery model =
+    case delivery of
         KeyDown keycode ->
             case model.subModel of
                 SubPage.DashboardModel _ ->
@@ -294,6 +301,48 @@ update msg model =
                         (SubMsg model.navIndex <|
                             SubPage.Msgs.ResourceMsg <|
                                 Resource.Msgs.KeyUps keycode
+                        )
+                        model
+
+                _ ->
+                    ( model, [] )
+
+        MouseMoved ->
+            case model.subModel of
+                SubPage.DashboardModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.DashboardMsg <|
+                                Dashboard.Msgs.ShowFooter
+                        )
+                        model
+
+                SubPage.PipelineModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.PipelineMsg <|
+                                Pipeline.Msgs.ShowLegend
+                        )
+                        model
+
+                _ ->
+                    ( model, [] )
+
+        MouseClicked ->
+            case model.subModel of
+                SubPage.DashboardModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.DashboardMsg <|
+                                Dashboard.Msgs.ShowFooter
+                        )
+                        model
+
+                SubPage.PipelineModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.PipelineMsg <|
+                                Pipeline.Msgs.ShowLegend
                         )
                         model
 

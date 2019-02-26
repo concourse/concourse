@@ -315,21 +315,11 @@ all =
                                 }
                         )
                     |> Tuple.first
-                    |> Application.update
-                        (Msgs.SubMsg 1 <|
-                            SubPage.Msgs.BuildMsg <|
-                                Build.Msgs.KeyPressed <|
-                                    Char.toCode 'T'
-                        )
+                    |> Application.update (Msgs.DeliveryReceived <| Msgs.KeyDown <| Char.toCode 'T')
                     |> Tuple.first
-                    |> Application.update (Msgs.KeyUp <| Char.toCode 'T')
+                    |> Application.update (Msgs.DeliveryReceived <| Msgs.KeyUp <| Char.toCode 'T')
                     |> Tuple.first
-                    |> Application.update
-                        (Msgs.SubMsg 1 <|
-                            SubPage.Msgs.BuildMsg <|
-                                Build.Msgs.KeyPressed <|
-                                    Char.toCode 'T'
-                        )
+                    |> Application.update (Msgs.DeliveryReceived <| Msgs.KeyDown <| Char.toCode 'T')
                     |> Tuple.second
                     |> Expect.equal
                         [ ( Effects.SubPage 1

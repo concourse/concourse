@@ -3245,25 +3245,25 @@ givenTextareaBlurred =
 
 givenControlKeyDown : Application.Model -> Application.Model
 givenControlKeyDown =
-    Application.update (Msgs.KeyDown 17)
+    Application.update (Msgs.DeliveryReceived <| Msgs.KeyDown 17)
         >> Tuple.first
 
 
 givenLeftCommandKeyDown : Application.Model -> Application.Model
 givenLeftCommandKeyDown =
-    Application.update (Msgs.KeyDown 91)
+    Application.update (Msgs.DeliveryReceived <| Msgs.KeyDown 91)
         >> Tuple.first
 
 
 givenRightCommandKeyDown : Application.Model -> Application.Model
 givenRightCommandKeyDown =
-    Application.update (Msgs.KeyDown 93)
+    Application.update (Msgs.DeliveryReceived <| Msgs.KeyDown 93)
         >> Tuple.first
 
 
 givenControlKeyUp : Application.Model -> Application.Model
 givenControlKeyUp =
-    Application.update (Msgs.KeyUp 17)
+    Application.update (Msgs.DeliveryReceived <| Msgs.KeyUp 17)
         >> Tuple.first
 
 
@@ -3271,7 +3271,7 @@ pressEnterKey :
     Application.Model
     -> ( Application.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
 pressEnterKey =
-    Application.update (Msgs.KeyDown 13)
+    Application.update (Msgs.DeliveryReceived <| Msgs.KeyDown 13)
 
 
 versionSelector : String -> List Selector
