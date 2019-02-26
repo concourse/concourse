@@ -1,7 +1,6 @@
 package accessor_test
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/concourse/concourse/atc/api/accessor"
@@ -45,6 +44,7 @@ var _ = Describe("Handler", func() {
 		BeforeEach(func() {
 
 			accessorHandler = accessor.NewHandler(dummyHandler, accessorFactory, "some-action", new(auditfakes.FakeAudit))
+
 		})
 
 		Context("when access factory return valid access object", func() {

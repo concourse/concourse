@@ -259,7 +259,6 @@ var _ = Describe("Scheduler", func() {
 			fakeResource      *dbfakes.FakeResource
 			triggerErr        error
 			nextPendingBuilds []db.Build
-			instigator        string
 		)
 
 		BeforeEach(func() {
@@ -269,7 +268,6 @@ var _ = Describe("Scheduler", func() {
 
 			fakeResource = new(dbfakes.FakeResource)
 			fakeResource.NameReturns("some-resource")
-			instigator = "test"
 		})
 
 		JustBeforeEach(func() {
@@ -284,7 +282,6 @@ var _ = Describe("Scheduler", func() {
 						Version:      atc.Version{"some": "version"},
 					},
 				},
-				instigator,
 			)
 			if waiter != nil {
 				waiter.Wait()

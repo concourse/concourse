@@ -94,20 +94,24 @@ type FakeAccess struct {
 }
 
 func (fake *FakeAccess) UserName() string {
-	fake.userNameMutex.Lock()
-	ret, specificReturn := fake.userNameReturnsOnCall[len(fake.userNameArgsForCall)]
-	fake.userNameArgsForCall = append(fake.userNameArgsForCall, struct {
-	}{})
-	fake.recordInvocation("UserName", []interface{}{})
-	fake.userNameMutex.Unlock()
-	if fake.UserNameStub != nil {
-		return fake.UserNameStub()
+	if fake != nil {
+		fake.userNameMutex.Lock()
+		ret, specificReturn := fake.userNameReturnsOnCall[len(fake.userNameArgsForCall)]
+		fake.userNameArgsForCall = append(fake.userNameArgsForCall, struct {
+		}{})
+		fake.recordInvocation("UserName", []interface{}{})
+		fake.userNameMutex.Unlock()
+		if fake.UserNameStub != nil {
+			return fake.UserNameStub()
+		}
+		if specificReturn {
+			return ret.result1
+		}
+		fakeReturns := fake.userNameReturns
+		return fakeReturns.result1
+	} else {
+		return ""
 	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.userNameReturns
-	return fakeReturns.result1
 }
 
 func (fake *FakeAccess) UserNameCallCount() int {
