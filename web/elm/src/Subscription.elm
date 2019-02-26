@@ -23,11 +23,11 @@ type Subscription m
     | OnMouseClick
     | OnKeyDown
     | OnKeyUp
-    | OnScrollFromWindowBottom (Scroll.FromBottom -> m)
-    | OnWindowResize (Window.Size -> m)
+    | OnScrollFromWindowBottom
+    | OnWindowResize
     | FromEventSource ( String, List String ) (EventSource.Msg -> m)
-    | OnNewUrl (String -> m)
-    | OnTokenReceived (Maybe String -> m)
+    | OnNonHrefLinkClicked
+    | OnTokenReceived
     | WhenPresent (Maybe (Subscription m))
 
 
@@ -52,20 +52,20 @@ runSubscription s =
         OnKeyUp ->
             Keyboard.ups (Msgs.DeliveryReceived << Msgs.KeyUp)
 
-        OnScrollFromWindowBottom m ->
-            Scroll.fromWindowBottom m
+        OnScrollFromWindowBottom ->
+            Scroll.fromWindowBottom (Msgs.DeliveryReceived << Msgs.ScrolledFromWindowBottom)
 
-        OnWindowResize m ->
-            Window.resizes m
+        OnWindowResize ->
+            Window.resizes (Msgs.DeliveryReceived << Msgs.WindowResized)
 
         FromEventSource key m ->
             EventSource.listen key m
 
-        OnNewUrl m ->
-            newUrl m
+        OnNonHrefLinkClicked ->
+            newUrl (Msgs.DeliveryReceived << Msgs.NonHrefLinkClicked)
 
-        OnTokenReceived m ->
-            tokenReceived m
+        OnTokenReceived ->
+            tokenReceived (Msgs.DeliveryReceived << Msgs.TokenReceived)
 
         WhenPresent (Just s) ->
             runSubscription s
@@ -95,20 +95,20 @@ map f s =
         OnKeyUp ->
             OnKeyUp
 
-        OnScrollFromWindowBottom m ->
-            OnScrollFromWindowBottom (m >> f)
+        OnScrollFromWindowBottom ->
+            OnScrollFromWindowBottom
 
-        OnWindowResize m ->
-            OnWindowResize (m >> f)
+        OnWindowResize ->
+            OnWindowResize
 
         FromEventSource key m ->
             FromEventSource key (m >> f)
 
-        OnNewUrl m ->
-            OnNewUrl (m >> f)
+        OnNonHrefLinkClicked ->
+            OnNonHrefLinkClicked
 
-        OnTokenReceived m ->
-            OnTokenReceived (m >> f)
+        OnTokenReceived ->
+            OnTokenReceived
 
         WhenPresent s ->
             WhenPresent (Maybe.map (map f) s)

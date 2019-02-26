@@ -15,7 +15,7 @@ type Msg
     | KeyPressed Keyboard.KeyCode
     | ToggleUserMenu
     | ShowSearchInput
-    | ResizeScreen Window.Size
+    | WindowResized Window.Size
     | TogglePinIconDropdown
     | GoToPinnedResource Routes.Route
     | Noop

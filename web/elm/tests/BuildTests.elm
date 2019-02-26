@@ -277,26 +277,7 @@ all =
                 initFromApplication
                     |> Application.handleCallback
                         (Effects.SubPage 1)
-                        (Callback.BuildFetched <|
-                            Ok
-                                ( 1
-                                , { id = 1
-                                  , name = "1"
-                                  , job =
-                                        Just
-                                            { teamName = "t"
-                                            , pipelineName = "p"
-                                            , jobName = "j"
-                                            }
-                                  , status = Concourse.BuildStatusStarted
-                                  , duration =
-                                        { startedAt = Nothing
-                                        , finishedAt = Nothing
-                                        }
-                                  , reapTime = Nothing
-                                  }
-                                )
-                        )
+                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived Msgs.AnimationFrameAdvanced)
                     |> Tuple.second
@@ -306,30 +287,37 @@ all =
                 initFromApplication
                     |> Application.handleCallback
                         (Effects.SubPage 1)
-                        (Callback.BuildFetched <|
-                            Ok
-                                ( 1
-                                , { id = 1
-                                  , name = "1"
-                                  , job =
-                                        Just
-                                            { teamName = "t"
-                                            , pipelineName = "p"
-                                            , jobName = "j"
-                                            }
-                                  , status = Concourse.BuildStatusSucceeded
-                                  , duration =
-                                        { startedAt = Nothing
-                                        , finishedAt = Nothing
-                                        }
-                                  , reapTime = Nothing
-                                  }
-                                )
-                        )
+                        (Callback.BuildFetched <| Ok ( 1, theBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived Msgs.AnimationFrameAdvanced)
                     |> Tuple.second
                     |> Expect.equal []
+        , test "when build is running but the user is not scrolled to the bottom it does not scroll on animation tick" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived (Msgs.ScrolledFromWindowBottom 187))
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived Msgs.AnimationFrameAdvanced)
+                    |> Tuple.second
+                    |> Expect.equal []
+        , test "when build is running but the user is scrolls back to the bottom it scrolls on animation tick" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived (Msgs.ScrolledFromWindowBottom 187))
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived (Msgs.ScrolledFromWindowBottom 0))
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived Msgs.AnimationFrameAdvanced)
+                    |> Tuple.second
+                    |> Expect.equal [ ( Effects.SubPage 1, Effects.Scroll Effects.ToWindowBottom ) ]
         , test "the page subscribes to animation ticks" <|
             \_ ->
                 pageLoad

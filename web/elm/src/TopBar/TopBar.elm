@@ -30,6 +30,10 @@ import Html.Styled.Attributes as HA
         )
 import Html.Styled.Events exposing (..)
 import Http
+import QueryString
+import RemoteData exposing (RemoteData)
+import Routes
+import ScreenSize exposing (ScreenSize(..))
 import TopBar.Model
     exposing
         ( Dropdown(..)
@@ -40,10 +44,6 @@ import TopBar.Model
         )
 import TopBar.Msgs exposing (Msg(..))
 import TopBar.Styles as Styles
-import QueryString
-import RemoteData exposing (RemoteData)
-import Routes
-import ScreenSize exposing (ScreenSize(..))
 import UserState exposing (UserState(..))
 import Window
 
@@ -377,7 +377,7 @@ update msg model =
                 _ ->
                     ( model, [] )
 
-        ResizeScreen size ->
+        WindowResized size ->
             ( screenResize size model, [] )
 
         GoToPinnedResource route ->

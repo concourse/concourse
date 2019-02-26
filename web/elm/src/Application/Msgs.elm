@@ -4,8 +4,10 @@ import Callback exposing (Callback)
 import Effects
 import Keyboard
 import Routes
+import Scroll
 import SubPage.Msgs
 import Time
+import Window
 
 
 type alias NavIndex =
@@ -15,15 +17,12 @@ type alias NavIndex =
 type Msg
     = RouteChanged Routes.Route
     | SubMsg NavIndex SubPage.Msgs.Msg
-    | NewUrl String
     | ModifyUrl Routes.Route
-    | TokenReceived (Maybe String)
     | Callback Effects.LayoutDispatch Callback
     | DeliveryReceived Delivery
 
 
 
--- NewUrl must be a String because of the subscriptions, and nasty type-contravariance. :(
 -- Everything below here needs to be moved to Subscriptions! Don't leave them here!
 
 
@@ -34,6 +33,14 @@ type Delivery
     | MouseClicked
     | ClockTicked Interval Time.Time
     | AnimationFrameAdvanced
+    | ScrolledFromWindowBottom Scroll.FromBottom
+    | WindowResized Window.Size
+    | NonHrefLinkClicked String
+    | TokenReceived (Maybe String)
+
+
+
+-- NonHrefLinkClicked must be a String because we can't parse it out too easily :(
 
 
 type Interval

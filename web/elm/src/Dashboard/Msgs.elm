@@ -4,7 +4,7 @@ import Concourse.Cli as Cli
 import Dashboard.Models as Models
 import Keyboard
 import Time
-import TopBar.Msgs as NTB
+import TopBar.Msgs
 import Window
 
 
@@ -22,21 +22,21 @@ type Msg
     | PipelineButtonHover (Maybe Models.Pipeline)
     | CliHover (Maybe Cli.Cli)
     | TopCliHover (Maybe Cli.Cli)
-    | ResizeScreen Window.Size
-    | FromTopBar NTB.Msg
+    | WindowResized Window.Size
+    | FromTopBar TopBar.Msgs.Msg
 
 
-fromDashboardMsg : Msg -> NTB.Msg
+fromDashboardMsg : Msg -> TopBar.Msgs.Msg
 fromDashboardMsg msg =
     case msg of
         KeyPressed k ->
-            NTB.KeyPressed k
+            TopBar.Msgs.KeyPressed k
 
-        ResizeScreen s ->
-            NTB.ResizeScreen s
+        WindowResized s ->
+            TopBar.Msgs.WindowResized s
 
         FromTopBar m ->
             m
 
         _ ->
-            NTB.Noop
+            TopBar.Msgs.Noop

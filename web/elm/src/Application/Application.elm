@@ -190,9 +190,6 @@ subpageHandleCallback model callback navIndex =
 update : Msg -> Model -> ( Model, List ( LayoutDispatch, Effect ) )
 update msg model =
     case msg of
-        NewUrl route ->
-            ( model, [ ( Layout, NavigateTo route ) ] )
-
         Msgs.ModifyUrl route ->
             ( model, [ ( Layout, Effects.ModifyUrl <| Routes.toString route ) ] )
 
@@ -217,27 +214,6 @@ update msg model =
 
             else
                 ( model, [] )
-
-        TokenReceived Nothing ->
-            ( model, [] )
-
-        TokenReceived (Just tokenValue) ->
-            let
-                ( newSubModel, subCmd ) =
-                    SubPage.update
-                        model.turbulenceImgSrc
-                        model.notFoundImgSrc
-                        tokenValue
-                        model.route
-                        (SubPage.Msgs.NewCSRFToken tokenValue)
-                        model.subModel
-            in
-            ( { model
-                | csrfToken = tokenValue
-                , subModel = newSubModel
-              }
-            , List.map (\ef -> ( SubPage anyNavIndex, ef )) subCmd
-            )
 
         Callback dispatch callback ->
             handleCallback dispatch callback model
@@ -454,6 +430,56 @@ handleDelivery delivery model =
                 _ ->
                     ( model, [] )
 
+        ScrolledFromWindowBottom distance ->
+            case model.subModel of
+                SubPage.BuildModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.BuildMsg <|
+                                Build.Msgs.WindowScrolled distance
+                        )
+                        model
+
+                _ ->
+                    ( model, [] )
+
+        WindowResized screenSize ->
+            case model.subModel of
+                SubPage.DashboardModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.DashboardMsg <|
+                                Dashboard.Msgs.WindowResized screenSize
+                        )
+                        model
+
+                _ ->
+                    ( model, [] )
+
+        NonHrefLinkClicked route ->
+            ( model, [ ( Layout, NavigateTo route ) ] )
+
+        TokenReceived Nothing ->
+            ( model, [] )
+
+        TokenReceived (Just tokenValue) ->
+            let
+                ( newSubModel, subCmd ) =
+                    SubPage.update
+                        model.turbulenceImgSrc
+                        model.notFoundImgSrc
+                        tokenValue
+                        model.route
+                        (SubPage.Msgs.NewCSRFToken tokenValue)
+                        model.subModel
+            in
+            ( { model
+                | csrfToken = tokenValue
+                , subModel = newSubModel
+              }
+            , List.map (\ef -> ( SubPage anyNavIndex, ef )) subCmd
+            )
+
 
 redirectToLoginIfNecessary : Http.Error -> NavIndex -> List ( LayoutDispatch, Effect )
 redirectToLoginIfNecessary err navIndex =
@@ -521,8 +547,8 @@ view model =
 
 subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
-    [ OnNewUrl NewUrl
-    , OnTokenReceived TokenReceived
+    [ OnNonHrefLinkClicked
+    , OnTokenReceived
     ]
         ++ (SubPage.subscriptions model.subModel
                 |> List.map (Subscription.map (SubMsg model.navIndex))

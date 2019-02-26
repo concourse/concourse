@@ -127,7 +127,7 @@ init flags =
 subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
     [ OnClockTick OneSecond
-    , OnScrollFromWindowBottom WindowScrolled
+    , OnScrollFromWindowBottom
     , OnKeyDown
     , OnKeyUp
     , OnAnimationFrame
@@ -362,8 +362,8 @@ updateWithoutTopBar action model =
                 )
                 newModel
 
-        WindowScrolled fromBottom ->
-            if fromBottom == 0 then
+        WindowScrolled distanceFromBottom ->
+            if distanceFromBottom == 0 then
                 ( { model | autoScroll = True }, [] )
 
             else

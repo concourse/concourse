@@ -363,7 +363,7 @@ updateWithoutTopBar msg model =
         TopCliHover state ->
             ( { model | hoveredTopCliIcon = state }, [] )
 
-        ResizeScreen size ->
+        WindowResized size ->
             ( { model | screenSize = ScreenSize.fromWindowSize size }, [] )
 
         FromTopBar TopBar.Msgs.LogOut ->
@@ -383,7 +383,7 @@ subscriptions model =
     , OnMouseMove
     , OnMouseClick
     , OnKeyDown
-    , OnWindowResize Msgs.ResizeScreen
+    , OnWindowResize
     ]
 
 

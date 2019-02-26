@@ -1851,28 +1851,23 @@ all =
                         , test "when not running, status text shows age" <|
                             \_ ->
                                 initFromApplication
-                                    |> Application.handleCallback
-                                        (Effects.SubPage 1)
-                                        (Callback.APIDataFetched <|
-                                            Ok
-                                                ( 0
-                                                , { teams =
-                                                        [ { id = 0, name = "team" } ]
-                                                  , pipelines =
-                                                        [ onePipeline "team" ]
-                                                  , jobs =
-                                                        [ jobWithNameTransitionedAt
-                                                            "job"
-                                                            (Just 0)
-                                                            Concourse.BuildStatusSucceeded
-                                                        ]
-                                                  , resources = []
-                                                  , version = ""
-                                                  , user = Nothing
-                                                  }
-                                                )
+                                    |> givenDataUnauthenticatedFromApplication
+                                        (\u ->
+                                            { teams =
+                                                [ { id = 0, name = "team" } ]
+                                            , pipelines =
+                                                [ onePipeline "team" ]
+                                            , jobs =
+                                                [ jobWithNameTransitionedAt
+                                                    "job"
+                                                    (Just 0)
+                                                    Concourse.BuildStatusSucceeded
+                                                ]
+                                            , resources = []
+                                            , version = ""
+                                            , user = u
+                                            }
                                         )
-                                    |> Tuple.first
                                     |> afterSeconds 1
                                     |> Application.view
                                     |> Query.fromHtml
@@ -2209,11 +2204,15 @@ all =
                             ]
             , test "lays out children on two lines when view width is below 1230px" <|
                 \_ ->
-                    whenOnDashboard { highDensity = False }
-                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                        |> Dashboard.update (Msgs.ResizeScreen { width = 1229, height = 300 })
+                    initFromApplication
+                        |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> Application.update
+                            (Application.Msgs.DeliveryReceived <|
+                                Application.Msgs.WindowResized { width = 1229, height = 300 }
+                            )
                         |> Tuple.first
-                        |> queryView
+                        |> Application.view
+                        |> Query.fromHtml
                         |> Query.find [ id "dashboard-info" ]
                         |> Query.has
                             [ style
@@ -2300,11 +2299,15 @@ all =
                             |> Query.has [ style [ ( "display", "flex" ), ( "align-items", "center" ) ] ]
                 , test "the legend separator is gone when the window width is below 812px" <|
                     \_ ->
-                        whenOnDashboard { highDensity = False }
-                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> Dashboard.update (Msgs.ResizeScreen { width = 800, height = 300 })
+                        initFromApplication
+                            |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> Application.update
+                                (Application.Msgs.DeliveryReceived <|
+                                    Application.Msgs.WindowResized { width = 800, height = 300 }
+                                )
                             |> Tuple.first
-                            |> queryView
+                            |> Application.view
+                            |> Query.fromHtml
                             |> Query.find [ id "legend" ]
                             |> Expect.all
                                 [ Query.hasNot [ text "|" ]
@@ -2312,11 +2315,15 @@ all =
                                 ]
                 , test "legend items wrap when window width is below 812px" <|
                     \_ ->
-                        whenOnDashboard { highDensity = False }
-                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> Dashboard.update (Msgs.ResizeScreen { width = 800, height = 300 })
+                        initFromApplication
+                            |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> Application.update
+                                (Application.Msgs.DeliveryReceived <|
+                                    Application.Msgs.WindowResized { width = 800, height = 300 }
+                                )
                             |> Tuple.first
-                            |> queryView
+                            |> Application.view
+                            |> Query.fromHtml
                             |> Query.find [ id "legend" ]
                             |> Query.has
                                 [ style [ ( "flex-wrap", "wrap" ) ]
@@ -2739,9 +2746,7 @@ all =
             , test "hides after 6 seconds" <|
                 \_ ->
                     initFromApplication
-                        |> Application.handleCallback (Effects.SubPage 1)
-                            (Callback.APIDataFetched (Ok ( 0, apiData [ ( "team", [ "pipeline" ] ) ] Nothing )))
-                        |> Tuple.first
+                        |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> afterSeconds 6
                         |> Application.view
                         |> Query.fromHtml
@@ -2749,9 +2754,7 @@ all =
             , test "reappears on mouse motion" <|
                 \_ ->
                     initFromApplication
-                        |> Application.handleCallback (Effects.SubPage 1)
-                            (Callback.APIDataFetched (Ok ( 0, apiData [ ( "team", [ "pipeline" ] ) ] Nothing )))
-                        |> Tuple.first
+                        |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> afterSeconds 6
                         |> Application.update
                             (Application.Msgs.DeliveryReceived Application.Msgs.MouseMoved)
@@ -2762,9 +2765,7 @@ all =
             , test "reappears on mouse click" <|
                 \_ ->
                     initFromApplication
-                        |> Application.handleCallback (Effects.SubPage 1)
-                            (Callback.APIDataFetched (Ok ( 0, apiData [ ( "team", [ "pipeline" ] ) ] Nothing )))
-                        |> Tuple.first
+                        |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> afterSeconds 6
                         |> Application.update
                             (Application.Msgs.DeliveryReceived Application.Msgs.MouseClicked)
@@ -2944,6 +2945,17 @@ userWithRoles roles =
     , teams =
         Dict.fromList roles
     }
+
+
+givenDataUnauthenticatedFromApplication :
+    (Maybe Concourse.User -> APIData.APIData)
+    -> Application.Model
+    -> Application.Model
+givenDataUnauthenticatedFromApplication data =
+    Application.handleCallback
+        (Effects.SubPage 1)
+        (Callback.APIDataFetched <| Ok ( 0, data Nothing ))
+        >> Tuple.first
 
 
 givenDataUnauthenticated : (Maybe Concourse.User -> APIData.APIData) -> Dashboard.Model -> Dashboard.Model
