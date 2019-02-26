@@ -12,6 +12,7 @@ module Resource.Resource exposing
     , viewVersionHeader
     )
 
+import Application.Msgs exposing (Interval(..))
 import Callback exposing (Callback(..))
 import Colors
 import Concourse
@@ -459,7 +460,7 @@ handleCallbackWithoutTopBar action model =
 update : Msg -> Model -> ( Model, List Effect )
 update action model =
     case action of
-        AutoupdateTimerTicked timestamp ->
+        AutoupdateTimerTicked ->
             ( model
             , [ FetchResource model.resourceIdentifier
               , FetchVersionedResources model.resourceIdentifier model.currentPage
@@ -1609,7 +1610,7 @@ viewLastChecked now date =
         ago =
             Duration.between (Date.toTime date) now
     in
-    Html.table []
+    Html.table [ id "last-checked" ]
         [ Html.tr
             []
             [ Html.td [] [ Html.text "checked" ]
@@ -1672,8 +1673,8 @@ fetchDataForExpandedVersions model =
 
 subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
-    [ OnClockTick (5 * Time.second) AutoupdateTimerTicked
-    , OnClockTick Time.second ClockTick
+    [ OnClockTick Application.Msgs.FiveSeconds
+    , OnClockTick Application.Msgs.OneSecond
     , OnKeyDown
     , OnKeyUp
     ]

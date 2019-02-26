@@ -9,13 +9,14 @@ module Application.Application exposing
     , view
     )
 
-import Application.Msgs as Msgs exposing (Delivery(..), Msg(..), NavIndex)
+import Application.Msgs as Msgs exposing (Delivery(..), Interval(..), Msg(..), NavIndex)
 import Build.Msgs
 import Callback exposing (Callback(..))
 import Dashboard.Msgs
 import Effects exposing (Effect(..), LayoutDispatch(..))
 import Html exposing (Html)
 import Http
+import Job.Msgs
 import Navigation
 import Pipeline.Msgs
 import Resource.Msgs
@@ -343,6 +344,110 @@ handleDelivery delivery model =
                         (SubMsg model.navIndex <|
                             SubPage.Msgs.PipelineMsg <|
                                 Pipeline.Msgs.ShowLegend
+                        )
+                        model
+
+                _ ->
+                    ( model, [] )
+
+        ClockTicked interval time ->
+            case ( interval, model.subModel ) of
+                ( OneSecond, SubPage.ResourceModel _ ) ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.ResourceMsg <|
+                                Resource.Msgs.ClockTick time
+                        )
+                        model
+
+                ( OneSecond, SubPage.PipelineModel _ ) ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.PipelineMsg <|
+                                Pipeline.Msgs.HideLegendTimerTicked time
+                        )
+                        model
+
+                ( OneSecond, SubPage.JobModel _ ) ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.JobMsg <|
+                                Job.Msgs.ClockTick time
+                        )
+                        model
+
+                ( OneSecond, SubPage.DashboardModel _ ) ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.DashboardMsg <|
+                                Dashboard.Msgs.ClockTick time
+                        )
+                        model
+
+                ( OneSecond, SubPage.BuildModel _ ) ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.BuildMsg <|
+                                Build.Msgs.ClockTick time
+                        )
+                        model
+
+                ( OneSecond, _ ) ->
+                    ( model, [] )
+
+                ( FiveSeconds, SubPage.ResourceModel _ ) ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.ResourceMsg <|
+                                Resource.Msgs.AutoupdateTimerTicked
+                        )
+                        model
+
+                ( FiveSeconds, SubPage.PipelineModel _ ) ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.PipelineMsg <|
+                                Pipeline.Msgs.AutoupdateTimerTicked
+                        )
+                        model
+
+                ( FiveSeconds, SubPage.JobModel _ ) ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.JobMsg <|
+                                Job.Msgs.SubscriptionTick
+                        )
+                        model
+
+                ( FiveSeconds, SubPage.DashboardModel _ ) ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.DashboardMsg <|
+                                Dashboard.Msgs.AutoRefresh
+                        )
+                        model
+
+                ( FiveSeconds, _ ) ->
+                    ( model, [] )
+
+                ( OneMinute, SubPage.PipelineModel _ ) ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.PipelineMsg <|
+                                Pipeline.Msgs.AutoupdateVersionTicked
+                        )
+                        model
+
+                ( OneMinute, _ ) ->
+                    ( model, [] )
+
+        AnimationFrameAdvanced ->
+            case model.subModel of
+                SubPage.BuildModel _ ->
+                    update
+                        (SubMsg model.navIndex <|
+                            SubPage.Msgs.BuildMsg <|
+                                Build.Msgs.ScrollDown
                         )
                         model
 

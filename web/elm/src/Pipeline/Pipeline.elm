@@ -10,6 +10,7 @@ module Pipeline.Pipeline exposing
     , view
     )
 
+import Application.Msgs exposing (Interval(..))
 import Callback exposing (Callback(..))
 import Char
 import Colors
@@ -238,13 +239,13 @@ update msg model =
                 []
             )
 
-        AutoupdateTimerTicked timestamp ->
+        AutoupdateTimerTicked ->
             ( model, [ FetchPipeline model.pipelineLocator ] )
 
         PipelineIdentifierFetched pipelineIdentifier ->
             ( model, [ FetchPipeline pipelineIdentifier ] )
 
-        AutoupdateVersionTicked _ ->
+        AutoupdateVersionTicked ->
             ( model, [ FetchVersion ] )
 
         ToggleGroup group ->
@@ -275,9 +276,9 @@ getPinnedResources model =
 
 subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
-    [ OnClockTick (1 * Time.minute) AutoupdateVersionTicked
-    , OnClockTick (5 * Time.second) AutoupdateTimerTicked
-    , OnClockTick timeUntilHiddenCheckInterval HideLegendTimerTicked
+    [ OnClockTick OneMinute
+    , OnClockTick FiveSeconds
+    , OnClockTick OneSecond
     , OnMouseMove
     , OnMouseClick
     , OnKeyDown

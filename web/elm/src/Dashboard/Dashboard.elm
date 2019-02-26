@@ -7,6 +7,7 @@ module Dashboard.Dashboard exposing
     , view
     )
 
+import Application.Msgs exposing (Interval(..))
 import Callback exposing (Callback(..))
 import Char
 import Concourse
@@ -252,7 +253,7 @@ updateWithoutTopBar msg model =
             , []
             )
 
-        AutoRefresh _ ->
+        AutoRefresh ->
             ( model, [ FetchData ] )
 
         KeyPressed keycode ->
@@ -377,8 +378,8 @@ updateWithoutTopBar msg model =
 
 subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
-    [ OnClockTick Time.second ClockTick
-    , OnClockTick (5 * Time.second) AutoRefresh
+    [ OnClockTick OneSecond
+    , OnClockTick FiveSeconds
     , OnMouseMove
     , OnMouseClick
     , OnKeyDown

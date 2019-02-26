@@ -9,6 +9,7 @@ module Build.Build exposing
     , view
     )
 
+import Application.Msgs exposing (Interval(..))
 import Build.Models as Models
     exposing
         ( BuildPageType(..)
@@ -125,13 +126,11 @@ init flags =
 
 subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
-    [ OnClockTick Time.second ClockTick
+    [ OnClockTick OneSecond
     , OnScrollFromWindowBottom WindowScrolled
     , OnKeyDown
     , OnKeyUp
-    , Conditionally
-        (getScrollBehavior model /= NoScroll)
-        (OnAnimationFrame ScrollDown)
+    , OnAnimationFrame
     , model.currentBuild
         |> RemoteData.toMaybe
         |> Maybe.andThen .output

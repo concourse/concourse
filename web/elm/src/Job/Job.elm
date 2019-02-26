@@ -10,6 +10,7 @@ module Job.Job exposing
     , view
     )
 
+import Application.Msgs exposing (Interval(..))
 import Build.Styles as Styles
 import BuildDuration
 import Callback exposing (Callback(..))
@@ -273,7 +274,7 @@ update action model =
         NavTo route ->
             ( model, [ NavigateTo <| Routes.toString route ] )
 
-        SubscriptionTick time ->
+        SubscriptionTick ->
             ( model
             , [ FetchJobBuilds model.jobIdentifier model.currentPage
               , FetchJob model.jobIdentifier
@@ -760,6 +761,6 @@ viewVersion version =
 
 subscriptions : Model -> List (Subscription Msg)
 subscriptions model =
-    [ OnClockTick (5 * Time.second) SubscriptionTick
-    , OnClockTick (1 * Time.second) ClockTick
+    [ OnClockTick FiveSeconds
+    , OnClockTick OneSecond
     ]

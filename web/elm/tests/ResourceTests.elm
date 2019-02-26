@@ -13,6 +13,7 @@ import DashboardTests
         , iconSelector
         , middleGrey
         )
+import Date
 import Dict
 import Effects
 import Expect exposing (..)
@@ -36,6 +37,7 @@ import Test.Html.Selector
         , tag
         , text
         )
+import Time
 import UserState exposing (UserState(..))
 
 
@@ -184,6 +186,34 @@ all =
                     >> Expect.equal
                         [ ( Effects.SubPage 1, Effects.NavigateTo "/" ) ]
             ]
+        , test "subscribes to the five second interval" <|
+            \_ ->
+                init
+                    |> Application.subscriptions
+                    |> List.member (Subscription.OnClockTick Msgs.FiveSeconds)
+                    |> Expect.true "not subscribed to the five second interval?"
+        , test "autorefreshes resource and versions every 5 seconds" <|
+            \_ ->
+                init
+                    |> Application.update (Msgs.DeliveryReceived (Msgs.ClockTicked Msgs.FiveSeconds 0))
+                    |> Tuple.second
+                    |> Expect.equal
+                        [ ( Effects.SubPage 1
+                          , Effects.FetchResource
+                                { resourceName = resourceName
+                                , pipelineName = pipelineName
+                                , teamName = teamName
+                                }
+                          )
+                        , ( Effects.SubPage 1
+                          , Effects.FetchVersionedResources
+                                { resourceName = resourceName
+                                , pipelineName = pipelineName
+                                , teamName = teamName
+                                }
+                                Nothing
+                          )
+                        ]
         , test "autorefresh respects expanded state" <|
             \_ ->
                 init
@@ -2934,6 +2964,31 @@ all =
                             |> Event.simulate Event.click
                             |> Event.toResult
                             |> Expect.err
+                , test "'last checked' time updates with clock ticks" <|
+                    \_ ->
+                        init
+                            |> handleCallback
+                                (Callback.ResourceFetched <|
+                                    Ok
+                                        { teamName = teamName
+                                        , pipelineName = pipelineName
+                                        , name = resourceName
+                                        , failingToCheck = False
+                                        , checkError = ""
+                                        , checkSetupError = ""
+                                        , lastChecked = Just (Date.fromTime 0)
+                                        , pinnedVersion = Nothing
+                                        , pinnedInConfig = False
+                                        , pinComment = Nothing
+                                        }
+                                )
+                            |> Tuple.first
+                            |> Application.update
+                                (Msgs.DeliveryReceived <| Msgs.ClockTicked Msgs.OneSecond (2 * Time.second))
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ id "last-checked" ]
+                            |> Query.has [ text "2s ago" ]
                 ]
             , test "unsuccessful check shows a warning icon on the right" <|
                 \_ ->

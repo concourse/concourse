@@ -3,14 +3,14 @@ module Dashboard.Msgs exposing (Msg(..), fromDashboardMsg)
 import Concourse.Cli as Cli
 import Dashboard.Models as Models
 import Keyboard
-import TopBar.Msgs as NTB
 import Time
+import TopBar.Msgs as NTB
 import Window
 
 
 type Msg
     = ClockTick Time.Time
-    | AutoRefresh Time.Time
+    | AutoRefresh
     | ShowFooter
     | KeyPressed Keyboard.KeyCode
     | DragStart String Int

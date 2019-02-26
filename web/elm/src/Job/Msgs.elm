@@ -1,15 +1,15 @@
 module Job.Msgs exposing (Hoverable(..), Msg(..))
 
-import TopBar.Msgs
 import Routes
 import Time exposing (Time)
+import TopBar.Msgs
 
 
 type Msg
     = TriggerBuild
     | TogglePaused
     | NavTo Routes.Route
-    | SubscriptionTick Time
+    | SubscriptionTick
     | Hover Hoverable
     | ClockTick Time
     | FromTopBar TopBar.Msgs.Msg

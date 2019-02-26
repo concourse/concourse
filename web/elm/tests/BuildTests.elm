@@ -22,6 +22,7 @@ import Expect
 import Html.Attributes as Attr
 import Routes
 import SubPage.Msgs
+import Subscription
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -158,13 +159,13 @@ all =
                             }
                         )
                     )
-        in
-        [ test "converts URL hash to highlighted line in view" <|
-            \_ ->
+
+            initFromApplication : Application.Model
+            initFromApplication =
                 Application.init
                     { turbulenceImgSrc = ""
                     , notFoundImgSrc = ""
-                    , csrfToken = ""
+                    , csrfToken = "csrf_token"
                     , authToken = ""
                     , pipelineRunningKeyframes = ""
                     }
@@ -174,7 +175,30 @@ all =
                     , protocol = ""
                     , origin = ""
                     , port_ = ""
-                    , pathname = "/builds/1"
+                    , pathname = "/teams/t/pipelines/p/jobs/j/builds/1"
+                    , search = ""
+                    , hash = ""
+                    , username = ""
+                    , password = ""
+                    }
+                    |> Tuple.first
+        in
+        [ test "converts URL hash to highlighted line in view" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = "csrf_token"
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { href = ""
+                    , host = ""
+                    , hostname = ""
+                    , protocol = ""
+                    , origin = ""
+                    , port_ = ""
+                    , pathname = "/teams/t/pipelines/p/jobs/j/builds/1"
                     , search = ""
                     , hash = "#Lstepid:1"
                     , username = ""
@@ -248,28 +272,74 @@ all =
                         , containing [ text "log message" ]
                         ]
                     |> Query.has [ class "highlighted-line" ]
+        , test "when build is running it scrolls every animation tick" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 1
+                                  , name = "1"
+                                  , job =
+                                        Just
+                                            { teamName = "t"
+                                            , pipelineName = "p"
+                                            , jobName = "j"
+                                            }
+                                  , status = Concourse.BuildStatusStarted
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived Msgs.AnimationFrameAdvanced)
+                    |> Tuple.second
+                    |> Expect.equal [ ( Effects.SubPage 1, Effects.Scroll Effects.ToWindowBottom ) ]
+        , test "when build is not running it does not scroll on animation tick" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 1
+                                  , name = "1"
+                                  , job =
+                                        Just
+                                            { teamName = "t"
+                                            , pipelineName = "p"
+                                            , jobName = "j"
+                                            }
+                                  , status = Concourse.BuildStatusSucceeded
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived Msgs.AnimationFrameAdvanced)
+                    |> Tuple.second
+                    |> Expect.equal []
+        , test "the page subscribes to animation ticks" <|
+            \_ ->
+                pageLoad
+                    |> Tuple.first
+                    |> Build.subscriptions
+                    |> List.member Subscription.OnAnimationFrame
+                    |> Expect.true "build not subscribed to animation frames?"
         , test "pressing 'T' twice triggers two builds" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = "csrf_token"
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { href = ""
-                    , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/teams/t/pipelines/p/jobs/j/builds/1"
-                    , search = ""
-                    , hash = ""
-                    , username = ""
-                    , password = ""
-                    }
-                    |> Tuple.first
+                initFromApplication
                     |> Application.handleCallback
                         (Effects.SubPage 1)
                         (Callback.BuildFetched <|
@@ -434,23 +504,27 @@ all =
                     >> Query.has
                         [ style [ ( "display", "flex" ) ] ]
             , test "when less than 24h old, shows relative time since build" <|
-                givenBuildFetched
-                    >> Tuple.first
-                    >> Build.update (Build.Msgs.ClockTick (2 * Time.second))
-                    >> Tuple.first
-                    >> Build.view UserState.UserStateLoggedOut
-                    >> Query.fromHtml
-                    >> Query.find [ id "build-header" ]
-                    >> Query.has [ text "2s ago" ]
+                \_ ->
+                    initFromApplication
+                        |> Application.handleCallback (Effects.SubPage 1) (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        |> Tuple.first
+                        |> Application.update (Msgs.DeliveryReceived <| Msgs.ClockTicked Msgs.OneSecond (2 * Time.second))
+                        |> Tuple.first
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Query.find [ id "build-header" ]
+                        |> Query.has [ text "2s ago" ]
             , test "when at least 24h old, shows absolute time of build" <|
-                givenBuildFetched
-                    >> Tuple.first
-                    >> Build.update (Build.Msgs.ClockTick (24 * Time.hour))
-                    >> Tuple.first
-                    >> Build.view UserState.UserStateLoggedOut
-                    >> Query.fromHtml
-                    >> Query.find [ id "build-header" ]
-                    >> Query.hasNot [ text "1d" ]
+                \_ ->
+                    initFromApplication
+                        |> Application.handleCallback (Effects.SubPage 1) (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        |> Tuple.first
+                        |> Application.update (Msgs.DeliveryReceived <| Msgs.ClockTicked Msgs.OneSecond (24 * Time.hour))
+                        |> Tuple.first
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Query.find [ id "build-header" ]
+                        |> Query.hasNot [ text "1d" ]
             , test "header spreads out contents" <|
                 givenBuildFetched
                     >> Tuple.first

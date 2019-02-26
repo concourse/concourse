@@ -31,6 +31,7 @@ import Html.Styled as HS
 import List.Extra
 import Routes
 import SubPage.Msgs
+import Subscription
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -1849,27 +1850,32 @@ all =
                                         [ text "running" ]
                         , test "when not running, status text shows age" <|
                             \_ ->
-                                whenOnDashboard { highDensity = False }
-                                    |> givenDataUnauthenticated
-                                        (\u ->
-                                            { teams =
-                                                [ { id = 0, name = "team" } ]
-                                            , pipelines =
-                                                [ onePipeline "team" ]
-                                            , jobs =
-                                                [ jobWithNameTransitionedAt
-                                                    "job"
-                                                    (Just 0)
-                                                    Concourse.BuildStatusSucceeded
-                                                ]
-                                            , resources = []
-                                            , version = ""
-                                            , user = u
-                                            }
+                                initFromApplication
+                                    |> Application.handleCallback
+                                        (Effects.SubPage 1)
+                                        (Callback.APIDataFetched <|
+                                            Ok
+                                                ( 0
+                                                , { teams =
+                                                        [ { id = 0, name = "team" } ]
+                                                  , pipelines =
+                                                        [ onePipeline "team" ]
+                                                  , jobs =
+                                                        [ jobWithNameTransitionedAt
+                                                            "job"
+                                                            (Just 0)
+                                                            Concourse.BuildStatusSucceeded
+                                                        ]
+                                                  , resources = []
+                                                  , version = ""
+                                                  , user = Nothing
+                                                  }
+                                                )
                                         )
-                                    |> Dashboard.update (Msgs.ClockTick 1000)
                                     |> Tuple.first
-                                    |> queryView
+                                    |> afterSeconds 1
+                                    |> Application.view
+                                    |> Query.fromHtml
                                     |> findStatusText
                                     |> Query.has
                                         [ text "1s" ]
@@ -2732,48 +2738,21 @@ all =
                 ]
             , test "hides after 6 seconds" <|
                 \_ ->
-                    whenOnDashboard { highDensity = False }
-                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                        |> Dashboard.update (Msgs.ClockTick 1000)
-                        |> Tuple.first
-                        |> Dashboard.update (Msgs.ClockTick 1000)
-                        |> Tuple.first
-                        |> Dashboard.update (Msgs.ClockTick 1000)
-                        |> Tuple.first
-                        |> Dashboard.update (Msgs.ClockTick 1000)
-                        |> Tuple.first
-                        |> Dashboard.update (Msgs.ClockTick 1000)
-                        |> Tuple.first
-                        |> Dashboard.update (Msgs.ClockTick 1000)
-                        |> Tuple.first
-                        |> queryView
-                        |> Query.hasNot [ id "dashboard-info" ]
-            , test "reappears on mouse motion" <|
-                \_ ->
-                    Application.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = ""
-                        , csrfToken = ""
-                        , authToken = ""
-                        , pipelineRunningKeyframes = ""
-                        }
-                        { href = ""
-                        , host = ""
-                        , hostname = ""
-                        , protocol = ""
-                        , origin = ""
-                        , port_ = ""
-                        , pathname = "/"
-                        , search = ""
-                        , hash = ""
-                        , username = ""
-                        , password = ""
-                        }
-                        |> Tuple.first
+                    initFromApplication
                         |> Application.handleCallback (Effects.SubPage 1)
                             (Callback.APIDataFetched (Ok ( 0, apiData [ ( "team", [ "pipeline" ] ) ] Nothing )))
                         |> Tuple.first
-                        |> afterSeconds 7
+                        |> afterSeconds 6
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Query.hasNot [ id "dashboard-info" ]
+            , test "reappears on mouse motion" <|
+                \_ ->
+                    initFromApplication
+                        |> Application.handleCallback (Effects.SubPage 1)
+                            (Callback.APIDataFetched (Ok ( 0, apiData [ ( "team", [ "pipeline" ] ) ] Nothing )))
+                        |> Tuple.first
+                        |> afterSeconds 6
                         |> Application.update
                             (Application.Msgs.DeliveryReceived Application.Msgs.MouseMoved)
                         |> Tuple.first
@@ -2782,30 +2761,11 @@ all =
                         |> Query.has [ id "dashboard-info" ]
             , test "reappears on mouse click" <|
                 \_ ->
-                    Application.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = ""
-                        , csrfToken = ""
-                        , authToken = ""
-                        , pipelineRunningKeyframes = ""
-                        }
-                        { href = ""
-                        , host = ""
-                        , hostname = ""
-                        , protocol = ""
-                        , origin = ""
-                        , port_ = ""
-                        , pathname = "/"
-                        , search = ""
-                        , hash = ""
-                        , username = ""
-                        , password = ""
-                        }
-                        |> Tuple.first
+                    initFromApplication
                         |> Application.handleCallback (Effects.SubPage 1)
                             (Callback.APIDataFetched (Ok ( 0, apiData [ ( "team", [ "pipeline" ] ) ] Nothing )))
                         |> Tuple.first
-                        |> afterSeconds 7
+                        |> afterSeconds 6
                         |> Application.update
                             (Application.Msgs.DeliveryReceived Application.Msgs.MouseClicked)
                         |> Tuple.first
@@ -2813,6 +2773,25 @@ all =
                         |> Query.fromHtml
                         |> Query.has [ id "dashboard-info" ]
             ]
+        , test "subscribes to one and five second timers" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Dashboard.subscriptions
+                    |> Expect.all
+                        [ List.member (Subscription.OnClockTick Application.Msgs.OneSecond)
+                            >> Expect.true "doesn't have one second timer"
+                        , List.member (Subscription.OnClockTick Application.Msgs.FiveSeconds)
+                            >> Expect.true "doesn't have five second timer"
+                        ]
+        , test "auto refreshes data every five seconds" <|
+            \_ ->
+                initFromApplication
+                    |> Application.update
+                        (Application.Msgs.DeliveryReceived <|
+                            Application.Msgs.ClockTicked Application.Msgs.FiveSeconds 0
+                        )
+                    |> Tuple.second
+                    |> Expect.equal [ ( Effects.SubPage 1, Effects.FetchData ) ]
         ]
 
 
@@ -2827,6 +2806,30 @@ afterSeconds n =
             >> Tuple.first
         )
         |> List.foldr (>>) identity
+
+
+initFromApplication : Application.Model
+initFromApplication =
+    Application.init
+        { turbulenceImgSrc = ""
+        , notFoundImgSrc = ""
+        , csrfToken = ""
+        , authToken = ""
+        , pipelineRunningKeyframes = ""
+        }
+        { href = ""
+        , host = ""
+        , hostname = ""
+        , protocol = ""
+        , origin = ""
+        , port_ = ""
+        , pathname = "/"
+        , search = ""
+        , hash = ""
+        , username = ""
+        , password = ""
+        }
+        |> Tuple.first
 
 
 defineHoverBehaviour :

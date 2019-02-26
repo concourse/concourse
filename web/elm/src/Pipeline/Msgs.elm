@@ -2,13 +2,13 @@ module Pipeline.Msgs exposing (Msg(..))
 
 import Concourse
 import Keyboard
-import TopBar.Msgs
 import Time exposing (Time)
+import TopBar.Msgs
 
 
 type Msg
-    = AutoupdateVersionTicked Time
-    | AutoupdateTimerTicked Time
+    = AutoupdateVersionTicked
+    | AutoupdateTimerTicked
     | HideLegendTimerTicked Time
     | ShowLegend
     | KeyPressed Keyboard.KeyCode

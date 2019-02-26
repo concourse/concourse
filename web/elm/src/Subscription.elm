@@ -1,7 +1,7 @@
 port module Subscription exposing (Subscription(..), map, runSubscription)
 
 import AnimationFrame
-import Application.Msgs as Msgs exposing (Msg(..))
+import Application.Msgs as Msgs exposing (Interval, Msg(..))
 import EventSource.EventSource as EventSource
 import Keyboard
 import Mouse
@@ -17,8 +17,8 @@ port tokenReceived : (Maybe String -> msg) -> Sub msg
 
 
 type Subscription m
-    = OnClockTick Time.Time (Time.Time -> m)
-    | OnAnimationFrame m
+    = OnClockTick Interval
+    | OnAnimationFrame
     | OnMouseMove
     | OnMouseClick
     | OnKeyDown
@@ -28,18 +28,17 @@ type Subscription m
     | FromEventSource ( String, List String ) (EventSource.Msg -> m)
     | OnNewUrl (String -> m)
     | OnTokenReceived (Maybe String -> m)
-    | Conditionally Bool (Subscription m)
     | WhenPresent (Maybe (Subscription m))
 
 
 runSubscription : Subscription Msg -> Sub Msg
 runSubscription s =
     case s of
-        OnClockTick t m ->
-            Time.every t m
+        OnClockTick t ->
+            Time.every (Msgs.intervalToTime t) (Msgs.DeliveryReceived << Msgs.ClockTicked t)
 
-        OnAnimationFrame m ->
-            AnimationFrame.times (always m)
+        OnAnimationFrame ->
+            AnimationFrame.times (always (Msgs.DeliveryReceived Msgs.AnimationFrameAdvanced))
 
         OnMouseMove ->
             Mouse.moves (always (Msgs.DeliveryReceived Msgs.MouseMoved))
@@ -68,12 +67,6 @@ runSubscription s =
         OnTokenReceived m ->
             tokenReceived m
 
-        Conditionally True m ->
-            runSubscription m
-
-        Conditionally False m ->
-            Sub.none
-
         WhenPresent (Just s) ->
             runSubscription s
 
@@ -84,11 +77,11 @@ runSubscription s =
 map : (m -> n) -> Subscription m -> Subscription n
 map f s =
     case s of
-        OnClockTick t m ->
-            OnClockTick t (m >> f)
+        OnClockTick t ->
+            OnClockTick t
 
-        OnAnimationFrame m ->
-            OnAnimationFrame (f m)
+        OnAnimationFrame ->
+            OnAnimationFrame
 
         OnMouseMove ->
             OnMouseMove
@@ -116,9 +109,6 @@ map f s =
 
         OnTokenReceived m ->
             OnTokenReceived (m >> f)
-
-        Conditionally b m ->
-            Conditionally b (map f m)
 
         WhenPresent s ->
             WhenPresent (Maybe.map (map f) s)

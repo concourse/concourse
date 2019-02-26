@@ -12,6 +12,7 @@ import Pipeline.Msgs exposing (Msg(..))
 import Pipeline.Pipeline as Pipeline exposing (update)
 import Routes
 import SubPage.Msgs
+import Subscription
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -290,10 +291,38 @@ all =
                                         ]
                                     ]
                             ]
+            , test "pipeline subscribes to 1s, 5s, and 1m timers" <|
+                \_ ->
+                    init "/teams/team/pipelines/pipeline"
+                        |> Application.subscriptions
+                        |> Expect.all
+                            [ List.member (Subscription.OnClockTick Msgs.OneSecond) >> Expect.true "not on one second?"
+                            , List.member (Subscription.OnClockTick Msgs.FiveSeconds) >> Expect.true "not on five seconds?"
+                            , List.member (Subscription.OnClockTick Msgs.OneMinute) >> Expect.true "not on one minute?"
+                            ]
+            , test "on five second timer, refreshes pipeline" <|
+                \_ ->
+                    init "/teams/team/pipelines/pipeline"
+                        |> Application.update (Msgs.DeliveryReceived (Msgs.ClockTicked Msgs.FiveSeconds 0))
+                        |> Tuple.second
+                        |> Expect.equal
+                            [ ( Effects.SubPage 1
+                              , Effects.FetchPipeline
+                                    { teamName = "team"
+                                    , pipelineName = "pipeline"
+                                    }
+                              )
+                            ]
+            , test "in one minute timer, refreshes version" <|
+                \_ ->
+                    init "/teams/team/pipelines/pipeline"
+                        |> Application.update (Msgs.DeliveryReceived (Msgs.ClockTicked Msgs.OneMinute 0))
+                        |> Tuple.second
+                        |> Expect.equal [ ( Effects.SubPage 1, Effects.FetchVersion ) ]
             , describe "Legend" <|
                 let
                     clockTick =
-                        Application.update (Msgs.SubMsg 1 <| SubPage.Msgs.PipelineMsg <| HideLegendTimerTicked 0)
+                        Application.update (Msgs.DeliveryReceived (Msgs.ClockTicked Msgs.OneSecond 0))
                             >> Tuple.first
 
                     clockTickALot n =
