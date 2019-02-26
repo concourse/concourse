@@ -13,7 +13,7 @@ require (
 	github.com/Jeffail/gabs v1.1.0 // indirect
 	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
 	github.com/Microsoft/go-winio v0.4.11 // indirect
-	github.com/NYTimes/gziphandler v1.1.0
+	github.com/NYTimes/gziphandler v1.1.1
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/PuerkitoBio/purell v1.1.0 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
@@ -24,7 +24,7 @@ require (
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
 	github.com/asaskevich/govalidator v0.0.0-20180720115003-f9ffefc3facf // indirect
-	github.com/aws/aws-sdk-go v1.17.1
+	github.com/aws/aws-sdk-go v1.17.4
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
 	github.com/bmatcuk/doublestar v1.1.1 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
@@ -109,7 +109,7 @@ require (
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/lib/pq v0.0.0-20181016162627-9eb73efc1fcc
 	github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329 // indirect
-	github.com/mattn/go-colorable v0.1.0
+	github.com/mattn/go-colorable v0.1.1
 	github.com/mattn/go-isatty v0.0.4
 	github.com/mattn/go-runewidth v0.0.3 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
