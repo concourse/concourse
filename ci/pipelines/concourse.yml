@@ -314,15 +314,16 @@ jobs:
     - get: charts
       trigger: true
   - try:
-    task: delete
-    image: unit-image
-    file: concourse/ci/tasks/k8s-delete.yml
-    params:
-     KUBE_CONFIG: ((kube_config))
-     RELEASE_NAME: concourse-smoke
-     CONCOURSE_IMAGE: concourse/concourse-rc
+      task: try-delete
+      image: unit-image
+      file: concourse/ci/tasks/k8s-delete.yml
+      params:
+       KUBE_CONFIG: ((kube_config))
+       RELEASE_NAME: concourse-smoke
+       CONCOURSE_IMAGE: concourse/concourse-rc
   - task: deploy
     image: unit-image
+    input_mapping: {image-info: rc-image}
     file: concourse/ci/tasks/k8s-deploy.yml
     params:
       KUBE_CONFIG: ((kube_config))
