@@ -6,7 +6,7 @@ set -e -u
 readonly DIR=$(cd $(dirname $0) && pwd)
 
 export MAX_TICKS="${MAX_TICKS:-60}"
-export ATC_URL="${ATC_URL:-$(cat endpoint-info/instance_ip)}"
+export ATC_URL="${ATC_URL:-"http://$(cat endpoint-info/instance_ip):8080"}"
 
 if [ -e endpoint-info/admin_username ]; then
   export ATC_ADMIN_USERNAME="$(cat endpoint-info/admin_username)"
