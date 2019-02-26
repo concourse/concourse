@@ -7,6 +7,8 @@ import (
 
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/api/accessor"
+
 )
 
 func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
