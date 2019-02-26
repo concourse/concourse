@@ -1300,7 +1300,7 @@ func (cmd *RunCommand) constructAPIHandler(
 			checkWorkerTeamAccessHandlerFactory,
 		),
 		wrappa.NewConcourseVersionWrappa(concourse.Version),
-		wrappa.NewAccessorWrappa(accessFactory),
+		wrappa.NewAccessorWrappa(accessFactory, logger),
 	}
 
 	return api.NewHandler(
