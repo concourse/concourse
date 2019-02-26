@@ -1,6 +1,7 @@
 package accessor
 
 import (
+	"fmt"
 	"github.com/concourse/concourse/atc"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/mitchellh/mapstructure"
@@ -120,7 +121,13 @@ func (a *access) UserName() string {
 	if claims, ok := a.Token.Claims.(jwt.MapClaims); ok {
 		if userName, ok := claims["user_name"]; ok {
 			if userName, ok := userName.(string); ok {
+				fmt.Println(userName)
 				return userName
+			}
+		} else if systemName, ok := claims["system"]; ok {
+			if systemName == true {
+				fmt.Println("system")
+				return "system"
 			}
 		}
 	}
