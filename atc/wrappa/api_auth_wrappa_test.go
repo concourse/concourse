@@ -7,10 +7,9 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/wrappa"
-	"github.com/tedsuo/rata"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/tedsuo/rata"
 )
 
 var _ = Describe("APIAuthWrappa", func() {
@@ -155,11 +154,11 @@ var _ = Describe("APIAuthWrappa", func() {
 				// authorized or public pipeline
 				atc.GetBuild:       doesNotCheckIfPrivateJob(inputHandlers[atc.GetBuild]),
 				atc.BuildResources: doesNotCheckIfPrivateJob(inputHandlers[atc.BuildResources]),
-				atc.GetBuildPlan:   doesNotCheckIfPrivateJob(inputHandlers[atc.GetBuildPlan]),
 
 				// authorized or public pipeline and public job
 				atc.BuildEvents:         checksIfPrivateJob(inputHandlers[atc.BuildEvents]),
 				atc.GetBuildPreparation: checksIfPrivateJob(inputHandlers[atc.GetBuildPreparation]),
+				atc.GetBuildPlan:        checksIfPrivateJob(inputHandlers[atc.GetBuildPlan]),
 
 				// resource belongs to authorized team
 				atc.AbortBuild:              checkWritePermissionForBuild(inputHandlers[atc.AbortBuild]),

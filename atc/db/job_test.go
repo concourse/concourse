@@ -65,6 +65,10 @@ var _ = Describe("Job", func() {
 					Name: "some-other-job",
 				},
 				{
+					Name:   "some-private-job",
+					Public: false,
+				},
+				{
 					Name:         "other-serial-group-job",
 					SerialGroups: []string{"serial-group", "really-different-group"},
 				},
@@ -91,6 +95,32 @@ var _ = Describe("Job", func() {
 		job, found, err = pipeline.Job("some-job")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(found).To(BeTrue())
+	})
+
+	Describe("Public", func() {
+		Context("when the config has public set to true", func() {
+			It("returns true", func() {
+				Expect(job.Public()).To(BeTrue())
+			})
+		})
+
+		Context("when the config has public set to false", func() {
+			It("returns false", func() {
+				privateJob, found, err := pipeline.Job("some-private-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(privateJob.Public()).To(BeFalse())
+			})
+		})
+
+		Context("when the config does not have public set", func() {
+			It("returns false", func() {
+				otherJob, found, err := pipeline.Job("some-other-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(otherJob.Public()).To(BeFalse())
+			})
+		})
 	})
 
 	Describe("Pause and Unpause", func() {
