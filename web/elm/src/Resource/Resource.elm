@@ -3,6 +3,7 @@ module Resource.Resource exposing
     , changeToResource
     , getUpdateMessage
     , handleCallback
+    , handleDelivery
     , init
     , subscriptions
     , update
@@ -69,7 +70,7 @@ import Resource.Styles
 import Routes
 import Spinner
 import StrictEvents
-import Subscription exposing (Interval(..), Subscription(..))
+import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Time exposing (Time)
 import TopBar.Model
 import TopBar.Styles
@@ -465,10 +466,41 @@ handleCallbackWithoutTopBar action model =
             ( model, [] )
 
 
-update : Msg -> Model -> ( Model, List Effect )
-update action model =
-    case action of
-        AutoupdateTimerTicked ->
+handleDelivery : Delivery -> Model -> ( Model, List Effect )
+handleDelivery delivery model =
+    case delivery of
+        KeyDown keycode ->
+            if Keycodes.isControlModifier keycode then
+                ( { model | ctrlDown = True }, [] )
+
+            else if keycode == Keycodes.enter && model.ctrlDown && model.textAreaFocused then
+                ( model
+                , case model.pinnedVersion of
+                    PinnedDynamicallyTo { comment } _ ->
+                        [ SetPinComment
+                            model.resourceIdentifier
+                            model.csrfToken
+                            comment
+                        ]
+
+                    _ ->
+                        []
+                )
+
+            else
+                ( model, [] )
+
+        KeyUp keycode ->
+            if Keycodes.isControlModifier keycode then
+                ( { model | ctrlDown = False }, [] )
+
+            else
+                ( model, [] )
+
+        ClockTicked OneSecond time ->
+            ( { model | now = Just time }, [] )
+
+        ClockTicked FiveSeconds _ ->
             ( model
             , [ FetchResource model.resourceIdentifier
               , FetchVersionedResources model.resourceIdentifier model.currentPage
@@ -476,6 +508,16 @@ update action model =
                 ++ fetchDataForExpandedVersions model
             )
 
+        TokenReceived (Just tokenValue) ->
+            ( { model | csrfToken = tokenValue }, [] )
+
+        _ ->
+            ( model, [] )
+
+
+update : Msg -> Model -> ( Model, List Effect )
+update action model =
+    case action of
         LoadPage page ->
             ( { model
                 | currentPage = Just page
@@ -517,9 +559,6 @@ update action model =
               else
                 []
             )
-
-        ClockTick now ->
-            ( { model | now = Just now }, [] )
 
         NavTo route ->
             ( model, [ NavigateTo <| Routes.toString route ] )
@@ -654,39 +693,6 @@ update action model =
             ( { model | pinCommentLoading = True }
             , [ SetPinComment model.resourceIdentifier model.csrfToken comment ]
             )
-
-        KeyUps code ->
-            if Keycodes.isControlModifier code then
-                ( { model | ctrlDown = False }, [] )
-
-            else
-                ( model, [] )
-
-        KeyDowns code ->
-            if Keycodes.isControlModifier code then
-                ( { model | ctrlDown = True }, [] )
-
-            else if
-                code
-                    == Keycodes.enter
-                    && model.ctrlDown
-                    && model.textAreaFocused
-            then
-                ( model
-                , case model.pinnedVersion of
-                    PinnedDynamicallyTo { comment } _ ->
-                        [ SetPinComment
-                            model.resourceIdentifier
-                            model.csrfToken
-                            comment
-                        ]
-
-                    _ ->
-                        []
-                )
-
-            else
-                ( model, [] )
 
         FocusTextArea ->
             ( { model | textAreaFocused = True }, [] )

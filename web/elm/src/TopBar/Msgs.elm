@@ -11,11 +11,7 @@ type Msg
     | FilterMsg String
     | FocusMsg
     | BlurMsg
-    | KeyDown Keyboard.KeyCode
-    | KeyPressed Keyboard.KeyCode
     | ToggleUserMenu
     | ShowSearchInput
-    | WindowResized Window.Size
     | TogglePinIconDropdown
     | GoToPinnedResource Routes.Route
-    | Noop

@@ -1181,12 +1181,12 @@ all =
                             >> Query.count (Expect.equal 0)
                     , test "1 second after hovering, tooltip appears" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> Build.update (Build.Msgs.ClockTick 0)
+                            >> Build.handleDelivery (ClockTicked OneSecond 0)
                             >> Tuple.first
                             >> Build.update
                                 (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
-                            >> Build.update (Build.Msgs.ClockTick 1)
+                            >> Build.handleDelivery (ClockTicked OneSecond 1)
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1254,12 +1254,12 @@ all =
                                 (Build.Msgs.Hover Nothing)
                     , test "unhovering after tooltip appears dismisses" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> Build.update (Build.Msgs.ClockTick 0)
+                            >> Build.handleDelivery (ClockTicked OneSecond 0)
                             >> Tuple.first
                             >> Build.update
                                 (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
-                            >> Build.update (Build.Msgs.ClockTick 1)
+                            >> Build.handleDelivery (ClockTicked OneSecond 1)
                             >> Tuple.first
                             >> Build.update (Build.Msgs.Hover Nothing)
                             >> Tuple.first
@@ -1277,11 +1277,11 @@ all =
                     ]
                 , test "hovering one resource of several produces only a single tooltip" <|
                     fetchPlanWithGetStepWithFirstOccurrence
-                        >> Build.update (Build.Msgs.ClockTick 0)
+                        >> Build.handleDelivery (ClockTicked OneSecond 0)
                         >> Tuple.first
                         >> Build.update (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                         >> Tuple.first
-                        >> Build.update (Build.Msgs.ClockTick 1)
+                        >> Build.handleDelivery (ClockTicked OneSecond 1)
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
@@ -1289,19 +1289,17 @@ all =
                         >> Query.count (Expect.equal 1)
                 , test "successful step has a checkmark at the far right" <|
                     fetchPlanWithGetStep
-                        >> Build.update (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
+                        >> Build.handleDelivery (EventReceived EventSource.Opened)
                         >> Tuple.first
-                        >> Build.update
-                            (Build.Msgs.BuildEventsMsg <|
-                                Build.Msgs.Events <|
-                                    Ok <|
-                                        Array.fromList
-                                            [ Models.FinishGet
-                                                { source = "stdout", id = "plan" }
-                                                0
-                                                Dict.empty
-                                                []
-                                            ]
+                        >> Build.handleDelivery
+                            (EventReceived <|
+                                EventSource.Events <|
+                                    Array.fromList
+                                        [ { lastEventId = Nothing
+                                          , name = Just "event"
+                                          , data = "{\"data\":{\"origin\":{\"source\":\"stdout\",\"id\":\"plan\"},\"exit_status\":0},\"event\":\"finish-get\"}"
+                                          }
+                                        ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1318,19 +1316,17 @@ all =
                             )
                 , test "get step lists resource version on the right" <|
                     fetchPlanWithGetStep
-                        >> Build.update (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
+                        >> Build.handleDelivery (EventReceived EventSource.Opened)
                         >> Tuple.first
-                        >> Build.update
-                            (Build.Msgs.BuildEventsMsg <|
-                                Build.Msgs.Events <|
-                                    Ok <|
-                                        Array.fromList
-                                            [ Models.FinishGet
-                                                { source = "stdout", id = "plan" }
-                                                0
-                                                (Dict.fromList [ ( "version", "v3.1.4" ) ])
-                                                []
-                                            ]
+                        >> Build.handleDelivery
+                            (EventReceived <|
+                                EventSource.Events <|
+                                    Array.fromList
+                                        [ { lastEventId = Nothing
+                                          , name = Just "event"
+                                          , data = "{\"data\":{\"origin\":{\"source\":\"stdout\",\"id\":\"plan\"},\"exit_status\":0,\"version\":{\"version\":\"v3.1.4\"}},\"event\":\"finish-get\"}"
+                                          }
+                                        ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1341,16 +1337,15 @@ all =
                         >> Query.has [ text "v3.1.4" ]
                 , test "running step has loading spinner at the right" <|
                     fetchPlanWithTaskStep
-                        >> Build.update
-                            (Build.Msgs.BuildEventsMsg <|
-                                Build.Msgs.Events <|
-                                    Ok <|
-                                        Array.fromList
-                                            [ Models.StartTask
-                                                { source = "stdout"
-                                                , id = "plan"
-                                                }
-                                            ]
+                        >> Build.handleDelivery
+                            (EventReceived <|
+                                EventSource.Events <|
+                                    Array.fromList
+                                        [ { lastEventId = Nothing
+                                          , name = Just "event"
+                                          , data = "{\"data\":{\"origin\":{\"source\":\"stdout\",\"id\":\"plan\"}},\"event\":\"start-task\"}"
+                                          }
+                                        ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1367,19 +1362,17 @@ all =
                             ]
                 , test "failing step has an X at the far right" <|
                     fetchPlanWithGetStep
-                        >> Build.update (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
+                        >> Build.handleDelivery (EventReceived EventSource.Opened)
                         >> Tuple.first
-                        >> Build.update
-                            (Build.Msgs.BuildEventsMsg <|
-                                Build.Msgs.Events <|
-                                    Ok <|
-                                        Array.fromList
-                                            [ Models.FinishGet
-                                                { source = "stdout", id = "plan" }
-                                                1
-                                                Dict.empty
-                                                []
-                                            ]
+                        >> Build.handleDelivery
+                            (EventReceived <|
+                                EventSource.Events <|
+                                    Array.fromList
+                                        [ { lastEventId = Nothing
+                                          , name = Just "event"
+                                          , data = "{\"data\":{\"origin\":{\"source\":\"stdout\",\"id\":\"plan\"},\"exit_status\":1},\"event\":\"finish-get\"}"
+                                          }
+                                        ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1396,17 +1389,17 @@ all =
                             )
                 , test "erroring step has orange exclamation triangle at right" <|
                     fetchPlanWithGetStep
-                        >> Build.update (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
+                        >> Build.handleDelivery (EventReceived EventSource.Opened)
                         >> Tuple.first
-                        >> Build.update
-                            (Build.Msgs.BuildEventsMsg <|
-                                Build.Msgs.Events <|
-                                    Ok <|
-                                        Array.fromList
-                                            [ Models.Error
-                                                { source = "stderr", id = "plan" }
-                                                "error message"
-                                            ]
+                        >> Build.handleDelivery
+                            (EventReceived <|
+                                EventSource.Events <|
+                                    Array.fromList
+                                        [ { lastEventId = Nothing
+                                          , name = Just "event"
+                                          , data = "{\"data\":{\"origin\":{\"source\":\"stderr\",\"id\":\"plan\"},\"message\":\"error message\"},\"event\":\"error\"}"
+                                          }
+                                        ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1426,20 +1419,20 @@ all =
                         erroringBuild : () -> Models.Model
                         erroringBuild =
                             fetchPlanWithGetStep
-                                >> Build.update
-                                    (Build.Msgs.BuildEventsMsg Build.Msgs.Errored)
+                                >> Build.handleDelivery (EventReceived EventSource.Errored)
                                 >> Tuple.first
                     in
                     [ test "has orange exclamation triangle at left" <|
                         erroringBuild
-                            >> Build.update
-                                (Build.Msgs.BuildEventsMsg <|
-                                    Build.Msgs.Events <|
-                                        Ok <|
-                                            Array.fromList
-                                                [ Models.BuildError
-                                                    "error message"
-                                                ]
+                            >> Build.handleDelivery
+                                (EventReceived <|
+                                    EventSource.Events <|
+                                        Array.fromList
+                                            [ { lastEventId = Nothing
+                                              , name = Just "event"
+                                              , data = "{\"data\":{\"message\":\"error message\"},\"event\":\"error\"}"
+                                              }
+                                            ]
                                 )
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut

@@ -4,6 +4,7 @@ module Job.Job exposing
     , changeToJob
     , getUpdateMessage
     , handleCallback
+    , handleDelivery
     , init
     , subscriptions
     , update
@@ -50,7 +51,7 @@ import LoadingIndicator
 import RemoteData exposing (WebData)
 import Routes
 import StrictEvents exposing (onLeftClick)
-import Subscription exposing (Interval(..), Subscription(..))
+import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Time exposing (Time)
 import TopBar.Model
 import TopBar.Styles
@@ -253,6 +254,26 @@ handleCallbackWithoutTopBar callback model =
             ( model, [] )
 
 
+handleDelivery : Delivery -> Model -> ( Model, List Effect )
+handleDelivery delivery model =
+    case delivery of
+        ClockTicked OneSecond time ->
+            ( { model | now = time }, [] )
+
+        ClockTicked FiveSeconds time ->
+            ( model
+            , [ FetchJobBuilds model.jobIdentifier model.currentPage
+              , FetchJob model.jobIdentifier
+              ]
+            )
+
+        TokenReceived (Just tokenValue) ->
+            ( { model | csrfToken = tokenValue }, [] )
+
+        _ ->
+            ( model, [] )
+
+
 update : Msg -> Model -> ( Model, List Effect )
 update action model =
     case action of
@@ -280,18 +301,8 @@ update action model =
         NavTo route ->
             ( model, [ NavigateTo <| Routes.toString route ] )
 
-        SubscriptionTick ->
-            ( model
-            , [ FetchJobBuilds model.jobIdentifier model.currentPage
-              , FetchJob model.jobIdentifier
-              ]
-            )
-
         Hover hoverable ->
             ( { model | hovered = hoverable }, [] )
-
-        ClockTick now ->
-            ( { model | now = now }, [] )
 
         FromTopBar m ->
             let

@@ -1,6 +1,7 @@
 module SubPage.SubPage exposing
     ( Model(..)
     , handleCallback
+    , handleDelivery
     , handleNotFound
     , init
     , subscriptions
@@ -11,7 +12,6 @@ module SubPage.SubPage exposing
 
 import Build.Build as Build
 import Build.Models
-import Build.Msgs
 import Callback exposing (Callback)
 import Concourse
 import Dashboard.Dashboard as Dashboard
@@ -26,7 +26,7 @@ import Resource.Models
 import Resource.Resource as Resource
 import Routes
 import SubPage.Msgs exposing (Msg(..))
-import Subscription exposing (Subscription)
+import Subscription exposing (Delivery(..), Interval(..), Subscription)
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
 
@@ -175,6 +175,45 @@ handleCallback csrfToken callback model =
                 |> Tuple.mapFirst NotFoundModel
 
 
+handleDelivery :
+    String
+    -> Routes.Route
+    -> Delivery
+    -> Model
+    -> ( Model, List Effect )
+handleDelivery notFound route delivery model =
+    case model of
+        JobModel model ->
+            Job.handleDelivery delivery model
+                |> Tuple.mapFirst JobModel
+                |> handleNotFound notFound route
+
+        DashboardModel model ->
+            Dashboard.handleDelivery delivery model
+                |> Tuple.mapFirst DashboardModel
+
+        PipelineModel model ->
+            Pipeline.handleDelivery delivery model
+                |> Tuple.mapFirst PipelineModel
+                |> handleNotFound notFound route
+
+        ResourceModel model ->
+            Resource.handleDelivery delivery model
+                |> Tuple.mapFirst ResourceModel
+                |> handleNotFound notFound route
+
+        BuildModel model ->
+            Build.handleDelivery delivery model
+                |> Tuple.mapFirst BuildModel
+                |> handleNotFound notFound route
+
+        FlySuccessModel _ ->
+            ( model, [] )
+
+        NotFoundModel _ ->
+            ( model, [] )
+
+
 update :
     String
     -> String
@@ -185,16 +224,11 @@ update :
     -> ( Model, List Effect )
 update turbulence notFound csrfToken route msg mdl =
     case ( msg, mdl ) of
-        ( NewCSRFToken c, BuildModel buildModel ) ->
-            Build.update (Build.Msgs.NewCSRFToken c) buildModel
-                |> Tuple.mapFirst BuildModel
+        ( NewCSRFToken c, BuildModel model ) ->
+            ( BuildModel { model | csrfToken = c }, [] )
 
-        ( BuildMsg msg, BuildModel buildModel ) ->
-            let
-                model =
-                    { buildModel | csrfToken = csrfToken }
-            in
-            Build.update msg model
+        ( BuildMsg msg, BuildModel model ) ->
+            Build.update msg { model | csrfToken = csrfToken }
                 |> Tuple.mapFirst BuildModel
                 |> handleNotFound notFound route
 

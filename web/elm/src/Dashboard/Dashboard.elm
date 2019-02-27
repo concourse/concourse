@@ -1,6 +1,7 @@
 module Dashboard.Dashboard exposing
     ( Model
     , handleCallback
+    , handleDelivery
     , init
     , subscriptions
     , update
@@ -18,7 +19,7 @@ import Dashboard.Details as Details
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
 import Dashboard.Models as Models
-import Dashboard.Msgs as Msgs exposing (Msg(..), fromDashboardMsg)
+import Dashboard.Msgs as Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
 import Dashboard.SubState as SubState
 import Dashboard.Text as Text
@@ -47,7 +48,7 @@ import RemoteData
 import Routes
 import ScreenSize
 import Simple.Fuzzy exposing (filter, match, root)
-import Subscription exposing (Interval(..), Subscription(..))
+import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Task
 import TopBar.Model
 import TopBar.Msgs
@@ -225,41 +226,54 @@ handleCallbackWithoutTopBar msg model =
             ( model, [] )
 
 
-update : Msg -> Model -> ( Model, List Effect )
-update msg model =
-    let
-        ( newTopBar, topBarEffects ) =
-            TopBar.update (fromDashboardMsg msg) model.topBar
+handleDelivery : Delivery -> Model -> ( Model, List Effect )
+handleDelivery delivery model =
+    case delivery of
+        KeyDown keycode ->
+            let
+                ( newTopBar, topBarEffects ) =
+                    TopBar.handleDelivery delivery model.topBar
 
-        ( newModel, dashboardEffects ) =
-            updateWithoutTopBar msg model
-    in
-    ( { newModel | topBar = newTopBar }
-    , topBarEffects ++ dashboardEffects
-    )
+                ( newModel, dashEffects ) =
+                    handleKeyPressed (Char.fromCode keycode) model
+            in
+            ( { newModel | topBar = newTopBar }, topBarEffects ++ dashEffects )
 
+        MouseMoved ->
+            ( Footer.showFooter model, [] )
 
-updateWithoutTopBar : Msg -> Model -> ( Model, List Effect )
-updateWithoutTopBar msg model =
-    case msg of
-        ClockTick now ->
+        MouseClicked ->
+            ( Footer.showFooter model, [] )
+
+        ClockTicked OneSecond time ->
             ( let
                 newModel =
                     Footer.tick model
               in
-              { newModel | state = RemoteData.map (SubState.tick now) newModel.state }
+              { newModel | state = RemoteData.map (SubState.tick time) newModel.state }
             , []
             )
 
-        AutoRefresh ->
+        ClockTicked FiveSeconds _ ->
             ( model, [ FetchData ] )
 
-        KeyPressed keycode ->
-            handleKeyPressed (Char.fromCode keycode) model
+        WindowResized screenSize ->
+            let
+                ( newTopBar, topBarEffects ) =
+                    TopBar.handleDelivery delivery model.topBar
+            in
+            ( { model | screenSize = ScreenSize.fromWindowSize screenSize, topBar = newTopBar }, topBarEffects )
 
-        ShowFooter ->
-            ( Footer.showFooter model, [] )
+        TokenReceived (Just tokenValue) ->
+            ( { model | csrfToken = tokenValue }, [] )
 
+        _ ->
+            ( model, [] )
+
+
+update : Msg -> Model -> ( Model, List Effect )
+update msg model =
+    case msg of
         TogglePipelinePaused pipeline ->
             ( model
             , [ SendTogglePipelineRequest
@@ -361,17 +375,25 @@ updateWithoutTopBar msg model =
         TopCliHover state ->
             ( { model | hoveredTopCliIcon = state }, [] )
 
-        WindowResized size ->
-            ( { model | screenSize = ScreenSize.fromWindowSize size }, [] )
-
-        FromTopBar TopBar.Msgs.LogOut ->
-            ( { model | state = RemoteData.NotAsked }, [] )
-
-        FromTopBar TopBar.Msgs.ToggleUserMenu ->
-            ( { model | userMenuVisible = not model.userMenuVisible }, [] )
-
         FromTopBar m ->
-            ( model, [] )
+            let
+                ( newTopBar, topBarEffects ) =
+                    TopBar.update m model.topBar
+
+                ( newModel, dashboardEffects ) =
+                    case m of
+                        TopBar.Msgs.LogOut ->
+                            ( { model | state = RemoteData.NotAsked }, [] )
+
+                        TopBar.Msgs.ToggleUserMenu ->
+                            ( { model | userMenuVisible = not model.userMenuVisible }, [] )
+
+                        _ ->
+                            ( model, [] )
+            in
+            ( { newModel | topBar = newTopBar }
+            , topBarEffects ++ dashboardEffects
+            )
 
 
 subscriptions : Model -> List Subscription

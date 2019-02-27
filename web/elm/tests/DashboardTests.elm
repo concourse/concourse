@@ -30,7 +30,6 @@ import Html.Attributes as Attr
 import Html.Styled as HS
 import List.Extra
 import Routes
-import SubPage.Msgs
 import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -613,7 +612,7 @@ all =
                                 )
                         )
                     |> Tuple.first
-                    |> Dashboard.update (Msgs.KeyPressed (Char.toCode '?'))
+                    |> Dashboard.handleDelivery (KeyDown (Char.toCode '?'))
                     |> Tuple.first
                     |> queryView
                     |> Query.has [ id "dashboard-info" ]
@@ -2800,10 +2799,7 @@ afterSeconds : Int -> Application.Model -> Application.Model
 afterSeconds n =
     List.repeat n
         (Application.update
-            (Application.Msgs.SubMsg 1 <|
-                SubPage.Msgs.DashboardMsg <|
-                    Msgs.ClockTick 1000
-            )
+            (Application.Msgs.DeliveryReceived <| ClockTicked OneSecond 1000)
             >> Tuple.first
         )
         |> List.foldr (>>) identity

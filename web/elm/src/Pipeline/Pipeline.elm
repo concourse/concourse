@@ -4,6 +4,7 @@ module Pipeline.Pipeline exposing
     , changeToPipelineAndGroups
     , getUpdateMessage
     , handleCallback
+    , handleDelivery
     , init
     , subscriptions
     , update
@@ -36,7 +37,7 @@ import Pipeline.Styles as Styles
 import RemoteData exposing (..)
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
-import Subscription exposing (Interval(..), Subscription(..))
+import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
 import Time exposing (Time)
@@ -214,22 +215,10 @@ handleCallbackWithoutTopBar callback model =
             ( model, [] )
 
 
-update : Msg -> Model -> ( Model, List Effect )
-update msg model =
-    case msg of
-        HideLegendTimerTicked _ ->
-            if model.hideLegendCounter + timeUntilHiddenCheckInterval > timeUntilHidden then
-                ( { model | hideLegend = True }, [] )
-
-            else
-                ( { model | hideLegendCounter = model.hideLegendCounter + timeUntilHiddenCheckInterval }
-                , []
-                )
-
-        ShowLegend ->
-            ( { model | hideLegend = False, hideLegendCounter = 0 }, [] )
-
-        KeyPressed keycode ->
+handleDelivery : Delivery -> Model -> ( Model, List Effect )
+handleDelivery delivery model =
+    case delivery of
+        KeyDown keycode ->
             ( { model | hideLegend = False, hideLegendCounter = 0 }
             , if (Char.fromCode keycode |> Char.toLower) == 'f' then
                 [ ResetPipelineFocus ]
@@ -238,14 +227,36 @@ update msg model =
                 []
             )
 
-        AutoupdateTimerTicked ->
+        MouseMoved ->
+            ( { model | hideLegend = False, hideLegendCounter = 0 }, [] )
+
+        MouseClicked ->
+            ( { model | hideLegend = False, hideLegendCounter = 0 }, [] )
+
+        ClockTicked OneSecond _ ->
+            if model.hideLegendCounter + timeUntilHiddenCheckInterval > timeUntilHidden then
+                ( { model | hideLegend = True }, [] )
+
+            else
+                ( { model | hideLegendCounter = model.hideLegendCounter + timeUntilHiddenCheckInterval }
+                , []
+                )
+
+        ClockTicked FiveSeconds _ ->
             ( model, [ FetchPipeline model.pipelineLocator ] )
 
+        ClockTicked OneMinute _ ->
+            ( model, [ FetchVersion ] )
+
+        _ ->
+            ( model, [] )
+
+
+update : Msg -> Model -> ( Model, List Effect )
+update msg model =
+    case msg of
         PipelineIdentifierFetched pipelineIdentifier ->
             ( model, [ FetchPipeline pipelineIdentifier ] )
-
-        AutoupdateVersionTicked ->
-            ( model, [ FetchVersion ] )
 
         ToggleGroup group ->
             ( model, [ NavigateTo <| getNextUrl (toggleGroup group model.selectedGroups model.pipeline) model ] )

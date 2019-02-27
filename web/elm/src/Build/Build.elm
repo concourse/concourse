@@ -3,6 +3,7 @@ module Build.Build exposing
     , getScrollBehavior
     , getUpdateMessage
     , handleCallback
+    , handleDelivery
     , init
     , subscriptions
     , update
@@ -16,7 +17,7 @@ import Build.Models as Models
         , Model
         , OutputModel
         )
-import Build.Msgs exposing (Msg(..), fromBuildMessage)
+import Build.Msgs exposing (Msg(..))
 import Build.Output
 import Build.StepTree as StepTree
 import Build.Styles as Styles
@@ -59,7 +60,7 @@ import Routes
 import Spinner
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
-import Subscription exposing (Interval(..), Subscription(..))
+import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Time exposing (Time)
 import TopBar.Model
 import TopBar.Styles
@@ -287,23 +288,68 @@ handleCallbackWithoutTopBar action model =
             ( model, [] )
 
 
+handleDelivery : Delivery -> Model -> ( Model, List Effect )
+handleDelivery delivery model =
+    case delivery of
+        KeyDown keycode ->
+            handleKeyPressed keycode model
+
+        KeyUp keycode ->
+            if keycode == Keycodes.shift then
+                ( { model | shiftDown = False }, [] )
+
+            else
+                case Char.fromCode keycode of
+                    'T' ->
+                        ( { model | previousTriggerBuildByKey = False }, [] )
+
+                    _ ->
+                        ( model, [] )
+
+        ClockTicked OneSecond time ->
+            let
+                newModel =
+                    { model
+                        | now = Just time
+                        , hoveredCounter = model.hoveredCounter + 1
+                    }
+            in
+            updateOutput
+                (Build.Output.handleStepTreeMsg <|
+                    StepTree.updateTooltip newModel
+                )
+                newModel
+
+        AnimationFrameAdvanced ->
+            ( model
+            , case getScrollBehavior model of
+                ScrollWindow ->
+                    [ Effects.Scroll Effects.ToWindowBottom ]
+
+                NoScroll ->
+                    []
+            )
+
+        ScrolledFromWindowBottom distanceFromBottom ->
+            if distanceFromBottom == 0 then
+                ( { model | autoScroll = True }, [] )
+
+            else
+                ( { model | autoScroll = False }, [] )
+
+        TokenReceived (Just tokenValue) ->
+            ( { model | csrfToken = tokenValue }, [] )
+
+        EventReceived eventSourceMsg ->
+            updateOutput (Build.Output.handleEventsMsg (Build.Output.parseMsg eventSourceMsg)) model
+
+        _ ->
+            ( model, [] )
+
+
 update : Msg -> Model -> ( Model, List Effect )
 update msg model =
-    let
-        ( newTopBar, topBarEffects ) =
-            TopBar.update (fromBuildMessage msg) model.topBar
-
-        ( newModel, dashboardEffects ) =
-            updateWithoutTopBar msg model
-    in
-    ( { newModel | topBar = newTopBar }
-    , topBarEffects ++ dashboardEffects
-    )
-
-
-updateWithoutTopBar : Msg -> Model -> ( Model, List Effect )
-updateWithoutTopBar action model =
-    case action of
+    case msg of
         SwitchToBuild build ->
             ( model, [ NavigateTo <| Routes.toString <| Routes.buildRoute build ] )
 
@@ -328,9 +374,6 @@ updateWithoutTopBar action model =
 
         AbortBuild buildId ->
             ( model, [ DoAbortBuild buildId model.csrfToken ] )
-
-        BuildEventsMsg action ->
-            updateOutput (Build.Output.handleEventsMsg action) model
 
         ToggleStep id ->
             updateOutput
@@ -362,60 +405,15 @@ updateWithoutTopBar action model =
             else
                 ( model, [ Scroll (Builds -event.deltaX) ] )
 
-        ClockTick now ->
-            let
-                newModel =
-                    { model
-                        | now = Just now
-                        , hoveredCounter = model.hoveredCounter + 1
-                    }
-            in
-            updateOutput
-                (Build.Output.handleStepTreeMsg <|
-                    StepTree.updateTooltip newModel
-                )
-                newModel
-
-        WindowScrolled distanceFromBottom ->
-            if distanceFromBottom == 0 then
-                ( { model | autoScroll = True }, [] )
-
-            else
-                ( { model | autoScroll = False }, [] )
-
         NavTo route ->
             ( model, [ NavigateTo <| Routes.toString route ] )
 
-        NewCSRFToken token ->
-            ( { model | csrfToken = token }, [] )
-
-        KeyPressed keycode ->
-            handleKeyPressed keycode model
-
-        KeyUped keycode ->
-            if keycode == Keycodes.shift then
-                ( { model | shiftDown = False }, [] )
-
-            else
-                case Char.fromCode keycode of
-                    'T' ->
-                        ( { model | previousTriggerBuildByKey = False }, [] )
-
-                    _ ->
-                        ( model, [] )
-
-        ScrollDown ->
-            ( model
-            , case getScrollBehavior model of
-                ScrollWindow ->
-                    [ Effects.Scroll Effects.ToWindowBottom ]
-
-                NoScroll ->
-                    []
-            )
-
-        FromTopBar _ ->
-            ( model, [] )
+        FromTopBar m ->
+            let
+                ( newTopBar, topBarEffects ) =
+                    TopBar.update m model.topBar
+            in
+            ( { model | topBar = newTopBar }, topBarEffects )
 
 
 getScrollBehavior : Model -> ScrollBehavior

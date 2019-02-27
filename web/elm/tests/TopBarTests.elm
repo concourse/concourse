@@ -8,6 +8,7 @@ import Expect exposing (..)
 import Html.Attributes as Attr
 import Html.Styled exposing (toUnstyled)
 import Routes
+import Subscription exposing (Delivery(..))
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -891,22 +892,22 @@ all =
                 )
                 ([ testDropdown [] [ 0, 1 ] ]
                     ++ [ context "after down arrow keypress"
-                            (TopBar.update (Msgs.KeyDown 40)
+                            (TopBar.handleDelivery (KeyDown 40)
                                 >> Tuple.first
                             )
                             ([ testDropdown [ 0 ] [ 1 ] ]
                                 ++ [ context "after second down arrow keypress"
-                                        (TopBar.update (Msgs.KeyDown 40)
+                                        (TopBar.handleDelivery (KeyDown 40)
                                             >> Tuple.first
                                         )
                                         ([ testDropdown [ 1 ] [ 0 ] ]
                                             ++ [ context "after loop around down arrow keypress"
-                                                    (TopBar.update (Msgs.KeyDown 40)
+                                                    (TopBar.handleDelivery (KeyDown 40)
                                                         >> Tuple.first
                                                     )
                                                     [ testDropdown [ 0 ] [ 1 ] ]
                                                , context "after hitting enter"
-                                                    (TopBar.update (Msgs.KeyDown 13)
+                                                    (TopBar.handleDelivery (KeyDown 13)
                                                         >> Tuple.first
                                                         >> viewNormally
                                                     )
@@ -917,7 +918,7 @@ all =
                                                ]
                                         )
                                    , context "after hitting enter"
-                                        (TopBar.update (Msgs.KeyDown 13)
+                                        (TopBar.handleDelivery (KeyDown 13)
                                             >> Tuple.first
                                             >> viewNormally
                                         )
@@ -928,17 +929,17 @@ all =
                                    ]
                             )
                        , context "after up arrow keypress"
-                            (TopBar.update (Msgs.KeyDown 38)
+                            (TopBar.handleDelivery (KeyDown 38)
                                 >> Tuple.first
                             )
                             ([ testDropdown [ 1 ] [ 0 ] ]
                                 ++ [ context "after second up arrow keypress"
-                                        (TopBar.update (Msgs.KeyDown 38)
+                                        (TopBar.handleDelivery (KeyDown 38)
                                             >> Tuple.first
                                         )
                                         ([ testDropdown [ 0 ] [ 1 ] ]
                                             ++ [ context "after loop around up arrow keypress"
-                                                    (TopBar.update (Msgs.KeyDown 38)
+                                                    (TopBar.handleDelivery (KeyDown 38)
                                                         >> Tuple.first
                                                     )
                                                     [ testDropdown [ 1 ] [ 0 ] ]
@@ -948,7 +949,7 @@ all =
                             )
                        ]
                     ++ [ context "after an ESC keypress"
-                            (TopBar.update (Msgs.KeyDown 27)
+                            (TopBar.handleDelivery (KeyDown 27)
                                 >> Tuple.first
                             )
                             [ it "should not have any dropdown children anymore" <|

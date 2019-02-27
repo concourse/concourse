@@ -1,6 +1,7 @@
 module TopBar.TopBar exposing
     ( Flags
     , handleCallback
+    , handleDelivery
     , init
     , query
     , queryStringFromSearch
@@ -10,7 +11,6 @@ module TopBar.TopBar exposing
 
 import Array
 import Callback exposing (Callback(..))
-import Char
 import Concourse
 import Dict
 import Effects exposing (Effect(..))
@@ -34,6 +34,7 @@ import QueryString
 import RemoteData exposing (RemoteData)
 import Routes
 import ScreenSize exposing (ScreenSize(..))
+import Subscription exposing (Delivery(..))
 import TopBar.Model
     exposing
         ( Dropdown(..)
@@ -145,67 +146,11 @@ handleCallback callback model =
             ( model, [] )
 
 
-update : Msg -> Model -> ( Model, List Effect )
-update msg model =
-    case msg of
-        FilterMsg query ->
-            let
-                newModel =
-                    case model.middleSection of
-                        SearchBar r ->
-                            { model | middleSection = SearchBar { r | query = query } }
-
-                        _ ->
-                            model
-            in
-            ( newModel
-            , [ ForceFocus "search-input-field"
-              , ModifyUrl (queryStringFromSearch query)
-              ]
-            )
-
-        LogIn ->
-            ( model, [ RedirectToLogin ] )
-
-        LogOut ->
-            ( model, [ SendLogOutRequest ] )
-
-        ToggleUserMenu ->
-            ( { model | isUserMenuExpanded = not model.isUserMenuExpanded }, [] )
-
-        TogglePinIconDropdown ->
-            ( { model | isPinMenuExpanded = not model.isPinMenuExpanded }, [] )
-
-        FocusMsg ->
-            let
-                newModel =
-                    case model.middleSection of
-                        SearchBar r ->
-                            { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Nothing } } }
-
-                        _ ->
-                            model
-            in
-            ( newModel, [] )
-
-        BlurMsg ->
-            let
-                newModel =
-                    case model.middleSection of
-                        SearchBar r ->
-                            if model.screenSize == Mobile && r.query == "" then
-                                { model | middleSection = MinifiedSearch }
-
-                            else
-                                { model | middleSection = SearchBar { r | dropdown = Hidden } }
-
-                        _ ->
-                            model
-            in
-            ( newModel, [] )
-
-        KeyDown keycode ->
-            case keycode of
+handleDelivery : Delivery -> Model -> ( Model, List Effect )
+handleDelivery delivery model =
+    case delivery of
+        KeyDown keyCode ->
+            case keyCode of
                 -- up arrow
                 38 ->
                     case model.middleSection of
@@ -357,6 +302,10 @@ update msg model =
                         _ ->
                             ( model, [] )
 
+                -- '/'
+                191 ->
+                    ( model, [ ForceFocus "search-input-field" ] )
+
                 -- any other keycode
                 _ ->
                     case model.middleSection of
@@ -366,25 +315,77 @@ update msg model =
                         _ ->
                             ( model, [] )
 
-        ShowSearchInput ->
-            showSearchInput model
-
-        KeyPressed keycode ->
-            case Char.fromCode keycode of
-                '/' ->
-                    ( model, [ ForceFocus "search-input-field" ] )
-
-                _ ->
-                    ( model, [] )
-
         WindowResized size ->
             ( screenResize size model, [] )
 
+        _ ->
+            ( model, [] )
+
+
+update : Msg -> Model -> ( Model, List Effect )
+update msg model =
+    case msg of
+        FilterMsg query ->
+            let
+                newModel =
+                    case model.middleSection of
+                        SearchBar r ->
+                            { model | middleSection = SearchBar { r | query = query } }
+
+                        _ ->
+                            model
+            in
+            ( newModel
+            , [ ForceFocus "search-input-field"
+              , ModifyUrl (queryStringFromSearch query)
+              ]
+            )
+
+        LogIn ->
+            ( model, [ RedirectToLogin ] )
+
+        LogOut ->
+            ( model, [ SendLogOutRequest ] )
+
+        ToggleUserMenu ->
+            ( { model | isUserMenuExpanded = not model.isUserMenuExpanded }, [] )
+
+        TogglePinIconDropdown ->
+            ( { model | isPinMenuExpanded = not model.isPinMenuExpanded }, [] )
+
+        FocusMsg ->
+            let
+                newModel =
+                    case model.middleSection of
+                        SearchBar r ->
+                            { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Nothing } } }
+
+                        _ ->
+                            model
+            in
+            ( newModel, [] )
+
+        BlurMsg ->
+            let
+                newModel =
+                    case model.middleSection of
+                        SearchBar r ->
+                            if model.screenSize == Mobile && r.query == "" then
+                                { model | middleSection = MinifiedSearch }
+
+                            else
+                                { model | middleSection = SearchBar { r | dropdown = Hidden } }
+
+                        _ ->
+                            model
+            in
+            ( newModel, [] )
+
+        ShowSearchInput ->
+            showSearchInput model
+
         GoToPinnedResource route ->
             ( model, [ NavigateTo (Routes.toString route) ] )
-
-        Noop ->
-            ( model, [] )
 
 
 screenResize : Window.Size -> Model -> Model
