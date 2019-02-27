@@ -5,11 +5,11 @@ import Effects exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src, style)
 import Html.Styled as HS
+import Routes
 import TopBar.Model
 import TopBar.Msgs
 import TopBar.Styles
 import TopBar.TopBar as TopBar
-import Routes
 import UserState exposing (UserState)
 
 

@@ -48,10 +48,10 @@ import Json.Decode
 import List.Extra
 import Maybe.Extra
 import Monocle.Optional
-import TopBar.Styles as NTBS
 import Ordering exposing (Ordering)
 import Set
 import Time exposing (Time)
+import TopBar.Styles as NTBS
 
 
 type alias Group =

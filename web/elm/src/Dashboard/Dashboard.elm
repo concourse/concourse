@@ -49,7 +49,6 @@ import ScreenSize
 import Simple.Fuzzy exposing (filter, match, root)
 import Subscription exposing (Interval(..), Subscription(..))
 import Task
-import Time exposing (Time)
 import TopBar.Model
 import TopBar.Msgs
 import TopBar.Styles

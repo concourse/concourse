@@ -6,12 +6,12 @@ import Dict exposing (Dict)
 import Effects
 import Expect
 import Http
-import TopBar.Model
 import RemoteData
 import Routes
 import ScreenSize
 import SubPage.SubPage exposing (..)
 import Test exposing (..)
+import TopBar.Model
 
 
 notFoundResult : Result Http.Error a

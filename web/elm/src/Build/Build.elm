@@ -50,6 +50,8 @@ import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
 import Html.Styled as HS
 import Http
+import Keyboard
+import Keycodes
 import LoadingIndicator
 import Maybe.Extra
 import RemoteData exposing (WebData)
@@ -112,6 +114,7 @@ init flags =
                 , autoScroll = True
                 , csrfToken = flags.csrfToken
                 , previousKeyPress = Nothing
+                , shiftDown = False
                 , previousTriggerBuildByKey = False
                 , showHelp = False
                 , highlight = flags.highlight
@@ -387,15 +390,19 @@ updateWithoutTopBar action model =
             ( { model | csrfToken = token }, [] )
 
         KeyPressed keycode ->
-            handleKeyPressed (Char.fromCode keycode) model
+            handleKeyPressed keycode model
 
         KeyUped keycode ->
-            case Char.fromCode keycode of
-                'T' ->
-                    ( { model | previousTriggerBuildByKey = False }, [] )
+            if keycode == Keycodes.shift then
+                ( { model | shiftDown = False }, [] )
 
-                _ ->
-                    ( model, [] )
+            else
+                case Char.fromCode keycode of
+                    'T' ->
+                        ( { model | previousTriggerBuildByKey = False }, [] )
+
+                    _ ->
+                        ( model, [] )
 
         ScrollDown ->
             ( model
@@ -464,79 +471,83 @@ updateOutput updater model =
             ( model, [] )
 
 
-handleKeyPressed : Char -> Model -> ( Model, List Effect )
+handleKeyPressed : Keyboard.KeyCode -> Model -> ( Model, List Effect )
 handleKeyPressed key model =
     let
         currentBuild =
             Maybe.map .build (model.currentBuild |> RemoteData.toMaybe)
 
         newModel =
-            case ( model.previousKeyPress, key ) of
-                ( Nothing, 'g' ) ->
-                    { model | previousKeyPress = Just 'g' }
+            case ( model.previousKeyPress, model.shiftDown, Char.fromCode key ) of
+                ( Nothing, False, 'G' ) ->
+                    { model | previousKeyPress = Just 'G' }
 
                 _ ->
                     { model | previousKeyPress = Nothing }
     in
-    case key of
-        'h' ->
-            case Maybe.andThen (nextBuild model.history) currentBuild of
-                Just build ->
-                    update (SwitchToBuild build) newModel
+    if key == Keycodes.shift then
+        ( { newModel | shiftDown = True }, [] )
 
-                Nothing ->
-                    ( newModel, [] )
-
-        'l' ->
-            case Maybe.andThen (prevBuild model.history) currentBuild of
-                Just build ->
-                    update (SwitchToBuild build) newModel
-
-                Nothing ->
-                    ( newModel, [] )
-
-        'j' ->
-            ( newModel, [ Scroll Down ] )
-
-        'k' ->
-            ( newModel, [ Scroll Up ] )
-
-        'T' ->
-            if not model.previousTriggerBuildByKey then
-                update
-                    (TriggerBuild (currentBuild |> Maybe.andThen .job))
-                    { newModel | previousTriggerBuildByKey = True }
-
-            else
-                ( newModel, [] )
-
-        'A' ->
-            if currentBuild == List.head model.history then
-                case currentBuild of
+    else
+        case ( Char.fromCode key, newModel.shiftDown ) of
+            ( 'H', False ) ->
+                case Maybe.andThen (nextBuild newModel.history) currentBuild of
                     Just build ->
-                        update (AbortBuild build.id) newModel
+                        update (SwitchToBuild build) newModel
 
                     Nothing ->
                         ( newModel, [] )
 
-            else
+            ( 'L', False ) ->
+                case Maybe.andThen (prevBuild newModel.history) currentBuild of
+                    Just build ->
+                        update (SwitchToBuild build) newModel
+
+                    Nothing ->
+                        ( newModel, [] )
+
+            ( 'J', False ) ->
+                ( newModel, [ Scroll Down ] )
+
+            ( 'K', False ) ->
+                ( newModel, [ Scroll Up ] )
+
+            ( 'T', True ) ->
+                if not newModel.previousTriggerBuildByKey then
+                    update
+                        (TriggerBuild (currentBuild |> Maybe.andThen .job))
+                        { newModel | previousTriggerBuildByKey = True }
+
+                else
+                    ( newModel, [] )
+
+            ( 'A', True ) ->
+                if currentBuild == List.head newModel.history then
+                    case currentBuild of
+                        Just build ->
+                            update (AbortBuild build.id) newModel
+
+                        Nothing ->
+                            ( newModel, [] )
+
+                else
+                    ( newModel, [] )
+
+            ( 'G', True ) ->
+                ( { newModel | autoScroll = True }, [ Scroll ToWindowBottom ] )
+
+            ( 'G', False ) ->
+                if model.previousKeyPress == Just 'G' then
+                    ( { newModel | autoScroll = False }, [ Scroll ToWindowTop ] )
+
+                else
+                    ( newModel, [] )
+
+            ( '¿', True ) ->
+                ( { newModel | showHelp = not newModel.showHelp }, [] )
+
+            _ ->
                 ( newModel, [] )
-
-        'g' ->
-            if model.previousKeyPress == Just 'g' then
-                ( { newModel | autoScroll = False }, [ Scroll ToWindowTop ] )
-
-            else
-                ( newModel, [] )
-
-        'G' ->
-            ( { newModel | autoScroll = True }, [ Scroll ToWindowBottom ] )
-
-        '?' ->
-            ( { model | showHelp = not model.showHelp }, [] )
-
-        _ ->
-            ( newModel, [] )
 
 
 nextBuild : List Concourse.Build -> Concourse.Build -> Maybe Concourse.Build

@@ -21,8 +21,8 @@ import Effects
 import EventSource.EventSource as EventSource
 import Expect
 import Html.Attributes as Attr
+import Keycodes
 import Routes
-import SubPage.Msgs
 import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -322,38 +322,19 @@ all =
                 initFromApplication
                     |> Application.handleCallback
                         (Effects.SubPage 1)
-                        (Callback.BuildFetched <|
-                            Ok
-                                ( 1
-                                , { id = 1
-                                  , name = "1"
-                                  , job =
-                                        Just
-                                            { teamName = "t"
-                                            , pipelineName = "p"
-                                            , jobName = "j"
-                                            }
-                                  , status = Concourse.BuildStatusStarted
-                                  , duration =
-                                        { startedAt = Nothing
-                                        , finishedAt = Nothing
-                                        }
-                                  , reapTime = Nothing
-                                  }
-                                )
-                        )
+                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.handleCallback
                         (Effects.SubPage 1)
                         (Callback.BuildJobDetailsFetched <|
                             Ok
                                 { pipeline =
-                                    { teamName = "t"
-                                    , pipelineName = "p"
+                                    { teamName = "team"
+                                    , pipelineName = "pipeline"
                                     }
                                 , name = ""
-                                , pipelineName = "p"
-                                , teamName = "t"
+                                , pipelineName = "pipeline"
+                                , teamName = "team"
                                 , nextBuild = Nothing
                                 , finishedBuild = Nothing
                                 , transitionBuild = Nothing
@@ -365,6 +346,8 @@ all =
                                 }
                         )
                     |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
+                    |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'T')
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyUp <| Char.toCode 'T')
@@ -374,13 +357,74 @@ all =
                     |> Expect.equal
                         [ ( Effects.SubPage 1
                           , Effects.DoTriggerBuild
-                                { teamName = "t"
-                                , pipelineName = "p"
-                                , jobName = "j"
+                                { teamName = "team"
+                                , pipelineName = "pipeline"
+                                , jobName = "job"
                                 }
                                 "csrf_token"
                           )
                         ]
+        , test "pressing 'gg' scrolls to the top" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
+                    |> Tuple.second
+                    |> Expect.equal
+                        [ ( Effects.SubPage 1
+                          , Effects.Scroll Effects.ToWindowTop
+                          )
+                        ]
+        , test "pressing 'G' scrolls to the bottom" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
+                    |> Tuple.second
+                    |> Expect.equal
+                        [ ( Effects.SubPage 1
+                          , Effects.Scroll Effects.ToWindowBottom
+                          )
+                        ]
+        , test "pressing and releasing shift, then 'g', does nothing" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyUp <| Keycodes.shift)
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
+                    |> Tuple.second
+                    |> Expect.equal []
+        , test "pressing '?' shows the keyboard help" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode '¿')
+                    |> Tuple.first
+                    |> Application.view
+                    |> Query.fromHtml
+                    |> Query.find [ class "keyboard-help" ]
+                    |> Query.hasNot [ class "hidden" ]
         , test "says loading on page load" <|
             \_ ->
                 pageLoad
