@@ -49,7 +49,7 @@ type alias Model =
     , highlight : Highlight
     , hoveredElement : Maybe Hoverable
     , hoveredCounter : Int
-    , topBar : TopBar.Model.Model
+    , topBar : TopBar.Model.Model {}
     }
 
 

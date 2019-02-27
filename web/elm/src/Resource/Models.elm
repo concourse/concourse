@@ -56,7 +56,7 @@ type alias Model =
     , versions : Paginated Version
     , showPinBarTooltip : Bool
     , pinIconHover : Bool
-    , topBar : TopBar.Model.Model
+    , topBar : TopBar.Model.Model {}
     , pinCommentLoading : Bool
     , ctrlDown : Bool
     , textAreaFocused : Bool

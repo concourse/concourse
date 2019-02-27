@@ -144,7 +144,7 @@ all =
         ]
 
 
-topBar : Routes.Route -> TopBar.Model.Model
+topBar : Routes.Route -> TopBar.Model.Model {}
 topBar route =
     { isUserMenuExpanded = False
     , middleSection = TopBar.Model.Breadcrumbs route

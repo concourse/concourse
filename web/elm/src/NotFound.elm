@@ -15,7 +15,7 @@ import UserState exposing (UserState)
 
 type alias Model =
     { notFoundImgSrc : String
-    , topBar : TopBar.Model.Model
+    , topBar : TopBar.Model.Model {}
     }
 
 
@@ -48,7 +48,7 @@ update msg model =
         FromTopBar m ->
             let
                 ( newTopBar, topBarEffects ) =
-                    TopBar.update m model.topBar
+                    TopBar.update m ( model.topBar, [] )
             in
             ( { model | topBar = newTopBar }, topBarEffects )
 
@@ -57,7 +57,7 @@ handleCallback : Callback -> Model -> ( Model, List Effect )
 handleCallback msg model =
     let
         ( newTopBar, topBarEffects ) =
-            TopBar.handleCallback msg model.topBar
+            TopBar.handleCallback msg ( model.topBar, [] )
     in
     ( { model | topBar = newTopBar }, topBarEffects )
 

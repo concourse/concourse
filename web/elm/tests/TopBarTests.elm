@@ -46,6 +46,11 @@ it desc expectationFunc subject =
         \_ -> expectationFunc subject
 
 
+update : Msgs.Msg -> Model.Model {} -> ( Model.Model {}, List Effects.Effect )
+update msg =
+    flip (,) [] >> TopBar.update msg
+
+
 lineHeight : String
 lineHeight =
     "54px"
@@ -117,11 +122,10 @@ all =
                 Expect.equal [ Effects.GetScreenSize ]
             ]
         , rspecStyleDescribe "when on pipeline page"
-            (TopBar.init { route = Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] } }
-                |> Tuple.first
-            )
+            (TopBar.init { route = Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] } })
             [ context "when login state unknown"
-                (TopBar.view UserState.UserStateUnknown Model.None
+                (Tuple.first
+                    >> TopBar.view UserState.UserStateUnknown Model.None
                     >> toUnstyled
                     >> Query.fromHtml
                 )
@@ -180,7 +184,8 @@ all =
                         >> Query.has [ tag "a", attribute <| Attr.href "/sky/login" ]
                 ]
             , context "when logged in"
-                (TopBar.view (UserState.UserStateLoggedIn sampleUser) Model.None
+                (Tuple.first
+                    >> TopBar.view (UserState.UserStateLoggedIn sampleUser) Model.None
                     >> toUnstyled
                     >> Query.fromHtml
                 )
@@ -259,17 +264,19 @@ all =
                         >> Query.hasNot [ id "logout-button" ]
                 ]
             , it "clicking a pinned resource navigates to the pinned resource page" <|
-                TopBar.update (Msgs.GoToPinnedResource (Routes.Resource { id = { teamName = "t", pipelineName = "p", resourceName = "r" }, page = Nothing }))
+                Tuple.first
+                    >> update (Msgs.GoToPinnedResource (Routes.Resource { id = { teamName = "t", pipelineName = "p", resourceName = "r" }, page = Nothing }))
                     >> Tuple.second
                     >> Expect.equal [ Effects.NavigateTo "/teams/t/pipelines/p/resources/r" ]
             , context "when pipeline is paused"
-                (TopBar.view (UserState.UserStateLoggedIn sampleUser)
-                    (Model.HasPipeline
-                        { pinnedResources = []
-                        , pipeline = { teamName = "t", pipelineName = "p" }
-                        , isPaused = True
-                        }
-                    )
+                (Tuple.first
+                    >> TopBar.view (UserState.UserStateLoggedIn sampleUser)
+                        (Model.HasPipeline
+                            { pinnedResources = []
+                            , pipeline = { teamName = "t", pipelineName = "p" }
+                            , isPaused = True
+                            }
+                        )
                     >> toUnstyled
                     >> Query.fromHtml
                 )
@@ -284,9 +291,7 @@ all =
                 ]
             ]
         , rspecStyleDescribe "rendering user menus on clicks"
-            (TopBar.init { route = Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] } }
-                |> Tuple.first
-            )
+            (TopBar.init { route = Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] } })
             [ it "shows user menu when ToggleUserMenu msg is received" <|
                 TopBar.update Msgs.ToggleUserMenu
                     >> Tuple.first
@@ -332,14 +337,12 @@ all =
                     >> Event.expect Msgs.LogOut
             , it "shows 'login' when LoggedOut Msg is successful" <|
                 TopBar.handleCallback (Callback.LoggedOut (Ok ()))
-                    >> Tuple.first
                     >> viewNormally
                     >> Query.find [ id "login-item" ]
                     >> Query.has [ text "login" ]
             ]
         , rspecStyleDescribe "login component when user is logged out"
             (TopBar.init { route = Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] } }
-                |> Tuple.first
                 |> viewNormally
             )
             [ it "has a link to login" <|
@@ -379,13 +382,12 @@ all =
             (TopBar.init { route = Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] } })
             [ it "redirects to login page when you click login" <|
                 Tuple.first
-                    >> TopBar.update Msgs.LogIn
+                    >> update Msgs.LogIn
                     >> Tuple.second
                     >> Expect.equal [ Effects.RedirectToLogin ]
             ]
         , rspecStyleDescribe "rendering top bar on build page"
             (TopBar.init { route = Routes.Build { id = { teamName = "team", pipelineName = "pipeline", jobName = "job", buildName = "1" }, highlight = Routes.HighlightNothing } }
-                |> Tuple.first
                 |> viewNormally
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
@@ -409,7 +411,6 @@ all =
             ]
         , rspecStyleDescribe "rendering top bar on resource page"
             (TopBar.init { route = Routes.Resource { id = { teamName = "team", pipelineName = "pipeline", resourceName = "resource" }, page = Nothing } }
-                |> Tuple.first
                 |> viewNormally
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
@@ -445,7 +446,6 @@ all =
             ]
         , rspecStyleDescribe "rendering top bar on job page"
             (TopBar.init { route = Routes.Job { id = { teamName = "team", pipelineName = "pipeline", jobName = "job" }, page = Nothing } }
-                |> Tuple.first
                 |> viewNormally
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
@@ -466,9 +466,7 @@ all =
                         ]
             ]
         , rspecStyleDescribe "when checking search bar values"
-            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal (Just "test") } }
-                |> Tuple.first
-            )
+            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal (Just "test") } })
             [ it "renders the search bar with the text in the search query" <|
                 viewNormally
                     >> Query.find [ id "search-input-field" ]
@@ -490,12 +488,9 @@ all =
                     >> Query.has [ style [ ( "opacity", "1" ) ] ]
             ]
         , rspecStyleDescribe "rendering search bar on dashboard page"
-            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal Nothing } }
-                |> Tuple.first
-            )
+            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal Nothing } })
             [ context "when desktop sized"
                 (TopBar.handleCallback (ScreenResized { width = 1500, height = 900 })
-                    >> Tuple.first
                     >> viewNormally
                 )
                 [ it "renders search bar" <|
@@ -598,9 +593,7 @@ all =
                         >> Query.has [ style [ ( "opacity", "0.2" ) ] ]
                 ]
             , context "when mobile sized"
-                (TopBar.handleCallback (ScreenResized { width = 400, height = 900 })
-                    >> Tuple.first
-                )
+                (TopBar.handleCallback (ScreenResized { width = 400, height = 900 }))
                 [ it "should not have a search bar" <|
                     viewNormally
                         >> Query.hasNot
@@ -624,9 +617,7 @@ all =
                         Tuple.second
                             >> Expect.equal [ Effects.ForceFocus "search-input-field" ]
                     , context "the ui"
-                        (Tuple.first
-                            >> viewNormally
-                        )
+                        viewNormally
                         [ it "renders search bar" <|
                             Query.has [ id "search-input-field" ]
                         , it "search bar is an input field" <|
@@ -670,10 +661,7 @@ all =
                             Query.hasNot [ id "login-component" ]
                         ]
                     , context "after the focus returns"
-                        (Tuple.first
-                            >> TopBar.update Msgs.FocusMsg
-                            >> Tuple.first
-                        )
+                        (TopBar.update Msgs.FocusMsg)
                         [ it "should display a dropdown of options" <|
                             viewNormally
                                 >> Query.find [ id "search-dropdown" ]
@@ -701,7 +689,6 @@ all =
                                 >> Query.has [ style [ ( "width", "100%" ) ] ]
                         , context "after the search is blurred"
                             (TopBar.update Msgs.BlurMsg
-                                >> Tuple.first
                                 >> viewNormally
                             )
                             [ it "should not have a search bar" <|
@@ -721,9 +708,7 @@ all =
                             ]
                         , context "after the search is blurred with a search query"
                             (TopBar.update (Msgs.FilterMsg "query")
-                                >> Tuple.first
                                 >> TopBar.update Msgs.BlurMsg
-                                >> Tuple.first
                                 >> viewNormally
                             )
                             [ it "should have a search bar" <|
@@ -740,9 +725,7 @@ all =
                 ]
             ]
         , rspecStyleDescribe "when search query is updated"
-            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal Nothing } }
-                |> Tuple.first
-            )
+            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal Nothing } })
             [ it "search item is modified" <|
                 TopBar.update (Msgs.FilterMsg "test")
                     >> Tuple.first
@@ -750,9 +733,7 @@ all =
                     >> Expect.equal "test"
             , it "shows the list of statuses when `status:` is typed in the search bar" <|
                 TopBar.update Msgs.FocusMsg
-                    >> Tuple.first
                     >> TopBar.update (Msgs.FilterMsg "status:")
-                    >> Tuple.first
                     >> viewNormally
                     >> Query.find [ id "search-dropdown" ]
                     >> Query.findAll [ tag "li" ]
@@ -768,11 +749,8 @@ all =
                         ]
             , it "after typing `status: pending` the dropdown is empty" <|
                 TopBar.update Msgs.FocusMsg
-                    >> Tuple.first
                     >> TopBar.update (Msgs.FilterMsg "status:")
-                    >> Tuple.first
                     >> TopBar.update (Msgs.FilterMsg "status: pending")
-                    >> Tuple.first
                     >> viewNormally
                     >> Query.findAll [ id "search-dropdown" ]
                     >> Query.first
@@ -780,12 +758,9 @@ all =
                     >> Query.count (Expect.equal 0)
             ]
         , rspecStyleDescribe "when search query is `status:`"
-            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal (Just "status:") } }
-                |> Tuple.first
-            )
+            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal (Just "status:") } })
             [ it "should display a dropdown of status options when the search bar is focused" <|
                 TopBar.update Msgs.FocusMsg
-                    >> Tuple.first
                     >> viewNormally
                     >> Query.find [ id "search-dropdown" ]
                     >> Query.findAll [ tag "li" ]
@@ -801,19 +776,15 @@ all =
                         ]
             ]
         , rspecStyleDescribe "when the search query is `team:`"
-            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal (Just "team:") } }
-                |> Tuple.first
-            )
+            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal (Just "team:") } })
             [ it "when the user is not logged in the dropdown is empty" <|
                 TopBar.update Msgs.FocusMsg
-                    >> Tuple.first
                     >> viewNormally
                     >> Query.find [ id "search-dropdown" ]
                     >> Query.children []
                     >> Query.count (Expect.equal 0)
             , it "when the user is logged in, and there are teams, the dropdown displays them" <|
                 TopBar.update Msgs.FocusMsg
-                    >> Tuple.first
                     >> TopBar.handleCallback
                         (Callback.APIDataFetched
                             (Ok
@@ -828,7 +799,6 @@ all =
                                 )
                             )
                         )
-                    >> Tuple.first
                     >> viewNormally
                     >> Query.find [ id "search-dropdown" ]
                     >> Query.children []
@@ -839,7 +809,6 @@ all =
                         ]
             , it "when there are many teams, the dropdown only displays the first 10" <|
                 TopBar.update Msgs.FocusMsg
-                    >> Tuple.first
                     >> TopBar.handleCallback
                         (Callback.APIDataFetched
                             (Ok
@@ -866,16 +835,13 @@ all =
                                 )
                             )
                         )
-                    >> Tuple.first
                     >> viewNormally
                     >> Query.find [ id "search-dropdown" ]
                     >> Query.children []
                     >> Query.count (Expect.equal 10)
             ]
         , rspecStyleDescribe "dropdown stuff"
-            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal Nothing } }
-                |> Tuple.first
-            )
+            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal Nothing } })
             [ context "before receiving FocusMsg"
                 viewNormally
                 [ it "has no dropdown" <|
@@ -887,28 +853,19 @@ all =
                         >> Event.expect Msgs.FocusMsg
                 ]
             , context "after receiving FocusMsg"
-                (TopBar.update Msgs.FocusMsg
-                    >> Tuple.first
-                )
+                (TopBar.update Msgs.FocusMsg)
                 ([ testDropdown [] [ 0, 1 ] ]
                     ++ [ context "after down arrow keypress"
-                            (TopBar.handleDelivery (KeyDown 40)
-                                >> Tuple.first
-                            )
+                            (TopBar.handleDelivery (KeyDown 40))
                             ([ testDropdown [ 0 ] [ 1 ] ]
                                 ++ [ context "after second down arrow keypress"
-                                        (TopBar.handleDelivery (KeyDown 40)
-                                            >> Tuple.first
-                                        )
+                                        (TopBar.handleDelivery (KeyDown 40))
                                         ([ testDropdown [ 1 ] [ 0 ] ]
                                             ++ [ context "after loop around down arrow keypress"
-                                                    (TopBar.handleDelivery (KeyDown 40)
-                                                        >> Tuple.first
-                                                    )
+                                                    (TopBar.handleDelivery (KeyDown 40))
                                                     [ testDropdown [ 0 ] [ 1 ] ]
                                                , context "after hitting enter"
                                                     (TopBar.handleDelivery (KeyDown 13)
-                                                        >> Tuple.first
                                                         >> viewNormally
                                                     )
                                                     [ it "updates the query" <|
@@ -919,7 +876,6 @@ all =
                                         )
                                    , context "after hitting enter"
                                         (TopBar.handleDelivery (KeyDown 13)
-                                            >> Tuple.first
                                             >> viewNormally
                                         )
                                         [ it "updates the query" <|
@@ -929,19 +885,13 @@ all =
                                    ]
                             )
                        , context "after up arrow keypress"
-                            (TopBar.handleDelivery (KeyDown 38)
-                                >> Tuple.first
-                            )
+                            (TopBar.handleDelivery (KeyDown 38))
                             ([ testDropdown [ 1 ] [ 0 ] ]
                                 ++ [ context "after second up arrow keypress"
-                                        (TopBar.handleDelivery (KeyDown 38)
-                                            >> Tuple.first
-                                        )
+                                        (TopBar.handleDelivery (KeyDown 38))
                                         ([ testDropdown [ 0 ] [ 1 ] ]
                                             ++ [ context "after loop around up arrow keypress"
-                                                    (TopBar.handleDelivery (KeyDown 38)
-                                                        >> Tuple.first
-                                                    )
+                                                    (TopBar.handleDelivery (KeyDown 38))
                                                     [ testDropdown [ 1 ] [ 0 ] ]
                                                ]
                                         )
@@ -949,9 +899,7 @@ all =
                             )
                        ]
                     ++ [ context "after an ESC keypress"
-                            (TopBar.handleDelivery (KeyDown 27)
-                                >> Tuple.first
-                            )
+                            (TopBar.handleDelivery (KeyDown 27))
                             [ it "should not have any dropdown children anymore" <|
                                 viewNormally
                                     >> Query.findAll [ id "search-dropdown" ]
@@ -961,9 +909,7 @@ all =
                 )
             , context "after receiving FocusMsg and then BlurMsg"
                 (TopBar.update Msgs.FocusMsg
-                    >> Tuple.first
                     >> TopBar.update Msgs.BlurMsg
-                    >> Tuple.first
                     >> viewNormally
                 )
                 [ it "hides the dropdown" <|
@@ -1022,12 +968,12 @@ onePipeline teamName =
     }
 
 
-viewNormally : Model.Model -> Query.Single Msgs.Msg
+viewNormally : ( Model.Model {}, List Effects.Effect ) -> Query.Single Msgs.Msg
 viewNormally =
-    TopBar.view UserStateLoggedOut Model.None >> toUnstyled >> Query.fromHtml
+    Tuple.first >> TopBar.view UserStateLoggedOut Model.None >> toUnstyled >> Query.fromHtml
 
 
-testDropdown : List Int -> List Int -> Model.Model -> Test
+testDropdown : List Int -> List Int -> ( Model.Model {}, List Effects.Effect ) -> Test
 testDropdown selecteds notSelecteds =
     context "ui"
         viewNormally

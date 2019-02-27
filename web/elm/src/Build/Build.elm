@@ -215,7 +215,7 @@ handleCallback : Callback -> Model -> ( Model, List Effect )
 handleCallback msg model =
     let
         ( newTopBar, topBarEffects ) =
-            TopBar.handleCallback msg model.topBar
+            TopBar.handleCallback msg ( model.topBar, [] )
 
         ( newModel, dashboardEffects ) =
             handleCallbackWithoutTopBar msg model
@@ -406,7 +406,7 @@ update msg model =
         FromTopBar m ->
             let
                 ( newTopBar, topBarEffects ) =
-                    TopBar.update m model.topBar
+                    TopBar.update m ( model.topBar, [] )
             in
             ( { model | topBar = newTopBar }, topBarEffects )
 

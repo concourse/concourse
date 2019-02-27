@@ -61,7 +61,7 @@ type alias Model =
     , selectedGroups : List String
     , hideLegend : Bool
     , hideLegendCounter : Time
-    , topBar : TopBar.Model.Model
+    , topBar : TopBar.Model.Model {}
     }
 
 
@@ -141,7 +141,7 @@ handleCallback : Callback -> Model -> ( Model, List Effect )
 handleCallback msg model =
     let
         ( newTopBar, topBarEffects ) =
-            TopBar.handleCallback msg model.topBar
+            TopBar.handleCallback msg ( model.topBar, [] )
 
         ( newModel, pipelineEffects ) =
             handleCallbackWithoutTopBar msg model
@@ -264,7 +264,7 @@ update msg model =
         FromTopBar msg ->
             let
                 ( newTopBar, topBarEffects ) =
-                    TopBar.update msg model.topBar
+                    TopBar.update msg ( model.topBar, [] )
             in
             ( { model | topBar = newTopBar }, topBarEffects )
 

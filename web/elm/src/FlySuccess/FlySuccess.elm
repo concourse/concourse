@@ -1,6 +1,5 @@
 module FlySuccess.FlySuccess exposing
-    ( Model
-    , handleCallback
+    ( handleCallback
     , init
     , update
     , view
@@ -11,6 +10,7 @@ import Effects exposing (Effect(..))
 import FlySuccess.Models
     exposing
         ( ButtonState(..)
+        , Model
         , TokenTransfer
         , TransferResult
         , hover
@@ -29,14 +29,6 @@ import TopBar.Model
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UserState exposing (UserState)
-
-
-type alias Model =
-    { buttonState : ButtonState
-    , authToken : String
-    , tokenTransfer : TokenTransfer
-    , topBar : TopBar.Model.Model
-    }
 
 
 init : { authToken : String, flyPort : Maybe Int } -> ( Model, List Effect )
@@ -76,7 +68,7 @@ handleCallback msg model =
         _ ->
             let
                 ( newTopBar, topBarEffects ) =
-                    TopBar.handleCallback msg model.topBar
+                    TopBar.handleCallback msg ( model.topBar, [] )
             in
             ( { model | topBar = newTopBar }, topBarEffects )
 
@@ -95,7 +87,7 @@ update msg model =
         FromTopBar msg ->
             let
                 ( newTopBar, topBarEffects ) =
-                    TopBar.update msg model.topBar
+                    TopBar.update msg ( model.topBar, [] )
             in
             ( { model | topBar = newTopBar }, topBarEffects )
 

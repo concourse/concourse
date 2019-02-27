@@ -13,10 +13,10 @@ module SubPage.SubPage exposing
 import Build.Build as Build
 import Build.Models
 import Callback exposing (Callback)
-import Concourse
 import Dashboard.Dashboard as Dashboard
 import Effects exposing (Effect)
 import FlySuccess.FlySuccess as FlySuccess
+import FlySuccess.Models
 import Html exposing (Html)
 import Html.Styled as HS
 import Job.Job as Job
@@ -38,7 +38,7 @@ type Model
     | PipelineModel Pipeline.Model
     | NotFoundModel NotFound.Model
     | DashboardModel Dashboard.Model
-    | FlySuccessModel FlySuccess.Model
+    | FlySuccessModel FlySuccess.Models.Model
 
 
 type alias Flags =
@@ -153,7 +153,7 @@ handleCallback callback model =
                 |> Tuple.mapFirst ResourceModel
 
         DashboardModel model ->
-            Dashboard.handleCallback callback model
+            Dashboard.handleCallback callback ( model, [] )
                 |> Tuple.mapFirst DashboardModel
 
         FlySuccessModel model ->
@@ -179,7 +179,7 @@ handleDelivery notFound route delivery model =
                 |> handleNotFound notFound route
 
         DashboardModel model ->
-            Dashboard.handleDelivery delivery model
+            Dashboard.handleDelivery delivery ( model, [] )
                 |> Tuple.mapFirst DashboardModel
 
         PipelineModel model ->
@@ -233,7 +233,7 @@ update notFound route msg mdl =
                 |> handleNotFound notFound route
 
         ( DashboardMsg message, DashboardModel model ) ->
-            Dashboard.update message model
+            Dashboard.update message ( model, [] )
                 |> Tuple.mapFirst DashboardModel
 
         ( FlySuccessMsg message, FlySuccessModel model ) ->
