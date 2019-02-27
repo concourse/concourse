@@ -236,10 +236,7 @@ handleDelivery delivery model =
             in
             ( { newModel | topBar = newTopBar }, topBarEffects ++ dashEffects )
 
-        MouseMoved ->
-            ( Footer.showFooter model, [] )
-
-        MouseClicked ->
+        Moused ->
             ( Footer.showFooter model, [] )
 
         ClockTicked OneSecond time ->
@@ -386,8 +383,7 @@ subscriptions : Model -> List Subscription
 subscriptions model =
     [ OnClockTick OneSecond
     , OnClockTick FiveSeconds
-    , OnMouseMove
-    , OnMouseClick
+    , OnMouse
     , OnKeyDown
     , OnWindowResize
     ]

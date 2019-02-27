@@ -2750,24 +2750,13 @@ all =
                         |> Application.view
                         |> Query.fromHtml
                         |> Query.hasNot [ id "dashboard-info" ]
-            , test "reappears on mouse motion" <|
+            , test "reappears on mouse action" <|
                 \_ ->
                     initFromApplication
                         |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> afterSeconds 6
                         |> Application.update
-                            (Application.Msgs.DeliveryReceived MouseMoved)
-                        |> Tuple.first
-                        |> Application.view
-                        |> Query.fromHtml
-                        |> Query.has [ id "dashboard-info" ]
-            , test "reappears on mouse click" <|
-                \_ ->
-                    initFromApplication
-                        |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
-                        |> afterSeconds 6
-                        |> Application.update
-                            (Application.Msgs.DeliveryReceived MouseClicked)
+                            (Application.Msgs.DeliveryReceived Moused)
                         |> Tuple.first
                         |> Application.view
                         |> Query.fromHtml

@@ -227,10 +227,7 @@ handleDelivery delivery model =
                 []
             )
 
-        MouseMoved ->
-            ( { model | hideLegend = False, hideLegendCounter = 0 }, [] )
-
-        MouseClicked ->
+        Moused ->
             ( { model | hideLegend = False, hideLegendCounter = 0 }, [] )
 
         ClockTicked OneSecond _ ->
@@ -289,8 +286,7 @@ subscriptions model =
     [ OnClockTick OneMinute
     , OnClockTick FiveSeconds
     , OnClockTick OneSecond
-    , OnMouseMove
-    , OnMouseClick
+    , OnMouse
     , OnKeyDown
     ]
 

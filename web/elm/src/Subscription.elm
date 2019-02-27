@@ -18,8 +18,7 @@ port tokenReceived : (Maybe String -> msg) -> Sub msg
 type Subscription
     = OnClockTick Interval
     | OnAnimationFrame
-    | OnMouseMove
-    | OnMouseClick
+    | OnMouse
     | OnKeyDown
     | OnKeyUp
     | OnScrollFromWindowBottom
@@ -32,8 +31,7 @@ type Subscription
 type Delivery
     = KeyDown Keyboard.KeyCode
     | KeyUp Keyboard.KeyCode
-    | MouseMoved
-    | MouseClicked
+    | Moused
     | ClockTicked Interval Time.Time
     | AnimationFrameAdvanced
     | ScrolledFromWindowBottom Scroll.FromBottom
@@ -58,11 +56,8 @@ runSubscription s =
         OnAnimationFrame ->
             AnimationFrame.times (always AnimationFrameAdvanced)
 
-        OnMouseMove ->
-            Mouse.moves (always MouseMoved)
-
-        OnMouseClick ->
-            Mouse.clicks (always MouseClicked)
+        OnMouse ->
+            Sub.batch [ Mouse.moves (always Moused), Mouse.clicks (always Moused) ]
 
         OnKeyDown ->
             Keyboard.downs KeyDown

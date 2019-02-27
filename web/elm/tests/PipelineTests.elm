@@ -365,20 +365,11 @@ all =
                             |> Application.view
                             |> Query.fromHtml
                             |> Query.hasNot [ id "legend" ]
-                , test "Mouse move after legend hidden reshows legend" <|
+                , test "Mouse action after legend hidden reshows legend" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
                             |> clockTickALot 11
-                            |> Application.update (Msgs.DeliveryReceived MouseMoved)
-                            |> Tuple.first
-                            |> Application.view
-                            |> Query.fromHtml
-                            |> Query.has [ id "legend" ]
-                , test "Mouse click after legend hidden reshows legend" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline"
-                            |> clockTickALot 11
-                            |> Application.update (Msgs.DeliveryReceived MouseClicked)
+                            |> Application.update (Msgs.DeliveryReceived Moused)
                             |> Tuple.first
                             |> Application.view
                             |> Query.fromHtml
