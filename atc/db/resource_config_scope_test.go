@@ -302,6 +302,10 @@ var _ = Describe("Resource Config Scope", func() {
 				Expect(acquired).To(BeTrue())
 			})
 
+			AfterEach(func() {
+				_ = lock.Release()
+			})
+
 			It("does not get the lock", func() {
 				_, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second)
 				Expect(err).ToNot(HaveOccurred())

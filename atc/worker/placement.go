@@ -4,15 +4,13 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/concourse/concourse/atc/db"
-
 	"code.cloudfoundry.org/lager"
 )
 
 type ContainerPlacementStrategy interface {
 	//TODO: Don't pass around container metadata since it's not guaranteed to be deterministic.
 	// Change this after check containers stop being reused
-	Choose(lager.Logger, []Worker, ContainerSpec, db.ContainerMetadata) (Worker, error)
+	Choose(lager.Logger, []Worker, ContainerSpec) (Worker, error)
 }
 
 type VolumeLocalityPlacementStrategy struct {
@@ -25,7 +23,7 @@ func NewVolumeLocalityPlacementStrategy() ContainerPlacementStrategy {
 	}
 }
 
-func (strategy *VolumeLocalityPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec, metadata db.ContainerMetadata) (Worker, error) {
+func (strategy *VolumeLocalityPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
 	workersByCount := map[int][]Worker{}
 	var highestCount int
 	for _, w := range workers {
@@ -64,14 +62,9 @@ func NewFewestBuildContainersPlacementStrategy() ContainerPlacementStrategy {
 	}
 }
 
-func (strategy *FewestBuildContainersPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec, metadata db.ContainerMetadata) (Worker, error) {
+func (strategy *FewestBuildContainersPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
 	workersByWork := map[int][]Worker{}
 	var minWork int
-
-	// TODO: we want to remove this in the future when we don't reuse check containers
-	if metadata.Type == db.ContainerTypeCheck {
-		return workers[strategy.rand.Intn(len(workers))], nil
-	}
 
 	for i, w := range workers {
 		work := w.BuildContainers()
@@ -95,6 +88,6 @@ func NewRandomPlacementStrategy() ContainerPlacementStrategy {
 	}
 }
 
-func (strategy *RandomPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec, metadata db.ContainerMetadata) (Worker, error) {
+func (strategy *RandomPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
 	return workers[strategy.rand.Intn(len(workers))], nil
 }

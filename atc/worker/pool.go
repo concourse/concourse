@@ -53,7 +53,6 @@ type Pool interface {
 	FindOrChooseWorker(
 		lager.Logger,
 		db.ContainerOwner,
-		db.ContainerMetadata,
 		ContainerSpec,
 		WorkerSpec,
 		ContainerPlacementStrategy,
@@ -114,7 +113,6 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 func (pool *pool) FindOrChooseWorker(
 	logger lager.Logger,
 	owner db.ContainerOwner,
-	metadata db.ContainerMetadata,
 	containerSpec ContainerSpec,
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
@@ -144,7 +142,7 @@ dance:
 	}
 
 	if worker == nil {
-		worker, err = strategy.Choose(logger, compatibleWorkers, containerSpec, metadata)
+		worker, err = strategy.Choose(logger, compatibleWorkers, containerSpec)
 		if err != nil {
 			return nil, err
 		}

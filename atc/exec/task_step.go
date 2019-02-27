@@ -186,9 +186,8 @@ func (action *TaskStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	// XXX: TESTS
 	owner := db.NewBuildStepContainerOwner(action.buildID, action.planID, action.teamID)
-	chosenWorker, err := action.workerPool.FindOrChooseWorker(logger, owner, action.containerMetadata, containerSpec, workerSpec, action.strategy)
+	chosenWorker, err := action.workerPool.FindOrChooseWorker(logger, owner, containerSpec, workerSpec, action.strategy)
 	if err != nil {
 		return err
 	}

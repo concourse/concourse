@@ -9,7 +9,6 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -37,22 +36,19 @@ type Fetcher interface {
 func NewFetcher(
 	clock clock.Clock,
 	lockFactory lock.LockFactory,
-	resourceCacheFactory db.ResourceCacheFactory,
-	resourceFactory ResourceFactory,
+	fetchSourceFactory FetchSourceFactory,
 ) Fetcher {
 	return &fetcher{
-		clock:                clock,
-		lockFactory:          lockFactory,
-		resourceCacheFactory: resourceCacheFactory,
-		resourceFactory:      resourceFactory,
+		clock:              clock,
+		lockFactory:        lockFactory,
+		fetchSourceFactory: fetchSourceFactory,
 	}
 }
 
 type fetcher struct {
-	clock                clock.Clock
-	lockFactory          lock.LockFactory
-	resourceCacheFactory db.ResourceCacheFactory
-	resourceFactory      ResourceFactory
+	clock              clock.Clock
+	lockFactory        lock.LockFactory
+	fetchSourceFactory FetchSourceFactory
 }
 
 func (f *fetcher) Fetch(
@@ -69,7 +65,7 @@ func (f *fetcher) Fetch(
 		"resource": ResourcesDir("get"),
 	}
 
-	source := NewResourceInstanceFetchSource(logger, gardenWorker, resourceInstance, resourceTypes, containerSpec, session, imageFetchingDelegate, f.resourceCacheFactory, f.resourceFactory)
+	source := f.fetchSourceFactory.NewFetchSource(logger, gardenWorker, resourceInstance, resourceTypes, containerSpec, session, imageFetchingDelegate)
 
 	ticker := f.clock.NewTicker(GetResourceLockInterval)
 	defer ticker.Stop()

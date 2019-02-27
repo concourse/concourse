@@ -251,14 +251,15 @@ func (scanner *resourceTypeScanner) check(
 		TeamID:        scanner.dbPipeline.TeamID(),
 	}
 
-	// XXX: TESTS
 	owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries)
-	containerMetadata := db.ContainerMetadata{
-		Type: db.ContainerTypeCheck,
-	}
 
-	chosenWorker, err := scanner.pool.FindOrChooseWorker(logger, owner, containerMetadata, containerSpec, workerSpec, scanner.strategy)
+	chosenWorker, err := scanner.pool.FindOrChooseWorker(logger, owner, containerSpec, workerSpec, scanner.strategy)
 	if err != nil {
+		chkErr := resourceConfigScope.SetCheckError(err)
+		if chkErr != nil {
+			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
+		}
+		logger.Error("failed-to-find-or-choose-worker", err)
 		return err
 	}
 
@@ -278,7 +279,7 @@ func (scanner *resourceTypeScanner) check(
 		if chkErr != nil {
 			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
 		}
-		logger.Error("failed-to-initialize-new-container", err)
+		logger.Error("failed-to-create-or-find-container", err)
 		return err
 	}
 

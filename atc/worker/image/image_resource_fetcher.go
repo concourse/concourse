@@ -232,7 +232,6 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 			ResourceType: resourceType.Name,
 		},
 		TeamID: i.teamID,
-		Tags:   i.worker.Tags(),
 		BindMounts: []worker.BindMountSource{
 			&worker.CertsVolumeMount{Logger: logger},
 		},
@@ -293,7 +292,6 @@ func (i *imageResourceFetcher) getLatestVersion(
 		ImageSpec: worker.ImageSpec{
 			ResourceType: i.imageResource.Type,
 		},
-		Tags:   i.worker.Tags(),
 		TeamID: i.teamID,
 		BindMounts: []worker.BindMountSource{
 			&worker.CertsVolumeMount{Logger: logger},

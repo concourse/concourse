@@ -28,8 +28,10 @@ import (
 
 var _ = Describe("ResourceScanner", func() {
 	var (
-		epoch time.Time
+		epoch      time.Time
+		scanLogger lager.Logger
 
+		fakeContainer             *workerfakes.FakeContainer
 		fakeWorker                *workerfakes.FakeWorker
 		fakePool                  *workerfakes.FakePool
 		fakeStrategy              *workerfakes.FakeContainerPlacementStrategy
@@ -56,6 +58,7 @@ var _ = Describe("ResourceScanner", func() {
 
 	BeforeEach(func() {
 		epoch = time.Unix(123, 456).UTC()
+		scanLogger = lagertest.NewTestLogger("test")
 		fakeLock = &lockfakes.FakeLock{}
 		interval = 1 * time.Minute
 		GlobalResourceCheckTimeout = 1 * time.Hour
@@ -79,6 +82,7 @@ var _ = Describe("ResourceScanner", func() {
 			Version: atc.Version{"custom": "version"},
 		}
 
+		fakeContainer = new(workerfakes.FakeContainer)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakePool = new(workerfakes.FakePool)
 		fakeWorker = new(workerfakes.FakeWorker)
@@ -120,6 +124,7 @@ var _ = Describe("ResourceScanner", func() {
 		scanner = NewResourceScanner(
 			fakeClock,
 			fakePool,
+			fakeResourceFactory,
 			fakeResourceConfigFactory,
 			interval,
 			fakeDBPipeline,
@@ -137,13 +142,18 @@ var _ = Describe("ResourceScanner", func() {
 		)
 
 		BeforeEach(func() {
+			fakeWorker.NameReturns("some-worker")
 			fakePool.FindOrChooseWorkerReturns(fakeWorker, nil)
+
+			fakeContainer.HandleReturns("some-handle")
+			fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewResourceReturns(fakeResource, nil)
+			fakeResourceFactory.NewResourceForContainerReturns(fakeResource)
 		})
 
 		JustBeforeEach(func() {
-			actualInterval, runErr = scanner.Run(lagertest.NewTestLogger("test"), "some-resource")
+			actualInterval, runErr = scanner.Run(scanLogger, "some-resource")
 		})
 
 		Context("when the lock cannot be acquired", func() {
@@ -238,22 +248,17 @@ var _ = Describe("ResourceScanner", func() {
 					err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 					Expect(err).To(BeNil())
 
-					_, owner, containerMetadata, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerArgsForCall(0)
+					_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
-					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
-						Type: db.ContainerTypeCheck,
+					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+						ResourceType: "git",
 					}))
-					Expect(containerSpec).To(Equal(worker.ContainerSpec{
-						ImageSpec: worker.ImageSpec{
-							ResourceType: "git",
-						},
-						Tags:   atc.Tags{"some-tag"},
-						TeamID: 123,
-						Env: []string{
-							"ATC_EXTERNAL_URL=https://www.example.com",
-							"RESOURCE_PIPELINE_NAME=some-pipeline",
-							"RESOURCE_NAME=some-resource",
-						},
+					Expect(containerSpec.Tags).To(Equal([]string{"some-tag"}))
+					Expect(containerSpec.TeamID).To(Equal(123))
+					Expect(containerSpec.Env).To(Equal([]string{
+						"ATC_EXTERNAL_URL=https://www.example.com",
+						"RESOURCE_PIPELINE_NAME=some-pipeline",
+						"RESOURCE_NAME=some-resource",
 					}))
 					Expect(workerSpec).To(Equal(worker.WorkerSpec{
 						ResourceType:  "git",
@@ -262,22 +267,21 @@ var _ = Describe("ResourceScanner", func() {
 						TeamID:        123,
 					}))
 
-					_, _, owner, metadata, containerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+					Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
+					_, _, _, owner, metadata, containerSpec, resourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
 					Expect(metadata).To(Equal(db.ContainerMetadata{
 						Type: db.ContainerTypeCheck,
 					}))
-					Expect(containerSpec).To(Equal(worker.ContainerSpec{
-						ImageSpec: worker.ImageSpec{
-							ResourceType: "git",
-						},
-						Tags:   atc.Tags{"some-tag"},
-						TeamID: 123,
-						Env: []string{
-							"ATC_EXTERNAL_URL=https://www.example.com",
-							"RESOURCE_PIPELINE_NAME=some-pipeline",
-							"RESOURCE_NAME=some-resource",
-						},
+					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+						ResourceType: "git",
+					}))
+					Expect(containerSpec.Tags).To(Equal([]string{"some-tag"}))
+					Expect(containerSpec.TeamID).To(Equal(123))
+					Expect(containerSpec.Env).To(Equal([]string{
+						"ATC_EXTERNAL_URL=https://www.example.com",
+						"RESOURCE_PIPELINE_NAME=some-pipeline",
+						"RESOURCE_NAME=some-resource",
 					}))
 					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 						versionedResourceType,
@@ -591,9 +595,14 @@ var _ = Describe("ResourceScanner", func() {
 		)
 
 		BeforeEach(func() {
+			fakeWorker.NameReturns("some-worker")
 			fakePool.FindOrChooseWorkerReturns(fakeWorker, nil)
+
+			fakeContainer.HandleReturns("some-handle")
+			fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewResourceReturns(fakeResource, nil)
+			fakeResourceFactory.NewResourceForContainerReturns(fakeResource)
 		})
 
 		JustBeforeEach(func() {
@@ -671,22 +680,17 @@ var _ = Describe("ResourceScanner", func() {
 				err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 				Expect(err).To(BeNil())
 
-				_, owner, containerMetadata, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerArgsForCall(0)
+				_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
-				Expect(containerMetadata).To(Equal(db.ContainerMetadata{
-					Type: db.ContainerTypeCheck,
+				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+					ResourceType: "git",
 				}))
-				Expect(containerSpec).To(Equal(worker.ContainerSpec{
-					ImageSpec: worker.ImageSpec{
-						ResourceType: "git",
-					},
-					Tags:   atc.Tags{"some-tag"},
-					TeamID: 123,
-					Env: []string{
-						"ATC_EXTERNAL_URL=https://www.example.com",
-						"RESOURCE_PIPELINE_NAME=some-pipeline",
-						"RESOURCE_NAME=some-resource",
-					},
+				Expect(containerSpec.Tags).To(Equal([]string{"some-tag"}))
+				Expect(containerSpec.TeamID).To(Equal(123))
+				Expect(containerSpec.Env).To(Equal([]string{
+					"ATC_EXTERNAL_URL=https://www.example.com",
+					"RESOURCE_PIPELINE_NAME=some-pipeline",
+					"RESOURCE_NAME=some-resource",
 				}))
 				Expect(workerSpec).To(Equal(worker.WorkerSpec{
 					ResourceType:  "git",
@@ -695,22 +699,20 @@ var _ = Describe("ResourceScanner", func() {
 					TeamID:        123,
 				}))
 
-				_, _, owner, metadata, containerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+				_, _, _, owner, metadata, containerSpec, resourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))
-				Expect(containerSpec).To(Equal(worker.ContainerSpec{
-					ImageSpec: worker.ImageSpec{
-						ResourceType: "git",
-					},
-					Tags:   atc.Tags{"some-tag"},
-					TeamID: 123,
-					Env: []string{
-						"ATC_EXTERNAL_URL=https://www.example.com",
-						"RESOURCE_PIPELINE_NAME=some-pipeline",
-						"RESOURCE_NAME=some-resource",
-					},
+				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+					ResourceType: "git",
+				}))
+				Expect(containerSpec.Tags).To(Equal([]string{"some-tag"}))
+				Expect(containerSpec.TeamID).To(Equal(123))
+				Expect(containerSpec.Env).To(Equal([]string{
+					"ATC_EXTERNAL_URL=https://www.example.com",
+					"RESOURCE_PIPELINE_NAME=some-pipeline",
+					"RESOURCE_NAME=some-resource",
 				}))
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 					versionedResourceType,
@@ -745,9 +747,9 @@ var _ = Describe("ResourceScanner", func() {
 				})
 			})
 
-			Context("when creating the resource checker fails", func() {
+			Context("when creating the container fails", func() {
 				BeforeEach(func() {
-					fakeResourceFactory.NewResourceReturns(nil, errors.New("catastrophe"))
+					fakeWorker.FindOrCreateContainerReturns(nil, errors.New("catastrophe"))
 				})
 
 				It("sets the check error and returns the error", func() {
@@ -1040,8 +1042,15 @@ var _ = Describe("ResourceScanner", func() {
 		)
 
 		BeforeEach(func() {
+			fakeWorker.NameReturns("some-worker")
+			fakePool.FindOrChooseWorkerReturns(fakeWorker, nil)
+
+			fakeContainer.HandleReturns("some-handle")
+			fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewResourceReturns(fakeResource, nil)
+			fakeResourceFactory.NewResourceForContainerReturns(fakeResource)
+
 			fromVersion = nil
 		})
 

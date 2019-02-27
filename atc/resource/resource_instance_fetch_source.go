@@ -17,6 +17,57 @@ type FetchSource interface {
 	Create(context.Context) (VersionedSource, error)
 }
 
+//go:generate counterfeiter . FetchSourceFactory
+
+type FetchSourceFactory interface {
+	NewFetchSource(
+		logger lager.Logger,
+		worker worker.Worker,
+		resourceInstance ResourceInstance,
+		resourceTypes creds.VersionedResourceTypes,
+		containerSpec worker.ContainerSpec,
+		session Session,
+		imageFetchingDelegate worker.ImageFetchingDelegate,
+	) FetchSource
+}
+
+type fetchSourceFactory struct {
+	resourceCacheFactory db.ResourceCacheFactory
+	resourceFactory      ResourceFactory
+}
+
+func NewFetchSourceFactory(
+	resourceCacheFactory db.ResourceCacheFactory,
+	resourceFactory ResourceFactory,
+) FetchSourceFactory {
+	return &fetchSourceFactory{
+		resourceCacheFactory: resourceCacheFactory,
+		resourceFactory:      resourceFactory,
+	}
+}
+
+func (r *fetchSourceFactory) NewFetchSource(
+	logger lager.Logger,
+	worker worker.Worker,
+	resourceInstance ResourceInstance,
+	resourceTypes creds.VersionedResourceTypes,
+	containerSpec worker.ContainerSpec,
+	session Session,
+	imageFetchingDelegate worker.ImageFetchingDelegate,
+) FetchSource {
+	return &resourceInstanceFetchSource{
+		logger:                 logger,
+		worker:                 worker,
+		resourceInstance:       resourceInstance,
+		resourceTypes:          resourceTypes,
+		containerSpec:          containerSpec,
+		session:                session,
+		imageFetchingDelegate:  imageFetchingDelegate,
+		dbResourceCacheFactory: r.resourceCacheFactory,
+		resourceFactory:        r.resourceFactory,
+	}
+}
+
 type resourceInstanceFetchSource struct {
 	logger                 lager.Logger
 	worker                 worker.Worker
@@ -27,30 +78,6 @@ type resourceInstanceFetchSource struct {
 	imageFetchingDelegate  worker.ImageFetchingDelegate
 	dbResourceCacheFactory db.ResourceCacheFactory
 	resourceFactory        ResourceFactory
-}
-
-func NewResourceInstanceFetchSource(
-	logger lager.Logger,
-	worker worker.Worker,
-	resourceInstance ResourceInstance,
-	resourceTypes creds.VersionedResourceTypes,
-	containerSpec worker.ContainerSpec,
-	session Session,
-	imageFetchingDelegate worker.ImageFetchingDelegate,
-	dbResourceCacheFactory db.ResourceCacheFactory,
-	resourceFactory ResourceFactory,
-) FetchSource {
-	return &resourceInstanceFetchSource{
-		logger:                 logger,
-		worker:                 worker,
-		resourceInstance:       resourceInstance,
-		resourceTypes:          resourceTypes,
-		containerSpec:          containerSpec,
-		session:                session,
-		imageFetchingDelegate:  imageFetchingDelegate,
-		dbResourceCacheFactory: dbResourceCacheFactory,
-		resourceFactory:        resourceFactory,
-	}
 }
 
 func (s *resourceInstanceFetchSource) LockName() (string, error) {

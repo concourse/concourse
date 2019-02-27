@@ -127,9 +127,8 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		ResourceTypes: step.resourceTypes,
 	}
 
-	// XXX: TESTS
 	owner := db.NewBuildStepContainerOwner(step.build.ID(), step.planID, step.build.TeamID())
-	chosenWorker, err := step.pool.FindOrChooseWorker(logger, owner, step.containerMetadata, containerSpec, workerSpec, step.strategy)
+	chosenWorker, err := step.pool.FindOrChooseWorker(logger, owner, containerSpec, workerSpec, step.strategy)
 	if err != nil {
 		return err
 	}

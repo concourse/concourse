@@ -46,7 +46,7 @@ type GetStep struct {
 	build db.Build
 
 	name          string
-	tep.resourceType  string
+	resourceType  string
 	resource      string
 	source        creds.Source
 	params        creds.Params
@@ -205,8 +205,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		ResourceTypes: step.resourceTypes,
 	}
 
-	// XXX: TESTS
-	chosenWorker, err := step.workerPool.FindOrChooseWorker(logger, resourceInstance.ContainerOwner(), step.containerMetadata, containerSpec, workerSpec, step.strategy)
+	chosenWorker, err := step.workerPool.FindOrChooseWorker(logger, resourceInstance.ContainerOwner(), containerSpec, workerSpec, step.strategy)
 	if err != nil {
 		return err
 	}

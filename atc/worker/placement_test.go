@@ -52,9 +52,6 @@ var _ = Describe("FewestBuildContainersPlacementStrategy", func() {
 
 				Inputs: []InputSource{},
 			}
-			metadata = db.ContainerMetadata{
-				Type: db.ContainerTypeTask,
-			}
 		})
 
 		Context("when there is only one worker", func() {
@@ -68,7 +65,6 @@ var _ = Describe("FewestBuildContainersPlacementStrategy", func() {
 					logger,
 					workers,
 					spec,
-					metadata,
 				)
 				Expect(chooseErr).ToNot(HaveOccurred())
 				Expect(chosenWorker).To(Equal(compatibleWorker1))
@@ -84,33 +80,6 @@ var _ = Describe("FewestBuildContainersPlacementStrategy", func() {
 				compatibleWorker3.BuildContainersReturns(10)
 			})
 
-			Context("when the container is of type 'check'", func() {
-				BeforeEach(func() {
-					metadata = db.ContainerMetadata{
-						Type: db.ContainerTypeCheck,
-					}
-				})
-				It("picks a random worker", func() {
-					workerChoiceCounts := map[Worker]int{}
-
-					for i := 0; i < 100; i++ {
-						chosenWorker, err := strategy.Choose(
-							logger,
-							workers,
-							spec,
-							metadata,
-						)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(chosenWorker).To(SatisfyAny(Equal(compatibleWorker1), Equal(compatibleWorker2), Equal(compatibleWorker3)))
-						workerChoiceCounts[chosenWorker]++
-					}
-
-					Expect(workerChoiceCounts[compatibleWorker1]).ToNot(BeZero())
-					Expect(workerChoiceCounts[compatibleWorker2]).ToNot(BeZero())
-					Expect(workerChoiceCounts[compatibleWorker3]).ToNot(BeZero())
-				})
-
-			})
 			Context("when the container is not of type 'check'", func() {
 				It("picks the one with least amount of containers", func() {
 					Consistently(func() Worker {
@@ -118,7 +87,6 @@ var _ = Describe("FewestBuildContainersPlacementStrategy", func() {
 							logger,
 							workers,
 							spec,
-							metadata,
 						)
 						Expect(chooseErr).ToNot(HaveOccurred())
 						return chosenWorker
@@ -137,7 +105,6 @@ var _ = Describe("FewestBuildContainersPlacementStrategy", func() {
 								logger,
 								workers,
 								spec,
-								metadata,
 							)
 							Expect(chooseErr).ToNot(HaveOccurred())
 							return chosenWorker
@@ -157,7 +124,6 @@ var _ = Describe("VolumeLocalityPlacementStrategy", func() {
 				logger,
 				workers,
 				spec,
-				metadata,
 			)
 		})
 
@@ -253,7 +219,6 @@ var _ = Describe("VolumeLocalityPlacementStrategy", func() {
 						logger,
 						workers,
 						spec,
-						metadata,
 					)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(chosenWorker).To(SatisfyAny(Equal(compatibleWorkerOneCache1), Equal(compatibleWorkerOneCache2)))
@@ -286,7 +251,6 @@ var _ = Describe("VolumeLocalityPlacementStrategy", func() {
 						logger,
 						workers,
 						spec,
-						metadata,
 					)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(chosenWorker).To(SatisfyAny(Equal(compatibleWorkerNoCaches1), Equal(compatibleWorkerNoCaches2)))
@@ -307,7 +271,6 @@ var _ = Describe("RandomPlacementStrategy", func() {
 				logger,
 				workers,
 				spec,
-				metadata,
 			)
 		})
 
@@ -331,7 +294,6 @@ var _ = Describe("RandomPlacementStrategy", func() {
 					logger,
 					workers,
 					spec,
-					metadata,
 				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(chosenWorker).To(SatisfyAny(Equal(compatibleWorkerNoCaches1), Equal(compatibleWorkerNoCaches2)))

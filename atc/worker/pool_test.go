@@ -8,7 +8,6 @@ import (
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
@@ -88,7 +87,6 @@ var _ = Describe("Pool", func() {
 
 	Describe("FindOrChooseWorker", func() {
 		var (
-			metadata      db.ContainerMetadata
 			spec          ContainerSpec
 			workerSpec    WorkerSpec
 			resourceTypes creds.VersionedResourceTypes
@@ -175,7 +173,6 @@ var _ = Describe("Pool", func() {
 			chosenWorker, chooseErr = pool.FindOrChooseWorker(
 				logger,
 				fakeOwner,
-				metadata,
 				spec,
 				workerSpec,
 				fakeStrategy,
@@ -318,7 +315,7 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("returns all workers satisfying the spec", func() {
-					_, satisfyingWorkers, _, _ := fakeStrategy.ChooseArgsForCall(0)
+					_, satisfyingWorkers, _ := fakeStrategy.ChooseArgsForCall(0)
 					Expect(satisfyingWorkers).To(ConsistOf(workerA, workerB))
 				})
 
@@ -362,7 +359,7 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("returns only the team workers that satisfy the spec", func() {
-					_, satisfyingWorkers, _, _ := fakeStrategy.ChooseArgsForCall(0)
+					_, satisfyingWorkers, _ := fakeStrategy.ChooseArgsForCall(0)
 					Expect(satisfyingWorkers).To(ConsistOf(teamWorker1, teamWorker2))
 				})
 			})
@@ -387,7 +384,7 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("returns the general workers that satisfy the spec", func() {
-					_, satisfyingWorkers, _, _ := fakeStrategy.ChooseArgsForCall(0)
+					_, satisfyingWorkers, _ := fakeStrategy.ChooseArgsForCall(0)
 					Expect(satisfyingWorkers).To(ConsistOf(generalWorker1))
 				})
 			})
