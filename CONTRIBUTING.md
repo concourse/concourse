@@ -128,6 +128,14 @@ $ docker-compose up --build -d
 This can be run in a separate terminal while the original `docker-compose up`
 command is still running.
 
+In certain cases, when a change is done to the underlying development image (e.g. Go upgrade from 1.11 to 1.12), you
+will need to pull the latest version of `concourse/dev` image, so that `web` and `worker` containers can be built locally
+using the fresh image:
+```sh
+$ docker pull concourse/dev
+$ docker-compose up --build -d
+```   
+
 ### Working on the web UI
 
 Concourse is written in Go, but the web UI is written in
