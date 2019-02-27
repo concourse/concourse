@@ -883,7 +883,7 @@ all =
                                             }
                                         }
                                 )
-                                defaultModel
+                                ( defaultModel, [] )
             , test "JobBuildsFetched error" <|
                 \_ ->
                     Expect.equal
@@ -892,7 +892,7 @@ all =
                         Tuple.first <|
                             Job.handleCallback
                                 (JobBuildsFetched <| Err Http.NetworkError)
-                                defaultModel
+                                ( defaultModel, [] )
             , test "JobFetched" <|
                 \_ ->
                     Expect.equal
@@ -901,7 +901,7 @@ all =
                         }
                     <|
                         Tuple.first <|
-                            Job.handleCallback (JobFetched <| Ok someJob) defaultModel
+                            Job.handleCallback (JobFetched <| Ok someJob) ( defaultModel, [] )
             , test "JobFetched error" <|
                 \_ ->
                     Expect.equal
@@ -910,7 +910,7 @@ all =
                         Tuple.first <|
                             Job.handleCallback
                                 (JobFetched <| Err Http.NetworkError)
-                                defaultModel
+                                ( defaultModel, [] )
             , test "BuildResourcesFetched" <|
                 \_ ->
                     let
@@ -936,7 +936,7 @@ all =
                     <|
                         Tuple.first <|
                             Job.handleCallback (BuildResourcesFetched (Ok ( 1, buildResources )))
-                                defaultModel
+                                ( defaultModel, [] )
             , test "BuildResourcesFetched error" <|
                 \_ ->
                     Expect.equal
@@ -945,7 +945,7 @@ all =
                         Tuple.first <|
                             Job.handleCallback
                                 (BuildResourcesFetched (Err Http.NetworkError))
-                                defaultModel
+                                ( defaultModel, [] )
             , test "TogglePaused" <|
                 \_ ->
                     Expect.equal
@@ -957,7 +957,7 @@ all =
                         Tuple.first <|
                             update
                                 TogglePaused
-                                { defaultModel | job = RemoteData.Success someJob }
+                                ( { defaultModel | job = RemoteData.Success someJob }, [] )
             , test "PausedToggled" <|
                 \_ ->
                     Expect.equal
@@ -969,7 +969,7 @@ all =
                         Tuple.first <|
                             Job.handleCallback
                                 (PausedToggled <| Ok ())
-                                { defaultModel | job = RemoteData.Success someJob }
+                                ( { defaultModel | job = RemoteData.Success someJob }, [] )
             , test "PausedToggled error" <|
                 \_ ->
                     Expect.equal
@@ -978,7 +978,7 @@ all =
                         Tuple.first <|
                             Job.handleCallback
                                 (PausedToggled <| Err Http.NetworkError)
-                                { defaultModel | job = RemoteData.Success someJob }
+                                ( { defaultModel | job = RemoteData.Success someJob }, [] )
             , test "PausedToggled unauthorized" <|
                 \_ ->
                     Expect.equal
@@ -998,7 +998,7 @@ all =
                                             , body = ""
                                             }
                                 )
-                                { defaultModel | job = RemoteData.Success someJob }
+                                ( { defaultModel | job = RemoteData.Success someJob }, [] )
             , test "page is subscribed to one and five second timers" <|
                 init { disabled = False, paused = False }
                     >> Application.subscriptions

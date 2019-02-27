@@ -12,11 +12,11 @@ import TopBar.Model
 
 
 type alias Model =
-    { buttonState : ButtonState
-    , authToken : String
-    , tokenTransfer : TokenTransfer
-    , topBar : TopBar.Model.Model {}
-    }
+    TopBar.Model.Model
+        { buttonState : ButtonState
+        , authToken : String
+        , tokenTransfer : TokenTransfer
+        }
 
 
 type ButtonState

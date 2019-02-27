@@ -49,20 +49,20 @@ import UserState exposing (UserState)
 
 
 type alias Model =
-    { pipelineLocator : Concourse.PipelineIdentifier
-    , pipeline : WebData Concourse.Pipeline
-    , fetchedJobs : Maybe Json.Encode.Value
-    , fetchedResources : Maybe Json.Encode.Value
-    , renderedJobs : Maybe Json.Encode.Value
-    , renderedResources : Maybe Json.Encode.Value
-    , concourseVersion : String
-    , turbulenceImgSrc : String
-    , experiencingTurbulence : Bool
-    , selectedGroups : List String
-    , hideLegend : Bool
-    , hideLegendCounter : Time
-    , topBar : TopBar.Model.Model {}
-    }
+    TopBar.Model.Model
+        { pipelineLocator : Concourse.PipelineIdentifier
+        , pipeline : WebData Concourse.Pipeline
+        , fetchedJobs : Maybe Json.Encode.Value
+        , fetchedResources : Maybe Json.Encode.Value
+        , renderedJobs : Maybe Json.Encode.Value
+        , renderedResources : Maybe Json.Encode.Value
+        , concourseVersion : String
+        , turbulenceImgSrc : String
+        , experiencingTurbulence : Bool
+        , selectedGroups : List String
+        , hideLegend : Bool
+        , hideLegendCounter : Time
+        }
 
 
 type alias Flags =
@@ -91,7 +91,12 @@ init flags =
             , hideLegend = False
             , hideLegendCounter = 0
             , selectedGroups = flags.selectedGroups
-            , topBar = topBar
+            , isUserMenuExpanded = topBar.isUserMenuExpanded
+            , isPinMenuExpanded = topBar.isPinMenuExpanded
+            , middleSection = topBar.middleSection
+            , teams = topBar.teams
+            , screenSize = topBar.screenSize
+            , highDensity = topBar.highDensity
             }
     in
     ( model, [ FetchPipeline flags.pipelineLocator, FetchVersion, ResetPipelineFocus ] ++ topBarEffects )
@@ -102,7 +107,7 @@ changeToPipelineAndGroups flags model =
     if model.pipelineLocator == flags.pipelineLocator then
         let
             ( newModel, effects ) =
-                renderIfNeeded { model | selectedGroups = flags.selectedGroups }
+                renderIfNeeded ( { model | selectedGroups = flags.selectedGroups }, [] )
         in
         ( newModel, effects ++ [ ResetPipelineFocus ] )
 
@@ -137,22 +142,13 @@ getUpdateMessage model =
             UpdateMsg.AOK
 
 
-handleCallback : Callback -> Model -> ( Model, List Effect )
-handleCallback msg model =
-    let
-        ( newTopBar, topBarEffects ) =
-            TopBar.handleCallback msg ( model.topBar, [] )
-
-        ( newModel, pipelineEffects ) =
-            handleCallbackWithoutTopBar msg model
-    in
-    ( { newModel | topBar = newTopBar }
-    , topBarEffects ++ pipelineEffects
-    )
+handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallback msg =
+    TopBar.handleCallback msg >> handleCallbackWithoutTopBar msg
 
 
-handleCallbackWithoutTopBar : Callback -> Model -> ( Model, List Effect )
-handleCallbackWithoutTopBar callback model =
+handleCallbackWithoutTopBar : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackWithoutTopBar callback ( model, effects ) =
     let
         redirectToLoginIfUnauthenticated status =
             if status.code == 401 then
@@ -164,109 +160,106 @@ handleCallbackWithoutTopBar callback model =
     case callback of
         PipelineFetched (Ok pipeline) ->
             ( { model | pipeline = RemoteData.Success pipeline }
-            , [ FetchJobs model.pipelineLocator
-              , FetchResources model.pipelineLocator
-              , SetTitle <| pipeline.name ++ " - "
-              ]
+            , effects
+                ++ [ FetchJobs model.pipelineLocator
+                   , FetchResources model.pipelineLocator
+                   , SetTitle <| pipeline.name ++ " - "
+                   ]
             )
 
         PipelineFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
-                        ( { model | pipeline = RemoteData.Failure err }, [] )
+                        ( { model | pipeline = RemoteData.Failure err }, effects )
 
                     else
-                        ( model, redirectToLoginIfUnauthenticated status )
+                        ( model, effects ++ redirectToLoginIfUnauthenticated status )
 
                 _ ->
-                    renderIfNeeded { model | experiencingTurbulence = True }
+                    renderIfNeeded ( { model | experiencingTurbulence = True }, effects )
 
         JobsFetched (Ok fetchedJobs) ->
-            renderIfNeeded { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False }
+            renderIfNeeded ( { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False }, effects )
 
         JobsFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
-                    ( model, redirectToLoginIfUnauthenticated status )
+                    ( model, effects ++ redirectToLoginIfUnauthenticated status )
 
                 _ ->
-                    renderIfNeeded { model | fetchedJobs = Nothing, experiencingTurbulence = True }
+                    renderIfNeeded ( { model | fetchedJobs = Nothing, experiencingTurbulence = True }, effects )
 
         ResourcesFetched (Ok fetchedResources) ->
-            renderIfNeeded { model | fetchedResources = Just fetchedResources, experiencingTurbulence = False }
+            renderIfNeeded ( { model | fetchedResources = Just fetchedResources, experiencingTurbulence = False }, effects )
 
         ResourcesFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
-                    ( model, redirectToLoginIfUnauthenticated status )
+                    ( model, effects ++ redirectToLoginIfUnauthenticated status )
 
                 _ ->
-                    renderIfNeeded { model | fetchedResources = Nothing, experiencingTurbulence = True }
+                    renderIfNeeded ( { model | fetchedResources = Nothing, experiencingTurbulence = True }, effects )
 
         VersionFetched (Ok version) ->
-            ( { model | concourseVersion = version, experiencingTurbulence = False }, [] )
+            ( { model | concourseVersion = version, experiencingTurbulence = False }, effects )
 
         VersionFetched (Err err) ->
             flip always (Debug.log "failed to fetch version" err) <|
-                ( { model | experiencingTurbulence = True }, [] )
+                ( { model | experiencingTurbulence = True }, effects )
 
         _ ->
-            ( model, [] )
+            ( model, effects )
 
 
-handleDelivery : Delivery -> Model -> ( Model, List Effect )
-handleDelivery delivery model =
+handleDelivery : Delivery -> ( Model, List Effect ) -> ( Model, List Effect )
+handleDelivery delivery ( model, effects ) =
     case delivery of
         KeyDown keycode ->
             ( { model | hideLegend = False, hideLegendCounter = 0 }
             , if (Char.fromCode keycode |> Char.toLower) == 'f' then
-                [ ResetPipelineFocus ]
+                effects ++ [ ResetPipelineFocus ]
 
               else
-                []
+                effects
             )
 
         Moused ->
-            ( { model | hideLegend = False, hideLegendCounter = 0 }, [] )
+            ( { model | hideLegend = False, hideLegendCounter = 0 }, effects )
 
         ClockTicked OneSecond _ ->
             if model.hideLegendCounter + timeUntilHiddenCheckInterval > timeUntilHidden then
-                ( { model | hideLegend = True }, [] )
+                ( { model | hideLegend = True }, effects )
 
             else
                 ( { model | hideLegendCounter = model.hideLegendCounter + timeUntilHiddenCheckInterval }
-                , []
+                , effects
                 )
 
         ClockTicked FiveSeconds _ ->
-            ( model, [ FetchPipeline model.pipelineLocator ] )
+            ( model, effects ++ [ FetchPipeline model.pipelineLocator ] )
 
         ClockTicked OneMinute _ ->
-            ( model, [ FetchVersion ] )
+            ( model, effects ++ [ FetchVersion ] )
 
         _ ->
-            ( model, [] )
+            ( model, effects )
 
 
-update : Msg -> Model -> ( Model, List Effect )
-update msg model =
+update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
+update msg ( model, effects ) =
     case msg of
         PipelineIdentifierFetched pipelineIdentifier ->
-            ( model, [ FetchPipeline pipelineIdentifier ] )
+            ( model, effects ++ [ FetchPipeline pipelineIdentifier ] )
 
         ToggleGroup group ->
-            ( model, [ NavigateTo <| getNextUrl (toggleGroup group model.selectedGroups model.pipeline) model ] )
+            ( model, effects ++ [ NavigateTo <| getNextUrl (toggleGroup group model.selectedGroups model.pipeline) model ] )
 
         SetGroups groups ->
-            ( model, [ NavigateTo <| getNextUrl groups model ] )
+            ( model, effects ++ [ NavigateTo <| getNextUrl groups model ] )
 
         FromTopBar msg ->
-            let
-                ( newTopBar, topBarEffects ) =
-                    TopBar.update msg ( model.topBar, [] )
-            in
-            ( { model | topBar = newTopBar }, topBarEffects )
+            TopBar.update msg ( model, effects )
 
 
 getPinnedResources : Model -> List ( String, Concourse.Version )
@@ -304,7 +297,7 @@ view userState model =
     Html.div [ Html.Attributes.style [ ( "height", "100%" ) ] ]
         [ Html.div
             [ Html.Attributes.style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map FromTopBar <| HS.toUnstyled <| TopBar.view userState pipelineState model.topBar
+            [ Html.map FromTopBar <| HS.toUnstyled <| TopBar.view userState pipelineState model
             , Html.div
                 [ Html.Attributes.style TopBar.Styles.pipelinePageBelowTopBar
                 , id "page-below-top-bar"
@@ -504,8 +497,8 @@ activeGroups model =
             groups
 
 
-renderIfNeeded : Model -> ( Model, List Effect )
-renderIfNeeded model =
+renderIfNeeded : ( Model, List Effect ) -> ( Model, List Effect )
+renderIfNeeded ( model, effects ) =
     case ( model.fetchedResources, model.fetchedJobs ) of
         ( Just fetchedResources, Just fetchedJobs ) ->
             let
@@ -526,22 +519,22 @@ renderIfNeeded model =
                             | renderedJobs = Just filteredFetchedJobs
                             , renderedResources = Just fetchedResources
                           }
-                        , [ RenderPipeline filteredFetchedJobs fetchedResources ]
+                        , effects ++ [ RenderPipeline filteredFetchedJobs fetchedResources ]
                         )
 
                     else
-                        ( model, [] )
+                        ( model, effects )
 
                 _ ->
                     ( { model
                         | renderedJobs = Just filteredFetchedJobs
                         , renderedResources = Just fetchedResources
                       }
-                    , [ RenderPipeline filteredFetchedJobs fetchedResources ]
+                    , effects ++ [ RenderPipeline filteredFetchedJobs fetchedResources ]
                     )
 
         _ ->
-            ( model, [] )
+            ( model, effects )
 
 
 anyIntersect : List a -> List a -> Bool

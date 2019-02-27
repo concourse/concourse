@@ -92,73 +92,80 @@ all =
 
             fetchBuild : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchBuild =
-                Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, theBuild )
+                flip (,) []
+                    >> (Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, theBuild ))
 
             fetchStartedBuild :
                 Models.Model
                 -> ( Models.Model, List Effects.Effect )
             fetchStartedBuild =
-                Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, startedBuild )
+                flip (,) []
+                    >> (Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, startedBuild ))
 
             fetchJobDetails : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchJobDetails =
-                Build.handleCallback <|
-                    Callback.BuildJobDetailsFetched <|
-                        Ok
-                            { pipeline =
-                                { teamName = "team"
-                                , pipelineName = "pipeline"
-                                }
-                            , name = "job"
-                            , pipelineName = "pipeline"
-                            , teamName = "team"
-                            , nextBuild = Nothing
-                            , finishedBuild = Nothing
-                            , transitionBuild = Nothing
-                            , paused = False
-                            , disableManualTrigger = False
-                            , inputs = []
-                            , outputs = []
-                            , groups = []
-                            }
+                flip (,) []
+                    >> (Build.handleCallback <|
+                            Callback.BuildJobDetailsFetched <|
+                                Ok
+                                    { pipeline =
+                                        { teamName = "team"
+                                        , pipelineName = "pipeline"
+                                        }
+                                    , name = "job"
+                                    , pipelineName = "pipeline"
+                                    , teamName = "team"
+                                    , nextBuild = Nothing
+                                    , finishedBuild = Nothing
+                                    , transitionBuild = Nothing
+                                    , paused = False
+                                    , disableManualTrigger = False
+                                    , inputs = []
+                                    , outputs = []
+                                    , groups = []
+                                    }
+                       )
 
             fetchJobDetailsNoTrigger :
                 Models.Model
                 -> ( Models.Model, List Effects.Effect )
             fetchJobDetailsNoTrigger =
-                Build.handleCallback <|
-                    Callback.BuildJobDetailsFetched <|
-                        Ok
-                            { pipeline =
-                                { teamName = "team"
-                                , pipelineName = "pipeline"
-                                }
-                            , name = "job"
-                            , pipelineName = "pipeline"
-                            , teamName = "team"
-                            , nextBuild = Nothing
-                            , finishedBuild = Nothing
-                            , transitionBuild = Nothing
-                            , paused = False
-                            , disableManualTrigger = True
-                            , inputs = []
-                            , outputs = []
-                            , groups = []
-                            }
+                flip (,) []
+                    >> (Build.handleCallback <|
+                            Callback.BuildJobDetailsFetched <|
+                                Ok
+                                    { pipeline =
+                                        { teamName = "team"
+                                        , pipelineName = "pipeline"
+                                        }
+                                    , name = "job"
+                                    , pipelineName = "pipeline"
+                                    , teamName = "team"
+                                    , nextBuild = Nothing
+                                    , finishedBuild = Nothing
+                                    , transitionBuild = Nothing
+                                    , paused = False
+                                    , disableManualTrigger = True
+                                    , inputs = []
+                                    , outputs = []
+                                    , groups = []
+                                    }
+                       )
 
             fetchHistory : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchHistory =
-                Build.handleCallback
-                    (Callback.BuildHistoryFetched
-                        (Ok
-                            { pagination =
-                                { previousPage = Nothing
-                                , nextPage = Nothing
+                flip (,) []
+                    >> Build.handleCallback
+                        (Callback.BuildHistoryFetched
+                            (Ok
+                                { pagination =
+                                    { previousPage = Nothing
+                                    , nextPage = Nothing
+                                    }
+                                , content = [ theBuild ]
                                 }
-                            , content = [ theBuild ]
-                            }
+                            )
                         )
-                    )
 
             csrfToken : String
             csrfToken =
@@ -442,14 +449,14 @@ all =
                 pageLoad
                     |> Tuple.second
                     |> Expect.equal
-                        [ Effects.FetchJobBuild 1
+                        [ Effects.GetScreenSize
+                        , Effects.GetCurrentTime
+                        , Effects.FetchJobBuild 1
                             { teamName = "team"
                             , pipelineName = "pipeline"
                             , jobName = "job"
                             , buildName = "1"
                             }
-                        , Effects.GetScreenSize
-                        , Effects.GetCurrentTime
                         ]
         , describe "top bar" <|
             [ test "has a top bar" <|
@@ -643,7 +650,7 @@ all =
                                 [ attribute <|
                                     Attr.attribute "aria-label" "Trigger Build"
                                 ]
-                    , updateFunc = \msg -> Build.update msg >> Tuple.first
+                    , updateFunc = \msg -> flip (,) [] >> Build.update msg >> Tuple.first
                     , unhoveredSelector =
                         { description = "grey plus icon"
                         , selector =
@@ -696,7 +703,7 @@ all =
                                 [ attribute <|
                                     Attr.attribute "aria-label" "Trigger Build"
                                 ]
-                    , updateFunc = \msg -> Build.update msg >> Tuple.first
+                    , updateFunc = \msg -> flip (,) [] >> Build.update msg >> Tuple.first
                     , unhoveredSelector =
                         { description = "grey plus icon"
                         , selector =
@@ -832,7 +839,7 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Abort Build"
                             ]
-                , updateFunc = \msg -> Build.update msg >> Tuple.first
+                , updateFunc = \msg -> flip (,) [] >> Build.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey abort icon"
                     , selector =
@@ -871,6 +878,7 @@ all =
                     in
                     givenBuildStarted
                         >> Tuple.first
+                        >> flip (,) []
                         >> Build.handleCallback (Callback.BuildPrepFetched <| Ok ( 1, prep ))
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -914,6 +922,7 @@ all =
                     in
                     givenBuildStarted
                         >> Tuple.first
+                        >> flip (,) []
                         >> Build.handleCallback (Callback.BuildPrepFetched <| Ok ( 1, prep ))
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -950,6 +959,7 @@ all =
                     fetchPlanWithGetStep =
                         givenBuildStarted
                             >> Tuple.first
+                            >> flip (,) []
                             >> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     Ok <|
@@ -968,6 +978,7 @@ all =
                     fetchPlanWithTaskStep =
                         givenBuildStarted
                             >> Tuple.first
+                            >> flip (,) []
                             >> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     Ok <|
@@ -985,6 +996,7 @@ all =
                     fetchPlanWithPutStep =
                         givenBuildStarted
                             >> Tuple.first
+                            >> flip (,) []
                             >> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     Ok <|
@@ -1002,6 +1014,7 @@ all =
                     fetchPlanWithGetStepWithFirstOccurrence =
                         givenBuildStarted
                             >> Tuple.first
+                            >> flip (,) []
                             >> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     let
@@ -1170,6 +1183,7 @@ all =
                                 (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                     , test "no tooltip before 1 second has passed" <|
                         fetchPlanWithGetStepWithFirstOccurrence
+                            >> flip (,) []
                             >> Build.update
                                 (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
@@ -1186,11 +1200,14 @@ all =
                             >> Query.count (Expect.equal 0)
                     , test "1 second after hovering, tooltip appears" <|
                         fetchPlanWithGetStepWithFirstOccurrence
+                            >> flip (,) []
                             >> Build.handleDelivery (ClockTicked OneSecond 0)
                             >> Tuple.first
+                            >> flip (,) []
                             >> Build.update
                                 (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
+                            >> flip (,) []
                             >> Build.handleDelivery (ClockTicked OneSecond 1)
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
@@ -1242,6 +1259,7 @@ all =
                                 ]
                     , test "mousing off yellow arrow triggers Hover message" <|
                         fetchPlanWithGetStepWithFirstOccurrence
+                            >> flip (,) []
                             >> Build.update
                                 (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
@@ -1259,13 +1277,17 @@ all =
                                 (Build.Msgs.Hover Nothing)
                     , test "unhovering after tooltip appears dismisses" <|
                         fetchPlanWithGetStepWithFirstOccurrence
+                            >> flip (,) []
                             >> Build.handleDelivery (ClockTicked OneSecond 0)
                             >> Tuple.first
+                            >> flip (,) []
                             >> Build.update
                                 (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
+                            >> flip (,) []
                             >> Build.handleDelivery (ClockTicked OneSecond 1)
                             >> Tuple.first
+                            >> flip (,) []
                             >> Build.update (Build.Msgs.Hover Nothing)
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
@@ -1282,10 +1304,13 @@ all =
                     ]
                 , test "hovering one resource of several produces only a single tooltip" <|
                     fetchPlanWithGetStepWithFirstOccurrence
+                        >> flip (,) []
                         >> Build.handleDelivery (ClockTicked OneSecond 0)
                         >> Tuple.first
+                        >> flip (,) []
                         >> Build.update (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                         >> Tuple.first
+                        >> flip (,) []
                         >> Build.handleDelivery (ClockTicked OneSecond 1)
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1294,8 +1319,10 @@ all =
                         >> Query.count (Expect.equal 1)
                 , test "successful step has a checkmark at the far right" <|
                     fetchPlanWithGetStep
+                        >> flip (,) []
                         >> Build.handleDelivery (EventReceived EventSource.Opened)
                         >> Tuple.first
+                        >> flip (,) []
                         >> Build.handleDelivery
                             (EventReceived <|
                                 EventSource.Events <|
@@ -1321,8 +1348,10 @@ all =
                             )
                 , test "get step lists resource version on the right" <|
                     fetchPlanWithGetStep
+                        >> flip (,) []
                         >> Build.handleDelivery (EventReceived EventSource.Opened)
                         >> Tuple.first
+                        >> flip (,) []
                         >> Build.handleDelivery
                             (EventReceived <|
                                 EventSource.Events <|
@@ -1342,6 +1371,7 @@ all =
                         >> Query.has [ text "v3.1.4" ]
                 , test "running step has loading spinner at the right" <|
                     fetchPlanWithTaskStep
+                        >> flip (,) []
                         >> Build.handleDelivery
                             (EventReceived <|
                                 EventSource.Events <|
@@ -1367,8 +1397,10 @@ all =
                             ]
                 , test "failing step has an X at the far right" <|
                     fetchPlanWithGetStep
+                        >> flip (,) []
                         >> Build.handleDelivery (EventReceived EventSource.Opened)
                         >> Tuple.first
+                        >> flip (,) []
                         >> Build.handleDelivery
                             (EventReceived <|
                                 EventSource.Events <|
@@ -1394,8 +1426,10 @@ all =
                             )
                 , test "erroring step has orange exclamation triangle at right" <|
                     fetchPlanWithGetStep
+                        >> flip (,) []
                         >> Build.handleDelivery (EventReceived EventSource.Opened)
                         >> Tuple.first
+                        >> flip (,) []
                         >> Build.handleDelivery
                             (EventReceived <|
                                 EventSource.Events <|
@@ -1424,11 +1458,13 @@ all =
                         erroringBuild : () -> Models.Model
                         erroringBuild =
                             fetchPlanWithGetStep
+                                >> flip (,) []
                                 >> Build.handleDelivery (EventReceived EventSource.Errored)
                                 >> Tuple.first
                     in
                     [ test "has orange exclamation triangle at left" <|
                         erroringBuild
+                            >> flip (,) []
                             >> Build.handleDelivery
                                 (EventReceived <|
                                     EventSource.Events <|

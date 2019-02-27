@@ -14,9 +14,7 @@ import UserState exposing (UserState)
 
 
 type alias Model =
-    { notFoundImgSrc : String
-    , topBar : TopBar.Model.Model {}
-    }
+    TopBar.Model.Model { notFoundImgSrc : String }
 
 
 type alias Flags =
@@ -36,30 +34,27 @@ init flags =
             TopBar.init { route = flags.route }
     in
     ( { notFoundImgSrc = flags.notFoundImgSrc
-      , topBar = topBar
+      , isUserMenuExpanded = topBar.isUserMenuExpanded
+      , isPinMenuExpanded = topBar.isPinMenuExpanded
+      , middleSection = topBar.middleSection
+      , teams = topBar.teams
+      , screenSize = topBar.screenSize
+      , highDensity = topBar.highDensity
       }
     , topBarEffects ++ [ Effects.SetTitle "Not Found " ]
     )
 
 
-update : Msg -> Model -> ( Model, List Effect )
-update msg model =
+update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
+update msg ( model, effects ) =
     case msg of
         FromTopBar m ->
-            let
-                ( newTopBar, topBarEffects ) =
-                    TopBar.update m ( model.topBar, [] )
-            in
-            ( { model | topBar = newTopBar }, topBarEffects )
+            TopBar.update m ( model, effects )
 
 
-handleCallback : Callback -> Model -> ( Model, List Effect )
-handleCallback msg model =
-    let
-        ( newTopBar, topBarEffects ) =
-            TopBar.handleCallback msg ( model.topBar, [] )
-    in
-    ( { model | topBar = newTopBar }, topBarEffects )
+handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallback msg ( model, effects ) =
+    TopBar.handleCallback msg ( model, effects )
 
 
 view : UserState -> Model -> Html Msg
@@ -69,7 +64,7 @@ view userState model =
             [ style TopBar.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
-            [ TopBar.view userState TopBar.Model.None model.topBar |> HS.toUnstyled |> Html.map FromTopBar
+            [ TopBar.view userState TopBar.Model.None model |> HS.toUnstyled |> Html.map FromTopBar
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ Html.div [ class "notfound" ]
                     [ Html.div [ class "title" ] [ Html.text "404" ]

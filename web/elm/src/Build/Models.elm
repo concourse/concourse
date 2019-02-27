@@ -35,22 +35,22 @@ import TopBar.Model
 
 
 type alias Model =
-    { page : BuildPageType
-    , now : Maybe Time
-    , job : Maybe Concourse.Job
-    , history : List Concourse.Build
-    , currentBuild : WebData CurrentBuild
-    , browsingIndex : Int
-    , autoScroll : Bool
-    , previousKeyPress : Maybe Char
-    , shiftDown : Bool
-    , previousTriggerBuildByKey : Bool
-    , showHelp : Bool
-    , highlight : Highlight
-    , hoveredElement : Maybe Hoverable
-    , hoveredCounter : Int
-    , topBar : TopBar.Model.Model {}
-    }
+    TopBar.Model.Model
+        { page : BuildPageType
+        , now : Maybe Time
+        , job : Maybe Concourse.Job
+        , history : List Concourse.Build
+        , currentBuild : WebData CurrentBuild
+        , browsingIndex : Int
+        , autoScroll : Bool
+        , previousKeyPress : Maybe Char
+        , shiftDown : Bool
+        , previousTriggerBuildByKey : Bool
+        , showHelp : Bool
+        , highlight : Highlight
+        , hoveredElement : Maybe Hoverable
+        , hoveredCounter : Int
+        }
 
 
 type alias CurrentBuild =
