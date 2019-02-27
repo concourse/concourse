@@ -67,7 +67,6 @@ type alias Model =
     , buildsWithResources : Paginated BuildWithResources
     , currentPage : Maybe Page
     , now : Time
-    , csrfToken : String
     , hovered : Hoverable
     , topBar : TopBar.Model.Model
     }
@@ -87,7 +86,6 @@ jobBuildsPerPage =
 type alias Flags =
     { jobId : Concourse.JobIdentifier
     , paging : Maybe Page
-    , csrfToken : String
     }
 
 
@@ -109,7 +107,6 @@ init flags =
                     }
                 }
             , now = 0
-            , csrfToken = flags.csrfToken
             , currentPage = flags.paging
             , hovered = None
             , topBar = topBar
@@ -267,9 +264,6 @@ handleDelivery delivery model =
               ]
             )
 
-        TokenReceived (Just tokenValue) ->
-            ( { model | csrfToken = tokenValue }, [] )
-
         _ ->
             ( model, [] )
 
@@ -278,7 +272,7 @@ update : Msg -> Model -> ( Model, List Effect )
 update action model =
     case action of
         TriggerBuild ->
-            ( model, [ DoTriggerBuild model.jobIdentifier model.csrfToken ] )
+            ( model, [ DoTriggerBuild model.jobIdentifier ] )
 
         TogglePaused ->
             case model.job |> RemoteData.toMaybe of
@@ -291,10 +285,10 @@ update action model =
                         , job = RemoteData.Success { j | paused = not j.paused }
                       }
                     , [ if j.paused then
-                            UnpauseJob model.jobIdentifier model.csrfToken
+                            UnpauseJob model.jobIdentifier
 
                         else
-                            PauseJob model.jobIdentifier model.csrfToken
+                            PauseJob model.jobIdentifier
                       ]
                     )
 

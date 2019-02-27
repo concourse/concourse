@@ -42,8 +42,7 @@ type Model
 
 
 type alias Flags =
-    { csrfToken : String
-    , authToken : String
+    { authToken : String
     , turbulencePath : String
     , pipelineRunningKeyframes : String
     }
@@ -54,16 +53,14 @@ init flags route =
     case route of
         Routes.Build { id, highlight } ->
             Build.init
-                { csrfToken = flags.csrfToken
-                , highlight = highlight
+                { highlight = highlight
                 , pageType = Build.Models.JobBuildPage id
                 }
                 |> Tuple.mapFirst BuildModel
 
         Routes.OneOffBuild { id, highlight } ->
             Build.init
-                { csrfToken = flags.csrfToken
-                , highlight = highlight
+                { highlight = highlight
                 , pageType = Build.Models.OneOffBuildPage id
                 }
                 |> Tuple.mapFirst BuildModel
@@ -72,7 +69,6 @@ init flags route =
             Resource.init
                 { resourceId = id
                 , paging = page
-                , csrfToken = flags.csrfToken
                 }
                 |> Tuple.mapFirst ResourceModel
 
@@ -80,7 +76,6 @@ init flags route =
             Job.init
                 { jobId = id
                 , paging = page
-                , csrfToken = flags.csrfToken
                 }
                 |> Tuple.mapFirst JobModel
 
@@ -95,7 +90,6 @@ init flags route =
         Routes.Dashboard { searchType } ->
             Dashboard.init
                 { turbulencePath = flags.turbulencePath
-                , csrfToken = flags.csrfToken
                 , searchType = searchType
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
                 }
@@ -139,19 +133,15 @@ getUpdateMessage model =
             UpdateMsg.AOK
 
 
-handleCallback :
-    Concourse.CSRFToken
-    -> Callback
-    -> Model
-    -> ( Model, List Effect )
-handleCallback csrfToken callback model =
+handleCallback : Callback -> Model -> ( Model, List Effect )
+handleCallback callback model =
     case model of
-        BuildModel buildModel ->
-            Build.handleCallback callback { buildModel | csrfToken = csrfToken }
+        BuildModel model ->
+            Build.handleCallback callback model
                 |> Tuple.mapFirst BuildModel
 
         JobModel model ->
-            Job.handleCallback callback { model | csrfToken = csrfToken }
+            Job.handleCallback callback model
                 |> Tuple.mapFirst JobModel
 
         PipelineModel model ->
@@ -159,7 +149,7 @@ handleCallback csrfToken callback model =
                 |> Tuple.mapFirst PipelineModel
 
         ResourceModel model ->
-            Resource.handleCallback callback { model | csrfToken = csrfToken }
+            Resource.handleCallback callback model
                 |> Tuple.mapFirst ResourceModel
 
         DashboardModel model ->
@@ -216,27 +206,19 @@ handleDelivery notFound route delivery model =
 
 update :
     String
-    -> String
-    -> Concourse.CSRFToken
     -> Routes.Route
     -> Msg
     -> Model
     -> ( Model, List Effect )
-update turbulence notFound csrfToken route msg mdl =
+update notFound route msg mdl =
     case ( msg, mdl ) of
-        ( NewCSRFToken c, BuildModel model ) ->
-            ( BuildModel { model | csrfToken = c }, [] )
-
         ( BuildMsg msg, BuildModel model ) ->
-            Build.update msg { model | csrfToken = csrfToken }
+            Build.update msg model
                 |> Tuple.mapFirst BuildModel
                 |> handleNotFound notFound route
 
-        ( NewCSRFToken c, JobModel model ) ->
-            ( JobModel { model | csrfToken = c }, [] )
-
         ( JobMsg message, JobModel model ) ->
-            Job.update message { model | csrfToken = csrfToken }
+            Job.update message model
                 |> Tuple.mapFirst JobModel
                 |> handleNotFound notFound route
 
@@ -245,16 +227,10 @@ update turbulence notFound csrfToken route msg mdl =
                 |> Tuple.mapFirst PipelineModel
                 |> handleNotFound notFound route
 
-        ( NewCSRFToken c, ResourceModel model ) ->
-            ( ResourceModel { model | csrfToken = c }, [] )
-
         ( ResourceMsg message, ResourceModel model ) ->
-            Resource.update message { model | csrfToken = csrfToken }
+            Resource.update message model
                 |> Tuple.mapFirst ResourceModel
                 |> handleNotFound notFound route
-
-        ( NewCSRFToken c, DashboardModel model ) ->
-            ( DashboardModel { model | csrfToken = c }, [] )
 
         ( DashboardMsg message, DashboardModel model ) ->
             Dashboard.update message model
@@ -267,9 +243,6 @@ update turbulence notFound csrfToken route msg mdl =
         ( NotFoundMsg message, NotFoundModel model ) ->
             NotFound.update message model
                 |> Tuple.mapFirst NotFoundModel
-
-        ( NewCSRFToken _, mdl ) ->
-            ( mdl, [] )
 
         unknown ->
             flip always (Debug.log "impossible combination" unknown) <|
@@ -293,7 +266,6 @@ urlUpdate route model =
                 |> Resource.changeToResource
                     { resourceId = id
                     , paging = page
-                    , csrfToken = mdl.csrfToken
                     }
                 |> Tuple.mapFirst ResourceModel
 
@@ -302,7 +274,6 @@ urlUpdate route model =
                 |> Job.changeToJob
                     { jobId = id
                     , paging = page
-                    , csrfToken = mdl.csrfToken
                     }
                 |> Tuple.mapFirst JobModel
 

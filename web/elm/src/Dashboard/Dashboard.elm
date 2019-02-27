@@ -58,8 +58,7 @@ import UserState exposing (UserState)
 
 
 type alias Flags =
-    { csrfToken : String
-    , turbulencePath : String
+    { turbulencePath : String
     , searchType : Routes.SearchType
     , pipelineRunningKeyframes : String
     }
@@ -70,8 +69,7 @@ type DashboardError
 
 
 type alias Model =
-    { csrfToken : String
-    , state : RemoteData.RemoteData DashboardError SubState.SubState
+    { state : RemoteData.RemoteData DashboardError SubState.SubState
     , turbulencePath : String
     , highDensity : Bool
     , hoveredPipeline : Maybe Models.Pipeline
@@ -102,7 +100,6 @@ init flags =
             TopBar.init { route = Routes.Dashboard { searchType = flags.searchType } }
     in
     ( { state = RemoteData.NotAsked
-      , csrfToken = flags.csrfToken
       , turbulencePath = flags.turbulencePath
       , highDensity = flags.searchType == Routes.HighDensity
       , hoveredPipeline = Nothing
@@ -264,9 +261,6 @@ handleDelivery delivery model =
             in
             ( { model | screenSize = ScreenSize.fromWindowSize screenSize, topBar = newTopBar }, topBarEffects )
 
-        TokenReceived (Just tokenValue) ->
-            ( { model | csrfToken = tokenValue }, [] )
-
         _ ->
             ( model, [] )
 
@@ -275,11 +269,7 @@ update : Msg -> Model -> ( Model, List Effect )
 update msg model =
     case msg of
         TogglePipelinePaused pipeline ->
-            ( model
-            , [ SendTogglePipelineRequest
-                    { pipeline = pipeline, csrfToken = model.csrfToken }
-              ]
-            )
+            ( model, [ SendTogglePipelineRequest pipeline ] )
 
         DragStart teamName index ->
             let
@@ -313,11 +303,7 @@ update msg model =
                             Group.shiftPipelines dragIndex dropIndex group
                     in
                     ( newGroup
-                    , [ SendOrderPipelinesRequest
-                            newGroup.teamName
-                            newGroup.pipelines
-                            model.csrfToken
-                      ]
+                    , [ SendOrderPipelinesRequest newGroup.teamName newGroup.pipelines ]
                     )
 
                 dragDropOptional : Monocle.Optional.Optional Model ( Group.DragState, Group.DropState )

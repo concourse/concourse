@@ -140,7 +140,7 @@ all =
                 Application.init
                     { turbulenceImgSrc = ""
                     , notFoundImgSrc = ""
-                    , csrfToken = ""
+                    , csrfToken = "token"
                     , authToken = ""
                     , pipelineRunningKeyframes = ""
                     }
@@ -160,7 +160,7 @@ all =
                     |> Application.update (Msgs.DeliveryReceived <| NonHrefLinkClicked "/foo/bar")
                     |> Tuple.second
                     |> Expect.equal
-                        [ ( Effects.Layout, Effects.NavigateTo "/foo/bar" )
+                        [ ( Effects.Layout, "token", Effects.NavigateTo "/foo/bar" )
                         ]
         , test "received token is passed to all subsquent requests" <|
             \_ ->
@@ -203,12 +203,5 @@ all =
                                 Dashboard.Msgs.TogglePipelinePaused pipeline
                         )
                     |> Tuple.second
-                    |> Expect.equal
-                        [ ( Effects.SubPage 1
-                          , Effects.SendTogglePipelineRequest
-                                { pipeline = pipeline
-                                , csrfToken = "real-token"
-                                }
-                          )
-                        ]
+                    |> Expect.equal [ ( Effects.SubPage 1, "real-token", Effects.SendTogglePipelineRequest pipeline ) ]
         ]

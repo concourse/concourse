@@ -16,8 +16,6 @@ type Msg
     | JobMsg Job.Msgs.Msg
     | ResourceMsg Resource.Msgs.Msg
     | PipelineMsg Pipeline.Msgs.Msg
-    | NewCSRFToken String
-    | DashboardPipelinesFetched (Result Http.Error (List Concourse.Pipeline))
     | DashboardMsg Dashboard.Msgs.Msg
     | FlySuccessMsg FlySuccess.Msgs.Msg
     | NotFoundMsg NotFound.Msg

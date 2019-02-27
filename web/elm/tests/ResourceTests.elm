@@ -152,7 +152,7 @@ all =
     describe "resource page"
         [ describe "when logging out" <|
             let
-                loggingOut : () -> ( Application.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
+                loggingOut : () -> ( Application.Model, List ( Effects.LayoutDispatch, String, Effects.Effect ) )
                 loggingOut _ =
                     init
                         |> handleCallback
@@ -184,7 +184,7 @@ all =
                 loggingOut
                     >> Tuple.second
                     >> Expect.equal
-                        [ ( Effects.SubPage 1, Effects.NavigateTo "/" ) ]
+                        [ ( Effects.SubPage 1, csrfToken, Effects.NavigateTo "/" ) ]
             ]
         , test "subscribes to the five second interval" <|
             \_ ->
@@ -199,6 +199,7 @@ all =
                     |> Tuple.second
                     |> Expect.equal
                         [ ( Effects.SubPage 1
+                          , csrfToken
                           , Effects.FetchResource
                                 { resourceName = resourceName
                                 , pipelineName = pipelineName
@@ -206,6 +207,7 @@ all =
                                 }
                           )
                         , ( Effects.SubPage 1
+                          , csrfToken
                           , Effects.FetchVersionedResources
                                 { resourceName = resourceName
                                 , pipelineName = pipelineName
@@ -927,6 +929,7 @@ all =
                         |> Tuple.second
                         |> Expect.equal
                             [ ( Effects.SubPage 1
+                              , csrfToken
                               , Effects.FetchResource
                                     { resourceName = resourceName
                                     , pipelineName = pipelineName
@@ -1528,12 +1531,12 @@ all =
                                         |> Tuple.second
                                         |> Expect.equal
                                             [ ( Effects.SubPage 1
+                                              , csrfToken
                                               , Effects.SetPinComment
                                                     { teamName = teamName
                                                     , pipelineName = pipelineName
                                                     , resourceName = resourceName
                                                     }
-                                                    "csrf_token"
                                                     "foo"
                                               )
                                             ]
@@ -1549,12 +1552,12 @@ all =
                                         |> Tuple.second
                                         |> Expect.equal
                                             [ ( Effects.SubPage 1
+                                              , csrfToken
                                               , Effects.SetPinComment
                                                     { teamName = teamName
                                                     , pipelineName = pipelineName
                                                     , resourceName = resourceName
                                                     }
-                                                    "csrf_token"
                                                     "foo"
                                               )
                                             ]
@@ -1570,12 +1573,12 @@ all =
                                         |> Tuple.second
                                         |> Expect.equal
                                             [ ( Effects.SubPage 1
+                                              , csrfToken
                                               , Effects.SetPinComment
                                                     { teamName = teamName
                                                     , pipelineName = pipelineName
                                                     , resourceName = resourceName
                                                     }
-                                                    "csrf_token"
                                                     "foo"
                                               )
                                             ]
@@ -1645,12 +1648,12 @@ all =
                                         |> Tuple.second
                                         |> Expect.equal
                                             [ ( Effects.SubPage 1
+                                              , csrfToken
                                               , Effects.SetPinComment
                                                     { teamName = teamName
                                                     , pipelineName = pipelineName
                                                     , resourceName = resourceName
                                                     }
-                                                    "csrf_token"
                                                     "foo"
                                               )
                                             ]
@@ -1754,6 +1757,7 @@ all =
                                             |> Tuple.second
                                             |> Expect.equal
                                                 [ ( Effects.SubPage 1
+                                                  , csrfToken
                                                   , Effects.FetchResource
                                                         { teamName = teamName
                                                         , pipelineName = pipelineName
@@ -1814,6 +1818,7 @@ all =
                                             |> Tuple.second
                                             |> Expect.equal
                                                 [ ( Effects.SubPage 1
+                                                  , csrfToken
                                                   , Effects.FetchResource
                                                         { teamName = teamName
                                                         , pipelineName = pipelineName
@@ -2537,6 +2542,7 @@ all =
                             |> Tuple.second
                             |> Expect.equal
                                 [ ( Effects.SubPage 1
+                                  , csrfToken
                                   , Effects.RedirectToLogin
                                   )
                                 ]
@@ -2635,12 +2641,12 @@ all =
                             |> Tuple.second
                             |> Expect.equal
                                 [ ( Effects.SubPage 1
+                                  , csrfToken
                                   , Effects.DoCheck
                                         { resourceName = resourceName
                                         , pipelineName = pipelineName
                                         , teamName = teamName
                                         }
-                                        "csrf_token"
                                   )
                                 ]
                 , describe "while check in progress" <|
@@ -2781,6 +2787,7 @@ all =
                             |> Tuple.second
                             |> Expect.equal
                                 [ ( Effects.SubPage 1
+                                  , csrfToken
                                   , Effects.FetchResource
                                         { resourceName = resourceName
                                         , pipelineName = pipelineName
@@ -2788,6 +2795,7 @@ all =
                                         }
                                   )
                                 , ( Effects.SubPage 1
+                                  , csrfToken
                                   , Effects.FetchVersionedResources
                                         { resourceName = resourceName
                                         , pipelineName = pipelineName
@@ -2855,6 +2863,7 @@ all =
                             |> Tuple.second
                             |> Expect.equal
                                 [ ( Effects.SubPage 1
+                                  , csrfToken
                                   , Effects.FetchResource
                                         { resourceName = resourceName
                                         , pipelineName = pipelineName
@@ -2885,6 +2894,7 @@ all =
                             |> Tuple.second
                             |> Expect.equal
                                 [ ( Effects.SubPage 1
+                                  , csrfToken
                                   , Effects.RedirectToLogin
                                   )
                                 ]
@@ -3025,12 +3035,17 @@ all =
         ]
 
 
+csrfToken : String
+csrfToken =
+    "csrf_token"
+
+
 init : Application.Model
 init =
     Application.init
         { turbulenceImgSrc = ""
         , notFoundImgSrc = ""
-        , csrfToken = "csrf_token"
+        , csrfToken = csrfToken
         , authToken = ""
         , pipelineRunningKeyframes = ""
         }
@@ -3058,7 +3073,7 @@ init =
 update :
     Resource.Msgs.Msg
     -> Application.Model
-    -> ( Application.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
+    -> ( Application.Model, List ( Effects.LayoutDispatch, String, Effects.Effect ) )
 update =
     resourceMsg >> Application.update
 
@@ -3066,7 +3081,7 @@ update =
 handleCallback :
     Callback.Callback
     -> Application.Model
-    -> ( Application.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
+    -> ( Application.Model, List ( Effects.LayoutDispatch, String, Effects.Effect ) )
 handleCallback =
     Application.handleCallback (Effects.SubPage 1)
 
@@ -3324,7 +3339,7 @@ givenControlKeyUp =
 
 pressEnterKey :
     Application.Model
-    -> ( Application.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
+    -> ( Application.Model, List ( Effects.LayoutDispatch, String, Effects.Effect ) )
 pressEnterKey =
     Application.update (Msgs.DeliveryReceived <| KeyDown 13)
 

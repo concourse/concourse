@@ -82,7 +82,6 @@ import UserState exposing (UserState(..))
 type alias Flags =
     { resourceId : Concourse.ResourceIdentifier
     , paging : Maybe Concourse.Pagination.Page
-    , csrfToken : String
     }
 
 
@@ -107,7 +106,6 @@ init flags =
                 , pagination = { previousPage = Nothing, nextPage = Nothing }
                 }
             , now = Nothing
-            , csrfToken = flags.csrfToken
             , showPinBarTooltip = False
             , pinIconHover = False
             , pinCommentLoading = False
@@ -477,10 +475,7 @@ handleDelivery delivery model =
                 ( model
                 , case model.pinnedVersion of
                     PinnedDynamicallyTo { comment } _ ->
-                        [ SetPinComment
-                            model.resourceIdentifier
-                            model.csrfToken
-                            comment
+                        [ SetPinComment model.resourceIdentifier comment
                         ]
 
                     _ ->
@@ -507,9 +502,6 @@ handleDelivery delivery model =
               ]
                 ++ fetchDataForExpandedVersions model
             )
-
-        TokenReceived (Just tokenValue) ->
-            ( { model | csrfToken = tokenValue }, [] )
 
         _ ->
             ( model, [] )
@@ -608,10 +600,7 @@ update action model =
                 effects =
                     case version of
                         Just v ->
-                            [ DoPinVersion
-                                versionID
-                                model.csrfToken
-                            ]
+                            [ DoPinVersion versionID ]
 
                         Nothing ->
                             []
@@ -629,9 +618,7 @@ update action model =
             let
                 cmd : Effect
                 cmd =
-                    DoUnpinVersion
-                        model.resourceIdentifier
-                        model.csrfToken
+                    DoUnpinVersion model.resourceIdentifier
             in
             ( { model
                 | pinnedVersion = Pinned.startUnpinning model.pinnedVersion
@@ -645,10 +632,7 @@ update action model =
                     { v | enabled = Models.Changing }
                 )
                 model
-            , [ DoToggleVersion action
-                    versionID
-                    model.csrfToken
-              ]
+            , [ DoToggleVersion action versionID ]
             )
 
         PinIconHover state ->
@@ -660,7 +644,7 @@ update action model =
         CheckRequested isAuthorized ->
             if isAuthorized then
                 ( { model | checkStatus = Models.CurrentlyChecking }
-                , [ DoCheck model.resourceIdentifier model.csrfToken ]
+                , [ DoCheck model.resourceIdentifier ]
                 )
 
             else
@@ -691,7 +675,7 @@ update action model =
 
         SaveComment comment ->
             ( { model | pinCommentLoading = True }
-            , [ SetPinComment model.resourceIdentifier model.csrfToken comment ]
+            , [ SetPinComment model.resourceIdentifier comment ]
             )
 
         FocusTextArea ->

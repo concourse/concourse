@@ -61,7 +61,7 @@ all =
                     Application.init
                         { turbulenceImgSrc = ""
                         , notFoundImgSrc = ""
-                        , csrfToken = ""
+                        , csrfToken = csrfToken
                         , authToken = ""
                         , pipelineRunningKeyframes = ""
                         }
@@ -231,7 +231,7 @@ all =
                         setupGroupsBar []
                             |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'f')
                             |> Tuple.second
-                            |> Expect.equal [ ( Effects.SubPage 1, Effects.ResetPipelineFocus ) ]
+                            |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.ResetPipelineFocus ) ]
                 ]
             ]
         , describe "update" <|
@@ -306,6 +306,7 @@ all =
                         |> Tuple.second
                         |> Expect.equal
                             [ ( Effects.SubPage 1
+                              , csrfToken
                               , Effects.FetchPipeline
                                     { teamName = "team"
                                     , pipelineName = "pipeline"
@@ -317,7 +318,7 @@ all =
                     init "/teams/team/pipelines/pipeline"
                         |> Application.update (Msgs.DeliveryReceived (ClockTicked OneMinute 0))
                         |> Tuple.second
-                        |> Expect.equal [ ( Effects.SubPage 1, Effects.FetchVersion ) ]
+                        |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.FetchVersion ) ]
             , describe "Legend" <|
                 let
                     clockTick =
@@ -1063,12 +1064,17 @@ resourceBreadcrumbSelector =
     ]
 
 
+csrfToken : String
+csrfToken =
+    "csrf_token"
+
+
 init : String -> Application.Model
 init path =
     Application.init
         { turbulenceImgSrc = ""
         , notFoundImgSrc = ""
-        , csrfToken = ""
+        , csrfToken = csrfToken
         , authToken = ""
         , pipelineRunningKeyframes = ""
         }

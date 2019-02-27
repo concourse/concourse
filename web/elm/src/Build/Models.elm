@@ -42,7 +42,6 @@ type alias Model =
     , currentBuild : WebData CurrentBuild
     , browsingIndex : Int
     , autoScroll : Bool
-    , csrfToken : String
     , previousKeyPress : Maybe Char
     , shiftDown : Bool
     , previousTriggerBuildByKey : Bool

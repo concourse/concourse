@@ -54,7 +54,6 @@ type alias Model =
     , currentPage : Maybe Page
     , hovered : Hoverable
     , versions : Paginated Version
-    , csrfToken : String
     , showPinBarTooltip : Bool
     , pinIconHover : Bool
     , topBar : TopBar.Model.Model

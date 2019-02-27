@@ -50,8 +50,7 @@ all =
 
             pageLoad =
                 Build.init
-                    { csrfToken = ""
-                    , highlight = Routes.HighlightNothing
+                    { highlight = Routes.HighlightNothing
                     , pageType = Models.JobBuildPage buildId
                     }
 
@@ -161,12 +160,16 @@ all =
                         )
                     )
 
+            csrfToken : String
+            csrfToken =
+                "csrf_token"
+
             initFromApplication : Application.Model
             initFromApplication =
                 Application.init
                     { turbulenceImgSrc = ""
                     , notFoundImgSrc = ""
-                    , csrfToken = "csrf_token"
+                    , csrfToken = csrfToken
                     , authToken = ""
                     , pipelineRunningKeyframes = ""
                     }
@@ -273,7 +276,7 @@ all =
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived AnimationFrameAdvanced)
                     |> Tuple.second
-                    |> Expect.equal [ ( Effects.SubPage 1, Effects.Scroll Effects.ToWindowBottom ) ]
+                    |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.Scroll Effects.ToWindowBottom ) ]
         , test "when build is not running it does not scroll on animation tick" <|
             \_ ->
                 initFromApplication
@@ -309,7 +312,7 @@ all =
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived AnimationFrameAdvanced)
                     |> Tuple.second
-                    |> Expect.equal [ ( Effects.SubPage 1, Effects.Scroll Effects.ToWindowBottom ) ]
+                    |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.Scroll Effects.ToWindowBottom ) ]
         , test "the page subscribes to animation ticks" <|
             \_ ->
                 pageLoad
@@ -356,12 +359,12 @@ all =
                     |> Tuple.second
                     |> Expect.equal
                         [ ( Effects.SubPage 1
+                          , csrfToken
                           , Effects.DoTriggerBuild
                                 { teamName = "team"
                                 , pipelineName = "pipeline"
                                 , jobName = "job"
                                 }
-                                "csrf_token"
                           )
                         ]
         , test "pressing 'gg' scrolls to the top" <|
@@ -377,6 +380,7 @@ all =
                     |> Tuple.second
                     |> Expect.equal
                         [ ( Effects.SubPage 1
+                          , csrfToken
                           , Effects.Scroll Effects.ToWindowTop
                           )
                         ]
@@ -393,6 +397,7 @@ all =
                     |> Tuple.second
                     |> Expect.equal
                         [ ( Effects.SubPage 1
+                          , csrfToken
                           , Effects.Scroll Effects.ToWindowBottom
                           )
                         ]

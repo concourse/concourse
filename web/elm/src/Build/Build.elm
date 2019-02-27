@@ -78,8 +78,7 @@ type StepRenderingState
 
 
 type alias Flags =
-    { csrfToken : String
-    , highlight : Routes.Highlight
+    { highlight : Routes.Highlight
     , pageType : BuildPageType
     }
 
@@ -113,7 +112,6 @@ init flags =
                 , currentBuild = RemoteData.NotAsked
                 , browsingIndex = 0
                 , autoScroll = True
-                , csrfToken = flags.csrfToken
                 , previousKeyPress = Nothing
                 , shiftDown = False
                 , previousTriggerBuildByKey = False
@@ -337,9 +335,6 @@ handleDelivery delivery model =
             else
                 ( { model | autoScroll = False }, [] )
 
-        TokenReceived (Just tokenValue) ->
-            ( { model | csrfToken = tokenValue }, [] )
-
         EventReceived eventSourceMsg ->
             updateOutput (Build.Output.handleEventsMsg (Build.Output.parseMsg eventSourceMsg)) model
 
@@ -370,10 +365,10 @@ update msg model =
                     ( model, [] )
 
                 Just someJob ->
-                    ( model, [ DoTriggerBuild someJob model.csrfToken ] )
+                    ( model, [ DoTriggerBuild someJob ] )
 
         AbortBuild buildId ->
-            ( model, [ DoAbortBuild buildId model.csrfToken ] )
+            ( model, [ DoAbortBuild buildId ] )
 
         ToggleStep id ->
             updateOutput

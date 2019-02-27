@@ -91,9 +91,12 @@ all =
                     Job.init
                         { jobId = someJobInfo
                         , paging = Nothing
-                        , csrfToken = ""
                         }
                         |> Tuple.first
+
+                csrfToken : String
+                csrfToken =
+                    "csrf_token"
 
                 init :
                     { disabled : Bool, paused : Bool }
@@ -103,7 +106,7 @@ all =
                     Application.init
                         { turbulenceImgSrc = ""
                         , notFoundImgSrc = ""
-                        , csrfToken = ""
+                        , csrfToken = csrfToken
                         , authToken = ""
                         , pipelineRunningKeyframes = ""
                         }
@@ -1008,8 +1011,8 @@ all =
                     >> Application.update (Msgs.DeliveryReceived <| ClockTicked FiveSeconds 0)
                     >> Tuple.second
                     >> Expect.equal
-                        [ ( Effects.SubPage 1, Effects.FetchJobBuilds jobInfo Nothing )
-                        , ( Effects.SubPage 1, Effects.FetchJob jobInfo )
+                        [ ( Effects.SubPage 1, csrfToken, Effects.FetchJobBuilds jobInfo Nothing )
+                        , ( Effects.SubPage 1, csrfToken, Effects.FetchJob jobInfo )
                         ]
             , test "on one-second timer, updates build timestamps" <|
                 init { disabled = False, paused = False }

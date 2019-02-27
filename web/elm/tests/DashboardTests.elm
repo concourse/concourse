@@ -2791,7 +2791,7 @@ all =
                             ClockTicked FiveSeconds 0
                         )
                     |> Tuple.second
-                    |> Expect.equal [ ( Effects.SubPage 1, Effects.FetchData ) ]
+                    |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.FetchData ) ]
         ]
 
 
@@ -2805,12 +2805,17 @@ afterSeconds n =
         |> List.foldr (>>) identity
 
 
+csrfToken : String
+csrfToken =
+    "csrf_token"
+
+
 initFromApplication : Application.Model
 initFromApplication =
     Application.init
         { turbulenceImgSrc = ""
         , notFoundImgSrc = ""
-        , csrfToken = ""
+        , csrfToken = csrfToken
         , authToken = ""
         , pipelineRunningKeyframes = ""
         }
@@ -2905,8 +2910,7 @@ iconSelector { size, image } =
 whenOnDashboard : { highDensity : Bool } -> Dashboard.Model
 whenOnDashboard { highDensity } =
     Dashboard.init
-        { csrfToken = ""
-        , turbulencePath = ""
+        { turbulencePath = ""
         , pipelineRunningKeyframes = pipelineRunningKeyframes
         , searchType =
             if highDensity then
