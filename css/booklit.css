@@ -106,6 +106,7 @@ body {
 .toc {
   font-family: 'Roboto Slab', serif;
   font-size: 18px;
+  margin-bottom: 1.5em;
 }
 
 .toc li {
