@@ -190,6 +190,17 @@
         }
       }, false);
 
+      app.ports.openEventStream.subscribe(function(config) {
+        es = new EventSource(config.url);
+        function dispatchEvent(event) {
+          app.ports.eventSource.send(event);
+        }
+        es.onopen = dispatchEvent;
+        config.eventTypes.forEach(function(eventType) {
+          es.addEventListener(eventType, dispatchEvent);
+        })
+      });
+
     </script>
     <script>
       var clipboard = new ClipboardJS('#copy-token');

@@ -1,7 +1,10 @@
 port module Subscription exposing (Delivery(..), Interval(..), Subscription(..), runSubscription)
 
 import AnimationFrame
-import EventSource.EventSource as EventSource
+import Build.StepTree.Models exposing (BuildEventEnvelope)
+import Concourse.BuildEvents exposing (decodeBuildEventEnvelope)
+import Json.Decode
+import Json.Encode
 import Keyboard
 import Mouse
 import Scroll
@@ -13,6 +16,9 @@ port newUrl : (String -> msg) -> Sub msg
 
 
 port tokenReceived : (Maybe String -> msg) -> Sub msg
+
+
+port eventSource : (Json.Encode.Value -> msg) -> Sub msg
 
 
 type Subscription
@@ -38,7 +44,7 @@ type Delivery
     | WindowResized Window.Size
     | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
     | TokenReceived (Maybe String)
-    | EventReceived EventSource.Msg
+    | EventReceived (Result String BuildEventEnvelope)
 
 
 type Interval
@@ -72,7 +78,7 @@ runSubscription s =
             Window.resizes WindowResized
 
         FromEventSource key ->
-            EventSource.listen key EventReceived
+            eventSource (Json.Decode.decodeValue decodeBuildEventEnvelope >> EventReceived)
 
         OnNonHrefLinkClicked ->
             newUrl NonHrefLinkClicked

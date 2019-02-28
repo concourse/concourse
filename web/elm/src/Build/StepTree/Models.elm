@@ -1,5 +1,6 @@
 module Build.StepTree.Models exposing
     ( BuildEvent(..)
+    , BuildEventEnvelope
     , HookedStep
     , MetadataField
     , Origin
@@ -94,6 +95,12 @@ type alias HookedStep =
 type TabFocus
     = Auto
     | User
+
+
+type alias BuildEventEnvelope =
+    { data : BuildEvent
+    , url : String
+    }
 
 
 type BuildEvent

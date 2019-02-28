@@ -10,6 +10,7 @@ module Build.Build exposing
     , view
     )
 
+import Array
 import Build.Models as Models
     exposing
         ( BuildPageType(..)
@@ -124,6 +125,7 @@ init flags =
           , teams = topBar.teams
           , screenSize = topBar.screenSize
           , highDensity = topBar.highDensity
+          , eventStream = Nothing
           }
         , topBarEffects ++ [ GetCurrentTime ]
         )
@@ -259,7 +261,15 @@ handleCallbackWithoutTopBar action ( model, effects ) =
                 ( model, effects )
 
         PlanAndResourcesFetched buildId result ->
-            updateOutput (Build.Output.Output.planAndResourcesFetched buildId result) ( model, effects )
+            updateOutput (Build.Output.Output.planAndResourcesFetched buildId result)
+                ( { model | eventStream = Just buildId }
+                , effects
+                    ++ [ Effects.OpenBuildEventStream
+                            { url = "/api/v1/builds/" ++ toString buildId ++ "/events"
+                            , eventTypes = [ "end", "event" ]
+                            }
+                       ]
+                )
 
         BuildHistoryFetched (Err err) ->
             flip always (Debug.log "failed to fetch build history" err) <|
@@ -329,7 +339,9 @@ handleDelivery delivery ( model, effects ) =
                 ( { model | autoScroll = False }, effects )
 
         EventReceived eventSourceMsg ->
-            updateOutput (Build.Output.Output.handleEventsMsg (Build.Output.Output.parseMsg eventSourceMsg)) ( model, effects )
+            eventSourceMsg
+                |> Build.Output.Output.handleEventsMsg
+                |> flip updateOutput ( model, effects )
 
         _ ->
             ( model, effects )

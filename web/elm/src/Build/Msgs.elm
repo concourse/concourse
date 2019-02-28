@@ -2,7 +2,7 @@ module Build.Msgs exposing (EventsMsg(..), Msg(..))
 
 import Array
 import Build.Models exposing (Hoverable)
-import Build.StepTree.Models exposing (BuildEvent)
+import Build.StepTree.Models exposing (BuildEventEnvelope)
 import Concourse
 import Routes exposing (StepID)
 import StrictEvents
@@ -27,4 +27,4 @@ type Msg
 type EventsMsg
     = Opened
     | Errored
-    | Events (Result String (Array.Array BuildEvent))
+    | Events (Result String (Array.Array BuildEventEnvelope))
