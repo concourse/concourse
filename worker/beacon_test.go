@@ -62,6 +62,7 @@ var _ = Describe("Beacon", func() {
 			finishRegister = make(chan error, 1)
 
 			fakeClient.RegisterStub = func(ctx context.Context, opts tsa.RegisterOptions) error {
+				opts.RegisteredFunc()
 				select {
 				case err := <-finishRegister:
 					return err
@@ -85,15 +86,15 @@ var _ = Describe("Beacon", func() {
 		})
 	})
 
-	Context("when a drain timeout is configured", func() {
+	Context("when a connection drain timeout is configured", func() {
 		BeforeEach(func() {
-			beacon.DrainTimeout = time.Hour
+			beacon.ConnectionDrainTimeout = time.Hour
 		})
 
 		It("configures it in the register options", func() {
 			Eventually(fakeClient.RegisterCallCount).Should(Equal(1))
 			_, opts := fakeClient.RegisterArgsForCall(0)
-			Expect(opts.DrainTimeout).To(Equal(time.Hour))
+			Expect(opts.ConnectionDrainTimeout).To(Equal(time.Hour))
 		})
 	})
 
@@ -102,6 +103,7 @@ var _ = Describe("Beacon", func() {
 			beacon.RebalanceInterval = 500 * time.Millisecond
 
 			fakeClient.RegisterStub = func(ctx context.Context, opts tsa.RegisterOptions) error {
+				opts.RegisteredFunc()
 				<-ctx.Done()
 				return nil
 			}
@@ -152,6 +154,7 @@ var _ = Describe("Beacon", func() {
 				someoneExit = make(chan struct{})
 
 				fakeClient.RegisterStub = func(ctx context.Context, opts tsa.RegisterOptions) error {
+					opts.RegisteredFunc()
 					<-someoneExit
 					return nil
 				}
@@ -179,6 +182,7 @@ var _ = Describe("Beacon", func() {
 					select {
 					case callTracker <- struct{}{}:
 						// first call; wait for normal exit
+						opts.RegisteredFunc()
 						<-ctx.Done()
 						return nil
 					default:
