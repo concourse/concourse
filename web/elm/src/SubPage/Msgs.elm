@@ -4,7 +4,7 @@ import Build.Msgs
 import Dashboard.Msgs
 import FlySuccess.Msgs
 import Job.Msgs
-import NotFound
+import NotFound.Msgs
 import Pipeline.Msgs
 import Resource.Msgs
 
@@ -16,4 +16,4 @@ type Msg
     | PipelineMsg Pipeline.Msgs.Msg
     | DashboardMsg Dashboard.Msgs.Msg
     | FlySuccessMsg FlySuccess.Msgs.Msg
-    | NotFoundMsg NotFound.Msg
+    | NotFoundMsg NotFound.Msgs.Msg

@@ -6,7 +6,7 @@ import Dict exposing (Dict)
 import Effects
 import Expect
 import Http
-import NotFound
+import NotFound.Model
 import RemoteData
 import Routes
 import ScreenSize
@@ -137,7 +137,7 @@ all =
         ]
 
 
-notFound : Routes.Route -> NotFound.Model
+notFound : Routes.Route -> NotFound.Model.Model
 notFound route =
     { notFoundImgSrc = "notfound.svg"
     , isUserMenuExpanded = False
