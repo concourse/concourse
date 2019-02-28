@@ -8,8 +8,8 @@ import (
 )
 
 var _ = Describe("Fix Build Private Plan", func() {
-	const preMigrationVersion = 1550159967
-	const postMigrationVersion = 1550160079
+	const preMigrationVersion = 1551384519
+	const postMigrationVersion = 1551384520
 
 	var (
 		db *sql.DB
