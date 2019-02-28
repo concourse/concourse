@@ -1,13 +1,11 @@
 module Build.Msgs exposing (EventsMsg(..), Msg(..))
 
 import Array
-import Build.Models exposing (BuildEvent, Hoverable)
+import Build.Models exposing (Hoverable)
+import Build.StepTree.Models exposing (BuildEvent)
 import Concourse
-import Keyboard
 import Routes exposing (StepID)
-import Scroll
 import StrictEvents
-import Time
 import TopBar.Msgs
 
 

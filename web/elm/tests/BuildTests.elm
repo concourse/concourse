@@ -6,6 +6,7 @@ import Array
 import Build.Build as Build
 import Build.Models as Models
 import Build.Msgs
+import Build.StepTree.Models as TreeModels
 import Callback
 import Char
 import Concourse exposing (BuildPrepStatus(..))

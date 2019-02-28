@@ -1,4 +1,4 @@
-module Build.Output exposing
+module Build.Output.Output exposing
     ( OutMsg(..)
     , handleEventsMsg
     , handleStepTreeMsg
@@ -10,17 +10,16 @@ module Build.Output exposing
 
 import Ansi.Log
 import Array exposing (Array)
-import Build.Models
+import Build.Msgs exposing (EventsMsg(..), Msg(..))
+import Build.Output.Models exposing (OutputModel, OutputState(..))
+import Build.StepTree.Models
     exposing
         ( BuildEvent(..)
-        , OutputModel
-        , OutputState(..)
         , StepState(..)
         , StepTree
         , StepTreeModel
         )
-import Build.Msgs exposing (EventsMsg(..), Msg(..))
-import Build.StepTree as StepTree
+import Build.StepTree.StepTree as StepTree
 import Build.Styles as Styles
 import Concourse
 import Concourse.BuildEvents as BuildEvents
