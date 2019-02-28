@@ -13,7 +13,7 @@ params:
 
 inputs:
 - name: concourse
-- name: rc-image
+- name: concourse-rc-image
 - name: charts
 
 caches:

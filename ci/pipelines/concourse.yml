@@ -36,11 +36,11 @@ groups:
   jobs:
   - unit
   - dev-image
-  - rc-image
   - testflight
   - watsjs
   - rc
   - build-rc
+  - build-rc-image
   - bin-smoke
   - upgrade
   - downgrade
@@ -69,8 +69,13 @@ groups:
   jobs:
   - major
   - minor
+  - shipit
+  - publish-binaries
+  - publish-image
+  - publish-bosh-release
+  - publish-bosh-deployment
+  - publish-docs
   - patch
-  - push-docs
 
 - name: workers
   jobs:
@@ -303,16 +308,19 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [rc-image]
+      passed: [build-rc-image]
       trigger: true
-    - get: rc-image
-      trigger: true
-      passed: [rc-image]
+    - get: concourse-rc-image
+      passed: [build-rc-image]
       params: {format: oci}
-    - get: unit-image
-      passed: [rc-image]
+      trigger: true
+    - get: version
+      passed: [build-rc-image]
+      trigger: true
     - get: charts
       trigger: true
+    - get: unit-image
+      passed: [build-rc-image]
   - try:
       task: try-delete
       image: unit-image
@@ -323,7 +331,7 @@ jobs:
        CONCOURSE_IMAGE: concourse/concourse-rc
   - task: deploy
     image: unit-image
-    input_mapping: {image-info: rc-image}
+    input_mapping: {image-info: concourse-rc-image}
     file: concourse/ci/tasks/k8s-deploy.yml
     params:
       KUBE_CONFIG: ((kube_config))
@@ -352,7 +360,10 @@ jobs:
     - get: concourse
       passed: [k8s-smoke]
       trigger: true
-    - get: rc-image
+    - get: version
+      passed: [k8s-smoke]
+      trigger: true
+    - get: concourse-rc-image
       passed: [k8s-smoke]
       trigger: true
       params: {format: oci}
@@ -442,27 +453,32 @@ jobs:
       params: {file: concourse-darwin/concourse-*.tgz}
       inputs: [concourse-darwin]
 
-- name: rc-image
+- name: build-rc-image
   public: true
   serial: true
   plan:
   - aggregate:
+    - get: concourse
+      passed: [build-rc]
+      trigger: true
+    - get: version
+      passed: [build-rc]
+      trigger: true
     - get: linux-rc
       trigger: true
-      passed: [ build-rc ]
+      passed: [build-rc]
     - get: unit-image
-      passed: [ build-rc ]
-    - get: concourse
-      passed: [ build-rc ]
+      passed: [build-rc]
     - get: builder
   - task: build
     image: builder
     privileged: true
-    file: concourse/ci/tasks/rc-image.yml
-  - put: rc-image
-    params: {image: image/image.tar}
+    file: concourse/ci/tasks/build-rc-image.yml
+  - put: concourse-rc-image
+    params:
+      image: image/image.tar
+      additional_tags: version/version
     get_params: {format: oci}
-
 
 - name: bin-smoke
   public: true
@@ -782,19 +798,169 @@ jobs:
       vars_files:
       - prod/wings/vars.yml
 
-- name: push-docs
+- name: shipit
+  public: true
+  serial_groups: [version]
+  plan:
+  - get: concourse
+    passed:
+    - build-rc
+    - k8s-topgun
+    - bosh-smoke
+    - bosh-topgun
+  - get: unit-image
+    passed:
+    - build-rc
+    - k8s-topgun
+    - bosh-smoke
+    - bosh-topgun
+  - get: final-version
+    resource: version
+    params: {bump: final}
+    passed:
+    - build-rc
+    - k8s-topgun
+    - bosh-smoke
+    - bosh-topgun
+  - get: linux-rc
+    passed: [build-rc]
+  - get: windows-rc
+    passed: [build-rc]
+  - get: darwin-rc
+    passed: [build-rc]
+  - get: concourse-rc-image
+    passed: [k8s-topgun]
+  - get: charts
+    passed: [k8s-topgun]
+  - get: concourse-release
+    passed: [bosh-smoke, bosh-topgun]
+  - get: bpm-release
+    passed: [bosh-smoke, bosh-topgun]
+  - get: postgres-release
+    passed: [bosh-smoke, bosh-topgun]
+  - put: version
+    params: {file: final-version/version}
+
+- name: publish-binaries
+  serial: true
+  plan:
+  - aggregate:
+    - get: version
+      passed: [shipit]
+      trigger: true
+    - get: concourse
+      passed: [shipit]
+    - get: unit-image
+      passed: [shipit]
+    - get: linux-rc
+      passed: [shipit]
+    - get: windows-rc
+      passed: [shipit]
+    - get: darwin-rc
+      passed: [shipit]
+  - task: extract-fly-assets
+    file: concourse/ci/tasks/extract-fly-assets.yml
+    image: unit-image
+  - task: build-release-notes
+    file: concourse/ci/tasks/build-release-notes.yml
+    image: unit-image
+  - put: concourse-github-release
+    params:
+      commitish: concourse/.git/ref
+      tag: version/version
+      tag_prefix: v
+      name: release-notes/release-name
+      body: release-notes/notes.md
+      globs:
+      - linux-rc/*.tgz
+      - darwin-rc/*.tgz
+      - windows-rc/*.zip
+      - fly-linux/fly-linux-*.tgz
+      - fly-windows/fly-windows-*.zip
+      - fly-darwin/fly-darwin-*.tgz
+
+- name: publish-bosh-release
+  serial: true
+  plan:
+  - aggregate:
+    - get: version
+      passed: [shipit]
+      trigger: true
+    - get: concourse-release
+      passed: [shipit]
+  - put: concourse-release
+    params:
+      tarball: concourse-release/*.tgz
+      version: version/version
+
+- name: publish-bosh-deployment
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse-boshio
+      trigger: true
+    - get: unit-image
+      passed: [shipit]
+    - get: cbd
+    - get: version
+      passed: [shipit]
+    - get: bpm-release
+      passed: [shipit]
+    - get: postgres-release
+      passed: [shipit]
+  - task: bump-versions
+    file: cbd/ci/bump-versions.yml
+    input_mapping: {concourse-bosh-deployment: cbd}
+    image: unit-image
+  - put: cbd
+    params:
+      repository: bumped-repo
+      merge: true
+  - put: cbd-master
+    params:
+      repository: bumped-repo
+      merge: true
+
+- name: publish-image
+  serial: true
+  plan:
+  - aggregate:
+    - get: version
+      passed: [shipit]
+      trigger: true
+    - get: concourse-rc-image
+      passed: [shipit]
+      params: {format: oci}
+  - put: concourse-image
+    params:
+      image: concourse-rc-image/image.tar
+      # TODO: push major/minor tags too
+      additional_tags: version/version
+
+- name: publish-docs
   public: true
   serial: true
   plan:
   - aggregate:
+    - get: version
+      passed: [shipit]
+      trigger: true
     - get: docs
-    - get: mock-version
   - task: build-docs
     file: docs/ci/build.yml
     params: {ANALYTICS_ID: ((analytics_id))}
-    input_mapping: {version: mock-version}
   - put: docs-gh-pages
     params: {repository: built-docs}
+
+- name: patch
+  public: true
+  serial_groups: [version]
+  plan:
+  - get: version
+    passed: [shipit]
+    trigger: true
+  - put: version
+    params: {bump: patch, pre: rc}
 
 - name: merge-cbd
   public: true
@@ -838,16 +1004,6 @@ jobs:
   - put: version
     params: {bump: minor, pre: rc}
 
-- name: patch
-  public: true
-  serial_groups: [version]
-  plan:
-  # - get: version
-  #   passed: [shipit]
-  #   trigger: true
-  - put: version
-    params: {bump: patch, pre: rc}
-
 resources:
 - name: concourse
   type: git
@@ -869,10 +1025,17 @@ resources:
     username: ((docker.username))
     password: ((docker.password))
 
-- name: rc-image
+- name: concourse-rc-image
   type: registry-image
   source:
     repository: concourse/concourse-rc
+    username: ((docker.username))
+    password: ((docker.password))
+
+- name: concourse-image
+  type: registry-image
+  source:
+    repository: concourse/concourse
     username: ((docker.username))
     password: ((docker.password))
 
@@ -1174,6 +1337,14 @@ resources:
     bucket: golang
     regexp: 'go(\d+\.\d+(\.\d+)?)\.windows-amd64\.msi'
 
-- name: mock-version
-  type: mock
-  source: {force_version: 4.2.3}
+- name: concourse-github-release
+  type: github-release
+  source:
+    owner: concourse
+    repository: concourse
+    access_token: ((concourse_github_release.access_token))
+
+- name: concourse-boshio
+  type: bosh-io-release
+  source:
+    repository: concourse/concourse
