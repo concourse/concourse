@@ -668,7 +668,7 @@ breadcrumbComponent componentType name =
 viewBreadcrumbSeparator : Html Msg
 viewBreadcrumbSeparator =
     Html.li
-        [ class "breadcrumb-separator", style Styles.breadcrumbItem ]
+        [ class "breadcrumb-separator", style <| Styles.breadcrumbItem False ]
         [ Html.text "/" ]
 
 
@@ -676,7 +676,7 @@ viewPipelineBreadcrumb : Concourse.PipelineIdentifier -> Html Msg
 viewPipelineBreadcrumb pipelineId =
     Html.li
         [ id "breadcrumb-pipeline"
-        , style Styles.breadcrumbItem
+        , style <| Styles.breadcrumbItem True
         , onClick <| GoToRoute <| Routes.Pipeline { id = pipelineId, groups = [] }
         ]
         (breadcrumbComponent "pipeline" pipelineId.pipelineName)
@@ -686,7 +686,7 @@ viewJobBreadcrumb : String -> Html Msg
 viewJobBreadcrumb jobName =
     Html.li
         [ id "breadcrumb-job"
-        , style Styles.breadcrumbItem
+        , style <| Styles.breadcrumbItem False
         ]
         (breadcrumbComponent "job" jobName)
 
@@ -695,7 +695,7 @@ viewResourceBreadcrumb : String -> Html Msg
 viewResourceBreadcrumb resourceName =
     Html.li
         [ id "breadcrumb-resource"
-        , style Styles.breadcrumbItem
+        , style <| Styles.breadcrumbItem False
         ]
         (breadcrumbComponent "resource" resourceName)
 

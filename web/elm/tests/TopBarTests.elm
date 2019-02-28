@@ -150,6 +150,8 @@ all =
                             >> Query.index 1
                             >> Query.has
                                 [ text "pipeline" ]
+                    , it "has pointer cursor" <|
+                        Query.has [ style [ ( "cursor", "pointer" ) ] ]
                     , it "has link to the relevant pipeline page" <|
                         Event.simulate Event.click
                             >> Event.expect
@@ -400,15 +402,22 @@ all =
                         (Msgs.GoToRoute <|
                             Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
                         )
-            , it "job breadcrumb is laid out horizontally with appropriate spacing" <|
-                Query.find [ id "breadcrumb-job" ]
-                    >> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
-            , it "top bar has job breadcrumb with job icon rendered first" <|
-                Query.find [ id "breadcrumb-job" ]
-                    >> Query.has jobBreadcrumbSelector
-            , it "top bar has build name after job icon" <|
-                Query.find [ id "breadcrumb-job" ]
-                    >> Query.has [ text "job" ]
+            , context "job breadcrumb"
+                (Query.find [ id "breadcrumb-job" ])
+                [ it "is laid out horizontally with appropriate spacing" <|
+                    Query.has
+                        [ style
+                            [ ( "display", "inline-block" )
+                            , ( "padding", "0 10px" )
+                            ]
+                        ]
+                , it "has job icon rendered first" <|
+                    Query.has jobBreadcrumbSelector
+                , it "has build name after job icon" <|
+                    Query.has [ text "job" ]
+                , it "does not appear clickable" <|
+                    Query.hasNot [ style [ ( "cursor", "pointer" ) ] ]
+                ]
             ]
         , rspecStyleDescribe "rendering top bar on resource page"
             (TopBar.init { route = Routes.Resource { id = { teamName = "team", pipelineName = "pipeline", resourceName = "resource" }, page = Nothing } }
