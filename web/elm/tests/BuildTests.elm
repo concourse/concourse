@@ -1722,6 +1722,141 @@ all =
                             >> Query.has [ attribute <| Attr.src url ]
                     ]
                 ]
+            , describe "get step with metadata" <|
+                let
+                    httpURLText =
+                        "http://some-url"
+
+                    httpsURLText =
+                        "https://some-url"
+
+                    plainText =
+                        "plain-text"
+
+                    metadataView =
+                        Application.init
+                            { turbulenceImgSrc = ""
+                            , notFoundImgSrc = ""
+                            , csrfToken = "csrf_token"
+                            , authToken = ""
+                            , pipelineRunningKeyframes = ""
+                            }
+                            { href = ""
+                            , host = ""
+                            , hostname = ""
+                            , protocol = ""
+                            , origin = ""
+                            , port_ = ""
+                            , pathname = "/teams/t/pipelines/p/jobs/j/builds/307"
+                            , search = ""
+                            , hash = "#Lstepid:1"
+                            , username = ""
+                            , password = ""
+                            }
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Effects.SubPage 1)
+                                (Callback.BuildFetched <|
+                                    Ok
+                                        ( 1
+                                        , { id = 307
+                                          , name = "307"
+                                          , job =
+                                                Just
+                                                    { teamName = "t"
+                                                    , pipelineName = "p"
+                                                    , jobName = "j"
+                                                    }
+                                          , status = Concourse.BuildStatusStarted
+                                          , duration =
+                                                { startedAt = Nothing
+                                                , finishedAt = Nothing
+                                                }
+                                          , reapTime = Nothing
+                                          }
+                                        )
+                                )
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Effects.SubPage 1)
+                                (Callback.PlanAndResourcesFetched 307 <|
+                                    Ok <|
+                                        ( { id = "stepid"
+                                          , step =
+                                                Concourse.BuildStepGet
+                                                    "step"
+                                                    (Just <| Dict.fromList [ ( "version", "1" ) ])
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            |> Tuple.first
+                            |> Application.update
+                                (Msgs.DeliveryReceived <|
+                                    EventsReceived <|
+                                        Ok <|
+                                            [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                              , data =
+                                                    STModels.FinishGet
+                                                        { source = "stdout"
+                                                        , id = "stepid"
+                                                        }
+                                                        1
+                                                        (Dict.fromList [ ( "version", "1" ) ])
+                                                        [ { name = "http-url"
+                                                          , value = httpURLText
+                                                          }
+                                                        , { name = "https-url"
+                                                          , value = httpsURLText
+                                                          }
+                                                        , { name = "plain-text"
+                                                          , value = plainText
+                                                          }
+                                                        ]
+                                              }
+                                            ]
+                                )
+                            |> Tuple.first
+                            |> Application.view
+                            |> Query.fromHtml
+                in
+                [ test "should show hyperlink if metadata starts with 'http://'" <|
+                    \_ ->
+                        metadataView
+                            |> Query.find
+                                [ containing [ text httpURLText ]
+                                ]
+                            |> Query.has
+                                [ tag "a"
+                                , style [ ( "text-decoration-line", "underline" ) ]
+                                , attribute <| Attr.target "_blank"
+                                , attribute <| Attr.href httpURLText
+                                ]
+                , test "should show hyperlink if metadata starts with 'https://'" <|
+                    \_ ->
+                        metadataView
+                            |> Query.find
+                                [ containing [ text httpsURLText ]
+                                ]
+                            |> Query.has
+                                [ tag "a"
+                                , style [ ( "text-decoration-line", "underline" ) ]
+                                , attribute <| Attr.target "_blank"
+                                , attribute <| Attr.href httpsURLText
+                                ]
+                , test "should not show hyperlink if metadata is plain text" <|
+                    \_ ->
+                        metadataView
+                            |> Query.find
+                                [ containing [ text plainText ]
+                                ]
+                            |> Query.hasNot
+                                [ tag "a"
+                                , style [ ( "text-decoration-line", "underline" ) ]
+                                , attribute <| Attr.target "_blank"
+                                , attribute <| Attr.href plainText
+                                ]
+                ]
             ]
         ]
 
