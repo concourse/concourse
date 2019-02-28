@@ -9,7 +9,6 @@ them, but we do recommend at least learning how to set up \reference{creds} and
 \split-sections
 \table-of-contents
 
-\include-section{./operation/topology.lit}
 \include-section{./operation/encryption.lit}
 \include-section{./operation/creds.lit}
 \include-section{./operation/metrics.lit}

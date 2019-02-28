@@ -19,19 +19,21 @@
 
   \codeblock{bash}{{
   $ wget https://concourse-ci.org/docker-compose.yml
-  $ docker-compose up
+  $ docker-compose up -d
+  Creating docs_concourse-db_1 ...
   Creating docs_concourse-db_1 ... done
-  Creating docs_concourse_1    ... done
+  Creating docs_concourse_1 ...
+  Creating docs_concourse_1 ... done
   }}
 
-  Concourse will be running at \link{127.0.0.1:8080}{http://127.0.0.1:8080}.
+  Concourse will be running at \link{localhost:8080}{http://localhost:8080}.
   You can log in with the username/password as \code{test}/\code{test}.
 
   Next, install \reference{fly-cli} by downloading it from the web UI and
   target your local Concourse as the \code{test} user:
 
   \codeblock{bash}{{
-  $ fly -t tutorial login -c http://127.0.0.1:8080 -u test -p test
+  $ fly -t tutorial login -c http://localhost:8080 -u test -p test
   logging in to team 'main'
 
   target saved
@@ -127,7 +129,7 @@
 }{
   \codeblock{sh}{{{
   ~/booklit $ fly -t ci execute -c ci/test.yml
-  executing build 1 at http://127.0.0.1:8080/builds/1
+  executing build 1 at http://localhost:8080/builds/1
   initializing
   booklit: 4.74 MiB/s 0s
   running gopath/src/github.com/vito/booklit/ci/test

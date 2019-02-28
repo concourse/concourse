@@ -17,7 +17,7 @@ concourse web \
 }}}
 
 \section{
-  \title{\aux{The }\code{volume-locality} Strategy}{volume-locality-strategy}
+  \title{\aux{The }\code{volume-locality} strategy}{volume-locality-strategy}
 
   When using \code{volume-locality}, the \reference{web-node} places
   \reference{task-step} and \reference{put-step} containers on workers where a
@@ -37,7 +37,7 @@ concourse web \
 }
 
 \section{
-  \title{\aux{The }\code{fewest-build-containers} Strategy}{fewest-build-containers-strategy}
+  \title{\aux{The }\code{fewest-build-containers} strategy}{fewest-build-containers-strategy}
 
   When using the \code{fewest-build-containers} strategy, step containers are
   placed on the worker that has the fewest build containers (i.e. containers

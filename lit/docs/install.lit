@@ -2,114 +2,53 @@
 
 \use-plugin{concourse-docs}
 
-Concourse is distributed as a single \code{concourse} binary, which can be run
-as either a \reference{web-node} or a \reference{worker-node}. The binary is
-fairly self-contained, making it ideal for tossing onto a VM by hand or
-orchestrating it with Docker, Kubernetes, or other ops tooling.
+\split-sections
 
-For the sake of brevity, the documentation throughout this site will focus
-solely on the \code{concourse} binary. Documentation for other install methods
-is available localized to their GitHub repository, which can be found on the
-\reference{download} page.
+A Concourse installation is composed of three things: a \reference{web-node}, a
+a \reference{worker-node}, and a PostgreSQL database.
 
-\section{
-  \title{Prerequisites}
+The following sections will introduce the \code{concourse} CLI and show how it
+all works:
 
-  \list{
-    You'll need a PostgresSQL 9.5+ server running somewhere with an empty
-    database created.
+\include-section{install/concourse-cli.lit}
+\include-section{install/generating-keys.lit}
+\include-section{install/db.lit}
+\include-section{install/web.lit}
+\include-section{install/worker.lit}
+\table-of-contents
 
-    If you're going to run a server yourself, please refer to your platform or
-    Linux distribution's PostgreSQL install instructions. (They probably have a
-    wiki page for it.)
-  }{
-    Linux: kernel v3.19 or later with user namespace support enabled. (This is
-    off by default in some distributions!) To enforce memory limits on tasks,
-    memory + swap accounting must be enabled.
-  }{
-    Windows/Darwin: no special requirements (that we know of). Note that
-    containerization is fairly primitive on these two platforms, so don't
-    expect great support for multi-tenancy.
-  }
-}
+Alternatively, if you'd just like to get a Concourse running and don't really
+care how, you can use
+\link{\code{docker-compose}}{https://docs.docker.com/compose/} to run a
+quick-and-dirty Concourse cluster:
 
-\section{
-  \title{Installing the \code{concourse} Binary}{install-binary}
+\codeblock{bash}{{{
+$ wget https://concourse-ci.org/docker-compose.yml
+$ docker-compose up -d
+Creating docs_concourse-db_1 ...
+Creating docs_concourse-db_1 ... done
+Creating docs_concourse_1 ...
+Creating docs_concourse_1 ... done
+}}}
 
-  First, grab the appropriate archive for your platform from the
-  \reference{downloads}{downloads} section.
+Concourse will be running at \link{localhost:8080}{http://localhost:8080}.
 
-  Each archive is structured like so:
+This instance is configured with a single user with the username and password
+as \code{test}. If you'd like to change these credentials you can edit the
+\code{docker-compose.yml} - check out \reference{configuring-auth} to learn
+how.
 
-  \codeblock{sh}{{
-  concourse/bin/concourse
-  concourse/fly-assets/...
-  concourse/bin/gdn # on Linux
-  concourse/resource-types/... # on Linux
-  }}
+Next, install the \reference{fly-cli}{\code{fly} CLI} by downloading it from
+the web UI and target your local Concourse as the \code{test} user:
 
-  When extracted, the \code{concourse} binary will auto-discover its sibling
-  assets based on its file location.
+\codeblock{bash}{{
+$ fly -t tutorial login -c http://localhost:8080 -u test -p test
+logging in to team 'main'
 
-  \section{
-    \title{Installing on Linux}{install-linux}
+target saved
+}}
 
-    A typical Linux installation would just extract the archive to somewhere like
-    \code{/usr/local}:
-
-    \codeblock{sh}{{
-    $ tar -zxf concourse-*.tgz -C /usr/local
-    }}
-
-    From there, you can either add \code{/usr/local/concourse/bin} to your
-    \code{$PATH}, or just execute \code{/usr/local/concourse/bin/concourse}
-    directly.
-  }
-
-  \section{
-    \title{Running Concourse on Windows, OS X, etc.}{install-windows}{install-darwin}
-
-    To install Concourse on Windows or OS X, just extract the archive somewhere
-    sensible (it doesn't matter where) and run \code{concourse/bin/concourse}
-    (or \code{concourse\\bin\\concourse.exe} for our Windows friends).
-  }
-}
-
-\section{
-  \title{Configuring \code{concourse}}{binary-configuration}
-
-  Concourse is configured via flags and env vars passed to the various
-  sub-commands of the \code{concourse} executable.
-
-  For an exhaustive listing of each flag, pass \code{--help} to any command.
-
-  Note that every flag can also be configured via \code{CONCOURSE_*}
-  environment variables. These are also shown in \code{--help}. This is useful
-  for deployment schemes which favor environment-based configuration (e.g.
-  Docker, \code{systemd}, ...).
-
-  Various sections in documentation may refer to configuration via env vars
-  rather than flags, but they are both equivalent an interchangeable. Env
-  vars are just easier to reference in isolation and are more useful to
-  copy-paste.
-
-  The very first thing you'll want to configure is how to log in - so head over
-  to \reference{auth}!
-}
-
-\section{
-  \title{Deploying with Docker/Kubernetes/etc.}{install-other}
-
-  The \code{concourse} binary is also available in a few other
-  officially-supported flavors:
-
-  \list{
-    \link{\code{concourse/concourse} Docker repository}{http://hub.docker.com/r/concourse/concourse}
-  }{
-    \link{\code{concourse} helm chart}{https://github.com/helm/charts/tree/master/stable/concourse}
-  }{
-    The \link{Concourse BOSH
-    release}{https://github.com/concourse/concourse-bosh-release}, primarily
-    used for Pivotal's PCF customers
-  }
-}
+From here, you can continue on to \reference{learning} to try out some
+tutorials and examples, or keep browsing around the rest of the
+\reference{docs} and just kick the tires until things make sense. If you get
+lost, feel free to ask for help from the \link{community}{community}!

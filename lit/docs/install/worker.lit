@@ -1,0 +1,130 @@
+\title{\aux{Running a }\code{worker} node}{concourse-worker}{worker-node}
+
+\use-plugin{concourse-docs}
+\omit-children-from-table-of-contents
+
+The \code{worker} node registers with the \reference{web-node} and is then used
+for executing builds and performing resource \code{check}s. It doesn't really
+decide much on its own.
+
+\section{
+  \title{Prerequisites}{worker-prerequisites}
+
+  \list{
+    Linux: kernel v3.19 or later with support for user namespaces enabled.
+    (This is off by default in some distributions!)
+
+    To enforce memory limits on tasks, memory + swap accounting must be
+    enabled.
+  }{
+    Windows/Darwin: no special requirements (that we know of).
+
+    Note that containerization is fairly primitive on these two platforms, so
+    don't expect great support for multi-tenancy.
+  }
+}
+
+\section{
+  \title{Running}{worker-running}
+
+  The \code{concourse} CLI can run as a \code{worker} node via the \code{worker}
+  subcommand.
+
+  First, you'll need to configure a directory for the worker to store data:
+
+  \codeblock{bash}{{{
+  CONCOURSE_WORK_DIR=/opt/concourse/worker
+  }}}
+
+  This is where all the builds run, and where all resources are fetched in
+  to, so make sure it's backed by enough storage. Then, configure it like so:
+
+  Next, point the worker at your \reference{web-node} like so:
+
+  \codeblock{bash}{{{
+  CONCOURSE_TSA_HOST=127.0.0.1:2222
+  CONCOURSE_TSA_PUBLIC_KEY=path/to/tsa_host_key.pub
+  CONCOURSE_TSA_WORKER_PRIVATE_KEY=path/to/worker_key
+  }}}
+
+  Finally, run:
+
+  \codeblock{bash}{{{
+  sudo concourse worker
+  }}}
+
+  Note that the worker must be run as \code{root}, as it orchestrates
+  containers.
+
+  Workers have a statically configured \code{platform} and a set of
+  \code{tags}, both of which determine where steps in a
+  \reference{build-plans}{Build Plan} are scheduled.
+
+  The Linux \code{concourse} binary comes with
+  \reference{included-resources}{a set of core resource types} baked in. If
+  you are planning to use them you need to have at least one Linux worker.
+}
+
+\section{
+  \title{Properties}{worker-properties}
+
+  CPU usage: almost entirely subject to pipeline workloads. More resources
+  configured will result in more checking, and in-flight builds will use as
+  much CPU as they want.
+
+  Memory usage: also subject to pipeline workloads. Expect usage to increase
+  with the number of containers on the worker and spike as builds run.
+
+  Bandwidth usage: again, almost entirely subject to pipeline workloads. Expect
+  spikes from periodic checking, though the intervals should spread out over
+  enough time. Resource fetching and pushing will also use arbitrary bandwidth.
+
+  Disk usage: arbitrary data will be written as builds run, and resource caches
+  will be kept and garbage collected on their own life cycle. We suggest going
+  for a larger disk size if it's not too much trouble. All state on disk must
+  not outlive the worker itself; it is all ephemeral. If the worker is
+  re-created (i.e. fresh VM/container and all processes were killed), it should
+  be brought back with an empty disk.
+
+  Highly available: not applicable. Workers are inherently singletons, as
+  they're being used as drivers running entirely different workloads.
+
+  Horizontally scalable: yes; workers directly correlate to your capacity
+  required by however many pipelines, resources, and in-flight builds you want
+  to run. It makes sense to scale them up and down with demand.
+
+  Outbound traffic:
+
+  \list{
+    external traffic to arbitrary locations as a result of periodic resource
+    checking and running builds
+  }{
+    external traffic to the \code{web} node's configured external URL when
+    downloading the inputs for a \reference{fly-execute}
+  }{
+    external traffic to the \code{web} node's TSA port (\code{2222}) for
+    registering the worker
+  }
+
+  Inbound traffic:
+
+  \list{
+    various connections from the \reference{web-node} on port \code{7777}
+    (Garden), \code{7788} (BaggageClaim), and \code{7799} (garbage collection)
+  }{
+    repeated connections to \code{7788} and \code{7788} from the
+    \reference{web-node}'s TSA component as it heartbeats to ensure the worker
+    is healthy
+  }
+}
+
+\section{
+  \title{Operation}{worker-operation}
+
+  You may want a few workers, depending on the resource usage of your
+  pipeline. There should be one per machine; running multiple on one box
+  doesn't really make sense, as each worker runs as many containers as
+  Concourse requests of it.
+
+  TODO: signals, draining, retiring, landing, etc.
+}

@@ -1,0 +1,46 @@
+\title{Generating Keys}{concourse-generate-key}{generating-keys}
+
+\use-plugin{concourse-docs}
+
+Concourse's various components use RSA keys to verify tokens and worker
+registration requests.
+
+A minimal deployment will require the following keys:
+
+\definitions{
+  \definition{\code{session_signing_key}}{
+    Used by the \reference{web-node} for signing and verifying user session
+    tokens.
+  }
+}{
+  \definition{\code{tsa_host_key}}{
+    Used by the \reference{web-node} for the SSH worker registration gateway
+    server ("TSA").
+
+    The public key is given to each \reference{worker-node} to verify the
+    remote host when connecting via SSH.
+  }
+}{
+  \definition{\code{worker_key} (one per worker)}{
+    Each \reference{worker-node} verifies its registration with the
+    \reference{web-node} via a SSH key.
+
+    The public key must be listed in the \reference{web-node}'s
+    \italic{authorized keys} configuration in order for the worker to register.
+  }
+}
+
+To generate these keys, run:
+
+\codeblock{bash}{{
+concourse generate-key -t rsa -f ./session_signing_key
+concourse generate-key -t ssh -f ./tsa_host_key
+concourse generate-key -t ssh -f ./worker_key
+}}
+
+...and we'll also start on an \code{authorized_keys} file, currently
+listing this initial worker key:
+
+\codeblock{bash}{{
+cp worker_key.pub authorized_worker_keys
+}}

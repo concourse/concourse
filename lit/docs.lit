@@ -1,8 +1,53 @@
 \title{Docs}{docs}
 
-DESIGN SOMETHING HERE
+\use-plugin{concourse-docs}
 
-TOC IS WAY TOO BIG
+Concourse is an open-source, pipeline-based, containerized continuous
+thing-doer.
+
+\bold{\larger{What is a pipeline?}}
+
+The word "pipeline" is all the rage in CI these days, so being more specific
+about this term is kind of important; Concourse's are significantly different
+from the rest.
+
+\reference{pipelines} have two things: \reference{resources}, which represent
+all external state, and \reference{jobs}, which interact with them. Concourse
+pipelines represent a dependency flow, kind of like distributed
+\code{Makefile}s.
+
+Pipelines are designed to be self-contained so as to minimize server-wide
+configuration. Maximizing portability also mitigates risk, making it easier for
+projects to recover from CI disasters.
+
+Within pipelines, \reference{jobs} are designed to be loosely coupled, allowing
+the pipeline to grow with the project's needs without requiring engineers to
+keep too much in their head at a time.
+
+Instead of configuring triggers and writing \code{git} and \code{s3} scripts,
+\reference{resources} like the \resource{git} and \resource{s3} are used to
+express source code, dependencies, deployments, and any other external state.
+
+New \reference{resource-types}{types of resources} are defined as part of the
+pipeline itself, keeping Concourse itself small and generic without resorting
+to a complicated system.
+
+Everything in Concourse runs in a container. Instead of modifying workers to
+install build tools, \reference{tasks} describe their own container image
+(typically using Docker images via the \resource{registry-image}).
+
+
+\bold{\larger{...What?}}
+
+Concourse admittedly has a steeper learning curve at first, and depending on
+your background it might be a lot to take in. A core goal of this project is
+for the curve to flatten out shortly after and result in higher productivity
+and less stress over time.
+
+If this all sounds like gobbeldigook, that's OK - you may want to just continue
+on, start kicking the tires a bit, and use the above as a quick reference of
+the "big picture" as the mental model sets in.
+
 
 \include-section{./docs/install.lit}
 \include-section{./docs/auth.lit}
