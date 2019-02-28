@@ -44,8 +44,8 @@ var _ = Describe("Garden Config", func() {
 	})
 
 	AfterEach(func() {
-// 		helmDestroy(releaseName)
-// 		Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
+		helmDestroy(releaseName)
+		Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
 		Wait(proxySession.Interrupt())
 	})
 
@@ -67,7 +67,7 @@ var _ = Describe("Garden Config", func() {
 		return gardenCapObject.MaxContainers
 	}
 
-	FContext("passing a config map location to the worker to be used by gdn", func() {
+	Context("passing a config map location to the worker to be used by gdn", func() {
 		BeforeEach(func() {
 			helmDeployTestFlags = []string{
 				`--set=worker.replicas=1`,
@@ -84,9 +84,8 @@ var _ = Describe("Garden Config", func() {
 				"garden-config",
 				"--namespace=" + namespace,
 				`--from-literal=garden-config.ini=
-[limits]
-max-containers = 100
-`,
+[server]
+  max-containers = 100`,
 			}
 
 			Run(nil, "kubectl", configMapCreationArgs...)
