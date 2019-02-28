@@ -315,23 +315,16 @@ func (p Plugin) Ghissue(number string, optionalRepo ...string) booklit.Content {
 	}
 }
 
-func (p Plugin) Resource(resource string, optionalName ...string) booklit.Content {
-	name := ""
-	if len(optionalName) > 0 {
-		name = optionalName[0]
-	} else {
-		for _, word := range strings.Split(resource, "-") {
-			if name != "" {
-				name += " "
-			}
-
-			name += strings.Title(word)
-		}
-	}
-
+func (p Plugin) Resource(name string) booklit.Content {
 	return booklit.Link{
-		Target:  fmt.Sprintf("http://github.com/concourse/%s-resource", resource),
-		Content: booklit.String(fmt.Sprintf("%s resource", name)),
+		Target: fmt.Sprintf("http://github.com/concourse/%s-resource", name),
+		Content: booklit.Sequence{
+			booklit.Styled{
+				Style:   booklit.StyleVerbatim,
+				Content: booklit.String(name),
+			},
+			booklit.String(" resource"),
+		},
 	}
 }
 
