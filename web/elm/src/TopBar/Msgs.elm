@@ -17,5 +17,5 @@ type Msg
     | ShowSearchInput
     | ResizeScreen Window.Size
     | TogglePinIconDropdown
-    | GoToPinnedResource Routes.Route
+    | GoToRoute Routes.Route
     | Noop

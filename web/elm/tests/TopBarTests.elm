@@ -151,9 +151,11 @@ all =
                             >> Query.has
                                 [ text "pipeline" ]
                     , it "has link to the relevant pipeline page" <|
-                        Query.children []
-                            >> Query.index 1
-                            >> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                        Event.simulate Event.click
+                            >> Event.expect
+                                (Msgs.GoToRoute <|
+                                    Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                                )
                     ]
                 , it "has dark grey background" <|
                     Query.has [ style [ ( "background-color", backgroundGrey ) ] ]
@@ -258,7 +260,7 @@ all =
                         >> Query.hasNot [ id "logout-button" ]
                 ]
             , it "clicking a pinned resource navigates to the pinned resource page" <|
-                TopBar.update (Msgs.GoToPinnedResource (Routes.Resource { id = { teamName = "t", pipelineName = "p", resourceName = "r" }, page = Nothing }))
+                TopBar.update (Msgs.GoToRoute (Routes.Resource { id = { teamName = "t", pipelineName = "p", resourceName = "r" }, page = Nothing }))
                     >> Tuple.second
                     >> Expect.equal [ Effects.NavigateTo "/teams/t/pipelines/p/resources/r" ]
             , context "when pipeline is paused"
@@ -393,9 +395,11 @@ all =
                     >> Query.has [ style [ ( "flex-grow", "1" ) ] ]
             , it "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
                 Query.find [ id "breadcrumb-pipeline" ]
-                    >> Query.children []
-                    >> Query.index 1
-                    >> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                    >> Event.simulate Event.click
+                    >> Event.expect
+                        (Msgs.GoToRoute <|
+                            Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                        )
             , it "job breadcrumb is laid out horizontally with appropriate spacing" <|
                 Query.find [ id "breadcrumb-job" ]
                     >> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
@@ -417,9 +421,11 @@ all =
                     >> Query.has [ style [ ( "flex-grow", "1" ) ] ]
             , it "pipeline breadcrumb should have a link to the pipeline page when viewing resource details" <|
                 Query.find [ id "breadcrumb-pipeline" ]
-                    >> Query.children []
-                    >> Query.index 1
-                    >> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                    >> Event.simulate Event.click
+                    >> Event.expect
+                        (Msgs.GoToRoute <|
+                            Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                        )
             , it "there is a / between pipeline and resource in breadcrumb" <|
                 Query.findAll [ tag "li" ]
                     >> Expect.all
@@ -453,9 +459,11 @@ all =
                     >> Query.has [ style [ ( "flex-grow", "1" ) ] ]
             , it "pipeline breadcrumb should have a link to the pipeline page when viewing job details" <|
                 Query.find [ id "breadcrumb-pipeline" ]
-                    >> Query.children []
-                    >> Query.index 1
-                    >> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                    >> Event.simulate Event.click
+                    >> Event.expect
+                        (Msgs.GoToRoute <|
+                            Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                        )
             , it "there is a / between pipeline and job in breadcrumb" <|
                 Query.findAll [ tag "li" ]
                     >> Expect.all
