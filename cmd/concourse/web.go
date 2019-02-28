@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
-	"net"
 	"os"
 
 	"github.com/concourse/concourse/atc/atccmd"
@@ -89,13 +88,6 @@ func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
 	if len(cmd.TSACommand.ATCURLs) == 0 {
 		cmd.TSACommand.ATCURLs = []flag.URL{cmd.RunCommand.DefaultURL()}
 	}
-
-	host, _, err := net.SplitHostPort(cmd.RunCommand.DefaultURL().URL.Host)
-	if err != nil {
-		return err
-	}
-
-	cmd.TSACommand.PeerIP = host
 
 	return nil
 }
