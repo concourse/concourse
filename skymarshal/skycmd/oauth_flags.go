@@ -26,6 +26,8 @@ type OAuthFlags struct {
 	UserInfoURL        string      `long:"userinfo-url" description:"(Required) UserInfo URL"`
 	Scopes             []string    `long:"scope" description:"Any additional scopes that need to be requested during authorization"`
 	GroupsKey          string      `long:"groups-key" description:"The groups key indicates which claim to use to map external groups to Concourse teams."`
+	UserIDKey          string      `long:"user-id-key" description:"The user id key indicates which claim to use to map an external user id to a Concourse user id."`
+	UserNameKey        string      `long:"user-name-key" description:"The user name key indicates which claim to use to map an external user name to a Concourse user name."`
 	CACerts            []flag.File `long:"ca-cert" description:"CA Certificate"`
 	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
 }
@@ -81,6 +83,8 @@ func (flag *OAuthFlags) Serialize(redirectURI string) ([]byte, error) {
 		UserInfoURL:        flag.UserInfoURL,
 		Scopes:             flag.Scopes,
 		GroupsKey:          flag.GroupsKey,
+		UserIDKey:          flag.UserIDKey,
+		UserNameKey:        flag.UserNameKey,
 		RootCAs:            caCerts,
 		InsecureSkipVerify: flag.InsecureSkipVerify,
 		RedirectURI:        redirectURI,
