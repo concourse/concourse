@@ -69,23 +69,16 @@ type DashboardError
 
 
 type alias Model =
-    TopBar.Model.Model
-        { state : RemoteData.RemoteData DashboardError SubState.SubState
-        , turbulencePath : String
-        , highDensity : Bool
-        , hoveredPipeline : Maybe Models.Pipeline
-        , pipelineRunningKeyframes : String
-        , groups : List Group.Group
-        , hoveredCliIcon : Maybe Cli.Cli
-        , hoveredTopCliIcon : Maybe Cli.Cli
-        , screenSize : ScreenSize.ScreenSize
-        , version : String
-        , userState : UserState.UserState
-        , userMenuVisible : Bool
-        , hideFooter : Bool
-        , hideFooterCounter : Int
-        , showHelp : Bool
-        }
+    Footer.Model
+        (TopBar.Model.Model
+            { state : RemoteData.RemoteData DashboardError SubState.SubState
+            , turbulencePath : String
+            , hoveredPipeline : Maybe Models.Pipeline
+            , pipelineRunningKeyframes : String
+            , hoveredTopCliIcon : Maybe Cli.Cli
+            , userState : UserState.UserState
+            }
+        )
 
 
 substateOptional : Monocle.Optional.Optional Model SubState.SubState
@@ -108,7 +101,6 @@ init flags =
       , hoveredTopCliIcon = Nothing
       , version = ""
       , userState = UserState.UserStateUnknown
-      , userMenuVisible = False
       , hideFooter = False
       , hideFooterCounter = 0
       , showHelp = False
@@ -193,10 +185,7 @@ handleCallbackWithoutTopBar msg ( model, effects ) =
                 )
 
         LoggedOut (Ok ()) ->
-            ( { model
-                | userState = UserState.UserStateLoggedOut
-                , userMenuVisible = False
-              }
+            ( { model | userState = UserState.UserStateLoggedOut }
             , effects
                 ++ [ NavigateTo <| Routes.toString <| Routes.dashboardRoute model.highDensity
                    , FetchData
@@ -355,9 +344,6 @@ update msg ( model, effects ) =
             case m of
                 TopBar.Msgs.LogOut ->
                     ( { newModel | state = RemoteData.NotAsked }, topBarEffects )
-
-                TopBar.Msgs.ToggleUserMenu ->
-                    ( { newModel | userMenuVisible = not model.userMenuVisible }, topBarEffects )
 
                 _ ->
                     ( newModel, topBarEffects )
