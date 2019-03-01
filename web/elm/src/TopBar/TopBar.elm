@@ -555,6 +555,7 @@ viewSearch r model =
             [ id "search-input-field"
             , style (Styles.searchInput model.screenSize)
             , placeholder "search"
+            , attribute "autocomplete" "off"
             , value r.query
             , onFocus FocusMsg
             , onBlur BlurMsg

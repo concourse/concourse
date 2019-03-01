@@ -519,6 +519,10 @@ all =
                 , it "renders search bar with transparent background to remove white of search bar" <|
                     Query.find [ id "search-input-field" ]
                         >> Query.has [ style [ ( "background-color", "transparent" ) ] ]
+                , it "search bar does not use browser's built-in autocomplete" <|
+                    Query.find [ id TopBar.searchInputId ]
+                        >> Query.has
+                            [ attribute <| Attr.attribute "autocomplete" "off" ]
                 , it "sets magnifying glass on search bar in correct position" <|
                     Query.find [ id "search-input-field" ]
                         >> Query.has
