@@ -125,9 +125,10 @@ type Effect
     | SetFavIcon (Maybe Concourse.BuildStatus)
     | SaveToken String
     | LoadToken
-    | ForceFocus String
     | OpenBuildEventStream { url : String, eventTypes : List String }
     | CloseBuildEventStream
+    | Focus String
+    | Blur String
 
 
 type ScrollDirection
@@ -294,8 +295,12 @@ runEffect effect csrfToken =
         LoadToken ->
             loadToken ()
 
-        ForceFocus dom ->
-            Dom.focus dom
+        Focus id ->
+            Dom.focus id
+                |> Task.attempt (always EmptyCallback)
+
+        Blur id ->
+            Dom.blur id
                 |> Task.attempt (always EmptyCallback)
 
         OpenBuildEventStream config ->

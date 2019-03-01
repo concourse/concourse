@@ -5,6 +5,7 @@ module TopBar.TopBar exposing
     , init
     , query
     , queryStringFromSearch
+    , searchInputId
     , update
     , view
     )
@@ -47,6 +48,11 @@ import TopBar.Msgs exposing (Msg(..))
 import TopBar.Styles as Styles
 import UserState exposing (UserState(..))
 import Window
+
+
+searchInputId : String
+searchInputId =
+    "search-input-field"
 
 
 type alias Flags =
@@ -259,52 +265,11 @@ handleDelivery delivery ( model, effects ) =
 
                 -- escape key
                 27 ->
-                    case model.middleSection of
-                        SearchBar r ->
-                            case r.dropdown of
-                                Shown { selectedIdx } ->
-                                    case selectedIdx of
-                                        Nothing ->
-                                            let
-                                                newModel =
-                                                    case model.middleSection of
-                                                        SearchBar r ->
-                                                            if model.screenSize == Mobile && r.query == "" then
-                                                                { model | middleSection = MinifiedSearch }
-
-                                                            else
-                                                                { model | middleSection = SearchBar { r | dropdown = Hidden } }
-
-                                                        _ ->
-                                                            model
-                                            in
-                                            ( newModel, effects )
-
-                                        Just selectedIdx ->
-                                            let
-                                                newModel =
-                                                    case model.middleSection of
-                                                        SearchBar r ->
-                                                            if model.screenSize == Mobile && r.query == "" then
-                                                                { model | middleSection = MinifiedSearch }
-
-                                                            else
-                                                                { model | middleSection = SearchBar { r | dropdown = Hidden } }
-
-                                                        _ ->
-                                                            model
-                                            in
-                                            ( newModel, effects )
-
-                                _ ->
-                                    ( model, effects )
-
-                        _ ->
-                            ( model, effects )
+                    ( model, effects ++ [ Blur searchInputId ] )
 
                 -- '/'
                 191 ->
-                    ( model, effects ++ [ ForceFocus "search-input-field" ] )
+                    ( model, effects ++ [ Focus searchInputId ] )
 
                 -- any other keycode
                 _ ->
@@ -337,7 +302,7 @@ update msg ( model, effects ) =
             in
             ( newModel
             , effects
-                ++ [ ForceFocus "search-input-field"
+                ++ [ Focus searchInputId
                    , ModifyUrl (queryStringFromSearch query)
                    ]
             )
@@ -432,7 +397,7 @@ showSearchInput model =
     in
     case model.middleSection of
         MinifiedSearch ->
-            ( newModel, [ ForceFocus "search-input-field" ] )
+            ( newModel, [ Focus searchInputId ] )
 
         SearchBar _ ->
             ( model, [] )
@@ -552,7 +517,7 @@ viewSearch r model =
         , style (Styles.searchContainer model.screenSize)
         ]
         ([ Html.input
-            [ id "search-input-field"
+            [ id searchInputId
             , style (Styles.searchInput model.screenSize)
             , placeholder "search"
             , attribute "autocomplete" "off"

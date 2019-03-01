@@ -497,7 +497,7 @@ all =
             (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal (Just "test") } })
             [ it "renders the search bar with the text in the search query" <|
                 viewNormally
-                    >> Query.find [ id "search-input-field" ]
+                    >> Query.find [ id TopBar.searchInputId ]
                     >> Query.has [ tag "input", attribute <| Attr.value "test" ]
             , it "sends a FilterMsg when the clear search button is clicked" <|
                 viewNormally
@@ -522,19 +522,19 @@ all =
                     >> viewNormally
                 )
                 [ it "renders search bar" <|
-                    Query.has [ id "search-input-field" ]
+                    Query.has [ id TopBar.searchInputId ]
                 , it "search bar is an input field" <|
-                    Query.find [ id "search-input-field" ]
+                    Query.find [ id TopBar.searchInputId ]
                         >> Query.has [ tag "input" ]
                 , it "renders search bar with transparent background to remove white of search bar" <|
-                    Query.find [ id "search-input-field" ]
+                    Query.find [ id TopBar.searchInputId ]
                         >> Query.has [ style [ ( "background-color", "transparent" ) ] ]
                 , it "search bar does not use browser's built-in autocomplete" <|
                     Query.find [ id TopBar.searchInputId ]
                         >> Query.has
                             [ attribute <| Attr.attribute "autocomplete" "off" ]
                 , it "sets magnifying glass on search bar in correct position" <|
-                    Query.find [ id "search-input-field" ]
+                    Query.find [ id TopBar.searchInputId ]
                         >> Query.has
                             [ style
                                 [ ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
@@ -543,7 +543,7 @@ all =
                                 ]
                             ]
                 , it "styles search border and input text colour" <|
-                    Query.find [ id "search-input-field" ]
+                    Query.find [ id TopBar.searchInputId ]
                         >> Query.has
                             [ style
                                 [ ( "border", searchBarBorder )
@@ -553,7 +553,7 @@ all =
                                 ]
                             ]
                 , it "renders search with appropriate size and padding" <|
-                    Query.find [ id "search-input-field" ]
+                    Query.find [ id TopBar.searchInputId ]
                         >> Query.has
                             [ style
                                 [ ( "height", searchBarHeight )
@@ -562,10 +562,10 @@ all =
                                 ]
                             ]
                 , it "does not have an outline when focused" <|
-                    Query.find [ id "search-input-field" ]
+                    Query.find [ id TopBar.searchInputId ]
                         >> Query.has [ style [ ( "outline", "0" ) ] ]
                 , it "has placeholder text" <|
-                    Query.find [ id "search-input-field" ]
+                    Query.find [ id TopBar.searchInputId ]
                         >> Query.has [ tag "input", attribute <| Attr.placeholder "search" ]
                 , it "has a search container" <|
                     Query.has [ id "search-container" ]
@@ -629,7 +629,7 @@ all =
                 [ it "should not have a search bar" <|
                     viewNormally
                         >> Query.hasNot
-                            [ id "search-input-field" ]
+                            [ id TopBar.searchInputId ]
                 , it "should have a magnifying glass icon" <|
                     viewNormally
                         >> Query.find [ id "show-search-button" ]
@@ -647,16 +647,16 @@ all =
                     (TopBar.update Msgs.ShowSearchInput)
                     [ it "tells the ui to focus on the search bar" <|
                         Tuple.second
-                            >> Expect.equal [ Effects.ForceFocus "search-input-field" ]
+                            >> Expect.equal [ Effects.Focus TopBar.searchInputId ]
                     , context "the ui"
                         viewNormally
                         [ it "renders search bar" <|
-                            Query.has [ id "search-input-field" ]
+                            Query.has [ id TopBar.searchInputId ]
                         , it "search bar is an input field" <|
-                            Query.find [ id "search-input-field" ]
+                            Query.find [ id TopBar.searchInputId ]
                                 >> Query.has [ tag "input" ]
                         , it "has placeholder text" <|
-                            Query.find [ id "search-input-field" ]
+                            Query.find [ id TopBar.searchInputId ]
                                 >> Query.has [ tag "input", attribute <| Attr.placeholder "search" ]
                         , it "has a search container" <|
                             Query.has [ id "search-container" ]
@@ -725,7 +725,7 @@ all =
                             )
                             [ it "should not have a search bar" <|
                                 Query.hasNot
-                                    [ id "search-input-field" ]
+                                    [ id TopBar.searchInputId ]
                             , it "should have a magnifying glass icon" <|
                                 Query.find [ id "show-search-button" ]
                                     >> Query.has
@@ -744,7 +744,7 @@ all =
                                 >> viewNormally
                             )
                             [ it "should have a search bar" <|
-                                Query.has [ id "search-input-field" ]
+                                Query.has [ id TopBar.searchInputId ]
                             , it "should not have a magnifying glass icon" <|
                                 Query.hasNot [ id "show-search-button" ]
                             , it "should not show the login component" <|
@@ -880,10 +880,16 @@ all =
                     Query.findAll [ id "search-dropdown" ]
                         >> Query.count (Expect.equal 0)
                 , it "sends FocusMsg when focusing on search bar" <|
-                    Query.find [ id "search-input-field" ]
+                    Query.find [ id TopBar.searchInputId ]
                         >> Event.simulate Event.focus
                         >> Event.expect Msgs.FocusMsg
                 ]
+            , it "hitting '/' focuses dropdown" <|
+                Tuple.first
+                    >> flip (,) []
+                    >> TopBar.handleDelivery (KeyDown 191)
+                    >> Tuple.second
+                    >> Expect.equal [ Effects.Focus TopBar.searchInputId ]
             , context "after receiving FocusMsg"
                 (TopBar.update Msgs.FocusMsg)
                 ([ testDropdown [] [ 0, 1 ] ]
@@ -901,7 +907,7 @@ all =
                                                         >> viewNormally
                                                     )
                                                     [ it "updates the query" <|
-                                                        Query.find [ id "search-input-field" ]
+                                                        Query.find [ id TopBar.searchInputId ]
                                                             >> Query.has [ attribute <| Attr.value "team: " ]
                                                     ]
                                                ]
@@ -911,7 +917,7 @@ all =
                                             >> viewNormally
                                         )
                                         [ it "updates the query" <|
-                                            Query.find [ id "search-input-field" ]
+                                            Query.find [ id TopBar.searchInputId ]
                                                 >> Query.has [ attribute <| Attr.value "status: " ]
                                         ]
                                    ]
@@ -930,12 +936,13 @@ all =
                                    ]
                             )
                        ]
-                    ++ [ context "after an ESC keypress"
-                            (TopBar.handleDelivery (KeyDown 27))
-                            [ it "should not have any dropdown children anymore" <|
-                                viewNormally
-                                    >> Query.findAll [ id "search-dropdown" ]
-                                    >> Query.count (Expect.equal 0)
+                    ++ [ context "on ESC keypress"
+                            (Tuple.mapSecond (always [])
+                                >> TopBar.handleDelivery (KeyDown 27)
+                            )
+                            [ it "search input is blurred" <|
+                                Tuple.second
+                                    >> Expect.equal [ Effects.Blur TopBar.searchInputId ]
                             ]
                        ]
                 )
@@ -1013,7 +1020,7 @@ testDropdown selecteds notSelecteds =
             Query.find [ id "search-container" ]
                 >> Query.has [ id "search-dropdown" ]
         , it "should trigger a FilterMsg when typing in the search bar" <|
-            Query.find [ id "search-input-field" ]
+            Query.find [ id TopBar.searchInputId ]
                 >> Event.simulate (Event.input "test")
                 >> Event.expect (Msgs.FilterMsg "test")
         , context "dropdown elements"
@@ -1063,7 +1070,7 @@ testDropdown selecteds notSelecteds =
                 >> Event.simulate Event.mouseDown
                 >> Event.expect (Msgs.FilterMsg "status:")
         , it "sends BlurMsg when blurring the search bar" <|
-            Query.find [ id "search-input-field" ]
+            Query.find [ id TopBar.searchInputId ]
                 >> Event.simulate Event.blur
                 >> Event.expect Msgs.BlurMsg
         , context "selected highlighting"
