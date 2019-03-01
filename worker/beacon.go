@@ -150,18 +150,19 @@ func (beacon *Beacon) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 			logger.Info("signalled")
 
+			// not actually necessary since we defer cancel the root ctx, but makes
+			// the linter happy
+			cancel()
+
 			if retiring {
 				logger.Info("deleting-worker")
 
 				err := beacon.Client.Delete(ctx)
 				if err != nil {
 					logger.Error("failed-to-delete-worker", err)
+					return err
 				}
 			}
-
-			// not actually necessary since we defer cancel the root ctx, but makes
-			// the linter happy
-			cancel()
 
 			return nil
 		}

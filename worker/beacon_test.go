@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"syscall"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -20,6 +21,8 @@ var _ = Describe("Beacon", func() {
 		beacon     *worker.Beacon
 		fakeClient *workerfakes.FakeTSAClient
 
+		drainSignals chan<- os.Signal
+
 		process ifrit.Process
 	)
 
@@ -29,10 +32,15 @@ var _ = Describe("Beacon", func() {
 		logger := lager.NewLogger("test")
 		logger.RegisterSink(lager.NewPrettySink(GinkgoWriter, lager.DEBUG))
 
+		ds := make(chan os.Signal, 1)
+		drainSignals = ds
+
 		beacon = &worker.Beacon{
 			Logger: logger,
 
 			Client: fakeClient,
+
+			DrainSignals: ds,
 
 			LocalGardenNetwork: "some-garden-network",
 			LocalGardenAddr:    "some-garden-addr",
@@ -63,6 +71,7 @@ var _ = Describe("Beacon", func() {
 
 			fakeClient.RegisterStub = func(ctx context.Context, opts tsa.RegisterOptions) error {
 				opts.RegisteredFunc()
+
 				select {
 				case err := <-finishRegister:
 					return err
@@ -82,6 +91,196 @@ var _ = Describe("Beacon", func() {
 				process.Signal(os.Interrupt)
 
 				Eventually(ctx.Done()).Should(BeClosed())
+			})
+		})
+
+		Describe("Drained", func() {
+			It("returns false", func() {
+				Expect(beacon.Drained()).Should(BeFalse())
+			})
+		})
+
+		Context("when syscall.SIGUSR1 is received", func() {
+			JustBeforeEach(func() {
+				drainSignals <- syscall.SIGUSR1
+			})
+
+			It("lands the worker without exiting", func() {
+				Eventually(fakeClient.LandCallCount).Should(Equal(1))
+				Consistently(process.Wait()).ShouldNot(Receive())
+			})
+
+			Describe("Drained", func() {
+				It("returns true", func() {
+					Eventually(beacon.Drained).Should(BeTrue())
+				})
+			})
+
+			Context("when landing the worker fails", func() {
+				BeforeEach(func() {
+					fakeClient.LandReturns(errors.New("nope"))
+				})
+
+				It("exits with the error", func() {
+					Expect(<-process.Wait()).To(MatchError("nope"))
+				})
+			})
+
+			Context("when syscall.SIGTERM is received after landing", func() {
+				JustBeforeEach(func() {
+					Eventually(fakeClient.LandCallCount).Should(Equal(1))
+					process.Signal(syscall.SIGTERM)
+				})
+
+				It("exits without deleting the worker", func() {
+					Expect(<-process.Wait()).ToNot(HaveOccurred())
+					Expect(fakeClient.DeleteCallCount()).Should(Equal(0))
+				})
+
+				Describe("Drained", func() {
+					It("still returns true", func() {
+						Consistently(beacon.Drained).Should(BeTrue())
+					})
+				})
+			})
+
+			Context("when syscall.SIGINT is received after landing", func() {
+				JustBeforeEach(func() {
+					Eventually(fakeClient.LandCallCount).Should(Equal(1))
+					process.Signal(syscall.SIGINT)
+				})
+
+				It("exits without deleting the worker", func() {
+					Expect(<-process.Wait()).ToNot(HaveOccurred())
+					Expect(fakeClient.DeleteCallCount()).Should(Equal(0))
+				})
+
+				Describe("Drained", func() {
+					It("still returns true", func() {
+						Consistently(beacon.Drained).Should(BeTrue())
+					})
+				})
+			})
+		})
+
+		Context("when syscall.SIGUSR2 is received", func() {
+			JustBeforeEach(func() {
+				drainSignals <- syscall.SIGUSR2
+			})
+
+			It("retires the worker without exiting", func() {
+				Eventually(fakeClient.RetireCallCount).Should(Equal(1))
+				Consistently(process.Wait()).ShouldNot(Receive())
+			})
+
+			Describe("Drained", func() {
+				It("returns true", func() {
+					Eventually(beacon.Drained).Should(BeTrue())
+				})
+			})
+
+			Context("when retiring the worker fails", func() {
+				BeforeEach(func() {
+					fakeClient.RetireReturns(errors.New("nope"))
+				})
+
+				It("exits with the error", func() {
+					Expect(<-process.Wait()).To(MatchError("nope"))
+				})
+			})
+
+			Context("when syscall.SIGTERM is received after retiring", func() {
+				JustBeforeEach(func() {
+					Eventually(fakeClient.RetireCallCount).Should(Equal(1))
+					process.Signal(syscall.SIGTERM)
+				})
+
+				It("deletes the worker and exits", func() {
+					Eventually(fakeClient.DeleteCallCount).Should(Equal(1))
+					Expect(<-process.Wait()).ToNot(HaveOccurred())
+				})
+
+				Describe("Drained", func() {
+					It("still returns true", func() {
+						Consistently(beacon.Drained).Should(BeTrue())
+					})
+				})
+
+				Context("when deleting the worker fails", func() {
+					BeforeEach(func() {
+						fakeClient.DeleteReturns(errors.New("nope"))
+					})
+
+					It("exits with the error", func() {
+						Expect(<-process.Wait()).To(MatchError("nope"))
+					})
+				})
+			})
+
+			Context("when syscall.SIGINT is received after retiring", func() {
+				JustBeforeEach(func() {
+					Eventually(fakeClient.RetireCallCount).Should(Equal(1))
+					process.Signal(syscall.SIGINT)
+				})
+
+				It("deletes the worker and exits", func() {
+					Eventually(fakeClient.DeleteCallCount).Should(Equal(1))
+					Expect(<-process.Wait()).ToNot(HaveOccurred())
+				})
+
+				Describe("Drained", func() {
+					It("still returns true", func() {
+						Consistently(beacon.Drained).Should(BeTrue())
+					})
+				})
+
+				Context("when deleting the worker fails", func() {
+					BeforeEach(func() {
+						fakeClient.DeleteReturns(errors.New("nope"))
+					})
+
+					It("exits with the error", func() {
+						Expect(<-process.Wait()).To(MatchError("nope"))
+					})
+				})
+			})
+		})
+
+		Context("when syscall.SIGTERM is received", func() {
+			JustBeforeEach(func() {
+				process.Signal(syscall.SIGTERM)
+			})
+
+			It("exits without landing, retiring, or deleting the worker", func() {
+				Expect(<-process.Wait()).ToNot(HaveOccurred())
+				Expect(fakeClient.LandCallCount()).Should(Equal(0))
+				Expect(fakeClient.RetireCallCount()).Should(Equal(0))
+				Expect(fakeClient.DeleteCallCount()).Should(Equal(0))
+			})
+
+			Describe("Drained", func() {
+				It("returns false", func() {
+					Consistently(beacon.Drained).Should(BeFalse())
+				})
+			})
+		})
+
+		Context("when syscall.SIGINT is received", func() {
+			JustBeforeEach(func() {
+				process.Signal(syscall.SIGINT)
+			})
+
+			It("exits without landing, retiring, or deleting the worker", func() {
+				Expect(<-process.Wait()).ToNot(HaveOccurred())
+				Expect(fakeClient.LandCallCount()).Should(Equal(0))
+				Expect(fakeClient.RetireCallCount()).Should(Equal(0))
+				Expect(fakeClient.DeleteCallCount()).Should(Equal(0))
+			})
+
+			Describe("Drained", func() {
+				It("returns false", func() {
+					Consistently(beacon.Drained).Should(BeFalse())
+				})
 			})
 		})
 	})
