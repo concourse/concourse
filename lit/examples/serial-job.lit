@@ -2,10 +2,16 @@
 
 \use-plugin{concourse-docs}
 
+\right-side{Why?}{
+By default, jobs can run in parrallel. For some use cases this might be ideal (ex. testing all incoming commits from a repository). For other use cases this might be less ideal (ex. deploying an application).
+
+You can also provided a value by specifying the \reference{job-max-in-flight} value.
+}
+
 \section{
   \title{}{pipeline}
 
-	If triggered faster than the run duration of the task(s), a \reference{job-example} can start many builds at the same time. Setting the serial flag restricts a job to run one build at a time.
+	Setting the \reference{job-serial} flag restricts a job to run one build at a time.
 
 	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/serial-job}
 }
