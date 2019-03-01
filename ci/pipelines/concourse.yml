@@ -928,14 +928,18 @@ jobs:
     - get: version
       passed: [shipit]
       trigger: true
+    - get: concourse
+      passed: [shipit]
     - get: concourse-rc-image
       passed: [shipit]
       params: {format: oci}
+  - task: docker-semver-tags
+    file: concourse/ci/tasks/docker-semver-tags.yml
+    params: {MAJOR: "true"}
   - put: concourse-image
     params:
       image: concourse-rc-image/image.tar
-      # TODO: push major/minor tags too
-      additional_tags: version/version
+      additional_tags: tags/tags
 
 - name: publish-docs
   public: true
