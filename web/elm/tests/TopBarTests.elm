@@ -1,12 +1,14 @@
 module TopBarTests exposing (all)
 
 import Callback exposing (Callback(..))
+import Char
 import Concourse
 import Dict
 import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Html.Styled exposing (toUnstyled)
+import Keycodes
 import Routes
 import Subscription exposing (Delivery(..))
 import Test exposing (..)
@@ -874,12 +876,32 @@ all =
                         >> Event.simulate Event.focus
                         >> Event.expect Msgs.FocusMsg
                 ]
-            , it "hitting '/' focuses dropdown" <|
+            , it "hitting '/' focuses search input" <|
                 Tuple.first
                     >> flip (,) []
                     >> TopBar.handleDelivery (KeyDown 191)
                     >> Tuple.second
                     >> Expect.equal [ Effects.Focus TopBar.searchInputId ]
+            , it "hitting shift + '/' (= '?') does not focus search input" <|
+                Tuple.first
+                    >> flip (,) []
+                    >> TopBar.handleDelivery (KeyDown Keycodes.shift)
+                    >> TopBar.handleDelivery (KeyDown 191)
+                    >> Tuple.second
+                    >> Expect.equal []
+            , it "pressing + releasing shift, then '/', focuses search input" <|
+                Tuple.first
+                    >> flip (,) []
+                    >> TopBar.handleDelivery (KeyDown Keycodes.shift)
+                    >> TopBar.handleDelivery (KeyUp Keycodes.shift)
+                    >> TopBar.handleDelivery (KeyDown 191)
+                    >> Tuple.second
+                    >> Expect.equal [ Effects.Focus TopBar.searchInputId ]
+            , it "hitting other keys does not cause dropdown to expand" <|
+                TopBar.handleDelivery (KeyDown <| Char.toCode 'A')
+                    >> viewNormally
+                    >> Query.findAll [ id "search-dropdown" ]
+                    >> Query.count (Expect.equal 0)
             , context "after receiving FocusMsg"
                 (TopBar.update Msgs.FocusMsg)
                 ([ testDropdown [] [ 0, 1 ] ]

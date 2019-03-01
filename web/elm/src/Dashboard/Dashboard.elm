@@ -110,6 +110,7 @@ init flags =
       , teams = topBar.teams
       , screenSize = topBar.screenSize
       , highDensity = topBar.highDensity
+      , shiftDown = topBar.shiftDown
       }
     , [ FetchData
       , PinTeamNames Group.stickyHeaderConfig
