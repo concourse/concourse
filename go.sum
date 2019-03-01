@@ -80,8 +80,6 @@ github.com/cockroachdb/cockroach-go v0.0.0-20160916181719-31611c0501c8 h1:0qNPJv
 github.com/cockroachdb/cockroach-go v0.0.0-20160916181719-31611c0501c8/go.mod h1:XGLbWH/ujMcbPbhZq52Nv6UrCghb1yGn//133kEsvDk=
 github.com/concourse/baggageclaim v1.2.0 h1:f6xithGCrPlWsaFTvlp+O5B1fmjub9Rt30TdAVhSv/w=
 github.com/concourse/baggageclaim v1.2.0/go.mod h1:8tZxZHd3i7B3hrqxPc52gBCWDtWmJkMN5+gBVZ9E+y4=
-github.com/concourse/dex v0.0.0-20181004212830-f247fc8fa001 h1:PEE+wm4imtIN9y2fi3PB82DVnZj3lTUxRPvdiWifO8Q=
-github.com/concourse/dex v0.0.0-20181004212830-f247fc8fa001/go.mod h1:ju6DjJBZWrfjDhOtUSOiHpVI3Bhu0FUgw/Qr8gkzGYE=
 github.com/concourse/dex v0.0.0-20181017143659-4a3bb9452ad1 h1:M0js96H9c4BKZiLKWCmHZF0l3RtDwZoIivnNQHPXUi8=
 github.com/concourse/dex v0.0.0-20181017143659-4a3bb9452ad1/go.mod h1:ju6DjJBZWrfjDhOtUSOiHpVI3Bhu0FUgw/Qr8gkzGYE=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c h1:SwMKBc36jGTSS5/3AqVtbRjbGTvDfR3pJ5MkzfiYSas=
@@ -209,7 +207,7 @@ github.com/hashicorp/go-plugin v0.0.0-20180814222501-a4620f9913d1 h1:VOzBI0phmFk
 github.com/hashicorp/go-plugin v0.0.0-20180814222501-a4620f9913d1/go.mod h1:JSqWYsict+jzcj0+xElxyrBQRPNoiWQuddnxArJ7XHQ=
 github.com/hashicorp/go-retryablehttp v0.0.0-20180718195005-e651d75abec6 h1:qCv4319q2q7XKn0MQbi8p37hsJ+9Xo8e6yojA73JVxk=
 github.com/hashicorp/go-retryablehttp v0.0.0-20180718195005-e651d75abec6/go.mod h1:fXcdFsQoipQa7mwORhKad5jmDCeSy/RCGzWA08PO0lM=
-github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90 h1:9HVkPxOpo+yO93Ah4yrO67d/qh0fbLLWbKqhYjyHq9A=
+github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90 h1:VBj0QYQ0u2MCJzBfeYXGexnAl17GsH1yidnoxCqqD9E=
 github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90/go.mod h1:o4zcYY1e0GEZI6eSEr+43QDYmuGglw1qSO6qdHUHCgg=
 github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86 h1:7YOlAIO2YWnJZkQp7B5eFykaIY7C9JndqAFQyVV5BhM=
 github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86/go.mod h1:7Xibr9yA9JjQq1JpNB2Vw7kxv8xerXegt+ozgdvDeDU=
@@ -322,7 +320,7 @@ github.com/opencontainers/runc v0.1.1 h1:GlxAyO6x8rfZYN9Tt0Kti5a/cP41iuiO2yYT0IJ
 github.com/opencontainers/runc v0.1.1/go.mod h1:qT5XzbpPznkRYVz/mWwUaVBUv2rmF59PVA73FjuZG0U=
 github.com/ory/dockertest v3.3.2+incompatible h1:uO+NcwH6GuFof/Uz8yzjNi1g0sGT5SLAJbdBvD8bUYc=
 github.com/ory/dockertest v3.3.2+incompatible/go.mod h1:1vX4m9wsvi00u5bseYwXaSnhNrne+V0E6LAcBILJdPs=
-github.com/otiai10/copy v0.0.0-20180813032824-7e9a647135a1 h1:QJNFh2XEtzwESNsblZgBuCsv38DU5vC/u+5DNBekwJM=
+github.com/otiai10/copy v0.0.0-20180813032824-7e9a647135a1 h1:A7kMXwDPBTfIVRv2l6XV3U6Su3SzLUzZjxnDDQVZDIY=
 github.com/otiai10/copy v0.0.0-20180813032824-7e9a647135a1/go.mod h1:pXzZSDlN+HPzSdyIBnKNN9ptD9Hx7iZMWIJPTwo4FPE=
 github.com/otiai10/mint v1.2.1 h1:vDQzXgHumrrZvJp/ftsTB3NUaZQzjEh7HV7Hx27lZj4=
 github.com/otiai10/mint v1.2.1/go.mod h1:YnfyPNhBvnY8bW4SGQHCs/aAFhkgySlMZbrF5U0bOVw=
@@ -350,7 +348,7 @@ github.com/prometheus/client_model v0.0.0-20150212101744-fa8ad6fec335 h1:0E/5GnG
 github.com/prometheus/client_model v0.0.0-20150212101744-fa8ad6fec335/go.mod h1:MbSGuTsp3dbXC40dX6PRTWyKYBIrTGTE9sqQNg2J8bo=
 github.com/prometheus/common v0.0.0-20170220103846-49fee292b27b h1:nure2StBXEgV+CtAOZSggLGJ7bfuSfvuitPnwEQSKWQ=
 github.com/prometheus/common v0.0.0-20170220103846-49fee292b27b/go.mod h1:daVV7qP5qjZbuso7PdcryaAu0sAZbrN9i7WWcTMWvro=
-github.com/prometheus/procfs v0.0.0-20170216223256-a1dba9ce8bae h1:4W6eGKy6DVCKy+vFPt2wtCifCjfzvHgOomhDsv/n58Y=
+github.com/prometheus/procfs v0.0.0-20170216223256-a1dba9ce8bae h1:nbLP9B5vU3a/0hOXzolmZHxr2SQ2MEu6vhZappUZY9c=
 github.com/prometheus/procfs v0.0.0-20170216223256-a1dba9ce8bae/go.mod h1:c3At6R/oaqEKCNdg8wHV1ftS6bRYblBhIjjI8uT2IGk=
 github.com/russellhaering/goxmldsig v0.0.0-20170324122954-eaac44c63fe0 h1:jhWWGMYDGjj/PmvsUkFkhlvBhOR0y8ZJW7OY/21F8FY=
 github.com/russellhaering/goxmldsig v0.0.0-20170324122954-eaac44c63fe0/go.mod h1:Oz4y6ImuOQZxynhbSXk7btjEfNBtGlj2dcaOvXl2FSM=
@@ -370,10 +368,8 @@ github.com/smartystreets/assertions v0.0.0-20180820201707-7c9eb446e3cf/go.mod h1
 github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a h1:JSvGDIbmil4Ui/dDdFBExb7/cmkNjyX5F97oglmvCDo=
 github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a/go.mod h1:XDJAKZRPZ1CvBcN2aX5YOUTYGHki24fSF0Iv48Ibg0s=
 github.com/spf13/cobra v0.0.0-20160615143614-bc81c21bd0d8/go.mod h1:1l0Ry5zgKvJasoi3XT1TypsSe7PqH0Sj9dhYf7v3XqQ=
-github.com/spf13/cobra v0.0.3 h1:ZlrZ4XsMRm04Fr5pSFxBgfND2EBVa1nLpiy1stUsX/8=
 github.com/spf13/cobra v0.0.3/go.mod h1:1l0Ry5zgKvJasoi3XT1TypsSe7PqH0Sj9dhYf7v3XqQ=
 github.com/spf13/pflag v0.0.0-20160610190902-367864438f1b/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
-github.com/spf13/pflag v1.0.2 h1:Fy0orTDgHdbnzHcsOgfCN4LtHf0ec3wwtiwJqwvf3Gc=
 github.com/spf13/pflag v1.0.2/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
 github.com/spf13/pflag v1.0.3 h1:zPAT6CGy6wXeQ7NtTnaTerfKOsV6V6F8agHXFiazDkg=
 github.com/spf13/pflag v1.0.3/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
@@ -394,13 +390,11 @@ github.com/vito/houdini v0.0.0-20170630141751-8dda540e3245/go.mod h1:DOY9SFQVaB5
 github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb h1:OlLJlAyoyYjUAQIbycSXFSyYSC7tBf0Fos2Fyu7GeDY=
 github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb/go.mod h1:NhbXFsoSa/atpWDPj5okj24Vnvd5bgEW+W5+hFAFodA=
 golang.org/x/crypto v0.0.0-20160711182412-2c99acdd1e9b/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
-golang.org/x/crypto v0.0.0-20180910181607-0e37d006457b h1:2b9XGzhjiYsYPnKXoEfL7klWZQIt8IfyRCz62gCqqlQ=
 golang.org/x/crypto v0.0.0-20180910181607-0e37d006457b/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20181009213950-7c1a557ab941 h1:qBTHLajHecfu+xzRI9PqVDcqx7SdHj9d4B+EzSn3tAc=
 golang.org/x/crypto v0.0.0-20181009213950-7c1a557ab941/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/net v0.0.0-20170413175226-5602c733f70a/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20180906233101-161cd47e91fd/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
-golang.org/x/net v0.0.0-20180911220305-26e67e76b6c3 h1:czFLhve3vsQetD6JOJ8NZZvGQIXlnN3/yXxbT6/awxI=
 golang.org/x/net v0.0.0-20180911220305-26e67e76b6c3/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20180921000356-2f5d2388922f/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20181011144130-49bb7cea24b1 h1:Y/KGZSOdz/2r0WJ9Mkmz6NJBusp0kiNx1Cn82lzJQ6w=
@@ -412,7 +406,6 @@ golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f h1:wMNYb4v58l5UBM7MYRLPG6Zh
 golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sys v0.0.0-20151211033651-833a04a10549/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20180909124046-d0be0721c37e/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
-golang.org/x/sys v0.0.0-20180918153733-ee1b12c67af4 h1:h8ij2QOL81JqJ/Vi5Ru+hl4a1yct8+XDGrgBhG0XbuE=
 golang.org/x/sys v0.0.0-20180918153733-ee1b12c67af4/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20181005133103-4497e2df6f9e h1:EfdBzeKbFSvOjoIqSZcfS8wp0FBLokGBEs9lz1OtSg0=
 golang.org/x/sys v0.0.0-20181005133103-4497e2df6f9e/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
@@ -461,7 +454,11 @@ k8s.io/api v0.0.0-20171027084545-218912509d74 h1:CYism0UbF96TF8s8sYrKagsJn3oqR45
 k8s.io/api v0.0.0-20171027084545-218912509d74/go.mod h1:iuAfoD4hCxJ8Onx9kaTIt30j7jUFS00AXQi6QMi99vA=
 k8s.io/apimachinery v0.0.0-20171027084411-18a564baac72 h1:pPbfmsjOvePqojmf5AhR0o7bxZTCxE0nkDakanV50CM=
 k8s.io/apimachinery v0.0.0-20171027084411-18a564baac72/go.mod h1:ccL7Eh7zubPUSh9A3USN90/OzHNSVN6zxzde07TDCL0=
-k8s.io/client-go v2.0.0-alpha.0.0.20171101191150-72e1c2a1ef30+incompatible h1:j2qQW/QxbsLSEJg3dVbbF/AHM80+hc4Q7rfIXdLXU3w=
+k8s.io/client-go v2.0.0-alpha.0.0.20171101191150-72e1c2a1ef30+incompatible h1:mFaVD8Zk1a4jTvn0EYIk8ecGpmIZ1ymZ4WdL3vexMPU=
 k8s.io/client-go v2.0.0-alpha.0.0.20171101191150-72e1c2a1ef30+incompatible/go.mod h1:7vJpHMYJwNQCWgzmNV+VYUl1zCObLyodBc8nIyt8L5s=
 k8s.io/kube-openapi v0.0.0-20180731170545-e3762e86a74c h1:3KSCztE7gPitlZmWbNwue/2U0YruD65DqX3INopDAQM=
 k8s.io/kube-openapi v0.0.0-20180731170545-e3762e86a74c/go.mod h1:BXM9ceUBTj2QnfH2MK1odQs778ajze1RxcmP6S8RVVc=
+labix.org/v2/mgo v0.0.0-20140701140051-000000000287 h1:L0cnkNl4TfAXzvdrqsYEmxOHOCv2p5I3taaReO8BWFs=
+labix.org/v2/mgo v0.0.0-20140701140051-000000000287/go.mod h1:Lg7AYkt1uXJoR9oeSZ3W/8IXLdvOfIITgZnommstyz4=
+launchpad.net/gocheck v0.0.0-20140225173054-000000000087 h1:Izowp2XBH6Ya6rv+hqbceQyw/gSGoXfH/UPoTGduL54=
+launchpad.net/gocheck v0.0.0-20140225173054-000000000087/go.mod h1:hj7XX3B/0A+80Vse0e+BUHsHMTEhd0O4cpUHr/e/BUM=

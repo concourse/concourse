@@ -401,23 +401,30 @@ var _ = Describe("Build", func() {
 			build, err := job.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			created, err := resourceConfig.SaveUncheckedVersion(atc.Space("space"), atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{
-				{
-					Name:  "meta1",
-					Value: "data1",
-				},
-				{
-					Name:  "meta2",
-					Value: "data2",
+			err = resourceConfig.SaveSpace(atc.Space("space"))
+			Expect(err).ToNot(HaveOccurred())
+
+			err = resourceConfig.SavePartialVersion(atc.Space("space"), atc.Version{"some": "version"}, atc.Metadata{
+				atc.MetadataField{
+					Name:  "some",
+					Value: "metadata",
 				},
 			})
-			Expect(created).To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
 
-			err = build.SaveOutput(resourceConfig, atc.Version{"some": "version"}, "output-name", "some-explicit-resource")
+			err = build.SaveOutput(resourceConfig, atc.SpaceVersion{
+				Space:   atc.Space("space"),
+				Version: atc.Version{"some": "version"},
+				Metadata: atc.Metadata{
+					atc.MetadataField{
+						Name:  "some",
+						Value: "metadata",
+					},
+				},
+			}, "output-name", "some-explicit-resource")
 			Expect(err).ToNot(HaveOccurred())
 
-			rcv, found, err := resourceConfig.FindUncheckedVersion(atc.Space("space"), atc.Version{"some": "version"})
+			rcv, found, err := resourceConfig.FindVersion(atc.Space("space"), atc.Version{"some": "version"})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -533,26 +540,31 @@ var _ = Describe("Build", func() {
 				db.BuildInput{
 					Name:       "some-input",
 					Version:    atc.Version{"ver": "1"},
+					Space:      atc.Space("space"),
 					ResourceID: resource1.ID(),
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
 			// save explicit output from 'put'
-			err = build.SaveOutput(resourceConfig2, atc.Version{"ver": "2"}, "some-output-name", "some-other-resource")
+			err = build.SaveOutput(resourceConfig2, atc.SpaceVersion{
+				Space:   atc.Space("space"),
+				Version: atc.Version{"ver": "2"},
+			}, "some-output-name", "some-other-resource")
 			Expect(err).NotTo(HaveOccurred())
 
 			inputs, outputs, err := build.Resources()
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(inputs).To(ConsistOf([]db.BuildInput{
-				{Name: "some-input", Version: atc.Version{"ver": "1"}, ResourceID: resource1.ID(), FirstOccurrence: true},
+				{Name: "some-input", Version: atc.Version{"ver": "1"}, Space: atc.Space("space"), ResourceID: resource1.ID(), FirstOccurrence: true},
 			}))
 
 			Expect(outputs).To(ConsistOf([]db.BuildOutput{
 				{
 					Name:    "some-output-name",
 					Version: atc.Version{"ver": "2"},
+					Space:   atc.Space("space"),
 				},
 			}))
 		})
@@ -1110,6 +1122,7 @@ var _ = Describe("Build", func() {
 				db.BuildInput{
 					Name:       "some-input",
 					ResourceID: resource.ID(),
+					Space:      atc.Space("space"),
 					Version:    atc.Version{"some": "version"},
 				},
 			})
@@ -1171,11 +1184,13 @@ var _ = Describe("Build", func() {
 				{
 					Name:       "some-other-input",
 					ResourceID: resource.ID(),
+					Space:      atc.Space("space"),
 					Version:    atc.Version{"some": "weird-version"},
 				},
 				{
 					Name:       "some-weird-input",
 					ResourceID: weirdResource.ID(),
+					Space:      atc.Space("space"),
 					Version:    atc.Version{"weird": "version"},
 				},
 			})
@@ -1186,8 +1201,10 @@ var _ = Describe("Build", func() {
 			Expect(len(actualBuildInput)).To(Equal(2))
 			Expect(actualBuildInput[0].Name).To(Equal("some-other-input"))
 			Expect(actualBuildInput[0].Version).To(Equal(atc.Version{"some": "weird-version"}))
+			Expect(actualBuildInput[0].Space).To(Equal(atc.Space("space")))
 			Expect(actualBuildInput[1].Name).To(Equal("some-weird-input"))
 			Expect(actualBuildInput[1].Version).To(Equal(atc.Version{"weird": "version"}))
+			Expect(actualBuildInput[1].Space).To(Equal(atc.Space("space")))
 		})
 	})
 

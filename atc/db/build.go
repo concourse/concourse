@@ -21,6 +21,7 @@ import (
 type BuildInput struct {
 	Name       string
 	Version    atc.Version
+	Space      atc.Space
 	ResourceID int
 
 	FirstOccurrence bool
@@ -29,6 +30,7 @@ type BuildInput struct {
 type BuildOutput struct {
 	Name    string
 	Version atc.Version
+	Space   atc.Space
 }
 
 type BuildStatus string
@@ -683,7 +685,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 						}
 
 						if found {
-							_, found, err = resource.ResourceConfigVersionID(configInput.Version.Pinned)
+							_, found, err = resource.ResourceVersionID(configInput.Version.Pinned)
 							if err != nil {
 								return BuildPreparation{}, false, err
 							}
@@ -793,13 +795,13 @@ func (b *build) SaveOutput(
 	versionJSON = string(versionBytes)
 
 	// Use the Resource Name and the Build's Pipeline ID to find the Resource ID
-	selectResourceID := sq.Select("r.id", strconv.Itoa(b.id), string(version.Space), fmt.Sprintf("md5('%s')", versionJSON), fmt.Sprintf("'%s'", outputName)).
+	selectResourceID := sq.Select("r.id", strconv.Itoa(b.id), fmt.Sprintf("'%s'", version.Space), fmt.Sprintf("md5('%s')", versionJSON), fmt.Sprintf("'%s'", outputName)).
 		From("resources r").Where(sq.Eq{
 		"r.pipeline_id": b.pipelineID,
 		"r.name":        resourceName,
 	})
 
-	_, err = psql.Insert("build_outputs").
+	_, err = psql.Insert("build_resource_config_version_outputs").
 		Columns("resource_id", "build_id", "space", "version_md5", "name").
 		Select(selectResourceID).
 		Suffix("ON CONFLICT DO NOTHING").
@@ -855,26 +857,29 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			SELECT 1
 			FROM build_resource_config_version_inputs i, builds b
 			WHERE versions.version_md5 = i.version_md5
-			AND resources.resource_config_id = versions.resource_config_id
+			AND spaces.id = versions.space_id
+			AND resources.resource_config_id = spaces.resource_config_id
 			AND resources.id = i.resource_id
 			AND b.job_id = builds.job_id
 			AND i.build_id = b.id
 			AND i.build_id < builds.id
 		)`
 
-	rows, err := psql.Select("inputs.name", "resources.id", "versions.version", firstOccurrence).
-		From("resource_config_versions versions, build_resource_config_version_inputs inputs, builds, resources").
+	rows, err := psql.Select("inputs.name", "resources.id", "versions.version", "spaces.name", firstOccurrence).
+		From("resource_versions versions, build_resource_config_version_inputs inputs, builds, resources, spaces").
 		Where(sq.Eq{"builds.id": b.id}).
 		Where(sq.NotEq{"versions.check_order": 0}).
 		Where(sq.Expr("inputs.build_id = builds.id")).
 		Where(sq.Expr("inputs.version_md5 = versions.version_md5")).
-		Where(sq.Expr("resources.resource_config_id = versions.resource_config_id")).
+		Where(sq.Expr("spaces.id = versions.space_id")).
+		Where(sq.Expr("resources.resource_config_id = spaces.resource_config_id")).
 		Where(sq.Expr("resources.id = inputs.resource_id")).
 		Where(sq.Expr(`NOT EXISTS (
 			SELECT 1
 			FROM build_resource_config_version_outputs outputs
 			WHERE outputs.version_md5 = versions.version_md5
-			AND versions.resource_config_id = resources.resource_config_id
+			AND spaces.id = versions.space_id
+			AND spaces.resource_config_id = resources.resource_config_id
 			AND outputs.resource_id = resources.id
 			AND outputs.build_id = inputs.build_id
 		)`)).
@@ -893,9 +898,10 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			versionBlob     string
 			version         atc.Version
 			resourceID      int
+			space           string
 		)
 
-		err = rows.Scan(&inputName, &resourceID, &versionBlob, &firstOccurrence)
+		err = rows.Scan(&inputName, &resourceID, &versionBlob, &space, &firstOccurrence)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -908,19 +914,21 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		inputs = append(inputs, BuildInput{
 			Name:            inputName,
 			Version:         version,
+			Space:           atc.Space(space),
 			ResourceID:      resourceID,
 			FirstOccurrence: firstOccurrence,
 		})
 	}
 
-	rows, err = psql.Select("outputs.name", "versions.version").
-		From("resource_config_versions versions, build_resource_config_version_outputs outputs, builds, resources").
+	rows, err = psql.Select("outputs.name", "versions.version", "spaces.name").
+		From("resource_versions versions, build_resource_config_version_outputs outputs, builds, resources, spaces").
 		Where(sq.Eq{"builds.id": b.id}).
 		Where(sq.NotEq{"versions.check_order": 0}).
 		Where(sq.Expr("outputs.build_id = builds.id")).
 		Where(sq.Expr("outputs.version_md5 = versions.version_md5")).
 		Where(sq.Expr("outputs.resource_id = resources.id")).
-		Where(sq.Expr("resources.resource_config_id = versions.resource_config_id")).
+		Where(sq.Expr("spaces.id = versions.space_id")).
+		Where(sq.Expr("resources.resource_config_id = spaces.resource_config_id")).
 		RunWith(b.conn).
 		Query()
 
@@ -935,9 +943,10 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			outputName  string
 			versionBlob string
 			version     atc.Version
+			space       string
 		)
 
-		err := rows.Scan(&outputName, &versionBlob)
+		err := rows.Scan(&outputName, &versionBlob, &space)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -950,6 +959,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		outputs = append(outputs, BuildOutput{
 			Name:    outputName,
 			Version: version,
+			Space:   atc.Space(space),
 		})
 	}
 
@@ -963,8 +973,8 @@ func (p *build) saveInputTx(tx Tx, buildID int, input BuildInput) error {
 	}
 
 	_, err = psql.Insert("build_resource_config_version_inputs").
-		Columns("build_id", "resource_id", "version_md5", "name").
-		Values(buildID, input.ResourceID, sq.Expr(fmt.Sprintf("md5('%s')", versionJSON)), input.Name).
+		Columns("build_id", "resource_id", "version_md5", "name", "space").
+		Values(buildID, input.ResourceID, sq.Expr(fmt.Sprintf("md5('%s')", versionJSON)), input.Name, input.Space).
 		Suffix("ON CONFLICT DO NOTHING").
 		RunWith(tx).
 		Exec()

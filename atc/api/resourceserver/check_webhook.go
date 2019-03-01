@@ -54,18 +54,17 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		// XXX fix it
-		// if found {
-		// 	latestVersion, err := resourceConfig.LatestVersion()
-		// 	if err != nil {
-		// 		logger.Error("failed-to-get-latest-resource-version", err, lager.Data{"resource-config-id": resourceConfigId})
-		// 		w.WriteHeader(http.StatusInternalServerError)
-		// 		return
-		// 	}
-		// 	if found {
-		// 		fromVersion = atc.Version(latestVersion.Version())
-		// 	}
-		// }
+		if found {
+			latestVersions, err := resourceConfig.LatestVersions()
+			if err != nil {
+				logger.Error("failed-to-get-latest-resource-version", err, lager.Data{"resource-config-id": resourceConfigId})
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			if found {
+				fromVersion = atc.Version(latestVersion.Version())
+			}
+		}
 
 		scanner := s.scannerFactory.NewResourceScanner(dbPipeline)
 		err = scanner.ScanFromVersion(logger, resourceName, fromVersion)

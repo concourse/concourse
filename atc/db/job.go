@@ -673,10 +673,11 @@ func (j *job) updatePausedJob(pause bool) error {
 }
 
 func (j *job) getBuildInputs(table string) ([]BuildInput, error) {
-	rows, err := psql.Select("i.input_name, i.first_occurrence, i.resource_id, v.version").
+	rows, err := psql.Select("i.input_name, i.first_occurrence, i.resource_id, v.version, s.name").
 		From(table + " i").
 		Join("jobs j ON i.job_id = j.id").
-		Join("resource_config_versions v ON v.id = i.resource_config_version_id").
+		Join("resource_versions v ON v.id = i.resource_version_id").
+		Join("spaces s ON s.id = v.space_id").
 		Where(sq.Eq{
 			"j.name":        j.name,
 			"j.pipeline_id": j.pipelineID,
@@ -695,9 +696,10 @@ func (j *job) getBuildInputs(table string) ([]BuildInput, error) {
 			versionBlob     string
 			version         atc.Version
 			resourceID      int
+			space           string
 		)
 
-		err := rows.Scan(&inputName, &firstOccurrence, &resourceID, &versionBlob)
+		err := rows.Scan(&inputName, &firstOccurrence, &resourceID, &versionBlob, &space)
 		if err != nil {
 			return nil, err
 		}
@@ -711,6 +713,7 @@ func (j *job) getBuildInputs(table string) ([]BuildInput, error) {
 			Name:            inputName,
 			ResourceID:      resourceID,
 			Version:         version,
+			Space:           atc.Space(space),
 			FirstOccurrence: firstOccurrence,
 		})
 	}
@@ -753,7 +756,7 @@ func (j *job) saveJobInputMapping(table string, inputMapping algorithm.InputMapp
 		return err
 	}
 
-	rows, err := psql.Select("input_name, resource_config_version_id, resource_id, first_occurrence").
+	rows, err := psql.Select("input_name, resource_version_id, resource_id, first_occurrence").
 		From(table).
 		Where(sq.Eq{"job_id": j.id}).
 		RunWith(tx).
@@ -795,11 +798,11 @@ func (j *job) saveJobInputMapping(table string, inputMapping algorithm.InputMapp
 		if !found || inputVersion != oldInputVersion {
 			_, err := psql.Insert(table).
 				SetMap(map[string]interface{}{
-					"job_id":                     j.id,
-					"input_name":                 inputName,
-					"resource_config_version_id": inputVersion.VersionID,
-					"resource_id":                inputVersion.ResourceID,
-					"first_occurrence":           inputVersion.FirstOccurrence,
+					"job_id":              j.id,
+					"input_name":          inputName,
+					"resource_version_id": inputVersion.VersionID,
+					"resource_id":         inputVersion.ResourceID,
+					"first_occurrence":    inputVersion.FirstOccurrence,
 				}).
 				RunWith(tx).
 				Exec()

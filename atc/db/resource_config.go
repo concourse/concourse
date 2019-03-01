@@ -52,9 +52,9 @@ type ResourceConfig interface {
 	) (lock.Lock, bool, error)
 
 	SaveUncheckedVersion(space atc.Space, version atc.Version, metadata ResourceConfigMetadataFields) (bool, error)
-	FindUncheckedVersion(atc.Space, atc.Version) (ResourceConfigVersion, bool, error)
-	FindVersion(atc.Space, atc.Version) (ResourceConfigVersion, bool, error)
-	LatestVersions() ([]ResourceConfigVersion, error)
+	FindUncheckedVersion(atc.Space, atc.Version) (ResourceVersion, bool, error)
+	FindVersion(atc.Space, atc.Version) (ResourceVersion, bool, error)
+	LatestVersions() ([]ResourceVersion, error)
 
 	SaveDefaultSpace(atc.Space) error
 	SavePartialVersion(atc.Space, atc.Version, atc.Metadata) error
@@ -132,8 +132,8 @@ func (r *resourceConfig) AcquireResourceConfigCheckingLockWithIntervalCheck(
 	return lock, true, nil
 }
 
-func (r *resourceConfig) LatestVersions() ([]ResourceConfigVersion, error) {
-	rows, err := resourceConfigVersionQuery.
+func (r *resourceConfig) LatestVersions() ([]ResourceVersion, error) {
+	rows, err := resourceVersionQuery.
 		Where(sq.Eq{
 			"s.resource_config_id": r.id,
 		}).
@@ -147,14 +147,14 @@ func (r *resourceConfig) LatestVersions() ([]ResourceConfigVersion, error) {
 		return nil, err
 	}
 
-	versions := []ResourceConfigVersion{}
+	versions := []ResourceVersion{}
 	for rows.Next() {
-		rcv := &resourceConfigVersion{
+		rcv := &resourceVersion{
 			conn:           r.conn,
 			resourceConfig: r,
 		}
 
-		err := scanResourceConfigVersion(rcv, rows)
+		err := scanResourceVersion(rcv, rows)
 		if err != nil {
 			return nil, err
 		}
@@ -190,12 +190,12 @@ func (r *resourceConfig) SaveUncheckedVersion(space atc.Space, version atc.Versi
 	return newVersion, tx.Commit()
 }
 
-func (r *resourceConfig) FindUncheckedVersion(space atc.Space, version atc.Version) (ResourceConfigVersion, bool, error) {
-	return r.findVersion(space, version, uncheckedResourceConfigVersionQuery)
+func (r *resourceConfig) FindUncheckedVersion(space atc.Space, version atc.Version) (ResourceVersion, bool, error) {
+	return r.findVersion(space, version, uncheckedResourceVersionQuery)
 }
 
-func (r *resourceConfig) FindVersion(space atc.Space, version atc.Version) (ResourceConfigVersion, bool, error) {
-	return r.findVersion(space, version, resourceConfigVersionQuery)
+func (r *resourceConfig) FindVersion(space atc.Space, version atc.Version) (ResourceVersion, bool, error) {
+	return r.findVersion(space, version, resourceVersionQuery)
 }
 
 func (r *resourceConfig) SetCheckError(cause error) error {
@@ -275,7 +275,11 @@ func (r *resourceConfig) SaveSpaceLatestVersion(space atc.Space, version atc.Ver
 		return err
 	}
 
-	latestIdQuery := fmt.Sprintf("( SELECT id FROM resource_versions WHERE version_md5 = md5('%s') )", versionBlob)
+	latestIdQuery := fmt.Sprintf(`( SELECT v.id FROM resource_versions v, spaces s
+																	WHERE version_md5 = md5('%s')
+																	AND s.id = v.space_id
+																	AND s.name = '%s'
+																	AND s.resource_config_id = %d )`, versionBlob, space, r.id)
 
 	_, err = psql.Update("spaces").
 		Set("latest_resource_version_id", sq.Expr(latestIdQuery)).
@@ -376,8 +380,8 @@ func (r *resourceConfig) checkIfResourceConfigIntervalUpdated(
 	return true, nil
 }
 
-func (r *resourceConfig) findVersion(space atc.Space, version atc.Version, query sq.SelectBuilder) (ResourceConfigVersion, bool, error) {
-	rcv := &resourceConfigVersion{
+func (r *resourceConfig) findVersion(space atc.Space, version atc.Version, query sq.SelectBuilder) (ResourceVersion, bool, error) {
+	rcv := &resourceVersion{
 		resourceConfig: r,
 		conn:           r.conn,
 	}
@@ -397,7 +401,7 @@ func (r *resourceConfig) findVersion(space atc.Space, version atc.Version, query
 		RunWith(r.conn).
 		QueryRow()
 
-	err = scanResourceConfigVersion(rcv, row)
+	err = scanResourceVersion(rcv, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil

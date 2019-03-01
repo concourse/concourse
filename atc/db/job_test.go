@@ -703,12 +703,14 @@ var _ = Describe("Job", func() {
 						Name:            "some-input-1",
 						ResourceID:      resource.ID(),
 						Version:         atc.Version{"version": "v1"},
+						Space:           atc.Space("space"),
 						FirstOccurrence: false,
 					},
 					{
 						Name:            "some-input-2",
 						ResourceID:      resource.ID(),
 						Version:         atc.Version{"version": "v2"},
+						Space:           atc.Space("space"),
 						FirstOccurrence: true,
 					},
 				}
@@ -739,12 +741,14 @@ var _ = Describe("Job", func() {
 						Name:            "some-input-2",
 						ResourceID:      resource.ID(),
 						Version:         atc.Version{"version": "v3"},
+						Space:           atc.Space("space"),
 						FirstOccurrence: false,
 					},
 					{
 						Name:            "some-input-3",
 						ResourceID:      resource.ID(),
 						Version:         atc.Version{"version": "v3"},
+						Space:           atc.Space("space"),
 						FirstOccurrence: true,
 					},
 				}
@@ -890,12 +894,14 @@ var _ = Describe("Job", func() {
 					Name:            "some-input-1",
 					ResourceID:      resource.ID(),
 					Version:         atc.Version{"version": "v1"},
+					Space:           atc.Space("space"),
 					FirstOccurrence: false,
 				},
 				{
 					Name:            "some-input-2",
 					ResourceID:      resource.ID(),
 					Version:         atc.Version{"version": "v2"},
+					Space:           atc.Space("space"),
 					FirstOccurrence: true,
 				},
 			}
@@ -927,12 +933,14 @@ var _ = Describe("Job", func() {
 					Name:            "some-input-2",
 					ResourceID:      resource.ID(),
 					Version:         atc.Version{"version": "v3"},
+					Space:           atc.Space("space"),
 					FirstOccurrence: false,
 				},
 				{
 					Name:            "some-input-3",
 					ResourceID:      resource.ID(),
 					Version:         atc.Version{"version": "v3"},
+					Space:           atc.Space("space"),
 					FirstOccurrence: true,
 				},
 			}

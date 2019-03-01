@@ -36,7 +36,7 @@ type Resource interface {
 
 	CurrentPinnedVersion() atc.Version
 
-	ResourceConfigVersionID(atc.Version) (int, bool, error)
+	ResourceVersionID(atc.Version) (int, bool, error)
 	Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error)
 
 	EnableVersion(rcvID int) error
@@ -186,19 +186,20 @@ func (r *resource) SetCheckError(cause error) error {
 	return err
 }
 
-func (r *resource) ResourceConfigVersionID(version atc.Version) (int, bool, error) {
+func (r *resource) ResourceVersionID(version atc.Version) (int, bool, error) {
 	requestedVersion, err := json.Marshal(version)
 	if err != nil {
 		return 0, false, err
 	}
 
 	var id int
-	err = psql.Select("rcv.id").
-		From("resource_config_versions rcv").
-		Join("resource_configs rc ON rc.id = resource_config_id").
+	err = psql.Select("rv.id").
+		From("resource_versions rv").
+		Join("spaces s ON s.id = rv.space_id").
+		Join("resource_configs rc ON rc.id = s.resource_config_id").
 		Join("resources r ON rc.id = r.resource_config_id").
 		Where(sq.Eq{"r.id": r.ID(), "version": requestedVersion}).
-		Where(sq.NotEq{"rcv.check_order": 0}).
+		Where(sq.NotEq{"rv.check_order": 0}).
 		RunWith(r.conn).
 		QueryRow().
 		Scan(&id)
@@ -228,11 +229,12 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 				SELECT 1
 				FROM resource_disabled_versions d
 				WHERE v.version_md5 = d.version_md5
-				AND r.resource_config_id = v.resource_config_id
+				AND s.id = v.space_id
+				AND r.resource_config_id = s.resource_config_id
 				AND r.id = d.resource_id
 			)
-		FROM resource_config_versions v, resources r
-		WHERE r.id = $1 AND r.resource_config_id = v.resource_config_id AND v.check_order != 0
+		FROM resource_versions v, spaces s, resources r
+		WHERE r.id = $1 AND r.resource_config_id = s.resource_config_id AND s.id = v.space_id AND v.check_order != 0
 	`
 
 	var rows *sql.Rows
@@ -242,7 +244,7 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 			SELECT sub.*
 				FROM (
 						%s
-					AND v.check_order > (SELECT check_order FROM resource_config_versions WHERE id = $2)
+					AND v.check_order > (SELECT check_order FROM resource_versions WHERE id = $2)
 				ORDER BY v.check_order ASC
 				LIMIT $3
 			) sub
@@ -254,7 +256,7 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 	} else if page.Since != 0 {
 		rows, err = r.conn.Query(fmt.Sprintf(`
 			%s
-				AND v.check_order < (SELECT check_order FROM resource_config_versions WHERE id = $2)
+				AND v.check_order < (SELECT check_order FROM resource_versions WHERE id = $2)
 			ORDER BY v.check_order DESC
 			LIMIT $3
 		`, query), r.id, page.Since, page.Limit)
@@ -266,7 +268,7 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 			SELECT sub.*
 				FROM (
 						%s
-					AND v.check_order >= (SELECT check_order FROM resource_config_versions WHERE id = $2)
+					AND v.check_order >= (SELECT check_order FROM resource_versions WHERE id = $2)
 				ORDER BY v.check_order ASC
 				LIMIT $3
 			) sub
@@ -278,7 +280,7 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 	} else if page.From != 0 {
 		rows, err = r.conn.Query(fmt.Sprintf(`
 			%s
-				AND v.check_order <= (SELECT check_order FROM resource_config_versions WHERE id = $2)
+				AND v.check_order <= (SELECT check_order FROM resource_versions WHERE id = $2)
 			ORDER BY v.check_order DESC
 			LIMIT $3
 		`, query), r.id, page.From, page.Limit)
@@ -299,8 +301,8 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 	defer Close(rows)
 
 	type rcvCheckOrder struct {
-		ResourceConfigVersionID int
-		CheckOrder              int
+		ResourceVersionID int
+		CheckOrder        int
 	}
 
 	rvs := make([]atc.ResourceVersion, 0)
@@ -331,8 +333,8 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 		}
 
 		checkOrderRV := rcvCheckOrder{
-			ResourceConfigVersionID: rv.ID,
-			CheckOrder:              checkOrder,
+			ResourceVersionID: rv.ID,
+			CheckOrder:        checkOrder,
 		}
 
 		rvs = append(rvs, rv)
@@ -349,8 +351,8 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 	err = r.conn.QueryRow(`
 		SELECT COALESCE(MAX(v.check_order), 0) as maxCheckOrder,
 			COALESCE(MIN(v.check_order), 0) as minCheckOrder
-		FROM resource_config_versions v, resources r
-		WHERE r.id = $1 AND v.resource_config_id = r.resource_config_id
+		FROM resource_versions v, spaces s, resources r
+		WHERE r.id = $1 AND r.resource_config_id = s.resource_config_id AND s.id = v.space_id
 	`, r.id).Scan(&maxCheckOrder, &minCheckOrder)
 	if err != nil {
 		return nil, Pagination{}, false, err
@@ -363,14 +365,14 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 
 	if firstRCVCheckOrder.CheckOrder < maxCheckOrder {
 		pagination.Previous = &Page{
-			Until: firstRCVCheckOrder.ResourceConfigVersionID,
+			Until: firstRCVCheckOrder.ResourceVersionID,
 			Limit: page.Limit,
 		}
 	}
 
 	if lastRCVCheckOrder.CheckOrder > minCheckOrder {
 		pagination.Next = &Page{
-			Since: lastRCVCheckOrder.ResourceConfigVersionID,
+			Since: lastRCVCheckOrder.ResourceVersionID,
 			Limit: page.Limit,
 		}
 	}
@@ -432,7 +434,7 @@ func (r *resource) UnpinVersion(rcvID int) error {
 	return nil
 }
 
-func (r *resource) toggleVersion(rcvID int, enable bool) error {
+func (r *resource) toggleVersion(rvID int, enable bool) error {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return err
@@ -445,15 +447,15 @@ func (r *resource) toggleVersion(rcvID int, enable bool) error {
 		results, err = tx.Exec(`
 			DELETE FROM resource_disabled_versions
 			WHERE resource_id = $1
-			AND version_md5 = (SELECT version_md5 FROM resource_config_versions rcv WHERE rcv.id = $2)
-			`, r.id, rcvID)
+			AND version_md5 = (SELECT version_md5 FROM resource_versions rv WHERE rv.id = $2)
+			`, r.id, rvID)
 	} else {
 		results, err = tx.Exec(`
 			INSERT INTO resource_disabled_versions (resource_id, version_md5)
-			SELECT $1, rcv.version_md5
-			FROM resource_config_versions rcv
-			WHERE rcv.id = $2
-			`, r.id, rcvID)
+			SELECT $1, rv.version_md5
+			FROM resource_versions rv
+			WHERE rv.id = $2
+			`, r.id, rvID)
 	}
 	if err != nil {
 		return err

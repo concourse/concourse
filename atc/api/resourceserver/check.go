@@ -7,7 +7,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/resource"
 	"github.com/google/jsonapi"
 	"github.com/tedsuo/rata"
 )
@@ -28,9 +27,9 @@ func (s *Server) CheckResource(dbPipeline db.Pipeline) http.Handler {
 
 		scanner := s.scannerFactory.NewResourceScanner(dbPipeline)
 
-		err = scanner.ScanFromVersion(logger, resourceName, reqBody.From)
+		err = scanner.ScanFromVersion(logger, resourceName, map[atc.Space]atc.Version{reqBody.Space: reqBody.From})
 		switch scanErr := err.(type) {
-		case resource.ErrResourceScriptFailed:
+		case atc.ErrResourceScriptFailed:
 			checkResponseBody := atc.CheckResponseBody{
 				ExitStatus: scanErr.ExitStatus,
 				Stderr:     scanErr.Stderr,

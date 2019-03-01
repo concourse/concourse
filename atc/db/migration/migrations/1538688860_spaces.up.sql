@@ -46,6 +46,14 @@ BEGIN;
   UPDATE job_combinations c SET next_build_id = j.next_build_id FROM jobs j WHERE c.job_id = j.id;
   UPDATE job_combinations c SET transition_build_id = j.transition_build_id FROM jobs j WHERE c.job_id = j.id;
 
+  ALTER TABLE next_build_inputs
+    ADD COLUMN resource_version_id integer NOT NULL REFERENCES resource_versions (id) ON DELETE CASCADE,
+    DROP COLUMN resource_config_version_id;
+
+  ALTER TABLE independent_build_inputs
+    ADD COLUMN resource_version_id integer NOT NULL REFERENCES resource_versions (id) ON DELETE CASCADE,
+    DROP COLUMN resource_config_version_id;
+
   -- ALTER TABLE jobs
   --   DROP COLUMN build_number_seq,
   --   DROP COLUMN inputs_determined,
@@ -75,10 +83,8 @@ BEGIN;
   ALTER TABLE resource_caches DROP COLUMN metadata;
 
   ALTER TABLE build_resource_config_version_inputs
-    RENAME TO build_inputs
     ADD COLUMN space text NOT NULL;
 
   ALTER TABLE build_resource_config_version_outputs
-    RENAME TO build_outputs
     ADD COLUMN space text NOT NULL;
  COMMIT;

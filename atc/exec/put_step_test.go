@@ -235,6 +235,7 @@ var _ = Describe("PutStep", func() {
 			Context("when a version is returned", func() {
 				It("reports the created version info", func() {
 					info := putStep.VersionInfo()
+					Expect(info.Space).To(Equal(atc.Space("space")))
 					Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
 					Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
 				})
@@ -246,8 +247,9 @@ var _ = Describe("PutStep", func() {
 					fakeResource.PutReturns(versions, nil)
 				})
 
-				It("reports the created version info", func() {
+				It("reports empty created version info", func() {
 					info := putStep.VersionInfo()
+					Expect(info.Space).To(Equal(atc.Space("")))
 					Expect(info.Version).To(BeNil())
 					Expect(info.Metadata).To(BeNil())
 				})
@@ -283,6 +285,7 @@ var _ = Describe("PutStep", func() {
 
 				It("reports the latest version returned from the put step into the version info", func() {
 					info := putStep.VersionInfo()
+					Expect(info.Space).To(Equal(atc.Space("space")))
 					Expect(info.Version).To(Equal(atc.Version{"some": "other-version"}))
 					Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "other-metadata"}}))
 				})
@@ -293,16 +296,21 @@ var _ = Describe("PutStep", func() {
 			})
 
 			Context("when a version is returned by the put", func() {
-				BeforeEach(func() {
-					fakeResourceConfig.SaveUncheckedVersionReturns(true, nil)
-				})
-
 				It("saves the build output", func() {
 					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
 
-					resourceConfig, version, outputName, resourceName := fakeBuild.SaveOutputArgsForCall(0)
+					resourceConfig, spaceVersion, outputName, resourceName := fakeBuild.SaveOutputArgsForCall(0)
 					Expect(resourceConfig.ID()).To(Equal(fakeResourceConfig.ID()))
-					Expect(version).To(Equal(atc.Version{"some": "version"}))
+					Expect(spaceVersion).To(Equal(atc.SpaceVersion{
+						Space:   atc.Space("space"),
+						Version: atc.Version{"some": "version"},
+						Metadata: atc.Metadata{
+							atc.MetadataField{
+								Name:  "some",
+								Value: "metadata",
+							},
+						},
+					}))
 					Expect(outputName).To(Equal("some-name"))
 					Expect(resourceName).To(Equal("some-resource"))
 				})
@@ -339,15 +347,33 @@ var _ = Describe("PutStep", func() {
 				It("saves the build output for all versions", func() {
 					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(2))
 
-					resourceConfig, version, outputName, resourceName := fakeBuild.SaveOutputArgsForCall(0)
+					resourceConfig, spaceVersion, outputName, resourceName := fakeBuild.SaveOutputArgsForCall(0)
 					Expect(resourceConfig.ID()).To(Equal(fakeResourceConfig.ID()))
-					Expect(version).To(Equal(atc.Version{"some": "version"}))
+					Expect(spaceVersion).To(Equal(atc.SpaceVersion{
+						Space:   atc.Space("space"),
+						Version: atc.Version{"some": "version"},
+						Metadata: atc.Metadata{
+							atc.MetadataField{
+								Name:  "some",
+								Value: "metadata",
+							},
+						},
+					}))
 					Expect(outputName).To(Equal("some-name"))
 					Expect(resourceName).To(Equal("some-resource"))
 
-					resourceConfig, version, outputName, resourceName = fakeBuild.SaveOutputArgsForCall(1)
+					resourceConfig, spaceVersion, outputName, resourceName = fakeBuild.SaveOutputArgsForCall(1)
 					Expect(resourceConfig.ID()).To(Equal(fakeResourceConfig.ID()))
-					Expect(version).To(Equal(atc.Version{"some": "other-version"}))
+					Expect(spaceVersion).To(Equal(atc.SpaceVersion{
+						Space:   atc.Space("space"),
+						Version: atc.Version{"some": "other-version"},
+						Metadata: atc.Metadata{
+							atc.MetadataField{
+								Name:  "some",
+								Value: "other-metadata",
+							},
+						},
+					}))
 					Expect(outputName).To(Equal("some-name"))
 					Expect(resourceName).To(Equal("some-resource"))
 				})
@@ -371,6 +397,7 @@ var _ = Describe("PutStep", func() {
 				Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 				_, status, info := fakeDelegate.FinishedArgsForCall(0)
 				Expect(status).To(Equal(exec.ExitStatus(0)))
+				Expect(info.Space).To(Equal(atc.Space("space")))
 				Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
 				Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
 			})
@@ -380,6 +407,7 @@ var _ = Describe("PutStep", func() {
 				sID, sVal := state.StoreResultArgsForCall(0)
 				Expect(sID).To(Equal(planID))
 				Expect(sVal).To(Equal(exec.VersionInfo{
+					Space:    atc.Space("space"),
 					Version:  atc.Version{"some": "version"},
 					Metadata: []atc.MetadataField{{"some", "metadata"}},
 				}))

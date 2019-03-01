@@ -14,7 +14,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/resource/v2"
+	v2 "github.com/concourse/concourse/atc/resource/v2"
 	"github.com/concourse/concourse/atc/resource/v2/v2fakes"
 )
 
@@ -34,8 +34,9 @@ var _ = Describe("Resource Put", func() {
 
 		outScriptProcess *gfakes.FakeProcess
 
-		putResponse         atc.PutResponse
-		fakePutEventHandler *v2fakes.FakePutEventHandler
+		spaceVersions         []atc.SpaceVersion
+		expectedSpaceVersions []atc.SpaceVersion
+		fakePutEventHandler   *v2fakes.FakePutEventHandler
 
 		ioConfig  atc.IOConfig
 		stdoutBuf *gbytes.Buffer
@@ -81,9 +82,32 @@ var _ = Describe("Resource Put", func() {
 		}
 		putErr = nil
 
+		expectedSpaceVersions = []atc.SpaceVersion{
+			{
+				Space:   "some-space",
+				Version: atc.Version{"ref": "v1"},
+				Metadata: atc.Metadata{
+					atc.MetadataField{
+						Name:  "some",
+						Value: "metadata",
+					},
+				},
+			},
+			{
+				Space:   "some-space",
+				Version: atc.Version{"ref": "v2"},
+				Metadata: atc.Metadata{
+					atc.MetadataField{
+						Name:  "other",
+						Value: "metadata",
+					},
+				},
+			},
+		}
+
 		response = []byte(`
-			{"action": "created", "space": "some-space", "version": {"ref": "v1"}}
-			{"action": "created", "space": "some-space", "version": {"ref": "v2"}}`)
+			{"action": "created", "space": "some-space", "version": {"ref": "v1"}, "metadata": [{"name": "some", "value": "metadata"}]}
+			{"action": "created", "space": "some-space", "version": {"ref": "v2"}, "metadata": [{"name": "other", "value": "metadata"}]}`)
 	})
 
 	Describe("running", func() {
@@ -136,13 +160,12 @@ var _ = Describe("Resource Put", func() {
 				return outScriptProcess, nil
 			}
 
-			fakePutEventHandler.CreatedResponseStub = func(space atc.Space, version atc.Version, putResponse *atc.PutResponse) error {
-				putResponse.Space = space
-				putResponse.CreatedVersions = append(putResponse.CreatedVersions, version)
-				return nil
+			fakePutEventHandler.CreatedResponseStub = func(space atc.Space, version atc.Version, metadata atc.Metadata, spaceVersions []atc.SpaceVersion) ([]atc.SpaceVersion, error) {
+				spaceVersions = append(spaceVersions, atc.SpaceVersion{space, version, metadata})
+				return spaceVersions, nil
 			}
 
-			putResponse, putErr = resource.Put(ctx, fakePutEventHandler, ioConfig, source, params)
+			spaceVersions, putErr = resource.Put(ctx, fakePutEventHandler, ioConfig, source, params)
 		})
 
 		Context("when out artifact has already been spawned", func() {
@@ -159,12 +182,43 @@ var _ = Describe("Resource Put", func() {
 
 			Context("when artifact put succeeds", func() {
 				It("returns the versions and space written to the temp file", func() {
-					Expect(putErr).ToNot(HaveOccurred())
-					Expect(putResponse.Space).To(Equal(atc.Space("some-space")))
-					Expect(putResponse.CreatedVersions).To(ConsistOf([]atc.Version{
-						{"ref": "v1"},
-						{"ref": "v2"},
+					Expect(fakePutEventHandler.CreatedResponseCallCount()).To(Equal(2))
+					space, version, metadata, spaceVersion := fakePutEventHandler.CreatedResponseArgsForCall(0)
+					Expect(space).To(Equal(atc.Space("some-space")))
+					Expect(version).To(Equal(atc.Version{"ref": "v1"}))
+					Expect(metadata).To(Equal(atc.Metadata{
+						atc.MetadataField{
+							Name:  "some",
+							Value: "metadata",
+						},
 					}))
+					Expect(spaceVersion).To(HaveLen(0))
+
+					space, version, metadata, spaceVersion = fakePutEventHandler.CreatedResponseArgsForCall(1)
+					Expect(space).To(Equal(atc.Space("some-space")))
+					Expect(version).To(Equal(atc.Version{"ref": "v2"}))
+					Expect(metadata).To(Equal(atc.Metadata{
+						atc.MetadataField{
+							Name:  "other",
+							Value: "metadata",
+						},
+					}))
+					Expect(spaceVersion).To(Equal([]atc.SpaceVersion{
+						{
+							Space:   "some-space",
+							Version: atc.Version{"ref": "v1"},
+							Metadata: atc.Metadata{
+								atc.MetadataField{
+									Name:  "some",
+									Value: "metadata",
+								},
+							},
+						},
+					}))
+
+					Expect(putErr).ToNot(HaveOccurred())
+					Expect(spaceVersions).To(HaveLen(2))
+					Expect(spaceVersions).To(ConsistOf(expectedSpaceVersions))
 				})
 			})
 
@@ -226,11 +280,9 @@ var _ = Describe("Resource Put", func() {
 
 			Context("when artifact put succeeds", func() {
 				It("returns the versions and space written to the temp file", func() {
-					Expect(putResponse.Space).To(Equal(atc.Space("some-space")))
-					Expect(putResponse.CreatedVersions).To(ConsistOf([]atc.Version{
-						{"ref": "v1"},
-						{"ref": "v2"},
-					}))
+					Expect(putErr).ToNot(HaveOccurred())
+					Expect(spaceVersions).To(HaveLen(2))
+					Expect(spaceVersions).To(ConsistOf(expectedSpaceVersions))
 				})
 			})
 
@@ -306,7 +358,7 @@ var _ = Describe("Resource Put", func() {
 			}
 
 			go func() {
-				putResponse, putErr = resource.Put(ctx, fakePutEventHandler, ioConfig, source, params)
+				spaceVersions, putErr = resource.Put(ctx, fakePutEventHandler, ioConfig, source, params)
 				close(done)
 			}()
 		})

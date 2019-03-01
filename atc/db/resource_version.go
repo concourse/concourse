@@ -8,9 +8,9 @@ import (
 	"github.com/concourse/concourse/atc"
 )
 
-//go:generate counterfeiter . ResourceConfigVersion
+//go:generate counterfeiter . ResourceVersion
 
-type ResourceConfigVersion interface {
+type ResourceVersion interface {
 	ID() int
 	Space() atc.Space
 	Version() Version
@@ -22,7 +22,7 @@ type ResourceConfigVersion interface {
 	Reload() (bool, error)
 }
 
-type ResourceConfigVersions []ResourceConfigVersion
+type ResourceVersions []ResourceVersion
 
 type ResourceConfigMetadataField struct {
 	Name  string
@@ -57,7 +57,7 @@ func (rmf ResourceConfigMetadataFields) ToATCMetadata() []atc.MetadataField {
 
 type Version map[string]string
 
-type resourceConfigVersion struct {
+type resourceVersion struct {
 	id         int
 	space      atc.Space
 	version    Version
@@ -70,7 +70,7 @@ type resourceConfigVersion struct {
 	conn Conn
 }
 
-var resourceConfigVersionQuery = psql.Select(`
+var resourceVersionQuery = psql.Select(`
 	v.id,
 	v.version,
 	v.metadata,
@@ -86,7 +86,7 @@ var resourceConfigVersionQuery = psql.Select(`
 
 // This query is for finding ALL resource config versions (even ones that have a check order of 0)
 // Do not use this query unless you are meaning to grab versions that are not yet validated
-var uncheckedResourceConfigVersionQuery = psql.Select(`
+var uncheckedResourceVersionQuery = psql.Select(`
 	v.id,
 	v.version,
 	v.metadata,
@@ -97,20 +97,20 @@ var uncheckedResourceConfigVersionQuery = psql.Select(`
 	From("resource_versions v").
 	LeftJoin("spaces s ON v.space_id = s.id")
 
-func (r *resourceConfigVersion) ID() int                                { return r.id }
-func (r *resourceConfigVersion) Space() atc.Space                       { return r.space }
-func (r *resourceConfigVersion) Version() Version                       { return r.version }
-func (r *resourceConfigVersion) Metadata() ResourceConfigMetadataFields { return r.metadata }
-func (r *resourceConfigVersion) Partial() bool                          { return r.partial }
-func (r *resourceConfigVersion) CheckOrder() int                        { return r.checkOrder }
-func (r *resourceConfigVersion) ResourceConfig() ResourceConfig         { return r.resourceConfig }
+func (r *resourceVersion) ID() int                                { return r.id }
+func (r *resourceVersion) Space() atc.Space                       { return r.space }
+func (r *resourceVersion) Version() Version                       { return r.version }
+func (r *resourceVersion) Metadata() ResourceConfigMetadataFields { return r.metadata }
+func (r *resourceVersion) Partial() bool                          { return r.partial }
+func (r *resourceVersion) CheckOrder() int                        { return r.checkOrder }
+func (r *resourceVersion) ResourceConfig() ResourceConfig         { return r.resourceConfig }
 
-func (r *resourceConfigVersion) Reload() (bool, error) {
-	row := resourceConfigVersionQuery.Where(sq.Eq{"v.id": r.id}).
+func (r *resourceVersion) Reload() (bool, error) {
+	row := resourceVersionQuery.Where(sq.Eq{"v.id": r.id}).
 		RunWith(r.conn).
 		QueryRow()
 
-	err := scanResourceConfigVersion(r, row)
+	err := scanResourceVersion(r, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
@@ -121,7 +121,7 @@ func (r *resourceConfigVersion) Reload() (bool, error) {
 	return true, nil
 }
 
-func scanResourceConfigVersion(r *resourceConfigVersion, scan scannable) error {
+func scanResourceVersion(r *resourceVersion, scan scannable) error {
 	var version, metadata sql.NullString
 
 	err := scan.Scan(&r.id, &version, &metadata, &r.partial, &r.checkOrder, &r.space)

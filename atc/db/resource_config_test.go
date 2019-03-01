@@ -196,7 +196,7 @@ var _ = Describe("ResourceConfig", func() {
 	Describe("LatestVersions", func() {
 		var (
 			resourceConfig db.ResourceConfig
-			latestCV       []db.ResourceConfigVersion
+			latestCV       []db.ResourceVersion
 		)
 
 		Context("when the resource config exists", func() {
@@ -244,7 +244,7 @@ var _ = Describe("ResourceConfig", func() {
 	Describe("FindVersion", func() {
 		var (
 			resourceConfig db.ResourceConfig
-			latestCV       db.ResourceConfigVersion
+			latestCV       db.ResourceVersion
 			found          bool
 		)
 
@@ -318,7 +318,7 @@ var _ = Describe("ResourceConfig", func() {
 	Describe("FindUncheckedVersion", func() {
 		var (
 			resourceConfig db.ResourceConfig
-			latestCV       db.ResourceConfigVersion
+			latestCV       db.ResourceVersion
 			found          bool
 		)
 
