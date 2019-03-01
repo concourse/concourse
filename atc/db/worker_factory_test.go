@@ -77,38 +77,6 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			Context("when worker is retiring or landing", func() {
-				It("doesn't change the worker from landing to running", func() {
-					atcWorker.State = "landing"
-					_, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
-					Expect(err).NotTo(HaveOccurred())
-
-					atcWorker.State = ""
-					_, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
-					Expect(err).NotTo(HaveOccurred())
-
-					worker, found, err := workerFactory.GetWorker(atcWorker.Name)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(worker.State()).To(Equal(db.WorkerStateLanding))
-				})
-
-				It("doesn't change the worker from retiring to running", func() {
-					atcWorker.State = "retiring"
-					_, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
-					Expect(err).NotTo(HaveOccurred())
-
-					atcWorker.State = ""
-					_, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
-					Expect(err).NotTo(HaveOccurred())
-
-					worker, found, err := workerFactory.GetWorker(atcWorker.Name)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(worker.State()).To(Equal(db.WorkerStateRetiring))
-				})
-			})
-
 			It("saves resource types", func() {
 				worker, found, err := workerFactory.GetWorker(atcWorker.Name)
 				Expect(found).To(BeTrue())

@@ -12,26 +12,42 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func NewBeaconRunner(logger lager.Logger, beacon *Beacon, tsaClient *tsa.Client) ifrit.Runner {
+func NewBeaconRunner(
+	logger lager.Logger,
+	tsaClient *tsa.Client,
+	rebalanceInterval time.Duration,
+	connectionDrainTimeout time.Duration,
+	gardenAddr string,
+	baggageclaimAddr string,
+) ifrit.Runner {
 	signals := make(chan os.Signal, 2)
 	signal.Notify(signals, drainSignals...)
 
-	drainRunner := &DrainRunner{
-		Logger:       logger.Session("drain"),
-		Client:       tsaClient,
+	beacon := &Beacon{
+		Logger: logger.Session("beacon"),
+
+		Client: tsaClient,
+
+		RebalanceInterval:      rebalanceInterval,
+		ConnectionDrainTimeout: connectionDrainTimeout,
+
 		DrainSignals: signals,
 
-		Runner: beacon,
+		LocalGardenNetwork: "tcp",
+		LocalGardenAddr:    gardenAddr,
+
+		LocalBaggageclaimNetwork: "tcp",
+		LocalBaggageclaimAddr:    baggageclaimAddr,
 	}
 
 	return restart.Restarter{
-		Runner: drainRunner,
+		Runner: beacon,
 		Load: func(prevRunner ifrit.Runner, prevErr error) ifrit.Runner {
 			if prevErr == nil {
 				return nil
 			}
 
-			if prevErr == tsa.ErrAllGatewaysUnreachable && prevRunner.(*DrainRunner).Drained() {
+			if prevErr == tsa.ErrAllGatewaysUnreachable && beacon.Drained() {
 				// this could happen if the whole deployment is being deleted. in this
 				// case, we should just exit and stop retrying, because draining can't
 				// complete anyway.
@@ -57,7 +73,7 @@ func NewBeaconRunner(logger lager.Logger, beacon *Beacon, tsaClient *tsa.Client)
 
 			logger.Info("restarting")
 
-			return drainRunner
+			return beacon
 		},
 	}
 }

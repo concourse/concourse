@@ -44,7 +44,7 @@ type WorkerCommand struct {
 
 	RebalanceInterval time.Duration `long:"rebalance-interval" description:"Duration after which the registration should be swapped to another random SSH gateway."`
 
-	DrainTimeout time.Duration `long:"drain-timeout" default:"1h" description:"Duration after which a worker should give up draining forwarded connections on shutdown."`
+	ConnectionDrainTimeout time.Duration `long:"connection-drain-timeout" default:"1h" description:"Duration after which a worker should give up draining forwarded connections on shutdown."`
 
 	Garden GardenBackend `group:"Garden Configuration" namespace:"garden"`
 
@@ -124,29 +124,17 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 	if cmd.TSA.WorkerPrivateKey != nil {
 		tsaClient := cmd.TSA.Client(atcWorker)
 
-		beacon := &worker.Beacon{
-			Logger: logger.Session("beacon"),
-
-			Client: tsaClient,
-
-			RebalanceInterval: cmd.RebalanceInterval,
-			DrainTimeout:      cmd.DrainTimeout,
-
-			LocalGardenNetwork: "tcp",
-			LocalGardenAddr:    cmd.gardenAddr(),
-
-			LocalBaggageclaimNetwork: "tcp",
-			LocalBaggageclaimAddr:    cmd.baggageclaimAddr(),
-		}
-
 		members = append(members, grouper.Member{
 			Name: "beacon",
 			Runner: NewLoggingRunner(
 				logger.Session("beacon-runner"),
 				worker.NewBeaconRunner(
 					logger.Session("beacon-runner"),
-					beacon,
 					tsaClient,
+					cmd.RebalanceInterval,
+					cmd.ConnectionDrainTimeout,
+					cmd.gardenAddr(),
+					cmd.baggageclaimAddr(),
 				),
 			),
 		})
