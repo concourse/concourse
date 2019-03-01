@@ -1,5 +1,8 @@
 \title{Community}{community}
 
+TODO: consolidate these into one section briefly listing each one and what it
+should be used for
+
 \section{
   \title{GitHub}{github}
 
@@ -62,3 +65,6 @@
   security issue, send an email to
   \link{concourseteam+security@gmail.com}{mailto:concourseteam+security@gmail.com}.
 }
+
+\include-section{./tools.lit}
+\include-section{./learning.lit}

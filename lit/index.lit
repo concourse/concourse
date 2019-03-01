@@ -2,7 +2,7 @@
 
 \use-plugin{concourse-docs}
 
-\wide
+\styled{wide}
 
 \splash-intro{
   Concourse is an open-source continuous thing-doer.
@@ -186,11 +186,9 @@
 
 \split-sections
 
-\include-section{./about.lit}
-\include-section{./download.lit}
 \include-section{./docs.lit}
-\include-section{./learning.lit}
-\include-section{./tools.lit}
+\include-section{./download.lit}
 \include-section{./community.lit}
 \include-section{./contribute.lit}
+\include-section{./about.lit}
 \include-section{./trademarks.lit}

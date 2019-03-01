@@ -35,10 +35,6 @@ func NewPlugin(section *booklit.Section) booklit.Plugin {
 	}
 }
 
-func (p Plugin) Wide() {
-	p.section.SetPartial("Wide", booklit.Empty)
-}
-
 func (p Plugin) FontAwesome(class string) booklit.Content {
 	return booklit.Styled{
 		Style:   "font-awesome",

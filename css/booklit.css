@@ -8,17 +8,23 @@ body {
   font-size: 16px;
   font-weight: 400;
   line-height: 1.6;
-  background: #fff;
   color: #2A2929;
   width: 100%;
+  background: #f5f5f5;
 }
 
 #top {
-  background: #fff;
+  background-color: #3398DC;
   color: #fff;
-  color: #2A2929;
   font-family: 'Roboto Slab', serif;
   line-height: 80px;
+}
+
+#content {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .header {
@@ -26,76 +32,96 @@ body {
   flex-direction: row;
 }
 
-.side, .page, .right-side {
-  padding-top: 70px;
+.side, .page, .side-right {
+  padding: 70px 30px;
+}
+
+.side, .side-right {
+  flex: 1;
+}
+
+.side {
+  order: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .page {
-  width: 500px;
-  background: #fff;
-  padding-right: 30px;
-}
-
-#content {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-}
-
-.header a, .header a:visited, .header a:hover {
-  color: #616161;
-  text-decoration: none;
-}
-
-.header h1 {
-  color: #fff;
-  background-color: #3398DC;
-  margin: 0;
-  border: 0;
-  font-size: 22px;
-  margin-right: 30px;
-  display: flex;
-  flex-direction: row;
-  width: 215px;
-}
-
-.header h1 a, .header h1 a:visited {
+  order: 2;
+  padding: 70px;
+  position: relative;
+  min-width: 500px;
+  max-width: 900px;
   box-sizing: border-box;
-  height: 80px;
-  margin: 0px;
-  color: #fff;
-  padding-top: 27px;
-  line-height: 1;
+  flex-shrink: 0;
+  flex-grow: 1;
+  background: #fff;
 }
 
-.header h1 .logo {
-  width: 80px;
-  height: 80px;
-  background-color: #3398DC;
+.side-right {
+  order: 3;
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+
+.header .logo {
+  flex: 1;
+  text-align: right;
+}
+
+.header .logo a {
+  color: #fff;
+  margin: 0;
+  font-size: 22px;
+  padding: 0 50px 0 80px;
   background-image: url('../images/logo-white.svg');
   background-repeat: no-repeat;
   background-size: 40px 40px;
   background-position: 16.5px 18px;
+  line-height: 80px;
+  display: inline-block;
+  vertical-align: top;
 }
 
-.header nav a {
-  margin-right: 50px;
-  font-size: 16px;
-}
-
-.header nav a:hover {
-  border-bottom: 1px solid #868585;
-}
-
-.header nav .tutorial-link {
-  background: #fb8c00;
-  padding: 4px 6px;
+.header .logo a:visited {
   color: #fff;
 }
 
-.header nav .tutorial-link:hover {
-  border: 0;
-  opacity: 0.9;
+.header .search {
+  flex: 1;
+}
+
+.header nav {
+  flex-grow: 1;
+  max-width: 900px;
+}
+
+.header nav a {
+  font-size: 16px;
+  text-transform: lowercase;
+  line-height: 80px;
+  display: inline-block;
+  padding: 0 25px;
+}
+
+.header nav a.active {
+  background: #fff;
+  color: #616161;
+  text-decoration: underline;
+}
+
+.header nav a:hover {
+  text-decoration: underline;
+}
+
+.header a, .header a:visited, .header a:hover {
+  color: #fff;
+  text-decoration: none;
 }
 
 .page h1 {
@@ -220,10 +246,7 @@ h2, h3 {
 }
 
 .side {
-  background: #fff;
   width: 190px;
-  padding-left: 35px;
-  padding-right: 20px;
   font-family: 'Roboto Slab', serif;
   font-size: 14px;
   color: #7A7373;
@@ -246,33 +269,27 @@ h2, h3 {
   position: relative;
 }
 
-.page {
-  padding-bottom: 30px;
-}
-
-.side .improve-docs {
-  background: rgba(255, 255, 255, 0.75);
+.improve-docs {
   position: fixed;
   bottom: 0;
+  left: 0;
   color: #9B9B9B;
   font-size: 13px;
   list-style-type: none;
   margin: 0;
-  padding: 0;
-  padding-top: 20px;
-  padding-bottom: 20px;
+  padding: 30px;
 }
 
-.side .improve-docs a, .side .improve-docs a:visited {
+.improve-docs a, .improve-docs a:visited {
   color: #616161;
 }
 
-.side .improve-docs li {
-  margin-bottom: 5px;
+.improve-docs li {
+  margin-top: 5px;
   margin-left: -4px;
 }
 
-.side .improve-docs img {
+.improve-docs img {
   width: 16px;
   height: 16px;
   margin-bottom: -4px;
@@ -281,7 +298,7 @@ h2, h3 {
   opacity: 0.5;
 }
 
-.side .improve-docs li:hover img {
+.improve-docs li:hover img {
   filter: none;
   opacity: 1;
 }
@@ -290,6 +307,7 @@ h2, h3 {
   position: relative;
   margin-bottom: 2rem;
   margin-left: -.15rem;
+  width: 200px;
 }
 
 .side .context a {
@@ -382,11 +400,6 @@ h2, h3 {
   margin-bottom: 0;
 }
 
-.page {
-  position: relative;
-  flex-shrink: 0;
-}
-
 .aside {
   border-left: 2px solid #EFB198;
   padding: 0 1em;
@@ -396,7 +409,6 @@ h2, h3 {
   font-size: 18px;
   font-style: italic;
   color: #616161;
-  padding-bottom: 30px;
 }
 
 .splash-intro h2 {
@@ -446,20 +458,6 @@ h2, h3 {
   border-left: 1px solid #E6E7E8;
 }
 
-.side-right {
-  background: #f5f5f5;
-  flex-shrink: 1;
-  flex-grow: 1;
-  flex-basis: 500px;
-  padding-left: 245px;
-  border-top: 1px solid #ddd;
-  padding-top: 20px;
-}
-
-.content-right {
-  width: 500px;
-}
-
 .side-right .example {
   margin-bottom: 3em;
 }
@@ -487,20 +485,17 @@ h2, h3 {
 }
 
 @media (min-width: 1115px) {
-  .page.wide {
-    width: 800px;
-  }
-
   .side-by-side {
     flex-direction: row;
     justify-content: space-between;
   }
 
   .segment {
-    width: 386px;
+    width: 350px;
   }
 
   .segment.example {
+    width: 385px;
     flex-shrink: 0;
   }
 
@@ -509,17 +504,16 @@ h2, h3 {
   }
 }
 
+.side-right .content-right {
+  width: 500px;
+}
+
 @media (min-width: 1246px) {
-  .side-right {
-    flex-basis: 400px;
-    padding-left: 30px;
-    border-left: 1px solid #ddd;
+  .side-right:not(:empty) {
     border-top: 0;
-    margin-top: -80px;
-    padding-top: 142px;
   }
 
-  .content-right {
+  .side-right .content-right {
     width: 400px;
   }
 }
@@ -806,13 +800,12 @@ h2, h3 {
   z-index: 101;
   border: 1px solid transparent;
   box-sizing: border-box;
-  background: #cdcdcd url('../images/search_icon.svg') no-repeat top 3.5px right 2.5px;
+  background: rgba(255, 255, 255, 0.25) url('../images/search_icon.svg') no-repeat top 3.5px right 2.5px;
   padding: 5px;
   transition: all 0.25s ease-out;
   position: absolute;
-  left: 470px;
+  right: 30px;
   top: 24px;
-  right: 0;
   width: 32px;
   height: 32px;
 }
@@ -828,7 +821,7 @@ h2, h3 {
 .search-input:focus, .search-input:valid {
   outline: none;
   position: absolute;
-  left: 0;
+  right: 30px;
   background: #fff;
   border-color: #ddd;
   width: 500px;
@@ -847,6 +840,7 @@ h2, h3 {
   box-sizing: border-box;
   position: fixed;
   top: 50px;
+  right: 30px;
   bottom: 0;
   margin: 0;
   overflow-y: auto;
