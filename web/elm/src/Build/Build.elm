@@ -112,7 +112,6 @@ init flags =
           , browsingIndex = 0
           , autoScroll = True
           , previousKeyPress = Nothing
-          , shiftDown = False
           , previousTriggerBuildByKey = False
           , showHelp = False
           , highlight = flags.highlight
@@ -124,6 +123,7 @@ init flags =
           , teams = topBar.teams
           , screenSize = topBar.screenSize
           , highDensity = topBar.highDensity
+          , shiftDown = topBar.shiftDown
           }
         , topBarEffects ++ [ GetCurrentTime ]
         )

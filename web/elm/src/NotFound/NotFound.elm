@@ -33,6 +33,7 @@ init flags =
       , teams = topBar.teams
       , screenSize = topBar.screenSize
       , highDensity = topBar.highDensity
+      , shiftDown = topBar.shiftDown
       }
     , topBarEffects ++ [ Effects.SetTitle "Not Found " ]
     )

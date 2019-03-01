@@ -31,6 +31,7 @@ import Html.Styled.Attributes as HA
         )
 import Html.Styled.Events exposing (..)
 import Http
+import Keycodes
 import QueryString
 import RemoteData exposing (RemoteData)
 import Routes
@@ -94,6 +95,7 @@ init { route } =
       , teams = RemoteData.Loading
       , screenSize = Desktop
       , highDensity = isHd
+      , shiftDown = False
       }
     , [ GetScreenSize ]
     )
@@ -155,130 +157,142 @@ handleCallback callback ( model, effects ) =
 handleDelivery : Delivery -> ( Model r, List Effect ) -> ( Model r, List Effect )
 handleDelivery delivery ( model, effects ) =
     case delivery of
+        KeyUp keyCode ->
+            if keyCode == Keycodes.shift then
+                ( { model | shiftDown = False }, effects )
+
+            else
+                ( model, effects )
+
         KeyDown keyCode ->
-            case keyCode of
-                -- up arrow
-                38 ->
-                    case model.middleSection of
-                        SearchBar r ->
-                            case r.dropdown of
-                                Shown { selectedIdx } ->
-                                    case selectedIdx of
-                                        Nothing ->
-                                            let
-                                                options =
-                                                    dropdownOptions { query = r.query, teams = model.teams }
+            if keyCode == Keycodes.shift then
+                ( { model | shiftDown = True }, effects )
 
-                                                lastItem =
-                                                    List.length options - 1
-                                            in
-                                            ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Just lastItem } } }
-                                            , effects
-                                            )
+            else
+                case keyCode of
+                    -- up arrow
+                    38 ->
+                        case model.middleSection of
+                            SearchBar r ->
+                                case r.dropdown of
+                                    Shown { selectedIdx } ->
+                                        case selectedIdx of
+                                            Nothing ->
+                                                let
+                                                    options =
+                                                        dropdownOptions { query = r.query, teams = model.teams }
 
-                                        Just selectedIdx ->
-                                            let
-                                                options =
-                                                    dropdownOptions { query = r.query, teams = model.teams }
+                                                    lastItem =
+                                                        List.length options - 1
+                                                in
+                                                ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Just lastItem } } }
+                                                , effects
+                                                )
 
-                                                newSelection =
-                                                    (selectedIdx - 1) % List.length options
-                                            in
-                                            ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Just newSelection } } }
-                                            , effects
-                                            )
+                                            Just selectedIdx ->
+                                                let
+                                                    options =
+                                                        dropdownOptions { query = r.query, teams = model.teams }
 
-                                _ ->
-                                    ( model, effects )
+                                                    newSelection =
+                                                        (selectedIdx - 1) % List.length options
+                                                in
+                                                ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Just newSelection } } }
+                                                , effects
+                                                )
 
-                        _ ->
-                            ( model, effects )
+                                    _ ->
+                                        ( model, effects )
 
-                -- down arrow
-                40 ->
-                    case model.middleSection of
-                        SearchBar r ->
-                            case r.dropdown of
-                                Shown { selectedIdx } ->
-                                    case selectedIdx of
-                                        Nothing ->
-                                            let
-                                                options =
-                                                    dropdownOptions { query = r.query, teams = model.teams }
-                                            in
-                                            ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Just 0 } } }
-                                            , effects
-                                            )
+                            _ ->
+                                ( model, effects )
 
-                                        Just selectedIdx ->
-                                            let
-                                                options =
-                                                    dropdownOptions { query = r.query, teams = model.teams }
+                    -- down arrow
+                    40 ->
+                        case model.middleSection of
+                            SearchBar r ->
+                                case r.dropdown of
+                                    Shown { selectedIdx } ->
+                                        case selectedIdx of
+                                            Nothing ->
+                                                let
+                                                    options =
+                                                        dropdownOptions { query = r.query, teams = model.teams }
+                                                in
+                                                ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Just 0 } } }
+                                                , effects
+                                                )
 
-                                                newSelection =
-                                                    (selectedIdx + 1) % List.length options
-                                            in
-                                            ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Just newSelection } } }
-                                            , effects
-                                            )
+                                            Just selectedIdx ->
+                                                let
+                                                    options =
+                                                        dropdownOptions { query = r.query, teams = model.teams }
 
-                                _ ->
-                                    ( model, effects )
+                                                    newSelection =
+                                                        (selectedIdx + 1) % List.length options
+                                                in
+                                                ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Just newSelection } } }
+                                                , effects
+                                                )
 
-                        _ ->
-                            ( model, effects )
+                                    _ ->
+                                        ( model, effects )
 
-                -- enter key
-                13 ->
-                    case model.middleSection of
-                        SearchBar r ->
-                            case r.dropdown of
-                                Shown { selectedIdx } ->
-                                    case selectedIdx of
-                                        Nothing ->
-                                            ( model, effects )
+                            _ ->
+                                ( model, effects )
 
-                                        Just selectedIdx ->
-                                            let
-                                                options =
-                                                    Array.fromList (dropdownOptions { query = r.query, teams = model.teams })
+                    -- enter key
+                    13 ->
+                        case model.middleSection of
+                            SearchBar r ->
+                                case r.dropdown of
+                                    Shown { selectedIdx } ->
+                                        case selectedIdx of
+                                            Nothing ->
+                                                ( model, effects )
 
-                                                selectedItem =
-                                                    Maybe.withDefault r.query (Array.get selectedIdx options)
-                                            in
-                                            ( { model
-                                                | middleSection =
-                                                    SearchBar
-                                                        { r
-                                                            | dropdown = Shown { selectedIdx = Nothing }
-                                                            , query = selectedItem
-                                                        }
-                                              }
-                                            , effects
-                                            )
+                                            Just selectedIdx ->
+                                                let
+                                                    options =
+                                                        Array.fromList (dropdownOptions { query = r.query, teams = model.teams })
 
-                                _ ->
-                                    ( model, effects )
+                                                    selectedItem =
+                                                        Maybe.withDefault r.query (Array.get selectedIdx options)
+                                                in
+                                                ( { model
+                                                    | middleSection =
+                                                        SearchBar
+                                                            { r
+                                                                | dropdown = Shown { selectedIdx = Nothing }
+                                                                , query = selectedItem
+                                                            }
+                                                  }
+                                                , effects
+                                                )
 
-                        _ ->
-                            ( model, effects )
+                                    _ ->
+                                        ( model, effects )
 
-                -- escape key
-                27 ->
-                    ( model, effects ++ [ Blur searchInputId ] )
+                            _ ->
+                                ( model, effects )
 
-                -- '/'
-                191 ->
-                    ( model, effects ++ [ Focus searchInputId ] )
+                    -- escape key
+                    27 ->
+                        ( model, effects ++ [ Blur searchInputId ] )
 
-                -- any other keycode
-                _ ->
-                    case model.middleSection of
-                        SearchBar r ->
-                            ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Nothing } } }, effects )
+                    -- '/'
+                    191 ->
+                        ( model
+                        , if model.shiftDown then
+                            effects
 
-                        _ ->
-                            ( model, effects )
+                          else
+                            effects ++ [ Focus searchInputId ]
+                        )
+
+                    -- any other keycode
+                    _ ->
+                        ( model, effects )
 
         WindowResized size ->
             ( screenResize size model, effects )
