@@ -56,13 +56,8 @@ decide much on its own.
   Note that the worker must be run as \code{root}, as it orchestrates
   containers.
 
-  Workers have a statically configured \code{platform} and a set of
-  \code{tags}, both of which determine where steps in a
-  \reference{build-plans}{Build Plan} are scheduled.
-
-  The Linux \code{concourse} binary comes with
-  \reference{included-resources}{a set of core resource types} baked in. If
-  you are planning to use them you need to have at least one Linux worker.
+  All logs will be emitted to \code{stdout}, with any panics or lower-level
+  errors being emitted to \code{stderr}.
 }
 
 \section{
@@ -121,10 +116,124 @@ decide much on its own.
 \section{
   \title{Operation}{worker-operation}
 
-  You may want a few workers, depending on the resource usage of your
-  pipeline. There should be one per machine; running multiple on one box
-  doesn't really make sense, as each worker runs as many containers as
-  Concourse requests of it.
+  The \code{worker} nodes are designed to be stateless and as interchangeable
+  as possible. \reference{tasks} and \reference{resources} bring their own
+  Docker images, so you should never have to install dependencies on the
+  worker.
 
-  TODO: signals, draining, retiring, landing, etc.
+  In Concourse, all important data is represented by \reference{resources}, so
+  the workers themselves are dispensible. Any data in the work-dir is ephemeral
+  and should go away when the worker machine is removed - it should not be
+  persisted between worker VM or container re-creates.
+
+  \section{
+    \title{Scaling Workers}
+
+    More workers should be added to accomodate more pipelines. To know when this
+    is necessary you should probably set up \reference{metrics} and keep an eye
+    on container counts. If it's starting to approach 200 or so, you should
+    probably add another worker. Load average is another metric to keep an eye
+    on.
+
+    To add a worker, just create another machine for the worker and follow the
+    \reference{worker-running} instructions again.
+
+    Note: it doesn't really make sense to run multiple workers on one machine,
+    since they'll both just be contending for the same physical resources.
+    Workers should be given their own VMs or physical machines.
+  }
+
+  \section{
+    \title{Worker Heartbeating & Stalling}
+
+    Workers will continuously heartbeat to the Concourse cluster in order to
+    remain registered and healthy. If a worker hasn't checked in in a while,
+    possibly due to a network partition, being overloaded, or having crashed,
+    its state will transition to \code{stalled} and new workloads will not be
+    scheduled on it until it recovers.
+
+    If the worker remains in this state and cannot be recovered, it can be
+    removed using the \reference{fly-prune-worker} command.
+  }
+
+  \section{
+    \title{Restarting a Worker}
+
+    Workers can be restarted in-place by sending \code{SIGTERM} to the worker
+    process and starting it back up. Containers will remain running and
+    Concourse will reattach to builds that were in flight.
+
+    This is a pretty aggressive way to restart a worker, and may result in
+    errored builds - there are a few moving parts involved and we're still
+    working on making this airtight.
+
+    A safer way to restart a worker is to \italic{land} it by sending
+    \code{SIGUSR1} to the \code{worker} process. This will switch the worker to
+    \code{landing} state, and Concourse will stop scheduling new work on it.
+    When all builds running on the worker have finished, the process will exit.
+
+    You may want to enforce a timeout for draining - that way a stuck build
+    won't prevent your workers from being upgraded. This can be enforced by
+    common tools like \code{start-stop-daemon}:
+
+    \codeblock{bash}{{{
+    start-stop-daemon \
+      --pidfile worker.pid \
+      --stop \
+      --retry USR1/300/TERM/15/KILL
+    }}}
+
+    This will send \code{SIGUSR1}, wait up to 5 minutes, and then send
+    \code{SIGTERM}. If it's \italic{still} running, it will be killed after an
+    additional 15 seconds.
+
+    Once the timeout is enforced, there's still a chance that builds that were
+    running will continue when the worker comes back.
+  }
+
+  \section{
+    \title{Gracefully Removing a Worker}
+
+    When a worker machine is going away, it should be \italic{retired}. This is
+    similar to \italic{landing}, except at the end the worker is completely
+    unregistered, along with its volumes and containers. This should be done
+    when a worker's VM or container is being destroyed.
+
+    To retire a worker, send \code{SIGUSR2} to the \code{worker} process. This
+    will switch the worker to \code{retiring} state, and Concourse will stop
+    scheduling new work on it. When all builds running on the worker have
+    finished, the worker will be removed and the \code{worker} process will
+    exit.
+
+    Just like with landing, you may want to enforce a timeout for draining -
+    that way a stuck build won't prevent your workers from being upgraded. This
+    can be enforced by common tools like \code{start-stop-daemon}:
+
+    \codeblock{bash}{{{
+    start-stop-daemon \
+      --pidfile worker.pid \
+      --stop \
+      --retry USR2/300/TERM/15/KILL
+    }}}
+
+    This will send \code{SIGUSR2}, wait up to 5 minutes, and then send
+    \code{SIGTERM}. If it's \italic{still} running, it will be killed after an
+    additional 15 seconds.
+  }
+}
+
+\section{
+  \title{Configuration}{worker-configuration}
+
+  If there's something special about your worker and you'd like to target
+  builds at it specifically, you can configure tags like so:
+
+  \codeblock{bash}{{
+  CONCOURSE_TAG=tag-1,tag-2
+  }}
+
+  A tagged worker is taken out of the default placement logic. To run build
+  steps on it, specify the \reference{tags-step-modifier}. Or, to perform
+  resource \code{check}s on it, specify \reference{resource-tags}{\code{tags}}
+  on the resource itself.
 }

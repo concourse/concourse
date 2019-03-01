@@ -64,6 +64,9 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
   \codeblock{bash}{{{
   concourse web
   }}}
+
+  All logs will be emitted to \code{stdout}, with any panics or lower-level
+  errors being emitted to \code{stderr}.
 }
 
 \section{
@@ -116,36 +119,97 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
   }{
     external traffic to the ATC API via the web UI and \reference{fly-cli}
   }
-
 }
 
 \section{
   \title{Operation}{web-operation}
 
-  The \reference{web-node} can be scaled up for high availability, and
-  they'll also roughly share their scheduling workloads, using the database
-  to synchronize. This is done by just running more \code{web} commands on
-  different machines, and optionally putting them behind a load balancer.
+  The \code{web} nodes themselves are stateless - they don't store anything on
+  disk, and coordinate entirely using the \reference{db-node}.
 
-  To run a cluster of \reference{web-node}s, you'll first need to ensure
-  they're all pointing to the same PostgreSQL server.
+  \section{
+    \title{Scaling}
 
-  Next, you'll need to configure a \italic{peer URL}. This is a URL that can be
-  used to reach this \code{web} node's web server from other \code{web} nodes.
-  Typically this uses a private IP, like so:
+    The \reference{web-node} can be scaled up for high availability. They'll also
+    roughly share their scheduling workloads, using the database to synchronize.
+    This is done by just running more \code{web} commands on different machines,
+    and optionally putting them behind a load balancer.
 
-  \codeblock{bash}{{{
-  CONCOURSE_PEER_URL=http://10.10.0.1:8080
-  }}}
+    To run a cluster of \reference{web-node}s, you'll first need to ensure
+    they're all pointing to the same PostgreSQL server.
 
-  Finally, if all of these nodes are going to be accessed through a load
-  balancer, you'll need to configure the external URL that will be used to
-  reach your Concourse cluster:
+    Next, you'll need to configure a \italic{peer URL}. This is a URL that can be
+    used to reach this \code{web} node's web server from other \code{web} nodes.
+    Typically this uses a private IP, like so:
 
-  \codeblock{bash}{{{
-  CONCOURSE_EXTERNAL_URL=https://ci.example.com
-  }}}
+    \codeblock{bash}{{{
+    CONCOURSE_PEER_URL=http://10.10.0.1:8080
+    }}}
 
-  Aside from the peer URL, all configuration must be consistent across all
-  \code{web} nodes in the cluster to ensure consistent results.
+    Finally, if all of these nodes are going to be accessed through a load
+    balancer, you'll need to configure the external URL that will be used to
+    reach your Concourse cluster:
+
+    \codeblock{bash}{{{
+    CONCOURSE_EXTERNAL_URL=https://ci.example.com
+    }}}
+
+    Aside from the peer URL, all configuration must be consistent across all
+    \code{web} nodes in the cluster to ensure consistent results.
+  }
+
+  \section{
+    \title{Restarting & Upgrading}
+
+    The \code{web} nodes can be killed and restarted willy-nilly. No draining
+    is necessary; if the \code{web} node was orchestrating a build it will just
+    continue where it left off when it comes back or, or the build will be
+    picked up by one of the other \code{web} nodes.
+
+    To upgrade a \code{web} node, stop its process and start a new one using
+    the newly installed \code{concourse}. Any migrations will be run
+    automatically on start. If \code{web} nodes are started in parallel, only
+    one will run the migrations.
+
+    Note that we don't currently guarantee a lack of funny-business if you're
+    running mixed Concourse versions - database migrations can perform
+    modiciations that confuse other \code{web} nodes. So there may be some
+    turbulence during a rolling upgrade, but everything should stabilize once
+    all \code{web} nodes are running the latest version.
+  }
+
+  \section{
+    \title{Downgrading}
+
+    If you're stuck in a pinch and need to downgrade from one version of
+    Concourse to another, you can use the \code{concourse migrate} command.
+
+    \italic{
+      Note: support for down migrations is a fairly recent addition to
+      Concourse; it is not supported for downgrading to v3.6.0 and below.
+    }
+
+    First, grab the desired migration version by running the following:
+
+    \codeblock{bash}{{{
+    # make sure this is the *old* Concourse binary
+    $ concourse migrate --supported-db-version
+    1551110547
+    }}}
+
+    That number (yours will be different) is the expected migration version for
+    that version of Concourse.
+
+    Next, run the following with the \italic{new} Concourse binary:
+
+    \codeblock{bash}{{{
+    $ concourse migrate --migrate-db-to-version=1551110547
+    }}}
+
+    This will need the same \code{CONCOURSE_POSTGRES_*} configuration described
+    in \reference{web-running}.
+
+    Once this completes, switch all \code{web} nodes back to the older
+    \code{concourse} binary and you should be good to go.
+  }
 }

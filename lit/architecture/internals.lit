@@ -683,7 +683,7 @@
 
     \define-table{STALLED}{
       A worker in this state was previously registered with the cluster, but
-      stopped advertising itself for some reason.  Ususally this is due to
+      stopped advertising itself for some reason. Ususally this is due to
       network connectivity issues, or the worker stopping unexpectedly.
 
       If the worker remains in this state and cannot be recovered, it can be
