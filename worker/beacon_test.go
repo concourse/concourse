@@ -64,20 +64,13 @@ var _ = Describe("Beacon", func() {
 	})
 
 	Context("during registration", func() {
-		var finishRegister chan error
-
 		BeforeEach(func() {
-			finishRegister = make(chan error, 1)
-
 			fakeClient.RegisterStub = func(ctx context.Context, opts tsa.RegisterOptions) error {
 				opts.RegisteredFunc()
 
-				select {
-				case err := <-finishRegister:
-					return err
-				case <-ctx.Done():
-					return nil
-				}
+				<-ctx.Done()
+
+				return nil
 			}
 		})
 
