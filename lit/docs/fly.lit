@@ -1,4 +1,4 @@
-\title{The \code{fly} CLI}{fly}{fly-cli}
+\title{\aux{The }\code{fly} CLI}{fly}{fly-cli}
 
 \use-plugin{concourse-docs}
 
