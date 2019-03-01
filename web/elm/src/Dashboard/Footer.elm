@@ -1,15 +1,17 @@
-module Dashboard.Footer exposing (Model, showFooter, tick, toggleHelp, view)
+module Dashboard.Footer exposing (Model, handleDelivery, view)
 
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Group exposing (Group)
 import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
+import Effects
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, href, id, style)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Routes
 import ScreenSize
+import Subscription exposing (Delivery(..), Interval(..))
 
 
 type alias Model r =
@@ -21,8 +23,37 @@ type alias Model r =
         , hoveredCliIcon : Maybe Cli.Cli
         , screenSize : ScreenSize.ScreenSize
         , version : String
-        , highDensity : Bool
+        , route : Routes.Route
+        , shiftDown : Bool
     }
+
+
+handleDelivery :
+    Delivery
+    -> ( Model r, List Effects.Effect )
+    -> ( Model r, List Effects.Effect )
+handleDelivery delivery ( model, effects ) =
+    case delivery of
+        KeyDown keyCode ->
+            case keyCode of
+                191 ->
+                    if model.shiftDown then
+                        ( toggleHelp model, effects )
+
+                    else
+                        ( model, effects )
+
+                _ ->
+                    ( showFooter model, effects )
+
+        Moused ->
+            ( showFooter model, effects )
+
+        ClockTicked OneSecond time ->
+            ( tick model, effects )
+
+        _ ->
+            ( model, effects )
 
 
 showFooter : Model r -> Model r
@@ -64,7 +95,7 @@ view model =
 keyboardHelp : Html Msg
 keyboardHelp =
     Html.div
-        [ class "keyboard-help" ]
+        [ class "keyboard-help", id "keyboard-help" ]
         [ Html.div
             [ class "help-title" ]
             [ Html.text "keyboard shortcuts" ]
@@ -96,7 +127,7 @@ infoBar :
         | hoveredCliIcon : Maybe Cli.Cli
         , screenSize : ScreenSize.ScreenSize
         , version : String
-        , highDensity : Bool
+        , route : Routes.Route
         , groups : List Group
     }
     -> Html Msg
@@ -118,7 +149,7 @@ legend :
     { a
         | groups : List Group
         , screenSize : ScreenSize.ScreenSize
-        , highDensity : Bool
+        , route : Routes.Route
     }
     -> List (Html Msg)
 legend model =
@@ -148,8 +179,18 @@ legend model =
                     , PipelineStatusSucceeded PipelineStatus.Running
                     ]
                 ++ legendSeparator model.screenSize
-                ++ [ toggleView model.highDensity ]
+                ++ [ toggleView (isHighDensity model) ]
         ]
+
+
+isHighDensity : { a | route : Routes.Route } -> Bool
+isHighDensity { route } =
+    case route of
+        Routes.Dashboard { searchType } ->
+            searchType == Routes.HighDensity
+
+        _ ->
+            False
 
 
 concourseInfo :

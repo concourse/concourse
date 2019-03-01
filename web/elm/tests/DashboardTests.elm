@@ -28,6 +28,7 @@ import Effects
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Html.Styled as HS
+import Keycodes
 import List.Extra
 import Routes
 import Subscription exposing (Delivery(..), Interval(..))
@@ -510,16 +511,12 @@ all =
                                     )
                             )
                             >> queryView
-                            >> Expect.all
-                                [ Query.find
-                                    [ class "card-footer" ]
-                                    >> Query.children []
-                                    >> Query.first
-                                    >> Query.children []
-                                    >> Query.index -1
-                                    >> Query.has [ text "pending" ]
-                                , Query.hasNot [ tag "input" ]
-                                ]
+                            >> Query.find [ class "card-footer" ]
+                            >> Query.children []
+                            >> Query.first
+                            >> Query.children []
+                            >> Query.index -1
+                            >> Query.has [ text "pending" ]
                         ]
         , test "HD view redirects to no pipelines view when pipelines disappear" <|
             \_ ->
@@ -604,7 +601,8 @@ all =
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
-                    |> Dashboard.handleDelivery (KeyDown (Char.toCode '?'))
+                    |> Dashboard.handleDelivery (KeyDown Keycodes.shift)
+                    |> Dashboard.handleDelivery (KeyDown 191)
                     |> queryView
                     |> Query.has [ id "dashboard-info" ]
         , describe "team pills"
@@ -2754,6 +2752,27 @@ all =
                         |> Application.view
                         |> Query.fromHtml
                         |> Query.has [ id "dashboard-info" ]
+            , test "is replaced by keyboard help when pressing '?'" <|
+                \_ ->
+                    initFromApplication
+                        |> givenDataUnauthenticatedFromApplication
+                            (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> Application.update
+                            (Application.Msgs.DeliveryReceived <|
+                                KeyDown Keycodes.shift
+                            )
+                        |> Tuple.first
+                        |> Application.update
+                            (Application.Msgs.DeliveryReceived <|
+                                KeyDown 191
+                            )
+                        |> Tuple.first
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Expect.all
+                            [ Query.hasNot [ id "dashboard-info" ]
+                            , Query.has [ id "keyboard-help" ]
+                            ]
             ]
         , test "subscribes to one and five second timers" <|
             \_ ->
@@ -2766,6 +2785,13 @@ all =
                         , List.member (Subscription.OnClockTick FiveSeconds)
                             >> Expect.true "doesn't have five second timer"
                         ]
+        , test "subscribes to keyups" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Tuple.first
+                    |> Dashboard.subscriptions
+                    |> List.member Subscription.OnKeyUp
+                    |> Expect.true "doesn't subscribe to keyups?"
         , test "auto refreshes data every five seconds" <|
             \_ ->
                 initFromApplication

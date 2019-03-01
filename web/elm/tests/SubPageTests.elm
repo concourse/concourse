@@ -141,10 +141,11 @@ notFound : Routes.Route -> NotFound.Model.Model
 notFound route =
     { notFoundImgSrc = "notfound.svg"
     , isUserMenuExpanded = False
-    , middleSection = TopBar.Model.Breadcrumbs route
-    , teams = RemoteData.Loading
+    , groups = []
     , screenSize = ScreenSize.Desktop
-    , highDensity = False
+    , query = ""
+    , dropdown = TopBar.Model.Hidden
     , isPinMenuExpanded = False
+    , route = route
     , shiftDown = False
     }
