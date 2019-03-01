@@ -1,8 +1,6 @@
 module TopBar.Msgs exposing (Msg(..))
 
-import Keyboard
 import Routes
-import Window
 
 
 type Msg
@@ -14,4 +12,4 @@ type Msg
     | ToggleUserMenu
     | ShowSearchInput
     | TogglePinIconDropdown
-    | GoToPinnedResource Routes.Route
+    | GoToRoute Routes.Route
