@@ -225,7 +225,7 @@ func deletePods(namespace string, flags ...string) []string {
 
 func startPortForwarding(namespace, service, port string) (*gexec.Session, string) {
 	session := Start(nil, "kubectl", "port-forward", "--namespace="+namespace, "service/"+service, ":"+port)
-	Eventually(session.Out).Should(gbytes.Say("Forwarding"))
+	Eventually(session.Out, 5*time.Second).Should(gbytes.Say("Forwarding"))
 
 	address := regexp.MustCompile(`127\.0\.0\.1:[0-9]+`).
 		FindStringSubmatch(string(session.Out.Contents()))

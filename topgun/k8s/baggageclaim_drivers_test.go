@@ -39,40 +39,20 @@ var _ = Describe("Baggageclaim Drivers", func() {
 				c.Driver, c.NodeImage, GinkgoRandomSeed(), GinkgoParallelNode())
 			namespace = releaseName
 
-			args := []string{
-				"upgrade",
-				"--force",
-				"--install",
-				"--namespace=" + namespace,
-				"--set=concourse.web.kubernetes.enabled=false",
-				"--set=concourse.worker.baggageclaim.driver=" + c.Driver,
-				"--set=image=" + Environment.ConcourseImageName,
+			deployConcourseChart(releaseName,
+				"--set=concourse.worker.baggageclaim.driver="+c.Driver,
 				"--set=persistence.enabled=false",
-				"--set=postgresql.persistence.enabled=false",
-				"--set=web.livenessProbe.failureThreshold=3",
-				"--set=web.livenessProbe.initialDelaySeconds=3",
-				"--set=web.livenessProbe.periodSeconds=3",
-				"--set=web.livenessProbe.timeoutSeconds=3",
-				"--set=worker.nodeSelector.nodeImage=" + c.NodeImage,
+				"--set=worker.nodeSelector.nodeImage="+c.NodeImage,
 				"--set=worker.replicas=1",
-				"--wait",
-				releaseName,
-				Environment.ConcourseChartDir,
-			}
-
-			if Environment.ConcourseImageDigest != "" {
-				args = append(args, "--set=imageDigest="+Environment.ConcourseImageDigest)
-			}
-
-			helmDeploySession := Start(nil, "helm", args...)
-			Wait(helmDeploySession)
+			)
 
 			if !c.ShouldWork {
 				workerLogsSession := Start(nil, "kubectl", "logs",
 					"--namespace="+namespace, "-lapp="+namespace+"-worker")
 				<-workerLogsSession.Exited
 
-				Expect(workerLogsSession.Out.Contents()).To(ContainSubstring("failed-to-set-up-driver"))
+				Expect(workerLogsSession.Out.Contents()).
+					To(ContainSubstring("failed-to-set-up-driver"))
 				return
 			}
 

@@ -25,7 +25,6 @@ var _ = Describe("Worker Rebalancing", func() {
 		namespace = releaseName
 
 		deployConcourseChart(releaseName,
-			"--set=concourse.worker.baggageclaim.driver=detect",
 			"--set=concourse.worker.ephemeral=true",
 			"--set=concourse.worker.rebalanceInterval=5s",
 			"--set=persistence.enabled=false",
