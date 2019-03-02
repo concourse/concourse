@@ -27,8 +27,10 @@ var _ = Describe("Ephemeral workers", func() {
 			// TODO: https://github.com/concourse/concourse/issues/2827
 			"--set=concourse.web.gc.interval=300ms",
 			"--set=concourse.web.tsa.heartbeatInterval=300ms",
+			"--set=concourse.worker.baggageclaim.driver=overlay",
+			"--set=persistence.enabled=false",
 			"--set=worker.replicas=1",
-			"--set=concourse.worker.baggageclaim.driver=overlay")
+		)
 
 		waitAllPodsInNamespaceToBeReady(namespace)
 

@@ -47,6 +47,7 @@ var _ = Describe("Baggageclaim Drivers", func() {
 				"--set=concourse.web.kubernetes.enabled=false",
 				"--set=concourse.worker.baggageclaim.driver=" + c.Driver,
 				"--set=image=" + Environment.ConcourseImageName,
+				"--set=persistence.enabled=false",
 				"--set=postgresql.persistence.enabled=false",
 				"--set=web.livenessProbe.failureThreshold=3",
 				"--set=web.livenessProbe.initialDelaySeconds=3",

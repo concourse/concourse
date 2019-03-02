@@ -26,7 +26,10 @@ var _ = Describe("Kubernetes credential management", func() {
 		releaseName = fmt.Sprintf("topgun-k8s-cm-%d-%d", GinkgoRandomSeed(), GinkgoParallelNode())
 		namespace = releaseName
 
-		deployConcourseChart(releaseName, "--set=worker.replicas=1")
+		deployConcourseChart(releaseName,
+			"--set=worker.replicas=1",
+			"--set=persistence.enabled=false",
+		)
 
 		waitAllPodsInNamespaceToBeReady(namespace)
 

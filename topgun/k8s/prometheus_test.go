@@ -60,11 +60,13 @@ var _ = Describe("Prometheus integration", func() {
 		prometheusReleaseName = releaseName + "-prom"
 
 		deployConcourseChart(releaseName,
+			"--set=concourse.web.prometheus.enabled=true",
+			"--set=concourse.worker.baggageclaim.driver=detect",
+			"--set=concourse.worker.ephemeral=true",
+			"--set=persistence.enabled=false",
 			"--set=prometheus.enabled=true",
 			"--set=worker.replicas=1",
-			"--set=concourse.worker.ephemeral=true",
-			"--set=concourse.web.prometheus.enabled=true",
-			"--set=concourse.worker.baggageclaim.driver=detect")
+		)
 
 		helmDeploy(prometheusReleaseName,
 			namespace,

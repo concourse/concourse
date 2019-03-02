@@ -25,11 +25,13 @@ var _ = Describe("Worker Rebalancing", func() {
 		namespace = releaseName
 
 		deployConcourseChart(releaseName,
+			"--set=concourse.worker.baggageclaim.driver=detect",
 			"--set=concourse.worker.ephemeral=true",
-			"--set=worker.replicas=1",
-			"--set=web.replicas=2",
 			"--set=concourse.worker.rebalanceInterval=5s",
-			"--set=concourse.worker.baggageclaim.driver=detect")
+			"--set=persistence.enabled=false",
+			"--set=web.replicas=2",
+			"--set=worker.replicas=1",
+		)
 
 		waitAllPodsInNamespaceToBeReady(namespace)
 
