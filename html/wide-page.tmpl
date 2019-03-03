@@ -6,6 +6,14 @@
   <body class="wide">
     {{template "top.tmpl" .}}
 
+    <div class="page-aside">
+      {{- if .Partial "RightSide" }}
+      <div class="page-partial">
+        {{.Partial "RightSide" | render}}
+      </div>
+      {{ end -}}
+    </div>
+
     <div class="page-content wide">
       {{template "section.tmpl" .}}
     </div>

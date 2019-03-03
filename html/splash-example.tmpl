@@ -1,15 +1,11 @@
-<div class="splash-example">
-  <h2>
-    {{.Partial "Title" | render}}
-  </h2>
+<h2 class="splash-title">
+  {{.Partial "Title" | render}}
+</h2>
 
-  <div class="side-by-side">
-    <div class="segment example">
-      {{.Partial "Example" | render}}
-    </div>
+<div class="segment example">
+  {{.Partial "Example" | render}}
+</div>
 
-    <div class="segment">
-      {{.Content | render}}
-    </div>
-  </div>
+<div class="segment">
+  {{.Content | render}}
 </div>

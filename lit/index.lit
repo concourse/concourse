@@ -13,7 +13,7 @@
   \link{CI}{https://en.wikipedia.org/wiki/Continuous_integration}/\link{CD}{https://en.wikipedia.org/wiki/Continuous_delivery}.
 }
 
-\quick-start{
+\right-side{Quick Start}{
   Concourse is distributed as a single \code{concourse} binary, making it easy
   to run just about anywhere, especially with Docker.
 
@@ -33,7 +33,7 @@
   target your local Concourse as the \code{test} user:
 
   \codeblock{bash}{{
-  $ fly -t tutorial login -c http://localhost:8080 -u test -p test
+  $ fly -t tutorial login -c http://localhost:8080
   logging in to team 'main'
 
   target saved

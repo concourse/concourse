@@ -1,6 +1,6 @@
-\use-plugin{concourse-docs}
-
 \title{Download}{download}{downloads}
+
+\use-plugin{concourse-docs}
 
 \right-side{Warnings}{
   \warn{

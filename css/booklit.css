@@ -88,6 +88,7 @@ h2, h3 {
 
 .top-logo {
   grid-area: logo;
+  min-width: 300px;
 }
 
 .top-nav {
@@ -155,8 +156,7 @@ h2, h3 {
 }
 
 .page-nav {
-  background: #212121;
-  box-shadow: inset -9px 9px 9px -6px rgba(0, 0, 0, .125);
+  background: #2A2929;
   display: flex;
   flex-direction: column;
 }
@@ -169,14 +169,45 @@ h2, h3 {
 }
 
 .page-content.wide {
-  padding-left: 50px;
-  padding-right: 50px;
-  grid-column-start: 2;
-  grid-column-end: 3;
+  grid-column-start: span 2;
 }
 
-.top-logo {
-  flex: 1;
+.splash-title {
+  grid-column-start: span 2;
+  margin-bottom: 14px;
+  font-size: 19px;
+  border: 0;
+  align-self: end;
+}
+
+.page-content.wide .section {
+  display: grid;
+  grid-template-columns: 385px auto;
+  grid-gap: 0 30px;
+}
+
+.splash-intro h2 {
+  font-size: 18px;
+  font-style: italic;
+  color: #616161;
+  font-family: 'Roboto Slab', serif;
+  font-style: normal;
+  margin: 0;
+  border: 0;
+  font-size: 26px;
+  font-weight: 500;
+  margin-top: -4px;
+}
+
+.segment.example pre {
+  margin-top: 6px;
+  font-size: .9em;
+}
+
+@media (min-width: 800px) {
+  .segment p:first-child {
+    margin-top: 0;
+  }
 }
 
 .top-logo a {
@@ -223,7 +254,7 @@ h2, h3 {
 }
 
 .page-content h1 {
-  border-top: 5px solid #212121;
+  border-top: 5px solid #2A2929;
   padding-top: 10px;
 }
 
@@ -334,7 +365,7 @@ h2, h3 {
 }
 
 .page-nav .context .children a.active {
-  color: #fff;
+  text-decoration: underline;
 }
 
 .page-nav .context a.self {
@@ -390,38 +421,6 @@ h2, h3 {
   padding: 0 1em;
   font-style: italic;
 }
-
-.splash-intro {
-  font-size: 18px;
-  font-style: italic;
-  color: #616161;
-}
-
-.splash-intro h2 {
-  font-family: 'Roboto Slab', serif;
-  font-style: normal;
-  margin: 0;
-  border: 0;
-  font-size: 26px;
-  font-weight: 500;
-  margin-top: -4px;
-}
-
-.splash-example h2 {
-  margin-bottom: 14px;
-  font-size: 19px;
-  border: 0;
-}
-
-.splash-example pre {
-  margin-top: 6px;
-}
-
-.side-by-side {
-  display: flex;
-  flex-direction: column;
-}
-
 
 .schema-content {
   display: none;
@@ -673,7 +672,7 @@ h2, h3 {
 }
 
 .note-tag.security {
-  border-color: #212121;
+  border-color: #2A2929;
 }
 
 .note-tag.fix {
@@ -687,7 +686,7 @@ h2, h3 {
 
 .downloads-toggle {
   position: relative;
-  border-left: 2px solid #212121;
+  border-left: 2px solid #2A2929;
   padding-left: 10px;
   margin-left: 100px;
 }
@@ -920,26 +919,6 @@ label.quickstart-label::before {
   padding-bottom: 2px;
 }
 
-@media (min-width: 800px) {
-  .side-by-side {
-    flex-direction: row;
-    justify-content: space-between;
-  }
-
-  .segment {
-    width: 390px;
-  }
-
-  .segment.example {
-    width: 385px;
-    flex-shrink: 0;
-  }
-
-  .segment p:first-child {
-    margin-top: 0;
-  }
-}
-
 @media (max-width: 1200px) {
   body {
     grid-template-columns: 3fr 1fr;
@@ -956,10 +935,6 @@ label.quickstart-label::before {
   .top-nav a {
     line-height: 60px;
     vertical-align: top;
-  }
-
-  .page-nav {
-    box-shadow: inset 9px 9px 9px -6px rgba(0, 0, 0, .25);
   }
 
   .page-aside {
