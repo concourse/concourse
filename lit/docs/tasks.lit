@@ -1,6 +1,7 @@
 \title{Tasks}{tasks}
 
 \use-plugin{concourse-docs}
+\split-sections
 
 The smallest configurable unit in a Concourse pipeline is a single task. A task
 can be thought of as a function from \reference{task-inputs} to
@@ -221,9 +222,6 @@ A task's configuration specifies the following:
 
   Use this to provide things like credentials to a task.
 }{task-params}
-
-\split-sections
-\table-of-contents
 
 \section{
   \title{Running Tasks}{running-tasks}

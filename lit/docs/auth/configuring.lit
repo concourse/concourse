@@ -12,12 +12,10 @@ providers on the \reference{web-node}. These are configured as flags or
 \italic{teams}, either with \reference{fly-set-team} or by configuring the
 \reference{main-team}.
 
-Any number of the following providers can be enabled at any one time. Users
-will be given a choice when logging in as to which one they would like to
-use.
+Any number of providers can be enabled at any one time. Users will be given a
+choice when logging in as to which one they would like to use.
 
 \split-sections
-\table-of-contents
 
 \include-section{configuring/local.lit}
 \include-section{configuring/github.lit}

@@ -3,7 +3,6 @@
 \use-plugin{concourse-docs}
 
 \split-sections
-\table-of-contents
 
 \section{
   \title{Caching & Retention}

@@ -17,7 +17,6 @@ steps are drawn as inputs, and resources that appear in \code{put} steps
 appear as outputs.
 
 \split-sections
-\table-of-contents
 
 \include-section{./steps/get.lit}
 \include-section{./steps/put.lit}

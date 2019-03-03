@@ -3,14 +3,11 @@
   <head>
     {{template "head.tmpl" .}}
   </head>
-  <body>
-    <div id="top">
-      {{template "top.tmpl" .}}
-    </div>
-    <div id="content">
-      <div class="page wide">
-        {{template "section.tmpl" .}}
-      </div>
+  <body class="wide">
+    {{template "top.tmpl" .}}
+
+    <div class="page-content wide">
+      {{template "section.tmpl" .}}
     </div>
   </body>
 </html>

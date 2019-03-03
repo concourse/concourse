@@ -7,7 +7,6 @@ them, but we do recommend at least learning how to set up \reference{creds} and
 \reference{encryption}.
 
 \split-sections
-\table-of-contents
 
 \include-section{./operation/encryption.lit}
 \include-section{./operation/creds.lit}

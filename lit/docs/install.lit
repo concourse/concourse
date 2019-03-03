@@ -7,15 +7,7 @@
 A Concourse installation is composed of three things: a \reference{web-node}, a
 a \reference{worker-node}, and a PostgreSQL database.
 
-The following sections will introduce the \code{concourse} CLI and show how it
-all works:
-
-\include-section{install/concourse-cli.lit}
-\include-section{install/generating-keys.lit}
-\include-section{install/db.lit}
-\include-section{install/web.lit}
-\include-section{install/worker.lit}
-\table-of-contents
+This section introduces the \code{concourse} CLI and show how it all works.
 
 Alternatively, if you'd just like to get a Concourse running and don't really
 care how, you can use
@@ -52,3 +44,9 @@ From here, you can continue on to \reference{learning} to try out some
 tutorials and examples, or keep browsing around the rest of the
 \reference{docs} and just kick the tires until things make sense. If you get
 lost, feel free to ask for help from the \link{community}{community}!
+
+\include-section{install/concourse-cli.lit}
+\include-section{install/generating-keys.lit}
+\include-section{install/db.lit}
+\include-section{install/web.lit}
+\include-section{install/worker.lit}

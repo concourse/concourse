@@ -22,6 +22,8 @@ instead associated to an anonymous 'resource config' i.e. its
 \section{
   \title{Benefits of Global Resources}
 
+  \omit-children-from-table-of-contents
+
   \section{
     \title{Fewer resource \code{check}s to perform}
 
@@ -97,6 +99,8 @@ instead associated to an anonymous 'resource config' i.e. its
 
 \section{
   \title{Risks and Side Effects}
+
+  \omit-children-from-table-of-contents
 
   \section{
     \title{Some resources should opt-out}

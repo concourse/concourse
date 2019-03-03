@@ -94,7 +94,6 @@ following attributes:
 }{resource-type-unique-version-history}
 
 \split-sections
-\table-of-contents
 
 \include-section{./resource-types/managing.lit}
 \include-section{./resource-types/included-resources.lit}

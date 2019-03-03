@@ -84,6 +84,5 @@ Each configured resource consists of the following attributes:
 }{resource-webhook-token}
 
 \split-sections
-\table-of-contents
 
 \include-section{resources/managing.lit}

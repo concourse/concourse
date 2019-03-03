@@ -1,6 +1,7 @@
 \title{Auth & Teams}{auth}{teams}
 
 \use-plugin{concourse-docs}
+\split-sections
 
 The very first thing to configure with Concourse is how users will log in.
 
@@ -21,9 +22,6 @@ access control for future requests.
 First you'll need to configure the \reference{main-team}. Once you've logged in
 to the \code{main} team you can configure other teams whenever you need to via
 \reference{fly-set-team}.
-
-\split-sections
-\table-of-contents
 
 \include-section{auth/main-team.lit}
 \include-section{auth/configuring.lit}

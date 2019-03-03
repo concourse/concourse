@@ -1,5 +1,5 @@
 {{if and .Children (not .OmitChildrenFromTableOfContents)}}
-<ol{{if or .SplitSections (not .Parent)}} id="table-of-contents" class="toc"{{end}}>
+<ol class="toc">
 {{range .Children}}
   <li>
     {{- if and .Parent (lt .Depth 3) -}}
