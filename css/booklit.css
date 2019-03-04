@@ -12,7 +12,7 @@ body {
   font-weight: 400;
   line-height: 1.6;
   color: #2A2929;
-  background: #3398DC;
+  background: #f5f5f5;
   width: 100%;
   display: grid;
   grid-template-rows: 80px auto;
@@ -141,6 +141,7 @@ h2, h3 {
 }
 
 .top-logo, .top-nav, .top-search {
+  background: #3398DC;
   color: #fff;
   font-family: 'Roboto Slab', serif;
   line-height: 80px;
@@ -160,6 +161,9 @@ h2, h3 {
 
 .page-nav {
   background: #2A2929;
+  font-family: 'Roboto Slab', serif;
+  font-size: 14px;
+  color: #777;
   display: flex;
   flex-direction: column;
 }
@@ -172,7 +176,7 @@ h2, h3 {
 }
 
 .page-content.wide {
-  grid-column-start: span 2;
+  grid-column-start: 2;
 }
 
 .splash-title {
@@ -314,12 +318,6 @@ h2, h3 {
 
 .page-content a:hover code strong {
   text-decoration: underline;
-}
-
-.page-nav {
-  font-family: 'Roboto Slab', serif;
-  font-size: 14px;
-  color: #777;
 }
 
 .page-nav .number-cell {
@@ -929,6 +927,12 @@ label.quickstart-label::before {
   padding-bottom: 2px;
 }
 
+@media (max-width: 1800px) {
+  .page-content.wide {
+    grid-column-start: span 2;
+  }
+}
+
 @media (max-width: 1200px) {
   body {
     grid-template-columns: 5fr 2fr;
@@ -965,4 +969,40 @@ label.quickstart-label::before {
   .page-aside {
     display: none;
   }
+}
+
+.prev-next {
+  border-top: 1px solid #2A2929;
+  color: #999;
+  padding: 1rem 0;
+  margin-top: 50px;
+  display: block;
+  font-family: 'Roboto Slab', serif;
+  font-weight: 500;
+
+  display: flex;
+  flex-direction: row;
+}
+
+.prev-next .prev, .prev-next .next {
+  flex-grow: 1;
+}
+
+.prev-next .next {
+  text-align: right;
+}
+
+.prev-next .section-number {
+  margin-left: .4rem;
+  margin-right: .2rem;
+  color: #777;
+}
+
+.prev-next a {
+  color: #555;
+  text-decoration: none;
+}
+
+.prev-next a:hover {
+  text-decoration: underline;
 }

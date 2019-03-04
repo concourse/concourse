@@ -20,6 +20,32 @@
 
     <div class="page-content">
       {{. | render}}
+
+      <nav class="prev-next">
+      {{with .Prev}}
+        <div class="prev">
+          prev:
+
+          {{if eq .PageDepth 0}}
+          <span class="section-number">{{.Number}}</span>
+          {{end}}
+
+          <a href="{{.PrimaryTag | url}}">{{.Title | render}}</a>
+        </div>
+      {{end}}
+
+      {{with .Next}}
+        <div class="next">
+          next:
+
+          {{if eq .PageDepth 0}}
+          <span class="section-number">{{.Number}}</span>
+          {{end}}
+
+          <a href="{{.PrimaryTag | url}}">{{.Title | render}}</a>
+        </div>
+      {{end}}
+      </nav>
     </div>
 
     <ul class="improve-docs">

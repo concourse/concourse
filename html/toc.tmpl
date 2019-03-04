@@ -2,7 +2,7 @@
 <ol class="toc">
 {{range .Children}}
   <li>
-    {{- if and .Parent (lt .Depth 3) -}}
+    {{- if eq .PageDepth 0 -}}
       <span class="section-number">{{.Number}} </span>
     {{- end -}}
     <a href="{{.PrimaryTag | url}}">{{- .Title | render -}}</a>

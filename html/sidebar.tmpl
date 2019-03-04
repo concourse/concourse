@@ -13,7 +13,7 @@
   <div class="context">
     <nav>
       <div class="top">
-        {{if and .Section.Parent (lt .Section.Depth 3)}}
+        {{if eq .Section.PageDepth 0}}
         <span class="section-number">{{.Section.Number}}</span>
         {{end}}
         {{template "section-link" .}}
@@ -23,7 +23,7 @@
         <table>
         {{range .Section.Children}}
           <tr>
-            {{if and .Parent (lt .Depth 3)}}
+            {{if eq .PageDepth 0}}
               <td class="number-cell" align="right">{{.Number}}&nbsp;</td>
             {{else}}
               <td class="number-cell" align="left"></td>
@@ -70,7 +70,7 @@
   <div class="page-toc">
     <nav>
       <div class="top">
-        {{if and .Parent (lt .Depth 3)}}
+        {{if eq .PageDepth 0}}
         <span class="section-number">{{.Number}}</span>
         {{end}}
         {{template "section-link" walkContext $ .}}
