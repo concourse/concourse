@@ -931,7 +931,7 @@ label.quickstart-label::before {
 
 @media (max-width: 1200px) {
   body {
-    grid-template-columns: 1fr 2fr;
+    grid-template-columns: 5fr 2fr;
     grid-template-rows: 80px 60px auto;
     grid-template-areas:
       "logo search"
