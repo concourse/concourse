@@ -10,7 +10,6 @@ module Build.Build exposing
     , view
     )
 
-import Array
 import Build.Models as Models
     exposing
         ( BuildPageType(..)
@@ -125,7 +124,6 @@ init flags =
           , teams = topBar.teams
           , screenSize = topBar.screenSize
           , highDensity = topBar.highDensity
-          , eventStream = Nothing
           }
         , topBarEffects ++ [ GetCurrentTime ]
         )
@@ -134,11 +132,11 @@ init flags =
 subscriptions : Model -> List Subscription
 subscriptions model =
     let
-        currentBuildId =
+        buildEventsUrl =
             model.currentBuild
                 |> RemoteData.toMaybe
                 |> Maybe.andThen .output
-                |> Maybe.andThen .events
+                |> Maybe.andThen .eventStreamUrlPath
     in
     [ OnClockTick OneSecond
     , OnScrollFromWindowBottom
@@ -146,16 +144,12 @@ subscriptions model =
     , OnKeyUp
     , OnAnimationFrame
     ]
-        ++ (case currentBuildId of
+        ++ (case buildEventsUrl of
                 Nothing ->
                     []
 
-                Just buildId ->
-                    [ Subscription.FromEventSource
-                        ( "/api/v1/builds/" ++ toString buildId ++ "/events"
-                        , [ "end", "event" ]
-                        )
-                    ]
+                Just url ->
+                    [ Subscription.FromEventSource ( url, [ "end", "event" ] ) ]
            )
 
 
@@ -171,12 +165,7 @@ changeToBuild page ( model, effects ) =
 
             newBuild =
                 RemoteData.map
-                    (\cb ->
-                        { cb
-                            | prep = Nothing
-                            , output = Nothing
-                        }
-                    )
+                    (\cb -> { cb | prep = Nothing, output = Nothing })
                     model.currentBuild
         in
         ( { model
@@ -187,10 +176,16 @@ changeToBuild page ( model, effects ) =
           }
         , case page of
             OneOffBuildPage buildId ->
-                effects ++ [ FetchBuild 0 newIndex buildId ]
+                effects
+                    ++ [ CloseBuildEventStream
+                       , FetchBuild 0 newIndex buildId
+                       ]
 
             JobBuildPage jbi ->
-                effects ++ [ FetchJobBuild newIndex jbi ]
+                effects
+                    ++ [ CloseBuildEventStream
+                       , FetchJobBuild newIndex jbi
+                       ]
         )
 
 
@@ -261,8 +256,9 @@ handleCallbackWithoutTopBar action ( model, effects ) =
                 ( model, effects )
 
         PlanAndResourcesFetched buildId result ->
-            updateOutput (Build.Output.Output.planAndResourcesFetched buildId result)
-                ( { model | eventStream = Just buildId }
+            updateOutput
+                (Build.Output.Output.planAndResourcesFetched buildId result)
+                ( model
                 , effects
                     ++ [ Effects.OpenBuildEventStream
                             { url = "/api/v1/builds/" ++ toString buildId ++ "/events"
@@ -332,11 +328,7 @@ handleDelivery delivery ( model, effects ) =
             )
 
         ScrolledFromWindowBottom distanceFromBottom ->
-            if distanceFromBottom == 0 then
-                ( { model | autoScroll = True }, effects )
-
-            else
-                ( { model | autoScroll = False }, effects )
+            ( { model | autoScroll = distanceFromBottom == 0 }, effects )
 
         EventReceived eventSourceMsg ->
             eventSourceMsg
@@ -351,7 +343,10 @@ update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
 update msg ( model, effects ) =
     case msg of
         SwitchToBuild build ->
-            ( model, effects ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ] )
+            ( model
+            , effects
+                ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
+            )
 
         Hover state ->
             let
@@ -460,7 +455,7 @@ handleKeyPressed : Keyboard.KeyCode -> ( Model, List Effect ) -> ( Model, List E
 handleKeyPressed key ( model, effects ) =
     let
         currentBuild =
-            Maybe.map .build (model.currentBuild |> RemoteData.toMaybe)
+            model.currentBuild |> RemoteData.toMaybe |> Maybe.map .build
 
         newModel =
             case ( model.previousKeyPress, model.shiftDown, Char.fromCode key ) of

@@ -1,8 +1,6 @@
 module TopBar.Msgs exposing (Msg(..))
 
-import Keyboard
 import Routes
-import Window
 
 
 type Msg

@@ -63,7 +63,10 @@ runSubscription s =
             AnimationFrame.times (always AnimationFrameAdvanced)
 
         OnMouse ->
-            Sub.batch [ Mouse.moves (always Moused), Mouse.clicks (always Moused) ]
+            Sub.batch
+                [ Mouse.moves (always Moused)
+                , Mouse.clicks (always Moused)
+                ]
 
         OnKeyDown ->
             Keyboard.downs KeyDown
@@ -78,7 +81,10 @@ runSubscription s =
             Window.resizes WindowResized
 
         FromEventSource key ->
-            eventSource (Json.Decode.decodeValue decodeBuildEventEnvelope >> EventReceived)
+            eventSource
+                (Json.Decode.decodeValue decodeBuildEventEnvelope
+                    >> EventReceived
+                )
 
         OnNonHrefLinkClicked ->
             newUrl NonHrefLinkClicked

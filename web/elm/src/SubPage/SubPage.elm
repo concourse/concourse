@@ -272,10 +272,7 @@ urlUpdate route model =
 
         ( Routes.Job { id, page }, JobModel mdl ) ->
             mdl
-                |> Job.changeToJob
-                    { jobId = id
-                    , paging = page
-                    }
+                |> Job.changeToJob { jobId = id, paging = page }
                 |> Tuple.mapFirst JobModel
 
         ( Routes.Build { id, highlight }, BuildModel buildModel ) ->

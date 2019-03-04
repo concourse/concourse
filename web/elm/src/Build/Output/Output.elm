@@ -9,7 +9,7 @@ module Build.Output.Output exposing
 
 import Ansi.Log
 import Array exposing (Array)
-import Build.Msgs exposing (EventsMsg(..), Msg(..))
+import Build.Msgs exposing (Msg(..))
 import Build.Output.Models exposing (OutputModel, OutputState(..))
 import Build.StepTree.Models
     exposing
@@ -66,7 +66,7 @@ init { highlight } build =
             { steps = Nothing
             , errors = Nothing
             , state = outputState
-            , events = Nothing
+            , eventStreamUrlPath = Nothing
             , eventSourceOpened = False
             , highlight = highlight
             }
@@ -104,12 +104,16 @@ planAndResourcesFetched :
     -> OutputModel
     -> ( OutputModel, List Effect, OutMsg )
 planAndResourcesFetched buildId result model =
+    let
+        url =
+            "/api/v1/builds/" ++ toString buildId ++ "/events"
+    in
     ( case result of
         Err err ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
-                        { model | events = Just buildId }
+                        { model | eventStreamUrlPath = Just url }
 
                     else
                         model
@@ -121,7 +125,7 @@ planAndResourcesFetched buildId result model =
         Ok ( plan, resources ) ->
             { model
                 | steps = Just (StepTree.init model.highlight resources plan)
-                , events = Just buildId
+                , eventStreamUrlPath = Just url
             }
     , []
     , OutNoop
@@ -134,10 +138,16 @@ handleEventsMsg :
     -> ( OutputModel, List Effect, OutMsg )
 handleEventsMsg action model =
     case action of
-        -- Opened ->
-        --     ( { model | eventSourceOpened = True }, [], OutNoop )
         Ok { url, data } ->
-            handleEvent data model
+            if
+                model.eventStreamUrlPath
+                    |> Maybe.map (\p -> String.endsWith p url)
+                    |> Maybe.withDefault False
+            then
+                handleEvent data model
+
+            else
+                ( model, [], OutNoop )
 
         Err err ->
             flip always (Debug.log "failed to get event" err) <|
@@ -158,6 +168,12 @@ handleEvent :
     -> ( OutputModel, List Effect, OutMsg )
 handleEvent event model =
     case event of
+        Opened ->
+            ( { model | eventSourceOpened = True }
+            , []
+            , OutNoop
+            )
+
         Log origin output time ->
             ( updateStep origin.id (setRunning << appendStepLog output time) model
             , []
@@ -228,7 +244,10 @@ handleEvent event model =
             )
 
         End ->
-            ( { model | state = StepsComplete, events = Nothing }, [], OutNoop )
+            ( { model | state = StepsComplete, eventStreamUrlPath = Nothing }
+            , []
+            , OutNoop
+            )
 
 
 updateStep : StepID -> (StepTree -> StepTree) -> OutputModel -> OutputModel

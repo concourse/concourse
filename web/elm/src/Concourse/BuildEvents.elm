@@ -24,8 +24,8 @@ decodeBuildEventEnvelope =
 
         urlDecoder =
             Json.Decode.field
-                "url"
-                Json.Decode.string
+                "target"
+                (Json.Decode.field "url" Json.Decode.string)
 
         dataDecoder =
             typeDecoder
@@ -34,6 +34,9 @@ decodeBuildEventEnvelope =
                         case t of
                             "end" ->
                                 Json.Decode.succeed End
+
+                            "open" ->
+                                Json.Decode.succeed Opened
 
                             _ ->
                                 Json.Decode.field "data" Json.Decode.string

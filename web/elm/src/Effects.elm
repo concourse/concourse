@@ -68,6 +68,9 @@ port requestLoginRedirect : String -> Cmd msg
 port openEventStream : { url : String, eventTypes : List String } -> Cmd msg
 
 
+port closeEventStream : () -> Cmd msg
+
+
 type LayoutDispatch
     = SubPage Int
     | Layout
@@ -124,6 +127,7 @@ type Effect
     | LoadToken
     | ForceFocus String
     | OpenBuildEventStream { url : String, eventTypes : List String }
+    | CloseBuildEventStream
 
 
 type ScrollDirection
@@ -296,6 +300,9 @@ runEffect effect csrfToken =
 
         OpenBuildEventStream config ->
             openEventStream config
+
+        CloseBuildEventStream ->
+            closeEventStream ()
 
 
 fetchJobBuilds : Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Callback

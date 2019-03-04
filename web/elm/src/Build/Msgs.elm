@@ -1,8 +1,6 @@
-module Build.Msgs exposing (EventsMsg(..), Msg(..))
+module Build.Msgs exposing (Msg(..))
 
-import Array
 import Build.Models exposing (Hoverable)
-import Build.StepTree.Models exposing (BuildEventEnvelope)
 import Concourse
 import Routes exposing (StepID)
 import StrictEvents
@@ -22,9 +20,3 @@ type Msg
     | SetHighlight String Int
     | ExtendHighlight String Int
     | FromTopBar TopBar.Msgs.Msg
-
-
-type EventsMsg
-    = Opened
-    | Errored
-    | Events (Result String (Array.Array BuildEventEnvelope))

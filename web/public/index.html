@@ -196,8 +196,12 @@
           app.ports.eventSource.send(event);
         }
         es.onopen = dispatchEvent;
+        es.onerror = dispatchEvent;
         config.eventTypes.forEach(function(eventType) {
           es.addEventListener(eventType, dispatchEvent);
+        })
+        app.ports.closeEventStream.subscribe(function() {
+          es.close();
         })
       });
 

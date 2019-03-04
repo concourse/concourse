@@ -114,6 +114,7 @@ type BuildEvent
     | Error Origin String
     | BuildError String
     | End
+    | Opened
 
 
 type alias Origin =

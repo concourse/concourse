@@ -19,10 +19,8 @@ import DashboardTests
 import Date
 import Dict
 import Effects
-import EventSource.EventSource as EventSource
 import Expect
 import Html.Attributes as Attr
-import Json.Encode
 import Keycodes
 import Routes
 import Subscription exposing (Delivery(..), Interval(..))
@@ -217,7 +215,7 @@ all =
                     , protocol = ""
                     , origin = ""
                     , port_ = ""
-                    , pathname = "/teams/t/pipelines/p/jobs/j/builds/1"
+                    , pathname = "/teams/t/pipelines/p/jobs/j/builds/307"
                     , search = ""
                     , hash = "#Lstepid:1"
                     , username = ""
@@ -229,9 +227,14 @@ all =
                         (Callback.BuildFetched <|
                             Ok
                                 ( 1
-                                , { id = 1
-                                  , name = "1"
-                                  , job = Nothing
+                                , { id = 307
+                                  , name = "307"
+                                  , job =
+                                        Just
+                                            { teamName = "t"
+                                            , pipelineName = "p"
+                                            , jobName = "j"
+                                            }
                                   , status = Concourse.BuildStatusStarted
                                   , duration =
                                         { startedAt = Nothing
@@ -259,7 +262,7 @@ all =
                         (Msgs.DeliveryReceived <|
                             EventReceived <|
                                 Ok <|
-                                    { url = ""
+                                    { url = "http://localhost:8080/api/v1/builds/307/events"
                                     , data =
                                         STModels.StartTask
                                             { source = "stdout"
@@ -272,7 +275,7 @@ all =
                         (Msgs.DeliveryReceived <|
                             EventReceived <|
                                 Ok <|
-                                    { url = ""
+                                    { url = "http://localhost:8080/api/v1/builds/307/events"
                                     , data =
                                         STModels.Log
                                             { source = "stdout"
@@ -535,6 +538,7 @@ all =
                     |> Expect.equal
                         [ Effects.GetScreenSize
                         , Effects.GetCurrentTime
+                        , Effects.CloseBuildEventStream
                         , Effects.FetchJobBuild 1
                             { teamName = "team"
                             , pipelineName = "pipeline"
@@ -1454,7 +1458,7 @@ all =
                         >> Build.handleDelivery
                             (EventReceived <|
                                 Ok <|
-                                    { url = ""
+                                    { url = "http://localhost:8080/api/v1/builds/307/events"
                                     , data =
                                         STModels.FinishGet
                                             { source = "stdout", id = "plan" }
@@ -1482,7 +1486,7 @@ all =
                         >> Build.handleDelivery
                             (EventReceived <|
                                 Ok <|
-                                    { url = ""
+                                    { url = "http://localhost:8080/api/v1/builds/307/events"
                                     , data =
                                         STModels.FinishGet
                                             { source = "stdout", id = "plan" }
@@ -1504,7 +1508,7 @@ all =
                         >> Build.handleDelivery
                             (EventReceived <|
                                 Ok <|
-                                    { url = ""
+                                    { url = "http://localhost:8080/api/v1/builds/307/events"
                                     , data =
                                         STModels.StartTask
                                             { source = "stdout"
@@ -1531,7 +1535,7 @@ all =
                         >> Build.handleDelivery
                             (EventReceived <|
                                 Ok <|
-                                    { url = ""
+                                    { url = "http://localhost:8080/api/v1/builds/307/events"
                                     , data =
                                         STModels.FinishGet
                                             { source = "stdout", id = "plan" }
@@ -1551,7 +1555,9 @@ all =
                                 { size = "28px"
                                 , image = "ic-failure-times.svg"
                                 }
-                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                                ++ [ style
+                                        [ ( "background-size", "14px 14px" ) ]
+                                   ]
                             )
                 , test "erroring step has orange exclamation triangle at right" <|
                     fetchPlanWithGetStep
@@ -1559,7 +1565,7 @@ all =
                         >> Build.handleDelivery
                             (EventReceived <|
                                 Ok <|
-                                    { url = ""
+                                    { url = "http://localhost:8080/api/v1/builds/307/events"
                                     , data =
                                         STModels.Error
                                             { source = "stderr", id = "plan" }
@@ -1577,18 +1583,35 @@ all =
                                 { size = "28px"
                                 , image = "ic-exclamation-triangle.svg"
                                 }
-                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                                ++ [ style
+                                        [ ( "background-size", "14px 14px" ) ]
+                                   ]
                             )
                 , describe "erroring build" <|
                     [ test "has orange exclamation triangle at left" <|
                         fetchPlanWithGetStep
                             >> flip (,) []
                             >> Build.handleDelivery
-                                (EventReceived <| Ok <| { url = "", data = STModels.BuildError "error message" })
+                                (EventReceived <|
+                                    Ok <|
+                                        { url = "http://localhost:8080/api/v1/builds/307/events"
+                                        , data = STModels.Opened
+                                        }
+                                )
+                            >> Build.handleDelivery
+                                (EventReceived <|
+                                    Ok <|
+                                        { url = "http://localhost:8080/api/v1/builds/307/events"
+                                        , data =
+                                            STModels.BuildError
+                                                "error message"
+                                        }
+                                )
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
-                            >> Query.find [ class "header" ]
+                            >> Query.findAll [ class "header" ]
+                            >> Query.first
                             >> Query.children []
                             >> Query.first
                             >> Query.has
