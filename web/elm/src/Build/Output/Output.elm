@@ -1,6 +1,6 @@
 module Build.Output.Output exposing
     ( OutMsg(..)
-    , handleEventsMsg
+    , handleEnvelopes
     , handleStepTreeMsg
     , init
     , planAndResourcesFetched
@@ -132,22 +132,16 @@ planAndResourcesFetched buildId result model =
     )
 
 
-handleEventsMsg :
-    Result String BuildEventEnvelope
+handleEnvelopes :
+    Result String (List BuildEventEnvelope)
     -> OutputModel
     -> ( OutputModel, List Effect, OutMsg )
-handleEventsMsg action model =
+handleEnvelopes action model =
     case action of
-        Ok { url, data } ->
-            if
-                model.eventStreamUrlPath
-                    |> Maybe.map (\p -> String.endsWith p url)
-                    |> Maybe.withDefault False
-            then
-                handleEvent data model
-
-            else
-                ( model, [], OutNoop )
+        Ok envelopes ->
+            envelopes
+                |> List.reverse
+                |> List.foldr handleEnvelope ( model, [], OutNoop )
 
         Err err ->
             flip always (Debug.log "failed to get event" err) <|
@@ -162,75 +156,96 @@ handleEventsMsg action model =
                     ( { model | state = NotAuthorized }, [], OutNoop )
 
 
+handleEnvelope :
+    BuildEventEnvelope
+    -> ( OutputModel, List Effect, OutMsg )
+    -> ( OutputModel, List Effect, OutMsg )
+handleEnvelope { url, data } ( model, effects, outmsg ) =
+    if
+        model.eventStreamUrlPath
+            |> Maybe.map (\p -> String.endsWith p url)
+            |> Maybe.withDefault False
+    then
+        handleEvent data ( model, effects, outmsg )
+
+    else
+        ( model, effects, outmsg )
+
+
 handleEvent :
     BuildEvent
-    -> OutputModel
     -> ( OutputModel, List Effect, OutMsg )
-handleEvent event model =
+    -> ( OutputModel, List Effect, OutMsg )
+handleEvent event ( model, effects, outmsg ) =
     case event of
         Opened ->
             ( { model | eventSourceOpened = True }
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
         Log origin output time ->
             ( updateStep origin.id (setRunning << appendStepLog output time) model
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
         Error origin message ->
             ( updateStep origin.id (setStepError message) model
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
         Initialize origin ->
             ( updateStep origin.id setRunning model
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
         StartTask origin ->
             ( updateStep origin.id setRunning model
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
         FinishTask origin exitStatus ->
             ( updateStep origin.id (finishStep exitStatus) model
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
         FinishGet origin exitStatus version metadata ->
             ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
         FinishPut origin exitStatus version metadata ->
             ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
         BuildStatus status date ->
-            case model.steps of
-                Just st ->
-                    let
-                        ( newSt, effects ) =
-                            if not <| Concourse.BuildStatus.isRunning status then
-                                ( { st | finished = True }, [] )
+            let
+                newSt =
+                    case model.steps of
+                        Just st ->
+                            Just
+                                (if not <| Concourse.BuildStatus.isRunning status then
+                                    { st | finished = True }
 
-                            else
-                                ( st, [] )
-                    in
-                    ( { model | steps = Just newSt }, effects, OutBuildStatus status date )
+                                 else
+                                    st
+                                )
 
-                Nothing ->
-                    ( model, [], OutBuildStatus status date )
+                        Nothing ->
+                            Nothing
+            in
+            ( { model | steps = newSt }
+            , effects
+            , OutBuildStatus status date
+            )
 
         BuildError message ->
             ( { model
@@ -239,14 +254,14 @@ handleEvent event model =
                         Ansi.Log.update message <|
                             Maybe.withDefault (Ansi.Log.init Ansi.Log.Cooked) model.errors
               }
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
         End ->
             ( { model | state = StepsComplete, eventStreamUrlPath = Nothing }
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
 

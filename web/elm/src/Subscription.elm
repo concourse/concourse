@@ -1,6 +1,5 @@
 port module Subscription exposing (Delivery(..), Interval(..), Subscription(..), runSubscription)
 
-import AnimationFrame
 import Build.StepTree.Models exposing (BuildEventEnvelope)
 import Concourse.BuildEvents exposing (decodeBuildEventEnvelope)
 import Json.Decode
@@ -23,7 +22,6 @@ port eventSource : (Json.Encode.Value -> msg) -> Sub msg
 
 type Subscription
     = OnClockTick Interval
-    | OnAnimationFrame
     | OnMouse
     | OnKeyDown
     | OnKeyUp
@@ -39,12 +37,11 @@ type Delivery
     | KeyUp Keyboard.KeyCode
     | Moused
     | ClockTicked Interval Time.Time
-    | AnimationFrameAdvanced
     | ScrolledFromWindowBottom Scroll.FromBottom
     | WindowResized Window.Size
     | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
     | TokenReceived (Maybe String)
-    | EventReceived (Result String BuildEventEnvelope)
+    | EventsReceived (Result String (List BuildEventEnvelope))
 
 
 type Interval
@@ -58,9 +55,6 @@ runSubscription s =
     case s of
         OnClockTick t ->
             Time.every (intervalToTime t) (ClockTicked t)
-
-        OnAnimationFrame ->
-            AnimationFrame.times (always AnimationFrameAdvanced)
 
         OnMouse ->
             Sub.batch
@@ -82,8 +76,9 @@ runSubscription s =
 
         FromEventSource key ->
             eventSource
-                (Json.Decode.decodeValue decodeBuildEventEnvelope
-                    >> EventReceived
+                (Json.Decode.decodeValue
+                    (Json.Decode.list decodeBuildEventEnvelope)
+                    >> EventsReceived
                 )
 
         OnNonHrefLinkClicked ->

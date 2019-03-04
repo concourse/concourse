@@ -142,7 +142,6 @@ subscriptions model =
     , OnScrollFromWindowBottom
     , OnKeyDown
     , OnKeyUp
-    , OnAnimationFrame
     ]
         ++ (case buildEventsUrl of
                 Nothing ->
@@ -317,23 +316,21 @@ handleDelivery delivery ( model, effects ) =
                 )
                 ( newModel, effects )
 
-        AnimationFrameAdvanced ->
-            ( model
-            , case getScrollBehavior model of
-                ScrollWindow ->
-                    effects ++ [ Effects.Scroll Effects.ToWindowBottom ]
-
-                NoScroll ->
-                    effects
-            )
-
         ScrolledFromWindowBottom distanceFromBottom ->
             ( { model | autoScroll = distanceFromBottom == 0 }, effects )
 
-        EventReceived eventSourceMsg ->
-            eventSourceMsg
-                |> Build.Output.Output.handleEventsMsg
-                |> flip updateOutput ( model, effects )
+        EventsReceived envelopes ->
+            envelopes
+                |> Build.Output.Output.handleEnvelopes
+                |> flip updateOutput
+                    ( model
+                    , case getScrollBehavior model of
+                        ScrollWindow ->
+                            effects ++ [ Effects.Scroll Effects.ToWindowBottom ]
+
+                        NoScroll ->
+                            effects
+                    )
 
         _ ->
             ( model, effects )

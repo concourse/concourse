@@ -260,30 +260,32 @@ all =
                     |> Tuple.first
                     |> Application.update
                         (Msgs.DeliveryReceived <|
-                            EventReceived <|
+                            EventsReceived <|
                                 Ok <|
-                                    { url = "http://localhost:8080/api/v1/builds/307/events"
-                                    , data =
-                                        STModels.StartTask
-                                            { source = "stdout"
-                                            , id = "stepid"
-                                            }
-                                    }
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.StartTask
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                      }
+                                    ]
                         )
                     |> Tuple.first
                     |> Application.update
                         (Msgs.DeliveryReceived <|
-                            EventReceived <|
+                            EventsReceived <|
                                 Ok <|
-                                    { url = "http://localhost:8080/api/v1/builds/307/events"
-                                    , data =
-                                        STModels.Log
-                                            { source = "stdout"
-                                            , id = "stepid"
-                                            }
-                                            "log message"
-                                            Nothing
-                                    }
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.Log
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                                "log message"
+                                                Nothing
+                                      }
+                                    ]
                         )
                     |> Tuple.first
                     |> Application.view
@@ -350,38 +352,47 @@ all =
                         { url = "http://localhost:8080/api/v1/builds/1/events"
                         , data = STModels.StartTask { id = "stepid", source = "" }
                         }
+                    |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/1/events"
                         , data = STModels.Log { id = "stepid", source = "stdout" } "log message" Nothing
                         }
+                    |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/2/events"
                         , data = STModels.Log { id = "stepid", source = "stdout" } "bad message" Nothing
                         }
+                    |> Tuple.first
                     |> Application.view
                     |> Query.fromHtml
                     |> Query.hasNot [ text "bad message" ]
-        , test "when build is running it scrolls every animation tick" <|
+        , test "when build is running it scrolls every build event" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
                         (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived AnimationFrameAdvanced)
+                    |> receiveEvent
+                        { url = "http://localhost:8080/api/v1/builds/1/events"
+                        , data = STModels.StartTask { id = "stepid", source = "" }
+                        }
                     |> Tuple.second
                     |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.Scroll Effects.ToWindowBottom ) ]
-        , test "when build is not running it does not scroll on animation tick" <|
+        , test "when build is not running it does not scroll on build event" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
                         (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, theBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived AnimationFrameAdvanced)
+                    |> receiveEvent
+                        { url = "http://localhost:8080/api/v1/builds/1/events"
+                        , data = STModels.StartTask { id = "stepid", source = "" }
+                        }
                     |> Tuple.second
                     |> Expect.equal []
-        , test "when build is running but the user is not scrolled to the bottom it does not scroll on animation tick" <|
+        , test "when build is running but the user is not scrolled to the bottom it does not scroll on build event" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
@@ -390,10 +401,13 @@ all =
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 187))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived AnimationFrameAdvanced)
+                    |> receiveEvent
+                        { url = "http://localhost:8080/api/v1/builds/1/events"
+                        , data = STModels.StartTask { id = "stepid", source = "" }
+                        }
                     |> Tuple.second
                     |> Expect.equal []
-        , test "when build is running but the user is scrolls back to the bottom it scrolls on animation tick" <|
+        , test "when build is running but the user is scrolls back to the bottom it scrolls on build event" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
@@ -404,16 +418,12 @@ all =
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 0))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived AnimationFrameAdvanced)
+                    |> receiveEvent
+                        { url = "http://localhost:8080/api/v1/builds/1/events"
+                        , data = STModels.StartTask { id = "stepid", source = "" }
+                        }
                     |> Tuple.second
                     |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.Scroll Effects.ToWindowBottom ) ]
-        , test "the page subscribes to animation ticks" <|
-            \_ ->
-                pageLoad
-                    |> Tuple.first
-                    |> Build.subscriptions
-                    |> List.member Subscription.OnAnimationFrame
-                    |> Expect.true "build not subscribed to animation frames?"
         , test "pressing 'T' twice triggers two builds" <|
             \_ ->
                 initFromApplication
@@ -1456,16 +1466,17 @@ all =
                     fetchPlanWithGetStep
                         >> flip (,) []
                         >> Build.handleDelivery
-                            (EventReceived <|
+                            (EventsReceived <|
                                 Ok <|
-                                    { url = "http://localhost:8080/api/v1/builds/307/events"
-                                    , data =
-                                        STModels.FinishGet
-                                            { source = "stdout", id = "plan" }
-                                            0
-                                            Dict.empty
-                                            []
-                                    }
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.FinishGet
+                                                { source = "stdout", id = "plan" }
+                                                0
+                                                Dict.empty
+                                                []
+                                      }
+                                    ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1484,16 +1495,17 @@ all =
                     fetchPlanWithGetStep
                         >> flip (,) []
                         >> Build.handleDelivery
-                            (EventReceived <|
+                            (EventsReceived <|
                                 Ok <|
-                                    { url = "http://localhost:8080/api/v1/builds/307/events"
-                                    , data =
-                                        STModels.FinishGet
-                                            { source = "stdout", id = "plan" }
-                                            0
-                                            (Dict.fromList [ ( "version", "v3.1.4" ) ])
-                                            []
-                                    }
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.FinishGet
+                                                { source = "stdout", id = "plan" }
+                                                0
+                                                (Dict.fromList [ ( "version", "v3.1.4" ) ])
+                                                []
+                                      }
+                                    ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1506,15 +1518,16 @@ all =
                     fetchPlanWithTaskStep
                         >> flip (,) []
                         >> Build.handleDelivery
-                            (EventReceived <|
+                            (EventsReceived <|
                                 Ok <|
-                                    { url = "http://localhost:8080/api/v1/builds/307/events"
-                                    , data =
-                                        STModels.StartTask
-                                            { source = "stdout"
-                                            , id = "plan"
-                                            }
-                                    }
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.StartTask
+                                                { source = "stdout"
+                                                , id = "plan"
+                                                }
+                                      }
+                                    ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1533,16 +1546,17 @@ all =
                     fetchPlanWithGetStep
                         >> flip (,) []
                         >> Build.handleDelivery
-                            (EventReceived <|
+                            (EventsReceived <|
                                 Ok <|
-                                    { url = "http://localhost:8080/api/v1/builds/307/events"
-                                    , data =
-                                        STModels.FinishGet
-                                            { source = "stdout", id = "plan" }
-                                            1
-                                            Dict.empty
-                                            []
-                                    }
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.FinishGet
+                                                { source = "stdout", id = "plan" }
+                                                1
+                                                Dict.empty
+                                                []
+                                      }
+                                    ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1563,14 +1577,15 @@ all =
                     fetchPlanWithGetStep
                         >> flip (,) []
                         >> Build.handleDelivery
-                            (EventReceived <|
+                            (EventsReceived <|
                                 Ok <|
-                                    { url = "http://localhost:8080/api/v1/builds/307/events"
-                                    , data =
-                                        STModels.Error
-                                            { source = "stderr", id = "plan" }
-                                            "error message"
-                                    }
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.Error
+                                                { source = "stderr", id = "plan" }
+                                                "error message"
+                                      }
+                                    ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1592,20 +1607,22 @@ all =
                         fetchPlanWithGetStep
                             >> flip (,) []
                             >> Build.handleDelivery
-                                (EventReceived <|
+                                (EventsReceived <|
                                     Ok <|
-                                        { url = "http://localhost:8080/api/v1/builds/307/events"
-                                        , data = STModels.Opened
-                                        }
+                                        [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                          , data = STModels.Opened
+                                          }
+                                        ]
                                 )
                             >> Build.handleDelivery
-                                (EventReceived <|
+                                (EventsReceived <|
                                     Ok <|
-                                        { url = "http://localhost:8080/api/v1/builds/307/events"
-                                        , data =
-                                            STModels.BuildError
-                                                "error message"
-                                        }
+                                        [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                          , data =
+                                                STModels.BuildError
+                                                    "error message"
+                                          }
+                                        ]
                                 )
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
@@ -1628,7 +1645,7 @@ all =
                         in
                         fetchPlanWithGetStep
                             >> flip (,) []
-                            >> Build.handleDelivery (EventReceived <| Err "server burned down")
+                            >> Build.handleDelivery (EventsReceived <| Err "server burned down")
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1646,7 +1663,9 @@ tooltipGreyHex =
     "#9b9b9b"
 
 
-receiveEvent : STModels.BuildEventEnvelope -> Application.Model -> Application.Model
+receiveEvent :
+    STModels.BuildEventEnvelope
+    -> Application.Model
+    -> ( Application.Model, List ( Effects.LayoutDispatch, Concourse.CSRFToken, Effects.Effect ) )
 receiveEvent envelope =
-    Application.update (Msgs.DeliveryReceived <| EventReceived <| Ok envelope)
-        >> Tuple.first
+    Application.update (Msgs.DeliveryReceived <| EventsReceived <| Ok [ envelope ])
