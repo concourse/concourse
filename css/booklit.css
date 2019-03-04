@@ -42,6 +42,10 @@ pre {
   color: #fff;
   padding: .5rem;
   overflow-x: auto;
+
+  /* kind of a hack tbh but happens to make various code samples fit better
+   * narrow spaces like the examples pane and front page */
+  font-size: .9em;
 }
 
 code code {
@@ -88,7 +92,6 @@ h2, h3 {
 
 .top-logo {
   grid-area: logo;
-  min-width: 300px;
 }
 
 .top-nav {
@@ -201,7 +204,6 @@ h2, h3 {
 
 .segment.example pre {
   margin-top: 6px;
-  font-size: .9em;
 }
 
 @media (min-width: 800px) {
@@ -921,15 +923,26 @@ label.quickstart-label::before {
 
 @media (max-width: 1200px) {
   body {
-    grid-template-columns: 3fr 1fr;
+    grid-template-columns: 1fr 2fr;
+    grid-template-rows: 80px 60px auto;
     grid-template-areas:
       "logo search"
-      "nav nav"
-      "content toc";
+      "primary-nav primary-nav"
+      "secondary-nav content";
   }
 
-  .top-nav {
-    height: 60px;
+  .page-content.wide {
+    grid-column-start: 1 / span 2;
+    grid-column-end: 3;
+    padding: 30px;
+  }
+
+  .page-content.wide .section {
+    grid-template-columns: auto;
+  }
+
+  .splash-title {
+    grid-column-start: 1;
   }
 
   .top-nav a {
