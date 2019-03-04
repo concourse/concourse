@@ -4,11 +4,11 @@ import Array
 import Build.Models exposing (BuildEvent, Hoverable)
 import Concourse
 import Keyboard
-import TopBar.Msgs
 import Routes exposing (StepID)
 import Scroll
 import StrictEvents
 import Time
+import TopBar.Msgs
 
 
 type Msg

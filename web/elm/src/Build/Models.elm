@@ -24,10 +24,10 @@ import Array exposing (Array)
 import Concourse
 import Date exposing (Date)
 import Dict exposing (Dict)
-import TopBar.Model
 import RemoteData exposing (WebData)
 import Routes exposing (Highlight, StepID)
 import Time exposing (Time)
+import TopBar.Model
 
 
 

@@ -2,8 +2,8 @@ module Pipeline.Msgs exposing (Msg(..))
 
 import Concourse
 import Keyboard
-import TopBar.Msgs
 import Time exposing (Time)
+import TopBar.Msgs
 
 
 type Msg

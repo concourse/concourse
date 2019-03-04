@@ -2,10 +2,10 @@ module Resource.Msgs exposing (Msg(..))
 
 import Concourse.Pagination exposing (Page, Paginated)
 import Keyboard
-import TopBar.Msgs
 import Resource.Models as Models
 import Routes
 import Time exposing (Time)
+import TopBar.Msgs
 
 
 type Msg
