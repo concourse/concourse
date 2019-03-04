@@ -125,7 +125,7 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
   \title{Operation}{web-operation}
 
   The \code{web} nodes themselves are stateless - they don't store anything on
-  disk, and coordinate entirely using the \reference{db-node}.
+  disk, and coordinate entirely using the database.
 
   \section{
     \title{Scaling}

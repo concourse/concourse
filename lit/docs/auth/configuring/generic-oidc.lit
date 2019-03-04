@@ -1,11 +1,11 @@
-\title{Generic OIDC provider}{generic-oidc-provider}
+\title{Generic OIDC auth}{generic-oidc-auth}
 
 \use-plugin{concourse-docs}
 \omit-children-from-table-of-contents
 
 A Concourse server can authenticate against any valid OIDC auth provider. This
-provider is similar to the \reference{generic-oauth-provider} except it only
-requires an issuer URL rather than auth/token/userinfo URLs.
+provider is similar to \reference{generic-oauth} except it only requires an
+issuer URL rather than auth/token/userinfo URLs.
 
 \section{
   \title{Authentication}{generic-oidc-authentication}

@@ -1,4 +1,4 @@
-\title{GitLab auth provider}{gitlab-auth-provider}
+\title{GitLab auth}{gitlab-auth}
 
 \use-plugin{concourse-docs}
 \omit-children-from-table-of-contents

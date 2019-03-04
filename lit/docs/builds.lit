@@ -56,11 +56,6 @@ sure you intercept while it's running if you want to debug.
   results. If there are multiple containers that the flags could refer to, an
   interactive prompt will show up allowing you to disambiguate.
 
-  \aside{
-    The command \code{fly hijack} is an alias of \code{fly intercept}. Both can
-    be used interchangably.
-  }
-
   For example, running the following will run a task and then enter the
   finished task's container:
 
@@ -70,11 +65,12 @@ sure you intercept while it's running if you want to debug.
   }}
 
   \aside{
-    When intercepting a job running on a windows worker, you will need to
-    specifically tell fly to target PowerShell as an additional argument:
-      \codeblock{bash}{{
-      $ fly -t example intercept powershell
-      }}
+    When intercepting a task running on a Windows worker, you will need to
+    specifically tell fly to to run \code{powershell}:
+
+    \codeblock{bash}{{
+    $ fly -t example intercept powershell
+    }}
   }
 
   Containers are around for a short time after a build finishes in order to
@@ -88,11 +84,6 @@ sure you intercept while it's running if you want to debug.
   \codeblock{bash}{{
   $ fly -t example intercept -j some-pipeline/some-job -b some-build -s some-step
   }}
-
-  \aside{
-    Be warned, if more than one person is using a Concourse server for running
-    one-off builds then you may end up in a build that you did not expect!
-  }
 
   Note that \code{--build} can be omitted, and will default to the most recent
   build of the job. One-off builds can be reached by passing in their build ID
@@ -130,7 +121,6 @@ sure you intercept while it's running if you want to debug.
   This will cancel build \code{3} of the \code{my-job} job in the
   \code{my-pipeline} pipeline.
 }
-
 
 \section{
   \title{\code{fly watch}}{fly-watch}

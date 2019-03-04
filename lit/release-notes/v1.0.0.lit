@@ -42,7 +42,7 @@
   }
 
   \note{feature}{
-    \reference{github-auth-provider}{GitHub auth!}
+    \reference{github-auth}!
   }
 
   \note{feature}{

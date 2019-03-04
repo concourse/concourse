@@ -188,7 +188,6 @@
 
 \include-section{./docs.lit}
 \include-section{./download.lit}
+\include-section{./project.lit}
 \include-section{./community.lit}
-\include-section{./contribute.lit}
-\include-section{./about.lit}
-\include-section{./trademarks.lit}
+\include-section{./learning.lit}

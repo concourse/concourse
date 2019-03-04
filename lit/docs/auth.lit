@@ -3,25 +3,17 @@
 \use-plugin{concourse-docs}
 \split-sections
 
-The very first thing to configure with Concourse is how users will log in.
+A single Concourse installation can accomodate many projects and users.
 
-\list{
-  \bold{Authentication} (how people identify themselves) is configured via
-  auth providers on the \reference{web-node}
-}{
-  \bold{Authorization} (how access is determined) is configured on each
-  \italic{team}. A team is just a conceptual owner and a separate namespace for
-  data in Concourse (pipelines, builds, etc.).
-}
+Pipelines, builds, and all other user data are owned by \italic{teams}. A team
+is just a conceptual owner and a separate namespace, tied to an authorization
+config. For example, a team may authorize all members of the \code{concourse}
+GitHub organization to be a \reference{team-member-role}{member}.
 
 When a user authenticates, each team's authorization config is checked against
 the user to determine which \reference{user-roles}{role}, if any, to grant for
 the team. This information is then stored in the user's token to determine
 access control for future requests.
-
-First you'll need to configure the \reference{main-team}. Once you've logged in
-to the \code{main} team you can configure other teams whenever you need to via
-\reference{fly-set-team}.
 
 \include-section{auth/main-team.lit}
 \include-section{auth/configuring.lit}

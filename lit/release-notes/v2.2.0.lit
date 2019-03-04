@@ -61,8 +61,8 @@
   }
 
   \note{feature}{
-    The \reference{generic-oauth-provider} now supports checking presence of a
-    scope, thanks to a PR by \ghuser{LinuxBozo}!
+    \reference{generic-oauth} now supports checking presence of a scope, thanks
+    to a PR by \ghuser{LinuxBozo}!
   }
 
   \note{feature}{

@@ -1,4 +1,4 @@
-\title{LDAP auth provider}{ldap-provider}
+\title{LDAP auth}{ldap-auth}
 
 \use-plugin{concourse-docs}
 \omit-children-from-table-of-contents

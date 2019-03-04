@@ -81,13 +81,12 @@
   }
 
   \note{feature}{
-    The ATC now supports being configured with a
-    \reference{generic-oauth-provider}. Huge thanks to \ghuser{poida} for doing
-    the PR for this!
+    The ATC now supports being configured with \reference{generic-oauth}. Huge
+    thanks to \ghuser{poida} for doing the PR for this!
   }
 
   \note{feature}{
-    The ATC now supports being configured with a \reference{cf-uaa-auth-provider}.
+    The ATC now supports being configured with \reference{cf-uaa-auth}.
   }
 
   \note{feature}{

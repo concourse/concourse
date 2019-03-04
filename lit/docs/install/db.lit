@@ -1,16 +1,16 @@
-\title{\aux{Running a }\code{db} node}{db-node}
+\title{\aux{Running a }PostgreSQL node}{postgresql-node}
 
 \use-plugin{concourse-docs}
 \omit-children-from-table-of-contents
 
-The \code{db} node is just a \link{PostgreSQL}{https://www.postgresql.org}
-server running somewhere reachable by the \reference{web-node}.
+Concourse uses \link{PostgreSQL}{https://www.postgresql.org} for storing all
+data and coordinating work in a multi-\reference{web-node} installation.
 
 \section{
   \title{Prerequisites}{db-prerequisites}
 
-  PostgreSQL 9.5 or above is required, though the latest available version is
-  recommended.
+  \link{PostgreSQL}{https://www.postgresql.org} 9.5 or above is required,
+  though the latest available version is recommended.
 }
 
 \section{

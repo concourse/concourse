@@ -39,13 +39,30 @@ code, pre {
 }
 
 pre {
-  background: #2A2929;
-  color: #fff;
+  background: #eee;
+  color: #333;
   padding: .5rem;
   overflow-x: auto;
 
   /* kind of a hack tbh but happens to make various code samples fit better
    * narrow spaces like the examples pane and front page */
+  font-size: .9em;
+}
+
+p:first-child, pre:first-child {
+  margin-top: 0;
+}
+
+p:last-child, pre:last-child {
+  margin-bottom: 0;
+}
+
+li p:last-child,
+dd p:last-child {
+  margin-bottom: 1em;
+}
+
+p code {
   font-size: .9em;
 }
 
@@ -216,14 +233,6 @@ h2, h3 {
   vertical-align: top;
 }
 
-.segment p:first-child {
-  margin-top: 0;
-}
-
-.segment p:last-child {
-  margin-bottom: 0;
-}
-
 .top-logo a {
   color: #fff;
   margin: 0;
@@ -301,7 +310,6 @@ h2, h3 {
 }
 
 .page-content code {
-  white-space: nowrap;
   background: #eee;
   padding: 3px;
   border-radius: 5px;
@@ -336,8 +344,8 @@ h2, h3 {
 .improve-docs {
   position: fixed;
   bottom: 0;
-  right: 0;
-  color: #9B9B9B;
+  left: 0;
+  color: #999;
   font-size: 13px;
   list-style-type: none;
   margin: 0;
@@ -345,7 +353,7 @@ h2, h3 {
 }
 
 .improve-docs a, .improve-docs a:visited {
-  color: #616161;
+  color: #aaa;
 }
 
 .improve-docs li {
@@ -360,6 +368,10 @@ h2, h3 {
   margin-right: 4px;
   filter: grayscale(100%);
   opacity: 0.5;
+}
+
+.improve-docs li:hover a {
+  color: #fff;
 }
 
 .improve-docs li:hover img {
@@ -408,26 +420,31 @@ h2, h3 {
   color: inherit;
 }
 
+.definition-thumb pre {
+  background: #f5f5f5;
+  border-left: 1px solid #2A2929;
+  color: #2A2929;
+  margin-bottom: 0;
+}
+
 .definition-thumb a:hover {
   text-decoration: underline;
 }
 
 .definition-content {
-  border-bottom: 1px dotted #EAD2A4;
-  padding: 0 0 1em 1em;
-  margin-bottom: 2rem;
+  padding: 1em;
 }
 
-.definition-content:last-child {
-  border-bottom: 0;
-  padding-bottom: 0;
-  margin-bottom: 0;
+.definition-content .definition {
+  margin: 1em;
 }
 
 .aside {
-  border-left: 2px solid black;
-  padding: 0 1em;
+  color: #555;
   font-style: italic;
+  background: #f5f5f5;
+  padding: 1em;
+  margin: 2em;
 }
 
 .schema-content {
@@ -439,16 +456,11 @@ h2, h3 {
 }
 
 .definition {
-  margin-bottom: 3em;
-}
-
-.definition .definition {
-  margin-left: 0em;
-  margin-bottom: 0;
+  margin-top: 2em;
 }
 
 .definition-content {
-  border-left: 1px solid #E6E7E8;
+  border-left: 1px solid #E5E5E5;
 }
 
 .page-aside .example {
@@ -458,11 +470,6 @@ h2, h3 {
 .example h3 {
   font-size: 20px;
   margin-bottom: -4px;
-}
-
-.page-aside pre {
-  background: #E6E7E8;
-  color: #2A2929;
 }
 
 .trademark-guidelines {
@@ -513,14 +520,6 @@ h2, h3 {
 
 .warning code {
   background: #eeeccb;
-}
-
-.warning p:first-child {
-  margin-top: 0;
-}
-
-.warning p:last-child {
-  margin-bottom: 0;
 }
 
 .tutorial-image {

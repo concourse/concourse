@@ -1,13 +1,12 @@
-\title{Generic oAuth provider}{generic-oauth-provider}
+\title{Generic oAuth}{generic-oauth}
 
 \use-plugin{concourse-docs}
 \omit-children-from-table-of-contents
 
 A Concourse server can authenticate against any valid OAuth auth provider,
 though it's a bit "closer to the metal" as you'll need to explicitly configure
-the auth, token, and user-info URLs. You may want to see if you can use the
-\reference{generic-oidc-provider} if your auth provider is compatible with
-OIDC.
+the auth, token, and user-info URLs. You may want to see if you can use
+\reference{generic-oidc-auth} if your auth provider is compatible with OIDC.
 
 \section{
   \title{Authentication}{generic-oauth-authentication}

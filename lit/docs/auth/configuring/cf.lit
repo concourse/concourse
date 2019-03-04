@@ -1,4 +1,4 @@
-\title{CF/UAA auth provider}{cf-uaa-auth-provider}
+\title{CF/UAA auth}{cf-uaa-auth}
 
 \use-plugin{concourse-docs}
 \omit-children-from-table-of-contents

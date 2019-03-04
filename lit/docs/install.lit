@@ -1,51 +1,82 @@
-\title{Install}{install}{installing}{binaries}
+\title{Install}{install}{installing}{binaries}{concourse-cli}
 
 \use-plugin{concourse-docs}
 
 \split-sections
 
 A Concourse installation is composed of three things: a \reference{web-node}, a
-a \reference{worker-node}, and a PostgreSQL database.
+\reference{worker-node}, and a \reference{postgresql-node}.
 
-This section introduces the \code{concourse} CLI and show how it all works.
+The \code{web} and \code{worker} nodes both run via a single \code{concourse}
+CLI. The \code{concourse} CLI is available from the \reference{downloads} page
+- be sure to grab the appropriate archive for your platform of choice.
 
-Alternatively, if you'd just like to get a Concourse running and don't really
-care how, you can use
-\link{\code{docker-compose}}{https://docs.docker.com/compose/} to run a
-quick-and-dirty Concourse cluster:
+Each archive contains the following:
 
-\codeblock{bash}{{{
-$ wget https://concourse-ci.org/docker-compose.yml
-$ docker-compose up -d
-Creating docs_concourse-db_1 ...
-Creating docs_concourse-db_1 ... done
-Creating docs_concourse_1 ...
-Creating docs_concourse_1 ... done
-}}}
-
-Concourse will be running at \link{localhost:8080}{http://localhost:8080}.
-
-This instance is configured with a single user with the username and password
-as \code{test}. If you'd like to change these credentials you can edit the
-\code{docker-compose.yml} - check out \reference{configuring-auth} to learn
-how.
-
-Next, install the \reference{fly-cli}{\code{fly} CLI} by downloading it from
-the web UI and target your local Concourse as the \code{test} user:
-
-\codeblock{bash}{{
-$ fly -t tutorial login -c http://localhost:8080 -u test -p test
-logging in to team 'main'
-
-target saved
+\codeblock{sh}{{
+concourse/bin/concourse
+concourse/bin/gdn            # on Linux
+concourse/fly-assets/...
+concourse/resource-types/... # on Linux
 }}
+
+When extracted, the \code{concourse} binary will auto-discover its sibling
+assets based on its file location, so you may extract it anywhere.
+
+On Linux a typical install location is \code{/usr/local/concourse}:
+
+\codeblock{sh}{{
+tar -zxf concourse-*.tgz -C /usr/local
+}}
+
+From there, you can either add \code{/usr/local/concourse/bin} to your
+\code{$PATH}, or just execute \code{/usr/local/concourse/bin/concourse}
+directly.
+
+\larger{\bold{Configuration basics}}
+
+All Concourse node configuration is defined statically via flags. For a
+full list of flags, you can pass \code{--help} to any command.
+
+Each flag can also be set via an environment variable. The env var for each
+flag is based on the flag name, preceded with \code{CONCOURSE_}. These are
+also shown in \code{--help}.
+
+Various sections in documentation may refer to configuration via env vars
+rather than flags, but they are both equivalent an interchangeable. Env
+vars are just easier to reference in isolation and are more useful to
+copy-paste.
+
+\right-side{Quick Start}{
+  Alternatively, if you'd just like to get a Concourse running and don't really
+  care how, you can use
+  \link{\code{docker-compose}}{https://docs.docker.com/compose/} to run a
+  quick-and-dirty Concourse cluster:
+
+  \codeblock{bash}{{{
+  $ wget https://concourse-ci.org/docker-compose.yml
+  $ docker-compose up -d
+  Creating docs_concourse-db_1 ...
+  Creating docs_concourse-db_1 ... done
+  Creating docs_concourse_1 ...
+  Creating docs_concourse_1 ... done
+  }}}
+
+  Concourse will be running at \link{localhost:8080}{http://localhost:8080}.
+
+  This instance is configured with a single user with the username and password
+  as \code{test}. If you'd like to change these credentials you can edit the
+  \code{docker-compose.yml} - check out \reference{configuring-auth} to learn
+  how.
+
+  From here you can continue on to \reference{fly-cli} to get started.
+}
 
 From here, you can continue on to \reference{learning} to try out some
 tutorials and examples, or keep browsing around the rest of the
 \reference{docs} and just kick the tires until things make sense. If you get
 lost, feel free to ask for help from the \link{community}{community}!
 
-\include-section{install/concourse-cli.lit}
 \include-section{install/generating-keys.lit}
 \include-section{install/db.lit}
 \include-section{install/web.lit}

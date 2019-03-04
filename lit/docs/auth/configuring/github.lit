@@ -1,4 +1,4 @@
-\title{GitHub auth provider}{github-auth-provider}
+\title{GitHub auth}{github-auth}
 
 \use-plugin{concourse-docs}
 \omit-children-from-table-of-contents

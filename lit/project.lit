@@ -53,6 +53,8 @@ part-time contributors.
   a more complete list of resources for contributors
 }
 
+\include-section{./contribute.lit}
+
 \section{
   \title{Thanks!}{thanks}
 
@@ -87,3 +89,5 @@ part-time contributors.
     else that has helped out!
   }
 }
+
+\include-section{./trademarks.lit}
