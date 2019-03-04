@@ -12,6 +12,7 @@ body {
   font-weight: 400;
   line-height: 1.6;
   color: #2A2929;
+  background: #3398DC;
   width: 100%;
   display: grid;
   grid-template-rows: 80px auto;
@@ -140,7 +141,6 @@ h2, h3 {
 }
 
 .top-logo, .top-nav, .top-search {
-  background-color: #3398DC;
   color: #fff;
   font-family: 'Roboto Slab', serif;
   line-height: 80px;
