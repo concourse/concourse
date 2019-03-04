@@ -286,13 +286,19 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [bin-smoke]
+      passed: [build-rc-image]
+      trigger: true
+    - get: concourse-rc-image
+      passed: [build-rc-image]
+      trigger: true
+    - get: version
+      passed: [build-rc-image]
       trigger: true
     - get: unit-image
-      passed: [bin-smoke]
+      passed: [build-rc-image]
       trigger: true
     - get: linux-rc
-      passed: [bin-smoke]
+      passed: [build-rc-image]
       trigger: true
     - get: charts
       trigger: true
@@ -308,19 +314,20 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [build-rc-image]
+      passed: [k8s-check-helm-params]
       trigger: true
     - get: concourse-rc-image
-      passed: [build-rc-image]
+      passed: [k8s-check-helm-params]
       params: {format: oci}
       trigger: true
     - get: version
-      passed: [build-rc-image]
+      passed: [k8s-check-helm-params]
       trigger: true
     - get: charts
+      passed: [k8s-check-helm-params]
       trigger: true
     - get: unit-image
-      passed: [build-rc-image]
+      passed: [k8s-check-helm-params]
   - try:
       task: try-delete
       image: unit-image
@@ -520,6 +527,9 @@ jobs:
     - get: unit-image
       passed: [bin-smoke]
       trigger: true
+    - get: version
+      passed: [bin-smoke]
+      trigger: true
     - get: linux-rc
       passed: [bin-smoke]
       trigger: true
@@ -536,16 +546,16 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [bin-smoke]
+      passed: [bosh-check-props]
       trigger: true
     - get: unit-image
-      passed: [bin-smoke]
+      passed: [bosh-check-props]
       trigger: true
     - get: version
-      passed: [bin-smoke]
+      passed: [bosh-check-props]
       trigger: true
     - get: linux-rc
-      passed: [build-rc, bin-smoke]
+      passed: [build-rc, bosh-check-props]
       trigger: true
     - get: windows-rc
       passed: [build-rc]
