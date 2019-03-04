@@ -177,6 +177,7 @@ h2, h3 {
 
 .splash-title {
   grid-column-start: span 2;
+  margin-top: 50px;
   margin-bottom: 14px;
   font-size: 19px;
   border: 0;
@@ -202,14 +203,21 @@ h2, h3 {
   margin-top: -4px;
 }
 
-.segment.example pre {
-  margin-top: 6px;
+.segment.example pre,
+.segment.example p {
+  margin: 0;
 }
 
-@media (min-width: 800px) {
-  .segment p:first-child {
-    margin-top: 0;
-  }
+.segment.example img {
+  vertical-align: top;
+}
+
+.segment p:first-child {
+  margin-top: 0;
+}
+
+.segment p:last-child {
+  margin-bottom: 0;
 }
 
 .top-logo a {
@@ -939,6 +947,10 @@ label.quickstart-label::before {
 
   .page-content.wide .section {
     grid-template-columns: auto;
+  }
+
+  .segment p:first-child {
+    margin-top: 1em;
   }
 
   .splash-title {
