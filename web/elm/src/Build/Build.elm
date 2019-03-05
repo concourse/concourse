@@ -1047,7 +1047,7 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                         , onFocus <| Hover (Just Trigger)
                         , onMouseLeave <| Hover Nothing
                         , onBlur <| Hover Nothing
-                        , style <| Styles.triggerButton buttonDisabled
+                        , style <| Styles.triggerButton buttonDisabled buttonHovered build.status
                         ]
                     <|
                         [ Html.div
@@ -1070,6 +1070,9 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                 Nothing ->
                     Html.text ""
 
+        abortHovered =
+            hoveredElement == Just Abort
+
         abortButton =
             if Concourse.BuildStatus.isRunning build.status then
                 Html.button
@@ -1082,14 +1085,10 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                     , onFocus <| Hover (Just Abort)
                     , onMouseLeave <| Hover Nothing
                     , onBlur <| Hover Nothing
-                    , style Styles.abortButton
+                    , style <| Styles.abortButton <| abortHovered
                     ]
                     [ Html.div
-                        [ style <|
-                            Styles.abortIcon <|
-                                hoveredElement
-                                    == Just Abort
-                        ]
+                        [ style <| Styles.abortIcon <| abortHovered ]
                         []
                     ]
 

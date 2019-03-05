@@ -54,8 +54,8 @@ buildStatus status =
             [ ( "background", Colors.aborted ) ]
 
 
-triggerButton : Bool -> List ( String, String )
-triggerButton buttonDisabled =
+triggerButton : Bool -> Bool -> Concourse.BuildStatus -> List ( String, String )
+triggerButton buttonDisabled hovered status =
     [ ( "cursor"
       , if buttonDisabled then
             "default"
@@ -64,19 +64,30 @@ triggerButton buttonDisabled =
             "pointer"
       )
     , ( "position", "relative" )
+    , ( "background-color"
+      , Colors.buildStatusColor (hovered && not buttonDisabled) status
+      )
     ]
         ++ button
 
 
-abortButton : List ( String, String )
-abortButton =
-    ( "cursor", "pointer" ) :: button
+abortButton : Bool -> List ( String, String )
+abortButton isHovered =
+    [ ( "cursor", "pointer" )
+    , ( "background-color"
+      , if isHovered then
+            Colors.failure
+
+        else
+            Colors.failureFaded
+      )
+    ]
+        ++ button
 
 
 button : List ( String, String )
 button =
-    [ ( "background-color", Colors.background )
-    , ( "padding", "10px" )
+    [ ( "padding", "10px" )
     , ( "border", "none" )
     , ( "outline", "none" )
     , ( "margin", "0" )

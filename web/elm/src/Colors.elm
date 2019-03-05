@@ -3,12 +3,14 @@ module Colors exposing
     , asciiArt
     , background
     , bottomBarText
+    , buildStatusColor
     , card
     , cliIconHover
     , comment
     , dashboardText
     , error
     , failure
+    , failureFaded
     , flySuccessButtonHover
     , flySuccessCard
     , flySuccessTokenCopied
@@ -24,11 +26,15 @@ module Colors exposing
     , sectionHeader
     , started
     , startedFaded
+    , statusColor
     , success
     , successFaded
     , text
     , tooltipBackground
     )
+
+import Concourse exposing (BuildStatus(..))
+import Concourse.PipelineStatus exposing (PipelineStatus(..))
 
 
 frame : String
@@ -88,7 +94,7 @@ success =
 
 successFaded : String
 successFaded =
-    "#284834"
+    "#419867"
 
 
 paused : String
@@ -101,9 +107,19 @@ pending =
     "#9b9b9b"
 
 
+pendingFaded : String
+pendingFaded =
+    "#7a7373"
+
+
 failure : String
 failure =
     "#ed4b35"
+
+
+failureFaded : String
+failureFaded =
+    "#bd3826"
 
 
 error : String
@@ -111,9 +127,19 @@ error =
     "#f5a623"
 
 
+errorFaded : String
+errorFaded =
+    "#ec9910"
+
+
 aborted : String
 aborted =
     "#8b572a"
+
+
+abortedFaded : String
+abortedFaded =
+    "#6a401c"
 
 
 card : String
@@ -174,3 +200,68 @@ comment =
 groupsBarBackground : String
 groupsBarBackground =
     "#2b2a2a"
+
+
+statusColor : PipelineStatus -> String
+statusColor status =
+    case status of
+        PipelineStatusPaused ->
+            paused
+
+        PipelineStatusSucceeded _ ->
+            success
+
+        PipelineStatusPending _ ->
+            pending
+
+        PipelineStatusFailed _ ->
+            failure
+
+        PipelineStatusErrored _ ->
+            error
+
+        PipelineStatusAborted _ ->
+            aborted
+
+
+buildStatusColor : Bool -> BuildStatus -> String
+buildStatusColor isBright status =
+    if isBright then
+        case status of
+            BuildStatusStarted ->
+                started
+
+            BuildStatusPending ->
+                pending
+
+            BuildStatusSucceeded ->
+                success
+
+            BuildStatusFailed ->
+                failure
+
+            BuildStatusErrored ->
+                error
+
+            BuildStatusAborted ->
+                aborted
+
+    else
+        case status of
+            BuildStatusStarted ->
+                startedFaded
+
+            BuildStatusPending ->
+                pendingFaded
+
+            BuildStatusSucceeded ->
+                successFaded
+
+            BuildStatusFailed ->
+                failureFaded
+
+            BuildStatusErrored ->
+                errorFaded
+
+            BuildStatusAborted ->
+                abortedFaded

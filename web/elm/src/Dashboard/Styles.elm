@@ -43,28 +43,6 @@ import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import ScreenSize
 
 
-statusColor : PipelineStatus -> String
-statusColor status =
-    case status of
-        PipelineStatusPaused ->
-            Colors.paused
-
-        PipelineStatusSucceeded _ ->
-            Colors.success
-
-        PipelineStatusPending _ ->
-            Colors.pending
-
-        PipelineStatusFailed _ ->
-            Colors.failure
-
-        PipelineStatusErrored _ ->
-            Colors.error
-
-        PipelineStatusAborted _ ->
-            Colors.aborted
-
-
 pipelineCard : List ( String, String )
 pipelineCard =
     [ ( "cursor", "move" )
@@ -80,7 +58,7 @@ pipelineCardBanner :
 pipelineCardBanner { status, pipelineRunningKeyframes } =
     let
         color =
-            statusColor status
+            Colors.statusColor status
 
         isRunning =
             Concourse.PipelineStatus.isRunning status
@@ -216,7 +194,7 @@ pipelineCardBannerHd :
 pipelineCardBannerHd { status, pipelineRunningKeyframes } =
     let
         color =
-            statusColor status
+            Colors.statusColor status
 
         isRunning =
             Concourse.PipelineStatus.isRunning status
@@ -316,7 +294,7 @@ pipelineStatusIcon pipelineStatus =
 
 pipelineCardTransitionAge : PipelineStatus -> List ( String, String )
 pipelineCardTransitionAge status =
-    [ ( "color", statusColor status )
+    [ ( "color", Colors.statusColor status )
     , ( "font-size", "18px" )
     , ( "line-height", "20px" )
     , ( "letter-spacing", "0.05em" )

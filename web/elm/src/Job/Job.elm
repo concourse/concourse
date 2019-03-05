@@ -424,14 +424,22 @@ viewMainJobsSection model =
                 LoadingIndicator.view
 
             Just job ->
+                let
+                    toggleHovered =
+                        model.hovered == Toggle
+
+                    triggerHovered =
+                        model.hovered == Trigger
+                in
                 Html.div [ class "fixed-header" ]
                     [ Html.div
-                        [ class <|
-                            "build-header "
-                                ++ headerBuildStatusClass job.finishedBuild
+                        [ class "build-header"
                         , style
                             [ ( "display", "flex" )
                             , ( "justify-content", "space-between" )
+                            , ( "background"
+                              , Colors.buildStatusColor True <| headerBuildStatus job.finishedBuild
+                              )
                             ]
                         ]
                         -- TODO really?
@@ -439,7 +447,9 @@ viewMainJobsSection model =
                             [ style [ ( "display", "flex" ) ] ]
                             [ Html.button
                                 [ id "pause-toggle"
-                                , style <| Styles.triggerButton False
+                                , style <|
+                                    Styles.triggerButton False toggleHovered <|
+                                        headerBuildStatus job.finishedBuild
                                 , onMouseEnter <| Hover Toggle
                                 , onMouseLeave <| Hover None
                                 , onClick TogglePaused
@@ -460,7 +470,7 @@ viewMainJobsSection model =
                                         , ( "width", "40px" )
                                         , ( "height", "40px" )
                                         , ( "opacity"
-                                          , if model.hovered == Toggle then
+                                          , if toggleHovered then
                                                 "1"
 
                                             else
@@ -480,23 +490,19 @@ viewMainJobsSection model =
                             , onMouseEnter <| Hover Trigger
                             , onMouseLeave <| Hover None
                             , style <|
-                                Styles.triggerButton job.disableManualTrigger
+                                Styles.triggerButton job.disableManualTrigger triggerHovered <|
+                                    headerBuildStatus job.finishedBuild
                             ]
                           <|
                             [ Html.div
                                 [ style <|
                                     Styles.triggerIcon <|
-                                        model.hovered
-                                            == Trigger
+                                        triggerHovered
                                             && not job.disableManualTrigger
                                 ]
                                 []
                             ]
-                                ++ (if
-                                        job.disableManualTrigger
-                                            && model.hovered
-                                            == Trigger
-                                    then
+                                ++ (if job.disableManualTrigger && triggerHovered then
                                         [ Html.div
                                             [ style Styles.triggerTooltip ]
                                             [ Html.text <|
@@ -541,14 +547,14 @@ viewMainJobsSection model =
         ]
 
 
-headerBuildStatusClass : Maybe Concourse.Build -> String
-headerBuildStatusClass finishedBuild =
+headerBuildStatus : Maybe Concourse.Build -> Concourse.BuildStatus
+headerBuildStatus finishedBuild =
     case finishedBuild of
         Nothing ->
-            ""
+            Concourse.BuildStatusPending
 
         Just build ->
-            Concourse.BuildStatus.show build.status
+            build.status
 
 
 viewPaginationBar : Model -> Html Msg

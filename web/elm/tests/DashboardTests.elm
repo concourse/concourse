@@ -105,7 +105,7 @@ white =
 
 fadedGreen : String
 fadedGreen =
-    "#284834"
+    "#419867"
 
 
 orange : String

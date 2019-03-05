@@ -633,7 +633,7 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                , test "trigger build button is styled as a plain grey box" <|
+                , test "trigger build button is styled as a box of the secondary color of the build status" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -646,7 +646,27 @@ all =
                             [ style
                                 [ ( "padding", "10px" )
                                 , ( "border", "none" )
-                                , ( "background-color", middleGrey )
+                                , ( "background-color", darkGreen )
+                                , ( "outline", "none" )
+                                , ( "margin", "0" )
+                                ]
+                            ]
+                , test "hovered trigger build button is styled as a box of the color of the build status" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> Build.update (Build.Msgs.Hover <| Just Models.Trigger)
+                        >> Tuple.first
+                        >> Build.view UserState.UserStateLoggedOut
+                        >> Query.fromHtml
+                        >> Query.find
+                            [ attribute <|
+                                Attr.attribute "aria-label" "Trigger Build"
+                            ]
+                        >> Query.has
+                            [ style
+                                [ ( "padding", "10px" )
+                                , ( "border", "none" )
+                                , ( "background-color", brightGreen )
                                 , ( "outline", "none" )
                                 , ( "margin", "0" )
                                 ]
@@ -820,7 +840,7 @@ all =
                         [ attribute <|
                             Attr.attribute "aria-label" "Abort Build"
                         ]
-            , test "abort build button is styled as a plain grey box" <|
+            , test "abort build button is styled as a dark red box" <|
                 givenBuildStarted
                     >> Tuple.first
                     >> Build.view UserState.UserStateLoggedOut
@@ -833,7 +853,27 @@ all =
                         [ style
                             [ ( "padding", "10px" )
                             , ( "border", "none" )
-                            , ( "background-color", middleGrey )
+                            , ( "background-color", darkRed )
+                            , ( "outline", "none" )
+                            , ( "margin", "0" )
+                            ]
+                        ]
+            , test "hovered abort build button is styled as a bright red box" <|
+                givenBuildStarted
+                    >> Tuple.first
+                    >> Build.update (Build.Msgs.Hover (Just Models.Abort))
+                    >> Tuple.first
+                    >> Build.view UserState.UserStateLoggedOut
+                    >> Query.fromHtml
+                    >> Query.find
+                        [ attribute <|
+                            Attr.attribute "aria-label" "Abort Build"
+                        ]
+                    >> Query.has
+                        [ style
+                            [ ( "padding", "10px" )
+                            , ( "border", "none" )
+                            , ( "background-color", brightRed )
                             , ( "outline", "none" )
                             , ( "margin", "0" )
                             ]
@@ -881,7 +921,9 @@ all =
                 , unhoveredSelector =
                     { description = "grey abort icon"
                     , selector =
-                        [ style [ ( "opacity", "0.5" ) ] ]
+                        [ style
+                            [ ( "opacity", "0.5" ) ]
+                        ]
                             ++ iconSelector
                                 { size = "40px"
                                 , image = "ic-abort-circle-outline-white.svg"
@@ -890,7 +932,9 @@ all =
                 , hoveredSelector =
                     { description = "white abort icon"
                     , selector =
-                        [ style [ ( "opacity", "1" ) ] ]
+                        [ style
+                            [ ( "opacity", "1" ) ]
+                        ]
                             ++ iconSelector
                                 { size = "40px"
                                 , image = "ic-abort-circle-outline-white.svg"
@@ -1524,3 +1568,23 @@ all =
 tooltipGreyHex : String
 tooltipGreyHex =
     "#9b9b9b"
+
+
+darkRed : String
+darkRed =
+    "#bd3826"
+
+
+brightRed : String
+brightRed =
+    "#ed4b35"
+
+
+darkGreen : String
+darkGreen =
+    "#419867"
+
+
+brightGreen : String
+brightGreen =
+    "#11c560"
