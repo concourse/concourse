@@ -27,7 +27,6 @@ import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Html.Styled as HS
 import List.Extra
-import TopBar.Msgs
 import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -44,6 +43,7 @@ import Test.Html.Selector
         , text
         )
 import Time exposing (Time)
+import TopBar.Msgs
 import UserState
 
 
