@@ -2,13 +2,12 @@
 
 \title{Resources}{resources}
 
-\reference{resources}{Resources} are the objects that are going to be used
-for jobs in the pipeline. They are listed under the \code{resources} key in
-the pipeline configuration.
+\reference{resources}{Resources} are the heart and soul of Concourse. They
+represent all external inputs to and outputs of \reference{jobs}{jobs} in the
+pipeline.
 
-Resources are fetched via \reference{get-step}{\code{get} steps} and pushed to via \reference{put-step}{\code{put} steps}.
-
-Each configured resource consists of the following attributes:
+Resources are listed under the \code{resources:} key in the pipeline
+configuration. Each configured resource consists of the following fields:
 
 \define-attribute{name: string}{
   \italic{Required.} The name of the resource. This should be short and simple.
@@ -17,12 +16,18 @@ Each configured resource consists of the following attributes:
 }{resource-name}
 
 \define-attribute{type: string}{
-  \italic{Required.} The type of the resource. Each worker advertises a mapping
-  of \code{resource-type -> container-image}; \code{type} corresponds to the
-  key in the map.
+  \italic{Required.} The type of the resource.
 
-  To see what resource types your deployment supports, check the status of your
-  worker pool via the \code{/api/v1/workers} API endpoint.
+  Resource types are available from two sources:
+
+  \list{
+    \reference{resource-types} defined in the same pipeline. In this case the
+    string value refers to the \reference{resource-type-name}.
+  }{
+    Workers may be pre-loaded with a set of "base" resource types, available to
+    all pipelines that run on them. This is visible in
+    \reference{fly-workers}{\code{fly workers -d}}.
+  }
 }{resource-type}
 
 \define-attribute{source: object}{
@@ -86,3 +91,64 @@ Each configured resource consists of the following attributes:
 \split-sections
 
 \include-section{resources/managing.lit}
+\include-section{./resource-types.lit}
+
+\right-side{Examples}{
+  \example{\code{git} resource}{
+    The following resource definition is an example of the \resource{git}:
+
+    \codeblock{yaml}{{{
+    name: booklit
+    type: git
+    source: {uri: "https://github.com/vito/booklit"}
+    }}}
+
+    This could be passed to a job via a \reference{get-step} with
+    \reference{get-step-trigger}{\code{trigger: true}} to run the tests
+    whenever there's new code:
+
+    \codeblock{yaml}{{{
+    resources:
+    - name: booklit
+      type: git
+      source: {uri: "https://github.com/vito/booklit"}
+
+    jobs:
+    - name: unit
+      plan:
+      - get: booklit
+        trigger: true
+      - task: test
+        file: booklit/ci/test.yml
+    }}}
+  }
+
+  \example{\code{time} resource}{
+    The following resource emits a new version every hour:
+
+    \codeblock{yaml}{{{
+    name: 1h
+    type: time
+    source: {interval: 1h}
+    }}}
+
+    This could be passed to a job via a \reference{get-step} with
+    \reference{get-step-trigger}{\code{trigger: true}} to run the job
+    periodically:
+
+    \codeblock{yaml}{{{
+    resources:
+    - name: 1h
+      type: time
+      source: {interval: 1h}
+
+    jobs:
+    - name: nag
+      plan:
+      - get: 1h
+        trigger: true
+      - task: nag
+        config: # ...
+    }}}
+  }
+}
