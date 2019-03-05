@@ -2,20 +2,16 @@ package docs
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
 	_ "github.com/concourse/docs/go/chromastyle"
 
-	"github.com/blang/semver"
 	"github.com/vito/booklit"
 	"github.com/vito/booklit/ast"
 	"github.com/vito/booklit/chroma"
 	"github.com/vito/booklit/stages"
 )
-
-var flyBinariesVersion = semver.MustParse("2.2.0")
 
 func init() {
 	booklit.RegisterPlugin("concourse-docs", NewPlugin)
@@ -386,15 +382,6 @@ func (p Plugin) Release(date string, concourseVersion string, gardenRunCVersion 
 	return p.release(date, concourseVersion, gardenRunCVersion, content)
 }
 
-func (p Plugin) CurrentVersion() booklit.Content {
-	currentVersion := os.Getenv("CONCOURSE_VERSION")
-	if currentVersion == "" {
-		currentVersion = "0.0.0"
-	}
-
-	return booklit.String(currentVersion)
-}
-
 func (p Plugin) Note(commaSeparatedTags string, content booklit.Content) booklit.Content {
 	tags := strings.Split(commaSeparatedTags, ",")
 
@@ -448,25 +435,23 @@ func (p Plugin) TrademarkGuidelines(content ...booklit.Content) booklit.Content 
 	}
 }
 
-func (p Plugin) ReleaseLink(file string, contentOptional ...booklit.Content) booklit.Content {
-	version := os.Getenv("CONCOURSE_VERSION")
-	if version == "" {
-		version = "0.0.0"
+func (p Plugin) ReleaseVersion(version string) {
+	p.section.SetTitle(booklit.String("v" + version))
+	p.section.SetPartial("Version", booklit.String(version))
+}
+
+func (p Plugin) ReleaseDate(date string) error {
+	t, err := time.Parse("2006-1-2", date)
+	if err != nil {
+		return err
 	}
 
-	url := "https://github.com/concourse/concourse/releases/download/v" + version + "/" + file
+	p.section.SetPartial("ReleaseDate", booklit.Styled{
+		Style:   "release-date",
+		Content: booklit.String(t.Format("January 2, 2006")),
+	})
 
-	var content booklit.Content
-	if len(contentOptional) == 0 {
-		content = booklit.String(url)
-	} else {
-		content = contentOptional[0]
-	}
-
-	return booklit.Link{
-		Target:  url,
-		Content: content,
-	}
+	return nil
 }
 
 func (p Plugin) release(
@@ -475,11 +460,6 @@ func (p Plugin) release(
 	gardenVersion string,
 	content booklit.Content,
 ) (booklit.Content, error) {
-	currentVersion := os.Getenv("CONCOURSE_VERSION")
-	if currentVersion == "" {
-		currentVersion = "0.0.0"
-	}
-
 	t, err := time.Parse("2006-1-2", date)
 	if err != nil {
 		return nil, err
@@ -489,33 +469,14 @@ func (p Plugin) release(
 
 	p.section.SetTitle(booklit.String("v" + concourseVersion))
 
-	p.section.SetPartial("CurrentVersion", p.CurrentVersion())
-
 	p.section.SetPartial("Version", booklit.String(concourseVersion))
-	p.section.SetPartial("VersionLabel", booklit.Styled{
-		Style:   "release-version-number",
-		Content: booklit.String("v" + concourseVersion),
-	})
 
 	p.section.SetPartial("GardenVersion", booklit.String(gardenVersion))
-	p.section.SetPartial("GardenVersionLabel", booklit.Styled{
-		Style:   "release-version-number",
-		Content: booklit.String("v" + gardenVersion),
-	})
 
 	p.section.SetPartial("ReleaseDate", booklit.Styled{
 		Style:   "release-date",
 		Content: booklit.String(t.Format("January 2, 2006")),
 	})
-
-	cv, err := semver.Parse(concourseVersion)
-	if err != nil {
-		return nil, err
-	}
-
-	if cv.GTE(flyBinariesVersion) {
-		p.section.SetPartial("HasFlyBinaries", booklit.Empty)
-	}
 
 	return content, nil
 }

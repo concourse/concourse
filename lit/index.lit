@@ -1,12 +1,9 @@
 \title{Concourse}{index}
 
 \use-plugin{concourse-docs}
+\styled{index}
 
-\styled{wide}
-
-\splash-intro{
-  Concourse is an open-source continuous thing-doer.
-}{
+\splash-intro{Concourse is an open-source continuous thing-doer.}{
   Built on the simple mechanics of \reference{resources}{resources},
   \reference{tasks}{tasks}, and \reference{jobs}{jobs}, Concourse presents a
   general approach to automation that makes it great for

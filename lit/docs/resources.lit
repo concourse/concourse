@@ -24,10 +24,12 @@ configuration. Each configured resource consists of the following fields:
     \reference{resource-types} defined in the same pipeline. In this case the
     string value refers to the \reference{resource-type-name}.
   }{
-    Workers may be pre-loaded with a set of "base" resource types, available to
+    Linux workers are pre-loaded with a set of
+    \reference{included-resource-types}{"base" resource types}, available to
     all pipelines that run on them. This is visible in
     \reference{fly-workers}{\code{fly workers -d}}.
   }
+
 }{resource-type}
 
 \define-attribute{source: object}{

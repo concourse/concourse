@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    {{template "head.tmpl" .}}
+  </head>
+  <body>
+    {{template "top.tmpl" .}}
+
+    <div class="page-nav">
+      {{template "sidebar.tmpl" .}}
+    </div>
+
+    <div class="page-content full">
+      {{template "section.tmpl" .}}
+    </div>
+  </body>
+</html>
