@@ -7,12 +7,18 @@ image_resource:
 
 inputs:
 - name: concourse
+- name: version
 - name: linux-rc
+- name: windows-rc
+- name: darwin-rc
 
 outputs:
+- name: concourse-linux
+- name: concourse-windows
+- name: concourse-darwin
 - name: fly-linux
 - name: fly-windows
 - name: fly-darwin
 
 run:
-  path: concourse/ci/tasks/scripts/extract-fly-assets
+  path: concourse/ci/tasks/scripts/prep-release-assets

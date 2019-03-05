@@ -1,9 +1,0 @@
-#!/bin/bash
-
-set -e -u -x
-
-tar -zxf linux-rc/*.tgz concourse/fly-assets --strip-components=2
-
-mv fly-linux-*.tgz   fly-linux/
-mv fly-windows-*.zip fly-windows/
-mv fly-darwin-*.tgz  fly-darwin/

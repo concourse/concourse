@@ -868,8 +868,8 @@ jobs:
       passed: [shipit]
     - get: darwin-rc
       passed: [shipit]
-  - task: extract-fly-assets
-    file: concourse/ci/tasks/extract-fly-assets.yml
+  - task: prep-release-assets
+    file: concourse/ci/tasks/prep-release-assets.yml
     image: unit-image
   - task: build-release-notes
     file: concourse/ci/tasks/build-release-notes.yml
@@ -882,9 +882,9 @@ jobs:
       name: release-notes/release-name
       body: release-notes/notes.md
       globs:
-      - linux-rc/*.tgz
-      - darwin-rc/*.tgz
-      - windows-rc/*.zip
+      - concourse-linux/*.tgz
+      - concourse-windows/*.zip
+      - concourse-darwin/*.tgz
       - fly-linux/fly-linux-*.tgz
       - fly-windows/fly-windows-*.zip
       - fly-darwin/fly-darwin-*.tgz
