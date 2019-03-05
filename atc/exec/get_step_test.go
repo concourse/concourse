@@ -39,7 +39,7 @@ var _ = Describe("GetStep", func() {
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeResourceCache         *dbfakes.FakeUsedResourceCache
 		fakeResourceConfig        *dbfakes.FakeResourceConfig
-		fakeResourceConfigVersion *dbfakes.FakeResourceConfigVersion
+		fakeResourceVersion       *dbfakes.FakeResourceVersion
 		fakeVariablesFactory      *credsfakes.FakeVariablesFactory
 		variables                 creds.Variables
 		fakeBuild                 *dbfakes.FakeBuild
@@ -77,7 +77,7 @@ var _ = Describe("GetStep", func() {
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
 		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
-		fakeResourceConfigVersion = new(dbfakes.FakeResourceConfigVersion)
+		fakeResourceVersion = new(dbfakes.FakeResourceVersion)
 
 		fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
 		variables = template.StaticVariables{
@@ -189,8 +189,8 @@ var _ = Describe("GetStep", func() {
 		BeforeEach(func() {
 			getPlan.Resource = "some-pipeline-resource"
 
-			fakeResourceConfigVersion.MetadataReturns(db.ResourceConfigMetadataFields{{Name: "some", Value: "metadata"}})
-			fakeResourceConfig.FindUncheckedVersionReturns(fakeResourceConfigVersion, true, nil)
+			fakeResourceVersion.MetadataReturns(db.ResourceConfigMetadataFields{{Name: "some", Value: "metadata"}})
+			fakeResourceConfig.FindUncheckedVersionReturns(fakeResourceVersion, true, nil)
 			fakeResourceCache.ResourceConfigReturns(fakeResourceConfig)
 			fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeResourceCache, nil)
 		})

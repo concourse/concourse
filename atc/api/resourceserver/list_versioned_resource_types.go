@@ -21,7 +21,15 @@ func (s *Server) ListVersionedResourceTypes(pipeline db.Pipeline) http.Handler {
 
 		acc := accessor.GetAccessor(r)
 		showCheckErr := acc.IsAuthenticated()
-		versionedResourceTypes := present.VersionedResourceTypes(showCheckErr, resourceTypes)
+
+		vrts, err := resourceTypes.Deserialize()
+		if err != nil {
+			logger.Error("failed-to-deserialize-resources-types", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		versionedResourceTypes := present.VersionedResourceTypes(showCheckErr, resourceTypes, vrts)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

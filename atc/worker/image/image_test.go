@@ -34,7 +34,6 @@ var _ = Describe("Image", func() {
 		fakeImageResourceFetcherFactory *imagefakes.FakeImageResourceFetcherFactory
 		fakeImageResourceFetcher        *imagefakes.FakeImageResourceFetcher
 		variables                       creds.Variables
-		fakeConn                        *dbfakes.FakeConn
 	)
 
 	BeforeEach(func() {
@@ -50,7 +49,7 @@ var _ = Describe("Image", func() {
 		fakeImageResourceFetcherFactory = new(imagefakes.FakeImageResourceFetcherFactory)
 		fakeImageResourceFetcher = new(imagefakes.FakeImageResourceFetcher)
 		fakeImageResourceFetcherFactory.NewImageResourceFetcherReturns(fakeImageResourceFetcher)
-		imageFactory = image.NewImageFactory(fakeImageResourceFetcherFactory, fakeConn)
+		imageFactory = image.NewImageFactory(fakeImageResourceFetcherFactory)
 
 		variables = template.StaticVariables{
 			"source-secret": "super-secret-sauce",
@@ -315,7 +314,7 @@ var _ = Describe("Image", func() {
 								Source: atc.Source{
 									"some": "custom-resource-type-source",
 								},
-								DefaultSpace: "space",
+								Space: "space",
 							},
 							Version: atc.Version{"some": "custom-resource-type-version"},
 						},
@@ -422,8 +421,8 @@ var _ = Describe("Image", func() {
 								Source: atc.Source{
 									"some": "custom-image-resource-type-source",
 								},
-								Privileged:   true,
-								DefaultSpace: atc.Space("space"),
+								Privileged: true,
+								Space:      atc.Space("space"),
 							},
 							Version: atc.Version{"some": "custom-image-resource-type-version"},
 						},

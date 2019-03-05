@@ -20,7 +20,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/radar/radarfakes"
-	"github.com/concourse/concourse/atc/resource"
 )
 
 var _ = Describe("Resources API", func() {
@@ -367,7 +366,7 @@ var _ = Describe("Resources API", func() {
 				Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
 				_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
 				Expect(actualResourceName).To(Equal("resource-name"))
-				Expect(actualFromVersion).To(BeNil())
+				Expect(actualFromVersion).To(Equal(map[atc.Space]atc.Version{}))
 			})
 
 			It("returns 200", func() {
@@ -377,6 +376,7 @@ var _ = Describe("Resources API", func() {
 			Context("when checking with a version specified", func() {
 				BeforeEach(func() {
 					checkRequestBody = atc.CheckRequestBody{
+						Space: "space",
 						From: atc.Version{
 							"some-version-key": "some-version-value",
 						},
@@ -387,7 +387,7 @@ var _ = Describe("Resources API", func() {
 					Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
 					_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
 					Expect(actualResourceName).To(Equal("resource-name"))
-					Expect(actualFromVersion).To(Equal(checkRequestBody.From))
+					Expect(actualFromVersion).To(Equal(map[atc.Space]atc.Version{checkRequestBody.Space: checkRequestBody.From}))
 				})
 			})
 
@@ -429,7 +429,7 @@ var _ = Describe("Resources API", func() {
 			Context("when checking the resource fails with ErrResourceScriptFailed", func() {
 				BeforeEach(func() {
 					fakeScanner.ScanFromVersionReturns(
-						resource.ErrResourceScriptFailed{
+						atc.ErrResourceScriptFailed{
 							ExitStatus: 42,
 							Stderr:     "my tooth",
 						},
@@ -469,6 +469,7 @@ var _ = Describe("Resources API", func() {
 
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types", func() {
 		var response *http.Response
+		var resourceType1 *dbfakes.FakeResourceType
 
 		JustBeforeEach(func() {
 			var err error
@@ -479,10 +480,11 @@ var _ = Describe("Resources API", func() {
 
 		Context("when getting the resource types succeeds", func() {
 			BeforeEach(func() {
-				resourceType1 := new(dbfakes.FakeResourceType)
+				resourceType1 = new(dbfakes.FakeResourceType)
 				resourceType1.IDReturns(1)
 				resourceType1.NameReturns("resource-type-1")
 				resourceType1.TypeReturns("type-1")
+				resourceType1.SpaceReturns("space-1")
 				resourceType1.SourceReturns(map[string]interface{}{"source-key-1": "source-value-1"})
 				resourceType1.PrivilegedReturns(false)
 				resourceType1.TagsReturns([]string{"tag1"})
@@ -490,7 +492,7 @@ var _ = Describe("Resources API", func() {
 				resourceType1.VersionReturns(map[string]string{
 					"version-key-1": "version-value-1",
 					"version-key-2": "version-value-2",
-				})
+				}, nil)
 				resourceType1.ResourceConfigCheckErrorReturns(nil)
 				resourceType1.CheckErrorReturns(nil)
 
@@ -498,6 +500,7 @@ var _ = Describe("Resources API", func() {
 				resourceType2.IDReturns(2)
 				resourceType2.NameReturns("resource-type-2")
 				resourceType2.TypeReturns("type-2")
+				resourceType2.SpaceReturns("space-2")
 				resourceType2.SourceReturns(map[string]interface{}{"source-key-2": "source-value-2"})
 				resourceType2.PrivilegedReturns(true)
 				resourceType2.CheckEveryReturns("10ms")
@@ -505,7 +508,7 @@ var _ = Describe("Resources API", func() {
 				resourceType2.ParamsReturns(map[string]interface{}{"param-key-2": "param-value-2"})
 				resourceType2.VersionReturns(map[string]string{
 					"version-key-2": "version-value-2",
-				})
+				}, nil)
 				resourceType2.ResourceConfigCheckErrorReturns(errors.New("sup"))
 				resourceType2.CheckErrorReturns(errors.New("sup"))
 
@@ -551,6 +554,7 @@ var _ = Describe("Resources API", func() {
 				{
 					"name": "resource-type-1",
 					"type": "type-1",
+					"space": "space-1",
 					"tags": ["tag1"],
 					"privileged": false,
 					"params": {"param-key-1": "param-value-1"},
@@ -563,6 +567,7 @@ var _ = Describe("Resources API", func() {
 				{
 					"name": "resource-type-2",
 					"type": "type-2",
+					"space": "space-2",
 					"tags": ["tag1", "tag2"],
 					"privileged": true,
 					"check_every": "10ms",
@@ -599,6 +604,7 @@ var _ = Describe("Resources API", func() {
 			{
 				"name": "resource-type-1",
 				"type": "type-1",
+				"space": "space-1",
 				"tags": ["tag1"],
 				"privileged": false,
 				"params": {"param-key-1": "param-value-1"},
@@ -611,6 +617,7 @@ var _ = Describe("Resources API", func() {
 			{
 				"name": "resource-type-2",
 				"type": "type-2",
+				"space": "space-2",
 				"tags": ["tag1", "tag2"],
 				"privileged": true,
 				"check_every": "10ms",
@@ -623,6 +630,16 @@ var _ = Describe("Resources API", func() {
 				"check_error": "sup"
 			}
 		]`))
+				})
+
+				Context("when deserializing the resource types fail", func() {
+					BeforeEach(func() {
+						resourceType1.VersionReturns(nil, errors.New("disaster"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
 				})
 
 				Context("when getting the resource type fails", func() {
@@ -959,6 +976,7 @@ var _ = Describe("Resources API", func() {
 			Context("when checking with a version specified", func() {
 				BeforeEach(func() {
 					checkRequestBody = atc.CheckRequestBody{
+						Space: atc.Space("space"),
 						From: atc.Version{
 							"some-version-key": "some-version-value",
 						},
@@ -969,7 +987,7 @@ var _ = Describe("Resources API", func() {
 					Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
 					_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
 					Expect(actualResourceName).To(Equal("resource-type-name"))
-					Expect(actualFromVersion).To(Equal(checkRequestBody.From))
+					Expect(actualFromVersion).To(Equal(map[atc.Space]atc.Version{checkRequestBody.Space: checkRequestBody.From}))
 				})
 			})
 
@@ -998,12 +1016,13 @@ var _ = Describe("Resources API", func() {
 
 	Describe("POST /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/check/webhook", func() {
 		var (
-			fakeScanner               *radarfakes.FakeScanner
-			checkRequestBody          atc.CheckRequestBody
-			response                  *http.Response
-			fakeResource              *dbfakes.FakeResource
-			fakeResourceConfig        *dbfakes.FakeResourceConfig
-			fakeResourceConfigVersion *dbfakes.FakeResourceConfigVersion
+			fakeScanner          *radarfakes.FakeScanner
+			checkRequestBody     atc.CheckRequestBody
+			response             *http.Response
+			fakeResource         *dbfakes.FakeResource
+			fakeResourceConfig   *dbfakes.FakeResourceConfig
+			fakeResourceVersion1 *dbfakes.FakeResourceVersion
+			fakeResourceVersion2 *dbfakes.FakeResourceVersion
 		)
 
 		ExpectResourceWebhookScanErrorsToBeHandled := func() {
@@ -1046,7 +1065,8 @@ var _ = Describe("Resources API", func() {
 			fakeResource = new(dbfakes.FakeResource)
 			fakeResource.NameReturns("resource-name")
 			fakeResourceConfig = new(dbfakes.FakeResourceConfig)
-			fakeResourceConfigVersion = new(dbfakes.FakeResourceConfigVersion)
+			fakeResourceVersion1 = new(dbfakes.FakeResourceVersion)
+			fakeResourceVersion2 = new(dbfakes.FakeResourceVersion)
 		})
 
 		JustBeforeEach(func() {
@@ -1099,25 +1119,39 @@ var _ = Describe("Resources API", func() {
 						dbResourceConfigFactory.FindResourceConfigByIDReturns(fakeResourceConfig, true, nil)
 					})
 
-					Context("when the latest version is found", func() {
+					Context("when latest versions is found", func() {
 						BeforeEach(func() {
-							fakeResourceConfigVersion.IDReturns(4)
-							fakeResourceConfigVersion.VersionReturns(db.Version{"some": "version"})
-							fakeResourceConfigVersion.MetadataReturns([]db.ResourceConfigMetadataField{
+							fakeResourceVersion1.IDReturns(4)
+							fakeResourceVersion1.SpaceReturns("space-1")
+							fakeResourceVersion1.VersionReturns(db.Version{"some": "version"})
+							fakeResourceVersion1.MetadataReturns([]db.ResourceConfigMetadataField{
 								{
 									Name:  "some",
 									Value: "metadata",
 								},
 							})
 
-							fakeResourceConfig.LatestVersionReturns(fakeResourceConfigVersion, true, nil)
+							fakeResourceVersion2.IDReturns(5)
+							fakeResourceVersion2.SpaceReturns("space-2")
+							fakeResourceVersion2.VersionReturns(db.Version{"some": "version-2"})
+							fakeResourceVersion2.MetadataReturns([]db.ResourceConfigMetadataField{
+								{
+									Name:  "some",
+									Value: "metadata-2",
+								},
+							})
+
+							fakeResourceConfig.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
 						})
 
-						It("tries to scan with the latest version", func() {
+						It("tries to scan with the latest versions", func() {
 							Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
 							_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
 							Expect(actualResourceName).To(Equal("resource-name"))
-							Expect(actualFromVersion).To(Equal(atc.Version{"some": "version"}))
+							Expect(actualFromVersion).To(Equal(map[atc.Space]atc.Version{
+								atc.Space("space-1"): atc.Version{"some": "version"},
+								atc.Space("space-2"): atc.Version{"some": "version-2"},
+							}))
 						})
 
 						It("returns 200", func() {
@@ -1127,16 +1161,16 @@ var _ = Describe("Resources API", func() {
 						ExpectResourceWebhookScanErrorsToBeHandled()
 					})
 
-					Context("when the latest version is not found", func() {
+					Context("when the latest versions are not found", func() {
 						BeforeEach(func() {
-							fakeResourceConfig.LatestVersionReturns(nil, false, nil)
+							fakeResourceConfig.LatestVersionsReturns(nil, nil)
 						})
 
 						It("tries to scan with no version specified", func() {
 							Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
 							_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
 							Expect(actualResourceName).To(Equal("resource-name"))
-							Expect(actualFromVersion).To(BeNil())
+							Expect(actualFromVersion).To(Equal(map[atc.Space]atc.Version{}))
 						})
 
 						It("returns 200", func() {
@@ -1146,9 +1180,9 @@ var _ = Describe("Resources API", func() {
 						ExpectResourceWebhookScanErrorsToBeHandled()
 					})
 
-					Context("when failing to get latest version for resource", func() {
+					Context("when failing to get latest versions for resource", func() {
 						BeforeEach(func() {
-							fakeResourceConfig.LatestVersionReturns(nil, false, errors.New("disaster"))
+							fakeResourceConfig.LatestVersionsReturns(nil, errors.New("disaster"))
 						})
 
 						It("returns 500", func() {

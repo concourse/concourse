@@ -38,11 +38,14 @@ var _ = Describe("ResourceConfig", func() {
 			pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 			Expect(err).ToNot(HaveOccurred())
 
+			versionedResourceTypes, err := pipelineResourceTypes.Deserialize()
+			Expect(err).ToNot(HaveOccurred())
+
 			resourceConfigCheckSession, err = resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
 				logger,
 				someResource.Type(),
 				someResource.Source(),
-				creds.NewVersionedResourceTypes(template.StaticVariables{}, pipelineResourceTypes.Deserialize()),
+				creds.NewVersionedResourceTypes(template.StaticVariables{}, versionedResourceTypes),
 				ownerExpiries,
 			)
 			Expect(err).ToNot(HaveOccurred())

@@ -31,36 +31,43 @@ type ResourceType interface {
 	CheckEvery() string
 	CheckError() error
 	ResourceConfigCheckError() error
+	Space() atc.Space
+
+	Version() (atc.Version, error)
 
 	SetResourceConfig(int) error
 	SetCheckError(error) error
-
-	Version() atc.Version
 
 	Reload() (bool, error)
 }
 
 type ResourceTypes []ResourceType
 
-func (resourceTypes ResourceTypes) Deserialize() atc.VersionedResourceTypes {
+func (resourceTypes ResourceTypes) Deserialize() (atc.VersionedResourceTypes, error) {
 	var versionedResourceTypes atc.VersionedResourceTypes
 
 	for _, t := range resourceTypes {
+		version, err := t.Version()
+		if err != nil {
+			return nil, err
+		}
+
 		versionedResourceTypes = append(versionedResourceTypes, atc.VersionedResourceType{
 			ResourceType: atc.ResourceType{
 				Name:       t.Name(),
 				Type:       t.Type(),
+				Space:      t.Space(),
 				Source:     t.Source(),
 				Privileged: t.Privileged(),
 				CheckEvery: t.CheckEvery(),
 				Tags:       t.Tags(),
 				Params:     t.Params(),
 			},
-			Version: t.Version(),
+			Version: version,
 		})
 	}
 
-	return versionedResourceTypes
+	return versionedResourceTypes, nil
 }
 
 func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
@@ -70,6 +77,7 @@ func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
 		configs = append(configs, atc.ResourceType{
 			Name:       r.Name(),
 			Type:       r.Type(),
+			Space:      r.Space(),
 			Source:     r.Source(),
 			Privileged: r.Privileged(),
 			CheckEvery: r.CheckEvery(),
@@ -81,21 +89,9 @@ func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
 	return configs
 }
 
-// XXX: Instead of always using default space, we should use the space specified on the resource
-// XXX: ALSO pull out the version query to a separate method
-var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, rv.version, r.nonce, r.check_error, c.check_error").
+var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, r.space, r.nonce, r.check_error, c.check_error").
 	From("resource_types r").
 	LeftJoin("resource_configs c ON r.resource_config_id = c.id").
-	LeftJoin(`LATERAL (
-		SELECT rv.*
-		FROM resource_versions rv, spaces s
-		WHERE s.resource_config_id = c.id
-		AND s.name = c.default_space
-		AND s.id = rv.space_id
-		AND rv.check_order != 0
-		ORDER BY rv.check_order DESC
-		LIMIT 1
-	) AS rv ON true`).
 	Where(sq.Eq{"r.active": true})
 
 type resourceType struct {
@@ -106,7 +102,7 @@ type resourceType struct {
 	source                   atc.Source
 	params                   atc.Params
 	tags                     atc.Tags
-	version                  atc.Version
+	space                    atc.Space
 	checkEvery               string
 	checkError               error
 	resourceConfigCheckError error
@@ -117,6 +113,7 @@ type resourceType struct {
 func (t *resourceType) ID() int                         { return t.id }
 func (t *resourceType) Name() string                    { return t.name }
 func (t *resourceType) Type() string                    { return t.type_ }
+func (t *resourceType) Space() atc.Space                { return t.space }
 func (t *resourceType) Privileged() bool                { return t.privileged }
 func (t *resourceType) CheckEvery() string              { return t.checkEvery }
 func (t *resourceType) Source() atc.Source              { return t.source }
@@ -125,7 +122,56 @@ func (t *resourceType) Tags() atc.Tags                  { return t.tags }
 func (t *resourceType) CheckError() error               { return t.checkError }
 func (t *resourceType) ResourceConfigCheckError() error { return t.resourceConfigCheckError }
 
-func (t *resourceType) Version() atc.Version { return t.version }
+func (t *resourceType) Version() (atc.Version, error) {
+	var version atc.Version
+	var versionBlob sql.NullString
+
+	if t.space != "" {
+		err := psql.Select("rv.version").
+			From("resource_versions rv, spaces s, resource_types rt").
+			Where(sq.Expr("rv.space_id = s.id")).
+			Where(sq.Expr("rt.resource_config_id = s.resource_config_id")).
+			Where(sq.Eq{
+				"s.name": t.space,
+				"rt.id":  t.id,
+			}).
+			Where(sq.NotEq{
+				"rv.check_order": 0,
+			}).
+			OrderBy("rv.check_order DESC").
+			Limit(1).
+			RunWith(t.conn).
+			QueryRow().
+			Scan(&versionBlob)
+		if err != nil && err != sql.ErrNoRows {
+			return nil, err
+		}
+	} else {
+		err := psql.Select("rv.version").
+			From("resource_types rt").
+			Join("resource_configs rc ON rt.resource_config_id = rc.id").
+			Join("spaces s ON rc.default_space = s.name AND rc.id = s.resource_config_id").
+			Join("resource_versions rv ON s.latest_resource_version_id = rv.id").
+			Where(sq.Eq{
+				"rt.id": t.id,
+			}).
+			RunWith(t.conn).
+			QueryRow().
+			Scan(&versionBlob)
+		if err != nil && err != sql.ErrNoRows {
+			return nil, err
+		}
+	}
+
+	if versionBlob.Valid {
+		err := json.Unmarshal([]byte(versionBlob.String), &version)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return version, nil
+}
 
 func (t *resourceType) Reload() (bool, error) {
 	row := resourceTypesQuery.Where(sq.Eq{"r.id": t.id}).RunWith(t.conn).QueryRow()
@@ -175,20 +221,17 @@ func (t *resourceType) SetCheckError(cause error) error {
 
 func scanResourceType(t *resourceType, row scannable) error {
 	var (
-		configJSON                           []byte
-		checkErr, rcCheckErr, version, nonce sql.NullString
+		configJSON                         []byte
+		checkErr, rcCheckErr, nonce, space sql.NullString
 	)
 
-	err := row.Scan(&t.id, &t.name, &t.type_, &configJSON, &version, &nonce, &checkErr, &rcCheckErr)
+	err := row.Scan(&t.id, &t.name, &t.type_, &configJSON, &space, &nonce, &checkErr, &rcCheckErr)
 	if err != nil {
 		return err
 	}
 
-	if version.Valid {
-		err = json.Unmarshal([]byte(version.String), &t.version)
-		if err != nil {
-			return err
-		}
+	if space.Valid {
+		t.space = atc.Space(space.String)
 	}
 
 	es := t.conn.EncryptionStrategy()

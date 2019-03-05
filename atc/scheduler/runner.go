@@ -138,6 +138,12 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		return err
 	}
 
+	vrts, err := resourceTypes.Deserialize()
+	if err != nil {
+		logger.Error("failed-to-deserialize-resource-types", err)
+		return err
+	}
+
 	sLog := logger.Session("scheduling")
 
 	schedulingTimes, err := runner.Scheduler.Schedule(
@@ -145,7 +151,7 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		versions,
 		jobs,
 		resources,
-		resourceTypes.Deserialize(),
+		vrts,
 	)
 
 	for jobName, duration := range schedulingTimes {

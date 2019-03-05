@@ -27,7 +27,12 @@ func (s *Server) CheckResource(dbPipeline db.Pipeline) http.Handler {
 
 		scanner := s.scannerFactory.NewResourceScanner(dbPipeline)
 
-		err = scanner.ScanFromVersion(logger, resourceName, map[atc.Space]atc.Version{reqBody.Space: reqBody.From})
+		fromVersion := map[atc.Space]atc.Version{}
+		if reqBody.From != nil && reqBody.Space != "" {
+			fromVersion[reqBody.Space] = reqBody.From
+		}
+
+		err = scanner.ScanFromVersion(logger, resourceName, fromVersion)
 		switch scanErr := err.(type) {
 		case atc.ErrResourceScriptFailed:
 			checkResponseBody := atc.CheckResponseBody{

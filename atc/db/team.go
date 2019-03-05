@@ -674,9 +674,9 @@ func (t *team) saveResourceType(tx Tx, resourceType atc.ResourceType, pipelineID
 
 	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE resource_types
-		SET config = $3, type = $4, active = true, nonce = $5
+		SET config = $3, type = $4, active = true, nonce = $5, space = $6
 		WHERE name = $1 AND pipeline_id = $2
-	`, resourceType.Name, pipelineID, encryptedPayload, resourceType.Type, nonce)
+	`, resourceType.Name, pipelineID, encryptedPayload, resourceType.Type, nonce, resourceType.Space)
 	if err != nil {
 		return err
 	}
@@ -686,9 +686,9 @@ func (t *team) saveResourceType(tx Tx, resourceType atc.ResourceType, pipelineID
 	}
 
 	_, err = tx.Exec(`
-		INSERT INTO resource_types (name, type, pipeline_id, config, active, nonce)
-		VALUES ($1, $2, $3, $4, true, $5)
-	`, resourceType.Name, resourceType.Type, pipelineID, encryptedPayload, nonce)
+		INSERT INTO resource_types (name, type, pipeline_id, config, active, nonce, space)
+		VALUES ($1, $2, $3, $4, true, $5, $6)
+	`, resourceType.Name, resourceType.Type, pipelineID, encryptedPayload, nonce, resourceType.Space)
 
 	return swallowUniqueViolation(err)
 }

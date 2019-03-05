@@ -274,13 +274,13 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 	var version atc.Version
 	var ok bool
 
-	if resourceType.DefaultSpace == "" {
+	if resourceType.Space == "" {
 		if eventHandler.SavedDefaultSpace == "" {
 			return ErrNoSpaceSpecified
 		}
 		defaultSpace = eventHandler.SavedDefaultSpace
 	} else {
-		defaultSpace = resourceType.DefaultSpace
+		defaultSpace = resourceType.Space
 	}
 
 	if version, ok = eventHandler.SavedLatestVersions[defaultSpace]; !ok {
@@ -288,7 +288,7 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 	}
 
 	resourceType.Version = version
-	resourceType.DefaultSpace = defaultSpace
+	resourceType.Space = defaultSpace
 	i.customTypes = append(i.customTypes.Without(resourceType.Name), resourceType)
 
 	return nil

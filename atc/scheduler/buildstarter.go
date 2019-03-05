@@ -124,7 +124,11 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		if err != nil {
 			return false, err
 		}
-		resourceTypes = dbResourceTypes.Deserialize()
+
+		resourceTypes, err = dbResourceTypes.Deserialize()
+		if err != nil {
+			return false, err
+		}
 	}
 
 	buildInputs, found, err := job.GetNextBuildInputs()

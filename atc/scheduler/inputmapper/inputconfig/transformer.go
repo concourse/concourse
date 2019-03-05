@@ -39,7 +39,7 @@ func (i *transformer) TransformInputConfigs(db *algorithm.VersionsDB, jobName st
 				continue
 			}
 
-			id, found, err := resource.ResourceConfigVersionID(input.Version.Pinned)
+			id, found, err := resource.ResourceVersionID(input.Version.Pinned)
 			if err != nil {
 				return nil, err
 			}

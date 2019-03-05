@@ -25,6 +25,9 @@ BEGIN;
   ALTER TABLE resource_configs
     ADD COLUMN "default_space" text;
 
+  ALTER TABLE resource_types
+    ADD COLUMN "space" text;
+
   CREATE UNIQUE INDEX job_combinations_job_id_combination_key ON job_combinations (job_id, combination);
   CREATE INDEX job_combinations_latest_completed_build_id ON job_combinations (latest_completed_build_id);
   CREATE INDEX job_combinations_next_build_id ON job_combinations (next_build_id);

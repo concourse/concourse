@@ -125,8 +125,10 @@ var _ = Describe("ResourceConfigFactory", func() {
 				BeforeEach(func() {
 					pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 					Expect(err).ToNot(HaveOccurred())
+					versionedResourceTypes, err := pipelineResourceTypes.Deserialize()
+					Expect(err).ToNot(HaveOccurred())
 
-					createdResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{}, creds.NewVersionedResourceTypes(template.StaticVariables{}, pipelineResourceTypes.Deserialize()))
+					createdResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{}, creds.NewVersionedResourceTypes(template.StaticVariables{}, versionedResourceTypes))
 					Expect(err).ToNot(HaveOccurred())
 					Expect(createdResourceConfig).ToNot(BeNil())
 

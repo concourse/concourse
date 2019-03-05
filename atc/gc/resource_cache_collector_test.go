@@ -115,10 +115,18 @@ var _ = Describe("ResourceCacheCollector", func() {
 				Context("when the cache is an input to a job", func() {
 					BeforeEach(func() {
 						var versionID int
+						var spaceID int
+						err = psql.Insert("spaces").
+							Columns("name", "resource_config_id").
+							Values("space", jobCache.ResourceConfig().ID()).
+							Suffix("RETURNING id").
+							RunWith(dbConn).QueryRow().Scan(&spaceID)
+						Expect(err).NotTo(HaveOccurred())
+
 						version := `{"some":"version"}`
-						err = psql.Insert("resource_config_versions").
-							Columns("version", "version_md5", "metadata", "resource_config_id").
-							Values(version, sq.Expr(fmt.Sprintf("md5('%s')", version)), `null`, jobCache.ResourceConfig().ID()).
+						err = psql.Insert("resource_versions").
+							Columns("version", "version_md5", "metadata", "space_id", "partial").
+							Values(version, sq.Expr(fmt.Sprintf("md5('%s')", version)), `null`, spaceID, false).
 							Suffix("RETURNING id").
 							RunWith(dbConn).QueryRow().Scan(&versionID)
 						Expect(err).NotTo(HaveOccurred())

@@ -2240,6 +2240,6 @@ func fakeDBResourceType(t atc.VersionedResourceType) *dbfakes.FakeResourceType {
 	fake.NameReturns(t.Name)
 	fake.TypeReturns(t.Type)
 	fake.SourceReturns(t.Source)
-	fake.VersionReturns(t.Version)
+	fake.VersionReturns(t.Version, nil)
 	return fake
 }

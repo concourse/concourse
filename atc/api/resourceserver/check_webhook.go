@@ -45,7 +45,8 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		var fromVersion atc.Version
+
+		fromVersion := map[atc.Space]atc.Version{}
 		resourceConfigId := pipelineResource.ResourceConfigID()
 		resourceConfig, found, err := s.resourceConfigFactory.FindResourceConfigByID(resourceConfigId)
 		if err != nil {
@@ -61,8 +62,9 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			if found {
-				fromVersion = atc.Version(latestVersion.Version())
+
+			for _, v := range latestVersions {
+				fromVersion[v.Space()] = atc.Version(v.Version())
 			}
 		}
 

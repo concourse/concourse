@@ -142,7 +142,7 @@ var _ = Describe("BuildStarter", func() {
 						fakeDBResourceType.TypeReturns("fake")
 						fakeDBResourceType.SourceReturns(atc.Source{"im": "fake"})
 						fakeDBResourceType.PrivilegedReturns(true)
-						fakeDBResourceType.VersionReturns(atc.Version{"version": "1.2.3"})
+						fakeDBResourceType.VersionReturns(atc.Version{"version": "1.2.3"}, nil)
 
 						fakePipeline.ResourceTypesReturns(db.ResourceTypes{fakeDBResourceType}, nil)
 

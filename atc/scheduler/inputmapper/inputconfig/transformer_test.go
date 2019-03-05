@@ -162,7 +162,7 @@ var _ = Describe("Transformer", func() {
 
 						BeforeEach(func() {
 							disaster = errors.New("bad thing")
-							fakeResource.ResourceConfigVersionIDReturns(0, false, disaster)
+							fakeResource.ResourceVersionIDReturns(0, false, disaster)
 						})
 
 						It("returns the error", func() {
@@ -170,15 +170,15 @@ var _ = Describe("Transformer", func() {
 						})
 
 						It("looked up the version id with the right resource and version", func() {
-							Expect(fakeResource.ResourceConfigVersionIDCallCount()).To(Equal(1))
-							actualVersion := fakeResource.ResourceConfigVersionIDArgsForCall(0)
+							Expect(fakeResource.ResourceVersionIDCallCount()).To(Equal(1))
+							actualVersion := fakeResource.ResourceVersionIDArgsForCall(0)
 							Expect(actualVersion).To(Equal(atc.Version{"version": "v1"}))
 						})
 					})
 
 					Context("when the pinned version is not found", func() {
 						BeforeEach(func() {
-							fakeResource.ResourceConfigVersionIDReturns(0, false, nil)
+							fakeResource.ResourceVersionIDReturns(0, false, nil)
 						})
 
 						It("omits the entire input", func() {
@@ -195,7 +195,7 @@ var _ = Describe("Transformer", func() {
 
 					Context("when the pinned version is found", func() {
 						BeforeEach(func() {
-							fakeResource.ResourceConfigVersionIDReturns(99, true, nil)
+							fakeResource.ResourceVersionIDReturns(99, true, nil)
 						})
 
 						It("sets the pinned version ID", func() {

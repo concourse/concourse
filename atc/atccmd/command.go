@@ -51,7 +51,7 @@ import (
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/jessevdk/go-flags"
+	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -529,12 +529,12 @@ func (cmd *RunCommand) constructAPIMembers(
 
 	dbResourceConfigCheckSessionFactory := db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
+		dbConn,
 		resourceFactory,
 		dbResourceConfigCheckSessionFactory,
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		engine,
-		dbConn,
 	)
 
 	radarScannerFactory := radar.NewScannerFactory(
@@ -728,12 +728,12 @@ func (cmd *RunCommand) constructBackendMembers(
 
 	dbResourceConfigCheckSessionFactory := db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
+		dbConn,
 		resourceFactory,
 		dbResourceConfigCheckSessionFactory,
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		engine,
-		dbConn,
 	)
 	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
 	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(dbConn)

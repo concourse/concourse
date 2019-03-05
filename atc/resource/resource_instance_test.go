@@ -33,6 +33,7 @@ var _ = Describe("ResourceInstance", func() {
 
 		resourceInstance = NewResourceInstance(
 			"some-resource-type",
+			atc.Space("space"),
 			atc.Version{"some": "version"},
 			atc.Source{"some": "source"},
 			atc.Params{"some": "params"},

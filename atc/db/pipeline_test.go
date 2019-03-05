@@ -2211,7 +2211,7 @@ var _ = Describe("Pipeline", func() {
 		})
 	})
 
-	Describe("Resources", func() {
+	Describe("ResourceTypes", func() {
 		var resourceTypes db.ResourceTypes
 
 		BeforeEach(func() {
@@ -2254,6 +2254,9 @@ var _ = Describe("Pipeline", func() {
 				},
 			})
 
+			err = resourceTypeConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"version": "2"})
+			Expect(err).ToNot(HaveOccurred())
+
 			otherResourceTypeConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "base-type", atc.Source{"some": "other-type-source"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
@@ -2280,6 +2283,9 @@ var _ = Describe("Pipeline", func() {
 					Space:   atc.Space("space"),
 				},
 			})
+
+			err = otherResourceTypeConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"version": "5"})
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		JustBeforeEach(func() {
@@ -2289,8 +2295,13 @@ var _ = Describe("Pipeline", func() {
 		})
 
 		It("returns the version", func() {
-			resourceTypeVersions := []atc.Version{resourceTypes[0].Version()}
-			resourceTypeVersions = append(resourceTypeVersions, resourceTypes[1].Version())
+			version1, err := resourceTypes[0].Version()
+			Expect(err).ToNot(HaveOccurred())
+
+			version2, err := resourceTypes[1].Version()
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceTypeVersions := []atc.Version{version1, version2}
 			Expect(resourceTypeVersions).To(ConsistOf(atc.Version{"version": "2"}, atc.Version{"version": "5"}))
 		})
 	})

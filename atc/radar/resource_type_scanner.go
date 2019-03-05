@@ -96,7 +96,13 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 		if parentType.Name() != savedResourceType.Type() {
 			continue
 		}
-		if parentType.Version() != nil {
+
+		version, err := parentType.Version()
+		if err != nil {
+			return 0, err
+		}
+
+		if version != nil {
 			continue
 		}
 
@@ -113,9 +119,15 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 		return 0, err
 	}
 
+	vrts, err := resourceTypes.Deserialize()
+	if err != nil {
+		logger.Error("failed-to-deserialize-resource-types", err)
+		return 0, err
+	}
+
 	versionedResourceTypes := creds.NewVersionedResourceTypes(
 		scanner.variables,
-		resourceTypes.Deserialize(),
+		vrts,
 	)
 
 	source, err := creds.NewSource(scanner.variables, savedResourceType.Source()).Evaluate()

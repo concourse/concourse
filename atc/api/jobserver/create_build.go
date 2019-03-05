@@ -42,7 +42,12 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		versionedResourceTypes := resourceTypes.Deserialize()
+		versionedResourceTypes, err := resourceTypes.Deserialize()
+		if err != nil {
+			logger.Error("failed-to-deserialize-resource-types", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
 		resources, err := pipeline.Resources()
 		if err != nil {

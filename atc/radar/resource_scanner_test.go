@@ -99,7 +99,7 @@ var _ = Describe("ResourceScanner", func() {
 		fakeResourceType.NameReturns("some-custom-resource")
 		fakeResourceType.TypeReturns("registry-image")
 		fakeResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
-		fakeResourceType.VersionReturns(atc.Version{"custom": "version"})
+		fakeResourceType.VersionReturns(atc.Version{"custom": "version"}, nil)
 
 		fakeDBResource.IDReturns(39)
 		fakeDBResource.NameReturns("some-resource")
@@ -267,7 +267,7 @@ var _ = Describe("ResourceScanner", func() {
 
 				Context("and the custom type does not have a version", func() {
 					BeforeEach(func() {
-						fakeResourceType.VersionReturns(nil)
+						fakeResourceType.VersionReturns(nil, nil)
 					})
 
 					It("scans for new versions of the custom type", func() {
@@ -306,17 +306,17 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when there are current versions", func() {
 				BeforeEach(func() {
-					fakeResourceConfigVersion1 := new(dbfakes.FakeResourceConfigVersion)
-					fakeResourceConfigVersion1.IDReturns(1)
-					fakeResourceConfigVersion1.VersionReturns(db.Version{"version": "1"})
-					fakeResourceConfigVersion1.SpaceReturns(atc.Space("space1"))
+					fakeResourceVersion1 := new(dbfakes.FakeResourceVersion)
+					fakeResourceVersion1.IDReturns(1)
+					fakeResourceVersion1.VersionReturns(db.Version{"version": "1"})
+					fakeResourceVersion1.SpaceReturns(atc.Space("space1"))
 
-					fakeResourceConfigVersion2 := new(dbfakes.FakeResourceConfigVersion)
-					fakeResourceConfigVersion2.IDReturns(2)
-					fakeResourceConfigVersion2.VersionReturns(db.Version{"version": "2"})
-					fakeResourceConfigVersion2.SpaceReturns(atc.Space("space2"))
+					fakeResourceVersion2 := new(dbfakes.FakeResourceVersion)
+					fakeResourceVersion2.IDReturns(2)
+					fakeResourceVersion2.VersionReturns(db.Version{"version": "2"})
+					fakeResourceVersion2.SpaceReturns(atc.Space("space2"))
 
-					fakeResourceConfig.LatestVersionsReturns([]db.ResourceConfigVersion{fakeResourceConfigVersion1, fakeResourceConfigVersion2}, nil)
+					fakeResourceConfig.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
 				})
 
 				It("checks from it", func() {
@@ -442,7 +442,7 @@ var _ = Describe("ResourceScanner", func() {
 					fakeGitResourceType.NameReturns("git")
 					fakeGitResourceType.TypeReturns("registry-image")
 					fakeGitResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
-					fakeGitResourceType.VersionReturns(nil)
+					fakeGitResourceType.VersionReturns(nil, nil)
 
 					fakeResourceTypeScanner.ScanReturns(errors.New("some-resource-type-error"))
 				})
@@ -635,10 +635,10 @@ var _ = Describe("ResourceScanner", func() {
 
 				Context("when finding the version succeeds", func() {
 					BeforeEach(func() {
-						fakeResourceConfigVersion := new(dbfakes.FakeResourceConfigVersion)
-						fakeResourceConfigVersion.IDReturns(1)
-						fakeResourceConfigVersion.VersionReturns(db.Version{"version": "1"})
-						fakeResourceConfig.FindVersionReturns(fakeResourceConfigVersion, true, nil)
+						fakeResourceVersion := new(dbfakes.FakeResourceVersion)
+						fakeResourceVersion.IDReturns(1)
+						fakeResourceVersion.VersionReturns(db.Version{"version": "1"})
+						fakeResourceConfig.FindVersionReturns(fakeResourceVersion, true, nil)
 					})
 
 					It("does not check", func() {
@@ -746,17 +746,17 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when there is a current version", func() {
 				BeforeEach(func() {
-					fakeResourceConfigVersion1 := new(dbfakes.FakeResourceConfigVersion)
-					fakeResourceConfigVersion1.IDReturns(1)
-					fakeResourceConfigVersion1.VersionReturns(db.Version{"version": "1"})
-					fakeResourceConfigVersion1.SpaceReturns(atc.Space("space1"))
+					fakeResourceVersion1 := new(dbfakes.FakeResourceVersion)
+					fakeResourceVersion1.IDReturns(1)
+					fakeResourceVersion1.VersionReturns(db.Version{"version": "1"})
+					fakeResourceVersion1.SpaceReturns(atc.Space("space1"))
 
-					fakeResourceConfigVersion2 := new(dbfakes.FakeResourceConfigVersion)
-					fakeResourceConfigVersion2.IDReturns(2)
-					fakeResourceConfigVersion2.VersionReturns(db.Version{"version": "2"})
-					fakeResourceConfigVersion2.SpaceReturns(atc.Space("space2"))
+					fakeResourceVersion2 := new(dbfakes.FakeResourceVersion)
+					fakeResourceVersion2.IDReturns(2)
+					fakeResourceVersion2.VersionReturns(db.Version{"version": "2"})
+					fakeResourceVersion2.SpaceReturns(atc.Space("space2"))
 
-					fakeResourceConfig.LatestVersionsReturns([]db.ResourceConfigVersion{fakeResourceConfigVersion1, fakeResourceConfigVersion2}, nil)
+					fakeResourceConfig.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
 				})
 
 				It("checks from it", func() {
@@ -856,17 +856,17 @@ var _ = Describe("ResourceScanner", func() {
 
 				Context("when there are latest versions", func() {
 					BeforeEach(func() {
-						fakeResourceConfigVersion1 := new(dbfakes.FakeResourceConfigVersion)
-						fakeResourceConfigVersion1.IDReturns(1)
-						fakeResourceConfigVersion1.VersionReturns(db.Version{"version": "1"})
-						fakeResourceConfigVersion1.SpaceReturns(atc.Space("space1"))
+						fakeResourceVersion1 := new(dbfakes.FakeResourceVersion)
+						fakeResourceVersion1.IDReturns(1)
+						fakeResourceVersion1.VersionReturns(db.Version{"version": "1"})
+						fakeResourceVersion1.SpaceReturns(atc.Space("space1"))
 
-						fakeResourceConfigVersion2 := new(dbfakes.FakeResourceConfigVersion)
-						fakeResourceConfigVersion2.IDReturns(2)
-						fakeResourceConfigVersion2.VersionReturns(db.Version{"version": "2"})
-						fakeResourceConfigVersion2.SpaceReturns(atc.Space("space2"))
+						fakeResourceVersion2 := new(dbfakes.FakeResourceVersion)
+						fakeResourceVersion2.IDReturns(2)
+						fakeResourceVersion2.VersionReturns(db.Version{"version": "2"})
+						fakeResourceVersion2.SpaceReturns(atc.Space("space2"))
 
-						fakeResourceConfig.LatestVersionsReturns([]db.ResourceConfigVersion{fakeResourceConfigVersion1, fakeResourceConfigVersion2}, nil)
+						fakeResourceConfig.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
 					})
 
 					Context("when fromVersion has the same space", func() {

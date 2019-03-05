@@ -24,9 +24,14 @@ func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
+		fromVersion := map[atc.Space]atc.Version{}
+		if reqBody.From != nil && reqBody.Space != "" {
+			fromVersion[reqBody.Space] = reqBody.From
+		}
+
 		scanner := s.scannerFactory.NewResourceTypeScanner(dbPipeline)
 
-		err = scanner.ScanFromVersion(logger, resourceName, map[atc.Space]atc.Version{reqBody.Space: reqBody.From})
+		err = scanner.ScanFromVersion(logger, resourceName, fromVersion)
 		switch err.(type) {
 		case db.ResourceTypeNotFoundError:
 			w.WriteHeader(http.StatusNotFound)

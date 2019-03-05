@@ -21,7 +21,7 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
-	"github.com/concourse/concourse/atc/resource/v2"
+	v2 "github.com/concourse/concourse/atc/resource/v2"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/image"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
@@ -391,6 +391,7 @@ var _ = Describe("Image", func() {
 								Expect(actualTeamID).To(Equal(teamID))
 								Expect(resourceInstance).To(Equal(resource.NewResourceInstance(
 									"docker",
+									atc.Space("space"),
 									atc.Version{"v": "1"},
 									atc.Source{"some": "super-secret-sauce"},
 									atc.Params{"some": "params"},
@@ -402,7 +403,7 @@ var _ = Describe("Image", func() {
 								Expect(delegate).To(Equal(fakeImageFetchingDelegate))
 								expectedLockName := fmt.Sprintf("%x",
 									sha256.Sum256([]byte(
-										`{"type":"docker","version":{"v":"1"},"source":{"some":"super-secret-sauce"},"params":{"some":"params"},"worker_name":"fake-worker-name"}`,
+										`{"type":"docker","space":"space","version":{"v":"1"},"source":{"some":"super-secret-sauce"},"params":{"some":"params"},"worker_name":"fake-worker-name"}`,
 									)),
 								)
 								Expect(resourceInstance.LockName("fake-worker-name")).To(Equal(expectedLockName))
@@ -634,6 +635,7 @@ var _ = Describe("Image", func() {
 						Expect(actualTeamID).To(Equal(teamID))
 						Expect(resourceInstance).To(Equal(resource.NewResourceInstance(
 							"docker",
+							atc.Space("space"),
 							atc.Version{"some": "version"},
 							atc.Source{"some": "super-secret-sauce"},
 							atc.Params{"some": "params"},

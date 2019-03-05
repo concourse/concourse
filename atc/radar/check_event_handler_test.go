@@ -6,7 +6,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/radar"
-	"github.com/concourse/concourse/atc/resource/v2"
+	v2 "github.com/concourse/concourse/atc/resource/v2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -46,7 +46,7 @@ var _ = Describe("Check Event Handler", func() {
 
 			It("saves the default space", func() {
 				Expect(fakeResourceConfig.SaveDefaultSpaceCallCount()).To(Equal(1))
-				_, space := fakeResourceConfig.SaveDefaultSpaceArgsForCall(0)
+				space := fakeResourceConfig.SaveDefaultSpaceArgsForCall(0)
 				Expect(space).To(Equal(atc.Space("space")))
 			})
 		})
@@ -83,7 +83,7 @@ var _ = Describe("Check Event Handler", func() {
 		Context("when the space does not exist", func() {
 			It("saves the space", func() {
 				Expect(fakeResourceConfig.SaveSpaceCallCount()).To(Equal(1))
-				_, savedSpace := fakeResourceConfig.SaveSpaceArgsForCall(0)
+				savedSpace := fakeResourceConfig.SaveSpaceArgsForCall(0)
 				Expect(savedSpace).To(Equal(space))
 			})
 
@@ -111,8 +111,8 @@ var _ = Describe("Check Event Handler", func() {
 		})
 
 		It("saves the version", func() {
-			Expect(fakeResourceConfig.SaveVersionCallCount()).To(Equal(1))
-			_, actualSpace, actualVersion, actualMetadata := fakeResourceConfig.SaveVersionArgsForCall(0)
+			Expect(fakeResourceConfig.SavePartialVersionCallCount()).To(Equal(1))
+			actualSpace, actualVersion, actualMetadata := fakeResourceConfig.SavePartialVersionArgsForCall(0)
 			Expect(actualSpace).To(Equal(space))
 			Expect(actualVersion).To(Equal(version))
 			Expect(actualMetadata).To(Equal(metadata))
@@ -142,11 +142,11 @@ var _ = Describe("Check Event Handler", func() {
 			It("saves the latest versions", func() {
 				Expect(fakeResourceConfig.SaveSpaceLatestVersionCallCount()).To(Equal(2))
 
-				_, space, version := fakeResourceConfig.SaveSpaceLatestVersionArgsForCall(0)
+				space, version := fakeResourceConfig.SaveSpaceLatestVersionArgsForCall(0)
 				Expect(space).To(Equal(atc.Space("space")))
 				Expect(version).To(Equal(atc.Version{"ref": "v1"}))
 
-				_, space, version = fakeResourceConfig.SaveSpaceLatestVersionArgsForCall(1)
+				space, version = fakeResourceConfig.SaveSpaceLatestVersionArgsForCall(1)
 				Expect(space).To(Equal(atc.Space("other-space")))
 				Expect(version).To(Equal(atc.Version{"ref": "v2"}))
 			})

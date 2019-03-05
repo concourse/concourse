@@ -179,10 +179,11 @@ var _ = Describe("ResourceType", func() {
 		})
 	})
 
-	Describe("Resource type version", func() {
+	Describe("Version", func() {
 		var (
 			resourceType       db.ResourceType
 			resourceTypeConfig db.ResourceConfig
+			version            atc.Version
 		)
 
 		BeforeEach(func() {
@@ -209,12 +210,15 @@ var _ = Describe("ResourceType", func() {
 		})
 
 		JustBeforeEach(func() {
-			reloaded, err := resourceType.Reload()
-			Expect(reloaded).To(BeTrue())
+			var err error
+			resourceType, _, err = pipeline.ResourceType("some-type")
+			Expect(err).ToNot(HaveOccurred())
+
+			version, err = resourceType.Version()
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		Context("when the resource type has proper versions", func() {
+		Context("when the resource type has a default space", func() {
 			BeforeEach(func() {
 				err := resourceTypeConfig.SaveDefaultSpace(atc.Space("space"))
 				Expect(err).ToNot(HaveOccurred())
@@ -228,26 +232,88 @@ var _ = Describe("ResourceType", func() {
 						Space:   atc.Space("space"),
 						Version: atc.Version{"version": "2"},
 					},
+					atc.SpaceVersion{
+						Space:   atc.Space("space-2"),
+						Version: atc.Version{"version-2": "1"},
+					},
 				})
+
+				err = resourceTypeConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"version": "2"})
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("returns the version", func() {
-				Expect(resourceType.Version()).To(Equal(atc.Version{"version": "2"}))
+				Expect(version).To(Equal(atc.Version{"version": "2"}))
+			})
+
+			Context("when the resource type specifies a space", func() {
+				BeforeEach(func() {
+					_, created, err := defaultTeam.SavePipeline(
+						"pipeline-with-types",
+						atc.Config{
+							ResourceTypes: atc.ResourceTypes{
+								{
+									Name:   "some-type",
+									Type:   "registry-image",
+									Source: atc.Source{"some": "repository"},
+									Space:  "space-2",
+								},
+								{
+									Name:       "some-other-type",
+									Type:       "registry-image-ng",
+									Privileged: true,
+									Source:     atc.Source{"some": "other-repository"},
+								},
+								{
+									Name:   "some-type-with-params",
+									Type:   "s3",
+									Source: atc.Source{"some": "repository"},
+									Params: atc.Params{"unpack": "true"},
+								},
+								{
+									Name:       "some-type-with-custom-check",
+									Type:       "registry-image",
+									Source:     atc.Source{"some": "repository"},
+									CheckEvery: "10ms",
+								},
+							},
+						},
+						pipeline.ConfigVersion(),
+						db.PipelineNoChange,
+					)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(created).To(BeFalse())
+				})
+
+				It("returns the version within the specified space", func() {
+					Expect(version).To(Equal(atc.Version{"version-2": "1"}))
+				})
 			})
 		})
 
-		Context("when the version has a check order of 0", func() {
+		Context("when the version does not exist", func() {
 			BeforeEach(func() {
-				err := resourceTypeConfig.SaveSpace(atc.Space("space"))
-				Expect(err).ToNot(HaveOccurred())
-
-				created, err := resourceTypeConfig.SaveUncheckedVersion(atc.Space("space"), atc.Version{"version": "not-returned"}, nil)
+				_, created, err := defaultTeam.SavePipeline(
+					"non-existant-pipeline",
+					atc.Config{
+						ResourceTypes: atc.ResourceTypes{
+							{
+								Name:   "some-type",
+								Type:   "registry-image",
+								Source: atc.Source{"some": "repository"},
+								Space:  "unknown-space",
+							},
+						},
+					},
+					0,
+					db.PipelineUnpaused,
+				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeTrue())
 			})
 
-			It("returns the version", func() {
-				Expect(resourceType.Version()).To(BeNil())
+			It("returns the version within the specified space", func() {
+				Expect(version).To(BeNil())
 			})
 		})
 	})
