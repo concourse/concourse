@@ -47,6 +47,11 @@
     If you were setting this flag before, you probably didn't mean to - setting
     this with GitHub oAuth configured, for example, would allow literally
     everyone to be a part of your team and manage your pipelines.
+
+    After upgrading, any teams that had this configured will preserve the
+    behavior from before - they will continue to allow all users. The next time
+    the teams are configured, however, you will have to specify something else,
+    as the CLI no longer has the flag.
   }
 
   \note{feature,breaking}{
@@ -79,10 +84,14 @@
     The rebalancing makes sure to drain in-flight connections and should not
     disrupt any in-flight builds.
 
-    Along the way, we removed support for direct worker registration.
+    Along the way, we removed support for direct worker registration. The
+    \code{--peer-ip} flag is no longer available on \code{concourse worker}. To
+    transition to 5.0, just remove the flag - the worker will register via
+    forwarding instead.
+
     Forwarding is more secure as it doesn't require opening your workers up to
-    inbound traffic. It's easier to just focus on one registration method and
-    make sure it works well.
+    inbound traffic. It's easier for us to just focus on one registration
+    method and make sure it works well.
 
     This also sets us up for enforcing TLS for all traffic to the forwarded
     workers in the future (\ghissue{2415}).
@@ -151,6 +160,12 @@
     If you're curious about the design process for this feature, check out
     \link{RFC #3
     (RBAC)}{https://github.com/concourse/rfcs/blob/master/003-rbac/proposal.md}!
+  }
+
+  \note{feature}{
+    The \reference{web-node} can now be configured with a
+    \reference{fewest-build-containers-strategy}, which will place containers
+    on workers that have the fewest build containers.
   }
 
   \note{feature}{

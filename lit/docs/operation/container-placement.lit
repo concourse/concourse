@@ -6,22 +6,13 @@ Each \reference{steps}{step} in a build is executed inside a container. The
 \reference{web-node} distributes containers across the worker cluster depending
 on the configured strategy.
 
-Concourse uses the \reference{volume-locality-strategy} by default. This can be
-changed to a different container placement strategy by passing the
-\code{--container-placement-strategy} flag like so:
-
-\codeblock{bash}{{{
-concourse web \
-  ... \
-  --container-placement-strategy=fewest-build-containers
-}}}
-
 \section{
   \title{\aux{The }\code{volume-locality} strategy}{volume-locality-strategy}
 
   When using \code{volume-locality}, the \reference{web-node} places
   \reference{task-step} and \reference{put-step} containers on workers where a
-  majority of their inputs are already present.
+  majority of their inputs are already present. \bold{This is the default
+  strategy.}
 
   The advantage of this approach is that it reduces the likelihood that large
   artifacts will have to be streamed from one \reference{worker-node}, through
@@ -42,6 +33,12 @@ concourse web \
   When using the \code{fewest-build-containers} strategy, step containers are
   placed on the worker that has the fewest build containers (i.e. containers
   for other steps of other builds).
+
+  To use this strategy, set the following env var on the \reference{web-node}:
+
+  \codeblock{bash}{{{
+  CONCOURSE_CONTAINER_PLACEMENT_STRATEGY=fewest-build-containers
+  }}}
 }
 
 \section{
@@ -51,4 +48,10 @@ concourse web \
   \code{put} and \code{task} containers on any worker, ignoring any affinity.
 
   As this is truly random, this will be fine until one day it's not fine.
+
+  To use this strategy, set the following env var on the \reference{web-node}:
+
+  \codeblock{bash}{{{
+  CONCOURSE_CONTAINER_PLACEMENT_STRATEGY=random
+  }}}
 }
