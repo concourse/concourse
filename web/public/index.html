@@ -216,6 +216,14 @@
         setInterval(flush, 200);
       });
 
+      window.onscroll = function(event) {
+        var yOffset = event.currentTarget.pageYOffset;
+        var clientHeight = event.target.documentElement.clientHeight;
+        var scrollHeight = event.target.documentElement.scrollHeight;
+        var atBottom = scrollHeight === yOffset + clientHeight;
+        app.ports.scrolledToBottom.send(atBottom);
+      }
+
     </script>
     <script>
       var clipboard = new ClipboardJS('#copy-token');

@@ -94,7 +94,10 @@ init flags =
         route =
             case flags.pageType of
                 OneOffBuildPage buildId ->
-                    Routes.OneOffBuild { id = buildId, highlight = flags.highlight }
+                    Routes.OneOffBuild
+                        { id = buildId
+                        , highlight = flags.highlight
+                        }
 
                 JobBuildPage buildId ->
                     Routes.Build { id = buildId, highlight = flags.highlight }
@@ -139,7 +142,7 @@ subscriptions model =
                 |> Maybe.andThen .eventStreamUrlPath
     in
     [ OnClockTick OneSecond
-    , OnScrollFromWindowBottom
+    , OnScrollToBottom
     , OnKeyDown
     , OnKeyUp
     ]
@@ -316,8 +319,8 @@ handleDelivery delivery ( model, effects ) =
                 )
                 ( newModel, effects )
 
-        ScrolledFromWindowBottom distanceFromBottom ->
-            ( { model | autoScroll = distanceFromBottom == 0 }, effects )
+        ScrolledToBottom atBottom ->
+            ( { model | autoScroll = atBottom }, effects )
 
         EventsReceived envelopes ->
             envelopes
@@ -1135,8 +1138,7 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                 [ abortButton, triggerButton ]
             ]
         , Html.div
-            [ onMouseWheel ScrollBuilds
-            ]
+            [ onMouseWheel ScrollBuilds ]
             [ lazyViewHistory build history ]
         ]
 

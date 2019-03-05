@@ -399,7 +399,8 @@ all =
                         (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 187))
+                    |> Application.update
+                        (Msgs.DeliveryReceived (ScrolledToBottom False))
                     |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/1/events"
@@ -407,16 +408,18 @@ all =
                         }
                     |> Tuple.second
                     |> Expect.equal []
-        , test "when build is running but the user is scrolls back to the bottom it scrolls on build event" <|
+        , test "when build is running but the user scrolls back to the bottom it scrolls on build event" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
                         (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 187))
+                    |> Application.update
+                        (Msgs.DeliveryReceived (ScrolledToBottom False))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 0))
+                    |> Application.update
+                        (Msgs.DeliveryReceived (ScrolledToBottom True))
                     |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/1/events"
