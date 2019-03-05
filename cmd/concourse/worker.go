@@ -164,14 +164,25 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		)
 
 		members = append(members, grouper.Member{
-			Name: "sweeper",
+			Name: "container-sweeper",
 			Runner: NewLoggingRunner(
-				logger.Session("sweeper"),
-				&worker.SweepRunner{
-					Logger:             logger.Session("sweeper-runner"),
+				logger.Session("container-sweeper"),
+				&worker.ContainerSweeper{
+					Logger:             logger.Session("container-sweeper"),
 					Interval:           cmd.SweepInterval,
 					TSAClient:          tsaClient,
 					GardenClient:       gardenClient,
+				},
+			),
+		})
+		members = append(members, grouper.Member{
+			Name: "volume-sweeper",
+			Runner: NewLoggingRunner(
+				logger.Session("volume-sweeper"),
+				&worker.VolumeSweeper{
+					Logger:             logger.Session("volume-sweeper"),
+					Interval:           cmd.SweepInterval,
+					TSAClient:          tsaClient,
 					BaggageclaimClient: baggageclaimClient,
 				},
 			),
