@@ -6,6 +6,8 @@ Concourse started as a side-project by
 has grown into a small but dedicated team of full-time engineers and
 part-time contributors.
 
+\split-sections
+
 \section{
   \title{Why make Concourse?}
 
@@ -91,3 +93,4 @@ part-time contributors.
 }
 
 \include-section{./trademarks.lit}
+\include-section{./architecture/architecture.lit}

@@ -57,6 +57,5 @@ the "big picture" as the mental model sets in.
 \include-section{./docs/resources.lit}
 \include-section{./docs/resource-types.lit}
 \include-section{./docs/operation.lit}
-\include-section{./architecture/architecture.lit}
 
 \split-sections
