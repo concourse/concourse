@@ -2,6 +2,7 @@ module PipelineTests exposing (all)
 
 import Application.Application as Application
 import Application.Msgs as Msgs
+import Build.Msgs
 import Callback
 import Char
 import Effects
@@ -10,6 +11,7 @@ import Html.Attributes as Attr
 import Json.Encode
 import Pipeline.Msgs exposing (Msg(..))
 import Pipeline.Pipeline as Pipeline exposing (update)
+import Resource.Msgs
 import Routes
 import SubPage.Msgs
 import Subscription exposing (Delivery(..), Interval(..))
@@ -781,7 +783,7 @@ all =
                         >> Event.simulate Event.click
                         >> Event.expect
                             (wrapTopBarMessage <|
-                                TopBar.Msgs.GoToPinnedResource <|
+                                TopBar.Msgs.GoToRoute <|
                                     Routes.Resource
                                         { id =
                                             { teamName = "team"
@@ -902,7 +904,7 @@ all =
                         |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-app" ]
-                        |> Query.find [ attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                        |> Query.find [ id "breadcrumb-pipeline" ]
                         |> Query.has [ style [ ( "display", "inline-block" ) ] ]
             , test "top bar has pipeline breadcrumb with icon rendered first" <|
                 \_ ->
@@ -910,7 +912,7 @@ all =
                         |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-app" ]
-                        |> Query.find [ attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                        |> Query.find [ id "breadcrumb-pipeline" ]
                         |> Query.children []
                         |> Query.first
                         |> Query.has pipelineBreadcrumbSelector
@@ -920,11 +922,8 @@ all =
                         |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-app" ]
-                        |> Query.find [ attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has
-                            [ text "pipeline" ]
+                        |> Query.find [ id "breadcrumb-pipeline" ]
+                        |> Query.has [ text "pipeline" ]
             , test "pipeline breadcrumb should have a link to the pipeline page" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
@@ -934,7 +933,12 @@ all =
                         |> Query.find [ id "breadcrumbs" ]
                         |> Query.children []
                         |> Query.first
-                        |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                        |> Event.simulate Event.click
+                        |> Event.expect
+                            (wrapTopBarMessage <|
+                                TopBar.Msgs.GoToRoute <|
+                                    Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                            )
             , describe "build page"
                 [ test "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
                     \_ ->
@@ -945,7 +949,14 @@ all =
                             |> Query.find [ id "breadcrumbs" ]
                             |> Query.children []
                             |> Query.index 0
-                            |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                            |> Event.simulate Event.click
+                            |> Event.expect
+                                (Msgs.SubMsg 1 <|
+                                    SubPage.Msgs.BuildMsg <|
+                                        Build.Msgs.FromTopBar <|
+                                            TopBar.Msgs.GoToRoute <|
+                                                Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                                )
                 , test "there should be a / between pipeline and job in breadcrumb" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
@@ -987,7 +998,14 @@ all =
                             |> Query.find [ id "breadcrumbs" ]
                             |> Query.children []
                             |> Query.index 0
-                            |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                            |> Event.simulate Event.click
+                            |> Event.expect
+                                (Msgs.SubMsg 1 <|
+                                    SubPage.Msgs.ResourceMsg <|
+                                        Resource.Msgs.TopBarMsg <|
+                                            TopBar.Msgs.GoToRoute <|
+                                                Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                                )
                 , test "there should be a / between pipeline and resource in breadcrumb" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline/resources/resource"

@@ -12,4 +12,4 @@ type Msg
     | ToggleUserMenu
     | ShowSearchInput
     | TogglePinIconDropdown
-    | GoToPinnedResource Routes.Route
+    | GoToRoute Routes.Route

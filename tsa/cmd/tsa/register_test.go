@@ -440,7 +440,7 @@ var _ = Describe("Register", func() {
 
 			Context("with a drain timeout", func() {
 				BeforeEach(func() {
-					opts.DrainTimeout = 5 * time.Second
+					opts.ConnectionDrainTimeout = 5 * time.Second
 				})
 
 				It("breaks connections after the configured drain timeout", func() {
@@ -468,8 +468,8 @@ var _ = Describe("Register", func() {
 
 					By("waiting for connections to be idle before exiting")
 					before := time.Now()
-					Expect(<-registerErr).To(Equal(tsa.ErrDrainTimeout))
-					Expect(time.Now().Sub(before)).To(BeNumerically("~", opts.DrainTimeout, time.Second))
+					Expect(<-registerErr).To(Equal(tsa.ErrConnectionDrainTimeout))
+					Expect(time.Now().Sub(before)).To(BeNumerically("~", opts.ConnectionDrainTimeout, time.Second))
 				})
 			})
 		})

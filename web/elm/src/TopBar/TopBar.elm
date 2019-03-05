@@ -342,6 +342,9 @@ update msg ( model, effects ) =
                    ]
             )
 
+        GoToRoute route ->
+            ( model, effects ++ [ NavigateTo (Routes.toString route) ] )
+
         LogIn ->
             ( model, effects ++ [ RedirectToLogin ] )
 
@@ -384,9 +387,6 @@ update msg ( model, effects ) =
 
         ShowSearchInput ->
             showSearchInput model
-
-        GoToPinnedResource route ->
-            ( model, effects ++ [ NavigateTo (Routes.toString route) ] )
 
 
 screenResize : Window.Size -> Model r -> Model r
@@ -670,34 +670,35 @@ breadcrumbComponent componentType name =
 viewBreadcrumbSeparator : Html Msg
 viewBreadcrumbSeparator =
     Html.li
-        [ class "breadcrumb-separator", style Styles.breadcrumbItem ]
+        [ class "breadcrumb-separator", style <| Styles.breadcrumbItem False ]
         [ Html.text "/" ]
 
 
 viewPipelineBreadcrumb : Concourse.PipelineIdentifier -> Html Msg
 viewPipelineBreadcrumb pipelineId =
     Html.li
-        [ id "breadcrumb-pipeline", style Styles.breadcrumbItem ]
-        [ Html.a
-            [ href <|
-                Routes.toString <|
-                    Routes.Pipeline { id = pipelineId, groups = [] }
-            ]
-            (breadcrumbComponent "pipeline" pipelineId.pipelineName)
+        [ id "breadcrumb-pipeline"
+        , style <| Styles.breadcrumbItem True
+        , onClick <| GoToRoute <| Routes.Pipeline { id = pipelineId, groups = [] }
         ]
+        (breadcrumbComponent "pipeline" pipelineId.pipelineName)
 
 
 viewJobBreadcrumb : String -> Html Msg
 viewJobBreadcrumb jobName =
     Html.li
-        [ id "breadcrumb-job", style Styles.breadcrumbItem ]
+        [ id "breadcrumb-job"
+        , style <| Styles.breadcrumbItem False
+        ]
         (breadcrumbComponent "job" jobName)
 
 
 viewResourceBreadcrumb : String -> Html Msg
 viewResourceBreadcrumb resourceName =
     Html.li
-        [ id "breadcrumb-resource", style Styles.breadcrumbItem ]
+        [ id "breadcrumb-resource"
+        , style <| Styles.breadcrumbItem False
+        ]
         (breadcrumbComponent "resource" resourceName)
 
 
@@ -770,7 +771,7 @@ viewPinDropdown pinnedResources pipeline model =
                     (\( resourceName, pinnedVersion ) ->
                         Html.li
                             [ onClick <|
-                                GoToPinnedResource <|
+                                GoToRoute <|
                                     Routes.Resource
                                         { id =
                                             { teamName = pipeline.teamName
