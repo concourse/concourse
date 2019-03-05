@@ -11,11 +11,10 @@ Out of the box, Concourse comes with a few resource types to cover common CI
 use cases like dealing with Git repositories and S3 buckets.
 
 Beyond these core types, each pipeline can configure its own resource types by
-specifying \code{resource_types} at the top level. Each resource type is
-itself defined as a resource that provides the container image for the pipeline
-resource type (see \reference{implementing-resources}). You will almost always
-be using the \link{\code{docker-image} resource
-type}{https://github.com/concourse/docker-image-resource} when doing this.
+specifying \code{resource_types} at the top level. Each resource type is itself
+defined as a resource that provides the container image for the pipeline
+resource type (see \reference{implementing-resource-types}). You will almost
+always be using the \resource{registry-image} when doing this.
 
 Pipeline-provided resource types can override the core resource types, and can
 be defined in terms of each other. Also, a pipeline resource type can use the
@@ -95,8 +94,8 @@ following attributes:
 
 \split-sections
 
-\include-section{./resource-types/managing.lit}
 \include-section{./resource-types/included-resources.lit}
+\include-section{./resource-types/managing.lit}
 \include-section{./resource-types/implementing.lit}
 
 \right-side{Examples}{
