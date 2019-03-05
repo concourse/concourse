@@ -129,14 +129,33 @@ all : Test
 all =
     describe "TopBar"
         [ rspecStyleDescribe "on init"
-            (TopBar.init { route = Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] } }
+            (TopBar.init
+                { route =
+                    Routes.Pipeline
+                        { id =
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            }
+                        , groups = []
+                        }
+                }
                 |> Tuple.second
             )
             [ it "requests screen size" <|
                 Expect.equal [ Effects.GetScreenSize ]
             ]
         , rspecStyleDescribe "when on pipeline page"
-            (TopBar.init { route = Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] } })
+            (TopBar.init
+                { route =
+                    Routes.Pipeline
+                        { id =
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            }
+                        , groups = []
+                        }
+                }
+            )
             [ context "when login state unknown"
                 (Tuple.first
                     >> TopBar.view UserState.UserStateUnknown Model.None
@@ -148,7 +167,9 @@ all =
                         >> Query.index 1
                         >> Query.has
                             [ style
-                                [ ( "background-image", "url(/public/images/concourse-logo-white.svg)" )
+                                [ ( "background-image"
+                                  , "url(/public/images/concourse-logo-white.svg)"
+                                  )
                                 , ( "background-position", "50% 50%" )
                                 , ( "background-repeat", "no-repeat" )
                                 , ( "background-size", "42px 42px" )
@@ -175,7 +196,13 @@ all =
                         Event.simulate Event.click
                             >> Event.expect
                                 (TopBar.Msgs.GoToRoute <|
-                                    Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                                    Routes.Pipeline
+                                        { id =
+                                            { teamName = "team"
+                                            , pipelineName = "pipeline"
+                                            }
+                                        , groups = []
+                                        }
                                 )
                     ]
                 , it "has dark grey background" <|
@@ -284,7 +311,18 @@ all =
             , it "clicking a pinned resource navigates to the pinned resource page" <|
                 Tuple.first
                     >> flip (,) []
-                    >> TopBar.update (TopBar.Msgs.GoToRoute (Routes.Resource { id = { teamName = "t", pipelineName = "p", resourceName = "r" }, page = Nothing }))
+                    >> TopBar.update
+                        (TopBar.Msgs.GoToRoute
+                            (Routes.Resource
+                                { id =
+                                    { teamName = "t"
+                                    , pipelineName = "p"
+                                    , resourceName = "r"
+                                    }
+                                , page = Nothing
+                                }
+                            )
+                        )
                     >> Tuple.second
                     >> Expect.equal [ Effects.NavigateTo "/teams/t/pipelines/p/resources/r" ]
             , context "when pipeline is paused"
@@ -310,7 +348,17 @@ all =
                 ]
             ]
         , rspecStyleDescribe "rendering user menus on clicks"
-            (TopBar.init { route = Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] } })
+            (TopBar.init
+                { route =
+                    Routes.Pipeline
+                        { id =
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            }
+                        , groups = []
+                        }
+                }
+            )
             [ it "shows user menu when ToggleUserMenu msg is received" <|
                 TopBar.update TopBar.Msgs.ToggleUserMenu
                     >> Tuple.first
@@ -361,7 +409,16 @@ all =
                     >> Query.has [ text "login" ]
             ]
         , rspecStyleDescribe "login component when user is logged out"
-            (TopBar.init { route = Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] } }
+            (TopBar.init
+                { route =
+                    Routes.Pipeline
+                        { id =
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            }
+                        , groups = []
+                        }
+                }
                 |> viewNormally
             )
             [ it "has a link to login" <|
@@ -398,7 +455,17 @@ all =
                         ]
             ]
         , rspecStyleDescribe "when triggering a log in message"
-            (TopBar.init { route = Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] } })
+            (TopBar.init
+                { route =
+                    Routes.Pipeline
+                        { id =
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            }
+                        , groups = []
+                        }
+                }
+            )
             [ it "redirects to login page when you click login" <|
                 Tuple.first
                     >> update TopBar.Msgs.LogIn
@@ -406,7 +473,18 @@ all =
                     >> Expect.equal [ Effects.RedirectToLogin ]
             ]
         , rspecStyleDescribe "rendering top bar on build page"
-            (TopBar.init { route = Routes.Build { id = { teamName = "team", pipelineName = "pipeline", jobName = "job", buildName = "1" }, highlight = Routes.HighlightNothing } }
+            (TopBar.init
+                { route =
+                    Routes.Build
+                        { id =
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            , jobName = "job"
+                            , buildName = "1"
+                            }
+                        , highlight = Routes.HighlightNothing
+                        }
+                }
                 |> viewNormally
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
@@ -418,7 +496,13 @@ all =
                     >> Event.simulate Event.click
                     >> Event.expect
                         (TopBar.Msgs.GoToRoute <|
-                            Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                            Routes.Pipeline
+                                { id =
+                                    { teamName = "team"
+                                    , pipelineName = "pipeline"
+                                    }
+                                , groups = []
+                                }
                         )
             , context "job breadcrumb"
                 (Query.find [ id "breadcrumb-job" ])
@@ -438,7 +522,17 @@ all =
                 ]
             ]
         , rspecStyleDescribe "rendering top bar on resource page"
-            (TopBar.init { route = Routes.Resource { id = { teamName = "team", pipelineName = "pipeline", resourceName = "resource" }, page = Nothing } }
+            (TopBar.init
+                { route =
+                    Routes.Resource
+                        { id =
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            , resourceName = "resource"
+                            }
+                        , page = Nothing
+                        }
+                }
                 |> viewNormally
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
@@ -450,7 +544,13 @@ all =
                     >> Event.simulate Event.click
                     >> Event.expect
                         (TopBar.Msgs.GoToRoute <|
-                            Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                            Routes.Pipeline
+                                { id =
+                                    { teamName = "team"
+                                    , pipelineName = "pipeline"
+                                    }
+                                , groups = []
+                                }
                         )
             , it "there is a / between pipeline and resource in breadcrumb" <|
                 Query.findAll [ tag "li" ]
@@ -475,7 +575,17 @@ all =
                         [ text "resource" ]
             ]
         , rspecStyleDescribe "rendering top bar on job page"
-            (TopBar.init { route = Routes.Job { id = { teamName = "team", pipelineName = "pipeline", jobName = "job" }, page = Nothing } }
+            (TopBar.init
+                { route =
+                    Routes.Job
+                        { id =
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            , jobName = "job"
+                            }
+                        , page = Nothing
+                        }
+                }
                 |> viewNormally
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
@@ -487,7 +597,13 @@ all =
                     >> Event.simulate Event.click
                     >> Event.expect
                         (TopBar.Msgs.GoToRoute <|
-                            Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                            Routes.Pipeline
+                                { id =
+                                    { teamName = "team"
+                                    , pipelineName = "pipeline"
+                                    }
+                                , groups = []
+                                }
                         )
             , it "there is a / between pipeline and job in breadcrumb" <|
                 Query.findAll [ tag "li" ]
@@ -626,7 +742,9 @@ all =
                     Query.find [ id TopBar.searchInputId ]
                         >> Query.has
                             [ style
-                                [ ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
+                                [ ( "background-image"
+                                  , "url('public/images/ic-search-white-24px.svg')"
+                                  )
                                 , ( "background-position", "12px 8px" )
                                 , ( "background-repeat", "no-repeat" )
                                 ]
@@ -687,7 +805,9 @@ all =
                     Query.find [ id "search-clear" ]
                         >> Query.has
                             [ style
-                                [ ( "background-image", "url('public/images/ic-close-white-24px.svg')" )
+                                [ ( "background-image"
+                                  , "url('public/images/ic-close-white-24px.svg')"
+                                  )
                                 , ( "background-position", "10px 10px" )
                                 , ( "background-repeat", "no-repeat" )
                                 ]
@@ -1247,12 +1367,24 @@ all =
                                                ]
                                         )
                                    , context "after hitting enter"
-                                        (TopBar.handleDelivery (KeyDown 13)
-                                            >> viewNormally
+                                        (Tuple.mapSecond (always [])
+                                            >> TopBar.handleDelivery
+                                                (KeyDown 13)
                                         )
                                         [ it "updates the query" <|
-                                            Query.find [ id TopBar.searchInputId ]
-                                                >> Query.has [ attribute <| Attr.value "status: " ]
+                                            viewNormally
+                                                >> Query.find
+                                                    [ id TopBar.searchInputId ]
+                                                >> Query.has
+                                                    [ attribute <|
+                                                        Attr.value "status: "
+                                                    ]
+                                        , it "updates the URL" <|
+                                            Tuple.second
+                                                >> Expect.equal
+                                                    [ Effects.ModifyUrl
+                                                        "?search=status%3A%20"
+                                                    ]
                                         ]
                                    ]
                             )
