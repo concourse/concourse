@@ -53,8 +53,8 @@
   }
 
   \note{feature}{
-    The \reference{credhub}{CredHub credential management integration} can now
-    be configured with mutual TLS based authentication.
+    The \reference{credhub-credential-manager} can now be configured with
+    mutual TLS based authentication.
   }
 
   \note{feature}{

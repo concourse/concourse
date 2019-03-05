@@ -46,6 +46,13 @@ func (p Plugin) Codeblock(language string, code booklit.Content) (booklit.Conten
 	return p.chroma.Syntax(language, code, "concourseci")
 }
 
+func (p Plugin) InlineHeader(content booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style:   "inline-header",
+		Content: content,
+	}
+}
+
 func (p Plugin) SplashIntro(intro, blurb booklit.Content) booklit.Content {
 	return booklit.Styled{
 		Style: "splash-intro",

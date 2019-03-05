@@ -59,13 +59,13 @@
   }
 
   \note{feature}{
-    The \reference{vault} credential manager can now be configured with a
+    The \reference{vault-credential-manager} can now be configured with a
     \code{--vault-auth-backend-max-ttl}, after which it will force a re-login.
     Thanks \ghuser{baptiste-bonnaudet} for the PR!
   }
 
   \note{feature}{
-    The \reference{vault} credential manager will now retry with exponential
+    The \reference{vault-credential-manager} will now retry with exponential
     backoff when logging in, rather than retrying every second.
   }
 

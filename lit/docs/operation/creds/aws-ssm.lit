@@ -1,0 +1,146 @@
+\title{\aux{The }AWS SSM credential manager}{aws-ssm-credential-manager}
+
+\use-plugin{concourse-docs}
+\omit-children-from-table-of-contents
+
+\section{
+  \title{Configuration}
+
+  The ATC is configured with an access key and secret key or session token and
+  the AWS region that your parameters are stored within. If no access key,
+  secret key, or session token is provided, Concourse will attempt to use
+  environment variables or the instance credentials assigned to the instance.
+
+  The ATC's configuration specifies the following:
+
+  \define-attribute{aws-ssm-access-key: string}{
+    A valid AWS access key.
+
+    Environment variable \code{CONCOURSE_AWS_SSM_ACCESS_KEY}.
+  }
+
+  \define-attribute{aws-ssm-secret-key: string}{
+    The secret key that corresponds to the access key defined above.
+
+    Environment variable \code{CONCOURSE_AWS_SSM_SECRET_KEY}.
+  }
+
+  \define-attribute{aws-ssm-session-token: string}{
+    A valid AWS session token.
+
+    Environment variable \code{CONCOURSE_AWS_SSM_SESSION_TOKEN}.
+  }
+
+  \define-attribute{aws-ssm-region: string}{
+    The AWS region that requests to parameter store will be sent to.
+
+    Environment variable \code{AWS_REGION}.
+  }
+
+  \define-attribute{aws-ssm-pipeline-secret-template: string}{
+    The base path used when attempting to locate a pipeline-level secret.
+
+    Environment variable \code{CONCOURSE_AWS_SSM_PIPELINE_SECRET_TEMPLATE}.
+
+    Example:
+
+    Default: \code{/concourse/\{\{.Team\}\}/\{\{.Pipeline\}\}/\{\{.Secret\}\}}
+  }
+
+  \define-attribute{aws-ssm-team-secret-template: string}{
+    The base path used when attempting to locate a team-level secret.
+
+    Environment variable \code{CONCOURSE_AWS_SSM_TEAM_SECRET_TEMPLATE}.
+
+    Example:
+
+    Default: \code{/concourse/\{\{.Team\}\}/\{\{.Secret\}\}}
+  }
+
+  For example, to launch the ATC and enable the parameter store, you may
+  configure:
+
+  \codeblock{bash}{{{
+    concourse web ... \
+      --aws-ssm-region us-east-1 \
+      --aws-ssm-access-key AKIAIOSFODNN7EXAMPLE \
+      --aws-ssm-secret-key wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+
+    # or use env variables
+    AWS_REGION="us-east-1" \
+    CONCOURSE_AWS_SSM_ACCESS_KEY="AKIAIOSFODNN7EXAMPLE" \
+    CONCOURSE_AWS_SSM_SECRET_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" \
+    concourse web ...
+  }}}
+
+  A more secure method is to configure an
+  \link{IAM role}{https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html}
+  for your EC2 ATC instance so that credentials are fetched automatically from
+  the EC2 metadata service.
+  }
+
+\section{
+  \title{IAM Permissions}
+
+  The following is an example of an IAM policy that can be used to grant
+  permissions to an IAM user or instance role. Note that the \code{Resource}
+  section can contain a wildcard to a parameter or be restricted to an
+  individual parameter.
+
+  \codeblock{json}{{{
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowAccessToSsmParameters",
+                "Effect": "Allow",
+                "Action": "ssm:GetParameters",
+                "Resource": [
+                    "arn:aws:ssm:::parameter/concourse/*",
+                    "arn:aws:ssm:::parameter/concourse/TEAM_NAME/*",
+                    "arn:aws:ssm:::parameter/concourse/TEAM_NAME/PIPELINE_NAME/*"
+                ]
+            },
+            {
+                "Sid": "AllowAccessToDecryptSsmParameters",
+                "Effect": "Allow",
+                "Action": [
+                    "kms:ListKeys",
+                    "kms:ListAliases",
+                    "kms:Describe*",
+                    "kms:Decrypt"
+                ],
+                "Resource": "arn:aws:::key/KMS_KEY_ID"
+            }
+        ]
+    }
+  }}}
+
+  Note that the \code{TEAM_NAME}, \code{PIPELINE_NAME}, and \code{KMS_KEY_ID} text above should
+  be replaced to fit your Concourse setup.
+
+  For more information on how to use IAM roles to restrict access to SSM parameters,
+  review the
+  \link{official documentation}{https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html}.
+}
+
+\section{
+  \title{Credential Lookup Rules}
+
+  When resolving a parameter such as \code{((foo_param))}, Concourse will look in
+  the following paths, in order:
+
+  \list{
+    \codeblock{}{{{
+      /concourse/TEAM_NAME/PIPELINE_NAME/foo_param
+    }}}
+  }{
+    \codeblock{}{{{
+      /concourse/TEAM_NAME/foo_param
+    }}}
+  }
+
+  The leading \code{/concourse} can be changed by specifying
+  \code{--aws-ssm-pipeline-secret-template} or
+  \code{--aws-ssm-team-secret-template} variables.
+}

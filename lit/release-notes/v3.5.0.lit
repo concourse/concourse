@@ -46,8 +46,8 @@
   \note{feature}{
     Concourse now supports
     \link{CredHub}{https://github.com/cloudfoundry-incubator/credhub} for
-    external credential management. See \reference{credhub} for more
-    information.
+    external credential management. See \reference{credhub-credential-manager}
+    for more information.
   }
 
   \note{fix}{

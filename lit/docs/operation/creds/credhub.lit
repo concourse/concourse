@@ -1,0 +1,52 @@
+\title{\aux{The }CredHub credential manager}{credhub-credential-manager}
+
+\use-plugin{concourse-docs}
+\omit-children-from-table-of-contents
+
+\section{
+  \title{Configuration}
+
+  The ATC is statically configured with a Credhub server URL with TLS and
+  client config.
+
+  For example, to point the ATC at an internal Credhub server with TLS signed
+  by a local CA, using client id and secret, you may configure:
+
+  \codeblock{bash}{{{
+    concourse web ... \
+      --credhub-url https://10.2.0.3:9000 \
+      --credhub-ca-cert /etc/my-ca.cert \
+      --credhub-client-id =db02de05-fa39-4855-059b-67221c5c2f63 \
+      --credhub-client-secret 6a174c20-f6de-a53c-74d2-6018fcceff64
+  }}}
+}
+
+\section{
+  \title{Credential Lookup Rules}
+
+  When resolving a parameter such as \code{((foo_param))}, it will look in
+  the following paths, in order:
+
+  \list{
+    \code{/concourse/TEAM_NAME/PIPELINE_NAME/foo_param}
+  }{
+    \code{/concourse/TEAM_NAME/foo_param}
+  }
+
+  The leading \code{/concourse} can be changed by specifying
+  \code{--credhub-path-prefix}.
+
+  Credhub credentials actually have different types, which may contain
+  multiple values. For example, the \code{user} type specifies both \code{username} and
+  \code{password}. You can specified the field to grab via \code{.} syntax, e.g.
+  \code{((foo_param.username))}.
+
+  If the action is being run in the context of a pipeline (e.g. a
+  \code{check} or a step in a build of a job), the ATC will first look in the
+  pipeline path. If it's not found there, it will look in the team path. This
+  allows credentials to be scoped widely if they're common across many
+  pipelines.
+
+  If an action is being run in a one-off build, the ATC will only look in the
+  team path.
+}

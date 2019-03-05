@@ -1,0 +1,189 @@
+\title{\aux{The }Vault credential manager}{vault-credential-manager}
+
+\use-plugin{concourse-docs}
+\omit-children-from-table-of-contents
+
+\section{
+  \title{Configuration}
+
+  The ATC is statically configured with a Vault server URL (plus any TLS
+  config), and either a client token or an auth backend.
+
+  The ATC's configuration specifies the following:
+
+  \define-attribute{vault-url: string}{
+    Vault server address used to access secrets.
+
+    Environment variable \code{CONCOURSE_VAULT_URL}.
+  }
+
+  \define-attribute{vault-path-prefix: string}{
+    Path under which to namespace credential lookup.
+
+    Environment variable \code{CONCOURSE_VAULT_PATH_PREFIX}.
+
+    Default: \code{/concourse}.
+  }
+
+  \define-attribute{vault-ca-cert: string}{
+    Path to a PEM-encoded CA cert file to use to verify the vault server SSL cert.
+
+    Environment variable \code{CONCOURSE_VAULT_CA_CERT}.
+  }
+
+  \define-attribute{vault-ca-path: string}{
+    Path to a directory of PEM-encoded CA cert files to verify the vault server SSL cert.
+
+    Environment variable \code{CONCOURSE_VAULT_CA_PATH}.
+  }
+
+  \define-attribute{vault-client-cert: string}{
+    Path to the client certificate for Vault authorization.
+
+    Environment variable \code{CONCOURSE_VAULT_CLIENT_CERT}.
+  }
+
+  \define-attribute{vault-client-key: string}{
+    Path to the client private key for Vault authorization.
+
+    Environment variable \code{CONCOURSE_VAULT_CLIENT_KEY}.
+  }
+
+  \define-attribute{vault-server-name: string}{
+    If set, is used to set the SNI host when connecting via TLS.
+
+    Environment variable \code{CONCOURSE_VAULT_SERVER_NAME}.
+  }
+
+  \define-attribute{vault-insecure-skip-verify: string}{
+    Enable insecure SSL verification.
+
+    Environment variable \code{CONCOURSE_VAULT_INSECURE_SKIP_VERIFY}.
+  }
+
+  \define-attribute{vault-client-token: string}{
+    Client token for accessing secrets within the Vault server.
+
+    Environment variable \code{CONCOURSE_VAULT_CLIENT_TOKEN}.
+  }
+
+  \define-attribute{vault-auth-backend: string}{
+    Auth backend to use for logging in to Vault.
+
+    Environment variable \code{CONCOURSE_VAULT_AUTH_BACKEND}.
+  }
+
+  \define-attribute{vault-auth-backend-max-ttl: string}{
+    Auth backend max TTL. Concourse will renew its token and then re-login when the auth backend max TTL is reached.
+
+    Environment variable \code{CONCOURSE_VAULT_AUTH_BACKEND_MAX_TTL}.
+  }
+
+  \define-attribute{vault-cache: bool}{
+    Cache returned secrets for their lease duration in memory
+
+    Environment variable \code{CONCOURSE_VAULT_CACHE}.
+  }
+
+  \define-attribute{vault-max-lease: string}{
+    If the cache is enabled, and this is set, override secrets lease duration with a maximum value.
+
+    Environment variable \code{CONCOURSE_VAULT_MAX_LEASE}.
+  }
+
+  \define-attribute{vault-auth-param=NAME=VALUE: string}{
+    Paramter to pass when logging in via the backend. Can be specified multiple times.
+
+    Environment variable \code{CONCOURSE_VAULT_AUTH_PARAM} (pass comma-separated list).
+
+    Example:
+
+    \codeblock{bash}{{{
+      CONCOURSE_VAULT_AUTH_PARAM="role_id=x,secret_id=x" \
+      concourse web ...
+    }}}
+  }
+
+  For example, to point the ATC at an internal Vault server with TLS signed
+  by a local CA, using an
+  \link{AppRole}{https://www.vaultproject.io/docs/auth/approle.html}
+  auth backend, you may configure:
+
+  \codeblock{bash}{{{
+    concourse web ... \
+      --vault-url https://10.2.0.3:8200 \
+      --vault-ca-cert /etc/my-ca.cert \
+      --vault-auth-backend approle \
+      --vault-auth-param role_id=db02de05-fa39-4855-059b-67221c5c2f63 \
+      --vault-auth-param secret_id=6a174c20-f6de-a53c-74d2-6018fcceff64
+
+    # or use env variables
+    CONCOURSE_VAULT_URL="https://10.2.0.3:8200" \
+    CONCOURSE_VAULT_CA_CERT="/etc/my-ca.cert" \
+    CONCOURSE_VAULT_AUTH_BACKEND="approle" \
+    CONCOURSE_VAULT_AUTH_PARAM="role_id=db02de05-fa39-4855-059b-67221c5c2f63,secret_id=6a174c20-f6de-a53c-74d2-6018fcceff64" \
+    concourse web ...
+  }}}
+
+  You may instead want to use the
+  \link{TLS}{https://www.vaultproject.io/docs/auth/cert.html} auth
+  backend, in which case you would specify a client certificate and private
+  key, like so:
+
+  \codeblock{bash}{{{
+    concourse web ... \
+      --vault-url https://10.2.0.3:8200 \
+      --vault-ca-cert /etc/my-ca.cert \
+      --vault-client-cert /etc/my-client.cert \
+      --vault-client-key /etc/my-client.key \
+      --vault-auth-backend cert
+  }}}
+
+  In this case no params are necessary, as the TLS auth backend will check
+  the certificate against all roles if no name is specified.
+
+  Alternatively, if you've got a \link{periodic
+  token}{https://www.vaultproject.io/docs/concepts/tokens.html#periodic-tokens}
+  created, you can pass it directly as \code{--vault-client-token}. Make sure
+  the period is long enough to account for any ATC downtime, however,
+  including the time between generating it and getting the ATC running.
+
+  \codeblock{bash}{{{
+    concourse web ... \
+      --vault-url https://10.2.0.3:8200 \
+      --vault-ca-cert /etc/my-ca.cert \
+      --vault-client-token c2c2fbd5-2893-b385-6fa5-30050439f698
+  }}}
+
+  For all of these configurations, the ATC will periodically renew its token,
+  ensuring it doesn't expire.
+}
+
+\section{
+  \title{Credential Lookup Rules}
+
+  When resolving a parameter such as \code{((foo_param))}, it will look in
+  the following paths, in order:
+
+  \list{
+    \code{/concourse/TEAM_NAME/PIPELINE_NAME/foo_param}
+  }{
+    \code{/concourse/TEAM_NAME/foo_param}
+  }
+
+  The leading \code{/concourse} can be changed by specifying
+  \code{--vault-path-prefix}.
+
+  Vault credentials are actually key-value, so for \code{((foo))} Concourse will
+  default to the field name \code{value}. You can specify the field to grab via
+  \code{.} syntax, e.g. \code{((foo.bar))}.
+
+  If the action is being run in the context of a pipeline (e.g. a
+  \code{check} or a step in a build of a job), the ATC will first look in the
+  pipeline path. If it's not found there, it will look in the team path. This
+  allows credentials to be scoped widely if they're common across many
+  pipelines.
+
+  If an action is being run in a one-off build, the ATC will only look in the
+  team path.
+}
