@@ -241,7 +241,10 @@ handleDelivery delivery ( model, effects ) =
                                                     | dropdown = Shown { selectedIdx = Nothing }
                                                     , query = selectedItem
                                                   }
-                                                , effects
+                                                , [ ModifyUrl <|
+                                                        queryStringFromSearch
+                                                            selectedItem
+                                                  ]
                                                 )
 
                                     _ ->
