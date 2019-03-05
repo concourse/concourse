@@ -7,7 +7,8 @@ NOTES=$PWD/release-notes
 version=$(cat version/version)
 
 echo v${version} > $NOTES/release-name
+anchor=$(echo v${version} | tr -d .)
 
 cat > $NOTES/notes.md <<EOF
-See [v${version} release notes](https://concourse-ci.org/download.html#v${version})
+[v${version} release notes](https://concourse-ci.org/download.html#v${anchor})
 EOF
