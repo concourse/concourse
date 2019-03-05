@@ -10,6 +10,7 @@ import Build.StepTree.Models as STModels
 import Callback
 import Char
 import Concourse exposing (BuildPrepStatus(..))
+import Concourse.Pagination exposing (Direction(..))
 import DashboardTests
     exposing
         ( defineHoverBehaviour
@@ -537,7 +538,7 @@ all =
                     |> Query.fromHtml
                     |> Query.find [ class "keyboard-help" ]
                     |> Query.hasNot [ class "hidden" ]
-        , test "says loading on page load" <|
+        , test "says 'loading' on page load" <|
             \_ ->
                 pageLoad
                     |> Tuple.first
@@ -679,11 +680,7 @@ all =
                             >> Tuple.first
                             >> fetchJobDetails
                 in
-                [ test
-                    ("trigger build button on right side of header "
-                        ++ "after history and job details fetched"
-                    )
-                  <|
+                [ test "trigger build button on right side of header " <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -694,6 +691,69 @@ all =
                         >> Query.has
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
+                            ]
+                , test "if build is present in history, fetches no more" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content = [ theBuild ]
+                                    }
+                                )
+                            )
+                        >> Tuple.second
+                        >> Expect.equal []
+                , test "if build is not present in history, fetches more" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 2
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content =
+                                        [ { id = 2
+                                          , name = "2"
+                                          , job =
+                                                Just
+                                                    { teamName = "team"
+                                                    , pipelineName = "pipeline"
+                                                    , jobName = "job"
+                                                    }
+                                          , status = Concourse.BuildStatusSucceeded
+                                          , duration =
+                                                { startedAt = Nothing
+                                                , finishedAt = Nothing
+                                                }
+                                          , reapTime = Nothing
+                                          }
+                                        ]
+                                    }
+                                )
+                            )
+                        >> Tuple.second
+                        >> Expect.equal
+                            [ Effects.FetchBuildHistory
+                                { teamName = "team"
+                                , pipelineName = "pipeline"
+                                , jobName = "job"
+                                }
+                                (Just { direction = Until 2, limit = 100 })
                             ]
                 , test "trigger build button is styled as a plain grey box" <|
                     givenHistoryAndDetailsFetched
@@ -774,7 +834,7 @@ all =
                     , mouseLeaveMsg = Build.Msgs.Hover Nothing
                     }
                 ]
-            , describe "when history and details witche dwith maual triggering disabled" <|
+            , describe "when history and details fetched with manual triggering disabled" <|
                 let
                     givenHistoryAndDetailsFetched =
                         givenBuildFetched

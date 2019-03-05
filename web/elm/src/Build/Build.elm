@@ -671,25 +671,28 @@ handleHistoryFetched :
     -> ( Model, List Effect )
 handleHistoryFetched history ( model, effects ) =
     let
-        withBuilds =
-            { model | history = List.append model.history history.content }
-
         currentBuild =
-            model.currentBuild |> RemoteData.toMaybe
+            model.currentBuild
+                |> RemoteData.toMaybe
+                |> Maybe.map .build
+
+        containsCurrentBuild =
+            currentBuild
+                |> Maybe.map (flip List.member history.content)
+                |> Maybe.withDefault False
+
+        currentJob =
+            currentBuild
+                |> Maybe.andThen .job
     in
-    case
-        ( history.pagination.nextPage
-        , currentBuild |> Maybe.andThen (.job << .build)
-        )
-    of
-        ( Nothing, _ ) ->
-            ( withBuilds, effects )
+    ( { model | history = List.append model.history history.content }
+    , case ( containsCurrentBuild, currentJob ) of
+        ( False, Just job ) ->
+            effects ++ [ FetchBuildHistory job history.pagination.nextPage ]
 
-        ( Just page, Just job ) ->
-            ( withBuilds, effects ++ [ FetchBuildHistory job (Just page) ] )
-
-        ( Just url, Nothing ) ->
-            Debug.crash "impossible"
+        _ ->
+            effects
+    )
 
 
 handleBuildPrepFetched :
