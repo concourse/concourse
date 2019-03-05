@@ -28,4 +28,6 @@
   \link{concourseteam+security@gmail.com}{mailto:concourseteam+security@gmail.com}.
 }
 
+\include-section{./docs/resource-types/community-resources.lit}
+
 \include-section{./tools.lit}
