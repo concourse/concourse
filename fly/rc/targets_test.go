@@ -302,10 +302,58 @@ var _ = Describe("Targets", func() {
 			})
 		})
 
-		Context("when a target is not specified", func() {
-			It("returns ErrNoTargetSpecified", func() {
+		Context("when a target is not specified, and none are saved", func() {
+			It("returns ErrNoTargetSpecifiedNoneAvailable", func() {
 				_, err := rc.LoadTarget("", false)
-				Expect(err).To(Equal(rc.ErrNoTargetSpecified))
+				Expect(err).To(Equal(rc.ErrNoTargetSpecifiedNoneAvailable))
+			})
+		})
+
+		Describe("when a target is not specified, and only one is saved", func() {
+			BeforeEach(func() {
+				err := rc.SaveTarget(
+					"foo",
+					"some api url",
+					false,
+					"main",
+					nil,
+					"",
+				)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns the saved target", func() {
+				returnedTarget, err := rc.LoadTarget("", false)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(returnedTarget.URL()).To(Equal("some api url"))
+			})
+		})
+
+		Describe("when a target is not specified, and more than one is saved", func() {
+			BeforeEach(func() {
+				err := rc.SaveTarget(
+					"foo",
+					"some api url",
+					false,
+					"main",
+					nil,
+					"",
+				)
+				Expect(err).ToNot(HaveOccurred())
+				err = rc.SaveTarget(
+					"bar",
+					"some api url",
+					false,
+					"main",
+					nil,
+					"",
+				)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns the saved target", func() {
+				_, err := rc.LoadTarget("", false)
+				Expect(err).To(Equal(rc.ErrNoTargetSpecifiedNeedToChoose))
 			})
 		})
 	})

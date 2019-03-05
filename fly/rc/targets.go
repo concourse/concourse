@@ -14,8 +14,9 @@ import (
 )
 
 var (
-	ErrNoTargetSpecified = errors.New("no target specified")
-	ErrNoTargetFromURL   = errors.New("no target matching url")
+	ErrNoTargetSpecifiedNoneAvailable = errors.New("no target specified and none available")
+	ErrNoTargetSpecifiedNeedToChoose  = errors.New("more than one targe saved; target must be specified")
+	ErrNoTargetFromURL                = errors.New("no target matching url")
 )
 
 type UnknownTargetError struct {
@@ -138,12 +139,21 @@ func SaveTarget(
 }
 
 func selectTarget(selectedTarget TargetName) (TargetProps, error) {
-	if selectedTarget == "" {
-		return TargetProps{}, ErrNoTargetSpecified
-	}
 	flyTargets, err := LoadTargets()
 	if err != nil {
 		return TargetProps{}, err
+	}
+
+	if selectedTarget == "" {
+		if len(flyTargets.Targets) == 0 {
+			return TargetProps{}, ErrNoTargetSpecifiedNoneAvailable
+		}
+		if len(flyTargets.Targets) > 1 {
+			return TargetProps{}, ErrNoTargetSpecifiedNeedToChoose
+		}
+		for k := range flyTargets.Targets {
+			selectedTarget = k
+		}
 	}
 
 	target, ok := flyTargets.Targets[selectedTarget]
