@@ -41,7 +41,7 @@ import UserState exposing (UserState(..))
 
 commentButtonBlue : String
 commentButtonBlue =
-    "#196AC8"
+    "#196ac8"
 
 
 teamName : String
@@ -103,7 +103,7 @@ disabledVersion =
 
 purpleHex : String
 purpleHex =
-    "#5C3BD1"
+    "#5c3bd1"
 
 
 fadedBlackHex : String

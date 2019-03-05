@@ -30,7 +30,7 @@ pinBar { isPinned } =
                 Colors.pinned
 
             else
-                "#3d3c3c"
+                Colors.background
     in
     [ ( "flex-grow", "1" )
     , ( "margin", "10px" )

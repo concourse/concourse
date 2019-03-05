@@ -71,10 +71,10 @@ topBar isPaused =
     , ( "font-weight", "700" )
     , ( "background-color"
       , if isPaused then
-            "#3498db"
+            Colors.paused
 
         else
-            "#1e1d1d"
+            Colors.frame
       )
     ]
 
@@ -141,8 +141,8 @@ searchInput screenSize =
     , ( "background-position", "12px 8px" )
     , ( "height", "30px" )
     , ( "padding", "0 42px" )
-    , ( "border", "1px solid #504b4b" )
-    , ( "color", "#fff" )
+    , ( "border", "1px solid " ++ Colors.inputOutline )
+    , ( "color", Colors.dashboardText )
     , ( "font-size", "1.15em" )
     , ( "font-family", "Inconsolata, monospace" )
     , ( "outline", "0" )
@@ -164,7 +164,7 @@ searchClearButton active =
     , ( "background-repeat", "no-repeat" )
     , ( "background-position", "10px 10px" )
     , ( "border", "0" )
-    , ( "color", "#504b4b" )
+    , ( "color", Colors.inputOutline )
     , ( "position", "absolute" )
     , ( "right", "0" )
     , ( "padding", "17px" )
@@ -188,10 +188,10 @@ logoutButton : List ( String, String )
 logoutButton =
     [ ( "position", "absolute" )
     , ( "top", "55px" )
-    , ( "background-color", "#1e1d1d" )
+    , ( "background-color", Colors.frame )
     , ( "height", "54px" )
     , ( "width", "100%" )
-    , ( "border-top", "1px solid #3d3c3c" )
+    , ( "border-top", "1px solid " ++ Colors.background )
     , ( "cursor", "pointer" )
     , ( "display", "flex" )
     , ( "align-items", "center" )
@@ -251,11 +251,13 @@ loginContainer isPaused =
     , ( "display", "flex" )
     , ( "flex-direction", "column" )
     , ( "border-left"
-      , if isPaused then
-            "1px solid rgba(255, 255, 255, 0.5)"
+      , "1px solid "
+            ++ (if isPaused then
+                    Colors.pausedTopbarSeparator
 
-        else
-            "1px solid #3d3c3c"
+                else
+                    Colors.background
+               )
       )
     , ( "line-height", "54px" )
     ]
@@ -299,19 +301,19 @@ dropdownItem isSelected =
     let
         coloration =
             if isSelected then
-                [ ( "background-color", "#1e1d1d" )
-                , ( "color", "#fff" )
+                [ ( "background-color", Colors.frame )
+                , ( "color", Colors.dashboardText )
                 ]
 
             else
-                [ ( "background-color", "#2e2e2e" )
-                , ( "color", "#9b9b9b" )
+                [ ( "background-color", Colors.dropdownFaded )
+                , ( "color", Colors.dropdownUnselectedText )
                 ]
     in
     [ ( "padding", "0 42px" )
     , ( "line-height", "30px" )
     , ( "list-style-type", "none" )
-    , ( "border", "1px solid #504b4b" )
+    , ( "border", "1px solid " ++ Colors.inputOutline )
     , ( "margin-top", "-1px" )
     , ( "font-size", "1.15em" )
     , ( "cursor", "pointer" )
@@ -329,7 +331,7 @@ pinIconContainer showBackground =
     , ( "max-width", "20%" )
     ]
         ++ (if showBackground then
-                [ ( "background-color", "rgba(255, 255, 255, 0.3)" )
+                [ ( "background-color", Colors.pinHighlight )
                 , ( "border-radius", "50%" )
                 ]
 
@@ -366,8 +368,8 @@ pinBadge =
 
 pinIconDropdown : List ( String, String )
 pinIconDropdown =
-    [ ( "background-color", "#fff" )
-    , ( "color", "#1e1d1d" )
+    [ ( "background-color", Colors.white )
+    , ( "color", Colors.pinIconHover )
     , ( "position", "absolute" )
     , ( "top", "100%" )
     , ( "right", "0" )
@@ -383,7 +385,7 @@ pinHoverHighlight : List ( String, String )
 pinHoverHighlight =
     [ ( "border-width", "5px" )
     , ( "border-style", "solid" )
-    , ( "border-color", "transparent transparent #fff transparent" )
+    , ( "border-color", "transparent transparent " ++ Colors.white ++ " transparent" )
     , ( "position", "absolute" )
     , ( "top", "100%" )
     , ( "right", "50%" )

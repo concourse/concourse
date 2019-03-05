@@ -119,7 +119,7 @@ triggerTooltip =
     , ( "right", "100%" )
     , ( "top", "15px" )
     , ( "width", "300px" )
-    , ( "color", "#ecf0f1" )
+    , ( "color", Colors.buildTooltipBackground )
     , ( "font-size", "12px" )
     , ( "font-family", "Inconsolata,monospace" )
     , ( "padding", "10px" )

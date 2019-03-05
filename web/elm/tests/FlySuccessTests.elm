@@ -45,7 +45,7 @@ darkerGrey =
 
 blue : String
 blue =
-    "#196AC8"
+    "#196ac8"
 
 
 authToken : String

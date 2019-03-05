@@ -4,10 +4,13 @@ module Colors exposing
     , background
     , bottomBarText
     , buildStatusColor
+    , buildTooltipBackground
     , card
     , cliIconHover
     , comment
     , dashboardText
+    , dropdownFaded
+    , dropdownUnselectedText
     , error
     , failure
     , failureFaded
@@ -15,15 +18,20 @@ module Colors exposing
     , flySuccessCard
     , flySuccessTokenCopied
     , frame
+    , groupBackground
     , groupsBarBackground
+    , inputOutline
     , paginationHover
     , paused
+    , pausedTopbarSeparator
     , pending
+    , pinHighlight
     , pinIconHover
     , pinned
     , resourceError
     , secondaryTopBar
     , sectionHeader
+    , selectedGroupBorder
     , started
     , startedFaded
     , statusColor
@@ -31,6 +39,8 @@ module Colors exposing
     , successFaded
     , text
     , tooltipBackground
+    , unselectedGroupBorder
+    , white
     )
 
 import Concourse exposing (BuildStatus(..))
@@ -49,7 +59,7 @@ sectionHeader =
 
 dashboardText : String
 dashboardText =
-    "#fff"
+    "#ffffff"
 
 
 bottomBarText : String
@@ -59,7 +69,7 @@ bottomBarText =
 
 pinned : String
 pinned =
-    "#5C3BD1"
+    "#5c3bd1"
 
 
 tooltipBackground : String
@@ -70,6 +80,11 @@ tooltipBackground =
 pinIconHover : String
 pinIconHover =
     "#1e1d1d"
+
+
+white : String
+white =
+    "#ffffff"
 
 
 background : String
@@ -99,7 +114,7 @@ successFaded =
 
 paused : String
 paused =
-    "#4a90e2"
+    "#3498db"
 
 
 pending : String
@@ -164,7 +179,7 @@ flySuccessButtonHover =
 
 flySuccessTokenCopied : String
 flySuccessTokenCopied =
-    "#196AC8"
+    "#196ac8"
 
 
 resourceError : String
@@ -174,7 +189,7 @@ resourceError =
 
 cliIconHover : String
 cliIconHover =
-    "#fff"
+    "#ffffff"
 
 
 text : String
@@ -192,14 +207,59 @@ paginationHover =
     "#504b4b"
 
 
+inputOutline : String
+inputOutline =
+    "#504b4b"
+
+
 comment : String
 comment =
-    "#196AC8"
+    "#196ac8"
 
 
 groupsBarBackground : String
 groupsBarBackground =
     "#2b2a2a"
+
+
+buildTooltipBackground : String
+buildTooltipBackground =
+    "#ecf0f1"
+
+
+pausedTopbarSeparator : String
+pausedTopbarSeparator =
+    "rgba(255, 255, 255, 0.5)"
+
+
+dropdownFaded : String
+dropdownFaded =
+    "#2e2e2e"
+
+
+dropdownUnselectedText : String
+dropdownUnselectedText =
+    "#9b9b9b"
+
+
+pinHighlight : String
+pinHighlight =
+    "rgba(255, 255, 255, 0.3)"
+
+
+selectedGroupBorder : String
+selectedGroupBorder =
+    "#979797"
+
+
+unselectedGroupBorder : String
+unselectedGroupBorder =
+    "#2b2a2a"
+
+
+groupBackground : String
+groupBackground =
+    "rgba(151, 151, 151, 0.1)"
 
 
 statusColor : PipelineStatus -> String

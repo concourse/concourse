@@ -75,7 +75,7 @@ green =
 
 blue : String
 blue =
-    "#4a90e2"
+    "#3498db"
 
 
 darkGrey : String
@@ -100,7 +100,7 @@ brown =
 
 white : String
 white =
-    "#fff"
+    "#ffffff"
 
 
 fadedGreen : String
