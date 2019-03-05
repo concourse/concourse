@@ -53,13 +53,6 @@ it desc expectationFunc subject =
         \_ -> expectationFunc subject
 
 
-fit : String -> (subject -> Expectation) -> subject -> Test
-fit desc expectationFunc subject =
-    Test.only <|
-        Test.test desc <|
-            \_ -> expectationFunc subject
-
-
 update : TopBar.Msgs.Msg -> Model.Model {} -> ( Model.Model {}, List Effects.Effect )
 update msg =
     flip (,) [] >> TopBar.update msg
@@ -309,8 +302,7 @@ all =
                         >> Query.hasNot [ id "logout-button" ]
                 ]
             , it "clicking a pinned resource navigates to the pinned resource page" <|
-                Tuple.first
-                    >> flip (,) []
+                Tuple.mapSecond (always [])
                     >> TopBar.update
                         (TopBar.Msgs.GoToRoute
                             (Routes.Resource

@@ -10,7 +10,7 @@ type alias OutputModel =
     , errors : Maybe Ansi.Log.Model
     , state : OutputState
     , eventSourceOpened : Bool
-    , events : Maybe Int
+    , eventStreamUrlPath : Maybe String
     , highlight : Highlight
     }
 

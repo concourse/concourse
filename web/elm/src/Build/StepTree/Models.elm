@@ -1,5 +1,6 @@
 module Build.StepTree.Models exposing
     ( BuildEvent(..)
+    , BuildEventEnvelope
     , HookedStep
     , MetadataField
     , Origin
@@ -96,6 +97,12 @@ type TabFocus
     | User
 
 
+type alias BuildEventEnvelope =
+    { data : BuildEvent
+    , url : String
+    }
+
+
 type BuildEvent
     = BuildStatus Concourse.BuildStatus Date
     | Initialize Origin
@@ -107,6 +114,7 @@ type BuildEvent
     | Error Origin String
     | BuildError String
     | End
+    | Opened
 
 
 type alias Origin =
