@@ -12,6 +12,7 @@ import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Routes
 import ScreenSize
 import Subscription exposing (Delivery(..), Interval(..))
+import TopBar.Model exposing (Dropdown(..))
 
 
 type alias Model r =
@@ -25,6 +26,7 @@ type alias Model r =
         , version : String
         , route : Routes.Route
         , shiftDown : Bool
+        , dropdown : Dropdown
     }
 
 
@@ -37,7 +39,7 @@ handleDelivery delivery ( model, effects ) =
         KeyDown keyCode ->
             case keyCode of
                 191 ->
-                    if model.shiftDown then
+                    if model.shiftDown && model.dropdown == Hidden then
                         ( toggleHelp model, effects )
 
                     else

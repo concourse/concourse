@@ -554,6 +554,23 @@ all =
                         )
                     |> queryView
                     |> Query.hasNot [ tag "input" ]
+        , test "typing '?' in search bar does not toggle help" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Dashboard.handleCallback
+                        (Callback.APIDataFetched <|
+                            Ok
+                                ( 0
+                                , apiData
+                                    [ ( "team", [ "pipeline" ] ) ]
+                                    Nothing
+                                )
+                        )
+                    |> Dashboard.update (Msgs.FromTopBar TopBar.Msgs.FocusMsg)
+                    |> Dashboard.handleDelivery (KeyDown Keycodes.shift)
+                    |> Dashboard.handleDelivery (KeyDown 191)
+                    |> queryView
+                    |> Query.hasNot [ id "keyboard-help" ]
         , test "bottom bar appears when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
