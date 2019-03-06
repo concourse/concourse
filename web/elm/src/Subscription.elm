@@ -27,6 +27,9 @@ port eventSource : (Json.Encode.Value -> msg) -> Sub msg
 port scrolledToBottom : (Bool -> msg) -> Sub msg
 
 
+port reportIsVisible : (( String, Bool ) -> msg) -> Sub msg
+
+
 type Subscription
     = OnClockTick Interval
     | OnMouse
@@ -37,6 +40,7 @@ type Subscription
     | FromEventSource ( String, List String )
     | OnNonHrefLinkClicked
     | OnTokenReceived
+    | OnElementVisible
 
 
 type Delivery
@@ -49,6 +53,7 @@ type Delivery
     | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
     | TokenReceived (Maybe String)
     | EventsReceived (Result String (List BuildEventEnvelope))
+    | ElementVisible String Bool
 
 
 type Interval
@@ -93,6 +98,9 @@ runSubscription s =
 
         OnTokenReceived ->
             tokenReceived TokenReceived
+
+        OnElementVisible ->
+            reportIsVisible <| uncurry ElementVisible
 
 
 intervalToTime : Interval -> Time.Time

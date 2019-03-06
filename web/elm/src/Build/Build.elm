@@ -109,8 +109,9 @@ init flags =
         flags.pageType
         ( { page = flags.pageType
           , now = Nothing
-          , job = Nothing
+          , disableManualTrigger = False
           , history = []
+          , nextPage = Nothing
           , currentBuild = RemoteData.NotAsked
           , browsingIndex = 0
           , autoScroll = True
@@ -145,6 +146,7 @@ subscriptions model =
     , OnScrollToBottom
     , OnKeyDown
     , OnKeyUp
+    , OnElementVisible
     ]
         ++ (case buildEventsUrl of
                 Nothing ->
@@ -193,15 +195,23 @@ changeToBuild page ( model, effects ) =
 
 extractTitle : Model -> String
 extractTitle model =
-    case ( model.currentBuild |> RemoteData.toMaybe, model.job ) of
-        ( Just build, Just job ) ->
-            job.name ++ ((" #" ++ build.build.name) ++ " - ")
+    case ( model.currentBuild |> RemoteData.toMaybe, currentJob model ) of
+        ( Just build, Just { jobName } ) ->
+            jobName ++ ((" #" ++ build.build.name) ++ " - ")
 
         ( Just build, Nothing ) ->
             "#" ++ (toString build.build.id ++ " - ")
 
         _ ->
             ""
+
+
+currentJob : Model -> Maybe Concourse.JobIdentifier
+currentJob =
+    .currentBuild
+        >> RemoteData.toMaybe
+        >> Maybe.map .build
+        >> Maybe.andThen .job
 
 
 getUpdateMessage : Model -> UpdateMsg
@@ -283,6 +293,16 @@ handleCallbackWithoutTopBar action ( model, effects ) =
             flip always (Debug.log "failed to fetch build job details" err) <|
                 ( model, effects )
 
+        BuildsScrolled ->
+            ( model
+            , case model.history |> List.reverse |> List.head of
+                Just build ->
+                    effects ++ [ Effects.CheckIsVisible <| toString build.id ]
+
+                Nothing ->
+                    effects
+            )
+
         _ ->
             ( model, effects )
 
@@ -334,6 +354,51 @@ handleDelivery delivery ( model, effects ) =
                         NoScroll ->
                             effects
                     )
+
+        ElementVisible id isVisible ->
+            let
+                lastBuildId =
+                    model.history
+                        |> List.reverse
+                        |> List.head
+                        |> Maybe.map .id
+                        |> Maybe.map toString
+
+                currentBuildId =
+                    model.currentBuild
+                        |> RemoteData.toMaybe
+                        |> Maybe.map .build
+                        |> Maybe.map .id
+            in
+            ( model
+            , case
+                ( isVisible
+                , currentJob model
+                , model.nextPage
+                )
+              of
+                ( True, Just job, Just _ ) ->
+                    if lastBuildId == Just id then
+                        effects ++ [ FetchBuildHistory job model.nextPage ]
+
+                    else
+                        effects
+
+                ( False, _, _ ) ->
+                    case currentBuildId of
+                        Just buildId ->
+                            if toString buildId == id then
+                                effects ++ [ Scroll <| ToBuild buildId ]
+
+                            else
+                                effects
+
+                        Nothing ->
+                            effects
+
+                _ ->
+                    effects
+            )
 
         _ ->
             ( model, effects )
@@ -577,7 +642,7 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                 }
 
             fetchJobAndHistory =
-                case ( model.job, build.job ) of
+                case ( currentJob model, build.job ) of
                     ( Nothing, Just buildJob ) ->
                         [ FetchBuildJobDetails buildJob
                         , FetchBuildHistory buildJob Nothing
@@ -651,11 +716,14 @@ initBuildOutput build ( model, effects ) =
     )
 
 
-handleBuildJobFetched : Concourse.Job -> ( Model, List Effect ) -> ( Model, List Effect )
+handleBuildJobFetched :
+    Concourse.Job
+    -> ( Model, List Effect )
+    -> ( Model, List Effect )
 handleBuildJobFetched job ( model, effects ) =
     let
         withJobDetails =
-            { model | job = Just job }
+            { model | disableManualTrigger = job.disableManualTrigger }
     in
     ( withJobDetails
     , effects ++ [ SetTitle (extractTitle withJobDetails) ]
@@ -669,16 +737,19 @@ handleHistoryFetched :
 handleHistoryFetched history ( model, effects ) =
     let
         currentBuild =
-            model.currentBuild |> RemoteData.toMaybe |> Maybe.map .build
+            model.currentBuild |> RemoteData.map .build
 
-        currentJob =
-            currentBuild |> Maybe.andThen .job
+        newModel =
+            { model
+                | history = List.append model.history history.content
+                , nextPage = history.pagination.nextPage
+            }
     in
-    ( { model | history = List.append model.history history.content }
-    , case ( currentBuild, currentJob ) of
-        ( Just build, Just job ) ->
-            if List.member build history.content then
-                effects ++ [ Scroll <| ToBuild build.id ]
+    ( newModel
+    , case ( currentBuild, currentJob model ) of
+        ( RemoteData.Success build, Just job ) ->
+            if List.member build newModel.history then
+                effects ++ [ CheckIsVisible <| toString build.id ]
 
             else
                 effects ++ [ FetchBuildHistory job history.pagination.nextPage ]
@@ -1005,31 +1076,26 @@ viewBuildPrepStatus status =
 
 
 viewBuildHeader : Concourse.Build -> Model -> Html Msg
-viewBuildHeader build { now, job, history, hoveredElement } =
+viewBuildHeader build model =
     let
         triggerButton =
-            case job of
-                Just { name, pipeline } ->
+            case currentJob model of
+                Just { jobName, pipelineName, teamName } ->
                     let
                         actionUrl =
                             "/teams/"
-                                ++ pipeline.teamName
+                                ++ teamName
                                 ++ "/pipelines/"
-                                ++ pipeline.pipelineName
+                                ++ pipelineName
                                 ++ "/jobs/"
-                                ++ name
+                                ++ jobName
                                 ++ "/builds"
 
                         buttonDisabled =
-                            case job of
-                                Nothing ->
-                                    True
-
-                                Just job ->
-                                    job.disableManualTrigger
+                            model.disableManualTrigger
 
                         buttonHovered =
-                            hoveredElement == Just Trigger
+                            model.hoveredElement == Just Trigger
 
                         buttonHighlight =
                             buttonHovered && not buttonDisabled
@@ -1084,7 +1150,7 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                     [ Html.div
                         [ style <|
                             Styles.abortIcon <|
-                                hoveredElement
+                                model.hoveredElement
                                     == Just Abort
                         ]
                         []
@@ -1122,7 +1188,7 @@ viewBuildHeader build { now, job, history, hoveredElement } =
             ]
             [ Html.div []
                 [ Html.h1 [] [ buildTitle ]
-                , case now of
+                , case model.now of
                     Just n ->
                         BuildDuration.view build.duration n
 
@@ -1135,7 +1201,7 @@ viewBuildHeader build { now, job, history, hoveredElement } =
             ]
         , Html.div
             [ onMouseWheel ScrollBuilds ]
-            [ lazyViewHistory build history ]
+            [ lazyViewHistory build model.history ]
         ]
 
 
@@ -1158,6 +1224,7 @@ viewHistoryItem currentBuild build =
 
           else
             class (Concourse.BuildStatus.show build.status)
+        , id <| toString build.id
         ]
         [ Html.a
             [ onLeftClick <| SwitchToBuild build

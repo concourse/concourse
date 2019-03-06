@@ -74,6 +74,9 @@ port closeEventStream : () -> Cmd msg
 port scrollIntoView : String -> Cmd msg
 
 
+port checkIsVisible : String -> Cmd msg
+
+
 type LayoutDispatch
     = SubPage Int
     | Layout
@@ -131,6 +134,7 @@ type Effect
     | ForceFocus String
     | OpenBuildEventStream { url : String, eventTypes : List String }
     | CloseBuildEventStream
+    | CheckIsVisible String
 
 
 type ScrollDirection
@@ -306,6 +310,9 @@ runEffect effect csrfToken =
 
         CloseBuildEventStream ->
             closeEventStream ()
+
+        CheckIsVisible id ->
+            checkIsVisible id
 
 
 fetchJobBuilds : Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Callback
@@ -522,7 +529,7 @@ scrollInDirection dir =
             Task.perform (always EmptyCallback) Scroll.toWindowBottom
 
         Builds delta ->
-            Task.perform (always EmptyCallback) (Scroll.scroll "builds" delta)
+            Task.perform (always BuildsScrolled) (Scroll.scroll "builds" delta)
 
         ToBuild id ->
             scrollIntoView "#builds .current"

@@ -42,3 +42,4 @@ type Callback
     | BuildHistoryFetched (Result Http.Error (Paginated Concourse.Build))
     | PlanAndResourcesFetched Int (Result Http.Error ( Concourse.BuildPlan, Concourse.BuildResources ))
     | BuildAborted (Result Http.Error ())
+    | BuildsScrolled

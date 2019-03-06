@@ -224,17 +224,26 @@
         app.ports.scrolledToBottom.send(atBottom);
       }
 
+      app.ports.checkIsVisible.subscribe(function(id) {
+        var interval = setInterval(function() {
+          var element = document.getElementById(id);
+          if (element) {
+            clearInterval(interval);
+            var isVisible =
+              element.getBoundingClientRect().left < window.innerWidth;
+            app.ports.reportIsVisible.send([id, isVisible]);
+          }
+        }, 20);
+      });
+
       app.ports.scrollIntoView.subscribe(function(selector) {
-        var timeout = setTimeout(function() {
-          var interval = setInterval(function() {
-            buildTab = document.querySelector(selector);
-            if (buildTab) {
-              clearTimeout(timeout);
-              clearInterval(interval);
-              buildTab.scrollIntoView();
-            }
-          }, 200);
-        }, 1000);
+        var interval = setInterval(function() {
+          buildTab = document.querySelector(selector);
+          if (buildTab) {
+            clearInterval(interval);
+            buildTab.scrollIntoView();
+          }
+        }, 20);
       });
     </script>
     <script>

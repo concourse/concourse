@@ -692,6 +692,71 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
+                , test "scrolling builds checks if last build is visible" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content = [ theBuild ]
+                                    }
+                                )
+                            )
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback Callback.BuildsScrolled
+                        >> Tuple.second
+                        >> Expect.equal [ Effects.CheckIsVisible "1" ]
+                , test "subscribes to element visibility" <|
+                    givenBuildFetched
+                        >> Tuple.first
+                        >> Build.subscriptions
+                        >> List.member Subscription.OnElementVisible
+                        >> Expect.true "should be subscribed to visibility"
+                , test "scrolling to last build fetches more if possible" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content = [ theBuild ]
+                                    }
+                                )
+                            )
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (Subscription.ElementVisible "1" True)
+                        >> Tuple.second
+                        >> Expect.equal
+                            [ Effects.FetchBuildHistory
+                                { teamName = "team"
+                                , pipelineName = "pipeline"
+                                , jobName = "job"
+                                }
+                                (Just { direction = Until 1, limit = 100 })
+                            ]
+                , test "scrolling to absolute last build fetches no more" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (Subscription.ElementVisible "1" True)
+                        >> Tuple.second
+                        >> Expect.equal []
                 , test "if build is present in history, fetches no more" <|
                     givenBuildFetched
                         >> Tuple.mapSecond (always [])
@@ -710,6 +775,38 @@ all =
                                     }
                                 )
                             )
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 2
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content =
+                                        [ { id = 2
+                                          , name = "2"
+                                          , job =
+                                                Just
+                                                    { teamName = "team"
+                                                    , pipelineName = "pipeline"
+                                                    , jobName = "job"
+                                                    }
+                                          , status = Concourse.BuildStatusSucceeded
+                                          , duration =
+                                                { startedAt = Nothing
+                                                , finishedAt = Nothing
+                                                }
+                                          , reapTime = Nothing
+                                          }
+                                        ]
+                                    }
+                                )
+                            )
                         >> Tuple.second
                         >> List.member
                             (Effects.FetchBuildHistory
@@ -717,10 +814,10 @@ all =
                                 , pipelineName = "pipeline"
                                 , jobName = "job"
                                 }
-                                (Just { direction = Until 1, limit = 100 })
+                                (Just { direction = Until 2, limit = 100 })
                             )
                         >> Expect.false "should not fetch more builds"
-                , test "if build is present in history, scrolls to it" <|
+                , test "if build is present in history, checks its visibility" <|
                     givenBuildFetched
                         >> Tuple.mapSecond (always [])
                         >> Build.handleCallback
@@ -739,8 +836,32 @@ all =
                                 )
                             )
                         >> Tuple.second
-                        >> List.member (Effects.Scroll <| Effects.ToBuild 1)
-                        >> Expect.true "should scroll to current build"
+                        >> List.member (Effects.CheckIsVisible "1")
+                        >> Expect.true "should check visibility of current build"
+                , test "if build is present and invisible, scrolls to it" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content = [ theBuild ]
+                                    }
+                                )
+                            )
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (Subscription.ElementVisible "1" False)
+                        >> Tuple.second
+                        >> Expect.equal
+                            [ Effects.Scroll <| Effects.ToBuild 1 ]
                 , test "if build is not present in history, fetches more" <|
                     givenBuildFetched
                         >> Tuple.mapSecond (always [])
