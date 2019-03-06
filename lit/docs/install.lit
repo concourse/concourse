@@ -48,11 +48,6 @@ rather than flags, but they are both equivalent an interchangeable. Env
 vars are just easier to reference in isolation and are more useful to
 copy-paste.
 
-From here, you can continue on to \reference{learning} to try out some
-tutorials and examples, or keep browsing around the rest of the
-\reference{docs} and just kick the tires until things make sense. If you get
-lost, feel free to ask for help from the \link{community}{community}!
-
 \right-side{Quick Start}{
   Alternatively, if you'd just like to get a Concourse running and don't really
   care how, you can use
