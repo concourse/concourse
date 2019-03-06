@@ -711,9 +711,15 @@ all =
                                 )
                             )
                         >> Tuple.mapSecond (always [])
-                        >> Build.handleCallback Callback.BuildsScrolled
+                        >> Build.update
+                            (Build.Msgs.ScrollBuilds
+                                { deltaX = 0
+                                , deltaY = 0
+                                }
+                            )
                         >> Tuple.second
-                        >> Expect.equal [ Effects.CheckIsVisible "1" ]
+                        >> List.member (Effects.CheckIsVisible "1")
+                        >> Expect.true "should check if last build is visible"
                 , test "subscribes to element visibility" <|
                     givenBuildFetched
                         >> Tuple.first

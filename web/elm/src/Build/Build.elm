@@ -293,16 +293,6 @@ handleCallbackWithoutTopBar action ( model, effects ) =
             flip always (Debug.log "failed to fetch build job details" err) <|
                 ( model, effects )
 
-        BuildsScrolled ->
-            ( model
-            , case model.history |> List.reverse |> List.head of
-                Just build ->
-                    effects ++ [ Effects.CheckIsVisible <| toString build.id ]
-
-                Nothing ->
-                    effects
-            )
-
         _ ->
             ( model, effects )
 
@@ -454,11 +444,23 @@ update msg ( model, effects ) =
                 ( model, effects )
 
         ScrollBuilds event ->
-            if event.deltaX == 0 then
-                ( model, effects ++ [ Scroll (Builds event.deltaY) ] )
+            let
+                scroll =
+                    if event.deltaX == 0 then
+                        [ Scroll (Element "builds" event.deltaY) ]
 
-            else
-                ( model, effects ++ [ Scroll (Builds -event.deltaX) ] )
+                    else
+                        [ Scroll (Element "builds" -event.deltaX) ]
+
+                checkVisibility =
+                    case model.history |> List.reverse |> List.head of
+                        Just build ->
+                            [ Effects.CheckIsVisible <| toString build.id ]
+
+                        Nothing ->
+                            []
+            in
+            ( model, effects ++ scroll ++ checkVisibility )
 
         NavTo route ->
             ( model, effects ++ [ NavigateTo <| Routes.toString route ] )

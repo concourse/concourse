@@ -236,14 +236,20 @@
         }, 20);
       });
 
-      app.ports.scrollIntoView.subscribe(function(selector) {
+      app.ports.scrollIntoView.subscribe(function(id) {
         var interval = setInterval(function() {
-          buildTab = document.querySelector(selector);
+          buildTab = document.getElementById(id);
           if (buildTab) {
             clearInterval(interval);
             buildTab.scrollIntoView();
           }
         }, 20);
+      });
+
+      app.ports.scrollElement.subscribe(function(arg) {
+        var id = arg[0];
+        var delta = arg[1];
+        document.getElementById(id).scrollLeft -= delta;
       });
     </script>
     <script>
