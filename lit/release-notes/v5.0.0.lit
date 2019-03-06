@@ -100,6 +100,34 @@
   workers in the future (\ghissue{2415}).
 }
 
+\note{feature,breaking}{
+  The \link{Concourse BOSH
+  release}{https://github.com/concourse/concourse-bosh-release} has been
+  redesigned and is now centered around the \code{concourse} binary.
+
+  \warn{
+    Be sure to recreate your workers after or during the deploy, as the
+    location that the worker stores volumes has changed and the old volume
+    directory will not be cleaned up, effectively leaking disk usage.
+  }
+
+  \warn{
+    The \code{additional_resource_types} property can no longer be configured.
+    We plan to add another mechanism for co-located resources in future
+    releases.
+  }
+
+  The \code{concourse} release no no longer needs to be deployed alongside a
+  \code{garden-runc} BOSH release, and instead embeds the \code{gdn} binary
+  directly.
+
+  Along the way, we have adopted
+  \link{BPM}{https://github.com/cloudfoundry-incubator/bpm-release} and now
+  use it for deploying the \reference{web-node}. We also enforce a higher
+  \code{nofile} limit which should make large-scale deployments
+  more...scaley.
+}
+
 \note{fix,breaking}{
   Two flags have been modified to be more consistent with other flag syntax:
 
@@ -312,20 +340,6 @@
   \reference{put-step-inputs} to use, rather than using all of them. This can
   be used to dramatically speed up builds that have a ton of artifacts prior
   to a \code{put}.
-}
-
-\note{feature}{
-  The \link{Concourse BOSH
-  release}{https://github.com/concourse/concourse-bosh-release} has been
-  redesigned and is now centered around the \code{concourse} binary. It no
-  longer needs to be deployed alongside a Garden-runC BOSH release, and
-  instead embeds the \code{gdn} binary directly.
-
-  Along the way, we have adopted
-  \link{BPM}{https://github.com/cloudfoundry-incubator/bpm-release} and now
-  use it for deploying the \reference{web-node}. We also enforce a higher
-  \code{nofile} limit which should make large-scale deployments
-  more...scaley.
 }
 
 \note{feature}{
