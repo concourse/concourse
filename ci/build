@@ -22,6 +22,9 @@ pushd docs
   git pull
   git merge --no-edit $ref
 
+  # TODO: booklit should just clear it each time
+  rm -f search_index.json
+
   ./scripts/build
   git add -A
   git commit --allow-empty -m "build"
