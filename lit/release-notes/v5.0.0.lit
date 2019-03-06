@@ -2,7 +2,26 @@
 
 \styled{release-v5}
 \release-version{5.0.0}
-\release-date{2019-1-31}
+\release-date{2019-3-6}
+
+This release is a doozy. You should probably read these release notes in full -
+there are a ton of substantial new features and a good (bad?) amount of
+breaking changes.
+
+Sorry this took so long! The holiday season took its toll, but we also got a
+bit overzealous with piling feature work on \code{master}, and well, we
+restructured the entire project and re-created its pipeline from scratch, so
+that didn't help.
+
+On the plus side, the project restructure is now done, and we'll be
+implementing a new release process soon that should prevent these kinds of
+hold-ups from happening again in the future.
+
+Special thanks to the many individuals in the community who took part in this
+release - whether you submitted a PR, helped triage issues, helped people out
+on the forums or in Discord, or simply cheered us on, every little bit helps
+keep the project humming along. We deeply appreciate it, and look forward to
+delivering y'all a better and better CI system - hopefully, more continuously.
 
 \note{feature,breaking}{
   We have done a major internal overhaul of how resource versions are stored.

@@ -745,8 +745,11 @@ h2, h3 {
   padding-left: 100px;
 }
 
+.release-notes > p:first-child {
+  margin-top: 1em;
+}
+
 .release-notes img {
-  margin: 1em 0;
   max-width: 100%;
 }
 
