@@ -608,7 +608,7 @@ h2, h3 {
   border-bottom: 1px solid #ddd;
 
   display: grid;
-  grid-template-columns: 3fr 2fr;
+  grid-template-columns: auto 250px;
   grid-template-rows: min-content auto;
   grid-template-areas:
     "header header"
