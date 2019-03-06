@@ -6,7 +6,7 @@
 \include-section{./examples/time-triggered.lit}
 \include-section{./examples/trigger-then-continue.lit}
 \include-section{./examples/hooks.lit}
-\include-section{./examples/golang.lit}
+\include-section{./examples/golang-lib.lit}
 \include-section{./examples/rails.lit}
 \include-section{./examples/nodejs.lit}
 \include-section{./examples/php.lit}

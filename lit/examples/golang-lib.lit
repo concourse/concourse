@@ -1,13 +1,19 @@
-\title{Golang Application}{golang-example}
+\title{Golang Library}{golang-library-example}
 
 \use-plugin{concourse-docs}
 
 \section{
   \title{}{pipeline}
 
-	You can run the tests for a Golang application across any specified versions.
+	You can run the tests for a Golang library across any specified versions.
 
 	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/golang}
+}
+
+\right-side{Why?}{
+This example shows how to have multiple versions of a language, environment, or dependency fetched and integrated in to a \reference{pipelines}{Pipeline}.
+
+For these Docker images, defining them as \reference{resources} has two advantages for this use case. First, this enables the pipeline to be triggered when there are new versions of those images available. Second, referencing them in the task's \reference{task-step-image} param is helpful as it will ensure consistency between the image versions fetched by the \reference{resources}{Resource} and the image version running in the job.
 }
 
 \section{
