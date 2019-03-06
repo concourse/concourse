@@ -239,6 +239,55 @@ run:
 		Expect(uploadingBits).To(BeClosed())
 	})
 
+	Context("when there is a pipeline job with the same input", func() {
+		BeforeEach(func() {
+			atcServer.RouteToHandler("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds",
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds"),
+					func(w http.ResponseWriter, r *http.Request) {
+						http.SetCookie(w, &http.Cookie{
+							Name:    "Some-Cookie",
+							Value:   "some-cookie-data",
+							Path:    "/",
+							Expires: time.Now().Add(1 * time.Minute),
+						})
+					},
+					ghttp.RespondWith(201, `{"id":128}`),
+				),
+			)
+			atcServer.RouteToHandler("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/inputs",
+				ghttp.RespondWithJSONEncoded(200, []atc.BuildInput{atc.BuildInput{Name: "fixture"}}),
+			)
+			atcServer.RouteToHandler("GET", "/api/v1/teams/main/pipelines/some-pipeline/resource-types",
+				ghttp.RespondWithJSONEncoded(200, atc.VersionedResourceTypes{}),
+			)
+		})
+
+		It("creates a build, streams output, and polls until completion", func() {
+			flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-j", "some-pipeline/some-job")
+			flyCmd.Dir = buildDir
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(streaming).Should(BeClosed())
+
+			buildURL, _ := url.Parse(atcServer.URL())
+			buildURL.Path = path.Join(buildURL.Path, "builds/128")
+			Eventually(sess.Out).Should(gbytes.Say("executing build 128 at %s", buildURL.String()))
+
+			events <- event.Log{Payload: "sup"}
+
+			Eventually(sess.Out).Should(gbytes.Say("sup"))
+
+			close(events)
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
+		})
+
+	})
+
 	Context("when the build config is invalid", func() {
 		BeforeEach(func() {
 			// missing platform and run path
