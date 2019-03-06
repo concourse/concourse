@@ -123,6 +123,53 @@
 }
 
 \note{feature}{
+  A new resource, the \resource{registry-image}, has been added to the core.
+  This resource is intended to replace the \resource{docker-image} image for
+  image pulling and pushing (but not building).
+
+  This resource improves on the \code{docker-image} resource in a few ways:
+
+  \list{
+    It doesn't run Docker to fetch the image - it's written in pure Go, using
+    the
+    \link{\code{google/go-containerregistry}}{https://github.com/google/go-containerregistry}
+    package. This makes the implementation much less error-prone.
+  }{
+    Because it doesn't run Docker, it doesn't need a privileged container. The
+    fewer privileged containers in your cluster, the better - especially in
+    light of \reference{v4.2.3}{recent CVE fixes}.
+  }{
+    By focusing solely on fetching and pushing, the resource is \italic{much}
+    smaller and simpler. It also has test coverage!
+  }{
+    The output has pretty colors.
+  }
+
+  This all results in much faster, more efficient, and resilient image
+  fetching. We recommend everyone to try switching your
+  \reference{task-image-resource}s and \reference{resource-types} over - in
+  most cases this is just a matter of replacing \code{type: docker-image} with
+  \code{type: registry-image}.
+
+  We intend to deprecate and phase out support for the \code{docker-image}
+  resource in favor of the \code{registry-image} resource. We can't really do
+  this until there's a solid direction for image building - preferably with a
+  \italic{task}, not a resource. This is a more natural split, and supports
+  building images without pushing them - a long awaited ask of the
+  \code{docker-image} resource.
+
+  An experimental task for this is available at
+  \link{\code{concourse/builder}}{https://github.com/concourse/builder}. This
+  is not yet official, but we've using it in our own pipeline and it's been
+  pretty solid. Feel free to give it a try!
+
+  The next step from here is to actually kick off an RFC for reusable tasks -
+  we're still collecting our thoughts for that in \link{(RF)RFC
+  #7}{https://github.com/concourse/rfcs/issues/7}. Once this is done we can
+  formalize \code{concourse/builder}.
+}
+
+\note{feature}{
   We have introduced the first phase of role-based access control!
 
   Right now there are only a few statically defined roles. We started off by
@@ -163,12 +210,6 @@
   If you're curious about the design process for this feature, check out
   \link{RFC #3
   (RBAC)}{https://github.com/concourse/rfcs/blob/master/003-rbac/proposal.md}!
-}
-
-\note{feature}{
-  The \reference{web-node} can now be configured with a
-  \reference{fewest-build-containers-strategy}, which will place containers
-  on workers that have the fewest build containers.
 }
 
 \note{feature}{
@@ -222,6 +263,12 @@
   \link{reusable tasks}{https://github.com/concourse/rfcs/issues/7}. In
   addition, pipeline \code{((params))} will now be referred to as pipeline
   \code{((vars))} instead, for consistency.
+}
+
+\note{feature}{
+  The \reference{web-node} can now be configured with a
+  \reference{fewest-build-containers-strategy}, which will place containers
+  on workers that have the fewest build containers.
 }
 
 \note{feature}{
