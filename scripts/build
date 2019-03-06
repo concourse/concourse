@@ -9,7 +9,5 @@ go install github.com/vito/booklit/cmd/booklit
 booklit -i lit/index.lit -o . \
   --save-search-index \
   --html-templates html/ \
-  --plugin github.com/concourse/docs/go/splash \
-  --plugin github.com/concourse/docs/go/resources-table \
   --plugin github.com/concourse/docs/go/docs \
-  --plugin github.com/concourse/docs/go/community "$@"
+  "$@"
