@@ -57,7 +57,7 @@ func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
 	var projects []Project
 
 	for _, pipeline := range pipelines {
-		dashboards, err := pipeline.Dashboard();
+		dashboards, err := pipeline.Dashboard()
 
 		if err != nil {
 			logger.Error("failed-to-get-dashboards", err)
