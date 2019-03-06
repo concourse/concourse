@@ -602,3 +602,8 @@ delivering y'all a better and better CI system - hopefully, more continuously.
   A \reference{fly-userinfo} command has been added which will let you know
   which teams you are logged in to and which roles you have in each team.
 }
+
+\note{fix}{
+  The positioning of the "no results" text when searching on the dashboard has
+  been fixed.
+}
