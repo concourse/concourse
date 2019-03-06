@@ -282,12 +282,12 @@ h2, h3 {
 
 .top-nav a.active {
   background: #fff;
-  color: #616161;
+  color: #2a2929;
   text-decoration: underline;
 }
 
 .page-content h1 {
-  border-top: 5px solid #2A2929;
+  border-top: 4px solid #2A2929;
   padding-top: 10px;
 }
 
