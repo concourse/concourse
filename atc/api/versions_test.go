@@ -7,13 +7,12 @@ import (
 	"net/http"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Versions API", func() {
@@ -86,11 +85,102 @@ var _ = Describe("Versions API", func() {
 				BeforeEach(func() {
 					fakePipeline.PublicReturns(true)
 					fakePipeline.ResourceReturns(fakeResource, true, nil)
-					fakeResource.VersionsReturns([]atc.ResourceVersion{}, db.Pagination{}, true, nil)
+
+					returnedVersions := []atc.ResourceVersion{
+						{
+							ID:      4,
+							Enabled: true,
+							Version: atc.Version{
+								"some": "version",
+							},
+							Metadata: []atc.MetadataField{
+								{
+									Name:  "some",
+									Value: "metadata",
+								},
+							},
+						},
+						{
+							ID:      2,
+							Enabled: false,
+							Version: atc.Version{
+								"some": "version",
+							},
+							Metadata: []atc.MetadataField{
+								{
+									Name:  "some",
+									Value: "metadata",
+								},
+							},
+						},
+					}
+
+					fakeResource.VersionsReturns(returnedVersions, db.Pagination{}, true, nil)
 				})
 
 				It("returns 200 OK", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns content type application/json", func() {
+					Expect(response.Header.Get("Content-type")).To(Equal("application/json"))
+				})
+
+				Context("when resource is public", func() {
+					BeforeEach(func() {
+						fakeResource.PublicReturns(true)
+					})
+
+					It("returns the json", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`[
+					{
+						"id": 4,
+						"enabled": true,
+						"version": {"some":"version"},
+						"metadata": [
+							{
+								"name":"some",
+								"value":"metadata"
+							}
+						]
+					},
+					{
+						"id":2,
+						"enabled": false,
+						"version": {"some":"version"},
+						"metadata": [
+							{
+								"name":"some",
+								"value":"metadata"
+							}
+						]
+					}
+				]`))
+					})
+
+				})
+
+				Context("when resource is not public", func() {
+					It("returns the json without version metadata", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`[
+					{
+						"id": 4,
+						"enabled": true,
+						"version": {"some":"version"}
+					},
+					{
+						"id":2,
+						"enabled": false,
+						"version": {"some":"version"}
+					}
+				]`))
+					})
 				})
 			})
 		})

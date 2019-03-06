@@ -34,11 +34,13 @@ var _ = Describe("Resource", func() {
 					},
 					{
 						Name:   "some-other-resource",
+						Public: true,
 						Type:   "git",
 						Source: atc.Source{"some": "other-repository"},
 					},
 					{
 						Name:   "some-secret-resource",
+						Public: false,
 						Type:   "git",
 						Source: atc.Source{"some": "((secret-repository))"},
 					},
@@ -1190,6 +1192,50 @@ var _ = Describe("Resource", func() {
 
 			It("should return the config pinned version", func() {
 				Expect(resource.CurrentPinnedVersion()).To(Equal(atc.Version{"ref": "abcdef"}))
+			})
+		})
+	})
+
+	Describe("Public", func() {
+		var (
+			resource db.Resource
+			found    bool
+			err      error
+		)
+
+		Context("when public is not set in the config", func() {
+			BeforeEach(func() {
+				resource, found, err = pipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("returns false", func() {
+				Expect(resource.Public()).To(BeFalse())
+			})
+		})
+
+		Context("when public is set to true in the config", func() {
+			BeforeEach(func() {
+				resource, found, err = pipeline.Resource("some-other-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("returns true", func() {
+				Expect(resource.Public()).To(BeTrue())
+			})
+		})
+
+		Context("when public is set to false in the config", func() {
+			BeforeEach(func() {
+				resource, found, err = pipeline.Resource("some-secret-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("returns false", func() {
+				Expect(resource.Public()).To(BeFalse())
 			})
 		})
 	})
