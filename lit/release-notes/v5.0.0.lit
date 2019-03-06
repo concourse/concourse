@@ -453,7 +453,7 @@ delivering y'all a better and better CI system - hopefully, more continuously.
   \reference{fly-land-worker}. This will initiate the landing process via the
   API and will ultimately result in the worker process exiting. (Which may
   end up being re-started by whatever process monitor you use, but hey, it
-  laned.)
+  landed.)
 }
 
 \note{feature}{
@@ -464,7 +464,7 @@ delivering y'all a better and better CI system - hopefully, more continuously.
 
 \note{fix}{
   \reference{fly-set-pipeline} will now notice when the order of
-  \reference{pipeline-groups} has changed.
+  \reference{pipeline-groups} has changed and show it in the diff.
 }
 
 \note{feature}{
@@ -490,7 +490,7 @@ delivering y'all a better and better CI system - hopefully, more continuously.
 }
 
 \note{fix}{
-  \reference{task-caches} are now supported on Windows!
+  Task \reference{task-caches} are now supported on Windows!
 }
 
 \note{fix}{
@@ -532,7 +532,7 @@ delivering y'all a better and better CI system - hopefully, more continuously.
     you can now see which team you're a member of, rather than one big 'no
     pipelines set' page
   }{
-    the bar along the bottom will now show
+    the bar along the bottom will now show up
   }{
     there's a fancy ASCII art UI now
   }{
@@ -541,9 +541,6 @@ delivering y'all a better and better CI system - hopefully, more continuously.
     the HD view has been disabled and just redirects to \code{/} instead,
     since there was nothing for it to show
   }
-
-  The dashboard page will now show the bar along the bottom even if you're no
-  pipelines.
 }
 
 \note{fix}{
