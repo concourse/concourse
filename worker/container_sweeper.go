@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"os"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -10,36 +11,53 @@ import (
 	"code.cloudfoundry.org/lager/lagerctx"
 )
 
-// ContainerSweeper is an ifrit.Runner that periodically reports and
+// containerSweeper is an ifrit.Runner that periodically reports and
 // garbage-collects a worker's containers
-type ContainerSweeper struct {
-	Logger       lager.Logger
-	Interval     time.Duration
-	TSAClient    TSAClient
-	GardenClient garden.Client
+type containerSweeper struct {
+	logger       lager.Logger
+	interval     time.Duration
+	tsaClient    TSAClient
+	gardenClient garden.Client
+	maxInFlight  int
 }
 
-func (cmd *ContainerSweeper) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	timer := time.NewTicker(cmd.Interval)
+func NewContainerSweeper(
+	logger lager.Logger,
+	sweepInterval time.Duration,
+	tsaClient TSAClient,
+	gardenClient garden.Client,
+	maxInFlight int,
+) (*containerSweeper) {
+	return &containerSweeper{
+		logger:       logger,
+		interval:     sweepInterval,
+		tsaClient:    tsaClient,
+		gardenClient: gardenClient,
+		maxInFlight:  maxInFlight,
+	}
+}
+
+func (sweeper *containerSweeper) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+	timer := time.NewTicker(sweeper.interval)
 
 	close(ready)
 
 	for {
 		select {
 		case <-timer.C:
-			cmd.sweep(cmd.Logger.Session("tick"))
+			sweeper.sweep(sweeper.logger.Session("tick"))
 
 		case sig := <-signals:
-			cmd.Logger.Info("sweep-cancelled-by-signal", lager.Data{"signal": sig})
+			sweeper.logger.Info("sweep-cancelled-by-signal", lager.Data{"signal": sig})
 			return nil
 		}
 	}
 }
 
-func (cmd *ContainerSweeper) sweep(logger lager.Logger) {
+func (sweeper *containerSweeper) sweep(logger lager.Logger) {
 	ctx := lagerctx.NewContext(context.Background(), logger)
 
-	containers, err := cmd.GardenClient.Containers(garden.Properties{})
+	containers, err := sweeper.gardenClient.Containers(garden.Properties{})
 	if err != nil {
 		logger.Error("failed-to-list-containers", err)
 	} else {
@@ -48,23 +66,32 @@ func (cmd *ContainerSweeper) sweep(logger lager.Logger) {
 			handles = append(handles, container.Handle())
 		}
 
-		err := cmd.TSAClient.ReportContainers(ctx, handles)
+		err := sweeper.tsaClient.ReportContainers(ctx, handles)
 		if err != nil {
 			logger.Error("failed-to-report-containers", err)
 		}
 	}
 
-
-	containerHandles, err := cmd.TSAClient.ContainersToDestroy(ctx)
+	containerHandles, err := sweeper.tsaClient.ContainersToDestroy(ctx)
 	if err != nil {
 		logger.Error("failed-to-sweep-containers", err)
 	} else {
+		var wg sync.WaitGroup
+		maxInFlight := make(chan int, sweeper.maxInFlight)
+
 		for _, handle := range containerHandles {
-			err := cmd.GardenClient.Destroy(handle)
-			if err != nil {
-				logger.Error("failed-to-destroy-container", err)
-			}
+			maxInFlight <- 1
+			wg.Add(1)
+
+			go func(handle string) {
+				err := sweeper.gardenClient.Destroy(handle)
+				if err != nil {
+					logger.Error("failed-to-destroy-container", err)
+				}
+				<-maxInFlight
+				wg.Done()
+			}(handle)
 		}
+		wg.Wait()
 	}
 }
-

@@ -21,6 +21,8 @@ import (
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
+const SweeperMaxInFlight = 5
+
 type WorkerCommand struct {
 	Worker WorkerConfig
 
@@ -90,6 +92,57 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		cmd.HealthCheckTimeout,
 	)
 
+	tsaClient := cmd.TSA.Client(atcWorker)
+
+	beaconRunner := worker.NewBeaconRunner(
+		logger.Session("beacon-runner"),
+		tsaClient,
+		cmd.RebalanceInterval,
+		cmd.ConnectionDrainTimeout,
+		cmd.gardenAddr(),
+		cmd.baggageclaimAddr(),
+	)
+
+	gardenClient := gclient.New(
+		gconn.NewWithLogger(
+			"tcp",
+			cmd.gardenAddr(),
+			logger.Session("garden-connection"),
+		),
+	)
+
+	baggageclaimClient := bclient.NewWithHTTPClient(
+		cmd.baggageclaimURL(),
+
+		// ensure we don't use baggageclaim's default retryhttp client; all
+		// traffic should be local, so any failures are unlikely to be transient.
+		// we don't want a retry loop to block up sweeping and prevent the worker
+		// from existing.
+		&http.Client{
+			Transport: &http.Transport{
+				// don't let a slow (possibly stuck) baggageclaim server slow down
+				// sweeping too much
+				ResponseHeaderTimeout: 1 * time.Minute,
+			},
+		},
+	)
+
+	containerSweeper := worker.NewContainerSweeper(
+		logger.Session("container-sweeper"),
+		cmd.SweepInterval,
+		tsaClient,
+		gardenClient,
+		SweeperMaxInFlight,
+	)
+
+	volumeSweeper := worker.NewVolumeSweeper(
+		logger.Session("volume-sweeper"),
+		cmd.SweepInterval,
+		tsaClient,
+		baggageclaimClient,
+		SweeperMaxInFlight,
+	)
+
 	members := grouper.Members{
 		{
 			Name:   "garden",
@@ -119,75 +172,27 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 				),
 			),
 		},
-	}
-
-	if cmd.TSA.WorkerPrivateKey != nil {
-		tsaClient := cmd.TSA.Client(atcWorker)
-
-		members = append(members, grouper.Member{
+		{
 			Name: "beacon",
 			Runner: NewLoggingRunner(
 				logger.Session("beacon-runner"),
-				worker.NewBeaconRunner(
-					logger.Session("beacon-runner"),
-					tsaClient,
-					cmd.RebalanceInterval,
-					cmd.ConnectionDrainTimeout,
-					cmd.gardenAddr(),
-					cmd.baggageclaimAddr(),
-				),
+				beaconRunner,
 			),
-		})
-
-		gardenClient := gclient.New(
-			gconn.NewWithLogger(
-				"tcp",
-				cmd.gardenAddr(),
-				logger.Session("garden-connection"),
-			),
-		)
-
-		baggageclaimClient := bclient.NewWithHTTPClient(
-			cmd.baggageclaimURL(),
-
-			// ensure we don't use baggageclaim's default retryhttp client; all
-			// traffic should be local, so any failures are unlikely to be transient.
-			// we don't want a retry loop to block up sweeping and prevent the worker
-			// from existing.
-			&http.Client{
-				Transport: &http.Transport{
-					// don't let a slow (possibly stuck) baggageclaim server slow down
-					// sweeping too much
-					ResponseHeaderTimeout: 1 * time.Minute,
-				},
-			},
-		)
-
-		members = append(members, grouper.Member{
+		},
+		{
 			Name: "container-sweeper",
 			Runner: NewLoggingRunner(
 				logger.Session("container-sweeper"),
-				&worker.ContainerSweeper{
-					Logger:             logger.Session("container-sweeper"),
-					Interval:           cmd.SweepInterval,
-					TSAClient:          tsaClient,
-					GardenClient:       gardenClient,
-				},
+				containerSweeper,
 			),
-		})
-		members = append(members, grouper.Member{
+		},
+		{
 			Name: "volume-sweeper",
 			Runner: NewLoggingRunner(
 				logger.Session("volume-sweeper"),
-				&worker.VolumeSweeper{
-					Logger:             logger.Session("volume-sweeper"),
-					Interval:           cmd.SweepInterval,
-					TSAClient:          tsaClient,
-					BaggageclaimClient: baggageclaimClient,
-				},
+				volumeSweeper,
 			),
-		})
-
+		},
 	}
 
 	return grouper.NewParallel(os.Interrupt, members), nil

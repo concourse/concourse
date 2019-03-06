@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"os"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -10,36 +11,53 @@ import (
 	"github.com/concourse/baggageclaim"
 )
 
-// VolumeSweeper is an ifrit.Runner that periodically reports and
+// volumeSweeper is an ifrit.Runner that periodically reports and
 // garbage-collects a worker's volumes
-type VolumeSweeper struct {
-	Logger             lager.Logger
-	Interval           time.Duration
-	TSAClient          TSAClient
-	BaggageclaimClient baggageclaim.Client
+type volumeSweeper struct {
+	logger             lager.Logger
+	interval           time.Duration
+	tsaClient          TSAClient
+	baggageclaimClient baggageclaim.Client
+	maxInFlight        int
 }
 
-func (cmd *VolumeSweeper) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	timer := time.NewTicker(cmd.Interval)
+func NewVolumeSweeper(
+	logger lager.Logger,
+	sweepInterval time.Duration,
+	tsaClient TSAClient,
+	bcClient baggageclaim.Client,
+	maxInFlight int,
+) (*volumeSweeper) {
+	return &volumeSweeper{
+		logger:             logger,
+		interval:           sweepInterval,
+		tsaClient:          tsaClient,
+		baggageclaimClient: bcClient,
+		maxInFlight:        maxInFlight,
+	}
+}
+
+func (sweeper *volumeSweeper) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+	timer := time.NewTicker(sweeper.interval)
 
 	close(ready)
 
 	for {
 		select {
 		case <-timer.C:
-			cmd.sweep(cmd.Logger.Session("tick"))
+			sweeper.sweep(sweeper.logger.Session("tick"))
 
 		case sig := <-signals:
-			cmd.Logger.Info("sweep-cancelled-by-signal", lager.Data{"signal": sig})
+			sweeper.logger.Info("sweep-cancelled-by-signal", lager.Data{"signal": sig})
 			return nil
 		}
 	}
 }
 
-func (cmd *VolumeSweeper) sweep(logger lager.Logger) {
+func (sweeper *volumeSweeper) sweep(logger lager.Logger) {
 	ctx := lagerctx.NewContext(context.Background(), logger)
 
-	volumes, err := cmd.BaggageclaimClient.ListVolumes(logger.Session("list-volumes"), baggageclaim.VolumeProperties{})
+	volumes, err := sweeper.baggageclaimClient.ListVolumes(logger.Session("list-volumes"), baggageclaim.VolumeProperties{})
 	if err != nil {
 		logger.Error("failed-to-list-volumes", err)
 	} else {
@@ -48,19 +66,33 @@ func (cmd *VolumeSweeper) sweep(logger lager.Logger) {
 			handles = append(handles, volume.Handle())
 		}
 
-		err := cmd.TSAClient.ReportVolumes(ctx, handles)
+		err := sweeper.tsaClient.ReportVolumes(ctx, handles)
 		if err != nil {
 			logger.Error("failed-to-report-volumes", err)
 		}
 	}
 
-	volumeHandles, err := cmd.TSAClient.VolumesToDestroy(ctx)
+	volumeHandles, err := sweeper.tsaClient.VolumesToDestroy(ctx)
 	if err != nil {
 		logger.Error("failed-to-sweep-volumes", err)
-	} else if len(volumeHandles) > 0 {
-		err := cmd.BaggageclaimClient.DestroyVolumes(logger.Session("destroy-volumes"), volumeHandles)
-		if err != nil {
-			logger.Error("failed-to-destroy-volumes", err)
+	} else {
+		var wg sync.WaitGroup
+		maxInFlight := make(chan int, sweeper.maxInFlight)
+
+		for _, handle := range volumeHandles {
+			maxInFlight <- 1
+			wg.Add(1)
+
+			go func(handle string) {
+				err := sweeper.baggageclaimClient.DestroyVolume(logger.Session("destroy-volumes"), handle)
+				if err != nil {
+					logger.Error("failed-to-destroy-volumes", err)
+				}
+
+				<-maxInFlight
+				wg.Done()
+			}(handle)
 		}
+		wg.Wait()
 	}
 }
