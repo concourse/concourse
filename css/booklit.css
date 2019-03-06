@@ -1111,7 +1111,6 @@ label.quickstart-label::before {
   .release-downloads {
     padding: 0;
     border: 0;
-    margin-left: 100px;
   }
 
   .release-downloads ul {
@@ -1120,6 +1119,28 @@ label.quickstart-label::before {
 
   .release-downloads h3 {
     display: none;
+  }
+
+  .version-tag {
+    display: none;
+  }
+
+  .release-notes {
+    padding: 0;
+  }
+
+  .release-note {
+    flex-direction: column;
+  }
+
+  .note-tags {
+    flex-direction: row;
+    flex-basis: 0;
+    margin-left: 0;
+  }
+
+  .note-tag {
+    margin-right: 10px;
   }
 
   .download-items {
