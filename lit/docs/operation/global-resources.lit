@@ -1,0 +1,158 @@
+\title{Global Resources\aux{ (experimental)}}{global-resources}
+
+\use-plugin{concourse-docs}
+
+Concourse v5.0 contains an experimental feature known as "global resources". It
+is enabled by passing the \code{--enable-global-resources} flag to the
+\code{concourse web} command.
+
+The basic concept of global resources is to share detected resource versions
+between all resources that have the same \reference{resource-type} and
+\reference{resource-source} configuration.
+
+Before v5.0.0, each pipeline resource had its own version history, associated
+to the resource by name. This meant that multiple pipelines with the same
+resource configs would redundantly collect the same version and metadata
+information.
+
+With v5.0.0's experimental 'global resources' feature, resource versions are
+instead associated to an anonymous 'resource config' i.e. its
+\reference{resource-type} and \reference{resource-source}.
+
+\section{
+  \title{Benefits of Global Resources}
+
+  \omit-children-from-table-of-contents
+
+  \section{
+    \title{Fewer resource \code{check}s to perform}
+
+    With global resources, all resources that have the same configuration will
+    share the same version history and share only one checking interval. This
+    reduces load on the worker and on the external services that
+    the resources point to.
+
+    For example, prior to global resources if there were three resources with
+    the same configuration between three team's pipelines it would result in three
+    check containers performing three resource checks every minute to fetch the versions.
+
+    With global resources, this configuration will result in only one check
+    container and one resource check every minute to fetch versions for all the
+    resources.
+
+    Since there will be only one resource check for all resources that have the
+    same configuration, the resource that has the shortest
+    \reference{resource-check-every} configured will result in its pipeline
+    running the checks for that resource configuration.
+
+    \section{
+      \title{Complications with reusing containers}
+
+      There is an exception to sharing check containers within a deployment,
+      which is workers belonging to a team and workers with tags.
+
+      If a resource has \reference{resource-tags} configured, \italic{and} the
+      resource's check interval ends up acquiring the checking lock, a new
+      container will be created on a worker matching the appropriate tags, even
+      if a check container already exists for the same resource config
+      elsewhere.
+
+      Similarly, if a team has its own workers, and their check interval ended
+      up acquiring the lock, a new container will be created on the team's
+      workers, rather than re-using a container from the shared worker pool.
+
+      This is a bit complicated to reason about and we plan to stop re-using
+      \code{check} containers to simplify all of this. See \ghissue{3079} for
+      more information.
+    }
+  }
+
+  \section{
+    \title{Reducing redundant data}
+
+    The majority of Concourse resources will benefit from having versions shared
+    globally because most resource versions have an external source of truth.
+
+    For example, a \code{check} for the \resource{git} that pulls in the
+    \code{concourse/concourse} repository will always return the same set of
+    versions as an equivalent resource pointing to the same repository. By
+    consolidating the \code{check}s and the versions, there will essentially
+    only be one set of versions collected from the repository and saved into
+    the database.
+  }
+
+  \section{
+    \title{Reliable Resource Version History}
+
+    Prior to global resources, a resource's version history was directly
+    associated to the resource name. This meant that any changes to a
+    resource's configuration without changing its name would basically append
+    the versions from the new configuration after the old versions, which are
+    no longer accurate to the current configuration.
+
+    Global resources instead associates the resource versions to the resource's
+    \reference{resource-type} and \reference{resource-source}. Therefore,
+    whenever a resource definition changes, the versions will "reset" and
+    change along with it, resulting in truthful and reliable version histories.
+  }
+}
+
+\section{
+  \title{Risks and Side Effects}
+
+  \omit-children-from-table-of-contents
+
+  \section{
+    \title{Some resources should opt-out}
+
+    Sharing versions isn't always a good idea. For example, the \resource{time}
+    is often used to generate versions on an interval so that jobs can fire
+    periodically. If version history were to be shared for all users with e.g.
+    a 10 minute interval, that would lead to a thundering herd of builds
+    storming your workers, leading to load spikes and a lot of unhappy builds.
+
+    For this reason, resource types can opt out of sharing version history for
+    all resources that use them. This way all existing usage of the
+    \resource{time} don't have to change, and continue to have their own
+    version history, unique to the pipeline resource.
+
+    The \resource{time} opts out of this by configuring
+    \code{unique_version_history: true} in its \code{metadata.json} - but this
+    is something that only "core" resource types can do. We plan on supporting
+    this as part of the \link{Resources v2
+    RFC}{https://github.com/concourse/rfcs/pull/1}.
+
+    Users can also set this value themselves by configuring
+    \reference{resource-type-unique-version-history} on the resource type.
+
+    Another case where version history shouldn't be shared is when resources
+    "automagically" learn their auth credentials using things like IAM roles.
+    In these cases, the credentials aren't in the \reference{resource-source}.
+    If version history were to be shared, anyone could configure the same
+    \code{source:}, not specifying any credentials, and see the version history
+    discovered by some other pipeline that ran its checks on workers that had
+    access via IAM roles.
+
+    For this reason, any resource types that acquire credentials outside of
+    \code{source:} should not share version history. Granted, the user won't be
+    able to \italic{fetch} these versions, but it's still an information leak.
+
+    IAM roles are a bit of a thorn in our side when it comes to designing
+    features like this. We're planning on introducing support for them in a way
+    that doesn't have this problem in \ghissue{3023}.
+  }
+
+  \section{
+    \title{Intercepting \code{check} containers is no longer safe}{intercept-admin-only}
+
+    Now that \code{check} containers are shared across teams, it would be
+    dangerous to allow anyone to \reference{fly-intercept} to \code{check}
+    containers. For this reason, this capability is limited to
+    \reference{concourse-admin}{admin users}.
+
+    We recognize that this will make it a bit more difficult for end users to
+    debug things like failing checks. We plan to improve this by introducing a
+    way to provision a \italic{new} \code{check} container to facilitate
+    debugging. See \ghissue{3344} for more information.
+  }
+}

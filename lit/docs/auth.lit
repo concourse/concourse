@@ -1,0 +1,64 @@
+\title{Auth & Teams}{auth}{teams}
+
+\use-plugin{concourse-docs}
+\split-sections
+
+A single Concourse installation can accomodate many projects and users.
+
+Pipelines, builds, and all other user data are owned by \italic{teams}. A team
+is just a conceptual owner and a separate namespace, tied to an authorization
+config. For example, a team may authorize all members of the \code{concourse}
+GitHub organization to be a \reference{team-member-role}{member}.
+
+When a user authenticates, each team's authorization config is checked against
+the user to determine which \reference{user-roles}{role}, if any, to grant for
+the team. This information is then stored in the user's token to determine
+access control for future requests.
+
+\include-section{auth/main-team.lit}
+\include-section{auth/configuring.lit}
+\include-section{auth/managing-teams.lit}
+\include-section{auth/roles.lit}
+
+\section{
+  \title{Pipeline & Build Visibility}{exposing}
+
+  Every newly configured pipeline is hidden to anyone but the pipeline's team.
+  To make a pipeline publicly viewable, both by other teams and unauthenticated
+  users, see \reference{fly-expose-pipeline}.
+
+  Even with a pipeline exposed, all build logs are hidden by default. This is
+  because CI jobs are prone to leaking credentials and other...unsavory
+  information. After you've determined that a job's builds should be safe for
+  public consumption, you can set \reference{job-public}{\code{public: true}}
+  on the job in your pipeline.
+}
+
+\section{
+  \title{Security Caveats}{teams-caveats}
+
+  At present, teams only provide \italic{trusted multi-tenancy}. This means it
+  should be used for cases where you know and trust who you're allowing access
+  into your Concourse cluster.
+
+  There are a few reasons it'd be a bad idea to do otherwise:
+
+  \list{
+    Any team can run builds with \reference{task-step-privileged} tasks. A bad
+    actor in the mix could easily use this to harm your workers and your
+    cluster.
+
+    In the future, we'll probably have this as a flag on a team, indicating
+    whether they're permitted to run privileged builds.
+  }{
+    There are no networking restrictions in place, and traffic to and from the
+    workers is currently unencrypted and unauthorized. Anyone could run a task
+    that does horrible things to your worker's containers, possibly stealing
+    sensitive information.
+
+    This can be remedied with configuration specified on Garden to restrict
+    access to the internal network, but this is not detailed in our docs, and
+    we'll probably want to find a better answer than configuration in the
+    future.
+  }
+}

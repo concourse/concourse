@@ -1,56 +1,21 @@
 \title{Community}{community}
 
-\section{
-  \title{GitHub}{github}
-
-  Concourse is completely open-source. All of the source code lives under the
-  \link{Concourse organization}{https://github.com/concourse} on GitHub. Pull
-  requests welcome! (Issues too, I guess.)
-
-  For a bird's eye view of the entire project, and to see what's in flight and
-  coming up on our backlog, check out our
-  \link{project.concourse-ci.org}{https://project.concourse-ci.org}.
-}
-
-\section{
-  \title{Discuss}{discuss}
-
-  The \link{Concourse forums}{https://discuss.concourse-ci.org} are a great
-  place for discussions that are a bit more open-ended than GitHub issues or
-  pull requests.
-
-  These forums are for supporting end users and operators, planning
-  contributions and volunteering ideas, and announcing new things like resource
-  types and whatever other cool things y'all want to show off.
-}
-
-\section{
-  \title{Discord}{discord}
-
-  We use \link{Discord}{https://discordapp.com} for real-time chat amongst
-  contributors. Click \link{here}{https://discord.gg/MeRxXKW} for an invite.
-
-  If you're looking to become a contributor, you should drop in to Discord and
-  introduce yourself! We're happy to help you on your way.
+\list{
+  \link{GitHub repo}{https://github.com/concourse/concourse}
+}{
+  \link{Blog}{https://medium.com/concourse-ci}
+}{
+  \link{Forums}{https://discuss.concourse-ci.org} for support, announcements,
+  and general discussion
+}{
+  \link{Stack Overflow \code{concourse}
+  tag}{https://stackoverflow.com/questions/tagged/concourse}
+}{
+  \link{Discord}{https://discord.gg/MeRxXKW} to chat with other contributors.
 
   If you're looking for help, we'd really appreciate it if you used the forums
   instead - threading and persistent messages make the support burden of an
   open-source project much easier to bear.
-}
-
-\section{
-  \title{Blog}{blog}
-
-  We often write long-form articles and project updates on our Concourse
-  publication, hosted on \link{Medium}{https://medium.com/concourse-ci}.
-}
-
-\section{
-  \title{Stack Overflow}{stackoverflow}
-
-  Concourse questions can all be found on StackOverflow under the
-  \link{\code{concourse}
-  tag}{https://stackoverflow.com/questions/tagged/concourse}.
 }
 
 \section{
@@ -62,3 +27,7 @@
   security issue, send an email to
   \link{concourseteam+security@gmail.com}{mailto:concourseteam+security@gmail.com}.
 }
+
+\include-section{./docs/resource-types/community-resources.lit}
+
+\include-section{./tools.lit}

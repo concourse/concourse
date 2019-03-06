@@ -1,0 +1,17 @@
+<div class="top-logo">
+  <a href="/">Concourse</a>
+</div>
+
+<nav class="top-nav">
+  {{range .Top.Children}}
+  <a href="{{.PrimaryTag | url}}"{{if .Contains $}} class="active"{{end}}>{{.Title | stripAux | render}}</a>
+  {{end}}
+</nav>
+
+<div class="top-search" id="search" onclick="gtag('event', 'search-click');">
+  <input type="search" class="search-input" placeholder="Search the docs&hellip;" required="required" />
+</div>
+
+<script type="text/javascript">
+  Elm.Main.embed(document.getElementById("search"));
+</script>

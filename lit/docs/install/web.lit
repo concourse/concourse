@@ -1,0 +1,215 @@
+\title{\aux{Running a }\code{web} node}{concourse-web}{web-node}
+
+\use-plugin{concourse-docs}
+\omit-children-from-table-of-contents
+
+The \code{web} node is responsible for running the web UI, API, and as well
+as performing all pipeline scheduling. It's basically the brain of Concourse.
+
+\section{
+  \title{Prerequisites}{web-prerequisites}
+
+  Nothing special - the \code{web} node is a pretty simple Go application that
+  can be run like a 12-factor app.
+}
+
+\section{
+  \title{Running}{web-running}
+
+  The \code{concourse} CLI can run as a \code{web} node via the \code{web}
+  subcommand.
+
+  Before running it, let's configure a local user so we can log in:
+
+  \codeblock{bash}{{{
+  CONCOURSE_ADD_LOCAL_USER=myuser:mypass
+  CONCOURSE_MAIN_TEAM_LOCAL_USER=myuser
+  }}}
+
+  This will configure a single user, \code{myuser}, with the password
+  \code{mypass}. You'll probably want to change those to sensible values, and
+  later you may want to configure a proper auth provider - check out
+  \reference{auth} whenever you're ready.
+
+  Next, you'll need to configure the session signing key, the SSH key for the
+  worker gateway, and the authorized worker key. Check
+  \reference{generating-keys} to learn what these are and how they are created.
+
+  \codeblock{bash}{{{
+  CONCOURSE_SESSION_SIGNING_KEY=path/to/session_signing_key
+  CONCOURSE_TSA_HOST_KEY=path/to/tsa_host_key
+  CONCOURSE_TSA_AUTHORIZED_KEYS=path/to/authorized_worker_keys
+  }}}
+
+  Finally, \code{web} needs to know how to reach your Postgres database. This
+  can be set like so:
+
+  \codeblock{bash}{{{
+  CONCOURSE_POSTGRES_HOST=127.0.0.1 # default
+  CONCOURSE_POSTGRES_PORT=5432      # default
+  CONCOURSE_POSTGRES_DATABASE=atc   # default
+  CONCOURSE_POSTGRES_USER=my-user
+  CONCOURSE_POSTGRES_PASSWORD=my-password
+  }}}
+
+  If you're running PostgreSQL locally, you can probably just point it to the
+  socket and rely on the \code{peer} auth:
+
+  \codeblock{bash}{{{
+  CONCOURSE_POSTGRES_SOCKET=/var/run/postgresql
+  }}}
+
+  Now that everything's set, run:
+
+  \codeblock{bash}{{{
+  concourse web
+  }}}
+
+  All logs will be emitted to \code{stdout}, with any panics or lower-level
+  errors being emitted to \code{stderr}.
+}
+
+\section{
+  \title{Properties}{web-properties}
+
+  CPU usage: peaks during pipeline scheduling, primarily when scheduling
+  \reference{pipeline-jobs}. Mitigated by adding more \code{web} nodes. In this
+  regard, \code{web} nodes can be considered compute-heavy more than anything
+  else at large scale.
+
+  Memory usage: not very well classified at the moment as it's not generally a
+  concern. Give it a few gigabytes and keep an eye on it.
+
+  Disk usage: none
+
+  Bandwidth usage: aside from handling external traffic, the \code{web} node
+  will at times have to stream bits out from one worker and into another while
+  executing \reference{steps}.
+
+  Highly available: yes; \code{web} nodes can all be configured the same (aside
+  from \code{--peer-url}) and placed behind a load balancer. Periodic tasks
+  like garbage-collection will not be duplicated for each node.
+
+  Horizontally scalable: yes; they will coordinate workloads using the
+  database, resulting in less work for each node and thus lower CPU usage.
+
+  Outbound traffic:
+
+  \list{
+    \code{db} on its configured port for persistence
+  }{
+    \code{db} on its configured port for locking and coordinating in a
+    multi-\code{web} node deployment
+  }{
+    directly-registered \code{worker} nodes on ports \code{7777}, \code{7788},
+    and \code{7799} for checking \reference{pipeline-resources}, executing
+    builds, and performing garbage-collection
+  }{
+    other \code{web} nodes (possibly itself) on an ephemeral port when a worker
+    is forwarded through the web node's TSA
+  }
+
+  Inbound traffic:
+
+  \list{
+    \code{worker} connects to the TSA on port \code{2222} for registration
+  }{
+    \code{worker} downloads inputs from the ATC during \reference{fly-execute}
+    via its external URL
+  }{
+    external traffic to the ATC API via the web UI and \reference{fly-cli}
+  }
+}
+
+\section{
+  \title{Operation}{web-operation}
+
+  The \code{web} nodes themselves are stateless - they don't store anything on
+  disk, and coordinate entirely using the database.
+
+  \section{
+    \title{Scaling}
+
+    The \reference{web-node} can be scaled up for high availability. They'll also
+    roughly share their scheduling workloads, using the database to synchronize.
+    This is done by just running more \code{web} commands on different machines,
+    and optionally putting them behind a load balancer.
+
+    To run a cluster of \reference{web-node}s, you'll first need to ensure
+    they're all pointing to the same PostgreSQL server.
+
+    Next, you'll need to configure a \italic{peer URL}. This is a URL that can be
+    used to reach this \code{web} node's web server from other \code{web} nodes.
+    Typically this uses a private IP, like so:
+
+    \codeblock{bash}{{{
+    CONCOURSE_PEER_URL=http://10.10.0.1:8080
+    }}}
+
+    Finally, if all of these nodes are going to be accessed through a load
+    balancer, you'll need to configure the external URL that will be used to
+    reach your Concourse cluster:
+
+    \codeblock{bash}{{{
+    CONCOURSE_EXTERNAL_URL=https://ci.example.com
+    }}}
+
+    Aside from the peer URL, all configuration must be consistent across all
+    \code{web} nodes in the cluster to ensure consistent results.
+  }
+
+  \section{
+    \title{Restarting & Upgrading}
+
+    The \code{web} nodes can be killed and restarted willy-nilly. No draining
+    is necessary; if the \code{web} node was orchestrating a build it will just
+    continue where it left off when it comes back or, or the build will be
+    picked up by one of the other \code{web} nodes.
+
+    To upgrade a \code{web} node, stop its process and start a new one using
+    the newly installed \code{concourse}. Any migrations will be run
+    automatically on start. If \code{web} nodes are started in parallel, only
+    one will run the migrations.
+
+    Note that we don't currently guarantee a lack of funny-business if you're
+    running mixed Concourse versions - database migrations can perform
+    modiciations that confuse other \code{web} nodes. So there may be some
+    turbulence during a rolling upgrade, but everything should stabilize once
+    all \code{web} nodes are running the latest version.
+  }
+
+  \section{
+    \title{Downgrading}
+
+    If you're stuck in a pinch and need to downgrade from one version of
+    Concourse to another, you can use the \code{concourse migrate} command.
+
+    \italic{
+      Note: support for down migrations is a fairly recent addition to
+      Concourse; it is not supported for downgrading to v3.6.0 and below.
+    }
+
+    First, grab the desired migration version by running the following:
+
+    \codeblock{bash}{{{
+    # make sure this is the *old* Concourse binary
+    $ concourse migrate --supported-db-version
+    1551110547
+    }}}
+
+    That number (yours will be different) is the expected migration version for
+    that version of Concourse.
+
+    Next, run the following with the \italic{new} Concourse binary:
+
+    \codeblock{bash}{{{
+    $ concourse migrate --migrate-db-to-version=1551110547
+    }}}
+
+    This will need the same \code{CONCOURSE_POSTGRES_*} configuration described
+    in \reference{web-running}.
+
+    Once this completes, switch all \code{web} nodes back to the older
+    \code{concourse} binary and you should be good to go.
+  }
+}

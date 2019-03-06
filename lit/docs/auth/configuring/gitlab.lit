@@ -1,0 +1,93 @@
+\title{GitLab auth}{gitlab-auth}
+
+\use-plugin{concourse-docs}
+\omit-children-from-table-of-contents
+
+A Concourse server can authenticate against GitLab to leverage their permission
+model.
+
+\section{
+  \title{Authentication}{gitlab-authentication}
+
+  First you need to \link{create an OAuth application on
+  GitLab}{https://gitlab.com/profile/applications}.
+
+  The "Authorization callback URL" must be the URL of your Concourse server
+  with \code{/sky/issuer/callback} appended. This address must be reachable by
+  GitLab - it can't be \code{localhost}.
+
+  For example, Concourse's own CI server's callback URL would be:
+
+  \codeblock{bash}{{{
+  https://ci.concourse-ci.org/sky/issuer/callback
+  }}}
+
+  You will be given a Client ID and a Client Secret for your new application.
+  The client ID and secret must then be configured on the \reference{web-node}
+  by setting the following env:
+
+  \codeblock{bash}{{{
+  CONCOURSE_GITLAB_CLIENT_ID=myclientid
+  CONCOURSE_GITLAB_CLIENT_SECRET=myclientsecret
+  }}}
+
+  If you're configuring a self hosted GitLab instance, you'll also need to set
+  the following flag:
+
+  \codeblock{bash}{{{
+  CONCOURSE_GITLAB_HOST=https://gitlab.example.com
+  }}}
+
+  The GitLab host must contain a scheme and not a trailing slash.
+}
+
+\section{
+  \title{Authorization}{gitlab-authorization}
+
+  Users and groups can be authorized for a team by passing the following flags
+  to \reference{fly-set-team}:
+
+  \definitions{
+    \definition{\code{--gitlab-user=USERNAME}}{
+      Authorize an individual user.
+    }
+  }{
+    \definition{\code{--gitlab-group=GROUP_NAME}}{
+      Authorize an entire groups's members.
+    }
+  }
+
+  For example:
+
+  \codeblock{bash}{{{
+  $ fly set-team -n my-team \
+      --gitlab-user my-gitlab-user \
+      --gitlab-team my-team
+  }}}
+
+  ...or via \code{--config} for \reference{setting-roles}{setting user roles}:
+
+  \codeblock{bash}{{{
+  roles:
+  - name: member
+    gitlab:
+      users: ["my-gitlab-login"]
+      orgs: ["my-org"]
+      teams: ["my-other-org:my-team"]
+  }}}
+
+  \section{
+    \title{Configuring \code{main} Team Authorization}
+
+    GitLab users and groups can be added to the \reference{main-team}
+    authorization config by setting the following env on the
+    \reference{web-node}:
+
+    \codeblock{bash}{{{
+    CONCOURSE_MAIN_TEAM_GITLAB_GROUP=group-name
+    CONCOURSE_MAIN_TEAM_GITLAB_USER=some-user
+    }}}
+
+    Multiple groups and users may be specified by comma-separating them.
+  }
+}

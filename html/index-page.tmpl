@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    {{template "head.tmpl" .}}
+  </head>
+  <body class="index">
+    {{template "top.tmpl" .}}
+
+    <div class="page-aside">
+      {{- if .Partial "RightSide" }}
+      <div class="page-partial">
+        {{.Partial "RightSide" | render}}
+      </div>
+      {{ end -}}
+    </div>
+
+    <div class="page-content index">
+      {{template "section.tmpl" .}}
+    </div>
+  </body>
+</html>

@@ -1,0 +1,82 @@
+\use-plugin{concourse-docs}
+
+\release{2017-9-19}{3.5.0}{1.6.0}{
+  \note{feature,security}{
+    Those of you using our BOSH release have been stuck with either our
+    way-out-of-date-and-vulnerable-to-thousands-of-CVEs-and-EOL-next-year
+    version of Postgres (9.3), or an external Postgres server. NO LONGER!
+
+    We've enabled an upgrade path to the \link{CloudFoundry Postgres BOSH
+    release}{https://github.com/cloudfoundry/postgres-release}, which is
+    up-to-date (currently 9.6.4) and even supports release-to-release upgrade
+    paths!
+
+    \warn{
+      The next version of Concourse will require version 9.5+ of Postgres, so
+      action is required either now or upon the next release to upgrade.
+
+      The \code{postgresql} job in our release should now be considered
+      deprecated, and will be removed in the next release.
+    }
+
+    To switch off from our pitiful pre-packaged precarious Postgres, do the
+    following:
+
+    \list{
+      First, deploy this version of Concourse with no changes. We have modified
+      our Postgres job to move its data to a new location that the Cloud
+      Foundry Postgres release will upgrade from.
+    }{
+      After the deploy has finished, upload the Cloud Foundry Postgres release.
+      We've tested the upgrade path with version 22, available on
+      \link{bosh.io}{http://bosh.io/releases/github.com/cloudfoundry/postgres-release?version=22}.
+    }{
+      Once the release is uploaded, add it to your deployment manifest, swap
+      out the \code{concourse/postgresql} job for the \code{postgres/postgres}
+      job, and update the ATC properties to explicitly configure the database
+      and role. (That's a mouthful, but you can use \link{our changes to the
+      single-vm
+      manifest}{https://github.com/concourse/concourse/commit/17be5f144a799e344c9d1bb56d9595ff164c96ef}
+      as a reference.)
+    }{
+      Note that the Postgres DB upgrade must not be combined in the same deployment operation with a stemcell update.
+    }
+  }
+
+  \note{feature}{
+    Concourse now supports
+    \link{CredHub}{https://github.com/cloudfoundry-incubator/credhub} for
+    external credential management. See \reference{credhub-credential-manager}
+    for more information.
+  }
+
+  \note{fix}{
+    GC no longer creates crazy seesaw patterns with containers and volumes.
+    This was an issue that was introduced in v3.4.1 when 2 or more teams have
+    identically configured resources. It's been fixed now.
+  }
+
+  \note{fix}{
+    Fixed a leak with goroutines that happens from \reference{fly-intercept}
+  }
+
+  \note{feature}{
+    When using groups in pipelines, \code{fly} will now let you know when you
+    forgot to assign a job to a group. Say goodbye to hidden pipelines!
+  }
+
+  \note{fix}{
+    Jobs and resources with a forward slash in their name no longer error out
+    when loading their details.
+  }
+
+  \note{feature}{
+    The \resource{semver} now supports Google Cloud Storage. Thanks
+    \ghuser{chendrix}!
+  }
+
+  \note{fix}{
+    The \resource{s3} correctly shows the progress of uploading and
+    downloading. It will no longer report 2 TB/s. Thanks \ghuser{krishicks}!
+  }
+}

@@ -1,8 +1,8 @@
 {{if and .Children (not .OmitChildrenFromTableOfContents)}}
-<ol{{if or .SplitSections (not .Parent)}} id="table-of-contents" class="toc"{{end}}>
+<ol class="toc">
 {{range .Children}}
   <li>
-    {{- if and .Parent (lt .Depth 3) -}}
+    {{- if eq .PageDepth 0 -}}
       <span class="section-number">{{.Number}} </span>
     {{- end -}}
     <a href="{{.PrimaryTag | url}}">{{- .Title | render -}}</a>

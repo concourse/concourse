@@ -1,0 +1,125 @@
+\title{Managing Teams}{managing-teams}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{\code{fly set-team}}{fly-set-team}
+
+  Once you've \reference{fly-login}{logged in as the \code{main} team with
+  \code{fly}}, you can run \reference{fly-set-team} to create or update other
+  teams. Users with a \reference{team-owner-role} can also update their own
+  configuration with the same command.
+
+  For example, to create a new team that authorizes the local \code{foo}
+  user, you would run:
+
+  \codeblock{bash}{{{
+  fly -t example set-team --team-name my-team \
+    --local-user foo
+  }}}
+
+  Note that each time \code{set-team} is run, the team's authorization config
+  is set \italic{as a whole} - it is not a stateful operation.
+
+  There are many different ways to configure team auth; see
+  \reference{configuring-auth} for more information.
+
+  Once the team has been created, you can use \reference{fly-login} to log in:
+
+  \codeblock{bash}{{
+  $ fly login -n my-team
+  }}
+
+  Any newly configured pipelines (via \reference{fly-set-pipeline}) and one-off
+  builds (via \reference{fly-execute}) will be owned by the authorized team.
+  Commands that list content will be scoped to the current team by default,
+  such as \reference{fly-pipelines} and \reference{fly-builds}. The web UI
+  will reflect the same state.
+
+  Newly configured pipelines are hidden by default, meaning other teams and
+  unauthorized visitors cannot view them. To make them publicly viewable, see
+  \reference{exposing}.
+
+  \section{
+    \title{Setting User Roles}{setting-roles}
+
+    By default, authorization config passed to \code{set-team} configures the
+    \reference{team-member-role}.
+
+    More advanced \reference{user-roles}{roles} configuration can be specified
+    can be specified through the \code{--configuration} or \code{-c} flag.
+
+    The \code{-c} flag expects a \code{.yml} file with a single field,
+    \code{roles:}, pointing to a list of role authorization configs.
+
+    All of the attributes in each config will vary by provider. Consult the
+    appropriate section for your provider under \reference{configuring-auth}
+    for specifics.
+
+    For example, the following config sets three roles with different auth
+    config for each role's provider:
+
+    \codeblock{bash}{{{
+      roles:
+      - name: owner
+        github:
+          users: ["admin"]
+      - name: member
+        github:
+          teams: ["org:team"]
+      - name: viewer
+        github:
+          orgs: ["org"]
+        local:
+          users: ["visitor"]
+    }}}
+  }
+}
+
+\section{
+  \title{\code{fly teams}}{fly-teams}
+
+  To list all the teams, run:
+
+  \codeblock{bash}{{
+  $ fly -t example teams
+  }}
+
+  This can be useful if you've forgotten your team name.
+
+  \bold{\code{fly teams -d}\aux{: With Details}}
+
+  To list all the teams with authentication details and members, run:
+
+  \codeblock{bash}{{
+  $ fly -t example teams -d
+  }}
+
+  This can be helpful when debugging OAuth, OIDC groups or listing all individual members.
+}
+
+\section{
+  \title{\code{fly rename-team}}{fly-rename-team}
+
+  To rename a team, run:
+
+  \codeblock{bash}{{{
+  $ fly -t example rename-team --old-name my-team --new-name cool-team
+  }}}
+
+  This can only be run by the \reference{main-team}{\code{main} team}.
+}
+
+\section{
+  \title{\code{fly destroy-team}}{fly-destroy-team}
+
+  To remove a team, including all of its pipelines and one-off builds, first
+  log in as the \reference{main-team}, and then run:
+
+  \codeblock{bash}{{
+  $ fly -t example destroy-team --team-name my-team
+  }}
+
+  Currently, if there were any workers assigned specifically to this team,
+  they'll be orphaned, without having their containers or volumes cleaned up.
+}

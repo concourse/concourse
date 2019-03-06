@@ -1,0 +1,104 @@
+\title{GitHub auth}{github-auth}
+
+\use-plugin{concourse-docs}
+\omit-children-from-table-of-contents
+
+A Concourse server can authenticate against GitHub to leverage their permission
+model and other security improvements in their infrastructure.
+
+\section{
+  \title{Authentication}{github-authentication}
+
+  First, you'll need to \link{create an OAuth application on
+  GitHub}{https://github.com/settings/applications/new}.
+
+  The "Authorization callback URL" must be the URL of your Concourse server
+  with \code{/sky/issuer/callback} appended. This address must be reachable by
+  GitHub - it can't be \code{localhost}.
+
+  For example, Concourse's own CI server's callback URL would be:
+
+  \codeblock{bash}{{{
+  https://ci.concourse-ci.org/sky/issuer/callback
+  }}}
+
+  You will be given a Client ID and a Client Secret for your new application.
+  The client ID and secret must then be configured on the \reference{web-node}
+  by setting the following env:
+
+  \codeblock{bash}{{{
+  CONCOURSE_GITHUB_CLIENT_ID=myclientid
+  CONCOURSE_GITHUB_CLIENT_SECRET=myclientsecret
+  }}}
+
+  Note that the client must be created under an \italic{organization} if you
+  want to authorize users based on organization/team membership. If the client
+  is created under a personal account, only individual users can be authorized.
+
+  If you're configuring GitHub Enterprise, you'll also need to set the
+  following env:
+
+  \codeblock{bash}{{{
+  CONCOURSE_GITHUB_HOST=github.example.com
+  CONCOURSE_GITHUB_CA_CERT=/path/to/ca_cert
+  }}}
+
+  The GitHub Enterprise host must not contain a scheme, or a trailing slash.
+}
+
+\section{
+  \title{Authorization}{github-authorization}
+
+  Users, teams, and entire organizations can be authorized for a team by
+  passing the following flags to \reference{fly-set-team}:
+
+  \definitions{
+    \definition{\code{--github-user=LOGIN}}{
+      Authorize an individual user.
+    }
+  }{
+    \definition{\code{--github-org=ORG_NAME}}{
+      Authorize an entire organization's members.
+    }
+  }{
+    \definition{\code{--github-team=ORG_NAME:TEAM_NAME}}{
+      Authorize a team's members within an organization.
+    }
+  }
+
+  For example:
+
+  \codeblock{bash}{{{
+  $ fly set-team -n my-team \
+      --github-user my-github-login \
+      --github-org my-org \
+      --github-team my-other-org:my-team
+  }}}
+
+  ...or via \code{--config} for \reference{setting-roles}{setting user roles}:
+
+  \codeblock{bash}{{{
+  roles:
+  - name: member
+    github:
+      users: ["my-github-login"]
+      orgs: ["my-org"]
+      teams: ["my-other-org:my-team"]
+  }}}
+
+  \section{
+    \title{Configuring \code{main} Team Authorization}
+
+    GitHub users, teams, and organizations can be added to the
+    \reference{main-team} authorization config by setting the following env on
+    the \reference{web-node}:
+
+    \codeblock{bash}{{{
+    CONCOURSE_MAIN_TEAM_GITHUB_ORG=org-name
+    CONCOURSE_MAIN_TEAM_GITHUB_TEAM=org-name:team-name
+    CONCOURSE_MAIN_TEAM_GITHUB_USER=some-user
+    }}}
+
+    Multiple orgs, teams, and users may be specified by comma-separating them.
+  }
+}

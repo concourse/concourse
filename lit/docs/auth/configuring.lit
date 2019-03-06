@@ -1,0 +1,41 @@
+\title{Configuring Auth}{configuring-auth}
+
+\use-plugin{concourse-docs}
+\include-section{configuring/local.lit}
+\include-section{configuring/github.lit}
+\include-section{configuring/gitlab.lit}
+\include-section{configuring/cf.lit}
+\include-section{configuring/ldap.lit}
+\include-section{configuring/generic-oidc.lit}
+\include-section{configuring/generic-oauth.lit}
+\split-sections
+
+The very first thing to configure with Concourse is how users will log in, and
+what those users should be able to do.
+
+This is configured in two separate tiers:
+
+\list{
+  \bold{Authentication}, how users identify themselves, is configured on the
+  \reference{web-node}.
+}{
+  \bold{Authorization}, how user access is determined, is configured on each
+  team.
+}
+
+Concourse currently supports the following auth methods:
+
+\table-of-contents
+
+Any number of providers can be enabled at any one time. Users will be given a
+choice when logging in as to which one they would like to use.
+
+Concourse uses a fork of \link{Dex}{https://github.com/dexidp/dex} for its
+authentication. You can find additional documentation on the supported auth
+providers in the \link{Dex connectors
+documentation}{https://github.com/dexidp/dex/tree/master/Documentation/connectors}.
+
+Adding a new auth provider to Concourse is as simple as submitting a pull
+request to our \link{fork of Dex}{https://github.com/concourse/dex} and then
+adding a bit of configuration to the \link{\code{skymarshal}
+component}{https://github.com/concourse/concourse/tree/master/skymarshal}.

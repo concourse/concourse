@@ -1,0 +1,57 @@
+\title{Container Placement}{container-placement}
+
+\use-plugin{concourse-docs}
+
+Each \reference{steps}{step} in a build is executed inside a container. The
+\reference{web-node} distributes containers across the worker cluster depending
+on the configured strategy.
+
+\section{
+  \title{\aux{The }\code{volume-locality} strategy}{volume-locality-strategy}
+
+  When using \code{volume-locality}, the \reference{web-node} places
+  \reference{task-step} and \reference{put-step} containers on workers where a
+  majority of their inputs are already present. \bold{This is the default
+  strategy.}
+
+  The advantage of this approach is that it reduces the likelihood that large
+  artifacts will have to be streamed from one \reference{worker-node}, through
+  the \reference{web-node}, and to the target \reference{worker-node}. For
+  large artifacts, this can result in quite a bit of overhead.
+
+  The disadvantage of this approach is that it can sometimes result in builds
+  "gravitating" to a particular worker and overloading it, at least until the
+  \reference{resource-retention}{resource caches} warm across the worker pool.
+
+  If your builds tend to be light on artifacts and heavy on task execution, you
+  may want to try the \reference{fewest-build-containers-strategy} instead.
+}
+
+\section{
+  \title{\aux{The }\code{fewest-build-containers} strategy}{fewest-build-containers-strategy}
+
+  When using the \code{fewest-build-containers} strategy, step containers are
+  placed on the worker that has the fewest build containers (i.e. containers
+  for other steps of other builds).
+
+  To use this strategy, set the following env var on the \reference{web-node}:
+
+  \codeblock{bash}{{{
+  CONCOURSE_CONTAINER_PLACEMENT_STRATEGY=fewest-build-containers
+  }}}
+}
+
+\section{
+  \title{\aux{The }\code{random} strategy}{random-strategy}
+
+  With the \code{random} strategy, the \reference{web-node} places \code{get},
+  \code{put} and \code{task} containers on any worker, ignoring any affinity.
+
+  As this is truly random, this will be fine until one day it's not fine.
+
+  To use this strategy, set the following env var on the \reference{web-node}:
+
+  \codeblock{bash}{{{
+  CONCOURSE_CONTAINER_PLACEMENT_STRATEGY=random
+  }}}
+}

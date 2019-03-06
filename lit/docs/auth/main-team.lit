@@ -1,0 +1,19 @@
+\title{\aux{The }\code{main} team}{main-team}
+
+\use-plugin{concourse-docs}
+
+Out of the box, Concourse comes with a single team called \code{main}.
+
+The \code{main} team is an \italic{admin team}, meaning members (specifically,
+users with the \reference{team-owner-role}{owner} role) can create and update
+other teams. Currently there is no way to promote a team to become an admin
+team, so \code{main} is a special-case.
+
+The \code{main} team is different in that all flags normally passed to
+\reference{fly-set-team} are instead passed to the \code{concourse web}
+command, prefixed with \code{--main-team-}. The values set in these flags
+take effect whenever the \code{web} node starts up. This is done so that you
+can't get locked out.
+
+To learn how to configure your \code{main} team, continue on to the appropriate
+section for your auth provider of choice under \reference{configuring-auth}.

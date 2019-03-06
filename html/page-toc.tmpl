@@ -1,0 +1,22 @@
+{{if and .Children (not .OmitChildrenFromTableOfContents)}}
+<div class="children">
+  <table>
+    {{range .Children}}
+      <tr>
+        {{if eq .PageDepth 0}}
+          <td class="number-cell" align="right">{{.Number}}&nbsp;</td>
+        {{else}}
+          <td class="number-cell" align="left"></td>
+        {{end}}
+        <td class="title-cell">
+          <a href="{{.PrimaryTag | url}}">
+            {{- .Title | render -}}
+          </a>
+
+          {{template "page-toc.tmpl" .}}
+        </td>
+      </tr>
+    {{end}}
+  </table>
+</div>
+{{end}}

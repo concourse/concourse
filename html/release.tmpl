@@ -1,186 +1,8 @@
-{{$downloadURL := "https://github.com/concourse/concourse/releases/download"}}
+{{$version := .Partial "Version" | render}}
+{{$downloadURL := printf "https://github.com/concourse/concourse/releases/download/v%s" $version}}
 
-{{define "downloads"}}
-  <div class="platform">
-    <div class="platform-image">
-      <img src="images/platforms/linux.svg" alt="lewing@isc.tamu.edu Larry Ewing and The GIMP [Attribution or CC0], via Wikimedia Commons" />
-    </div>
-
-    <div class="platform-content">
-      <h3>Linux</h3>
-
-      <table>
-        <tr>
-          <td><code>concourse</code></td>
-          <td>
-            <a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/concourse_linux_amd64"
-                onclick="gtag('event', 'click',{
-                  event_category: 'linux-downloads',
-                  event_label: '{{.Partial "Version" | render}}/concourse_linux_amd64'});">amd64</a>
-          </td>
-        </tr>
-        <tr>
-          <td><code>fly</code></td>
-          <td>
-            <a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/fly_linux_amd64"
-                onclick="gtag('event', 'click', {
-                  event_category: 'linux-downloads',
-                  event_label: '{{.Partial "Version" | render}}/fly_linux_amd64'});">amd64</a>
-          </td>
-        </tr>
-      </table>
-    </div>
-  </div>
-
-  <div class="platform">
-    <div class="platform-image">
-      <img src="images/platforms/darwin.svg" alt="By Rob Janoff [Public domain], via Wikimedia Commons" />
-    </div>
-
-    <div class="platform-content">
-      <h3>Mac OS X</h3>
-
-      <table>
-        <tr>
-          <td><code>concourse</code></td>
-          <td>
-            <a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/concourse_darwin_amd64"
-                onclick="gtag('event', 'click', {
-                  event_category: 'darwin-downloads',
-                  event_label: '{{.Partial "Version" | render}}/concourse_darwin_amd64'});">amd64</a>
-          </td>
-        </tr>
-        <tr>
-          <td><code>fly</code></td>
-          <td>
-            <a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/fly_darwin_amd64"
-                onclick="gtag('event', 'click, {
-                  event_category: 'darwin-downloads',
-                  event_label: '{{.Partial "Version" | render}}/fly_darwin_amd64');">amd64</a>
-          </td>
-        </tr>
-      </table>
-    </div>
-
-
-    <div class="platform-note">
-      <p><em>Note: <a href="resources.html">Resources</a> require at least one Linux worker.</em></p>
-    </div>
-  </div>
-
-  <div class="platform">
-    <div class="platform-image windows">
-      <img src="images/platforms/windows.svg" alt="By Microsoft [Public domain], via Wikimedia Commons" />
-    </div>
-
-    <div class="platform-content">
-      <h3>Windows</h3>
-
-      <table>
-        <tr>
-          <td><code>concourse.exe</code></td>
-          <td>
-            <a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/concourse_windows_amd64.exe"
-                onclick="gtag('event', 'click', {
-                  event_category: 'windows-downloads',
-                  event_label: '{{.Partial "Version" | render}}/concourse_windows_amd64.exe'});">amd64</a>
-          </td>
-        </tr>
-        <tr>
-          <td><code>fly.exe</code></td>
-          <td>
-            <a href="https://github.com/concourse/concourse/releases/download/v{{.Partial "Version" | render}}/fly_windows_amd64.exe"
-                onclick="gtag('event', 'click', {
-                  event_category: 'windows-downloads',
-                  event_label: '{{.Partial "Version" | render}}/fly_windows_amd64.exe'});">amd64</a>
-          </td>
-        </tr>
-      </table>
-    </div>
-
-    <div class="platform-note">
-      <p><em>Note: <a href="resources.html">Resources</a> require at least one Linux worker.</em></p>
-    </div>
-  </div>
-  <div class="platform">
-    <div class="platform-image">
-      <img src="images/platforms/docker.svg" alt="" />
-    </div>
-
-    <div class="platform-content">
-      <h3>Docker</h3>
-
-      <table>
-        <tr>
-          <td><code>concourse/concourse:{{.Partial "Version" | render}}</code></td>
-        </tr>
-      </table>
-    </div>
-
-
-    <div class="platform-note">
-      <em><p>
-        See the <a href="https://github.com/concourse/concourse-docker"
-                    onclick="gtag('event', 'click', {
-                      event_category: 'docker-downloads',
-                      event_label: '{{.Partial "Version" | render}}/docker-repo'});">Concourse Docker repo</a> for documentation.
-      </p></em>
-    </div>
-  </div>
-
-  <div class="platform">
-    <div class="platform-image">
-      <img src="images/platforms/bosh.svg" alt="" />
-    </div>
-
-    <div class="platform-content">
-      <h3>BOSH</h3>
-
-      <table>
-        <tr>
-          <td><code>concourse</code> release:</td>
-          <td>
-            <a href="http://bosh.io/releases/github.com/concourse/concourse-bosh-release?version={{.Partial "Version" | render}}"
-                onclick="gtag('event', 'click', {
-                  event_category: 'bosh-downloads',
-                  event_label: '{{.Partial "Version" | render}}/bosh-release'});">v{{.Partial "Version" | render}}</a>
-          </td>
-        </tr>
-
-        <tr>
-          <td><code>garden-runc</code> release:</td>
-          <td>
-            <a href="http://bosh.io/releases/github.com/cloudfoundry/garden-runc-release?version={{.Partial "GardenVersion" | render}}"
-                onclick="gtag('event', 'click', {
-                  event_category: 'bosh-downloads',
-                  event_label: '{{.Partial "GardenVersion" | render}}}/garden'});">v{{.Partial "GardenVersion" | render}}</a></td>
-        </tr>
-      </table>
-    </div>
-
-    <div class="platform-note">
-      <em><p>See the <a href="https://github.com/concourse/concourse-bosh-deployment"
-                          onclick="gtag('event', 'click', {
-                                        event_category: 'bosh-downloads',
-                                        event_label: '{{.Partial "Version" | render}}/bosh-ref'});">Concourse BOSH Deployment repo</a> for documentation.</p></em>
-    </div>
-  </div>
-{{end}}
-
-{{if eq (.Partial "CurrentVersion") (.Partial "Version")}}
-{{template "downloads" .}}
-{{end}}
-
-<div class="section release{{if eq (.Partial "CurrentVersion") (.Partial "Version")}} latest{{end}}">
-  <div class="version-header">
-    <div class="version-tag">
-      {{if eq (.Partial "CurrentVersion") (.Partial "Version")}}
-      <span class="version-latest">latest</span>
-      {{else}}
-      <span class="version-outdated">outdated</span>
-      {{end}}
-    </div>
-
+<div class="section release">
+  <div class="release-header">
     <h2>
       <a name="{{.PrimaryTag.Name}}"></a>
       <a href="{{.PrimaryTag | url}}">{{.Title | render}}</a>
@@ -189,17 +11,51 @@
     {{.Partial "ReleaseDate" | render}}
   </div>
 
-{{if not (eq (.Partial "CurrentVersion") (.Partial "Version"))}}
-  <div class="downloads-toggle">
-    <input type="checkbox" class="toggle" />
-    <span class="arrow">Downloads</span>
-    <div class="older-downloads">
-      {{template "downloads" .}}
-    </div>
-  </div>
-{{end}}
-
-  <div class="notes">
+  <div class="release-notes">
     {{.Body | render}}
+  </div>
+
+  <div class="release-downloads">
+    <h3>Download</h3>
+
+    <div class="download-items">
+      <div class="download-item">
+        <h4><span class="download-icon"></span><code>concourse</code></h4>
+
+        <ul>
+          <li><a href="{{$downloadURL}}/concourse_linux_amd64"
+                  onclick="gtag('event', 'click',{
+                    event_category: 'linux-downloads',
+                    event_label: '{{$version}}/concourse_linux_amd64'});">Linux</a></li>
+          <li><a href="{{$downloadURL}}/concourse_windows_amd64"
+                  onclick="gtag('event', 'click',{
+                    event_category: 'windows-downloads',
+                    event_label: '{{$version}}/concourse_windows_amd64'});">Windows</a></li>
+          <li><a href="{{$downloadURL}}/concourse_darwin_amd64"
+                  onclick="gtag('event', 'click', {
+                    event_category: 'darwin-downloads',
+                    event_label: '{{$version}}/concourse_darwin_amd64'});">OS X</a></li>
+        </ul>
+      </div>
+
+      <div class="download-item">
+        <h4><span class="download-icon"></span><code>fly</code></h4>
+
+        <ul>
+          <li><a href="{{$downloadURL}}/fly_linux_amd64"
+                  onclick="gtag('event', 'click',{
+                    event_category: 'linux-downloads',
+                    event_label: '{{$version}}/fly_linux_amd64'});">Linux</a></li>
+          <li><a href="{{$downloadURL}}/fly_windows_amd64"
+                  onclick="gtag('event', 'click',{
+                    event_category: 'windows-downloads',
+                    event_label: '{{$version}}/fly_windows_amd64'});">Windows</a></li>
+          <li><a href="{{$downloadURL}}/fly_darwin_amd64"
+                  onclick="gtag('event', 'click',{
+                    event_category: 'darwin-downloads',
+                    event_label: '{{$version}}/fly_darwin_amd64'});">OS X</a></li>
+        </ul>
+      </div>
+    </div>
   </div>
 </div>

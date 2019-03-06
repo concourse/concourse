@@ -1,0 +1,239 @@
+\title{\aux{Running a }\code{worker} node}{concourse-worker}{worker-node}
+
+\use-plugin{concourse-docs}
+\omit-children-from-table-of-contents
+
+The \code{worker} node registers with the \reference{web-node} and is then used
+for executing builds and performing resource \code{check}s. It doesn't really
+decide much on its own.
+
+\section{
+  \title{Prerequisites}{worker-prerequisites}
+
+  \list{
+    Linux: kernel v3.19 or later with support for user namespaces enabled.
+    (This is off by default in some distributions!)
+
+    To enforce memory limits on tasks, memory + swap accounting must be
+    enabled.
+  }{
+    Windows/Darwin: no special requirements (that we know of).
+
+    Note that containerization is fairly primitive on these two platforms, so
+    don't expect great support for multi-tenancy.
+  }
+}
+
+\section{
+  \title{Running}{worker-running}
+
+  The \code{concourse} CLI can run as a \code{worker} node via the \code{worker}
+  subcommand.
+
+  First, you'll need to configure a directory for the worker to store data:
+
+  \codeblock{bash}{{{
+  CONCOURSE_WORK_DIR=/opt/concourse/worker
+  }}}
+
+  This is where all the builds run, and where all resources are fetched in
+  to, so make sure it's backed by enough storage. Then, configure it like so:
+
+  Next, point the worker at your \reference{web-node} like so:
+
+  \codeblock{bash}{{{
+  CONCOURSE_TSA_HOST=127.0.0.1:2222
+  CONCOURSE_TSA_PUBLIC_KEY=path/to/tsa_host_key.pub
+  CONCOURSE_TSA_WORKER_PRIVATE_KEY=path/to/worker_key
+  }}}
+
+  Finally, run:
+
+  \codeblock{bash}{{{
+  sudo concourse worker
+  }}}
+
+  Note that the worker must be run as \code{root}, as it orchestrates
+  containers.
+
+  All logs will be emitted to \code{stdout}, with any panics or lower-level
+  errors being emitted to \code{stderr}.
+}
+
+\section{
+  \title{Properties}{worker-properties}
+
+  CPU usage: almost entirely subject to pipeline workloads. More resources
+  configured will result in more checking, and in-flight builds will use as
+  much CPU as they want.
+
+  Memory usage: also subject to pipeline workloads. Expect usage to increase
+  with the number of containers on the worker and spike as builds run.
+
+  Bandwidth usage: again, almost entirely subject to pipeline workloads. Expect
+  spikes from periodic checking, though the intervals should spread out over
+  enough time. Resource fetching and pushing will also use arbitrary bandwidth.
+
+  Disk usage: arbitrary data will be written as builds run, and resource caches
+  will be kept and garbage collected on their own life cycle. We suggest going
+  for a larger disk size if it's not too much trouble. All state on disk must
+  not outlive the worker itself; it is all ephemeral. If the worker is
+  re-created (i.e. fresh VM/container and all processes were killed), it should
+  be brought back with an empty disk.
+
+  Highly available: not applicable. Workers are inherently singletons, as
+  they're being used as drivers running entirely different workloads.
+
+  Horizontally scalable: yes; workers directly correlate to your capacity
+  required by however many pipelines, resources, and in-flight builds you want
+  to run. It makes sense to scale them up and down with demand.
+
+  Outbound traffic:
+
+  \list{
+    external traffic to arbitrary locations as a result of periodic resource
+    checking and running builds
+  }{
+    external traffic to the \code{web} node's configured external URL when
+    downloading the inputs for a \reference{fly-execute}
+  }{
+    external traffic to the \code{web} node's TSA port (\code{2222}) for
+    registering the worker
+  }
+
+  Inbound traffic:
+
+  \list{
+    various connections from the \reference{web-node} on port \code{7777}
+    (Garden), \code{7788} (BaggageClaim), and \code{7799} (garbage collection)
+  }{
+    repeated connections to \code{7788} and \code{7788} from the
+    \reference{web-node}'s TSA component as it heartbeats to ensure the worker
+    is healthy
+  }
+}
+
+\section{
+  \title{Operation}{worker-operation}
+
+  The \code{worker} nodes are designed to be stateless and as interchangeable
+  as possible. \reference{tasks} and \reference{resources} bring their own
+  Docker images, so you should never have to install dependencies on the
+  worker.
+
+  In Concourse, all important data is represented by \reference{resources}, so
+  the workers themselves are dispensible. Any data in the work-dir is ephemeral
+  and should go away when the worker machine is removed - it should not be
+  persisted between worker VM or container re-creates.
+
+  \section{
+    \title{Scaling Workers}
+
+    More workers should be added to accomodate more pipelines. To know when this
+    is necessary you should probably set up \reference{metrics} and keep an eye
+    on container counts. If it's starting to approach 200 or so, you should
+    probably add another worker. Load average is another metric to keep an eye
+    on.
+
+    To add a worker, just create another machine for the worker and follow the
+    \reference{worker-running} instructions again.
+
+    Note: it doesn't really make sense to run multiple workers on one machine,
+    since they'll both just be contending for the same physical resources.
+    Workers should be given their own VMs or physical machines.
+  }
+
+  \section{
+    \title{Worker Heartbeating & Stalling}
+
+    Workers will continuously heartbeat to the Concourse cluster in order to
+    remain registered and healthy. If a worker hasn't checked in in a while,
+    possibly due to a network partition, being overloaded, or having crashed,
+    its state will transition to \code{stalled} and new workloads will not be
+    scheduled on it until it recovers.
+
+    If the worker remains in this state and cannot be recovered, it can be
+    removed using the \reference{fly-prune-worker} command.
+  }
+
+  \section{
+    \title{Restarting a Worker}
+
+    Workers can be restarted in-place by sending \code{SIGTERM} to the worker
+    process and starting it back up. Containers will remain running and
+    Concourse will reattach to builds that were in flight.
+
+    This is a pretty aggressive way to restart a worker, and may result in
+    errored builds - there are a few moving parts involved and we're still
+    working on making this airtight.
+
+    A safer way to restart a worker is to \italic{land} it by sending
+    \code{SIGUSR1} to the \code{worker} process. This will switch the worker to
+    \code{landing} state, and Concourse will stop scheduling new work on it.
+    When all builds running on the worker have finished, the process will exit.
+
+    You may want to enforce a timeout for draining - that way a stuck build
+    won't prevent your workers from being upgraded. This can be enforced by
+    common tools like \code{start-stop-daemon}:
+
+    \codeblock{bash}{{{
+    start-stop-daemon \
+      --pidfile worker.pid \
+      --stop \
+      --retry USR1/300/TERM/15/KILL
+    }}}
+
+    This will send \code{SIGUSR1}, wait up to 5 minutes, and then send
+    \code{SIGTERM}. If it's \italic{still} running, it will be killed after an
+    additional 15 seconds.
+
+    Once the timeout is enforced, there's still a chance that builds that were
+    running will continue when the worker comes back.
+  }
+
+  \section{
+    \title{Gracefully Removing a Worker}
+
+    When a worker machine is going away, it should be \italic{retired}. This is
+    similar to \italic{landing}, except at the end the worker is completely
+    unregistered, along with its volumes and containers. This should be done
+    when a worker's VM or container is being destroyed.
+
+    To retire a worker, send \code{SIGUSR2} to the \code{worker} process. This
+    will switch the worker to \code{retiring} state, and Concourse will stop
+    scheduling new work on it. When all builds running on the worker have
+    finished, the worker will be removed and the \code{worker} process will
+    exit.
+
+    Just like with landing, you may want to enforce a timeout for draining -
+    that way a stuck build won't prevent your workers from being upgraded. This
+    can be enforced by common tools like \code{start-stop-daemon}:
+
+    \codeblock{bash}{{{
+    start-stop-daemon \
+      --pidfile worker.pid \
+      --stop \
+      --retry USR2/300/TERM/15/KILL
+    }}}
+
+    This will send \code{SIGUSR2}, wait up to 5 minutes, and then send
+    \code{SIGTERM}. If it's \italic{still} running, it will be killed after an
+    additional 15 seconds.
+  }
+}
+
+\section{
+  \title{Configuration}{worker-configuration}
+
+  If there's something special about your worker and you'd like to target
+  builds at it specifically, you can configure tags like so:
+
+  \codeblock{bash}{{
+  CONCOURSE_TAG=tag-1,tag-2
+  }}
+
+  A tagged worker is taken out of the default placement logic. To run build
+  steps on it, specify the \reference{tags-step-modifier}. Or, to perform
+  resource \code{check}s on it, specify \reference{resource-tags}{\code{tags}}
+  on the resource itself.
+}

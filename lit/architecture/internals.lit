@@ -6,30 +6,6 @@
 \table-of-contents
 
 \section{
-  \title{Caching & Retention}
-
-  TODO:
-
-  \section{
-    \title{Build Retention}{build-retention}
-  }
-
-  \section{
-    \title{Resource Retention}{resource-retention}
-  }
-
-  \list{
-    How it relates to garbage-collection
-  }{
-    How it relates to the schema
-  }{
-    Resource cache retention policy
-  }{
-    Container retention policy
-  }
-}
-
-\section{
   \title{Database Schema}
 
   \section{
@@ -668,28 +644,6 @@
       config}.
     }
   }
-
-
-  \section{
-    \title{Container Placement Strategies}{container-placement-strategies}
-    \bold{Default:} \code{volume-locality}
-
-    Each step of a build plan is executed inside a container. ATC will distribute containers across the worker cluster depending on the configured strategy.
-
-    \define-table{volume-locality}{
-       When using \code{volume-locality}, the ATC places \code{get}, \code{put} and \code{task} containers on workers where a majority of their inputs (required resources) are present. This alleviates the need to stream resources cached on other workers to the chosen worker. This is advantageous for workloads that are invoked often. e.g. builds invoked by a short time-resource interval.
-     }
-
-     \define-table{random}{
-       With the \code{random} strategy, the ATC places \code{get}, \code{put} and \code{task} containers on any worker, ignoring any affinity.
-      }
-
-     \define-table{fewest-build-containers}{
-       When using the \code{fewest-build-containers} strategy, the ATC places \code{get}, \code{put} and \code{task} containers on a worker which has the least containers. This ensures build containers are distributed equally across workers.
-     }
-
-     Refer to \reference{configuring-placement-strategies} for information on how to specify a particular strategy.
-  }
 }
 
 \section{
@@ -705,7 +659,7 @@
 
     \define-table{STALLED}{
       A worker in this state was previously registered with the cluster, but
-      stopped advertising itself for some reason.  Ususally this is due to
+      stopped advertising itself for some reason. Ususally this is due to
       network connectivity issues, or the worker stopping unexpectedly.
 
       If the worker remains in this state and cannot be recovered, it can be
@@ -735,5 +689,29 @@
       The ATC will wait for builds on the worker for \reference{jobs-table}
       which aren't interruptible to finish, and remove the worker.
     }
+  }
+}
+
+\section{
+  \title{Caching & Retention}
+
+  TODO:
+
+  \section{
+    \title{Build Retention}{build-retention}
+  }
+
+  \section{
+    \title{Resource Retention}{resource-retention}
+  }
+
+  \list{
+    How it relates to garbage-collection
+  }{
+    How it relates to the schema
+  }{
+    Resource cache retention policy
+  }{
+    Container retention policy
   }
 }

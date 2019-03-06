@@ -1,0 +1,93 @@
+\title{Generic OIDC auth}{generic-oidc-auth}
+
+\use-plugin{concourse-docs}
+\omit-children-from-table-of-contents
+
+A Concourse server can authenticate against any valid OIDC auth provider. This
+provider is similar to \reference{generic-oauth} except it only requires an
+issuer URL rather than auth/token/userinfo URLs.
+
+\section{
+  \title{Authentication}{generic-oidc-authentication}
+
+  First you'll need to create a client with your oAuth provider.
+
+  The callback URL must be the URL of your Concourse server
+  with \code{/sky/issuer/callback} appended. This address must be reachable by
+  GitHub - it can't be \code{localhost}.
+
+  For example, Concourse's own CI server's callback URL would be:
+
+  \codeblock{bash}{{{
+  https://ci.concourse-ci.org/sky/issuer/callback
+  }}}
+
+  A typical \reference{web-node} env config may look something like this:
+
+  \codeblock{bash}{{{
+  CONCOURSE_OIDC_DISPLAY_NAME=Acme
+  CONCOURSE_OIDC_CLIENT_ID=myclientid
+  CONCOURSE_OIDC_CLIENT_SECRET=myclientsecret
+  CONCOURSE_OIDC_ISSUER=https://oidc.example.com
+  }}}
+
+  Consult \code{concourse web --help} for a full list of flags with
+  descriptions.
+}
+
+\section{
+  \title{Authorization}{generic-oidc-authorization}
+
+  OIDC users and groups can be authorized for a team by passing the following
+  flags to \reference{fly-set-team}:
+
+  \definitions{
+    \definition{\code{--oidc-user=USERNAME}}{
+      Authorize an individual user.
+    }
+  }{
+    \definition{\code{--oidc-group=GROUP_NAME}}{
+      Authorize anyone from the group.
+
+      You may only configure groups if the auth provider exposes this
+      information in either the token itself, or in the contents of the
+      userinfo endpoint.
+
+      You can configure which claim points to the groups information by
+      specifying \code{CONCOURSE_OIDC_GROUPS_KEY} on the \reference{web-node}.
+    }
+  }
+
+  For example:
+
+  \codeblock{bash}{{{
+  $ fly set-team -n my-team \
+      --oidc-user my-username \
+      --oidc-group my-group
+  }}}
+
+  ...or via \code{--config} for \reference{setting-roles}{setting user roles}:
+
+  \codeblock{bash}{{{
+  roles:
+  - name: member
+    oidc:
+      users: ["my-username"]
+      groups: ["my-groups"]
+  }}}
+
+  \section{
+    \title{Configuring \code{main} Team Authorization}
+
+    OIDC users and groups can be added to the \reference{main-team}
+    authorization config by setting the following env on the
+    \reference{web-node}:
+
+    \codeblock{bash}{{{
+    CONCOURSE_MAIN_TEAM_OIDC_USER=my-user
+    CONCOURSE_MAIN_TEAM_OIDC_GROUP=my-group
+    }}}
+
+    Multiple users and groups may be specified by comma-separating them.
+  }
+}

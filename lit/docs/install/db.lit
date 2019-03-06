@@ -1,0 +1,81 @@
+\title{\aux{Running a }PostgreSQL node}{postgresql-node}
+
+\use-plugin{concourse-docs}
+\omit-children-from-table-of-contents
+
+Concourse uses \link{PostgreSQL}{https://www.postgresql.org} for storing all
+data and coordinating work in a multi-\reference{web-node} installation.
+
+\section{
+  \title{Prerequisites}{db-prerequisites}
+
+  \link{PostgreSQL}{https://www.postgresql.org} 9.5 or above is required,
+  though the latest available version is recommended.
+}
+
+\section{
+  \title{Running}{db-running}
+
+  How this node is managed is up to you; Concourse doesn't actually have much of
+  an opinion on it, it just needs a database.
+
+  How to install PostgreSQL is really dependent on your platform. Please refer to
+  your Linux distribution or operating system's documentation.
+
+  For the most part, the instruction on Linux should look something like this:
+
+  \codeblock{bash}{{{
+  sudo apt install postgresql
+  sudo su postgres -c "createuser $(whoami)"
+  sudo su postgres -c "createdb --owner=$(whoami) atc"
+  }}}
+
+  This will install PostgreSQL (assuming your distro uses \code{apt}), create a
+  user, and create a database that the current UNIX user can access, assuming
+  this same user is going to be running the \reference{web-node}. This is a
+  reasonable default for distros like Ubuntu and Debian which default PostgreSQL
+  to \code{peer} auth.
+}
+
+\section{
+  \title{Properties}{db-properties}
+
+  CPU usage: this is one of the most volatile metrics, and one we try pretty
+  hard to keep down. There will be near-constant database queries running, and
+  while we try to keep them very simple, there is always more work to do.
+  Expect to feed your database with at least a couple cores, ideally four to
+  eight. Monitor this closely as the size of your deployment and the amount of
+  traffic it's handling increases, and scale accordingly.
+
+  Memory usage: similar to CPU usage, but not quite as volatile.
+
+  Disk usage: pipeline configurations and various bookkeeping metadata for
+  keeping track of jobs, builds, resources, containers, and volumes. In
+  addition, \bold{all build logs are stored in the database}. This is the
+  primary source of disk usage. To mitigate this, users can configure
+  \reference{job-build-logs-to-retain} on a job, but currently there is no
+  operator control for this setting. As a result, disk usage on the database
+  can grow arbitrarily large.
+
+  Bandwidth usage: well, it's a database, so it most definitely uses the
+  network (duh). Not much should stand out here, though build logs can result
+  in an arbitrary amount of data being sent over the network to the database.
+  This should be nothing compared to worker bandwidth, though.
+
+  Highly available: up to you. Clustered PostgreSQL is kind of new and probably
+  tricky to deploy, but there are various cloud solutions for this.
+
+  Horizontally scalable: I...don't think so?
+
+  Outbound traffic:
+
+  \list{
+    none
+  }
+
+  Inbound traffic:
+
+  \list{
+    only ever from the \code{web} node
+  }
+}

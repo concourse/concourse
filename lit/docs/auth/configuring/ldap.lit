@@ -1,0 +1,139 @@
+\title{LDAP auth}{ldap-auth}
+
+\use-plugin{concourse-docs}
+\omit-children-from-table-of-contents
+
+The LDAP provider can be used for operators who wish to authenticate their
+users against an LDAP server.
+
+\section{
+  \title{Authentication}{ldap-authentication}
+
+  The LDAP provider is configured by pointing it to an LDAP host with a
+  read-only bind DN and password. This bind DN and password is used for
+  authenticating with the LDAP host and querying the users.
+
+  Additionally, the base DN under which users are searched as well as the
+  attribute of the users to associate to 'usernames' must also be configured.
+
+  These can be specified via env to the \reference{web-node} like so:
+
+  \codeblock{bash}{{{
+  CONCOURSE_LDAP_DISPLAY_NAME=Acme # optional; default "LDAP"
+  CONCOURSE_LDAP_HOST=ldap.example.com # port defaults to 389 or 636
+  CONCOURSE_LDAP_BIND_DN='cn=read-only-admin,dc=example,dc=com'
+  CONCOURSE_LDAP_BIND_PW=read-only-admin-password
+  CONCOURSE_LDAP_USER_SEARCH_BASE_DN='cn=users,dc=example,dc=com'
+  CONCOURSE_LDAP_USER_SEARCH_USERNAME=uid
+  }}}
+
+  To configure TLS, you may need to set a CA cert:
+
+  \codeblock{bash}{{{
+  CONCOURSE_LDAP_CA_CERT=/path/to/ca_cert
+  }}}
+
+  If your LDAP host does not use TLS, you must set:
+
+  \codeblock{bash}{{{
+  CONCOURSE_LDAP_INSECURE_NO_SSL=true
+  }}}
+
+  To fine-tune which users are queried, you can specify a user search filter
+  like so:
+
+  \codeblock{bash}{{{
+  CONCOURSE_LDAP_USER_SEARCH_FILTER='(objectClass=person)'
+  }}}
+
+  To set which user attributes map to the token claims, you can set the
+  following:
+
+  \codeblock{bash}{{{
+  CONCOURSE_LDAP_USER_SEARCH_ID_ATTR=uid         # default
+  CONCOURSE_LDAP_USER_SEARCH_EMAIL_ATTR=mail     # default
+  CONCOURSE_LDAP_USER_SEARCH_NAME_ATTR=some-attr # no default
+  }}}
+
+  \section{
+    \title{Configuring LDAP group search}
+
+    The LDAP provider can also be configured with group search configuration,
+    so that users can be configured for team authorization by their 'group' in
+    LDAP.
+
+    For example, to find groups and identify them by their \code{ou} attribute,
+    you would configure:
+
+    \codeblock{bash}{{{
+    CONCOURSE_LDAP_GROUP_SEARCH_BASE_DN='cn=groups,dc=example,dc=com'
+    CONCOURSE_LDAP_GROUP_SEARCH_NAME_ATTR=ou
+    }}}
+
+    The attributes correlating a user to a group must be specified like so:
+
+    \codeblock{bash}{{{
+    CONCOURSE_LDAP_GROUP_SEARCH_USER_ATTR=uid
+    CONCOURSE_LDAP_GROUP_SEARCH_GROUP_ATTR=members
+    }}}
+
+    This specifies that the \code{uid} attribute of the user must be present in
+    the \code{members} attribute of the group.
+
+    An additional filter may be specified, just like with users:
+
+    \codeblock{bash}{{{
+    CONCOURSE_LDAP_GROUP_SEARCH_FILTER='(objectClass=posixGroup)'
+    }}}
+  }
+}
+
+\section{
+  \title{Authorization}{ldap-authorization}
+
+  LDAP users and groups can be authorized for a team by passing the following
+  flags to \reference{fly-set-team}:
+
+  \definitions{
+    \definition{\code{--ldap-user=USERNAME}}{
+      Authorize an individual user.
+    }
+  }{
+    \definition{\code{--ldap-group=GROUP_NAME}}{
+      Authorize anyone from the group.
+    }
+  }
+
+  For example:
+
+  \codeblock{bash}{{{
+  $ fly set-team -n my-team \
+      --ldap-user my-username \
+      --ldap-group my-group
+  }}}
+
+  ...or via \code{--config} for \reference{setting-roles}{setting user roles}:
+
+  \codeblock{bash}{{{
+  roles:
+  - name: member
+    ldap:
+      users: ["my-username"]
+      groups: ["my-groups"]
+  }}}
+
+  \section{
+    \title{Configuring \code{main} Team Authorization}
+
+    LDAP users and groups can be added to the \reference{main-team}
+    authorization config by setting the following env on the
+    \reference{web-node}:
+
+    \codeblock{bash}{{{
+    CONCOURSE_MAIN_TEAM_LDAP_USER=my-user
+    CONCOURSE_MAIN_TEAM_LDAP_GROUP=my-group
+    }}}
+
+    Multiple users and groups may be specified by comma-separating them.
+  }
+}

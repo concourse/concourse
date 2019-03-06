@@ -30,7 +30,6 @@ schema:
 }
 
 \split-sections
-\table-of-contents
 
 \include-section{pipelines/configuring.lit}
 \include-section{pipelines/managing.lit}
