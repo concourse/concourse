@@ -388,9 +388,6 @@ update msg ( model, effects ) =
                 (Build.Output.Output.handleStepTreeMsg <| StepTree.extendHighlight id line)
                 ( model, effects )
 
-        RevealCurrentBuildInHistory ->
-            ( model, effects ++ [ Scroll ToCurrentBuild ] )
-
         ScrollBuilds event ->
             if event.deltaX == 0 then
                 ( model, effects ++ [ Scroll (Builds event.deltaY) ] )
@@ -672,23 +669,19 @@ handleHistoryFetched :
 handleHistoryFetched history ( model, effects ) =
     let
         currentBuild =
-            model.currentBuild
-                |> RemoteData.toMaybe
-                |> Maybe.map .build
-
-        containsCurrentBuild =
-            currentBuild
-                |> Maybe.map (flip List.member history.content)
-                |> Maybe.withDefault False
+            model.currentBuild |> RemoteData.toMaybe |> Maybe.map .build
 
         currentJob =
-            currentBuild
-                |> Maybe.andThen .job
+            currentBuild |> Maybe.andThen .job
     in
     ( { model | history = List.append model.history history.content }
-    , case ( containsCurrentBuild, currentJob ) of
-        ( False, Just job ) ->
-            effects ++ [ FetchBuildHistory job history.pagination.nextPage ]
+    , case ( currentBuild, currentJob ) of
+        ( Just build, Just job ) ->
+            if List.member build history.content then
+                effects ++ [ Scroll <| ToBuild build.id ]
+
+            else
+                effects ++ [ FetchBuildHistory job history.pagination.nextPage ]
 
         _ ->
             effects
@@ -1170,8 +1163,7 @@ viewHistoryItem currentBuild build =
             [ onLeftClick <| SwitchToBuild build
             , href <| Routes.toString <| Routes.buildRoute build
             ]
-            [ Html.text build.name
-            ]
+            [ Html.text build.name ]
         ]
 
 

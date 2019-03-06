@@ -13,7 +13,6 @@ type Msg
     | TriggerBuild (Maybe Concourse.JobIdentifier)
     | AbortBuild Int
     | ScrollBuilds StrictEvents.MouseWheelEvent
-    | RevealCurrentBuildInHistory
     | NavTo Routes.Route
     | ToggleStep String
     | SwitchTab String Int

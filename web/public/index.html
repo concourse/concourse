@@ -224,6 +224,18 @@
         app.ports.scrolledToBottom.send(atBottom);
       }
 
+      app.ports.scrollIntoView.subscribe(function(selector) {
+        var timeout = setTimeout(function() {
+          var interval = setInterval(function() {
+            buildTab = document.querySelector(selector);
+            if (buildTab) {
+              clearTimeout(timeout);
+              clearInterval(interval);
+              buildTab.scrollIntoView();
+            }
+          }, 200);
+        }, 1000);
+      });
     </script>
     <script>
       var clipboard = new ClipboardJS('#copy-token');

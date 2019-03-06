@@ -71,6 +71,9 @@ port openEventStream : { url : String, eventTypes : List String } -> Cmd msg
 port closeEventStream : () -> Cmd msg
 
 
+port scrollIntoView : String -> Cmd msg
+
+
 type LayoutDispatch
     = SubPage Int
     | Layout
@@ -136,7 +139,7 @@ type ScrollDirection
     | Up
     | ToWindowBottom
     | Builds Float
-    | ToCurrentBuild
+    | ToBuild Int
 
 
 runEffect : Effect -> Concourse.CSRFToken -> Cmd Callback
@@ -286,7 +289,7 @@ runEffect effect csrfToken =
             abortBuild buildId csrfToken
 
         Scroll dir ->
-            Task.perform (always EmptyCallback) (scrollInDirection dir)
+            scrollInDirection dir
 
         SaveToken tokenValue ->
             saveToken tokenValue
@@ -503,23 +506,23 @@ abortBuild buildId csrfToken =
         |> Task.attempt BuildAborted
 
 
-scrollInDirection : ScrollDirection -> Task.Task x ()
+scrollInDirection : ScrollDirection -> Cmd Callback
 scrollInDirection dir =
     case dir of
         ToWindowTop ->
-            Scroll.toWindowTop
+            Task.perform (always EmptyCallback) Scroll.toWindowTop
 
         Down ->
-            Scroll.scrollDown
+            Task.perform (always EmptyCallback) Scroll.scrollDown
 
         Up ->
-            Scroll.scrollUp
+            Task.perform (always EmptyCallback) Scroll.scrollUp
 
         ToWindowBottom ->
-            Scroll.toWindowBottom
+            Task.perform (always EmptyCallback) Scroll.toWindowBottom
 
         Builds delta ->
-            Scroll.scroll "builds" delta
+            Task.perform (always EmptyCallback) (Scroll.scroll "builds" delta)
 
-        ToCurrentBuild ->
-            Scroll.scrollIntoView "#builds .current"
+        ToBuild id ->
+            scrollIntoView "#builds .current"

@@ -711,7 +711,36 @@ all =
                                 )
                             )
                         >> Tuple.second
-                        >> Expect.equal []
+                        >> List.member
+                            (Effects.FetchBuildHistory
+                                { teamName = "team"
+                                , pipelineName = "pipeline"
+                                , jobName = "job"
+                                }
+                                (Just { direction = Until 1, limit = 100 })
+                            )
+                        >> Expect.false "should not fetch more builds"
+                , test "if build is present in history, scrolls to it" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content = [ theBuild ]
+                                    }
+                                )
+                            )
+                        >> Tuple.second
+                        >> List.member (Effects.Scroll <| Effects.ToBuild 1)
+                        >> Expect.true "should scroll to current build"
                 , test "if build is not present in history, fetches more" <|
                     givenBuildFetched
                         >> Tuple.mapSecond (always [])
