@@ -92,5 +92,5 @@ part-time contributors.
   }
 }
 
-\include-section{./trademarks.lit}
 \include-section{./architecture/architecture.lit}
+\include-section{./trademarks.lit}

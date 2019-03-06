@@ -1,16 +1,17 @@
 \title{Download}{download}{downloads}
 
 \use-plugin{concourse-docs}
-\styled{download}
 
-\warn{
-  If you are currently on a version older than \reference{v3.6.0}, \bold{you
-  must first upgrade to \reference{v3.6.0} before upgrading past it!}
-}
+\right-side{Warnings}{
+  \warn{
+    If you are currently on a version older than \reference{v3.6.0}, \bold{you
+    must first upgrade to \reference{v3.6.0} before upgrading past it!}
+  }
 
-\warn{
-  If you are currently on \reference{v3.6.0} and looking to upgrade to
-  \reference{v4.1.0} and above, you must first upgrade to \reference{v4.0.0}.
+  \warn{
+    If you are currently on \reference{v3.6.0} and looking to upgrade to
+    \reference{v4.1.0} and above, you must first upgrade to \reference{v4.0.0}.
+  }
 }
 
 \include-section{./release-notes/v5.0.0.lit}

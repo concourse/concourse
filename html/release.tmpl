@@ -3,9 +3,6 @@
 
 <div class="section release">
   <div class="release-header">
-    <div class="version-tag">
-    </div>
-
     <h2>
       <a name="{{.PrimaryTag.Name}}"></a>
       <a href="{{.PrimaryTag | url}}">{{.Title | render}}</a>
@@ -58,14 +55,6 @@
                     event_category: 'darwin-downloads',
                     event_label: '{{$version}}/fly_darwin_amd64'});">OS X</a></li>
         </ul>
-      </div>
-
-      <div class="download-item">
-        <h4>Docker repository</h4>
-
-        <p>
-          <code>concourse/concourse:{{$version}}</code>
-        </p>
       </div>
     </div>
   </div>
