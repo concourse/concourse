@@ -1,5 +1,7 @@
 \title{Project}{project}
 
+\use-plugin{concourse-docs}
+
 Concourse started as a side-project by
 \link{\code{@vito}}{https://github.com/vito} (hi!) and
 \link{\code{@xoebus}}{https://github.com/xoebus} in 2014. Since then, Concourse
@@ -8,54 +10,51 @@ part-time contributors.
 
 \split-sections
 
-\section{
-  \title{Why make Concourse?}
+\inline-header{Why make Concourse?}
 
-  When working on a sizable project, having a pipeline to reliably test,
-  deploy, and publish the product is crucial for rapid iteration.
+When working on a sizable project, having a pipeline to reliably test,
+deploy, and publish the product is crucial for rapid iteration.
 
-  But with every CI system we used, we found ourselves constantly dealing with
-  the same old problems: complicated configs hidden in many pages of the web UI,
-  not knowing who changed what & when, managing dependencies and state on the
-  workers, build pollution, annoying UX...
+But with every CI system we used, we found ourselves constantly dealing with
+the same old problems: complicated configs hidden in many pages of the web UI,
+not knowing who changed what & when, managing dependencies and state on the
+workers, build pollution, annoying UX...
 
-  Our project was growing larger, and with every box we checked and for every
-  worker we hand-tweaked, the anxiety of having to do it all over again if
-  something went wrong grew and grew. We started writing software to manage our
-  CI instead of writing the software for the product we wanted to build.
+Our project was growing larger, and with every box we checked and for every
+worker we hand-tweaked, the anxiety of having to do it all over again if
+something went wrong grew and grew. We started writing software to manage our
+CI instead of writing the software for the product we wanted to build.
 
-  We built Concourse to be a CI system that lets you sleep easier at night. A CI
-  that's simple enough to fully grok and easy to manage as your project grows;
-  in both the complexity of the product and the size of your team. We wanted to
-  build a CI with strong abstractions and fewer things to learn,
-  so that it can be easier to understand and so that Concourse can age gracefully.
-}
+We built Concourse to be a CI system that lets you sleep easier at night. A CI
+that's simple enough to fully grok and easy to manage as your project grows;
+in both the complexity of the product and the size of your team. We wanted to
+build a CI with strong abstractions and fewer things to learn,
+so that it can be easier to understand and so that Concourse can age gracefully.
 
-\section{
-  \title{How can I help?}
+\inline-header{How can I help?}
 
-  It's pretty hard to write a CI system that makes everyone
-  happy! Concourse is by no means perfect, and it sometimes takes us while to
-  understand a problem space well enough to figure out how it should work in
-  Concourse's puritanical world.
+It's pretty hard to write a CI system that makes everyone
+happy! Concourse is by no means perfect, and it sometimes takes us while to
+understand a problem space well enough to figure out how it should work in
+Concourse's puritanical world.
 
-  We tend to move slowly rather than tack on feature request after feature
-  request. We are also extremely cautious about
-  \link{anti-patterns}{https://github.com/concourse/concourse/wiki/Anti-Patterns}
-  and introducing ways for users to shoot themselves in the foot.
+We tend to move slowly rather than tack on feature request after feature
+request. We are also extremely cautious about
+\link{anti-patterns}{https://github.com/concourse/concourse/wiki/Anti-Patterns}
+and introducing ways for users to shoot themselves in the foot.
 
-  Concourse is getting bigger and bigger, and we really appreciate any help we
-  can get. There are many ways to contribute to Concourse; only some of them involve
-  writing code! You help us out by being active in GitHub issues, voting with
-  reactions for issues that matter to you, engaging in discussions while we map
-  out a feature request, hanging out in our \link{forums}{http://discuss.concourse-ci.org/},
-  writing documentation, coming up with new designs, and of course contributing code!
+Concourse is getting bigger and bigger, and we really appreciate any help we
+can get. There are many ways to contribute to Concourse; only some of them involve
+writing code! You help us out by being active in GitHub issues, voting with
+reactions for issues that matter to you, engaging in discussions while we map
+out a feature request, hanging out in our \link{forums}{http://discuss.concourse-ci.org/},
+writing documentation, coming up with new designs, and of course contributing code!
 
-  As a contributor, you can jump on over to \link{Contribute}{contribute.html} for
-  a more complete list of resources for contributors
-}
+As a contributor, you can jump on over to \link{Contribute}{contribute.html} for
+a more complete list of resources for contributors
 
 \include-section{./contribute.lit}
+\include-section{./architecture/architecture.lit}
 
 \section{
   \title{Thanks!}{thanks}
@@ -92,5 +91,4 @@ part-time contributors.
   }
 }
 
-\include-section{./architecture/architecture.lit}
 \include-section{./trademarks.lit}
