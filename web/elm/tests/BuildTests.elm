@@ -489,7 +489,7 @@ all =
                     |> Expect.equal
                         [ ( Effects.SubPage 1
                           , csrfToken
-                          , Effects.Scroll Effects.ToWindowTop
+                          , Effects.Scroll Effects.ToTop
                           )
                         ]
         , test "pressing 'G' scrolls to the bottom" <|

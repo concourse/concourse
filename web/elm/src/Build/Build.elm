@@ -582,7 +582,7 @@ handleKeyPressed key ( model, effects ) =
 
             ( 'G', False ) ->
                 if model.previousKeyPress == Just 'G' then
-                    ( { newModel | autoScroll = False }, [ Scroll ToWindowTop ] )
+                    ( { newModel | autoScroll = False }, [ Scroll ToTop ] )
 
                 else
                     ( newModel, [] )

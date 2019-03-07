@@ -255,6 +255,10 @@
       app.ports.scrollToBottom.subscribe(function() {
         window.scrollTo(0, document.body.scrollHeight);
       });
+
+      app.ports.scrollToTop.subscribe(function() {
+        window.scrollTo(0, 0);
+      });
     </script>
     <script>
       var clipboard = new ClipboardJS('#copy-token');

@@ -80,6 +80,9 @@ port scrollElement : ( String, Float ) -> Cmd msg
 port scrollToBottom : () -> Cmd msg
 
 
+port scrollToTop : () -> Cmd msg
+
+
 port checkIsVisible : String -> Cmd msg
 
 
@@ -144,7 +147,7 @@ type Effect
 
 
 type ScrollDirection
-    = ToWindowTop
+    = ToTop
     | Down
     | Up
     | ToBottom
@@ -522,8 +525,8 @@ abortBuild buildId csrfToken =
 scrollInDirection : ScrollDirection -> Cmd Callback
 scrollInDirection dir =
     case dir of
-        ToWindowTop ->
-            Task.perform (always EmptyCallback) Scroll.toWindowTop
+        ToTop ->
+            scrollToTop ()
 
         Down ->
             Task.perform (always EmptyCallback) Scroll.scrollDown
