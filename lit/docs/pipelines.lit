@@ -104,7 +104,7 @@ schema:
         plan:
         - get: booklit
           trigger: true
-        - task: unit
+        - task: run-unit
           file: booklit/ci/test.yml
 
       - name: build
@@ -112,7 +112,7 @@ schema:
         - get: booklit
           passed: [unit]
           trigger: true
-        - task: unit
+        - task: run-build
           file: booklit/ci/build.yml
     }}}
   }
