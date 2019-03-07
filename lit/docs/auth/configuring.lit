@@ -4,6 +4,7 @@
 \include-section{configuring/local.lit}
 \include-section{configuring/github.lit}
 \include-section{configuring/gitlab.lit}
+\include-section{configuring/bitbucket.lit}
 \include-section{configuring/cf.lit}
 \include-section{configuring/ldap.lit}
 \include-section{configuring/generic-oidc.lit}

@@ -15,7 +15,7 @@ the auth, token, and user-info URLs. You may want to see if you can use
 
   The callback URL must be the URL of your Concourse server with
   \code{/sky/issuer/callback} appended. This address must be reachable by
-  GitHub - it can't be \code{localhost}.
+  your oAuth provider - it can't be \code{localhost}.
 
   For example, Concourse's own CI server's callback URL would be:
 

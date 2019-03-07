@@ -1,0 +1,101 @@
+\title{BitBucket Cloud auth}{bitbucket-cloud-auth}
+
+\use-plugin{concourse-docs}
+\omit-children-from-table-of-contents
+
+A Concourse server can authenticate against BitBucket Cloud to leverage its
+permission model.
+
+\section{
+  \title{Authentication}{bitbucket-cloud-authentication}
+
+  First, you'll need to \link{create an OAuth consumer on Bitbucket
+  Cloud}{https://confluence.atlassian.com/display/BITBUCKET/OAuth+on+Bitbucket+Cloud}.
+
+  The consumer will need the following permissions:
+
+  \list{
+    Account:
+
+    \list{
+      Email
+    }{
+      Read
+    }
+  }{
+    Team membership:
+
+    \list{
+      Read
+    }
+  }
+
+  The "Callback URL" must be the URL of your Concourse server with
+  \code{/sky/issuer/callback} appended. This address must be reachable by
+  BitBucket Cloud - it can't be \code{localhost}.
+
+  For example, Concourse's own CI server's callback URL would be:
+
+  \codeblock{bash}{{{
+  https://ci.concourse-ci.org/sky/issuer/callback
+  }}}
+
+  You will be given a Client ID and a Client Secret for your new application.
+  The client ID and secret must then be configured on the \reference{web-node}
+  by setting the following env:
+
+  \codeblock{bash}{{{
+  CONCOURSE_BITBUCKET_CLOUD_CLIENT_ID=myclientid
+  CONCOURSE_BITBUCKET_CLOUD_CLIENT_SECRET=myclientsecret
+  }}}
+}
+
+\section{
+  \title{Authorization}{bitbucket-cloud-authorization}
+
+  BitBucket users and teams can be authorized for a team by passing the
+  following flags to \reference{fly-set-team}:
+
+  \definitions{
+    \definition{\code{--bitbucket-cloud-user=LOGIN}}{
+      Authorize an individual user.
+    }
+  }{
+    \definition{\code{--bitbucket-cloud-team=TEAM_NAME}}{
+      Authorize an entire organization's members.
+    }
+  }
+
+  For example:
+
+  \codeblock{bash}{{{
+  $ fly set-team -n my-team \
+      --bitbucket-cloud-user my-bitbucket-login \
+      --bitbucket-cloud-team my-bitbucket-team
+  }}}
+
+  ...or via \code{--config} for \reference{setting-roles}{setting user roles}:
+
+  \codeblock{bash}{{{
+  roles:
+  - name: member
+    bitbucket:
+      users: ["my-bitbucket-login"]
+      teams: ["my-bitbucket-team"]
+  }}}
+
+  \section{
+    \title{Configuring \code{main} Team Authorization}
+
+    GitHub users, teams, and organizations can be added to the
+    \reference{main-team} authorization config by setting the following env on
+    the \reference{web-node}:
+
+    \codeblock{bash}{{{
+    CONCOURSE_MAIN_TEAM_BITBUCKET_CLOUD_USER=my-bitbucket-login
+    CONCOURSE_MAIN_TEAM_BITBUCKET_CLOUD_TEAM=my-bitbucket-team
+    }}}
+
+    Multiple teams and users may be specified by comma-separating them.
+  }
+}
