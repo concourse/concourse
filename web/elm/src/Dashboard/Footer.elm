@@ -38,48 +38,46 @@ handleDelivery delivery ( model, effects ) =
     case delivery of
         KeyDown keyCode ->
             case keyCode of
+                -- '/' key
                 191 ->
                     if model.shiftDown && model.dropdown == Hidden then
-                        ( toggleHelp model, effects )
+                        ( { model
+                            | showHelp =
+                                if
+                                    model.groups
+                                        |> List.concatMap .pipelines
+                                        |> List.isEmpty
+                                then
+                                    False
+
+                                else
+                                    not model.showHelp
+                          }
+                        , effects
+                        )
 
                     else
                         ( model, effects )
 
                 _ ->
-                    ( showFooter model, effects )
+                    ( { model | hideFooter = False, hideFooterCounter = 0 }
+                    , effects
+                    )
 
         Moused ->
-            ( showFooter model, effects )
+            ( { model | hideFooter = False, hideFooterCounter = 0 }, effects )
 
         ClockTicked OneSecond time ->
-            ( tick model, effects )
+            ( if model.hideFooterCounter > 4 then
+                { model | hideFooter = True }
+
+              else
+                { model | hideFooterCounter = model.hideFooterCounter + 1 }
+            , effects
+            )
 
         _ ->
             ( model, effects )
-
-
-showFooter : Model r -> Model r
-showFooter model =
-    { model | hideFooter = False, hideFooterCounter = 0 }
-
-
-tick : Model r -> Model r
-tick model =
-    if model.hideFooterCounter > 4 then
-        { model | hideFooter = True }
-
-    else
-        { model | hideFooterCounter = model.hideFooterCounter + 1 }
-
-
-toggleHelp : Model r -> Model r
-toggleHelp model =
-    { model | showHelp = not (hideHelp model || model.showHelp) }
-
-
-hideHelp : { a | groups : List Group } -> Bool
-hideHelp { groups } =
-    List.isEmpty (groups |> List.concatMap .pipelines)
 
 
 view : Model r -> List (Html Msg)
