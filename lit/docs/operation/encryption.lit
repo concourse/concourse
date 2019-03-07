@@ -78,9 +78,10 @@ management} as well.
 \section{
   \title{Enabling Encryption}
 
-  To enable encryption, you'll just need to come up with a 16 or 32-byte
-  random character sequence and configure it as \code{--encryption-key} flag to
-  the \code{web} command. For BOSH, this is the \boshprop{atc}{encryption_key} property.
+  To enable encryption, you'll just need to come up with a 16 or 32-byte random
+  character sequence and configure it as \code{--encryption-key} flag to the
+  \code{web} command. For BOSH, this is the \boshprop{web}{encryption_key}
+  property.
 
   On startup, the \reference{component-atc} will encrypt all existing
   plaintext data, and any new data being written will be encrypted before it's
@@ -96,8 +97,8 @@ management} as well.
   \title{Rotating the Encryption Key}
 
   To swap out the encryption key, you'll need to pass the previous key as
-  \code{--old-encryption-key} (or \boshprop{atc}{old_encryption_key}), and the new key
-  as \code{--encryption-key} (or \boshprop{atc}{encryption_key}).
+  \code{--old-encryption-key} (or \boshprop{web}{old_encryption_key}), and the
+  new key as \code{--encryption-key} (or \boshprop{web}{encryption_key}).
 
   On startup, the \reference{component-atc} will decrypt all existing data
   and re-encrypt it with the new key, in one go. If it encounters a row which
@@ -117,7 +118,7 @@ management} as well.
   \title{Disabling Encryption}
 
   To opt out of encryption entirely (I'm sure you have your reasons), simply
-  pass \code{--old-encryption-key} (or \boshprop{atc}{old_encryption_key})
-  alone. With no new encryption key, the \reference{component-atc} will
-  decrypt all existing data on start.
+  pass \code{--old-encryption-key} (or \boshprop{web}{old_encryption_key})
+  alone. With no new encryption key, the \reference{component-atc} will decrypt
+  all existing data on start.
 }

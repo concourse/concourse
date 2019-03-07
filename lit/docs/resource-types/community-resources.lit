@@ -105,7 +105,7 @@ before using it!
 }{
   \table-row{\link{pagerduty Notifications}{https://github.com/FidelityInternational/concourse-pagerduty-notification-resource}}{by \ghuser{FidelityInternational}}
 }{
-  \table-row{\link{Telegram}{https://github.com/w32blaster/telegram-notification-resource}}{by \ghuser{w32w32blaster}}
+  \table-row{\link{Telegram}{https://github.com/w32blaster/telegram-notification-resource}}{by \ghuser{w32blaster}}
 }{
   \table-row{\link{Telegram}{https://github.com/carlo-colombo/telegram-resource}}{by \ghuser{carlo-colombo}}
 }{

@@ -39,8 +39,4 @@
   with colons or any other funny characters in their pipeline names. Moral of
   the story: never use a regexp if you can help it. Also, y'all have weird
   pipeline names.
-
-  (...Ok, \link{we do
-  too}{https://wings.concourse-ci.org/teams/main/pipelines/releases:2.7}, but
-  I was hoping we were the odd ones.)
 }
