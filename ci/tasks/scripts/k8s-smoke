@@ -28,7 +28,11 @@ eventually_populate_kube_config() {
 }
 
 forward_atc_port () {
-  kubectl port-forward --namespace $RELEASE_NAME service/$RELEASE_NAME-web 8080:8080 &
+  kubectl port-forward \
+    --namespace $RELEASE_NAME \
+    deployment/$RELEASE_NAME-web \
+    --pod-running-timeout=5m \
+    8080:8080 &
 }
 
 run_test () {
