@@ -417,12 +417,7 @@ viewLogin userState model isPaused =
 
 showLogin : Model r -> Bool
 showLogin model =
-    case ( model.screenSize, middleSection model ) of
-        ( Mobile, SearchBar ) ->
-            False
-
-        _ ->
-            True
+    model.screenSize /= Mobile || middleSection model /= SearchBar
 
 
 viewLoginState : UserState -> Bool -> Bool -> List (Html Msg)
