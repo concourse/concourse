@@ -67,16 +67,8 @@ init { route } =
       , groups = []
       , query =
             case route of
-                Routes.Dashboard { searchType } ->
-                    case searchType of
-                        Routes.Normal Nothing ->
-                            ""
-
-                        Routes.HighDensity ->
-                            ""
-
-                        Routes.Normal (Just q) ->
-                            q
+                Routes.Dashboard (Routes.Normal (Just q)) ->
+                    q
 
                 _ ->
                     ""
@@ -86,11 +78,6 @@ init { route } =
       }
     , [ GetScreenSize ]
     )
-
-
-isHighDensityDashboard : Model r -> Bool
-isHighDensityDashboard { route } =
-    route == Routes.Dashboard { searchType = Routes.HighDensity }
 
 
 queryStringFromSearch : String -> String
@@ -110,7 +97,7 @@ handleCallback callback ( model, effects ) =
         LoggedOut (Ok ()) ->
             let
                 redirectUrl =
-                    Routes.dashboardRoute (isHighDensityDashboard model)
+                    Routes.dashboardRoute (model.route == Routes.Dashboard Routes.HighDensity)
             in
             ( { model | isUserMenuExpanded = False }
             , effects ++ [ NavigateTo <| Routes.toString redirectUrl ]
@@ -474,7 +461,7 @@ viewMiddleSection model =
                 [ style <|
                     Styles.showSearchContainer
                         { screenSize = model.screenSize
-                        , highDensity = isHighDensityDashboard model
+                        , highDensity = model.route == Routes.Dashboard Routes.HighDensity
                         }
                 ]
                 [ Html.a
@@ -496,7 +483,7 @@ viewMiddleSection model =
 middleSection : Model r -> MiddleSection
 middleSection { route, query, dropdown, screenSize, groups } =
     case route of
-        Routes.Dashboard { searchType } ->
+        Routes.Dashboard searchType ->
             case
                 ( searchType
                 , query

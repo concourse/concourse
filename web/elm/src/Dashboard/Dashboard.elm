@@ -89,7 +89,7 @@ init : Flags -> ( Model, List Effect )
 init flags =
     let
         ( topBar, topBarEffects ) =
-            TopBar.init { route = Routes.Dashboard { searchType = flags.searchType } }
+            TopBar.init { route = Routes.Dashboard flags.searchType }
     in
     ( { state = RemoteData.NotAsked
       , turbulencePath = flags.turbulencePath
@@ -118,16 +118,6 @@ init flags =
       ]
         ++ topBarEffects
     )
-
-
-isHighDensity : { a | route : Routes.Route } -> Bool
-isHighDensity { route } =
-    case route of
-        Routes.Dashboard { searchType } ->
-            searchType == Routes.HighDensity
-
-        _ ->
-            False
 
 
 handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
@@ -175,7 +165,7 @@ handleCallbackBody msg ( model, effects ) =
                         Nothing ->
                             UserState.UserStateLoggedOut
             in
-            if isHighDensity model && noPipelines then
+            if model.route == Routes.Dashboard Routes.HighDensity && noPipelines then
                 ( { newModel
                     | groups = groups
                     , route = Routes.dashboardRoute False
@@ -204,7 +194,8 @@ handleCallbackBody msg ( model, effects ) =
                 ++ [ NavigateTo <|
                         Routes.toString <|
                             Routes.dashboardRoute <|
-                                isHighDensity model
+                                model.route
+                                    == Routes.Dashboard Routes.HighDensity
                    , FetchData
                    ]
             )
@@ -409,7 +400,7 @@ dashboardView model =
                                 , pipelineRunningKeyframes =
                                     model.pipelineRunningKeyframes
                                 , userState = model.userState
-                                , highDensity = isHighDensity model
+                                , highDensity = model.route == Routes.Dashboard Routes.HighDensity
                                 }
                     ]
                         ++ (List.map Html.fromUnstyled <| Footer.view model)
@@ -417,7 +408,7 @@ dashboardView model =
     Html.div
         [ classList
             [ ( .pageBodyClass Group.stickyHeaderConfig, True )
-            , ( "dashboard-hd", isHighDensity model )
+            , ( "dashboard-hd", model.route == Routes.Dashboard Routes.HighDensity )
             ]
         ]
         mainContent

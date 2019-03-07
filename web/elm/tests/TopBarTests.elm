@@ -1283,8 +1283,7 @@ all =
                 ( model, effects ) =
                     TopBar.init
                         { route =
-                            Routes.Dashboard
-                                { searchType = Routes.Normal Nothing }
+                            Routes.Dashboard (Routes.Normal Nothing)
                         }
              in
              ( { model

@@ -88,7 +88,7 @@ init flags route =
                 }
                 |> Tuple.mapFirst PipelineModel
 
-        Routes.Dashboard { searchType } ->
+        Routes.Dashboard searchType ->
             Dashboard.init
                 { turbulencePath = flags.turbulencePath
                 , searchType = searchType

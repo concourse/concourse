@@ -179,18 +179,8 @@ legend model =
                     , PipelineStatusSucceeded PipelineStatus.Running
                     ]
                 ++ legendSeparator model.screenSize
-                ++ [ toggleView (isHighDensity model) ]
+                ++ [ toggleView (model.route == Routes.Dashboard Routes.HighDensity) ]
         ]
-
-
-isHighDensity : { a | route : Routes.Route } -> Bool
-isHighDensity { route } =
-    case route of
-        Routes.Dashboard { searchType } ->
-            searchType == Routes.HighDensity
-
-        _ ->
-            False
 
 
 concourseInfo :
