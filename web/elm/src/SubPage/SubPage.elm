@@ -303,7 +303,6 @@ view userState mdl =
 
         DashboardModel model ->
             Dashboard.view userState model
-                |> HS.toUnstyled
                 |> Html.map DashboardMsg
 
         NotFoundModel model ->

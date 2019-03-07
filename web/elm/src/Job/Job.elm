@@ -43,7 +43,6 @@ import Html.Events
         , onMouseEnter
         , onMouseLeave
         )
-import Html.Styled as HS
 import Http
 import Job.Msgs exposing (Hoverable(..), Msg(..))
 import LoadingIndicator
@@ -406,9 +405,7 @@ view userState model =
             [ style TopBar.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
-            [ TopBar.view userState TopBar.Model.None model.topBar
-                |> HS.toUnstyled
-                |> Html.map FromTopBar
+            [ Html.map FromTopBar <| TopBar.view userState TopBar.Model.None model.topBar
             , Html.div
                 [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ viewMainJobsSection model ]

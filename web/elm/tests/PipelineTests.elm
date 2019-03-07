@@ -341,7 +341,7 @@ all =
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.children []
-                        >> Query.index 1
+                        >> Query.index 0
                         >> Query.has
                             [ style
                                 [ ( "background-image", "url(/public/images/concourse-logo-white.svg)" )
@@ -357,7 +357,7 @@ all =
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.children []
-                        >> Query.index 1
+                        >> Query.index 0
                         >> Query.has [ tag "a", attribute <| Attr.href "/" ]
                 , it "pin icon has a pin background" <|
                     Application.view

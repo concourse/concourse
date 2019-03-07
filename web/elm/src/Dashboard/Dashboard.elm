@@ -23,20 +23,19 @@ import Dashboard.Styles as Styles
 import Dashboard.SubState as SubState
 import Dashboard.Text as Text
 import Effects exposing (Effect(..))
-import Html.Styled as Html exposing (Html)
-import Html.Styled.Attributes
+import Html exposing (Html)
+import Html.Attributes
     exposing
         ( attribute
         , class
         , classList
-        , css
         , draggable
         , href
         , id
         , src
         , style
         )
-import Html.Styled.Events exposing (onMouseEnter, onMouseLeave)
+import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Http
 import Monocle.Common exposing ((<|>), (=>))
 import Monocle.Lens
@@ -392,7 +391,7 @@ view userState model =
     Html.div []
         [ Html.div
             [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map FromTopBar (TopBar.view userState TopBar.Model.None model.topBar)
+            [ Html.map FromTopBar <| TopBar.view userState TopBar.Model.None model.topBar
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ dashboardView model
                 ]
@@ -430,7 +429,7 @@ dashboardView model =
                                 , highDensity = model.highDensity
                                 }
                     ]
-                        ++ (List.map Html.fromUnstyled <| Footer.view model)
+                        ++ Footer.view model
     in
     Html.div
         [ classList
@@ -628,11 +627,11 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
                             }
                         )
     in
-    if List.isEmpty groupViews && (not <| String.isEmpty query) then
+    if List.isEmpty groupViews && not (String.isEmpty query) then
         [ noResultsView (toString query) ]
 
     else
-        List.map Html.fromUnstyled groupViews
+        groupViews
 
 
 handleKeyPressed : Char -> Footer.Model r -> ( Footer.Model r, List Effect )

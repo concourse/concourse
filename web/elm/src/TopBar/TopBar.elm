@@ -14,12 +14,11 @@ import Char
 import Concourse
 import Dict
 import Effects exposing (Effect(..))
-import Html.Styled as Html exposing (Html)
-import Html.Styled.Attributes as HA
+import Html exposing (Html)
+import Html.Attributes as HA
     exposing
         ( attribute
         , class
-        , css
         , href
         , id
         , placeholder
@@ -28,7 +27,7 @@ import Html.Styled.Attributes as HA
         , type_
         , value
         )
-import Html.Styled.Events exposing (..)
+import Html.Events exposing (..)
 import Http
 import QueryString
 import RemoteData exposing (RemoteData)

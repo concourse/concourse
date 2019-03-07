@@ -25,7 +25,6 @@ import Dict
 import Effects
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
-import Html.Styled as HS
 import List.Extra
 import Routes
 import Test exposing (..)
@@ -2044,7 +2043,6 @@ all =
                                     (userWithRoles [ ( "team", [ "owner" ] ) ])
                         , query =
                             Dashboard.view UserState.UserStateLoggedOut
-                                >> HS.toUnstyled
                                 >> Query.fromHtml
                                 >> Query.find [ class "card-footer" ]
                                 >> Query.children []
@@ -2100,7 +2098,6 @@ all =
                                     (userWithRoles [ ( "team", [ "owner" ] ) ])
                         , query =
                             Dashboard.view UserState.UserStateLoggedOut
-                                >> HS.toUnstyled
                                 >> Query.fromHtml
                                 >> Query.find [ class "card-footer" ]
                                 >> Query.children []
@@ -2841,7 +2838,6 @@ whenOnDashboard { highDensity } =
 queryView : Dashboard.Model -> Query.Single Msgs.Msg
 queryView =
     Dashboard.view UserState.UserStateLoggedOut
-        >> HS.toUnstyled
         >> Query.fromHtml
 
 

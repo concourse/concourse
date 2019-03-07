@@ -6,7 +6,6 @@ import Dict
 import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
-import Html.Styled exposing (toUnstyled)
 import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -121,12 +120,11 @@ all =
             )
             [ context "when login state unknown"
                 (TopBar.view UserState.UserStateUnknown Model.None
-                    >> toUnstyled
                     >> Query.fromHtml
                 )
                 [ it "shows concourse logo" <|
                     Query.children []
-                        >> Query.index 1
+                        >> Query.index 0
                         >> Query.has
                             [ style
                                 [ ( "background-image", "url(/public/images/concourse-logo-white.svg)" )
@@ -184,7 +182,6 @@ all =
                 ]
             , context "when logged in"
                 (TopBar.view (UserState.UserStateLoggedIn sampleUser) Model.None
-                    >> toUnstyled
                     >> Query.fromHtml
                 )
                 [ it "renders the login component last" <|
@@ -273,7 +270,6 @@ all =
                         , isPaused = True
                         }
                     )
-                    >> toUnstyled
                     >> Query.fromHtml
                 )
                 [ it "has blue background" <|
@@ -294,14 +290,12 @@ all =
                 TopBar.update Msgs.ToggleUserMenu
                     >> Tuple.first
                     >> TopBar.view (UserState.UserStateLoggedIn sampleUser) Model.None
-                    >> toUnstyled
                     >> Query.fromHtml
                     >> Query.has [ id "logout-button" ]
             , it "renders user menu content when ToggleUserMenu msg is received and logged in" <|
                 TopBar.update Msgs.ToggleUserMenu
                     >> Tuple.first
                     >> TopBar.view (UserState.UserStateLoggedIn sampleUser) Model.None
-                    >> toUnstyled
                     >> Query.fromHtml
                     >> Expect.all
                         [ Query.has [ id "logout-button" ]
@@ -328,7 +322,6 @@ all =
                 TopBar.update Msgs.ToggleUserMenu
                     >> Tuple.first
                     >> TopBar.view (UserState.UserStateLoggedIn sampleUser) Model.None
-                    >> toUnstyled
                     >> Query.fromHtml
                     >> Query.find [ id "logout-button" ]
                     >> Event.simulate Event.click
@@ -1040,7 +1033,7 @@ onePipeline teamName =
 
 viewNormally : Model.Model -> Query.Single Msgs.Msg
 viewNormally =
-    TopBar.view UserStateLoggedOut Model.None >> toUnstyled >> Query.fromHtml
+    TopBar.view UserStateLoggedOut Model.None >> Query.fromHtml
 
 
 testDropdown : List Int -> List Int -> Model.Model -> Test
