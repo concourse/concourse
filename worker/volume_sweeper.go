@@ -86,7 +86,7 @@ func (sweeper *volumeSweeper) sweep(logger lager.Logger) {
 			go func(handle string) {
 				err := sweeper.baggageclaimClient.DestroyVolume(logger.Session("destroy-volumes"), handle)
 				if err != nil {
-					logger.Error("failed-to-destroy-volumes", err)
+					logger.WithData(lager.Data{"handle":handle}).Error("failed-to-destroy-volume", err)
 				}
 
 				<-maxInFlight

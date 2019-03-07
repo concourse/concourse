@@ -86,7 +86,7 @@ func (sweeper *containerSweeper) sweep(logger lager.Logger) {
 			go func(handle string) {
 				err := sweeper.gardenClient.Destroy(handle)
 				if err != nil {
-					logger.Error("failed-to-destroy-container", err)
+					logger.WithData(lager.Data{"handle":handle}).Error("failed-to-destroy-container", err)
 				}
 				<-maxInFlight
 				wg.Done()
