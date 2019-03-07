@@ -1,6 +1,5 @@
 \use-plugin{concourse-docs}
 
-\styled{release-v5}
 \release-version{5.0.0}
 \release-date{2019-3-6}
 

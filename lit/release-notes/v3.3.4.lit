@@ -1,15 +1,17 @@
 \use-plugin{concourse-docs}
 
-\release{2017-8-1}{3.3.4}{1.6.0}{
-  \note{fix}{
-    A migration introduced in \reference{v3.3.0} would load all the builds into
-    memory and then process them, causing a lot of issues when upgrading. We 
-    optimized this migration to migrate build plans in batches, rather than all
-    at once.
-  }
-  \note{fix}{
-    The \code{unpack} support for the \resource{s3} will no longer load the entire
-    archive into memory, so it can be used for larger archives, thanks to a PR by
-    \ghuser{krishicks}!
-  }
+\release-date{2017-8-1}
+\release-version{3.3.4}
+\release-garden-runc-version{1.6.0}
+
+\note{fix}{
+  A migration introduced in \reference{v3.3.0} would load all the builds into
+  memory and then process them, causing a lot of issues when upgrading. We 
+  optimized this migration to migrate build plans in batches, rather than all
+  at once.
+}
+\note{fix}{
+  The \code{unpack} support for the \resource{s3} will no longer load the entire
+  archive into memory, so it can be used for larger archives, thanks to a PR by
+  \ghuser{krishicks}!
 }

@@ -1,98 +1,100 @@
 \use-plugin{concourse-docs}
 
-\release{2018-9-17}{4.2.0}{1.16.3}{
-  \image{images/vapenaysh.png}{vape naysh}
+\release-date{2018-9-17}
+\release-version{4.2.0}
+\release-garden-runc-version{1.16.3}
 
-  \note{fix,security}{
-    Fixed a potential information leak: when logged in and viewing a resource
-    from some other team's (exposed) pipeline, you can no longer view the
-    resource's check error, as it may unintentionally have sensitive info in
-    the output. This regressed in \reference{v4.0.0}.
-  }
+\image{images/vapenaysh.png}{vape naysh}
 
-  \note{feature}{
-    The dashboard view will now indicate whether you are a member of each team
-    or whether you're only seeing it because it has exposed pipelines.
-  }
+\note{fix,security}{
+  Fixed a potential information leak: when logged in and viewing a resource
+  from some other team's (exposed) pipeline, you can no longer view the
+  resource's check error, as it may unintentionally have sensitive info in
+  the output. This regressed in \reference{v4.0.0}.
+}
 
-  \note{feature}{
-    The \reference{web-node} can now be configured to periodically emit build
-    logs to a syslog endpoint! This is configured via \code{--syslog-X} flags
-    on the \code{concourse web} command. When enabled, build logs will be
-    shipped off in batch as builds complete.
-  }
+\note{feature}{
+  The dashboard view will now indicate whether you are a member of each team
+  or whether you're only seeing it because it has exposed pipelines.
+}
 
-  \note{fix,breaking}{
-    In \reference{v4.1.0} we accidentally broke support for
-    \code{--postgres-data-source}. This flag has been deprecated ever since
-    \reference{v2.7.2} (over a year ago), so we've opted to finally remove it.
-  }
+\note{feature}{
+  The \reference{web-node} can now be configured to periodically emit build
+  logs to a syslog endpoint! This is configured via \code{--syslog-X} flags
+  on the \code{concourse web} command. When enabled, build logs will be
+  shipped off in batch as builds complete.
+}
 
-  \note{fix}{
-    When we fixed the login bug in \reference{v4.1.0} by storing Dex state in
-    the database (rather than in-memory), that effectively made it so that any
-    changes made to auth settings (like local user config, GitHub config, etc)
-    would not take effect.
+\note{fix,breaking}{
+  In \reference{v4.1.0} we accidentally broke support for
+  \code{--postgres-data-source}. This flag has been deprecated ever since
+  \reference{v2.7.2} (over a year ago), so we've opted to finally remove it.
+}
 
-    This was because prior to the fix we were using an in-memory store, so all
-    we had to do before was create all the configs anew, but now that things
-    persist we have to do a comparison and update/remove things that were
-    changed or removed from the flags. Thankfully \ghuser{edtan} noticed this
-    and fixed it in a PR!
-  }
+\note{fix}{
+  When we fixed the login bug in \reference{v4.1.0} by storing Dex state in
+  the database (rather than in-memory), that effectively made it so that any
+  changes made to auth settings (like local user config, GitHub config, etc)
+  would not take effect.
 
-  \note{fix}{
-    With switching to Dex for auth in \reference{v4.0.0} we ended up using the
-    external URL as part of the internal login flow callbacks. This meant it
-    would break if your external URL could not be reached (perhaps it's behind
-    a reverse proxy with auth, or a self-signed-cert, or a firewall).
+  This was because prior to the fix we were using an in-memory store, so all
+  we had to do before was create all the configs anew, but now that things
+  persist we have to do a comparison and update/remove things that were
+  changed or removed from the flags. Thankfully \ghuser{edtan} noticed this
+  and fixed it in a PR!
+}
 
-    This is now fixed - the callbacks will go to the internal address only.
-    Sorry for the turbulence! A few folks were stuck on this.
-  }
+\note{fix}{
+  With switching to Dex for auth in \reference{v4.0.0} we ended up using the
+  external URL as part of the internal login flow callbacks. This meant it
+  would break if your external URL could not be reached (perhaps it's behind
+  a reverse proxy with auth, or a self-signed-cert, or a firewall).
 
-  \note{fix}{
-    The \reference{fly-intercept} command will no longer list containers that
-    are still being created and are not yet interceptible, which would lead to
-    an unhelpful \code{websocket: bad handshake} error.
-  }
+  This is now fixed - the callbacks will go to the internal address only.
+  Sorry for the turbulence! A few folks were stuck on this.
+}
 
-  \note{fix}{
-    Fixed one more instance where logged-in users would get logged out too
-    soon. Specifically, on first login the cookie would expire in 1 hour rather
-    than 24 hours.
+\note{fix}{
+  The \reference{fly-intercept} command will no longer list containers that
+  are still being created and are not yet interceptible, which would lead to
+  an unhelpful \code{websocket: bad handshake} error.
+}
 
-    The root cause of this was
-    \link{silly}{https://github.com/concourse/skymarshal/commit/f7374f5fa79e0593e16a6382f60a06a2cdb440fa}.
-  }
+\note{fix}{
+  Fixed one more instance where logged-in users would get logged out too
+  soon. Specifically, on first login the cookie would expire in 1 hour rather
+  than 24 hours.
 
-  \note{fix}{
-    Fixed a potential panic in the 'delete worker' API endpoint, which is used
-    internally as part of the worker draining lifecycle.
-  }
+  The root cause of this was
+  \link{silly}{https://github.com/concourse/skymarshal/commit/f7374f5fa79e0593e16a6382f60a06a2cdb440fa}.
+}
 
-  \note{fix}{
-    The BOSH release now respects the configured \code{postgresql.client_cert}
-    property, thanks to a fix by \ghuser{flavorjones}. This broke back in
-    \reference{v3.3.0} when we tweaked the type of the property.
-  }
+\note{fix}{
+  Fixed a potential panic in the 'delete worker' API endpoint, which is used
+  internally as part of the worker draining lifecycle.
+}
 
-  \note{fix}{
-    Removed an artificial limit to the garbage collector that was originally to
-    prevent a stampede of work on a single worker. Now that workers
-    garbage-collect themselves, this was no longer necessary, and only slowed
-    down the database side of the garbage collection lifecycle.
-  }
+\note{fix}{
+  The BOSH release now respects the configured \code{postgresql.client_cert}
+  property, thanks to a fix by \ghuser{flavorjones}. This broke back in
+  \reference{v3.3.0} when we tweaked the type of the property.
+}
 
-  \note{fix}{
-    Cleaned up our idempotent process reattaching mumbo-jumbo to not rely on
-    Garden properties which should help quiet down the \reference{worker-node}
-    logs (from when we check for a property that hasn't yet been set).
-  }
+\note{fix}{
+  Removed an artificial limit to the garbage collector that was originally to
+  prevent a stampede of work on a single worker. Now that workers
+  garbage-collect themselves, this was no longer necessary, and only slowed
+  down the database side of the garbage collection lifecycle.
+}
 
-  \note{fix}{
-    Fixed a bug that caused the Vault login retry logic to go into a fast loop
-    if retrying failed for long enough to exceed the maximum retry backoff.
-    Thanks for the PR, \ghuser{edtan}!
-  }
+\note{fix}{
+  Cleaned up our idempotent process reattaching mumbo-jumbo to not rely on
+  Garden properties which should help quiet down the \reference{worker-node}
+  logs (from when we check for a property that hasn't yet been set).
+}
+
+\note{fix}{
+  Fixed a bug that caused the Vault login retry logic to go into a fast loop
+  if retrying failed for long enough to exceed the maximum retry backoff.
+  Thanks for the PR, \ghuser{edtan}!
 }

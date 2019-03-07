@@ -1,25 +1,27 @@
 \use-plugin{concourse-docs}
 
-\release{2017-7-11}{3.3.2}{1.6.0}{
-  \note{fix,security}{
-    Fixed a vulnerability affecting installations using untrusted multi-tenancy
-    (i.e. multiple teams who may be jerks). This issue affects all versions
-    after and including \reference{v2.7.1}.
+\release-date{2017-7-11}
+\release-version{3.3.2}
+\release-garden-runc-version{1.6.0}
 
-    If you are running a single-tenant Concourse installation, or an
-    installation where all team members are "trusted" (i.e. part of your small
-    org), you don't have much to worry about. Otherwise, you'll want to upgrade
-    to this as soon as possible.
+\note{fix,security}{
+  Fixed a vulnerability affecting installations using untrusted multi-tenancy
+  (i.e. multiple teams who may be jerks). This issue affects all versions
+  after and including \reference{v2.7.1}.
 
-    We strongly recommend upgrading as soon as possible.
-  }
+  If you are running a single-tenant Concourse installation, or an
+  installation where all team members are "trusted" (i.e. part of your small
+  org), you don't have much to worry about. Otherwise, you'll want to upgrade
+  to this as soon as possible.
 
-  \note{feature}{
-    The \reference{fly-execute} command with \code{-j} can now resolve the
-    Vault credentials configured in the job's inputs.
-  }
+  We strongly recommend upgrading as soon as possible.
+}
 
-  \note{fix}{
-    ECR support is now fixed in the \resource{docker-image}.
-  }
+\note{feature}{
+  The \reference{fly-execute} command with \code{-j} can now resolve the
+  Vault credentials configured in the job's inputs.
+}
+
+\note{fix}{
+  ECR support is now fixed in the \resource{docker-image}.
 }

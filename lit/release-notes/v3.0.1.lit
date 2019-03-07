@@ -1,25 +1,27 @@
 \use-plugin{concourse-docs}
 
-\release{2017-5-16}{3.0.1}{1.6.0}{
-  \note{fix}{
-    Fixed a regression in the handling of \reference{put-step}s that have no
-    inputs. Prior to \reference{v3.0.0} we would ensure that the directory
-    given to \code{/opt/resource/out} would exist even if there are no inputs,
-    so that resources don't have to do a \code{mkdir -p}.
+\release-date{2017-5-16}
+\release-version{3.0.1}
+\release-garden-runc-version{1.6.0}
 
-    We now once again ensure the directory exists, and have coverage to ensure
-    this doesn't happen again.
-  }
+\note{fix}{
+  Fixed a regression in the handling of \reference{put-step}s that have no
+  inputs. Prior to \reference{v3.0.0} we would ensure that the directory
+  given to \code{/opt/resource/out} would exist even if there are no inputs,
+  so that resources don't have to do a \code{mkdir -p}.
 
-  \note{fix}{
-    Fixed a regression in \reference{task-step}s causing their
-    \reference{task-step-params} to not be set in the environment when
-    hijacking. This got lost in a cleanup and is now handled in a much simpler
-    way, and also tested so it doesn't regress again.
-  }
+  We now once again ensure the directory exists, and have coverage to ensure
+  this doesn't happen again.
+}
 
-  \note{fix}{
-    The \reference{fly-set-pipeline} command will now exit 0 if the user bails
-    out.
-  }
+\note{fix}{
+  Fixed a regression in \reference{task-step}s causing their
+  \reference{task-step-params} to not be set in the environment when
+  hijacking. This got lost in a cleanup and is now handled in a much simpler
+  way, and also tested so it doesn't regress again.
+}
+
+\note{fix}{
+  The \reference{fly-set-pipeline} command will now exit 0 if the user bails
+  out.
 }

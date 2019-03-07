@@ -1,16 +1,18 @@
 \use-plugin{concourse-docs}
 
-\release{2017-5-31}{3.1.1}{1.6.0}{
-  \note{fix}{
-    Fixed a race condition during volume creation for worker base resource
-    types. This would result in resource actions failing with \code{failed to
-    create volume}.
+\release-date{2017-5-31}
+\release-version{3.1.1}
+\release-garden-runc-version{1.6.0}
 
-    Unfortunately, to propagate this fix you'll need to recreate your workers,
-    as they're in a broken state.
-  }
+\note{fix}{
+  Fixed a race condition during volume creation for worker base resource
+  types. This would result in resource actions failing with \code{failed to
+  create volume}.
 
-  \note{fix}{
-    Fixed the reporting of database query metrics.
-  }
+  Unfortunately, to propagate this fix you'll need to recreate your workers,
+  as they're in a broken state.
+}
+
+\note{fix}{
+  Fixed the reporting of database query metrics.
 }

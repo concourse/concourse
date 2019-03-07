@@ -1,105 +1,106 @@
 \use-plugin{concourse-docs}
 
-\release{2017-8-15}{3.4.0}{1.6.0}{
-  \note{feature}{
-    We've deprecated our \code{concourse/lite} Vagrant box in favor of a
-    \code{bosh create-env} flow. This will be much easier for us to maintain
-    and brings a lot more flexibility around configuring and upgrading
-    Concourse.
-  }
+\release-date{2017-8-15}
+\release-version{3.4.0}
+\release-garden-runc-version{1.6.0}
 
-  \note{feature}{
-    We've parallelized garbage collection. This should make things more durable
-    to a slow worker, and make it harder for containers and volumes to "pile
-    up" when the ATC is out of service briefly (i.e. during a deploy).
-    \link{Yee.}{https://www.youtube.com/watch?v=q6EoRBvdVPQ}
-  }
-
-  \note{feature}{
-    The legend on the pipeline page will now auto-hide after 10 seconds.
-  }
-
-  \note{feature}{
-    When switiching between pipelines, the UI will now fit the pipeline in view.
-  }
-
-  \note{feature}{
-    You can also press 'F' to \strike{pay respects} center a pipeline in view.
-  }
-
-  \note{feature}{
-    You can now log in with a personal access token when logging into a team
-    with github auth, thanks to a PR by \ghuser{Chumper}!
-  }
-
-  \note{feature}{
-    You can now set \reference{image-resource-version} on an
-    \reference{image_resource}, thanks to a PR by \ghuser{krishicks}!
-  }
-
-  \note{fix}{
-    We've removed the volume size column from \reference{fly-cli} ...
-    previously it was always empty and no one seemed to care.
-  }
-
-  \note{fix}{
-    The \reference{fly-validate-pipeline} command can now be provided with
-    variables in the same way that \reference{fly-set-pipeline} can, thanks to
-    a PR by \ghuser{jmcarp}!
-  }
-
-  \note{feature}{
-    The \resource{bosh-deployment} now uses the latest BOSH CLI, thanks to a PR
-    by \ghuser{selzoc}!
-  }
-
-  \note{feature}{
-    The \resource{semver} now supports Server Side Encryption, thanks to a PR
-    by \ghuser{miromode}!
-  }
-
-  \note{feature}{
-    The \resource{git} will now save the committer email to `.git/committer`,
-    thanks to a PR by \ghuser{knifhen}!
-  }
-
-  \note{feature}{
-    Jobs with a pending build now have a static halo to better represent its
-    waiting state, thanks to a PR by \ghuser{d}!
-  }
-
-  \note{feature}{
-    \reference{fly-cli} learned the \reference{fly-format-pipeline} command,
-    thanks to a PR by \ghuser{krishicks}!
-  }
-
-  \note{feature}{
-    The \reference{fly-abort-build} command can now abort by build ID, thanks
-    to a PR by \ghuser{kurtmc}!
-  }
-
-  \note{feature}{
-    BaggageClaim's response header timeout is now configurable, which should
-    help those with large images that they're using for privileged tasks. This
-    is a band-aid; we'll soon be making the API this is relevant to async.
-  }
-
-  \note{fix}{
-    Files with the \code{setuid} and \code{setgid} permissions set on them will
-    no longer have them removed. This used to be lost with the \code{chown}
-    performed for namespacing the files. We'll now restore it after the
-    \code{chown}.
-  }
-
-  \note{fix}{
-    The flags for configuring GitLab oAuth are now present in
-    \reference{fly-set-team}.
-  }
-
-  \note{fix}{
-    Fixed an underflow in BaggageClaim's volume size detection, thanks to a PR
-    by \ghuser{SHyx0rmZ}! This affected deployments with less than 10GB of
-    space. (Psst: you should probably get more anyway.)
-  }
+\note{feature}{
+  We've deprecated our \code{concourse/lite} Vagrant box in favor of a
+  \code{bosh create-env} flow. This will be much easier for us to maintain
+  and brings a lot more flexibility around configuring and upgrading
+  Concourse.
 }
 
+\note{feature}{
+  We've parallelized garbage collection. This should make things more durable
+  to a slow worker, and make it harder for containers and volumes to "pile
+  up" when the ATC is out of service briefly (i.e. during a deploy).
+  \link{Yee.}{https://www.youtube.com/watch?v=q6EoRBvdVPQ}
+}
+
+\note{feature}{
+  The legend on the pipeline page will now auto-hide after 10 seconds.
+}
+
+\note{feature}{
+  When switiching between pipelines, the UI will now fit the pipeline in view.
+}
+
+\note{feature}{
+  You can also press 'F' to \strike{pay respects} center a pipeline in view.
+}
+
+\note{feature}{
+  You can now log in with a personal access token when logging into a team
+  with github auth, thanks to a PR by \ghuser{Chumper}!
+}
+
+\note{feature}{
+  You can now set \reference{image-resource-version} on an
+  \reference{image_resource}, thanks to a PR by \ghuser{krishicks}!
+}
+
+\note{fix}{
+  We've removed the volume size column from \reference{fly-cli} ...
+  previously it was always empty and no one seemed to care.
+}
+
+\note{fix}{
+  The \reference{fly-validate-pipeline} command can now be provided with
+  variables in the same way that \reference{fly-set-pipeline} can, thanks to
+  a PR by \ghuser{jmcarp}!
+}
+
+\note{feature}{
+  The \resource{bosh-deployment} now uses the latest BOSH CLI, thanks to a PR
+  by \ghuser{selzoc}!
+}
+
+\note{feature}{
+  The \resource{semver} now supports Server Side Encryption, thanks to a PR
+  by \ghuser{miromode}!
+}
+
+\note{feature}{
+  The \resource{git} will now save the committer email to `.git/committer`,
+  thanks to a PR by \ghuser{knifhen}!
+}
+
+\note{feature}{
+  Jobs with a pending build now have a static halo to better represent its
+  waiting state, thanks to a PR by \ghuser{d}!
+}
+
+\note{feature}{
+  \reference{fly-cli} learned the \reference{fly-format-pipeline} command,
+  thanks to a PR by \ghuser{krishicks}!
+}
+
+\note{feature}{
+  The \reference{fly-abort-build} command can now abort by build ID, thanks
+  to a PR by \ghuser{kurtmc}!
+}
+
+\note{feature}{
+  BaggageClaim's response header timeout is now configurable, which should
+  help those with large images that they're using for privileged tasks. This
+  is a band-aid; we'll soon be making the API this is relevant to async.
+}
+
+\note{fix}{
+  Files with the \code{setuid} and \code{setgid} permissions set on them will
+  no longer have them removed. This used to be lost with the \code{chown}
+  performed for namespacing the files. We'll now restore it after the
+  \code{chown}.
+}
+
+\note{fix}{
+  The flags for configuring GitLab oAuth are now present in
+  \reference{fly-set-team}.
+}
+
+\note{fix}{
+  Fixed an underflow in BaggageClaim's volume size detection, thanks to a PR
+  by \ghuser{SHyx0rmZ}! This affected deployments with less than 10GB of
+  space. (Psst: you should probably get more anyway.)
+}

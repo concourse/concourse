@@ -1,42 +1,44 @@
 \use-plugin{concourse-docs}
 
-\release{2018-3-12}{3.9.2}{1.12.0}{
-  \note{feature}{
-    Due to popular demand, we're graduating the pipeline dashboard out of beta
-    and back into \code{/dashboard}. You can now also do useful things like log
-    in and click through to the normal pipeline and build pages.
-  }
+\release-date{2018-3-12}
+\release-version{3.9.2}
+\release-garden-runc-version{1.12.0}
 
-  \note{feature}{
-    The NewRelic metrics emitter has now been improved thanks to
-    \ghuser{novas0x2a}!
-  }
+\note{feature}{
+  Due to popular demand, we're graduating the pipeline dashboard out of beta
+  and back into \code{/dashboard}. You can now also do useful things like log
+  in and click through to the normal pipeline and build pages.
+}
 
-  \note{fix}{
-    Removed a pesky database constraint
-    (\code{cannot_invalidate_during_initialization}). This would occasionally
-    bubble up to the user in weird ways, and actually isn't necessary any more.
-  }
+\note{feature}{
+  The NewRelic metrics emitter has now been improved thanks to
+  \ghuser{novas0x2a}!
+}
 
-  \note{fix}{
-    The previous release snuck some code that wasn't quite ready yet into the
-    BOSH release and broke registration of external workers. This is now fixed.
-  }
+\note{fix}{
+  Removed a pesky database constraint
+  (\code{cannot_invalidate_during_initialization}). This would occasionally
+  bubble up to the user in weird ways, and actually isn't necessary any more.
+}
 
-  \note{fix}{
-    Occasionally builds would fail when interacting with Vault with
-    \code{http2: no cached connection was available}. NO LONGER! (We, uh, we
-    bumped a dependency.)
-  }
+\note{fix}{
+  The previous release snuck some code that wasn't quite ready yet into the
+  BOSH release and broke registration of external workers. This is now fixed.
+}
 
-  \note{fix}{
-    Certain ANSI cursor movement escape sequences would wreak havoc on the
-    Concourse build output page because there was no window size set on the
-    TTY, thus defaulting it to \code{80x24}. We've set it to \code{500x500}.
-    That oughtta do it.
-  }
+\note{fix}{
+  Occasionally builds would fail when interacting with Vault with
+  \code{http2: no cached connection was available}. NO LONGER! (We, uh, we
+  bumped a dependency.)
+}
 
-  \note{fix}{
-    Fixed an issue where Firefox users couldn't click around on the build page.
-  }
+\note{fix}{
+  Certain ANSI cursor movement escape sequences would wreak havoc on the
+  Concourse build output page because there was no window size set on the
+  TTY, thus defaulting it to \code{80x24}. We've set it to \code{500x500}.
+  That oughtta do it.
+}
+
+\note{fix}{
+  Fixed an issue where Firefox users couldn't click around on the build page.
 }

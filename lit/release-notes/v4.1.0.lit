@@ -1,310 +1,312 @@
 \use-plugin{concourse-docs}
 
-\release{2018-8-30}{4.1.0}{1.16.3}{
-  \warn{
-    This release unintentionally broke \code{--postgres-data-source}, which was
-    deprecated back in \reference{v2.7.2}. We're going to fully remove it in
-    the next release, so now's a good time to switch to the new flags!
+\release-date{2018-8-30}
+\release-version{4.1.0}
+\release-garden-runc-version{1.16.3}
+
+\warn{
+  This release unintentionally broke \code{--postgres-data-source}, which was
+  deprecated back in \reference{v2.7.2}. We're going to fully remove it in
+  the next release, so now's a good time to switch to the new flags!
+}
+
+\note{fix}{
+  Fixed an annoying issue affecting deployments with multiple
+  \reference{web-node}s. We were configuring an in-memory store for the Dex
+  auth flow, meaning your login session would only work on one ATC at a time,
+  and could fail partway through the redirect dance.
+
+  We now store this state in the same Postgres database that you're already
+  configuring today, so everything should "just work" from here on.
+}
+
+\note{feature}{
+  Task caches can now be cleared via \reference{fly-clear-task-cache}, thanks
+  to a few PRs by \ghuser{edtan}! This is handy when something has gone
+  terribly wrong with your cache and you need to reset everything. It
+  happens.
+}
+
+\note{feature}{
+  Workers can now be registered with a \code{--ephemeral} flag. When
+  specified, the worker will be immediately removed once it stalls.
+
+  This is useful for situations where you don't have careful control over
+  when and how the worker goes away, for example with preemptible machines or
+  when running with Docker Compose or on a development machine.
+
+  Thanks to \ghuser{tanner-bruce} for kicking off the PR for this!
+}
+
+\note{breaking}{
+  We've removed the \resource{bosh-deployment} from our core set of
+  resources, as it has been deprecated for over a year. Use the
+  \link{CloudFoundry BOSH deployment
+  resource}{https://github.com/cloudfoundry/bosh-deployment-resource}
+  instead! It's much better.
+}
+
+\note{feature}{
+  You can now force an immediate check of a resource type via
+  \reference{fly-check-resource-type}. This should help shorten feedback
+  loops when testing your own resources types.
+
+  Note that the need for this may soon go away if we follow through with
+  \link{RFC #8}{https://github.com/concourse/rfcs/pull/8} which proposes
+  merging \reference{resource-types} into \reference{resources}.
+}
+
+\note{fix}{
+  The \code{concourse/concourse} Docker image now contains the \code{file}
+  command, which is useful for...working. Without it the \code{btrfs} volume
+  driver setup would fail. Sorry about that, and thanks to \ghuser{ElfoLiNk}
+  for submitting the PR!
+}
+
+\note{fix}{
+  The \code{--external-url} and \code{--peer-url} flags for \code{concourse
+  web} will now infer defaults that match the configured \code{--bind-ip} and
+  \code{--bind-port}, rather than blindly defaulting to
+  \code{http://127.0.0.1:8080} and breaking when the bind IP/port are
+  changed.
+}
+
+\note{fix}{
+  Inputs that are "new" will now have a yellow icon. This replaces the input
+  background highlighting that was accidentally removed with 4.0's
+  recoloring. We opted to make the icon yellow instead of highlighting the
+  background as we were quickly approaching 50 Shades of Grey.
+}
+
+\note{fix}{
+  We've fixed a scary container snowballing failure mode that could happen
+  when \code{check} containers failed to create. This was a somewhat hairy
+  bug; see \ghissue{2454} for more information.
+}
+
+\note{feature}{
+  Resources can now be pinned across the pipeline as part of the pipeline
+  config by specifying \reference{resource-version} on the resource
+  definition in the pipeline. This is analogous to setting
+  \reference{get-step-version} on every \reference{get-step} that references
+  the resource.
+}
+
+\note{feature}{
+  Pipeline credentials can now be verified via a new \code{--check-creds}
+  flag available on \reference{fly-set-pipeline}. This will simply try
+  fetching all of them from the configured credential manager, and let you
+  know which ones couldn't be interpolated. Thanks for the PRs,
+  \ghuser{edtan}!
+}
+
+\note{feature}{
+  The \resource{git} is now smart enough to handle shallow clones while still
+  being able to fetch commits that would not normally be included by the
+  configured depth. This should make configuring \code{depth: 1} safe, so
+  we've removed the condescending warning from the README. Thanks for the PR,
+  \ghuser{norbertbuchmueller}!
+}
+
+\note{feature}{
+  The ATC now exposes an API endpoint for performing a health-check against
+  the configured credential manager, at \code{/api/v1/info/creds}. It'll
+  propagate whatever information may be useful, depending on your credential
+  manager backend. Note that this endpoint is only accessible by admin users
+  (members of the \code{main} team).
+}
+
+\note{feature}{
+  When logging in to \reference{fly-cli}, if you're already logged in via the
+  web UI it'll just shimmy the existing token over to \code{fly} rather than
+  requiring you to go through the login flow all over again.
+
+  This also fixes the annoying behavior of having to log back in to the web
+  UI whenever logging in to \code{fly}. Huzzah!
+}
+
+\note{feature}{
+  We gave up on using third-party Go migration libraries and wrote our own.
+  This should make failed migrations a lot easier to troubleshoot and recover
+  from. All of our migrations run in transactions, so there's no more
+  confusing "dirty" state, and failed migrations will record the failure
+  error in the database.
+
+  We'll be extracting this package from the ATC soon as a proper library.
+}
+
+\note{feature}{
+  Previously Concourse would allow you to configure arbitrary
+  \reference{task-params} in a pipeline, even if the task file itself didn't
+  configure them. This was confusing as it meant the tasks could not be
+  trusted to describe all their required parameters.
+
+  Concourse will now emit a warning to the task logs upon noticing this. A
+  future release will turn this into an error. Thanks for the PR,
+  \ghuser{edtan}!
+}
+
+\note{feature}{
+  Searching on the dashboard will now live-update the URL bar, making it easy
+  to copy-paste and share the search with your best friends. Thanks for the
+  PR, \ghuser{SHyx0rmZ}!
+}
+
+\note{fix}{
+  Previously, when searching something on the dashboard that filtered out all
+  the pipelines for a given team, the UI showed messaging that made it look
+  like the team had no pipelines at all, when in reality they just didn't
+  match your search terms. Now the UI will just hide the teams entirely!
+}
+
+\note{feature}{
+  The \reference{fly-validate-pipeline} can now be instructed to print the
+  interpolated pipeline config via \code{--output}. Thanks for the PR,
+  \ghuser{henderjm}!
+}
+
+\note{feature}{
+  The BOSH release now exposes properties for configuring LDAP auth, thanks
+  to a PR by \ghuser{JamesClonk}!
+}
+
+\note{fix,breaking}{
+  All our auth CA certificate properties were broken - they were \code{type:
+  certificate} but didn't actually pluck the certificate part off of the
+  property. They're now fixed thanks to a PR by \ghuser{ArthurHlt}.
+
+  If this was working for you before, you'll have to change your manifest
+  such that the properties specified conform to the BOSH \code{certificate}
+  type - so you'll just need to take the existing value and nest it under
+  \code{certificate:}.
+}
+
+\note{fix}{
+  The TSA will now respect the configured log level for worker heartbeating
+  logs, thanks to a PR by \ghuser{edtan}.
+}
+
+\note{fix}{
+  We got rid of a ton of annoying and chatty logs from the TSA:
+
+  \list{
+    \code{closing-channel}
+  }{
+    \code{closing-forwarded-tcpip}
+  }{
+    \code{waiting-for-tcpip-io}
+  }{
+    \code{done-waiting}
   }
 
-  \note{fix}{
-    Fixed an annoying issue affecting deployments with multiple
-    \reference{web-node}s. We were configuring an in-memory store for the Dex
-    auth flow, meaning your login session would only work on one ATC at a time,
-    and could fail partway through the redirect dance.
+  These were useful a long while back as it's fairly tricky to implement a
+  TCP/IP-forwarding SSH server. But now it pretty much works and it was like
+  printing a long line for breathing in and another for breathing out.
+}
 
-    We now store this state in the same Postgres database that you're already
-    configuring today, so everything should "just work" from here on.
-  }
+\note{fix}{
+  The \resource{docker-image} will now fail more betterly when the
+  \code{build_args_file} can't be parsed. Thanks \ghuser{ghostsquad}!
+}
 
-  \note{feature}{
-    Task caches can now be cleared via \reference{fly-clear-task-cache}, thanks
-    to a few PRs by \ghuser{edtan}! This is handy when something has gone
-    terribly wrong with your cache and you need to reset everything. It
-    happens.
-  }
+\note{fix}{
+  The \resource{docker-image} will now forego starting the Docker daemon if
+  \code{skip_download: true} is set. Thanks \ghuser{norbertbuchmueller}!
+}
 
-  \note{feature}{
-    Workers can now be registered with a \code{--ephemeral} flag. When
-    specified, the worker will be immediately removed once it stalls.
+\note{fix}{
+  \ghuser{petrosagg} a few places where Concourse couldn't compile on 32-bit
+  platforms. See \ghissue{1379} for more information!
+}
 
-    This is useful for situations where you don't have careful control over
-    when and how the worker goes away, for example with preemptible machines or
-    when running with Docker Compose or on a development machine.
+\note{feature}{
+  The \resource{bosh-io-release} now supports configuring a version
+  \code{regexp} by which to filter detected versions, thanks to a PR by
+  \ghuser{dark5un}!
+}
 
-    Thanks to \ghuser{tanner-bruce} for kicking off the PR for this!
-  }
+\note{feature}{
+  The OIDC auth method now supports being configured with a whitelist of
+  Google hosted domains, thanks to a PR by \ghuser{rubenv}!
+}
 
-  \note{breaking}{
-    We've removed the \resource{bosh-deployment} from our core set of
-    resources, as it has been deprecated for over a year. Use the
-    \link{CloudFoundry BOSH deployment
-    resource}{https://github.com/cloudfoundry/bosh-deployment-resource}
-    instead! It's much better.
-  }
+\note{feature}{
+  The search field on the dashboard will now live-update the URL, making it
+  easy to share and bookmark pre-set filters. Thanks for the PR,
+  \ghuser{SHyx0rmZ}!
+}
 
-  \note{feature}{
-    You can now force an immediate check of a resource type via
-    \reference{fly-check-resource-type}. This should help shorten feedback
-    loops when testing your own resources types.
+\note{fix}{
+  The \resource{s3} can now be used with Dell's EMC ECS object store, thanks
+  to a fix by \ghuser{adam-power}!
+}
 
-    Note that the need for this may soon go away if we follow through with
-    \link{RFC #8}{https://github.com/concourse/rfcs/pull/8} which proposes
-    merging \reference{resource-types} into \reference{resources}.
-  }
+\note{fix}{
+  The \resource{docker-image} will now fail with a clearer error when your
+  ECR credentials are incorrect, thanks to a PR by \ghuser{GrantSheehan}!
+}
 
-  \note{fix}{
-    The \code{concourse/concourse} Docker image now contains the \code{file}
-    command, which is useful for...working. Without it the \code{btrfs} volume
-    driver setup would fail. Sorry about that, and thanks to \ghuser{ElfoLiNk}
-    for submitting the PR!
-  }
+\note{feature}{
+  The \resource{docker-image} now supports interpolating the
+  \reference{resource-metadata}{Concourse-provided env vars} in build args,
+  thanks to a PR by \ghuser{norbertbuchmueller}!
+}
 
-  \note{fix}{
-    The \code{--external-url} and \code{--peer-url} flags for \code{concourse
-    web} will now infer defaults that match the configured \code{--bind-ip} and
-    \code{--bind-port}, rather than blindly defaulting to
-    \code{http://127.0.0.1:8080} and breaking when the bind IP/port are
-    changed.
-  }
+\note{feature}{
+  The \resource{git} is now rocking the latest and greatest version of Git
+  LFS, thanks to a PR by \ghuser{alucillo}!
+}
 
-  \note{fix}{
-    Inputs that are "new" will now have a yellow icon. This replaces the input
-    background highlighting that was accidentally removed with 4.0's
-    recoloring. We opted to make the icon yellow instead of highlighting the
-    background as we were quickly approaching 50 Shades of Grey.
-  }
+\note{fix}{
+  We went ahead and started using \code{ON CONFLICT} in more places where we
+  were sorely needing safe upsert mechanics prior to our bump to Postgres
+  9.5. Database integrity is cool and deserves to be release notes! Don't @
+  me.
+}
 
-  \note{fix}{
-    We've fixed a scary container snowballing failure mode that could happen
-    when \code{check} containers failed to create. This was a somewhat hairy
-    bug; see \ghissue{2454} for more information.
-  }
+\note{fix}{
+  Building a precompiled BOSH release has been fixed. One of our Windows
+  packages was missing the \code{exiter.ps1} short-circuit in its spec.
+  Thanks for the PR, \ghuser{RomRider}!
+}
 
-  \note{feature}{
-    Resources can now be pinned across the pipeline as part of the pipeline
-    config by specifying \reference{resource-version} on the resource
-    definition in the pipeline. This is analogous to setting
-    \reference{get-step-version} on every \reference{get-step} that references
-    the resource.
-  }
+\note{feature}{
+  The \resource{git} will now emit a short SHA to \code{.git/short_ref},
+  which can be useful for dynamic tagging and such. Thanks for the PR,
+  \ghuser{suda}!
+}
 
-  \note{feature}{
-    Pipeline credentials can now be verified via a new \code{--check-creds}
-    flag available on \reference{fly-set-pipeline}. This will simply try
-    fetching all of them from the configured credential manager, and let you
-    know which ones couldn't be interpolated. Thanks for the PRs,
-    \ghuser{edtan}!
-  }
+\note{feature}{
+  The \resource{s3} now supports \code{skip_download: true} in
+  \reference{get-step-params}.
+}
 
-  \note{feature}{
-    The \resource{git} is now smart enough to handle shallow clones while still
-    being able to fetch commits that would not normally be included by the
-    configured depth. This should make configuring \code{depth: 1} safe, so
-    we've removed the condescending warning from the README. Thanks for the PR,
-    \ghuser{norbertbuchmueller}!
-  }
+\note{feature}{
+  The \resource{cf} now supports configuring \code{vars} and
+  \code{vars_files}, thanks to a PR by \ghuser{jmcarp}!
+}
 
-  \note{feature}{
-    The ATC now exposes an API endpoint for performing a health-check against
-    the configured credential manager, at \code{/api/v1/info/creds}. It'll
-    propagate whatever information may be useful, depending on your credential
-    manager backend. Note that this endpoint is only accessible by admin users
-    (members of the \code{main} team).
-  }
+\note{feature}{
+  The \resource{cf} now configures env under each application in the
+  manifest, rather than at the top level (which is deprecated). Thanks for
+  the PR, \ghuser{jmcarp}!
+}
 
-  \note{feature}{
-    When logging in to \reference{fly-cli}, if you're already logged in via the
-    web UI it'll just shimmy the existing token over to \code{fly} rather than
-    requiring you to go through the login flow all over again.
+\note{fix}{
+  Clarified the help-text for local user configuration to mention that the
+  password can be in plaintext, and if \code{bcrypt}ed it must have a minimum
+  cost of 10.
+}
 
-    This also fixes the annoying behavior of having to log back in to the web
-    UI whenever logging in to \code{fly}. Huzzah!
-  }
+\note{fix}{
+  Fixed a faulty default resulting in borked garbage collection on BOSH
+  deployed workers that are configured to forward through the
+  \reference{component-tsa} (they would try to reach the instance IP rather
+  than \code{127.0.0.1}).
+}
 
-  \note{feature}{
-    We gave up on using third-party Go migration libraries and wrote our own.
-    This should make failed migrations a lot easier to troubleshoot and recover
-    from. All of our migrations run in transactions, so there's no more
-    confusing "dirty" state, and failed migrations will record the failure
-    error in the database.
-
-    We'll be extracting this package from the ATC soon as a proper library.
-  }
-
-  \note{feature}{
-    Previously Concourse would allow you to configure arbitrary
-    \reference{task-params} in a pipeline, even if the task file itself didn't
-    configure them. This was confusing as it meant the tasks could not be
-    trusted to describe all their required parameters.
-
-    Concourse will now emit a warning to the task logs upon noticing this. A
-    future release will turn this into an error. Thanks for the PR,
-    \ghuser{edtan}!
-  }
-
-  \note{feature}{
-    Searching on the dashboard will now live-update the URL bar, making it easy
-    to copy-paste and share the search with your best friends. Thanks for the
-    PR, \ghuser{SHyx0rmZ}!
-  }
-
-  \note{fix}{
-    Previously, when searching something on the dashboard that filtered out all
-    the pipelines for a given team, the UI showed messaging that made it look
-    like the team had no pipelines at all, when in reality they just didn't
-    match your search terms. Now the UI will just hide the teams entirely!
-  }
-
-  \note{feature}{
-    The \reference{fly-validate-pipeline} can now be instructed to print the
-    interpolated pipeline config via \code{--output}. Thanks for the PR,
-    \ghuser{henderjm}!
-  }
-
-  \note{feature}{
-    The BOSH release now exposes properties for configuring LDAP auth, thanks
-    to a PR by \ghuser{JamesClonk}!
-  }
-
-  \note{fix,breaking}{
-    All our auth CA certificate properties were broken - they were \code{type:
-    certificate} but didn't actually pluck the certificate part off of the
-    property. They're now fixed thanks to a PR by \ghuser{ArthurHlt}.
-
-    If this was working for you before, you'll have to change your manifest
-    such that the properties specified conform to the BOSH \code{certificate}
-    type - so you'll just need to take the existing value and nest it under
-    \code{certificate:}.
-  }
-
-  \note{fix}{
-    The TSA will now respect the configured log level for worker heartbeating
-    logs, thanks to a PR by \ghuser{edtan}.
-  }
-
-  \note{fix}{
-    We got rid of a ton of annoying and chatty logs from the TSA:
-
-    \list{
-      \code{closing-channel}
-    }{
-      \code{closing-forwarded-tcpip}
-    }{
-      \code{waiting-for-tcpip-io}
-    }{
-      \code{done-waiting}
-    }
-
-    These were useful a long while back as it's fairly tricky to implement a
-    TCP/IP-forwarding SSH server. But now it pretty much works and it was like
-    printing a long line for breathing in and another for breathing out.
-  }
-
-  \note{fix}{
-    The \resource{docker-image} will now fail more betterly when the
-    \code{build_args_file} can't be parsed. Thanks \ghuser{ghostsquad}!
-  }
-
-  \note{fix}{
-    The \resource{docker-image} will now forego starting the Docker daemon if
-    \code{skip_download: true} is set. Thanks \ghuser{norbertbuchmueller}!
-  }
-
-  \note{fix}{
-    \ghuser{petrosagg} a few places where Concourse couldn't compile on 32-bit
-    platforms. See \ghissue{1379} for more information!
-  }
-
-  \note{feature}{
-    The \resource{bosh-io-release} now supports configuring a version
-    \code{regexp} by which to filter detected versions, thanks to a PR by
-    \ghuser{dark5un}!
-  }
-
-  \note{feature}{
-    The OIDC auth method now supports being configured with a whitelist of
-    Google hosted domains, thanks to a PR by \ghuser{rubenv}!
-  }
-
-  \note{feature}{
-    The search field on the dashboard will now live-update the URL, making it
-    easy to share and bookmark pre-set filters. Thanks for the PR,
-    \ghuser{SHyx0rmZ}!
-  }
-
-  \note{fix}{
-    The \resource{s3} can now be used with Dell's EMC ECS object store, thanks
-    to a fix by \ghuser{adam-power}!
-  }
-
-  \note{fix}{
-    The \resource{docker-image} will now fail with a clearer error when your
-    ECR credentials are incorrect, thanks to a PR by \ghuser{GrantSheehan}!
-  }
-
-  \note{feature}{
-    The \resource{docker-image} now supports interpolating the
-    \reference{resource-metadata}{Concourse-provided env vars} in build args,
-    thanks to a PR by \ghuser{norbertbuchmueller}!
-  }
-
-  \note{feature}{
-    The \resource{git} is now rocking the latest and greatest version of Git
-    LFS, thanks to a PR by \ghuser{alucillo}!
-  }
-
-  \note{fix}{
-    We went ahead and started using \code{ON CONFLICT} in more places where we
-    were sorely needing safe upsert mechanics prior to our bump to Postgres
-    9.5. Database integrity is cool and deserves to be release notes! Don't @
-    me.
-  }
-
-  \note{fix}{
-    Building a precompiled BOSH release has been fixed. One of our Windows
-    packages was missing the \code{exiter.ps1} short-circuit in its spec.
-    Thanks for the PR, \ghuser{RomRider}!
-  }
-
-  \note{feature}{
-    The \resource{git} will now emit a short SHA to \code{.git/short_ref},
-    which can be useful for dynamic tagging and such. Thanks for the PR,
-    \ghuser{suda}!
-  }
-
-  \note{feature}{
-    The \resource{s3} now supports \code{skip_download: true} in
-    \reference{get-step-params}.
-  }
-
-  \note{feature}{
-    The \resource{cf} now supports configuring \code{vars} and
-    \code{vars_files}, thanks to a PR by \ghuser{jmcarp}!
-  }
-
-  \note{feature}{
-    The \resource{cf} now configures env under each application in the
-    manifest, rather than at the top level (which is deprecated). Thanks for
-    the PR, \ghuser{jmcarp}!
-  }
-
-  \note{fix}{
-    Clarified the help-text for local user configuration to mention that the
-    password can be in plaintext, and if \code{bcrypt}ed it must have a minimum
-    cost of 10.
-  }
-
-  \note{fix}{
-    Fixed a faulty default resulting in borked garbage collection on BOSH
-    deployed workers that are configured to forward through the
-    \reference{component-tsa} (they would try to reach the instance IP rather
-    than \code{127.0.0.1}).
-  }
-
-  \note{fix}{
-    Fixed in-place upgrades of binary-deployed workers. Previously registration
-    would fail with a confusing message saying something like "base resource
-    type already exists."
-  }
+\note{fix}{
+  Fixed in-place upgrades of binary-deployed workers. Previously registration
+  would fail with a confusing message saying something like "base resource
+  type already exists."
 }

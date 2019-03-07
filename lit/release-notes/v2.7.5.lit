@@ -1,55 +1,57 @@
 \use-plugin{concourse-docs}
 
-\release{2017-05-11}{2.7.5}{1.6.0}{
-  \note{feature,breaking}{
-    The ATC can now be configured to emit metrics directly to InfluxDB. We've
-    also made it easy to extend the ATC with support for more metrics emitters.
-    For examples to reference when implementing your own, see the
-    \link{InfluxDB}{https://github.com/concourse/atc/blob/master/metric/emitter/influxdb.go},
-    \link{Lager}{https://github.com/concourse/atc/blob/master/metric/emitter/lager.go},
-    and
-    \link{Riemann}{https://github.com/concourse/atc/blob/master/metric/emitter/riemann.go}
-    emitters.
+\release-date{2017-05-11}
+\release-version{2.7.5}
+\release-garden-runc-version{1.6.0}
 
-    Note that if you switch from an "ATC -> Riemann -> InfluxDB" stack to "ATC
-    -> InfluxDB" (direct), you'll have to blow away your metrics database. :(
-    This is because when Riemann emitted our metrics it emitted the values as
-    \link{\code{float}}{http://media0.giphy.com/media/13AU33EspJuPTy/giphy.gif},
-    and now they're \code{int}. The first point emitted to InfluxDB determines
-    the schema, so the new writes do not succeed.
+\note{feature,breaking}{
+  The ATC can now be configured to emit metrics directly to InfluxDB. We've
+  also made it easy to extend the ATC with support for more metrics emitters.
+  For examples to reference when implementing your own, see the
+  \link{InfluxDB}{https://github.com/concourse/atc/blob/master/metric/emitter/influxdb.go},
+  \link{Lager}{https://github.com/concourse/atc/blob/master/metric/emitter/lager.go},
+  and
+  \link{Riemann}{https://github.com/concourse/atc/blob/master/metric/emitter/riemann.go}
+  emitters.
 
-    Also note that if you were previously relying on the metrics being emitted
-    to the logs, you'll now need to pass the flag \code{--emit-to-logs}. This
-    is now modeled as its own metric emitter and has been made opt-in, as
-    otherwise it could just be producing a lot of useless logs if you've
-    already configured a metrics sink or just don't care.
-  }
+  Note that if you switch from an "ATC -> Riemann -> InfluxDB" stack to "ATC
+  -> InfluxDB" (direct), you'll have to blow away your metrics database. :(
+  This is because when Riemann emitted our metrics it emitted the values as
+  \link{\code{float}}{http://media0.giphy.com/media/13AU33EspJuPTy/giphy.gif},
+  and now they're \code{int}. The first point emitted to InfluxDB determines
+  the schema, so the new writes do not succeed.
 
-  \note{feature}{
-    The ATC will now retry connecting to Postgres when the server-side
-    connection limit is reached. It uses fancy Exponential Backoff Technology™.
-  }
+  Also note that if you were previously relying on the metrics being emitted
+  to the logs, you'll now need to pass the flag \code{--emit-to-logs}. This
+  is now modeled as its own metric emitter and has been made opt-in, as
+  otherwise it could just be producing a lot of useless logs if you've
+  already configured a metrics sink or just don't care.
+}
 
-  \note{fix}{
-    Upgrading from \reference{v2.7.0} to any of the previous releases would
-    leave the user in a broken state until they logged out and back in. It
-    would show that you're logged in, but any actions taken (e.g. pausing a job
-    or triggering a build) would silently fail. They will now send the user to
-    the log-in page instead.
-  }
+\note{feature}{
+  The ATC will now retry connecting to Postgres when the server-side
+  connection limit is reached. It uses fancy Exponential Backoff Technology™.
+}
 
-  \note{fix}{
-    Previously, with multiple tabs open, logging in to one tab would leave the
-    other tabs in a weird half-logged-in state (due to our CSRF security fix).
-    It should now...not do that.
+\note{fix}{
+  Upgrading from \reference{v2.7.0} to any of the previous releases would
+  leave the user in a broken state until they logged out and back in. It
+  would show that you're logged in, but any actions taken (e.g. pausing a job
+  or triggering a build) would silently fail. They will now send the user to
+  the log-in page instead.
+}
 
-    To the user this may have appeared as being prematurely logged out, because
-    no one really keeps track of which tab is which. We suspect this is the
-    actual root cause.
-  }
+\note{fix}{
+  Previously, with multiple tabs open, logging in to one tab would leave the
+  other tabs in a weird half-logged-in state (due to our CSRF security fix).
+  It should now...not do that.
 
-  \note{fix}{
-    We've bumped Garden-runC to 1.6.0 which fixes a regression that caused
-    \code{/etc/hosts} and \code{/etc/resolv.conf} to be unmodifiable.
-  }
+  To the user this may have appeared as being prematurely logged out, because
+  no one really keeps track of which tab is which. We suspect this is the
+  actual root cause.
+}
+
+\note{fix}{
+  We've bumped Garden-runC to 1.6.0 which fixes a regression that caused
+  \code{/etc/hosts} and \code{/etc/resolv.conf} to be unmodifiable.
 }

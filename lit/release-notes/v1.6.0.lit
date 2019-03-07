@@ -1,27 +1,29 @@
 \use-plugin{concourse-docs}
 
-\release{2016-07-25}{1.6.0}{0.4.0}{
-  \note{feature}{
-    We now provide an official Docker repository at \code{concourse/concourse}!
+\release-date{2016-07-25}
+\release-version{1.6.0}
+\release-garden-runc-version{0.4.0}
 
-    As part of this, the \reference{binaries}{binary distribution} has been
-    updated to support environment variables for configuration, in addition to
-    flags. Because \link{the environment is perfectly
-    safe}{https://www.youtube.com/watch?v=3m5qxZm_JqM}.
+\note{feature}{
+  We now provide an official Docker repository at \code{concourse/concourse}!
 
-    Thanks to \ghuser{gregarcara} and \ghuser{MeteoGroup} for maintaining
-    Concourse images until we started on this ourselves!
-  }
+  As part of this, the \reference{binaries}{binary distribution} has been
+  updated to support environment variables for configuration, in addition to
+  flags. Because \link{the environment is perfectly
+  safe}{https://www.youtube.com/watch?v=3m5qxZm_JqM}.
 
-  \note{feature}{
-    The \resource{bosh-io-release} will now verify SHA1 checksums, and place
-    them in the fetched directory as \code{sha1}. The
-    \resource{bosh-io-stemcell} has also been updated so that they both have
-    the same behavior.
-  }
+  Thanks to \ghuser{gregarcara} and \ghuser{MeteoGroup} for maintaining
+  Concourse images until we started on this ourselves!
+}
 
-  \note{feature}{
-    The \resource{docker-image} now supports ECR! There were a couple issues
-    and pull requests opened for this; thanks to all who kept the ball rolling!
-  }
+\note{feature}{
+  The \resource{bosh-io-release} will now verify SHA1 checksums, and place
+  them in the fetched directory as \code{sha1}. The
+  \resource{bosh-io-stemcell} has also been updated so that they both have
+  the same behavior.
+}
+
+\note{feature}{
+  The \resource{docker-image} now supports ECR! There were a couple issues
+  and pull requests opened for this; thanks to all who kept the ball rolling!
 }

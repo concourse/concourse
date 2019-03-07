@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver"
 	_ "github.com/concourse/docs/go/chromastyle"
 
 	"github.com/vito/booklit"
@@ -22,6 +23,7 @@ type Plugin struct {
 	chroma  chroma.Plugin
 
 	definitionContext []string
+	noteIdx           int
 }
 
 func NewPlugin(section *booklit.Section) booklit.Plugin {
@@ -370,20 +372,13 @@ func (p Plugin) PipelineImage(path string) booklit.Content {
 	}
 }
 
-func (p Plugin) ReleaseWithGardenLinux(date string, concourseVersion string, gardenLinuxVersion string, content booklit.Content) (booklit.Content, error) {
-	p.section.SetPartial("GardenReleaseFilename", booklit.String("garden-linux"))
-	p.section.SetPartial("GardenReleaseName", booklit.String("Garden Linux"))
-	return p.release(date, concourseVersion, gardenLinuxVersion, content)
-}
-
-func (p Plugin) Release(date string, concourseVersion string, gardenRunCVersion string, content booklit.Content) (booklit.Content, error) {
-	p.section.SetPartial("GardenReleaseFilename", booklit.String("garden-runc"))
-	p.section.SetPartial("GardenReleaseName", booklit.String("Garden runC"))
-	return p.release(date, concourseVersion, gardenRunCVersion, content)
-}
-
-func (p Plugin) Note(commaSeparatedTags string, content booklit.Content) booklit.Content {
+func (p *Plugin) Note(commaSeparatedTags string, content booklit.Content) booklit.Content {
 	tags := strings.Split(commaSeparatedTags, ",")
+
+	p.noteIdx++
+
+	idx := p.noteIdx
+	targetTag := fmt.Sprintf("%s-note-%d", p.section.PrimaryTag.Name, idx)
 
 	tagNotes := []booklit.Content{}
 	for _, t := range tags {
@@ -397,7 +392,8 @@ func (p Plugin) Note(commaSeparatedTags string, content booklit.Content) booklit
 		Style:   "release-note",
 		Content: content,
 		Partials: booklit.Partials{
-			"Tags": booklit.Sequence(tagNotes),
+			"Tags":   booklit.Sequence(tagNotes),
+			"Target": booklit.String(targetTag),
 		},
 	}
 }
@@ -435,9 +431,54 @@ func (p Plugin) TrademarkGuidelines(content ...booklit.Content) booklit.Content 
 	}
 }
 
-func (p Plugin) ReleaseVersion(version string) {
+var archivedBinariesVersion = semver.MustParse("5.0.0")
+var flyBinariesVersion = semver.MustParse("2.2.0")
+
+func (p Plugin) ReleaseVersion(version string) error {
+	p.section.Style = "release"
+
 	p.section.SetTitle(booklit.String("v" + version))
+
 	p.section.SetPartial("Version", booklit.String(version))
+
+	v, err := semver.Parse(version)
+	if err != nil {
+		return err
+	}
+
+	downloadURL := "https://github.com/concourse/concourse/releases/download/v" + version
+
+	if v.GTE(archivedBinariesVersion) {
+		p.section.SetPartial("ConcourseLinuxURL", booklit.String(downloadURL+"/concourse-"+version+"-linux-amd64.tgz"))
+		p.section.SetPartial("ConcourseWindowsURL", booklit.String(downloadURL+"/concourse-"+version+"-windows-amd64.zip"))
+		p.section.SetPartial("ConcourseDarwinURL", booklit.String(downloadURL+"/concourse-"+version+"-darwin-amd64.tgz"))
+
+		p.section.SetPartial("HasFlyBinaries", booklit.Empty)
+		p.section.SetPartial("FlyLinuxURL", booklit.String(downloadURL+"/fly-"+version+"-linux-amd64.tgz"))
+		p.section.SetPartial("FlyWindowsURL", booklit.String(downloadURL+"/fly-"+version+"-windows-amd64.zip"))
+		p.section.SetPartial("FlyDarwinURL", booklit.String(downloadURL+"/fly-"+version+"-darwin-amd64.tgz"))
+	} else {
+		p.section.SetPartial("ConcourseLinuxURL", booklit.String(downloadURL+"/concourse_linux_amd64"))
+		p.section.SetPartial("ConcourseWindowsURL", booklit.String(downloadURL+"/concourse_windows_amd64.exe"))
+		p.section.SetPartial("ConcourseDarwinURL", booklit.String(downloadURL+"/concourse_darwin_amd64"))
+
+		if v.GTE(flyBinariesVersion) {
+			p.section.SetPartial("HasFlyBinaries", booklit.Empty)
+			p.section.SetPartial("FlyLinuxURL", booklit.String(downloadURL+"/fly_linux_amd64"))
+			p.section.SetPartial("FlyWindowsURL", booklit.String(downloadURL+"/fly_windows_amd64.exe"))
+			p.section.SetPartial("FlyDarwinURL", booklit.String(downloadURL+"/fly_darwin_amd64"))
+		}
+	}
+
+	return nil
+}
+
+func (p Plugin) ReleaseGardenLinuxVersion(version string) {
+	p.section.SetPartial("GardenLinuxVersion", booklit.String(version))
+}
+
+func (p Plugin) ReleaseGardenRuncVersion(version string) {
+	p.section.SetPartial("GardenRuncVersion", booklit.String(version))
 }
 
 func (p Plugin) ReleaseDate(date string) error {
@@ -452,33 +493,6 @@ func (p Plugin) ReleaseDate(date string) error {
 	})
 
 	return nil
-}
-
-func (p Plugin) release(
-	date string,
-	concourseVersion string,
-	gardenVersion string,
-	content booklit.Content,
-) (booklit.Content, error) {
-	t, err := time.Parse("2006-1-2", date)
-	if err != nil {
-		return nil, err
-	}
-
-	p.section.Style = "release"
-
-	p.section.SetTitle(booklit.String("v" + concourseVersion))
-
-	p.section.SetPartial("Version", booklit.String(concourseVersion))
-
-	p.section.SetPartial("GardenVersion", booklit.String(gardenVersion))
-
-	p.section.SetPartial("ReleaseDate", booklit.Styled{
-		Style:   "release-date",
-		Content: booklit.String(t.Format("January 2, 2006")),
-	})
-
-	return content, nil
 }
 
 type NoIndex struct {

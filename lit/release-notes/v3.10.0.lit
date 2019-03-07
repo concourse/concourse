@@ -1,108 +1,110 @@
 \use-plugin{concourse-docs}
 
-\release{2018-3-29}{3.10.0}{1.12.1}{
-  \warn{
-    Users upgrading to v3.10.0 with BOSH have reported issues where baggageclaim
-    will not start after the upgrade. This issue has been reported and fixed for future versions
-    of Concourse. In the meantime, you can workaround the problem by using the
-    workaround described in \link{#2125}{https://github.com/concourse/concourse/pull/2125#issuecomment-378711617}
-  }
-  \note{breaking}{
-    This release involves a worker protocol version bump, from \code{1.3} to
-    \code{2.0}, and also switches the default
-    \reference{component-baggageclaim} driver back to \code{btrfs}. Read on for
-    more information!
+\release-date{2018-3-29}
+\release-version{3.10.0}
+\release-garden-runc-version{1.12.1}
 
-    We recommend spinning up a new pool of \reference{worker-node}s, upgrading
-    your \reference{web-node}s, and then removing the old workers. Otherwise
-    your workers may get swarmed with containers, if only one \code{2.0} worker
-    is added at a time with the web nodes already upgraded.
-  }
+\warn{
+  Users upgrading to v3.10.0 with BOSH have reported issues where baggageclaim
+  will not start after the upgrade. This issue has been reported and fixed for future versions
+  of Concourse. In the meantime, you can workaround the problem by using the
+  workaround described in \link{#2125}{https://github.com/concourse/concourse/pull/2125#issuecomment-378711617}
+}
+\note{breaking}{
+  This release involves a worker protocol version bump, from \code{1.3} to
+  \code{2.0}, and also switches the default
+  \reference{component-baggageclaim} driver back to \code{btrfs}. Read on for
+  more information!
 
-  \note{feature,breaking}{
-    The \code{concourse} worker commands can now be pointed at
-    \italic{multiple} \reference{component-tsa} addresses, rather than one, so
-    that it can retry against a random node each time. As part of this, we've
-    removed the \code{--tsa-port} flag and changed \code{--tsa-host} to instead
-    take a \code{host:port}. (Because
-    \link{TECHNICALLY}{images/technically.gif}, they could be on different
-    ports.)
-  }
+  We recommend spinning up a new pool of \reference{worker-node}s, upgrading
+  your \reference{web-node}s, and then removing the old workers. Otherwise
+  your workers may get swarmed with containers, if only one \code{2.0} worker
+  is added at a time with the web nodes already upgraded.
+}
 
-  \note{feature}{
-    We've revamped how \reference{fly-execute} gets its inputs and outputs
-    to/from the build, so that configuring the \reference{component-atc} with
-    an external URL is no longer required. See \ghissue{2069} for the
-    nitty-gritty.
-  }
+\note{feature,breaking}{
+  The \code{concourse} worker commands can now be pointed at
+  \italic{multiple} \reference{component-tsa} addresses, rather than one, so
+  that it can retry against a random node each time. As part of this, we've
+  removed the \code{--tsa-port} flag and changed \code{--tsa-host} to instead
+  take a \code{host:port}. (Because
+  \link{TECHNICALLY}{images/technically.gif}, they could be on different
+  ports.)
+}
 
-  \note{feature,breaking}{
-    We've switched back to \code{btrfs} as the default driver. We switched away
-    in \reference{v3.1.0} in the midst of a ton of stability issues, which we
-    have think we've fixed in \reference{v3.9.0}.
+\note{feature}{
+  We've revamped how \reference{fly-execute} gets its inputs and outputs
+  to/from the build, so that configuring the \reference{component-atc} with
+  an external URL is no longer required. See \ghissue{2069} for the
+  nitty-gritty.
+}
 
-    This resolves a long-standing performance issue when using privileged tasks
-    or resource types (like the \resource{docker-image}). For more information,
-    see \ghissue{1404} and \ghissue{1966}.
+\note{feature,breaking}{
+  We've switched back to \code{btrfs} as the default driver. We switched away
+  in \reference{v3.1.0} in the midst of a ton of stability issues, which we
+  have think we've fixed in \reference{v3.9.0}.
 
-    Be sure to use the latest possible kernel version so that you have a
-    \code{btrfs} with the latest fixes. We suspect that this will still be an
-    occasional issue, though far less frequent.
-  }
+  This resolves a long-standing performance issue when using privileged tasks
+  or resource types (like the \resource{docker-image}). For more information,
+  see \ghissue{1404} and \ghissue{1966}.
 
-  \note{fix}{
-    Previously, \reference{resource-type-tags} on a resource type didn't get no
-    respect. They are now respected.
-  }
+  Be sure to use the latest possible kernel version so that you have a
+  \code{btrfs} with the latest fixes. We suspect that this will still be an
+  occasional issue, though far less frequent.
+}
 
-  \note{fix}{
-    Fixed an \reference{component-atc} crash that would occur when a
-    \reference{task-step} errored with the next step using an
-    \reference{attempts-step-modifier}.
-  }
+\note{fix}{
+  Previously, \reference{resource-type-tags} on a resource type didn't get no
+  respect. They are now respected.
+}
 
-  \note{feature}{
-    The \code{concourse} binary (and Docker image) now supports a
-    \code{quickstart} command, which will spin up an itty bitty Concourse
-    cluster with a single worker.
-  }
+\note{fix}{
+  Fixed an \reference{component-atc} crash that would occur when a
+  \reference{task-step} errored with the next step using an
+  \reference{attempts-step-modifier}.
+}
 
-  \note{feature}{
-    The \resource{docker-image} now supports pushing multiple tags, thanks to a
-    combined effort of \ghuser{gcmalloc} and \ghuser{jerith}!
-  }
+\note{feature}{
+  The \code{concourse} binary (and Docker image) now supports a
+  \code{quickstart} command, which will spin up an itty bitty Concourse
+  cluster with a single worker.
+}
 
-  \note{feature}{
-    When the \reference{component-atc} is streaming data between workers, the
-    stream will now be \code{gzip}-compressed, which should speed things up
-    quite a bit. (This is what caused the worker version bump to \code{2.0}.)
-  }
+\note{feature}{
+  The \resource{docker-image} now supports pushing multiple tags, thanks to a
+  combined effort of \ghuser{gcmalloc} and \ghuser{jerith}!
+}
 
-  \note{feature,security}{
-    The \reference{component-atc} now requires TLS v1.2+ and a \link{stricter
-    set of cipher
-    suites}{https://github.com/concourse/atc/blob/ed08aa96b357a19a6dca08608108cb6e07735aa7/atccmd/command.go#L703-L707}.
-    Say that five times fast!
-  }
+\note{feature}{
+  When the \reference{component-atc} is streaming data between workers, the
+  stream will now be \code{gzip}-compressed, which should speed things up
+  quite a bit. (This is what caused the worker version bump to \code{2.0}.)
+}
 
-  \note{fix}{
-    Concourse now supports the newer \code{umask}-hardened BOSH stemcells
-    (v3541.x).
-  }
+\note{feature,security}{
+  The \reference{component-atc} now requires TLS v1.2+ and a \link{stricter
+  set of cipher
+  suites}{https://github.com/concourse/atc/blob/ed08aa96b357a19a6dca08608108cb6e07735aa7/atccmd/command.go#L703-L707}.
+  Say that five times fast!
+}
 
-  \note{fix}{
-    Fixed a botched \code{bash}ism that led to the \resource{docker-image} to
-    exit early on certain environments (more info
-    \link{here}{https://github.com/concourse/docker-image-resource/issues/170}).
-  }
+\note{fix}{
+  Concourse now supports the newer \code{umask}-hardened BOSH stemcells
+  (v3541.x).
+}
 
-  \note{fix}{
-    Cleaned up a noisy PostgreSQL error that would occur on start when checking
-    for the legacy \code{migration_version} table.
-  }
+\note{fix}{
+  Fixed a botched \code{bash}ism that led to the \resource{docker-image} to
+  exit early on certain environments (more info
+  \link{here}{https://github.com/concourse/docker-image-resource/issues/170}).
+}
 
-  \note{fix}{
-    Fixed a UI glitch that caused the last line to be misaligned with the
-    timestamps if it had no trailing linebreak.
-  }
+\note{fix}{
+  Cleaned up a noisy PostgreSQL error that would occur on start when checking
+  for the legacy \code{migration_version} table.
+}
+
+\note{fix}{
+  Fixed a UI glitch that caused the last line to be misaligned with the
+  timestamps if it had no trailing linebreak.
 }

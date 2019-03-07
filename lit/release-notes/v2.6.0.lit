@@ -1,73 +1,75 @@
 \use-plugin{concourse-docs}
 
-\release{2017-1-5}{2.6.0}{1.0.4}{
-  \note{feature}{
-    Workers will now, by default, wait for builds to finish before exiting.
-    This will make it safer to perform a rolling update of a Concourse cluster.
+\release-date{2017-1-5}
+\release-version{2.6.0}
+\release-garden-runc-version{1.0.4}
 
-    If you're running a BOSH deployment, this feature will just start happening
-    automatically. If you're running the binary distribution or Docker, you'll
-    need to invoke \code{land-worker} (for a temporary in-place update, i.e.
-    preserving containers and volumes) or \code{retire-worker} (for a permanent
-    exit) to initiate draining, and then wait for the worker process to exit.
+\note{feature}{
+  Workers will now, by default, wait for builds to finish before exiting.
+  This will make it safer to perform a rolling update of a Concourse cluster.
 
-    More docs on this are forthcoming; this release was expedited by the
-    \resource{time} bug, so docs are sparse at the moment.
-  }
+  If you're running a BOSH deployment, this feature will just start happening
+  automatically. If you're running the binary distribution or Docker, you'll
+  need to invoke \code{land-worker} (for a temporary in-place update, i.e.
+  preserving containers and volumes) or \code{retire-worker} (for a permanent
+  exit) to initiate draining, and then wait for the worker process to exit.
 
-  \note{feature}{
-    Workers that have not heartbeated in a while will now enter a
-    \code{stalled} state rather than just disappearing. This should improve
-    resilience to network blips and makes the worker lifecycle much more
-    explicit, allowing us to distinguish between accidentally-unavailable
-    workers and intentionally-removed workers. This way we can continue to
-    retry and wait for the worker to return.
+  More docs on this are forthcoming; this release was expedited by the
+  \resource{time} bug, so docs are sparse at the moment.
+}
 
-    New workloads will not be placed on \code{stalled} workers. Stalled workers
-    that will not be coming back can be cleaned up with the new command,
-    \reference{fly-prune-worker}.
-  }
+\note{feature}{
+  Workers that have not heartbeated in a while will now enter a
+  \code{stalled} state rather than just disappearing. This should improve
+  resilience to network blips and makes the worker lifecycle much more
+  explicit, allowing us to distinguish between accidentally-unavailable
+  workers and intentionally-removed workers. This way we can continue to
+  retry and wait for the worker to return.
 
-  \note{fix}{
-    The \resource{time} did not know to compare years. Yep. Pretty silly. So
-    any interval triggers stopped triggering. Time is hard.
-  }
+  New workloads will not be placed on \code{stalled} workers. Stalled workers
+  that will not be coming back can be cleaned up with the new command,
+  \reference{fly-prune-worker}.
+}
 
-  \note{feature}{
-    Fly learned the \reference{fly-logout} command, which can be used to forget
-    a target and its token. This is thanks to a PR by \ghuser{mkreibe}!
-  }
+\note{fix}{
+  The \resource{time} did not know to compare years. Yep. Pretty silly. So
+  any interval triggers stopped triggering. Time is hard.
+}
 
-  \note{feature}{
-    Fly learned the \reference{fly-validate-pipeline} command, which can be
-    used to...validate a pipeline. It does this without needing an external
-    server, either, making it handy for quick local verification or automated
-    testing.
+\note{feature}{
+  Fly learned the \reference{fly-logout} command, which can be used to forget
+  a target and its token. This is thanks to a PR by \ghuser{mkreibe}!
+}
 
-    This was a PR submitted by \ghuser{jmcarp} - thanks!
-  }
+\note{feature}{
+  Fly learned the \reference{fly-validate-pipeline} command, which can be
+  used to...validate a pipeline. It does this without needing an external
+  server, either, making it handy for quick local verification or automated
+  testing.
 
-  \note{feature}{
-    Previously if you configured a job with multiple \reference{get-step}s with
-    the same name, the job would never be able to schedule. \ghuser{cnelson}
-    did a PR to add a validation for this borked configuration
-    - thanks!
-  }
+  This was a PR submitted by \ghuser{jmcarp} - thanks!
+}
 
-  \note{feature}{
-    \reference{fly-cli} should now support colors on Windows, thanks to a PR
-    from \ghuser{alex-slynko}!
-  }
+\note{feature}{
+  Previously if you configured a job with multiple \reference{get-step}s with
+  the same name, the job would never be able to schedule. \ghuser{cnelson}
+  did a PR to add a validation for this borked configuration
+  - thanks!
+}
 
-  \note{feature}{
-    The BOSH release was changed to default Baggageclaim to consuming (disk
-    size - 5GB), which was all fine and good until your disk was <= 5GB, which
-    caused it to fail. It will now use the full 5GB. Though...you should
-    probably just get more GBs.
-  }
+\note{feature}{
+  \reference{fly-cli} should now support colors on Windows, thanks to a PR
+  from \ghuser{alex-slynko}!
+}
 
-  \note{feature}{
-    Resource checking can now be directed at a tagged worker by specifying
-    \reference{resource-tags} on the resource.
-  }
+\note{feature}{
+  The BOSH release was changed to default Baggageclaim to consuming (disk
+  size - 5GB), which was all fine and good until your disk was <= 5GB, which
+  caused it to fail. It will now use the full 5GB. Though...you should
+  probably just get more GBs.
+}
+
+\note{feature}{
+  Resource checking can now be directed at a tagged worker by specifying
+  \reference{resource-tags} on the resource.
 }

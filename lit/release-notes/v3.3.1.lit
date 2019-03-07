@@ -1,18 +1,20 @@
 \use-plugin{concourse-docs}
 
-\release{2017-6-30}{3.3.1}{1.6.0}{
-  \note{feature}{
-    The \reference{fly-volumes} command will now show task cache volumes as
-    \code{task-cache} and show the name of the task the cache is for.
-  }
+\release-date{2017-6-30}
+\release-version{3.3.1}
+\release-garden-runc-version{1.6.0}
 
-  \note{fix}{
-    The last release (\reference{v3.3.0}) broke resource configs with nested
-    maps in them. This is now fixed.
-  }
+\note{feature}{
+  The \reference{fly-volumes} command will now show task cache volumes as
+  \code{task-cache} and show the name of the task the cache is for.
+}
 
-  \note{fix}{
-    Fixed an ATC crash that would occur when trying to list pipelines while the
-    database is down. Along the way we also made the endpoint quicker.
-  }
+\note{fix}{
+  The last release (\reference{v3.3.0}) broke resource configs with nested
+  maps in them. This is now fixed.
+}
+
+\note{fix}{
+  Fixed an ATC crash that would occur when trying to list pipelines while the
+  database is down. Along the way we also made the endpoint quicker.
 }

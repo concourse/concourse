@@ -1,62 +1,64 @@
 \use-plugin{concourse-docs}
 
-\release{2016-10-13}{2.3.0}{0.9.2}{
-  \note{feature}{
-    The whole UI now runs as a single Elm app! Pages should load much quicker,
-    and the pipeline sidebar now remains open as you navigate around.
+\release-date{2016-10-13}
+\release-version{2.3.0}
+\release-garden-runc-version{0.9.2}
 
-    There's still some UX work to be done to make things a big smoother, e.g.
-    better handling for 404 cases and more consistent loading indicators, but
-    this is the first big step on that path.
-  }
+\note{feature}{
+  The whole UI now runs as a single Elm app! Pages should load much quicker,
+  and the pipeline sidebar now remains open as you navigate around.
 
-  \note{feature}{
-    The team name is now provided as \code{$BUILD_TEAM_NAME} along with the
-    rest of the metadata available to resources, thanks to a PR from
-    \ghuser{SHyx0rmZ}.
-  }
+  There's still some UX work to be done to make things a big smoother, e.g.
+  better handling for 404 cases and more consistent loading indicators, but
+  this is the first big step on that path.
+}
 
-  \note{fix}{
-    Fixed the log out menu being unclickable on the build page.
-  }
+\note{feature}{
+  The team name is now provided as \code{$BUILD_TEAM_NAME} along with the
+  rest of the metadata available to resources, thanks to a PR from
+  \ghuser{SHyx0rmZ}.
+}
 
-  \note{fix}{
-    The sidebar no longer scrolls offscreen.
-  }
+\note{fix}{
+  Fixed the log out menu being unclickable on the build page.
+}
 
-  \note{feature}{
-    The \resource{github-release} now supports publishing pre-releases, thanks
-    to a PR from \ghuser{ahelal}!
-  }
+\note{fix}{
+  The sidebar no longer scrolls offscreen.
+}
 
-  \note{feature}{
-    The \resource{git} can now have LFS disabled via a \code{disable_git_ls}
-    param, thanks to a PR from \ghuser{SHyx0rmZ}!
-  }
+\note{feature}{
+  The \resource{github-release} now supports publishing pre-releases, thanks
+  to a PR from \ghuser{ahelal}!
+}
 
-  \note{feature}{
-    Unused resources in the pipeline config are now a validation error, thanks
-    to a PR from \ghuser{mmb}!
-  }
+\note{feature}{
+  The \resource{git} can now have LFS disabled via a \code{disable_git_ls}
+  param, thanks to a PR from \ghuser{SHyx0rmZ}!
+}
 
-  \note{feature}{
-    The BOSH release can now be configured with arbitrary Riemann tags, thanks
-    to a PR from \ghuser{combor}!
-  }
+\note{feature}{
+  Unused resources in the pipeline config are now a validation error, thanks
+  to a PR from \ghuser{mmb}!
+}
 
-  \note{feature}{
-    When configured with a CloudFront endpoint, the \resource{s3} will now
-    download via CloudFront, which should be much faster. This is thanks to a
-    PR from \ghuser{cunnie} and \ghuser{ljfranklin}!
-  }
+\note{feature}{
+  The BOSH release can now be configured with arbitrary Riemann tags, thanks
+  to a PR from \ghuser{combor}!
+}
 
-  \note{feature}{
-    The \resource{s3} now supports v2 signature signing, thanks to a PR from
-    \ghuser{JamesClonk}!
-  }
+\note{feature}{
+  When configured with a CloudFront endpoint, the \resource{s3} will now
+  download via CloudFront, which should be much faster. This is thanks to a
+  PR from \ghuser{cunnie} and \ghuser{ljfranklin}!
+}
 
-  \note{feature}{
-    The \resource{bosh-deployment} can now be configured to \italic{not} redact
-    properties from the deploy diff, thanks to a PR from \ghuser{jszroberto}!
-  }
+\note{feature}{
+  The \resource{s3} now supports v2 signature signing, thanks to a PR from
+  \ghuser{JamesClonk}!
+}
+
+\note{feature}{
+  The \resource{bosh-deployment} can now be configured to \italic{not} redact
+  properties from the deploy diff, thanks to a PR from \ghuser{jszroberto}!
 }

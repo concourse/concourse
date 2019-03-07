@@ -23,39 +23,41 @@
         <h4><span class="download-icon"></span><code>concourse</code></h4>
 
         <ul>
-          <li><a href="{{$downloadURL}}/concourse_linux_amd64"
+          <li><a href="{{.Partial "ConcourseLinuxURL" | render}}"
                   onclick="gtag('event', 'click',{
                     event_category: 'linux-downloads',
                     event_label: '{{$version}}/concourse_linux_amd64'});">Linux</a></li>
-          <li><a href="{{$downloadURL}}/concourse_windows_amd64.exe"
+          <li><a href="{{.Partial "ConcourseWindowsURL" | render}}"
                   onclick="gtag('event', 'click',{
                     event_category: 'windows-downloads',
-                    event_label: '{{$version}}/concourse_windows_amd64.exe'});">Windows</a></li>
-          <li><a href="{{$downloadURL}}/concourse_darwin_amd64"
+                    event_label: '{{$version}}/concourse_windows_amd64'});">Windows</a></li>
+          <li><a href="{{.Partial "ConcourseDarwinURL" | render}}"
                   onclick="gtag('event', 'click', {
                     event_category: 'darwin-downloads',
                     event_label: '{{$version}}/concourse_darwin_amd64'});">OS X</a></li>
         </ul>
       </div>
 
+      {{if .Partial "HasFlyBinaries"}}
       <div class="download-item">
         <h4><span class="download-icon"></span><code>fly</code></h4>
 
         <ul>
-          <li><a href="{{$downloadURL}}/fly_linux_amd64"
+          <li><a href="{{.Partial "FlyLinuxURL" | render}}"
                   onclick="gtag('event', 'click',{
                     event_category: 'linux-downloads',
                     event_label: '{{$version}}/fly_linux_amd64'});">Linux</a></li>
-          <li><a href="{{$downloadURL}}/fly_windows_amd64.exe"
+          <li><a href="{{.Partial "FlyWindowsURL" | render}}"
                   onclick="gtag('event', 'click',{
                     event_category: 'windows-downloads',
-                    event_label: '{{$version}}/fly_windows_amd64.exe'});">Windows</a></li>
-          <li><a href="{{$downloadURL}}/fly_darwin_amd64"
+                    event_label: '{{$version}}/fly_windows_amd64'});">Windows</a></li>
+          <li><a href="{{.Partial "FlyDarwinURL" | render}}"
                   onclick="gtag('event', 'click',{
                     event_category: 'darwin-downloads',
                     event_label: '{{$version}}/fly_darwin_amd64'});">OS X</a></li>
         </ul>
       </div>
+      {{end}}
     </div>
   </div>
 </div>
