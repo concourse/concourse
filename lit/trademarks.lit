@@ -3,11 +3,10 @@
 \use-plugin{concourse-docs}
 
 \trademark-guidelines{
-  \bold{PURPOSE.} Alex Suraci, Christopher Brown and Pivotal Software, Inc.
-  (collectively, “\bold{Concourse}”) owns a number of international trademarks
-  and logos that identify the Concourse community and individual Concourse
-  projects (“\bold{Concourse Marks}”). These trademarks include, but are not
-  limited to:
+  \bold{PURPOSE.} Pivotal Software, Inc. (“\bold{Pivotal}”) owns a number of
+  international trademarks and logos that identify the Concourse community and
+  individual Concourse projects (“\bold{Concourse Marks}”). These trademarks
+  include, but are not limited to:
 
   \list{
     \bold{Words: CONCOURSE}
@@ -15,17 +14,17 @@
     \bold{Logos:} \image{images/trademarks/concourse-black.png}
   }
 
-  This policy outlines Concourse’s policy and guidelines about the use of the
+  This policy outlines Pivotal’s policy and guidelines about the use of the
   Concourse trademarks by members of the Concourse development and user
   community.
 }{
   \bold{WHY HAVE TRADEMARK GUIDELINES?} The Concourse Marks are a symbol of the
   quality and community support associated with the Concourse open source
-  software. Trademarks protect not only those using the marks, but the entire
+  software. Trademarks protect not only those using the marks but the entire
   community as well. Our community members need to know that they can rely on
   the quality and capabilities represented by the brand. We also want to
   provide a level playing field. No one should use the Concourse marks in ways
-  that mislead or take advantage of the community, or make unfair use of the
+  that mislead or take advantage of the community or make unfair use of the
   trademarks. Also, use of the Concourse Marks should not be in a disparaging
   manner because we prefer that our marks not be used to be rude about the
   Concourse open source project or its members.
@@ -52,13 +51,13 @@
     trademark license from us.  Here are examples:
 
     \list{
-      You may use the Concourse Marks in connection with development of tools,
+      You may use the Concourse Marks in connection with the development of tools,
       add-ons, or utilities that are compatible with bit-for-bit identical
       copies of official Concourse software. For example, if you are developing
       a Foobar tool for Concourse, acceptable project titles would be “Foobar
       for Concourse".
     }{
-      You may use the Concourse Marks in connection with your noncommercial
+      You may use the Concourse Marks in connection with your non-commercial
       redistribution of (1) bit-for-bit identical copies of official Concourse
       software, and (2) unmodified copies of official Concourse source
       packages.  For example, if your Foobar product included a full
@@ -87,9 +86,8 @@
         There is no suggestion that your project is approved, sponsored, or
         affiliated with Concourse.
       }{
-        User or Development Groups. You may create Concourse user or
-        development groups, and publicize meetings or discussions for those
-        groups.
+        You may create Concourse user or development groups, and publicize
+        meetings or discussions for those groups.
       }
     }
   }{
@@ -107,9 +105,6 @@
   }{
     \bold{Capitalization.} “Concourse” should always be capitalized and one
     word.
-  }{
-    \bold{Adjectives.} Use the Concourse mark as an adjective, not a noun or
-    verb.
   }
 }{
   \bold{IMPROPER USE OF THE TRADEMARKS AND LOGOS.} Use of the logo is reserved
@@ -173,7 +168,7 @@
     }{
       MyConcourse
     }{
-      ConcourseDBX
+      ConcourseDB
     }{
       ConcourseHost
     }{
