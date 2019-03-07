@@ -132,11 +132,11 @@ isHighDensity { route } =
 
 handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
 handleCallback msg =
-    TopBar.handleCallback msg >> handleCallbackWithoutTopBar msg
+    TopBar.handleCallback msg >> handleCallbackBody msg
 
 
-handleCallbackWithoutTopBar : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
-handleCallbackWithoutTopBar msg ( model, effects ) =
+handleCallbackBody : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackBody msg ( model, effects ) =
     case msg of
         APIDataFetched (Err _) ->
             ( { model | state = RemoteData.Failure (Turbulence model.turbulencePath) }, effects )
