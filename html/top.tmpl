@@ -8,10 +8,12 @@
   {{end}}
 </nav>
 
-<div class="top-search" id="search" onclick="gtag('event', 'search-click');">
-  <input type="search" class="search-input" placeholder="Search the docs&hellip;" required="required" />
+<div class="top-search">
+  <div id="search"></div>
 </div>
 
 <script type="text/javascript">
-  Elm.Main.embed(document.getElementById("search"));
+  Elm.Main.init({
+    node: document.getElementById('search')
+  });
 </script>

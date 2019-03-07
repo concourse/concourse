@@ -8,4 +8,4 @@ clean:
 	rm -f search.js
 
 search.js: $(ELM_FILES)
-	elm make --warn --output $@ --yes src/Main.elm
+	yarn run elm make --output $@ src/Main.elm

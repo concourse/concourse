@@ -1,13 +1,14 @@
-module Main exposing (..)
+module Main exposing (main)
 
+import Browser
 import Dict exposing (Dict)
 import Fuzzy
 import Html exposing (Html, div, text)
-import Html.Events as HE
 import Html.Attributes as HA
+import Html.Events as HE
 import Http
 import Json.Decode as JD
-import Json.Decode.Extra as JDE exposing ((|:))
+import Json.Decode.Extra as JDE exposing (andMap)
 
 
 type alias Doc =
@@ -43,6 +44,15 @@ type Msg
     | SetQuery String
 
 
+main : Program () Model Msg
+main =
+  Browser.element
+        { init = always init
+        , update = update
+        , view = view
+        , subscriptions = always Sub.none
+        }
+
 init : ( Model, Cmd Msg )
 init =
     ( { docs = Dict.empty
@@ -62,8 +72,8 @@ update msg model =
         DocumentsFetched (Ok docs) ->
             ( performSearch { model | docs = docs }, Cmd.none )
 
-        DocumentsFetched (Err msg) ->
-            flip always (Debug.log "failed to load index" msg) <|
+        DocumentsFetched (Err err) ->
+            (\a -> always a (Debug.log "failed to load index" err)) <|
                 ( model, Cmd.none )
 
         SetQuery query ->
@@ -84,9 +94,15 @@ match : String -> String -> BooklitDocument -> Fuzzy.Result
 match query tag doc =
     let
         result =
-            Fuzzy.match [ Fuzzy.insertPenalty 100 ] [] query (String.toLower doc.title)
+            Fuzzy.match
+              [ Fuzzy.insertPenalty 100
+              , Fuzzy.movePenalty 100
+              ]
+              []
+              query
+              (String.toLower doc.title)
     in
-        { result | score = result.score + (100 * doc.depth) }
+    { result | score = result.score + (100 * doc.depth) }
 
 
 view : Model -> Html Msg
@@ -108,7 +124,7 @@ view model =
 
 containsFuzzyChars : String -> Fuzzy.Result -> Bool
 containsFuzzyChars _ res =
-    res.score < 10000
+    res.score < 1000
 
 
 viewResult : Model -> ( String, Fuzzy.Result ) -> Maybe (Html Msg)
@@ -126,6 +142,7 @@ viewDocumentResult model ( tag, res ) doc =
                     [ Html.h3 [] (emphasize res.matches doc.title)
                     , if doc.sectionTag == tag then
                         Html.text ""
+
                       else
                         case Dict.get doc.sectionTag model.docs of
                             Nothing ->
@@ -136,11 +153,13 @@ viewDocumentResult model ( tag, res ) doc =
                     ]
                 , if String.isEmpty doc.text then
                     Html.text ""
+
                   else
                     Html.p []
                         [ Html.text (String.left 130 doc.text)
                         , if String.length doc.text > 130 then
                             Html.text "..."
+
                           else
                             Html.text ""
                         ]
@@ -157,6 +176,7 @@ emphasize matches str =
                 (\e sum ->
                     if not sum then
                         List.member (index - e.offset) e.keys
+
                     else
                         sum
                 )
@@ -171,22 +191,14 @@ emphasize matches str =
                 ele =
                     if isKey idx then
                         Html.mark [] [ txt ]
+
                     else
                         txt
             in
-                ( acc ++ [ ele ], idx + 1 )
+            ( acc ++ [ ele ], idx + 1 )
     in
-        Tuple.first (String.foldl hl ( [], 0 ) str)
+    Tuple.first (String.foldl hl ( [], 0 ) str)
 
-
-main : Program Never Model Msg
-main =
-    Html.program
-        { init = init
-        , update = update
-        , subscriptions = always Sub.none
-        , view = view
-        }
 
 
 decodeSearchIndex : JD.Decoder BooklitIndex
@@ -197,8 +209,8 @@ decodeSearchIndex =
 decodeSearchDocument : JD.Decoder BooklitDocument
 decodeSearchDocument =
     JD.succeed BooklitDocument
-        |: (JD.field "title" JD.string)
-        |: (JD.field "text" JD.string)
-        |: (JD.field "location" JD.string)
-        |: (JD.field "depth" JD.int)
-        |: (JD.field "section_tag" JD.string)
+    |> andMap ( JD.field "title" JD.string)
+    |> andMap ( JD.field "text" JD.string)
+    |> andMap ( JD.field "location" JD.string)
+    |> andMap ( JD.field "depth" JD.int)
+    |> andMap ( JD.field "section_tag" JD.string)

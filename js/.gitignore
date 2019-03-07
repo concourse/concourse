@@ -1,3 +1,6 @@
+### Node ###
+node_modules
+
 ### Elm ###
 # elm-package generated files
 elm-stuff
