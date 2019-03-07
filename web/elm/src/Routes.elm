@@ -6,6 +6,7 @@ module Routes exposing
     , buildRoute
     , dashboardRoute
     , extractPid
+    , extractQuery
     , jobRoute
     , parsePath
     , pipelineRoute
@@ -447,3 +448,13 @@ extractPid route =
 
         FlySuccess _ ->
             Nothing
+
+
+extractQuery : Route -> String
+extractQuery route =
+    case route of
+        Dashboard (Normal (Just q)) ->
+            q
+
+        _ ->
+            ""

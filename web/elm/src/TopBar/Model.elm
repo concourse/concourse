@@ -18,7 +18,6 @@ type alias Model r =
         , isPinMenuExpanded : Bool
         , route : Routes.Route
         , groups : List Group
-        , query : String
         , dropdown : Dropdown
         , screenSize : ScreenSize
         , shiftDown : Bool

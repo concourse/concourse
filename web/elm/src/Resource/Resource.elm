@@ -115,7 +115,6 @@ init flags =
             , isPinMenuExpanded = topBar.isPinMenuExpanded
             , route = topBar.route
             , groups = topBar.groups
-            , query = topBar.query
             , dropdown = topBar.dropdown
             , screenSize = topBar.screenSize
             , shiftDown = topBar.shiftDown
@@ -634,7 +633,7 @@ update action ( model, effects ) =
             else
                 ( model, effects ++ [ RedirectToLogin ] )
 
-        TopBarMsg msg ->
+        FromTopBar msg ->
             TopBar.update msg ( model, effects )
 
         EditComment input ->
@@ -703,7 +702,7 @@ view userState model =
     Html.div []
         [ Html.div
             [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map TopBarMsg <| TopBar.view userState TopBar.Model.None model
+            [ Html.map FromTopBar <| TopBar.view userState TopBar.Model.None model
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ subpageView userState model
                 , commentBar userState model

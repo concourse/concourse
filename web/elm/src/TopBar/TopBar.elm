@@ -65,13 +65,6 @@ init { route } =
       , isPinMenuExpanded = False
       , route = route
       , groups = []
-      , query =
-            case route of
-                Routes.Dashboard (Routes.Normal (Just q)) ->
-                    q
-
-                _ ->
-                    ""
       , dropdown = Hidden
       , screenSize = Desktop
       , shiftDown = False
@@ -220,13 +213,12 @@ handleDelivery delivery ( model, effects ) =
                                                         Array.fromList (dropdownOptions model)
 
                                                     selectedItem =
-                                                        Maybe.withDefault
-                                                            model.query
-                                                            (Array.get selectedIdx options)
+                                                        Array.get selectedIdx options
+                                                            |> Maybe.withDefault (Routes.extractQuery model.route)
                                                 in
                                                 ( { model
                                                     | dropdown = Shown { selectedIdx = Nothing }
-                                                    , query = selectedItem
+                                                    , route = Routes.Dashboard (Routes.Normal (Just selectedItem))
                                                   }
                                                 , [ ModifyUrl <|
                                                         queryStringFromSearch
@@ -269,7 +261,7 @@ update : Msg -> ( Model r, List Effect ) -> ( Model r, List Effect )
 update msg ( model, effects ) =
     case msg of
         FilterMsg query ->
-            ( { model | query = query }
+            ( { model | route = Routes.Dashboard (Routes.Normal (Just query)) }
             , effects
                 ++ [ Focus searchInputId
                    , ModifyUrl (queryStringFromSearch query)
@@ -341,16 +333,10 @@ screenResize size model =
         MinifiedSearch ->
             case newSize of
                 ScreenSize.Desktop ->
-                    { newModel
-                        | query = ""
-                        , dropdown = Hidden
-                    }
+                    { newModel | dropdown = Hidden }
 
                 ScreenSize.BigDesktop ->
-                    { newModel
-                        | query = ""
-                        , dropdown = Hidden
-                    }
+                    { newModel | dropdown = Hidden }
 
                 ScreenSize.Mobile ->
                     newModel
@@ -360,7 +346,7 @@ showSearchInput : Model r -> ( Model r, List Effect )
 showSearchInput model =
     let
         newModel =
-            { model | query = "", dropdown = Shown { selectedIdx = Nothing } }
+            { model | dropdown = Shown { selectedIdx = Nothing } }
     in
     case middleSection model of
         MinifiedSearch ->
@@ -481,28 +467,24 @@ viewMiddleSection model =
 
 
 middleSection : Model r -> MiddleSection
-middleSection { route, query, dropdown, screenSize, groups } =
+middleSection { route, dropdown, screenSize, groups } =
     case route of
-        Routes.Dashboard searchType ->
-            case
-                ( searchType
-                , query
-                , dropdown
-                , screenSize
-                , groups |> List.concatMap .pipelines
-                )
-            of
-                ( _, _, _, _, [] ) ->
-                    Empty
+        Routes.Dashboard (Routes.Normal query) ->
+            let
+                q =
+                    Maybe.withDefault "" query
+            in
+            if groups |> List.concatMap .pipelines |> List.isEmpty then
+                Empty
 
-                ( Routes.HighDensity, _, _, _, _ ) ->
-                    Empty
+            else if dropdown == Hidden && screenSize == Mobile && q == "" then
+                MinifiedSearch
 
-                ( Routes.Normal _, "", Hidden, Mobile, _ ) ->
-                    MinifiedSearch
+            else
+                SearchBar
 
-                ( Routes.Normal _, _, _, _, _ ) ->
-                    SearchBar
+        Routes.Dashboard Routes.HighDensity ->
+            Empty
 
         _ ->
             Breadcrumbs route
@@ -511,12 +493,16 @@ middleSection { route, query, dropdown, screenSize, groups } =
 viewSearch :
     { a
         | screenSize : ScreenSize
-        , query : String
+        , route : Routes.Route
         , dropdown : Dropdown
         , groups : List Group
     }
     -> List (Html Msg)
-viewSearch ({ screenSize, query } as params) =
+viewSearch ({ screenSize, route } as params) =
+    let
+        query =
+            Routes.extractQuery route
+    in
     [ Html.div
         [ id "search-container"
         , style (Styles.searchContainer screenSize)
@@ -546,13 +532,13 @@ viewSearch ({ screenSize, query } as params) =
 
 viewDropdownItems :
     { a
-        | query : String
+        | route : Routes.Route
         , dropdown : Dropdown
         , groups : List Group
         , screenSize : ScreenSize
     }
     -> List (Html Msg)
-viewDropdownItems { query, dropdown, groups, screenSize } =
+viewDropdownItems ({ dropdown, screenSize } as model) =
     case dropdown of
         Hidden ->
             []
@@ -566,36 +552,12 @@ viewDropdownItems { query, dropdown, groups, screenSize } =
                         , style (Styles.dropdownItem (Just idx == selectedIdx))
                         ]
                         [ Html.text text ]
-
-                itemList : List String
-                itemList =
-                    case String.trim query of
-                        "status:" ->
-                            [ "status: paused"
-                            , "status: pending"
-                            , "status: failed"
-                            , "status: errored"
-                            , "status: aborted"
-                            , "status: running"
-                            , "status: succeeded"
-                            ]
-
-                        "team:" ->
-                            groups
-                                |> List.take 10
-                                |> List.map (\g -> "team: " ++ g.teamName)
-
-                        "" ->
-                            [ "status:", "team:" ]
-
-                        _ ->
-                            []
             in
             [ Html.ul
                 [ id "search-dropdown"
                 , style (Styles.dropdownContainer screenSize)
                 ]
-                (List.indexedMap dropdownItem itemList)
+                (List.indexedMap dropdownItem (dropdownOptions model))
             ]
 
 
@@ -684,14 +646,21 @@ decodeName name =
     Maybe.withDefault name (Http.decodeUri name)
 
 
-dropdownOptions : { a | query : String, groups : List Group } -> List String
-dropdownOptions { query, groups } =
-    case String.trim query of
+dropdownOptions : { a | route : Routes.Route, groups : List Group } -> List String
+dropdownOptions { route, groups } =
+    case Routes.extractQuery route |> String.trim of
         "" ->
             [ "status: ", "team: " ]
 
         "status:" ->
-            [ "status: paused", "status: pending", "status: failed", "status: errored", "status: aborted", "status: running", "status: succeeded" ]
+            [ "status: paused"
+            , "status: pending"
+            , "status: failed"
+            , "status: errored"
+            , "status: aborted"
+            , "status: running"
+            , "status: succeeded"
+            ]
 
         "team:" ->
             groups

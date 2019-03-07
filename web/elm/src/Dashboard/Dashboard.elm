@@ -106,7 +106,6 @@ init flags =
       , isUserMenuExpanded = topBar.isUserMenuExpanded
       , isPinMenuExpanded = topBar.isPinMenuExpanded
       , route = topBar.route
-      , query = topBar.query
       , dropdown = topBar.dropdown
       , screenSize = topBar.screenSize
       , shiftDown = topBar.shiftDown
@@ -395,7 +394,7 @@ dashboardView model =
                             ++ pipelinesView
                                 { groups = model.groups
                                 , substate = substate
-                                , query = model.query
+                                , query = Routes.extractQuery model.route
                                 , hoveredPipeline = model.hoveredPipeline
                                 , pipelineRunningKeyframes =
                                     model.pipelineRunningKeyframes

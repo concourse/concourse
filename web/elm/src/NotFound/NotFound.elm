@@ -31,7 +31,6 @@ init flags =
       , isPinMenuExpanded = topBar.isPinMenuExpanded
       , groups = topBar.groups
       , route = topBar.route
-      , query = topBar.query
       , dropdown = topBar.dropdown
       , screenSize = topBar.screenSize
       , shiftDown = topBar.shiftDown

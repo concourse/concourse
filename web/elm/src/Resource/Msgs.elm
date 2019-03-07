@@ -18,7 +18,7 @@ type Msg
     | PinIconHover Bool
     | Hover Models.Hoverable
     | CheckRequested Bool
-    | TopBarMsg TopBar.Msgs.Msg
+    | FromTopBar TopBar.Msgs.Msg
     | EditComment String
     | SaveComment String
     | FocusTextArea
