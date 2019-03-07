@@ -107,9 +107,9 @@
 \note{fix}{
   The \link{Docker Image
   resource}{https://github.com/concourse/docker-image-resource} no longer
-  worked for images configured with \code{ENTRYPOINT}s as of
-  \reference{v0.72.0}, and ended up running whatever the entrypoint was, with
-  our internal binary tool as an argument. It now works again. Our bad.
+  worked for images configured with \code{ENTRYPOINT}s as of v0.72.0, and ended
+  up running whatever the entrypoint was, with our internal binary tool as an
+  argument. It now works again. Our bad.
 }
 
 \note{fix}{
