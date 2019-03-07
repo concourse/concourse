@@ -259,6 +259,14 @@
       app.ports.scrollToTop.subscribe(function() {
         window.scrollTo(0, 0);
       });
+
+      app.ports.scrollUp.subscribe(function() {
+        window.scrollBy(0, -60);
+      });
+
+      app.ports.scrollDown.subscribe(function() {
+        window.scrollBy(0, 60);
+      });
     </script>
     <script>
       var clipboard = new ClipboardJS('#copy-token');

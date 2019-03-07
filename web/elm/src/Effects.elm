@@ -32,7 +32,6 @@ import Navigation
 import Process
 import Resource.Models exposing (VersionId, VersionToggleAction(..))
 import Routes
-import Scroll
 import Task
 import Time exposing (Time)
 import Window
@@ -81,6 +80,12 @@ port scrollToBottom : () -> Cmd msg
 
 
 port scrollToTop : () -> Cmd msg
+
+
+port scrollUp : () -> Cmd msg
+
+
+port scrollDown : () -> Cmd msg
 
 
 port checkIsVisible : String -> Cmd msg
@@ -529,10 +534,10 @@ scrollInDirection dir =
             scrollToTop ()
 
         Down ->
-            Task.perform (always EmptyCallback) Scroll.scrollDown
+            scrollDown ()
 
         Up ->
-            Task.perform (always EmptyCallback) Scroll.scrollUp
+            scrollUp ()
 
         ToBottom ->
             scrollToBottom ()
