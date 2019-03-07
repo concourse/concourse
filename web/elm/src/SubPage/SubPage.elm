@@ -18,7 +18,6 @@ import Dashboard.Dashboard as Dashboard
 import Effects exposing (Effect)
 import FlySuccess.FlySuccess as FlySuccess
 import Html exposing (Html)
-import Html.Styled as HS
 import Job.Job as Job
 import NotFound
 import Pipeline.Pipeline as Pipeline
@@ -298,7 +297,6 @@ view userState mdl =
 
         ResourceModel model ->
             Resource.view userState model
-                |> HS.toUnstyled
                 |> Html.map ResourceMsg
 
         DashboardModel model ->

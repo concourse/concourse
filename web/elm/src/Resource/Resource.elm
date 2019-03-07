@@ -32,14 +32,11 @@ import Dict
 import DictView
 import Duration exposing (Duration)
 import Effects exposing (Effect(..), runEffect, setTitle)
-import Html as UnstyledHtml
+import Html exposing (Html)
 import Html.Attributes
-import Html.Styled as Html exposing (Html)
-import Html.Styled.Attributes
     exposing
         ( attribute
         , class
-        , css
         , href
         , id
         , placeholder
@@ -47,7 +44,7 @@ import Html.Styled.Attributes
         , title
         , value
         )
-import Html.Styled.Events
+import Html.Events
     exposing
         ( onBlur
         , onClick
@@ -724,7 +721,7 @@ view userState model =
     Html.div []
         [ Html.div
             [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map TopBarMsg <| Html.fromUnstyled <| TopBar.view userState TopBar.Model.None model.topBar
+            [ Html.map TopBarMsg <| TopBar.view userState TopBar.Model.None model.topBar
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ subpageView userState model
                 , commentBar userState model
@@ -760,33 +757,33 @@ header model =
             60
     in
     Html.div
-        [ css
-            [ Css.height <| Css.px headerHeight
-            , Css.position Css.fixed
-            , Css.top <| Css.px TopBar.Styles.pageHeaderHeight
-            , Css.displayFlex
-            , Css.alignItems Css.stretch
-            , Css.width <| Css.pct 100
-            , Css.zIndex <| Css.int 1
-            , Css.backgroundColor <| Css.hex "2a2929"
+        [ style
+            [ ( "height", toString headerHeight ++ "px" )
+            , ( "position", "fixed" )
+            , ( "top", toString TopBar.Styles.pageHeaderHeight ++ "px" )
+            , ( "display", "flex" )
+            , ( "align-items", "stretch" )
+            , ( "width", "100%" )
+            , ( "z-index", "1" )
+            , ( "background-color", "#2a2929" )
             ]
         ]
         [ Html.h1
-            [ css
-                [ Css.fontWeight <| Css.int 700
-                , Css.marginLeft <| Css.px 18
-                , Css.displayFlex
-                , Css.alignItems Css.center
-                , Css.justifyContent Css.center
+            [ style
+                [ ( "font-weight", "700" )
+                , ( "margin-left", "18px" )
+                , ( "display", "flex" )
+                , ( "align-items", "center" )
+                , ( "justify-content", "center" )
                 ]
             ]
             [ Html.text model.resourceIdentifier.resourceName ]
         , Html.div
-            [ css
-                [ Css.displayFlex
-                , Css.alignItems Css.center
-                , Css.justifyContent Css.center
-                , Css.marginLeft (Css.px 24)
+            [ style
+                [ ( "display", "flex" )
+                , ( "align-items", "center" )
+                , ( "justify-content", "center" )
+                , ( "margin-left", "24px" )
                 ]
             ]
             [ lastCheckedView ]
@@ -811,12 +808,7 @@ body userState model =
             }
     in
     Html.div
-        [ css
-            [ Css.padding3
-                (Css.px <| headerHeight + 10)
-                (Css.px 10)
-                (Css.px 10)
-            ]
+        [ style [ ( "padding", toString (headerHeight + 10) ++ "px 10px 10px" ) ]
         , id "body"
         , style
             [ ( "padding-bottom"
@@ -993,12 +985,11 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
         statusIcon =
             case checkStatus of
                 Models.CurrentlyChecking ->
-                    Html.fromUnstyled <|
-                        Spinner.spinner "14px"
-                            [ Html.Attributes.style
-                                [ ( "margin", "7px" )
-                                ]
+                    Spinner.spinner "14px"
+                        [ Html.Attributes.style
+                            [ ( "margin", "7px" )
                             ]
+                        ]
 
                 _ ->
                     Html.div
@@ -1206,9 +1197,7 @@ commentBar userState ({ resourceIdentifier, pinnedVersion, hovered, pinCommentLo
                             , onClick <| SaveComment commentState.comment
                             ]
                             (if pinCommentLoading then
-                                [ Spinner.spinner "12px" []
-                                    |> Html.fromUnstyled
-                                ]
+                                [ Spinner.spinner "12px" [] ]
 
                              else
                                 [ Html.text "save" ]
@@ -1352,9 +1341,9 @@ viewVersionedResource { version, pinnedVersion } =
                 []
         )
         ([ Html.div
-            [ css
-                [ Css.displayFlex
-                , Css.margin2 (Css.px 5) Css.zero
+            [ style
+                [ ( "display", "flex" )
+                , ( "margin", "5px 0px" )
                 ]
             ]
             [ viewEnabledCheckbox
@@ -1397,19 +1386,19 @@ viewVersionBody :
     -> Html Msg
 viewVersionBody { inputTo, outputOf, metadata } =
     Html.div
-        [ css
-            [ Css.displayFlex
-            , Css.padding2 (Css.px 5) (Css.px 10)
+        [ style
+            [ ( "display", "flex" )
+            , ( "padding", "5px 10px" )
             ]
         ]
         [ Html.div [ class "vri" ] <|
             List.concat
-                [ [ Html.div [ css [ Css.lineHeight <| Css.px 25 ] ] [ Html.text "inputs to" ] ]
+                [ [ Html.div [ style [ ( "line-height", "25px" ) ] ] [ Html.text "inputs to" ] ]
                 , viewBuilds <| listToMap inputTo
                 ]
         , Html.div [ class "vri" ] <|
             List.concat
-                [ [ Html.div [ css [ Css.lineHeight <| Css.px 25 ] ] [ Html.text "outputs of" ] ]
+                [ [ Html.div [ style [ ( "line-height", "25px" ) ] ] [ Html.text "outputs of" ] ]
                 , viewBuilds <| listToMap outputOf
                 ]
         , Html.div [ class "vri metadata-container" ]
@@ -1440,9 +1429,7 @@ viewEnabledCheckbox ({ enabled, id, pinState } as params) =
                     [ onClick <| ToggleVersion Models.Enable id ]
     in
     Html.div
-        ([ Html.Styled.Attributes.attribute
-            "aria-label"
-            "Toggle Resource Version Enabled"
+        ([ Html.Attributes.attribute "aria-label" "Toggle Resource Version Enabled"
          , style <| Resource.Styles.enabledCheckbox params
          ]
             ++ clickHandler
@@ -1452,11 +1439,7 @@ viewEnabledCheckbox ({ enabled, id, pinState } as params) =
                 []
 
             Models.Changing ->
-                [ Html.fromUnstyled <|
-                    Spinner.spinner
-                        "12.5px"
-                        [ Html.Attributes.style [ ( "margin", "6.25px" ) ] ]
-                ]
+                [ Spinner.spinner "12.5px" [ Html.Attributes.style [ ( "margin", "6.25px" ) ] ] ]
 
             Models.Disabled ->
                 []
@@ -1491,9 +1474,7 @@ viewPinButton { versionID, pinState } =
                     []
     in
     Html.div
-        ([ Html.Styled.Attributes.attribute
-            "aria-label"
-            "Pin Resource Version"
+        ([ Html.Attributes.attribute "aria-label" "Pin Resource Version"
          , style <| Resource.Styles.pinButton pinState
          ]
             ++ eventHandlers
@@ -1518,11 +1499,7 @@ viewPinButton { versionID, pinState } =
                     []
 
             InTransition ->
-                [ Html.fromUnstyled <|
-                    Spinner.spinner
-                        "12.5px"
-                        [ Html.Attributes.style [ ( "margin", "6.25px" ) ] ]
-                ]
+                [ Spinner.spinner "12.5px" [ Html.Attributes.style [ ( "margin", "6.25px" ) ] ] ]
 
             _ ->
                 []
@@ -1544,13 +1521,11 @@ viewVersionHeader { id, version, pinnedState } =
         [ viewVersion [] version ]
 
 
-viewVersion : List (UnstyledHtml.Attribute Msg) -> Concourse.Version -> Html Msg
+viewVersion : List (Html.Attribute Msg) -> Concourse.Version -> Html Msg
 viewVersion attrs version =
     version
         |> Dict.map (always Html.text)
-        |> Dict.map (always Html.toUnstyled)
         |> DictView.view attrs
-        |> Html.fromUnstyled
 
 
 viewMetadata : Concourse.Metadata -> Html Msg
@@ -1644,7 +1619,7 @@ viewBuildsByJob buildDict jobName =
                         in
                         Html.li [ class <| Concourse.BuildStatus.show build.status ]
                             [ Html.a
-                                [ Html.Styled.Attributes.fromUnstyled <| StrictEvents.onLeftClick <| NavTo link
+                                [ StrictEvents.onLeftClick <| NavTo link
                                 , href (Routes.toString link)
                                 ]
                                 [ Html.text <| "#" ++ build.name ]
