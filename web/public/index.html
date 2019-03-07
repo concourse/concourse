@@ -251,6 +251,10 @@
         var delta = arg[1];
         document.getElementById(id).scrollLeft -= delta;
       });
+
+      app.ports.scrollToBottom.subscribe(function() {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
     </script>
     <script>
       var clipboard = new ClipboardJS('#copy-token');

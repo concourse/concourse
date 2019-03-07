@@ -339,7 +339,7 @@ handleDelivery delivery ( model, effects ) =
                     ( model
                     , case getScrollBehavior model of
                         ScrollWindow ->
-                            effects ++ [ Effects.Scroll Effects.ToWindowBottom ]
+                            effects ++ [ Effects.Scroll Effects.ToBottom ]
 
                         NoScroll ->
                             effects
@@ -578,7 +578,7 @@ handleKeyPressed key ( model, effects ) =
                     ( newModel, [] )
 
             ( 'G', True ) ->
-                ( { newModel | autoScroll = True }, [ Scroll ToWindowBottom ] )
+                ( { newModel | autoScroll = True }, [ Scroll ToBottom ] )
 
             ( 'G', False ) ->
                 if model.previousKeyPress == Just 'G' then

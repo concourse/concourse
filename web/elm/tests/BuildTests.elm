@@ -379,7 +379,7 @@ all =
                         , data = STModels.StartTask { id = "stepid", source = "" }
                         }
                     |> Tuple.second
-                    |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.Scroll Effects.ToWindowBottom ) ]
+                    |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.Scroll Effects.ToBottom ) ]
         , test "when build is not running it does not scroll on build event" <|
             \_ ->
                 initFromApplication
@@ -427,7 +427,7 @@ all =
                         , data = STModels.StartTask { id = "stepid", source = "" }
                         }
                     |> Tuple.second
-                    |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.Scroll Effects.ToWindowBottom ) ]
+                    |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.Scroll Effects.ToBottom ) ]
         , test "pressing 'T' twice triggers two builds" <|
             \_ ->
                 initFromApplication
@@ -506,7 +506,7 @@ all =
                     |> Expect.equal
                         [ ( Effects.SubPage 1
                           , csrfToken
-                          , Effects.Scroll Effects.ToWindowBottom
+                          , Effects.Scroll Effects.ToBottom
                           )
                         ]
         , test "pressing and releasing shift, then 'g', does nothing" <|

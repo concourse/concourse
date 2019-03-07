@@ -77,6 +77,9 @@ port scrollIntoView : String -> Cmd msg
 port scrollElement : ( String, Float ) -> Cmd msg
 
 
+port scrollToBottom : () -> Cmd msg
+
+
 port checkIsVisible : String -> Cmd msg
 
 
@@ -144,7 +147,7 @@ type ScrollDirection
     = ToWindowTop
     | Down
     | Up
-    | ToWindowBottom
+    | ToBottom
     | Element String Float
     | ToBuild Int
 
@@ -528,8 +531,8 @@ scrollInDirection dir =
         Up ->
             Task.perform (always EmptyCallback) Scroll.scrollUp
 
-        ToWindowBottom ->
-            Task.perform (always EmptyCallback) Scroll.toWindowBottom
+        ToBottom ->
+            scrollToBottom ()
 
         Element id delta ->
             scrollElement ( id, delta )
