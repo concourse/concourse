@@ -42,15 +42,15 @@
         <h4><span class="download-icon"></span><code>fly</code></h4>
 
         <ul>
-          <li><a href="{{$downloadURL}}/fly-linux-amd64.tgz"
+          <li><a href="{{$downloadURL}}/fly-{{$version}}-linux-amd64.tgz"
                   onclick="gtag('event', 'click',{
                     event_category: 'linux-downloads',
                     event_label: '{{$version}}/fly_linux_amd64'});">Linux</a></li>
-          <li><a href="{{$downloadURL}}/fly-windows-amd64.zip"
+          <li><a href="{{$downloadURL}}/fly-{{$version}}-windows-amd64.zip"
                   onclick="gtag('event', 'click',{
                     event_category: 'windows-downloads',
                     event_label: '{{$version}}/fly_windows_amd64'});">Windows</a></li>
-          <li><a href="{{$downloadURL}}/fly-darwin-amd64.tgz"
+          <li><a href="{{$downloadURL}}/fly-{{$version}}-darwin-amd64.tgz"
                   onclick="gtag('event', 'click',{
                     event_category: 'darwin-downloads',
                     event_label: '{{$version}}/fly_darwin_amd64'});">OS X</a></li>
