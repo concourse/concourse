@@ -614,7 +614,7 @@ h2, h3 {
   grid-template-areas:
     "header header"
     "notes downloads";
-  grid-gap: 0 30px;
+  grid-gap: 1em 20px;
 }
 
 .release .release-header {
@@ -741,10 +741,6 @@ h2, h3 {
   border-top: 0;
   margin-top: 0;
   padding-top: 25px;
-}
-
-.release-notes > p:first-child {
-  margin-top: 1em;
 }
 
 .release-notes img {
@@ -1057,6 +1053,64 @@ label.quickstart-label::before {
   }
 }
 
+@media (max-width: 1600px) {
+  .release {
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      "header downloads"
+      "notes notes";
+    grid-gap: 20px 0;
+  }
+
+  .release-header {
+    flex-direction: column;
+  }
+
+  .release-header .release-date {
+    bottom: 0;
+  }
+
+  .release-downloads {
+    padding: 0;
+    border: 0;
+    align-content: center;
+  }
+
+  .release-downloads ul {
+    margin: 0;
+    display: flex;
+    flex-direction: row;
+  }
+
+  .release-downloads li {
+    margin: 0;
+  }
+
+  .release-downloads li {
+    padding-right: 14px;
+  }
+
+  .release-downloads li:last-child {
+    padding-right: 0;
+  }
+
+  .release-downloads h3 {
+    display: none;
+  }
+
+  .download-item {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .download-item h4 {
+    width: 116px;
+    padding: 3px 0;
+  }
+}
+
 @media (max-width: 1200px) {
   body {
     grid-template-columns: 5fr 2fr;
@@ -1096,35 +1150,18 @@ label.quickstart-label::before {
   .page-aside {
     display: none;
   }
+}
 
+@media (max-width: 900px) {
   .release {
     grid-template-columns: auto;
     grid-template-areas:
       "header"
       "downloads"
       "notes";
-    grid-gap: 30px 0;
   }
 
-  .release-downloads {
-    padding: 0;
-    border: 0;
-  }
-
-  .release-downloads ul {
-    margin-bottom: 0;
-  }
-
-  .release-downloads h3 {
-    display: none;
-  }
-
-  .download-items {
-    display: flex;
-    flex-direction: row;
-  }
-
-  .download-item h4 {
-    padding-right: 30px;
+  .download-item {
+    justify-content: flex-start;
   }
 }

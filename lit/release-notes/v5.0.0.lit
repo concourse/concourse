@@ -548,11 +548,9 @@ delivering y'all a better and better CI system - hopefully, more continuously.
 }
 
 \note{fix}{
-  When a resource's metadata is
-  suuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuper
-  wiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiide, it will remain cordoned off
-  to the side rather than uncomfortably squishing the resource's \code{get}
-  output. Thanks for the fix, \ghuser{stigtermichiel}!
+  When a resource's metadata is super wide, it will remain cordoned off to the
+  side rather than uncomfortably squishing the resource's \code{get} output.
+  Thanks for the fix, \ghuser{stigtermichiel}!
 }
 
 \note{fix}{
