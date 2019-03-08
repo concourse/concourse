@@ -1,9 +1,11 @@
 module FlySuccess.Text exposing
     ( Paragraph
     , button
-    , firstParagraph
+    , firstParagraphFailure
+    , firstParagraphSuccess
     , pending
-    , secondParagraph
+    , secondParagraphFailure
+    , secondParagraphSuccess
     , title
     )
 
@@ -11,7 +13,7 @@ import FlySuccess.Models as Models
     exposing
         ( ButtonState
         , TokenTransfer
-        , TransferResult
+        , TransferFailure(..)
         )
 
 
@@ -33,29 +35,32 @@ type alias Paragraph =
     List Line
 
 
-firstParagraph : Bool -> Paragraph
-firstParagraph success =
-    if success then
-        [ "your token has been transferred to fly." ]
-
-    else
-        [ "however, your token could not be"
-        , "sent to fly."
-        ]
+firstParagraphSuccess : Paragraph
+firstParagraphSuccess =
+    [ "your token has been transferred to fly." ]
 
 
-secondParagraph : TransferResult -> Paragraph
-secondParagraph result =
-    case result of
-        Ok True ->
-            [ "you may now close this window." ]
+secondParagraphSuccess : Paragraph
+secondParagraphSuccess =
+    [ "you may now close this window." ]
 
-        Ok False ->
+
+firstParagraphFailure : Paragraph
+firstParagraphFailure =
+    [ "however, your token could not be"
+    , "sent to fly."
+    ]
+
+
+secondParagraphFailure : TransferFailure -> Paragraph
+secondParagraphFailure error =
+    case error of
+        NetworkTrouble _ ->
             [ "after copying, return to fly and paste"
             , "your token into the prompt."
             ]
 
-        Err () ->
+        NoFlyPort ->
             [ "could not find a valid fly port to send to."
             , "maybe your URL is broken?"
             ]

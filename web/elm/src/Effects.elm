@@ -394,7 +394,7 @@ sendTokenToFly authToken flyPort =
         , timeout = Nothing
         , withCredentials = False
         }
-        |> Http.send (\r -> TokenSentToFly (r == Ok ()))
+        |> Http.send TokenSentToFly
 
 
 fetchData : Cmd Callback
