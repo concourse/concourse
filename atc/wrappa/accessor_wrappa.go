@@ -4,12 +4,10 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/audit"
 	"github.com/tedsuo/rata"
-	"code.cloudfoundry.org/lager"
 )
 
 func NewAccessorWrappa(accessorFactory accessor.AccessFactory, aud audit.Audit) *AccessorWrappa {
 	return &AccessorWrappa{accessorFactory, aud }
-
 }
 
 type AccessorWrappa struct {

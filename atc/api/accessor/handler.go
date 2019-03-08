@@ -4,9 +4,11 @@ import (
 	"context"
 	"net/http"
 	"reflect"
-
 	"github.com/concourse/concourse/atc/audit"
 
+
+	"github.com/concourse/concourse/atc/audit"
+>>>>>>> creation of audit package
 )
 
 func NewHandler(
