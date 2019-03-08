@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/atc/audit/auditfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -57,6 +58,7 @@ var _ = Describe("CsrfValidationHandler", func() {
 			auth.UnauthorizedRejector{},
 		), fakeAccessor,
 			"some-action",
+			new(auditfakes.FakeAudit),
 		)
 
 		server = httptest.NewServer(csrfRequiredWrapHandler)

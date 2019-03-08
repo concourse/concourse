@@ -6,7 +6,7 @@ import (
 
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
-	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/audit/auditfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -44,7 +44,7 @@ var _ = Describe("Handler", func() {
 	Describe("Accessor Handler", func() {
 		BeforeEach(func() {
 
-			accessorHandler = accessor.NewHandler(dummyHandler, accessorFactory, "some-action", lager.NewLogger("accessor_handler_test"))
+			accessorHandler = accessor.NewHandler(dummyHandler, accessorFactory, "some-action", new(auditfakes.FakeAudit))
 		})
 
 		Context("when access factory return valid access object", func() {

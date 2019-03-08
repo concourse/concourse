@@ -3,21 +3,22 @@ package accessor
 import (
 	"context"
 	"net/http"
+	"reflect"
 
-	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/audit"
 )
 
 func NewHandler(
 	handler http.Handler,
 	accessFactory AccessFactory,
 	action string,
-	logger lager.Logger,
+	aud audit.Audit,
 ) http.Handler {
 	return accessorHandler{
 		handler:       handler,
 		accessFactory: accessFactory,
 		action:        action,
-		logger:        logger,
+		audit:         aud,
 	}
 }
 
@@ -25,17 +26,18 @@ type accessorHandler struct {
 	handler       http.Handler
 	accessFactory AccessFactory
 	action        string
-	logger        lager.Logger
+	audit         audit.Audit
 }
 
 func (h accessorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	acc := h.accessFactory.Create(r, h.action)
 	ctx := context.WithValue(r.Context(), "accessor", acc)
 
-	if acc, ok := acc.(Access); ok {
-		h.logger.Debug("audit", lager.Data{"action": r.URL.Path, "method": r.Method, "user": acc.UserName(), "parameters": r.URL.Query()})
+	if reflect.TypeOf(acc) == reflect.TypeOf(&access{}) && acc != nil {
+		h.audit.LogAction(h.action, acc.UserName(), r)
 	}
-	h.handler.ServeHTTP(w, r.WithContext(ctx))
+
+		h.handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
 func GetAccessor(r *http.Request) Access {
