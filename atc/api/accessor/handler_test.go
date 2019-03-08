@@ -1,7 +1,6 @@
 package accessor_test
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/concourse/concourse/atc/api/accessor"
