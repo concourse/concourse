@@ -9,11 +9,8 @@ module Dashboard.Dashboard exposing
 
 import Callback exposing (Callback(..))
 import Char
-import Concourse
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
-import Concourse.User
-import Dashboard.APIData as APIData
 import Dashboard.Details as Details
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
@@ -37,7 +34,6 @@ import Html.Styled.Attributes
         , style
         )
 import Html.Styled.Events exposing (onMouseEnter, onMouseLeave)
-import Http
 import Monocle.Common exposing ((<|>), (=>))
 import Monocle.Lens
 import Monocle.Optional
@@ -48,7 +44,6 @@ import Routes
 import ScreenSize
 import Simple.Fuzzy exposing (filter, match, root)
 import Subscription exposing (Subscription(..))
-import Task
 import Time exposing (Time)
 import TopBar.Model
 import TopBar.Msgs
@@ -646,13 +641,6 @@ handleKeyPressed key model =
 
         _ ->
             ( Footer.showFooter model, [] )
-
-
-remoteUser : APIData.APIData -> Task.Task Http.Error ( APIData.APIData, Maybe Concourse.User )
-remoteUser d =
-    Concourse.User.fetchUser
-        |> Task.map ((,) d << Just)
-        |> Task.onError (always <| Task.succeed <| ( d, Nothing ))
 
 
 filterTerms : String -> List String

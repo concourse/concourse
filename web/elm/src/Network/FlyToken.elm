@@ -1,8 +1,6 @@
-module Concourse.FlyToken exposing (sendTokenToFly)
+module Network.FlyToken exposing (sendTokenToFly)
 
-import Concourse
 import Http
-import HttpBuilder
 import Routes
 import Task
 

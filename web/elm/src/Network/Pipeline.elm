@@ -1,4 +1,4 @@
-module Concourse.Pipeline exposing (fetchPipeline, fetchPipelines, order, togglePause)
+module Network.Pipeline exposing (fetchPipeline, fetchPipelines, order, togglePause)
 
 import Concourse
 import Concourse.PipelineStatus

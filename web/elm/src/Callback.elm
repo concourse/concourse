@@ -2,7 +2,6 @@ module Callback exposing (Callback(..))
 
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
-import Dashboard.APIData
 import Http
 import Json.Encode
 import Resource.Models exposing (VersionId, VersionToggleAction)
@@ -37,7 +36,7 @@ type Callback
     | Checked (Fetched ())
     | CommentSet (Fetched ())
     | TokenSentToFly (Fetched ())
-    | APIDataFetched (Fetched ( Time.Time, Dashboard.APIData.APIData ))
+    | APIDataFetched (Fetched ( Time.Time, Concourse.APIData ))
     | LoggedOut (Fetched ())
     | ScreenResized Window.Size
     | BuildJobDetailsFetched (Fetched Concourse.Job)

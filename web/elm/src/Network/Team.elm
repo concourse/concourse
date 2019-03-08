@@ -1,4 +1,4 @@
-module Concourse.Team exposing (fetchTeams)
+module Network.Team exposing (fetchTeams)
 
 import Concourse
 import Http

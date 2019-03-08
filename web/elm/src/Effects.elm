@@ -9,24 +9,24 @@ port module Effects exposing
 
 import Callback exposing (Callback(..))
 import Concourse
-import Concourse.Build
-import Concourse.BuildPlan
-import Concourse.BuildPrep
-import Concourse.BuildResources
-import Concourse.FlyToken
-import Concourse.Info
-import Concourse.Job
 import Concourse.Pagination exposing (Page, Paginated)
-import Concourse.Pipeline
-import Concourse.Resource
-import Concourse.User
-import Dashboard.APIData
 import Dashboard.Group
 import Dashboard.Models
 import Dom
 import Favicon
 import Json.Encode
 import Navigation
+import Network.Build
+import Network.BuildPlan
+import Network.BuildPrep
+import Network.BuildResources
+import Network.DashboardAPIData
+import Network.FlyToken
+import Network.Info
+import Network.Job
+import Network.Pipeline
+import Network.Resource
+import Network.User
 import Process
 import Resource.Models exposing (VersionId, VersionToggleAction(..))
 import Scroll
@@ -132,56 +132,56 @@ runEffect : Effect -> Cmd Callback
 runEffect effect =
     case effect of
         FetchJob id ->
-            Concourse.Job.fetchJob id
+            Network.Job.fetchJob id
                 |> Task.attempt JobFetched
 
         FetchJobs id ->
-            Concourse.Job.fetchJobsRaw id
+            Network.Job.fetchJobsRaw id
                 |> Task.attempt JobsFetched
 
         FetchJobBuilds id page ->
-            Concourse.Build.fetchJobBuilds id page
+            Network.Build.fetchJobBuilds id page
                 |> Task.attempt JobBuildsFetched
 
         FetchResource id ->
-            Concourse.Resource.fetchResource id
+            Network.Resource.fetchResource id
                 |> Task.attempt ResourceFetched
 
         FetchVersionedResources id paging ->
-            Concourse.Resource.fetchVersionedResources id paging
+            Network.Resource.fetchVersionedResources id paging
                 |> Task.map ((,) paging)
                 |> Task.attempt VersionedResourcesFetched
 
         FetchResources id ->
-            Concourse.Resource.fetchResourcesRaw id
+            Network.Resource.fetchResourcesRaw id
                 |> Task.attempt ResourcesFetched
 
         FetchBuildResources id ->
-            Concourse.BuildResources.fetch id
+            Network.BuildResources.fetch id
                 |> Task.map ((,) id)
                 |> Task.attempt BuildResourcesFetched
 
         FetchPipeline id ->
-            Concourse.Pipeline.fetchPipeline id
+            Network.Pipeline.fetchPipeline id
                 |> Task.attempt PipelineFetched
 
         FetchVersion ->
-            Concourse.Info.fetch
+            Network.Info.fetch
                 |> Task.map .version
                 |> Task.attempt VersionFetched
 
         FetchInputTo id ->
-            Concourse.Resource.fetchInputTo id
+            Network.Resource.fetchInputTo id
                 |> Task.map ((,) id)
                 |> Task.attempt InputToFetched
 
         FetchOutputOf id ->
-            Concourse.Resource.fetchOutputOf id
+            Network.Resource.fetchOutputOf id
                 |> Task.map ((,) id)
                 |> Task.attempt OutputOfFetched
 
         FetchData ->
-            Dashboard.APIData.remoteData
+            Network.DashboardAPIData.remoteData
                 |> Task.map2 (,) Time.now
                 |> Task.attempt APIDataFetched
 
@@ -189,15 +189,15 @@ runEffect effect =
             Task.perform GotCurrentTime Time.now
 
         DoTriggerBuild id csrf ->
-            Concourse.Job.triggerBuild id csrf
+            Network.Job.triggerBuild id csrf
                 |> Task.attempt BuildTriggered
 
         PauseJob id csrf ->
-            Concourse.Job.pause id csrf
+            Network.Job.pause id csrf
                 |> Task.attempt PausedToggled
 
         UnpauseJob id csrf ->
-            Concourse.Job.unpause id csrf
+            Network.Job.unpause id csrf
                 |> Task.attempt PausedToggled
 
         RedirectToLogin ->
@@ -219,31 +219,31 @@ runEffect effect =
             setTitle newTitle
 
         DoPinVersion version csrfToken ->
-            Concourse.Resource.pinVersion version csrfToken
+            Network.Resource.pinVersion version csrfToken
                 |> Task.attempt VersionPinned
 
         DoUnpinVersion id csrfToken ->
-            Concourse.Resource.unpinVersion id csrfToken
+            Network.Resource.unpinVersion id csrfToken
                 |> Task.attempt VersionUnpinned
 
         DoToggleVersion action id csrfToken ->
-            Concourse.Resource.enableDisableVersionedResource (action == Enable) id csrfToken
+            Network.Resource.enableDisableVersionedResource (action == Enable) id csrfToken
                 |> Task.attempt (VersionToggled action id)
 
         DoCheck rid csrfToken ->
-            Concourse.Resource.check rid csrfToken
+            Network.Resource.check rid csrfToken
                 |> Task.attempt Checked
 
         SetPinComment rid csrfToken comment ->
-            Concourse.Resource.setPinComment rid csrfToken comment
+            Network.Resource.setPinComment rid csrfToken comment
                 |> Task.attempt CommentSet
 
         SendTokenToFly authToken flyPort ->
-            Concourse.FlyToken.sendTokenToFly authToken flyPort
+            Network.FlyToken.sendTokenToFly authToken flyPort
                 |> Task.attempt TokenSentToFly
 
         SendTogglePipelineRequest { pipeline, csrfToken } ->
-            Concourse.Pipeline.togglePause pipeline.status pipeline.teamName pipeline.name csrfToken
+            Network.Pipeline.togglePause pipeline.status pipeline.teamName pipeline.name csrfToken
                 |> Task.attempt (always EmptyCallback)
 
         ShowTooltip ( teamName, pipelineName ) ->
@@ -253,11 +253,11 @@ runEffect effect =
             tooltipHd ( teamName, pipelineName )
 
         SendOrderPipelinesRequest teamName pipelines csrfToken ->
-            Concourse.Pipeline.order teamName (List.map .name pipelines) csrfToken
+            Network.Pipeline.order teamName (List.map .name pipelines) csrfToken
                 |> Task.attempt (always EmptyCallback)
 
         SendLogOutRequest ->
-            Task.attempt LoggedOut Concourse.User.logOut
+            Task.attempt LoggedOut Network.User.logOut
 
         GetScreenSize ->
             Task.perform ScreenResized Window.size
@@ -267,40 +267,40 @@ runEffect effect =
 
         FetchBuild delay browsingIndex buildId ->
             Process.sleep delay
-                |> Task.andThen (always <| Concourse.Build.fetch buildId)
+                |> Task.andThen (always <| Network.Build.fetch buildId)
                 |> Task.map ((,) browsingIndex)
                 |> Task.attempt BuildFetched
 
         FetchJobBuild browsingIndex jbi ->
-            Concourse.Build.fetchJobBuild jbi
+            Network.Build.fetchJobBuild jbi
                 |> Task.map ((,) browsingIndex)
                 |> Task.attempt BuildFetched
 
         FetchBuildJobDetails buildJob ->
-            Concourse.Job.fetchJob buildJob
+            Network.Job.fetchJob buildJob
                 |> Task.attempt BuildJobDetailsFetched
 
         FetchBuildHistory job page ->
-            Concourse.Build.fetchJobBuilds job page
+            Network.Build.fetchJobBuilds job page
                 |> Task.attempt BuildHistoryFetched
 
         FetchBuildPrep delay browsingIndex buildId ->
             Process.sleep delay
-                |> Task.andThen (always <| Concourse.BuildPrep.fetch buildId)
+                |> Task.andThen (always <| Network.BuildPrep.fetch buildId)
                 |> Task.map ((,) browsingIndex)
                 |> Task.attempt BuildPrepFetched
 
         FetchBuildPlanAndResources buildId ->
-            Task.map2 (,) (Concourse.BuildPlan.fetch buildId) (Concourse.BuildResources.fetch buildId)
+            Task.map2 (,) (Network.BuildPlan.fetch buildId) (Network.BuildResources.fetch buildId)
                 |> Task.attempt (PlanAndResourcesFetched buildId)
 
         FetchBuildPlan buildId ->
-            Concourse.BuildPlan.fetch buildId
-                |> Task.map (\p -> ( p, Concourse.BuildResources.empty ))
+            Network.BuildPlan.fetch buildId
+                |> Task.map (\p -> ( p, Network.BuildResources.empty ))
                 |> Task.attempt (PlanAndResourcesFetched buildId)
 
         FetchUser ->
-            Concourse.User.fetchUser
+            Network.User.fetchUser
                 |> Task.attempt UserFetched
 
         SetFavIcon status ->
@@ -308,7 +308,7 @@ runEffect effect =
                 |> Task.perform (always EmptyCallback)
 
         DoAbortBuild buildId csrfToken ->
-            Concourse.Build.abort buildId csrfToken
+            Network.Build.abort buildId csrfToken
                 |> Task.attempt BuildAborted
 
         Scroll dir ->

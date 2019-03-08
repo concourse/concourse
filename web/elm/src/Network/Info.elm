@@ -1,4 +1,4 @@
-module Concourse.Info exposing (fetch)
+module Network.Info exposing (fetch)
 
 import Concourse
 import Http
