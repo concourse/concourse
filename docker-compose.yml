@@ -30,6 +30,10 @@ services:
       CONCOURSE_ADD_LOCAL_USER: test:test,guest:guest
       CONCOURSE_MAIN_TEAM_LOCAL_USER: test
       CONCOURSE_LOG_LEVEL: debug
+      CONCOURSE_ENABLE_BUILD_AUDITING: 'true'
+      CONCOURSE_ENABLE_JOB_AUDITING: 'true'
+      CONCOURSE_ENABLE_PIPELINE_AUDITING: 'true'
+      CONCOURSE_ENABLE_TEAM_AUDITING: 'true'
 
   worker:
     build:

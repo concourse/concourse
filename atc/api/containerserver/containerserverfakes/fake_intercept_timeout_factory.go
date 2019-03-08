@@ -2,9 +2,9 @@
 package containerserverfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	containerserver "github.com/concourse/concourse/atc/api/containerserver"
+	"github.com/concourse/concourse/atc/api/containerserver"
 )
 
 type FakeInterceptTimeoutFactory struct {
