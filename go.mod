@@ -180,7 +180,6 @@ require (
 	github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac
 	github.com/vito/houdini v1.1.1
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
-<<<<<<< HEAD
 	golang.org/x/crypto v0.0.0-20190123085648-057139ce5d2b
 	golang.org/x/net v0.0.0-20190125091013-d26f9f9a57f3
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
@@ -188,7 +187,6 @@ require (
 	golang.org/x/sys v0.0.0-20190124100055-b90733256f2e
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
-=======
 	go.opencensus.io v0.19.1 // indirect
 	go4.org v0.0.0-20190218023631-ce4c26f7be8e // indirect
 	golang.org/x/build v0.0.0-20190301201919-f7b27185a0a4 // indirect
@@ -201,7 +199,6 @@ require (
 	golang.org/x/sys v0.0.0-20190304154630-e844e0132e93 // indirect
 	golang.org/x/tools v0.0.0-20190304215341-0f64db555a9c // indirect
 	google.golang.org/genproto v0.0.0-20190227213309-4f5b463f9597 // indirect
->>>>>>> creation of audit package
 	gopkg.in/cheggaaa/pb.v1 v1.0.27
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
 	gopkg.in/square/go-jose.v2 v2.3.0
