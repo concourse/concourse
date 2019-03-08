@@ -1,7 +1,6 @@
 package accessor
 
 import (
-	"fmt"
 	"github.com/concourse/concourse/atc"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/mitchellh/mapstructure"
