@@ -2,11 +2,11 @@
 package resourceserverfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	resourceserver "github.com/concourse/concourse/atc/api/resourceserver"
-	db "github.com/concourse/concourse/atc/db"
-	radar "github.com/concourse/concourse/atc/radar"
+	"github.com/concourse/concourse/atc/api/resourceserver"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/radar"
 )
 
 type FakeScannerFactory struct {
