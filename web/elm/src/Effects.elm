@@ -13,12 +13,11 @@ import Concourse.Build
 import Concourse.BuildPlan
 import Concourse.BuildPrep
 import Concourse.BuildResources
-import Concourse.BuildStatus
+import Concourse.FlyToken
 import Concourse.Info
 import Concourse.Job
 import Concourse.Pagination exposing (Page, Paginated)
 import Concourse.Pipeline
-import Concourse.PipelineStatus
 import Concourse.Resource
 import Concourse.User
 import Dashboard.APIData
@@ -26,12 +25,10 @@ import Dashboard.Group
 import Dashboard.Models
 import Dom
 import Favicon
-import Http
 import Json.Encode
 import Navigation
 import Process
 import Resource.Models exposing (VersionId, VersionToggleAction(..))
-import Routes
 import Scroll
 import Task
 import Time exposing (Time)
@@ -135,52 +132,73 @@ runEffect : Effect -> Cmd Callback
 runEffect effect =
     case effect of
         FetchJob id ->
-            fetchJob id
+            Concourse.Job.fetchJob id
+                |> Task.attempt JobFetched
 
         FetchJobs id ->
-            fetchJobs id
+            Concourse.Job.fetchJobsRaw id
+                |> Task.attempt JobsFetched
 
         FetchJobBuilds id page ->
-            fetchJobBuilds id page
+            Concourse.Build.fetchJobBuilds id page
+                |> Task.attempt JobBuildsFetched
 
         FetchResource id ->
-            fetchResource id
+            Concourse.Resource.fetchResource id
+                |> Task.attempt ResourceFetched
 
         FetchVersionedResources id paging ->
-            fetchVersionedResources id paging
+            Concourse.Resource.fetchVersionedResources id paging
+                |> Task.map ((,) paging)
+                |> Task.attempt VersionedResourcesFetched
 
         FetchResources id ->
-            fetchResources id
+            Concourse.Resource.fetchResourcesRaw id
+                |> Task.attempt ResourcesFetched
 
         FetchBuildResources id ->
-            fetchBuildResources id
+            Concourse.BuildResources.fetch id
+                |> Task.map ((,) id)
+                |> Task.attempt BuildResourcesFetched
 
         FetchPipeline id ->
-            fetchPipeline id
+            Concourse.Pipeline.fetchPipeline id
+                |> Task.attempt PipelineFetched
 
         FetchVersion ->
-            fetchVersion
+            Concourse.Info.fetch
+                |> Task.map .version
+                |> Task.attempt VersionFetched
 
         FetchInputTo id ->
-            fetchInputTo id
+            Concourse.Resource.fetchInputTo id
+                |> Task.map ((,) id)
+                |> Task.attempt InputToFetched
 
         FetchOutputOf id ->
-            fetchOutputOf id
+            Concourse.Resource.fetchOutputOf id
+                |> Task.map ((,) id)
+                |> Task.attempt OutputOfFetched
 
         FetchData ->
-            fetchData
+            Dashboard.APIData.remoteData
+                |> Task.map2 (,) Time.now
+                |> Task.attempt APIDataFetched
 
         GetCurrentTime ->
             Task.perform GotCurrentTime Time.now
 
         DoTriggerBuild id csrf ->
-            triggerBuild id csrf
+            Concourse.Job.triggerBuild id csrf
+                |> Task.attempt BuildTriggered
 
         PauseJob id csrf ->
-            pauseJob id csrf
+            Concourse.Job.pause id csrf
+                |> Task.attempt PausedToggled
 
         UnpauseJob id csrf ->
-            unpauseJob id csrf
+            Concourse.Job.unpause id csrf
+                |> Task.attempt PausedToggled
 
         RedirectToLogin ->
             requestLoginRedirect ""
@@ -201,33 +219,32 @@ runEffect effect =
             setTitle newTitle
 
         DoPinVersion version csrfToken ->
-            Task.attempt VersionPinned <|
-                Concourse.Resource.pinVersion version csrfToken
+            Concourse.Resource.pinVersion version csrfToken
+                |> Task.attempt VersionPinned
 
         DoUnpinVersion id csrfToken ->
-            Task.attempt VersionUnpinned <|
-                Concourse.Resource.unpinVersion id csrfToken
+            Concourse.Resource.unpinVersion id csrfToken
+                |> Task.attempt VersionUnpinned
 
         DoToggleVersion action id csrfToken ->
-            Concourse.Resource.enableDisableVersionedResource
-                (action == Enable)
-                id
-                csrfToken
+            Concourse.Resource.enableDisableVersionedResource (action == Enable) id csrfToken
                 |> Task.attempt (VersionToggled action id)
 
         DoCheck rid csrfToken ->
-            Task.attempt Checked <|
-                Concourse.Resource.check rid csrfToken
+            Concourse.Resource.check rid csrfToken
+                |> Task.attempt Checked
 
         SetPinComment rid csrfToken comment ->
-            Task.attempt CommentSet <|
-                Concourse.Resource.setPinComment rid csrfToken comment
+            Concourse.Resource.setPinComment rid csrfToken comment
+                |> Task.attempt CommentSet
 
         SendTokenToFly authToken flyPort ->
-            sendTokenToFly authToken flyPort
+            Concourse.FlyToken.sendTokenToFly authToken flyPort
+                |> Task.attempt TokenSentToFly
 
         SendTogglePipelineRequest { pipeline, csrfToken } ->
-            togglePipelinePaused { pipeline = pipeline, csrfToken = csrfToken }
+            Concourse.Pipeline.togglePause pipeline.status pipeline.teamName pipeline.name csrfToken
+                |> Task.attempt (always EmptyCallback)
 
         ShowTooltip ( teamName, pipelineName ) ->
             tooltip ( teamName, pipelineName )
@@ -236,7 +253,8 @@ runEffect effect =
             tooltipHd ( teamName, pipelineName )
 
         SendOrderPipelinesRequest teamName pipelines csrfToken ->
-            orderPipelines teamName pipelines csrfToken
+            Concourse.Pipeline.order teamName (List.map .name pipelines) csrfToken
+                |> Task.attempt (always EmptyCallback)
 
         SendLogOutRequest ->
             Task.attempt LoggedOut Concourse.User.logOut
@@ -248,34 +266,50 @@ runEffect effect =
             pinTeamNames stickyHeaderConfig
 
         FetchBuild delay browsingIndex buildId ->
-            fetchBuild delay browsingIndex buildId
+            Process.sleep delay
+                |> Task.andThen (always <| Concourse.Build.fetch buildId)
+                |> Task.map ((,) browsingIndex)
+                |> Task.attempt BuildFetched
 
         FetchJobBuild browsingIndex jbi ->
-            fetchJobBuild browsingIndex jbi
+            Concourse.Build.fetchJobBuild jbi
+                |> Task.map ((,) browsingIndex)
+                |> Task.attempt BuildFetched
 
         FetchBuildJobDetails buildJob ->
-            fetchBuildJobDetails buildJob
+            Concourse.Job.fetchJob buildJob
+                |> Task.attempt BuildJobDetailsFetched
 
         FetchBuildHistory job page ->
-            fetchBuildHistory job page
+            Concourse.Build.fetchJobBuilds job page
+                |> Task.attempt BuildHistoryFetched
 
         FetchBuildPrep delay browsingIndex buildId ->
-            fetchBuildPrep delay browsingIndex buildId
+            Process.sleep delay
+                |> Task.andThen (always <| Concourse.BuildPrep.fetch buildId)
+                |> Task.map ((,) browsingIndex)
+                |> Task.attempt BuildPrepFetched
 
         FetchBuildPlanAndResources buildId ->
-            fetchBuildPlanAndResources buildId
+            Task.map2 (,) (Concourse.BuildPlan.fetch buildId) (Concourse.BuildResources.fetch buildId)
+                |> Task.attempt (PlanAndResourcesFetched buildId)
 
         FetchBuildPlan buildId ->
-            fetchBuildPlan buildId
+            Concourse.BuildPlan.fetch buildId
+                |> Task.map (\p -> ( p, Concourse.BuildResources.empty ))
+                |> Task.attempt (PlanAndResourcesFetched buildId)
 
         FetchUser ->
-            fetchUser
+            Concourse.User.fetchUser
+                |> Task.attempt UserFetched
 
         SetFavIcon status ->
-            setFavicon status
+            Favicon.set status
+                |> Task.perform (always EmptyCallback)
 
         DoAbortBuild buildId csrfToken ->
-            abortBuild buildId csrfToken
+            Concourse.Build.abort buildId csrfToken
+                |> Task.attempt BuildAborted
 
         Scroll dir ->
             Task.perform (always EmptyCallback) (scrollInDirection dir)
@@ -289,204 +323,6 @@ runEffect effect =
         ForceFocus dom ->
             Dom.focus dom
                 |> Task.attempt (always EmptyCallback)
-
-
-fetchJobBuilds : Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Callback
-fetchJobBuilds jobIdentifier page =
-    Task.attempt JobBuildsFetched <|
-        Concourse.Build.fetchJobBuilds jobIdentifier page
-
-
-fetchJob : Concourse.JobIdentifier -> Cmd Callback
-fetchJob jobIdentifier =
-    Task.attempt JobFetched <|
-        Concourse.Job.fetchJob jobIdentifier
-
-
-fetchResource : Concourse.ResourceIdentifier -> Cmd Callback
-fetchResource resourceIdentifier =
-    Task.attempt ResourceFetched <|
-        Concourse.Resource.fetchResource resourceIdentifier
-
-
-fetchVersionedResources : Concourse.ResourceIdentifier -> Maybe Page -> Cmd Callback
-fetchVersionedResources resourceIdentifier page =
-    Concourse.Resource.fetchVersionedResources resourceIdentifier page
-        |> Task.map ((,) page)
-        |> Task.attempt VersionedResourcesFetched
-
-
-fetchBuildResources : Concourse.BuildId -> Cmd Callback
-fetchBuildResources buildIdentifier =
-    Concourse.BuildResources.fetch buildIdentifier
-        |> Task.map ((,) buildIdentifier)
-        |> Task.attempt BuildResourcesFetched
-
-
-fetchResources : Concourse.PipelineIdentifier -> Cmd Callback
-fetchResources pid =
-    Task.attempt ResourcesFetched <| Concourse.Resource.fetchResourcesRaw pid
-
-
-fetchJobs : Concourse.PipelineIdentifier -> Cmd Callback
-fetchJobs pid =
-    Task.attempt JobsFetched <| Concourse.Job.fetchJobsRaw pid
-
-
-fetchUser : Cmd Callback
-fetchUser =
-    Task.attempt UserFetched Concourse.User.fetchUser
-
-
-fetchVersion : Cmd Callback
-fetchVersion =
-    Concourse.Info.fetch
-        |> Task.map .version
-        |> Task.attempt VersionFetched
-
-
-fetchPipeline : Concourse.PipelineIdentifier -> Cmd Callback
-fetchPipeline pipelineIdentifier =
-    Task.attempt PipelineFetched <|
-        Concourse.Pipeline.fetchPipeline pipelineIdentifier
-
-
-fetchInputTo : VersionId -> Cmd Callback
-fetchInputTo versionId =
-    Concourse.Resource.fetchInputTo versionId
-        |> Task.map ((,) versionId)
-        |> Task.attempt InputToFetched
-
-
-fetchOutputOf : VersionId -> Cmd Callback
-fetchOutputOf versionId =
-    Concourse.Resource.fetchOutputOf versionId
-        |> Task.map ((,) versionId)
-        |> Task.attempt OutputOfFetched
-
-
-triggerBuild : Concourse.JobIdentifier -> Concourse.CSRFToken -> Cmd Callback
-triggerBuild job csrfToken =
-    Task.attempt BuildTriggered <|
-        Concourse.Job.triggerBuild job csrfToken
-
-
-pauseJob : Concourse.JobIdentifier -> Concourse.CSRFToken -> Cmd Callback
-pauseJob jobIdentifier csrfToken =
-    Task.attempt PausedToggled <|
-        Concourse.Job.pause jobIdentifier csrfToken
-
-
-unpauseJob : Concourse.JobIdentifier -> Concourse.CSRFToken -> Cmd Callback
-unpauseJob jobIdentifier csrfToken =
-    Task.attempt PausedToggled <|
-        Concourse.Job.unpause jobIdentifier csrfToken
-
-
-sendTokenToFly : String -> Int -> Cmd Callback
-sendTokenToFly authToken flyPort =
-    Http.request
-        { method = "GET"
-        , headers = []
-        , url = Routes.tokenToFlyRoute authToken flyPort
-        , body = Http.emptyBody
-        , expect = Http.expectStringResponse (\_ -> Ok ())
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send TokenSentToFly
-
-
-fetchData : Cmd Callback
-fetchData =
-    Dashboard.APIData.remoteData
-        |> Task.map2 (,) Time.now
-        |> Task.attempt APIDataFetched
-
-
-togglePipelinePaused : { pipeline : Dashboard.Models.Pipeline, csrfToken : Concourse.CSRFToken } -> Cmd Callback
-togglePipelinePaused { pipeline, csrfToken } =
-    Task.attempt (always EmptyCallback) <|
-        if pipeline.status == Concourse.PipelineStatus.PipelineStatusPaused then
-            Concourse.Pipeline.unpause pipeline.teamName pipeline.name csrfToken
-
-        else
-            Concourse.Pipeline.pause pipeline.teamName pipeline.name csrfToken
-
-
-orderPipelines : String -> List Dashboard.Models.Pipeline -> Concourse.CSRFToken -> Cmd Callback
-orderPipelines teamName pipelines csrfToken =
-    Task.attempt (always EmptyCallback) <|
-        Concourse.Pipeline.order teamName (List.map .name pipelines) csrfToken
-
-
-fetchBuildJobDetails : Concourse.JobIdentifier -> Cmd Callback
-fetchBuildJobDetails buildJob =
-    Task.attempt BuildJobDetailsFetched <|
-        Concourse.Job.fetchJob buildJob
-
-
-fetchBuild : Time -> Int -> Int -> Cmd Callback
-fetchBuild delay browsingIndex buildId =
-    Process.sleep delay
-        |> Task.andThen (always <| Concourse.Build.fetch buildId)
-        |> Task.map ((,) browsingIndex)
-        |> Task.attempt BuildFetched
-
-
-fetchJobBuild : Int -> Concourse.JobBuildIdentifier -> Cmd Callback
-fetchJobBuild browsingIndex jbi =
-    Concourse.Build.fetchJobBuild jbi
-        |> Task.map ((,) browsingIndex)
-        |> Task.attempt BuildFetched
-
-
-fetchBuildHistory : Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Callback
-fetchBuildHistory job page =
-    Task.attempt BuildHistoryFetched <|
-        Concourse.Build.fetchJobBuilds job page
-
-
-fetchBuildPrep : Time -> Int -> Int -> Cmd Callback
-fetchBuildPrep delay browsingIndex buildId =
-    Process.sleep delay
-        |> Task.andThen (always <| Concourse.BuildPrep.fetch buildId)
-        |> Task.map ((,) browsingIndex)
-        |> Task.attempt BuildPrepFetched
-
-
-fetchBuildPlanAndResources : Concourse.BuildId -> Cmd Callback
-fetchBuildPlanAndResources buildId =
-    Task.map2 (,) (Concourse.BuildPlan.fetch buildId) (Concourse.BuildResources.fetch buildId)
-        |> Task.attempt (PlanAndResourcesFetched buildId)
-
-
-fetchBuildPlan : Concourse.BuildId -> Cmd Callback
-fetchBuildPlan buildId =
-    Concourse.BuildPlan.fetch buildId
-        |> Task.map (\p -> ( p, Concourse.BuildResources.empty ))
-        |> Task.attempt (PlanAndResourcesFetched buildId)
-
-
-setFavicon : Maybe Concourse.BuildStatus -> Cmd Callback
-setFavicon status =
-    let
-        iconName =
-            case status of
-                Just status ->
-                    "/public/images/favicon-" ++ Concourse.BuildStatus.show status ++ ".png"
-
-                Nothing ->
-                    "/public/images/favicon.png"
-    in
-    Favicon.set iconName
-        |> Task.perform (always EmptyCallback)
-
-
-abortBuild : Int -> Concourse.CSRFToken -> Cmd Callback
-abortBuild buildId csrfToken =
-    Concourse.Build.abort buildId csrfToken
-        |> Task.attempt BuildAborted
 
 
 scrollInDirection : ScrollDirection -> Task.Task x ()
