@@ -1,6 +1,6 @@
 <div class="section" id="section_{{.PrimaryTag.Name}}">
   {{if .Parent}}
-  <h{{headerDepth .}} class="section-header"><a name="{{.PrimaryTag.Name}}"></a>
+  <h{{headerDepth .}} class="section-header"><a class="anchor" name="{{.PrimaryTag.Name}}" href="#{{.PrimaryTag.Name}}"></a>
     {{- if eq .PageDepth 0 -}}
       <span class="section-number">{{.Number}} </span>
     {{- end -}}

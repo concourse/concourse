@@ -717,7 +717,7 @@ h2, h3 {
   position: relative;
 }
 
-.release-note .anchor {
+.anchor {
   display: inline-block;
   position: absolute;
   box-sizing: content-box;
@@ -733,7 +733,24 @@ h2, h3 {
   opacity: 0;
 }
 
-.release-note:hover .anchor {
+.section-header {
+  position: relative;
+}
+
+h1 .anchor {
+  top: 23px;
+}
+
+h2 .anchor {
+  top: 5px;
+}
+
+h3 .anchor {
+  top: 3px;
+}
+
+.release-note:hover .anchor,
+.section-header:hover .anchor {
   opacity: 1;
 }
 
