@@ -1101,18 +1101,20 @@ label.quickstart-label::before {
 
   .release-downloads li {
     margin: 0;
+    border-left: 0;
+    border-bottom: 1px solid #eee;
   }
 
-  .release-downloads li {
+  .release-downloads li a {
     padding-right: 14px;
-  }
-
-  .release-downloads li:last-child {
-    padding-right: 0;
   }
 
   .release-downloads h3 {
     display: none;
+  }
+
+  .release-downloads h4 {
+    border-bottom: 1px solid #eee;
   }
 
   .download-item {
