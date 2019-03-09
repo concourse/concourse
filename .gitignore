@@ -1,6 +1,15 @@
 .DS_Store
-/pkg
-/bin
 *.html
 search_index.json
 !google34cb7dffb22dd501.html
+
+### Node ###
+node_modules
+yarn-error.log
+
+### Elm ###
+# elm-package generated files
+elm-stuff
+# elm-repl generated files
+repl-temp-*
+elm.js
