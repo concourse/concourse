@@ -643,7 +643,7 @@ h2, h3 {
   font-size: 16px;
   position: relative;
   bottom: -9px;
-  color: #7A7373;
+  color: #777;
 }
 
 .release-downloads {
@@ -951,68 +951,11 @@ h3 .anchor {
   margin-top: 6px;
   font-family: 'PT Sans', Helvetica, Arial, sans-serif;
   font-size: 14px;
-  color: #7A7373;
+  color: #777;
 }
 
 .search-results a, .search-results a:visited {
   color: #2A2929;
-}
-
-.quickstart {
-  background: #F9F7F6;
-  margin-bottom: 60px;
-     border-style: solid;
-  border-width: 0px 0px 0px 4px;
-  border-color: #fb8c00;
-}
-
-.quickstart-content {
-  display: none;
-  padding: 0 30px 10px;
-}
-
-.quickstart input {
-  display: none;
-}
-
-.quickstart-label {
-  cursor: pointer;
-  font-family: 'Roboto Slab', serif;
-  font-size: 18px;
-  letter-spacing: .5px;
-  padding: 10px;
-  display: block;
-  user-select: none;
-  position: relative;
-  padding-left: 30px;
-    color: #7A7373;
-  background: ;
-
-}
-
-.quickstart-label:before {
-  content: "\25ba";
-  width: 20px;
-  height: 20px;
-  display: inline-block;
-  font-size: 12px;
-  color: #7A7373;
-  position: absolute;
-  top: 15px;
-  left: 12px;
-
-}
-
-.quickstart input:checked + .quickstart-label:before {
-  content: "\25bc";
-}
-
-.quickstart input:checked + .quickstart-label + .quickstart-content {
-  display: block;
-}
-
-label.quickstart-label::before {
-  color: #fb8c00;
 }
 
 #section_user-roles tr:first-child {
