@@ -291,6 +291,9 @@ h3 {
 .page-content a code {
   color: #3d3c3c;
 }
+.page-content a:hover code {
+  color: #5a5555;
+}
 .page-content a:hover code strong {
   text-decoration: underline;
 }
@@ -652,7 +655,7 @@ h3 .anchor {
   margin-right: 10px;
 }
 .note-tag.feature {
-  border-color: #419867;
+  border-color: #11c560;
 }
 .note-tag.security {
   border-color: #2a2929;
