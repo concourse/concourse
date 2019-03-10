@@ -10,10 +10,6 @@ import (
 )
 
 func (team *team) ListJobs(pipelineName string) ([]atc.Job, error) {
-	if pipelineName == "" {
-		return []atc.Job{}, NameRequiredError("pipeline")
-	}
-
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"team_name":     team.name,
@@ -31,10 +27,6 @@ func (team *team) ListJobs(pipelineName string) ([]atc.Job, error) {
 }
 
 func (team *team) Job(pipelineName, jobName string) (atc.Job, bool, error) {
-	if pipelineName == "" {
-		return atc.Job{}, false, NameRequiredError("pipeline")
-	}
-
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"job_name":      jobName,

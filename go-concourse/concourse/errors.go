@@ -1,7 +1,6 @@
 package concourse
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
@@ -9,10 +8,6 @@ import (
 
 var ErrUnauthorized = internal.ErrUnauthorized
 var ErrForbidden = internal.ErrForbidden
-
-func NameRequiredError(thing string) error {
-	return errors.New(thing + " name required")
-}
 
 type PipelineConfigError struct {
 	ErrorMessages []string
