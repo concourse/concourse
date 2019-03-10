@@ -669,7 +669,7 @@ this is super secure
 								sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 								Expect(err).NotTo(HaveOccurred())
 
-								Eventually(sess.Err).Should(gbytes.Say(`error: invalid configuration:`))
+								Eventually(sess.Err).Should(gbytes.Say(`error: invalid pipeline config:`))
 								Eventually(sess.Err).Should(gbytes.Say(`Expected to find variables: param-b`))
 
 								<-sess.Exited

@@ -31,25 +31,20 @@ func (team *team) CheckResourceType(pipelineName string, resourceTypeName string
 		Header:             http.Header{"Content-Type": []string{"application/json"}},
 	}, &response)
 
-	switch err.(type) {
+	switch e := err.(type) {
 	case nil:
 		return true, nil
 	case internal.ResourceNotFoundError:
 		return false, nil
-	default:
-		if unexpectedResponseError, ok := err.(internal.UnexpectedResponseError); ok {
-			if unexpectedResponseError.StatusCode == http.StatusInternalServerError {
-				checkResourceErr := CheckResourceError{
-					atc.CheckResponseBody{
-						Stderr:     unexpectedResponseError.Body,
-						ExitStatus: 70,
-					},
-				}
-
-				return false, checkResourceErr
+	case internal.UnexpectedResponseError:
+		if e.StatusCode == http.StatusInternalServerError {
+			return false, GenericError{
+				e.Body,
 			}
+		} else {
+			return false, err
 		}
-
+	default:
 		return false, err
 	}
 }

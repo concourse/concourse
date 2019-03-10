@@ -310,7 +310,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			It("returns config validation error", func() {
 				_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("invalid configuration:\n"))
+				Expect(err.Error()).To(ContainSubstring("invalid pipeline config:\n"))
 				Expect(err.Error()).To(ContainSubstring("fake-error1\nfake-error2"))
 			})
 

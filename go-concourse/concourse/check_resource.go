@@ -3,21 +3,12 @@ package concourse
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
 )
-
-type CheckResourceError struct {
-	atc.CheckResponseBody
-}
-
-func (checkResourceError CheckResourceError) Error() string {
-	return fmt.Sprintf("check failed with exit status '%d':\n%s\n", checkResourceError.ExitStatus, checkResourceError.Stderr)
-}
 
 func (team *team) CheckResource(pipelineName string, resourceName string, version atc.Version) (bool, error) {
 	params := rata.Params{
@@ -40,35 +31,33 @@ func (team *team) CheckResource(pipelineName string, resourceName string, versio
 		Header:             http.Header{"Content-Type": []string{"application/json"}},
 	}, &response)
 
-	switch err.(type) {
+	switch e := err.(type) {
 	case nil:
 		return true, nil
 	case internal.ResourceNotFoundError:
 		return false, nil
-	default:
-		if unexpectedResponseError, ok := err.(internal.UnexpectedResponseError); ok {
-			switch unexpectedResponseError.StatusCode {
-			case http.StatusBadRequest:
-				var checkResourceErr CheckResourceError
-
-				err = json.Unmarshal([]byte(unexpectedResponseError.Body), &checkResourceErr)
-				if err != nil {
-					return false, err
-				}
-
-				return false, checkResourceErr
-			case http.StatusInternalServerError:
-				checkResourceErr := CheckResourceError{
-					atc.CheckResponseBody{
-						Stderr:     unexpectedResponseError.Body,
-						ExitStatus: 70,
-					},
-				}
-
-				return false, checkResourceErr
+	case internal.UnexpectedResponseError:
+		switch e.StatusCode {
+		case http.StatusBadRequest:
+			var checkRes atc.CheckResponseBody
+			err = json.Unmarshal([]byte(e.Body), &checkRes)
+			if err != nil {
+				return false, err
 			}
-		}
 
+			return false, CommandFailedError{
+				Command:    "check",
+				ExitStatus: checkRes.ExitStatus,
+				Output:     checkRes.Stderr,
+			}
+		case http.StatusInternalServerError:
+			return false, GenericError{
+				e.Body,
+			}
+		default:
+			return false, err
+		}
+	default:
 		return false, err
 	}
 }

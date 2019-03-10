@@ -4,12 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
@@ -45,14 +43,6 @@ func (team *team) PipelineConfig(pipelineName string) (atc.Config, string, bool,
 	default:
 		return atc.Config{}, "", false, err
 	}
-}
-
-type configValidationError struct {
-	ErrorMessages []string `json:"errors"`
-}
-
-func (c configValidationError) Error() string {
-	return fmt.Sprintf("invalid configuration:\n%s", strings.Join(c.ErrorMessages, "\n"))
 }
 
 type ConfigWarning struct {
@@ -95,14 +85,15 @@ func (team *team) CreateOrUpdatePipelineConfig(pipelineName string, configVersio
 	if err != nil {
 		if unexpectedResponseError, ok := err.(internal.UnexpectedResponseError); ok {
 			if unexpectedResponseError.StatusCode == http.StatusBadRequest {
-				var validationErr configValidationError
-
+				var validationErr atc.SaveConfigResponse
 				err = json.Unmarshal([]byte(unexpectedResponseError.Body), &validationErr)
 				if err != nil {
 					return false, false, []ConfigWarning{}, err
 				}
 
-				return false, false, []ConfigWarning{}, validationErr
+				return false, false, []ConfigWarning{}, InvalidConfigError{
+					Errors: validationErr.Errors,
+				}
 			}
 		}
 
