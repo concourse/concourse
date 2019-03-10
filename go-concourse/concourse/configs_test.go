@@ -20,9 +20,8 @@ var _ = Describe("ATC Handler Configs", func() {
 
 		Context("ATC returns the correct response when it exists", func() {
 			var (
-				expectedConfig    atc.Config
-				expectedRawConfig atc.RawConfig
-				expectedVersion   string
+				expectedConfig  atc.Config
+				expectedVersion string
 			)
 
 			BeforeEach(func() {
@@ -72,11 +71,8 @@ var _ = Describe("ATC Handler Configs", func() {
 
 				expectedVersion = "42"
 
-				expectedRawConfig = atc.RawConfig("raw-config")
-
 				configResponse := atc.ConfigResponse{
-					Config:    &expectedConfig,
-					RawConfig: expectedRawConfig,
+					Config: expectedConfig,
 				}
 
 				atcServer.AppendHandlers(
@@ -88,34 +84,11 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns the given config and version for that pipeline", func() {
-				pipelineConfig, rawConfig, version, found, err := team.PipelineConfig("mypipeline")
+				pipelineConfig, version, found, err := team.PipelineConfig("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pipelineConfig).To(Equal(expectedConfig))
-				Expect(rawConfig).To(Equal(expectedRawConfig))
 				Expect(version).To(Equal(expectedVersion))
 				Expect(found).To(BeTrue())
-			})
-		})
-
-		Context("when atc returns error messages", func() {
-			BeforeEach(func() {
-				configResponse := atc.ConfigResponse{Errors: []string{"config-error"}, RawConfig: atc.RawConfig("raw-config")}
-				headers := http.Header{atc.ConfigVersionHeader: {"42"}}
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, configResponse, headers),
-					),
-				)
-			})
-
-			It("returns an error", func() {
-				_, actualRawConfig, actualConfigVersion, found, err := team.PipelineConfig("mypipeline")
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("config-error"))
-				Expect(actualRawConfig).To(Equal(atc.RawConfig("raw-config")))
-				Expect(actualConfigVersion).To(Equal("42"))
-				Expect(found).To(BeFalse())
 			})
 		})
 
@@ -130,7 +103,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns false and no error", func() {
-				_, _, _, found, err := team.PipelineConfig("mypipeline")
+				_, _, found, err := team.PipelineConfig("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -147,7 +120,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns the error", func() {
-				_, _, _, _, err := team.PipelineConfig("mypipeline")
+				_, _, _, err := team.PipelineConfig("mypipeline")
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -157,13 +130,13 @@ var _ = Describe("ATC Handler Configs", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ConfigResponse{Config: &atc.Config{}}),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ConfigResponse{Config: atc.Config{}}),
 					),
 				)
 			})
 
 			It("returns an error", func() {
-				_, _, _, _, err := team.PipelineConfig("mypipeline")
+				_, _, _, err := team.PipelineConfig("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})

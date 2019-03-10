@@ -8,3 +8,7 @@ type SaveConfigResponse struct {
 	Errors   []string        `json:"errors,omitempty"`
 	Warnings []ConfigWarning `json:"warnings,omitempty"`
 }
+
+type ConfigResponse struct {
+	Config Config `json:"config"`
+}

@@ -16,7 +16,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error) {
+func (team *team) PipelineConfig(pipelineName string) (atc.Config, string, bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"team_name":     team.name,
@@ -36,17 +36,14 @@ func (team *team) PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig
 
 	switch err.(type) {
 	case nil:
-		version := responseHeaders.Get(atc.ConfigVersionHeader)
-
-		if len(configResponse.Errors) > 0 {
-			return atc.Config{}, configResponse.RawConfig, version, false, PipelineConfigError{configResponse.Errors}
-		}
-
-		return *configResponse.Config, configResponse.RawConfig, version, true, nil
+		return configResponse.Config,
+			responseHeaders.Get(atc.ConfigVersionHeader),
+			true,
+			nil
 	case internal.ResourceNotFoundError:
-		return atc.Config{}, atc.RawConfig(""), "", false, nil
+		return atc.Config{}, "", false, nil
 	default:
-		return atc.Config{}, atc.RawConfig(""), "", false, err
+		return atc.Config{}, "", false, err
 	}
 }
 

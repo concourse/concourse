@@ -2,13 +2,13 @@
 package concoursefakes
 
 import (
-	io "io"
-	http "net/http"
-	sync "sync"
-	time "time"
+	"io"
+	"net/http"
+	"sync"
+	"time"
 
-	atc "github.com/concourse/concourse/atc"
-	concourse "github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type FakeClient struct {
