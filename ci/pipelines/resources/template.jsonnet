@@ -86,7 +86,7 @@ local extra_gets =
     [
       {
         get: "fly",
-        params: {globs: ["fly_linux_amd64"]}
+        params: {globs: ["fly-*-linux-amd64.tgz"]}
       }
     ]
   else
