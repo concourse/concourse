@@ -65,6 +65,12 @@ port saveToken : String -> Cmd msg
 port requestLoginRedirect : String -> Cmd msg
 
 
+port openEventStream : { url : String, eventTypes : List String } -> Cmd msg
+
+
+port closeEventStream : () -> Cmd msg
+
+
 type LayoutDispatch
     = SubPage Int
     | Layout
@@ -92,26 +98,26 @@ type Effect
     | FetchBuildPlan Concourse.BuildId
     | FetchBuildPlanAndResources Concourse.BuildId
     | GetCurrentTime
-    | DoTriggerBuild Concourse.JobIdentifier String
-    | DoAbortBuild Int Concourse.CSRFToken
-    | PauseJob Concourse.JobIdentifier String
-    | UnpauseJob Concourse.JobIdentifier String
+    | DoTriggerBuild Concourse.JobIdentifier
+    | DoAbortBuild Int
+    | PauseJob Concourse.JobIdentifier
+    | UnpauseJob Concourse.JobIdentifier
     | ResetPipelineFocus
     | RenderPipeline Json.Encode.Value Json.Encode.Value
     | RedirectToLogin
     | NavigateTo String
     | ModifyUrl String
     | SetTitle String
-    | DoPinVersion Concourse.VersionedResourceIdentifier Concourse.CSRFToken
-    | DoUnpinVersion Concourse.ResourceIdentifier Concourse.CSRFToken
-    | DoToggleVersion VersionToggleAction VersionId Concourse.CSRFToken
-    | DoCheck Concourse.ResourceIdentifier Concourse.CSRFToken
-    | SetPinComment Concourse.ResourceIdentifier Concourse.CSRFToken String
+    | DoPinVersion Concourse.VersionedResourceIdentifier
+    | DoUnpinVersion Concourse.ResourceIdentifier
+    | DoToggleVersion VersionToggleAction VersionId
+    | DoCheck Concourse.ResourceIdentifier
+    | SetPinComment Concourse.ResourceIdentifier String
     | SendTokenToFly String Int
-    | SendTogglePipelineRequest { pipeline : Dashboard.Models.Pipeline, csrfToken : Concourse.CSRFToken }
+    | SendTogglePipelineRequest Dashboard.Models.Pipeline
     | ShowTooltip ( String, String )
     | ShowTooltipHd ( String, String )
-    | SendOrderPipelinesRequest String (List Dashboard.Models.Pipeline) Concourse.CSRFToken
+    | SendOrderPipelinesRequest String (List Dashboard.Models.Pipeline)
     | SendLogOutRequest
     | GetScreenSize
     | PinTeamNames Dashboard.Group.StickyHeaderConfig
@@ -120,6 +126,8 @@ type Effect
     | SaveToken String
     | LoadToken
     | ForceFocus String
+    | OpenBuildEventStream { url : String, eventTypes : List String }
+    | CloseBuildEventStream
 
 
 type ScrollDirection
@@ -131,8 +139,8 @@ type ScrollDirection
     | ToCurrentBuild
 
 
-runEffect : Effect -> Cmd Callback
-runEffect effect =
+runEffect : Effect -> Concourse.CSRFToken -> Cmd Callback
+runEffect effect csrfToken =
     case effect of
         FetchJob id ->
             fetchJob id
@@ -173,14 +181,14 @@ runEffect effect =
         GetCurrentTime ->
             Task.perform GotCurrentTime Time.now
 
-        DoTriggerBuild id csrf ->
-            triggerBuild id csrf
+        DoTriggerBuild id ->
+            triggerBuild id csrfToken
 
-        PauseJob id csrf ->
-            pauseJob id csrf
+        PauseJob id ->
+            pauseJob id csrfToken
 
-        UnpauseJob id csrf ->
-            unpauseJob id csrf
+        UnpauseJob id ->
+            unpauseJob id csrfToken
 
         RedirectToLogin ->
             requestLoginRedirect ""
@@ -200,33 +208,33 @@ runEffect effect =
         SetTitle newTitle ->
             setTitle newTitle
 
-        DoPinVersion version csrfToken ->
+        DoPinVersion version ->
             Task.attempt VersionPinned <|
                 Concourse.Resource.pinVersion version csrfToken
 
-        DoUnpinVersion id csrfToken ->
+        DoUnpinVersion id ->
             Task.attempt VersionUnpinned <|
                 Concourse.Resource.unpinVersion id csrfToken
 
-        DoToggleVersion action id csrfToken ->
+        DoToggleVersion action id ->
             Concourse.Resource.enableDisableVersionedResource
                 (action == Enable)
                 id
                 csrfToken
                 |> Task.attempt (VersionToggled action id)
 
-        DoCheck rid csrfToken ->
+        DoCheck rid ->
             Task.attempt Checked <|
                 Concourse.Resource.check rid csrfToken
 
-        SetPinComment rid csrfToken comment ->
+        SetPinComment rid comment ->
             Task.attempt CommentSet <|
                 Concourse.Resource.setPinComment rid csrfToken comment
 
         SendTokenToFly authToken flyPort ->
             sendTokenToFly authToken flyPort
 
-        SendTogglePipelineRequest { pipeline, csrfToken } ->
+        SendTogglePipelineRequest pipeline ->
             togglePipelinePaused { pipeline = pipeline, csrfToken = csrfToken }
 
         ShowTooltip ( teamName, pipelineName ) ->
@@ -235,7 +243,7 @@ runEffect effect =
         ShowTooltipHd ( teamName, pipelineName ) ->
             tooltipHd ( teamName, pipelineName )
 
-        SendOrderPipelinesRequest teamName pipelines csrfToken ->
+        SendOrderPipelinesRequest teamName pipelines ->
             orderPipelines teamName pipelines csrfToken
 
         SendLogOutRequest ->
@@ -274,7 +282,7 @@ runEffect effect =
         SetFavIcon status ->
             setFavicon status
 
-        DoAbortBuild buildId csrfToken ->
+        DoAbortBuild buildId ->
             abortBuild buildId csrfToken
 
         Scroll dir ->
@@ -289,6 +297,12 @@ runEffect effect =
         ForceFocus dom ->
             Dom.focus dom
                 |> Task.attempt (always EmptyCallback)
+
+        OpenBuildEventStream config ->
+            openEventStream config
+
+        CloseBuildEventStream ->
+            closeEventStream ()
 
 
 fetchJobBuilds : Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Callback

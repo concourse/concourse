@@ -1,6 +1,7 @@
 module Dashboard.Dashboard exposing
     ( Model
     , handleCallback
+    , handleDelivery
     , init
     , subscriptions
     , update
@@ -18,7 +19,7 @@ import Dashboard.Details as Details
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
 import Dashboard.Models as Models
-import Dashboard.Msgs as Msgs exposing (Msg(..), fromDashboardMsg)
+import Dashboard.Msgs as Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
 import Dashboard.SubState as SubState
 import Dashboard.Text as Text
@@ -47,9 +48,8 @@ import RemoteData
 import Routes
 import ScreenSize
 import Simple.Fuzzy exposing (filter, match, root)
-import Subscription exposing (Subscription(..))
+import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Task
-import Time exposing (Time)
 import TopBar.Model
 import TopBar.Msgs
 import TopBar.Styles
@@ -58,8 +58,7 @@ import UserState exposing (UserState)
 
 
 type alias Flags =
-    { csrfToken : String
-    , turbulencePath : String
+    { turbulencePath : String
     , searchType : Routes.SearchType
     , pipelineRunningKeyframes : String
     }
@@ -70,24 +69,16 @@ type DashboardError
 
 
 type alias Model =
-    { csrfToken : String
-    , state : RemoteData.RemoteData DashboardError SubState.SubState
-    , turbulencePath : String
-    , highDensity : Bool
-    , hoveredPipeline : Maybe Models.Pipeline
-    , pipelineRunningKeyframes : String
-    , groups : List Group.Group
-    , hoveredCliIcon : Maybe Cli.Cli
-    , hoveredTopCliIcon : Maybe Cli.Cli
-    , screenSize : ScreenSize.ScreenSize
-    , version : String
-    , userState : UserState.UserState
-    , userMenuVisible : Bool
-    , topBar : TopBar.Model.Model
-    , hideFooter : Bool
-    , hideFooterCounter : Int
-    , showHelp : Bool
-    }
+    Footer.Model
+        (TopBar.Model.Model
+            { state : RemoteData.RemoteData DashboardError SubState.SubState
+            , turbulencePath : String
+            , hoveredPipeline : Maybe Models.Pipeline
+            , pipelineRunningKeyframes : String
+            , hoveredTopCliIcon : Maybe Cli.Cli
+            , userState : UserState.UserState
+            }
+        )
 
 
 substateOptional : Monocle.Optional.Optional Model SubState.SubState
@@ -102,22 +93,23 @@ init flags =
             TopBar.init { route = Routes.Dashboard { searchType = flags.searchType } }
     in
     ( { state = RemoteData.NotAsked
-      , csrfToken = flags.csrfToken
       , turbulencePath = flags.turbulencePath
-      , highDensity = flags.searchType == Routes.HighDensity
       , hoveredPipeline = Nothing
       , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
       , groups = []
       , hoveredCliIcon = Nothing
       , hoveredTopCliIcon = Nothing
-      , screenSize = ScreenSize.Desktop
       , version = ""
       , userState = UserState.UserStateUnknown
-      , userMenuVisible = False
       , hideFooter = False
       , hideFooterCounter = 0
       , showHelp = False
-      , topBar = topBar
+      , isUserMenuExpanded = topBar.isUserMenuExpanded
+      , isPinMenuExpanded = topBar.isPinMenuExpanded
+      , middleSection = topBar.middleSection
+      , teams = topBar.teams
+      , screenSize = topBar.screenSize
+      , highDensity = topBar.highDensity
       }
     , [ FetchData
       , PinTeamNames Group.stickyHeaderConfig
@@ -128,25 +120,16 @@ init flags =
     )
 
 
-handleCallback : Callback -> Model -> ( Model, List Effect )
-handleCallback msg model =
-    let
-        ( newTopBar, topBarEffects ) =
-            TopBar.handleCallback msg model.topBar
-
-        ( newModel, dashboardEffects ) =
-            handleCallbackWithoutTopBar msg model
-    in
-    ( { newModel | topBar = newTopBar }
-    , topBarEffects ++ dashboardEffects
-    )
+handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallback msg =
+    TopBar.handleCallback msg >> handleCallbackWithoutTopBar msg
 
 
-handleCallbackWithoutTopBar : Callback -> Model -> ( Model, List Effect )
-handleCallbackWithoutTopBar msg model =
+handleCallbackWithoutTopBar : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackWithoutTopBar msg ( model, effects ) =
     case msg of
         APIDataFetched (Err _) ->
-            ( { model | state = RemoteData.Failure (Turbulence model.turbulencePath) }, [] )
+            ( { model | state = RemoteData.Failure (Turbulence model.turbulencePath) }, effects )
 
         APIDataFetched (Ok ( now, apiData )) ->
             let
@@ -189,7 +172,7 @@ handleCallbackWithoutTopBar msg model =
                     , version = apiData.version
                     , userState = userState
                   }
-                , [ ModifyUrl <| Routes.toString <| Routes.dashboardRoute False ]
+                , effects ++ [ ModifyUrl <| Routes.toString <| Routes.dashboardRoute False ]
                 )
 
             else
@@ -198,95 +181,87 @@ handleCallbackWithoutTopBar msg model =
                     , version = apiData.version
                     , userState = userState
                   }
-                , []
+                , effects
                 )
 
         LoggedOut (Ok ()) ->
-            ( { model
-                | userState = UserState.UserStateLoggedOut
-                , userMenuVisible = False
-              }
-            , [ NavigateTo <| Routes.toString <| Routes.dashboardRoute model.highDensity
-              , FetchData
-              ]
+            ( { model | userState = UserState.UserStateLoggedOut }
+            , effects
+                ++ [ NavigateTo <| Routes.toString <| Routes.dashboardRoute model.highDensity
+                   , FetchData
+                   ]
             )
 
         LoggedOut (Err err) ->
             flip always (Debug.log "failed to log out" err) <|
-                ( model, [] )
+                ( model, effects )
 
         ScreenResized size ->
             let
                 newSize =
                     ScreenSize.fromWindowSize size
             in
-            ( { model | screenSize = newSize }, [] )
+            ( { model | screenSize = newSize }, effects )
 
         _ ->
-            ( model, [] )
+            ( model, effects )
 
 
-update : Msg -> Model -> ( Model, List Effect )
-update msg model =
-    let
-        ( newTopBar, topBarEffects ) =
-            TopBar.update (fromDashboardMsg msg) model.topBar
-
-        ( newModel, dashboardEffects ) =
-            updateWithoutTopBar msg model
-    in
-    ( { newModel | topBar = newTopBar }
-    , topBarEffects ++ dashboardEffects
-    )
+handleDelivery : Delivery -> ( Model, List Effect ) -> ( Model, List Effect )
+handleDelivery delivery =
+    TopBar.handleDelivery delivery >> handleDeliveryWithoutTopBar delivery
 
 
-updateWithoutTopBar : Msg -> Model -> ( Model, List Effect )
-updateWithoutTopBar msg model =
-    case msg of
-        ClockTick now ->
+handleDeliveryWithoutTopBar : Delivery -> ( Model, List Effect ) -> ( Model, List Effect )
+handleDeliveryWithoutTopBar delivery ( model, effects ) =
+    case delivery of
+        KeyDown keycode ->
+            handleKeyPressed (Char.fromCode keycode) ( model, effects )
+
+        Moused ->
+            ( Footer.showFooter model, effects )
+
+        ClockTicked OneSecond time ->
             ( let
                 newModel =
                     Footer.tick model
               in
-              { newModel | state = RemoteData.map (SubState.tick now) newModel.state }
-            , []
+              { newModel | state = RemoteData.map (SubState.tick time) newModel.state }
+            , effects
             )
 
-        AutoRefresh _ ->
-            ( model, [ FetchData ] )
+        ClockTicked FiveSeconds _ ->
+            ( model, effects ++ [ FetchData ] )
 
-        KeyPressed keycode ->
-            handleKeyPressed (Char.fromCode keycode) model
+        _ ->
+            ( model, effects )
 
-        ShowFooter ->
-            ( Footer.showFooter model, [] )
 
+update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
+update msg ( model, effects ) =
+    case msg of
         TogglePipelinePaused pipeline ->
-            ( model
-            , [ SendTogglePipelineRequest
-                    { pipeline = pipeline, csrfToken = model.csrfToken }
-              ]
-            )
+            ( model, effects ++ [ SendTogglePipelineRequest pipeline ] )
 
         DragStart teamName index ->
             let
                 newModel =
                     { model | state = RemoteData.map (\s -> { s | dragState = Group.Dragging teamName index }) model.state }
             in
-            ( newModel, [] )
+            ( newModel, effects )
 
         DragOver teamName index ->
             let
                 newModel =
                     { model | state = RemoteData.map (\s -> { s | dropState = Group.Dropping index }) model.state }
             in
-            ( newModel, [] )
+            ( newModel, effects )
 
         TooltipHd pipelineName teamName ->
-            ( model, [ ShowTooltipHd ( pipelineName, teamName ) ] )
+            ( model, effects ++ [ ShowTooltipHd ( pipelineName, teamName ) ] )
 
         Tooltip pipelineName teamName ->
-            ( model, [ ShowTooltip ( pipelineName, teamName ) ] )
+            ( model, effects ++ [ ShowTooltip ( pipelineName, teamName ) ] )
 
         DragEnd ->
             let
@@ -300,11 +275,7 @@ updateWithoutTopBar msg model =
                             Group.shiftPipelines dragIndex dropIndex group
                     in
                     ( newGroup
-                    , [ SendOrderPipelinesRequest
-                            newGroup.teamName
-                            newGroup.pipelines
-                            model.csrfToken
-                      ]
+                    , [ SendOrderPipelinesRequest newGroup.teamName newGroup.pipelines ]
                     )
 
                 dragDropOptional : Monocle.Optional.Optional Model ( Group.DragState, Group.DropState )
@@ -341,49 +312,50 @@ updateWithoutTopBar msg model =
                     Monocle.Optional.tuple
                         dragDropIndexOptional
                         groupOptional
+
+                ( newModel, unAccumulatedEffects ) =
+                    model
+                        |> modifyWithEffect bigOptional
+                            (\( t, g ) ->
+                                let
+                                    ( newG, msg ) =
+                                        updatePipelines t g
+                                in
+                                ( ( t, newG ), msg )
+                            )
+                        |> Tuple.mapFirst (dragDropOptional.set ( Group.NotDragging, Group.NotDropping ))
             in
-            model
-                |> modifyWithEffect bigOptional
-                    (\( t, g ) ->
-                        let
-                            ( newG, msg ) =
-                                updatePipelines t g
-                        in
-                        ( ( t, newG ), msg )
-                    )
-                |> Tuple.mapFirst (dragDropOptional.set ( Group.NotDragging, Group.NotDropping ))
+            ( newModel, effects ++ unAccumulatedEffects )
 
         PipelineButtonHover state ->
-            ( { model | hoveredPipeline = state }, [] )
+            ( { model | hoveredPipeline = state }, effects )
 
         CliHover state ->
-            ( { model | hoveredCliIcon = state }, [] )
+            ( { model | hoveredCliIcon = state }, effects )
 
         TopCliHover state ->
-            ( { model | hoveredTopCliIcon = state }, [] )
-
-        ResizeScreen size ->
-            ( { model | screenSize = ScreenSize.fromWindowSize size }, [] )
-
-        FromTopBar TopBar.Msgs.LogOut ->
-            ( { model | state = RemoteData.NotAsked }, [] )
-
-        FromTopBar TopBar.Msgs.ToggleUserMenu ->
-            ( { model | userMenuVisible = not model.userMenuVisible }, [] )
+            ( { model | hoveredTopCliIcon = state }, effects )
 
         FromTopBar m ->
-            ( model, [] )
+            let
+                ( newModel, topBarEffects ) =
+                    TopBar.update m ( model, effects )
+            in
+            case m of
+                TopBar.Msgs.LogOut ->
+                    ( { newModel | state = RemoteData.NotAsked }, topBarEffects )
+
+                _ ->
+                    ( newModel, topBarEffects )
 
 
-subscriptions : Model -> List (Subscription Msg)
+subscriptions : Model -> List Subscription
 subscriptions model =
-    [ OnClockTick Time.second ClockTick
-    , OnClockTick (5 * Time.second) AutoRefresh
-    , OnMouseMove ShowFooter
-    , OnMouseClick ShowFooter
-    , OnKeyPress KeyPressed
+    [ OnClockTick OneSecond
+    , OnClockTick FiveSeconds
+    , OnMouse
     , OnKeyDown
-    , OnWindowResize Msgs.ResizeScreen
+    , OnWindowResize
     ]
 
 
@@ -392,7 +364,7 @@ view userState model =
     Html.div []
         [ Html.div
             [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map FromTopBar (TopBar.view userState TopBar.Model.None model.topBar)
+            [ Html.map FromTopBar (TopBar.view userState TopBar.Model.None model)
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ dashboardView model
                 ]
@@ -422,7 +394,7 @@ dashboardView model =
                             ++ pipelinesView
                                 { groups = model.groups
                                 , substate = substate
-                                , query = TopBar.query model.topBar
+                                , query = TopBar.query model
                                 , hoveredPipeline = model.hoveredPipeline
                                 , pipelineRunningKeyframes =
                                     model.pipelineRunningKeyframes
@@ -635,17 +607,17 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
         List.map Html.fromUnstyled groupViews
 
 
-handleKeyPressed : Char -> Footer.Model r -> ( Footer.Model r, List Effect )
-handleKeyPressed key model =
+handleKeyPressed : Char -> ( Footer.Model r, List Effect ) -> ( Footer.Model r, List Effect )
+handleKeyPressed key ( model, effects ) =
     case key of
         '/' ->
-            ( model, [] )
+            ( model, effects )
 
         '?' ->
-            ( Footer.toggleHelp model, [] )
+            ( Footer.toggleHelp model, effects )
 
         _ ->
-            ( Footer.showFooter model, [] )
+            ( Footer.showFooter model, effects )
 
 
 remoteUser : APIData.APIData -> Task.Task Http.Error ( APIData.APIData, Maybe Concourse.User )

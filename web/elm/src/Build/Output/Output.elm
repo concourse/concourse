@@ -1,35 +1,31 @@
-module Build.Output exposing
+module Build.Output.Output exposing
     ( OutMsg(..)
-    , handleEventsMsg
+    , handleEnvelopes
     , handleStepTreeMsg
     , init
-    , parseMsg
     , planAndResourcesFetched
-    , subscribeToEvents
     , view
     )
 
 import Ansi.Log
 import Array exposing (Array)
-import Build.Models
+import Build.Msgs exposing (Msg(..))
+import Build.Output.Models exposing (OutputModel, OutputState(..))
+import Build.StepTree.Models
     exposing
         ( BuildEvent(..)
-        , OutputModel
-        , OutputState(..)
+        , BuildEventEnvelope
         , StepState(..)
         , StepTree
         , StepTreeModel
         )
-import Build.Msgs exposing (EventsMsg(..), Msg(..))
-import Build.StepTree as StepTree
+import Build.StepTree.StepTree as StepTree
 import Build.Styles as Styles
 import Concourse
-import Concourse.BuildEvents as BuildEvents
 import Concourse.BuildStatus
 import Date exposing (Date)
 import Dict exposing (Dict)
 import Effects exposing (Effect(..))
-import EventSource.EventSource as EventSource
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -45,7 +41,6 @@ import Http
 import LoadingIndicator
 import NotAuthorized
 import Routes exposing (StepID)
-import Subscription exposing (Subscription(..))
 
 
 type OutMsg
@@ -71,7 +66,7 @@ init { highlight } build =
             { steps = Nothing
             , errors = Nothing
             , state = outputState
-            , events = Nothing
+            , eventStreamUrlPath = Nothing
             , eventSourceOpened = False
             , highlight = highlight
             }
@@ -109,12 +104,16 @@ planAndResourcesFetched :
     -> OutputModel
     -> ( OutputModel, List Effect, OutMsg )
 planAndResourcesFetched buildId result model =
+    let
+        url =
+            "/api/v1/builds/" ++ toString buildId ++ "/events"
+    in
     ( case result of
         Err err ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
-                        { model | events = Just buildId }
+                        { model | eventStreamUrlPath = Just url }
 
                     else
                         model
@@ -126,127 +125,127 @@ planAndResourcesFetched buildId result model =
         Ok ( plan, resources ) ->
             { model
                 | steps = Just (StepTree.init model.highlight resources plan)
-                , events = Just buildId
+                , eventStreamUrlPath = Just url
             }
     , []
     , OutNoop
     )
 
 
-handleEventsMsg :
-    EventsMsg
+handleEnvelopes :
+    Result String (List BuildEventEnvelope)
     -> OutputModel
     -> ( OutputModel, List Effect, OutMsg )
-handleEventsMsg action model =
+handleEnvelopes action model =
     case action of
-        Opened ->
-            ( { model | eventSourceOpened = True }, [], OutNoop )
+        Ok envelopes ->
+            envelopes
+                |> List.reverse
+                |> List.foldr handleEnvelope ( model, [], OutNoop )
 
-        Errored ->
-            if model.eventSourceOpened then
-                -- connection could have dropped out of the blue; just let the browser
-                -- handle reconnecting
-                ( model, [], OutNoop )
-
-            else
-                -- assume request was rejected because auth is required; no way to
-                -- really tell
-                ( { model | state = NotAuthorized }, [], OutNoop )
-
-        Events (Ok events) ->
-            Array.foldl handleEvent_ ( model, [], OutNoop ) events
-
-        Events (Err err) ->
+        Err err ->
             flip always (Debug.log "failed to get event" err) <|
-                ( model, [], OutNoop )
+                if model.eventSourceOpened then
+                    -- connection could have dropped out of the blue;
+                    -- just let the browser handle reconnecting
+                    ( model, [], OutNoop )
+
+                else
+                    -- assume request was rejected because auth is required;
+                    -- no way to really tell
+                    ( { model | state = NotAuthorized }, [], OutNoop )
 
 
-handleEvent_ :
-    BuildEvent
+handleEnvelope :
+    BuildEventEnvelope
     -> ( OutputModel, List Effect, OutMsg )
     -> ( OutputModel, List Effect, OutMsg )
-handleEvent_ ev ( m, msgpassedin, outmsgpassedin ) =
-    let
-        ( m1, msgfromhandleevent, outmsgfromhandleevent ) =
-            handleEvent ev m
-    in
-    ( m1
-    , if msgfromhandleevent == [] then
-        msgpassedin
+handleEnvelope { url, data } ( model, effects, outmsg ) =
+    if
+        model.eventStreamUrlPath
+            |> Maybe.map (\p -> String.endsWith p url)
+            |> Maybe.withDefault False
+    then
+        handleEvent data ( model, effects, outmsg )
 
-      else
-        msgfromhandleevent
-    , if outmsgfromhandleevent == OutNoop then
-        outmsgpassedin
-
-      else
-        outmsgfromhandleevent
-    )
+    else
+        ( model, effects, outmsg )
 
 
 handleEvent :
     BuildEvent
-    -> OutputModel
     -> ( OutputModel, List Effect, OutMsg )
-handleEvent event model =
+    -> ( OutputModel, List Effect, OutMsg )
+handleEvent event ( model, effects, outmsg ) =
     case event of
+        Opened ->
+            ( { model | eventSourceOpened = True }
+            , effects
+            , outmsg
+            )
+
         Log origin output time ->
             ( updateStep origin.id (setRunning << appendStepLog output time) model
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
         Error origin message ->
             ( updateStep origin.id (setStepError message) model
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
         Initialize origin ->
             ( updateStep origin.id setRunning model
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
         StartTask origin ->
             ( updateStep origin.id setRunning model
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
         FinishTask origin exitStatus ->
             ( updateStep origin.id (finishStep exitStatus) model
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
         FinishGet origin exitStatus version metadata ->
             ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
         FinishPut origin exitStatus version metadata ->
             ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
         BuildStatus status date ->
-            case model.steps of
-                Just st ->
-                    let
-                        ( newSt, effects ) =
-                            if not <| Concourse.BuildStatus.isRunning status then
-                                ( { st | finished = True }, [] )
+            let
+                newSt =
+                    case model.steps of
+                        Just st ->
+                            Just
+                                (if not <| Concourse.BuildStatus.isRunning status then
+                                    { st | finished = True }
 
-                            else
-                                ( st, [] )
-                    in
-                    ( { model | steps = Just newSt }, effects, OutBuildStatus status date )
+                                 else
+                                    st
+                                )
 
-                Nothing ->
-                    ( model, [], OutBuildStatus status date )
+                        Nothing ->
+                            Nothing
+            in
+            ( { model | steps = newSt }
+            , effects
+            , OutBuildStatus status date
+            )
 
         BuildError message ->
             ( { model
@@ -255,12 +254,15 @@ handleEvent event model =
                         Ansi.Log.update message <|
                             Maybe.withDefault (Ansi.Log.init Ansi.Log.Cooked) model.errors
               }
-            , []
-            , OutNoop
+            , effects
+            , outmsg
             )
 
         End ->
-            ( { model | state = StepsComplete, events = Nothing }, [], OutNoop )
+            ( { model | state = StepsComplete, eventStreamUrlPath = Nothing }
+            , effects
+            , outmsg
+            )
 
 
 updateStep : StepID -> (StepTree -> StepTree) -> OutputModel -> OutputModel
@@ -332,30 +334,6 @@ setResourceInfo version metadata tree =
 setStepState : StepState -> StepTree -> StepTree
 setStepState state tree =
     StepTree.map (\step -> { step | state = state }) tree
-
-
-subscribeToEvents : Int -> Subscription.Subscription Msg
-subscribeToEvents buildId =
-    Subscription.map BuildEventsMsg
-        (Subscription.FromEventSource
-            ( "/api/v1/builds/" ++ toString buildId ++ "/events"
-            , [ "end", "event" ]
-            )
-            parseMsg
-        )
-
-
-parseMsg : EventSource.Msg -> EventsMsg
-parseMsg msg =
-    case msg of
-        EventSource.Events evs ->
-            Events (BuildEvents.parseEvents evs)
-
-        EventSource.Opened ->
-            Opened
-
-        EventSource.Errored ->
-            Errored
 
 
 view : Concourse.Build -> OutputModel -> Html Msg

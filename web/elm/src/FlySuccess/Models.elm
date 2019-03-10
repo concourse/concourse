@@ -1,11 +1,22 @@
 module FlySuccess.Models exposing
     ( ButtonState(..)
+    , Model
     , TokenTransfer
     , TransferResult
     , hover
     , isClicked
     , isPending
     )
+
+import TopBar.Model
+
+
+type alias Model =
+    TopBar.Model.Model
+        { buttonState : ButtonState
+        , authToken : String
+        , tokenTransfer : TokenTransfer
+        }
 
 
 type ButtonState

@@ -1,4 +1,4 @@
-module Build.StepTree exposing
+module Build.StepTree.StepTree exposing
     ( extendHighlight
     , finished
     , init
@@ -13,14 +13,14 @@ module Build.StepTree exposing
 
 import Ansi.Log
 import Array exposing (Array)
-import Build.Models
+import Build.Models exposing (Hoverable(..), StepHeaderType(..))
+import Build.Msgs exposing (Msg(..))
+import Build.StepTree.Models
     exposing
         ( HookedStep
-        , Hoverable(..)
         , MetadataField
         , Step
         , StepFocus
-        , StepHeaderType(..)
         , StepName
         , StepState(..)
         , StepTree(..)
@@ -28,7 +28,6 @@ import Build.Models
         , TabFocus(..)
         , Version
         )
-import Build.Msgs exposing (Msg(..))
 import Build.Styles as Styles
 import Concourse
 import Date exposing (Date)

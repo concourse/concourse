@@ -1,17 +1,13 @@
 module Resource.Msgs exposing (Msg(..))
 
 import Concourse.Pagination exposing (Page, Paginated)
-import Keyboard
 import Resource.Models as Models
 import Routes
-import Time exposing (Time)
 import TopBar.Msgs
 
 
 type Msg
-    = AutoupdateTimerTicked Time
-    | LoadPage Page
-    | ClockTick Time.Time
+    = LoadPage Page
     | ExpandVersionedResource Models.VersionId
     | NavTo Routes.Route
     | TogglePinBarTooltip
@@ -27,5 +23,3 @@ type Msg
     | SaveComment String
     | FocusTextArea
     | BlurTextArea
-    | KeyDowns Keyboard.KeyCode
-    | KeyUps Keyboard.KeyCode
