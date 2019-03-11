@@ -1,4 +1,4 @@
-module Concourse.Resource exposing
+module Network.Resource exposing
     ( check
     , enableDisableVersionedResource
     , fetchAllResources
@@ -19,6 +19,7 @@ import Concourse.Pagination exposing (Page, Paginated, Pagination)
 import Http
 import Json.Decode
 import Json.Encode
+import Network.Pagination
 import Task exposing (Task)
 
 
@@ -72,7 +73,7 @@ fetchVersionedResources rid page =
         url =
             "/api/v1/teams/" ++ rid.teamName ++ "/pipelines/" ++ rid.pipelineName ++ "/resources/" ++ rid.resourceName ++ "/versions"
     in
-    Concourse.Pagination.fetch Concourse.decodeVersionedResource url page
+    Network.Pagination.fetch Concourse.decodeVersionedResource url page
 
 
 enableDisableVersionedResource : Bool -> Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()

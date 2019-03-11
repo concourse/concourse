@@ -25,6 +25,7 @@ type Worker struct {
 	State           string `json:"state"`
 	GardenAddress   string `json:"addr"`
 	BaggageclaimUrl string `json:"baggageclaim_url"`
+	Team            string `json:"team"`
 }
 
 type Pipeline struct {

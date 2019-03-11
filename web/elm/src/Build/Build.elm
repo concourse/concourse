@@ -49,10 +49,10 @@ import Html.Attributes
         )
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
-import Html.Styled as HS
 import Http
 import Keyboard
 import Keycodes
+import List.Extra
 import LoadingIndicator
 import Maybe.Extra
 import RemoteData exposing (WebData)
@@ -349,8 +349,7 @@ handleDelivery delivery ( model, effects ) =
             let
                 lastBuildId =
                     model.history
-                        |> List.reverse
-                        |> List.head
+                        |> List.Extra.last
                         |> Maybe.map .id
                         |> Maybe.map toString
 
@@ -359,36 +358,32 @@ handleDelivery delivery ( model, effects ) =
                         |> RemoteData.toMaybe
                         |> Maybe.map .build
                         |> Maybe.map .id
-            in
-            ( model
-            , case
-                ( isVisible
-                , currentJob model
-                , model.nextPage
-                )
-              of
-                ( True, Just job, Just _ ) ->
-                    if lastBuildId == Just id then
-                        effects ++ [ FetchBuildHistory job model.nextPage ]
 
-                    else
-                        effects
-
-                ( False, _, _ ) ->
-                    case currentBuildId of
-                        Just buildId ->
-                            if toString buildId == id then
-                                effects ++ [ Scroll <| ToBuild buildId ]
+                newEffects =
+                    case ( isVisible, currentJob model, model.nextPage ) of
+                        ( True, Just job, Just _ ) ->
+                            if lastBuildId == Just id then
+                                effects ++ [ FetchBuildHistory job model.nextPage ]
 
                             else
                                 effects
 
-                        Nothing ->
-                            effects
+                        ( False, _, _ ) ->
+                            case currentBuildId of
+                                Just buildId ->
+                                    if toString buildId == id then
+                                        effects ++ [ Scroll <| ToId id ]
 
-                _ ->
-                    effects
-            )
+                                    else
+                                        effects
+
+                                Nothing ->
+                                    effects
+
+                        _ ->
+                            effects
+            in
+            ( model, newEffects )
 
         _ ->
             ( model, effects )
@@ -453,7 +448,7 @@ update msg ( model, effects ) =
                         [ Scroll (Element "builds" -event.deltaX) ]
 
                 checkVisibility =
-                    case model.history |> List.reverse |> List.head of
+                    case model.history |> List.Extra.last of
                         Just build ->
                             [ Effects.CheckIsVisible <| toString build.id ]
 
@@ -786,7 +781,7 @@ view userState model =
     Html.div []
         [ Html.div
             [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ TopBar.view userState TopBar.Model.None model |> HS.toUnstyled |> Html.map FromTopBar
+            [ TopBar.view userState TopBar.Model.None model |> Html.map FromTopBar
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pipelinePageBelowTopBar ] [ viewBuildPage model ]
             ]
         ]

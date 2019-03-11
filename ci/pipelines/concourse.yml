@@ -277,7 +277,7 @@ jobs:
   - task: downgrade-test
     privileged: true
     image: unit-image
-    file: concourse/ci/tasks/upgrade-test.yml
+    file: concourse/ci/tasks/downgrade-test.yml
     params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
 - name: k8s-check-helm-params

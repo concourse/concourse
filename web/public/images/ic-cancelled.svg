@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="14px" height="14px" viewBox="0 0 14 14" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch Beta 51.2 (57516) - http://www.bohemiancoding.com/sketch -->
+    <title>ic_cancelled</title>
+    <desc>Created with Sketch Beta.</desc>
+    <defs></defs>
+    <g id="Resource_pinning_flow" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="ic_cancelled" transform="translate(-5.000000, -5.000000)">
+            <polygon id="Shape" points="0 0 24 0 24 24 0 24"></polygon>
+            <path d="M12,5 C8.136,5 5,8.136 5,12 C5,15.864 8.136,19 12,19 C15.864,19 19,15.864 19,12 C19,8.136 15.864,5 12,5 Z M12,17.6 C8.906,17.6 6.4,15.094 6.4,12 C6.4,10.705 6.841,9.515 7.583,8.57 L15.43,16.417 C14.485,17.159 13.295,17.6 12,17.6 Z M16.417,15.43 L8.57,7.583 C9.515,6.841 10.705,6.4 12,6.4 C15.094,6.4 17.6,8.906 17.6,12 C17.6,13.295 17.159,14.485 16.417,15.43 Z" id="Shape" fill="#979797" fill-rule="nonzero"></path>
+        </g>
+    </g>
+</svg>

@@ -270,14 +270,7 @@ all =
                                                 , id = "stepid"
                                                 }
                                       }
-                                    ]
-                        )
-                    |> Tuple.first
-                    |> Application.update
-                        (Msgs.DeliveryReceived <|
-                            EventsReceived <|
-                                Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
                                       , data =
                                             STModels.Log
                                                 { source = "stdout"
@@ -866,8 +859,7 @@ all =
                         >> Build.handleDelivery
                             (Subscription.ElementVisible "1" False)
                         >> Tuple.second
-                        >> Expect.equal
-                            [ Effects.Scroll <| Effects.ToBuild 1 ]
+                        >> Expect.equal [ Effects.Scroll <| Effects.ToId "1" ]
                 , test "if build is not present in history, fetches more" <|
                     givenBuildFetched
                         >> Tuple.mapSecond (always [])
@@ -1761,6 +1753,81 @@ all =
                                   )
                                 ]
                             ]
+                , test "pending step has dashed circle at the right" <|
+                    fetchPlanWithTaskStep
+                        >> Build.view UserState.UserStateLoggedOut
+                        >> Query.fromHtml
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-pending.svg"
+                                }
+                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                            )
+                , test "cancelled step has no-entry circle at the right" <|
+                    fetchPlanWithTaskStep
+                        >> flip (,) []
+                        >> Build.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.Initialize
+                                                { source = "stdout"
+                                                , id = "plan"
+                                                }
+                                      }
+                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.BuildStatus
+                                                Concourse.BuildStatusAborted
+                                                (Date.fromTime 0)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Build.view UserState.UserStateLoggedOut
+                        >> Query.fromHtml
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-interrupted.svg"
+                                }
+                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                            )
+                , test "interrupted step has dashed circle with dot at the right" <|
+                    fetchPlanWithTaskStep
+                        >> flip (,) []
+                        >> Build.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.BuildStatus
+                                                Concourse.BuildStatusAborted
+                                                (Date.fromTime 0)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Build.view UserState.UserStateLoggedOut
+                        >> Query.fromHtml
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-cancelled.svg"
+                                }
+                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                            )
                 , test "failing step has an X at the far right" <|
                     fetchPlanWithGetStep
                         >> flip (,) []

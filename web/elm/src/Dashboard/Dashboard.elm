@@ -10,11 +10,8 @@ module Dashboard.Dashboard exposing
 
 import Callback exposing (Callback(..))
 import Char
-import Concourse
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
-import Concourse.User
-import Dashboard.APIData as APIData
 import Dashboard.Details as Details
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
@@ -24,21 +21,19 @@ import Dashboard.Styles as Styles
 import Dashboard.SubState as SubState
 import Dashboard.Text as Text
 import Effects exposing (Effect(..))
-import Html.Styled as Html exposing (Html)
-import Html.Styled.Attributes
+import Html exposing (Html)
+import Html.Attributes
     exposing
         ( attribute
         , class
         , classList
-        , css
         , draggable
         , href
         , id
         , src
         , style
         )
-import Html.Styled.Events exposing (onMouseEnter, onMouseLeave)
-import Http
+import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Monocle.Common exposing ((<|>), (=>))
 import Monocle.Lens
 import Monocle.Optional
@@ -49,7 +44,6 @@ import Routes
 import ScreenSize
 import Simple.Fuzzy exposing (filter, match, root)
 import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
-import Task
 import TopBar.Model
 import TopBar.Msgs
 import TopBar.Styles
@@ -364,7 +358,7 @@ view userState model =
     Html.div []
         [ Html.div
             [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map FromTopBar (TopBar.view userState TopBar.Model.None model)
+            [ Html.map FromTopBar <| TopBar.view userState TopBar.Model.None model
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ dashboardView model
                 ]
@@ -402,7 +396,7 @@ dashboardView model =
                                 , highDensity = model.highDensity
                                 }
                     ]
-                        ++ (List.map Html.fromUnstyled <| Footer.view model)
+                        ++ Footer.view model
     in
     Html.div
         [ classList
@@ -600,11 +594,11 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
                             }
                         )
     in
-    if List.isEmpty groupViews && (not <| String.isEmpty query) then
+    if List.isEmpty groupViews && not (String.isEmpty query) then
         [ noResultsView (toString query) ]
 
     else
-        List.map Html.fromUnstyled groupViews
+        groupViews
 
 
 handleKeyPressed : Char -> ( Footer.Model r, List Effect ) -> ( Footer.Model r, List Effect )
@@ -618,13 +612,6 @@ handleKeyPressed key ( model, effects ) =
 
         _ ->
             ( Footer.showFooter model, effects )
-
-
-remoteUser : APIData.APIData -> Task.Task Http.Error ( APIData.APIData, Maybe Concourse.User )
-remoteUser d =
-    Concourse.User.fetchUser
-        |> Task.map ((,) d << Just)
-        |> Task.onError (always <| Task.succeed <| ( d, Nothing ))
 
 
 filterTerms : String -> List String

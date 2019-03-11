@@ -11,7 +11,7 @@ import Ansi.Log
 import Array exposing (Array)
 import Build.Msgs exposing (Msg(..))
 import Build.Output.Models exposing (OutputModel, OutputState(..))
-import Build.StepTree.Models
+import Build.StepTree.Models as StepTree
     exposing
         ( BuildEvent(..)
         , BuildEventEnvelope
@@ -19,7 +19,7 @@ import Build.StepTree.Models
         , StepTree
         , StepTreeModel
         )
-import Build.StepTree.StepTree as StepTree
+import Build.StepTree.StepTree
 import Build.Styles as Styles
 import Concourse
 import Concourse.BuildStatus
@@ -124,7 +124,7 @@ planAndResourcesFetched buildId result model =
 
         Ok ( plan, resources ) ->
             { model
-                | steps = Just (StepTree.init model.highlight resources plan)
+                | steps = Just (Build.StepTree.StepTree.init model.highlight resources plan)
                 , eventStreamUrlPath = Just url
             }
     , []
@@ -228,24 +228,20 @@ handleEvent event ( model, effects, outmsg ) =
 
         BuildStatus status date ->
             let
-                newSt =
+                ( newSt, newEffects ) =
                     case model.steps of
                         Just st ->
-                            Just
-                                (if not <| Concourse.BuildStatus.isRunning status then
-                                    { st | finished = True }
+                            if not <| Concourse.BuildStatus.isRunning status then
+                                Build.StepTree.StepTree.finished st
+                                    |> Tuple.mapFirst Just
 
-                                 else
-                                    st
-                                )
+                            else
+                                ( Just st, [] )
 
                         Nothing ->
-                            Nothing
+                            ( Nothing, [] )
             in
-            ( { model | steps = newSt }
-            , effects
-            , OutBuildStatus status date
-            )
+            ( { model | steps = newSt }, effects ++ newEffects, OutBuildStatus status date )
 
         BuildError message ->
             ( { model
@@ -358,10 +354,10 @@ viewStepTree build steps state =
             NotAuthorized.view
 
         ( StepsLiveUpdating, Just root ) ->
-            StepTree.view root
+            Build.StepTree.StepTree.view root
 
         ( StepsComplete, Just root ) ->
-            StepTree.view root
+            Build.StepTree.StepTree.view root
 
         ( _, Nothing ) ->
             Html.div [] []
