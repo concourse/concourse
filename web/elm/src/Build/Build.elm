@@ -128,6 +128,7 @@ init flags =
           , teams = topBar.teams
           , screenSize = topBar.screenSize
           , highDensity = topBar.highDensity
+          , fetchingHistory = False
           }
         , topBarEffects ++ [ GetCurrentTime ]
         )
@@ -281,7 +282,7 @@ handleCallbackWithoutTopBar action ( model, effects ) =
 
         BuildHistoryFetched (Err err) ->
             flip always (Debug.log "failed to fetch build history" err) <|
-                ( model, effects )
+                ( { model | fetchingHistory = False }, effects )
 
         BuildHistoryFetched (Ok history) ->
             handleHistoryFetched history ( model, effects )
@@ -345,45 +346,48 @@ handleDelivery delivery ( model, effects ) =
                             effects
                     )
 
-        ElementVisible id isVisible ->
+        ElementVisible ( id, True ) ->
             let
-                lastBuildId =
+                lastBuildVisible =
                     model.history
                         |> List.Extra.last
                         |> Maybe.map .id
                         |> Maybe.map toString
+                        |> Maybe.map ((==) id)
+                        |> Maybe.withDefault False
 
-                currentBuildId =
+                needsToFetchMorePages =
+                    not model.fetchingHistory && lastBuildVisible && model.nextPage /= Nothing
+            in
+            case currentJob model of
+                Just job ->
+                    if needsToFetchMorePages then
+                        ( { model | fetchingHistory = True }, effects ++ [ FetchBuildHistory job model.nextPage ] )
+
+                    else
+                        ( model, effects )
+
+                Nothing ->
+                    ( model, effects )
+
+        ElementVisible ( id, False ) ->
+            let
+                needsToScrollToCurrentBuild =
                     model.currentBuild
                         |> RemoteData.toMaybe
-                        |> Maybe.map .build
-                        |> Maybe.map .id
-
-                newEffects =
-                    case ( isVisible, currentJob model, model.nextPage ) of
-                        ( True, Just job, Just _ ) ->
-                            if lastBuildId == Just id then
-                                effects ++ [ FetchBuildHistory job model.nextPage ]
-
-                            else
-                                effects
-
-                        ( False, _, _ ) ->
-                            case currentBuildId of
-                                Just buildId ->
-                                    if toString buildId == id then
-                                        effects ++ [ Scroll <| ToId id ]
-
-                                    else
-                                        effects
-
-                                Nothing ->
-                                    effects
-
-                        _ ->
-                            effects
+                        |> Maybe.map (.build >> .id >> toString)
+                        |> Maybe.map ((==) id)
+                        |> Maybe.withDefault False
             in
-            ( model, newEffects )
+            ( model
+            , effects
+                ++ (if needsToScrollToCurrentBuild then
+                        [ Scroll <| ToId id ]
+
+                    else
+                        []
+                   )
+            )
 
         _ ->
             ( model, effects )
@@ -678,7 +682,7 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                 else
                     ( withBuild, effects )
         in
-        ( newModel
+        ( { newModel | fetchingHistory = True }
         , cmd
             ++ [ SetFavIcon (Just build.status)
                , SetTitle (extractTitle newModel)
@@ -740,20 +744,19 @@ handleHistoryFetched history ( model, effects ) =
             { model
                 | history = List.append model.history history.content
                 , nextPage = history.pagination.nextPage
+                , fetchingHistory = False
             }
     in
-    ( newModel
-    , case ( currentBuild, currentJob model ) of
+    case ( currentBuild, currentJob model ) of
         ( RemoteData.Success build, Just job ) ->
             if List.member build newModel.history then
-                effects ++ [ CheckIsVisible <| toString build.id ]
+                ( newModel, effects ++ [ CheckIsVisible <| toString build.id ] )
 
             else
-                effects ++ [ FetchBuildHistory job history.pagination.nextPage ]
+                ( { newModel | fetchingHistory = True }, effects ++ [ FetchBuildHistory job history.pagination.nextPage ] )
 
         _ ->
-            effects
-    )
+            ( newModel, effects )
 
 
 handleBuildPrepFetched :

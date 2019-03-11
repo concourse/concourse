@@ -53,7 +53,7 @@ type Delivery
     | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
     | TokenReceived (Maybe String)
     | EventsReceived (Result String (List BuildEventEnvelope))
-    | ElementVisible String Bool
+    | ElementVisible ( String, Bool )
 
 
 type Interval
@@ -100,7 +100,7 @@ runSubscription s =
             tokenReceived TokenReceived
 
         OnElementVisible ->
-            reportIsVisible <| uncurry ElementVisible
+            reportIsVisible ElementVisible
 
 
 intervalToTime : Interval -> Time.Time

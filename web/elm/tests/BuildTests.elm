@@ -739,7 +739,7 @@ all =
                             )
                         >> Tuple.mapSecond (always [])
                         >> Build.handleDelivery
-                            (Subscription.ElementVisible "1" True)
+                            (Subscription.ElementVisible ( "1", True ))
                         >> Tuple.second
                         >> Expect.equal
                             [ Effects.FetchBuildHistory
@@ -749,11 +749,37 @@ all =
                                 }
                                 (Just { direction = Until 1, limit = 100 })
                             ]
+                , test "scrolling to last build while fetching fetches no more" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content = [ theBuild ]
+                                    }
+                                )
+                            )
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (Subscription.ElementVisible ( "1", True ))
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (Subscription.ElementVisible ( "1", True ))
+                        >> Tuple.second
+                        >> Expect.equal []
                 , test "scrolling to absolute last build fetches no more" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.mapSecond (always [])
                         >> Build.handleDelivery
-                            (Subscription.ElementVisible "1" True)
+                            (Subscription.ElementVisible ( "1", True ))
                         >> Tuple.second
                         >> Expect.equal []
                 , test "if build is present in history, fetches no more" <|
@@ -857,7 +883,7 @@ all =
                             )
                         >> Tuple.mapSecond (always [])
                         >> Build.handleDelivery
-                            (Subscription.ElementVisible "1" False)
+                            (Subscription.ElementVisible ( "1", False ))
                         >> Tuple.second
                         >> Expect.equal [ Effects.Scroll <| Effects.ToId "1" ]
                 , test "if build is not present in history, fetches more" <|

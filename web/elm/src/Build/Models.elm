@@ -35,6 +35,7 @@ type alias Model =
         , highlight : Highlight
         , hoveredElement : Maybe Hoverable
         , hoveredCounter : Int
+        , fetchingHistory : Bool
         }
 
 
