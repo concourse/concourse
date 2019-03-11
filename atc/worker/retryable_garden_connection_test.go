@@ -1,6 +1,7 @@
 package worker_test
 
 import (
+	gconn "code.cloudfoundry.org/garden/client/connection"
 	"fmt"
 	"io"
 
@@ -15,7 +16,7 @@ import (
 
 var _ = Describe("Retryable Garden Connection", func() {
 	var innerConnection *connectionfakes.FakeConnection
-	var conn *worker.RetryableConnection
+	var conn gconn.Connection
 
 	BeforeEach(func() {
 		innerConnection = new(connectionfakes.FakeConnection)
