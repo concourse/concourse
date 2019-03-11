@@ -140,6 +140,84 @@ var _ = Describe("Add global resource versions", func() {
 			Expect(buildInputs).To(HaveLen(5))
 			Expect(buildInputs).To(ConsistOf(actualBuildInputs))
 		})
+
+		It("migrates the build outputs into the new build resource config version outputs table", func() {
+			db = postgresRunner.OpenDBAtVersion(preMigrationVersion)
+
+			setup(db)
+			setupResource(db)
+			setupVersionedResources(db)
+			setupBuildOutputs(db)
+			db.Close()
+
+			db = postgresRunner.OpenDBAtVersion(postMigrationVersion)
+
+			rows, err := db.Query(`SELECT build_id, version_md5, resource_id, name FROM build_resource_config_version_outputs`)
+			Expect(err).NotTo(HaveOccurred())
+
+			type buildOutput struct {
+				buildID    int
+				versionMD5 string
+				resourceID int
+				name       string
+			}
+
+			buildOutputs := []buildOutput{}
+			for rows.Next() {
+				bo := buildOutput{}
+
+				err := rows.Scan(&bo.buildID, &bo.versionMD5, &bo.resourceID, &bo.name)
+				Expect(err).NotTo(HaveOccurred())
+
+				buildOutputs = append(buildOutputs, bo)
+			}
+
+			rows, err = db.Query(`SELECT id, md5(version) FROM versioned_resources`)
+			Expect(err).NotTo(HaveOccurred())
+
+			versions := map[int]string{}
+			for rows.Next() {
+				var id int
+				var version string
+
+				err := rows.Scan(&id, &version)
+				Expect(err).NotTo(HaveOccurred())
+
+				versions[id] = version
+			}
+
+			_ = db.Close()
+
+			actualBuildOutputs := []buildOutput{
+				{
+					buildID:    1,
+					versionMD5: versions[2],
+					resourceID: 1,
+					name:       "some-resource",
+				},
+				{
+					buildID:    2,
+					versionMD5: versions[1],
+					resourceID: 1,
+					name:       "some-resource",
+				},
+				{
+					buildID:    3,
+					versionMD5: versions[1],
+					resourceID: 1,
+					name:       "some-resource",
+				},
+				{
+					buildID:    4,
+					versionMD5: versions[4],
+					resourceID: 2,
+					name:       "some-other-resource",
+				},
+			}
+
+			Expect(buildOutputs).To(HaveLen(4))
+			Expect(buildOutputs).To(ConsistOf(actualBuildOutputs))
+		})
 	})
 
 	Context("Down", func() {
@@ -281,7 +359,29 @@ func setupBuilds(db *sql.DB) {
 					(1, 2, 'build_input2'),
 					(2, 1, 'build_input3'),
 					(3, 1, 'build_input4'),
+					(3, 1, 'build_input4'),
 					(4, 4, 'build_input5')
+			`)
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func setupBuildOutputs(db *sql.DB) {
+	_, err := db.Exec(`
+				INSERT INTO builds(id, name, status, job_id, team_id, pipeline_id) VALUES
+					(1, 'build1', 'succeeded', 1, 1, 1),
+					(2, 'build2', 'succeeded', 1, 1, 1),
+					(3, 'build3', 'started', 2, 1, 1),
+					(4, 'build4', 'pending', 4, 1, 2)
+			`)
+	Expect(err).NotTo(HaveOccurred())
+
+	_, err = db.Exec(`
+				INSERT INTO build_outputs(build_id, versioned_resource_id) VALUES
+					(1, 2),
+					(2, 1),
+					(3, 1),
+					(3, 1),
+					(4, 4)
 			`)
 	Expect(err).NotTo(HaveOccurred())
 }

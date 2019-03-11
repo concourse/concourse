@@ -191,7 +191,7 @@ func (self *migrations) Down_1537546150() error {
 		return err
 	}
 
-	_, err = tx.Exec(`CREATE UNIQUE INDEX resource_caches_resource_config_id_version_params_hash_uniq ON resource_caches (resource_config_id, md5(version), params_hash)`)
+	_, err = tx.Exec(`CREATE UNIQUE INDEX resource_caches_resource_config_id_version_params_hash_key ON resource_caches (resource_config_id, md5(version), params_hash)`)
 	if err != nil {
 		tx.Rollback()
 		return err

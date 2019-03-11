@@ -1,7 +1,9 @@
 #!/bin/bash
 # vim: set ft=sh
 
-set -e
+set -e -u
+
+readonly SKIP="${SKIP:-}"
 
 export GOPATH=$PWD/gopath
 export PATH=$GOPATH/bin:$PATH
@@ -12,7 +14,7 @@ if [ ! -f ~/.kube/config ]; then
   echo "$KUBE_CONFIG" > ~/.kube/config
 fi
 
-export CONCOURSE_IMAGE_DIGEST="$(cat dev-image/digest)"
+export CONCOURSE_IMAGE_DIGEST="$(cat concourse-rc-image/digest)"
 export CHARTS_DIR="$(realpath ./charts)"
 
 cd concourse
@@ -21,4 +23,4 @@ go mod download
 
 go install github.com/onsi/ginkgo/ginkgo
 
-ginkgo -nodes=16 -race -keepGoing -slowSpecThreshold=300 -skip="$SKIP" ./topgun/k8s/ "$@"
+ginkgo -nodes=4 -race -keepGoing -slowSpecThreshold=300 -skip="$SKIP" ./topgun/k8s/ "$@"

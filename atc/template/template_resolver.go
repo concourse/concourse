@@ -15,6 +15,9 @@ type TemplateResolver struct {
 	params        []boshtemplate.Variables
 }
 
+// Creates a template resolver, given a configPayload and a slice of param sources. If more than
+// one param source is specified, they will be tried for variable lookup in the provided order.
+// See implementation of boshtemplate.NewMultiVars for details.
 func NewTemplateResolver(configPayload []byte, params []boshtemplate.Variables) TemplateResolver {
 	return TemplateResolver{
 		configPayload: configPayload,
@@ -42,26 +45,19 @@ func (resolver TemplateResolver) Resolve(expectAllKeys bool, allowEmptyInOldStyl
 
 func (resolver TemplateResolver) resolve(expectAllKeys bool) ([]byte, error) {
 	tpl := boshtemplate.NewTemplate(resolver.configPayload)
-
-	vars := []boshtemplate.Variables{}
-	for i := len(resolver.params) - 1; i >= 0; i-- {
-		vars = append(vars, resolver.params[i])
-	}
-
-	bytes, err := tpl.Evaluate(boshtemplate.NewMultiVars(vars), nil, boshtemplate.EvaluateOpts{ExpectAllKeys: expectAllKeys})
-
+	bytes, err := tpl.Evaluate(boshtemplate.NewMultiVars(resolver.params), nil, boshtemplate.EvaluateOpts{ExpectAllKeys: expectAllKeys})
 	if err != nil {
 		return nil, err
 	}
-
 	return bytes, nil
 }
 
 func (resolver TemplateResolver) ResolveDeprecated(allowEmpty bool) ([]byte, error) {
 	vars := boshtemplate.StaticVariables{}
-	for _, variable := range resolver.params {
-		// ideally we should deprecate old-style template parameters and remove this all together
-		if staticVar, ok := variable.(boshtemplate.StaticVariables); ok {
+	// TODO: old-style template parameters require very careful handling and reverse
+	// order processing. we should eventually drop their support
+	for i := len(resolver.params) - 1; i >= 0; i-- {
+		if staticVar, ok := resolver.params[i].(boshtemplate.StaticVariables); ok {
 			for k, v := range staticVar {
 				vars[k] = v
 			}

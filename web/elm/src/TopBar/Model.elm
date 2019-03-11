@@ -12,13 +12,14 @@ import Routes
 import ScreenSize exposing (ScreenSize)
 
 
-type alias Model =
-    { isUserMenuExpanded : Bool
-    , isPinMenuExpanded : Bool
-    , middleSection : MiddleSection
-    , teams : RemoteData.WebData (List Concourse.Team)
-    , screenSize : ScreenSize
-    , highDensity : Bool
+type alias Model r =
+    { r
+        | isUserMenuExpanded : Bool
+        , isPinMenuExpanded : Bool
+        , middleSection : MiddleSection
+        , teams : RemoteData.WebData (List Concourse.Team)
+        , screenSize : ScreenSize
+        , highDensity : Bool
     }
 
 

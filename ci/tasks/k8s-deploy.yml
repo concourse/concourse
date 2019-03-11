@@ -3,7 +3,7 @@ platform: linux
 
 image_resource:
   type: registry-image
-  source: {repository: concourse/k8s-dev}
+  source: {repository: concourse/unit}
 
 params:
   CONCOURSE_IMAGE:
@@ -13,7 +13,6 @@ params:
 inputs:
 - name: charts
 - name: concourse
-- name: endpoint-info
 - name: image-info
 
 run:

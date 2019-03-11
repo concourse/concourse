@@ -782,40 +782,94 @@ var _ = Describe("Sky Server API", func() {
 			Context("bearer token is valid", func() {
 				var expiration int64
 
-				BeforeEach(func() {
-					expiration = time.Now().Add(1 * time.Hour).Unix()
+				Context("using the old token format for teams", func() {
+					BeforeEach(func() {
+						expiration = time.Now().Add(1 * time.Hour).Unix()
 
-					tokenGenerator := token.NewGenerator(signingKey)
-					token, err := tokenGenerator.Generate(map[string]interface{}{
-						"exp":       expiration,
-						"sub":       "some-sub",
-						"user_id":   "some-user-id",
-						"user_name": "some-user-name",
-						"teams":     []string{"some-team"},
-						"csrf":      "some-csrf",
-						"is_admin":  true,
+						tokenGenerator := token.NewGenerator(signingKey)
+						token, err := tokenGenerator.Generate(map[string]interface{}{
+							"exp":       expiration,
+							"sub":       "some-sub",
+							"user_id":   "some-user-id",
+							"user_name": "some-user-name",
+							"teams":     []string{"some-team"},
+							"csrf":      "some-csrf",
+							"email":     "some@email.com",
+							"name":      "Some Name",
+							"is_admin":  true,
+						})
+						Expect(err).NotTo(HaveOccurred())
+
+						reqHeader.Set("Authorization", token.TokenType+" "+token.AccessToken)
 					})
-					Expect(err).NotTo(HaveOccurred())
 
-					reqHeader.Set("Authorization", token.TokenType+" "+token.AccessToken)
+					It("succeeds", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("outputs the claims from the token", func() {
+						var token map[string]interface{}
+						err := json.NewDecoder(response.Body).Decode(&token)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(token["exp"]).To(Equal(float64(expiration)))
+						Expect(token["sub"]).To(Equal("some-sub"))
+						Expect(token["user_id"]).To(Equal("some-user-id"))
+						Expect(token["user_name"]).To(Equal("some-user-name"))
+						Expect(token["csrf"]).To(Equal("some-csrf"))
+						Expect(token["email"]).To(Equal("some@email.com"))
+						Expect(token["name"]).To(Equal("Some Name"))
+						Expect(token["is_admin"]).To(Equal(true))
+
+						By("defaulting any teams to the owner role")
+						Expect(token["teams"]).To(HaveKeyWithValue("some-team", ContainElement("owner")))
+					})
 				})
 
-				It("succeeds", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
+				Context("using the new token format for teams", func() {
+					BeforeEach(func() {
+						expiration = time.Now().Add(1 * time.Hour).Unix()
 
-				It("outputs the claims from the token", func() {
-					var token map[string]interface{}
-					err := json.NewDecoder(response.Body).Decode(&token)
-					Expect(err).NotTo(HaveOccurred())
+						tokenGenerator := token.NewGenerator(signingKey)
+						token, err := tokenGenerator.Generate(map[string]interface{}{
+							"exp":       expiration,
+							"sub":       "some-sub",
+							"user_id":   "some-user-id",
+							"user_name": "some-user-name",
+							"teams": map[string]interface{}{
+								"some-team": []string{"some-role"},
+							},
+							"csrf":     "some-csrf",
+							"email":    "some@email.com",
+							"name":     "Some Name",
+							"is_admin": true,
+						})
+						Expect(err).NotTo(HaveOccurred())
 
-					Expect(token["exp"]).To(Equal(float64(expiration)))
-					Expect(token["sub"]).To(Equal("some-sub"))
-					Expect(token["user_id"]).To(Equal("some-user-id"))
-					Expect(token["user_name"]).To(Equal("some-user-name"))
-					Expect(token["teams"]).To(ContainElement("some-team"))
-					Expect(token["csrf"]).To(Equal("some-csrf"))
-					Expect(token["is_admin"]).To(Equal(true))
+						reqHeader.Set("Authorization", token.TokenType+" "+token.AccessToken)
+					})
+
+					It("succeeds", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("outputs the claims from the token", func() {
+						var token map[string]interface{}
+						err := json.NewDecoder(response.Body).Decode(&token)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(token["exp"]).To(Equal(float64(expiration)))
+						Expect(token["sub"]).To(Equal("some-sub"))
+						Expect(token["user_id"]).To(Equal("some-user-id"))
+						Expect(token["user_name"]).To(Equal("some-user-name"))
+						Expect(token["csrf"]).To(Equal("some-csrf"))
+						Expect(token["email"]).To(Equal("some@email.com"))
+						Expect(token["name"]).To(Equal("Some Name"))
+						Expect(token["is_admin"]).To(Equal(true))
+
+						By("mapping teams to their corresponding role")
+						Expect(token["teams"]).To(HaveKeyWithValue("some-team", ContainElement("some-role")))
+					})
 				})
 			})
 		})
