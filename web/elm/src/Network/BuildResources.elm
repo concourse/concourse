@@ -1,4 +1,4 @@
-module Concourse.BuildResources exposing (empty, fetch)
+module Network.BuildResources exposing (empty, fetch)
 
 import Concourse
 import Http
@@ -14,7 +14,5 @@ empty =
 
 fetch : Concourse.BuildId -> Task Http.Error Concourse.BuildResources
 fetch buildId =
-    Http.toTask
-        << Http.get ("/api/v1/builds/" ++ toString buildId ++ "/resources")
-    <|
-        Concourse.decodeBuildResources
+    Http.toTask <|
+        Http.get ("/api/v1/builds/" ++ toString buildId ++ "/resources") Concourse.decodeBuildResources

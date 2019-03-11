@@ -1,4 +1,4 @@
-module Concourse.User exposing (fetchUser, logOut)
+module Network.User exposing (fetchUser, logOut)
 
 import Concourse
 import Http

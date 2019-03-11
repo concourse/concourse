@@ -21,8 +21,8 @@ import Http
 import Job.Job as Job exposing (update)
 import Job.Msgs exposing (Msg(..))
 import RemoteData
-import Routes
 import SubPage.Msgs
+import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
@@ -34,6 +34,7 @@ import Test.Html.Selector as Selector
         , style
         , text
         )
+import Time
 
 
 all : Test
@@ -45,6 +46,12 @@ all =
                     { jobName = "some-job"
                     , pipelineName = "some-pipeline"
                     , teamName = "some-team"
+                    }
+
+                jobInfo =
+                    { jobName = "job"
+                    , pipelineName = "pipeline"
+                    , teamName = "team"
                     }
 
                 someBuild : Build
@@ -84,9 +91,12 @@ all =
                     Job.init
                         { jobId = someJobInfo
                         , paging = Nothing
-                        , csrfToken = ""
                         }
                         |> Tuple.first
+
+                csrfToken : String
+                csrfToken =
+                    "csrf_token"
 
                 init :
                     { disabled : Bool, paused : Bool }
@@ -96,7 +106,7 @@ all =
                     Application.init
                         { turbulenceImgSrc = ""
                         , notFoundImgSrc = ""
-                        , csrfToken = ""
+                        , csrfToken = csrfToken
                         , authToken = ""
                         , pipelineRunningKeyframes = ""
                         }
@@ -873,7 +883,7 @@ all =
                                             }
                                         }
                                 )
-                                defaultModel
+                                ( defaultModel, [] )
             , test "JobBuildsFetched error" <|
                 \_ ->
                     Expect.equal
@@ -882,7 +892,7 @@ all =
                         Tuple.first <|
                             Job.handleCallback
                                 (JobBuildsFetched <| Err Http.NetworkError)
-                                defaultModel
+                                ( defaultModel, [] )
             , test "JobFetched" <|
                 \_ ->
                     Expect.equal
@@ -891,7 +901,7 @@ all =
                         }
                     <|
                         Tuple.first <|
-                            Job.handleCallback (JobFetched <| Ok someJob) defaultModel
+                            Job.handleCallback (JobFetched <| Ok someJob) ( defaultModel, [] )
             , test "JobFetched error" <|
                 \_ ->
                     Expect.equal
@@ -900,7 +910,7 @@ all =
                         Tuple.first <|
                             Job.handleCallback
                                 (JobFetched <| Err Http.NetworkError)
-                                defaultModel
+                                ( defaultModel, [] )
             , test "BuildResourcesFetched" <|
                 \_ ->
                     let
@@ -926,7 +936,7 @@ all =
                     <|
                         Tuple.first <|
                             Job.handleCallback (BuildResourcesFetched (Ok ( 1, buildResources )))
-                                defaultModel
+                                ( defaultModel, [] )
             , test "BuildResourcesFetched error" <|
                 \_ ->
                     Expect.equal
@@ -935,7 +945,7 @@ all =
                         Tuple.first <|
                             Job.handleCallback
                                 (BuildResourcesFetched (Err Http.NetworkError))
-                                defaultModel
+                                ( defaultModel, [] )
             , test "TogglePaused" <|
                 \_ ->
                     Expect.equal
@@ -947,7 +957,7 @@ all =
                         Tuple.first <|
                             update
                                 TogglePaused
-                                { defaultModel | job = RemoteData.Success someJob }
+                                ( { defaultModel | job = RemoteData.Success someJob }, [] )
             , test "PausedToggled" <|
                 \_ ->
                     Expect.equal
@@ -959,7 +969,7 @@ all =
                         Tuple.first <|
                             Job.handleCallback
                                 (PausedToggled <| Ok ())
-                                { defaultModel | job = RemoteData.Success someJob }
+                                ( { defaultModel | job = RemoteData.Success someJob }, [] )
             , test "PausedToggled error" <|
                 \_ ->
                     Expect.equal
@@ -968,7 +978,7 @@ all =
                         Tuple.first <|
                             Job.handleCallback
                                 (PausedToggled <| Err Http.NetworkError)
-                                { defaultModel | job = RemoteData.Success someJob }
+                                ( { defaultModel | job = RemoteData.Success someJob }, [] )
             , test "PausedToggled unauthorized" <|
                 \_ ->
                     Expect.equal
@@ -988,6 +998,44 @@ all =
                                             , body = ""
                                             }
                                 )
-                                { defaultModel | job = RemoteData.Success someJob }
+                                ( { defaultModel | job = RemoteData.Success someJob }, [] )
+            , test "page is subscribed to one and five second timers" <|
+                init { disabled = False, paused = False }
+                    >> Application.subscriptions
+                    >> Expect.all
+                        [ List.member (Subscription.OnClockTick OneSecond) >> Expect.true "not on one second?"
+                        , List.member (Subscription.OnClockTick FiveSeconds) >> Expect.true "not on five seconds?"
+                        ]
+            , test "on five-second timer, refreshes job and builds" <|
+                init { disabled = False, paused = False }
+                    >> Application.update (Msgs.DeliveryReceived <| ClockTicked FiveSeconds 0)
+                    >> Tuple.second
+                    >> Expect.equal
+                        [ ( Effects.SubPage 1, csrfToken, Effects.FetchJobBuilds jobInfo Nothing )
+                        , ( Effects.SubPage 1, csrfToken, Effects.FetchJob jobInfo )
+                        ]
+            , test "on one-second timer, updates build timestamps" <|
+                init { disabled = False, paused = False }
+                    >> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.JobBuildsFetched <|
+                            Ok
+                                { content = [ someBuild ]
+                                , pagination =
+                                    { nextPage = Nothing
+                                    , previousPage = Nothing
+                                    }
+                                }
+                        )
+                    >> Tuple.first
+                    >> Application.update
+                        (Msgs.DeliveryReceived <|
+                            ClockTicked OneSecond (2 * Time.second)
+                        )
+                    >> Tuple.first
+                    >> Application.view
+                    >> Query.fromHtml
+                    >> Query.find [ class "js-build" ]
+                    >> Query.has [ text "2s ago" ]
             ]
         ]

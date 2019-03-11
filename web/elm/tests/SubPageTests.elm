@@ -6,6 +6,7 @@ import Dict exposing (Dict)
 import Effects
 import Expect
 import Http
+import NotFound.Model
 import RemoteData
 import Routes
 import ScreenSize
@@ -62,19 +63,17 @@ all =
                     >> .subModel
                     >> Expect.equal
                         (NotFoundModel
-                            { notFoundImgSrc = "notfound.svg"
-                            , topBar =
-                                topBar
-                                    (Routes.Job
-                                        { id =
-                                            { teamName = "t"
-                                            , pipelineName = "p"
-                                            , jobName = "j"
-                                            }
-                                        , page = Nothing
+                            (notFound
+                                (Routes.Job
+                                    { id =
+                                        { teamName = "t"
+                                        , pipelineName = "p"
+                                        , jobName = "j"
                                         }
-                                    )
-                            }
+                                    , page = Nothing
+                                    }
+                                )
+                            )
                         )
             , test "Resource not found" <|
                 init "/teams/t/pipelines/p/resources/r"
@@ -85,19 +84,17 @@ all =
                     >> .subModel
                     >> Expect.equal
                         (NotFoundModel
-                            { notFoundImgSrc = "notfound.svg"
-                            , topBar =
-                                topBar
-                                    (Routes.Resource
-                                        { id =
-                                            { teamName = "t"
-                                            , pipelineName = "p"
-                                            , resourceName = "r"
-                                            }
-                                        , page = Nothing
+                            (notFound
+                                (Routes.Resource
+                                    { id =
+                                        { teamName = "t"
+                                        , pipelineName = "p"
+                                        , resourceName = "r"
                                         }
-                                    )
-                            }
+                                    , page = Nothing
+                                    }
+                                )
+                            )
                         )
             , test "Build not found" <|
                 init "/builds/1"
@@ -108,15 +105,13 @@ all =
                     >> .subModel
                     >> Expect.equal
                         (NotFoundModel
-                            { notFoundImgSrc = "notfound.svg"
-                            , topBar =
-                                topBar
-                                    (Routes.OneOffBuild
-                                        { id = 1
-                                        , highlight = Routes.HighlightNothing
-                                        }
-                                    )
-                            }
+                            (notFound
+                                (Routes.OneOffBuild
+                                    { id = 1
+                                    , highlight = Routes.HighlightNothing
+                                    }
+                                )
+                            )
                         )
             , test "Pipeline not found" <|
                 init "/teams/t/pipelines/p"
@@ -127,26 +122,25 @@ all =
                     >> .subModel
                     >> Expect.equal
                         (NotFoundModel
-                            { notFoundImgSrc = "notfound.svg"
-                            , topBar =
-                                topBar
-                                    (Routes.Pipeline
-                                        { id =
-                                            { teamName = "t"
-                                            , pipelineName = "p"
-                                            }
-                                        , groups = []
+                            (notFound
+                                (Routes.Pipeline
+                                    { id =
+                                        { teamName = "t"
+                                        , pipelineName = "p"
                                         }
-                                    )
-                            }
+                                    , groups = []
+                                    }
+                                )
+                            )
                         )
             ]
         ]
 
 
-topBar : Routes.Route -> TopBar.Model.Model
-topBar route =
-    { isUserMenuExpanded = False
+notFound : Routes.Route -> NotFound.Model.Model
+notFound route =
+    { notFoundImgSrc = "notfound.svg"
+    , isUserMenuExpanded = False
     , middleSection = TopBar.Model.Breadcrumbs route
     , teams = RemoteData.Loading
     , screenSize = ScreenSize.Desktop

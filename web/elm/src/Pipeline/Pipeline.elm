@@ -4,6 +4,7 @@ module Pipeline.Pipeline exposing
     , changeToPipelineAndGroups
     , getUpdateMessage
     , handleCallback
+    , handleDelivery
     , init
     , subscriptions
     , update
@@ -35,7 +36,7 @@ import Pipeline.Styles as Styles
 import RemoteData exposing (..)
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
-import Subscription exposing (Subscription(..))
+import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
 import Time exposing (Time)
@@ -47,20 +48,20 @@ import UserState exposing (UserState)
 
 
 type alias Model =
-    { pipelineLocator : Concourse.PipelineIdentifier
-    , pipeline : WebData Concourse.Pipeline
-    , fetchedJobs : Maybe Json.Encode.Value
-    , fetchedResources : Maybe Json.Encode.Value
-    , renderedJobs : Maybe Json.Encode.Value
-    , renderedResources : Maybe Json.Encode.Value
-    , concourseVersion : String
-    , turbulenceImgSrc : String
-    , experiencingTurbulence : Bool
-    , selectedGroups : List String
-    , hideLegend : Bool
-    , hideLegendCounter : Time
-    , topBar : TopBar.Model.Model
-    }
+    TopBar.Model.Model
+        { pipelineLocator : Concourse.PipelineIdentifier
+        , pipeline : WebData Concourse.Pipeline
+        , fetchedJobs : Maybe Json.Encode.Value
+        , fetchedResources : Maybe Json.Encode.Value
+        , renderedJobs : Maybe Json.Encode.Value
+        , renderedResources : Maybe Json.Encode.Value
+        , concourseVersion : String
+        , turbulenceImgSrc : String
+        , experiencingTurbulence : Bool
+        , selectedGroups : List String
+        , hideLegend : Bool
+        , hideLegendCounter : Time
+        }
 
 
 type alias Flags =
@@ -89,7 +90,12 @@ init flags =
             , hideLegend = False
             , hideLegendCounter = 0
             , selectedGroups = flags.selectedGroups
-            , topBar = topBar
+            , isUserMenuExpanded = topBar.isUserMenuExpanded
+            , isPinMenuExpanded = topBar.isPinMenuExpanded
+            , middleSection = topBar.middleSection
+            , teams = topBar.teams
+            , screenSize = topBar.screenSize
+            , highDensity = topBar.highDensity
             }
     in
     ( model, [ FetchPipeline flags.pipelineLocator, FetchVersion, ResetPipelineFocus ] ++ topBarEffects )
@@ -100,7 +106,7 @@ changeToPipelineAndGroups flags model =
     if model.pipelineLocator == flags.pipelineLocator then
         let
             ( newModel, effects ) =
-                renderIfNeeded { model | selectedGroups = flags.selectedGroups }
+                renderIfNeeded ( { model | selectedGroups = flags.selectedGroups }, [] )
         in
         ( newModel, effects ++ [ ResetPipelineFocus ] )
 
@@ -135,22 +141,13 @@ getUpdateMessage model =
             UpdateMsg.AOK
 
 
-handleCallback : Callback -> Model -> ( Model, List Effect )
-handleCallback msg model =
-    let
-        ( newTopBar, topBarEffects ) =
-            TopBar.handleCallback msg model.topBar
-
-        ( newModel, pipelineEffects ) =
-            handleCallbackWithoutTopBar msg model
-    in
-    ( { newModel | topBar = newTopBar }
-    , topBarEffects ++ pipelineEffects
-    )
+handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallback msg =
+    TopBar.handleCallback msg >> handleCallbackWithoutTopBar msg
 
 
-handleCallbackWithoutTopBar : Callback -> Model -> ( Model, List Effect )
-handleCallbackWithoutTopBar callback model =
+handleCallbackWithoutTopBar : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackWithoutTopBar callback ( model, effects ) =
     let
         redirectToLoginIfUnauthenticated status =
             if status.code == 401 then
@@ -162,100 +159,106 @@ handleCallbackWithoutTopBar callback model =
     case callback of
         PipelineFetched (Ok pipeline) ->
             ( { model | pipeline = RemoteData.Success pipeline }
-            , [ FetchJobs model.pipelineLocator
-              , FetchResources model.pipelineLocator
-              , SetTitle <| pipeline.name ++ " - "
-              ]
+            , effects
+                ++ [ FetchJobs model.pipelineLocator
+                   , FetchResources model.pipelineLocator
+                   , SetTitle <| pipeline.name ++ " - "
+                   ]
             )
 
         PipelineFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
-                        ( { model | pipeline = RemoteData.Failure err }, [] )
+                        ( { model | pipeline = RemoteData.Failure err }, effects )
 
                     else
-                        ( model, redirectToLoginIfUnauthenticated status )
+                        ( model, effects ++ redirectToLoginIfUnauthenticated status )
 
                 _ ->
-                    renderIfNeeded { model | experiencingTurbulence = True }
+                    renderIfNeeded ( { model | experiencingTurbulence = True }, effects )
 
         JobsFetched (Ok fetchedJobs) ->
-            renderIfNeeded { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False }
+            renderIfNeeded ( { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False }, effects )
 
         JobsFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
-                    ( model, redirectToLoginIfUnauthenticated status )
+                    ( model, effects ++ redirectToLoginIfUnauthenticated status )
 
                 _ ->
-                    renderIfNeeded { model | fetchedJobs = Nothing, experiencingTurbulence = True }
+                    renderIfNeeded ( { model | fetchedJobs = Nothing, experiencingTurbulence = True }, effects )
 
         ResourcesFetched (Ok fetchedResources) ->
-            renderIfNeeded { model | fetchedResources = Just fetchedResources, experiencingTurbulence = False }
+            renderIfNeeded ( { model | fetchedResources = Just fetchedResources, experiencingTurbulence = False }, effects )
 
         ResourcesFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
-                    ( model, redirectToLoginIfUnauthenticated status )
+                    ( model, effects ++ redirectToLoginIfUnauthenticated status )
 
                 _ ->
-                    renderIfNeeded { model | fetchedResources = Nothing, experiencingTurbulence = True }
+                    renderIfNeeded ( { model | fetchedResources = Nothing, experiencingTurbulence = True }, effects )
 
         VersionFetched (Ok version) ->
-            ( { model | concourseVersion = version, experiencingTurbulence = False }, [] )
+            ( { model | concourseVersion = version, experiencingTurbulence = False }, effects )
 
         VersionFetched (Err err) ->
             flip always (Debug.log "failed to fetch version" err) <|
-                ( { model | experiencingTurbulence = True }, [] )
+                ( { model | experiencingTurbulence = True }, effects )
 
         _ ->
-            ( model, [] )
+            ( model, effects )
 
 
-update : Msg -> Model -> ( Model, List Effect )
-update msg model =
-    case msg of
-        HideLegendTimerTicked _ ->
+handleDelivery : Delivery -> ( Model, List Effect ) -> ( Model, List Effect )
+handleDelivery delivery ( model, effects ) =
+    case delivery of
+        KeyDown keycode ->
+            ( { model | hideLegend = False, hideLegendCounter = 0 }
+            , if (Char.fromCode keycode |> Char.toLower) == 'f' then
+                effects ++ [ ResetPipelineFocus ]
+
+              else
+                effects
+            )
+
+        Moused ->
+            ( { model | hideLegend = False, hideLegendCounter = 0 }, effects )
+
+        ClockTicked OneSecond _ ->
             if model.hideLegendCounter + timeUntilHiddenCheckInterval > timeUntilHidden then
-                ( { model | hideLegend = True }, [] )
+                ( { model | hideLegend = True }, effects )
 
             else
                 ( { model | hideLegendCounter = model.hideLegendCounter + timeUntilHiddenCheckInterval }
-                , []
+                , effects
                 )
 
-        ShowLegend ->
-            ( { model | hideLegend = False, hideLegendCounter = 0 }, [] )
+        ClockTicked FiveSeconds _ ->
+            ( model, effects ++ [ FetchPipeline model.pipelineLocator ] )
 
-        KeyPressed keycode ->
-            if (Char.fromCode keycode |> Char.toLower) == 'f' then
-                ( model, [ ResetPipelineFocus ] )
+        ClockTicked OneMinute _ ->
+            ( model, effects ++ [ FetchVersion ] )
 
-            else
-                ( model, [] )
+        _ ->
+            ( model, effects )
 
-        AutoupdateTimerTicked timestamp ->
-            ( model, [ FetchPipeline model.pipelineLocator ] )
 
+update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
+update msg ( model, effects ) =
+    case msg of
         PipelineIdentifierFetched pipelineIdentifier ->
-            ( model, [ FetchPipeline pipelineIdentifier ] )
-
-        AutoupdateVersionTicked _ ->
-            ( model, [ FetchVersion ] )
+            ( model, effects ++ [ FetchPipeline pipelineIdentifier ] )
 
         ToggleGroup group ->
-            ( model, [ NavigateTo <| getNextUrl (toggleGroup group model.selectedGroups model.pipeline) model ] )
+            ( model, effects ++ [ NavigateTo <| getNextUrl (toggleGroup group model.selectedGroups model.pipeline) model ] )
 
         SetGroups groups ->
-            ( model, [ NavigateTo <| getNextUrl groups model ] )
+            ( model, effects ++ [ NavigateTo <| getNextUrl groups model ] )
 
         FromTopBar msg ->
-            let
-                ( newTopBar, topBarEffects ) =
-                    TopBar.update msg model.topBar
-            in
-            ( { model | topBar = newTopBar }, topBarEffects )
+            TopBar.update msg ( model, effects )
 
 
 getPinnedResources : Model -> List ( String, Concourse.Version )
@@ -270,15 +273,13 @@ getPinnedResources model =
                 |> List.filterMap (\r -> Maybe.map (\v -> ( r.name, v )) r.pinnedVersion)
 
 
-subscriptions : Model -> List (Subscription Msg)
+subscriptions : Model -> List Subscription
 subscriptions model =
-    [ OnClockTick (1 * Time.minute) AutoupdateVersionTicked
-    , OnClockTick (5 * Time.second) AutoupdateTimerTicked
-    , OnClockTick timeUntilHiddenCheckInterval HideLegendTimerTicked
-    , OnMouseMove ShowLegend
-    , OnMouseClick ShowLegend
-    , OnKeyPress (\_ -> ShowLegend)
-    , OnKeyPress KeyPressed
+    [ OnClockTick OneMinute
+    , OnClockTick FiveSeconds
+    , OnClockTick OneSecond
+    , OnMouse
+    , OnKeyDown
     ]
 
 
@@ -295,7 +296,7 @@ view userState model =
     Html.div [ Html.Attributes.style [ ( "height", "100%" ) ] ]
         [ Html.div
             [ Html.Attributes.style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map FromTopBar <| TopBar.view userState pipelineState model.topBar
+            [ Html.map FromTopBar <| TopBar.view userState pipelineState model
             , Html.div
                 [ Html.Attributes.style TopBar.Styles.pipelinePageBelowTopBar
                 , id "page-below-top-bar"
@@ -331,34 +332,33 @@ viewSubPage model =
                     , Html.p [ class "explanation" ] []
                     ]
                 ]
-            , Html.dl
-                [ if model.hideLegend then
-                    class "legend hidden"
+            , if model.hideLegend then
+                Html.text ""
 
-                  else
-                    class "legend"
-                ]
-                [ Html.dt [ class "succeeded" ] []
-                , Html.dd [] [ Html.text "succeeded" ]
-                , Html.dt [ class "errored" ] []
-                , Html.dd [] [ Html.text "errored" ]
-                , Html.dt [ class "aborted" ] []
-                , Html.dd [] [ Html.text "aborted" ]
-                , Html.dt [ class "paused" ] []
-                , Html.dd [] [ Html.text "paused" ]
-                , Html.dt [ Html.Attributes.style [ ( "background-color", Colors.pinned ) ] ] []
-                , Html.dd [] [ Html.text "pinned" ]
-                , Html.dt [ class "failed" ] []
-                , Html.dd [] [ Html.text "failed" ]
-                , Html.dt [ class "pending" ] []
-                , Html.dd [] [ Html.text "pending" ]
-                , Html.dt [ class "started" ] []
-                , Html.dd [] [ Html.text "started" ]
-                , Html.dt [ class "dotted" ] [ Html.text "." ]
-                , Html.dd [] [ Html.text "dependency" ]
-                , Html.dt [ class "solid" ] [ Html.text "-" ]
-                , Html.dd [] [ Html.text "dependency (trigger)" ]
-                ]
+              else
+                Html.dl
+                    [ id "legend", class "legend" ]
+                    [ Html.dt [ class "succeeded" ] []
+                    , Html.dd [] [ Html.text "succeeded" ]
+                    , Html.dt [ class "errored" ] []
+                    , Html.dd [] [ Html.text "errored" ]
+                    , Html.dt [ class "aborted" ] []
+                    , Html.dd [] [ Html.text "aborted" ]
+                    , Html.dt [ class "paused" ] []
+                    , Html.dd [] [ Html.text "paused" ]
+                    , Html.dt [ Html.Attributes.style [ ( "background-color", Colors.pinned ) ] ] []
+                    , Html.dd [] [ Html.text "pinned" ]
+                    , Html.dt [ class "failed" ] []
+                    , Html.dd [] [ Html.text "failed" ]
+                    , Html.dt [ class "pending" ] []
+                    , Html.dd [] [ Html.text "pending" ]
+                    , Html.dt [ class "started" ] []
+                    , Html.dd [] [ Html.text "started" ]
+                    , Html.dt [ class "dotted" ] [ Html.text "." ]
+                    , Html.dd [] [ Html.text "dependency" ]
+                    , Html.dt [ class "solid" ] [ Html.text "-" ]
+                    , Html.dd [] [ Html.text "dependency (trigger)" ]
+                    ]
             , Html.table [ class "lower-right-info" ]
                 [ Html.tr []
                     [ Html.td [ class "label" ] [ Html.text "cli:" ]
@@ -496,8 +496,8 @@ activeGroups model =
             groups
 
 
-renderIfNeeded : Model -> ( Model, List Effect )
-renderIfNeeded model =
+renderIfNeeded : ( Model, List Effect ) -> ( Model, List Effect )
+renderIfNeeded ( model, effects ) =
     case ( model.fetchedResources, model.fetchedJobs ) of
         ( Just fetchedResources, Just fetchedJobs ) ->
             let
@@ -518,22 +518,22 @@ renderIfNeeded model =
                             | renderedJobs = Just filteredFetchedJobs
                             , renderedResources = Just fetchedResources
                           }
-                        , [ RenderPipeline filteredFetchedJobs fetchedResources ]
+                        , effects ++ [ RenderPipeline filteredFetchedJobs fetchedResources ]
                         )
 
                     else
-                        ( model, [] )
+                        ( model, effects )
 
                 _ ->
                     ( { model
                         | renderedJobs = Just filteredFetchedJobs
                         , renderedResources = Just fetchedResources
                       }
-                    , [ RenderPipeline filteredFetchedJobs fetchedResources ]
+                    , effects ++ [ RenderPipeline filteredFetchedJobs fetchedResources ]
                     )
 
         _ ->
-            ( model, [] )
+            ( model, effects )
 
 
 anyIntersect : List a -> List a -> Bool

@@ -1,6 +1,7 @@
-module Concourse.Pipeline exposing (fetchPipeline, fetchPipelines, order, pause, unpause)
+module Network.Pipeline exposing (fetchPipeline, fetchPipelines, order, togglePause)
 
 import Concourse
+import Concourse.PipelineStatus
 import Http
 import Json.Decode
 import Json.Encode
@@ -37,14 +38,18 @@ fetchPipelines =
             (Json.Decode.list Concourse.decodePipeline)
 
 
-pause : String -> String -> Concourse.CSRFToken -> Task Http.Error ()
-pause =
-    putAction "pause"
+togglePause :
+    Concourse.PipelineStatus.PipelineStatus
+    -> String
+    -> String
+    -> Concourse.CSRFToken
+    -> Task Http.Error ()
+togglePause status =
+    if status == Concourse.PipelineStatus.PipelineStatusPaused then
+        putAction "unpause"
 
-
-unpause : String -> String -> Concourse.CSRFToken -> Task Http.Error ()
-unpause =
-    putAction "unpause"
+    else
+        putAction "pause"
 
 
 putAction : String -> String -> String -> Concourse.CSRFToken -> Task Http.Error ()

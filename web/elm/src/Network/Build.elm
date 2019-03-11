@@ -1,8 +1,9 @@
-module Concourse.Build exposing (abort, fetch, fetchJobBuild, fetchJobBuilds)
+module Network.Build exposing (abort, fetch, fetchJobBuild, fetchJobBuilds)
 
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Http
+import Network.Pagination
 import Task exposing (Task)
 
 
@@ -40,4 +41,4 @@ fetchJobBuilds job page =
         url =
             "/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName ++ "/builds"
     in
-    Concourse.Pagination.fetch Concourse.decodeBuild url page
+    Network.Pagination.fetch Concourse.decodeBuild url page
