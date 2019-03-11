@@ -12,7 +12,7 @@ import FlySuccess.Models
         ( ButtonState(..)
         , Model
         , TokenTransfer
-        , TransferResult
+        , TransferFailure(..)
         , hover
         , isClicked
         , isPending
@@ -24,6 +24,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Html.Styled as HS
+import RemoteData
 import Routes
 import TopBar.Model
 import TopBar.Styles
@@ -42,10 +43,10 @@ init { authToken, flyPort } =
       , tokenTransfer =
             case flyPort of
                 Just _ ->
-                    Nothing
+                    RemoteData.Loading
 
                 Nothing ->
-                    Just <| Err ()
+                    RemoteData.Failure NoFlyPort
       , isUserMenuExpanded = topBar.isUserMenuExpanded
       , isPinMenuExpanded = topBar.isPinMenuExpanded
       , middleSection = topBar.middleSection
@@ -67,8 +68,11 @@ init { authToken, flyPort } =
 handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
 handleCallback msg ( model, effects ) =
     case msg of
-        TokenSentToFly success ->
-            ( { model | tokenTransfer = Just <| Ok success }, effects )
+        TokenSentToFly (Ok ()) ->
+            ( { model | tokenTransfer = RemoteData.Success () }, effects )
+
+        TokenSentToFly (Err err) ->
+            ( { model | tokenTransfer = RemoteData.Failure (NetworkTrouble err) }, effects )
 
         _ ->
             TopBar.handleCallback msg ( model, effects )
@@ -126,25 +130,41 @@ body model =
             List.filter Tuple.second >> List.map Tuple.first
     in
     case model.tokenTransfer of
-        Nothing ->
+        RemoteData.Loading ->
             [ Html.text Text.pending ]
 
-        Just result ->
-            let
-                success =
-                    result == Ok True
-            in
+        RemoteData.NotAsked ->
+            [ Html.text Text.pending ]
+
+        RemoteData.Success () ->
             elemList
                 [ ( paragraph
                         { identifier = "first-paragraph"
-                        , lines = Text.firstParagraph success
+                        , lines = Text.firstParagraphSuccess
                         }
                   , True
                   )
-                , ( button model, not success )
+                , ( button model, False )
                 , ( paragraph
                         { identifier = "second-paragraph"
-                        , lines = Text.secondParagraph result
+                        , lines = Text.secondParagraphSuccess
+                        }
+                  , True
+                  )
+                ]
+
+        RemoteData.Failure err ->
+            elemList
+                [ ( paragraph
+                        { identifier = "first-paragraph"
+                        , lines = Text.firstParagraphFailure
+                        }
+                  , True
+                  )
+                , ( button model, True )
+                , ( paragraph
+                        { identifier = "second-paragraph"
+                        , lines = Text.secondParagraphFailure err
                         }
                   , True
                   )

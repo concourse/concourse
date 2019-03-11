@@ -18,7 +18,6 @@ import Char
 import Concourse
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus
-import Dashboard.APIData as APIData
 import Dashboard.Dashboard as Dashboard
 import Dashboard.Group as Group
 import Dashboard.Msgs as Msgs
@@ -2934,7 +2933,7 @@ queryView =
 
 
 givenDataAndUser :
-    (Maybe Concourse.User -> APIData.APIData)
+    (Maybe Concourse.User -> Concourse.APIData)
     -> Concourse.User
     -> ( Dashboard.Model, List Effects.Effect )
     -> ( Dashboard.Model, List Effects.Effect )
@@ -2955,7 +2954,7 @@ userWithRoles roles =
 
 
 givenDataUnauthenticatedFromApplication :
-    (Maybe Concourse.User -> APIData.APIData)
+    (Maybe Concourse.User -> Concourse.APIData)
     -> Application.Model
     -> Application.Model
 givenDataUnauthenticatedFromApplication data =
@@ -2966,7 +2965,7 @@ givenDataUnauthenticatedFromApplication data =
 
 
 givenDataUnauthenticated :
-    (Maybe Concourse.User -> APIData.APIData)
+    (Maybe Concourse.User -> Concourse.APIData)
     -> ( Dashboard.Model, List Effects.Effect )
     -> ( Dashboard.Model, List Effects.Effect )
 givenDataUnauthenticated data =
@@ -2974,7 +2973,7 @@ givenDataUnauthenticated data =
         (Callback.APIDataFetched <| Ok ( 0, data Nothing ))
 
 
-givenPipelineWithJob : Maybe Concourse.User -> APIData.APIData
+givenPipelineWithJob : Maybe Concourse.User -> Concourse.APIData
 givenPipelineWithJob user =
     { teams = []
     , pipelines =
@@ -3018,7 +3017,7 @@ givenPipelineWithJob user =
     }
 
 
-oneTeamOnePipelinePaused : String -> Maybe Concourse.User -> APIData.APIData
+oneTeamOnePipelinePaused : String -> Maybe Concourse.User -> Concourse.APIData
 oneTeamOnePipelinePaused teamName user =
     { teams = [ { id = 0, name = teamName } ]
     , pipelines =
@@ -3037,7 +3036,7 @@ oneTeamOnePipelinePaused teamName user =
     }
 
 
-oneTeamOnePipelineNonPublic : String -> Maybe Concourse.User -> APIData.APIData
+oneTeamOnePipelineNonPublic : String -> Maybe Concourse.User -> Concourse.APIData
 oneTeamOnePipelineNonPublic teamName user =
     { teams = [ { id = 0, name = teamName } ]
     , pipelines =
@@ -3056,7 +3055,7 @@ oneTeamOnePipelineNonPublic teamName user =
     }
 
 
-oneTeamOnePipeline : String -> Maybe Concourse.User -> APIData.APIData
+oneTeamOnePipeline : String -> Maybe Concourse.User -> Concourse.APIData
 oneTeamOnePipeline teamName =
     apiData [ ( teamName, [ "pipeline" ] ) ]
 
@@ -3083,7 +3082,7 @@ onePipelinePaused teamName =
     }
 
 
-apiData : List ( String, List String ) -> Maybe Concourse.User -> APIData.APIData
+apiData : List ( String, List String ) -> Maybe Concourse.User -> Concourse.APIData
 apiData pipelines user =
     { teams = pipelines |> List.map Tuple.first |> List.indexedMap Concourse.Team
     , pipelines =
