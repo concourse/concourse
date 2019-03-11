@@ -93,11 +93,16 @@ p:last-child, pre:last-child {
   margin-bottom: 0;
 }
 
-li p:last-child,
-dd p:last-child {
+li, dd {
   margin-bottom: 1em;
 }
 
+li:last-child,
+dd:last-child {
+  margin-bottom: 0;
+}
+
+dt code,
 p code {
   font-size: .9em;
 }
@@ -348,6 +353,14 @@ h2, h3 {
 
 .toc, .toc ol {
   list-style: none;
+}
+
+.page-content ul,
+.page-content ol,
+.page-content dl {
+  padding-left: 30px;
+  margin-top: 1.6em;
+  margin-bottom: 1.6em;
 }
 
 .page-content code {
