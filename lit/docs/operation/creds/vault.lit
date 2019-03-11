@@ -92,12 +92,48 @@ quite involved.
   \title{Authenticating with Vault}
 
   There are many ways to authenticate with a Vault server. The \code{web-node}
-  can be configured with an arbitrary auth backend and arbitrary auth params,
-  so just about all of them should be configurable.
+  can be configured with either a token or an arbitrary auth backend and
+  arbitrary auth params, so just about all of them should be configurable.
 
-  The two most common auth backends for Concourse with Vault are
-  \reference{vault-approle-auth}{\code{approle}} and
-  \reference{vault-cert-auth}{\code{cert}}.
+  When the \code{web} node acquires a token, either by logging in with an auth
+  backend or by being given one directly, it will continuously renew the token
+  to ensure it doesn't expire. The renewal interval is half of the token's
+  lease duration.
+
+  \section{
+    \title{Using a periodic token}{vault-periodic-token}
+
+    The simplest way to authenticate is by generating a periodic token:
+
+    \codeblock{bash}{{{
+    $ vault token create --policy concourse --period 1h
+    Key                Value
+    ---                -----
+    token              s.mSNnbhGAqxK2ZbMasOQ91rIA
+    token_accessor     0qsib5YcYvROm86cT08IFxIT
+    token_duration     1h
+    token_renewable    true
+    token_policies     [concourse default]
+    }}}
+
+    \warn{
+      Choose your \code{--period} wisely, as the timer starts counting down as
+      soon as the token is created. You should also use a duration long enough
+      to account for any planned \code{web} node downtime.
+    }
+
+    Once you have the token, just set the following env on the \code{web} node:
+
+    \codeblock{bash}{{{
+    CONCOURSE_VAULT_CLIENT_TOKEN=s.mSNnbhGAqxK2ZbMasOQ91rIA
+    }}}
+
+    Periodic tokens are the quickest way to get started, but they have one
+    fatal flaw: if the \code{web} node is down for longer than the token's
+    configured period, the token will expire and a new one will have to be
+    created and configured. This can be avoided by using the
+    \reference{vault-approle-auth}{\code{approle} auth backend}.
+  }
 
   \section{
     \title{Using the \code{approle} auth backend}{vault-approle-auth}
@@ -111,26 +147,67 @@ quite involved.
     \code{role_id} corresponding to a pre-configured role, and a
     \code{secret_id} which is used to authenticate and acquire a token.
 
-    The \code{approle} backend must first be configured in Vault. A typical
-    configuration may look something like this:
+    The \code{approle} backend must first be configured in Vault. Vault's
+    \code{approle} backend allows for a few parameters which you may want to
+    set to determine the permissions and lifecycle of its issued tokens:
+
+    \definitions{
+      \definition{\code{policies=names}}{
+        This determines the policies (comma-separated) to set on each token. Be
+        sure to set one that has access to the secrets path - see
+        \reference{configuring-the-secrets-engine} for more information.
+      }
+    }{
+      \definition{\code{token_ttl=duration}}{
+        This determines the TTL for each token granted. The token can be
+        continuously renewed, as long as it is renewed before the TTL elapses.
+      }
+    }{
+      \definition{\code{token_max_ttl=duration}}{
+        This sets a maximum lifetime for each token, after which the token can
+        no longer be renewed.
+
+        If configured, be sure to set the same value on the \code{web} node so
+        that it can re-auth before this duration is reached:
+
+        \codeblock{bash}{{{
+        CONCOURSE_VAULT_AUTH_BACKEND_MAX_TTL=1h
+        }}}
+      }
+    }{
+      \definition{\code{period=duration}}{
+        If configured, tokens issued will be
+        \link{\italic{periodic}}{https://www.vaultproject.io/docs/concepts/tokens.html#periodic-tokens}.
+        Periodic tokens are not bound by any configured max TTL, and can be
+        renewed continuously. It does not make sense to configure both
+        \code{period} and \code{token_max_ttl} as the max TTL will be ignored.
+      }
+    }{
+      \definition{\code{token_num_uses=count}}{
+        This sets a limit on how often a token can be used. \bold{We do not
+        recommend setting this value}, as it will effectively hamstring
+        Concourse after a few credential acquisitions. The \code{web} node does
+        not currently know to re-acquire a token when this limit is reached.
+      }
+    }{
+      \definition{\code{secret_id_ttl=duration} and \code{secret_id_num_uses=count}}{
+        These two configurations will result in the secret ID expiring after
+        the configured time or configured number of log-ins, respectively.
+
+        You should only set these if you have something periodically
+        re-generating secret IDs and re-configuring your \code{web} nodes
+        accordingly.
+      }
+    }
+
+    Given all that, a typical configuration may look something like this:
 
     \codeblock{bash}{{{
     $ vault auth enable approle
     Success! Enabled approle auth method at: approle/
-    $ vault write auth/approle/role/concourse policies=concourse token_ttl=1h
+    $ vault write auth/approle/role/concourse policies=concourse period=1h
     Success! Data written to: auth/approle/role/concourse
     }}}
-
-    \warn{
-      If the \code{secret_id} ever expires, the \code{web} node will no longer
-      be able to authenticate until it is restarted with a fresh
-      \code{secret_id}.
-
-      For this reason, the \code{approle} backend should not be configured with
-      \code{secret_id_ttl} or \code{secret_id_num_uses} unless you have
-      something periodically regenerating secret IDs and updating your
-      \code{web} nodes.
-    }
 
     Now that the backend is configured, we'll need to obtain the \code{role_id}
     and generate a \code{secret_id}:
@@ -153,11 +230,6 @@ quite involved.
       CONCOURSE_VAULT_AUTH_BACKEND="approle"
       CONCOURSE_VAULT_AUTH_PARAM="role_id:5f3420cd-3c66-2eff-8bcc-0e8e258a7d18,secret_id:f7ec2ac8-ad07-026a-3e1c-4c9781423155"
     }}}
-
-    On start, Concourse will use the specified \code{role_id} and
-    \code{secret_id} to acquire a token from Vault. This token will then be
-    used for subsequent API requests. Concourse will renew the token every half
-    hour (assuming the \code{token_ttl=1h} from above).
   }
 
   \section{
@@ -173,6 +245,43 @@ quite involved.
     The \code{cert} backend must first be configured in Vault. The backend is
     associated to a policy and a CA cert used to verify the client certificate.
     It may also be given the client certificate itself.
+
+    The \code{cert} backend must first be configured in Vault. Vault's
+    \code{cert} backend allows for a few parameters which you may want to
+    set to determine the lifecycle of its issued tokens:
+
+    \definitions{
+      \definition{\code{policies=names}}{
+        This determines the policies (comma-separated) to set on each token. Be
+        sure to set one that has access to the secrets path - see
+        \reference{configuring-the-secrets-engine} for more information.
+      }
+    }{
+      \definition{\code{ttl=duration}}{
+        This determines the TTL for each token granted. The token can be
+        continuously renewed, as long as it is renewed before the TTL elapses.
+      }
+    }{
+      \definition{\code{max_ttl=duration}}{
+        This sets a maximum lifetime for each token, after which the token can
+        no longer be renewed.
+
+        If configured, be sure to set the same value on the \code{web} node so
+        that it can re-auth before this duration is reached:
+
+        \codeblock{bash}{{{
+        CONCOURSE_VAULT_AUTH_BACKEND_MAX_TTL=1h
+        }}}
+      }
+    }{
+      \definition{\code{period=duration}}{
+        If configured, tokens issued will be
+        \link{\italic{periodic}}{https://www.vaultproject.io/docs/concepts/tokens.html#periodic-tokens}.
+        Periodic tokens are not bound by any configured max TTL, and can be
+        renewed continuously. It does not make sense to configure both
+        \code{period} and \code{max_ttl} as the max TTL will be ignored.
+      }
+    }
 
     \codeblock{bash}{{{
     $ vault auth enable cert
@@ -193,23 +302,6 @@ quite involved.
     In this case no additional auth params are necessary, as the Vault's TLS
     auth backend will check the certificate against all roles if no name is
     specified.
-  }
-
-  \section{
-    \title{Configuring token renewal}
-
-    The \code{web} node will log in to Vault and acquire a token on start. From
-    there it will renew the token every (lease duration / 2) so that it doesn't
-    expire.
-
-    To set a limit on how long the token can be renewed, the following env can be
-    set:
-
-    \codeblock{bash}{{{
-    CONCOURSE_VAULT_AUTH_BACKEND_MAX_TTL=1h
-    }}}
-
-    This will result in a fresh log-in every hour.
   }
 }
 
