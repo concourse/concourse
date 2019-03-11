@@ -1,7 +1,6 @@
 module Network.Pipeline exposing (fetchPipeline, fetchPipelines, order, togglePause)
 
 import Concourse
-import Concourse.PipelineStatus
 import Http
 import Json.Decode
 import Json.Encode
