@@ -709,7 +709,7 @@ view userState model =
 subpageView : UserState -> Model -> Html Msg
 subpageView userState model =
     if model.pageStatus == Err Models.Empty then
-        Html.div [] []
+        Html.text ""
 
     else
         Html.div []
@@ -728,40 +728,16 @@ header model =
 
                 ( _, _ ) ->
                     Html.text ""
-
-        headerHeight =
-            60
     in
     Html.div
-        [ style
-            [ ( "height", toString headerHeight ++ "px" )
-            , ( "position", "fixed" )
-            , ( "top", toString TopBar.Styles.pageHeaderHeight ++ "px" )
-            , ( "display", "flex" )
-            , ( "align-items", "stretch" )
-            , ( "width", "100%" )
-            , ( "z-index", "1" )
-            , ( "background-color", "#2a2929" )
-            ]
+        [ id "page-header"
+        , style Resource.Styles.headerBar
         ]
         [ Html.h1
-            [ style
-                [ ( "font-weight", "700" )
-                , ( "margin-left", "18px" )
-                , ( "display", "flex" )
-                , ( "align-items", "center" )
-                , ( "justify-content", "center" )
-                ]
-            ]
+            [ style Resource.Styles.headerResourceName ]
             [ Html.text model.resourceIdentifier.resourceName ]
         , Html.div
-            [ style
-                [ ( "display", "flex" )
-                , ( "align-items", "center" )
-                , ( "justify-content", "center" )
-                , ( "margin-left", "24px" )
-                ]
-            ]
+            [ style Resource.Styles.headerLastCheckedSection ]
             [ lastCheckedView ]
         , pinBar model
         , paginationMenu model
@@ -771,9 +747,6 @@ header model =
 body : UserState -> Model -> Html Msg
 body userState model =
     let
-        headerHeight =
-            60
-
         sectionModel =
             { checkStatus = model.checkStatus
             , checkSetupError = model.checkSetupError
@@ -782,21 +755,17 @@ body userState model =
             , userState = userState
             , teamName = model.resourceIdentifier.teamName
             }
+
+        hasCommentBar =
+            case model.pinnedVersion of
+                PinnedDynamicallyTo _ _ ->
+                    True
+
+                _ ->
+                    False
     in
     Html.div
-        [ style [ ( "padding", toString (headerHeight + 10) ++ "px 10px 10px" ) ]
-        , id "body"
-        , style
-            [ ( "padding-bottom"
-              , case model.pinnedVersion of
-                    PinnedDynamicallyTo _ _ ->
-                        "300px"
-
-                    _ ->
-                        ""
-              )
-            ]
-        ]
+        [ id "body", style <| Resource.Styles.body hasCommentBar ]
         [ checkSection sectionModel
         , viewVersionedResources model
         ]
@@ -833,10 +802,7 @@ paginationMenu { versions, resourceIdentifier, hovered } =
     in
     Html.div
         [ id "pagination"
-        , style
-            [ ( "display", "flex" )
-            , ( "align-items", "stretch" )
-            ]
+        , style Resource.Styles.pagination
         ]
         [ case versions.pagination.previousPage of
             Nothing ->
@@ -976,16 +942,7 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
 
         statusBar =
             Html.div
-                [ style
-                    [ ( "display", "flex" )
-                    , ( "justify-content", "space-between" )
-                    , ( "align-items", "center" )
-                    , ( "flex-grow", "1" )
-                    , ( "height", "28px" )
-                    , ( "background", Colors.sectionHeader )
-                    , ( "padding-left", "5px" )
-                    ]
-                ]
+                [ style Resource.Styles.checkBarStatus ]
                 [ Html.h3 [] [ Html.text checkMessage ]
                 , statusIcon
                 ]
@@ -993,7 +950,9 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
         checkBar =
             Html.div
                 [ style [ ( "display", "flex" ) ] ]
-                [ checkButton model, statusBar ]
+                [ checkButton model
+                , statusBar
+                ]
     in
     Html.div [ class "resource-check-status" ] <| checkBar :: stepBody
 
@@ -1033,19 +992,7 @@ checkButton ({ hovered, userState, teamName, checkStatus } as params) =
             (isClickable && isHovered) || isCurrentlyChecking
     in
     Html.div
-        ([ style
-            [ ( "height", "28px" )
-            , ( "width", "28px" )
-            , ( "background-color", Colors.sectionHeader )
-            , ( "margin-right", "5px" )
-            , ( "cursor"
-              , if isClickable then
-                    "pointer"
-
-                else
-                    "default"
-              )
-            ]
+        ([ style <| Resource.Styles.checkButton isClickable
          , onMouseEnter <| Hover Models.CheckButton
          , onMouseLeave <| Hover Models.None
          ]
@@ -1056,28 +1003,7 @@ checkButton ({ hovered, userState, teamName, checkStatus } as params) =
                     []
                )
         )
-        [ Html.div
-            [ style
-                [ ( "height", "20px" )
-                , ( "width", "20px" )
-                , ( "margin", "4px" )
-                , ( "background-image"
-                  , "url(/public/images/baseline-refresh-24px.svg)"
-                  )
-                , ( "background-position", "50% 50%" )
-                , ( "background-repeat", "no-repeat" )
-                , ( "background-size", "contain" )
-                , ( "opacity"
-                  , if isHighlighted then
-                        "1"
-
-                    else
-                        "0.5"
-                  )
-                ]
-            ]
-            []
-        ]
+        [ Html.div [ style <| Resource.Styles.checkButtonIcon isHighlighted ] [] ]
 
 
 isAuthorized : { a | teamName : String, userState : UserState } -> Bool
@@ -1459,15 +1385,7 @@ viewPinButton { versionID, pinState } =
             PinnedStatically { showTooltip } ->
                 if showTooltip then
                     [ Html.div
-                        [ style
-                            [ ( "position", "absolute" )
-                            , ( "bottom", "25px" )
-                            , ( "background-color", Colors.tooltipBackground )
-                            , ( "z-index", "2" )
-                            , ( "padding", "5px" )
-                            , ( "width", "170px" )
-                            ]
-                        ]
+                        [ style Resource.Styles.pinButtonTooltip ]
                         [ Html.text "enable via pipeline config" ]
                     ]
 
