@@ -39,13 +39,13 @@ fetchPipelines =
 
 
 togglePause :
-    Concourse.PipelineStatus.PipelineStatus
+    Bool
     -> String
     -> String
     -> Concourse.CSRFToken
     -> Task Http.Error ()
-togglePause status =
-    if status == Concourse.PipelineStatus.PipelineStatusPaused then
+togglePause isPaused =
+    if isPaused then
         putAction "unpause"
 
     else
