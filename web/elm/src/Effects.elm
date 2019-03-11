@@ -62,6 +62,12 @@ port saveToken : String -> Cmd msg
 port requestLoginRedirect : String -> Cmd msg
 
 
+port openEventStream : { url : String, eventTypes : List String } -> Cmd msg
+
+
+port closeEventStream : () -> Cmd msg
+
+
 type LayoutDispatch
     = SubPage Int
     | Layout
@@ -89,26 +95,26 @@ type Effect
     | FetchBuildPlan Concourse.BuildId
     | FetchBuildPlanAndResources Concourse.BuildId
     | GetCurrentTime
-    | DoTriggerBuild Concourse.JobIdentifier String
-    | DoAbortBuild Int Concourse.CSRFToken
-    | PauseJob Concourse.JobIdentifier String
-    | UnpauseJob Concourse.JobIdentifier String
+    | DoTriggerBuild Concourse.JobIdentifier
+    | DoAbortBuild Int
+    | PauseJob Concourse.JobIdentifier
+    | UnpauseJob Concourse.JobIdentifier
     | ResetPipelineFocus
     | RenderPipeline Json.Encode.Value Json.Encode.Value
     | RedirectToLogin
     | NavigateTo String
     | ModifyUrl String
     | SetTitle String
-    | DoPinVersion Concourse.VersionedResourceIdentifier Concourse.CSRFToken
-    | DoUnpinVersion Concourse.ResourceIdentifier Concourse.CSRFToken
-    | DoToggleVersion VersionToggleAction VersionId Concourse.CSRFToken
-    | DoCheck Concourse.ResourceIdentifier Concourse.CSRFToken
-    | SetPinComment Concourse.ResourceIdentifier Concourse.CSRFToken String
+    | DoPinVersion Concourse.VersionedResourceIdentifier
+    | DoUnpinVersion Concourse.ResourceIdentifier
+    | DoToggleVersion VersionToggleAction VersionId
+    | DoCheck Concourse.ResourceIdentifier
+    | SetPinComment Concourse.ResourceIdentifier String
     | SendTokenToFly String Int
-    | SendTogglePipelineRequest { pipeline : Dashboard.Models.Pipeline, csrfToken : Concourse.CSRFToken }
+    | SendTogglePipelineRequest Dashboard.Models.Pipeline
     | ShowTooltip ( String, String )
     | ShowTooltipHd ( String, String )
-    | SendOrderPipelinesRequest String (List Dashboard.Models.Pipeline) Concourse.CSRFToken
+    | SendOrderPipelinesRequest String (List Dashboard.Models.Pipeline)
     | SendLogOutRequest
     | GetScreenSize
     | PinTeamNames Dashboard.Group.StickyHeaderConfig
@@ -117,6 +123,8 @@ type Effect
     | SaveToken String
     | LoadToken
     | ForceFocus String
+    | OpenBuildEventStream { url : String, eventTypes : List String }
+    | CloseBuildEventStream
 
 
 type ScrollDirection
@@ -128,8 +136,8 @@ type ScrollDirection
     | ToCurrentBuild
 
 
-runEffect : Effect -> Cmd Callback
-runEffect effect =
+runEffect : Effect -> Concourse.CSRFToken -> Cmd Callback
+runEffect effect csrfToken =
     case effect of
         FetchJob id ->
             Network.Job.fetchJob id
@@ -188,16 +196,16 @@ runEffect effect =
         GetCurrentTime ->
             Task.perform GotCurrentTime Time.now
 
-        DoTriggerBuild id csrf ->
-            Network.Job.triggerBuild id csrf
+        DoTriggerBuild id ->
+            Network.Job.triggerBuild id csrfToken
                 |> Task.attempt BuildTriggered
 
-        PauseJob id csrf ->
-            Network.Job.pause id csrf
+        PauseJob id ->
+            Network.Job.pause id csrfToken
                 |> Task.attempt PausedToggled
 
-        UnpauseJob id csrf ->
-            Network.Job.unpause id csrf
+        UnpauseJob id ->
+            Network.Job.unpause id csrfToken
                 |> Task.attempt PausedToggled
 
         RedirectToLogin ->
@@ -218,23 +226,23 @@ runEffect effect =
         SetTitle newTitle ->
             setTitle newTitle
 
-        DoPinVersion version csrfToken ->
+        DoPinVersion version ->
             Network.Resource.pinVersion version csrfToken
                 |> Task.attempt VersionPinned
 
-        DoUnpinVersion id csrfToken ->
+        DoUnpinVersion id ->
             Network.Resource.unpinVersion id csrfToken
                 |> Task.attempt VersionUnpinned
 
-        DoToggleVersion action id csrfToken ->
+        DoToggleVersion action id ->
             Network.Resource.enableDisableVersionedResource (action == Enable) id csrfToken
                 |> Task.attempt (VersionToggled action id)
 
-        DoCheck rid csrfToken ->
+        DoCheck rid ->
             Network.Resource.check rid csrfToken
                 |> Task.attempt Checked
 
-        SetPinComment rid csrfToken comment ->
+        SetPinComment rid comment ->
             Network.Resource.setPinComment rid csrfToken comment
                 |> Task.attempt CommentSet
 
@@ -242,7 +250,7 @@ runEffect effect =
             Network.FlyToken.sendTokenToFly authToken flyPort
                 |> Task.attempt TokenSentToFly
 
-        SendTogglePipelineRequest { pipeline, csrfToken } ->
+        SendTogglePipelineRequest pipeline ->
             Network.Pipeline.togglePause pipeline.status pipeline.teamName pipeline.name csrfToken
                 |> Task.attempt (always EmptyCallback)
 
@@ -252,7 +260,7 @@ runEffect effect =
         ShowTooltipHd ( teamName, pipelineName ) ->
             tooltipHd ( teamName, pipelineName )
 
-        SendOrderPipelinesRequest teamName pipelines csrfToken ->
+        SendOrderPipelinesRequest teamName pipelines ->
             Network.Pipeline.order teamName (List.map .name pipelines) csrfToken
                 |> Task.attempt (always EmptyCallback)
 
@@ -307,7 +315,7 @@ runEffect effect =
             Favicon.set status
                 |> Task.perform (always EmptyCallback)
 
-        DoAbortBuild buildId csrfToken ->
+        DoAbortBuild buildId ->
             Network.Build.abort buildId csrfToken
                 |> Task.attempt BuildAborted
 
@@ -323,6 +331,12 @@ runEffect effect =
         ForceFocus dom ->
             Dom.focus dom
                 |> Task.attempt (always EmptyCallback)
+
+        OpenBuildEventStream config ->
+            openEventStream config
+
+        CloseBuildEventStream ->
+            closeEventStream ()
 
 
 scrollInDirection : ScrollDirection -> Task.Task x ()

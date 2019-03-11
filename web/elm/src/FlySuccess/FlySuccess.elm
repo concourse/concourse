@@ -1,6 +1,5 @@
 module FlySuccess.FlySuccess exposing
-    ( Model
-    , handleCallback
+    ( handleCallback
     , init
     , update
     , view
@@ -11,6 +10,7 @@ import Effects exposing (Effect(..))
 import FlySuccess.Models
     exposing
         ( ButtonState(..)
+        , Model
         , TokenTransfer
         , TransferFailure(..)
         , hover
@@ -32,14 +32,6 @@ import TopBar.TopBar as TopBar
 import UserState exposing (UserState)
 
 
-type alias Model =
-    { buttonState : ButtonState
-    , authToken : String
-    , tokenTransfer : TokenTransfer
-    , topBar : TopBar.Model.Model
-    }
-
-
 init : { authToken : String, flyPort : Maybe Int } -> ( Model, List Effect )
 init { authToken, flyPort } =
     let
@@ -55,7 +47,12 @@ init { authToken, flyPort } =
 
                 Nothing ->
                     RemoteData.Failure NoFlyPort
-      , topBar = topBar
+      , isUserMenuExpanded = topBar.isUserMenuExpanded
+      , isPinMenuExpanded = topBar.isPinMenuExpanded
+      , middleSection = topBar.middleSection
+      , teams = topBar.teams
+      , screenSize = topBar.screenSize
+      , highDensity = topBar.highDensity
       }
     , topBarEffects
         ++ (case flyPort of
@@ -68,40 +65,32 @@ init { authToken, flyPort } =
     )
 
 
-handleCallback : Callback -> Model -> ( Model, List Effect )
-handleCallback msg model =
+handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallback msg ( model, effects ) =
     case msg of
         TokenSentToFly (Ok ()) ->
-            ( { model | tokenTransfer = RemoteData.Success () }, [] )
+            ( { model | tokenTransfer = RemoteData.Success () }, effects )
 
         TokenSentToFly (Err err) ->
-            ( { model | tokenTransfer = RemoteData.Failure (NetworkTrouble err) }, [] )
+            ( { model | tokenTransfer = RemoteData.Failure (NetworkTrouble err) }, effects )
 
         _ ->
-            let
-                ( newTopBar, topBarEffects ) =
-                    TopBar.handleCallback msg model.topBar
-            in
-            ( { model | topBar = newTopBar }, topBarEffects )
+            TopBar.handleCallback msg ( model, effects )
 
 
-update : Msg -> Model -> ( Model, List Effect )
-update msg model =
+update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
+update msg ( model, effects ) =
     case msg of
         CopyTokenButtonHover hovered ->
             ( { model | buttonState = hover hovered model.buttonState }
-            , []
+            , effects
             )
 
         CopyToken ->
-            ( { model | buttonState = Clicked }, [] )
+            ( { model | buttonState = Clicked }, effects )
 
         FromTopBar msg ->
-            let
-                ( newTopBar, topBarEffects ) =
-                    TopBar.update msg model.topBar
-            in
-            ( { model | topBar = newTopBar }, topBarEffects )
+            TopBar.update msg ( model, effects )
 
 
 view : UserState -> Model -> Html Msg
@@ -111,7 +100,7 @@ view userState model =
             [ style TopBar.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
-            [ TopBar.view userState TopBar.Model.None model.topBar |> HS.toUnstyled |> Html.map FromTopBar
+            [ TopBar.view userState TopBar.Model.None model |> HS.toUnstyled |> Html.map FromTopBar
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ Html.div
                     [ id "success-card"

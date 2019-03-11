@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: dev
 
   concourse:
-    image: concourse/concourse:4.2.2
+    image: concourse/concourse:latest
     command: quickstart
     privileged: true
     depends_on: [db]

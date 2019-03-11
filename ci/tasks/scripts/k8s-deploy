@@ -49,12 +49,16 @@ run_helm_deploy() {
     --namespace "$RELEASE_NAME" \
     --set "concourse.web.auth.mainTeam.localUser=admin" \
     --set "concourse.web.kubernetes.enabled=false" \
-    --set "concourse.worker.baggageclaim.driver=overlay" \
+    --set "concourse.worker.baggageclaim.driver=naive" \
     --set "image=$CONCOURSE_IMAGE" \
     --set "imageDigest=$CONCOURSE_DIGEST" \
     --set "persistence.enabled=false" \
     --set "postgresql.persistence.enabled=false" \
     --set "secrets.localUsers=admin:admin\,guest:guest" \
+    --set "web.livenessProbe.failureThreshold=3" \
+    --set "web.livenessProbe.initialDelaySeconds=3" \
+    --set "web.livenessProbe.periodSeconds=3" \
+    --set "web.livenessProbe.timeoutSeconds=3" \
     --set "worker.replicas=1" \
     $RELEASE_NAME \
     $chart

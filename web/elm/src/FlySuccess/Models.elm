@@ -1,5 +1,6 @@
 module FlySuccess.Models exposing
     ( ButtonState(..)
+    , Model
     , TokenTransfer
     , TransferFailure(..)
     , hover
@@ -9,6 +10,15 @@ module FlySuccess.Models exposing
 
 import Http
 import RemoteData
+import TopBar.Model
+
+
+type alias Model =
+    TopBar.Model.Model
+        { buttonState : ButtonState
+        , authToken : String
+        , tokenTransfer : TokenTransfer
+        }
 
 
 type ButtonState

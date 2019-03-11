@@ -277,7 +277,7 @@ jobs:
   - task: downgrade-test
     privileged: true
     image: unit-image
-    file: concourse/ci/tasks/upgrade-test.yml
+    file: concourse/ci/tasks/downgrade-test.yml
     params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
 - name: k8s-check-helm-params
@@ -840,8 +840,6 @@ jobs:
     passed: [build-rc]
   - get: concourse-rc-image
     passed: [k8s-topgun]
-  - get: charts
-    passed: [k8s-topgun]
   - get: concourse-release
     passed: [bosh-smoke, bosh-topgun]
   - get: bpm-release
@@ -898,7 +896,7 @@ jobs:
       trigger: true
     - get: concourse-release
       passed: [shipit]
-  - put: concourse-release
+  - put: concourse-release-final
     params:
       tarball: concourse-release/*.tgz
       version: version/version
@@ -918,6 +916,7 @@ jobs:
       passed: [shipit]
     - get: postgres-release
       passed: [shipit]
+  # TODO: check that boshio version matches given version
   - task: bump-versions
     file: cbd/ci/bump-versions.yml
     input_mapping: {concourse-bosh-deployment: cbd}
@@ -1233,13 +1232,22 @@ resources:
   type: bosh-release
   source:
     uri: https://github.com/concourse/concourse-bosh-release
+    branch: master
     dev_releases: true
-    private_config:
+    private_config: &release_private_config
       blobstore:
         provider: gcs
         options:
           credentials_source: static
           json_key: ((concourse_artifacts_json_key))
+
+- name: concourse-release-final
+  type: bosh-release
+  source:
+    uri: git@github.com:concourse/concourse-bosh-release
+    branch: master
+    private_config: *release_private_config
+    private_key: ((concourse_release_deploy_key))
 
 - name: postgres-release
   type: bosh-io-release
@@ -1361,4 +1369,4 @@ resources:
 - name: concourse-boshio
   type: bosh-io-release
   source:
-    repository: concourse/concourse
+    repository: concourse/concourse-bosh-release
