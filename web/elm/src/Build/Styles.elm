@@ -1,10 +1,10 @@
 module Build.Styles exposing
     ( abortButton
     , abortIcon
-    , buildStatus
     , firstOccurrenceTooltip
     , firstOccurrenceTooltipArrow
     , header
+    , historyItem
     , stepHeader
     , stepHeaderIcon
     , stepStatusIcon
@@ -24,12 +24,31 @@ header : Concourse.BuildStatus -> List ( String, String )
 header status =
     [ ( "display", "flex" )
     , ( "justify-content", "space-between" )
+    , ( "background"
+      , case status of
+            Concourse.BuildStatusStarted ->
+                Colors.startedFaded
+
+            Concourse.BuildStatusPending ->
+                Colors.pending
+
+            Concourse.BuildStatusSucceeded ->
+                Colors.success
+
+            Concourse.BuildStatusFailed ->
+                Colors.failure
+
+            Concourse.BuildStatusErrored ->
+                Colors.error
+
+            Concourse.BuildStatusAborted ->
+                Colors.aborted
+      )
     ]
-        ++ buildStatus status
 
 
-buildStatus : Concourse.BuildStatus -> List ( String, String )
-buildStatus status =
+historyItem : Concourse.BuildStatus -> List ( String, String )
+historyItem status =
     case status of
         Concourse.BuildStatusStarted ->
             striped

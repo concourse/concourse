@@ -492,7 +492,7 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "build-header" ]
                             |> Query.has [ style [ ( "background", "#9b9b9b" ) ] ]
-                , test "started build has animated striped yellow banner" <|
+                , test "started build has yellow banner" <|
                     \_ ->
                         pageLoad
                             |> Tuple.first
@@ -500,7 +500,7 @@ all =
                             |> Build.view UserState.UserStateLoggedOut
                             |> Query.fromHtml
                             |> Query.find [ id "build-header" ]
-                            |> isColorWithStripes { thick = "#f1c40f", thin = "#fad43b" }
+                            |> Query.has [ style [ ( "background", "#f1c40f" ) ] ]
                 , test "succeeded build has green banner" <|
                     \_ ->
                         pageLoad

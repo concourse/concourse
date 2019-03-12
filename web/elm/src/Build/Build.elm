@@ -1154,11 +1154,11 @@ viewHistoryItem currentBuild build =
     Html.li
         (if build.id == currentBuild.id then
             [ class "current"
-            , style <| Styles.buildStatus currentBuild.status
+            , style <| Styles.historyItem currentBuild.status
             ]
 
          else
-            [ style <| Styles.buildStatus build.status ]
+            [ style <| Styles.historyItem build.status ]
         )
         [ Html.a
             [ onLeftClick <| SwitchToBuild build
