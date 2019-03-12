@@ -688,6 +688,7 @@ jobs:
       trigger: true
     - get: gcp-windows-stemcell
     - get: bbr-sdk-release
+    - get: prod
   - put: prod-deployment
     params:
       manifest: cbd/cluster/concourse.yml
@@ -726,6 +727,7 @@ jobs:
       - cbd/cluster/operations/syslog-drainer.yml
       - cbd/cluster/operations/worker-rebalancing.yml
       - cbd/cluster/operations/enable-global-resources.yml
+      - prod/prod/ops.yml
       vars_files:
       - cbd/versions.yml
       vars:
