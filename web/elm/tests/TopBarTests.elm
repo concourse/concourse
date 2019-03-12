@@ -166,7 +166,7 @@ all =
                 (Application.view >> Query.fromHtml)
                 [ it "shows concourse logo" <|
                     Query.children []
-                        >> Query.index 1
+                        >> Query.index 0
                         >> Query.has
                             [ style
                                 [ ( "background-image"

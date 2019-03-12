@@ -18,7 +18,6 @@ import Effects exposing (Effect)
 import FlySuccess.FlySuccess as FlySuccess
 import FlySuccess.Models
 import Html exposing (Html)
-import Html.Styled as HS
 import Job.Job as Job
 import NotFound.Model
 import NotFound.NotFound as NotFound
@@ -301,12 +300,10 @@ view userState mdl =
 
         ResourceModel model ->
             Resource.view userState model
-                |> HS.toUnstyled
                 |> Html.map ResourceMsg
 
         DashboardModel model ->
             Dashboard.view userState model
-                |> HS.toUnstyled
                 |> Html.map DashboardMsg
 
         NotFoundModel model ->

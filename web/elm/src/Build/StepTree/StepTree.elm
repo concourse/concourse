@@ -2,11 +2,9 @@ module Build.StepTree.StepTree exposing
     ( extendHighlight
     , finished
     , init
-    , map
     , setHighlight
     , switchTab
     , toggleStep
-    , updateAt
     , updateTooltip
     , view
     )
@@ -27,6 +25,13 @@ import Build.StepTree.Models
         , StepTreeModel
         , TabFocus(..)
         , Version
+        , finishTree
+        , focusRetry
+        , map
+        , updateAt
+        , wrapHook
+        , wrapMultiStep
+        , wrapStep
         )
 import Build.Styles as Styles
 import Concourse
@@ -115,7 +120,7 @@ initMultiStep hl resources planId constructor plans =
                 |> Array.indexedMap wrapMultiStep
                 |> Array.foldr Dict.union selfFoci
     in
-    StepTreeModel (constructor trees) foci False hl Nothing
+    StepTreeModel (constructor trees) foci hl Nothing
 
 
 initBottom :
@@ -158,7 +163,6 @@ initBottom hl create id name =
     in
     { tree = create step
     , foci = Dict.singleton id { update = identity }
-    , finished = False
     , highlight = hl
     , tooltip = Nothing
     }
@@ -177,7 +181,6 @@ initWrappedStep hl resources create plan =
     in
     { tree = create tree
     , foci = Dict.map wrapStep foci
-    , finished = False
     , highlight = hl
     , tooltip = Nothing
     }
@@ -202,7 +205,6 @@ initHookedStep hl resources create hookedPlan =
         Dict.union
             (Dict.map wrapStep stepModel.foci)
             (Dict.map wrapHook hookModel.foci)
-    , finished = stepModel.finished
     , highlight = hl
     , tooltip = Nothing
     }
@@ -287,7 +289,7 @@ toggleStep id root =
 
 finished : StepTreeModel -> ( StepTreeModel, List Effect )
 finished root =
-    ( { root | finished = True }, [] )
+    ( { root | tree = finishTree root.tree }, [] )
 
 
 switchTab : StepID -> Int -> StepTreeModel -> ( StepTreeModel, List Effect )
@@ -364,151 +366,6 @@ updateTooltip { hoveredElement, hoveredCounter } model =
                     Nothing
     in
     ( { model | tooltip = newTooltip }, [] )
-
-
-focusRetry : Int -> StepTree -> StepTree
-focusRetry tab tree =
-    case tree of
-        Retry id _ _ steps ->
-            Retry id tab User steps
-
-        _ ->
-            Debug.crash "impossible (non-retry tab focus)"
-
-
-updateAt : StepID -> (StepTree -> StepTree) -> StepTreeModel -> StepTreeModel
-updateAt id update root =
-    case Dict.get id root.foci of
-        Nothing ->
-            Debug.crash ("updateAt: id " ++ id ++ " not found")
-
-        Just focus ->
-            { root | tree = focus.update update root.tree }
-
-
-map : (Step -> Step) -> StepTree -> StepTree
-map f tree =
-    case tree of
-        Task step ->
-            Task (f step)
-
-        Get step ->
-            Get (f step)
-
-        Put step ->
-            Put (f step)
-
-        _ ->
-            tree
-
-
-wrapMultiStep : Int -> Dict StepID StepFocus -> Dict StepID StepFocus
-wrapMultiStep i =
-    Dict.map (\_ subFocus -> { update = \upd tree -> setMultiStepIndex i (subFocus.update upd) tree })
-
-
-wrapStep : StepID -> StepFocus -> StepFocus
-wrapStep id subFocus =
-    { update = \upd tree -> updateStep (subFocus.update upd) tree }
-
-
-wrapHook : StepID -> StepFocus -> StepFocus
-wrapHook id subFocus =
-    { update = \upd tree -> updateHook (subFocus.update upd) tree }
-
-
-updateStep : (StepTree -> StepTree) -> StepTree -> StepTree
-updateStep update tree =
-    case tree of
-        OnSuccess hookedStep ->
-            OnSuccess { hookedStep | step = update hookedStep.step }
-
-        OnFailure hookedStep ->
-            OnFailure { hookedStep | step = update hookedStep.step }
-
-        OnAbort hookedStep ->
-            OnAbort { hookedStep | step = update hookedStep.step }
-
-        Ensure hookedStep ->
-            Ensure { hookedStep | step = update hookedStep.step }
-
-        Try step ->
-            Try (update step)
-
-        Timeout step ->
-            Timeout (update step)
-
-        _ ->
-            Debug.crash "impossible"
-
-
-updateHook : (StepTree -> StepTree) -> StepTree -> StepTree
-updateHook update tree =
-    case tree of
-        OnSuccess hookedStep ->
-            OnSuccess { hookedStep | hook = update hookedStep.hook }
-
-        OnFailure hookedStep ->
-            OnFailure { hookedStep | hook = update hookedStep.hook }
-
-        OnAbort hookedStep ->
-            OnAbort { hookedStep | hook = update hookedStep.hook }
-
-        Ensure hookedStep ->
-            Ensure { hookedStep | hook = update hookedStep.hook }
-
-        _ ->
-            Debug.crash "impossible"
-
-
-getMultiStepIndex : Int -> StepTree -> StepTree
-getMultiStepIndex idx tree =
-    let
-        steps =
-            case tree of
-                Aggregate trees ->
-                    trees
-
-                Do trees ->
-                    trees
-
-                Retry _ _ _ trees ->
-                    trees
-
-                _ ->
-                    Debug.crash "impossible"
-    in
-    case Array.get idx steps of
-        Just sub ->
-            sub
-
-        Nothing ->
-            Debug.crash "impossible"
-
-
-setMultiStepIndex : Int -> (StepTree -> StepTree) -> StepTree -> StepTree
-setMultiStepIndex idx update tree =
-    case tree of
-        Aggregate trees ->
-            Aggregate (Array.set idx (update (getMultiStepIndex idx tree)) trees)
-
-        Do trees ->
-            Do (Array.set idx (update (getMultiStepIndex idx tree)) trees)
-
-        Retry id tab focus trees ->
-            let
-                updatedSteps =
-                    Array.set idx (update (getMultiStepIndex idx tree)) trees
-            in
-            case focus of
-                Auto ->
-                    Retry id (idx + 1) Auto updatedSteps
-
-                User ->
-                    Retry id tab User updatedSteps
-
-        _ ->
-            Debug.crash "impossible"
 
 
 view : StepTreeModel -> Html Msg
@@ -625,7 +482,7 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
             , Html.div
                 [ style [ ( "display", "flex" ) ] ]
                 [ viewVersion version
-                , viewStepState state model.finished
+                , viewStepState state
                 ]
             ]
         , Html.div
@@ -723,25 +580,32 @@ viewMetadata metadata =
         List.map (\{ name, value } -> ( name, Html.pre [] [ Html.text value ] )) metadata
 
 
-viewStepState : StepState -> Bool -> Html Msg
-viewStepState state buildFinished =
+viewStepState : StepState -> Html Msg
+viewStepState state =
     case state of
-        StepStatePending ->
-            let
-                icon =
-                    if buildFinished then
-                        "fa-circle"
+        StepStateRunning ->
+            Spinner.spinner "14px" [ style [ ( "margin", "7px" ) ] ]
 
-                    else
-                        "fa-circle-o-notch"
-            in
-            Html.i
-                [ class ("right fa fa-fw " ++ icon)
+        StepStatePending ->
+            Html.div
+                [ attribute "data-step-state" "pending"
+                , style <| Styles.stepStatusIcon "ic-pending"
                 ]
                 []
 
-        StepStateRunning ->
-            Spinner.spinner "14px" [ style [ ( "margin", "7px" ) ] ]
+        StepStateInterrupted ->
+            Html.div
+                [ attribute "data-step-state" "interrupted"
+                , style <| Styles.stepStatusIcon "ic-interrupted"
+                ]
+                []
+
+        StepStateCancelled ->
+            Html.div
+                [ attribute "data-step-state" "cancelled"
+                , style <| Styles.stepStatusIcon "ic-cancelled"
+                ]
+                []
 
         StepStateSucceeded ->
             Html.div

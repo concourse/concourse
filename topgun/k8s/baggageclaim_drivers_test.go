@@ -78,7 +78,7 @@ var _ = Describe("Baggageclaim Drivers", func() {
 			waitAllPodsInNamespaceToBeReady(namespace)
 
 			By("Creating the web proxy")
-			proxySession, atcEndpoint = startPortForwarding(namespace, releaseName+"-web", "8080")
+			proxySession, atcEndpoint = startPortForwarding(namespace, "service/" + releaseName+"-web", "8080")
 
 			By("Logging in")
 			fly.Login("test", "test", atcEndpoint)

@@ -1,4 +1,4 @@
-module Concourse.Login exposing (basicAuth, encodedAuthHeader, noAuth, parseResponse)
+module Network.Login exposing (basicAuth, encodedAuthHeader, noAuth, parseResponse)
 
 import Base64
 import Concourse

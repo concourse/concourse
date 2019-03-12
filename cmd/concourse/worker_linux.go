@@ -98,7 +98,7 @@ func (cmd *WorkerCommand) gdnRunner(logger lager.Logger) (ifrit.Runner, error) {
 	gdnFlags := []string{}
 
 	if cmd.Garden.GardenConfig.Path() != "" {
-		gdnFlags = append(gdnFlags, "-config", cmd.Garden.GardenConfig.Path())
+		gdnFlags = append(gdnFlags, "--config", cmd.Garden.GardenConfig.Path())
 	}
 
 	gdnServerFlags := []string{

@@ -28,7 +28,6 @@ import Html.Attributes
         , width
         )
 import Html.Attributes.Aria exposing (ariaLabel)
-import Html.Styled as HS
 import Http
 import Json.Decode
 import Json.Encode
@@ -298,7 +297,7 @@ view userState model =
     Html.div [ Html.Attributes.style [ ( "height", "100%" ) ] ]
         [ Html.div
             [ Html.Attributes.style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map FromTopBar <| HS.toUnstyled <| TopBar.view userState pipelineState model
+            [ Html.map FromTopBar <| TopBar.view userState pipelineState model
             , Html.div
                 [ Html.Attributes.style TopBar.Styles.pipelinePageBelowTopBar
                 , id "page-below-top-bar"

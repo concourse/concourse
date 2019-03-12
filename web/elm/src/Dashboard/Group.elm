@@ -34,7 +34,6 @@ module Dashboard.Group exposing
 import Concourse
 import Concourse.BuildStatus
 import Concourse.PipelineStatus as PipelineStatus
-import Dashboard.APIData exposing (APIData)
 import Dashboard.Group.Tag as Tag
 import Dashboard.Models as Models
 import Dashboard.Msgs exposing (Msg(..))
@@ -189,7 +188,7 @@ setDropIndex dropIndex dropState =
             NotDropping
 
 
-allPipelines : APIData -> List Models.Pipeline
+allPipelines : Concourse.APIData -> List Models.Pipeline
 allPipelines data =
     data.pipelines
         |> List.map
@@ -374,7 +373,7 @@ shiftPipelineTo pipeline position pipelines =
                 p :: shiftPipelineTo pipeline (position - 1) ps
 
 
-allTeamNames : APIData -> List String
+allTeamNames : Concourse.APIData -> List String
 allTeamNames apiData =
     Set.union
         (Set.fromList (List.map .teamName apiData.pipelines))
@@ -382,7 +381,7 @@ allTeamNames apiData =
         |> Set.toList
 
 
-groups : APIData -> List Group
+groups : Concourse.APIData -> List Group
 groups apiData =
     let
         teamNames =

@@ -78,7 +78,7 @@ var _ = Describe("Prometheus integration", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the prometheus proxy")
-		proxySession, prometheusEndpoint = startPortForwarding(namespace, prometheusReleaseName+"-prometheus-server", "80")
+		proxySession, prometheusEndpoint = startPortForwarding(namespace, "service/" + prometheusReleaseName+"-prometheus-server", "80")
 	})
 
 	AfterEach(func() {

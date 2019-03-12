@@ -18,7 +18,6 @@ import Char
 import Concourse
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus
-import Dashboard.APIData as APIData
 import Dashboard.Dashboard as Dashboard
 import Dashboard.Group as Group
 import Dashboard.Msgs as Msgs
@@ -27,7 +26,6 @@ import Dict
 import Effects
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
-import Html.Styled as HS
 import Keycodes
 import List.Extra
 import Routes
@@ -1189,6 +1187,22 @@ all =
                                     |> findBanner
                                     |> isSolid green
                         ]
+                    , test "does not crash with a circular pipeline" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated
+                                    (\u ->
+                                        { teams = [ { id = 0, name = "team" } ]
+                                        , pipelines = [ onePipeline "team" ]
+                                        , jobs = circularJobs
+                                        , resources = []
+                                        , version = ""
+                                        , user = u
+                                        }
+                                    )
+                                |> queryView
+                                |> findBanner
+                                |> isSolid green
                     , describe "HD view"
                         [ test "is 8px wide" <|
                             \_ ->
@@ -2054,7 +2068,6 @@ all =
                         , query =
                             Tuple.first
                                 >> Dashboard.view UserState.UserStateLoggedOut
-                                >> HS.toUnstyled
                                 >> Query.fromHtml
                                 >> Query.find [ class "card-footer" ]
                                 >> Query.children []
@@ -2111,7 +2124,6 @@ all =
                         , query =
                             Tuple.first
                                 >> Dashboard.view UserState.UserStateLoggedOut
-                                >> HS.toUnstyled
                                 >> Query.fromHtml
                                 >> Query.find [ class "card-footer" ]
                                 >> Query.children []
@@ -2956,12 +2968,11 @@ queryView : ( Dashboard.Model, List Effects.Effect ) -> Query.Single Msgs.Msg
 queryView =
     Tuple.first
         >> Dashboard.view UserState.UserStateLoggedOut
-        >> HS.toUnstyled
         >> Query.fromHtml
 
 
 givenDataAndUser :
-    (Maybe Concourse.User -> APIData.APIData)
+    (Maybe Concourse.User -> Concourse.APIData)
     -> Concourse.User
     -> ( Dashboard.Model, List Effects.Effect )
     -> ( Dashboard.Model, List Effects.Effect )
@@ -2982,7 +2993,7 @@ userWithRoles roles =
 
 
 givenDataUnauthenticatedFromApplication :
-    (Maybe Concourse.User -> APIData.APIData)
+    (Maybe Concourse.User -> Concourse.APIData)
     -> Application.Model
     -> Application.Model
 givenDataUnauthenticatedFromApplication data =
@@ -2993,7 +3004,7 @@ givenDataUnauthenticatedFromApplication data =
 
 
 givenDataUnauthenticated :
-    (Maybe Concourse.User -> APIData.APIData)
+    (Maybe Concourse.User -> Concourse.APIData)
     -> ( Dashboard.Model, List Effects.Effect )
     -> ( Dashboard.Model, List Effects.Effect )
 givenDataUnauthenticated data =
@@ -3001,7 +3012,7 @@ givenDataUnauthenticated data =
         (Callback.APIDataFetched <| Ok ( 0, data Nothing ))
 
 
-givenPipelineWithJob : Maybe Concourse.User -> APIData.APIData
+givenPipelineWithJob : Maybe Concourse.User -> Concourse.APIData
 givenPipelineWithJob user =
     { teams = []
     , pipelines =
@@ -3045,7 +3056,7 @@ givenPipelineWithJob user =
     }
 
 
-oneTeamOnePipelinePaused : String -> Maybe Concourse.User -> APIData.APIData
+oneTeamOnePipelinePaused : String -> Maybe Concourse.User -> Concourse.APIData
 oneTeamOnePipelinePaused teamName user =
     { teams = [ { id = 0, name = teamName } ]
     , pipelines =
@@ -3064,7 +3075,7 @@ oneTeamOnePipelinePaused teamName user =
     }
 
 
-oneTeamOnePipelineNonPublic : String -> Maybe Concourse.User -> APIData.APIData
+oneTeamOnePipelineNonPublic : String -> Maybe Concourse.User -> Concourse.APIData
 oneTeamOnePipelineNonPublic teamName user =
     { teams = [ { id = 0, name = teamName } ]
     , pipelines =
@@ -3083,7 +3094,7 @@ oneTeamOnePipelineNonPublic teamName user =
     }
 
 
-oneTeamOnePipeline : String -> Maybe Concourse.User -> APIData.APIData
+oneTeamOnePipeline : String -> Maybe Concourse.User -> Concourse.APIData
 oneTeamOnePipeline teamName =
     apiData [ ( teamName, [ "pipeline" ] ) ]
 
@@ -3110,7 +3121,7 @@ onePipelinePaused teamName =
     }
 
 
-apiData : List ( String, List String ) -> Maybe Concourse.User -> APIData.APIData
+apiData : List ( String, List String ) -> Maybe Concourse.User -> Concourse.APIData
 apiData pipelines user =
     { teams = pipelines |> List.map Tuple.first |> List.indexedMap Concourse.Team
     , pipelines =
@@ -3222,6 +3233,119 @@ jobWithNameTransitionedAt jobName transitionedAt status =
     , outputs = []
     , groups = []
     }
+
+
+circularJobs : List Concourse.Job
+circularJobs =
+    [ { pipeline =
+            { teamName = "team"
+            , pipelineName = "pipeline"
+            }
+      , name = "jobA"
+      , pipelineName = "pipeline"
+      , teamName = "team"
+      , nextBuild = Nothing
+      , finishedBuild =
+            Just
+                { id = 0
+                , name = "0"
+                , job =
+                    Just
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , jobName = "jobA"
+                        }
+                , status = Concourse.BuildStatusSucceeded
+                , duration =
+                    { startedAt = Nothing
+                    , finishedAt = Nothing
+                    }
+                , reapTime = Nothing
+                }
+      , transitionBuild =
+            Just
+                { id = 1
+                , name = "1"
+                , job =
+                    Just
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , jobName = "jobA"
+                        }
+                , status = Concourse.BuildStatusSucceeded
+                , duration =
+                    { startedAt = Nothing
+                    , finishedAt = Just <| Date.fromTime 0
+                    }
+                , reapTime = Nothing
+                }
+      , paused = False
+      , disableManualTrigger = False
+      , inputs =
+            [ { name = "inA"
+              , resource = "res0"
+              , passed = [ "jobB" ]
+              , trigger = True
+              }
+            ]
+      , outputs = []
+      , groups = []
+      }
+    , { pipeline =
+            { teamName = "team"
+            , pipelineName = "pipeline"
+            }
+      , name = "jobB"
+      , pipelineName = "pipeline"
+      , teamName = "team"
+      , nextBuild = Nothing
+      , finishedBuild =
+            Just
+                { id = 0
+                , name = "0"
+                , job =
+                    Just
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , jobName = "jobB"
+                        }
+                , status = Concourse.BuildStatusSucceeded
+                , duration =
+                    { startedAt = Nothing
+                    , finishedAt = Nothing
+                    }
+                , reapTime = Nothing
+                }
+      , transitionBuild =
+            Just
+                { id = 1
+                , name = "1"
+                , job =
+                    Just
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , jobName = "jobB"
+                        }
+                , status = Concourse.BuildStatusSucceeded
+                , duration =
+                    { startedAt = Nothing
+                    , finishedAt = Just <| Date.fromTime 0
+                    }
+                , reapTime = Nothing
+                }
+      , paused = False
+      , disableManualTrigger = False
+      , inputs =
+            [ { name = "inB"
+              , resource = "res0"
+              , passed = [ "jobA" ]
+              , trigger = True
+              }
+            ]
+      , outputs = []
+      , groups = []
+      }
+    ]
 
 
 teamHeaderSelector : List Selector

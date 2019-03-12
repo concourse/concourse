@@ -1,4 +1,4 @@
-module Concourse.Job exposing
+module Network.Job exposing
     ( fetchAllJobs
     , fetchJob
     , fetchJobs

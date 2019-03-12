@@ -1,47 +1,37 @@
-module Dashboard.APIData exposing (APIData, remoteData)
+module Network.DashboardAPIData exposing (remoteData)
 
 import Concourse
-import Concourse.Info
-import Concourse.Job
-import Concourse.Pipeline
-import Concourse.Resource
-import Concourse.Team
-import Concourse.User
 import Http
+import Network.Info
+import Network.Job
+import Network.Pipeline
+import Network.Resource
+import Network.Team
+import Network.User
 import Task exposing (Task)
 
 
-type alias APIData =
-    { teams : List Concourse.Team
-    , pipelines : List Concourse.Pipeline
-    , jobs : List Concourse.Job
-    , resources : List Concourse.Resource
-    , user : Maybe Concourse.User
-    , version : String
-    }
-
-
-remoteData : Task Http.Error APIData
+remoteData : Task Http.Error Concourse.APIData
 remoteData =
-    Concourse.Team.fetchTeams
+    Network.Team.fetchTeams
         |> Task.andThen
             (\teams ->
-                Concourse.Pipeline.fetchPipelines
+                Network.Pipeline.fetchPipelines
                     |> Task.andThen
                         (\pipelines ->
-                            Concourse.Job.fetchAllJobs
+                            Network.Job.fetchAllJobs
                                 |> Task.map (Maybe.withDefault [])
                                 |> Task.andThen
                                     (\jobs ->
-                                        Concourse.Resource.fetchAllResources
+                                        Network.Resource.fetchAllResources
                                             |> Task.map (Maybe.withDefault [])
                                             |> Task.andThen
                                                 (\resources ->
-                                                    Concourse.Info.fetch
+                                                    Network.Info.fetch
                                                         |> Task.map .version
                                                         |> Task.andThen
                                                             (\version ->
-                                                                Concourse.User.fetchUser
+                                                                Network.User.fetchUser
                                                                     |> Task.map Just
                                                                     |> Task.onError
                                                                         (\err -> Task.succeed Nothing)
