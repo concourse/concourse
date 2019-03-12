@@ -50,11 +50,12 @@ decide much on its own.
   Finally, run:
 
   \codeblock{bash}{{{
+  # run with -E to forward env config, or just set it all as root
   sudo -E concourse worker
   }}}
 
   Note that the worker must be run as \code{root}, as it orchestrates
-  containers. Sudo is executed with the -E argument to pass the environment.
+  containers.
 
   All logs will be emitted to \code{stdout}, with any panics or lower-level
   errors being emitted to \code{stderr}.
