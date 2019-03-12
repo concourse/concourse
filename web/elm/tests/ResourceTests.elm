@@ -300,6 +300,270 @@ all =
                     |> queryView
                     |> Query.find (versionSelector version)
                     |> Query.has [ text "some-build" ]
+        , describe "page header" <|
+            let
+                pageHeader =
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.find [ id "page-header" ]
+            in
+            [ test "sticks to the top of the viewport" <|
+                \_ ->
+                    pageHeader
+                        |> Query.has
+                            [ style
+                                [ ( "position", "fixed" )
+                                , ( "top", "54px" )
+                                , ( "z-index", "1" )
+                                ]
+                            ]
+            , test "fills the top of the screen with dark grey background" <|
+                \_ ->
+                    pageHeader
+                        |> Query.has
+                            [ style
+                                [ ( "height", "60px" )
+                                , ( "width", "100%" )
+                                , ( "background-color", "#2a2929" )
+                                ]
+                            ]
+            , test "lays out contents horizontally, stretching them vertically" <|
+                \_ ->
+                    pageHeader
+                        |> Query.has [ style [ ( "display", "flex" ), ( "align-items", "stretch" ) ] ]
+            , describe "resource name"
+                [ test "on the left is the resource name" <|
+                    \_ ->
+                        pageHeader
+                            |> Query.children []
+                            |> Query.index 0
+                            |> Query.has [ text resourceName, tag "h1" ]
+                , test "the text is large and vertically centred" <|
+                    \_ ->
+                        pageHeader
+                            |> Query.children []
+                            |> Query.index 0
+                            |> Query.has
+                                [ style
+                                    [ ( "font-weight", "700" )
+                                    , ( "margin-left", "18px" )
+                                    , ( "display", "flex" )
+                                    , ( "align-items", "center" )
+                                    , ( "justify-content", "center" )
+                                    ]
+                                ]
+                ]
+            , describe "last checked"
+                [ test "last checked view is second from left" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> Application.update
+                                (Msgs.DeliveryReceived <|
+                                    Subscription.ClockTicked Subscription.OneSecond 1000
+                                )
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ id "page-header" ]
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has [ text "1s ago" ]
+                , test "last checked view displays its contents centred" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> Application.update
+                                (Msgs.DeliveryReceived <|
+                                    Subscription.ClockTicked Subscription.OneSecond 1000
+                                )
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ id "page-header" ]
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has
+                                [ style
+                                    [ ( "display", "flex" )
+                                    , ( "align-items", "center" )
+                                    , ( "justify-content", "center" )
+                                    , ( "margin-left", "24px" )
+                                    ]
+                                ]
+                ]
+            , describe "pagination"
+                [ test "pagination is last on the right" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> givenVersionsWithPagination
+                            |> queryView
+                            |> Query.find [ id "page-header" ]
+                            |> Query.children []
+                            |> Query.index -1
+                            |> Query.has [ id "pagination" ]
+                , test "pagination displays the pages horizontally" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> givenVersionsWithPagination
+                            |> queryView
+                            |> Query.find [ id "pagination" ]
+                            |> Query.has [ style [ ( "display", "flex" ), ( "align-items", "stretch" ) ] ]
+                , describe "pagination chevrons"
+                    [ test "with no pages" <|
+                        \_ ->
+                            init
+                                |> givenResourceIsNotPinned
+                                |> givenVersionsWithoutPagination
+                                |> queryView
+                                |> Query.find [ id "pagination" ]
+                                |> Query.children []
+                                |> Expect.all
+                                    [ Query.index 0
+                                        >> Query.has
+                                            [ style
+                                                [ ( "padding", "5px" )
+                                                , ( "display", "flex" )
+                                                , ( "align-items", "center" )
+                                                , ( "border-left"
+                                                  , "1px solid " ++ middleGrey
+                                                  )
+                                                ]
+                                            , containing
+                                                (iconSelector
+                                                    { image =
+                                                        "baseline-chevron-left-24px.svg"
+                                                    , size = "24px"
+                                                    }
+                                                    ++ [ style
+                                                            [ ( "padding", "5px" )
+                                                            , ( "opacity", "0.5" )
+                                                            ]
+                                                       ]
+                                                )
+                                            ]
+                                    , Query.index 1
+                                        >> Query.has
+                                            [ style
+                                                [ ( "padding", "5px" )
+                                                , ( "display", "flex" )
+                                                , ( "align-items", "center" )
+                                                , ( "border-left"
+                                                  , "1px solid " ++ middleGrey
+                                                  )
+                                                ]
+                                            , containing
+                                                (iconSelector
+                                                    { image =
+                                                        "baseline-chevron-right-24px.svg"
+                                                    , size = "24px"
+                                                    }
+                                                    ++ [ style
+                                                            [ ( "padding", "5px" )
+                                                            , ( "opacity", "0.5" )
+                                                            ]
+                                                       ]
+                                                )
+                                            ]
+                                    ]
+                    , defineHoverBehaviour <|
+                        let
+                            urlPath =
+                                "/teams/some-team/pipelines/some-pipeline/resources/some-resource?since=1&limit=1"
+                        in
+                        { name = "left pagination chevron with previous page"
+                        , setup =
+                            init
+                                |> givenResourceIsNotPinned
+                                |> givenVersionsWithPagination
+                        , query =
+                            queryView
+                                >> Query.find [ id "pagination" ]
+                                >> Query.children []
+                                >> Query.index 0
+                        , updateFunc = \msg -> Application.update msg >> Tuple.first
+                        , unhoveredSelector =
+                            { description = "white left chevron"
+                            , selector =
+                                [ style
+                                    [ ( "padding", "5px" )
+                                    , ( "display", "flex" )
+                                    , ( "align-items", "center" )
+                                    , ( "border-left"
+                                      , "1px solid " ++ middleGrey
+                                      )
+                                    ]
+                                , containing
+                                    (iconSelector
+                                        { image =
+                                            "baseline-chevron-left-24px.svg"
+                                        , size = "24px"
+                                        }
+                                        ++ [ style
+                                                [ ( "padding", "5px" )
+                                                , ( "opacity", "1" )
+                                                ]
+                                           , attribute <| Attr.href urlPath
+                                           ]
+                                    )
+                                ]
+                            }
+                        , hoveredSelector =
+                            { description =
+                                "left chevron with light grey circular bg"
+                            , selector =
+                                [ style
+                                    [ ( "padding", "5px" )
+                                    , ( "display", "flex" )
+                                    , ( "align-items", "center" )
+                                    , ( "border-left"
+                                      , "1px solid " ++ middleGrey
+                                      )
+                                    ]
+                                , containing
+                                    (iconSelector
+                                        { image =
+                                            "baseline-chevron-left-24px.svg"
+                                        , size = "24px"
+                                        }
+                                        ++ [ style
+                                                [ ( "padding", "5px" )
+                                                , ( "opacity", "1" )
+                                                , ( "border-radius", "50%" )
+                                                , ( "background-color"
+                                                  , "#504b4b"
+                                                  )
+                                                ]
+                                           , attribute <| Attr.href urlPath
+                                           ]
+                                    )
+                                ]
+                            }
+                        , mouseEnterMsg =
+                            resourceMsg <|
+                                Resource.Msgs.Hover Models.PreviousPage
+                        , mouseLeaveMsg =
+                            resourceMsg <|
+                                Resource.Msgs.Hover Models.None
+                        }
+                    ]
+                ]
+            ]
+        , describe "page body" <|
+            [ test "has horizontal padding of 10px" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.find [ id "body" ]
+                        |> Query.has
+                            [ style
+                                [ ( "padding-left", "10px" )
+                                , ( "padding-right", "10px" )
+                                ]
+                            ]
+            ]
         , describe "checkboxes" <|
             let
                 checkIcon =
@@ -1114,12 +1378,7 @@ all =
                                     |> givenResourcePinnedWithComment
                                     |> header
                                     |> Query.has
-                                        [ style
-                                            [ ( "align-items"
-                                              , "flex-start"
-                                              )
-                                            ]
-                                        ]
+                                        [ style [ ( "align-items", "flex-start" ) ] ]
                         , test "doesn't squish vertically" <|
                             \_ ->
                                 init
@@ -2295,144 +2554,6 @@ all =
                         |> Query.findAll pinButtonSelector
                         |> Query.count (Expect.equal 1)
             ]
-        , describe "pagination chevrons"
-            [ test "with no pages" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> givenVersionsWithoutPagination
-                        |> queryView
-                        |> Query.find [ id "pagination" ]
-                        |> Query.children []
-                        |> Expect.all
-                            [ Query.index 0
-                                >> Query.has
-                                    [ style
-                                        [ ( "padding", "5px" )
-                                        , ( "display", "flex" )
-                                        , ( "align-items", "center" )
-                                        , ( "border-left"
-                                          , "1px solid " ++ middleGrey
-                                          )
-                                        ]
-                                    , containing
-                                        (iconSelector
-                                            { image =
-                                                "baseline-chevron-left-24px.svg"
-                                            , size = "24px"
-                                            }
-                                            ++ [ style
-                                                    [ ( "padding", "5px" )
-                                                    , ( "opacity", "0.5" )
-                                                    ]
-                                               ]
-                                        )
-                                    ]
-                            , Query.index 1
-                                >> Query.has
-                                    [ style
-                                        [ ( "padding", "5px" )
-                                        , ( "display", "flex" )
-                                        , ( "align-items", "center" )
-                                        , ( "border-left"
-                                          , "1px solid " ++ middleGrey
-                                          )
-                                        ]
-                                    , containing
-                                        (iconSelector
-                                            { image =
-                                                "baseline-chevron-right-24px.svg"
-                                            , size = "24px"
-                                            }
-                                            ++ [ style
-                                                    [ ( "padding", "5px" )
-                                                    , ( "opacity", "0.5" )
-                                                    ]
-                                               ]
-                                        )
-                                    ]
-                            ]
-            , defineHoverBehaviour <|
-                let
-                    urlPath =
-                        "/teams/some-team/pipelines/some-pipeline/resources/some-resource?since=1&limit=1"
-                in
-                { name = "left pagination chevron with previous page"
-                , setup =
-                    init
-                        |> givenResourceIsNotPinned
-                        |> givenVersionsWithPagination
-                , query =
-                    queryView
-                        >> Query.find [ id "pagination" ]
-                        >> Query.children []
-                        >> Query.index 0
-                , updateFunc = \msg -> Application.update msg >> Tuple.first
-                , unhoveredSelector =
-                    { description = "white left chevron"
-                    , selector =
-                        [ style
-                            [ ( "padding", "5px" )
-                            , ( "display", "flex" )
-                            , ( "align-items", "center" )
-                            , ( "border-left"
-                              , "1px solid " ++ middleGrey
-                              )
-                            ]
-                        , containing
-                            (iconSelector
-                                { image =
-                                    "baseline-chevron-left-24px.svg"
-                                , size = "24px"
-                                }
-                                ++ [ style
-                                        [ ( "padding", "5px" )
-                                        , ( "opacity", "1" )
-                                        ]
-                                   , attribute <| Attr.href urlPath
-                                   ]
-                            )
-                        ]
-                    }
-                , hoveredSelector =
-                    { description =
-                        "left chevron with light grey circular bg"
-                    , selector =
-                        [ style
-                            [ ( "padding", "5px" )
-                            , ( "display", "flex" )
-                            , ( "align-items", "center" )
-                            , ( "border-left"
-                              , "1px solid " ++ middleGrey
-                              )
-                            ]
-                        , containing
-                            (iconSelector
-                                { image =
-                                    "baseline-chevron-left-24px.svg"
-                                , size = "24px"
-                                }
-                                ++ [ style
-                                        [ ( "padding", "5px" )
-                                        , ( "opacity", "1" )
-                                        , ( "border-radius", "50%" )
-                                        , ( "background-color"
-                                          , "#504b4b"
-                                          )
-                                        ]
-                                   , attribute <| Attr.href urlPath
-                                   ]
-                            )
-                        ]
-                    }
-                , mouseEnterMsg =
-                    resourceMsg <|
-                        Resource.Msgs.Hover Models.PreviousPage
-                , mouseLeaveMsg =
-                    resourceMsg <|
-                        Resource.Msgs.Hover Models.None
-                }
-            ]
         , describe "check bar" <|
             let
                 checkBar userState =
@@ -2468,6 +2589,45 @@ all =
                         |> checkBar UserStateLoggedOut
                         |> Query.children []
                         |> Query.count (Expect.equal 2)
+            , describe "status bar"
+                [ test "lays out horizontally and spreads its children" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> checkBar UserStateLoggedOut
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has
+                                [ style
+                                    [ ( "display", "flex" )
+                                    , ( "justify-content", "space-between" )
+                                    ]
+                                ]
+                , test "fills out the check bar and centers children" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> checkBar UserStateLoggedOut
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has
+                                [ style
+                                    [ ( "align-items", "center" )
+                                    , ( "height", "28px" )
+                                    , ( "flex-grow", "1" )
+                                    , ( "padding-left", "5px" )
+                                    ]
+                                ]
+                , test "has a dark grey background" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> checkBar UserStateLoggedOut
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has
+                                [ style [ ( "background", "#1e1d1d" ) ] ]
+                ]
             , describe "when unauthenticated"
                 [ defineHoverBehaviour
                     { name = "check button"
@@ -3182,7 +3342,7 @@ givenResourceIsNotPinned =
                 , failingToCheck = False
                 , checkError = ""
                 , checkSetupError = ""
-                , lastChecked = Nothing
+                , lastChecked = Just (Date.fromTime 0)
                 , pinnedVersion = Nothing
                 , pinnedInConfig = False
                 , pinComment = Nothing

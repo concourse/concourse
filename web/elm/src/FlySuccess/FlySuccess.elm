@@ -23,7 +23,6 @@ import FlySuccess.Text as Text
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
-import Html.Styled as HS
 import RemoteData
 import Routes
 import TopBar.Model
@@ -100,7 +99,7 @@ view userState model =
             [ style TopBar.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
-            [ TopBar.view userState TopBar.Model.None model |> HS.toUnstyled |> Html.map FromTopBar
+            [ TopBar.view userState TopBar.Model.None model |> Html.map FromTopBar
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ Html.div
                     [ id "success-card"

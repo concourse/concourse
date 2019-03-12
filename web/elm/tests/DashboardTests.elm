@@ -26,7 +26,6 @@ import Dict
 import Effects
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
-import Html.Styled as HS
 import List.Extra
 import Routes
 import Subscription exposing (Delivery(..), Interval(..))
@@ -2054,7 +2053,6 @@ all =
                         , query =
                             Tuple.first
                                 >> Dashboard.view UserState.UserStateLoggedOut
-                                >> HS.toUnstyled
                                 >> Query.fromHtml
                                 >> Query.find [ class "card-footer" ]
                                 >> Query.children []
@@ -2111,7 +2109,6 @@ all =
                         , query =
                             Tuple.first
                                 >> Dashboard.view UserState.UserStateLoggedOut
-                                >> HS.toUnstyled
                                 >> Query.fromHtml
                                 >> Query.find [ class "card-footer" ]
                                 >> Query.children []
@@ -2928,7 +2925,6 @@ queryView : ( Dashboard.Model, List Effects.Effect ) -> Query.Single Msgs.Msg
 queryView =
     Tuple.first
         >> Dashboard.view UserState.UserStateLoggedOut
-        >> HS.toUnstyled
         >> Query.fromHtml
 
 
