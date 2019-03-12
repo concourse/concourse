@@ -50,11 +50,11 @@ decide much on its own.
   Finally, run:
 
   \codeblock{bash}{{{
-  sudo concourse worker
+  sudo -E concourse worker
   }}}
 
   Note that the worker must be run as \code{root}, as it orchestrates
-  containers.
+  containers. Sudo is executed with the -E argument to pass the environment.
 
   All logs will be emitted to \code{stdout}, with any panics or lower-level
   errors being emitted to \code{stderr}.
