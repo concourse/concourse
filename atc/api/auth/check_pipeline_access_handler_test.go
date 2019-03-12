@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/api/auth"
-	"github.com/concourse/concourse/atc/audit/auditfakes"
+	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 
@@ -43,7 +43,7 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 
 		delegate = &pipelineDelegateHandler{}
 		checkPipelineAccessHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
-		handler = accessor.NewHandler(checkPipelineAccessHandler, fakeAccessor, "some-action", new(auditfakes.FakeAudit))
+		handler = accessor.NewHandler(checkPipelineAccessHandler, fakeAccessor, "some-action", new(auditorfakes.FakeAuditor))
 	})
 
 	JustBeforeEach(func() {

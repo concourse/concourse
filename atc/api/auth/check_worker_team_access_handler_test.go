@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/api/auth"
-	"github.com/concourse/concourse/atc/audit/auditfakes"
+	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/tedsuo/rata"
 
@@ -39,7 +39,7 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 
 		delegate = &workerDelegateHandler{}
 		checkWorkerTeamAccessHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
-		handler = accessor.NewHandler(checkWorkerTeamAccessHandler, fakeAccessor, "some-action", new(auditfakes.FakeAudit))
+		handler = accessor.NewHandler(checkWorkerTeamAccessHandler, fakeAccessor, "some-action", new(auditorfakes.FakeAuditor))
 	})
 
 	JustBeforeEach(func() {

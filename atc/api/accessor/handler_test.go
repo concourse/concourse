@@ -5,7 +5,7 @@ import (
 
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
-	"github.com/concourse/concourse/atc/audit/auditfakes"
+	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -43,7 +43,7 @@ var _ = Describe("Handler", func() {
 	Describe("Accessor Handler", func() {
 		BeforeEach(func() {
 
-			accessorHandler = accessor.NewHandler(dummyHandler, accessorFactory, "some-action", new(auditfakes.FakeAudit))
+			accessorHandler = accessor.NewHandler(dummyHandler, accessorFactory, "some-action", new(auditorfakes.FakeAuditor))
 		})
 
 		Context("when access factory return valid access object", func() {
@@ -53,16 +53,6 @@ var _ = Describe("Handler", func() {
 			It("calls the inner handler", func() {
 				Expect(innerHandlerCalled).To(BeTrue())
 				Expect(access).To(Equal(fakeAccess))
-			})
-		})
-
-		Context("when access factory does not return valid access object", func() {
-			BeforeEach(func() {
-				fakeAccess = nil
-			})
-			It("request context is set to Nil", func() {
-				Expect(innerHandlerCalled).To(BeTrue())
-				Expect(access).To(BeNil())
 			})
 		})
 	})

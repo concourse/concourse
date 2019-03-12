@@ -1,11 +1,11 @@
-package audit_test
+package auditor_test
 
 import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager/lagertest"
 
-	"github.com/concourse/concourse/atc/audit"
+	"github.com/concourse/concourse/atc/auditor"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("Audit", func() {
 	var (
-		aud                     audit.Audit
+		aud                     auditor.Auditor
 		dummyAction             string
 		userName                string
 		logger                  *lagertest.TestLogger
@@ -40,7 +40,7 @@ var _ = Describe("Audit", func() {
 	JustBeforeEach(func() {
 		logger = lagertest.NewTestLogger("access_handler")
 
-		aud = audit.NewAudit(
+		aud = auditor.NewAuditor(
 			EnableBuildAuditLog,
 			EnableContainerAuditLog,
 			EnableJobAuditLog,
