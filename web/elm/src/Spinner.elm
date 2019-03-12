@@ -12,21 +12,18 @@ import Html exposing (Html)
 import Html.Attributes exposing (style)
 
 
-spinner : String -> List (Html.Attribute msg) -> Html msg
-spinner size attrs =
+spinner : { size : String, margin : String } -> Html msg
+spinner { size, margin } =
     Html.div
         -- preloader-wrapper active
-        ([ style
+        [ style
             [ ( "width", size )
             , ( "height", size )
             , ( "box-sizing", "border-box" )
-            , ( "animation"
-              , "container-rotate 1568ms linear infinite"
-              )
+            , ( "animation", "container-rotate 1568ms linear infinite" )
+            , ( "margin", margin )
             ]
-         ]
-            ++ attrs
-        )
+        ]
         [ Html.div
             -- spinner-layer spinner-blue-only
             [ style

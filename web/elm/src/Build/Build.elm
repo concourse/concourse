@@ -981,10 +981,9 @@ viewBuildPrepStatus status =
                 []
 
         Concourse.BuildPrepStatusBlocking ->
-            Spinner.spinner "12px"
-                [ style [ ( "margin-right", "5px" ) ]
-                , title "blocking"
-                ]
+            Html.div
+                [ title "blocking" ]
+                [ Spinner.spinner { size = "12px", margin = "0 5px 0 0" } ]
 
         Concourse.BuildPrepStatusNotBlocking ->
             Html.div
