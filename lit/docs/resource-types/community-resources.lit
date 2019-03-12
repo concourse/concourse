@@ -240,6 +240,8 @@ before using it!
   \table-row{\link{RubyGems}{https://github.com/troykinsella/concourse-rubygems-resource}}{by \ghuser{troykinsella}}
 }{
   \table-row{\link{Medium Resource}{https://github.com/cappyzawa/medium-resource}}{by \ghuser{cappyzawa}}
+}{
+  \table-row{\link{GitHub List Repos}{https://github.com/coralogix/eng-concourse-resource-github-list-repos}}{by \ghuser{ari-becker}}
 }
 
 \section{
