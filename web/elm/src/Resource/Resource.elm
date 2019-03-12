@@ -14,7 +14,6 @@ module Resource.Resource exposing
     )
 
 import Callback exposing (Callback(..))
-import Colors
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination
@@ -927,11 +926,7 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
         statusIcon =
             case checkStatus of
                 Models.CurrentlyChecking ->
-                    Spinner.spinner "14px"
-                        [ Html.Attributes.style
-                            [ ( "margin", "7px" )
-                            ]
-                        ]
+                    Spinner.spinner { size = "14px", margin = "7px" }
 
                 _ ->
                     Html.div
@@ -1099,7 +1094,7 @@ commentBar userState ({ resourceIdentifier, pinnedVersion, hovered, pinCommentLo
                             , onClick <| SaveComment commentState.comment
                             ]
                             (if pinCommentLoading then
-                                [ Spinner.spinner "12px" [] ]
+                                [ Spinner.spinner { size = "12px", margin = "0px" } ]
 
                              else
                                 [ Html.text "save" ]
@@ -1341,7 +1336,7 @@ viewEnabledCheckbox ({ enabled, id, pinState } as params) =
                 []
 
             Models.Changing ->
-                [ Spinner.spinner "12.5px" [ Html.Attributes.style [ ( "margin", "6.25px" ) ] ] ]
+                [ Spinner.spinner { size = "12.5px", margin = "6.25px" } ]
 
             Models.Disabled ->
                 []
@@ -1393,7 +1388,7 @@ viewPinButton { versionID, pinState } =
                     []
 
             InTransition ->
-                [ Spinner.spinner "12.5px" [ Html.Attributes.style [ ( "margin", "6.25px" ) ] ] ]
+                [ Spinner.spinner { size = "12.5px", margin = "6.25px" } ]
 
             _ ->
                 []

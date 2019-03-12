@@ -573,18 +573,17 @@ viewVersion version =
 
 
 viewMetadata : List MetadataField -> Html Msg
-viewMetadata metadata =
-    DictView.view []
-        << Dict.fromList
-    <|
-        List.map (\{ name, value } -> ( name, Html.pre [] [ Html.text value ] )) metadata
+viewMetadata =
+    List.map (\{ name, value } -> ( name, Html.pre [] [ Html.text value ] ))
+        >> Dict.fromList
+        >> DictView.view []
 
 
 viewStepState : StepState -> Html Msg
 viewStepState state =
     case state of
         StepStateRunning ->
-            Spinner.spinner "14px" [ style [ ( "margin", "7px" ) ] ]
+            Spinner.spinner { size = "14px", margin = "7px" }
 
         StepStatePending ->
             Html.div

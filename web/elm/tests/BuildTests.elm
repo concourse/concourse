@@ -1038,10 +1038,10 @@ all =
                                       )
                                     , ( "height", "12px" )
                                     , ( "width", "12px" )
-                                    , ( "margin-right", "5px" )
+                                    , ( "margin", "0 5px 0 0" )
                                     ]
-                                , attribute <| Attr.title "blocking"
                                 ]
+                            , Query.has [ attribute <| Attr.title "blocking" ]
                             ]
                 ]
             , describe "build events subscription" <|
