@@ -177,10 +177,17 @@ local publish_job(bump) = {
     {
       aggregate: [
         {
-          put: "resource-image-latest",
+          put: "resource-image-alpine",
           params: {
             load: "resource-image-dev-alpine",
-            additional_tags: "docker/tags"
+            additional_tags: "docker/tags",
+            tag_as_latest: true
+          }
+        },
+        {
+          put: "resource-image-ubuntu",
+          params: {
+            load: "resource-image-dev-ubuntu",
           }
         },
         {
@@ -288,11 +295,21 @@ local publish_job(bump) = {
       }
     },
     {
-      name: "resource-image-latest",
+      name: "resource-image-alpine",
       type: "docker-image",
       source: {
         repository: "concourse/"+resource+"-resource",
-        tag: "latest",
+        tag: "alpine",
+        username: "((docker.username))",
+        password: "((docker.password))"
+      }
+    },
+    {
+      name: "resource-image-ubuntu",
+      type: "docker-image",
+      source: {
+        repository: "concourse/"+resource+"-resource",
+        tag: "ubuntu",
         username: "((docker.username))",
         password: "((docker.password))"
       }
