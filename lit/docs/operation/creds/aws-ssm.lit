@@ -94,7 +94,10 @@
             {
                 "Sid": "AllowAccessToSsmParameters",
                 "Effect": "Allow",
-                "Action": "ssm:GetParameters",
+                "Action": [
+                  "ssm:GetParameter",
+                  "ssm:GetParametersByPath",
+                ],
                 "Resource": [
                     "arn:aws:ssm:::parameter/concourse/*",
                     "arn:aws:ssm:::parameter/concourse/TEAM_NAME/*",
