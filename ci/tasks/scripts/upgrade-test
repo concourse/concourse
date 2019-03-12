@@ -16,7 +16,7 @@ start_docker
 cd concourse
 
 # start with latest release and set up
-docker-compose -f docker-compose-4.2.2.yml up -d
+docker-compose -f docker-compose-latest.yml up -d
 ./ci/tasks/scripts/create-upgrade-downgrade-pipeline
 
 # upgrade and verify

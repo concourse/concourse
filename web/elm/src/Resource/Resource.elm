@@ -3,6 +3,7 @@ module Resource.Resource exposing
     , changeToResource
     , getUpdateMessage
     , handleCallback
+    , handleDelivery
     , init
     , subscriptions
     , update
@@ -13,7 +14,6 @@ module Resource.Resource exposing
     )
 
 import Callback exposing (Callback(..))
-import Colors
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination
@@ -25,21 +25,17 @@ import Concourse.Pagination
         , chevronContainer
         , equal
         )
-import Css
 import Date exposing (Date)
 import Date.Format
 import Dict
 import DictView
 import Duration exposing (Duration)
 import Effects exposing (Effect(..), runEffect, setTitle)
-import Html as UnstyledHtml
+import Html exposing (Html)
 import Html.Attributes
-import Html.Styled as Html exposing (Html)
-import Html.Styled.Attributes
     exposing
         ( attribute
         , class
-        , css
         , href
         , id
         , placeholder
@@ -47,7 +43,7 @@ import Html.Styled.Attributes
         , title
         , value
         )
-import Html.Styled.Events
+import Html.Events
     exposing
         ( onBlur
         , onClick
@@ -69,7 +65,7 @@ import Resource.Styles
 import Routes
 import Spinner
 import StrictEvents
-import Subscription exposing (Subscription(..))
+import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Time exposing (Time)
 import TopBar.Model
 import TopBar.Styles
@@ -81,7 +77,6 @@ import UserState exposing (UserState(..))
 type alias Flags =
     { resourceId : Concourse.ResourceIdentifier
     , paging : Maybe Concourse.Pagination.Page
-    , csrfToken : String
     }
 
 
@@ -106,13 +101,17 @@ init flags =
                 , pagination = { previousPage = Nothing, nextPage = Nothing }
                 }
             , now = Nothing
-            , csrfToken = flags.csrfToken
             , showPinBarTooltip = False
             , pinIconHover = False
             , pinCommentLoading = False
             , ctrlDown = False
             , textAreaFocused = False
-            , topBar = topBar
+            , isUserMenuExpanded = topBar.isUserMenuExpanded
+            , isPinMenuExpanded = topBar.isPinMenuExpanded
+            , middleSection = topBar.middleSection
+            , teams = topBar.teams
+            , screenSize = topBar.screenSize
+            , highDensity = topBar.highDensity
             }
     in
     ( model
@@ -202,22 +201,22 @@ getUpdateMessage model =
         UpdateMsg.AOK
 
 
-handleCallback : Callback -> Model -> ( Model, List Effect )
-handleCallback msg model =
-    let
-        ( newTopBar, topBarEffects ) =
-            TopBar.handleCallback msg model.topBar
-
-        ( newModel, dashboardEffects ) =
-            handleCallbackWithoutTopBar msg model
-    in
-    ( { newModel | topBar = newTopBar }
-    , topBarEffects ++ dashboardEffects
-    )
+subscriptions : Model -> List Subscription
+subscriptions model =
+    [ OnClockTick Subscription.FiveSeconds
+    , OnClockTick Subscription.OneSecond
+    , OnKeyDown
+    , OnKeyUp
+    ]
 
 
-handleCallbackWithoutTopBar : Callback -> Model -> ( Model, List Effect )
-handleCallbackWithoutTopBar action model =
+handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallback msg =
+    TopBar.handleCallback msg >> handleCallbackWithoutTopBar msg
+
+
+handleCallbackWithoutTopBar : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackWithoutTopBar action ( model, effects ) =
     case action of
         ResourceFetched (Ok resource) ->
             ( { model
@@ -238,23 +237,23 @@ handleCallbackWithoutTopBar action model =
                 , lastChecked = resource.lastChecked
               }
                 |> updatePinnedVersion resource
-            , [ SetTitle <| resource.name ++ " - " ]
+            , effects ++ [ SetTitle <| resource.name ++ " - " ]
             )
 
         ResourceFetched (Err err) ->
             case Debug.log "failed to fetch resource" err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
-                        ( model, [ RedirectToLogin ] )
+                        ( model, effects ++ [ RedirectToLogin ] )
 
                     else if status.code == 404 then
-                        ( { model | pageStatus = Err Models.NotFound }, [] )
+                        ( { model | pageStatus = Err Models.NotFound }, effects )
 
                     else
-                        ( model, [] )
+                        ( model, effects )
 
                 _ ->
-                    ( model, [] )
+                    ( model, effects )
 
         VersionedResourcesFetched (Ok ( requestedPage, paginated )) ->
             let
@@ -335,25 +334,25 @@ handleCallbackWithoutTopBar action model =
             in
             case requestedPage of
                 Nothing ->
-                    ( newModel (Just fetchedPage), [] )
+                    ( newModel (Just fetchedPage), effects )
 
                 Just requestedPageUnwrapped ->
                     ( chosenModelWith requestedPageUnwrapped
-                    , []
+                    , effects
                     )
 
         VersionedResourcesFetched (Err err) ->
             flip always (Debug.log "failed to fetch versioned resources" err) <|
-                ( model, [] )
+                ( model, effects )
 
         InputToFetched (Ok ( versionID, builds )) ->
             ( updateVersion versionID (\v -> { v | inputTo = builds }) model
-            , []
+            , effects
             )
 
         OutputOfFetched (Ok ( versionID, builds )) ->
             ( updateVersion versionID (\v -> { v | outputOf = builds }) model
-            , []
+            , effects
             )
 
         VersionPinned (Ok ()) ->
@@ -367,27 +366,21 @@ handleCallbackWithoutTopBar action model =
                         )
                         model.pinnedVersion
             in
-            ( { model | pinnedVersion = newPinnedVersion }, [] )
+            ( { model | pinnedVersion = newPinnedVersion }, effects )
 
         VersionPinned (Err _) ->
-            ( { model
-                | pinnedVersion = NotPinned
-              }
-            , []
+            ( { model | pinnedVersion = NotPinned }
+            , effects
             )
 
         VersionUnpinned (Ok ()) ->
-            ( { model
-                | pinnedVersion = NotPinned
-              }
-            , [ FetchResource model.resourceIdentifier ]
+            ( { model | pinnedVersion = NotPinned }
+            , effects ++ [ FetchResource model.resourceIdentifier ]
             )
 
         VersionUnpinned (Err _) ->
-            ( { model
-                | pinnedVersion = Pinned.quitUnpinning model.pinnedVersion
-              }
-            , []
+            ( { model | pinnedVersion = Pinned.quitUnpinning model.pinnedVersion }
+            , effects
             )
 
         VersionToggled action versionID result ->
@@ -408,16 +401,17 @@ handleCallbackWithoutTopBar action model =
                             Models.Enabled
             in
             ( updateVersion versionID (\v -> { v | enabled = newEnabledState }) model
-            , []
+            , effects
             )
 
         Checked (Ok ()) ->
             ( { model | checkStatus = Models.CheckingSuccessfully }
-            , [ FetchResource model.resourceIdentifier
-              , FetchVersionedResources
-                    model.resourceIdentifier
-                    model.currentPage
-              ]
+            , effects
+                ++ [ FetchResource model.resourceIdentifier
+                   , FetchVersionedResources
+                        model.resourceIdentifier
+                        model.currentPage
+                   ]
             )
 
         Checked (Err err) ->
@@ -425,13 +419,13 @@ handleCallbackWithoutTopBar action model =
             , case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
-                        [ RedirectToLogin ]
+                        effects ++ [ RedirectToLogin ]
 
                     else
-                        [ FetchResource model.resourceIdentifier ]
+                        effects ++ [ FetchResource model.resourceIdentifier ]
 
                 _ ->
-                    []
+                    effects
             )
 
         CommentSet result ->
@@ -449,33 +443,69 @@ handleCallbackWithoutTopBar action model =
                         ( _, pv ) ->
                             pv
               }
-            , [ FetchResource model.resourceIdentifier ]
+            , effects ++ [ FetchResource model.resourceIdentifier ]
             )
 
         _ ->
-            ( model, [] )
+            ( model, effects )
 
 
-update : Msg -> Model -> ( Model, List Effect )
-update action model =
-    case action of
-        AutoupdateTimerTicked timestamp ->
+handleDelivery : Delivery -> ( Model, List Effect ) -> ( Model, List Effect )
+handleDelivery delivery ( model, effects ) =
+    case delivery of
+        KeyDown keycode ->
+            if Keycodes.isControlModifier keycode then
+                ( { model | ctrlDown = True }, effects )
+
+            else if keycode == Keycodes.enter && model.ctrlDown && model.textAreaFocused then
+                ( model
+                , case model.pinnedVersion of
+                    PinnedDynamicallyTo { comment } _ ->
+                        effects ++ [ SetPinComment model.resourceIdentifier comment ]
+
+                    _ ->
+                        effects
+                )
+
+            else
+                ( model, effects )
+
+        KeyUp keycode ->
+            if Keycodes.isControlModifier keycode then
+                ( { model | ctrlDown = False }, effects )
+
+            else
+                ( model, effects )
+
+        ClockTicked OneSecond time ->
+            ( { model | now = Just time }, effects )
+
+        ClockTicked FiveSeconds _ ->
             ( model
-            , [ FetchResource model.resourceIdentifier
-              , FetchVersionedResources model.resourceIdentifier model.currentPage
-              ]
+            , effects
+                ++ [ FetchResource model.resourceIdentifier
+                   , FetchVersionedResources model.resourceIdentifier model.currentPage
+                   ]
                 ++ fetchDataForExpandedVersions model
             )
 
+        _ ->
+            ( model, effects )
+
+
+update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
+update action ( model, effects ) =
+    case action of
         LoadPage page ->
             ( { model
                 | currentPage = Just page
               }
-            , [ FetchVersionedResources model.resourceIdentifier <| Just page
-              , NavigateTo <|
-                    Routes.toString <|
-                        Routes.Resource { id = model.resourceIdentifier, page = Just page }
-              ]
+            , effects
+                ++ [ FetchVersionedResources model.resourceIdentifier <| Just page
+                   , NavigateTo <|
+                        Routes.toString <|
+                            Routes.Resource { id = model.resourceIdentifier, page = Just page }
+                   ]
             )
 
         ExpandVersionedResource versionID ->
@@ -501,19 +531,17 @@ update action model =
                 )
                 model
             , if newExpandedState then
-                [ FetchInputTo versionID
-                , FetchOutputOf versionID
-                ]
+                effects
+                    ++ [ FetchInputTo versionID
+                       , FetchOutputOf versionID
+                       ]
 
               else
-                []
+                effects
             )
 
-        ClockTick now ->
-            ( { model | now = Just now }, [] )
-
         NavTo route ->
-            ( model, [ NavigateTo <| Routes.toString route ] )
+            ( model, effects ++ [ NavigateTo <| Routes.toString route ] )
 
         TogglePinBarTooltip ->
             ( { model
@@ -525,7 +553,7 @@ update action model =
                         _ ->
                             False
               }
-            , []
+            , effects
             )
 
         ToggleVersionTooltip ->
@@ -547,7 +575,7 @@ update action model =
                         _ ->
                             model
             in
-            ( newModel, [] )
+            ( newModel, effects )
 
         PinVersion versionID ->
             let
@@ -555,18 +583,6 @@ update action model =
                 version =
                     model.versions.content
                         |> List.Extra.find (\v -> v.id == versionID)
-
-                effects : List Effect
-                effects =
-                    case version of
-                        Just v ->
-                            [ DoPinVersion
-                                versionID
-                                model.csrfToken
-                            ]
-
-                        Nothing ->
-                            []
             in
             ( { model
                 | pinnedVersion =
@@ -574,21 +590,17 @@ update action model =
                         versionID
                         model.pinnedVersion
               }
-            , effects
+            , case version of
+                Just v ->
+                    effects ++ [ DoPinVersion versionID ]
+
+                Nothing ->
+                    effects
             )
 
         UnpinVersion ->
-            let
-                cmd : Effect
-                cmd =
-                    DoUnpinVersion
-                        model.resourceIdentifier
-                        model.csrfToken
-            in
-            ( { model
-                | pinnedVersion = Pinned.startUnpinning model.pinnedVersion
-              }
-            , [ cmd ]
+            ( { model | pinnedVersion = Pinned.startUnpinning model.pinnedVersion }
+            , effects ++ [ DoUnpinVersion model.resourceIdentifier ]
             )
 
         ToggleVersion action versionID ->
@@ -597,33 +609,26 @@ update action model =
                     { v | enabled = Models.Changing }
                 )
                 model
-            , [ DoToggleVersion action
-                    versionID
-                    model.csrfToken
-              ]
+            , effects ++ [ DoToggleVersion action versionID ]
             )
 
         PinIconHover state ->
-            ( { model | pinIconHover = state }, [] )
+            ( { model | pinIconHover = state }, effects )
 
         Hover hovered ->
-            ( { model | hovered = hovered }, [] )
+            ( { model | hovered = hovered }, effects )
 
         CheckRequested isAuthorized ->
             if isAuthorized then
                 ( { model | checkStatus = Models.CurrentlyChecking }
-                , [ DoCheck model.resourceIdentifier model.csrfToken ]
+                , effects ++ [ DoCheck model.resourceIdentifier ]
                 )
 
             else
-                ( model, [ RedirectToLogin ] )
+                ( model, effects ++ [ RedirectToLogin ] )
 
         TopBarMsg msg ->
-            let
-                ( newTopBar, effects ) =
-                    TopBar.update msg model.topBar
-            in
-            ( { model | topBar = newTopBar }, effects )
+            TopBar.update msg ( model, effects )
 
         EditComment input ->
             let
@@ -639,51 +644,18 @@ update action model =
                         x ->
                             x
             in
-            ( { model | pinnedVersion = newPinnedVersion }, [] )
+            ( { model | pinnedVersion = newPinnedVersion }, effects )
 
         SaveComment comment ->
             ( { model | pinCommentLoading = True }
-            , [ SetPinComment model.resourceIdentifier model.csrfToken comment ]
+            , effects ++ [ SetPinComment model.resourceIdentifier comment ]
             )
 
-        KeyUps code ->
-            if Keycodes.isControlModifier code then
-                ( { model | ctrlDown = False }, [] )
-
-            else
-                ( model, [] )
-
-        KeyDowns code ->
-            if Keycodes.isControlModifier code then
-                ( { model | ctrlDown = True }, [] )
-
-            else if
-                code
-                    == Keycodes.enter
-                    && model.ctrlDown
-                    && model.textAreaFocused
-            then
-                ( model
-                , case model.pinnedVersion of
-                    PinnedDynamicallyTo { comment } _ ->
-                        [ SetPinComment
-                            model.resourceIdentifier
-                            model.csrfToken
-                            comment
-                        ]
-
-                    _ ->
-                        []
-                )
-
-            else
-                ( model, [] )
-
         FocusTextArea ->
-            ( { model | textAreaFocused = True }, [] )
+            ( { model | textAreaFocused = True }, effects )
 
         BlurTextArea ->
-            ( { model | textAreaFocused = False }, [] )
+            ( { model | textAreaFocused = False }, effects )
 
 
 updateVersion :
@@ -724,7 +696,7 @@ view userState model =
     Html.div []
         [ Html.div
             [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map TopBarMsg <| TopBar.view userState TopBar.Model.None model.topBar
+            [ Html.map TopBarMsg <| TopBar.view userState TopBar.Model.None model
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ subpageView userState model
                 , commentBar userState model
@@ -736,7 +708,7 @@ view userState model =
 subpageView : UserState -> Model -> Html Msg
 subpageView userState model =
     if model.pageStatus == Err Models.Empty then
-        Html.div [] []
+        Html.text ""
 
     else
         Html.div []
@@ -755,40 +727,16 @@ header model =
 
                 ( _, _ ) ->
                     Html.text ""
-
-        headerHeight =
-            60
     in
     Html.div
-        [ css
-            [ Css.height <| Css.px headerHeight
-            , Css.position Css.fixed
-            , Css.top <| Css.px TopBar.Styles.pageHeaderHeight
-            , Css.displayFlex
-            , Css.alignItems Css.stretch
-            , Css.width <| Css.pct 100
-            , Css.zIndex <| Css.int 1
-            , Css.backgroundColor <| Css.hex "2a2929"
-            ]
+        [ id "page-header"
+        , style Resource.Styles.headerBar
         ]
         [ Html.h1
-            [ css
-                [ Css.fontWeight <| Css.int 700
-                , Css.marginLeft <| Css.px 18
-                , Css.displayFlex
-                , Css.alignItems Css.center
-                , Css.justifyContent Css.center
-                ]
-            ]
+            [ style Resource.Styles.headerResourceName ]
             [ Html.text model.resourceIdentifier.resourceName ]
         , Html.div
-            [ css
-                [ Css.displayFlex
-                , Css.alignItems Css.center
-                , Css.justifyContent Css.center
-                , Css.marginLeft (Css.px 24)
-                ]
-            ]
+            [ style Resource.Styles.headerLastCheckedSection ]
             [ lastCheckedView ]
         , pinBar model
         , paginationMenu model
@@ -798,9 +746,6 @@ header model =
 body : UserState -> Model -> Html Msg
 body userState model =
     let
-        headerHeight =
-            60
-
         sectionModel =
             { checkStatus = model.checkStatus
             , checkSetupError = model.checkSetupError
@@ -809,26 +754,17 @@ body userState model =
             , userState = userState
             , teamName = model.resourceIdentifier.teamName
             }
+
+        hasCommentBar =
+            case model.pinnedVersion of
+                PinnedDynamicallyTo _ _ ->
+                    True
+
+                _ ->
+                    False
     in
     Html.div
-        [ css
-            [ Css.padding3
-                (Css.px <| headerHeight + 10)
-                (Css.px 10)
-                (Css.px 10)
-            ]
-        , id "body"
-        , style
-            [ ( "padding-bottom"
-              , case model.pinnedVersion of
-                    PinnedDynamicallyTo _ _ ->
-                        "300px"
-
-                    _ ->
-                        ""
-              )
-            ]
-        ]
+        [ id "body", style <| Resource.Styles.body hasCommentBar ]
         [ checkSection sectionModel
         , viewVersionedResources model
         ]
@@ -865,10 +801,7 @@ paginationMenu { versions, resourceIdentifier, hovered } =
     in
     Html.div
         [ id "pagination"
-        , style
-            [ ( "display", "flex" )
-            , ( "align-items", "stretch" )
-            ]
+        , style Resource.Styles.pagination
         ]
         [ case versions.pagination.previousPage of
             Nothing ->
@@ -993,12 +926,11 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
         statusIcon =
             case checkStatus of
                 Models.CurrentlyChecking ->
-                    Html.fromUnstyled <|
-                        Spinner.spinner "14px"
-                            [ Html.Attributes.style
-                                [ ( "margin", "7px" )
-                                ]
+                    Spinner.spinner "14px"
+                        [ Html.Attributes.style
+                            [ ( "margin", "7px" )
                             ]
+                        ]
 
                 _ ->
                     Html.div
@@ -1009,16 +941,7 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
 
         statusBar =
             Html.div
-                [ style
-                    [ ( "display", "flex" )
-                    , ( "justify-content", "space-between" )
-                    , ( "align-items", "center" )
-                    , ( "flex-grow", "1" )
-                    , ( "height", "28px" )
-                    , ( "background", Colors.sectionHeader )
-                    , ( "padding-left", "5px" )
-                    ]
-                ]
+                [ style Resource.Styles.checkBarStatus ]
                 [ Html.h3 [] [ Html.text checkMessage ]
                 , statusIcon
                 ]
@@ -1026,7 +949,9 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
         checkBar =
             Html.div
                 [ style [ ( "display", "flex" ) ] ]
-                [ checkButton model, statusBar ]
+                [ checkButton model
+                , statusBar
+                ]
     in
     Html.div [ class "resource-check-status" ] <| checkBar :: stepBody
 
@@ -1066,19 +991,7 @@ checkButton ({ hovered, userState, teamName, checkStatus } as params) =
             (isClickable && isHovered) || isCurrentlyChecking
     in
     Html.div
-        ([ style
-            [ ( "height", "28px" )
-            , ( "width", "28px" )
-            , ( "background-color", Colors.sectionHeader )
-            , ( "margin-right", "5px" )
-            , ( "cursor"
-              , if isClickable then
-                    "pointer"
-
-                else
-                    "default"
-              )
-            ]
+        ([ style <| Resource.Styles.checkButton isClickable
          , onMouseEnter <| Hover Models.CheckButton
          , onMouseLeave <| Hover Models.None
          ]
@@ -1089,28 +1002,7 @@ checkButton ({ hovered, userState, teamName, checkStatus } as params) =
                     []
                )
         )
-        [ Html.div
-            [ style
-                [ ( "height", "20px" )
-                , ( "width", "20px" )
-                , ( "margin", "4px" )
-                , ( "background-image"
-                  , "url(/public/images/baseline-refresh-24px.svg)"
-                  )
-                , ( "background-position", "50% 50%" )
-                , ( "background-repeat", "no-repeat" )
-                , ( "background-size", "contain" )
-                , ( "opacity"
-                  , if isHighlighted then
-                        "1"
-
-                    else
-                        "0.5"
-                  )
-                ]
-            ]
-            []
-        ]
+        [ Html.div [ style <| Resource.Styles.checkButtonIcon isHighlighted ] [] ]
 
 
 isAuthorized : { a | teamName : String, userState : UserState } -> Bool
@@ -1206,9 +1098,7 @@ commentBar userState ({ resourceIdentifier, pinnedVersion, hovered, pinCommentLo
                             , onClick <| SaveComment commentState.comment
                             ]
                             (if pinCommentLoading then
-                                [ Spinner.spinner "12px" []
-                                    |> Html.fromUnstyled
-                                ]
+                                [ Spinner.spinner "12px" [] ]
 
                              else
                                 [ Html.text "save" ]
@@ -1352,9 +1242,9 @@ viewVersionedResource { version, pinnedVersion } =
                 []
         )
         ([ Html.div
-            [ css
-                [ Css.displayFlex
-                , Css.margin2 (Css.px 5) Css.zero
+            [ style
+                [ ( "display", "flex" )
+                , ( "margin", "5px 0px" )
                 ]
             ]
             [ viewEnabledCheckbox
@@ -1397,19 +1287,19 @@ viewVersionBody :
     -> Html Msg
 viewVersionBody { inputTo, outputOf, metadata } =
     Html.div
-        [ css
-            [ Css.displayFlex
-            , Css.padding2 (Css.px 5) (Css.px 10)
+        [ style
+            [ ( "display", "flex" )
+            , ( "padding", "5px 10px" )
             ]
         ]
         [ Html.div [ class "vri" ] <|
             List.concat
-                [ [ Html.div [ css [ Css.lineHeight <| Css.px 25 ] ] [ Html.text "inputs to" ] ]
+                [ [ Html.div [ style [ ( "line-height", "25px" ) ] ] [ Html.text "inputs to" ] ]
                 , viewBuilds <| listToMap inputTo
                 ]
         , Html.div [ class "vri" ] <|
             List.concat
-                [ [ Html.div [ css [ Css.lineHeight <| Css.px 25 ] ] [ Html.text "outputs of" ] ]
+                [ [ Html.div [ style [ ( "line-height", "25px" ) ] ] [ Html.text "outputs of" ] ]
                 , viewBuilds <| listToMap outputOf
                 ]
         , Html.div [ class "vri metadata-container" ]
@@ -1440,9 +1330,7 @@ viewEnabledCheckbox ({ enabled, id, pinState } as params) =
                     [ onClick <| ToggleVersion Models.Enable id ]
     in
     Html.div
-        ([ Html.Styled.Attributes.attribute
-            "aria-label"
-            "Toggle Resource Version Enabled"
+        ([ Html.Attributes.attribute "aria-label" "Toggle Resource Version Enabled"
          , style <| Resource.Styles.enabledCheckbox params
          ]
             ++ clickHandler
@@ -1452,11 +1340,7 @@ viewEnabledCheckbox ({ enabled, id, pinState } as params) =
                 []
 
             Models.Changing ->
-                [ Html.fromUnstyled <|
-                    Spinner.spinner
-                        "12.5px"
-                        [ Html.Attributes.style [ ( "margin", "6.25px" ) ] ]
-                ]
+                [ Spinner.spinner "12.5px" [ Html.Attributes.style [ ( "margin", "6.25px" ) ] ] ]
 
             Models.Disabled ->
                 []
@@ -1491,9 +1375,7 @@ viewPinButton { versionID, pinState } =
                     []
     in
     Html.div
-        ([ Html.Styled.Attributes.attribute
-            "aria-label"
-            "Pin Resource Version"
+        ([ Html.Attributes.attribute "aria-label" "Pin Resource Version"
          , style <| Resource.Styles.pinButton pinState
          ]
             ++ eventHandlers
@@ -1502,15 +1384,7 @@ viewPinButton { versionID, pinState } =
             PinnedStatically { showTooltip } ->
                 if showTooltip then
                     [ Html.div
-                        [ style
-                            [ ( "position", "absolute" )
-                            , ( "bottom", "25px" )
-                            , ( "background-color", Colors.tooltipBackground )
-                            , ( "z-index", "2" )
-                            , ( "padding", "5px" )
-                            , ( "width", "170px" )
-                            ]
-                        ]
+                        [ style Resource.Styles.pinButtonTooltip ]
                         [ Html.text "enable via pipeline config" ]
                     ]
 
@@ -1518,11 +1392,7 @@ viewPinButton { versionID, pinState } =
                     []
 
             InTransition ->
-                [ Html.fromUnstyled <|
-                    Spinner.spinner
-                        "12.5px"
-                        [ Html.Attributes.style [ ( "margin", "6.25px" ) ] ]
-                ]
+                [ Spinner.spinner "12.5px" [ Html.Attributes.style [ ( "margin", "6.25px" ) ] ] ]
 
             _ ->
                 []
@@ -1544,13 +1414,11 @@ viewVersionHeader { id, version, pinnedState } =
         [ viewVersion [] version ]
 
 
-viewVersion : List (UnstyledHtml.Attribute Msg) -> Concourse.Version -> Html Msg
+viewVersion : List (Html.Attribute Msg) -> Concourse.Version -> Html Msg
 viewVersion attrs version =
     version
         |> Dict.map (always Html.text)
-        |> Dict.map (always Html.toUnstyled)
         |> DictView.view attrs
-        |> Html.fromUnstyled
 
 
 viewMetadata : Concourse.Metadata -> Html Msg
@@ -1609,7 +1477,7 @@ viewLastChecked now date =
         ago =
             Duration.between (Date.toTime date) now
     in
-    Html.table []
+    Html.table [ id "last-checked" ]
         [ Html.tr
             []
             [ Html.td [] [ Html.text "checked" ]
@@ -1644,7 +1512,7 @@ viewBuildsByJob buildDict jobName =
                         in
                         Html.li [ class <| Concourse.BuildStatus.show build.status ]
                             [ Html.a
-                                [ Html.Styled.Attributes.fromUnstyled <| StrictEvents.onLeftClick <| NavTo link
+                                [ StrictEvents.onLeftClick <| NavTo link
                                 , href (Routes.toString link)
                                 ]
                                 [ Html.text <| "#" ++ build.name ]
@@ -1668,12 +1536,3 @@ fetchDataForExpandedVersions model =
     model.versions.content
         |> List.filter .expanded
         |> List.concatMap (\v -> [ FetchInputTo v.id, FetchOutputOf v.id ])
-
-
-subscriptions : Model -> List (Subscription Msg)
-subscriptions model =
-    [ OnClockTick (5 * Time.second) AutoupdateTimerTicked
-    , OnClockTick Time.second ClockTick
-    , OnKeyDown
-    , OnKeyUp
-    ]

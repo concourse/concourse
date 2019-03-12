@@ -14,8 +14,8 @@ module StepTreeTests exposing
 
 import Ansi.Log
 import Array
-import Build.Models as Models
-import Build.StepTree as StepTree
+import Build.StepTree.Models as Models
+import Build.StepTree.StepTree as StepTree
 import Concourse exposing (BuildStep(..), HookedPlan)
 import Dict
 import Expect exposing (..)
@@ -67,7 +67,7 @@ emptyResources =
 initTask : Test
 initTask =
     let
-        { tree, foci, finished } =
+        { tree, foci } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
@@ -96,7 +96,7 @@ initGet =
         version =
             Dict.fromList [ ( "some", "version" ) ]
 
-        { tree, foci, finished } =
+        { tree, foci } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
@@ -122,7 +122,7 @@ initGet =
 initPut : Test
 initPut =
     let
-        { tree, foci, finished } =
+        { tree, foci } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
@@ -148,7 +148,7 @@ initPut =
 initAggregate : Test
 initAggregate =
     let
-        { tree, foci, finished } =
+        { tree, foci } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "aggregate-id"
@@ -192,7 +192,7 @@ initAggregate =
 initAggregateNested : Test
 initAggregateNested =
     let
-        { tree, foci, finished } =
+        { tree, foci } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "aggregate-id"
@@ -257,7 +257,7 @@ initAggregateNested =
 initOnSuccess : Test
 initOnSuccess =
     let
-        { tree, foci, finished } =
+        { tree, foci } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "on-success-id"
@@ -306,7 +306,7 @@ initOnSuccess =
 initOnFailure : Test
 initOnFailure =
     let
-        { tree, foci, finished } =
+        { tree, foci } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "on-success-id"
@@ -355,7 +355,7 @@ initOnFailure =
 initEnsure : Test
 initEnsure =
     let
-        { tree, foci, finished } =
+        { tree, foci } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "on-success-id"
@@ -404,7 +404,7 @@ initEnsure =
 initTry : Test
 initTry =
     let
-        { tree, foci, finished } =
+        { tree, foci } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "on-success-id"
@@ -435,7 +435,7 @@ initTry =
 initTimeout : Test
 initTimeout =
     let
-        { tree, foci, finished } =
+        { tree, foci } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "on-success-id"

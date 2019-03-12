@@ -2,6 +2,7 @@ module PipelineTests exposing (all)
 
 import Application.Application as Application
 import Application.Msgs as Msgs
+import Build.Msgs
 import Callback
 import Char
 import Effects
@@ -10,8 +11,10 @@ import Html.Attributes as Attr
 import Json.Encode
 import Pipeline.Msgs exposing (Msg(..))
 import Pipeline.Pipeline as Pipeline exposing (update)
+import Resource.Msgs
 import Routes
 import SubPage.Msgs
+import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -25,7 +28,6 @@ import Test.Html.Selector as Selector
         , tag
         , text
         )
-import Time exposing (Time)
 import TopBar.Msgs
 
 
@@ -61,7 +63,7 @@ all =
                     Application.init
                         { turbulenceImgSrc = ""
                         , notFoundImgSrc = ""
-                        , csrfToken = ""
+                        , csrfToken = csrfToken
                         , authToken = ""
                         , pipelineRunningKeyframes = ""
                         }
@@ -92,19 +94,21 @@ all =
                                 )
                             )
                         |> Tuple.first
-                        |> Application.view
-                        |> Query.fromHtml
             in
             [ describe "groups bar styling"
                 [ describe "with groups"
                     [ test "is flush with the bottom of the top bar" <|
                         \_ ->
                             setupGroupsBar sampleGroups
+                                |> Application.view
+                                |> Query.fromHtml
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.has [ style [ ( "margin-top", "54px" ) ] ]
                     , test "has light text on a dark background" <|
                         \_ ->
                             setupGroupsBar sampleGroups
+                                |> Application.view
+                                |> Query.fromHtml
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.has
                                     [ style
@@ -115,6 +119,8 @@ all =
                     , test "lays out groups in a horizontal list" <|
                         \_ ->
                             setupGroupsBar sampleGroups
+                                |> Application.view
+                                |> Query.fromHtml
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.has
                                     [ style
@@ -127,6 +133,8 @@ all =
                     , test "the individual groups are nicely spaced" <|
                         \_ ->
                             setupGroupsBar sampleGroups
+                                |> Application.view
+                                |> Query.fromHtml
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.findAll [ tag "li" ]
                                 |> Query.each
@@ -140,11 +148,15 @@ all =
                     , test "the individual groups have no list style" <|
                         \_ ->
                             setupGroupsBar sampleGroups
+                                |> Application.view
+                                |> Query.fromHtml
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.has [ style [ ( "list-style", "none" ) ] ]
                     , test "the individual groups have large text" <|
                         \_ ->
                             setupGroupsBar sampleGroups
+                                |> Application.view
+                                |> Query.fromHtml
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.findAll [ tag "li" ]
                                 |> Query.each
@@ -153,6 +165,8 @@ all =
                         [ test "the unselected ones faded" <|
                             \_ ->
                                 setupGroupsBar sampleGroups
+                                    |> Application.view
+                                    |> Query.fromHtml
                                     |> Query.find [ id "groups-bar" ]
                                     |> Query.findAll [ tag "li" ]
                                     |> Query.index 0
@@ -166,6 +180,8 @@ all =
                         , test "the selected ones brighter" <|
                             \_ ->
                                 setupGroupsBar sampleGroups
+                                    |> Application.view
+                                    |> Query.fromHtml
                                     |> Query.find [ id "groups-bar" ]
                                     |> Query.findAll [ tag "li" ]
                                     |> Query.index 1
@@ -180,6 +196,8 @@ all =
                     , test "the individual groups should each have a group name and link" <|
                         \_ ->
                             setupGroupsBar sampleGroups
+                                |> Application.view
+                                |> Query.fromHtml
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.findAll [ tag "li" ]
                                 |> Expect.all
@@ -200,8 +218,22 @@ all =
                 , test "with no groups doesn not display groups list" <|
                     \_ ->
                         setupGroupsBar []
+                            |> Application.view
+                            |> Query.fromHtml
                             |> Query.findAll [ id "groups-bar" ]
                             |> Query.count (Expect.equal 0)
+                , test "KeyPressed" <|
+                    \_ ->
+                        setupGroupsBar []
+                            |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'a')
+                            |> Tuple.second
+                            |> Expect.equal []
+                , test "KeyPressed f" <|
+                    \_ ->
+                        setupGroupsBar []
+                            |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'f')
+                            |> Tuple.second
+                            |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.ResetPipelineFocus ) ]
                 ]
             ]
         , describe "update" <|
@@ -260,58 +292,91 @@ all =
                                         ]
                                     ]
                             ]
-            , test "HideLegendTimerTicked" <|
-                \_ ->
-                    defaultModel
-                        |> update (HideLegendTimerTicked 0)
-                        |> Tuple.mapFirst .hideLegendCounter
-                        |> Expect.equal ( 1 * Time.second, [] )
-            , test "HideLegendTimeTicked reaches timeout" <|
-                \_ ->
-                    { defaultModel | hideLegendCounter = 10 * Time.second }
-                        |> update (HideLegendTimerTicked 0)
-                        |> Tuple.mapFirst .hideLegend
-                        |> Expect.equal ( True, [] )
-            , test "ShowLegend" <|
+            , test "pipeline subscribes to 1s, 5s, and 1m timers" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Application.view
-                        |> Query.fromHtml
-                        |> Query.find [ class "legend" ]
-                        |> Query.children []
+                        |> Application.subscriptions
                         |> Expect.all
-                            [ Query.count (Expect.equal 20)
-                            , Query.index 1 >> Query.has [ text "succeeded" ]
-                            , Query.index 3 >> Query.has [ text "errored" ]
-                            , Query.index 5 >> Query.has [ text "aborted" ]
-                            , Query.index 7 >> Query.has [ text "paused" ]
-                            , Query.index 8 >> Query.has [ style [ ( "background-color", "#5c3bd1" ) ] ]
-                            , Query.index 9 >> Query.has [ text "pinned" ]
-                            , Query.index 11 >> Query.has [ text "failed" ]
-                            , Query.index 13 >> Query.has [ text "pending" ]
-                            , Query.index 15 >> Query.has [ text "started" ]
-                            , Query.index 17 >> Query.has [ text "dependency" ]
-                            , Query.index 19 >> Query.has [ text "dependency (trigger)" ]
+                            [ List.member (Subscription.OnClockTick OneSecond) >> Expect.true "not on one second?"
+                            , List.member (Subscription.OnClockTick FiveSeconds) >> Expect.true "not on five seconds?"
+                            , List.member (Subscription.OnClockTick OneMinute) >> Expect.true "not on one minute?"
                             ]
-            , test "Legend has definition for pinned resource color" <|
+            , test "on five second timer, refreshes pipeline" <|
                 \_ ->
-                    { defaultModel | hideLegend = True, hideLegendCounter = 3 * Time.second }
-                        |> update ShowLegend
-                        |> Expect.all
-                            [ \( m, _ ) -> m.hideLegend |> Expect.equal False
-                            , \( m, _ ) -> m.hideLegendCounter |> Expect.equal 0
-                            , \( _, e ) -> Expect.equal [] e
+                    init "/teams/team/pipelines/pipeline"
+                        |> Application.update (Msgs.DeliveryReceived (ClockTicked FiveSeconds 0))
+                        |> Tuple.second
+                        |> Expect.equal
+                            [ ( Effects.SubPage 1
+                              , csrfToken
+                              , Effects.FetchPipeline
+                                    { teamName = "team"
+                                    , pipelineName = "pipeline"
+                                    }
+                              )
                             ]
-            , test "KeyPressed" <|
+            , test "on one minute timer, refreshes version" <|
                 \_ ->
-                    defaultModel
-                        |> update (KeyPressed (Char.toCode 'a'))
-                        |> Expect.equal ( defaultModel, [] )
-            , test "KeyPressed f" <|
-                \_ ->
-                    defaultModel
-                        |> update (KeyPressed (Char.toCode 'f'))
-                        |> Expect.notEqual ( defaultModel, [] )
+                    init "/teams/team/pipelines/pipeline"
+                        |> Application.update (Msgs.DeliveryReceived (ClockTicked OneMinute 0))
+                        |> Tuple.second
+                        |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.FetchVersion ) ]
+            , describe "Legend" <|
+                let
+                    clockTick =
+                        Application.update (Msgs.DeliveryReceived (ClockTicked OneSecond 0))
+                            >> Tuple.first
+
+                    clockTickALot n =
+                        List.foldr (>>) identity (List.repeat n clockTick)
+                in
+                [ test "Legend has definition for pinned resource color" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> Application.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "legend" ]
+                            |> Query.children []
+                            |> Expect.all
+                                [ Query.count (Expect.equal 20)
+                                , Query.index 1 >> Query.has [ text "succeeded" ]
+                                , Query.index 3 >> Query.has [ text "errored" ]
+                                , Query.index 5 >> Query.has [ text "aborted" ]
+                                , Query.index 7 >> Query.has [ text "paused" ]
+                                , Query.index 8 >> Query.has [ style [ ( "background-color", "#5c3bd1" ) ] ]
+                                , Query.index 9 >> Query.has [ text "pinned" ]
+                                , Query.index 11 >> Query.has [ text "failed" ]
+                                , Query.index 13 >> Query.has [ text "pending" ]
+                                , Query.index 15 >> Query.has [ text "started" ]
+                                , Query.index 17 >> Query.has [ text "dependency" ]
+                                , Query.index 19 >> Query.has [ text "dependency (trigger)" ]
+                                ]
+                , test "HideLegendTimerTicked" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> clockTick
+                            |> Application.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "legend" ]
+                            |> Query.children []
+                            |> Query.count (Expect.equal 20)
+                , test "HideLegendTimeTicked reaches timeout" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> clockTickALot 11
+                            |> Application.view
+                            |> Query.fromHtml
+                            |> Query.hasNot [ id "legend" ]
+                , test "Mouse action after legend hidden reshows legend" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline"
+                            |> clockTickALot 11
+                            |> Application.update (Msgs.DeliveryReceived Moused)
+                            |> Tuple.first
+                            |> Application.view
+                            |> Query.fromHtml
+                            |> Query.has [ id "legend" ]
+                ]
             , rspecStyleDescribe "when on pipeline page"
                 (init "/teams/team/pipelines/pipeline")
                 [ it "shows a pin icon on top bar" <|
@@ -339,7 +404,7 @@ all =
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.children []
-                        >> Query.index 1
+                        >> Query.index 0
                         >> Query.has
                             [ style
                                 [ ( "background-image", "url(/public/images/concourse-logo-white.svg)" )
@@ -355,7 +420,7 @@ all =
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.children []
-                        >> Query.index 1
+                        >> Query.index 0
                         >> Query.has [ tag "a", attribute <| Attr.href "/" ]
                 , it "pin icon has a pin background" <|
                     Application.view
@@ -718,7 +783,7 @@ all =
                         >> Event.simulate Event.click
                         >> Event.expect
                             (wrapTopBarMessage <|
-                                TopBar.Msgs.GoToPinnedResource <|
+                                TopBar.Msgs.GoToRoute <|
                                     Routes.Resource
                                         { id =
                                             { teamName = "team"
@@ -839,7 +904,7 @@ all =
                         |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-app" ]
-                        |> Query.find [ attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                        |> Query.find [ id "breadcrumb-pipeline" ]
                         |> Query.has [ style [ ( "display", "inline-block" ) ] ]
             , test "top bar has pipeline breadcrumb with icon rendered first" <|
                 \_ ->
@@ -847,7 +912,7 @@ all =
                         |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-app" ]
-                        |> Query.find [ attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                        |> Query.find [ id "breadcrumb-pipeline" ]
                         |> Query.children []
                         |> Query.first
                         |> Query.has pipelineBreadcrumbSelector
@@ -857,11 +922,8 @@ all =
                         |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-app" ]
-                        |> Query.find [ attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has
-                            [ text "pipeline" ]
+                        |> Query.find [ id "breadcrumb-pipeline" ]
+                        |> Query.has [ text "pipeline" ]
             , test "pipeline breadcrumb should have a link to the pipeline page" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
@@ -871,7 +933,12 @@ all =
                         |> Query.find [ id "breadcrumbs" ]
                         |> Query.children []
                         |> Query.first
-                        |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                        |> Event.simulate Event.click
+                        |> Event.expect
+                            (wrapTopBarMessage <|
+                                TopBar.Msgs.GoToRoute <|
+                                    Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                            )
             , describe "build page"
                 [ test "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
                     \_ ->
@@ -882,7 +949,14 @@ all =
                             |> Query.find [ id "breadcrumbs" ]
                             |> Query.children []
                             |> Query.index 0
-                            |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                            |> Event.simulate Event.click
+                            |> Event.expect
+                                (Msgs.SubMsg 1 <|
+                                    SubPage.Msgs.BuildMsg <|
+                                        Build.Msgs.FromTopBar <|
+                                            TopBar.Msgs.GoToRoute <|
+                                                Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                                )
                 , test "there should be a / between pipeline and job in breadcrumb" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
@@ -924,7 +998,14 @@ all =
                             |> Query.find [ id "breadcrumbs" ]
                             |> Query.children []
                             |> Query.index 0
-                            |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                            |> Event.simulate Event.click
+                            |> Event.expect
+                                (Msgs.SubMsg 1 <|
+                                    SubPage.Msgs.ResourceMsg <|
+                                        Resource.Msgs.TopBarMsg <|
+                                            TopBar.Msgs.GoToRoute <|
+                                                Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                                )
                 , test "there should be a / between pipeline and resource in breadcrumb" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline/resources/resource"
@@ -992,12 +1073,17 @@ resourceBreadcrumbSelector =
     ]
 
 
+csrfToken : String
+csrfToken =
+    "csrf_token"
+
+
 init : String -> Application.Model
 init path =
     Application.init
         { turbulenceImgSrc = ""
         , notFoundImgSrc = ""
-        , csrfToken = ""
+        , csrfToken = csrfToken
         , authToken = ""
         , pipelineRunningKeyframes = ""
         }

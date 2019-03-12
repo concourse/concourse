@@ -8,6 +8,7 @@ import Effects
 import Expect exposing (Expectation)
 import FlySuccess.Msgs
 import Html.Attributes as Attr
+import Http
 import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -140,7 +141,7 @@ tokenSendSuccess =
         (steps whenOnFlySuccessPage
             >> Application.handleCallback
                 (Effects.SubPage 1)
-                (TokenSentToFly True)
+                (TokenSentToFly (Ok ()))
             >> Tuple.first
         )
 
@@ -151,7 +152,7 @@ tokenSendFailed =
         (steps whenOnFlySuccessPage
             >> Application.handleCallback
                 (Effects.SubPage 1)
-                (TokenSentToFly False)
+                (TokenSentToFly (Err Http.NetworkError))
             >> Tuple.first
         )
 

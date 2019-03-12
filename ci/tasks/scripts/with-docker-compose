@@ -4,15 +4,6 @@ set -e -u
 
 source concourse/ci/tasks/scripts/docker-helpers.sh
 
-compose=$PWD/concourse/docker-compose.yml
-function cleanup() {
-  docker-compose -f $compose logs > /tmp/docker-compose.log || true
-  docker-compose -f $compose down
-  stop_docker
-}
-
-trap cleanup EXIT
-
 start_docker
 
 [ -d dev-image ] && docker load -i dev-image/image.tar
@@ -26,3 +17,9 @@ pushd concourse
 popd
 
 "$@"
+
+pushd concourse
+  docker-compose down
+popd
+
+stop_docker

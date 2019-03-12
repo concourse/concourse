@@ -230,13 +230,20 @@ breadcrumbComponent componentType =
     ]
 
 
-breadcrumbItem : List ( String, String )
-breadcrumbItem =
+breadcrumbItem : Bool -> List ( String, String )
+breadcrumbItem clickable =
     [ ( "display", "inline-block" )
     , ( "vertical-align", "middle" )
     , ( "font-size", "18px" )
     , ( "padding", "0 10px" )
     , ( "line-height", "54px" )
+    , ( "cursor"
+      , if clickable then
+            "pointer"
+
+        else
+            "default"
+      )
     ]
 
 

@@ -6,6 +6,7 @@ import Array
 import Build.Build as Build
 import Build.Models as Models
 import Build.Msgs
+import Build.StepTree.Models as STModels
 import Callback
 import Char
 import Concourse exposing (BuildPrepStatus(..))
@@ -21,8 +22,9 @@ import Dict
 import Effects
 import Expect
 import Html.Attributes as Attr
+import Keycodes
 import Routes
-import SubPage.Msgs
+import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -45,12 +47,15 @@ all =
     describe "build page" <|
         let
             buildId =
-                { teamName = "team", pipelineName = "pipeline", jobName = "job", buildName = "1" }
+                { teamName = "team"
+                , pipelineName = "pipeline"
+                , jobName = "job"
+                , buildName = "1"
+                }
 
             pageLoad =
                 Build.init
-                    { csrfToken = ""
-                    , highlight = Routes.HighlightNothing
+                    { highlight = Routes.HighlightNothing
                     , pageType = Models.JobBuildPage buildId
                     }
 
@@ -72,30 +77,50 @@ all =
                 , reapTime = Nothing
                 }
 
+            startedBuild : Concourse.Build
+            startedBuild =
+                { id = 1
+                , name = "1"
+                , job =
+                    Just
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , jobName = "job"
+                        }
+                , status = Concourse.BuildStatusStarted
+                , duration =
+                    { startedAt = Just (Date.fromTime 0)
+                    , finishedAt = Just (Date.fromTime 0)
+                    }
+                , reapTime = Nothing
+                }
+
             fetchBuild : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchBuild =
-                Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, theBuild )
+                flip (,) []
+                    >> (Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, theBuild ))
 
             fetchBuildWithStatus : Concourse.BuildStatus -> Models.Model -> Models.Model
             fetchBuildWithStatus status =
-                Build.handleCallback
-                    (Callback.BuildFetched
-                        (Ok
-                            ( 1
-                            , { id = 1
-                              , name = "1"
-                              , job = Nothing
-                              , status = status
-                              , duration =
-                                    { startedAt = Nothing
-                                    , finishedAt = Nothing
-                                    }
-                              , reapTime = Nothing
-                              }
+                flip (,) []
+                    >> Build.handleCallback
+                        (Callback.BuildFetched
+                            (Ok
+                                ( 1
+                                , { id = 1
+                                  , name = "1"
+                                  , job = Nothing
+                                  , status = status
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
                             )
                         )
-                    )
-                    >> Tuple.first
+                    >> Tuple.mapSecond (always [])
                     >> Build.handleCallback
                         (Callback.BuildHistoryFetched
                             (Ok
@@ -120,67 +145,196 @@ all =
                         )
                     >> Tuple.first
 
-            fetchJobDetails : Models.Model -> ( Models.Model, List Effects.Effect )
+            fetchStartedBuild :
+                Models.Model
+                -> ( Models.Model, List Effects.Effect )
+            fetchStartedBuild =
+                flip (,) []
+                    >> (Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, startedBuild ))
+
+            fetchJobDetails :
+                Models.Model
+                -> ( Models.Model, List Effects.Effect )
             fetchJobDetails =
-                Build.handleCallback <|
-                    Callback.BuildJobDetailsFetched <|
-                        Ok
-                            { pipeline =
-                                { teamName = "team"
-                                , pipelineName = "pipeline"
-                                }
-                            , name = "job"
-                            , pipelineName = "pipeline"
-                            , teamName = "team"
-                            , nextBuild = Nothing
-                            , finishedBuild = Nothing
-                            , transitionBuild = Nothing
-                            , paused = False
-                            , disableManualTrigger = False
-                            , inputs = []
-                            , outputs = []
-                            , groups = []
-                            }
+                flip (,) []
+                    >> (Build.handleCallback <|
+                            Callback.BuildJobDetailsFetched <|
+                                Ok
+                                    { pipeline =
+                                        { teamName = "team"
+                                        , pipelineName = "pipeline"
+                                        }
+                                    , name = "job"
+                                    , pipelineName = "pipeline"
+                                    , teamName = "team"
+                                    , nextBuild = Nothing
+                                    , finishedBuild = Nothing
+                                    , transitionBuild = Nothing
+                                    , paused = False
+                                    , disableManualTrigger = False
+                                    , inputs = []
+                                    , outputs = []
+                                    , groups = []
+                                    }
+                       )
 
             fetchJobDetailsNoTrigger :
                 Models.Model
                 -> ( Models.Model, List Effects.Effect )
             fetchJobDetailsNoTrigger =
-                Build.handleCallback <|
-                    Callback.BuildJobDetailsFetched <|
-                        Ok
-                            { pipeline =
-                                { teamName = "team"
-                                , pipelineName = "pipeline"
-                                }
-                            , name = "job"
-                            , pipelineName = "pipeline"
-                            , teamName = "team"
-                            , nextBuild = Nothing
-                            , finishedBuild = Nothing
-                            , transitionBuild = Nothing
-                            , paused = False
-                            , disableManualTrigger = True
-                            , inputs = []
-                            , outputs = []
-                            , groups = []
-                            }
+                flip (,) []
+                    >> (Build.handleCallback <|
+                            Callback.BuildJobDetailsFetched <|
+                                Ok
+                                    { pipeline =
+                                        { teamName = "team"
+                                        , pipelineName = "pipeline"
+                                        }
+                                    , name = "job"
+                                    , pipelineName = "pipeline"
+                                    , teamName = "team"
+                                    , nextBuild = Nothing
+                                    , finishedBuild = Nothing
+                                    , transitionBuild = Nothing
+                                    , paused = False
+                                    , disableManualTrigger = True
+                                    , inputs = []
+                                    , outputs = []
+                                    , groups = []
+                                    }
+                       )
 
             fetchHistory : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchHistory =
-                Build.handleCallback
-                    (Callback.BuildHistoryFetched
-                        (Ok
-                            { pagination =
-                                { previousPage = Nothing
-                                , nextPage = Nothing
+                flip (,) []
+                    >> Build.handleCallback
+                        (Callback.BuildHistoryFetched
+                            (Ok
+                                { pagination =
+                                    { previousPage = Nothing
+                                    , nextPage = Nothing
+                                    }
+                                , content = [ theBuild ]
                                 }
-                            , content = [ theBuild ]
-                            }
+                            )
                         )
-                    )
+
+            csrfToken : String
+            csrfToken =
+                "csrf_token"
+
+            initFromApplication : Application.Model
+            initFromApplication =
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = csrfToken
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { href = ""
+                    , host = ""
+                    , hostname = ""
+                    , protocol = ""
+                    , origin = ""
+                    , port_ = ""
+                    , pathname = "/teams/t/pipelines/p/jobs/j/builds/1"
+                    , search = ""
+                    , hash = ""
+                    , username = ""
+                    , password = ""
+                    }
+                    |> Tuple.first
         in
         [ test "converts URL hash to highlighted line in view" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = "csrf_token"
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { href = ""
+                    , host = ""
+                    , hostname = ""
+                    , protocol = ""
+                    , origin = ""
+                    , port_ = ""
+                    , pathname = "/teams/t/pipelines/p/jobs/j/builds/307"
+                    , search = ""
+                    , hash = "#Lstepid:1"
+                    , username = ""
+                    , password = ""
+                    }
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 307
+                                  , name = "307"
+                                  , job =
+                                        Just
+                                            { teamName = "t"
+                                            , pipelineName = "p"
+                                            , jobName = "j"
+                                            }
+                                  , status = Concourse.BuildStatusStarted
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.PlanAndResourcesFetched 307 <|
+                            Ok <|
+                                ( { id = "stepid"
+                                  , step =
+                                        Concourse.BuildStepTask
+                                            "step"
+                                  }
+                                , { inputs = [], outputs = [] }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            EventsReceived <|
+                                Ok <|
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.StartTask
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                      }
+                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.Log
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                                "log message"
+                                                Nothing
+                                      }
+                                    ]
+                        )
+                    |> Tuple.first
+                    |> Application.view
+                    |> Query.fromHtml
+                    |> Query.find
+                        [ class "timestamped-line"
+                        , containing [ text "log message" ]
+                        ]
+                    |> Query.has [ class "highlighted-line" ]
+        , test "events from a different build are discarded" <|
             \_ ->
                 Application.init
                     { turbulenceImgSrc = ""
@@ -233,98 +387,100 @@ all =
                                 )
                         )
                     |> Tuple.first
-                    |> Application.update
-                        (Msgs.SubMsg 1
-                            (SubPage.Msgs.BuildMsg
-                                (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
-                            )
-                        )
+                    |> receiveEvent
+                        { url = "http://localhost:8080/api/v1/builds/1/events"
+                        , data = STModels.StartTask { id = "stepid", source = "" }
+                        }
                     |> Tuple.first
-                    |> Application.update
-                        (Msgs.SubMsg 1
-                            (SubPage.Msgs.BuildMsg
-                                (Build.Msgs.BuildEventsMsg <|
-                                    Build.Msgs.Events <|
-                                        Ok <|
-                                            Array.fromList
-                                                [ Models.StartTask
-                                                    { source = "stdout"
-                                                    , id = "stepid"
-                                                    }
-                                                , Models.Log
-                                                    { source = "stdout"
-                                                    , id = "stepid"
-                                                    }
-                                                    "log message"
-                                                    Nothing
-                                                ]
-                                )
-                            )
-                        )
+                    |> receiveEvent
+                        { url = "http://localhost:8080/api/v1/builds/1/events"
+                        , data = STModels.Log { id = "stepid", source = "stdout" } "log message" Nothing
+                        }
+                    |> Tuple.first
+                    |> receiveEvent
+                        { url = "http://localhost:8080/api/v1/builds/2/events"
+                        , data = STModels.Log { id = "stepid", source = "stdout" } "bad message" Nothing
+                        }
                     |> Tuple.first
                     |> Application.view
                     |> Query.fromHtml
-                    |> Query.find
-                        [ class "timestamped-line"
-                        , containing [ text "log message" ]
-                        ]
-                    |> Query.has [ class "highlighted-line" ]
-        , test "pressing 'T' twice triggers two builds" <|
+                    |> Query.hasNot [ text "bad message" ]
+        , test "when build is running it scrolls every build event" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = "csrf_token"
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { href = ""
-                    , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/teams/t/pipelines/p/jobs/j/builds/1"
-                    , search = ""
-                    , hash = ""
-                    , username = ""
-                    , password = ""
-                    }
-                    |> Tuple.first
+                initFromApplication
                     |> Application.handleCallback
                         (Effects.SubPage 1)
-                        (Callback.BuildFetched <|
-                            Ok
-                                ( 1
-                                , { id = 1
-                                  , name = "1"
-                                  , job =
-                                        Just
-                                            { teamName = "t"
-                                            , pipelineName = "p"
-                                            , jobName = "j"
-                                            }
-                                  , status = Concourse.BuildStatusStarted
-                                  , duration =
-                                        { startedAt = Nothing
-                                        , finishedAt = Nothing
-                                        }
-                                  , reapTime = Nothing
-                                  }
-                                )
-                        )
+                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                    |> Tuple.first
+                    |> receiveEvent
+                        { url = "http://localhost:8080/api/v1/builds/1/events"
+                        , data = STModels.StartTask { id = "stepid", source = "" }
+                        }
+                    |> Tuple.second
+                    |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.Scroll Effects.ToWindowBottom ) ]
+        , test "when build is not running it does not scroll on build event" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                    |> Tuple.first
+                    |> receiveEvent
+                        { url = "http://localhost:8080/api/v1/builds/1/events"
+                        , data = STModels.StartTask { id = "stepid", source = "" }
+                        }
+                    |> Tuple.second
+                    |> Expect.equal []
+        , test "when build is running but the user is not scrolled to the bottom it does not scroll on build event" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 187))
+                    |> Tuple.first
+                    |> receiveEvent
+                        { url = "http://localhost:8080/api/v1/builds/1/events"
+                        , data = STModels.StartTask { id = "stepid", source = "" }
+                        }
+                    |> Tuple.second
+                    |> Expect.equal []
+        , test "when build is running but the user is scrolls back to the bottom it scrolls on build event" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 187))
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 0))
+                    |> Tuple.first
+                    |> receiveEvent
+                        { url = "http://localhost:8080/api/v1/builds/1/events"
+                        , data = STModels.StartTask { id = "stepid", source = "" }
+                        }
+                    |> Tuple.second
+                    |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.Scroll Effects.ToWindowBottom ) ]
+        , test "pressing 'T' twice triggers two builds" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.handleCallback
                         (Effects.SubPage 1)
                         (Callback.BuildJobDetailsFetched <|
                             Ok
                                 { pipeline =
-                                    { teamName = "t"
-                                    , pipelineName = "p"
+                                    { teamName = "team"
+                                    , pipelineName = "pipeline"
                                     }
                                 , name = ""
-                                , pipelineName = "p"
-                                , teamName = "t"
+                                , pipelineName = "pipeline"
+                                , teamName = "team"
                                 , nextBuild = Nothing
                                 , finishedBuild = Nothing
                                 , transitionBuild = Nothing
@@ -336,32 +492,87 @@ all =
                                 }
                         )
                     |> Tuple.first
-                    |> Application.update
-                        (Msgs.SubMsg 1 <|
-                            SubPage.Msgs.BuildMsg <|
-                                Build.Msgs.KeyPressed <|
-                                    Char.toCode 'T'
-                        )
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
                     |> Tuple.first
-                    |> Application.update (Msgs.KeyUp <| Char.toCode 'T')
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'T')
                     |> Tuple.first
-                    |> Application.update
-                        (Msgs.SubMsg 1 <|
-                            SubPage.Msgs.BuildMsg <|
-                                Build.Msgs.KeyPressed <|
-                                    Char.toCode 'T'
-                        )
+                    |> Application.update (Msgs.DeliveryReceived <| KeyUp <| Char.toCode 'T')
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'T')
                     |> Tuple.second
                     |> Expect.equal
                         [ ( Effects.SubPage 1
+                          , csrfToken
                           , Effects.DoTriggerBuild
-                                { teamName = "t"
-                                , pipelineName = "p"
-                                , jobName = "j"
+                                { teamName = "team"
+                                , pipelineName = "pipeline"
+                                , jobName = "job"
                                 }
-                                "csrf_token"
                           )
                         ]
+        , test "pressing 'gg' scrolls to the top" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
+                    |> Tuple.second
+                    |> Expect.equal
+                        [ ( Effects.SubPage 1
+                          , csrfToken
+                          , Effects.Scroll Effects.ToWindowTop
+                          )
+                        ]
+        , test "pressing 'G' scrolls to the bottom" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
+                    |> Tuple.second
+                    |> Expect.equal
+                        [ ( Effects.SubPage 1
+                          , csrfToken
+                          , Effects.Scroll Effects.ToWindowBottom
+                          )
+                        ]
+        , test "pressing and releasing shift, then 'g', does nothing" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyUp <| Keycodes.shift)
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
+                    |> Tuple.second
+                    |> Expect.equal []
+        , test "pressing '?' shows the keyboard help" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
+                    |> Tuple.first
+                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode '¿')
+                    |> Tuple.first
+                    |> Application.view
+                    |> Query.fromHtml
+                    |> Query.find [ class "keyboard-help" ]
+                    |> Query.hasNot [ class "hidden" ]
         , test "says loading on page load" <|
             \_ ->
                 pageLoad
@@ -374,14 +585,15 @@ all =
                 pageLoad
                     |> Tuple.second
                     |> Expect.equal
-                        [ Effects.FetchJobBuild 1
+                        [ Effects.GetScreenSize
+                        , Effects.GetCurrentTime
+                        , Effects.CloseBuildEventStream
+                        , Effects.FetchJobBuild 1
                             { teamName = "team"
                             , pipelineName = "pipeline"
                             , jobName = "job"
                             , buildName = "1"
                             }
-                        , Effects.GetScreenSize
-                        , Effects.GetCurrentTime
                         ]
         , describe "top bar" <|
             [ test "has a top bar" <|
@@ -465,23 +677,27 @@ all =
                     >> Query.has
                         [ style [ ( "display", "flex" ) ] ]
             , test "when less than 24h old, shows relative time since build" <|
-                givenBuildFetched
-                    >> Tuple.first
-                    >> Build.update (Build.Msgs.ClockTick (2 * Time.second))
-                    >> Tuple.first
-                    >> Build.view UserState.UserStateLoggedOut
-                    >> Query.fromHtml
-                    >> Query.find [ id "build-header" ]
-                    >> Query.has [ text "2s ago" ]
+                \_ ->
+                    initFromApplication
+                        |> Application.handleCallback (Effects.SubPage 1) (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        |> Tuple.first
+                        |> Application.update (Msgs.DeliveryReceived <| ClockTicked OneSecond (2 * Time.second))
+                        |> Tuple.first
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Query.find [ id "build-header" ]
+                        |> Query.has [ text "2s ago" ]
             , test "when at least 24h old, shows absolute time of build" <|
-                givenBuildFetched
-                    >> Tuple.first
-                    >> Build.update (Build.Msgs.ClockTick (24 * Time.hour))
-                    >> Tuple.first
-                    >> Build.view UserState.UserStateLoggedOut
-                    >> Query.fromHtml
-                    >> Query.find [ id "build-header" ]
-                    >> Query.hasNot [ text "1d" ]
+                \_ ->
+                    initFromApplication
+                        |> Application.handleCallback (Effects.SubPage 1) (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        |> Tuple.first
+                        |> Application.update (Msgs.DeliveryReceived <| ClockTicked OneSecond (24 * Time.hour))
+                        |> Tuple.first
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Query.find [ id "build-header" ]
+                        |> Query.hasNot [ text "1d" ]
             , describe "build banner coloration"
                 [ test "pending build has grey banner" <|
                     \_ ->
@@ -655,8 +871,9 @@ all =
                             ]
                 , test "hovered trigger build button is styled as a box of the secondary color of the build status" <|
                     givenHistoryAndDetailsFetched
-                        >> Tuple.first
-                        >> Build.update (Build.Msgs.Hover <| Just Models.Trigger)
+                        >> Tuple.mapSecond (always [])
+                        >> Build.update
+                            (Build.Msgs.Hover <| Just Models.Trigger)
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
@@ -733,7 +950,7 @@ all =
                                 [ attribute <|
                                     Attr.attribute "aria-label" "Trigger Build"
                                 ]
-                    , updateFunc = \msg -> Build.update msg >> Tuple.first
+                    , updateFunc = \msg -> flip (,) [] >> Build.update msg >> Tuple.first
                     , unhoveredSelector =
                         { description = "grey plus icon"
                         , selector =
@@ -828,7 +1045,7 @@ all =
                         ]
             , test "hovered abort build button is styled as a dark red box" <|
                 givenBuildStarted
-                    >> Tuple.first
+                    >> Tuple.mapSecond (always [])
                     >> Build.update (Build.Msgs.Hover (Just Models.Abort))
                     >> Tuple.first
                     >> Build.view UserState.UserStateLoggedOut
@@ -892,6 +1109,7 @@ all =
                     in
                     givenBuildStarted
                         >> Tuple.first
+                        >> flip (,) []
                         >> Build.handleCallback (Callback.BuildPrepFetched <| Ok ( 1, prep ))
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -935,6 +1153,7 @@ all =
                     in
                     givenBuildStarted
                         >> Tuple.first
+                        >> flip (,) []
                         >> Build.handleCallback (Callback.BuildPrepFetched <| Ok ( 1, prep ))
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -965,12 +1184,60 @@ all =
                                 ]
                             ]
                 ]
+            , describe "build events subscription" <|
+                let
+                    buildPlanReceived _ =
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchStartedBuild
+                            |> Tuple.first
+                            |> fetchHistory
+                            |> Tuple.first
+                            |> fetchJobDetails
+                            |> Tuple.first
+                            |> flip (,) []
+                            |> Build.handleCallback
+                                (Callback.PlanAndResourcesFetched 1 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step =
+                                                Concourse.BuildStepGet
+                                                    "step"
+                                                    Nothing
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                in
+                [ test "after build plan is received, opens event stream" <|
+                    buildPlanReceived
+                        >> Expect.all
+                            [ Tuple.second
+                                >> Expect.equal
+                                    [ Effects.OpenBuildEventStream
+                                        { url = "/api/v1/builds/1/events"
+                                        , eventTypes = [ "end", "event" ]
+                                        }
+                                    ]
+                            , Tuple.first
+                                >> Build.subscriptions
+                                >> List.member
+                                    (Subscription.FromEventSource
+                                        ( "/api/v1/builds/1/events"
+                                        , [ "end", "event" ]
+                                        )
+                                    )
+                                >> Expect.true
+                                    "why aren't we listening for build events!?"
+                            ]
+                ]
             , describe "step header" <|
                 let
                     fetchPlanWithGetStep : () -> Models.Model
                     fetchPlanWithGetStep =
                         givenBuildStarted
                             >> Tuple.first
+                            >> flip (,) []
                             >> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     Ok <|
@@ -989,6 +1256,7 @@ all =
                     fetchPlanWithTaskStep =
                         givenBuildStarted
                             >> Tuple.first
+                            >> flip (,) []
                             >> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     Ok <|
@@ -1006,6 +1274,7 @@ all =
                     fetchPlanWithPutStep =
                         givenBuildStarted
                             >> Tuple.first
+                            >> flip (,) []
                             >> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     Ok <|
@@ -1023,6 +1292,7 @@ all =
                     fetchPlanWithGetStepWithFirstOccurrence =
                         givenBuildStarted
                             >> Tuple.first
+                            >> flip (,) []
                             >> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     let
@@ -1191,6 +1461,7 @@ all =
                                 (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                     , test "no tooltip before 1 second has passed" <|
                         fetchPlanWithGetStepWithFirstOccurrence
+                            >> flip (,) []
                             >> Build.update
                                 (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
@@ -1207,12 +1478,15 @@ all =
                             >> Query.count (Expect.equal 0)
                     , test "1 second after hovering, tooltip appears" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> Build.update (Build.Msgs.ClockTick 0)
+                            >> flip (,) []
+                            >> Build.handleDelivery (ClockTicked OneSecond 0)
                             >> Tuple.first
+                            >> flip (,) []
                             >> Build.update
                                 (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
-                            >> Build.update (Build.Msgs.ClockTick 1)
+                            >> flip (,) []
+                            >> Build.handleDelivery (ClockTicked OneSecond 1)
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1263,6 +1537,7 @@ all =
                                 ]
                     , test "mousing off yellow arrow triggers Hover message" <|
                         fetchPlanWithGetStepWithFirstOccurrence
+                            >> flip (,) []
                             >> Build.update
                                 (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
@@ -1280,13 +1555,17 @@ all =
                                 (Build.Msgs.Hover Nothing)
                     , test "unhovering after tooltip appears dismisses" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> Build.update (Build.Msgs.ClockTick 0)
+                            >> flip (,) []
+                            >> Build.handleDelivery (ClockTicked OneSecond 0)
                             >> Tuple.first
+                            >> flip (,) []
                             >> Build.update
                                 (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
-                            >> Build.update (Build.Msgs.ClockTick 1)
+                            >> flip (,) []
+                            >> Build.handleDelivery (ClockTicked OneSecond 1)
                             >> Tuple.first
+                            >> flip (,) []
                             >> Build.update (Build.Msgs.Hover Nothing)
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
@@ -1303,11 +1582,14 @@ all =
                     ]
                 , test "hovering one resource of several produces only a single tooltip" <|
                     fetchPlanWithGetStepWithFirstOccurrence
-                        >> Build.update (Build.Msgs.ClockTick 0)
+                        >> flip (,) []
+                        >> Build.handleDelivery (ClockTicked OneSecond 0)
                         >> Tuple.first
+                        >> flip (,) []
                         >> Build.update (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
                         >> Tuple.first
-                        >> Build.update (Build.Msgs.ClockTick 1)
+                        >> flip (,) []
+                        >> Build.handleDelivery (ClockTicked OneSecond 1)
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
@@ -1315,19 +1597,19 @@ all =
                         >> Query.count (Expect.equal 1)
                 , test "successful step has a checkmark at the far right" <|
                     fetchPlanWithGetStep
-                        >> Build.update (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
-                        >> Tuple.first
-                        >> Build.update
-                            (Build.Msgs.BuildEventsMsg <|
-                                Build.Msgs.Events <|
-                                    Ok <|
-                                        Array.fromList
-                                            [ Models.FinishGet
+                        >> flip (,) []
+                        >> Build.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.FinishGet
                                                 { source = "stdout", id = "plan" }
                                                 0
                                                 Dict.empty
                                                 []
-                                            ]
+                                      }
+                                    ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1344,19 +1626,19 @@ all =
                             )
                 , test "get step lists resource version on the right" <|
                     fetchPlanWithGetStep
-                        >> Build.update (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
-                        >> Tuple.first
-                        >> Build.update
-                            (Build.Msgs.BuildEventsMsg <|
-                                Build.Msgs.Events <|
-                                    Ok <|
-                                        Array.fromList
-                                            [ Models.FinishGet
+                        >> flip (,) []
+                        >> Build.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.FinishGet
                                                 { source = "stdout", id = "plan" }
                                                 0
                                                 (Dict.fromList [ ( "version", "v3.1.4" ) ])
                                                 []
-                                            ]
+                                      }
+                                    ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1367,16 +1649,18 @@ all =
                         >> Query.has [ text "v3.1.4" ]
                 , test "running step has loading spinner at the right" <|
                     fetchPlanWithTaskStep
-                        >> Build.update
-                            (Build.Msgs.BuildEventsMsg <|
-                                Build.Msgs.Events <|
-                                    Ok <|
-                                        Array.fromList
-                                            [ Models.StartTask
+                        >> flip (,) []
+                        >> Build.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.StartTask
                                                 { source = "stdout"
                                                 , id = "plan"
                                                 }
-                                            ]
+                                      }
+                                    ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1391,21 +1675,96 @@ all =
                                   )
                                 ]
                             ]
+                , test "pending step has dashed circle at the right" <|
+                    fetchPlanWithTaskStep
+                        >> Build.view UserState.UserStateLoggedOut
+                        >> Query.fromHtml
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-pending.svg"
+                                }
+                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                            )
+                , test "cancelled step has no-entry circle at the right" <|
+                    fetchPlanWithTaskStep
+                        >> flip (,) []
+                        >> Build.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.Initialize
+                                                { source = "stdout"
+                                                , id = "plan"
+                                                }
+                                      }
+                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.BuildStatus
+                                                Concourse.BuildStatusAborted
+                                                (Date.fromTime 0)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Build.view UserState.UserStateLoggedOut
+                        >> Query.fromHtml
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-interrupted.svg"
+                                }
+                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                            )
+                , test "interrupted step has dashed circle with dot at the right" <|
+                    fetchPlanWithTaskStep
+                        >> flip (,) []
+                        >> Build.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.BuildStatus
+                                                Concourse.BuildStatusAborted
+                                                (Date.fromTime 0)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Build.view UserState.UserStateLoggedOut
+                        >> Query.fromHtml
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-cancelled.svg"
+                                }
+                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                            )
                 , test "failing step has an X at the far right" <|
                     fetchPlanWithGetStep
-                        >> Build.update (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
-                        >> Tuple.first
-                        >> Build.update
-                            (Build.Msgs.BuildEventsMsg <|
-                                Build.Msgs.Events <|
-                                    Ok <|
-                                        Array.fromList
-                                            [ Models.FinishGet
+                        >> flip (,) []
+                        >> Build.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.FinishGet
                                                 { source = "stdout", id = "plan" }
                                                 1
                                                 Dict.empty
                                                 []
-                                            ]
+                                      }
+                                    ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1418,21 +1777,23 @@ all =
                                 { size = "28px"
                                 , image = "ic-failure-times.svg"
                                 }
-                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                                ++ [ style
+                                        [ ( "background-size", "14px 14px" ) ]
+                                   ]
                             )
                 , test "erroring step has orange exclamation triangle at right" <|
                     fetchPlanWithGetStep
-                        >> Build.update (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
-                        >> Tuple.first
-                        >> Build.update
-                            (Build.Msgs.BuildEventsMsg <|
-                                Build.Msgs.Events <|
-                                    Ok <|
-                                        Array.fromList
-                                            [ Models.Error
+                        >> flip (,) []
+                        >> Build.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.Error
                                                 { source = "stderr", id = "plan" }
                                                 "error message"
-                                            ]
+                                      }
+                                    ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1445,32 +1806,37 @@ all =
                                 { size = "28px"
                                 , image = "ic-exclamation-triangle.svg"
                                 }
-                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                                ++ [ style
+                                        [ ( "background-size", "14px 14px" ) ]
+                                   ]
                             )
                 , describe "erroring build" <|
-                    let
-                        erroringBuild : () -> Models.Model
-                        erroringBuild =
-                            fetchPlanWithGetStep
-                                >> Build.update
-                                    (Build.Msgs.BuildEventsMsg Build.Msgs.Errored)
-                                >> Tuple.first
-                    in
                     [ test "has orange exclamation triangle at left" <|
-                        erroringBuild
-                            >> Build.update
-                                (Build.Msgs.BuildEventsMsg <|
-                                    Build.Msgs.Events <|
-                                        Ok <|
-                                            Array.fromList
-                                                [ Models.BuildError
+                        fetchPlanWithGetStep
+                            >> flip (,) []
+                            >> Build.handleDelivery
+                                (EventsReceived <|
+                                    Ok <|
+                                        [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                          , data = STModels.Opened
+                                          }
+                                        ]
+                                )
+                            >> Build.handleDelivery
+                                (EventsReceived <|
+                                    Ok <|
+                                        [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                          , data =
+                                                STModels.BuildError
                                                     "error message"
-                                                ]
+                                          }
+                                        ]
                                 )
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
-                            >> Query.find [ class "header" ]
+                            >> Query.findAll [ class "header" ]
+                            >> Query.first
                             >> Query.children []
                             >> Query.first
                             >> Query.has
@@ -1485,7 +1851,10 @@ all =
                             url =
                                 "/public/images/passport-officer-ic.svg"
                         in
-                        erroringBuild
+                        fetchPlanWithGetStep
+                            >> flip (,) []
+                            >> Build.handleDelivery (EventsReceived <| Err "server burned down")
+                            >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
                             >> Query.find [ class "not-authorized" ]
@@ -1525,3 +1894,11 @@ brightGreen =
 darkGrey : String
 darkGrey =
     "#3d3c3c"
+
+
+receiveEvent :
+    STModels.BuildEventEnvelope
+    -> Application.Model
+    -> ( Application.Model, List ( Effects.LayoutDispatch, Concourse.CSRFToken, Effects.Effect ) )
+receiveEvent envelope =
+    Application.update (Msgs.DeliveryReceived <| EventsReceived <| Ok [ envelope ])

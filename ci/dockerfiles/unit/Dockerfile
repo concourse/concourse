@@ -49,3 +49,14 @@ RUN apt-get update && apt-get -y install unzip && \
       unzip /tmp/vault.zip -d /usr/local/bin && \
       rm /tmp/vault.zip && \
       apt-get -y remove unzip
+
+# install kubectl for k8s-related jobs
+RUN curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
+  touch /etc/apt/sources.list.d/kubernetes.list && \
+  echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" | tee -a /etc/apt/sources.list.d/kubernetes.list && \
+  apt-get update && \
+  apt-get install --no-install-recommends -y kubectl && \
+  rm -rf /var/lib/apt/lists/*
+
+# install helm for k8s-related jobs
+RUN curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash

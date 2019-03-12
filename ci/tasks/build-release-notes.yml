@@ -4,7 +4,7 @@ platform: linux
 image_resource:
   type: registry-image
   source:
-    repository: ubuntu
+    repository: concourse/unit
 
 inputs:
 - name: concourse

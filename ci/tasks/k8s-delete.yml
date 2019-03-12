@@ -1,0 +1,16 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: concourse/unit}
+
+params:
+  KUBE_CONFIG:
+  RELEASE_NAME:
+
+inputs:
+- name: concourse
+
+run:
+  path: concourse/ci/tasks/scripts/k8s-delete
