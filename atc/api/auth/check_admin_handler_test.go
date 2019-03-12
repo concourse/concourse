@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/auth/authfakes"
-	"github.com/concourse/concourse/atc/audit/auditfakes"
+	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -53,7 +53,7 @@ var _ = Describe("CheckAdminHandler", func() {
 			fakeRejector,
 		), fakeAccessor,
 			"some-action",
-			new(auditfakes.FakeAudit),
+			new(auditorfakes.FakeAuditor),
 		))
 
 		client = &http.Client{

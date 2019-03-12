@@ -1,4 +1,4 @@
-package audit_test
+package auditor_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestAudit(t *testing.T) {
+func TestAuditor(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Audit Suite")
+	RunSpecs(t, "Auditor Suite")
 }

@@ -2,24 +2,24 @@ package wrappa
 
 import (
 	"github.com/concourse/concourse/atc/api/accessor"
-	"github.com/concourse/concourse/atc/audit"
+	"github.com/concourse/concourse/atc/auditor"
 	"github.com/tedsuo/rata"
 )
 
-func NewAccessorWrappa(accessorFactory accessor.AccessFactory, aud audit.Audit) *AccessorWrappa {
+func NewAccessorWrappa(accessorFactory accessor.AccessFactory, aud auditor.Auditor) *AccessorWrappa {
 	return &AccessorWrappa{accessorFactory, aud }
 }
 
 type AccessorWrappa struct {
 	accessorFactory accessor.AccessFactory
-	audit audit.Audit
+	auditor auditor.Auditor
 }
 
 func (w *AccessorWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 	wrapped := rata.Handlers{}
 
 	for name, handler := range handlers {
-		wrapped[name] = accessor.NewHandler(handler, w.accessorFactory, name, w.audit)
+		wrapped[name] = accessor.NewHandler(handler, w.accessorFactory, name, w.auditor)
 	}
 
 	return wrapped

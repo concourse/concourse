@@ -1,4 +1,4 @@
-package audit
+package auditor
 
 import (
 	"net/http"
@@ -7,10 +7,10 @@ import (
 	"github.com/concourse/concourse/atc"
 )
 
-//go:generate counterfeiter . Audit
+//go:generate counterfeiter . Auditor
 
 
-func NewAudit(
+func NewAuditor(
 	EnableBuildAuditLog bool,
 	EnableContainerAuditLog bool,
 	EnableJobAuditLog bool,
@@ -21,8 +21,8 @@ func NewAudit(
 	EnableWorkerAuditLog bool,
 	EnableVolumeAuditLog bool,
 	logger lager.Logger,
-) *audit {
-	return &audit{
+) *auditor {
+	return &auditor{
 		EnableBuildAuditLog:     EnableBuildAuditLog ,
 		EnableContainerAuditLog: EnableContainerAuditLog,
 		EnableJobAuditLog:       EnableJobAuditLog,
@@ -37,12 +37,12 @@ func NewAudit(
 }
 
 
-type Audit interface {
+type Auditor interface {
 	LogAction(action string, userName string, r *http.Request)
 	ValidateAction(action string) bool
 }
 
-type audit struct {
+type auditor struct {
 	EnableBuildAuditLog bool
 	EnableContainerAuditLog bool
 	EnableJobAuditLog bool
@@ -55,7 +55,7 @@ type audit struct {
 	logger lager.Logger
 }
 
-func (a *audit) ValidateAction(action string) bool {
+func (a *auditor) ValidateAction(action string) bool {
 	switch loggingLevels[action] {
 	case "EnableBuildAuditLog":
 		return a.EnableBuildAuditLog
@@ -80,7 +80,7 @@ func (a *audit) ValidateAction(action string) bool {
 	}
 }
 
-func (a *audit) LogAction(action string, userName string, r *http.Request) {
+func (a *auditor) LogAction(action string, userName string, r *http.Request) {
 		err := r.ParseForm()
 		if err == nil &&  a.ValidateAction(action) {
 			a.logger.Info("audit", lager.Data{"command": action, "user": userName, "parameters": r.Form})
