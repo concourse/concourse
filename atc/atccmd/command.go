@@ -23,7 +23,7 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/buildserver"
 	"github.com/concourse/concourse/atc/api/containerserver"
-	"github.com/concourse/concourse/atc/audit"
+	"github.com/concourse/concourse/atc/auditor"
 	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/noop"
@@ -154,7 +154,7 @@ type RunCommand struct {
 	DefaultMemoryLimit *string `long:"default-task-memory-limit" description:"Default maximum memory per task, 0 means unlimited"`
 
 
-	Audit struct {
+	Auditor struct {
 		EnableBuildAuditLog     bool `long:"enable-build-auditing" description:"Enable auditing for all api requests connected to builds."`
 		EnableContainerAuditLog bool `long:"enable-container-auditing" description:"Enable auditing for all api requests connected to containers."`
 		EnableJobAuditLog       bool `long:"enable-job-auditing" description:"Enable auditing for all api requests connected to jobs."`
@@ -1311,16 +1311,16 @@ func (cmd *RunCommand) constructAPIHandler(
 	checkBuildWriteAccessHandlerFactory := auth.NewCheckBuildWriteAccessHandlerFactory(dbBuildFactory)
 	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
 
-	aud := audit.NewAudit(
-		cmd.Audit.EnableBuildAuditLog,
-		cmd.Audit.EnableContainerAuditLog,
-		cmd.Audit.EnableJobAuditLog,
-		cmd.Audit.EnablePipelineAuditLog,
-		cmd.Audit.EnableResourceAuditLog,
-		cmd.Audit.EnableSystemAuditLog,
-		cmd.Audit.EnableTeamAuditLog,
-		cmd.Audit.EnableWorkerAuditLog,
-		cmd.Audit.EnableVolumeAuditLog,
+	aud := auditor.NewAuditor(
+		cmd.Auditor.EnableBuildAuditLog,
+		cmd.Auditor.EnableContainerAuditLog,
+		cmd.Auditor.EnableJobAuditLog,
+		cmd.Auditor.EnablePipelineAuditLog,
+		cmd.Auditor.EnableResourceAuditLog,
+		cmd.Auditor.EnableSystemAuditLog,
+		cmd.Auditor.EnableTeamAuditLog,
+		cmd.Auditor.EnableWorkerAuditLog,
+		cmd.Auditor.EnableVolumeAuditLog,
 		logger,
 	)
 	apiWrapper := wrappa.MultiWrappa{
