@@ -465,25 +465,7 @@ viewPauseToggle pipelineState =
     case pipelineState of
         HasPipeline { isPaused, pipeline } ->
             [ Html.a
-                [ style
-                    [ ( "background-image"
-                      , if isPaused then
-                            "url(/public/images/ic-play-white.svg)"
-
-                        else
-                            "url(/public/images/ic-pause-white.svg)"
-                      )
-                    , ( "display", "flex" )
-                    , ( "flex-direction", "column" )
-                    , ( "position", "relative" )
-                    , ( "padding", "10px" )
-                    , ( "background-position", "50% 50%" )
-                    , ( "background-repeat", "no-repeat" )
-                    , ( "border-left", "1px solid rgba(255, 255, 255, 0.5)" )
-                    , ( "width", "34px" )
-                    , ( "height", "34px" )
-                    , ( "cursor", "pointer" )
-                    ]
+                [ style (Styles.pausePipelineButton isPaused)
                 , onClick <| TogglePipelinePaused pipeline isPaused
                 ]
                 []

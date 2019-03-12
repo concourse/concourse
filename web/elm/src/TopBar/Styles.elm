@@ -13,6 +13,7 @@ module TopBar.Styles exposing
     , pageBelowTopBar
     , pageHeaderHeight
     , pageIncludingTopBar
+    , pausePipelineButton
     , pinBadge
     , pinDropdownCursor
     , pinHoverHighlight
@@ -244,6 +245,34 @@ breadcrumbItem clickable =
         else
             "default"
       )
+    ]
+
+
+pausePipelineButton : Bool -> List ( String, String )
+pausePipelineButton isPaused =
+    [ ( "background-image"
+      , if isPaused then
+            "url(/public/images/ic-play-white.svg)"
+
+        else
+            "url(/public/images/ic-pause-white.svg)"
+      )
+    , ( "display", "flex" )
+    , ( "flex-direction", "column" )
+    , ( "position", "relative" )
+    , ( "padding", "10px" )
+    , ( "background-position", "50% 50%" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "border-left"
+      , if isPaused then
+            "1px solid rgba(255, 255, 255, 0.5)"
+
+        else
+            "1px solid #3d3c3c"
+      )
+    , ( "width", "34px" )
+    , ( "height", "34px" )
+    , ( "cursor", "pointer" )
     ]
 
 
