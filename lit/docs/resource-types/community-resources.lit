@@ -177,7 +177,7 @@ before using it!
 }{
   \table-row{\link{Metadata resource}{https://github.com/swce/metadata-resource}}{by \ghuser{swce}}
 }{
-  \table-row{\link{Spinnaker Resource}{https://github.com/burdzwastaken/concourse-spinnaker-resource}}{by \ghuser{burdzwastaken}}
+  \table-row{\link{Spinnaker Resource}{https://github.com/pivotal-cf/spinnaker-resource}}{by \ghuser{pivotal-cf}}
 }{
   \table-row{\link{New Relic Deploy Resource}{https://github.com/crstamps2/newrelic-deploy-resource}}{by \ghuser{crstamps2}}
 }{
