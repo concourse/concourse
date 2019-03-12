@@ -50,7 +50,18 @@ var _ = Describe("External PostgreSQL", func() {
 		Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
 	})
 
-	It("gets deployed", func() {
+	It("can have pipelines set", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
+
+		By("Creating the web proxy")
+		proxySession, atcEndpoint := startPortForwarding(
+			namespace, "service/"+releaseName+"-web", "8080")
+		defer proxySession.Interrupt()
+
+		By("Logging in")
+		fly.Login("test", "test", atcEndpoint)
+
+		By("Setting and triggering a dumb pipeline")
+		fly.Run("set-pipeline", "-n", "-c", "../pipelines/get-task.yml", "-p", "pipeline")
 	})
 })
