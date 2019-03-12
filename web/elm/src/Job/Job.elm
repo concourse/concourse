@@ -10,7 +10,6 @@ module Job.Job exposing
     , view
     )
 
-import Build.Styles as Styles
 import BuildDuration
 import Callback exposing (Callback(..))
 import Colors
@@ -46,6 +45,7 @@ import Html.Events
 import Html.Styled as HS
 import Http
 import Job.Msgs exposing (Hoverable(..), Msg(..))
+import Job.Styles as Styles
 import LoadingIndicator
 import RemoteData exposing (WebData)
 import Routes
@@ -455,28 +455,11 @@ viewMainJobsSection model =
                                 , onClick TogglePaused
                                 ]
                                 [ Html.div
-                                    [ style
-                                        [ ( "background-image"
-                                          , "url(/public/images/"
-                                                ++ (if job.paused then
-                                                        "ic-play-circle-outline.svg)"
-
-                                                    else
-                                                        "ic-pause-circle-outline-white.svg)"
-                                                   )
-                                          )
-                                        , ( "background-position", "50% 50%" )
-                                        , ( "background-repeat", "no-repeat" )
-                                        , ( "width", "40px" )
-                                        , ( "height", "40px" )
-                                        , ( "opacity"
-                                          , if toggleHovered then
-                                                "1"
-
-                                            else
-                                                "0.5"
-                                          )
-                                        ]
+                                    [ style <|
+                                        Styles.pauseToggleIcon
+                                            { paused = job.paused
+                                            , hovered = toggleHovered
+                                            }
                                     ]
                                     []
                                 ]

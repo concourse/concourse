@@ -633,7 +633,7 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                , test "trigger build button is styled as a box of the secondary color of the build status" <|
+                , test "trigger build button is styled as a box of the color of the build status" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -645,13 +645,15 @@ all =
                         >> Query.has
                             [ style
                                 [ ( "padding", "10px" )
-                                , ( "border", "none" )
-                                , ( "background-color", darkGreen )
+                                , ( "background-color", brightGreen )
                                 , ( "outline", "none" )
                                 , ( "margin", "0" )
+                                , ( "border-width", "0 0 0 1px" )
+                                , ( "border-color", darkGrey )
+                                , ( "border-style", "solid" )
                                 ]
                             ]
-                , test "hovered trigger build button is styled as a box of the color of the build status" <|
+                , test "hovered trigger build button is styled as a box of the secondary color of the build status" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
                         >> Build.update (Build.Msgs.Hover <| Just Models.Trigger)
@@ -665,10 +667,12 @@ all =
                         >> Query.has
                             [ style
                                 [ ( "padding", "10px" )
-                                , ( "border", "none" )
-                                , ( "background-color", brightGreen )
+                                , ( "background-color", darkGreen )
                                 , ( "outline", "none" )
                                 , ( "margin", "0" )
+                                , ( "border-width", "0 0 0 1px" )
+                                , ( "border-color", darkGrey )
+                                , ( "border-style", "solid" )
                                 ]
                             ]
                 , test "trigger build button has pointer cursor" <|
@@ -698,39 +702,6 @@ all =
                                 , image = "ic-add-circle-outline-white.svg"
                                 }
                             )
-                , defineHoverBehaviour
-                    { name = "trigger build button"
-                    , setup =
-                        givenHistoryAndDetailsFetched () |> Tuple.first
-                    , query =
-                        Build.view UserState.UserStateLoggedOut
-                            >> Query.fromHtml
-                            >> Query.find
-                                [ attribute <|
-                                    Attr.attribute "aria-label" "Trigger Build"
-                                ]
-                    , updateFunc = \msg -> Build.update msg >> Tuple.first
-                    , unhoveredSelector =
-                        { description = "grey plus icon"
-                        , selector =
-                            [ style [ ( "opacity", "0.5" ) ] ]
-                                ++ iconSelector
-                                    { size = "40px"
-                                    , image = "ic-add-circle-outline-white.svg"
-                                    }
-                        }
-                    , hoveredSelector =
-                        { description = "white plus icon"
-                        , selector =
-                            [ style [ ( "opacity", "1" ) ] ]
-                                ++ iconSelector
-                                    { size = "40px"
-                                    , image = "ic-add-circle-outline-white.svg"
-                                    }
-                        }
-                    , mouseEnterMsg = Build.Msgs.Hover <| Just Models.Trigger
-                    , mouseLeaveMsg = Build.Msgs.Hover Nothing
-                    }
                 ]
             , describe "when history and details fetched with maual triggering disabled" <|
                 let
@@ -766,11 +737,10 @@ all =
                     , unhoveredSelector =
                         { description = "grey plus icon"
                         , selector =
-                            [ style [ ( "opacity", "0.5" ) ] ]
-                                ++ iconSelector
-                                    { size = "40px"
-                                    , image = "ic-add-circle-outline-white.svg"
-                                    }
+                            iconSelector
+                                { size = "40px"
+                                , image = "ic-add-circle-outline-white.svg"
+                                }
                         }
                     , hoveredSelector =
                         { description = "grey plus icon with tooltip"
@@ -792,14 +762,10 @@ all =
                                     ]
                                 ]
                             , containing <|
-                                [ style
-                                    [ ( "opacity", "0.5" )
-                                    ]
-                                ]
-                                    ++ iconSelector
-                                        { size = "40px"
-                                        , image = "ic-add-circle-outline-white.svg"
-                                        }
+                                iconSelector
+                                    { size = "40px"
+                                    , image = "ic-add-circle-outline-white.svg"
+                                    }
                             ]
                         }
                     , mouseEnterMsg = Build.Msgs.Hover <| Just Models.Trigger
@@ -840,7 +806,7 @@ all =
                         [ attribute <|
                             Attr.attribute "aria-label" "Abort Build"
                         ]
-            , test "abort build button is styled as a dark red box" <|
+            , test "abort build button is styled as a bright red box" <|
                 givenBuildStarted
                     >> Tuple.first
                     >> Build.view UserState.UserStateLoggedOut
@@ -852,13 +818,15 @@ all =
                     >> Query.has
                         [ style
                             [ ( "padding", "10px" )
-                            , ( "border", "none" )
-                            , ( "background-color", darkRed )
+                            , ( "background-color", brightRed )
                             , ( "outline", "none" )
                             , ( "margin", "0" )
+                            , ( "border-width", "0 0 0 1px" )
+                            , ( "border-color", darkGrey )
+                            , ( "border-style", "solid" )
                             ]
                         ]
-            , test "hovered abort build button is styled as a bright red box" <|
+            , test "hovered abort build button is styled as a dark red box" <|
                 givenBuildStarted
                     >> Tuple.first
                     >> Build.update (Build.Msgs.Hover (Just Models.Abort))
@@ -872,10 +840,12 @@ all =
                     >> Query.has
                         [ style
                             [ ( "padding", "10px" )
-                            , ( "border", "none" )
-                            , ( "background-color", brightRed )
+                            , ( "background-color", darkRed )
                             , ( "outline", "none" )
                             , ( "margin", "0" )
+                            , ( "border-width", "0 0 0 1px" )
+                            , ( "border-color", darkGrey )
+                            , ( "border-style", "solid" )
                             ]
                         ]
             , test "abort build button has pointer cursor" <|
@@ -905,44 +875,6 @@ all =
                             , image = "ic-abort-circle-outline-white.svg"
                             }
                         )
-            , defineHoverBehaviour
-                { name = "abort build button"
-                , setup =
-                    givenBuildStarted ()
-                        |> Tuple.first
-                , query =
-                    Build.view UserState.UserStateLoggedOut
-                        >> Query.fromHtml
-                        >> Query.find
-                            [ attribute <|
-                                Attr.attribute "aria-label" "Abort Build"
-                            ]
-                , updateFunc = \msg -> Build.update msg >> Tuple.first
-                , unhoveredSelector =
-                    { description = "grey abort icon"
-                    , selector =
-                        [ style
-                            [ ( "opacity", "0.5" ) ]
-                        ]
-                            ++ iconSelector
-                                { size = "40px"
-                                , image = "ic-abort-circle-outline-white.svg"
-                                }
-                    }
-                , hoveredSelector =
-                    { description = "white abort icon"
-                    , selector =
-                        [ style
-                            [ ( "opacity", "1" ) ]
-                        ]
-                            ++ iconSelector
-                                { size = "40px"
-                                , image = "ic-abort-circle-outline-white.svg"
-                                }
-                    }
-                , mouseEnterMsg = Build.Msgs.Hover <| Just Models.Abort
-                , mouseLeaveMsg = Build.Msgs.Hover Nothing
-                }
             , describe "build prep section"
                 [ test "when pipeline is not paused, shows a check" <|
                     let
@@ -1588,3 +1520,8 @@ darkGreen =
 brightGreen : String
 brightGreen =
     "#11c560"
+
+
+darkGrey : String
+darkGrey =
+    "#3d3c3c"

@@ -65,7 +65,7 @@ triggerButton buttonDisabled hovered status =
       )
     , ( "position", "relative" )
     , ( "background-color"
-      , Colors.buildStatusColor (hovered && not buttonDisabled) status
+      , Colors.buildStatusColor (not hovered || buttonDisabled) status
       )
     ]
         ++ button
@@ -76,10 +76,10 @@ abortButton isHovered =
     [ ( "cursor", "pointer" )
     , ( "background-color"
       , if isHovered then
-            Colors.failure
+            Colors.failureFaded
 
         else
-            Colors.failureFaded
+            Colors.failure
       )
     ]
         ++ button
@@ -88,9 +88,11 @@ abortButton isHovered =
 button : List ( String, String )
 button =
     [ ( "padding", "10px" )
-    , ( "border", "none" )
     , ( "outline", "none" )
     , ( "margin", "0" )
+    , ( "border-width", "0 0 0 1px" )
+    , ( "border-color", Colors.background )
+    , ( "border-style", "solid" )
     ]
 
 
@@ -103,13 +105,6 @@ triggerIcon hovered =
       , "url(/public/images/ic-add-circle-outline-white.svg)"
       )
     , ( "background-repeat", "no-repeat" )
-    , ( "opacity"
-      , if hovered then
-            "1"
-
-        else
-            "0.5"
-      )
     ]
 
 
@@ -137,13 +132,6 @@ abortIcon hovered =
       , "url(/public/images/ic-abort-circle-outline-white.svg)"
       )
     , ( "background-repeat", "no-repeat" )
-    , ( "opacity"
-      , if hovered then
-            "1"
-
-        else
-            "0.5"
-      )
     ]
 
 
