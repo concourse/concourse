@@ -1,6 +1,6 @@
 \use-plugin{concourse-docs}
 
-\release-date{2018-02-15}
+\release-date{2019-02-15}
 \release-version{4.2.3}
 \release-garden-runc-version{1.18.2}
 
