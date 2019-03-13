@@ -1,7 +1,6 @@
 package accessor_test
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/concourse/concourse/atc/api/accessor"
@@ -29,7 +28,6 @@ var _ = Describe("Handler", func() {
 		dummyHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			innerHandlerCalled = true
 
-			fmt.Println(r.Context().Value("accessor"))
 			if r.Context().Value("accessor") != nil {
 				access = r.Context().Value("accessor").(accessor.Access)
 			}
