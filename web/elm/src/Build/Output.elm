@@ -116,6 +116,9 @@ planAndResourcesFetched buildId result model =
                     if status.code == 404 then
                         { model | events = Just buildId }
 
+                    else if status.code == 401 then
+                        { model | state = NotAuthorized }
+
                     else
                         model
 

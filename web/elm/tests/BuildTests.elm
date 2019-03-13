@@ -20,6 +20,7 @@ import Dict
 import Effects
 import Expect
 import Html.Attributes as Attr
+import Http
 import Routes
 import SubPage.Msgs
 import Test exposing (..)
@@ -248,6 +249,69 @@ all =
                         , containing [ text "log message" ]
                         ]
                     |> Query.has [ class "highlighted-line" ]
+        , test "shows passport officer when build plan request gives 401" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = ""
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { href = ""
+                    , host = ""
+                    , hostname = ""
+                    , protocol = ""
+                    , origin = ""
+                    , port_ = ""
+                    , pathname = "/teams/t/pipelines/p/jobs/j/builds/1"
+                    , search = ""
+                    , hash = ""
+                    , username = ""
+                    , password = ""
+                    }
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 1
+                                  , name = "1"
+                                  , job =
+                                        Just
+                                            { jobName = "j"
+                                            , pipelineName = "p"
+                                            , teamName = "t"
+                                            }
+                                  , status = Concourse.BuildStatusSucceeded
+                                  , duration =
+                                        { startedAt = Just (Date.fromTime 0)
+                                        , finishedAt = Just (Date.fromTime 0)
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.PlanAndResourcesFetched 1 <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 401
+                                        , message = ""
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Application.view
+                    |> Query.fromHtml
+                    |> Query.has [ class "not-authorized" ]
         , test "pressing 'T' twice triggers two builds" <|
             \_ ->
                 Application.init
