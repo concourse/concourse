@@ -465,7 +465,8 @@ viewPauseToggle pipelineState =
     case pipelineState of
         HasPipeline { isPaused, pipeline } ->
             [ Html.a
-                [ style (Styles.pausePipelineButton isPaused)
+                [ id "top-bar-pause-pipeline"
+                , style (Styles.pausePipelineButton isPaused)
                 , onClick <| TogglePipelinePaused pipeline isPaused
                 ]
                 []

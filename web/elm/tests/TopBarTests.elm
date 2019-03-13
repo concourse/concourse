@@ -187,7 +187,13 @@ all =
                 ]
             , context "when logged in"
                 (Tuple.first
-                    >> TopBar.view (UserState.UserStateLoggedIn sampleUser) Model.None
+                    >> TopBar.view (UserState.UserStateLoggedIn sampleUser)
+                        (Model.HasPipeline
+                            { pinnedResources = []
+                            , pipeline = { teamName = "t", pipelineName = "p" }
+                            , isPaused = False
+                            }
+                        )
                     >> Query.fromHtml
                 )
                 [ it "renders the login component last" <|
@@ -263,6 +269,14 @@ all =
                         >> Query.index -1
                         >> Query.find [ id "user-id" ]
                         >> Query.hasNot [ id "logout-button" ]
+                , it "renders pause pipeline button" <|
+                    Query.find [ id "top-bar-pause-pipeline" ]
+                        >> Query.has
+                            [ style [ ( "background-image", "url(/public/images/ic-pause-white.svg)" ) ] ]
+                , it "draws lighter grey line to the left of pause pipeline button" <|
+                    Query.find [ id "top-bar-pause-pipeline" ]
+                        >> Query.has
+                            [ style [ ( "border-left", "1px solid " ++ borderGrey ) ] ]
                 ]
             , it "clicking a pinned resource navigates to the pinned resource page" <|
                 Tuple.mapSecond (always [])
@@ -297,6 +311,14 @@ all =
                     Query.children []
                         >> Query.index -1
                         >> Query.find [ id "login-container" ]
+                        >> Query.has
+                            [ style [ ( "border-left", "1px solid " ++ almostWhite ) ] ]
+                , it "renders play pipeline button" <|
+                    Query.find [ id "top-bar-pause-pipeline" ]
+                        >> Query.has
+                            [ style [ ( "background-image", "url(/public/images/ic-play-white.svg)" ) ] ]
+                , it "draws almost-white line to the left of pause pipeline button" <|
+                    Query.find [ id "top-bar-pause-pipeline" ]
                         >> Query.has
                             [ style [ ( "border-left", "1px solid " ++ almostWhite ) ] ]
                 ]
