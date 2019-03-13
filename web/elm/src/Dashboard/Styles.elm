@@ -2,6 +2,7 @@ module Dashboard.Styles exposing
     ( asciiArt
     , cardBody
     , cardFooter
+    , content
     , highDensityIcon
     , highDensityToggle
     , info
@@ -30,6 +31,7 @@ module Dashboard.Styles exposing
     , resourceErrorTriangle
     , runningLegendItem
     , striped
+    , teamNameHd
     , topCliIcon
     , welcomeCard
     , welcomeCardBody
@@ -41,6 +43,28 @@ import Colors
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import ScreenSize
+
+
+content : Bool -> List ( String, String )
+content highDensity =
+    [ ( "align-content", "flex-start" )
+    , ( "display"
+      , if highDensity then
+            "flex"
+
+        else
+            "initial"
+      )
+    , ( "flex-flow", "column wrap" )
+    , ( "padding"
+      , if highDensity then
+            "60px"
+
+        else
+            "0"
+      )
+    , ( "flex-grow", "1" )
+    ]
 
 
 pipelineCard : List ( String, String )
@@ -146,6 +170,12 @@ previewPlaceholder : List ( String, String )
 previewPlaceholder =
     [ ( "background-color", Colors.background )
     , ( "flex-grow", "1" )
+    ]
+
+
+teamNameHd : List ( String, String )
+teamNameHd =
+    [ ( "letter-spacing", ".2em" )
     ]
 
 

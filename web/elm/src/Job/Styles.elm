@@ -1,5 +1,6 @@
 module Job.Styles exposing
-    ( pauseToggleIcon
+    ( pageBelowTopBar
+    , pauseToggleIcon
     , triggerButton
     , triggerIcon
     , triggerTooltip
@@ -7,6 +8,13 @@ module Job.Styles exposing
 
 import Colors
 import Concourse
+
+
+pageBelowTopBar : List ( String, String )
+pageBelowTopBar =
+    [ ( "padding-top", "54px" )
+    , ( "height", "100%" )
+    ]
 
 
 triggerButton : Bool -> Bool -> Concourse.BuildStatus -> List ( String, String )

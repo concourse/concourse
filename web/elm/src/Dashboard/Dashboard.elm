@@ -355,56 +355,52 @@ subscriptions model =
 
 view : UserState -> Model -> Html Msg
 view userState model =
-    Html.div []
-        [ Html.div
-            [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map FromTopBar <| TopBar.view userState TopBar.Model.None model
-            , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
-                [ dashboardView model
-                ]
-            ]
-        ]
-
-
-dashboardView : Model -> Html Msg
-dashboardView model =
-    let
-        mainContent =
-            case model.state of
-                RemoteData.NotAsked ->
-                    [ Html.text "" ]
-
-                RemoteData.Loading ->
-                    [ Html.text "" ]
-
-                RemoteData.Failure (Turbulence path) ->
-                    [ turbulenceView path ]
-
-                RemoteData.Success substate ->
-                    [ Html.div
-                        [ class "dashboard-content" ]
-                      <|
-                        welcomeCard model
-                            ++ pipelinesView
-                                { groups = model.groups
-                                , substate = substate
-                                , query = Routes.extractQuery model.route
-                                , hoveredPipeline = model.hoveredPipeline
-                                , pipelineRunningKeyframes =
-                                    model.pipelineRunningKeyframes
-                                , userState = model.userState
-                                , highDensity = model.route == Routes.Dashboard Routes.HighDensity
-                                }
-                    ]
-                        ++ Footer.view model
-    in
     Html.div
-        [ classList
-            [ ( .pageBodyClass Group.stickyHeaderConfig, True )
-            , ( "dashboard-hd", model.route == Routes.Dashboard Routes.HighDensity )
-            ]
+        [ style TopBar.Styles.pageIncludingTopBar
+        , id "page-including-top-bar"
         ]
-        mainContent
+        [ Html.map FromTopBar <| TopBar.view userState TopBar.Model.None model
+        , Html.div
+            [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
+            (dashboardView model)
+        ]
+
+
+dashboardView : Model -> List (Html Msg)
+dashboardView model =
+    case model.state of
+        RemoteData.NotAsked ->
+            [ Html.text "" ]
+
+        RemoteData.Loading ->
+            [ Html.text "" ]
+
+        RemoteData.Failure (Turbulence path) ->
+            [ turbulenceView path ]
+
+        RemoteData.Success substate ->
+            let
+                highDensity =
+                    model.route == Routes.Dashboard Routes.HighDensity
+            in
+            [ Html.div
+                [ class <| .pageBodyClass Group.stickyHeaderConfig
+                , style <| Styles.content highDensity
+                ]
+              <|
+                welcomeCard model
+                    :: pipelinesView
+                        { groups = model.groups
+                        , substate = substate
+                        , query = Routes.extractQuery model.route
+                        , hoveredPipeline = model.hoveredPipeline
+                        , pipelineRunningKeyframes =
+                            model.pipelineRunningKeyframes
+                        , userState = model.userState
+                        , highDensity = highDensity
+                        }
+            , Footer.view model
+            ]
 
 
 welcomeCard :
@@ -413,7 +409,7 @@ welcomeCard :
         , groups : List Group.Group
         , userState : UserState.UserState
     }
-    -> List (Html Msg)
+    -> Html Msg
 welcomeCard { hoveredTopCliIcon, groups, userState } =
     let
         noPipelines =
@@ -436,7 +432,7 @@ welcomeCard { hoveredTopCliIcon, groups, userState } =
                 []
     in
     if noPipelines then
-        [ Html.div
+        Html.div
             [ id "welcome-card"
             , style Styles.welcomeCard
             ]
@@ -467,10 +463,9 @@ welcomeCard { hoveredTopCliIcon, groups, userState } =
                 [ style Styles.asciiArt ]
                 [ Html.text Text.asciiArt ]
             ]
-        ]
 
     else
-        []
+        Html.text ""
 
 
 loginInstruction : UserState.UserState -> List (Html Msg)
@@ -547,7 +542,7 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
         groupViews =
             if highDensity then
                 groupsToDisplay
-                    |> List.map (Group.hdView pipelineRunningKeyframes)
+                    |> List.concatMap (Group.hdView pipelineRunningKeyframes)
 
             else
                 groupsToDisplay

@@ -80,16 +80,16 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
-view : Model r -> List (Html Msg)
+view : Model r -> Html Msg
 view model =
     if model.showHelp then
-        [ keyboardHelp ]
+        keyboardHelp
 
     else if not model.hideFooter then
-        [ infoBar model ]
+        infoBar model
 
     else
-        []
+        Html.text ""
 
 
 keyboardHelp : Html Msg
@@ -140,9 +140,9 @@ infoBar model =
                 , screenSize = model.screenSize
                 }
         ]
-    <|
-        legend model
-            ++ concourseInfo model
+        [ legend model
+        , concourseInfo model
+        ]
 
 
 legend :
@@ -151,17 +151,17 @@ legend :
         , screenSize : ScreenSize.ScreenSize
         , route : Routes.Route
     }
-    -> List (Html Msg)
+    -> Html Msg
 legend model =
     if hideLegend model then
-        []
+        Html.text ""
 
     else
-        [ Html.div
+        Html.div
             [ id "legend"
             , style Styles.legend
             ]
-          <|
+        <|
             List.map legendItem
                 [ PipelineStatusPending False
                 , PipelineStatusPaused
@@ -180,14 +180,13 @@ legend model =
                     ]
                 ++ legendSeparator model.screenSize
                 ++ [ toggleView (model.route == Routes.Dashboard Routes.HighDensity) ]
-        ]
 
 
 concourseInfo :
     { a | version : String, hoveredCliIcon : Maybe Cli.Cli }
-    -> List (Html Msg)
+    -> Html Msg
 concourseInfo { version, hoveredCliIcon } =
-    [ Html.div [ id "concourse-info", style Styles.info ]
+    Html.div [ id "concourse-info", style Styles.info ]
         [ Html.div [ style Styles.infoItem ]
             [ Html.text <| "version: v" ++ version ]
         , Html.div [ style Styles.infoItem ] <|
@@ -197,7 +196,6 @@ concourseInfo { version, hoveredCliIcon } =
             ]
                 ++ List.map (cliIcon hoveredCliIcon) Cli.clis
         ]
-    ]
 
 
 hideLegend : { a | groups : List Group } -> Bool

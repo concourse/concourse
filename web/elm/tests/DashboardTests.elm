@@ -391,7 +391,9 @@ all =
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataUnauthenticated (apiData [])
                                     |> queryView
-                                    |> Query.find [ class "dashboard-content" ]
+                                    |> Query.find [ id "page-below-top-bar" ]
+                                    |> Query.children []
+                                    |> Query.first
                                     |> Query.children []
                                     |> Query.count (Expect.equal 1)
                        ]
@@ -446,6 +448,114 @@ all =
                                 [ style [ ( "line-height", "42px" ) ] ]
                             ]
             ]
+        , test "high density view has no vertical scroll" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has
+                        [ style
+                            [ ( "height", "100%" )
+                            , ( "box-sizing", "border-box" )
+                            ]
+                        ]
+        , test "high density body aligns contents vertically" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has
+                        [ style
+                            [ ( "display", "flex" )
+                            , ( "flex-direction", "column" )
+                            ]
+                        ]
+        , test "high density pipelines view fills vertical space" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has [ style [ ( "flex-grow", "1" ) ] ]
+        , test "high density pipelines view has padding" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has [ style [ ( "padding", "60px" ) ] ]
+        , test "high density pipelines view wraps columns" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has
+                        [ style
+                            [ ( "display", "flex" )
+                            , ( "flex-flow", "column wrap" )
+                            ]
+                        ]
+        , test "normal density pipelines view has default layout" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has
+                        [ style
+                            [ ( "display", "initial" )
+                            , ( "padding", "0" )
+                            ]
+                        ]
+        , test "high density view left-aligns contents" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has [ style [ ( "align-content", "flex-start" ) ] ]
+        , test "high density view has no overlapping top bar" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has [ style [ ( "padding-top", "54px" ) ] ]
+        , test "high density view has no overlapping bottom bar" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has [ style [ ( "padding-bottom", "50px" ) ] ]
         , test "top bar has bold font" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
@@ -621,6 +731,15 @@ all =
                     |> Dashboard.handleDelivery (KeyDown 191)
                     |> queryView
                     |> Query.has [ id "dashboard-info" ]
+        , test "on HD view, team names have increased letter spacing" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ class "dashboard-team-name-wrapper" ]
+                    |> Query.has [ style [ ( "letter-spacing", ".2em" ) ] ]
         , describe "team pills"
             [ test
                 ("shows team name with no pill when unauthenticated "
