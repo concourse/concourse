@@ -88,6 +88,7 @@ require (
 	github.com/gocql/gocql v0.0.0-20180920092337-799fb0373110 // indirect
 	github.com/gogo/protobuf v1.1.1 // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
+	github.com/golang/protobuf v1.3.1 // indirect
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c // indirect
 	github.com/google/go-github v17.0.0+incompatible // indirect
@@ -200,10 +201,11 @@ require (
 	github.com/vito/houdini v1.1.1
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
-	golang.org/x/crypto v0.0.0-20190123085648-057139ce5d2b
-	golang.org/x/net v0.0.0-20190125091013-d26f9f9a57f3 // indirect
+	golang.org/x/crypto v0.0.0-20190313024323-a1f597ede03a
+	golang.org/x/net v0.0.0-20190313220215-9f648a60d977 // indirect
 	golang.org/x/oauth2 v0.0.0-20181203162652-d668ce993890
-	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4 // indirect
+	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6 // indirect
+	golang.org/x/sys v0.0.0-20190316082340-a2f829d7f35f // indirect
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
 	google.golang.org/api v0.1.0 // indirect
 	google.golang.org/genproto v0.0.0-20181221175505-bd9b4fb69e2f // indirect

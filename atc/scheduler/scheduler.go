@@ -14,13 +14,6 @@ type Scheduler struct {
 	Pipeline     db.Pipeline
 	InputMapper  inputmapper.InputMapper
 	BuildStarter BuildStarter
-	Scanner      Scanner
-}
-
-//go:generate counterfeiter . Scanner
-
-type Scanner interface {
-	Scan(lager.Logger, string) error
 }
 
 func (s *Scheduler) Schedule(

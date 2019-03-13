@@ -31,7 +31,6 @@ func NewBuildStarter(
 	pipeline db.Pipeline,
 	maxInFlightUpdater maxinflight.Updater,
 	factory BuildFactory,
-	scanner Scanner,
 	inputMapper inputmapper.InputMapper,
 	execEngine engine.Engine,
 ) BuildStarter {
@@ -39,7 +38,6 @@ func NewBuildStarter(
 		pipeline:           pipeline,
 		maxInFlightUpdater: maxInFlightUpdater,
 		factory:            factory,
-		scanner:            scanner,
 		inputMapper:        inputMapper,
 		execEngine:         execEngine,
 	}
@@ -50,7 +48,6 @@ type buildStarter struct {
 	maxInFlightUpdater maxinflight.Updater
 	factory            BuildFactory
 	execEngine         engine.Engine
-	scanner            Scanner
 	inputMapper        inputmapper.InputMapper
 }
 
@@ -98,14 +95,19 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	if nextPendingBuild.IsManuallyTriggered() {
 		jobBuildInputs := job.Config().Inputs()
 		for _, input := range jobBuildInputs {
-			scanLog := logger.Session("scan", lager.Data{
-				"input":    input.Name,
-				"resource": input.Resource,
-			})
+			resource, found := resources.Lookup(input.Resource)
 
-			err := s.scanner.Scan(scanLog, input.Resource)
-			if err != nil {
-				return false, err
+			if !found {
+				logger.Debug("failed-to-find-resource")
+				return false, nil
+			}
+
+			if resource.CurrentPinnedVersion() != nil {
+				continue
+			}
+
+			if resource.LastCheckFinished().Before(nextPendingBuild.CreateTime()) {
+				return false, nil
 			}
 		}
 
