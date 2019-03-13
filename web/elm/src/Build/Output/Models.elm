@@ -19,4 +19,3 @@ type OutputState
     = StepsLoading
     | StepsLiveUpdating
     | StepsComplete
-    | NotAuthorized

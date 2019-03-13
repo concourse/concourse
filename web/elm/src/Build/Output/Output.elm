@@ -100,63 +100,37 @@ handleStepTreeMsg action model =
 
 planAndResourcesFetched :
     Concourse.BuildId
-    -> Result Http.Error ( Concourse.BuildPlan, Concourse.BuildResources )
+    -> ( Concourse.BuildPlan, Concourse.BuildResources )
     -> OutputModel
     -> ( OutputModel, List Effect, OutMsg )
-planAndResourcesFetched buildId result model =
+planAndResourcesFetched buildId ( plan, resources ) model =
     let
         url =
             "/api/v1/builds/" ++ toString buildId ++ "/events"
     in
-    ( case result of
-        Err err ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 404 then
-                        { model | eventStreamUrlPath = Just url }
-
-                    else if status.code == 401 then
-                        { model | state = NotAuthorized }
-
-                    else
-                        model
-
-                _ ->
-                    flip always (Debug.log "failed to fetch plan" err) <|
-                        model
-
-        Ok ( plan, resources ) ->
-            { model
-                | steps = Just (Build.StepTree.StepTree.init model.highlight resources plan)
-                , eventStreamUrlPath = Just url
-            }
+    ( { model
+        | steps =
+            Just
+                (Build.StepTree.StepTree.init
+                    model.highlight
+                    resources
+                    plan
+                )
+        , eventStreamUrlPath = Just url
+      }
     , []
     , OutNoop
     )
 
 
 handleEnvelopes :
-    Result String (List BuildEventEnvelope)
+    List BuildEventEnvelope
     -> OutputModel
     -> ( OutputModel, List Effect, OutMsg )
-handleEnvelopes action model =
-    case action of
-        Ok envelopes ->
-            envelopes
-                |> List.reverse
-                |> List.foldr handleEnvelope ( model, [], OutNoop )
-
-        Err err ->
-            flip always (Debug.log "failed to get event" err) <|
-                if model.eventSourceOpened then
-                    -- connection could have dropped out of the blue;
-                    -- just let the browser handle reconnecting
-                    ( model, [], OutNoop )
-
-                else
-                    -- assume request was rejected because auth is required;
-                    -- no way to really tell
-                    ( { model | state = NotAuthorized }, [], OutNoop )
+handleEnvelopes envelopes model =
+    envelopes
+        |> List.reverse
+        |> List.foldr handleEnvelope ( model, [], OutNoop )
 
 
 handleEnvelope :
@@ -352,9 +326,6 @@ viewStepTree build steps state =
     case ( state, steps ) of
         ( StepsLoading, _ ) ->
             LoadingIndicator.view
-
-        ( NotAuthorized, _ ) ->
-            NotAuthorized.view
 
         ( StepsLiveUpdating, Just root ) ->
             Build.StepTree.StepTree.view root

@@ -1,5 +1,6 @@
 module Build.Models exposing
     ( BuildPageType(..)
+    , CurrentBuild
     , Hoverable(..)
     , Model
     , StepHeaderType(..)
@@ -33,6 +34,7 @@ type alias Model =
         , highlight : Highlight
         , hoveredElement : Maybe Hoverable
         , hoveredCounter : Int
+        , authorized : Bool
         }
 
 
