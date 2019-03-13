@@ -2,6 +2,7 @@ package setpipelinehelpers
 
 import (
 	"fmt"
+	"github.com/concourse/concourse/fly/rc"
 	"net/url"
 	"os"
 
@@ -19,6 +20,7 @@ import (
 type ATCConfig struct {
 	PipelineName     string
 	Team             concourse.Team
+	TargetName       rc.TargetName
 	Target           string
 	SkipInteraction  bool
 	CheckCredentials bool
@@ -93,6 +95,10 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 	return nil
 }
 
+func (atcConfig ATCConfig) UnpausePipelineCommand() string {
+	return fmt.Sprintf("fly -t %s unpause-pipeline -p %s", atcConfig.TargetName, atcConfig.PipelineName)
+}
+
 func (atcConfig ATCConfig) showPipelineUpdateResult(created bool, updated bool) {
 	if updated {
 		fmt.Println("configuration updated")
@@ -112,7 +118,8 @@ func (atcConfig ATCConfig) showPipelineUpdateResult(created bool, updated bool) 
 		fmt.Printf("you can view your pipeline here: %s\n", targetURL.ResolveReference(pipelineURL))
 		fmt.Println("")
 		fmt.Println("the pipeline is currently paused. to unpause, either:")
-		fmt.Println("  - run the unpause-pipeline command")
+		fmt.Println("  - run the unpause-pipeline command:")
+		fmt.Println("    " + atcConfig.UnpausePipelineCommand())
 		fmt.Println("  - click play next to the pipeline in the web ui")
 	} else {
 		panic("Something really went wrong!")
