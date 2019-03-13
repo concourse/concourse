@@ -24,3 +24,13 @@ var _ = Describe("ATC Config", func() {
 	})
 
 })
+
+var _ = Describe("UnpausePipelineCommand", func() {
+	It("uses the right target and pipeline name", func() {
+		atcConfig := ATCConfig{
+			TargetName:   "my-target",
+			PipelineName: "my-pipeline",
+		}
+		Expect(atcConfig.UnpausePipelineCommand()).To(Equal("fly -t my-target unpause-pipeline -p my-pipeline"))
+	})
+})
