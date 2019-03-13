@@ -60,7 +60,6 @@ func (s *Server) GetArtifact(team db.Team) http.Handler {
 		_, err = io.Copy(w, reader)
 		if err != nil {
 			logger.Error("failed-to-encode-artifact", err)
-			w.WriteHeader(http.StatusInternalServerError)
 		}
 	})
 }
