@@ -136,7 +136,7 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 	emit(
 		logger.Session("build-containers-count"),
 		Event{
-			Name:  "build containers",
+			Name:  "worker build containers",
 			Value: event.BuildContainers,
 			State: EventStateOK,
 			Attributes: map[string]string{
@@ -148,7 +148,7 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 	emit(
 		logger.Session("check-containers-count"),
 		Event{
-			Name:  "check containers",
+			Name:  "worker check containers",
 			Value: event.CheckContainers,
 			State: EventStateOK,
 			Attributes: map[string]string{

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -275,11 +274,7 @@ func (heartbeater *Heartbeater) pingWorker(logger lager.Logger) (atc.Worker, boo
 	buildContainers := 0
 	checkContainers := 0
 	for _, container := range containers {
-		containerType, err := container.Property("type")
-		if err != nil {
-			logger.Error("got-container-without-properties", err)
-			healthy = false
-		}
+		containerType, _ := container.Property("type")
 
 		switch containerType {
 		case "task", "get", "put":
@@ -287,8 +282,7 @@ func (heartbeater *Heartbeater) pingWorker(logger lager.Logger) (atc.Worker, boo
 		case "check":
 			checkContainers++
 		default:
-			logger.Error(fmt.Sprintf("found-container-of-unknown-type %s", containerType), err)
-			healthy = false
+			logger.Debug("found-container-with-unrecognized-type", lager.Data{"containerType": containerType})
 		}
 	}
 
