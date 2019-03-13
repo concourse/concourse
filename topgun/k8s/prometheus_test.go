@@ -3,10 +3,11 @@ package k8s_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/onsi/gomega/gexec"
 	"net/http"
 	"path"
 	"time"
+
+	"github.com/onsi/gomega/gexec"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
@@ -60,7 +61,6 @@ var _ = Describe("Prometheus integration", func() {
 		prometheusReleaseName = releaseName + "-prom"
 
 		deployConcourseChart(releaseName,
-			"--set=prometheus.enabled=true",
 			"--set=worker.replicas=1",
 			"--set=concourse.worker.ephemeral=true",
 			"--set=concourse.web.prometheus.enabled=true",
