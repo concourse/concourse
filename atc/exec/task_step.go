@@ -228,18 +228,23 @@ func (action *TaskStep) Run(ctx context.Context, state RunState) error {
 
 		action.delegate.Starting(logger, config)
 
-		process, err = container.Run(garden.ProcessSpec{
-			ID: taskProcessID,
+		process, err = container.Run(
+			garden.ProcessSpec{
+				ID: taskProcessID,
 
-			Path: config.Run.Path,
-			Args: config.Run.Args,
+				Path: config.Run.Path,
+				Args: config.Run.Args,
 
-			Dir: path.Join(action.artifactsRoot, config.Run.Dir),
+				Dir: path.Join(action.artifactsRoot, config.Run.Dir),
 
-			// Guardian sets the default TTY window size to width: 80, height: 24,
-			// which creates ANSI control sequences that do not work with other window sizes
-			TTY: &garden.TTYSpec{WindowSize: &garden.WindowSize{Columns: 500, Rows: 500}},
-		}, processIO)
+				// Guardian sets the default TTY window size to width: 80, height: 24,
+				// which creates ANSI control sequences that do not work with other window sizes
+				TTY: &garden.TTYSpec{
+					WindowSize: &garden.WindowSize{Columns: 500, Rows: 500},
+				},
+			},
+			processIO,
+		)
 	}
 	if err != nil {
 		return err

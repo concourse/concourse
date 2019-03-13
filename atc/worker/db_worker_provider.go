@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock"
-	gclient "code.cloudfoundry.org/garden/client"
 	"code.cloudfoundry.org/lager"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -144,7 +143,7 @@ func (provider *dbWorkerProvider) FindWorkerForContainer(
 }
 
 func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok clock.Clock, savedWorker db.Worker, buildContainersCount int) Worker {
-	gcf := NewGardenConnectionFactory(
+	gcf := NewGardenClientFactory(
 		provider.dbWorkerFactory,
 		logger.Session("garden-connection"),
 		savedWorker.Name(),
@@ -152,7 +151,7 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 		provider.retryBackOffFactory,
 	)
 
-	gClient := gclient.New(NewRetryableConnection(gcf.BuildConnection()))
+	gClient := gcf.NewClient()
 
 	bClient := bclient.New("", transport.NewBaggageclaimRoundTripper(
 		savedWorker.Name(),

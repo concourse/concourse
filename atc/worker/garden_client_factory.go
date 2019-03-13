@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	gconn "code.cloudfoundry.org/garden/client/connection"
+	gclient "code.cloudfoundry.org/garden/client"
 	"code.cloudfoundry.org/garden/routes"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/worker/transport"
@@ -11,12 +12,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-//go:generate counterfeiter . GardenConnectionFactory
-type GardenConnectionFactory interface {
-	BuildConnection() gconn.Connection
-}
-
-type gardenConnectionFactory struct {
+type gardenClientFactory struct {
 	db                  transport.TransportDB
 	logger              lager.Logger
 	workerName          string
@@ -24,14 +20,14 @@ type gardenConnectionFactory struct {
 	retryBackOffFactory retryhttp.BackOffFactory
 }
 
-func NewGardenConnectionFactory(
+func NewGardenClientFactory(
 	db transport.TransportDB,
 	logger lager.Logger,
 	workerName string,
 	workerHost *string,
 	retryBackOffFactory retryhttp.BackOffFactory,
-) GardenConnectionFactory {
-	return &gardenConnectionFactory{
+) *gardenClientFactory {
+	return &gardenClientFactory{
 		db:                  db,
 		logger:              logger,
 		workerName:          workerName,
@@ -40,7 +36,7 @@ func NewGardenConnectionFactory(
 	}
 }
 
-func (gcf *gardenConnectionFactory) BuildConnection() gconn.Connection {
+func (gcf *gardenClientFactory) NewClient() gclient.Client {
 	retryer := &transport.UnreachableWorkerRetryer{
 		DelegateRetryer: &retryhttp.DefaultRetryer{},
 	}
@@ -68,5 +64,5 @@ func (gcf *gardenConnectionFactory) BuildConnection() gconn.Connection {
 		Req:              rata.NewRequestGenerator("http://127.0.0.1:8080", routes.Routes),
 	}
 
-	return gconn.NewWithHijacker(hijackStreamer, gcf.logger)
+	return gclient.New(NewRetryableConnection(gconn.NewWithHijacker(hijackStreamer, gcf.logger)))
 }

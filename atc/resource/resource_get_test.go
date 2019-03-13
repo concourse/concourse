@@ -61,7 +61,7 @@ var _ = Describe("Resource Get", func() {
 		getErr = nil
 
 		inScriptProcess = new(gardenfakes.FakeProcess)
-		inScriptProcess.IDReturns(resource.TaskProcessID)
+		inScriptProcess.IDReturns(resource.ResourceProcessID)
 		inScriptProcess.WaitStub = func() (int, error) {
 			return inScriptExitStatus, nil
 		}
@@ -197,7 +197,7 @@ var _ = Describe("Resource Get", func() {
 				Expect(fakeContainer.AttachCallCount()).To(Equal(1))
 
 				pid, io := fakeContainer.AttachArgsForCall(0)
-				Expect(pid).To(Equal(resource.TaskProcessID))
+				Expect(pid).To(Equal(resource.ResourceProcessID))
 
 				// send request on stdin in case process hasn't read it yet
 				request, err := ioutil.ReadAll(io.Stdin)
@@ -308,7 +308,7 @@ var _ = Describe("Resource Get", func() {
 				Expect(fakeContainer.RunCallCount()).To(Equal(1))
 
 				spec, _ := fakeContainer.RunArgsForCall(0)
-				Expect(spec.ID).To(Equal(resource.TaskProcessID))
+				Expect(spec.ID).To(Equal(resource.ResourceProcessID))
 			})
 
 			It("uses the same working directory for all actions", func() {
