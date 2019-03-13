@@ -41,7 +41,14 @@ type Factory interface {
 		TaskDelegate,
 	) Step
 
-	ArtifactStep(
+	ArtifactInputStep(
+		lager.Logger,
+		atc.Plan,
+		db.Build,
+		BuildStepDelegate,
+	) Step
+
+	ArtifactOutputStep(
 		lager.Logger,
 		atc.Plan,
 		db.Build,

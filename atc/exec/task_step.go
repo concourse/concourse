@@ -453,11 +453,6 @@ func (action *TaskStep) registerOutputs(logger lager.Logger, repository *artifac
 			if filepath.Clean(mount.MountPath) == filepath.Clean(outputPath) {
 				source := NewTaskArtifactSource(mount.Volume)
 				repository.RegisterSource(artifact.Name(outputName), source)
-
-				_, err := mount.Volume.InitializeArtifact(outputName, action.buildID)
-				if err != nil {
-					return err
-				}
 			}
 		}
 	}

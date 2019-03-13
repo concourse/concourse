@@ -223,8 +223,12 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan) exec.Step 
 		return build.buildRetryStep(logger, plan)
 	}
 
-	if plan.UserArtifact != nil {
-		return build.buildUserArtifactStep(logger, plan)
+	if plan.ArtifactInput != nil {
+		return build.buildArtifactInputStep(logger, plan)
+	}
+
+	if plan.ArtifactOutput != nil {
+		return build.buildArtifactOutputStep(logger, plan)
 	}
 
 	return exec.IdentityStep{}

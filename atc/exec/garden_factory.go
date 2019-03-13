@@ -209,13 +209,22 @@ func (factory *gardenFactory) Task(
 	return LogError(taskStep, delegate)
 }
 
-func (factory *gardenFactory) ArtifactStep(
+func (factory *gardenFactory) ArtifactInputStep(
 	logger lager.Logger,
 	plan atc.Plan,
 	build db.Build,
 	delegate BuildStepDelegate,
 ) Step {
-	return NewArtifactStep(plan, build, factory.client, delegate)
+	return NewArtifactInputStep(plan, build, factory.client, delegate)
+}
+
+func (factory *gardenFactory) ArtifactOutputStep(
+	logger lager.Logger,
+	plan atc.Plan,
+	build db.Build,
+	delegate BuildStepDelegate,
+) Step {
+	return NewArtifactOutputStep(plan, build, factory.client, delegate)
 }
 
 func (factory *gardenFactory) taskWorkingDirectory(sourceName artifact.Name) string {

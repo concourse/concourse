@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("ArtifactStep", func() {
+var _ = Describe("ArtifactInputStep", func() {
 	var (
 		ctx    context.Context
 		cancel func()
@@ -46,9 +46,9 @@ var _ = Describe("ArtifactStep", func() {
 	})
 
 	JustBeforeEach(func() {
-		plan = atc.Plan{UserArtifact: &atc.UserArtifactPlan{0, "some-name"}}
+		plan = atc.Plan{ArtifactInput: &atc.ArtifactInputPlan{0, "some-name"}}
 
-		step = exec.NewArtifactStep(plan, fakeBuild, fakeWorkerClient, delegate)
+		step = exec.NewArtifactInputStep(plan, fakeBuild, fakeWorkerClient, delegate)
 		stepErr = step.Run(ctx, state)
 	})
 

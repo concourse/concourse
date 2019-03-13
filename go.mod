@@ -147,6 +147,7 @@ require (
 	github.com/lib/pq v0.0.0-20181016162627-9eb73efc1fcc
 	github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329 // indirect
 	github.com/mattbaird/elastigo v0.0.0-20170123220020-2fe47fd29e4b // indirect
+	github.com/mattes/migrate v3.0.1+incompatible
 	github.com/mattn/go-colorable v0.1.1
 	github.com/mattn/go-isatty v0.0.6
 	github.com/mattn/go-runewidth v0.0.3 // indirect

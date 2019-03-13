@@ -283,7 +283,7 @@ var _ = Describe("Plan", func() {
 
 					atc.Plan{
 						ID: "31",
-						UserArtifact: &atc.UserArtifactPlan{
+						ArtifactInput: &atc.ArtifactInputPlan{
 							ArtifactID: 17,
 							Name:       "some-name",
 						},
@@ -501,7 +501,7 @@ var _ = Describe("Plan", func() {
     },
 		{
 			"id": "31",
-			"user_artifact": {
+			"artifact_input": {
 				"artifact_id": 17,
 				"name" : "some-name"
 			}

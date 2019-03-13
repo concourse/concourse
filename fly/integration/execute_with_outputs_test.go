@@ -92,7 +92,7 @@ run:
 		expectedPlan = planFactory.NewPlan(atc.EnsurePlan{
 			Step: planFactory.NewPlan(atc.DoPlan{
 				planFactory.NewPlan(atc.AggregatePlan{
-					planFactory.NewPlan(atc.UserArtifactPlan{
+					planFactory.NewPlan(atc.ArtifactInputPlan{
 						Name:       filepath.Base(buildDir),
 						ArtifactID: 125,
 					}),

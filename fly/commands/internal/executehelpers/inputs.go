@@ -152,7 +152,7 @@ func GenerateLocalInputs(
 		kvMap[inputName] = Input{
 			Name: inputName,
 			Path: absPath,
-			Plan: fact.NewPlan(atc.UserArtifactPlan{
+			Plan: fact.NewPlan(atc.ArtifactInputPlan{
 				ArtifactID: artifact.ID,
 				Name:       inputName,
 			}),

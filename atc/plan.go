@@ -18,7 +18,7 @@ type Plan struct {
 	Retry     *RetryPlan     `json:"retry,omitempty"`
 
 	// used for 'fly execute'
-	UserArtifact   *UserArtifactPlan   `json:"user_artifact,omitempty"`
+	ArtifactInput  *ArtifactInputPlan  `json:"artifact_input,omitempty"`
 	ArtifactOutput *ArtifactOutputPlan `json:"artifact_output,omitempty"`
 
 	// deprecated, kept for backwards compatibility to be able to show old builds
@@ -27,7 +27,7 @@ type Plan struct {
 
 type PlanID string
 
-type UserArtifactPlan struct {
+type ArtifactInputPlan struct {
 	ArtifactID int    `json:"artifact_id"`
 	Name       string `json:"name"`
 }

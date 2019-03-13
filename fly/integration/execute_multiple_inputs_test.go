@@ -87,11 +87,11 @@ run:
 
 		expectedPlan = planFactory.NewPlan(atc.DoPlan{
 			planFactory.NewPlan(atc.AggregatePlan{
-				planFactory.NewPlan(atc.UserArtifactPlan{
+				planFactory.NewPlan(atc.ArtifactInputPlan{
 					ArtifactID: 125,
 					Name:       "some-input",
 				}),
-				planFactory.NewPlan(atc.UserArtifactPlan{
+				planFactory.NewPlan(atc.ArtifactInputPlan{
 					ArtifactID: 125,
 					Name:       "some-other-input",
 				}),

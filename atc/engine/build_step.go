@@ -157,9 +157,19 @@ func (build *execBuild) buildRetryStep(logger lager.Logger, plan atc.Plan) exec.
 	return exec.Retry(steps...)
 }
 
-func (build *execBuild) buildUserArtifactStep(logger lager.Logger, plan atc.Plan) exec.Step {
+func (build *execBuild) buildArtifactInputStep(logger lager.Logger, plan atc.Plan) exec.Step {
 
-	return build.factory.ArtifactStep(
+	return build.factory.ArtifactInputStep(
+		logger,
+		plan,
+		build.dbBuild,
+		build.delegate.BuildStepDelegate(plan.ID),
+	)
+}
+
+func (build *execBuild) buildArtifactOutputStep(logger lager.Logger, plan atc.Plan) exec.Step {
+
+	return build.factory.ArtifactOutputStep(
 		logger,
 		plan,
 		build.dbBuild,

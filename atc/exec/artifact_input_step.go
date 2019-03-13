@@ -18,7 +18,7 @@ func (e ArtifactVolumeNotFoundErr) Error() string {
 	return fmt.Sprintf("volume for worker artifact '%s' not found", e)
 }
 
-type ArtifactStep struct {
+type ArtifactInputStep struct {
 	plan         atc.Plan
 	build        db.Build
 	workerClient worker.Client
@@ -26,8 +26,8 @@ type ArtifactStep struct {
 	succeeded    bool
 }
 
-func NewArtifactStep(plan atc.Plan, build db.Build, workerClient worker.Client, delegate BuildStepDelegate) Step {
-	return &ArtifactStep{
+func NewArtifactInputStep(plan atc.Plan, build db.Build, workerClient worker.Client, delegate BuildStepDelegate) Step {
+	return &ArtifactInputStep{
 		plan:         plan,
 		build:        build,
 		workerClient: workerClient,
@@ -35,12 +35,12 @@ func NewArtifactStep(plan atc.Plan, build db.Build, workerClient worker.Client, 
 	}
 }
 
-func (step *ArtifactStep) Run(ctx context.Context, state RunState) error {
+func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx).WithData(lager.Data{
 		"plan-id": step.plan.ID,
 	})
 
-	buildArtifact, err := step.build.Artifact(step.plan.UserArtifact.ArtifactID)
+	buildArtifact, err := step.build.Artifact(step.plan.ArtifactInput.ArtifactID)
 	if err != nil {
 		return err
 	}
@@ -64,17 +64,18 @@ func (step *ArtifactStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	logger.Info("register-artifact-source", lager.Data{
-		"handle": workerVolume.Handle(),
+		"artifact_id": buildArtifact.ID(),
+		"handle":      workerVolume.Handle(),
 	})
 
 	source := NewTaskArtifactSource(workerVolume)
-	state.Artifacts().RegisterSource(artifact.Name(step.plan.UserArtifact.Name), source)
+	state.Artifacts().RegisterSource(artifact.Name(step.plan.ArtifactInput.Name), source)
 
 	step.succeeded = true
 
 	return nil
 }
 
-func (step *ArtifactStep) Succeeded() bool {
+func (step *ArtifactInputStep) Succeeded() bool {
 	return step.succeeded
 }

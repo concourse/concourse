@@ -11,18 +11,32 @@ import (
 )
 
 type FakeFactory struct {
-	ArtifactStepStub        func(lager.Logger, atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
-	artifactStepMutex       sync.RWMutex
-	artifactStepArgsForCall []struct {
+	ArtifactInputStepStub        func(lager.Logger, atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
+	artifactInputStepMutex       sync.RWMutex
+	artifactInputStepArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 atc.Plan
 		arg3 db.Build
 		arg4 exec.BuildStepDelegate
 	}
-	artifactStepReturns struct {
+	artifactInputStepReturns struct {
 		result1 exec.Step
 	}
-	artifactStepReturnsOnCall map[int]struct {
+	artifactInputStepReturnsOnCall map[int]struct {
+		result1 exec.Step
+	}
+	ArtifactOutputStepStub        func(lager.Logger, atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
+	artifactOutputStepMutex       sync.RWMutex
+	artifactOutputStepArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 atc.Plan
+		arg3 db.Build
+		arg4 exec.BuildStepDelegate
+	}
+	artifactOutputStepReturns struct {
+		result1 exec.Step
+	}
+	artifactOutputStepReturnsOnCall map[int]struct {
 		result1 exec.Step
 	}
 	GetStub        func(lager.Logger, atc.Plan, db.Build, exec.StepMetadata, db.ContainerMetadata, exec.GetDelegate) exec.Step
@@ -76,65 +90,128 @@ type FakeFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFactory) ArtifactStep(arg1 lager.Logger, arg2 atc.Plan, arg3 db.Build, arg4 exec.BuildStepDelegate) exec.Step {
-	fake.artifactStepMutex.Lock()
-	ret, specificReturn := fake.artifactStepReturnsOnCall[len(fake.artifactStepArgsForCall)]
-	fake.artifactStepArgsForCall = append(fake.artifactStepArgsForCall, struct {
+func (fake *FakeFactory) ArtifactInputStep(arg1 lager.Logger, arg2 atc.Plan, arg3 db.Build, arg4 exec.BuildStepDelegate) exec.Step {
+	fake.artifactInputStepMutex.Lock()
+	ret, specificReturn := fake.artifactInputStepReturnsOnCall[len(fake.artifactInputStepArgsForCall)]
+	fake.artifactInputStepArgsForCall = append(fake.artifactInputStepArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 atc.Plan
 		arg3 db.Build
 		arg4 exec.BuildStepDelegate
 	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("ArtifactStep", []interface{}{arg1, arg2, arg3, arg4})
-	fake.artifactStepMutex.Unlock()
-	if fake.ArtifactStepStub != nil {
-		return fake.ArtifactStepStub(arg1, arg2, arg3, arg4)
+	fake.recordInvocation("ArtifactInputStep", []interface{}{arg1, arg2, arg3, arg4})
+	fake.artifactInputStepMutex.Unlock()
+	if fake.ArtifactInputStepStub != nil {
+		return fake.ArtifactInputStepStub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.artifactStepReturns
+	fakeReturns := fake.artifactInputStepReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeFactory) ArtifactStepCallCount() int {
-	fake.artifactStepMutex.RLock()
-	defer fake.artifactStepMutex.RUnlock()
-	return len(fake.artifactStepArgsForCall)
+func (fake *FakeFactory) ArtifactInputStepCallCount() int {
+	fake.artifactInputStepMutex.RLock()
+	defer fake.artifactInputStepMutex.RUnlock()
+	return len(fake.artifactInputStepArgsForCall)
 }
 
-func (fake *FakeFactory) ArtifactStepCalls(stub func(lager.Logger, atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step) {
-	fake.artifactStepMutex.Lock()
-	defer fake.artifactStepMutex.Unlock()
-	fake.ArtifactStepStub = stub
+func (fake *FakeFactory) ArtifactInputStepCalls(stub func(lager.Logger, atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step) {
+	fake.artifactInputStepMutex.Lock()
+	defer fake.artifactInputStepMutex.Unlock()
+	fake.ArtifactInputStepStub = stub
 }
 
-func (fake *FakeFactory) ArtifactStepArgsForCall(i int) (lager.Logger, atc.Plan, db.Build, exec.BuildStepDelegate) {
-	fake.artifactStepMutex.RLock()
-	defer fake.artifactStepMutex.RUnlock()
-	argsForCall := fake.artifactStepArgsForCall[i]
+func (fake *FakeFactory) ArtifactInputStepArgsForCall(i int) (lager.Logger, atc.Plan, db.Build, exec.BuildStepDelegate) {
+	fake.artifactInputStepMutex.RLock()
+	defer fake.artifactInputStepMutex.RUnlock()
+	argsForCall := fake.artifactInputStepArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeFactory) ArtifactStepReturns(result1 exec.Step) {
-	fake.artifactStepMutex.Lock()
-	defer fake.artifactStepMutex.Unlock()
-	fake.ArtifactStepStub = nil
-	fake.artifactStepReturns = struct {
+func (fake *FakeFactory) ArtifactInputStepReturns(result1 exec.Step) {
+	fake.artifactInputStepMutex.Lock()
+	defer fake.artifactInputStepMutex.Unlock()
+	fake.ArtifactInputStepStub = nil
+	fake.artifactInputStepReturns = struct {
 		result1 exec.Step
 	}{result1}
 }
 
-func (fake *FakeFactory) ArtifactStepReturnsOnCall(i int, result1 exec.Step) {
-	fake.artifactStepMutex.Lock()
-	defer fake.artifactStepMutex.Unlock()
-	fake.ArtifactStepStub = nil
-	if fake.artifactStepReturnsOnCall == nil {
-		fake.artifactStepReturnsOnCall = make(map[int]struct {
+func (fake *FakeFactory) ArtifactInputStepReturnsOnCall(i int, result1 exec.Step) {
+	fake.artifactInputStepMutex.Lock()
+	defer fake.artifactInputStepMutex.Unlock()
+	fake.ArtifactInputStepStub = nil
+	if fake.artifactInputStepReturnsOnCall == nil {
+		fake.artifactInputStepReturnsOnCall = make(map[int]struct {
 			result1 exec.Step
 		})
 	}
-	fake.artifactStepReturnsOnCall[i] = struct {
+	fake.artifactInputStepReturnsOnCall[i] = struct {
+		result1 exec.Step
+	}{result1}
+}
+
+func (fake *FakeFactory) ArtifactOutputStep(arg1 lager.Logger, arg2 atc.Plan, arg3 db.Build, arg4 exec.BuildStepDelegate) exec.Step {
+	fake.artifactOutputStepMutex.Lock()
+	ret, specificReturn := fake.artifactOutputStepReturnsOnCall[len(fake.artifactOutputStepArgsForCall)]
+	fake.artifactOutputStepArgsForCall = append(fake.artifactOutputStepArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 atc.Plan
+		arg3 db.Build
+		arg4 exec.BuildStepDelegate
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("ArtifactOutputStep", []interface{}{arg1, arg2, arg3, arg4})
+	fake.artifactOutputStepMutex.Unlock()
+	if fake.ArtifactOutputStepStub != nil {
+		return fake.ArtifactOutputStepStub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.artifactOutputStepReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeFactory) ArtifactOutputStepCallCount() int {
+	fake.artifactOutputStepMutex.RLock()
+	defer fake.artifactOutputStepMutex.RUnlock()
+	return len(fake.artifactOutputStepArgsForCall)
+}
+
+func (fake *FakeFactory) ArtifactOutputStepCalls(stub func(lager.Logger, atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step) {
+	fake.artifactOutputStepMutex.Lock()
+	defer fake.artifactOutputStepMutex.Unlock()
+	fake.ArtifactOutputStepStub = stub
+}
+
+func (fake *FakeFactory) ArtifactOutputStepArgsForCall(i int) (lager.Logger, atc.Plan, db.Build, exec.BuildStepDelegate) {
+	fake.artifactOutputStepMutex.RLock()
+	defer fake.artifactOutputStepMutex.RUnlock()
+	argsForCall := fake.artifactOutputStepArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeFactory) ArtifactOutputStepReturns(result1 exec.Step) {
+	fake.artifactOutputStepMutex.Lock()
+	defer fake.artifactOutputStepMutex.Unlock()
+	fake.ArtifactOutputStepStub = nil
+	fake.artifactOutputStepReturns = struct {
+		result1 exec.Step
+	}{result1}
+}
+
+func (fake *FakeFactory) ArtifactOutputStepReturnsOnCall(i int, result1 exec.Step) {
+	fake.artifactOutputStepMutex.Lock()
+	defer fake.artifactOutputStepMutex.Unlock()
+	fake.ArtifactOutputStepStub = nil
+	if fake.artifactOutputStepReturnsOnCall == nil {
+		fake.artifactOutputStepReturnsOnCall = make(map[int]struct {
+			result1 exec.Step
+		})
+	}
+	fake.artifactOutputStepReturnsOnCall[i] = struct {
 		result1 exec.Step
 	}{result1}
 }
@@ -336,8 +413,10 @@ func (fake *FakeFactory) TaskReturnsOnCall(i int, result1 exec.Step) {
 func (fake *FakeFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.artifactStepMutex.RLock()
-	defer fake.artifactStepMutex.RUnlock()
+	fake.artifactInputStepMutex.RLock()
+	defer fake.artifactInputStepMutex.RUnlock()
+	fake.artifactOutputStepMutex.RLock()
+	defer fake.artifactOutputStepMutex.RUnlock()
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	fake.putMutex.RLock()
