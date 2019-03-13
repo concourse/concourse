@@ -656,7 +656,7 @@ var _ = Describe("Accessor", func() {
 
 		Entry("owner :: "+atc.GetArtifact, atc.GetArtifact, "owner", true),
 		Entry("member :: "+atc.GetArtifact, atc.GetArtifact, "member", true),
-		Entry("viewer :: "+atc.GetArtifact, atc.GetArtifact, "viewer", true),
+		Entry("viewer :: "+atc.GetArtifact, atc.GetArtifact, "viewer", false),
 
 		Entry("owner :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "owner", true),
 		Entry("member :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "member", true),
