@@ -696,16 +696,14 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		Join("builds b ON b.id = o.build_id").
 		Join("resource_config_versions v ON v.version_md5 = o.version_md5").
 		Join("resources r ON r.id = o.resource_id").
-		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
 		Where(sq.Expr("r.resource_config_scope_id = v.resource_config_scope_id")).
+		Where(sq.Expr("(r.id, v.version_md5) NOT IN (SELECT resource_id, version_md5 from resource_disabled_versions)")).
 		Where(sq.NotEq{
 			"v.check_order": 0,
 		}).
 		Where(sq.Eq{
 			"b.status":      BuildStatusSucceeded,
 			"r.pipeline_id": p.id,
-			"d.resource_id": nil,
-			"d.version_md5": nil,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -732,15 +730,13 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		Join("builds b ON b.id = i.build_id").
 		Join("resource_config_versions v ON v.version_md5 = i.version_md5").
 		Join("resources r ON r.id = i.resource_id").
-		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
 		Where(sq.Expr("r.resource_config_scope_id = v.resource_config_scope_id")).
+		Where(sq.Expr("(r.id, v.version_md5) NOT IN (SELECT resource_id, version_md5 from resource_disabled_versions)")).
 		Where(sq.NotEq{
 			"v.check_order": 0,
 		}).
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
-			"d.resource_id": nil,
-			"d.version_md5": nil,
 		}).
 		RunWith(p.conn).
 		Query()
