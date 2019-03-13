@@ -16,7 +16,7 @@ var _ = Describe("External PostgreSQL", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-ep-%d-%d", GinkgoRandomSeed(), GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-ep-%d-%d", randomGenerator.Int(), GinkgoParallelNode())
 		namespace = releaseName
 		pgReleaseName = releaseName + "-pg"
 

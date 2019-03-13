@@ -56,7 +56,7 @@ var _ = Describe("Prometheus integration", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-pi-%d-%d", GinkgoRandomSeed(), GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-pi-%d-%d", randomGenerator.Int(), GinkgoParallelNode())
 		namespace = releaseName
 		prometheusReleaseName = releaseName + "-prom"
 
@@ -78,7 +78,7 @@ var _ = Describe("Prometheus integration", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the prometheus proxy")
-		proxySession, prometheusEndpoint = startPortForwarding(namespace, "service/" + prometheusReleaseName+"-prometheus-server", "80")
+		proxySession, prometheusEndpoint = startPortForwarding(namespace, "service/"+prometheusReleaseName+"-prometheus-server", "80")
 	})
 
 	AfterEach(func() {

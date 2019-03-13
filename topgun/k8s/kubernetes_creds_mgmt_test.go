@@ -23,7 +23,7 @@ var _ = Describe("Kubernetes credential management", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-k8s-cm-%d-%d", GinkgoRandomSeed(), GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-k8s-cm-%d-%d", randomGenerator.Int(), GinkgoParallelNode())
 		namespace = releaseName
 
 		deployConcourseChart(releaseName, "--set=worker.replicas=1")
@@ -31,7 +31,7 @@ var _ = Describe("Kubernetes credential management", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace, "service/" + releaseName+"-web", "8080")
+		proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
 
 		By("Logging in")
 		fly.Login(username, password, atcEndpoint)

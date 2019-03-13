@@ -21,7 +21,7 @@ var _ = Describe("Worker Rebalancing", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-wr-%d-%d", GinkgoRandomSeed(), GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-wr-%d-%d", randomGenerator.Int(), GinkgoParallelNode())
 		namespace = releaseName
 
 		deployConcourseChart(releaseName,
@@ -34,7 +34,7 @@ var _ = Describe("Worker Rebalancing", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace, "service/" + releaseName+"-web", "8080")
+		proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
 
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)

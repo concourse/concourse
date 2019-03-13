@@ -26,7 +26,7 @@ var _ = Describe("Garden Config", func() {
 	}
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-gc-%d-%d", GinkgoRandomSeed(), GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-gc-%d-%d", randomGenerator.Int(), GinkgoParallelNode())
 		namespace = releaseName
 		Run(nil, "kubectl", "create", "namespace", namespace)
 	})
@@ -92,7 +92,7 @@ var _ = Describe("Garden Config", func() {
 
 		})
 
-		It("returns the configure number of max containers", func() {
+		It("returns the configured number of max containers", func() {
 			Expect(getMaxContainers()).To(Equal(100))
 		})
 	})
@@ -106,7 +106,7 @@ var _ = Describe("Garden Config", func() {
 			}
 		})
 
-		It("returns the configure number of max containers", func() {
+		It("returns the configured number of max containers", func() {
 			Expect(getMaxContainers()).To(Equal(100))
 		})
 	})
