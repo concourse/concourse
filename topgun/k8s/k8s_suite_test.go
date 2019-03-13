@@ -223,8 +223,9 @@ func deletePods(namespace string, flags ...string) []string {
 	return podNames
 }
 
-func startPortForwarding(namespace, service, port string) (*gexec.Session, string) {
-	session := Start(nil, "kubectl", "port-forward", "--namespace="+namespace, "service/"+service, ":"+port)
+
+func startPortForwarding(namespace, resource, port string) (*gexec.Session, string) {
+	session := Start(nil, "kubectl", "port-forward", "--namespace="+namespace, resource, ":"+port)
 	Eventually(session.Out).Should(gbytes.Say("Forwarding"))
 
 	address := regexp.MustCompile(`127\.0\.0\.1:[0-9]+`).

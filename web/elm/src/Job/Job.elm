@@ -4,6 +4,7 @@ module Job.Job exposing
     , changeToJob
     , getUpdateMessage
     , handleCallback
+    , handleDelivery
     , init
     , subscriptions
     , update
@@ -43,14 +44,13 @@ import Html.Events
         , onMouseEnter
         , onMouseLeave
         )
-import Html.Styled as HS
 import Http
 import Job.Msgs exposing (Hoverable(..), Msg(..))
 import LoadingIndicator
 import RemoteData exposing (WebData)
 import Routes
 import StrictEvents exposing (onLeftClick)
-import Subscription exposing (Subscription(..))
+import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Time exposing (Time)
 import TopBar.Model
 import TopBar.Styles
@@ -60,16 +60,15 @@ import UserState exposing (UserState)
 
 
 type alias Model =
-    { jobIdentifier : Concourse.JobIdentifier
-    , job : WebData Concourse.Job
-    , pausedChanging : Bool
-    , buildsWithResources : Paginated BuildWithResources
-    , currentPage : Maybe Page
-    , now : Time
-    , csrfToken : String
-    , hovered : Hoverable
-    , topBar : TopBar.Model.Model
-    }
+    TopBar.Model.Model
+        { jobIdentifier : Concourse.JobIdentifier
+        , job : WebData Concourse.Job
+        , pausedChanging : Bool
+        , buildsWithResources : Paginated BuildWithResources
+        , currentPage : Maybe Page
+        , now : Time
+        , hovered : Hoverable
+        }
 
 
 type alias BuildWithResources =
@@ -86,7 +85,6 @@ jobBuildsPerPage =
 type alias Flags =
     { jobId : Concourse.JobIdentifier
     , paging : Maybe Page
-    , csrfToken : String
     }
 
 
@@ -108,10 +106,14 @@ init flags =
                     }
                 }
             , now = 0
-            , csrfToken = flags.csrfToken
             , currentPage = flags.paging
             , hovered = None
-            , topBar = topBar
+            , isUserMenuExpanded = topBar.isUserMenuExpanded
+            , isPinMenuExpanded = topBar.isPinMenuExpanded
+            , middleSection = topBar.middleSection
+            , teams = topBar.teams
+            , screenSize = topBar.screenSize
+            , highDensity = topBar.highDensity
             }
     in
     ( model
@@ -139,6 +141,13 @@ changeToJob flags model =
     )
 
 
+subscriptions : Model -> List Subscription
+subscriptions model =
+    [ OnClockTick FiveSeconds
+    , OnClockTick OneSecond
+    ]
+
+
 getUpdateMessage : Model -> UpdateMsg
 getUpdateMessage model =
     case model.job of
@@ -149,68 +158,60 @@ getUpdateMessage model =
             UpdateMsg.AOK
 
 
-handleCallback : Callback -> Model -> ( Model, List Effect )
-handleCallback msg model =
-    let
-        ( newTopBar, topBarEffects ) =
-            TopBar.handleCallback msg model.topBar
-
-        ( newModel, jobsEffects ) =
-            handleCallbackWithoutTopBar msg model
-    in
-    ( { newModel | topBar = newTopBar }
-    , topBarEffects ++ jobsEffects
-    )
+handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallback msg =
+    TopBar.handleCallback msg >> handleCallbackWithoutTopBar msg
 
 
-handleCallbackWithoutTopBar : Callback -> Model -> ( Model, List Effect )
-handleCallbackWithoutTopBar callback model =
+handleCallbackWithoutTopBar : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackWithoutTopBar callback ( model, effects ) =
     case callback of
         BuildTriggered (Ok build) ->
             ( model
             , case build.job of
                 Nothing ->
-                    []
+                    effects
 
                 Just job ->
-                    [ NavigateTo <|
-                        Routes.toString <|
-                            Routes.Build
-                                { id =
-                                    { teamName = job.teamName
-                                    , pipelineName = job.pipelineName
-                                    , jobName = job.jobName
-                                    , buildName = build.name
-                                    }
-                                , highlight = Routes.HighlightNothing
-                                }
-                    ]
+                    effects
+                        ++ [ NavigateTo <|
+                                Routes.toString <|
+                                    Routes.Build
+                                        { id =
+                                            { teamName = job.teamName
+                                            , pipelineName = job.pipelineName
+                                            , jobName = job.jobName
+                                            , buildName = build.name
+                                            }
+                                        , highlight = Routes.HighlightNothing
+                                        }
+                           ]
             )
 
         JobBuildsFetched (Ok builds) ->
-            handleJobBuildsFetched builds model
+            handleJobBuildsFetched builds ( model, effects )
 
         JobFetched (Ok job) ->
             ( { model | job = RemoteData.Success job }
-            , [ SetTitle <| job.name ++ " - " ]
+            , effects ++ [ SetTitle <| job.name ++ " - " ]
             )
 
         JobFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
-                        ( { model | job = RemoteData.Failure err }, [] )
+                        ( { model | job = RemoteData.Failure err }, effects )
 
                     else
-                        ( model, redirectToLoginIfNecessary err )
+                        ( model, effects ++ redirectToLoginIfNecessary err )
 
                 _ ->
-                    ( model, [] )
+                    ( model, effects )
 
         BuildResourcesFetched (Ok ( id, buildResources )) ->
             case model.buildsWithResources.content of
                 [] ->
-                    ( model, [] )
+                    ( model, effects )
 
                 anyList ->
                     let
@@ -230,68 +231,71 @@ handleCallbackWithoutTopBar callback model =
                                 | content = List.map transformer anyList
                             }
                       }
-                    , []
+                    , effects
                     )
 
         BuildResourcesFetched (Err err) ->
-            ( model, [] )
+            ( model, effects )
 
         PausedToggled (Ok ()) ->
-            ( { model | pausedChanging = False }, [] )
+            ( { model | pausedChanging = False }, effects )
 
         GotCurrentTime now ->
-            ( { model | now = now }, [] )
+            ( { model | now = now }, effects )
 
         _ ->
-            ( model, [] )
+            ( model, effects )
 
 
-update : Msg -> Model -> ( Model, List Effect )
-update action model =
+handleDelivery : Delivery -> ( Model, List Effect ) -> ( Model, List Effect )
+handleDelivery delivery ( model, effects ) =
+    case delivery of
+        ClockTicked OneSecond time ->
+            ( { model | now = time }, effects )
+
+        ClockTicked FiveSeconds time ->
+            ( model
+            , effects
+                ++ [ FetchJobBuilds model.jobIdentifier model.currentPage
+                   , FetchJob model.jobIdentifier
+                   ]
+            )
+
+        _ ->
+            ( model, effects )
+
+
+update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
+update action ( model, effects ) =
     case action of
         TriggerBuild ->
-            ( model, [ DoTriggerBuild model.jobIdentifier model.csrfToken ] )
+            ( model, effects ++ [ DoTriggerBuild model.jobIdentifier ] )
 
         TogglePaused ->
             case model.job |> RemoteData.toMaybe of
                 Nothing ->
-                    ( model, [] )
+                    ( model, effects )
 
                 Just j ->
                     ( { model
                         | pausedChanging = True
                         , job = RemoteData.Success { j | paused = not j.paused }
                       }
-                    , [ if j.paused then
-                            UnpauseJob model.jobIdentifier model.csrfToken
+                    , if j.paused then
+                        effects ++ [ UnpauseJob model.jobIdentifier ]
 
-                        else
-                            PauseJob model.jobIdentifier model.csrfToken
-                      ]
+                      else
+                        effects ++ [ PauseJob model.jobIdentifier ]
                     )
 
         NavTo route ->
-            ( model, [ NavigateTo <| Routes.toString route ] )
-
-        SubscriptionTick time ->
-            ( model
-            , [ FetchJobBuilds model.jobIdentifier model.currentPage
-              , FetchJob model.jobIdentifier
-              ]
-            )
+            ( model, effects ++ [ NavigateTo <| Routes.toString route ] )
 
         Hover hoverable ->
-            ( { model | hovered = hoverable }, [] )
-
-        ClockTick now ->
-            ( { model | now = now }, [] )
+            ( { model | hovered = hoverable }, effects )
 
         FromTopBar m ->
-            let
-                ( newTopBar, topBarEffects ) =
-                    TopBar.update m model.topBar
-            in
-            ( { model | topBar = newTopBar }, topBarEffects )
+            TopBar.update m ( model, effects )
 
 
 redirectToLoginIfNecessary : Http.Error -> List Effect
@@ -377,8 +381,8 @@ updateResourcesIfNeeded bwr =
             Just <| FetchBuildResources bwr.build.id
 
 
-handleJobBuildsFetched : Paginated Concourse.Build -> Model -> ( Model, List Effect )
-handleJobBuildsFetched paginatedBuilds model =
+handleJobBuildsFetched : Paginated Concourse.Build -> ( Model, List Effect ) -> ( Model, List Effect )
+handleJobBuildsFetched paginatedBuilds ( model, effects ) =
     let
         newPage =
             permalink paginatedBuilds.content
@@ -390,7 +394,7 @@ handleJobBuildsFetched paginatedBuilds model =
         | buildsWithResources = newBWRs
         , currentPage = Just newPage
       }
-    , List.filterMap updateResourcesIfNeeded newBWRs.content
+    , effects ++ List.filterMap updateResourcesIfNeeded newBWRs.content
     )
 
 
@@ -406,9 +410,7 @@ view userState model =
             [ style TopBar.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
-            [ TopBar.view userState TopBar.Model.None model.topBar
-                |> HS.toUnstyled
-                |> Html.map FromTopBar
+            [ TopBar.view userState TopBar.Model.None model |> Html.map FromTopBar
             , Html.div
                 [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ viewMainJobsSection model ]
@@ -756,10 +758,3 @@ viewVersion version =
         << Dict.map (\_ s -> Html.text s)
     <|
         version
-
-
-subscriptions : Model -> List (Subscription Msg)
-subscriptions model =
-    [ OnClockTick (5 * Time.second) SubscriptionTick
-    , OnClockTick (1 * Time.second) ClockTick
-    ]

@@ -10,26 +10,22 @@ module Application.Application exposing
     )
 
 import Application.Msgs as Msgs exposing (Msg(..), NavIndex)
-import Build.Msgs
 import Callback exposing (Callback(..))
-import Dashboard.Msgs
+import Concourse
 import Effects exposing (Effect(..), LayoutDispatch(..))
 import Html exposing (Html)
 import Http
 import Navigation
-import Resource.Msgs
 import Routes
-import SubPage.Msgs
 import SubPage.SubPage as SubPage
-import Subscription exposing (Subscription(..))
-import TopBar.Msgs
+import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import UserState exposing (UserState(..))
 
 
 type alias Flags =
     { turbulenceImgSrc : String
     , notFoundImgSrc : String
-    , csrfToken : String
+    , csrfToken : Concourse.CSRFToken
     , authToken : String
     , pipelineRunningKeyframes : String
     }
@@ -53,7 +49,7 @@ type alias Model =
     }
 
 
-init : Flags -> Navigation.Location -> ( Model, List ( LayoutDispatch, Effect ) )
+init : Flags -> Navigation.Location -> ( Model, List ( LayoutDispatch, Concourse.CSRFToken, Effect ) )
 init flags location =
     let
         route =
@@ -62,7 +58,6 @@ init flags location =
         ( subModel, subEffects ) =
             SubPage.init
                 { turbulencePath = flags.turbulenceImgSrc
-                , csrfToken = flags.csrfToken
                 , authToken = flags.authToken
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
                 }
@@ -87,22 +82,22 @@ init flags location =
             -- We've refreshed on the page and we're not
             -- getting it from query params
             if flags.csrfToken == "" then
-                ( Layout, LoadToken )
+                ( Layout, flags.csrfToken, LoadToken )
 
             else
-                ( Layout, SaveToken flags.csrfToken )
+                ( Layout, flags.csrfToken, SaveToken flags.csrfToken )
 
         stripCSRFTokenParamCmd =
             if flags.csrfToken == "" then
                 []
 
             else
-                [ ( Layout, Effects.ModifyUrl <| Routes.toString route ) ]
+                [ ( Layout, flags.csrfToken, Effects.ModifyUrl <| Routes.toString route ) ]
     in
     ( model
-    , [ ( Layout, FetchUser ), handleTokenEffect ]
+    , [ ( Layout, flags.csrfToken, FetchUser ), handleTokenEffect ]
         ++ stripCSRFTokenParamCmd
-        ++ List.map (\ef -> ( SubPage navIndex, ef )) subEffects
+        ++ List.map (\ef -> ( SubPage navIndex, flags.csrfToken, ef )) subEffects
     )
 
 
@@ -115,7 +110,7 @@ handleCallback :
     LayoutDispatch
     -> Callback
     -> Model
-    -> ( Model, List ( LayoutDispatch, Effect ) )
+    -> ( Model, List ( LayoutDispatch, Concourse.CSRFToken, Effect ) )
 handleCallback disp callback model =
     case disp of
         SubPage navIndex ->
@@ -128,22 +123,22 @@ handleCallback disp callback model =
                         ( model, [] )
 
                 BuildTriggered (Err err) ->
-                    ( model, redirectToLoginIfNecessary err navIndex )
+                    ( model, redirectToLoginIfNecessary model err navIndex )
 
                 BuildAborted (Err err) ->
-                    ( model, redirectToLoginIfNecessary err navIndex )
+                    ( model, redirectToLoginIfNecessary model err navIndex )
 
                 PausedToggled (Err err) ->
-                    ( model, redirectToLoginIfNecessary err navIndex )
+                    ( model, redirectToLoginIfNecessary model err navIndex )
 
                 JobBuildsFetched (Err err) ->
-                    ( model, redirectToLoginIfNecessary err navIndex )
+                    ( model, redirectToLoginIfNecessary model err navIndex )
 
                 InputToFetched (Err err) ->
-                    ( model, redirectToLoginIfNecessary err navIndex )
+                    ( model, redirectToLoginIfNecessary model err navIndex )
 
                 OutputOfFetched (Err err) ->
-                    ( model, redirectToLoginIfNecessary err navIndex )
+                    ( model, redirectToLoginIfNecessary model err navIndex )
 
                 LoggedOut (Ok ()) ->
                     subpageHandleCallback { model | userState = UserStateLoggedOut } callback navIndex
@@ -173,26 +168,23 @@ handleCallback disp callback model =
                     ( model, [] )
 
 
-subpageHandleCallback : Model -> Callback -> Int -> ( Model, List ( LayoutDispatch, Effect ) )
+subpageHandleCallback : Model -> Callback -> Int -> ( Model, List ( LayoutDispatch, Concourse.CSRFToken, Effect ) )
 subpageHandleCallback model callback navIndex =
     let
         ( subModel, effects ) =
-            SubPage.handleCallback model.csrfToken callback model.subModel
+            SubPage.handleCallback callback model.subModel
                 |> SubPage.handleNotFound model.notFoundImgSrc model.route
     in
     ( { model | subModel = subModel }
-    , List.map (\ef -> ( SubPage navIndex, ef )) effects
+    , List.map (\ef -> ( SubPage navIndex, model.csrfToken, ef )) effects
     )
 
 
-update : Msg -> Model -> ( Model, List ( LayoutDispatch, Effect ) )
+update : Msg -> Model -> ( Model, List ( LayoutDispatch, Concourse.CSRFToken, Effect ) )
 update msg model =
     case msg of
-        NewUrl route ->
-            ( model, [ ( Layout, NavigateTo route ) ] )
-
         Msgs.ModifyUrl route ->
-            ( model, [ ( Layout, Effects.ModifyUrl <| Routes.toString route ) ] )
+            ( model, [ ( Layout, model.csrfToken, Effects.ModifyUrl <| Routes.toString route ) ] )
 
         RouteChanged route ->
             urlUpdate route model
@@ -202,94 +194,62 @@ update msg model =
                 let
                     ( subModel, subEffects ) =
                         SubPage.update
-                            model.turbulenceImgSrc
                             model.notFoundImgSrc
-                            model.csrfToken
                             model.route
                             m
                             model.subModel
                 in
                 ( { model | subModel = subModel }
-                , List.map (\ef -> ( SubPage navIndex, ef )) subEffects
+                , List.map (\ef -> ( SubPage navIndex, model.csrfToken, ef )) subEffects
                 )
 
             else
                 ( model, [] )
 
-        TokenReceived Nothing ->
-            ( model, [] )
-
-        TokenReceived (Just tokenValue) ->
-            let
-                ( newSubModel, subCmd ) =
-                    SubPage.update
-                        model.turbulenceImgSrc
-                        model.notFoundImgSrc
-                        tokenValue
-                        model.route
-                        (SubPage.Msgs.NewCSRFToken tokenValue)
-                        model.subModel
-            in
-            ( { model
-                | csrfToken = tokenValue
-                , subModel = newSubModel
-              }
-            , List.map (\ef -> ( SubPage anyNavIndex, ef )) subCmd
-            )
-
         Callback dispatch callback ->
             handleCallback dispatch callback model
 
-        KeyDown keycode ->
-            case model.subModel of
-                SubPage.DashboardModel _ ->
-                    update
-                        (SubMsg model.navIndex <|
-                            SubPage.Msgs.DashboardMsg <|
-                                Dashboard.Msgs.FromTopBar <|
-                                    TopBar.Msgs.KeyDown keycode
-                        )
-                        model
-
-                SubPage.ResourceModel _ ->
-                    update
-                        (SubMsg model.navIndex <|
-                            SubPage.Msgs.ResourceMsg <|
-                                Resource.Msgs.KeyDowns keycode
-                        )
-                        model
-
-                _ ->
-                    ( model, [] )
-
-        KeyUp keycode ->
-            case model.subModel of
-                SubPage.BuildModel _ ->
-                    update
-                        (SubMsg model.navIndex <|
-                            SubPage.Msgs.BuildMsg <|
-                                Build.Msgs.KeyUped keycode
-                        )
-                        model
-
-                SubPage.ResourceModel _ ->
-                    update
-                        (SubMsg model.navIndex <|
-                            SubPage.Msgs.ResourceMsg <|
-                                Resource.Msgs.KeyUps keycode
-                        )
-                        model
-
-                _ ->
-                    ( model, [] )
+        DeliveryReceived delivery ->
+            handleDelivery delivery model
 
 
-redirectToLoginIfNecessary : Http.Error -> NavIndex -> List ( LayoutDispatch, Effect )
-redirectToLoginIfNecessary err navIndex =
+handleDelivery : Delivery -> Model -> ( Model, List ( LayoutDispatch, Concourse.CSRFToken, Effect ) )
+handleDelivery delivery model =
+    let
+        ( newSubmodel, subPageEffects ) =
+            SubPage.handleDelivery
+                model.notFoundImgSrc
+                model.route
+                delivery
+                model.subModel
+
+        ( newModel, applicationEffects ) =
+            handleDeliveryForApplication delivery model
+    in
+    ( { newModel | subModel = newSubmodel }
+    , List.map (\ef -> ( SubPage model.navIndex, model.csrfToken, ef )) subPageEffects ++ applicationEffects
+    )
+
+
+handleDeliveryForApplication : Delivery -> Model -> ( Model, List ( LayoutDispatch, Concourse.CSRFToken, Effect ) )
+handleDeliveryForApplication delivery model =
+    case delivery of
+        NonHrefLinkClicked route ->
+            ( model, [ ( Layout, model.csrfToken, NavigateTo route ) ] )
+
+        TokenReceived (Just tokenValue) ->
+            ( { model | csrfToken = tokenValue }, [] )
+
+        _ ->
+            ( model, [] )
+
+
+redirectToLoginIfNecessary : Model -> Http.Error -> NavIndex -> List ( LayoutDispatch, Concourse.CSRFToken, Effect )
+redirectToLoginIfNecessary model err navIndex =
     case err of
         Http.BadStatus { status } ->
             if status.code == 401 then
-                [ ( SubPage navIndex, RedirectToLogin ) ]
+                [ ( SubPage navIndex, model.csrfToken, RedirectToLogin ) ]
 
             else
                 []
@@ -307,7 +267,7 @@ validNavIndex modelNavIndex navIndex =
         navIndex == modelNavIndex
 
 
-urlUpdate : Routes.Route -> Model -> ( Model, List ( LayoutDispatch, Effect ) )
+urlUpdate : Routes.Route -> Model -> ( Model, List ( LayoutDispatch, Concourse.CSRFToken, Effect ) )
 urlUpdate route model =
     let
         navIndex =
@@ -327,7 +287,6 @@ urlUpdate route model =
             else
                 SubPage.init
                     { turbulencePath = model.turbulenceImgSrc
-                    , csrfToken = model.csrfToken
                     , authToken = model.authToken
                     , pipelineRunningKeyframes = model.pipelineRunningKeyframes
                     }
@@ -338,8 +297,8 @@ urlUpdate route model =
         , subModel = newSubmodel
         , route = route
       }
-    , List.map (\ef -> ( SubPage navIndex, ef )) subEffects
-        ++ [ ( Layout, SetFavIcon Nothing ) ]
+    , List.map (\ef -> ( SubPage navIndex, model.csrfToken, ef )) subEffects
+        ++ [ ( Layout, model.csrfToken, SetFavIcon Nothing ) ]
     )
 
 
@@ -348,14 +307,12 @@ view model =
     Html.map (SubMsg model.navIndex) (SubPage.view model.userState model.subModel)
 
 
-subscriptions : Model -> List (Subscription Msg)
+subscriptions : Model -> List Subscription
 subscriptions model =
-    [ OnNewUrl NewUrl
-    , OnTokenReceived TokenReceived
+    [ OnNonHrefLinkClicked
+    , OnTokenReceived
     ]
-        ++ (SubPage.subscriptions model.subModel
-                |> List.map (Subscription.map (SubMsg model.navIndex))
-           )
+        ++ SubPage.subscriptions model.subModel
 
 
 routeMatchesModel : Routes.Route -> Model -> Bool

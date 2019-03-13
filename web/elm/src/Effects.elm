@@ -9,29 +9,26 @@ port module Effects exposing
 
 import Callback exposing (Callback(..))
 import Concourse
-import Concourse.Build
-import Concourse.BuildPlan
-import Concourse.BuildPrep
-import Concourse.BuildResources
-import Concourse.BuildStatus
-import Concourse.Info
-import Concourse.Job
 import Concourse.Pagination exposing (Page, Paginated)
-import Concourse.Pipeline
-import Concourse.PipelineStatus
-import Concourse.Resource
-import Concourse.User
-import Dashboard.APIData
 import Dashboard.Group
 import Dashboard.Models
 import Dom
 import Favicon
-import Http
 import Json.Encode
 import Navigation
+import Network.Build
+import Network.BuildPlan
+import Network.BuildPrep
+import Network.BuildResources
+import Network.DashboardAPIData
+import Network.FlyToken
+import Network.Info
+import Network.Job
+import Network.Pipeline
+import Network.Resource
+import Network.User
 import Process
 import Resource.Models exposing (VersionId, VersionToggleAction(..))
-import Routes
 import Scroll
 import Task
 import Time exposing (Time)
@@ -65,6 +62,12 @@ port saveToken : String -> Cmd msg
 port requestLoginRedirect : String -> Cmd msg
 
 
+port openEventStream : { url : String, eventTypes : List String } -> Cmd msg
+
+
+port closeEventStream : () -> Cmd msg
+
+
 type LayoutDispatch
     = SubPage Int
     | Layout
@@ -92,26 +95,26 @@ type Effect
     | FetchBuildPlan Concourse.BuildId
     | FetchBuildPlanAndResources Concourse.BuildId
     | GetCurrentTime
-    | DoTriggerBuild Concourse.JobIdentifier String
-    | DoAbortBuild Int Concourse.CSRFToken
-    | PauseJob Concourse.JobIdentifier String
-    | UnpauseJob Concourse.JobIdentifier String
+    | DoTriggerBuild Concourse.JobIdentifier
+    | DoAbortBuild Int
+    | PauseJob Concourse.JobIdentifier
+    | UnpauseJob Concourse.JobIdentifier
     | ResetPipelineFocus
     | RenderPipeline Json.Encode.Value Json.Encode.Value
     | RedirectToLogin
     | NavigateTo String
     | ModifyUrl String
     | SetTitle String
-    | DoPinVersion Concourse.VersionedResourceIdentifier Concourse.CSRFToken
-    | DoUnpinVersion Concourse.ResourceIdentifier Concourse.CSRFToken
-    | DoToggleVersion VersionToggleAction VersionId Concourse.CSRFToken
-    | DoCheck Concourse.ResourceIdentifier Concourse.CSRFToken
-    | SetPinComment Concourse.ResourceIdentifier Concourse.CSRFToken String
+    | DoPinVersion Concourse.VersionedResourceIdentifier
+    | DoUnpinVersion Concourse.ResourceIdentifier
+    | DoToggleVersion VersionToggleAction VersionId
+    | DoCheck Concourse.ResourceIdentifier
+    | SetPinComment Concourse.ResourceIdentifier String
     | SendTokenToFly String Int
-    | SendTogglePipelineRequest { pipeline : Dashboard.Models.Pipeline, csrfToken : Concourse.CSRFToken }
+    | SendTogglePipelineRequest Dashboard.Models.Pipeline
     | ShowTooltip ( String, String )
     | ShowTooltipHd ( String, String )
-    | SendOrderPipelinesRequest String (List Dashboard.Models.Pipeline) Concourse.CSRFToken
+    | SendOrderPipelinesRequest String (List Dashboard.Models.Pipeline)
     | SendLogOutRequest
     | GetScreenSize
     | PinTeamNames Dashboard.Group.StickyHeaderConfig
@@ -120,6 +123,8 @@ type Effect
     | SaveToken String
     | LoadToken
     | ForceFocus String
+    | OpenBuildEventStream { url : String, eventTypes : List String }
+    | CloseBuildEventStream
 
 
 type ScrollDirection
@@ -131,56 +136,77 @@ type ScrollDirection
     | ToCurrentBuild
 
 
-runEffect : Effect -> Cmd Callback
-runEffect effect =
+runEffect : Effect -> Concourse.CSRFToken -> Cmd Callback
+runEffect effect csrfToken =
     case effect of
         FetchJob id ->
-            fetchJob id
+            Network.Job.fetchJob id
+                |> Task.attempt JobFetched
 
         FetchJobs id ->
-            fetchJobs id
+            Network.Job.fetchJobsRaw id
+                |> Task.attempt JobsFetched
 
         FetchJobBuilds id page ->
-            fetchJobBuilds id page
+            Network.Build.fetchJobBuilds id page
+                |> Task.attempt JobBuildsFetched
 
         FetchResource id ->
-            fetchResource id
+            Network.Resource.fetchResource id
+                |> Task.attempt ResourceFetched
 
         FetchVersionedResources id paging ->
-            fetchVersionedResources id paging
+            Network.Resource.fetchVersionedResources id paging
+                |> Task.map ((,) paging)
+                |> Task.attempt VersionedResourcesFetched
 
         FetchResources id ->
-            fetchResources id
+            Network.Resource.fetchResourcesRaw id
+                |> Task.attempt ResourcesFetched
 
         FetchBuildResources id ->
-            fetchBuildResources id
+            Network.BuildResources.fetch id
+                |> Task.map ((,) id)
+                |> Task.attempt BuildResourcesFetched
 
         FetchPipeline id ->
-            fetchPipeline id
+            Network.Pipeline.fetchPipeline id
+                |> Task.attempt PipelineFetched
 
         FetchVersion ->
-            fetchVersion
+            Network.Info.fetch
+                |> Task.map .version
+                |> Task.attempt VersionFetched
 
         FetchInputTo id ->
-            fetchInputTo id
+            Network.Resource.fetchInputTo id
+                |> Task.map ((,) id)
+                |> Task.attempt InputToFetched
 
         FetchOutputOf id ->
-            fetchOutputOf id
+            Network.Resource.fetchOutputOf id
+                |> Task.map ((,) id)
+                |> Task.attempt OutputOfFetched
 
         FetchData ->
-            fetchData
+            Network.DashboardAPIData.remoteData
+                |> Task.map2 (,) Time.now
+                |> Task.attempt APIDataFetched
 
         GetCurrentTime ->
             Task.perform GotCurrentTime Time.now
 
-        DoTriggerBuild id csrf ->
-            triggerBuild id csrf
+        DoTriggerBuild id ->
+            Network.Job.triggerBuild id csrfToken
+                |> Task.attempt BuildTriggered
 
-        PauseJob id csrf ->
-            pauseJob id csrf
+        PauseJob id ->
+            Network.Job.pause id csrfToken
+                |> Task.attempt PausedToggled
 
-        UnpauseJob id csrf ->
-            unpauseJob id csrf
+        UnpauseJob id ->
+            Network.Job.unpause id csrfToken
+                |> Task.attempt PausedToggled
 
         RedirectToLogin ->
             requestLoginRedirect ""
@@ -200,34 +226,33 @@ runEffect effect =
         SetTitle newTitle ->
             setTitle newTitle
 
-        DoPinVersion version csrfToken ->
-            Task.attempt VersionPinned <|
-                Concourse.Resource.pinVersion version csrfToken
+        DoPinVersion version ->
+            Network.Resource.pinVersion version csrfToken
+                |> Task.attempt VersionPinned
 
-        DoUnpinVersion id csrfToken ->
-            Task.attempt VersionUnpinned <|
-                Concourse.Resource.unpinVersion id csrfToken
+        DoUnpinVersion id ->
+            Network.Resource.unpinVersion id csrfToken
+                |> Task.attempt VersionUnpinned
 
-        DoToggleVersion action id csrfToken ->
-            Concourse.Resource.enableDisableVersionedResource
-                (action == Enable)
-                id
-                csrfToken
+        DoToggleVersion action id ->
+            Network.Resource.enableDisableVersionedResource (action == Enable) id csrfToken
                 |> Task.attempt (VersionToggled action id)
 
-        DoCheck rid csrfToken ->
-            Task.attempt Checked <|
-                Concourse.Resource.check rid csrfToken
+        DoCheck rid ->
+            Network.Resource.check rid csrfToken
+                |> Task.attempt Checked
 
-        SetPinComment rid csrfToken comment ->
-            Task.attempt CommentSet <|
-                Concourse.Resource.setPinComment rid csrfToken comment
+        SetPinComment rid comment ->
+            Network.Resource.setPinComment rid csrfToken comment
+                |> Task.attempt CommentSet
 
         SendTokenToFly authToken flyPort ->
-            sendTokenToFly authToken flyPort
+            Network.FlyToken.sendTokenToFly authToken flyPort
+                |> Task.attempt TokenSentToFly
 
-        SendTogglePipelineRequest { pipeline, csrfToken } ->
-            togglePipelinePaused { pipeline = pipeline, csrfToken = csrfToken }
+        SendTogglePipelineRequest pipeline ->
+            Network.Pipeline.togglePause pipeline.status pipeline.teamName pipeline.name csrfToken
+                |> Task.attempt (always EmptyCallback)
 
         ShowTooltip ( teamName, pipelineName ) ->
             tooltip ( teamName, pipelineName )
@@ -235,11 +260,12 @@ runEffect effect =
         ShowTooltipHd ( teamName, pipelineName ) ->
             tooltipHd ( teamName, pipelineName )
 
-        SendOrderPipelinesRequest teamName pipelines csrfToken ->
-            orderPipelines teamName pipelines csrfToken
+        SendOrderPipelinesRequest teamName pipelines ->
+            Network.Pipeline.order teamName (List.map .name pipelines) csrfToken
+                |> Task.attempt (always EmptyCallback)
 
         SendLogOutRequest ->
-            Task.attempt LoggedOut Concourse.User.logOut
+            Task.attempt LoggedOut Network.User.logOut
 
         GetScreenSize ->
             Task.perform ScreenResized Window.size
@@ -248,34 +274,50 @@ runEffect effect =
             pinTeamNames stickyHeaderConfig
 
         FetchBuild delay browsingIndex buildId ->
-            fetchBuild delay browsingIndex buildId
+            Process.sleep delay
+                |> Task.andThen (always <| Network.Build.fetch buildId)
+                |> Task.map ((,) browsingIndex)
+                |> Task.attempt BuildFetched
 
         FetchJobBuild browsingIndex jbi ->
-            fetchJobBuild browsingIndex jbi
+            Network.Build.fetchJobBuild jbi
+                |> Task.map ((,) browsingIndex)
+                |> Task.attempt BuildFetched
 
         FetchBuildJobDetails buildJob ->
-            fetchBuildJobDetails buildJob
+            Network.Job.fetchJob buildJob
+                |> Task.attempt BuildJobDetailsFetched
 
         FetchBuildHistory job page ->
-            fetchBuildHistory job page
+            Network.Build.fetchJobBuilds job page
+                |> Task.attempt BuildHistoryFetched
 
         FetchBuildPrep delay browsingIndex buildId ->
-            fetchBuildPrep delay browsingIndex buildId
+            Process.sleep delay
+                |> Task.andThen (always <| Network.BuildPrep.fetch buildId)
+                |> Task.map ((,) browsingIndex)
+                |> Task.attempt BuildPrepFetched
 
         FetchBuildPlanAndResources buildId ->
-            fetchBuildPlanAndResources buildId
+            Task.map2 (,) (Network.BuildPlan.fetch buildId) (Network.BuildResources.fetch buildId)
+                |> Task.attempt (PlanAndResourcesFetched buildId)
 
         FetchBuildPlan buildId ->
-            fetchBuildPlan buildId
+            Network.BuildPlan.fetch buildId
+                |> Task.map (\p -> ( p, Network.BuildResources.empty ))
+                |> Task.attempt (PlanAndResourcesFetched buildId)
 
         FetchUser ->
-            fetchUser
+            Network.User.fetchUser
+                |> Task.attempt UserFetched
 
         SetFavIcon status ->
-            setFavicon status
+            Favicon.set status
+                |> Task.perform (always EmptyCallback)
 
-        DoAbortBuild buildId csrfToken ->
-            abortBuild buildId csrfToken
+        DoAbortBuild buildId ->
+            Network.Build.abort buildId csrfToken
+                |> Task.attempt BuildAborted
 
         Scroll dir ->
             Task.perform (always EmptyCallback) (scrollInDirection dir)
@@ -290,203 +332,11 @@ runEffect effect =
             Dom.focus dom
                 |> Task.attempt (always EmptyCallback)
 
+        OpenBuildEventStream config ->
+            openEventStream config
 
-fetchJobBuilds : Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Callback
-fetchJobBuilds jobIdentifier page =
-    Task.attempt JobBuildsFetched <|
-        Concourse.Build.fetchJobBuilds jobIdentifier page
-
-
-fetchJob : Concourse.JobIdentifier -> Cmd Callback
-fetchJob jobIdentifier =
-    Task.attempt JobFetched <|
-        Concourse.Job.fetchJob jobIdentifier
-
-
-fetchResource : Concourse.ResourceIdentifier -> Cmd Callback
-fetchResource resourceIdentifier =
-    Task.attempt ResourceFetched <|
-        Concourse.Resource.fetchResource resourceIdentifier
-
-
-fetchVersionedResources : Concourse.ResourceIdentifier -> Maybe Page -> Cmd Callback
-fetchVersionedResources resourceIdentifier page =
-    Concourse.Resource.fetchVersionedResources resourceIdentifier page
-        |> Task.map ((,) page)
-        |> Task.attempt VersionedResourcesFetched
-
-
-fetchBuildResources : Concourse.BuildId -> Cmd Callback
-fetchBuildResources buildIdentifier =
-    Concourse.BuildResources.fetch buildIdentifier
-        |> Task.map ((,) buildIdentifier)
-        |> Task.attempt BuildResourcesFetched
-
-
-fetchResources : Concourse.PipelineIdentifier -> Cmd Callback
-fetchResources pid =
-    Task.attempt ResourcesFetched <| Concourse.Resource.fetchResourcesRaw pid
-
-
-fetchJobs : Concourse.PipelineIdentifier -> Cmd Callback
-fetchJobs pid =
-    Task.attempt JobsFetched <| Concourse.Job.fetchJobsRaw pid
-
-
-fetchUser : Cmd Callback
-fetchUser =
-    Task.attempt UserFetched Concourse.User.fetchUser
-
-
-fetchVersion : Cmd Callback
-fetchVersion =
-    Concourse.Info.fetch
-        |> Task.map .version
-        |> Task.attempt VersionFetched
-
-
-fetchPipeline : Concourse.PipelineIdentifier -> Cmd Callback
-fetchPipeline pipelineIdentifier =
-    Task.attempt PipelineFetched <|
-        Concourse.Pipeline.fetchPipeline pipelineIdentifier
-
-
-fetchInputTo : VersionId -> Cmd Callback
-fetchInputTo versionId =
-    Concourse.Resource.fetchInputTo versionId
-        |> Task.map ((,) versionId)
-        |> Task.attempt InputToFetched
-
-
-fetchOutputOf : VersionId -> Cmd Callback
-fetchOutputOf versionId =
-    Concourse.Resource.fetchOutputOf versionId
-        |> Task.map ((,) versionId)
-        |> Task.attempt OutputOfFetched
-
-
-triggerBuild : Concourse.JobIdentifier -> Concourse.CSRFToken -> Cmd Callback
-triggerBuild job csrfToken =
-    Task.attempt BuildTriggered <|
-        Concourse.Job.triggerBuild job csrfToken
-
-
-pauseJob : Concourse.JobIdentifier -> Concourse.CSRFToken -> Cmd Callback
-pauseJob jobIdentifier csrfToken =
-    Task.attempt PausedToggled <|
-        Concourse.Job.pause jobIdentifier csrfToken
-
-
-unpauseJob : Concourse.JobIdentifier -> Concourse.CSRFToken -> Cmd Callback
-unpauseJob jobIdentifier csrfToken =
-    Task.attempt PausedToggled <|
-        Concourse.Job.unpause jobIdentifier csrfToken
-
-
-sendTokenToFly : String -> Int -> Cmd Callback
-sendTokenToFly authToken flyPort =
-    Http.request
-        { method = "GET"
-        , headers = []
-        , url = Routes.tokenToFlyRoute authToken flyPort
-        , body = Http.emptyBody
-        , expect = Http.expectStringResponse (\_ -> Ok ())
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send (\r -> TokenSentToFly (r == Ok ()))
-
-
-fetchData : Cmd Callback
-fetchData =
-    Dashboard.APIData.remoteData
-        |> Task.map2 (,) Time.now
-        |> Task.attempt APIDataFetched
-
-
-togglePipelinePaused : { pipeline : Dashboard.Models.Pipeline, csrfToken : Concourse.CSRFToken } -> Cmd Callback
-togglePipelinePaused { pipeline, csrfToken } =
-    Task.attempt (always EmptyCallback) <|
-        if pipeline.status == Concourse.PipelineStatus.PipelineStatusPaused then
-            Concourse.Pipeline.unpause pipeline.teamName pipeline.name csrfToken
-
-        else
-            Concourse.Pipeline.pause pipeline.teamName pipeline.name csrfToken
-
-
-orderPipelines : String -> List Dashboard.Models.Pipeline -> Concourse.CSRFToken -> Cmd Callback
-orderPipelines teamName pipelines csrfToken =
-    Task.attempt (always EmptyCallback) <|
-        Concourse.Pipeline.order teamName (List.map .name pipelines) csrfToken
-
-
-fetchBuildJobDetails : Concourse.JobIdentifier -> Cmd Callback
-fetchBuildJobDetails buildJob =
-    Task.attempt BuildJobDetailsFetched <|
-        Concourse.Job.fetchJob buildJob
-
-
-fetchBuild : Time -> Int -> Int -> Cmd Callback
-fetchBuild delay browsingIndex buildId =
-    Process.sleep delay
-        |> Task.andThen (always <| Concourse.Build.fetch buildId)
-        |> Task.map ((,) browsingIndex)
-        |> Task.attempt BuildFetched
-
-
-fetchJobBuild : Int -> Concourse.JobBuildIdentifier -> Cmd Callback
-fetchJobBuild browsingIndex jbi =
-    Concourse.Build.fetchJobBuild jbi
-        |> Task.map ((,) browsingIndex)
-        |> Task.attempt BuildFetched
-
-
-fetchBuildHistory : Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Callback
-fetchBuildHistory job page =
-    Task.attempt BuildHistoryFetched <|
-        Concourse.Build.fetchJobBuilds job page
-
-
-fetchBuildPrep : Time -> Int -> Int -> Cmd Callback
-fetchBuildPrep delay browsingIndex buildId =
-    Process.sleep delay
-        |> Task.andThen (always <| Concourse.BuildPrep.fetch buildId)
-        |> Task.map ((,) browsingIndex)
-        |> Task.attempt BuildPrepFetched
-
-
-fetchBuildPlanAndResources : Concourse.BuildId -> Cmd Callback
-fetchBuildPlanAndResources buildId =
-    Task.map2 (,) (Concourse.BuildPlan.fetch buildId) (Concourse.BuildResources.fetch buildId)
-        |> Task.attempt (PlanAndResourcesFetched buildId)
-
-
-fetchBuildPlan : Concourse.BuildId -> Cmd Callback
-fetchBuildPlan buildId =
-    Concourse.BuildPlan.fetch buildId
-        |> Task.map (\p -> ( p, Concourse.BuildResources.empty ))
-        |> Task.attempt (PlanAndResourcesFetched buildId)
-
-
-setFavicon : Maybe Concourse.BuildStatus -> Cmd Callback
-setFavicon status =
-    let
-        iconName =
-            case status of
-                Just status ->
-                    "/public/images/favicon-" ++ Concourse.BuildStatus.show status ++ ".png"
-
-                Nothing ->
-                    "/public/images/favicon.png"
-    in
-    Favicon.set iconName
-        |> Task.perform (always EmptyCallback)
-
-
-abortBuild : Int -> Concourse.CSRFToken -> Cmd Callback
-abortBuild buildId csrfToken =
-    Concourse.Build.abort buildId csrfToken
-        |> Task.attempt BuildAborted
+        CloseBuildEventStream ->
+            closeEventStream ()
 
 
 scrollInDirection : ScrollDirection -> Task.Task x ()

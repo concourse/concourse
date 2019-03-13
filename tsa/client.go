@@ -25,9 +25,9 @@ import (
 // ErrAllGatewaysUnreachable is returned when all hosts reject the connection.
 var ErrAllGatewaysUnreachable = errors.New("all worker SSH gateways unreachable")
 
-// ErrDrainTimeout is returned when the connection underlying a registration
-// has been idle for the configured DrainTimeout.
-var ErrDrainTimeout = errors.New("timeout draining connections")
+// ErrConnectionDrainTimeout is returned when the connection underlying a
+// registration has been idle for the configured ConnectionDrainTimeout.
+var ErrConnectionDrainTimeout = errors.New("timeout draining connections")
 
 // HandshakeError is returned when the client fails to establish an SSH
 // connection, possibly due to bad credentials.
@@ -73,7 +73,7 @@ type RegisterOptions struct {
 	// sending a keepalive request to the SSH gateway. When the context is
 	// canceled, the keepalive loop is stopped, and the connection will break
 	// after it has been idle for this duration, if configured.
-	DrainTimeout time.Duration
+	ConnectionDrainTimeout time.Duration
 
 	// RegisteredFunc is called when the initial registration has completed.
 	//
@@ -94,13 +94,13 @@ type RegisterOptions struct {
 // heartbeat the worker.
 //
 // If the context is canceled, heartbeating is immediately stopped and the
-// remote SSH gateway will wait for connections to drain. If a DrainTimeout is
-// configured, the connection will be terminated after no data has gone to/from
-// the SSH gateway for the configured duration.
+// remote SSH gateway will wait for connections to drain. If a
+// ConnectionDrainTimeout is configured, the connection will be terminated
+// after no data has gone to/from the SSH gateway for the configured duration.
 func (client *Client) Register(ctx context.Context, opts RegisterOptions) error {
 	logger := lagerctx.FromContext(ctx)
 
-	sshClient, tcpConn, err := client.dial(ctx, opts.DrainTimeout)
+	sshClient, tcpConn, err := client.dial(ctx, opts.ConnectionDrainTimeout)
 	if err != nil {
 		logger.Error("failed-to-dial", err)
 		return err
@@ -162,9 +162,9 @@ func (client *Client) Register(ctx context.Context, opts RegisterOptions) error 
 		eventsW,
 	)
 	if err != nil {
-		if ctx.Err() != nil && opts.DrainTimeout != 0 {
+		if ctx.Err() != nil && opts.ConnectionDrainTimeout != 0 {
 			if _, ok := err.(*ssh.ExitMissingError); ok {
-				return ErrDrainTimeout
+				return ErrConnectionDrainTimeout
 			}
 		}
 

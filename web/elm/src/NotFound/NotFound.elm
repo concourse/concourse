@@ -1,32 +1,22 @@
-module NotFound exposing (Model, Msg, handleCallback, init, update, view)
+module NotFound.NotFound exposing (handleCallback, init, update, view)
 
 import Callback exposing (Callback)
 import Effects exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src, style)
-import Html.Styled as HS
+import NotFound.Model exposing (Model)
+import NotFound.Msgs exposing (Msg(..))
+import Routes
 import TopBar.Model
-import TopBar.Msgs
 import TopBar.Styles
 import TopBar.TopBar as TopBar
-import Routes
 import UserState exposing (UserState)
-
-
-type alias Model =
-    { notFoundImgSrc : String
-    , topBar : TopBar.Model.Model
-    }
 
 
 type alias Flags =
     { route : Routes.Route
     , notFoundImgSrc : String
     }
-
-
-type Msg
-    = FromTopBar TopBar.Msgs.Msg
 
 
 init : Flags -> ( Model, List Effect )
@@ -36,30 +26,27 @@ init flags =
             TopBar.init { route = flags.route }
     in
     ( { notFoundImgSrc = flags.notFoundImgSrc
-      , topBar = topBar
+      , isUserMenuExpanded = topBar.isUserMenuExpanded
+      , isPinMenuExpanded = topBar.isPinMenuExpanded
+      , middleSection = topBar.middleSection
+      , teams = topBar.teams
+      , screenSize = topBar.screenSize
+      , highDensity = topBar.highDensity
       }
     , topBarEffects ++ [ Effects.SetTitle "Not Found " ]
     )
 
 
-update : Msg -> Model -> ( Model, List Effect )
-update msg model =
+update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
+update msg ( model, effects ) =
     case msg of
         FromTopBar m ->
-            let
-                ( newTopBar, topBarEffects ) =
-                    TopBar.update m model.topBar
-            in
-            ( { model | topBar = newTopBar }, topBarEffects )
+            TopBar.update m ( model, effects )
 
 
-handleCallback : Callback -> Model -> ( Model, List Effect )
-handleCallback msg model =
-    let
-        ( newTopBar, topBarEffects ) =
-            TopBar.handleCallback msg model.topBar
-    in
-    ( { model | topBar = newTopBar }, topBarEffects )
+handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallback msg ( model, effects ) =
+    TopBar.handleCallback msg ( model, effects )
 
 
 view : UserState -> Model -> Html Msg
@@ -69,7 +56,7 @@ view userState model =
             [ style TopBar.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
-            [ TopBar.view userState TopBar.Model.None model.topBar |> HS.toUnstyled |> Html.map FromTopBar
+            [ TopBar.view userState TopBar.Model.None model |> Html.map FromTopBar
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ Html.div [ class "notfound" ]
                     [ Html.div [ class "title" ] [ Html.text "404" ]

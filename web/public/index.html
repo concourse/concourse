@@ -190,6 +190,32 @@
         }
       }, false);
 
+      app.ports.openEventStream.subscribe(function(config) {
+        var buffer = [];
+        var es = new EventSource(config.url);
+        function flush() {
+          if (buffer.length > 0) {
+            app.ports.eventSource.send(buffer);
+            buffer = [];
+          }
+        }
+        function dispatchEvent(event) {
+          buffer.push(event);
+          if (buffer.length > 1000) {
+            flush();
+          }
+        }
+        es.onopen = dispatchEvent;
+        es.onerror = dispatchEvent;
+        config.eventTypes.forEach(function(eventType) {
+          es.addEventListener(eventType, dispatchEvent);
+        });
+        app.ports.closeEventStream.subscribe(function() {
+          es.close();
+        });
+        setInterval(flush, 200);
+      });
+
     </script>
     <script>
       var clipboard = new ClipboardJS('#copy-token');

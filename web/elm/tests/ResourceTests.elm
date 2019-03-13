@@ -13,6 +13,7 @@ import DashboardTests
         , iconSelector
         , middleGrey
         )
+import Date
 import Dict
 import Effects
 import Expect exposing (..)
@@ -21,7 +22,7 @@ import Http
 import Resource.Models as Models
 import Resource.Msgs
 import SubPage.Msgs
-import Subscription
+import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -36,6 +37,7 @@ import Test.Html.Selector
         , tag
         , text
         )
+import Time
 import UserState exposing (UserState(..))
 
 
@@ -150,7 +152,7 @@ all =
     describe "resource page"
         [ describe "when logging out" <|
             let
-                loggingOut : () -> ( Application.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
+                loggingOut : () -> ( Application.Model, List ( Effects.LayoutDispatch, String, Effects.Effect ) )
                 loggingOut _ =
                     init
                         |> handleCallback
@@ -182,8 +184,38 @@ all =
                 loggingOut
                     >> Tuple.second
                     >> Expect.equal
-                        [ ( Effects.SubPage 1, Effects.NavigateTo "/" ) ]
+                        [ ( Effects.SubPage 1, csrfToken, Effects.NavigateTo "/" ) ]
             ]
+        , test "subscribes to the five second interval" <|
+            \_ ->
+                init
+                    |> Application.subscriptions
+                    |> List.member (Subscription.OnClockTick FiveSeconds)
+                    |> Expect.true "not subscribed to the five second interval?"
+        , test "autorefreshes resource and versions every 5 seconds" <|
+            \_ ->
+                init
+                    |> Application.update (Msgs.DeliveryReceived (ClockTicked FiveSeconds 0))
+                    |> Tuple.second
+                    |> Expect.equal
+                        [ ( Effects.SubPage 1
+                          , csrfToken
+                          , Effects.FetchResource
+                                { resourceName = resourceName
+                                , pipelineName = pipelineName
+                                , teamName = teamName
+                                }
+                          )
+                        , ( Effects.SubPage 1
+                          , csrfToken
+                          , Effects.FetchVersionedResources
+                                { resourceName = resourceName
+                                , pipelineName = pipelineName
+                                , teamName = teamName
+                                }
+                                Nothing
+                          )
+                        ]
         , test "autorefresh respects expanded state" <|
             \_ ->
                 init
@@ -268,6 +300,270 @@ all =
                     |> queryView
                     |> Query.find (versionSelector version)
                     |> Query.has [ text "some-build" ]
+        , describe "page header" <|
+            let
+                pageHeader =
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.find [ id "page-header" ]
+            in
+            [ test "sticks to the top of the viewport" <|
+                \_ ->
+                    pageHeader
+                        |> Query.has
+                            [ style
+                                [ ( "position", "fixed" )
+                                , ( "top", "54px" )
+                                , ( "z-index", "1" )
+                                ]
+                            ]
+            , test "fills the top of the screen with dark grey background" <|
+                \_ ->
+                    pageHeader
+                        |> Query.has
+                            [ style
+                                [ ( "height", "60px" )
+                                , ( "width", "100%" )
+                                , ( "background-color", "#2a2929" )
+                                ]
+                            ]
+            , test "lays out contents horizontally, stretching them vertically" <|
+                \_ ->
+                    pageHeader
+                        |> Query.has [ style [ ( "display", "flex" ), ( "align-items", "stretch" ) ] ]
+            , describe "resource name"
+                [ test "on the left is the resource name" <|
+                    \_ ->
+                        pageHeader
+                            |> Query.children []
+                            |> Query.index 0
+                            |> Query.has [ text resourceName, tag "h1" ]
+                , test "the text is large and vertically centred" <|
+                    \_ ->
+                        pageHeader
+                            |> Query.children []
+                            |> Query.index 0
+                            |> Query.has
+                                [ style
+                                    [ ( "font-weight", "700" )
+                                    , ( "margin-left", "18px" )
+                                    , ( "display", "flex" )
+                                    , ( "align-items", "center" )
+                                    , ( "justify-content", "center" )
+                                    ]
+                                ]
+                ]
+            , describe "last checked"
+                [ test "last checked view is second from left" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> Application.update
+                                (Msgs.DeliveryReceived <|
+                                    Subscription.ClockTicked Subscription.OneSecond 1000
+                                )
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ id "page-header" ]
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has [ text "1s ago" ]
+                , test "last checked view displays its contents centred" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> Application.update
+                                (Msgs.DeliveryReceived <|
+                                    Subscription.ClockTicked Subscription.OneSecond 1000
+                                )
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ id "page-header" ]
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has
+                                [ style
+                                    [ ( "display", "flex" )
+                                    , ( "align-items", "center" )
+                                    , ( "justify-content", "center" )
+                                    , ( "margin-left", "24px" )
+                                    ]
+                                ]
+                ]
+            , describe "pagination"
+                [ test "pagination is last on the right" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> givenVersionsWithPagination
+                            |> queryView
+                            |> Query.find [ id "page-header" ]
+                            |> Query.children []
+                            |> Query.index -1
+                            |> Query.has [ id "pagination" ]
+                , test "pagination displays the pages horizontally" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> givenVersionsWithPagination
+                            |> queryView
+                            |> Query.find [ id "pagination" ]
+                            |> Query.has [ style [ ( "display", "flex" ), ( "align-items", "stretch" ) ] ]
+                , describe "pagination chevrons"
+                    [ test "with no pages" <|
+                        \_ ->
+                            init
+                                |> givenResourceIsNotPinned
+                                |> givenVersionsWithoutPagination
+                                |> queryView
+                                |> Query.find [ id "pagination" ]
+                                |> Query.children []
+                                |> Expect.all
+                                    [ Query.index 0
+                                        >> Query.has
+                                            [ style
+                                                [ ( "padding", "5px" )
+                                                , ( "display", "flex" )
+                                                , ( "align-items", "center" )
+                                                , ( "border-left"
+                                                  , "1px solid " ++ middleGrey
+                                                  )
+                                                ]
+                                            , containing
+                                                (iconSelector
+                                                    { image =
+                                                        "baseline-chevron-left-24px.svg"
+                                                    , size = "24px"
+                                                    }
+                                                    ++ [ style
+                                                            [ ( "padding", "5px" )
+                                                            , ( "opacity", "0.5" )
+                                                            ]
+                                                       ]
+                                                )
+                                            ]
+                                    , Query.index 1
+                                        >> Query.has
+                                            [ style
+                                                [ ( "padding", "5px" )
+                                                , ( "display", "flex" )
+                                                , ( "align-items", "center" )
+                                                , ( "border-left"
+                                                  , "1px solid " ++ middleGrey
+                                                  )
+                                                ]
+                                            , containing
+                                                (iconSelector
+                                                    { image =
+                                                        "baseline-chevron-right-24px.svg"
+                                                    , size = "24px"
+                                                    }
+                                                    ++ [ style
+                                                            [ ( "padding", "5px" )
+                                                            , ( "opacity", "0.5" )
+                                                            ]
+                                                       ]
+                                                )
+                                            ]
+                                    ]
+                    , defineHoverBehaviour <|
+                        let
+                            urlPath =
+                                "/teams/some-team/pipelines/some-pipeline/resources/some-resource?since=1&limit=1"
+                        in
+                        { name = "left pagination chevron with previous page"
+                        , setup =
+                            init
+                                |> givenResourceIsNotPinned
+                                |> givenVersionsWithPagination
+                        , query =
+                            queryView
+                                >> Query.find [ id "pagination" ]
+                                >> Query.children []
+                                >> Query.index 0
+                        , updateFunc = \msg -> Application.update msg >> Tuple.first
+                        , unhoveredSelector =
+                            { description = "white left chevron"
+                            , selector =
+                                [ style
+                                    [ ( "padding", "5px" )
+                                    , ( "display", "flex" )
+                                    , ( "align-items", "center" )
+                                    , ( "border-left"
+                                      , "1px solid " ++ middleGrey
+                                      )
+                                    ]
+                                , containing
+                                    (iconSelector
+                                        { image =
+                                            "baseline-chevron-left-24px.svg"
+                                        , size = "24px"
+                                        }
+                                        ++ [ style
+                                                [ ( "padding", "5px" )
+                                                , ( "opacity", "1" )
+                                                ]
+                                           , attribute <| Attr.href urlPath
+                                           ]
+                                    )
+                                ]
+                            }
+                        , hoveredSelector =
+                            { description =
+                                "left chevron with light grey circular bg"
+                            , selector =
+                                [ style
+                                    [ ( "padding", "5px" )
+                                    , ( "display", "flex" )
+                                    , ( "align-items", "center" )
+                                    , ( "border-left"
+                                      , "1px solid " ++ middleGrey
+                                      )
+                                    ]
+                                , containing
+                                    (iconSelector
+                                        { image =
+                                            "baseline-chevron-left-24px.svg"
+                                        , size = "24px"
+                                        }
+                                        ++ [ style
+                                                [ ( "padding", "5px" )
+                                                , ( "opacity", "1" )
+                                                , ( "border-radius", "50%" )
+                                                , ( "background-color"
+                                                  , "#504b4b"
+                                                  )
+                                                ]
+                                           , attribute <| Attr.href urlPath
+                                           ]
+                                    )
+                                ]
+                            }
+                        , mouseEnterMsg =
+                            resourceMsg <|
+                                Resource.Msgs.Hover Models.PreviousPage
+                        , mouseLeaveMsg =
+                            resourceMsg <|
+                                Resource.Msgs.Hover Models.None
+                        }
+                    ]
+                ]
+            ]
+        , describe "page body" <|
+            [ test "has horizontal padding of 10px" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.find [ id "body" ]
+                        |> Query.has
+                            [ style
+                                [ ( "padding-left", "10px" )
+                                , ( "padding-right", "10px" )
+                                ]
+                            ]
+            ]
         , describe "checkboxes" <|
             let
                 checkIcon =
@@ -897,6 +1193,7 @@ all =
                         |> Tuple.second
                         |> Expect.equal
                             [ ( Effects.SubPage 1
+                              , csrfToken
                               , Effects.FetchResource
                                     { resourceName = resourceName
                                     , pipelineName = pipelineName
@@ -1081,12 +1378,7 @@ all =
                                     |> givenResourcePinnedWithComment
                                     |> header
                                     |> Query.has
-                                        [ style
-                                            [ ( "align-items"
-                                              , "flex-start"
-                                              )
-                                            ]
-                                        ]
+                                        [ style [ ( "align-items", "flex-start" ) ] ]
                         , test "doesn't squish vertically" <|
                             \_ ->
                                 init
@@ -1498,12 +1790,12 @@ all =
                                         |> Tuple.second
                                         |> Expect.equal
                                             [ ( Effects.SubPage 1
+                                              , csrfToken
                                               , Effects.SetPinComment
                                                     { teamName = teamName
                                                     , pipelineName = pipelineName
                                                     , resourceName = resourceName
                                                     }
-                                                    "csrf_token"
                                                     "foo"
                                               )
                                             ]
@@ -1519,12 +1811,12 @@ all =
                                         |> Tuple.second
                                         |> Expect.equal
                                             [ ( Effects.SubPage 1
+                                              , csrfToken
                                               , Effects.SetPinComment
                                                     { teamName = teamName
                                                     , pipelineName = pipelineName
                                                     , resourceName = resourceName
                                                     }
-                                                    "csrf_token"
                                                     "foo"
                                               )
                                             ]
@@ -1540,12 +1832,12 @@ all =
                                         |> Tuple.second
                                         |> Expect.equal
                                             [ ( Effects.SubPage 1
+                                              , csrfToken
                                               , Effects.SetPinComment
                                                     { teamName = teamName
                                                     , pipelineName = pipelineName
                                                     , resourceName = resourceName
                                                     }
-                                                    "csrf_token"
                                                     "foo"
                                               )
                                             ]
@@ -1615,12 +1907,12 @@ all =
                                         |> Tuple.second
                                         |> Expect.equal
                                             [ ( Effects.SubPage 1
+                                              , csrfToken
                                               , Effects.SetPinComment
                                                     { teamName = teamName
                                                     , pipelineName = pipelineName
                                                     , resourceName = resourceName
                                                     }
-                                                    "csrf_token"
                                                     "foo"
                                               )
                                             ]
@@ -1724,6 +2016,7 @@ all =
                                             |> Tuple.second
                                             |> Expect.equal
                                                 [ ( Effects.SubPage 1
+                                                  , csrfToken
                                                   , Effects.FetchResource
                                                         { teamName = teamName
                                                         , pipelineName = pipelineName
@@ -1784,6 +2077,7 @@ all =
                                             |> Tuple.second
                                             |> Expect.equal
                                                 [ ( Effects.SubPage 1
+                                                  , csrfToken
                                                   , Effects.FetchResource
                                                         { teamName = teamName
                                                         , pipelineName = pipelineName
@@ -2260,144 +2554,6 @@ all =
                         |> Query.findAll pinButtonSelector
                         |> Query.count (Expect.equal 1)
             ]
-        , describe "pagination chevrons"
-            [ test "with no pages" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> givenVersionsWithoutPagination
-                        |> queryView
-                        |> Query.find [ id "pagination" ]
-                        |> Query.children []
-                        |> Expect.all
-                            [ Query.index 0
-                                >> Query.has
-                                    [ style
-                                        [ ( "padding", "5px" )
-                                        , ( "display", "flex" )
-                                        , ( "align-items", "center" )
-                                        , ( "border-left"
-                                          , "1px solid " ++ middleGrey
-                                          )
-                                        ]
-                                    , containing
-                                        (iconSelector
-                                            { image =
-                                                "baseline-chevron-left-24px.svg"
-                                            , size = "24px"
-                                            }
-                                            ++ [ style
-                                                    [ ( "padding", "5px" )
-                                                    , ( "opacity", "0.5" )
-                                                    ]
-                                               ]
-                                        )
-                                    ]
-                            , Query.index 1
-                                >> Query.has
-                                    [ style
-                                        [ ( "padding", "5px" )
-                                        , ( "display", "flex" )
-                                        , ( "align-items", "center" )
-                                        , ( "border-left"
-                                          , "1px solid " ++ middleGrey
-                                          )
-                                        ]
-                                    , containing
-                                        (iconSelector
-                                            { image =
-                                                "baseline-chevron-right-24px.svg"
-                                            , size = "24px"
-                                            }
-                                            ++ [ style
-                                                    [ ( "padding", "5px" )
-                                                    , ( "opacity", "0.5" )
-                                                    ]
-                                               ]
-                                        )
-                                    ]
-                            ]
-            , defineHoverBehaviour <|
-                let
-                    urlPath =
-                        "/teams/some-team/pipelines/some-pipeline/resources/some-resource?since=1&limit=1"
-                in
-                { name = "left pagination chevron with previous page"
-                , setup =
-                    init
-                        |> givenResourceIsNotPinned
-                        |> givenVersionsWithPagination
-                , query =
-                    queryView
-                        >> Query.find [ id "pagination" ]
-                        >> Query.children []
-                        >> Query.index 0
-                , updateFunc = \msg -> Application.update msg >> Tuple.first
-                , unhoveredSelector =
-                    { description = "white left chevron"
-                    , selector =
-                        [ style
-                            [ ( "padding", "5px" )
-                            , ( "display", "flex" )
-                            , ( "align-items", "center" )
-                            , ( "border-left"
-                              , "1px solid " ++ middleGrey
-                              )
-                            ]
-                        , containing
-                            (iconSelector
-                                { image =
-                                    "baseline-chevron-left-24px.svg"
-                                , size = "24px"
-                                }
-                                ++ [ style
-                                        [ ( "padding", "5px" )
-                                        , ( "opacity", "1" )
-                                        ]
-                                   , attribute <| Attr.href urlPath
-                                   ]
-                            )
-                        ]
-                    }
-                , hoveredSelector =
-                    { description =
-                        "left chevron with light grey circular bg"
-                    , selector =
-                        [ style
-                            [ ( "padding", "5px" )
-                            , ( "display", "flex" )
-                            , ( "align-items", "center" )
-                            , ( "border-left"
-                              , "1px solid " ++ middleGrey
-                              )
-                            ]
-                        , containing
-                            (iconSelector
-                                { image =
-                                    "baseline-chevron-left-24px.svg"
-                                , size = "24px"
-                                }
-                                ++ [ style
-                                        [ ( "padding", "5px" )
-                                        , ( "opacity", "1" )
-                                        , ( "border-radius", "50%" )
-                                        , ( "background-color"
-                                          , "#504b4b"
-                                          )
-                                        ]
-                                   , attribute <| Attr.href urlPath
-                                   ]
-                            )
-                        ]
-                    }
-                , mouseEnterMsg =
-                    resourceMsg <|
-                        Resource.Msgs.Hover Models.PreviousPage
-                , mouseLeaveMsg =
-                    resourceMsg <|
-                        Resource.Msgs.Hover Models.None
-                }
-            ]
         , describe "check bar" <|
             let
                 checkBar userState =
@@ -2433,6 +2589,45 @@ all =
                         |> checkBar UserStateLoggedOut
                         |> Query.children []
                         |> Query.count (Expect.equal 2)
+            , describe "status bar"
+                [ test "lays out horizontally and spreads its children" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> checkBar UserStateLoggedOut
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has
+                                [ style
+                                    [ ( "display", "flex" )
+                                    , ( "justify-content", "space-between" )
+                                    ]
+                                ]
+                , test "fills out the check bar and centers children" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> checkBar UserStateLoggedOut
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has
+                                [ style
+                                    [ ( "align-items", "center" )
+                                    , ( "height", "28px" )
+                                    , ( "flex-grow", "1" )
+                                    , ( "padding-left", "5px" )
+                                    ]
+                                ]
+                , test "has a dark grey background" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> checkBar UserStateLoggedOut
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has
+                                [ style [ ( "background", "#1e1d1d" ) ] ]
+                ]
             , describe "when unauthenticated"
                 [ defineHoverBehaviour
                     { name = "check button"
@@ -2507,6 +2702,7 @@ all =
                             |> Tuple.second
                             |> Expect.equal
                                 [ ( Effects.SubPage 1
+                                  , csrfToken
                                   , Effects.RedirectToLogin
                                   )
                                 ]
@@ -2605,12 +2801,12 @@ all =
                             |> Tuple.second
                             |> Expect.equal
                                 [ ( Effects.SubPage 1
+                                  , csrfToken
                                   , Effects.DoCheck
                                         { resourceName = resourceName
                                         , pipelineName = pipelineName
                                         , teamName = teamName
                                         }
-                                        "csrf_token"
                                   )
                                 ]
                 , describe "while check in progress" <|
@@ -2751,6 +2947,7 @@ all =
                             |> Tuple.second
                             |> Expect.equal
                                 [ ( Effects.SubPage 1
+                                  , csrfToken
                                   , Effects.FetchResource
                                         { resourceName = resourceName
                                         , pipelineName = pipelineName
@@ -2758,6 +2955,7 @@ all =
                                         }
                                   )
                                 , ( Effects.SubPage 1
+                                  , csrfToken
                                   , Effects.FetchVersionedResources
                                         { resourceName = resourceName
                                         , pipelineName = pipelineName
@@ -2825,6 +3023,7 @@ all =
                             |> Tuple.second
                             |> Expect.equal
                                 [ ( Effects.SubPage 1
+                                  , csrfToken
                                   , Effects.FetchResource
                                         { resourceName = resourceName
                                         , pipelineName = pipelineName
@@ -2855,6 +3054,7 @@ all =
                             |> Tuple.second
                             |> Expect.equal
                                 [ ( Effects.SubPage 1
+                                  , csrfToken
                                   , Effects.RedirectToLogin
                                   )
                                 ]
@@ -2934,6 +3134,31 @@ all =
                             |> Event.simulate Event.click
                             |> Event.toResult
                             |> Expect.err
+                , test "'last checked' time updates with clock ticks" <|
+                    \_ ->
+                        init
+                            |> handleCallback
+                                (Callback.ResourceFetched <|
+                                    Ok
+                                        { teamName = teamName
+                                        , pipelineName = pipelineName
+                                        , name = resourceName
+                                        , failingToCheck = False
+                                        , checkError = ""
+                                        , checkSetupError = ""
+                                        , lastChecked = Just (Date.fromTime 0)
+                                        , pinnedVersion = Nothing
+                                        , pinnedInConfig = False
+                                        , pinComment = Nothing
+                                        }
+                                )
+                            |> Tuple.first
+                            |> Application.update
+                                (Msgs.DeliveryReceived <| ClockTicked OneSecond (2 * Time.second))
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ id "last-checked" ]
+                            |> Query.has [ text "2s ago" ]
                 ]
             , test "unsuccessful check shows a warning icon on the right" <|
                 \_ ->
@@ -2970,12 +3195,17 @@ all =
         ]
 
 
+csrfToken : String
+csrfToken =
+    "csrf_token"
+
+
 init : Application.Model
 init =
     Application.init
         { turbulenceImgSrc = ""
         , notFoundImgSrc = ""
-        , csrfToken = "csrf_token"
+        , csrfToken = csrfToken
         , authToken = ""
         , pipelineRunningKeyframes = ""
         }
@@ -3003,7 +3233,7 @@ init =
 update :
     Resource.Msgs.Msg
     -> Application.Model
-    -> ( Application.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
+    -> ( Application.Model, List ( Effects.LayoutDispatch, String, Effects.Effect ) )
 update =
     resourceMsg >> Application.update
 
@@ -3011,7 +3241,7 @@ update =
 handleCallback :
     Callback.Callback
     -> Application.Model
-    -> ( Application.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
+    -> ( Application.Model, List ( Effects.LayoutDispatch, String, Effects.Effect ) )
 handleCallback =
     Application.handleCallback (Effects.SubPage 1)
 
@@ -3112,7 +3342,7 @@ givenResourceIsNotPinned =
                 , failingToCheck = False
                 , checkError = ""
                 , checkSetupError = ""
-                , lastChecked = Nothing
+                , lastChecked = Just (Date.fromTime 0)
                 , pinnedVersion = Nothing
                 , pinnedInConfig = False
                 , pinComment = Nothing
@@ -3245,33 +3475,33 @@ givenTextareaBlurred =
 
 givenControlKeyDown : Application.Model -> Application.Model
 givenControlKeyDown =
-    Application.update (Msgs.KeyDown 17)
+    Application.update (Msgs.DeliveryReceived <| KeyDown 17)
         >> Tuple.first
 
 
 givenLeftCommandKeyDown : Application.Model -> Application.Model
 givenLeftCommandKeyDown =
-    Application.update (Msgs.KeyDown 91)
+    Application.update (Msgs.DeliveryReceived <| KeyDown 91)
         >> Tuple.first
 
 
 givenRightCommandKeyDown : Application.Model -> Application.Model
 givenRightCommandKeyDown =
-    Application.update (Msgs.KeyDown 93)
+    Application.update (Msgs.DeliveryReceived <| KeyDown 93)
         >> Tuple.first
 
 
 givenControlKeyUp : Application.Model -> Application.Model
 givenControlKeyUp =
-    Application.update (Msgs.KeyUp 17)
+    Application.update (Msgs.DeliveryReceived <| KeyUp 17)
         >> Tuple.first
 
 
 pressEnterKey :
     Application.Model
-    -> ( Application.Model, List ( Effects.LayoutDispatch, Effects.Effect ) )
+    -> ( Application.Model, List ( Effects.LayoutDispatch, String, Effects.Effect ) )
 pressEnterKey =
-    Application.update (Msgs.KeyDown 13)
+    Application.update (Msgs.DeliveryReceived <| KeyDown 13)
 
 
 versionSelector : String -> List Selector

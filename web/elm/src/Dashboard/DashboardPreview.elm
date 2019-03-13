@@ -2,24 +2,36 @@ module Dashboard.DashboardPreview exposing (view)
 
 import Concourse
 import Concourse.BuildStatus
-import Debug
-import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href)
+import List.Extra exposing (find)
 import Routes
+import TopologicalSort exposing (flattenToLayers)
 
 
 view : List Concourse.Job -> Html msg
 view jobs =
     let
-        groups =
-            jobGroups jobs
+        jobDependencies : Concourse.Job -> List Concourse.Job
+        jobDependencies job =
+            job.inputs
+                |> List.concatMap .passed
+                |> List.map (findJob jobs)
 
+        layers : List (List Concourse.Job)
+        layers =
+            flattenToLayers (List.map (\j -> ( j, jobDependencies j )) jobs)
+
+        width : Int
         width =
-            Dict.size groups
+            List.length layers
 
+        height : Int
         height =
-            Maybe.withDefault 0 <| List.maximum (List.map List.length (Dict.values groups))
+            layers
+                |> List.map List.length
+                |> List.maximum
+                |> Maybe.withDefault 0
     in
     Html.div
         [ classList
@@ -30,110 +42,57 @@ view jobs =
             , ( "pipeline-grid-super-tall", height > 24 )
             ]
         ]
-    <|
-        List.map
-            (\jobs ->
-                List.map viewJob jobs
-                    |> Html.div [ class "parallel-grid" ]
-            )
-            (Dict.values groups)
+        (List.map viewJobLayer layers)
+
+
+viewJobLayer : List Concourse.Job -> Html msg
+viewJobLayer jobs =
+    Html.div [ class "parallel-grid" ] (List.map viewJob jobs)
 
 
 viewJob : Concourse.Job -> Html msg
 viewJob job =
     let
+        jobStatus : String
         jobStatus =
-            case job.finishedBuild of
-                Just fb ->
-                    Concourse.BuildStatus.show fb.status
+            job.finishedBuild
+                |> Maybe.map .status
+                |> Maybe.map Concourse.BuildStatus.show
+                |> Maybe.withDefault "no-builds"
 
-                Nothing ->
-                    "no-builds"
-
-        isJobRunning =
-            (/=) job.nextBuild Nothing
-
+        latestBuild : Maybe Concourse.Build
         latestBuild =
             if job.nextBuild == Nothing then
                 job.finishedBuild
 
             else
                 job.nextBuild
+
+        buildRoute : Routes.Route
+        buildRoute =
+            case latestBuild of
+                Nothing ->
+                    Routes.jobRoute job
+
+                Just build ->
+                    Routes.buildRoute build
     in
     Html.div
         [ classList
             [ ( "node " ++ jobStatus, True )
-            , ( "running", isJobRunning )
+            , ( "running", job.nextBuild /= Nothing )
             , ( "paused", job.paused )
             ]
         , attribute "data-tooltip" job.name
         ]
-    <|
-        case latestBuild of
-            Nothing ->
-                [ Html.a [ href <| Routes.toString <| Routes.jobRoute job ] [ Html.text "" ] ]
-
-            Just build ->
-                [ Html.a [ href <| Routes.toString <| Routes.buildRoute build ] [ Html.text "" ] ]
+        [ Html.a [ href <| Routes.toString buildRoute ] [ Html.text "" ] ]
 
 
-jobGroups : List Concourse.Job -> Dict Int (List Concourse.Job)
-jobGroups jobs =
-    let
-        jobLookup =
-            jobByName <| List.foldl (\job byName -> Dict.insert job.name job byName) Dict.empty jobs
-    in
-    Dict.foldl
-        (\jobName depth byDepth ->
-            Dict.update depth
-                (\jobsA ->
-                    Just (jobLookup jobName :: Maybe.withDefault [] jobsA)
-                )
-                byDepth
-        )
-        Dict.empty
-        (jobDepths jobs Dict.empty)
-
-
-jobByName : Dict String Concourse.Job -> String -> Concourse.Job
-jobByName jobs job =
-    case Dict.get job jobs of
-        Just a ->
-            a
-
+findJob : List Concourse.Job -> Concourse.JobName -> Concourse.Job
+findJob jobs name =
+    case find (\j -> j.name == name) jobs of
         Nothing ->
-            Debug.crash "impossible"
+            Debug.crash ("a job depends on nonexistant job " ++ name)
 
-
-jobDepths : List Concourse.Job -> Dict String Int -> Dict String Int
-jobDepths jobs dict =
-    case jobs of
-        [] ->
-            dict
-
-        job :: otherJobs ->
-            let
-                passedJobs =
-                    List.concatMap .passed job.inputs
-            in
-            case List.length passedJobs of
-                0 ->
-                    jobDepths otherJobs <| Dict.insert job.name 0 dict
-
-                _ ->
-                    let
-                        passedJobDepths =
-                            List.map (\passedJob -> Dict.get passedJob dict) passedJobs
-                    in
-                    if List.member Nothing passedJobDepths then
-                        jobDepths (List.append otherJobs [ job ]) dict
-
-                    else
-                        let
-                            depths =
-                                List.map (\depth -> Maybe.withDefault 0 depth) passedJobDepths
-
-                            maxPassedJobDepth =
-                                Maybe.withDefault 0 <| List.maximum depths
-                        in
-                        jobDepths otherJobs <| Dict.insert job.name (maxPassedJobDepth + 1) dict
+        Just j ->
+            j
