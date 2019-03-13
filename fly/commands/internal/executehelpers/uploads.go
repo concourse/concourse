@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"os"
 	"os/exec"
 
 	"github.com/concourse/concourse/atc"
@@ -25,7 +26,12 @@ func Upload(team concourse.Team, path string, includeIgnored bool) (atc.WorkerAr
 		archiveWriter.CloseWithError(tgzfs.Compress(archiveWriter, path, files...))
 	}()
 
-	return team.CreateArtifact(archiveStream)
+	pb := progress(path+":", os.Stdout)
+
+	pb.Start()
+	defer pb.Finish()
+
+	return team.CreateArtifact(pb.NewProxyReader(archiveStream))
 }
 
 func getFiles(dir string, includeIgnored bool) []string {
