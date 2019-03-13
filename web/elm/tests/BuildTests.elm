@@ -1014,7 +1014,8 @@ all =
                     givenBuildStarted
                         >> Tuple.first
                         >> flip (,) []
-                        >> Build.handleCallback (Callback.BuildPrepFetched <| Ok ( 1, prep ))
+                        >> Build.handleCallback
+                            (Callback.BuildPrepFetched <| Ok ( 1, prep ))
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
@@ -1042,6 +1043,50 @@ all =
                                     ]
                                 ]
                             , Query.has [ attribute <| Attr.title "blocking" ]
+                            ]
+                , test "when paused state is unknown, shows a spinner" <|
+                    let
+                        prep =
+                            { pausedPipeline = BuildPrepStatusUnknown
+                            , pausedJob = BuildPrepStatusNotBlocking
+                            , maxRunningBuilds = BuildPrepStatusNotBlocking
+                            , inputs = Dict.empty
+                            , inputsSatisfied = BuildPrepStatusNotBlocking
+                            , missingInputReasons = Dict.empty
+                            }
+                    in
+                    givenBuildStarted
+                        >> Tuple.first
+                        >> flip (,) []
+                        >> Build.handleCallback
+                            (Callback.BuildPrepFetched <| Ok ( 1, prep ))
+                        >> Tuple.first
+                        >> Build.view UserState.UserStateLoggedOut
+                        >> Query.fromHtml
+                        >> Query.find [ class "prep-status-list" ]
+                        >> Expect.all
+                            [ Query.children []
+                                >> Query.each
+                                    (Query.children []
+                                        >> Query.first
+                                        >> Query.has
+                                            [ style
+                                                [ ( "display", "flex" )
+                                                , ( "align-items", "center" )
+                                                ]
+                                            ]
+                                    )
+                            , Query.has
+                                [ style
+                                    [ ( "animation"
+                                      , "container-rotate 1568ms linear infinite"
+                                      )
+                                    , ( "height", "12px" )
+                                    , ( "width", "12px" )
+                                    , ( "margin", "0 5px 0 0" )
+                                    ]
+                                ]
+                            , Query.has [ attribute <| Attr.title "thinking..." ]
                             ]
                 ]
             , describe "build events subscription" <|

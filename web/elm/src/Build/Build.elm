@@ -974,11 +974,9 @@ viewBuildPrepStatus : Concourse.BuildPrepStatus -> Html Msg
 viewBuildPrepStatus status =
     case status of
         Concourse.BuildPrepStatusUnknown ->
-            Html.i
-                [ class "fa fa-fw fa-circle-o-notch"
-                , title "thinking..."
-                ]
-                []
+            Html.div
+                [ title "thinking..." ]
+                [ Spinner.spinner { size = "12px", margin = "0 5px 0 0" } ]
 
         Concourse.BuildPrepStatusBlocking ->
             Html.div
