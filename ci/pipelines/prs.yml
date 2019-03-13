@@ -157,12 +157,10 @@ jobs:
   public: true
   on_failure:
     put: baggageclaim-pr
-    inputs: [concourse-pr]
     params: {path: baggageclaim-pr, status: failure, context: baggageclaim}
     tags: [pr]
   on_success:
     put: baggageclaim-pr
-    inputs: [concourse-pr]
     params: {path: baggageclaim-pr, status: success, context: baggageclaim}
     tags: [pr]
   plan:
@@ -171,7 +169,6 @@ jobs:
     version: every
     tags: [pr]
   - put: baggageclaim-pr
-    inputs: [concourse-pr]
     params: {path: baggageclaim-pr, status: pending, context: baggageclaim}
     tags: [pr]
   - task: unit-linux
