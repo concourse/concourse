@@ -37,7 +37,7 @@ var (
 	externalURL = "https://example.com"
 
 	fakeEngine              *enginefakes.FakeEngine
-	fakeWorkerClient        *workerfakes.FakeClient
+	fakeWorkerPool          *workerfakes.FakePool
 	fakeWorkerProvider      *workerfakes.FakeWorkerProvider
 	fakeVolumeRepository    *dbfakes.FakeVolumeRepository
 	fakeContainerRepository *dbfakes.FakeContainerRepository
@@ -122,7 +122,7 @@ var _ = BeforeEach(func() {
 	drain = make(chan struct{})
 
 	fakeEngine = new(enginefakes.FakeEngine)
-	fakeWorkerClient = new(workerfakes.FakeClient)
+	fakeWorkerPool = new(workerfakes.FakePool)
 	fakeWorkerProvider = new(workerfakes.FakeWorkerProvider)
 
 	fakeSchedulerFactory = new(jobserverfakes.FakeSchedulerFactory)
@@ -187,7 +187,7 @@ var _ = BeforeEach(func() {
 		drain,
 
 		fakeEngine,
-		fakeWorkerClient,
+		fakeWorkerPool,
 		fakeWorkerProvider,
 
 		fakeSchedulerFactory,

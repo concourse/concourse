@@ -23,7 +23,8 @@ import (
 
 var _ = Describe("ResourceInstanceFetchSource", func() {
 	var (
-		fetchSource resource.FetchSource
+		fetchSourceFactory resource.FetchSourceFactory
+		fetchSource        resource.FetchSource
 
 		fakeContainer            *workerfakes.FakeContainer
 		fakeVolume               *workerfakes.FakeVolume
@@ -80,6 +81,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		fakeResourceInstance.ResourceCacheReturns(fakeUsedResourceCache)
 		fakeResourceInstance.ContainerOwnerReturns(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"), 42))
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
+		fakeResourceCacheFactory.UpdateResourceCacheMetadataReturns(nil)
 		fakeResourceCacheFactory.ResourceCacheMetadataReturns([]db.ResourceConfigMetadataField{
 			{Name: "some", Value: "metadata"},
 		}, nil)
@@ -101,17 +103,25 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 			},
 		})
 
-		fetchSource = resource.NewResourceInstanceFetchSource(
+		resourceFactory := resource.NewResourceFactory()
+		fetchSourceFactory = resource.NewFetchSourceFactory(fakeResourceCacheFactory, resourceFactory)
+		fetchSource = fetchSourceFactory.NewFetchSource(
 			logger,
-			fakeResourceInstance,
 			fakeWorker,
+			fakeResourceInstance,
 			resourceTypes,
-			atc.Tags{},
-			42,
+			worker.ContainerSpec{
+				TeamID: 42,
+				Tags:   []string{},
+				ImageSpec: worker.ImageSpec{
+					ResourceType: "fake-resource-type",
+				},
+				Outputs: map[string]string{
+					"resource": resource.ResourcesDir("get"),
+				},
+			},
 			resource.Session{},
-			resource.EmptyMetadata{},
 			fakeDelegate,
-			fakeResourceCacheFactory,
 		)
 	})
 
@@ -195,7 +205,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 			It("creates container with volume and worker", func() {
 				Expect(initErr).NotTo(HaveOccurred())
 				Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-				_, logger, delegate, owner, metadata, containerSpec, workerSpec, types := fakeWorker.FindOrCreateContainerArgsForCall(0)
+				_, logger, delegate, owner, metadata, containerSpec, types := fakeWorker.FindOrCreateContainerArgsForCall(0)
 				Expect(delegate).To(Equal(fakeDelegate))
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"), 42)))
 				Expect(metadata).To(BeZero())
@@ -209,12 +219,6 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 					Outputs: map[string]string{
 						"resource": resource.ResourcesDir("get"),
 					},
-				}))
-				Expect(workerSpec).To(Equal(worker.WorkerSpec{
-					TeamID:        42,
-					ResourceType:  "fake-resource-type",
-					Tags:          []string{},
-					ResourceTypes: resourceTypes,
 				}))
 				Expect(types).To(Equal(resourceTypes))
 			})

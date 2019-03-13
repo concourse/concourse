@@ -2,7 +2,6 @@ package worker
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -15,19 +14,11 @@ import (
 	"github.com/cppforlife/go-semi-semantic/version"
 )
 
-var ErrUnsupportedResourceType = errors.New("unsupported resource type")
-var ErrIncompatiblePlatform = errors.New("incompatible platform")
-var ErrMismatchedTags = errors.New("mismatched tags")
-var ErrTeamMismatch = errors.New("mismatched team")
-var ErrNotImplemented = errors.New("Not implemented")
-
 const userPropertyName = "user"
 
 //go:generate counterfeiter . Worker
 
 type Worker interface {
-	Client
-
 	ActiveContainers() int
 	ActiveVolumes() int
 	BuildContainers() int
@@ -40,11 +31,24 @@ type Worker interface {
 	IsOwnedByTeam() bool
 	Ephemeral() bool
 	IsVersionCompatible(lager.Logger, version.Version) bool
+	Satisfies(lager.Logger, WorkerSpec) bool
+
+	FindContainerByHandle(lager.Logger, int, string) (Container, bool, error)
+	FindOrCreateContainer(
+		context.Context,
+		lager.Logger,
+		ImageFetchingDelegate,
+		db.ContainerOwner,
+		db.ContainerMetadata,
+		ContainerSpec,
+		creds.VersionedResourceTypes,
+	) (Container, error)
 
 	FindVolumeForResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache) (Volume, bool, error)
 	FindVolumeForTaskCache(lager.Logger, int, int, string, string) (Volume, bool, error)
 
 	CertsVolume(lager.Logger) (volume Volume, found bool, err error)
+	LookupVolume(lager.Logger, string) (Volume, bool, error)
 	GardenClient() garden.Client
 }
 
@@ -150,7 +154,6 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
 	containerSpec ContainerSpec,
-	workerSpec WorkerSpec,
 	resourceTypes creds.VersionedResourceTypes,
 ) (Container, error) {
 
@@ -173,8 +176,6 @@ func (worker *gardenWorker) FindOrCreateContainer(
 		delegate,
 		metadata,
 		containerSpec,
-		workerSpec,
-		resourceTypes,
 		image,
 	)
 }
@@ -209,18 +210,16 @@ func (worker *gardenWorker) Ephemeral() bool {
 	return worker.dbWorker.Ephemeral()
 }
 
-// </TODO>
-
 func (worker *gardenWorker) BuildContainers() int {
 	return worker.buildContainers
 }
 
-func (worker *gardenWorker) Satisfying(logger lager.Logger, spec WorkerSpec) (Worker, error) {
+func (worker *gardenWorker) Satisfies(logger lager.Logger, spec WorkerSpec) bool {
 	workerTeamID := worker.dbWorker.TeamID()
 	workerResourceTypes := worker.dbWorker.ResourceTypes()
 
 	if spec.TeamID != workerTeamID && workerTeamID != 0 {
-		return nil, ErrTeamMismatch
+		return false
 	}
 
 	if spec.ResourceType != "" {
@@ -235,21 +234,21 @@ func (worker *gardenWorker) Satisfying(logger lager.Logger, spec WorkerSpec) (Wo
 		}
 
 		if !matchedType {
-			return nil, ErrUnsupportedResourceType
+			return false
 		}
 	}
 
 	if spec.Platform != "" {
 		if spec.Platform != worker.dbWorker.Platform() {
-			return nil, ErrIncompatiblePlatform
+			return false
 		}
 	}
 
 	if !worker.tagsMatch(spec.Tags) {
-		return nil, ErrMismatchedTags
+		return false
 	}
 
-	return worker, nil
+	return true
 }
 
 func determineUnderlyingTypeName(typeName string, resourceTypes creds.VersionedResourceTypes) string {

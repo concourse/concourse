@@ -79,7 +79,7 @@ type TaskStep struct {
 
 	delegate TaskDelegate
 
-	workerPool        worker.Client
+	workerPool        worker.Pool
 	teamID            int
 	buildID           int
 	jobID             int
@@ -92,6 +92,8 @@ type TaskStep struct {
 	defaultLimits atc.ContainerLimits
 
 	succeeded bool
+
+	strategy worker.ContainerPlacementStrategy
 }
 
 func NewTaskStep(
@@ -103,7 +105,7 @@ func NewTaskStep(
 	artifactsRoot string,
 	imageArtifactName string,
 	delegate TaskDelegate,
-	workerPool worker.Client,
+	workerPool worker.Pool,
 	teamID int,
 	buildID int,
 	jobID int,
@@ -112,6 +114,7 @@ func NewTaskStep(
 	containerMetadata db.ContainerMetadata,
 	resourceTypes creds.VersionedResourceTypes,
 	defaultLimits atc.ContainerLimits,
+	strategy worker.ContainerPlacementStrategy,
 ) Step {
 	return &TaskStep{
 		privileged:        privileged,
@@ -131,6 +134,7 @@ func NewTaskStep(
 		containerMetadata: containerMetadata,
 		resourceTypes:     resourceTypes,
 		defaultLimits:     defaultLimits,
+		strategy:          strategy,
 	}
 }
 
@@ -182,14 +186,19 @@ func (action *TaskStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	container, err := action.workerPool.FindOrCreateContainer(
+	owner := db.NewBuildStepContainerOwner(action.buildID, action.planID, action.teamID)
+	chosenWorker, err := action.workerPool.FindOrChooseWorker(logger, owner, containerSpec, workerSpec, action.strategy)
+	if err != nil {
+		return err
+	}
+
+	container, err := chosenWorker.FindOrCreateContainer(
 		ctx,
 		logger,
 		action.delegate,
-		db.NewBuildStepContainerOwner(action.buildID, action.planID, action.teamID),
+		owner,
 		action.containerMetadata,
 		containerSpec,
-		workerSpec,
 		action.resourceTypes,
 	)
 	if err != nil {

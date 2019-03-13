@@ -66,6 +66,9 @@ type GetStep struct {
 	resourceTypes creds.VersionedResourceTypes
 
 	succeeded bool
+
+	strategy   worker.ContainerPlacementStrategy
+	workerPool worker.Pool
 }
 
 func NewGetStep(
@@ -90,6 +93,9 @@ func NewGetStep(
 	stepMetadata StepMetadata,
 
 	resourceTypes creds.VersionedResourceTypes,
+
+	strategy worker.ContainerPlacementStrategy,
+	workerPool worker.Pool,
 ) Step {
 	return &GetStep{
 		build: build,
@@ -113,6 +119,9 @@ func NewGetStep(
 		stepMetadata:           stepMetadata,
 
 		resourceTypes: resourceTypes,
+
+		strategy:   strategy,
+		workerPool: workerPool,
 	}
 }
 
@@ -181,17 +190,36 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		db.NewBuildStepContainerOwner(step.buildID, step.planID, step.teamID),
 	)
 
+	containerSpec := worker.ContainerSpec{
+		ImageSpec: worker.ImageSpec{
+			ResourceType: step.resourceType,
+		},
+		TeamID: step.teamID,
+		Env:    step.stepMetadata.Env(),
+	}
+
+	workerSpec := worker.WorkerSpec{
+		ResourceType:  step.resourceType,
+		Tags:          step.tags,
+		TeamID:        step.teamID,
+		ResourceTypes: step.resourceTypes,
+	}
+
+	chosenWorker, err := step.workerPool.FindOrChooseWorker(logger, resourceInstance.ContainerOwner(), containerSpec, workerSpec, step.strategy)
+	if err != nil {
+		return err
+	}
+
 	versionedSource, err := step.resourceFetcher.Fetch(
 		ctx,
 		logger,
 		resource.Session{
 			Metadata: step.containerMetadata,
 		},
-		step.tags,
-		step.teamID,
+		chosenWorker,
+		containerSpec,
 		step.resourceTypes,
 		resourceInstance,
-		step.stepMetadata,
 		step.delegate,
 	)
 	if err != nil {

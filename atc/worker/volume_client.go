@@ -65,6 +65,23 @@ type VolumeClient interface {
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 }
 
+type VolumeSpec struct {
+	Strategy   baggageclaim.Strategy
+	Properties VolumeProperties
+	Privileged bool
+	TTL        time.Duration
+}
+
+func (spec VolumeSpec) baggageclaimVolumeSpec() baggageclaim.VolumeSpec {
+	return baggageclaim.VolumeSpec{
+		Strategy:   spec.Strategy,
+		Privileged: spec.Privileged,
+		Properties: baggageclaim.VolumeProperties(spec.Properties),
+	}
+}
+
+type VolumeProperties map[string]string
+
 type ErrCreatedVolumeNotFound struct {
 	Handle     string
 	WorkerName string
