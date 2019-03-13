@@ -27,7 +27,7 @@ func NewVolumeSweeper(
 	tsaClient TSAClient,
 	bcClient baggageclaim.Client,
 	maxInFlight int,
-) (*volumeSweeper) {
+) *volumeSweeper {
 	return &volumeSweeper{
 		logger:             logger,
 		interval:           sweepInterval,
@@ -74,7 +74,7 @@ func (sweeper *volumeSweeper) sweep(logger lager.Logger) {
 
 	volumeHandles, err := sweeper.tsaClient.VolumesToDestroy(ctx)
 	if err != nil {
-		logger.Error("failed-to-sweep-volumes", err)
+		logger.Error("failed-to-get-volumes-to-destroy", err)
 	} else {
 		var wg sync.WaitGroup
 		maxInFlight := make(chan int, sweeper.maxInFlight)
@@ -86,7 +86,7 @@ func (sweeper *volumeSweeper) sweep(logger lager.Logger) {
 			go func(handle string) {
 				err := sweeper.baggageclaimClient.DestroyVolume(logger.Session("destroy-volumes"), handle)
 				if err != nil {
-					logger.WithData(lager.Data{"handle":handle}).Error("failed-to-destroy-volume", err)
+					logger.WithData(lager.Data{"handle": handle}).Error("failed-to-destroy-volume", err)
 				}
 
 				<-maxInFlight

@@ -27,7 +27,7 @@ func NewContainerSweeper(
 	tsaClient TSAClient,
 	gardenClient garden.Client,
 	maxInFlight int,
-) (*containerSweeper) {
+) *containerSweeper {
 	return &containerSweeper{
 		logger:       logger,
 		interval:     sweepInterval,
@@ -74,7 +74,7 @@ func (sweeper *containerSweeper) sweep(logger lager.Logger) {
 
 	containerHandles, err := sweeper.tsaClient.ContainersToDestroy(ctx)
 	if err != nil {
-		logger.Error("failed-to-sweep-containers", err)
+		logger.Error("failed-to-get-containers-to-destroy", err)
 	} else {
 		var wg sync.WaitGroup
 		maxInFlight := make(chan int, sweeper.maxInFlight)
@@ -86,7 +86,7 @@ func (sweeper *containerSweeper) sweep(logger lager.Logger) {
 			go func(handle string) {
 				err := sweeper.gardenClient.Destroy(handle)
 				if err != nil {
-					logger.WithData(lager.Data{"handle":handle}).Error("failed-to-destroy-container", err)
+					logger.WithData(lager.Data{"handle": handle}).Error("failed-to-destroy-container", err)
 				}
 				<-maxInFlight
 				wg.Done()
