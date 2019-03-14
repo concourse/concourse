@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Garden Config", func() {
+var _ = Describe("Container Limits", func() {
 	var (
 		proxySession        *gexec.Session
 		releaseName         string
@@ -57,7 +57,7 @@ var _ = Describe("Garden Config", func() {
 		Wait(proxySession.Interrupt())
 	})
 
-	Context("passing a config map location to the worker to be used by gdn", func() {
+	Context("using cos as NodeImage", func() {
 		BeforeEach(func() {
 			nodeImage = "cos"
 		})
@@ -80,13 +80,12 @@ var _ = Describe("Garden Config", func() {
 		})
 	})
 
-	Context("passing a config map location to the worker to be used by gdn", func() {
-		// Context skipped as GKE ubuntu doesn't support container limits.
+	Context("using Ubuntu as NodeImage", func() {
 		BeforeEach(func() {
 			nodeImage = "ubuntu"
 		})
 
-		It("returns the configure default container limit", func() {
+		It("fails to set the memory limit", func() {
 			buildSession := fly.Start("execute", "-c", "../tasks/tiny.yml")
 			<-buildSession.Exited
 			Expect(buildSession.ExitCode()).To(Equal(2))
