@@ -70,7 +70,8 @@ var _ = Describe("Targets", func() {
 
 			Describe("when the file exists with 0755 permissions", func() {
 				BeforeEach(func() {
-					ioutil.WriteFile(flyrc, []byte{}, 0755)
+					err := ioutil.WriteFile(flyrc, []byte{}, 0755)
+					Expect(err).ToNot(HaveOccurred())
 				})
 
 				It("preserves those permissions", func() {
