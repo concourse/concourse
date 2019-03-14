@@ -336,6 +336,14 @@ all =
                         >> Query.index -1
                         >> Query.find [ id "user-id" ]
                         >> Query.hasNot [ id "logout-button" ]
+                , it "renders pause pipeline button" <|
+                    Query.find [ id "top-bar-pause-pipeline" ]
+                        >> Query.has
+                            [ style [ ( "background-image", "url(/public/images/ic-pause-white.svg)" ) ] ]
+                , it "draws lighter grey line to the left of pause pipeline button" <|
+                    Query.find [ id "top-bar-pause-pipeline" ]
+                        >> Query.has
+                            [ style [ ( "border-left", "1px solid " ++ borderGrey ) ] ]
                 ]
             , it "clicking a pinned resource navigates to the pinned resource page" <|
                 Application.update
@@ -387,6 +395,14 @@ all =
                     Query.children []
                         >> Query.index -1
                         >> Query.find [ id "login-container" ]
+                        >> Query.has
+                            [ style [ ( "border-left", "1px solid " ++ almostWhite ) ] ]
+                , it "renders play pipeline button" <|
+                    Query.find [ id "top-bar-pause-pipeline" ]
+                        >> Query.has
+                            [ style [ ( "background-image", "url(/public/images/ic-play-white.svg)" ) ] ]
+                , it "draws almost-white line to the left of pause pipeline button" <|
+                    Query.find [ id "top-bar-pause-pipeline" ]
                         >> Query.has
                             [ style [ ( "border-left", "1px solid " ++ almostWhite ) ] ]
                 ]
@@ -917,7 +933,7 @@ all =
                         >> Query.has
                             [ style
                                 [ ( "border", searchBarBorder )
-                                , ( "color", "#fff" )
+                                , ( "color", "#ffffff" )
                                 , ( "font-size", "1.15em" )
                                 , ( "font-family", "Inconsolata, monospace" )
                                 ]
@@ -1780,7 +1796,7 @@ testDropdown selecteds notSelecteds =
                                 >> Query.has [ style [ ( "background-color", "#1e1d1d" ) ] ]
                         , it ("has white text " ++ toString idx) <|
                             Query.index idx
-                                >> Query.has [ style [ ( "color", "#fff" ) ] ]
+                                >> Query.has [ style [ ( "color", "#ffffff" ) ] ]
                         ]
                     )
                     selecteds

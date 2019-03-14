@@ -2,6 +2,7 @@ package k8s_test
 
 import (
 	"fmt"
+
 	"github.com/onsi/gomega/gexec"
 
 	. "github.com/concourse/concourse/topgun"
@@ -35,36 +36,18 @@ var _ = Describe("Baggageclaim Drivers", func() {
 
 	DescribeTable("across different node images",
 		func(c Case) {
-			releaseName = fmt.Sprintf("topgun-bd-%s-%s-%d-%d",
-				c.Driver, c.NodeImage, GinkgoRandomSeed(), GinkgoParallelNode())
+			releaseName = fmt.Sprintf("topgun-bd-%s-%s-%d",
+				c.Driver, c.NodeImage, randomGenerator.Int())
 			namespace = releaseName
 
-			args := []string{
-				"upgrade",
-				"--force",
-				"--install",
-				"--namespace=" + namespace,
+			helmDeployTestFlags := []string{
 				"--set=concourse.web.kubernetes.enabled=false",
 				"--set=concourse.worker.baggageclaim.driver=" + c.Driver,
-				"--set=image=" + Environment.ConcourseImageName,
-				"--set=postgresql.persistence.enabled=false",
-				"--set=web.livenessProbe.failureThreshold=3",
-				"--set=web.livenessProbe.initialDelaySeconds=3",
-				"--set=web.livenessProbe.periodSeconds=3",
-				"--set=web.livenessProbe.timeoutSeconds=3",
 				"--set=worker.nodeSelector.nodeImage=" + c.NodeImage,
 				"--set=worker.replicas=1",
-				"--wait",
-				releaseName,
-				Environment.ConcourseChartDir,
 			}
 
-			if Environment.ConcourseImageDigest != "" {
-				args = append(args, "--set=imageDigest="+Environment.ConcourseImageDigest)
-			}
-
-			helmDeploySession := Start(nil, "helm", args...)
-			Wait(helmDeploySession)
+			deployConcourseChart(releaseName, helmDeployTestFlags...)
 
 			if !c.ShouldWork {
 				workerLogsSession := Start(nil, "kubectl", "logs",
@@ -78,7 +61,7 @@ var _ = Describe("Baggageclaim Drivers", func() {
 			waitAllPodsInNamespaceToBeReady(namespace)
 
 			By("Creating the web proxy")
-			proxySession, atcEndpoint = startPortForwarding(namespace, "service/" + releaseName+"-web", "8080")
+			proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
 
 			By("Logging in")
 			fly.Login("test", "test", atcEndpoint)

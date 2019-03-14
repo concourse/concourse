@@ -177,9 +177,9 @@ func destroyNonHijackedCreatedContainers(logger lager.Logger, containers []db.Cr
 }
 
 func destroyHijackedCreatedContainers(logger lager.Logger, containers []db.CreatedContainer) func(worker.Worker) {
-	return func(workerClient worker.Worker) {
+	return func(gardenWorker worker.Worker) {
 		cLog := logger.Session("mark-hijacked-container", lager.Data{
-			"worker": workerClient.Name(),
+			"worker": gardenWorker.Name(),
 		})
 
 		for _, container := range containers {
@@ -187,7 +187,7 @@ func destroyHijackedCreatedContainers(logger lager.Logger, containers []db.Creat
 				continue
 			}
 
-			_, err := markHijackedContainerAsDestroying(cLog, container, workerClient.GardenClient())
+			_, err := markHijackedContainerAsDestroying(cLog, container, gardenWorker.GardenClient())
 			if err != nil {
 				cLog.Error("failed-to-transition", err, lager.Data{
 					"container": container.Handle(),

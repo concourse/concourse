@@ -1,5 +1,6 @@
 module Dashboard.Group.Tag exposing (Tag(..), ordering, splitFirst, tag, view)
 
+import Colors
 import Concourse
 import Dict
 import Html exposing (Html)
@@ -28,7 +29,7 @@ view : Bool -> Tag -> Html msg
 view isHd tag =
     Html.div
         [ style
-            ([ ( "border", "1px solid #fff" )
+            ([ ( "border", "1px solid " ++ Colors.white )
              , ( "font-size", "0.7em" )
              , ( "padding", "0.5em 0" )
              , ( "line-height", "0.9em" )

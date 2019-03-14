@@ -113,7 +113,7 @@ all =
                                 |> Query.has
                                     [ style
                                         [ ( "background-color", "#2b2a2a" )
-                                        , ( "color", "#fff" )
+                                        , ( "color", "#ffffff" )
                                         ]
                                     ]
                     , test "lays out groups in a horizontal list" <|
@@ -315,7 +315,7 @@ all =
                                     }
                               )
                             ]
-            , test "in one minute timer, refreshes version" <|
+            , test "on one minute timer, refreshes version" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
                         |> Application.update (Msgs.DeliveryReceived (ClockTicked OneMinute 0))
@@ -343,7 +343,7 @@ all =
                                 , Query.index 3 >> Query.has [ text "errored" ]
                                 , Query.index 5 >> Query.has [ text "aborted" ]
                                 , Query.index 7 >> Query.has [ text "paused" ]
-                                , Query.index 8 >> Query.has [ style [ ( "background-color", "#5C3BD1" ) ] ]
+                                , Query.index 8 >> Query.has [ style [ ( "background-color", "#5c3bd1" ) ] ]
                                 , Query.index 9 >> Query.has [ text "pinned" ]
                                 , Query.index 11 >> Query.has [ text "failed" ]
                                 , Query.index 13 >> Query.has [ text "pending" ]
@@ -482,7 +482,7 @@ all =
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find pinBadgeSelector
                         >> Query.has
-                            [ style [ ( "background-color", "#5C3BD1" ) ] ]
+                            [ style [ ( "background-color", "#5c3bd1" ) ] ]
                 , it "pin badge is circular" <|
                     givenPinnedResource
                         >> Application.view
@@ -644,7 +644,7 @@ all =
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find [ tag "ul" ]
-                        >> Query.has [ style [ ( "background-color", "#fff" ) ] ]
+                        >> Query.has [ style [ ( "background-color", "#ffffff" ) ] ]
                 , it "dropdown list of pinned resources is drawn over other elements on the page" <|
                     givenPinnedResource
                         >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
@@ -677,7 +677,7 @@ all =
                             [ style
                                 [ ( "border-width", "5px" )
                                 , ( "border-style", "solid" )
-                                , ( "border-color", "transparent transparent #fff transparent" )
+                                , ( "border-color", "transparent transparent #ffffff transparent" )
                                 ]
                             ]
                         >> Query.count (Expect.equal 1)
@@ -749,7 +749,7 @@ all =
                             [ style
                                 [ ( "border-width", "5px" )
                                 , ( "border-style", "solid" )
-                                , ( "border-color", "transparent transparent #fff transparent" )
+                                , ( "border-color", "transparent transparent #ffffff transparent" )
                                 ]
                             ]
                         >> Query.first

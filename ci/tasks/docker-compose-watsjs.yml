@@ -16,9 +16,6 @@ caches:
 - path: gopath
 - path: concourse/web/wats/node_modules
 
-params:
-  DOCKERFILE: Dockerfile
-
 run:
   path: concourse/ci/tasks/scripts/with-docker-compose
   args: [concourse/ci/tasks/scripts/watsjs]

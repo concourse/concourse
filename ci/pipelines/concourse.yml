@@ -213,7 +213,6 @@ jobs:
     privileged: true
     timeout: 1h
     file: concourse/ci/tasks/docker-compose-testflight.yml
-    params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
 - name: watsjs
   public: true
@@ -236,7 +235,6 @@ jobs:
     privileged: true
     timeout: 1h
     file: concourse/ci/tasks/docker-compose-watsjs.yml
-    params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
 - name: upgrade
   public: true
@@ -249,6 +247,8 @@ jobs:
     - get: dev-image
       passed: [dev-image]
       params: {format: oci}
+    - get: concourse-image
+      params: {format: oci}
     - get: postgres-image
       params: {format: oci}
     - get: unit-image
@@ -257,7 +257,6 @@ jobs:
     privileged: true
     image: unit-image
     file: concourse/ci/tasks/upgrade-test.yml
-    params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
 - name: downgrade
   public: true
@@ -270,6 +269,8 @@ jobs:
     - get: dev-image
       passed: [dev-image]
       params: {format: oci}
+    - get: concourse-image
+      params: {format: oci}
     - get: postgres-image
       params: {format: oci}
     - get: unit-image
@@ -278,7 +279,6 @@ jobs:
     privileged: true
     image: unit-image
     file: concourse/ci/tasks/downgrade-test.yml
-    params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
 - name: k8s-check-helm-params
   public: true
@@ -655,7 +655,7 @@ jobs:
       BOSH_CA_CERT: ((tmp_bosh_client.ca_cert))
       BOSH_CLIENT: ((bosh_client.id))
       BOSH_CLIENT_SECRET: ((bosh_client.secret))
-      BOSH_KEY: ((topgun_bosh_key))
+      BOSH_SSH_KEY: ((topgun_bosh_key))
       AWS_REGION: ((topgun_aws_ssm.region))
       AWS_ACCESS_KEY_ID: ((topgun_aws_ssm.access_key_id))
       AWS_SECRET_ACCESS_KEY: ((topgun_aws_ssm.secret_access_key))

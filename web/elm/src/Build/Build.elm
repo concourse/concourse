@@ -974,11 +974,9 @@ viewBuildPrepStatus : Concourse.BuildPrepStatus -> Html Msg
 viewBuildPrepStatus status =
     case status of
         Concourse.BuildPrepStatusUnknown ->
-            Html.i
-                [ class "fa fa-fw fa-circle-o-notch"
-                , title "thinking..."
-                ]
-                []
+            Html.div
+                [ title "thinking..." ]
+                [ Spinner.spinner { size = "12px", margin = "0 5px 0 0" } ]
 
         Concourse.BuildPrepStatusBlocking ->
             Html.div
@@ -1043,7 +1041,7 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                         , onFocus <| Hover (Just Trigger)
                         , onMouseLeave <| Hover Nothing
                         , onBlur <| Hover Nothing
-                        , style <| Styles.triggerButton buttonDisabled
+                        , style <| Styles.triggerButton buttonDisabled buttonHovered build.status
                         ]
                     <|
                         [ Html.div
@@ -1066,6 +1064,9 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                 Nothing ->
                     Html.text ""
 
+        abortHovered =
+            hoveredElement == Just Abort
+
         abortButton =
             if Concourse.BuildStatus.isRunning build.status then
                 Html.button
@@ -1078,14 +1079,10 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                     , onFocus <| Hover (Just Abort)
                     , onMouseLeave <| Hover Nothing
                     , onBlur <| Hover Nothing
-                    , style Styles.abortButton
+                    , style <| Styles.abortButton <| abortHovered
                     ]
                     [ Html.div
-                        [ style <|
-                            Styles.abortIcon <|
-                                hoveredElement
-                                    == Just Abort
-                        ]
+                        [ style <| Styles.abortIcon <| abortHovered ]
                         []
                     ]
 
@@ -1113,11 +1110,8 @@ viewBuildHeader build { now, job, history, hoveredElement } =
     Html.div [ class "fixed-header" ]
         [ Html.div
             [ id "build-header"
-            , class ("build-header " ++ Concourse.BuildStatus.show build.status)
-            , style
-                [ ( "display", "flex" )
-                , ( "justify-content", "space-between" )
-                ]
+            , class "build-header"
+            , style <| Styles.header build.status
             ]
             [ Html.div []
                 [ Html.h1 [] [ buildTitle ]
@@ -1133,8 +1127,7 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                 [ abortButton, triggerButton ]
             ]
         , Html.div
-            [ onMouseWheel ScrollBuilds
-            ]
+            [ onMouseWheel ScrollBuilds ]
             [ lazyViewHistory build history ]
         ]
 
@@ -1153,12 +1146,14 @@ viewHistory currentBuild builds =
 viewHistoryItem : Concourse.Build -> Concourse.Build -> Html Msg
 viewHistoryItem currentBuild build =
     Html.li
-        [ if build.id == currentBuild.id then
-            class (Concourse.BuildStatus.show currentBuild.status ++ " current")
+        (if build.id == currentBuild.id then
+            [ class "current"
+            , style <| Styles.historyItem currentBuild.status
+            ]
 
-          else
-            class (Concourse.BuildStatus.show build.status)
-        ]
+         else
+            [ style <| Styles.historyItem build.status ]
+        )
         [ Html.a
             [ onLeftClick <| SwitchToBuild build
             , href <| Routes.toString <| Routes.buildRoute build

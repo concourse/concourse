@@ -165,15 +165,11 @@ all =
         , test "received token is passed to all subsquent requests" <|
             \_ ->
                 let
-                    pipeline =
-                        { id = 0
-                        , name = "p"
-                        , teamName = "t"
-                        , public = True
-                        , jobs = []
-                        , resourceError = False
-                        , status = PipelineStatus.PipelineStatusSucceeded PipelineStatus.Running
-                        }
+                    pipelineIdentifier =
+                        { pipelineName = "p", teamName = "t" }
+
+                    pipelineStatus =
+                        PipelineStatus.PipelineStatusPaused
                 in
                 Application.init
                     { turbulenceImgSrc = ""
@@ -200,8 +196,8 @@ all =
                     |> Application.update
                         (Msgs.SubMsg 1 <|
                             SubPage.Msgs.DashboardMsg <|
-                                Dashboard.Msgs.TogglePipelinePaused pipeline
+                                Dashboard.Msgs.TogglePipelinePaused pipelineIdentifier pipelineStatus
                         )
                     |> Tuple.second
-                    |> Expect.equal [ ( Effects.SubPage 1, "real-token", Effects.SendTogglePipelineRequest pipeline ) ]
+                    |> Expect.equal [ ( Effects.SubPage 1, "real-token", Effects.SendTogglePipelineRequest pipelineIdentifier True ) ]
         ]

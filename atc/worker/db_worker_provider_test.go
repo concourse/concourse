@@ -404,7 +404,6 @@ var _ = Describe("DBProvider", func() {
 			Context("creating the connection to garden", func() {
 				var (
 					containerSpec ContainerSpec
-					workerSpec    WorkerSpec
 				)
 
 				JustBeforeEach(func() {
@@ -412,10 +411,6 @@ var _ = Describe("DBProvider", func() {
 						ImageSpec: ImageSpec{
 							ResourceType: "some-resource-a",
 						},
-					}
-
-					workerSpec = WorkerSpec{
-						ResourceType: "some-resource-a",
 					}
 
 					fakeContainer := new(gfakes.FakeContainer)
@@ -426,7 +421,7 @@ var _ = Describe("DBProvider", func() {
 
 					By("connecting to the worker")
 					fakeDBWorkerFactory.GetWorkerReturns(fakeWorker1, true, nil)
-					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, containerSpec, workerSpec, nil)
+					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, containerSpec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = container.Destroy()
@@ -477,17 +472,13 @@ var _ = Describe("DBProvider", func() {
 						},
 					}
 
-					workerSpec := WorkerSpec{
-						ResourceType: "some-resource-a",
-					}
-
 					fakeContainer := new(gfakes.FakeContainer)
 					fakeContainer.HandleReturns("created-handle")
 
 					fakeGardenBackend.CreateReturns(fakeContainer, nil)
 					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
-					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, containerSpec, workerSpec, nil)
+					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, containerSpec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(container.Handle()).To(Equal("created-handle"))

@@ -34,7 +34,7 @@ type PutStep struct {
 	inputs       PutInputs
 
 	delegate              PutDelegate
-	resourceFactory       resource.ResourceFactory
+	pool                  worker.Pool
 	resourceConfigFactory db.ResourceConfigFactory
 	planID                atc.PlanID
 	containerMetadata     db.ContainerMetadata
@@ -44,6 +44,9 @@ type PutStep struct {
 
 	versionInfo VersionInfo
 	succeeded   bool
+
+	strategy        worker.ContainerPlacementStrategy
+	resourceFactory resource.ResourceFactory
 }
 
 func NewPutStep(
@@ -56,12 +59,14 @@ func NewPutStep(
 	tags atc.Tags,
 	inputs PutInputs,
 	delegate PutDelegate,
-	resourceFactory resource.ResourceFactory,
+	pool worker.Pool,
 	resourceConfigFactory db.ResourceConfigFactory,
 	planID atc.PlanID,
 	containerMetadata db.ContainerMetadata,
 	stepMetadata StepMetadata,
 	resourceTypes creds.VersionedResourceTypes,
+	strategy worker.ContainerPlacementStrategy,
+	resourceFactory resource.ResourceFactory,
 ) *PutStep {
 	return &PutStep{
 		build: build,
@@ -74,12 +79,14 @@ func NewPutStep(
 		tags:                  tags,
 		inputs:                inputs,
 		delegate:              delegate,
-		resourceFactory:       resourceFactory,
+		pool:                  pool,
 		resourceConfigFactory: resourceConfigFactory,
 		planID:                planID,
 		containerMetadata:     containerMetadata,
 		stepMetadata:          stepMetadata,
 		resourceTypes:         resourceTypes,
+		strategy:              strategy,
+		resourceFactory:       resourceFactory,
 	}
 }
 
@@ -120,15 +127,24 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		ResourceTypes: step.resourceTypes,
 	}
 
-	putResource, err := step.resourceFactory.NewResource(
+	owner := db.NewBuildStepContainerOwner(step.build.ID(), step.planID, step.build.TeamID())
+	chosenWorker, err := step.pool.FindOrChooseWorker(logger, owner, containerSpec, workerSpec, step.strategy)
+	if err != nil {
+		return err
+	}
+
+	containerSpec.BindMounts = []worker.BindMountSource{
+		&worker.CertsVolumeMount{Logger: logger},
+	}
+
+	container, err := chosenWorker.FindOrCreateContainer(
 		ctx,
 		logger,
-		db.NewBuildStepContainerOwner(step.build.ID(), step.planID, step.build.TeamID()),
+		step.delegate,
+		owner,
 		step.containerMetadata,
 		containerSpec,
-		workerSpec,
 		step.resourceTypes,
-		step.delegate,
 	)
 	if err != nil {
 		return err
@@ -144,6 +160,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
+	putResource := step.resourceFactory.NewResourceForContainer(container)
 	versionedSource, err := putResource.Put(
 		ctx,
 		resource.IOConfig{

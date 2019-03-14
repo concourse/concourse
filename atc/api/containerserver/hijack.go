@@ -88,7 +88,7 @@ func (s *Server) HijackContainer(team db.Team) http.Handler {
 			"handle": handle,
 		})
 
-		container, found, err := s.workerClient.FindContainerByHandle(hLog, team.ID(), handle)
+		container, found, err := s.workerPool.FindContainerByHandle(hLog, team.ID(), handle)
 		if err != nil {
 			hLog.Error("failed-to-find-container", err)
 			w.WriteHeader(http.StatusInternalServerError)
