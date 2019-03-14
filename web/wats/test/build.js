@@ -31,7 +31,7 @@ test('shows abort hooks', async t => {
   await t.context.web.waitForText("say-bye-from-job");
   await t.context.web.waitForText("looping");
 
-  await t.context.web.clickAndWait('button[title="Abort Build"]', '.build-header.aborted');
+  await t.context.web.clickAndWait('button[title="Abort Build"]', '.build-header[style*="rgb(139, 87, 42)"]'); // brown
   await t.context.web.page.waitFor('[data-step-name="say-bye-from-step"] [data-step-state="succeeded"]');
   await t.context.web.page.waitFor('[data-step-name="say-bye-from-job"] [data-step-state="succeeded"]');
 

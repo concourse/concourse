@@ -7,6 +7,7 @@ module DashboardTests exposing
     , givenDataAndUser
     , givenDataUnauthenticated
     , iconSelector
+    , isColorWithStripes
     , middleGrey
     , white
     )
@@ -75,7 +76,7 @@ green =
 
 blue : String
 blue =
-    "#4a90e2"
+    "#3498db"
 
 
 darkGrey : String
@@ -100,12 +101,12 @@ brown =
 
 white : String
 white =
-    "#fff"
+    "#ffffff"
 
 
 fadedGreen : String
 fadedGreen =
-    "#284834"
+    "#419867"
 
 
 orange : String
@@ -966,50 +967,6 @@ all =
                             [ style
                                 [ ( "background-color", color ) ]
                             ]
-
-                    isColorWithStripes : String -> String -> Query.Single Msgs.Msg -> Expectation
-                    isColorWithStripes color stripeColor =
-                        Query.has
-                            [ style
-                                [ ( "background-image"
-                                  , "repeating-linear-gradient(-115deg,"
-                                        ++ stripeColor
-                                        ++ " 0,"
-                                        ++ stripeColor
-                                        ++ " 10px,"
-                                        ++ color
-                                        ++ " 0,"
-                                        ++ color
-                                        ++ " 16px)"
-                                  )
-                                , ( "background-size", "106px 114px" )
-                                , ( "animation"
-                                  , pipelineRunningKeyframes ++ " 3s linear infinite"
-                                  )
-                                ]
-                            ]
-
-                    isColorWithStripesHd : String -> String -> Query.Single Msgs.Msg -> Expectation
-                    isColorWithStripesHd color stripeColor =
-                        Query.has
-                            [ style
-                                [ ( "background-image"
-                                  , "repeating-linear-gradient(-115deg,"
-                                        ++ stripeColor
-                                        ++ " 0,"
-                                        ++ stripeColor
-                                        ++ " 10px,"
-                                        ++ color
-                                        ++ " 0,"
-                                        ++ color
-                                        ++ " 16px)"
-                                  )
-                                , ( "background-size", "106px 114px" )
-                                , ( "animation"
-                                  , pipelineRunningKeyframes ++ " 3s linear infinite"
-                                  )
-                                ]
-                            ]
                 in
                 [ describe "non-HD view"
                     [ test "is 7px tall" <|
@@ -1053,7 +1010,7 @@ all =
                                     Concourse.BuildStatusSucceeded
                                     True
                                 |> findBanner
-                                |> isColorWithStripes green darkGrey
+                                |> isColorWithStripes { thin = green, thick = darkGrey }
                     , test "is grey when pipeline is pending" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -1069,7 +1026,7 @@ all =
                                     Concourse.BuildStatusStarted
                                     True
                                 |> findBanner
-                                |> isColorWithStripes lightGrey darkGrey
+                                |> isColorWithStripes { thin = lightGrey, thick = darkGrey }
                     , test "is red when pipeline is failing" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -1085,7 +1042,7 @@ all =
                                     Concourse.BuildStatusFailed
                                     True
                                 |> findBanner
-                                |> isColorWithStripes red darkGrey
+                                |> isColorWithStripes { thin = red, thick = darkGrey }
                     , test "is amber when pipeline is erroring" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -1101,7 +1058,7 @@ all =
                                     Concourse.BuildStatusErrored
                                     True
                                 |> findBanner
-                                |> isColorWithStripes amber darkGrey
+                                |> isColorWithStripes { thin = amber, thick = darkGrey }
                     , test "is brown when pipeline is aborted" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -1117,7 +1074,7 @@ all =
                                     Concourse.BuildStatusAborted
                                     True
                                 |> findBanner
-                                |> isColorWithStripes brown darkGrey
+                                |> isColorWithStripes { thin = brown, thick = darkGrey }
                     , describe "status priorities" <|
                         let
                             givenTwoJobs :
@@ -1230,7 +1187,7 @@ all =
                                         Concourse.BuildStatusSucceeded
                                         True
                                     |> findBanner
-                                    |> isColorWithStripesHd green darkGrey
+                                    |> isColorWithStripes { thin = green, thick = darkGrey }
                         , test "is grey when pipeline is pending" <|
                             \_ ->
                                 whenOnDashboard { highDensity = True }
@@ -1246,7 +1203,7 @@ all =
                                         Concourse.BuildStatusStarted
                                         True
                                     |> findBanner
-                                    |> isColorWithStripesHd lightGrey darkGrey
+                                    |> isColorWithStripes { thin = lightGrey, thick = darkGrey }
                         , test "is red when pipeline is failing" <|
                             \_ ->
                                 whenOnDashboard { highDensity = True }
@@ -1262,7 +1219,7 @@ all =
                                         Concourse.BuildStatusFailed
                                         True
                                     |> findBanner
-                                    |> isColorWithStripesHd red darkGrey
+                                    |> isColorWithStripes { thin = red, thick = darkGrey }
                         , test "is amber when pipeline is erroring" <|
                             \_ ->
                                 whenOnDashboard { highDensity = True }
@@ -1278,7 +1235,7 @@ all =
                                         Concourse.BuildStatusErrored
                                         True
                                     |> findBanner
-                                    |> isColorWithStripesHd amber darkGrey
+                                    |> isColorWithStripes { thin = amber, thick = darkGrey }
                         , test "is brown when pipeline is aborted" <|
                             \_ ->
                                 whenOnDashboard { highDensity = True }
@@ -1294,7 +1251,7 @@ all =
                                         Concourse.BuildStatusAborted
                                         True
                                     |> findBanner
-                                    |> isColorWithStripesHd brown darkGrey
+                                    |> isColorWithStripes { thin = brown, thick = darkGrey }
                         , describe "status priorities" <|
                             let
                                 givenTwoJobs :
@@ -3325,3 +3282,26 @@ teamHeaderHasPill teamName pillText =
             [ Query.count (Expect.equal 2)
             , Query.index 1 >> Query.has [ text pillText ]
             ]
+
+
+isColorWithStripes : { thick : String, thin : String } -> Query.Single msg -> Expectation
+isColorWithStripes { thick, thin } =
+    Query.has
+        [ style
+            [ ( "background-image"
+              , "repeating-linear-gradient(-115deg,"
+                    ++ thick
+                    ++ " 0,"
+                    ++ thick
+                    ++ " 10px,"
+                    ++ thin
+                    ++ " 0,"
+                    ++ thin
+                    ++ " 16px)"
+              )
+            , ( "background-size", "106px 114px" )
+            , ( "animation"
+              , pipelineRunningKeyframes ++ " 3s linear infinite"
+              )
+            ]
+        ]

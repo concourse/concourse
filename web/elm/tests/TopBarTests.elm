@@ -558,7 +558,7 @@ all =
                         >> Query.has
                             [ style
                                 [ ( "border", searchBarBorder )
-                                , ( "color", "#fff" )
+                                , ( "color", "#ffffff" )
                                 , ( "font-size", "1.15em" )
                                 , ( "font-family", "Inconsolata, monospace" )
                                 ]
@@ -1087,7 +1087,7 @@ testDropdown selecteds notSelecteds =
                                 >> Query.has [ style [ ( "background-color", "#1e1d1d" ) ] ]
                         , it ("has white text " ++ toString idx) <|
                             Query.index idx
-                                >> Query.has [ style [ ( "color", "#fff" ) ] ]
+                                >> Query.has [ style [ ( "color", "#ffffff" ) ] ]
                         ]
                     )
                     selecteds
