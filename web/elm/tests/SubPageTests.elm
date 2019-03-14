@@ -146,4 +146,5 @@ notFound route =
     , screenSize = ScreenSize.Desktop
     , highDensity = False
     , isPinMenuExpanded = False
+    , pauseToggleHovered = False
     }

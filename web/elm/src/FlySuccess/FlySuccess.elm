@@ -52,6 +52,7 @@ init { authToken, flyPort } =
       , teams = topBar.teams
       , screenSize = topBar.screenSize
       , highDensity = topBar.highDensity
+      , pauseToggleHovered = topBar.pauseToggleHovered
       }
     , topBarEffects
         ++ (case flyPort of

@@ -96,6 +96,7 @@ init flags =
             , teams = topBar.teams
             , screenSize = topBar.screenSize
             , highDensity = topBar.highDensity
+            , pauseToggleHovered = topBar.pauseToggleHovered
             }
     in
     ( model, [ FetchPipeline flags.pipelineLocator, FetchVersion, ResetPipelineFocus ] ++ topBarEffects )

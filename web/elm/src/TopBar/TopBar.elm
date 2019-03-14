@@ -87,6 +87,7 @@ init { route } =
       , teams = RemoteData.Loading
       , screenSize = Desktop
       , highDensity = isHd
+      , pauseToggleHovered = False
       }
     , [ GetScreenSize ]
     )
@@ -390,6 +391,9 @@ update msg ( model, effects ) =
         ShowSearchInput ->
             showSearchInput model
 
+        Hover hovered ->
+            ( { model | pauseToggleHovered = hovered }, effects )
+
 
 screenResize : Window.Size -> Model r -> Model r
 screenResize size model =
@@ -455,19 +459,29 @@ view userState pipelineState model =
         (viewConcourseLogo
             ++ viewMiddleSection model
             ++ viewPin pipelineState model
-            ++ viewPauseToggle pipelineState
+            ++ viewPauseToggle pipelineState model
             ++ viewLogin userState model (isPaused pipelineState)
         )
 
 
-viewPauseToggle : PipelineState -> List (Html Msg)
-viewPauseToggle pipelineState =
+viewPauseToggle :
+    PipelineState
+    -> { a | pauseToggleHovered : Bool }
+    -> List (Html Msg)
+viewPauseToggle pipelineState { pauseToggleHovered } =
     case pipelineState of
         HasPipeline { isPaused, pipeline } ->
             [ Html.a
                 [ id "top-bar-pause-pipeline"
-                , style (Styles.pausePipelineButton isPaused)
+                , style
+                    (Styles.pausePipelineButton
+                        { isPaused = isPaused
+                        , hovered = pauseToggleHovered
+                        }
+                    )
                 , onClick <| TogglePipelinePaused pipeline isPaused
+                , onMouseEnter <| Hover True
+                , onMouseLeave <| Hover False
                 ]
                 []
             ]

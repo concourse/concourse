@@ -20,6 +20,7 @@ type alias Model r =
         , teams : RemoteData.WebData (List Concourse.Team)
         , screenSize : ScreenSize
         , highDensity : Bool
+        , pauseToggleHovered : Bool
     }
 
 

@@ -248,8 +248,10 @@ breadcrumbItem clickable =
     ]
 
 
-pausePipelineButton : Bool -> List ( String, String )
-pausePipelineButton isPaused =
+pausePipelineButton :
+    { isPaused : Bool, hovered : Bool }
+    -> List ( String, String )
+pausePipelineButton { isPaused, hovered } =
     [ ( "background-image"
       , if isPaused then
             "url(/public/images/ic-play-white.svg)"
@@ -257,9 +259,6 @@ pausePipelineButton isPaused =
         else
             "url(/public/images/ic-pause-white.svg)"
       )
-    , ( "display", "flex" )
-    , ( "flex-direction", "column" )
-    , ( "position", "relative" )
     , ( "padding", "10px" )
     , ( "background-position", "50% 50%" )
     , ( "background-repeat", "no-repeat" )
@@ -273,6 +272,13 @@ pausePipelineButton isPaused =
     , ( "width", "34px" )
     , ( "height", "34px" )
     , ( "cursor", "pointer" )
+    , ( "opacity"
+      , if hovered then
+            "1"
+
+        else
+            "0.5"
+      )
     ]
 
 

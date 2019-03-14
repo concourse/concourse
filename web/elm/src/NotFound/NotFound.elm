@@ -32,6 +32,7 @@ init flags =
       , teams = topBar.teams
       , screenSize = topBar.screenSize
       , highDensity = topBar.highDensity
+      , pauseToggleHovered = topBar.pauseToggleHovered
       }
     , topBarEffects ++ [ Effects.SetTitle "Not Found " ]
     )

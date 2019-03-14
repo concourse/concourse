@@ -15,3 +15,4 @@ type Msg
     | TogglePinIconDropdown
     | TogglePipelinePaused Concourse.PipelineIdentifier Bool
     | GoToRoute Routes.Route
+    | Hover Bool

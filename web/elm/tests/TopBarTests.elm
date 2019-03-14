@@ -1,12 +1,17 @@
 module TopBarTests exposing (all)
 
+import Application.Application as Application
+import Application.Msgs
 import Callback exposing (Callback(..))
 import Concourse
+import DashboardTests exposing (defineHoverBehaviour, iconSelector)
 import Dict
 import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
+import Pipeline.Msgs
 import Routes
+import SubPage.Msgs
 import Subscription exposing (Delivery(..))
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -316,7 +321,12 @@ all =
                 , it "renders play pipeline button" <|
                     Query.find [ id "top-bar-pause-pipeline" ]
                         >> Query.has
-                            [ style [ ( "background-image", "url(/public/images/ic-play-white.svg)" ) ] ]
+                            [ style
+                                [ ( "background-image"
+                                  , "url(/public/images/ic-play-white.svg)"
+                                  )
+                                ]
+                            ]
                 , it "draws almost-white line to the left of pause pipeline button" <|
                     Query.find [ id "top-bar-pause-pipeline" ]
                         >> Query.has
@@ -960,6 +970,79 @@ all =
                         >> Query.count (Expect.equal 0)
                 ]
             ]
+        , defineHoverBehaviour
+            { name = "play pipeline icon"
+            , setup =
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = ""
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { href = ""
+                    , host = ""
+                    , hostname = ""
+                    , protocol = ""
+                    , origin = ""
+                    , port_ = ""
+                    , pathname = "/teams/t/pipelines/p"
+                    , search = ""
+                    , hash = ""
+                    , username = ""
+                    , password = ""
+                    }
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.PipelineFetched <|
+                            Ok
+                                { id = 0
+                                , name = "p"
+                                , paused = True
+                                , public = True
+                                , teamName = "t"
+                                , groups = []
+                                }
+                        )
+                    |> Tuple.first
+            , query =
+                Application.view
+                    >> Query.fromHtml
+                    >> Query.find [ id "top-bar-pause-pipeline" ]
+            , updateFunc =
+                \msg ->
+                    Application.update msg
+                        >> Tuple.first
+            , unhoveredSelector =
+                { description = "faded play button"
+                , selector =
+                    [ style [ ( "opacity", "0.5" ) ] ]
+                        ++ iconSelector
+                            { size = "34px"
+                            , image = "ic-play-white.svg"
+                            }
+                }
+            , hoveredSelector =
+                { description = "white play button"
+                , selector =
+                    [ style [ ( "opacity", "1" ) ] ]
+                        ++ iconSelector
+                            { size = "34px"
+                            , image = "ic-play-white.svg"
+                            }
+                }
+            , mouseEnterMsg =
+                Application.Msgs.SubMsg 1 <|
+                    SubPage.Msgs.PipelineMsg <|
+                        Pipeline.Msgs.FromTopBar <|
+                            Msgs.Hover True
+            , mouseLeaveMsg =
+                Application.Msgs.SubMsg 1 <|
+                    SubPage.Msgs.PipelineMsg <|
+                        Pipeline.Msgs.FromTopBar <|
+                            Msgs.Hover False
+            }
         ]
 
 
