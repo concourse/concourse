@@ -20,7 +20,7 @@ var _ = Describe("Ephemeral workers", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-ew-%d-%d", randomGenerator.Int(), GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-ew-%d", randomGenerator.Int())
 		namespace = releaseName
 
 		deployConcourseChart(releaseName,

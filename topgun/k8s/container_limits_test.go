@@ -12,24 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func testLimits() {
-	buildSession := fly.Start("execute", "-c", "../tasks/tiny.yml")
-	<-buildSession.Exited
-	Expect(buildSession.ExitCode()).To(Equal(0))
-
-	hijackSession := fly.Start(
-		"hijack",
-		"-b", "1",
-		"--", "sh", "-c",
-		"cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes; cat /sys/fs/cgroup/cpu/cpu.shares",
-	)
-	<-hijackSession.Exited
-
-	Expect(hijackSession.ExitCode()).To(Equal(0))
-	Expect(hijackSession).To(gbytes.Say("1073741824\n512"))
-
-}
-
 var _ = Describe("Garden Config", func() {
 	var (
 		proxySession        *gexec.Session
@@ -41,7 +23,7 @@ var _ = Describe("Garden Config", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-cl-%d-%d", randomGenerator.Int(), GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-cl-%d", randomGenerator.Int())
 		namespace = releaseName
 		Run(nil, "kubectl", "create", "namespace", namespace)
 	})
@@ -81,18 +63,36 @@ var _ = Describe("Garden Config", func() {
 		})
 
 		It("returns the configure default container limit", func() {
-			testLimits()
+			buildSession := fly.Start("execute", "-c", "../tasks/tiny.yml")
+			<-buildSession.Exited
+			Expect(buildSession.ExitCode()).To(Equal(0))
+
+			hijackSession := fly.Start(
+				"hijack",
+				"-b", "1",
+				"--", "sh", "-c",
+				"cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes; cat /sys/fs/cgroup/cpu/cpu.shares",
+			)
+			<-hijackSession.Exited
+
+			Expect(hijackSession.ExitCode()).To(Equal(0))
+			Expect(hijackSession).To(gbytes.Say("1073741824\n512"))
 		})
 	})
 
-	XContext("passing a config map location to the worker to be used by gdn", func() {
+	Context("passing a config map location to the worker to be used by gdn", func() {
 		// Context skipped as GKE ubuntu doesn't support container limits.
 		BeforeEach(func() {
 			nodeImage = "ubuntu"
 		})
 
 		It("returns the configure default container limit", func() {
-			testLimits()
+			buildSession := fly.Start("execute", "-c", "../tasks/tiny.yml")
+			<-buildSession.Exited
+			Expect(buildSession.ExitCode()).To(Equal(2))
+
+			Expect(buildSession).To(gbytes.Say("failed to write 1073741824 to memory.memsw.limit_in_bytes"))
+			Expect(buildSession).To(gbytes.Say("permission denied"))
 		})
 	})
 

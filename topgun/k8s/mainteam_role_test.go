@@ -2,6 +2,7 @@ package k8s_test
 
 import (
 	"fmt"
+
 	"github.com/onsi/gomega/gexec"
 
 	. "github.com/concourse/concourse/topgun"
@@ -21,7 +22,7 @@ var _ = Describe("Main team role config", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-mt-%d-%d", randomGenerator.Int(), GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-mt-%d", randomGenerator.Int())
 		namespace = releaseName
 		Run(nil, "kubectl", "create", "namespace", namespace)
 	})

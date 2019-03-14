@@ -22,7 +22,7 @@ var _ = Describe("team external workers", func() {
 	)
 
 	JustBeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-xw-%d-%d", randomGenerator.Int(), GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-xw-%d", randomGenerator.Int())
 		namespace = releaseName
 
 		Run(nil, "kubectl", "create", "namespace", namespace)
@@ -53,7 +53,7 @@ var _ = Describe("team external workers", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace, "service/" + releaseName+"-web", "8080")
+		proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
 
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)

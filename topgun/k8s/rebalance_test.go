@@ -21,7 +21,7 @@ var _ = Describe("Worker Rebalancing", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-wr-%d-%d", randomGenerator.Int(), GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-wr-%d", randomGenerator.Int())
 		namespace = releaseName
 
 		deployConcourseChart(releaseName,

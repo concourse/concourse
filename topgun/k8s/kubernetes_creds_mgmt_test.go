@@ -23,7 +23,7 @@ var _ = Describe("Kubernetes credential management", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-k8s-cm-%d-%d", randomGenerator.Int(), GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-k8s-cm-%d", randomGenerator.Int())
 		namespace = releaseName
 
 		deployConcourseChart(releaseName, "--set=worker.replicas=1")

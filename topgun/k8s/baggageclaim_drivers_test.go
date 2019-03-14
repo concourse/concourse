@@ -2,6 +2,7 @@ package k8s_test
 
 import (
 	"fmt"
+
 	"github.com/onsi/gomega/gexec"
 
 	. "github.com/concourse/concourse/topgun"
@@ -35,10 +36,9 @@ var _ = Describe("Baggageclaim Drivers", func() {
 
 	DescribeTable("across different node images",
 		func(c Case) {
-			releaseName = fmt.Sprintf("topgun-bd-%s-%s-%d-%d",
-				c.Driver, c.NodeImage, randomGenerator.Int(), GinkgoParallelNode())
+			releaseName = fmt.Sprintf("topgun-bd-%s-%s-%d",
+				c.Driver, c.NodeImage, randomGenerator.Int())
 			namespace = releaseName
-
 
 			helmDeployTestFlags := []string{
 				"--set=concourse.web.kubernetes.enabled=false",

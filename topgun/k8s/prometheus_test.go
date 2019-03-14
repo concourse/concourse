@@ -56,7 +56,7 @@ var _ = Describe("Prometheus integration", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-pi-%d-%d", randomGenerator.Int(), GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-pi-%d", randomGenerator.Int())
 		namespace = releaseName
 		prometheusReleaseName = releaseName + "-prom"
 

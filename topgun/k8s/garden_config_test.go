@@ -26,7 +26,7 @@ var _ = Describe("Garden Config", func() {
 	}
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-gc-%d-%d", randomGenerator.Int(), GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-gc-%d", randomGenerator.Int())
 		namespace = releaseName
 		Run(nil, "kubectl", "create", "namespace", namespace)
 	})
