@@ -5,9 +5,6 @@ image_resource:
   type: registry-image
   source: {repository: concourse/unit}
 
-params:
-  DOCKERFILE:
-
 inputs:
 - name: concourse
 - name: dev-image

@@ -11,9 +11,7 @@ services:
       POSTGRES_PASSWORD: dev
 
   web:
-    build:
-      context: .
-      dockerfile: ${DOCKERFILE}
+    build: .
     image: concourse/concourse:local
     volumes:
     - .:/src
@@ -32,9 +30,7 @@ services:
       CONCOURSE_MAIN_TEAM_LOCAL_USER: test
 
   worker:
-    build:
-      context: .
-      dockerfile: ${DOCKERFILE}
+    build: .
     image: concourse/concourse:local
     command: worker
     privileged: true
