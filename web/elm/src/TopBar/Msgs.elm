@@ -1,5 +1,6 @@
 module TopBar.Msgs exposing (Msg(..))
 
+import Concourse
 import Routes
 
 
@@ -12,4 +13,5 @@ type Msg
     | ToggleUserMenu
     | ShowSearchInput
     | TogglePinIconDropdown
+    | TogglePipelinePaused Concourse.PipelineIdentifier Bool
     | GoToRoute Routes.Route

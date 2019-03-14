@@ -111,7 +111,7 @@ type Effect
     | DoCheck Concourse.ResourceIdentifier
     | SetPinComment Concourse.ResourceIdentifier String
     | SendTokenToFly String Int
-    | SendTogglePipelineRequest Dashboard.Models.Pipeline
+    | SendTogglePipelineRequest Concourse.PipelineIdentifier Bool
     | ShowTooltip ( String, String )
     | ShowTooltipHd ( String, String )
     | SendOrderPipelinesRequest String (List Dashboard.Models.Pipeline)
@@ -250,8 +250,8 @@ runEffect effect csrfToken =
             Network.FlyToken.sendTokenToFly authToken flyPort
                 |> Task.attempt TokenSentToFly
 
-        SendTogglePipelineRequest pipeline ->
-            Network.Pipeline.togglePause pipeline.status pipeline.teamName pipeline.name csrfToken
+        SendTogglePipelineRequest pipelineIdentifier isPaused ->
+            Network.Pipeline.togglePause isPaused pipelineIdentifier.teamName pipelineIdentifier.pipelineName csrfToken
                 |> Task.attempt (always EmptyCallback)
 
         ShowTooltip ( teamName, pipelineName ) ->

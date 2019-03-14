@@ -356,6 +356,9 @@ update msg ( model, effects ) =
         TogglePinIconDropdown ->
             ( { model | isPinMenuExpanded = not model.isPinMenuExpanded }, effects )
 
+        TogglePipelinePaused pipelineIdentifier isPaused ->
+            ( model, effects ++ [ SendTogglePipelineRequest pipelineIdentifier isPaused ] )
+
         FocusMsg ->
             let
                 newModel =
@@ -452,8 +455,25 @@ view userState pipelineState model =
         (viewConcourseLogo
             ++ viewMiddleSection model
             ++ viewPin pipelineState model
+            ++ viewPauseToggle pipelineState
             ++ viewLogin userState model (isPaused pipelineState)
         )
+
+
+viewPauseToggle : PipelineState -> List (Html Msg)
+viewPauseToggle pipelineState =
+    case pipelineState of
+        HasPipeline { isPaused, pipeline } ->
+            [ Html.a
+                [ id "top-bar-pause-pipeline"
+                , style (Styles.pausePipelineButton isPaused)
+                , onClick <| TogglePipelinePaused pipeline isPaused
+                ]
+                []
+            ]
+
+        _ ->
+            []
 
 
 viewLogin : UserState -> Model r -> Bool -> List (Html Msg)

@@ -234,8 +234,8 @@ handleDeliveryWithoutTopBar delivery ( model, effects ) =
 update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
 update msg ( model, effects ) =
     case msg of
-        TogglePipelinePaused pipeline ->
-            ( model, effects ++ [ SendTogglePipelineRequest pipeline ] )
+        TogglePipelinePaused pipelineIdentifier pipelineStatus ->
+            ( model, effects ++ [ SendTogglePipelineRequest pipelineIdentifier (pipelineStatus == PipelineStatus.PipelineStatusPaused) ] )
 
         DragStart teamName index ->
             let
