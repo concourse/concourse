@@ -45,5 +45,8 @@ fly -t local watch -j "test-pipeline/test-job" \
   | grep "succeeded"
 
 # test that we can check our resources
-fly -t local check-resource -r "test-pipeline/test-resource" \
-  | grep "checked"
+until fly -t local check-resource -r "test-pipeline/test-resource" \
+  | grep "checked"; do
+  echo "waiting for old check conainer expired..."
+  sleep 2
+done
