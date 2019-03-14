@@ -23,7 +23,7 @@ var _ = Describe("Kubernetes credential management", func() {
 		extraArgs    []string
 	)
 
-	BeforeEach(func(){
+	BeforeEach(func() {
 		releaseName = fmt.Sprintf("topgun-k8s-cm-%d-%d", GinkgoRandomSeed(), GinkgoParallelNode())
 		namespace = releaseName
 	})
@@ -35,7 +35,7 @@ var _ = Describe("Kubernetes credential management", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace, "service/" + releaseName+"-web", "8080")
+		proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
 
 		By("Logging in")
 		fly.Login(username, password, atcEndpoint)
@@ -92,60 +92,45 @@ var _ = Describe("Kubernetes credential management", func() {
 			fly.Run("unpause-pipeline", "-p", "pipeline")
 		})
 
-		It("Gets credentials set by consuming k8s secrets", func() {
-			session := fly.Start("trigger-job", "-j", "pipeline/unit", "-w")
-			Wait(session)
+		Context("using the default namespace created by the chart", func() {
+			It("Gets credentials set by consuming k8s secrets", func() {
+				session := fly.Start("trigger-job", "-j", "pipeline/unit", "-w")
+				Wait(session)
 
-			Expect(string(session.Out.Contents())).To(ContainSubstring("bar"))
-			Expect(string(session.Out.Contents())).To(ContainSubstring("zaz"))
-		})
-	})
-
-	Context("consuming creds from pre-created namespace for a team", func() {
-		BeforeEach(func() {
-			Run(nil, "kubectl", "create", "namespace", releaseName+"-main")
-			extraArgs = []string{
-				"--set=concourse.web.kubernetes.createTeamNamespaces=false",
-			}
-		})
-		JustBeforeEach(func() {
-			// ((foo)) --> bar
-			createCredentialSecret(releaseName, "foo", "main", map[string]string{"value": "bar"})
-
-			// ((caz.baz)) --> zaz
-			createCredentialSecret(releaseName, "caz", "main", map[string]string{"baz": "zaz"})
-
-			fly.Run("set-pipeline", "-n", "-c", "../pipelines/minimal-credential-management.yml", "-p", "pipeline")
-			session := fly.Start("get-pipeline", "-p", "pipeline")
-			Wait(session)
-
-			Expect(string(session.Out.Contents())).ToNot(ContainSubstring("bar"))
-			Expect(string(session.Out.Contents())).ToNot(ContainSubstring("zaz"))
-
-			fly.Run("unpause-pipeline", "-p", "pipeline")
+				Expect(string(session.Out.Contents())).To(ContainSubstring("bar"))
+				Expect(string(session.Out.Contents())).To(ContainSubstring("zaz"))
+			})
 		})
 
-		It("Gets credentials set by consuming k8s secrets", func() {
-			session := fly.Start("trigger-job", "-j", "pipeline/unit", "-w")
-			Wait(session)
+		Context("using a user-provided namespace", func() {
+			BeforeEach(func() {
+				Run(nil, "kubectl", "create", "namespace", releaseName+"-main")
+				extraArgs = []string{
+					"--set=concourse.web.kubernetes.createTeamNamespaces=false",
+				}
+			})
 
-			Expect(string(session.Out.Contents())).To(ContainSubstring("bar"))
-			Expect(string(session.Out.Contents())).To(ContainSubstring("zaz"))
-		})
+			It("Gets credentials set by consuming k8s secrets", func() {
+				session := fly.Start("trigger-job", "-j", "pipeline/unit", "-w")
+				Wait(session)
 
-		AfterEach(func(){
-			Run(nil, "kubectl", "delete", "namespace", releaseName+"-main", "--wait=false")
+				Expect(string(session.Out.Contents())).To(ContainSubstring("bar"))
+				Expect(string(session.Out.Contents())).To(ContainSubstring("zaz"))
+			})
+
+			AfterEach(func() {
+				Run(nil, "kubectl", "delete", "namespace", releaseName+"-main", "--wait=false")
+			})
 		})
 	})
 
 	AfterEach(func() {
 		helmDestroy(releaseName)
 		Wait(proxySession.Interrupt())
-		Run(nil, "kubectl", "delete", "namespace", namespace, "--wait=false")
+		Run(nil, "kubectl", "delete", "namespace", namespace)
 	})
 
 })
-
 
 func createCredentialSecret(releaseName, secretName, team string, kv map[string]string) {
 	args := []string{
