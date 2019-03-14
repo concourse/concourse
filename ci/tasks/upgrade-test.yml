@@ -12,6 +12,8 @@ inputs:
 - name: concourse
 - name: dev-image
   optional: true
+- name: concourse-image
+  optional: true
 - name: postgres-image
   optional: true
 

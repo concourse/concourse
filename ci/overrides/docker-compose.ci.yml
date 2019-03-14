@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  web:
+    image: concourse/dev:latest
+    volumes: ["./keys:/concourse-keys"]
+
+  worker:
+    image: concourse/dev:latest
+    volumes: ["./keys:/concourse-keys"]
+    environment:
+      # configure a network range that doesn't overlap with the outer worker
+      CONCOURSE_GARDEN_NETWORK_POOL: '10.224.0.0/16'
+
+      # prevent worker from dropping out if the outer worker is overloaded
+      CONCOURSE_EPHEMERAL: 'false'

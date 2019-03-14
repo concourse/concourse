@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e -u -x
+set -e -u
 
 export PIPELINE_NAME=test-pipeline
 
@@ -11,16 +11,29 @@ source concourse/ci/tasks/scripts/docker-helpers.sh
 start_docker
 
 [ -d dev-image ] && docker load -i dev-image/image.tar
+[ -d concourse-image ] && docker load -i concourse-image/image.tar
 [ -d postgres-image ] && docker load -i postgres-image/image.tar
 
 cd concourse
 
+# generate keys for the cluster
+./ci/tasks/scripts/generate-keys
+
 # start with latest release and set up
-docker-compose -f docker-compose-latest.yml up -d
+docker-compose \
+  -f docker-compose.yml \
+  -f ci/overrides/docker-compose.ci.yml \
+  -f ci/overrides/docker-compose.latest.yml \
+  up --no-build -d
+
 ./ci/tasks/scripts/create-upgrade-downgrade-pipeline
 
 # upgrade and verify
-docker-compose up --build --remove-orphans -d
+docker-compose \
+  -f docker-compose.yml \
+  -f ci/overrides/docker-compose.ci.yml \
+  up --no-build -d
+
 ./ci/tasks/scripts/verify-upgrade-downgrade-pipeline
 
 # run smoke tests

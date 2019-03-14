@@ -249,6 +249,8 @@ jobs:
     - get: dev-image
       passed: [dev-image]
       params: {format: oci}
+    - get: concourse-image
+      params: {format: oci}
     - get: postgres-image
       params: {format: oci}
     - get: unit-image
@@ -269,6 +271,8 @@ jobs:
       trigger: true
     - get: dev-image
       passed: [dev-image]
+      params: {format: oci}
+    - get: concourse-image
       params: {format: oci}
     - get: postgres-image
       params: {format: oci}
