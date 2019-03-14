@@ -7,7 +7,7 @@ export GOPATH=$PWD/gopath
 export PATH=$GOPATH/bin:$PATH
 
 eval $(ssh-agent)
-ssh-add <(echo "$BOSH_KEY")
+ssh-add <(echo "$BOSH_SSH_KEY")
 
 export CONCOURSE_RELEASE_VERSION="$(cat concourse-release/version)"
 export BPM_RELEASE_VERSION="$(cat bpm-release/version)"
